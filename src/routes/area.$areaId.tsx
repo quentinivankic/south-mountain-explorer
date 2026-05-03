@@ -39,8 +39,11 @@ export const Route = createFileRoute("/area/$areaId")({
   errorComponent: ({ error }) => (
     <div className="min-h-screen flex items-center justify-center p-6 text-center">
       <div>
-        <h1 className="text-xl font-bold">Something went wrong</h1>
-        <p className="text-muted-foreground text-sm mt-2">{error.message}</p>
+        <h1 className="text-xl font-bold">Unable to load this area</h1>
+        <p className="text-muted-foreground text-sm mt-2">Please try again.</p>
+        {import.meta.env.DEV && (
+          <pre className="mt-3 text-xs text-left text-muted-foreground whitespace-pre-wrap">{error.message}</pre>
+        )}
       </div>
     </div>
   ),

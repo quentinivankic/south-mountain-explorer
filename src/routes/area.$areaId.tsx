@@ -167,6 +167,20 @@ function AreaPage() {
 
       {/* List */}
       <main className="flex-1 px-4 pt-5 pb-12">
+        {!userId && (
+          <Link
+            to="/auth"
+            search={{ redirect: `/area/${area.id}` }}
+            className="mb-4 block rounded-2xl border border-border/60 bg-card p-3 text-sm text-foreground"
+          >
+            <div className="font-semibold">
+              {Math.max(0, GUEST_LIMIT - done)} free trail{GUEST_LIMIT - done === 1 ? "" : "s"} left
+            </div>
+            <div className="text-muted-foreground text-xs mt-0.5">
+              Sign in to save unlimited trails across devices →
+            </div>
+          </Link>
+        )}
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">Trails</h2>
           <div className="flex gap-1 text-xs">

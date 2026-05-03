@@ -118,9 +118,9 @@ function buildTrails(json) {
   for (const [name, { tags, segments }] of byName) {
     segments.sort((a, b) => distMi(b) - distMi(a));
     const totalMi = segments.reduce((s, c) => s + distMi(c), 0);
-    // Drop noise: keep named trails ≥ 0.3 mi, unnamed ≥ 0.8 mi.
+    // Drop only true noise: keep all named trails, unnamed ≥ 0.25 mi.
     const isUnnamed = /^Unnamed\s/i.test(name);
-    if (isUnnamed ? totalMi < 0.8 : totalMi < 0.3) continue;
+    if (isUnnamed && totalMi < 0.25) continue;
     trails.push({
       id: slug(name) + "-" + (tags?.["@id"] || trails.length),
       name,

@@ -1,24 +1,29 @@
-import { lazy, Suspense, useEffect, useState } from "react";
-import type { ComponentProps } from "react";
-import type { TrailMap as TrailMapType } from "./TrailMap";
+import { ClientOnly } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
+import type { Trail } from "@/data/trails";
 
-const TrailMapLazy = lazy(() =>
-  import("./TrailMap").then((m) => ({ default: m.TrailMap })),
-);
+const TrailMapLazy = lazy(async () => {
+  const m = await import("./TrailMap");
+  return { default: m.TrailMap };
+});
 
-type Props = ComponentProps<typeof TrailMapType>;
+interface Props {
+  center: [number, number];
+  zoom: number;
+  trails: Trail[];
+  completedIds: Set<string>;
+  highlightedId?: string | null;
+  onSelect?: (id: string) => void;
+  className?: string;
+}
 
 export function TrailMapClient(props: Props) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) {
-    return (
-      <div className="h-full w-full bg-muted animate-pulse" />
-    );
-  }
+  const fallback = <div className="h-full w-full bg-muted animate-pulse" />;
   return (
-    <Suspense fallback={<div className="h-full w-full bg-muted animate-pulse" />}>
-      <TrailMapLazy {...props} />
-    </Suspense>
+    <ClientOnly fallback={fallback}>
+      <Suspense fallback={fallback}>
+        <TrailMapLazy {...props} />
+      </Suspense>
+    </ClientOnly>
   );
 }

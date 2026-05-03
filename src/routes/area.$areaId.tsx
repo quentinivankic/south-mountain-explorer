@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { ArrowLeft, Check, RotateCcw } from "lucide-react";
 import { getArea, type Area, type Difficulty } from "@/data/trails";
 import { resetArea, toggleTrail, useAreaProgress } from "@/lib/progress";
-import { TrailMapClient } from "@/components/TrailMap.client";
+import { TrailMapClient } from "@/components/TrailMapClient";
 
 export const Route = createFileRoute("/area/$areaId")({
   loader: ({ params }) => {

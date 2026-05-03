@@ -3,6 +3,7 @@ import { areas } from "@/data/trails";
 import { Mountain, MapPin, ChevronRight, LogOut, LogIn } from "lucide-react";
 import { useAllProgress, useAuthState } from "@/lib/progress";
 import { supabase } from "@/integrations/supabase/client";
+import { SuggestArea } from "@/components/SuggestArea";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -74,12 +75,9 @@ function Home() {
         <h2 className="sr-only">Hiking areas</h2>
         {areas.map((area) => {
           const done = Object.keys(progress[area.id] ?? {}).length;
-          const total = area.trails.length;
+          const total = area.trailCount;
           const pct = total ? Math.round((done / total) * 100) : 0;
-          const milesDone = area.trails
-            .filter((t) => progress[area.id]?.[t.id])
-            .reduce((s, t) => s + t.distanceMi, 0);
-          const totalMi = area.trails.reduce((s, t) => s + t.distanceMi, 0);
+          const totalMi = area.totalMi;
           return (
             <Link
               key={area.id}
@@ -120,16 +118,15 @@ function Home() {
                   />
                 </div>
                 <div className="text-xs text-muted-foreground tabular-nums">
-                  {milesDone.toFixed(1)} of {totalMi.toFixed(1)} miles complete
+                  {totalMi.toFixed(1)} miles total
                 </div>
               </div>
             </Link>
           );
         })}
 
-        <p className="pt-4 text-center text-xs text-muted-foreground">
-          More areas coming soon · Camelback · Piestewa Peak · McDowell Sonoran
-        </p>
+        <SuggestArea />
+
       </main>
     </div>
   );

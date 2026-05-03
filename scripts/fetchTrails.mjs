@@ -150,9 +150,8 @@ function buildTrails(json) {
   for (const [name, { tags, segments }] of byName) {
     segments.sort((a, b) => distMi(b) - distMi(a));
     const totalMi = segments.reduce((s, c) => s + distMi(c), 0);
-    // Drop tiny unnamed connectors even if they touch a named trail.
-    const isUnnamed = /^Unnamed\s/i.test(name);
-    if (isUnnamed && totalMi < 0.15) continue;
+    // Drop anything under 0.3 mi — too short to count as a real trail.
+    if (totalMi < 0.3) continue;
     trails.push({
       id: slug(name) + "-" + (tags?.["@id"] || trails.length),
       name,

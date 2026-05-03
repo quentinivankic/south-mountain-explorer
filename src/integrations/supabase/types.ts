@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      area_favorites: {
+        Row: {
+          area_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       area_suggestions: {
         Row: {
           created_at: string

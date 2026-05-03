@@ -9,8 +9,8 @@
       -112.04
     ],
     "zoom": 12,
-    "trailCount": 58,
-    "totalMi": 108.5
+    "trailCount": 103,
+    "totalMi": 119.4
   },
   {
     "id": "camelback",
@@ -22,8 +22,8 @@
       -111.9626
     ],
     "zoom": 14,
-    "trailCount": 5,
-    "totalMi": 3.9
+    "trailCount": 26,
+    "totalMi": 12.4
   },
   {
     "id": "piestewa-peak",
@@ -35,8 +35,8 @@
       -112.0211
     ],
     "zoom": 13,
-    "trailCount": 27,
-    "totalMi": 35.7
+    "trailCount": 130,
+    "totalMi": 74.9
   },
   {
     "id": "mcdowell-sonoran",
@@ -48,8 +48,8 @@
       -111.83
     ],
     "zoom": 11,
-    "trailCount": 141,
-    "totalMi": 242.8
+    "trailCount": 261,
+    "totalMi": 277.9
   },
   {
     "id": "sedona-red-rocks",
@@ -61,8 +61,8 @@
       -111.761
     ],
     "zoom": 12,
-    "trailCount": 238,
-    "totalMi": 361.5
+    "trailCount": 481,
+    "totalMi": 441.7
   },
   {
     "id": "griffith-park",
@@ -74,8 +74,8 @@
       -118.2942
     ],
     "zoom": 13,
-    "trailCount": 42,
-    "totalMi": 38.6
+    "trailCount": 127,
+    "totalMi": 71.3
   },
   {
     "id": "runyon-canyon",
@@ -87,8 +87,8 @@
       -118.3499
     ],
     "zoom": 15,
-    "trailCount": 5,
-    "totalMi": 2.5
+    "trailCount": 22,
+    "totalMi": 8
   },
   {
     "id": "mt-tam",
@@ -100,8 +100,8 @@
       -122.5965
     ],
     "zoom": 12,
-    "trailCount": 33,
-    "totalMi": 56
+    "trailCount": 60,
+    "totalMi": 63.7
   },
   {
     "id": "marin-headlands",
@@ -113,8 +113,8 @@
       -122.5018
     ],
     "zoom": 13,
-    "trailCount": 30,
-    "totalMi": 37.1
+    "trailCount": 72,
+    "totalMi": 48.6
   },
   {
     "id": "mission-peak",
@@ -126,8 +126,8 @@
       -121.88
     ],
     "zoom": 14,
-    "trailCount": 18,
-    "totalMi": 21.8
+    "trailCount": 28,
+    "totalMi": 26.6
   },
   {
     "id": "rocky-mountain-np",
@@ -139,8 +139,8 @@
       -105.6836
     ],
     "zoom": 10,
-    "trailCount": 176,
-    "totalMi": 402.7
+    "trailCount": 334,
+    "totalMi": 449.7
   },
   {
     "id": "boulder-flatirons",
@@ -152,8 +152,8 @@
       -105.282
     ],
     "zoom": 13,
-    "trailCount": 82,
-    "totalMi": 79.3
+    "trailCount": 261,
+    "totalMi": 127
   },
   {
     "id": "zion",
@@ -165,8 +165,8 @@
       -113.0263
     ],
     "zoom": 11,
-    "trailCount": 54,
-    "totalMi": 135.5
+    "trailCount": 81,
+    "totalMi": 143.3
   },
   {
     "id": "arches",
@@ -178,8 +178,8 @@
       -109.5925
     ],
     "zoom": 11,
-    "trailCount": 21,
-    "totalMi": 47
+    "trailCount": 49,
+    "totalMi": 52.3
   },
   {
     "id": "yosemite-valley",
@@ -191,8 +191,8 @@
       -119.5936
     ],
     "zoom": 12,
-    "trailCount": 38,
-    "totalMi": 130.8
+    "trailCount": 96,
+    "totalMi": 146.7
   },
   {
     "id": "acadia",
@@ -204,8 +204,8 @@
       -68.2733
     ],
     "zoom": 11,
-    "trailCount": 147,
-    "totalMi": 199.6
+    "trailCount": 185,
+    "totalMi": 207.3
   },
   {
     "id": "shenandoah",
@@ -217,8 +217,8 @@
       -78.3502
     ],
     "zoom": 10,
-    "trailCount": 210,
-    "totalMi": 528.8
+    "trailCount": 278,
+    "totalMi": 547.1
   },
   {
     "id": "great-smoky",
@@ -230,8 +230,8 @@
       -83.507
     ],
     "zoom": 10,
-    "trailCount": 205,
-    "totalMi": 843.8
+    "trailCount": 267,
+    "totalMi": 858.2
   },
   {
     "id": "mt-rainier",
@@ -243,8 +243,8 @@
       -121.7603
     ],
     "zoom": 10,
-    "trailCount": 104,
-    "totalMi": 330.8
+    "trailCount": 176,
+    "totalMi": 349.4
   },
   {
     "id": "discovery-park",
@@ -256,7 +256,7 @@
       -122.4112
     ],
     "zoom": 14,
-    "trailCount": 4,
-    "totalMi": 4.4
+    "trailCount": 28,
+    "totalMi": 10.5
   }
 ]

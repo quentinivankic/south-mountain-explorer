@@ -258,5 +258,200 @@
     "zoom": 14,
     "trailCount": 28,
     "totalMi": 10.5
+  },
+  {
+    "id": "fredericia-volde",
+    "name": "Fredericia Volde",
+    "subtitle": "Fredericia, Denmark",
+    "location": "Fredericia ramparts & old town",
+    "center": [
+      55.5657,
+      9.7536
+    ],
+    "zoom": 15,
+    "trailCount": 20,
+    "totalMi": 7.7
+  },
+  {
+    "id": "trelde-naes",
+    "name": "Trelde Næs",
+    "subtitle": "Fredericia, Denmark",
+    "location": "Trelde Næs peninsula & forest",
+    "center": [
+      55.624,
+      9.829
+    ],
+    "zoom": 13,
+    "trailCount": 34,
+    "totalMi": 20.1
+  },
+  {
+    "id": "hannerup-skov",
+    "name": "Hannerup Skov",
+    "subtitle": "Fredericia, Denmark",
+    "location": "Hannerup forest & Madsby",
+    "center": [
+      55.546,
+      9.732
+    ],
+    "zoom": 14,
+    "trailCount": 9,
+    "totalMi": 2.7
+  },
+  {
+    "id": "hindsgavl",
+    "name": "Hindsgavl Dyrehave",
+    "subtitle": "Middelfart, Denmark",
+    "location": "Hindsgavl deer park (across Lillebælt)",
+    "center": [
+      55.5067,
+      9.7156
+    ],
+    "zoom": 14,
+    "trailCount": 43,
+    "totalMi": 21.7
+  },
+  {
+    "id": "mols-bjerge",
+    "name": "Mols Bjerge",
+    "subtitle": "Djursland, Denmark",
+    "location": "Mols Bjerge National Park",
+    "center": [
+      56.225,
+      10.55
+    ],
+    "zoom": 11,
+    "trailCount": 545,
+    "totalMi": 248.3
+  },
+  {
+    "id": "thy",
+    "name": "Thy National Park",
+    "subtitle": "Northwest Jutland, Denmark",
+    "location": "Thy National Park",
+    "center": [
+      57,
+      8.55
+    ],
+    "zoom": 10,
+    "trailCount": 612,
+    "totalMi": 346.8
+  },
+  {
+    "id": "rold-skov",
+    "name": "Rold Skov & Rebild",
+    "subtitle": "Himmerland, Denmark",
+    "location": "Rold Skov forest & Rebild Bakker",
+    "center": [
+      56.83,
+      9.85
+    ],
+    "zoom": 12,
+    "trailCount": 399,
+    "totalMi": 221.6
+  },
+  {
+    "id": "mons-klint",
+    "name": "Møns Klint",
+    "subtitle": "Møn, Denmark",
+    "location": "Møns Klint cliffs & Klinteskoven",
+    "center": [
+      54.967,
+      12.55
+    ],
+    "zoom": 13,
+    "trailCount": 66,
+    "totalMi": 32.4
+  },
+  {
+    "id": "dyrehaven",
+    "name": "Dyrehaven",
+    "subtitle": "Copenhagen, Denmark",
+    "location": "Jægersborg Dyrehave",
+    "center": [
+      55.795,
+      12.575
+    ],
+    "zoom": 13,
+    "trailCount": 126,
+    "totalMi": 63.1
+  },
+  {
+    "id": "kongernes-nordsjaelland",
+    "name": "Kongernes Nordsjælland",
+    "subtitle": "North Zealand, Denmark",
+    "location": "Gribskov, Esrum Sø & vicinity",
+    "center": [
+      55.98,
+      12.28
+    ],
+    "zoom": 11,
+    "trailCount": 795,
+    "totalMi": 416.6
+  },
+  {
+    "id": "skjoldungernes-land",
+    "name": "Skjoldungernes Land",
+    "subtitle": "Roskilde, Denmark",
+    "location": "Skjoldungernes Land National Park",
+    "center": [
+      55.65,
+      11.95
+    ],
+    "zoom": 11,
+    "trailCount": 425,
+    "totalMi": 210.2
+  },
+  {
+    "id": "soehoejlandet",
+    "name": "Søhøjlandet",
+    "subtitle": "Silkeborg, Denmark",
+    "location": "Silkeborg lakes & Himmelbjerget",
+    "center": [
+      56.13,
+      9.62
+    ],
+    "zoom": 11,
+    "trailCount": 1044,
+    "totalMi": 464.4
+  },
+  {
+    "id": "hammeren-bornholm",
+    "name": "Hammeren",
+    "subtitle": "Bornholm, Denmark",
+    "location": "Hammeren & Hammershus",
+    "center": [
+      55.295,
+      14.77
+    ],
+    "zoom": 14,
+    "trailCount": 21,
+    "totalMi": 8.3
+  },
+  {
+    "id": "paradisbakkerne",
+    "name": "Paradisbakkerne",
+    "subtitle": "Bornholm, Denmark",
+    "location": "Paradisbakkerne hills",
+    "center": [
+      55.106,
+      15.073
+    ],
+    "zoom": 13,
+    "trailCount": 38,
+    "totalMi": 16.6
+  },
+  {
+    "id": "raabjerg-skagen",
+    "name": "Råbjerg Mile & Skagen",
+    "subtitle": "North Jutland, Denmark",
+    "location": "Råbjerg Mile dunes & Skagen Klitplantage",
+    "center": [
+      57.65,
+      10.4
+    ],
+    "zoom": 11,
+    "trailCount": 370,
+    "totalMi": 192.4
   }
 ]

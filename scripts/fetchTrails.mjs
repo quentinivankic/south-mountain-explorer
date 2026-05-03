@@ -1,36 +1,41 @@
-// Fetch all trails inside South Mountain Park & Preserve from OpenStreetMap.
-// Usage: bun scripts/fetchTrails.mjs
-import { writeFileSync } from "node:fs";
+// Fetch trails for every area in scripts/areas.json from OpenStreetMap.
+// Writes:
+//   src/data/areas/index.json           — lightweight metadata + summary
+//   src/data/areas/<areaId>.json        — per-area trail geometry (lazy-loaded)
+// Usage: bun scripts/fetchTrails.mjs           # all areas
+//        bun scripts/fetchTrails.mjs <areaId>  # one area
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 
-const QUERY = `
-[out:json][timeout:60];
-// South Mountain Park & Preserve boundary
-relation["name"="South Mountain Park and Preserve"];
-map_to_area->.smp;
-(
-  way["highway"~"^(path|footway|track|bridleway)$"](area.smp);
-);
-out tags geom;
-`;
+const OUT_DIR = "src/data/areas";
+const INDEX = join(OUT_DIR, "index.json");
+mkdirSync(OUT_DIR, { recursive: true });
+const areas = JSON.parse(readFileSync("scripts/areas.json", "utf8"));
+const onlyId = process.argv[2];
+const targets = onlyId ? areas.filter((a) => a.id === onlyId) : areas;
+if (targets.length === 0) {
+  console.error(`No matching areas`);
+  process.exit(1);
+}
 
-const res = await fetch("https://overpass-api.de/api/interpreter", {
-  method: "POST",
-  headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "summit-app/1.0" },
-  body: "data=" + encodeURIComponent(QUERY),
-});
-if (!res.ok) throw new Error(`Overpass ${res.status}`);
-const json = await res.json();
+const HIGHWAY = `["highway"~"^(path|footway|track|bridleway)$"]`;
 
-const ways = json.elements.filter((e) => e.type === "way" && e.geometry?.length > 1);
-console.error(`fetched ${ways.length} ways`);
-
-// Group by name so multi-segment trails become one entry
-const byName = new Map();
-for (const w of ways) {
-  const name = w.tags?.name?.trim() || `Unnamed ${w.id}`;
-  const coords = w.geometry.map((p) => [p.lat, p.lon]);
-  if (!byName.has(name)) byName.set(name, { tags: w.tags, segments: [] });
-  byName.get(name).segments.push(coords);
+function buildQuery(area) {
+  if (area.osm.bbox) {
+    const [s, w, n, e] = area.osm.bbox;
+    return `[out:json][timeout:90];
+(way${HIGHWAY}(${s},${w},${n},${e}););
+out tags geom;`;
+  }
+  if (area.osm.relation) {
+    const name = area.osm.relation.replace(/"/g, '\\"');
+    return `[out:json][timeout:90];
+relation["name"="${name}"];
+map_to_area->.a;
+(way${HIGHWAY}(area.a););
+out tags geom;`;
+  }
+  throw new Error(`area ${area.id} missing osm.bbox or osm.relation`);
 }
 
 function distMi(coords) {
@@ -68,24 +73,108 @@ function slug(s) {
     .slice(0, 60);
 }
 
-const trails = [];
-for (const [name, { tags, segments }] of byName) {
-  // pick longest segment as the canonical polyline (keeps map clean)
-  segments.sort((a, b) => distMi(b) - distMi(a));
-  const totalMi = segments.reduce((s, c) => s + distMi(c), 0);
-  if (totalMi < 0.05) continue;
-  trails.push({
-    id: slug(name) + "-" + (tags?.["@id"] || trails.length),
-    name,
-    distanceMi: Number(totalMi.toFixed(2)),
-    difficulty: difficulty(tags, totalMi),
-    segments,
-  });
+async function fetchArea(area) {
+  const query = buildQuery(area);
+  // Try a couple of mirrors for resilience.
+  const endpoints = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+  ];
+  let lastErr;
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "summit-app/1.0",
+        },
+        body: "data=" + encodeURIComponent(query),
+      });
+      if (!res.ok) {
+        lastErr = new Error(`Overpass ${res.status} from ${url}`);
+        continue;
+      }
+      return await res.json();
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr;
 }
 
-trails.sort((a, b) => b.distanceMi - a.distanceMi);
-console.error(`writing ${trails.length} trails`);
-writeFileSync(
-  "src/data/southMountainTrails.json",
-  JSON.stringify(trails, null, 2),
-);
+function buildTrails(json) {
+  const ways = (json.elements || []).filter(
+    (e) => e.type === "way" && e.geometry?.length > 1,
+  );
+  const byName = new Map();
+  for (const w of ways) {
+    const name = w.tags?.name?.trim() || `Unnamed ${w.id}`;
+    const coords = w.geometry.map((p) => [p.lat, p.lon]);
+    if (!byName.has(name)) byName.set(name, { tags: w.tags, segments: [] });
+    byName.get(name).segments.push(coords);
+  }
+  const trails = [];
+  for (const [name, { tags, segments }] of byName) {
+    segments.sort((a, b) => distMi(b) - distMi(a));
+    const totalMi = segments.reduce((s, c) => s + distMi(c), 0);
+    // Drop noise: keep named trails ≥ 0.3 mi, unnamed ≥ 0.8 mi.
+    const isUnnamed = /^Unnamed\s/i.test(name);
+    if (isUnnamed ? totalMi < 0.8 : totalMi < 0.3) continue;
+    trails.push({
+      id: slug(name) + "-" + (tags?.["@id"] || trails.length),
+      name,
+      distanceMi: Number(totalMi.toFixed(2)),
+      difficulty: difficulty(tags, totalMi),
+      // Keep only the longest segment to drastically shrink payload.
+      segments: [
+        segments[0].map(([la, lo]) => [
+          Number(la.toFixed(5)),
+          Number(lo.toFixed(5)),
+        ]),
+      ],
+    });
+  }
+  trails.sort((a, b) => b.distanceMi - a.distanceMi);
+  return trails;
+}
+
+for (const area of targets) {
+  process.stderr.write(`→ ${area.id} ... `);
+  try {
+    const json = await fetchArea(area);
+    const trails = buildTrails(json);
+    const { osm: _omit, ...meta } = area;
+    writeFileSync(
+      join(OUT_DIR, `${area.id}.json`),
+      JSON.stringify({ ...meta, trails }),
+    );
+    process.stderr.write(`${trails.length} trails\n`);
+  } catch (e) {
+    process.stderr.write(`FAILED (${e.message})\n`);
+    const path = join(OUT_DIR, `${area.id}.json`);
+    if (!existsSync(path)) {
+      const { osm: _omit, ...meta } = area;
+      writeFileSync(path, JSON.stringify({ ...meta, trails: [] }));
+    }
+  }
+  if (targets.length > 1) await new Promise((r) => setTimeout(r, 1500));
+}
+
+// Rebuild lightweight index from whatever per-area files exist.
+const index = [];
+for (const area of areas) {
+  const path = join(OUT_DIR, `${area.id}.json`);
+  if (!existsSync(path)) continue;
+  const data = JSON.parse(readFileSync(path, "utf8"));
+  const totalMi = data.trails.reduce((s, t) => s + t.distanceMi, 0);
+  const { osm: _omit, ...meta } = area;
+  index.push({
+    ...meta,
+    trailCount: data.trails.length,
+    totalMi: Number(totalMi.toFixed(1)),
+  });
+}
+writeFileSync(INDEX, JSON.stringify(index, null, 2));
+console.error(`wrote index (${index.length} areas)`);
+

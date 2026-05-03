@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Check, RotateCcw } from "lucide-react";
-import { getArea, type Difficulty } from "@/data/trails";
+import { getArea, type Area, type Difficulty } from "@/data/trails";
 import { resetArea, toggleTrail, useAreaProgress } from "@/lib/progress";
 import { TrailMapClient } from "@/components/TrailMap.client";
 
@@ -49,7 +49,7 @@ const diffStyles: Record<Difficulty, string> = {
 };
 
 function AreaPage() {
-  const { area } = Route.useLoaderData();
+  const { area } = Route.useLoaderData() as { area: Area };
   const progress = useAreaProgress(area.id);
   const [highlighted, setHighlighted] = useState<string | null>(null);
   const [sort, setSort] = useState<"name" | "distance" | "difficulty">("distance");

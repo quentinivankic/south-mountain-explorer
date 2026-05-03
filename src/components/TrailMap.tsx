@@ -17,7 +17,7 @@ interface Props {
 function FitBounds({ trails }: { trails: Trail[] }) {
   const map = useMap();
   useEffect(() => {
-    const all = trails.flatMap((t) => t.coords);
+    const all = trails.flatMap((t) => t.segments.flat());
     if (all.length < 2) return;
     const bounds = L.latLngBounds(all.map(([la, lo]) => L.latLng(la, lo)));
     map.fitBounds(bounds, { padding: [24, 24] });
@@ -57,7 +57,7 @@ export function TrailMap({
         return (
           <Polyline
             key={t.id}
-            positions={t.coords}
+            positions={t.segments}
             pathOptions={{
               color: done
                 ? "oklch(0.5 0.09 145)"

@@ -79,7 +79,7 @@ for (const [name, { tags, segments }] of byName) {
     name,
     distanceMi: Number(totalMi.toFixed(2)),
     difficulty: difficulty(tags, totalMi),
-    coords: segments[0],
+    segments,
   });
 }
 

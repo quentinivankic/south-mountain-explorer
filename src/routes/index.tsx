@@ -70,7 +70,7 @@ function Home() {
       </header>
 
       {/* Areas */}
-      <main className="px-5 -mt-8 pb-24 space-y-4">
+      <main className="px-5 -mt-4 pb-24 space-y-4">
         <h2 className="sr-only">Hiking areas</h2>
         {areas.map((area) => {
           const done = Object.keys(progress[area.id] ?? {}).length;

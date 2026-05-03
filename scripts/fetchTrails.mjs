@@ -15,7 +15,7 @@ out tags geom;
 
 const res = await fetch("https://overpass-api.de/api/interpreter", {
   method: "POST",
-  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "summit-app/1.0" },
   body: "data=" + encodeURIComponent(QUERY),
 });
 if (!res.ok) throw new Error(`Overpass ${res.status}`);

@@ -9,8 +9,8 @@
       -112.04
     ],
     "zoom": 12,
-    "trailCount": 108,
-    "totalMi": 118.9
+    "trailCount": 64,
+    "totalMi": 111.4
   },
   {
     "id": "camelback",
@@ -22,8 +22,8 @@
       -111.9626
     ],
     "zoom": 14,
-    "trailCount": 8,
-    "totalMi": 4.1
+    "trailCount": 5,
+    "totalMi": 3.4
   },
   {
     "id": "piestewa-peak",
@@ -35,8 +35,8 @@
       -112.0211
     ],
     "zoom": 13,
-    "trailCount": 103,
-    "totalMi": 54.9
+    "trailCount": 51,
+    "totalMi": 44
   },
   {
     "id": "mcdowell-sonoran",
@@ -48,8 +48,8 @@
       -111.83
     ],
     "zoom": 11,
-    "trailCount": 256,
-    "totalMi": 260.3
+    "trailCount": 161,
+    "totalMi": 246.2
   },
   {
     "id": "sedona-red-rocks",
@@ -61,8 +61,8 @@
       -111.761
     ],
     "zoom": 12,
-    "trailCount": 459,
-    "totalMi": 401.6
+    "trailCount": 297,
+    "totalMi": 372.8
   },
   {
     "id": "griffith-park",
@@ -74,8 +74,8 @@
       -118.2942
     ],
     "zoom": 13,
-    "trailCount": 109,
-    "totalMi": 56.3
+    "trailCount": 64,
+    "totalMi": 47.2
   },
   {
     "id": "runyon-canyon",
@@ -87,8 +87,8 @@
       -118.3499
     ],
     "zoom": 15,
-    "trailCount": 9,
-    "totalMi": 3.5
+    "trailCount": 6,
+    "totalMi": 2.9
   },
   {
     "id": "mt-tam",
@@ -100,8 +100,8 @@
       -122.5965
     ],
     "zoom": 12,
-    "trailCount": 64,
-    "totalMi": 63.9
+    "trailCount": 39,
+    "totalMi": 59.3
   },
   {
     "id": "marin-headlands",
@@ -113,8 +113,8 @@
       -122.5018
     ],
     "zoom": 13,
-    "trailCount": 78,
-    "totalMi": 47.2
+    "trailCount": 41,
+    "totalMi": 41.9
   },
   {
     "id": "mission-peak",
@@ -126,8 +126,8 @@
       -121.88
     ],
     "zoom": 14,
-    "trailCount": 28,
-    "totalMi": 23.9
+    "trailCount": 21,
+    "totalMi": 22.3
   },
   {
     "id": "rocky-mountain-np",
@@ -139,8 +139,8 @@
       -105.6836
     ],
     "zoom": 10,
-    "trailCount": 313,
-    "totalMi": 425.8
+    "trailCount": 204,
+    "totalMi": 410.7
   },
   {
     "id": "boulder-flatirons",
@@ -152,8 +152,8 @@
       -105.282
     ],
     "zoom": 13,
-    "trailCount": 196,
-    "totalMi": 86.9
+    "trailCount": 75,
+    "totalMi": 69.4
   },
   {
     "id": "zion",
@@ -165,8 +165,8 @@
       -113.0263
     ],
     "zoom": 11,
-    "trailCount": 65,
-    "totalMi": 126
+    "trailCount": 48,
+    "totalMi": 124.5
   },
   {
     "id": "arches",
@@ -178,8 +178,8 @@
       -109.5925
     ],
     "zoom": 11,
-    "trailCount": 48,
-    "totalMi": 51.4
+    "trailCount": 21,
+    "totalMi": 47
   },
   {
     "id": "yosemite-valley",
@@ -191,8 +191,8 @@
       -119.5936
     ],
     "zoom": 12,
-    "trailCount": 99,
-    "totalMi": 135.3
+    "trailCount": 47,
+    "totalMi": 126.5
   },
   {
     "id": "acadia",
@@ -204,8 +204,8 @@
       -68.2733
     ],
     "zoom": 11,
-    "trailCount": 177,
-    "totalMi": 202.5
+    "trailCount": 147,
+    "totalMi": 198
   },
   {
     "id": "shenandoah",
@@ -217,8 +217,8 @@
       -78.3502
     ],
     "zoom": 10,
-    "trailCount": 257,
-    "totalMi": 524
+    "trailCount": 205,
+    "totalMi": 514.5
   },
   {
     "id": "great-smoky",
@@ -230,8 +230,8 @@
       -83.507
     ],
     "zoom": 10,
-    "trailCount": 262,
-    "totalMi": 851
+    "trailCount": 207,
+    "totalMi": 843.2
   },
   {
     "id": "mt-rainier",
@@ -243,8 +243,8 @@
       -121.7603
     ],
     "zoom": 10,
-    "trailCount": 170,
-    "totalMi": 334.8
+    "trailCount": 118,
+    "totalMi": 327.3
   },
   {
     "id": "discovery-park",
@@ -256,8 +256,8 @@
       -122.4112
     ],
     "zoom": 14,
-    "trailCount": 24,
-    "totalMi": 7.9
+    "trailCount": 5,
+    "totalMi": 4.8
   },
   {
     "id": "fredericia-volde",
@@ -269,8 +269,8 @@
       9.7536
     ],
     "zoom": 15,
-    "trailCount": 10,
-    "totalMi": 2.8
+    "trailCount": 3,
+    "totalMi": 1.9
   },
   {
     "id": "trelde-naes",
@@ -282,8 +282,8 @@
       9.829
     ],
     "zoom": 13,
-    "trailCount": 22,
-    "totalMi": 13.9
+    "trailCount": 16,
+    "totalMi": 12.7
   },
   {
     "id": "hannerup-skov",
@@ -295,8 +295,8 @@
       9.732
     ],
     "zoom": 14,
-    "trailCount": 1,
-    "totalMi": 0.1
+    "trailCount": 0,
+    "totalMi": 0
   },
   {
     "id": "hindsgavl",
@@ -308,8 +308,8 @@
       9.7156
     ],
     "zoom": 14,
-    "trailCount": 6,
-    "totalMi": 3
+    "trailCount": 3,
+    "totalMi": 2.6
   },
   {
     "id": "mols-bjerge",
@@ -321,8 +321,8 @@
       10.55
     ],
     "zoom": 11,
-    "trailCount": 153,
-    "totalMi": 61.1
+    "trailCount": 70,
+    "totalMi": 48
   },
   {
     "id": "thy",
@@ -334,8 +334,8 @@
       8.55
     ],
     "zoom": 10,
-    "trailCount": 395,
-    "totalMi": 214.5
+    "trailCount": 253,
+    "totalMi": 186.8
   },
   {
     "id": "rold-skov",
@@ -347,8 +347,8 @@
       9.85
     ],
     "zoom": 12,
-    "trailCount": 319,
-    "totalMi": 168.6
+    "trailCount": 209,
+    "totalMi": 145.7
   },
   {
     "id": "mons-klint",
@@ -360,8 +360,8 @@
       12.55
     ],
     "zoom": 13,
-    "trailCount": 39,
-    "totalMi": 17.6
+    "trailCount": 24,
+    "totalMi": 14.4
   },
   {
     "id": "dyrehaven",
@@ -373,8 +373,8 @@
       12.575
     ],
     "zoom": 13,
-    "trailCount": 120,
-    "totalMi": 53.8
+    "trailCount": 70,
+    "totalMi": 44.4
   },
   {
     "id": "kongernes-nordsjaelland",
@@ -386,8 +386,8 @@
       12.28
     ],
     "zoom": 11,
-    "trailCount": 842,
-    "totalMi": 377.7
+    "trailCount": 419,
+    "totalMi": 296.9
   },
   {
     "id": "skjoldungernes-land",
@@ -399,8 +399,8 @@
       11.95
     ],
     "zoom": 11,
-    "trailCount": 168,
-    "totalMi": 75.5
+    "trailCount": 78,
+    "totalMi": 59.2
   },
   {
     "id": "soehoejlandet",
@@ -412,8 +412,8 @@
       9.62
     ],
     "zoom": 11,
-    "trailCount": 329,
-    "totalMi": 139.3
+    "trailCount": 143,
+    "totalMi": 104.7
   },
   {
     "id": "hammeren-bornholm",
@@ -425,8 +425,8 @@
       14.77
     ],
     "zoom": 14,
-    "trailCount": 6,
-    "totalMi": 1.6
+    "trailCount": 2,
+    "totalMi": 0.9
   },
   {
     "id": "paradisbakkerne",
@@ -438,8 +438,8 @@
       15.073
     ],
     "zoom": 13,
-    "trailCount": 7,
-    "totalMi": 3.5
+    "trailCount": 5,
+    "totalMi": 3.2
   },
   {
     "id": "raabjerg-skagen",
@@ -451,7 +451,7 @@
       10.4
     ],
     "zoom": 11,
-    "trailCount": 117,
-    "totalMi": 48.5
+    "trailCount": 63,
+    "totalMi": 39.2
   }
 ]

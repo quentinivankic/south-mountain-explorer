@@ -1,8 +1,14 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Check, RotateCcw } from "lucide-react";
 import { getArea, type Area, type Difficulty } from "@/data/trails";
-import { resetArea, toggleTrail, useAreaProgress } from "@/lib/progress";
+import {
+  GUEST_LIMIT,
+  resetArea,
+  toggleTrail,
+  useAreaProgress,
+  useAuthState,
+} from "@/lib/progress";
 import { TrailMapClient } from "@/components/TrailMapClient";
 
 export const Route = createFileRoute("/area/$areaId")({
@@ -51,8 +57,17 @@ const diffStyles: Record<Difficulty, string> = {
 function AreaPage() {
   const { area } = Route.useLoaderData() as { area: Area };
   const progress = useAreaProgress(area.id);
+  const userId = useAuthState();
+  const navigate = useNavigate();
   const [highlighted, setHighlighted] = useState<string | null>(null);
   const [sort, setSort] = useState<"name" | "distance" | "difficulty">("distance");
+
+  const handleToggle = async (trailId: string) => {
+    const res = await toggleTrail(area.id, trailId);
+    if (res.blocked) {
+      navigate({ to: "/auth", search: { redirect: `/area/${area.id}` } });
+    }
+  };
 
   const completedIds = useMemo(() => new Set(Object.keys(progress)), [progress]);
   const done = completedIds.size;
@@ -152,6 +167,20 @@ function AreaPage() {
 
       {/* List */}
       <main className="flex-1 px-4 pt-5 pb-12">
+        {!userId && (
+          <Link
+            to="/auth"
+            search={{ redirect: `/area/${area.id}` }}
+            className="mb-4 block rounded-2xl border border-border/60 bg-card p-3 text-sm text-foreground"
+          >
+            <div className="font-semibold">
+              {Math.max(0, GUEST_LIMIT - done)} free trail{GUEST_LIMIT - done === 1 ? "" : "s"} left
+            </div>
+            <div className="text-muted-foreground text-xs mt-0.5">
+              Sign in to save unlimited trails across devices →
+            </div>
+          </Link>
+        )}
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">Trails</h2>
           <div className="flex gap-1 text-xs">
@@ -188,7 +217,7 @@ function AreaPage() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleTrail(area.id, t.id);
+                    handleToggle(t.id);
                   }}
                   aria-label={isDone ? "Mark incomplete" : "Mark complete"}
                   className={`shrink-0 size-7 rounded-full border-2 flex items-center justify-center transition ${

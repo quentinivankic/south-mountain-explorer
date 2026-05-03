@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { areas } from "@/data/trails";
-import { Mountain, MapPin, ChevronRight } from "lucide-react";
+import { Mountain, MapPin, ChevronRight, LogOut, LogIn } from "lucide-react";
+import { useAllProgress, useAuthState } from "@/lib/progress";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -22,34 +23,9 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-function readProgress() {
-  if (typeof window === "undefined") return {} as Record<string, Record<string, string>>;
-  try {
-    return JSON.parse(localStorage.getItem("summit:completed") || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function useProgressSnapshot() {
-  const [progress, setProgress] = useState<Record<string, Record<string, string>>>({});
-
-  useEffect(() => {
-    const update = () => setProgress(readProgress());
-    update();
-    window.addEventListener("storage", update);
-    const id = window.setInterval(update, 500);
-    return () => {
-      window.removeEventListener("storage", update);
-      window.clearInterval(id);
-    };
-  }, []);
-
-  return progress;
-}
-
 function Home() {
-  const progress = useProgressSnapshot();
+  const progress = useAllProgress();
+  const userId = useAuthState();
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,9 +37,28 @@ function Home() {
           aria-hidden
         />
         <div className="relative px-6 pt-14 pb-10 text-primary-foreground">
-          <div className="flex items-center gap-2 text-sm/none opacity-90">
-            <Mountain className="size-4" />
-            <span className="uppercase tracking-[0.2em] text-xs">Summit</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm/none opacity-90">
+              <Mountain className="size-4" />
+              <span className="uppercase tracking-[0.2em] text-xs">Summit</span>
+            </div>
+            {userId ? (
+              <button
+                onClick={() => supabase.auth.signOut()}
+                className="flex items-center gap-1 text-xs font-semibold opacity-90 hover:opacity-100"
+                aria-label="Sign out"
+              >
+                <LogOut className="size-3.5" /> Sign out
+              </button>
+            ) : (
+              <Link
+                to="/auth"
+                search={{ redirect: "/" }}
+                className="flex items-center gap-1 text-xs font-semibold opacity-90 hover:opacity-100"
+              >
+                <LogIn className="size-3.5" /> Sign in
+              </Link>
+            )}
           </div>
           <h1 className="mt-6 text-4xl font-black leading-[1.05] max-w-[14ch]">
             Finish every trail. Become a local.

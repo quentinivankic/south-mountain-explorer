@@ -139,34 +139,42 @@ function buildTrails(json) {
   return trails;
 }
 
-// Load existing bundle so single-area runs don't blow away other areas.
-let existing = {};
-if (existsSync(OUT)) {
-  try {
-    existing = JSON.parse(readFileSync(OUT, "utf8"));
-  } catch {
-    existing = {};
-  }
-}
-
-const out = { ...existing };
 for (const area of targets) {
   process.stderr.write(`→ ${area.id} ... `);
   try {
     const json = await fetchArea(area);
     const trails = buildTrails(json);
-    out[area.id] = { ...area, trails };
+    const { osm: _omit, ...meta } = area;
+    writeFileSync(
+      join(OUT_DIR, `${area.id}.json`),
+      JSON.stringify({ ...meta, trails }),
+    );
     process.stderr.write(`${trails.length} trails\n`);
   } catch (e) {
     process.stderr.write(`FAILED (${e.message})\n`);
-    if (!existing[area.id]) {
-      // First-time fetch failure: write a stub so the app still builds.
-      out[area.id] = { ...area, trails: [] };
+    const path = join(OUT_DIR, `${area.id}.json`);
+    if (!existsSync(path)) {
+      const { osm: _omit, ...meta } = area;
+      writeFileSync(path, JSON.stringify({ ...meta, trails: [] }));
     }
   }
-  // Be polite to Overpass.
   if (targets.length > 1) await new Promise((r) => setTimeout(r, 1500));
 }
 
-writeFileSync(OUT, JSON.stringify(out));
-console.error(`wrote ${OUT} (${Object.keys(out).length} areas)`);
+// Rebuild lightweight index from whatever per-area files exist.
+const index = [];
+for (const area of areas) {
+  const path = join(OUT_DIR, `${area.id}.json`);
+  if (!existsSync(path)) continue;
+  const data = JSON.parse(readFileSync(path, "utf8"));
+  const totalMi = data.trails.reduce((s, t) => s + t.distanceMi, 0);
+  const { osm: _omit, ...meta } = area;
+  index.push({
+    ...meta,
+    trailCount: data.trails.length,
+    totalMi: Number(totalMi.toFixed(1)),
+  });
+}
+writeFileSync(INDEX, JSON.stringify(index, null, 2));
+console.error(`wrote index (${index.length} areas)`);
+

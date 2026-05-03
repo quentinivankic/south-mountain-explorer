@@ -1,10 +1,15 @@
 // Fetch trails for every area in scripts/areas.json from OpenStreetMap.
-// Writes a single bundle to src/data/areasData.json.
+// Writes:
+//   src/data/areas/index.json           — lightweight metadata + summary
+//   src/data/areas/<areaId>.json        — per-area trail geometry (lazy-loaded)
 // Usage: bun scripts/fetchTrails.mjs           # all areas
 //        bun scripts/fetchTrails.mjs <areaId>  # one area
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 
-const OUT = "src/data/areasData.json";
+const OUT_DIR = "src/data/areas";
+const INDEX = join(OUT_DIR, "index.json");
+mkdirSync(OUT_DIR, { recursive: true });
 const areas = JSON.parse(readFileSync("scripts/areas.json", "utf8"));
 const onlyId = process.argv[2];
 const targets = onlyId ? areas.filter((a) => a.id === onlyId) : areas;

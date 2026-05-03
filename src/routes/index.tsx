@@ -132,7 +132,7 @@ function Home() {
         })}
 
         <p className="pt-4 text-center text-xs text-muted-foreground">
-          More areas coming soon · Camelback · Piestewa · McDowell Sonoran
+          More areas coming soon · Camelback · Piestewa Peak · McDowell Sonoran
         </p>
       </main>
     </div>

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Check, RotateCcw } from "lucide-react";
-import { getArea, type Area, type Difficulty } from "@/data/trails";
+import { loadArea, type Area, type Difficulty } from "@/data/trails";
 import {
   resetArea,
   toggleTrail,
@@ -11,8 +11,8 @@ import {
 import { TrailMapClient } from "@/components/TrailMapClient";
 
 export const Route = createFileRoute("/area/$areaId")({
-  loader: ({ params }) => {
-    const area = getArea(params.areaId);
+  loader: async ({ params }) => {
+    const area = await loadArea(params.areaId);
     if (!area) throw notFound();
     return { area };
   },

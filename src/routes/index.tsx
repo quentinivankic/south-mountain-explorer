@@ -73,7 +73,7 @@ function Home() {
       </header>
 
       {/* Areas */}
-      <main className="px-5 -mt-4 pb-24 space-y-4">
+      <main className="px-5 pt-6 pb-24 space-y-4">
         <Link
           to="/browse"
           className="flex items-center gap-3 rounded-2xl bg-card border border-border/50 px-4 py-3 shadow-sm active:scale-[0.99] transition-transform"

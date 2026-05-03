@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { areas } from "@/data/trails";
-import { Mountain, MapPin, ChevronRight } from "lucide-react";
+import { Mountain, MapPin, ChevronRight, LogOut, LogIn } from "lucide-react";
+import { useAllProgress, useAuthState } from "@/lib/progress";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -22,34 +23,9 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-function readProgress() {
-  if (typeof window === "undefined") return {} as Record<string, Record<string, string>>;
-  try {
-    return JSON.parse(localStorage.getItem("summit:completed") || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function useProgressSnapshot() {
-  const [progress, setProgress] = useState<Record<string, Record<string, string>>>({});
-
-  useEffect(() => {
-    const update = () => setProgress(readProgress());
-    update();
-    window.addEventListener("storage", update);
-    const id = window.setInterval(update, 500);
-    return () => {
-      window.removeEventListener("storage", update);
-      window.clearInterval(id);
-    };
-  }, []);
-
-  return progress;
-}
-
 function Home() {
-  const progress = useProgressSnapshot();
+  const progress = useAllProgress();
+  const userId = useAuthState();
 
   return (
     <div className="min-h-screen bg-background">

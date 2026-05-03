@@ -107,26 +107,57 @@ function buildTrails(json) {
   const ways = (json.elements || []).filter(
     (e) => e.type === "way" && e.geometry?.length > 1,
   );
+
+  // Bucket every named-trail node into a ~10m grid so we can cheaply test
+  // whether an unnamed segment's endpoint touches a named trail.
+  // 0.0001 deg lat ≈ 11m; close enough for "connects to".
+  const CELL = 0.0001;
+  const namedNodes = new Set();
+  const key = (lat, lon) =>
+    `${Math.round(lat / CELL)}:${Math.round(lon / CELL)}`;
+  const neighborKeys = (lat, lon) => {
+    const keys = [];
+    const r = Math.round(lat / CELL);
+    const c = Math.round(lon / CELL);
+    for (let dr = -1; dr <= 1; dr++)
+      for (let dc = -1; dc <= 1; dc++) keys.push(`${r + dr}:${c + dc}`);
+    return keys;
+  };
+  for (const w of ways) {
+    const name = w.tags?.name?.trim();
+    if (!name) continue;
+    for (const p of w.geometry) namedNodes.add(key(p.lat, p.lon));
+  }
+
   const byName = new Map();
   for (const w of ways) {
-    const name = w.tags?.name?.trim() || `Unnamed ${w.id}`;
+    const rawName = w.tags?.name?.trim();
+    if (!rawName) {
+      // Unnamed: only keep if an endpoint touches a named trail.
+      const endpoints = [w.geometry[0], w.geometry[w.geometry.length - 1]];
+      const touches = endpoints.some((p) =>
+        neighborKeys(p.lat, p.lon).some((k) => namedNodes.has(k)),
+      );
+      if (!touches) continue;
+    }
+    const name = rawName || `Unnamed ${w.id}`;
     const coords = w.geometry.map((p) => [p.lat, p.lon]);
     if (!byName.has(name)) byName.set(name, { tags: w.tags, segments: [] });
     byName.get(name).segments.push(coords);
   }
+
   const trails = [];
   for (const [name, { tags, segments }] of byName) {
     segments.sort((a, b) => distMi(b) - distMi(a));
     const totalMi = segments.reduce((s, c) => s + distMi(c), 0);
-    // Drop only true noise: keep all named trails, unnamed ≥ 0.25 mi.
+    // Drop tiny unnamed connectors even if they touch a named trail.
     const isUnnamed = /^Unnamed\s/i.test(name);
-    if (isUnnamed && totalMi < 0.25) continue;
+    if (isUnnamed && totalMi < 0.15) continue;
     trails.push({
       id: slug(name) + "-" + (tags?.["@id"] || trails.length),
       name,
       distanceMi: Number(totalMi.toFixed(2)),
       difficulty: difficulty(tags, totalMi),
-      // Keep ALL segments so multi-way trails render fully on the map.
       segments: segments.map((seg) =>
         seg.map(([la, lo]) => [Number(la.toFixed(5)), Number(lo.toFixed(5))]),
       ),

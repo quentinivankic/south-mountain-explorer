@@ -150,8 +150,8 @@ function buildTrails(json) {
   for (const [name, { tags, segments }] of byName) {
     segments.sort((a, b) => distMi(b) - distMi(a));
     const totalMi = segments.reduce((s, c) => s + distMi(c), 0);
-    // Drop anything under 0.3 mi — too short to count as a real trail.
-    if (totalMi < 0.3) continue;
+    // Drop anything under 0.59 mi — too short to count as a real trail.
+    if (totalMi < 0.59) continue;
     trails.push({
       id: slug(name) + "-" + (tags?.["@id"] || trails.length),
       name,

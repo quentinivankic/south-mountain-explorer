@@ -7,7 +7,7 @@ export interface Trail {
   name: string;
   distanceMi: number;
   difficulty: Difficulty;
-  coords: [number, number][];
+  segments: [number, number][][];
 }
 
 export interface Area {
@@ -25,7 +25,7 @@ const southMountainTrails: Trail[] = (raw as Array<{
   name: string;
   distanceMi: number;
   difficulty: Difficulty;
-  coords: [number, number][];
+  segments: [number, number][][];
 }>)
   .filter((t) => {
     const unnamed = /^Unnamed\s/i.test(t.name);

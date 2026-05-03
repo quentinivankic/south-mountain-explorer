@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { areas } from "@/data/trails";
 import { Mountain, MapPin, ChevronRight } from "lucide-react";
 
@@ -32,19 +32,20 @@ function readProgress() {
 }
 
 function useProgressSnapshot() {
-  return useSyncExternalStore(
-    (cb) => {
-      const handler = () => cb();
-      window.addEventListener("storage", handler);
-      const id = setInterval(cb, 500);
-      return () => {
-        window.removeEventListener("storage", handler);
-        clearInterval(id);
-      };
-    },
-    readProgress,
-    () => ({}),
-  );
+  const [progress, setProgress] = useState<Record<string, Record<string, string>>>({});
+
+  useEffect(() => {
+    const update = () => setProgress(readProgress());
+    update();
+    window.addEventListener("storage", update);
+    const id = window.setInterval(update, 500);
+    return () => {
+      window.removeEventListener("storage", update);
+      window.clearInterval(id);
+    };
+  }, []);
+
+  return progress;
 }
 
 function Home() {

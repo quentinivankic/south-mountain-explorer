@@ -3,6 +3,7 @@ import { useEffect, useSyncExternalStore } from "react";
 const KEY = "summit:completed";
 
 type State = Record<string, Record<string, string>>; // areaId -> trailId -> ISO date
+const EMPTY_AREA_PROGRESS: Record<string, string> = {};
 
 function read(): State {
   if (typeof window === "undefined") return {};
@@ -54,7 +55,7 @@ export function useAreaProgress(areaId: string) {
   }, []);
   return useSyncExternalStore(
     subscribe,
-    () => state[areaId] ?? {},
-    () => ({}),
+    () => state[areaId] ?? EMPTY_AREA_PROGRESS,
+    () => EMPTY_AREA_PROGRESS,
   );
 }

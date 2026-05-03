@@ -113,15 +113,21 @@ function buildTrails(json) {
   for (const [name, { tags, segments }] of byName) {
     segments.sort((a, b) => distMi(b) - distMi(a));
     const totalMi = segments.reduce((s, c) => s + distMi(c), 0);
-    if (totalMi < 0.05) continue;
+    // Drop noise: keep named trails ≥ 0.3 mi, unnamed ≥ 0.8 mi.
+    const isUnnamed = /^Unnamed\s/i.test(name);
+    if (isUnnamed ? totalMi < 0.8 : totalMi < 0.3) continue;
     trails.push({
       id: slug(name) + "-" + (tags?.["@id"] || trails.length),
       name,
       distanceMi: Number(totalMi.toFixed(2)),
       difficulty: difficulty(tags, totalMi),
-      segments: segments.map((seg) =>
-        seg.map(([la, lo]) => [Number(la.toFixed(5)), Number(lo.toFixed(5))]),
-      ),
+      // Keep only the longest segment to drastically shrink payload.
+      segments: [
+        segments[0].map(([la, lo]) => [
+          Number(la.toFixed(5)),
+          Number(lo.toFixed(5)),
+        ]),
+      ],
     });
   }
   trails.sort((a, b) => b.distanceMi - a.distanceMi);

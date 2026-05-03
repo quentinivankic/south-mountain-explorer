@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { ArrowLeft, Check, RotateCcw } from "lucide-react";
 import { getArea, type Area, type Difficulty } from "@/data/trails";
 import {
-  GUEST_LIMIT,
   resetArea,
   toggleTrail,
   useAreaProgress,
@@ -62,11 +61,8 @@ function AreaPage() {
   const [highlighted, setHighlighted] = useState<string | null>(null);
   const [sort, setSort] = useState<"name" | "distance" | "difficulty">("distance");
 
-  const handleToggle = async (trailId: string) => {
-    const res = await toggleTrail(area.id, trailId);
-    if (res.blocked) {
-      navigate({ to: "/auth", search: { redirect: `/area/${area.id}` } });
-    }
+  const handleToggle = (trailId: string) => {
+    toggleTrail(area.id, trailId);
   };
 
   const completedIds = useMemo(() => new Set(Object.keys(progress)), [progress]);
@@ -167,17 +163,15 @@ function AreaPage() {
 
       {/* List */}
       <main className="flex-1 px-4 pt-5 pb-12">
-        {!userId && (
+        {!userId && done > 0 && (
           <Link
             to="/auth"
             search={{ redirect: `/area/${area.id}` }}
             className="mb-4 block rounded-2xl border border-border/60 bg-card p-3 text-sm text-foreground"
           >
-            <div className="font-semibold">
-              {Math.max(0, GUEST_LIMIT - done)} free trail{GUEST_LIMIT - done === 1 ? "" : "s"} left
-            </div>
+            <div className="font-semibold">Back up your progress</div>
             <div className="text-muted-foreground text-xs mt-0.5">
-              Sign in to save unlimited trails across devices →
+              Sign in to sync across devices →
             </div>
           </Link>
         )}

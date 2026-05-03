@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Check, RotateCcw } from "lucide-react";
 import { getArea, type Area, type Difficulty } from "@/data/trails";
@@ -57,7 +57,7 @@ function AreaPage() {
   const { area } = Route.useLoaderData() as { area: Area };
   const progress = useAreaProgress(area.id);
   const userId = useAuthState();
-  const navigate = useNavigate();
+  
   const [highlighted, setHighlighted] = useState<string | null>(null);
   const [sort, setSort] = useState<"name" | "distance" | "difficulty">("distance");
 

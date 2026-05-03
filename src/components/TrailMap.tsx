@@ -41,6 +41,9 @@ export function TrailMap({
       className={className}
       style={{ width: "100%", height: "100%" }}
       scrollWheelZoom
+      zoomSnap={0.25}
+      zoomDelta={0.25}
+      wheelPxPerZoomLevel={140}
       zoomControl={false}
     >
       <TileLayer

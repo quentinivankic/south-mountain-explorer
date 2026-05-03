@@ -57,8 +57,17 @@ const diffStyles: Record<Difficulty, string> = {
 function AreaPage() {
   const { area } = Route.useLoaderData() as { area: Area };
   const progress = useAreaProgress(area.id);
+  const userId = useAuthState();
+  const navigate = useNavigate();
   const [highlighted, setHighlighted] = useState<string | null>(null);
   const [sort, setSort] = useState<"name" | "distance" | "difficulty">("distance");
+
+  const handleToggle = async (trailId: string) => {
+    const res = await toggleTrail(area.id, trailId);
+    if (res.blocked) {
+      navigate({ to: "/auth", search: { redirect: `/area/${area.id}` } });
+    }
+  };
 
   const completedIds = useMemo(() => new Set(Object.keys(progress)), [progress]);
   const done = completedIds.size;

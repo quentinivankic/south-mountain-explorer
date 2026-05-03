@@ -27,7 +27,7 @@ const southMountainTrails: Trail[] = (raw as Array<{
   difficulty: Difficulty;
   coords: [number, number][];
 }>)
-  .filter((t) => !/^Unnamed\s/i.test(t.name))
+  .filter((t) => !/^Unnamed\s/i.test(t.name) && t.distanceMi >= 0.3)
   .map((t) => ({ ...t }));
 
 export const areas: Area[] = [

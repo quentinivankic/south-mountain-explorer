@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { areas } from "@/data/trails";
-import { Mountain, MapPin, ChevronRight, LogOut, LogIn } from "lucide-react";
+import { Mountain, MapPin, ChevronRight, LogOut, LogIn, Search, Star } from "lucide-react";
 import { useAllProgress, useAuthState } from "@/lib/progress";
+import { useFavorites } from "@/lib/favorites";
 import { supabase } from "@/integrations/supabase/client";
-import { SuggestArea } from "@/components/SuggestArea";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,6 +27,8 @@ export const Route = createFileRoute("/")({
 function Home() {
   const progress = useAllProgress();
   const userId = useAuthState();
+  const favorites = useFavorites();
+  const favoriteAreas = areas.filter((a) => favorites.has(a.id));
 
   return (
     <div className="min-h-screen bg-background">

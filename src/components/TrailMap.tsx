@@ -57,7 +57,7 @@ export function TrailMap({
         return (
           <Polyline
             key={t.id}
-            positions={t.coords}
+            positions={t.segments}
             pathOptions={{
               color: done
                 ? "oklch(0.5 0.09 145)"

@@ -203,7 +203,7 @@ function AreaPage() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleTrail(area.id, t.id);
+                    handleToggle(t.id);
                   }}
                   aria-label={isDone ? "Mark incomplete" : "Mark complete"}
                   className={`shrink-0 size-7 rounded-full border-2 flex items-center justify-center transition ${

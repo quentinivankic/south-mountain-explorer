@@ -36,7 +36,7 @@ function Home() {
           style={{ background: "var(--gradient-sunrise)" }}
           aria-hidden
         />
-        <div className="relative px-6 pt-14 pb-10 text-primary-foreground">
+        <div className="relative px-6 pt-14 pb-16 text-primary-foreground">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm/none opacity-90">
               <Mountain className="size-4" />
@@ -70,7 +70,7 @@ function Home() {
       </header>
 
       {/* Areas */}
-      <main className="px-5 -mt-6 pb-24 space-y-4">
+      <main className="px-5 -mt-8 pb-24 space-y-4">
         <h2 className="sr-only">Hiking areas</h2>
         {areas.map((area) => {
           const done = Object.keys(progress[area.id] ?? {}).length;

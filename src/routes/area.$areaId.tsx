@@ -1,8 +1,14 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Check, RotateCcw } from "lucide-react";
 import { getArea, type Area, type Difficulty } from "@/data/trails";
-import { resetArea, toggleTrail, useAreaProgress } from "@/lib/progress";
+import {
+  GUEST_LIMIT,
+  resetArea,
+  toggleTrail,
+  useAreaProgress,
+  useAuthState,
+} from "@/lib/progress";
 import { TrailMapClient } from "@/components/TrailMapClient";
 
 export const Route = createFileRoute("/area/$areaId")({

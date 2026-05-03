@@ -126,13 +126,10 @@ function buildTrails(json) {
       name,
       distanceMi: Number(totalMi.toFixed(2)),
       difficulty: difficulty(tags, totalMi),
-      // Keep only the longest segment to drastically shrink payload.
-      segments: [
-        segments[0].map(([la, lo]) => [
-          Number(la.toFixed(5)),
-          Number(lo.toFixed(5)),
-        ]),
-      ],
+      // Keep ALL segments so multi-way trails render fully on the map.
+      segments: segments.map((seg) =>
+        seg.map(([la, lo]) => [Number(la.toFixed(5)), Number(lo.toFixed(5))]),
+      ),
     });
   }
   trails.sort((a, b) => b.distanceMi - a.distanceMi);

@@ -22,18 +22,12 @@ jobs:
       - name: Copy areas index into app bundle
         run: cp public/areas/index.json ios/SouthMountainExplorer/Resources/areas-index.json
 
-      - name: Generate Xcode project
-        working-directory: ios
-        run: xcodegen generate
-
       - name: Import distribution certificate
         env:
           CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
           echo "$CERTIFICATE_BASE64" | base64 --decode > distribution.p12
-          echo "p12 size: $(wc -c < distribution.p12) bytes"
-          openssl pkcs12 -in distribution.p12 -noout -passin pass:"$CERTIFICATE_PASSWORD" && echo "p12 password OK" || echo "p12 password FAILED"
           security create-keychain -p "build" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "build" build.keychain
@@ -48,13 +42,23 @@ jobs:
             -S apple-tool:,apple:,codesign: -s -k "build" build.keychain
           rm distribution.p12
 
-      - name: Install provisioning profile
+      - name: Install provisioning profile and inject UUID
         env:
           PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode \
             > ~/Library/MobileDevice/Provisioning\ Profiles/distribution.mobileprovision
+          PROFILE_UUID=$(security cms -D \
+            -i ~/Library/MobileDevice/Provisioning\ Profiles/distribution.mobileprovision \
+            | plutil -extract UUID xml1 -o - - \
+            | sed -n 's/.*<string>\(.*\)<\/string>.*/\1/p')
+          echo "Profile UUID: $PROFILE_UUID"
+          sed -i "" "s/PROFILE_UUID_PLACEHOLDER/$PROFILE_UUID/" ios/project.yml
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
 
       - name: Write App Store Connect API key
         env:
@@ -65,7 +69,7 @@ jobs:
           echo "$API_KEY_BASE64" | base64 --decode \
             > "private_keys/AuthKey_${API_KEY_ID}.p8"
 
-      - name: Archive (manual signing)
+      - name: Archive
         working-directory: ios
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -82,9 +86,6 @@ jobs:
             -authenticationKeyPath "$GITHUB_WORKSPACE/private_keys/AuthKey_${API_KEY_ID}.p8" \
             -authenticationKeyID "$API_KEY_ID" \
             -authenticationKeyIssuerID "$API_ISSUER_ID" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="SouthMountainExplorer AppStore" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
 
       - name: Export IPA

@@ -19,8 +19,15 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
-      - name: Copy areas index into app bundle
-        run: cp public/areas/index.json ios/SouthMountainExplorer/Resources/areas-index.json
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Rebuild trail index from cache and copy into bundle
+        run: |
+          python3 scripts/build-trail-counts.py --cache-only
+          cp public/areas/index.json ios/SouthMountainExplorer/Resources/areas-index.json
 
       - name: Import distribution certificate
         env:

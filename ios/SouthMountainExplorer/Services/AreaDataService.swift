@@ -94,43 +94,7 @@ final class AreaDataService {
     }
 
     private func fetchAndCacheIndex() async {
-        struct IndexRow: Codable {
-            let id: String
-            let trailCount: Int?
-            let totalMi: Double?
-            enum CodingKeys: String, CodingKey {
-                case id
-                case trailCount = "trail_count"
-                case totalMi = "total_mi"
-            }
-        }
-        do {
-            let rows: [IndexRow] = try await supabase
-                .from("areas")
-                .select("id, trail_count, total_mi")
-                .not("trails", operator: .init(rawValue: "is")!, value: "null")
-                .execute()
-                .value
-
-            // Build a lookup of Supabase-known trail counts
-            let lookup = Dictionary(uniqueKeysWithValues: rows.map { ($0.id, $0) })
-
-            // Enrich existing summaries and filter out areas confirmed to have no trails.
-            // Areas not in Supabase at all are kept (data may not be loaded yet).
-            let enriched = summaries.compactMap { summary -> AreaSummary? in
-                if let row = lookup[summary.id] {
-                    var s = summary
-                    s.trailCount = row.trailCount
-                    s.totalMi = row.totalMi
-                    return s
-                }
-                return summary  // not in Supabase yet — keep it
-            }
-            summaries = enriched
-            saveSummariesToDisk(enriched)
-        } catch {
-            // Network unavailable — keep using bundled/cached index
-        }
+        // No remote backend — bundle/disk cache is the source of truth.
     }
 
     func search(_ query: String) -> [AreaSummary] {
@@ -197,18 +161,26 @@ final class AreaDataService {
     }
 
     private func fetchAndCacheAreaWithError(id: String) async -> (area: Area?, error: String?) {
+        // Build a minimal AreaRow from the summary so we can query Overpass.
+        guard let summary = summaries.first(where: { $0.id == id }) else {
+            return (nil, "Area not found in index.")
+        }
+        let stub = AreaRow(
+            id: summary.id,
+            name: summary.name,
+            state: summary.subtitle,
+            centerLat: summary.centerLat,
+            centerLon: summary.centerLon,
+            zoom: 13,
+            bbox: nil,
+            trails: nil,
+            trailCount: nil,
+            totalMi: nil,
+            cachedAt: nil
+        )
         do {
-            let row: AreaRow = try await supabase
-                .from("areas")
-                .select("id, name, state, center_lat, center_lon, zoom, bbox, trails, trail_count, total_mi, cached_at")
-                .eq("id", value: id)
-                .single()
-                .execute()
-                .value
-
-            // If Supabase has no trail data yet, fetch from Overpass
-            let resolvedRow = row.trails == nil ? (try? await fetchFromOverpass(row: row)) ?? row : row
-            let area = resolvedRow.toArea()
+            let row = try await fetchFromOverpass(row: stub)
+            let area = row.toArea()
             areaCache[id] = area
             saveAreaToDisk(area)
             return (area, nil)
@@ -217,7 +189,7 @@ final class AreaDataService {
         }
     }
 
-    private func nominatimBbox(name: String, state: String) async -> (s: Double, w: Double, n: Double, e: Double)? {
+    private func nominatimRelationId(name: String, state: String) async -> Int? {
         let place = state == "Denmark" ? "\(name), Denmark" : "\(name), \(state), USA"
         guard let encoded = place.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
               let url = URL(string: "https://nominatim.openstreetmap.org/search?q=\(encoded)&format=json&limit=1&featuretype=relation")
@@ -227,11 +199,11 @@ final class AreaDataService {
         guard let (data, _) = try? await URLSession.shared.data(for: req),
               let results = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               let first = results.first,
-              let bb = first["boundingbox"] as? [String], bb.count == 4,
-              let s = Double(bb[0]), let n = Double(bb[1]),
-              let w = Double(bb[2]), let e = Double(bb[3])
+              first["osm_type"] as? String == "relation",
+              let idStr = first["osm_id"] as? String,
+              let id = Int(idStr)
         else { return nil }
-        return (s - 0.005, w - 0.005, n + 0.005, e + 0.005)
+        return id
     }
 
     private func fetchFromOverpass(row: AreaRow) async throws -> AreaRow {
@@ -239,8 +211,9 @@ final class AreaDataService {
         if let bbox = row.bbox, bbox.count == 4 {
             let s = bbox[1], w = bbox[0], n = bbox[3], e = bbox[2]
             query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(s),\(w),\(n),\(e)););out tags geom;"
-        } else if let nb = await nominatimBbox(name: row.name, state: row.state) {
-            query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(nb.s),\(nb.w),\(nb.n),\(nb.e)););out tags geom;"
+        } else if let relationId = await nominatimRelationId(name: row.name, state: row.state) {
+            let areaId = relationId + 3_600_000_000
+            query = "[out:json][timeout:90];area(\(areaId))->.a;(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](area.a););out tags geom;"
         } else {
             let lat = row.centerLat, lon = row.centerLon, d = 0.10
             query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(lat-d),\(lon-d),\(lat+d),\(lon+d)););out tags geom;"

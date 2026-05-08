@@ -1,89 +1,64 @@
 import SwiftUI
+import AuthenticationServices
 
 struct AuthView: View {
     @Environment(AuthService.self) private var auth
     @Environment(\.dismiss) private var dismiss
-
-    @State private var email = ""
-    @State private var password = ""
-    @State private var isSignUp = false
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 32) {
-                    // Logo / header
-                    VStack(spacing: 12) {
-                        Image(systemName: "mountain.2.fill")
-                            .font(.system(size: 64))
-                            .foregroundStyle(.green)
-                        Text("South Mountain Explorer")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        Text(isSignUp ? "Create your account" : "Welcome back")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+            VStack(spacing: 40) {
+                Spacer()
+
+                VStack(spacing: 12) {
+                    Image(systemName: "mountain.2.fill")
+                        .font(.system(size: 72))
+                        .foregroundStyle(.green)
+                    Text("South Mountain Explorer")
+                        .font(.title2.bold())
+                    Text("Sign in to record hikes and\ntrack your trail progress.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                VStack(spacing: 12) {
+                    SignInWithAppleButton(.signIn) { request in
+                        request.requestedScopes = [.fullName, .email]
+                    } onCompletion: { _ in
+                        // Handled in AuthService
                     }
-                    .padding(.top, 20)
-
-                    // Form
-                    VStack(spacing: 16) {
-                        TextField("Email", text: $email)
-                            .textInputAutocapitalization(.never)
-                            .keyboardType(.emailAddress)
-                            .autocorrectionDisabled()
-                            .padding()
-                            .glassEffect(in: .rect(cornerRadius: 14))
-
-                        SecureField("Password", text: $password)
-                            .padding()
-                            .glassEffect(in: .rect(cornerRadius: 14))
-
-                        if let error = auth.errorMessage {
-                            Text(error)
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                                .multilineTextAlignment(.center)
-                        }
-
+                    .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                    .frame(height: 50)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay {
+                        // Intercept tap to use our async flow
                         Button {
                             Task {
-                                if isSignUp {
-                                    await auth.signUp(email: email, password: password)
-                                } else {
-                                    await auth.signIn(email: email, password: password)
-                                }
+                                await auth.signInWithApple()
                                 if auth.isSignedIn { dismiss() }
                             }
-                        } label: {
-                            Group {
-                                if auth.isLoading {
-                                    ProgressView()
-                                } else {
-                                    Text(isSignUp ? "Create Account" : "Sign In")
-                                        .fontWeight(.semibold)
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(.green, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .foregroundStyle(.white)
-                        }
-                        .disabled(auth.isLoading || email.isEmpty || password.isEmpty)
+                        } label: { Color.clear }
                     }
-                    .padding(.horizontal)
 
-                    // Toggle sign in / sign up
-                    Button {
-                        withAnimation { isSignUp.toggle() }
-                    } label: {
-                        Text(isSignUp ? "Already have an account? **Sign In**" : "Don't have an account? **Sign Up**")
-                            .font(.subheadline)
+                    if let error = auth.errorMessage {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .multilineTextAlignment(.center)
                     }
-                    .foregroundStyle(.secondary)
+
+                    if auth.isLoading {
+                        ProgressView()
+                    }
                 }
+                .padding(.horizontal, 40)
+
+                Spacer()
+                Spacer()
             }
-            .navigationTitle(isSignUp ? "Sign Up" : "Sign In")
+            .navigationTitle("Sign In")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

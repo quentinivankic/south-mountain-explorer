@@ -203,13 +203,158 @@ final class AreaDataService {
                 .single()
                 .execute()
                 .value
-            let area = row.toArea()
+
+            // If Supabase has no trail data yet, fetch from Overpass
+            let resolvedRow = row.trails == nil ? (try? await fetchFromOverpass(row: row)) ?? row : row
+            let area = resolvedRow.toArea()
             areaCache[id] = area
             saveAreaToDisk(area)
             return (area, nil)
         } catch {
             return (nil, error.localizedDescription)
         }
+    }
+
+    private func fetchFromOverpass(row: AreaRow) async throws -> AreaRow {
+        let query: String
+        if let bbox = row.bbox, bbox.count == 4 {
+            // [minLon, minLat, maxLon, maxLat] → Overpass wants (s,w,n,e)
+            let s = bbox[1], w = bbox[0], n = bbox[3], e = bbox[2]
+            query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(s),\(w),\(n),\(e)););out tags geom;"
+        } else {
+            let lat = row.centerLat, lon = row.centerLon, d = 0.045
+            query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(lat-d),\(lon-d),\(lat+d),\(lon+d)););out tags geom;"
+        }
+
+        let endpoints = [
+            "https://overpass-api.de/api/interpreter",
+            "https://overpass.kumi.systems/api/interpreter"
+        ]
+        var lastError: Error?
+        for endpoint in endpoints {
+            guard let url = URL(string: endpoint) else { continue }
+            var req = URLRequest(url: url, timeoutInterval: 100)
+            req.httpMethod = "POST"
+            req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+            req.httpBody = ("data=" + query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!).data(using: .utf8)
+            do {
+                let (data, _) = try await URLSession.shared.data(for: req)
+                let trails = buildTrails(from: data)
+                return AreaRow(
+                    id: row.id, name: row.name, state: row.state,
+                    centerLat: row.centerLat, centerLon: row.centerLon,
+                    zoom: row.zoom, bbox: row.bbox,
+                    trails: trails,
+                    trailCount: trails.count,
+                    totalMi: trails.reduce(0) { $0 + $1.distanceMi },
+                    cachedAt: row.cachedAt
+                )
+            } catch {
+                lastError = error
+            }
+        }
+        throw lastError ?? URLError(.unknown)
+    }
+
+    private func buildTrails(from data: Data) -> [Trail] {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let elements = json["elements"] as? [[String: Any]] else { return [] }
+
+        let ways = elements.filter {
+            ($0["type"] as? String) == "way" &&
+            (($0["geometry"] as? [[String: Any]])?.count ?? 0) > 1
+        }
+
+        // Collect nodes belonging to named ways for unnamed-way stitching
+        var namedNodes = Set<String>()
+        for w in ways {
+            guard let tags = w["tags"] as? [String: String],
+                  let name = tags["name"]?.trimmingCharacters(in: .whitespaces), !name.isEmpty,
+                  let geom = w["geometry"] as? [[String: Any]] else { continue }
+            for p in geom {
+                if let lat = p["lat"] as? Double, let lon = p["lon"] as? Double {
+                    namedNodes.insert(nodeKey(lat: lat, lon: lon))
+                }
+            }
+        }
+
+        var byName: [String: (tags: [String: String]?, segments: [[[Double]]])] = [:]
+        for w in ways {
+            let tags = w["tags"] as? [String: String]
+            let rawName = tags?["name"]?.trimmingCharacters(in: .whitespaces) ?? ""
+            guard let geom = w["geometry"] as? [[String: Any]] else { continue }
+            if rawName.isEmpty {
+                let endpoints = [geom.first, geom.last].compactMap { $0 }
+                let touches = endpoints.contains { p in
+                    guard let lat = p["lat"] as? Double, let lon = p["lon"] as? Double else { return false }
+                    return neighborKeys(lat: lat, lon: lon).contains { namedNodes.contains($0) }
+                }
+                if !touches { continue }
+            }
+            let name = rawName.isEmpty ? "Unnamed \(w["id"] ?? 0)" : rawName
+            let coords = geom.compactMap { p -> [Double]? in
+                guard let lat = p["lat"] as? Double, let lon = p["lon"] as? Double else { return nil }
+                return [lat, lon]
+            }
+            if byName[name] == nil { byName[name] = (tags, []) }
+            byName[name]!.segments.append(coords)
+        }
+
+        var trails: [Trail] = []
+        for (name, info) in byName {
+            let totalMi = info.segments.reduce(0.0) { $0 + segmentMiles($1) }
+            if totalMi < 0.59 { continue }
+            let id = slugify(name) + "-\(trails.count)"
+            trails.append(Trail(
+                id: id, name: name,
+                distanceMi: Double(String(format: "%.2f", totalMi))!,
+                difficulty: difficulty(tags: info.tags, mi: totalMi),
+                segments: info.segments
+            ))
+        }
+        return trails.sorted { $0.distanceMi > $1.distanceMi }
+    }
+
+    private func nodeKey(lat: Double, lon: Double) -> String {
+        let cell = 0.0001
+        return "\(Int((lat / cell).rounded())):\(Int((lon / cell).rounded()))"
+    }
+
+    private func neighborKeys(lat: Double, lon: Double) -> [String] {
+        let cell = 0.0001
+        let r = Int((lat / cell).rounded())
+        let c = Int((lon / cell).rounded())
+        return (-1...1).flatMap { dr in (-1...1).map { dc in "\(r+dr):\(c+dc)" } }
+    }
+
+    private func segmentMiles(_ coords: [[Double]]) -> Double {
+        var meters = 0.0
+        for i in 1..<coords.count {
+            let (la1, lo1) = (coords[i-1][0], coords[i-1][1])
+            let (la2, lo2) = (coords[i][0], coords[i][1])
+            let R = 6_371_000.0
+            let dLat = (la2 - la1) * .pi / 180
+            let dLon = (lo2 - lo1) * .pi / 180
+            let a = sin(dLat/2)*sin(dLat/2) + cos(la1 * .pi/180)*cos(la2 * .pi/180)*sin(dLon/2)*sin(dLon/2)
+            meters += R * 2 * atan2(sqrt(a), sqrt(1-a))
+        }
+        return meters / 1609.344
+    }
+
+    private func difficulty(tags: [String: String]?, mi: Double) -> Difficulty {
+        if let sac = tags?["sac_scale"], sac != "hiking" { return .hard }
+        if mi > 4 { return .hard }
+        if mi > 2 || tags?["trail_visibility"] == "intermediate" { return .moderate }
+        return .easy
+    }
+
+    private func slugify(_ s: String) -> String {
+        s.lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined(separator: "-")
+            .prefix(60)
+            .description
     }
 
     // MARK: - Disk persistence for full area data

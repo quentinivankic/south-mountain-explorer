@@ -26,6 +26,24 @@ jobs:
         working-directory: ios
         run: xcodegen generate
 
+      - name: Import distribution certificate
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "$CERTIFICATE_BASE64" | base64 --decode > distribution.p12
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import distribution.p12 \
+            -k build.keychain \
+            -P "$CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list \
+            -S apple-tool:,apple: -s -k "" build.keychain
+          rm distribution.p12
+
       - name: Write App Store Connect API key
         env:
           API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
@@ -35,7 +53,7 @@ jobs:
           echo "$API_KEY_BASE64" | base64 --decode \
             > "private_keys/AuthKey_${API_KEY_ID}.p8"
 
-      - name: Archive (automatic signing)
+      - name: Archive (manual signing)
         working-directory: ios
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -82,6 +100,8 @@ jobs:
             --apiKey "$API_KEY_ID" \
             --apiIssuer "$API_ISSUER_ID"
 
-      - name: Clean up API key
+      - name: Clean up
         if: always()
-        run: rm -rf private_keys
+        run: |
+          rm -rf private_keys
+          security delete-keychain build.keychain 2>/dev/null || true

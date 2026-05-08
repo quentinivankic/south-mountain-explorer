@@ -34,6 +34,39 @@ function Home() {
   const areas = useAreas();
   const loc = useLocation();
   const favoriteAreas = areas.filter((a) => favorites.has(a.id));
+  const [locBusy, setLocBusy] = useState(false);
+  const [locError, setLocError] = useState<string | null>(null);
+
+  async function handleEnableLocation() {
+    setLocError(null);
+    setLocBusy(true);
+    try {
+      // Check permission state first so we can give a useful message
+      // when the browser has previously denied access.
+      let permState: PermissionState | undefined;
+      try {
+        // @ts-expect-error - permissions API typing
+        const p = await navigator.permissions?.query({ name: "geolocation" });
+        permState = p?.state;
+      } catch {
+        // ignore
+      }
+      if (permState === "denied") {
+        setLocError(
+          "Location is blocked in your browser settings. Tap the lock icon in the address bar → Site settings → allow Location, then try again.",
+        );
+        return;
+      }
+      const result = await requestLocation();
+      if (result.status === "denied") {
+        setLocError("Permission denied. Allow location in your browser to see areas near you.");
+      } else if (result.status === "unsupported") {
+        setLocError("Your browser doesn't support location.");
+      }
+    } finally {
+      setLocBusy(false);
+    }
+  }
 
   const nearby = useMemo(() => {
     if (loc.status !== "granted" || loc.lat == null || loc.lon == null) return [];

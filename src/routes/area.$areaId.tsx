@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Check, RotateCcw } from "lucide-react";
+import { ArrowLeft, Check, RotateCcw, Play, History as HistoryIcon } from "lucide-react";
 import { loadArea, type Area, type Difficulty } from "@/data/trails";
 import {
   resetArea,
@@ -9,6 +9,9 @@ import {
   useAuthState,
 } from "@/lib/progress";
 import { TrailMapClient } from "@/components/TrailMapClient";
+import { startRecording, useRecorder, type FinishedRecording } from "@/lib/recorder";
+import { RecordingPanel } from "@/components/RecordingPanel";
+import { RecordingSummary } from "@/components/RecordingSummary";
 
 export const Route = createFileRoute("/area/$areaId")({
   loader: async ({ params }) => {
@@ -124,7 +127,7 @@ function AreaPage() {
           <div className="flex items-center gap-1">
             {userId && (
               <Link to="/history" className="text-muted-foreground p-1" aria-label="History">
-                <History className="size-4" />
+                <HistoryIcon className="size-4" />
               </Link>
             )}
             <button

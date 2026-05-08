@@ -67,7 +67,7 @@ final class AreaDataService {
     }
 
     private var summariesDiskURL: URL {
-        cacheDir.appendingPathComponent("summaries-v1.json")
+        cacheDir.appendingPathComponent("summaries-v2.json")
     }
 
     private func loadIndexFromDisk() -> [AreaSummary]? {
@@ -112,7 +112,7 @@ final class AreaDataService {
             let rows: [IndexRow] = try await supabase
                 .from("areas")
                 .select("id, name, state, center_lat, center_lon, trail_count, total_mi")
-                .gt("trail_count", value: 0)
+                .not("trails", operator: "is", value: AnyJSON.null)
                 .execute()
                 .value
             let fetched = rows.map {

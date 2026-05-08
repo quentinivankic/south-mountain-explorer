@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { useAreas } from "@/hooks/useAreas";
-import { Mountain, MapPin, ChevronRight, LogOut, LogIn, Search, Star, History } from "lucide-react";
+import { Mountain, MapPin, ChevronRight, LogOut, LogIn, Search, Star, History, Navigation } from "lucide-react";
 import { useAllProgress, useAuthState } from "@/lib/progress";
 import { useFavorites } from "@/lib/favorites";
 import { supabase } from "@/integrations/supabase/client";
+import { LocationPrompt } from "@/components/LocationPrompt";
+import { useLocation, distanceMi, requestLocation } from "@/lib/location";
 
 export const Route = createFileRoute("/")({
   head: () => ({

@@ -15,6 +15,8 @@ interface Props {
   highlightedId?: string | null;
   onSelect?: (id: string) => void;
   className?: string;
+  livePath?: [number, number][];
+  liveCurrent?: [number, number] | null;
 }
 
 export function TrailMapClient(props: Props) {

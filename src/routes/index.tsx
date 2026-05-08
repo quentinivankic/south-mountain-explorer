@@ -108,6 +108,47 @@ function Home() {
           </Link>
         )}
 
+        {/* Near you */}
+        {loc.status === "granted" && nearby.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1 pt-2 flex items-center gap-1.5">
+              <Navigation className="size-3" /> Near you
+            </h2>
+            {nearby.map(({ a, d }) => (
+              <Link
+                key={a.id}
+                to="/area/$areaId"
+                params={{ areaId: a.id }}
+                className="flex items-center gap-3 rounded-2xl bg-card border border-border/50 p-3 active:scale-[0.99] transition-transform"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-foreground truncate">{a.name}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {a.subtitle}
+                  </div>
+                </div>
+                <div className="text-xs font-semibold text-primary tabular-nums whitespace-nowrap">
+                  {d < 10 ? d.toFixed(1) : Math.round(d)} mi
+                </div>
+                <ChevronRight className="size-4 text-muted-foreground" />
+              </Link>
+            ))}
+          </section>
+        )}
+
+        {loc.status === "denied" && (
+          <button
+            onClick={() => requestLocation()}
+            className="flex items-center gap-3 w-full rounded-2xl bg-card border border-dashed border-border px-4 py-3 text-left"
+          >
+            <Navigation className="size-4 text-muted-foreground" />
+            <span className="text-sm flex-1 text-muted-foreground">
+              Show areas near me
+            </span>
+            <span className="text-xs font-semibold text-primary">Enable</span>
+          </button>
+        )}
+
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1 pt-2">
           Your favorites
         </h2>
@@ -176,6 +217,7 @@ function Home() {
           })
         )}
       </main>
+      <LocationPrompt />
     </div>
   );
 }

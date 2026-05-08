@@ -13,6 +13,9 @@ struct Area: Codable, Identifiable, Sendable {
     let totalMi: Double?
     let cachedAt: Date?
 
+    var resolvedTrailCount: Int { trailCount ?? trails.count }
+    var resolvedTotalMi: Double { totalMi ?? trails.reduce(0) { $0 + $1.distanceMi } }
+
     enum CodingKeys: String, CodingKey {
         case id, name, subtitle, zoom, bbox, trails
         case centerLat = "center_lat"

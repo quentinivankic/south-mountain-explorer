@@ -112,7 +112,7 @@ final class AreaDataService {
             let rows: [IndexRow] = try await supabase
                 .from("areas")
                 .select("id, name, state, center_lat, center_lon, trail_count, total_mi")
-                .not("trails", operator: "is", value: "null")
+                .not("trails", operator: .init(rawValue: "is")!, value: "null")
                 .execute()
                 .value
             let fetched = rows.map {

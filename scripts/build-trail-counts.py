@@ -124,7 +124,7 @@ def build_counts(data: bytes):
 
 
 def overpass_query(lat, lon):
-    d = 0.045
+    d = 0.10
     s, w, n, e = lat - d, lon - d, lat + d, lon + d
     return (
         f'[out:json][timeout:90];'

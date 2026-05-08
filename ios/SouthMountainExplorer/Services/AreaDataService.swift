@@ -224,7 +224,7 @@ final class AreaDataService {
             let s = bbox[1], w = bbox[0], n = bbox[3], e = bbox[2]
             query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(s),\(w),\(n),\(e)););out tags geom;"
         } else {
-            let lat = row.centerLat, lon = row.centerLon, d = 0.045
+            let lat = row.centerLat, lon = row.centerLon, d = 0.10
             query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(lat-d),\(lon-d),\(lat+d),\(lon+d)););out tags geom;"
         }
 

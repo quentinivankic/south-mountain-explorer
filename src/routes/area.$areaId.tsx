@@ -80,13 +80,6 @@ function AreaPage() {
     : undefined;
   const liveCurrent = livePath && livePath.length ? livePath[livePath.length - 1] : null;
 
-  const handleStart = () => {
-    if (recording && recording.areaId !== area.id) {
-      if (!confirm("You have a recording in progress for another area. Discard it and start here?")) return;
-    }
-    startRecording(area.id);
-  };
-
   const completedIds = useMemo(() => new Set(Object.keys(progress)), [progress]);
   const done = completedIds.size;
   const total = area.trails.length;

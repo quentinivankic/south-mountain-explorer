@@ -1,6 +1,9 @@
-// Trails are stored as static JSON in /public/areas/, fetched on demand,
-// and cached in IndexedDB so visited areas work offline.
-// Index is fetched once on app start (also cached).
+// Areas are stored in two places:
+//  1. /public/areas/index.json — slim tuple list of every area
+//     (~17k entries, ~350 KB gzipped). Cached in IndexedDB.
+//  2. Supabase `areas` table — full per-area data (trails, bbox, etc).
+//     Fetched on demand via the getAreaData server function and cached
+//     in IndexedDB so visited areas work offline.
 
 export type Difficulty = "Easy" | "Moderate" | "Hard";
 
@@ -15,22 +18,28 @@ export interface Trail {
 export interface AreaSummary {
   id: string;
   name: string;
+  /** US state — kept under `subtitle` for backwards compatibility with UI. */
   subtitle: string;
-  location: string;
+  /** Lowercased "name state" string for fast substring search. */
+  search: string;
   center: [number, number];
-  zoom: number;
-  trailCount: number;
-  totalMi: number;
-  /** Optional bbox [s,w,n,e] used by on-demand trail fetcher. */
-  bbox?: [number, number, number, number];
-  /** OSM relation name — used to fetch trails on demand for areas
-   * discovered from OSM that don't ship as static JSON. */
-  osmRelation?: string;
 }
 
-export interface Area extends AreaSummary {
+export interface Area {
+  id: string;
+  name: string;
+  subtitle: string;
+  center: [number, number];
+  zoom: number;
+  bbox?: [number, number, number, number];
   trails: Trail[];
+  trailCount: number;
+  totalMi: number;
+  cachedAt?: string | null;
 }
+
+// Tuple shape coming off the wire: [id, name, state, lat, lon]
+type AreaTuple = [string, string, string, number, number];
 
 // ---------- IndexedDB cache ----------
 const DB_NAME = "summit-trails";
@@ -74,6 +83,16 @@ async function fetchJSON<T>(url: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+function inflate(t: AreaTuple): AreaSummary {
+  return {
+    id: t[0],
+    name: t[1],
+    subtitle: t[2],
+    search: `${t[1]} ${t[2]}`.toLowerCase(),
+    center: [t[3], t[4]],
+  };
+}
+
 // ---------- Index ----------
 let indexCache: AreaSummary[] | null = null;
 let indexPromise: Promise<AreaSummary[]> | null = null;
@@ -86,23 +105,22 @@ export async function loadAreas(): Promise<AreaSummary[]> {
   if (indexCache) return indexCache;
   if (indexPromise) return indexPromise;
   indexPromise = (async () => {
-    // Fast path: cached copy from previous session.
-    const cached = await idbGet<AreaSummary[]>("index");
+    const cached = await idbGet<AreaTuple[]>("index-v2");
     if (cached) {
-      indexCache = cached;
+      indexCache = cached.map(inflate);
       // Refresh in background.
-      fetchJSON<AreaSummary[]>("/areas/index.json")
+      fetchJSON<AreaTuple[]>("/areas/index.json")
         .then((fresh) => {
-          indexCache = fresh;
-          idbPut("index", fresh);
+          indexCache = fresh.map(inflate);
+          idbPut("index-v2", fresh);
         })
         .catch(() => {});
-      return cached;
+      return indexCache;
     }
-    const fresh = await fetchJSON<AreaSummary[]>("/areas/index.json");
-    indexCache = fresh;
-    idbPut("index", fresh);
-    return fresh;
+    const fresh = await fetchJSON<AreaTuple[]>("/areas/index.json");
+    indexCache = fresh.map(inflate);
+    idbPut("index-v2", fresh);
+    return indexCache;
   })();
   return indexPromise;
 }
@@ -114,50 +132,39 @@ export async function getAreaSummary(
   return list.find((a) => a.id === id);
 }
 
-// ---------- Per-area trails ----------
+// ---------- Per-area data ----------
 export async function loadArea(id: string): Promise<Area | undefined> {
   const cacheKey = `area:${id}`;
   const cached = await idbGet<Area>(cacheKey);
   if (cached) {
-    // Refresh static file in background — silently skip on failure (offline ok).
-    fetchJSON<Area>(`/areas/${id}.json`)
-      .then((fresh) => idbPut(cacheKey, fresh))
-      .catch(() => {});
+    // Refresh in background.
+    refreshArea(id).catch(() => {});
     return cached;
   }
-  // 1. Try the prebuilt static file.
-  try {
-    const fresh = await fetchJSON<Area>(`/areas/${id}.json`);
-    idbPut(cacheKey, fresh);
-    return fresh;
-  } catch {
-    // 2. Fall back to fetching from OSM via server function.
-    const summary = await getAreaSummary(id);
-    if (!summary) return undefined;
-    if (!summary.osmRelation && !summary.bbox) return undefined;
-    try {
-      const { fetchAreaTrails } = await import("@/lib/trailFetch.functions");
-      const { trails, trailCount, totalMi } = await fetchAreaTrails({
-        data: {
-          relation: summary.osmRelation,
-          bbox: summary.bbox,
-        },
-      });
-      const area: Area = { ...summary, trailCount, totalMi, trails };
-      idbPut(cacheKey, area);
-      // Also patch the cached index so cards show counts next time.
-      if (indexCache) {
-        const i = indexCache.findIndex((a) => a.id === id);
-        if (i >= 0) {
-          indexCache[i] = { ...indexCache[i], trailCount, totalMi };
-          idbPut("index", indexCache);
-        }
-      }
-      return area;
-    } catch (e) {
-      console.error("on-demand trail fetch failed", e);
-      return undefined;
-    }
-  }
+  return refreshArea(id);
 }
 
+export async function refreshArea(id: string): Promise<Area | undefined> {
+  try {
+    const { getAreaData } = await import("@/lib/areaData.functions");
+    const payload = await getAreaData({ data: { id } });
+    if (!payload) return undefined;
+    const area: Area = {
+      id: payload.id,
+      name: payload.name,
+      subtitle: payload.subtitle,
+      center: payload.center,
+      zoom: payload.zoom,
+      bbox: payload.bbox,
+      trails: payload.trails,
+      trailCount: payload.trailCount,
+      totalMi: payload.totalMi,
+      cachedAt: payload.cachedAt,
+    };
+    idbPut(`area:${id}`, area);
+    return area;
+  } catch (e) {
+    console.error("loadArea failed", id, e);
+    return undefined;
+  }
+}

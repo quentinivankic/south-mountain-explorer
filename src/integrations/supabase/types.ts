@@ -65,6 +65,57 @@ export type Database = {
         }
         Relationships: []
       }
+      areas: {
+        Row: {
+          bbox: Json | null
+          cached_at: string | null
+          center_lat: number
+          center_lon: number
+          created_at: string
+          id: string
+          name: string
+          osm_relation: string | null
+          state: string
+          total_mi: number | null
+          trail_count: number | null
+          trails: Json | null
+          updated_at: string
+          zoom: number
+        }
+        Insert: {
+          bbox?: Json | null
+          cached_at?: string | null
+          center_lat: number
+          center_lon: number
+          created_at?: string
+          id: string
+          name: string
+          osm_relation?: string | null
+          state: string
+          total_mi?: number | null
+          trail_count?: number | null
+          trails?: Json | null
+          updated_at?: string
+          zoom?: number
+        }
+        Update: {
+          bbox?: Json | null
+          cached_at?: string | null
+          center_lat?: number
+          center_lon?: number
+          created_at?: string
+          id?: string
+          name?: string
+          osm_relation?: string | null
+          state?: string
+          total_mi?: number | null
+          trail_count?: number | null
+          trails?: Json | null
+          updated_at?: string
+          zoom?: number
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           created_at: string

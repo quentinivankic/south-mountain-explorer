@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useAreas } from "@/hooks/useAreas";
+import { useAreaDetails } from "@/hooks/useAreaDetails";
 import { Mountain, MapPin, ChevronRight, LogOut, LogIn, Search, Star, History, Navigation, Settings as SettingsIcon } from "lucide-react";
 import { useAllProgress, useAuthState } from "@/lib/progress";
 import { useFavorites } from "@/lib/favorites";
@@ -34,6 +35,8 @@ function Home() {
   const areas = useAreas();
   const loc = useLocation();
   const favoriteAreas = areas.filter((a) => favorites.has(a.id));
+  const favoriteIds = useMemo(() => favoriteAreas.map((a) => a.id), [favoriteAreas]);
+  const details = useAreaDetails(favoriteIds);
   const [locBusy, setLocBusy] = useState(false);
   const [locError, setLocError] = useState<string | null>(null);
 
@@ -220,10 +223,11 @@ function Home() {
           </div>
         ) : (
           favoriteAreas.map((area) => {
+            const det = details[area.id];
             const done = Object.keys(progress[area.id] ?? {}).length;
-            const total = area.trailCount;
+            const total = det?.trailCount ?? 0;
             const pct = total ? Math.round((done / total) * 100) : 0;
-            const totalMi = area.totalMi;
+            const totalMi = det?.totalMi ?? 0;
             return (
               <Link
                 key={area.id}
@@ -246,7 +250,7 @@ function Home() {
                 <div className="mt-5 space-y-2">
                   <div className="flex items-baseline justify-between">
                     <span className="text-sm font-medium text-foreground">
-                      {done} <span className="text-muted-foreground">/ {total} trails</span>
+                      {done} <span className="text-muted-foreground">/ {total || "—"} trails</span>
                     </span>
                     <span className="text-sm font-bold text-primary tabular-nums">{pct}%</span>
                   </div>
@@ -260,7 +264,7 @@ function Home() {
                     />
                   </div>
                   <div className="text-xs text-muted-foreground tabular-nums">
-                    {totalMi.toFixed(1)} miles total
+                    {totalMi ? `${totalMi.toFixed(1)} miles total` : "Loading…"}
                   </div>
                 </div>
               </Link>

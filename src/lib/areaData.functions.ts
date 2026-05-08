@@ -1,13 +1,15 @@
-// Server function that fetches trail geometry from OpenStreetMap on demand
-// for areas that don't ship as a pre-built JSON file in /public/areas/.
-// Uses the same Overpass + dedupe logic as the build-time script.
+// Cache-through server function: returns trails for an area.
+// First checks Supabase `areas.trails` cache; on miss, fetches Overpass,
+// stores the result, and returns it. Subsequent callers are fast.
 import { createServerFn } from "@tanstack/react-start";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const HIGHWAY = `["highway"~"^(path|footway|track|bridleway)$"]`;
 const ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
 ];
+const STALE_DAYS = 30;
 
 interface OsmWay {
   type: "way";
@@ -38,8 +40,7 @@ function difficulty(tags: Record<string, string> | undefined, mi: number) {
   const sac = tags?.sac_scale;
   if (sac && sac !== "hiking") return "Hard" as const;
   if (mi > 4) return "Hard" as const;
-  if (mi > 2 || tags?.trail_visibility === "intermediate")
-    return "Moderate" as const;
+  if (mi > 2 || tags?.trail_visibility === "intermediate") return "Moderate" as const;
   return "Easy" as const;
 }
 
@@ -145,39 +146,138 @@ function buildTrails(json: { elements: OsmWay[] }) {
   return trails;
 }
 
-export const fetchAreaTrails = createServerFn({ method: "POST" })
-  .inputValidator(
-    (input: {
-      relation?: string;
-      bbox?: readonly [number, number, number, number];
-    }) => {
-      if (!input.relation && !input.bbox) {
-        throw new Error("relation or bbox required");
-      }
-      return input;
-    },
-  )
-  .handler(async ({ data }) => {
+export interface AreaPayload {
+  id: string;
+  name: string;
+  subtitle: string;
+  center: [number, number];
+  zoom: number;
+  bbox?: [number, number, number, number];
+  trails: {
+    id: string;
+    name: string;
+    distanceMi: number;
+    difficulty: "Easy" | "Moderate" | "Hard";
+    segments: [number, number][][];
+  }[];
+  trailCount: number;
+  totalMi: number;
+  cachedAt: string | null;
+}
+
+export const getAreaData = createServerFn({ method: "POST" })
+  .inputValidator((input: { id: string; force?: boolean }) => {
+    if (!input.id || typeof input.id !== "string" || input.id.length > 200) {
+      throw new Error("invalid id");
+    }
+    return input;
+  })
+  .handler(async ({ data }): Promise<AreaPayload | null> => {
+    const { data: row, error } = await supabaseAdmin
+      .from("areas")
+      .select(
+        "id, name, state, center_lat, center_lon, zoom, osm_relation, bbox, trails, trail_count, total_mi, cached_at",
+      )
+      .eq("id", data.id)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (!row) return null;
+
+    const fresh =
+      !data.force &&
+      row.trails &&
+      row.cached_at &&
+      Date.now() - new Date(row.cached_at).getTime() <
+        STALE_DAYS * 24 * 60 * 60 * 1000;
+
+    if (fresh) {
+      return {
+        id: row.id,
+        name: row.name,
+        subtitle: row.state,
+        center: [row.center_lat, row.center_lon],
+        zoom: row.zoom,
+        bbox: (row.bbox as [number, number, number, number] | null) ?? undefined,
+        trails: row.trails as AreaPayload["trails"],
+        trailCount: row.trail_count ?? 0,
+        totalMi: Number(row.total_mi ?? 0),
+        cachedAt: row.cached_at,
+      };
+    }
+
+    // Cache miss / stale → hit Overpass.
     let query: string;
-    if (data.bbox) {
-      const [s, w, n, e] = data.bbox;
+    if (row.bbox) {
+      const [s, w, n, e] = row.bbox as [number, number, number, number];
       query = `[out:json][timeout:90];
 (way${HIGHWAY}(${s},${w},${n},${e}););
 out tags geom;`;
-    } else {
-      const name = data.relation!.replace(/"/g, '\\"');
+    } else if (row.osm_relation) {
+      const name = row.osm_relation.replace(/"/g, '\\"');
       query = `[out:json][timeout:90];
 relation["name"="${name}"];
 map_to_area->.a;
 (way${HIGHWAY}(area.a););
 out tags geom;`;
+    } else {
+      // Tiny bbox around center (~5km square) as last resort.
+      const lat = row.center_lat;
+      const lon = row.center_lon;
+      const d = 0.045;
+      query = `[out:json][timeout:90];
+(way${HIGHWAY}(${lat - d},${lon - d},${lat + d},${lon + d}););
+out tags geom;`;
     }
-    const json = await overpass(query);
-    const trails = buildTrails(json);
-    const totalMi = trails.reduce((s, t) => s + t.distanceMi, 0);
+
+    let trails: AreaPayload["trails"] = [];
+    try {
+      const json = await overpass(query);
+      trails = buildTrails(json);
+    } catch (e) {
+      console.error("overpass failed for", data.id, e);
+      // Fall back to whatever we had cached, even if stale.
+      if (row.trails) {
+        return {
+          id: row.id,
+          name: row.name,
+          subtitle: row.state,
+          center: [row.center_lat, row.center_lon],
+          zoom: row.zoom,
+          bbox: (row.bbox as [number, number, number, number] | null) ?? undefined,
+          trails: row.trails as AreaPayload["trails"],
+          trailCount: row.trail_count ?? 0,
+          totalMi: Number(row.total_mi ?? 0),
+          cachedAt: row.cached_at,
+        };
+      }
+      throw e;
+    }
+
+    const totalMi = Number(trails.reduce((s, t) => s + t.distanceMi, 0).toFixed(1));
+    const cachedAt = new Date().toISOString();
+
+    await supabaseAdmin
+      .from("areas")
+      .update({
+        trails,
+        trail_count: trails.length,
+        total_mi: totalMi,
+        cached_at: cachedAt,
+        updated_at: cachedAt,
+      })
+      .eq("id", data.id);
+
     return {
+      id: row.id,
+      name: row.name,
+      subtitle: row.state,
+      center: [row.center_lat, row.center_lon],
+      zoom: row.zoom,
+      bbox: (row.bbox as [number, number, number, number] | null) ?? undefined,
       trails,
       trailCount: trails.length,
-      totalMi: Number(totalMi.toFixed(1)),
+      totalMi,
+      cachedAt,
     };
   });

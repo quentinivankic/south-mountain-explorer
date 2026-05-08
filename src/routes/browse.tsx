@@ -23,13 +23,8 @@ function Browse() {
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return areas;
-    return areas.filter(
-      (a) =>
-        a.name.toLowerCase().includes(s) ||
-        a.subtitle.toLowerCase().includes(s) ||
-        a.location.toLowerCase().includes(s),
-    );
-  }, [q]);
+    return areas.filter((a) => a.search.includes(s));
+  }, [q, areas]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -77,7 +72,7 @@ function Browse() {
                   <div className="font-semibold text-foreground truncate">{area.name}</div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
                     <MapPin className="size-3" />
-                    {area.subtitle} · {area.trailCount} trails
+                    {area.subtitle}
                   </div>
                 </Link>
                 <button

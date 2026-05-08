@@ -55,6 +55,7 @@ jobs:
             | sed -n 's/.*<string>\(.*\)<\/string>.*/\1/p')
           echo "Profile UUID: $PROFILE_UUID"
           sed -i "" "s/PROFILE_UUID_PLACEHOLDER/$PROFILE_UUID/" ios/project.yml
+          sed -i "" "s/PROFILE_UUID_PLACEHOLDER/$PROFILE_UUID/" ios/ExportOptions.plist
 
       - name: Generate Xcode project
         working-directory: ios

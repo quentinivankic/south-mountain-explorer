@@ -5,12 +5,17 @@
     <key>method</key>
     <string>app-store</string>
     <key>teamID</key>
-    <string>$(APPLE_TEAM_ID)</string>
+    <string>4278GL7BF4</string>
+    <key>signingStyle</key>
+    <string>manual</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>com.southmountainexplorer.app</key>
+        <string>PROFILE_UUID_PLACEHOLDER</string>
+    </dict>
     <key>uploadSymbols</key>
     <true/>
     <key>compileBitcode</key>
     <false/>
-    <key>signingStyle</key>
-    <string>automatic</string>
 </dict>
 </plist>

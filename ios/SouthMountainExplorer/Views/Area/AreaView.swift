@@ -1,0 +1,148 @@
+import SwiftUI
+
+struct AreaView: View {
+    let areaId: String
+    let areaName: String
+
+    @Environment(AreaDataService.self) private var areas
+    @Environment(RecordingService.self) private var recording
+    @Environment(FavoritesService.self) private var favorites
+    @Environment(LocationService.self) private var location
+    @Environment(AuthService.self) private var auth
+
+    @State private var area: Area? = nil
+    @State private var isLoading = true
+    @State private var showTrailList = true
+    @State private var finishedRecording: FinishedRecording? = nil
+    @State private var showSummary = false
+    @State private var showAuthPrompt = false
+
+    private var isRecording: Bool {
+        recording.activeRecording?.areaId == areaId
+    }
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            if let area {
+                // Full-screen map
+                TrailMapView(area: area, activeRecording: isRecording ? recording.activeRecording : nil)
+                    .ignoresSafeArea()
+
+                // Trail list sheet
+                if showTrailList {
+                    trailListSheet(area: area)
+                }
+
+                // Recording panel — floats above everything
+                if isRecording {
+                    VStack {
+                        Spacer()
+                        RecordingPanel(area: area) { finished in
+                            finishedRecording = finished
+                            showSummary = finished != nil
+                        }
+                        .padding(.bottom, showTrailList ? 340 : 20)
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
+                // Map/List toggle and record button
+                if !isRecording {
+                    controlBar(area: area)
+                }
+
+            } else if isLoading {
+                ProgressView("Loading \(areaName)...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ContentUnavailableView("Area Unavailable",
+                    systemImage: "xmark.octagon",
+                    description: Text("Could not load trail data. Check your connection."))
+            }
+        }
+        .navigationTitle(areaName)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await favorites.toggle(areaId: areaId) }
+                } label: {
+                    Image(systemName: favorites.isFavorite(areaId) ? "heart.fill" : "heart")
+                        .foregroundStyle(favorites.isFavorite(areaId) ? .red : .primary)
+                }
+            }
+        }
+        .task {
+            area = await areas.area(id: areaId)
+            isLoading = false
+        }
+        .sheet(isPresented: $showSummary) {
+            if let finished = finishedRecording {
+                RecordingSummarySheet(finished: finished, areaName: areaName)
+            }
+        }
+        .sheet(isPresented: $showAuthPrompt) {
+            AuthView()
+        }
+    }
+
+    private func trailListSheet(area: Area) -> some View {
+        GeometryReader { geo in
+            VStack(spacing: 0) {
+                Spacer()
+                VStack(spacing: 0) {
+                    // Drag indicator
+                    Capsule()
+                        .fill(Color(.tertiaryLabel))
+                        .frame(width: 36, height: 4)
+                        .padding(.top, 10)
+                        .padding(.bottom, 6)
+
+                    Text(areaName)
+                        .font(.headline)
+                        .padding(.bottom, 4)
+
+                    TrailListView(area: area)
+                }
+                .frame(height: 340)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
+        }
+        .ignoresSafeArea(edges: .bottom)
+    }
+
+    private func controlBar(area: Area) -> some View {
+        HStack(spacing: 14) {
+            // Map/List toggle
+            Button {
+                withAnimation(.spring()) { showTrailList.toggle() }
+            } label: {
+                Image(systemName: showTrailList ? "map.fill" : "list.bullet")
+                    .font(.body.weight(.semibold))
+                    .frame(width: 44, height: 44)
+                    .glassEffect(in: .circle)
+            }
+
+            Spacer()
+
+            // Record button
+            Button {
+                guard auth.isSignedIn else { showAuthPrompt = true; return }
+                if !location.isAuthorized { location.requestPermission(); return }
+                recording.startRecording(areaId: areaId, mode: .roam)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "record.circle")
+                        .font(.body.weight(.semibold))
+                    Text("Record Hike")
+                        .fontWeight(.semibold)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .glassEffect(.regular.interactive(), in: .capsule)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, showTrailList ? 350 : 20)
+    }
+}

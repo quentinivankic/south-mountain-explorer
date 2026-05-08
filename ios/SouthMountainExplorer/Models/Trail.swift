@@ -1,0 +1,75 @@
+import Foundation
+
+enum Difficulty: String, Codable, CaseIterable {
+    case easy = "Easy"
+    case moderate = "Moderate"
+    case hard = "Hard"
+}
+
+struct Trail: Codable, Identifiable, Sendable {
+    let id: String
+    let name: String
+    let distanceMi: Double
+    let difficulty: Difficulty
+    // segments: array of polylines, each polyline is array of [lat, lon]
+    let segments: [[[Double]]]
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, segments, difficulty
+        case distanceMi = "distanceMi"
+    }
+}
+
+struct AreaSummary: Codable, Identifiable, Sendable {
+    let id: String
+    let name: String
+    let subtitle: String   // US state
+    let centerLat: Double
+    let centerLon: Double
+
+    var search: String { "\(name) \(subtitle)".lowercased() }
+}
+
+// Raw tuple from bundled index.json: [id, name, state, lat, lon]
+typealias AreaTuple = [JSONValue]
+
+enum JSONValue: Codable, Sendable {
+    case string(String)
+    case number(Double)
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if let s = try? c.decode(String.self) { self = .string(s); return }
+        if let n = try? c.decode(Double.self) { self = .number(n); return }
+        throw DecodingError.typeMismatch(JSONValue.self,
+            .init(codingPath: decoder.codingPath, debugDescription: "Expected String or Number"))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        switch self {
+        case .string(let s): try c.encode(s)
+        case .number(let n): try c.encode(n)
+        }
+    }
+
+    var stringValue: String? { if case .string(let s) = self { return s }; return nil }
+    var doubleValue: Double? { if case .number(let n) = self { return n }; return nil }
+}
+
+extension AreaSummary {
+    init?(tuple: AreaTuple) {
+        guard tuple.count >= 5,
+              let id = tuple[0].stringValue,
+              let name = tuple[1].stringValue,
+              let state = tuple[2].stringValue,
+              let lat = tuple[3].doubleValue,
+              let lon = tuple[4].doubleValue
+        else { return nil }
+        self.id = id
+        self.name = name
+        self.subtitle = state
+        self.centerLat = lat
+        self.centerLon = lon
+    }
+}

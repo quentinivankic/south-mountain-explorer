@@ -123,8 +123,8 @@ def build_counts(data: bytes):
     return trail_count, total_mi
 
 
-def nominatim_bbox(name: str, state: str) -> tuple | None:
-    """Look up the bounding box for an area via Nominatim. Returns (s, w, n, e) or None."""
+def nominatim_lookup(name: str, state: str) -> dict | None:
+    """Look up an area via Nominatim. Returns dict with 'osm_id' and 'boundingbox', or None."""
     q = f"{name}, {state}, USA" if state != "Denmark" else f"{name}, Denmark"
     params = urllib.parse.urlencode({"q": q, "format": "json", "limit": 1, "featuretype": "relation"})
     req = urllib.request.Request(
@@ -134,19 +134,28 @@ def nominatim_bbox(name: str, state: str) -> tuple | None:
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
             results = json.loads(resp.read())
-        if results:
-            bb = results[0].get("boundingbox")  # [s, n, w, e]
-            if bb and len(bb) == 4:
-                s, n, w, e = float(bb[0]), float(bb[1]), float(bb[2]), float(bb[3])
-                return s - 0.005, w - 0.005, n + 0.005, e + 0.005
+        if results and results[0].get("osm_type") == "relation":
+            return results[0]
     except Exception:
         pass
     return None
 
 
-def overpass_query(lat: float, lon: float, bbox: tuple | None = None) -> str:
-    if bbox:
-        s, w, n, e = bbox
+def overpass_query(lat: float, lon: float, nominatim: dict | None = None) -> str:
+    if nominatim:
+        osm_id = int(nominatim["osm_id"])
+        area_id = osm_id + 3_600_000_000
+        return (
+            f'[out:json][timeout:90];'
+            f'area({area_id})->.a;'
+            f'(way{HIGHWAY_FILTER}(area.a););'
+            f'out tags geom;'
+        )
+    bb = nominatim.get("boundingbox") if nominatim else None
+    if bb and len(bb) == 4:
+        s, n, w, e = float(bb[0]), float(bb[1]), float(bb[2]), float(bb[3])
+        buf = 0.005
+        s, w, n, e = s - buf, w - buf, n + buf, e + buf
     else:
         d = 0.10
         s, w, n, e = lat - d, lon - d, lat + d, lon + d
@@ -157,8 +166,8 @@ def overpass_query(lat: float, lon: float, bbox: tuple | None = None) -> str:
     )
 
 
-def fetch_overpass(lat, lon, bbox=None):
-    query = overpass_query(lat, lon, bbox)
+def fetch_overpass(lat, lon, nominatim=None):
+    query = overpass_query(lat, lon, nominatim)
     body = ("data=" + urllib.parse.quote(query)).encode()
     last_err = None
     for endpoint in OVERPASS_ENDPOINTS:
@@ -227,10 +236,10 @@ def main():
 
         try:
             name, state = area[1], area[2]
-            bbox = nominatim_bbox(name, state)
+            nominatim = nominatim_lookup(name, state)
             time.sleep(1)  # Nominatim rate limit: 1 req/sec
-            source = f"nominatim" if bbox else "radius"
-            data = fetch_overpass(lat, lon, bbox)
+            source = "relation" if nominatim else "radius"
+            data = fetch_overpass(lat, lon, nominatim)
             trail_count, total_mi = build_counts(data)
             cache[area_id] = {"trail_count": trail_count, "total_mi": total_mi}
             processed += 1

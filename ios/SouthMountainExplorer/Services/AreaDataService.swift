@@ -217,7 +217,7 @@ final class AreaDataService {
         }
     }
 
-    private func nominatimBbox(name: String, state: String) async -> (s: Double, w: Double, n: Double, e: Double)? {
+    private func nominatimRelationId(name: String, state: String) async -> Int? {
         let place = state == "Denmark" ? "\(name), Denmark" : "\(name), \(state), USA"
         guard let encoded = place.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
               let url = URL(string: "https://nominatim.openstreetmap.org/search?q=\(encoded)&format=json&limit=1&featuretype=relation")
@@ -227,11 +227,11 @@ final class AreaDataService {
         guard let (data, _) = try? await URLSession.shared.data(for: req),
               let results = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               let first = results.first,
-              let bb = first["boundingbox"] as? [String], bb.count == 4,
-              let s = Double(bb[0]), let n = Double(bb[1]),
-              let w = Double(bb[2]), let e = Double(bb[3])
+              first["osm_type"] as? String == "relation",
+              let idStr = first["osm_id"] as? String,
+              let id = Int(idStr)
         else { return nil }
-        return (s - 0.005, w - 0.005, n + 0.005, e + 0.005)
+        return id
     }
 
     private func fetchFromOverpass(row: AreaRow) async throws -> AreaRow {
@@ -239,8 +239,9 @@ final class AreaDataService {
         if let bbox = row.bbox, bbox.count == 4 {
             let s = bbox[1], w = bbox[0], n = bbox[3], e = bbox[2]
             query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(s),\(w),\(n),\(e)););out tags geom;"
-        } else if let nb = await nominatimBbox(name: row.name, state: row.state) {
-            query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(nb.s),\(nb.w),\(nb.n),\(nb.e)););out tags geom;"
+        } else if let relationId = await nominatimRelationId(name: row.name, state: row.state) {
+            let areaId = relationId + 3_600_000_000
+            query = "[out:json][timeout:90];area(\(areaId))->.a;(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](area.a););out tags geom;"
         } else {
             let lat = row.centerLat, lon = row.centerLon, d = 0.10
             query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(lat-d),\(lon-d),\(lat+d),\(lon+d)););out tags geom;"

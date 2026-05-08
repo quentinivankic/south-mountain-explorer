@@ -31,21 +31,27 @@ final class AreaDataService {
         isLoadingIndex = true
         defer { isLoadingIndex = false }
 
-        // Try disk cache first
-        if let cached = loadIndexFromDisk() {
+        // Supabase-format cache (filtered, has trail counts)
+        if let cached = loadSummariesFromDisk() {
             summaries = cached
-            // Refresh in background
             Task { await fetchAndCacheIndex() }
             return
         }
 
-        // Fall back to bundle
-        if let bundled = loadIndexFromBundle() {
-            summaries = bundled
+        // Tuple-format disk cache (legacy)
+        if let cached = loadIndexFromDisk() {
+            summaries = cached
+            Task { await fetchAndCacheIndex() }
             return
         }
 
-        // Last resort: fetch from network index if hosted
+        // Bundled fallback — then immediately refresh from Supabase
+        if let bundled = loadIndexFromBundle() {
+            summaries = bundled
+            Task { await fetchAndCacheIndex() }
+            return
+        }
+
         await fetchAndCacheIndex()
     }
 
@@ -60,8 +66,22 @@ final class AreaDataService {
         cacheDir.appendingPathComponent("index-v2.json")
     }
 
+    private var summariesDiskURL: URL {
+        cacheDir.appendingPathComponent("summaries-v1.json")
+    }
+
     private func loadIndexFromDisk() -> [AreaSummary]? {
         decodeIndex(from: indexDiskURL)
+    }
+
+    private func loadSummariesFromDisk() -> [AreaSummary]? {
+        guard let data = try? Data(contentsOf: summariesDiskURL) else { return nil }
+        return try? JSONDecoder().decode([AreaSummary].self, from: data)
+    }
+
+    private func saveSummariesToDisk(_ s: [AreaSummary]) {
+        guard let data = try? JSONEncoder().encode(s) else { return }
+        try? data.write(to: summariesDiskURL)
     }
 
     private func decodeIndex(from url: URL) -> [AreaSummary]? {
@@ -72,8 +92,39 @@ final class AreaDataService {
     }
 
     private func fetchAndCacheIndex() async {
-        // The areas index is bundled — no remote URL by default.
-        // If you host it externally, set the URL here.
+        struct IndexRow: Codable {
+            let id: String
+            let name: String
+            let state: String
+            let centerLat: Double
+            let centerLon: Double
+            let trailCount: Int?
+            let totalMi: Double?
+            enum CodingKeys: String, CodingKey {
+                case id, name, state
+                case centerLat = "center_lat"
+                case centerLon = "center_lon"
+                case trailCount = "trail_count"
+                case totalMi = "total_mi"
+            }
+        }
+        do {
+            let rows: [IndexRow] = try await supabase
+                .from("areas")
+                .select("id, name, state, center_lat, center_lon, trail_count, total_mi")
+                .gt("trail_count", value: 0)
+                .execute()
+                .value
+            let fetched = rows.map {
+                AreaSummary(id: $0.id, name: $0.name, subtitle: $0.state,
+                            centerLat: $0.centerLat, centerLon: $0.centerLon,
+                            trailCount: $0.trailCount, totalMi: $0.totalMi)
+            }
+            summaries = fetched
+            saveSummariesToDisk(fetched)
+        } catch {
+            // Network unavailable — keep using bundled/cached index
+        }
     }
 
     func search(_ query: String) -> [AreaSummary] {

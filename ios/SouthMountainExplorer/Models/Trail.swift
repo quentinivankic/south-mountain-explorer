@@ -26,6 +26,8 @@ struct AreaSummary: Codable, Identifiable, Sendable {
     let subtitle: String   // US state
     let centerLat: Double
     let centerLon: Double
+    var trailCount: Int?
+    var totalMi: Double?
 
     var search: String { "\(name) \(subtitle)".lowercased() }
 }
@@ -71,5 +73,7 @@ extension AreaSummary {
         self.subtitle = state
         self.centerLat = lat
         self.centerLon = lon
+        self.trailCount = tuple.count > 5 ? tuple[5].doubleValue.map { Int($0) } : nil
+        self.totalMi = tuple.count > 6 ? tuple[6].doubleValue : nil
     }
 }

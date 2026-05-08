@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useAreas } from "@/hooks/useAreas";
-import { Mountain, MapPin, ChevronRight, LogOut, LogIn, Search, Star, History, Navigation } from "lucide-react";
+import { Mountain, MapPin, ChevronRight, LogOut, LogIn, Search, Star, History, Navigation, Settings as SettingsIcon } from "lucide-react";
 import { useAllProgress, useAuthState } from "@/lib/progress";
 import { useFavorites } from "@/lib/favorites";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,23 +59,32 @@ function Home() {
               <Mountain className="size-4" />
               <span className="uppercase tracking-[0.2em] text-xs">Summit</span>
             </div>
-            {userId ? (
-              <button
-                onClick={() => supabase.auth.signOut()}
-                className="flex items-center gap-1 text-xs font-semibold opacity-90 hover:opacity-100"
-                aria-label="Sign out"
-              >
-                <LogOut className="size-3.5" /> Sign out
-              </button>
-            ) : (
+            <div className="flex items-center gap-3">
               <Link
-                to="/auth"
-                search={{ redirect: "/" }}
-                className="flex items-center gap-1 text-xs font-semibold opacity-90 hover:opacity-100"
+                to="/settings"
+                aria-label="Settings"
+                className="opacity-90 hover:opacity-100"
               >
-                <LogIn className="size-3.5" /> Sign in
+                <SettingsIcon className="size-4" />
               </Link>
-            )}
+              {userId ? (
+                <button
+                  onClick={() => supabase.auth.signOut()}
+                  className="flex items-center gap-1 text-xs font-semibold opacity-90 hover:opacity-100"
+                  aria-label="Sign out"
+                >
+                  <LogOut className="size-3.5" /> Sign out
+                </button>
+              ) : (
+                <Link
+                  to="/auth"
+                  search={{ redirect: "/" }}
+                  className="flex items-center gap-1 text-xs font-semibold opacity-90 hover:opacity-100"
+                >
+                  <LogIn className="size-3.5" /> Sign in
+                </Link>
+              )}
+            </div>
           </div>
           <h1 className="mt-6 text-4xl font-black leading-[1.05] max-w-[14ch]">
             Finish every trail. Become a local.

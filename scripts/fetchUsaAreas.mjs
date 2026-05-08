@@ -118,7 +118,7 @@ function queryFor(s, w, n, e) {
   relation["leisure"="nature_reserve"](${s},${w},${n},${e});
   relation["leisure"="park"]["park:type"~"state|national|regional"](${s},${w},${n},${e});
 );
-out tags center;`;
+out tags center bb;`;
 }
 
 function bboxArea([s, w, n, e]) {
@@ -168,19 +168,24 @@ for (const code of targetStates) {
     continue;
   }
 
+  // Reject obvious non-hike places by name. We do NOT require positive
+  // keywords like "Mountain" — small parks named e.g. "Smith Park" can still
+  // host real trail networks. Size filter below is the primary cut.
   const BAD_RE =
-    /\b(cemetery|graveyard|golf|country club|playground|playfield|ball ?field|ball ?park|baseball|softball|soccer|tennis|skate ?park|dog ?park|pool|aquatic|community center|water tower|substation|parking|rest area|mini[- ]park|pocket park|tot lot|memorial garden|plaza|square|town green|village green)\b/i;
-  const GOOD_RE =
-    /\b(National Park|National Forest|National Monument|National Seashore|National Recreation|National Wildlife|National Preserve|National Lakeshore|National Memorial|National Battlefield|National Historic|State Park|State Forest|State Recreation|State Wildlife|State Natural|Wilderness|Wildlife Refuge|Wildlife Management|Wildlife Area|Conservation Area|Nature Reserve|Nature Preserve|Nature Center|Preserve|Greenway|Trail|Trails|Forest|Mountain|Mountains|Peak|Canyon|Gorge|Mesa|Butte|Ridge|Bluff|Hills|Valley|Falls|Lake|River|Creek|Springs|Wash|Marsh|Swamp|Wetland|Bog|Heath|Glade|Prairie|Meadow|Woods|Woodland|Sanctuary|Refuge|Reservation|Recreation Area|Heritage|Memorial Forest|Open Space|Land|Lands|Wild|Headlands|Highlands|Dunes|Beach|Seashore|Coast|Cape|Point|Island|Islands|Cave|Caverns|Volcano|Crater|Hot Springs|Hollow|Pines|Oaks|Cedars)\b/i;
+    /\b(cemetery|graveyard|golf|country club|playground|playfield|ball ?field|ball ?park|baseball|softball|soccer|tennis|skate ?park|dog ?park|swimming pool|aquatic center|community center|water tower|substation|parking|rest area|mini[- ]park|pocket park|tot lot|memorial garden|plaza|town green|village green)\b/i;
   function looksReal(name) {
     const n = name.trim();
-    if (n.length < 6) return false;
+    if (n.length < 4) return false;
     if (!/[A-Za-z]{3,}/.test(n)) return false;
+    if (/^\d+$/.test(n)) return false;
     if (/^\d+(st|nd|rd|th)?$/i.test(n)) return false;
     if (BAD_RE.test(n)) return false;
-    if (!GOOD_RE.test(n)) return false;
     return true;
   }
+
+  // Minimum area in km². ~0.4 km² (~100 acres) cuts the vast majority of
+  // city pocket parks while keeping small but legit hiking preserves.
+  const MIN_KM2 = 0.4;
 
   let count = 0;
   for (const el of json.elements || []) {
@@ -199,6 +204,14 @@ for (const code of targetStates) {
       skipped++;
       continue;
     }
+    let bbox = null;
+    if (el.bounds) {
+      bbox = [el.bounds.minlat, el.bounds.minlon, el.bounds.maxlat, el.bounds.maxlon];
+      if (bboxArea(bbox) < MIN_KM2) {
+        skipped++;
+        continue;
+      }
+    }
     const id = `${slug(name)}-${code.toLowerCase()}`;
     if (byId.has(id)) continue;
     byId.set(id, {
@@ -210,7 +223,15 @@ for (const code of targetStates) {
         Number(el.center.lat.toFixed(5)),
         Number(el.center.lon.toFixed(5)),
       ],
-      zoom: 13,
+      bbox: bbox
+        ? [
+            Number(bbox[0].toFixed(4)),
+            Number(bbox[1].toFixed(4)),
+            Number(bbox[2].toFixed(4)),
+            Number(bbox[3].toFixed(4)),
+          ]
+        : undefined,
+      zoom: bbox ? bboxToZoom(bbox) : 13,
       osmRelation: name,
       trailCount: 0,
       totalMi: 0,

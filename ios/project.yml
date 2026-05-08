@@ -19,6 +19,8 @@ targets:
       - path: SouthMountainExplorer
     resources:
       - path: SouthMountainExplorer/Resources
+      - path: SouthMountainExplorer/Assets.xcassets
+      - path: SouthMountainExplorer/LaunchScreen.storyboard
     info:
       path: SouthMountainExplorer/Info.plist
       properties:
@@ -26,9 +28,11 @@ targets:
         CFBundleDisplayName: South Mountain Explorer
         CFBundleShortVersionString: "1.0"
         CFBundleVersion: "1"
+        CFBundleIconName: AppIcon
         UILaunchStoryboardName: LaunchScreen
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         NSLocationWhenInUseUsageDescription: "South Mountain Explorer uses your location to find nearby trails and show your position on the map."

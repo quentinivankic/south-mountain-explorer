@@ -1,0 +1,200 @@
+[
+  {
+    "id": "base-and-meridian-wildlife-area-az",
+    "name": "Base and Meridian Wildlife Area",
+    "state": "Arizona",
+    "lat": 33.3819,
+    "lon": -112.3018,
+    "trailCount": 3,
+    "totalMi": 8.8
+  },
+  {
+    "id": "cave-buttes-recreation-area-az",
+    "name": "Cave Buttes Recreation Area",
+    "state": "Arizona",
+    "lat": 33.7361,
+    "lon": -112.0319,
+    "trailCount": 8,
+    "totalMi": 9.3
+  },
+  {
+    "id": "deem-hills-recreation-area-az",
+    "name": "Deem Hills Recreation Area",
+    "state": "Arizona",
+    "lat": 33.7284,
+    "lon": -112.1536,
+    "trailCount": 4,
+    "totalMi": 9.9
+  },
+  {
+    "id": "eastwing-mountain-preserve-az",
+    "name": "Eastwing Mountain Preserve",
+    "state": "Arizona",
+    "lat": 33.7373,
+    "lon": -112.2121,
+    "trailCount": 3,
+    "totalMi": 4.6
+  },
+  {
+    "id": "hohokam-pima-national-monument-az",
+    "name": "Hohokam Pima National Monument",
+    "state": "Arizona",
+    "lat": 33.1866,
+    "lon": -111.9139,
+    "trailCount": 2,
+    "totalMi": 7.8
+  },
+  {
+    "id": "mcdowell-mountain-regional-park-az",
+    "name": "McDowell Mountain Regional Park",
+    "state": "Arizona",
+    "lat": 33.6836,
+    "lon": -111.7354,
+    "trailCount": 36,
+    "totalMi": 100.2
+  },
+  {
+    "id": "mcdowell-sonoran-preserve-az",
+    "name": "McDowell Sonoran Preserve",
+    "state": "Arizona",
+    "lat": 33.704,
+    "lon": -111.8464,
+    "trailCount": 121,
+    "totalMi": 228.2
+  },
+  {
+    "id": "north-maricopa-mountains-wilderness-az",
+    "name": "North Maricopa Mountains Wilderness",
+    "state": "Arizona",
+    "lat": 33.1043,
+    "lon": -112.5191,
+    "trailCount": 4,
+    "totalMi": 16.9
+  },
+  {
+    "id": "north-mountain-preserve-az",
+    "name": "North Mountain Preserve",
+    "state": "Arizona",
+    "lat": 33.5893,
+    "lon": -112.0819,
+    "trailCount": 9,
+    "totalMi": 11
+  },
+  {
+    "id": "paloma-regional-preserve-az",
+    "name": "Paloma Regional Preserve",
+    "state": "Arizona",
+    "lat": 33.7497,
+    "lon": -112.2344,
+    "trailCount": 11,
+    "totalMi": 18.1
+  },
+  {
+    "id": "phoenix-mountains-preserve-az",
+    "name": "Phoenix Mountains Preserve",
+    "state": "Arizona",
+    "lat": 33.569,
+    "lon": -112.0216,
+    "trailCount": 20,
+    "totalMi": 30.9
+  },
+  {
+    "id": "powers-butte-wildlife-area-az",
+    "name": "Powers Butte Wildlife Area",
+    "state": "Arizona",
+    "lat": 33.2761,
+    "lon": -112.742,
+    "trailCount": 0,
+    "totalMi": 0
+  },
+  {
+    "id": "robbins-butte-wildlife-area-az",
+    "name": "Robbins Butte Wildlife Area",
+    "state": "Arizona",
+    "lat": 33.3214,
+    "lon": -112.6417,
+    "trailCount": 21,
+    "totalMi": 21.1
+  },
+  {
+    "id": "scarlett-canyon-preserve-az",
+    "name": "Scarlett Canyon Preserve",
+    "state": "Arizona",
+    "lat": 33.677,
+    "lon": -112.0474,
+    "trailCount": 6,
+    "totalMi": 6.8
+  },
+  {
+    "id": "shadow-mountain-preserve-az",
+    "name": "Shadow Mountain Preserve",
+    "state": "Arizona",
+    "lat": 33.612,
+    "lon": -112.0286,
+    "trailCount": 3,
+    "totalMi": 2.8
+  },
+  {
+    "id": "sierra-estrella-wilderness-az",
+    "name": "Sierra Estrella Wilderness",
+    "state": "Arizona",
+    "lat": 33.1994,
+    "lon": -112.2541,
+    "trailCount": 1,
+    "totalMi": 2.8
+  },
+  {
+    "id": "sonoran-preserve-az",
+    "name": "Sonoran Preserve",
+    "state": "Arizona",
+    "lat": 33.7703,
+    "lon": -112.0779,
+    "trailCount": 24,
+    "totalMi": 55
+  },
+  {
+    "id": "south-mountain-park-and-preserve-az",
+    "name": "South Mountain Park and Preserve",
+    "state": "Arizona",
+    "lat": 33.3359,
+    "lon": -112.0704,
+    "trailCount": 48,
+    "totalMi": 104.6
+  },
+  {
+    "id": "south-mountain-preserve-az",
+    "name": "South Mountain Preserve",
+    "state": "Arizona",
+    "lat": 33.3359,
+    "lon": -112.0704,
+    "trailCount": 57,
+    "totalMi": 116.1
+  },
+  {
+    "id": "sunrise-mountain-preserve-az",
+    "name": "Sunrise Mountain Preserve",
+    "state": "Arizona",
+    "lat": 33.7167,
+    "lon": -112.2467,
+    "trailCount": 6,
+    "totalMi": 6.8
+  },
+  {
+    "id": "westwing-mountain-preserve-az",
+    "name": "Westwing Mountain Preserve",
+    "state": "Arizona",
+    "lat": 33.7407,
+    "lon": -112.2465,
+    "trailCount": 5,
+    "totalMi": 7.3
+  },
+  {
+    "id": "fredericia-denmark",
+    "name": "Fredericia",
+    "state": "Denmark",
+    "lat": 55.5667,
+    "lon": 9.7528,
+    "trailCount": 4,
+    "totalMi": 5
+  }
+]

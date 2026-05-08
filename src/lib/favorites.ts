@@ -1,7 +1,9 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { loadArea, refreshArea } from "@/data/trails";
 
 const KEY = "summit:favorites";
+const STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 let favorites: Set<string> = new Set();
 let userId: string | null = null;

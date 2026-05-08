@@ -31,22 +31,24 @@ final class AreaDataService {
         isLoadingIndex = true
         defer { isLoadingIndex = false }
 
-        // Supabase-format cache (filtered, has trail counts)
-        if let cached = loadSummariesFromDisk() {
+        let bundled = loadIndexFromBundle()
+        let bundledCount = bundled?.count ?? 0
+
+        // Disk cache is only valid if it has at least as many areas as the bundle.
+        // If the bundle is newer/larger, skip the stale cache.
+        if let cached = loadSummariesFromDisk(), cached.count >= bundledCount {
             summaries = cached
             Task { await fetchAndCacheIndex() }
             return
         }
 
-        // Tuple-format disk cache (legacy)
-        if let cached = loadIndexFromDisk() {
+        if let cached = loadIndexFromDisk(), cached.count >= bundledCount {
             summaries = cached
             Task { await fetchAndCacheIndex() }
             return
         }
 
-        // Bundled fallback — then immediately refresh from Supabase
-        if let bundled = loadIndexFromBundle() {
+        if let bundled {
             summaries = bundled
             Task { await fetchAndCacheIndex() }
             return

@@ -170,7 +170,7 @@ function AreaPage() {
             onFinish={(r) => setFinished(r)}
           />
         ) : (
-          <div className="pointer-events-none absolute left-4 right-4 bottom-4 rounded-2xl bg-card/95 backdrop-blur-sm shadow-[var(--shadow-elev)] border border-border/60 p-4">
+          <div className="pointer-events-none absolute z-[1000] left-4 right-4 bottom-4 rounded-2xl bg-card/95 backdrop-blur-sm shadow-[var(--shadow-elev)] border border-border/60 p-4">
             <div className="flex items-baseline justify-between">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">

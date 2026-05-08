@@ -38,6 +38,8 @@ function snapshot(): StoredLocation {
 }
 
 function write(v: StoredLocation) {
+  cached = v;
+  hydrated = true;
   if (typeof window !== "undefined") {
     localStorage.setItem(KEY, JSON.stringify(v));
   }
@@ -45,7 +47,7 @@ function write(v: StoredLocation) {
 }
 
 export function getLocation(): StoredLocation {
-  return read();
+  return snapshot();
 }
 
 export async function requestLocation(): Promise<StoredLocation> {
@@ -89,7 +91,10 @@ function subscribe(cb: () => void) {
   listeners.add(cb);
   if (typeof window !== "undefined") {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === KEY) cb();
+      if (e.key === KEY) {
+        cached = read();
+        cb();
+      }
     };
     window.addEventListener("storage", onStorage);
     return () => {
@@ -100,12 +105,10 @@ function subscribe(cb: () => void) {
   return () => listeners.delete(cb);
 }
 
+const SERVER_SNAPSHOT: StoredLocation = { status: "unset" };
+
 export function useLocation(): StoredLocation {
-  return useSyncExternalStore(
-    subscribe,
-    () => read(),
-    () => ({ status: "unset" as const }),
-  );
+  return useSyncExternalStore(subscribe, snapshot, () => SERVER_SNAPSHOT);
 }
 
 /** Haversine distance in miles. */

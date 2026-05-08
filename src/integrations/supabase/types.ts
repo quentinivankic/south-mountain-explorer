@@ -98,6 +98,45 @@ export type Database = {
         }
         Relationships: []
       }
+      hike_recordings: {
+        Row: {
+          area_id: string
+          completed_trail_ids: string[]
+          created_at: string
+          distance_mi: number
+          duration_s: number
+          ended_at: string
+          id: string
+          path: Json
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          area_id: string
+          completed_trail_ids?: string[]
+          created_at?: string
+          distance_mi?: number
+          duration_s?: number
+          ended_at: string
+          id?: string
+          path?: Json
+          started_at: string
+          user_id: string
+        }
+        Update: {
+          area_id?: string
+          completed_trail_ids?: string[]
+          created_at?: string
+          distance_mi?: number
+          duration_s?: number
+          ended_at?: string
+          id?: string
+          path?: Json
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trail_completions: {
         Row: {
           area_id: string

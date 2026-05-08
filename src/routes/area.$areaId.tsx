@@ -13,6 +13,7 @@ import { startRecording, useRecorder, type FinishedRecording } from "@/lib/recor
 import { RecordingPanel } from "@/components/RecordingPanel";
 import { RecordingSummary } from "@/components/RecordingSummary";
 import { useAreaCoverage } from "@/lib/coverage";
+import { useLiveLocation, useLocation } from "@/lib/location";
 
 export const Route = createFileRoute("/area/$areaId")({
   loader: async ({ params }) => {
@@ -80,7 +81,13 @@ function AreaPage() {
   const livePath: [number, number][] | undefined = isRecordingThisArea
     ? recording!.path.map((p) => [p[0], p[1]] as [number, number])
     : undefined;
-  const liveCurrent = livePath && livePath.length ? livePath[livePath.length - 1] : null;
+  const storedLoc = useLocation();
+  // Watch the device location whenever the user has granted permission, so
+  // the "you are here" dot shows even before they start recording.
+  const liveLoc = useLiveLocation(storedLoc.status === "granted");
+  const liveCurrent: [number, number] | null = livePath && livePath.length
+    ? livePath[livePath.length - 1]
+    : liveLoc;
 
   const beginStart = (mode: "roam" | "trail", trailId?: string) => {
     if (recording && recording.areaId !== area.id) {

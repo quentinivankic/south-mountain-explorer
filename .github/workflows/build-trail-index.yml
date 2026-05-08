@@ -1,0 +1,53 @@
+name: Build Trail Index
+
+on:
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: "Areas per save batch"
+        default: "50"
+      delay:
+        description: "Seconds between Overpass requests"
+        default: "1.5"
+      limit:
+        description: "Max areas to process (blank = all)"
+        default: ""
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run trail count builder
+        run: |
+          ARGS="--batch-size ${{ github.event.inputs.batch_size }} --delay ${{ github.event.inputs.delay }}"
+          if [ -n "${{ github.event.inputs.limit }}" ]; then
+            ARGS="$ARGS --limit ${{ github.event.inputs.limit }}"
+          fi
+          python3 scripts/build-trail-counts.py $ARGS
+
+      - name: Commit updated index
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/areas/index.json public/areas/counts-cache.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            CACHED=$(python3 -c "
+          import json
+          idx = json.load(open('public/areas/index.json'))
+          n = sum(1 for a in idx if len(a) >= 7)
+          print(f'{n}/{len(idx)} areas have trail counts')
+          ")
+            git commit -m "chore: rebuild trail index — $CACHED"
+            git push
+          fi

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { areas } from "@/data/trails";
-import { Mountain, MapPin, ChevronRight, LogOut, LogIn, Search, Star } from "lucide-react";
+import { Mountain, MapPin, ChevronRight, LogOut, LogIn, Search, Star, History } from "lucide-react";
 import { useAllProgress, useAuthState } from "@/lib/progress";
 import { useFavorites } from "@/lib/favorites";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,6 +82,17 @@ function Home() {
           <span className="text-sm text-muted-foreground flex-1">Search areas…</span>
           <span className="text-xs font-semibold text-primary">Browse</span>
         </Link>
+
+        {userId && (
+          <Link
+            to="/history"
+            className="flex items-center gap-3 rounded-2xl bg-card border border-border/50 px-4 py-3 shadow-sm active:scale-[0.99] transition-transform"
+          >
+            <History className="size-4 text-muted-foreground" />
+            <span className="text-sm flex-1 font-medium">Hike history</span>
+            <ChevronRight className="size-4 text-muted-foreground" />
+          </Link>
+        )}
 
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1 pt-2">
           Your favorites

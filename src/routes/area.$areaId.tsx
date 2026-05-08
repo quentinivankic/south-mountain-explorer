@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Check, RotateCcw } from "lucide-react";
+import { ArrowLeft, Check, RotateCcw, Play, History as HistoryIcon } from "lucide-react";
 import { loadArea, type Area, type Difficulty } from "@/data/trails";
 import {
   resetArea,
@@ -9,6 +9,9 @@ import {
   useAuthState,
 } from "@/lib/progress";
 import { TrailMapClient } from "@/components/TrailMapClient";
+import { startRecording, useRecorder, type FinishedRecording } from "@/lib/recorder";
+import { RecordingPanel } from "@/components/RecordingPanel";
+import { RecordingSummary } from "@/components/RecordingSummary";
 
 export const Route = createFileRoute("/area/$areaId")({
   loader: async ({ params }) => {
@@ -60,12 +63,27 @@ function AreaPage() {
   const { area } = Route.useLoaderData() as { area: Area };
   const progress = useAreaProgress(area.id);
   const userId = useAuthState();
-  
+  const { active: recording, error: recError } = useRecorder();
+  const [finished, setFinished] = useState<FinishedRecording | null>(null);
+
   const [highlighted, setHighlighted] = useState<string | null>(null);
   const [sort, setSort] = useState<"name" | "distance" | "difficulty">("distance");
 
   const handleToggle = (trailId: string) => {
     toggleTrail(area.id, trailId);
+  };
+
+  const isRecordingThisArea = recording?.areaId === area.id;
+  const livePath: [number, number][] | undefined = isRecordingThisArea
+    ? recording!.path.map((p) => [p[0], p[1]] as [number, number])
+    : undefined;
+  const liveCurrent = livePath && livePath.length ? livePath[livePath.length - 1] : null;
+
+  const handleStart = () => {
+    if (recording && recording.areaId !== area.id) {
+      if (!confirm("You have a recording in progress for another area. Discard it and start here?")) return;
+    }
+    startRecording(area.id);
   };
 
   const completedIds = useMemo(() => new Set(Object.keys(progress)), [progress]);
@@ -106,16 +124,23 @@ function AreaPage() {
             </div>
             <div className="text-base font-bold leading-tight">{area.name}</div>
           </div>
-          <button
-            onClick={() => {
-              if (done > 0 && confirm("Reset all progress for this area?"))
-                resetArea(area.id);
-            }}
-            className="text-muted-foreground p-1"
-            aria-label="Reset progress"
-          >
-            <RotateCcw className="size-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            {userId && (
+              <Link to="/history" className="text-muted-foreground p-1" aria-label="History">
+                <HistoryIcon className="size-4" />
+              </Link>
+            )}
+            <button
+              onClick={() => {
+                if (done > 0 && confirm("Reset all progress for this area?"))
+                  resetArea(area.id);
+              }}
+              className="text-muted-foreground p-1"
+              aria-label="Reset progress"
+            >
+              <RotateCcw className="size-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -127,6 +152,8 @@ function AreaPage() {
           trails={area.trails}
           completedIds={completedIds}
           highlightedId={highlighted}
+          livePath={livePath}
+          liveCurrent={liveCurrent}
           onSelect={(id) => {
             setHighlighted(id);
             document.getElementById(`t-${id}`)?.scrollIntoView({
@@ -135,34 +162,56 @@ function AreaPage() {
             });
           }}
         />
-        {/* Progress badge overlay */}
-        <div className="pointer-events-none absolute left-4 right-4 bottom-4 rounded-2xl bg-card/95 backdrop-blur-sm shadow-[var(--shadow-elev)] border border-border/60 p-4">
-          <div className="flex items-baseline justify-between">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Area completion
+        {isRecordingThisArea && recording ? (
+          <RecordingPanel
+            active={recording}
+            trails={area.trails}
+            error={recError}
+            onFinish={(r) => setFinished(r)}
+          />
+        ) : (
+          <div className="pointer-events-none absolute left-4 right-4 bottom-4 rounded-2xl bg-card/95 backdrop-blur-sm shadow-[var(--shadow-elev)] border border-border/60 p-4">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Area completion
+                </div>
+                <div className="mt-0.5 text-2xl font-black text-foreground tabular-nums">
+                  {pct}<span className="text-base text-muted-foreground">%</span>
+                </div>
               </div>
-              <div className="mt-0.5 text-2xl font-black text-foreground tabular-nums">
-                {pct}<span className="text-base text-muted-foreground">%</span>
+              <div className="text-right">
+                <div className="text-sm font-semibold tabular-nums">
+                  {done} / {total}
+                </div>
+                <div className="text-[11px] text-muted-foreground tabular-nums">
+                  {milesDone.toFixed(1)} / {totalMi.toFixed(1)} mi
+                </div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-sm font-semibold tabular-nums">
-                {done} / {total}
-              </div>
-              <div className="text-[11px] text-muted-foreground tabular-nums">
-                {milesDone.toFixed(1)} / {totalMi.toFixed(1)} mi
-              </div>
+            <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full transition-[width] duration-500"
+                style={{ width: `${pct}%`, background: "var(--gradient-sunrise)" }}
+              />
             </div>
+            <button
+              onClick={handleStart}
+              className="pointer-events-auto mt-3 w-full inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground py-2.5 font-bold text-sm"
+            >
+              <Play className="size-4 fill-current" /> Record this hike
+            </button>
           </div>
-          <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-            <div
-              className="h-full rounded-full transition-[width] duration-500"
-              style={{ width: `${pct}%`, background: "var(--gradient-sunrise)" }}
-            />
-          </div>
-        </div>
+        )}
       </div>
+
+      {finished && (
+        <RecordingSummary
+          finished={finished}
+          trails={area.trails}
+          onClose={() => setFinished(null)}
+        />
+      )}
 
       {/* List */}
       <main className="flex-1 px-4 pt-5 pb-12">

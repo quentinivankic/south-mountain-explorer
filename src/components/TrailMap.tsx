@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Polyline, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Polyline, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Trail } from "@/data/trails";
@@ -12,6 +12,8 @@ interface Props {
   highlightedId?: string | null;
   onSelect?: (id: string) => void;
   className?: string;
+  livePath?: [number, number][];
+  liveCurrent?: [number, number] | null;
 }
 
 function FitBounds({ trails }: { trails: Trail[] }) {
@@ -33,7 +35,15 @@ export function TrailMap({
   highlightedId,
   onSelect,
   className,
+  livePath,
+  liveCurrent,
 }: Props) {
+  const liveIcon = L.divIcon({
+    className: "",
+    html: '<div style="width:18px;height:18px;border-radius:9999px;background:oklch(0.55 0.17 35);border:3px solid white;box-shadow:0 0 0 4px oklch(0.55 0.17 35 / 0.25);"></div>',
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+  });
   return (
     <MapContainer
       center={center}
@@ -74,6 +84,20 @@ export function TrailMap({
           />
         );
       })}
+      {livePath && livePath.length > 1 && (
+        <Polyline
+          positions={livePath}
+          pathOptions={{
+            color: "oklch(0.55 0.17 35)",
+            weight: 5,
+            opacity: 0.9,
+            dashArray: "2,6",
+          }}
+        />
+      )}
+      {liveCurrent && (
+        <Marker position={liveCurrent} icon={liveIcon} interactive={false} />
+      )}
     </MapContainer>
   );
 }

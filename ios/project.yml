@@ -43,6 +43,11 @@ targets:
     dependencies:
       - package: SupabaseSwift
         product: Supabase
+    entitlements:
+      path: SouthMountainExplorer/SouthMountainExplorer.entitlements
+      properties:
+        com.apple.developer.applesignin:
+          - Default
     settings:
       base:
         SWIFT_VERSION: "6.0"

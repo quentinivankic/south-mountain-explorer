@@ -20,7 +20,6 @@ targets:
     resources:
       - path: SouthMountainExplorer/Resources
       - path: SouthMountainExplorer/Assets.xcassets
-      - path: SouthMountainExplorer/LaunchScreen.storyboard
     info:
       path: SouthMountainExplorer/Info.plist
       properties:
@@ -29,7 +28,8 @@ targets:
         CFBundleShortVersionString: "1.0"
         CFBundleVersion: "1"
         CFBundleIconName: AppIcon
-        UILaunchStoryboardName: LaunchScreen
+        UILaunchScreen:
+          UIColorName: ""
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown

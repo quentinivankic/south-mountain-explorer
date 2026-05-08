@@ -63,9 +63,11 @@ const diffStyles: Record<Difficulty, string> = {
 function AreaPage() {
   const { area } = Route.useLoaderData() as { area: Area };
   const progress = useAreaProgress(area.id);
+  const coverage = useAreaCoverage(area.id);
   const userId = useAuthState();
   const { active: recording, error: recError } = useRecorder();
   const [finished, setFinished] = useState<FinishedRecording | null>(null);
+  const [picking, setPicking] = useState(false);
 
   const [highlighted, setHighlighted] = useState<string | null>(null);
   const [sort, setSort] = useState<"name" | "distance" | "difficulty">("distance");
@@ -79,6 +81,19 @@ function AreaPage() {
     ? recording!.path.map((p) => [p[0], p[1]] as [number, number])
     : undefined;
   const liveCurrent = livePath && livePath.length ? livePath[livePath.length - 1] : null;
+
+  const beginStart = (mode: "roam" | "trail", trailId?: string) => {
+    if (recording && recording.areaId !== area.id) {
+      if (
+        !confirm(
+          "You have a recording in progress for another area. Discard it and start here?",
+        )
+      )
+        return;
+    }
+    startRecording(area.id, mode, trailId);
+    setPicking(false);
+  };
 
   const completedIds = useMemo(() => new Set(Object.keys(progress)), [progress]);
   const done = completedIds.size;

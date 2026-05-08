@@ -45,7 +45,7 @@ export function RecordingPanel({ active, trails, error, onFinish }: Props) {
   };
 
   return (
-    <div className="pointer-events-auto absolute left-4 right-4 bottom-4 rounded-2xl bg-card/95 backdrop-blur-sm shadow-[var(--shadow-elev)] border border-border/60 p-4">
+    <div className="pointer-events-auto absolute z-[1000] left-4 right-4 bottom-4 rounded-2xl bg-card/95 backdrop-blur-sm shadow-[var(--shadow-elev)] border border-border/60 p-4">
       <div className="flex items-center gap-2">
         <span className="relative flex size-2.5">
           <span className="absolute inline-flex h-full w-full rounded-full bg-destructive/60 animate-ping" />

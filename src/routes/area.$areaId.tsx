@@ -258,50 +258,80 @@ function AreaPage() {
         <ul className="space-y-2">
           {sorted.map((t) => {
             const isDone = completedIds.has(t.id);
+            const cov = coverage[t.id] ?? 0;
+            const covPct = Math.round(cov * 100);
             return (
               <li
                 key={t.id}
                 id={`t-${t.id}`}
-                className={`flex items-center gap-3 p-3 rounded-2xl border transition ${
+                className={`p-3 rounded-2xl border transition ${
                   isDone
                     ? "bg-[oklch(0.96_0.05_145)] border-[oklch(0.85_0.08_145)]"
                     : "bg-card border-border/60"
                 } ${highlighted === t.id ? "ring-2 ring-primary/50" : ""}`}
                 onClick={() => setHighlighted(t.id)}
               >
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleToggle(t.id);
-                  }}
-                  aria-label={isDone ? "Mark incomplete" : "Mark complete"}
-                  className={`shrink-0 size-7 rounded-full border-2 flex items-center justify-center transition ${
-                    isDone
-                      ? "bg-[var(--saguaro)] border-[var(--saguaro)] text-white"
-                      : "border-border bg-background"
-                  }`}
-                >
-                  {isDone && <Check className="size-4" strokeWidth={3} />}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <div
-                    className={`font-semibold leading-tight truncate ${
-                      isDone ? "line-through text-muted-foreground" : "text-foreground"
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggle(t.id);
+                    }}
+                    aria-label={isDone ? "Mark incomplete" : "Mark complete"}
+                    className={`shrink-0 size-7 rounded-full border-2 flex items-center justify-center transition ${
+                      isDone
+                        ? "bg-[var(--saguaro)] border-[var(--saguaro)] text-white"
+                        : "border-border bg-background"
                     }`}
                   >
-                    {t.name}
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
-                    <span>{t.distanceMi.toFixed(1)} mi</span>
-                    <span
-                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
-                        diffStyles[t.difficulty]
+                    {isDone && <Check className="size-4" strokeWidth={3} />}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className={`font-semibold leading-tight truncate ${
+                        isDone ? "line-through text-muted-foreground" : "text-foreground"
                       }`}
                     >
-                      {t.difficulty}
-                    </span>
+                      {t.name}
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+                      <span>{t.distanceMi.toFixed(1)} mi</span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                          diffStyles[t.difficulty]
+                        }`}
+                      >
+                        {t.difficulty}
+                      </span>
+                      {!isDone && cov > 0 && (
+                        <span className="text-primary font-semibold">{covPct}%</span>
+                      )}
+                    </div>
                   </div>
+                  {!isRecordingThisArea && !isDone && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        beginStart("trail", t.id);
+                      }}
+                      aria-label="Record this trail"
+                      className="shrink-0 size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center"
+                    >
+                      <Play className="size-3.5 fill-current" />
+                    </button>
+                  )}
                 </div>
+                {!isDone && cov > 0 && (
+                  <div className="mt-2 h-1 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${covPct}%`,
+                        background: "var(--gradient-sunrise)",
+                      }}
+                    />
+                  </div>
+                )}
               </li>
             );
           })}

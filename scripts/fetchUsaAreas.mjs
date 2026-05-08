@@ -168,6 +168,20 @@ for (const code of targetStates) {
     continue;
   }
 
+  const BAD_RE =
+    /\b(cemetery|graveyard|golf|country club|playground|playfield|ball ?field|ball ?park|baseball|softball|soccer|tennis|skate ?park|dog ?park|pool|aquatic|community center|water tower|substation|parking|rest area|mini[- ]park|pocket park|tot lot|memorial garden|plaza|square|town green|village green)\b/i;
+  const GOOD_RE =
+    /\b(National Park|National Forest|National Monument|National Seashore|National Recreation|National Wildlife|National Preserve|National Lakeshore|National Memorial|National Battlefield|National Historic|State Park|State Forest|State Recreation|State Wildlife|State Natural|Wilderness|Wildlife Refuge|Wildlife Management|Wildlife Area|Conservation Area|Nature Reserve|Nature Preserve|Nature Center|Preserve|Greenway|Trail|Trails|Forest|Mountain|Mountains|Peak|Canyon|Gorge|Mesa|Butte|Ridge|Bluff|Hills|Valley|Falls|Lake|River|Creek|Springs|Wash|Marsh|Swamp|Wetland|Bog|Heath|Glade|Prairie|Meadow|Woods|Woodland|Sanctuary|Refuge|Reservation|Recreation Area|Heritage|Memorial Forest|Open Space|Land|Lands|Wild|Headlands|Highlands|Dunes|Beach|Seashore|Coast|Cape|Point|Island|Islands|Cave|Caverns|Volcano|Crater|Hot Springs|Hollow|Pines|Oaks|Cedars)\b/i;
+  function looksReal(name) {
+    const n = name.trim();
+    if (n.length < 6) return false;
+    if (!/[A-Za-z]{3,}/.test(n)) return false;
+    if (/^\d+(st|nd|rd|th)?$/i.test(n)) return false;
+    if (BAD_RE.test(n)) return false;
+    if (!GOOD_RE.test(n)) return false;
+    return true;
+  }
+
   let count = 0;
   for (const el of json.elements || []) {
     if (el.type !== "relation") continue;
@@ -175,13 +189,16 @@ for (const code of targetStates) {
     const name = (t.name || t["name:en"] || "").trim();
     if (!name) continue;
     if (!el.center) continue;
-    // Filter: must look hike-relevant.
     const isProtected =
       t.boundary === "national_park" ||
       t.boundary === "protected_area" ||
       t.leisure === "nature_reserve" ||
       t.leisure === "park";
     if (!isProtected) continue;
+    if (!looksReal(name)) {
+      skipped++;
+      continue;
+    }
     const id = `${slug(name)}-${code.toLowerCase()}`;
     if (byId.has(id)) continue;
     byId.set(id, {
@@ -194,7 +211,6 @@ for (const code of targetStates) {
         Number(el.center.lon.toFixed(5)),
       ],
       zoom: 13,
-      // OSM relation name — used by on-demand trail fetcher.
       osmRelation: name,
       trailCount: 0,
       totalMi: 0,

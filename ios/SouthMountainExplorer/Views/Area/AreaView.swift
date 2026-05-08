@@ -62,20 +62,29 @@ struct AreaView: View {
                     description: Text(loadError ?? "Could not load trail data. Check your connection."))
             }
         }
-        .navigationTitle(areaName)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button("Close", systemImage: "xmark") { dismiss() }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
+        .navigationBarHidden(true)
+        .overlay(alignment: .top) {
+            HStack {
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 36, height: 36)
+                        .glassEffect(in: .circle)
+                }
+                Spacer()
                 Button {
                     Task { await favorites.toggle(areaId: areaId) }
                 } label: {
                     Image(systemName: favorites.isFavorite(areaId) ? "heart.fill" : "heart")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 36, height: 36)
+                        .glassEffect(in: .circle)
                         .foregroundStyle(favorites.isFavorite(areaId) ? .red : .primary)
                 }
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .safeAreaPadding(.top)
         }
         .task {
             let result = await areas.areaWithError(id: areaId)

@@ -9,8 +9,8 @@ struct Area: Codable, Identifiable, Sendable {
     let zoom: Double
     let bbox: [Double]?        // [minLon, minLat, maxLon, maxLat]
     let trails: [Trail]
-    let trailCount: Int
-    let totalMi: Double
+    let trailCount: Int?
+    let totalMi: Double?
     let cachedAt: Date?
 
     enum CodingKeys: String, CodingKey {
@@ -32,9 +32,9 @@ struct AreaRow: Codable, Sendable {
     let centerLon: Double
     let zoom: Double
     let bbox: [Double]?
-    let trails: [Trail]
-    let trailCount: Int
-    let totalMi: Double
+    let trails: [Trail]?
+    let trailCount: Int?
+    let totalMi: Double?
     let cachedAt: String?
 
     enum CodingKeys: String, CodingKey {
@@ -48,6 +48,7 @@ struct AreaRow: Codable, Sendable {
 
     func toArea() -> Area {
         let formatter = ISO8601DateFormatter()
+        let resolvedTrails = trails ?? []
         return Area(
             id: id,
             name: name,
@@ -56,9 +57,9 @@ struct AreaRow: Codable, Sendable {
             centerLon: centerLon,
             zoom: zoom,
             bbox: bbox,
-            trails: trails,
-            trailCount: trailCount,
-            totalMi: totalMi,
+            trails: resolvedTrails,
+            trailCount: trailCount ?? resolvedTrails.count,
+            totalMi: totalMi ?? resolvedTrails.reduce(0) { $0 + $1.distanceMi },
             cachedAt: cachedAt.flatMap { formatter.date(from: $0) }
         )
     }

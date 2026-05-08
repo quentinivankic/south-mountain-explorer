@@ -146,3 +146,24 @@ export function useFirstLaunchLocationPrompt() {
     },
   };
 }
+
+/**
+ * Watches the device location while mounted. Returns the latest [lat, lon]
+ * or null. Silently no-ops if the user previously denied permission.
+ */
+export function useLiveLocation(enabled = true): [number, number] | null {
+  const [pos, setPos] = useState<[number, number] | null>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    const id = navigator.geolocation.watchPosition(
+      (p) => setPos([p.coords.latitude, p.coords.longitude]),
+      () => {
+        // ignore — UI surfaces permission errors elsewhere
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+    );
+    return () => navigator.geolocation.clearWatch(id);
+  }, [enabled]);
+  return pos;
+}

@@ -168,13 +168,10 @@ function measureCoverage(
     return out;
   };
 
-  const candidates =
-    rec.mode === "trail" && rec.trailId
-      ? trails.filter((t) => t.id === rec.trailId)
-      : trails;
-
+  // Always measure coverage across every trail in the area — even when the
+  // user picked a target trail, side-trips should still earn progress.
   const out: Record<string, number> = {};
-  for (const t of candidates) {
+  for (const t of trails) {
     let total = 0;
     let covered = 0;
     for (const seg of t.segments) {

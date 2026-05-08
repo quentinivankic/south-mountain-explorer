@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useAreas } from "@/hooks/useAreas";
 import { Mountain, MapPin, ChevronRight, LogOut, LogIn, Search, Star, History, Navigation, Settings as SettingsIcon } from "lucide-react";
 import { useAllProgress, useAuthState } from "@/lib/progress";

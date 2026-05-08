@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Check, RotateCcw, Play, History as HistoryIcon } from "lucide-react";
+import { ArrowLeft, Check, RotateCcw, Play, History as HistoryIcon, Compass, MapPinned, X } from "lucide-react";
 import { loadArea, type Area, type Difficulty } from "@/data/trails";
 import {
   resetArea,
@@ -12,6 +12,7 @@ import { TrailMapClient } from "@/components/TrailMapClient";
 import { startRecording, useRecorder, type FinishedRecording } from "@/lib/recorder";
 import { RecordingPanel } from "@/components/RecordingPanel";
 import { RecordingSummary } from "@/components/RecordingSummary";
+import { useAreaCoverage } from "@/lib/coverage";
 
 export const Route = createFileRoute("/area/$areaId")({
   loader: async ({ params }) => {

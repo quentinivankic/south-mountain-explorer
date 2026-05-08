@@ -186,10 +186,27 @@ def main():
     parser.add_argument("--delay", type=float, default=1.5)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--cache-only", action="store_true",
+                        help="Skip all network requests; just rebuild index.json from existing cache")
     args = parser.parse_args()
 
     index = json.loads(INDEX_PATH.read_text())
     cache: dict = json.loads(CACHE_PATH.read_text()) if CACHE_PATH.exists() else {}
+
+    if args.cache_only:
+        # Just rebuild index.json from the existing cache — no network calls.
+        new_index = []
+        for area in index:
+            entry = cache.get(area[0])
+            if entry is not None:
+                new_index.append([area[0], area[1], area[2], area[3], area[4],
+                                   entry["trail_count"], entry["total_mi"]])
+            else:
+                new_index.append(area[:5])
+        INDEX_PATH.write_text(json.dumps(new_index, separators=(",", ":")))
+        cached_count = sum(1 for a in new_index if len(a) >= 7)
+        print(f"Cache-only rebuild: {cached_count}/{len(new_index)} areas have counts.")
+        return
 
     targets = index if args.limit is None else index[: args.limit]
     total = len(targets)

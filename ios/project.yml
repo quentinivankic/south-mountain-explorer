@@ -1,0 +1,47 @@
+name: SouthMountainExplorer
+options:
+  bundleIdPrefix: com.southmountainexplorer
+  deploymentTarget:
+    iOS: "26.0"
+  xcodeVersion: "26.0"
+
+packages:
+  SupabaseSwift:
+    url: https://github.com/supabase/supabase-swift
+    from: 2.0.0
+
+targets:
+  SouthMountainExplorer:
+    type: application
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: SouthMountainExplorer
+    resources:
+      - path: SouthMountainExplorer/Resources
+    info:
+      path: SouthMountainExplorer/Info.plist
+      properties:
+        CFBundleName: South Mountain Explorer
+        CFBundleDisplayName: South Mountain Explorer
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        UILaunchStoryboardName: LaunchScreen
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSLocationWhenInUseUsageDescription: "South Mountain Explorer uses your location to find nearby trails and show your position on the map."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "South Mountain Explorer uses your location in the background to record your hike even when the app is minimised."
+        UIBackgroundModes:
+          - location
+        ITSAppUsesNonExemptEncryption: false
+    dependencies:
+      - package: SupabaseSwift
+        product: Supabase
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        PRODUCT_BUNDLE_IDENTIFIER: com.southmountainexplorer.app
+        SWIFT_STRICT_CONCURRENCY: complete
+        ENABLE_USER_SCRIPT_SANDBOXING: NO

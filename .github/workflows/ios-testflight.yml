@@ -26,56 +26,7 @@ jobs:
         working-directory: ios
         run: xcodegen generate
 
-      - name: Import signing certificate
-        env:
-          CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: |
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security set-keychain-settings -t 3600 -u build.keychain
-
-          echo "$CERTIFICATE_BASE64" | base64 --decode > certificate.p12
-          security import certificate.p12 \
-            -k build.keychain \
-            -P "$CERTIFICATE_PASSWORD" \
-            -T /usr/bin/codesign
-          security set-key-partition-list \
-            -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          rm certificate.p12
-
-      - name: Install provisioning profile
-        env:
-          PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
-        run: |
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode \
-            > ~/Library/MobileDevice/Provisioning\ Profiles/distribution.mobileprovision
-
-      - name: Archive
-        working-directory: ios
-        env:
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          xcodebuild archive \
-            -project SouthMountainExplorer.xcodeproj \
-            -scheme SouthMountainExplorer \
-            -configuration Release \
-            -destination "generic/platform=iOS" \
-            -archivePath ../build/SouthMountainExplorer.xcarchive \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
-
-      - name: Export IPA
-        run: |
-          xcodebuild -exportArchive \
-            -archivePath build/SouthMountainExplorer.xcarchive \
-            -exportOptionsPlist ios/ExportOptions.plist \
-            -exportPath build/output
-
-      - name: Decode App Store Connect API key
+      - name: Write App Store Connect API key
         env:
           API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
@@ -83,6 +34,40 @@ jobs:
           mkdir -p private_keys
           echo "$API_KEY_BASE64" | base64 --decode \
             > "private_keys/AuthKey_${API_KEY_ID}.p8"
+
+      - name: Archive (automatic signing)
+        working-directory: ios
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+        run: |
+          xcodebuild archive \
+            -project SouthMountainExplorer.xcodeproj \
+            -scheme SouthMountainExplorer \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath ../build/SouthMountainExplorer.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$GITHUB_WORKSPACE/private_keys/AuthKey_${API_KEY_ID}.p8" \
+            -authenticationKeyID "$API_KEY_ID" \
+            -authenticationKeyIssuerID "$API_ISSUER_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
+
+      - name: Export IPA
+        env:
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/SouthMountainExplorer.xcarchive \
+            -exportOptionsPlist ios/ExportOptions.plist \
+            -exportPath build/output \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$GITHUB_WORKSPACE/private_keys/AuthKey_${API_KEY_ID}.p8" \
+            -authenticationKeyID "$API_KEY_ID" \
+            -authenticationKeyIssuerID "$API_ISSUER_ID"
 
       - name: Upload to TestFlight
         env:
@@ -95,8 +80,6 @@ jobs:
             --apiKey "$API_KEY_ID" \
             --apiIssuer "$API_ISSUER_ID"
 
-      - name: Clean up keychain and keys
+      - name: Clean up API key
         if: always()
-        run: |
-          security delete-keychain build.keychain 2>/dev/null || true
-          rm -rf private_keys
+        run: rm -rf private_keys

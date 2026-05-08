@@ -92,10 +92,10 @@ export async function prefetchAreaTiles(opts: {
       const [z, x, y] = capped[i];
       const url = tileUrl(z, x, y);
       try {
-        const existing = await cache.match(url);
+        const existing = await tileCache.match(url);
         if (!existing) {
           const res = await fetch(url, { mode: "cors" });
-          if (res.ok) await cache.put(url, res.clone());
+          if (res.ok) await tileCache.put(url, res.clone());
           else errors++;
         }
       } catch {
@@ -122,7 +122,7 @@ export async function prefetchAreaTiles(opts: {
 export async function getCachedTile(url: string): Promise<Blob | null> {
   const cache = await cacheOpen();
   if (!cache) return null;
-  const hit = await cache.match(url);
+  const hit = await tileCache.match(url);
   if (!hit) return null;
   try {
     return await hit.blob();

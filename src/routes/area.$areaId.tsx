@@ -222,6 +222,67 @@ function AreaPage() {
         />
       )}
 
+      {picking && (
+        <div
+          className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center bg-black/50 p-4"
+          onClick={() => setPicking(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl bg-card border border-border shadow-[var(--shadow-elev)] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-border/60">
+              <div className="font-bold">Start a hike</div>
+              <button
+                onClick={() => setPicking(false)}
+                className="text-muted-foreground p-1"
+                aria-label="Close"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="p-4 space-y-2">
+              <button
+                onClick={() => beginStart("roam")}
+                className="w-full flex items-start gap-3 text-left p-4 rounded-2xl border border-border/60 hover:border-primary/50 transition"
+              >
+                <Compass className="size-5 mt-0.5 text-primary shrink-0" />
+                <div>
+                  <div className="font-bold">Free roam</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Wander wherever. Any trail you walk gets credit — finish a partial trail across multiple hikes.
+                  </div>
+                </div>
+              </button>
+              <div>
+                <div className="px-1 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+                  Or pick a specific trail
+                </div>
+                <div className="max-h-[40vh] overflow-y-auto rounded-2xl border border-border/60 divide-y divide-border/60">
+                  {sorted
+                    .filter((t) => !completedIds.has(t.id))
+                    .map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => beginStart("trail", t.id)}
+                        className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/50"
+                      >
+                        <MapPinned className="size-4 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold truncate">{t.name}</div>
+                          <div className="text-[11px] text-muted-foreground tabular-nums">
+                            {t.distanceMi.toFixed(1)} mi · {t.difficulty}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* List */}
       <main className="flex-1 px-4 pt-5 pb-12">
         {!userId && done > 0 && (

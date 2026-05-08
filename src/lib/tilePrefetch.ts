@@ -122,7 +122,7 @@ export async function prefetchAreaTiles(opts: {
 export async function getCachedTile(url: string): Promise<Blob | null> {
   const cache = await cacheOpen();
   if (!cache) return null;
-  const hit = await tileCache.match(url);
+  const hit = await cache.match(url);
   if (!hit) return null;
   try {
     return await hit.blob();

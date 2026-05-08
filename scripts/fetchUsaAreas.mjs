@@ -118,7 +118,7 @@ function queryFor(s, w, n, e) {
   relation["leisure"="nature_reserve"](${s},${w},${n},${e});
   relation["leisure"="park"]["park:type"~"state|national|regional"](${s},${w},${n},${e});
 );
-out tags center;`;
+out tags center bb;`;
 }
 
 function bboxArea([s, w, n, e]) {

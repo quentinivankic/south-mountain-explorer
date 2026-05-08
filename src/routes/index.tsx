@@ -32,7 +32,17 @@ function Home() {
   const userId = useAuthState();
   const favorites = useFavorites();
   const areas = useAreas();
+  const loc = useLocation();
   const favoriteAreas = areas.filter((a) => favorites.has(a.id));
+
+  const nearby = useMemo(() => {
+    if (loc.status !== "granted" || loc.lat == null || loc.lon == null) return [];
+    const me: [number, number] = [loc.lat, loc.lon];
+    return areas
+      .map((a) => ({ a, d: distanceMi(me, a.center) }))
+      .sort((x, y) => x.d - y.d)
+      .slice(0, 8);
+  }, [areas, loc]);
 
   return (
     <div className="min-h-screen bg-background">

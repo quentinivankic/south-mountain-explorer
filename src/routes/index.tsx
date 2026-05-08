@@ -36,7 +36,7 @@ function Home() {
   const loc = useLocation();
   const favoriteAreas = areas.filter((a) => favorites.has(a.id));
   const favoriteIds = useMemo(() => favoriteAreas.map((a) => a.id), [favoriteAreas]);
-  const details = useAreaDetails(favoriteIds);
+  const details = useAreaDetails(favoriteIds, { cacheOnly: false });
   const [locBusy, setLocBusy] = useState(false);
   const [locError, setLocError] = useState<string | null>(null);
 

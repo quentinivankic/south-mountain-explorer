@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useAreas } from "@/hooks/useAreas";
+import { useAreaDetails } from "@/hooks/useAreaDetails";
 import { useFavorites, toggleFavorite } from "@/lib/favorites";
 import { Search, Star, ArrowLeft, MapPin } from "lucide-react";
 import { SuggestArea } from "@/components/SuggestArea";
@@ -15,16 +16,23 @@ export const Route = createFileRoute("/browse")({
   component: Browse,
 });
 
+const MAX_VISIBLE = 60;
+
 function Browse() {
   const [q, setQ] = useState("");
+  const deferredQ = useDeferredValue(q);
   const favorites = useFavorites();
   const areas = useAreas();
 
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return areas;
-    return areas.filter((a) => a.search.includes(s));
-  }, [q, areas]);
+  const { visible, totalMatches } = useMemo(() => {
+    const s = deferredQ.trim().toLowerCase();
+    const matches = s ? areas.filter((a) => a.search.includes(s)) : areas;
+    return { visible: matches.slice(0, MAX_VISIBLE), totalMatches: matches.length };
+  }, [deferredQ, areas]);
+
+  // Lazily load trail count/miles for the small set of visible items.
+  const visibleIds = useMemo(() => visible.map((a) => a.id), [visible]);
+  const details = useAreaDetails(visibleIds);
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,16 +57,23 @@ function Browse() {
             autoFocus
           />
         </div>
+        {areas.length > 0 && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            {totalMatches.toLocaleString()} {totalMatches === 1 ? "area" : "areas"}
+            {totalMatches > MAX_VISIBLE && ` · showing top ${MAX_VISIBLE} — keep typing to narrow`}
+          </p>
+        )}
       </header>
 
       <main className="px-5 py-4 pb-24 space-y-2">
-        {filtered.length === 0 ? (
+        {visible.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-12">
             No areas match "{q}". Try a different search or suggest one below.
           </p>
         ) : (
-          filtered.map((area) => {
+          visible.map((area) => {
             const isFav = favorites.has(area.id);
+            const det = details[area.id];
             return (
               <div
                 key={area.id}
@@ -74,6 +89,12 @@ function Browse() {
                     <MapPin className="size-3" />
                     {area.subtitle}
                   </div>
+                  {det && det.trailCount > 0 && (
+                    <div className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+                      {det.trailCount} {det.trailCount === 1 ? "trail" : "trails"}
+                      {det.totalMi > 0 && ` · ${det.totalMi.toFixed(1)} mi`}
+                    </div>
+                  )}
                 </Link>
                 <button
                   onClick={() => toggleFavorite(area.id)}

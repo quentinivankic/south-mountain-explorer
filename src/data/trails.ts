@@ -133,6 +133,12 @@ export async function getAreaSummary(
 }
 
 // ---------- Per-area data ----------
+/** Read-only IDB lookup — never hits the network. */
+export async function getCachedArea(id: string): Promise<Area | undefined> {
+  const cached = await idbGet<Area>(`area:${id}`);
+  return cached ?? undefined;
+}
+
 export async function loadArea(id: string): Promise<Area | undefined> {
   const cacheKey = `area:${id}`;
   const cached = await idbGet<Area>(cacheKey);

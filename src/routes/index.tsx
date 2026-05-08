@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { areas } from "@/data/trails";
+import { useAreas } from "@/hooks/useAreas";
 import { Mountain, MapPin, ChevronRight, LogOut, LogIn, Search, Star, History } from "lucide-react";
 import { useAllProgress, useAuthState } from "@/lib/progress";
 import { useFavorites } from "@/lib/favorites";
@@ -28,6 +28,7 @@ function Home() {
   const progress = useAllProgress();
   const userId = useAuthState();
   const favorites = useFavorites();
+  const areas = useAreas();
   const favoriteAreas = areas.filter((a) => favorites.has(a.id));
 
   return (

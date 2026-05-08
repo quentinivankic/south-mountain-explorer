@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { areas } from "@/data/trails";
+import { useAreas } from "@/hooks/useAreas";
 import { useFavorites, toggleFavorite } from "@/lib/favorites";
 import { Search, Star, ArrowLeft, MapPin } from "lucide-react";
 import { SuggestArea } from "@/components/SuggestArea";
@@ -18,6 +18,7 @@ export const Route = createFileRoute("/browse")({
 function Browse() {
   const [q, setQ] = useState("");
   const favorites = useFavorites();
+  const areas = useAreas();
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();

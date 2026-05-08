@@ -2,7 +2,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Trash2, MapPin } from "lucide-react";
 import { listRecordings, deleteRecording, type SavedRecording } from "@/lib/recorder";
-import { areas } from "@/data/trails";
+import { useAreas } from "@/hooks/useAreas";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/history")({
@@ -26,6 +26,7 @@ function fmtDur(s: number) {
 
 function HistoryPage() {
   const [items, setItems] = useState<SavedRecording[] | null>(null);
+  const areas = useAreas();
 
   useEffect(() => {
     listRecordings().then(setItems);

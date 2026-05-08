@@ -71,6 +71,7 @@ export async function prefetchAreaTiles(opts: {
   const maxZ = opts.maxZ ?? 14;
   const cache = await cacheOpen();
   if (!cache) return;
+  const tileCache: Cache = cache;
 
   const tiles = tilesForBbox(opts.bbox, minZ, maxZ);
   // Safety: cap absurdly large bboxes (>4000 tiles) — skip top zoom.

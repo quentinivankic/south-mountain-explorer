@@ -1,172 +1,22 @@
 [
   {
-    "id": "south-mountain",
-    "name": "South Mountain",
-    "subtitle": "Phoenix, Arizona",
-    "location": "South Mountain Park & Preserve",
+    "id": "acadia",
+    "name": "Acadia",
+    "subtitle": "Maine",
+    "location": "Acadia National Park",
     "center": [
-      33.355,
-      -112.04
-    ],
-    "zoom": 12,
-    "trailCount": 48,
-    "totalMi": 104.6
-  },
-  {
-    "id": "camelback",
-    "name": "Camelback Mountain",
-    "subtitle": "Phoenix, Arizona",
-    "location": "Camelback Mountain Echo Canyon Recreation Area",
-    "center": [
-      33.5145,
-      -111.9626
-    ],
-    "zoom": 14,
-    "trailCount": 2,
-    "totalMi": 2.3
-  },
-  {
-    "id": "piestewa-peak",
-    "name": "Piestewa Peak",
-    "subtitle": "Phoenix, Arizona",
-    "location": "Phoenix Mountains Preserve",
-    "center": [
-      33.5447,
-      -112.0211
-    ],
-    "zoom": 13,
-    "trailCount": 20,
-    "totalMi": 30.9
-  },
-  {
-    "id": "mcdowell-sonoran",
-    "name": "McDowell Sonoran",
-    "subtitle": "Scottsdale, Arizona",
-    "location": "McDowell Sonoran Preserve",
-    "center": [
-      33.7,
-      -111.83
+      44.3386,
+      -68.2733
     ],
     "zoom": 11,
-    "trailCount": 121,
-    "totalMi": 228.2
-  },
-  {
-    "id": "sedona-red-rocks",
-    "name": "Sedona Red Rocks",
-    "subtitle": "Sedona, Arizona",
-    "location": "Red Rock State Park & vicinity",
-    "center": [
-      34.8697,
-      -111.761
-    ],
-    "zoom": 12,
-    "trailCount": 191,
-    "totalMi": 328.1
-  },
-  {
-    "id": "griffith-park",
-    "name": "Griffith Park",
-    "subtitle": "Los Angeles, California",
-    "location": "Griffith Park",
-    "center": [
-      34.1365,
-      -118.2942
-    ],
-    "zoom": 13,
-    "trailCount": 26,
-    "totalMi": 30.6
-  },
-  {
-    "id": "runyon-canyon",
-    "name": "Runyon Canyon",
-    "subtitle": "Los Angeles, California",
-    "location": "Runyon Canyon Park",
-    "center": [
-      34.1108,
-      -118.3499
-    ],
-    "zoom": 15,
-    "trailCount": 1,
-    "totalMi": 0.9
-  },
-  {
-    "id": "mt-tam",
-    "name": "Mount Tamalpais",
-    "subtitle": "Marin County, California",
-    "location": "Mount Tamalpais State Park",
-    "center": [
-      37.9235,
-      -122.5965
-    ],
-    "zoom": 12,
-    "trailCount": 30,
-    "totalMi": 55.5
-  },
-  {
-    "id": "marin-headlands",
-    "name": "Marin Headlands",
-    "subtitle": "Sausalito, California",
-    "location": "Marin Headlands",
-    "center": [
-      37.8316,
-      -122.5018
-    ],
-    "zoom": 13,
-    "trailCount": 19,
-    "totalMi": 31.7
-  },
-  {
-    "id": "mission-peak",
-    "name": "Mission Peak",
-    "subtitle": "Fremont, California",
-    "location": "Mission Peak Regional Preserve",
-    "center": [
-      37.512,
-      -121.88
-    ],
-    "zoom": 14,
-    "trailCount": 14,
-    "totalMi": 19.1
-  },
-  {
-    "id": "rocky-mountain-np",
-    "name": "Rocky Mountain NP",
-    "subtitle": "Colorado",
-    "location": "Rocky Mountain National Park",
-    "center": [
-      40.3428,
-      -105.6836
-    ],
-    "zoom": 10,
-    "trailCount": 154,
-    "totalMi": 389.3
-  },
-  {
-    "id": "boulder-flatirons",
-    "name": "Boulder Flatirons",
-    "subtitle": "Boulder, Colorado",
-    "location": "Chautauqua Park & vicinity",
-    "center": [
-      39.999,
-      -105.282
-    ],
-    "zoom": 13,
-    "trailCount": 46,
-    "totalMi": 56.3
-  },
-  {
-    "id": "zion",
-    "name": "Zion",
-    "subtitle": "Utah",
-    "location": "Zion National Park",
-    "center": [
-      37.2982,
-      -113.0263
-    ],
-    "zoom": 11,
-    "trailCount": 35,
-    "totalMi": 118.7
+    "trailCount": 116,
+    "totalMi": 184.7,
+    "bbox": [
+      44.00722,
+      -68.66029,
+      44.40766,
+      -68.04485
+    ]
   },
   {
     "id": "arches",
@@ -179,72 +29,51 @@
     ],
     "zoom": 11,
     "trailCount": 17,
-    "totalMi": 45.5
+    "totalMi": 45.5,
+    "bbox": [
+      38.60682,
+      -109.69844,
+      38.8042,
+      -109.45161
+    ]
   },
   {
-    "id": "yosemite-valley",
-    "name": "Yosemite Valley",
-    "subtitle": "California",
-    "location": "Yosemite Valley",
+    "id": "boulder-flatirons",
+    "name": "Boulder Flatirons",
+    "subtitle": "Boulder, Colorado",
+    "location": "Chautauqua Park & vicinity",
     "center": [
-      37.7456,
-      -119.5936
+      39.999,
+      -105.282
     ],
-    "zoom": 12,
-    "trailCount": 35,
-    "totalMi": 120.6
+    "zoom": 13,
+    "trailCount": 46,
+    "totalMi": 56.3,
+    "bbox": [
+      39.95298,
+      -105.32383,
+      40.03675,
+      -105.24257
+    ]
   },
   {
-    "id": "acadia",
-    "name": "Acadia",
-    "subtitle": "Maine",
-    "location": "Acadia National Park",
+    "id": "camelback",
+    "name": "Camelback Mountain",
+    "subtitle": "Phoenix, Arizona",
+    "location": "Camelback Mountain Echo Canyon Recreation Area",
     "center": [
-      44.3386,
-      -68.2733
+      33.5145,
+      -111.9626
     ],
-    "zoom": 11,
-    "trailCount": 116,
-    "totalMi": 184.7
-  },
-  {
-    "id": "shenandoah",
-    "name": "Shenandoah",
-    "subtitle": "Virginia",
-    "location": "Shenandoah National Park",
-    "center": [
-      38.533,
-      -78.3502
-    ],
-    "zoom": 10,
-    "trailCount": 167,
-    "totalMi": 498
-  },
-  {
-    "id": "great-smoky",
-    "name": "Great Smoky Mountains",
-    "subtitle": "Tennessee / North Carolina",
-    "location": "Great Smoky Mountains National Park",
-    "center": [
-      35.6532,
-      -83.507
-    ],
-    "zoom": 10,
-    "trailCount": 183,
-    "totalMi": 832.8
-  },
-  {
-    "id": "mt-rainier",
-    "name": "Mount Rainier",
-    "subtitle": "Washington",
-    "location": "Mount Rainier National Park",
-    "center": [
-      46.8523,
-      -121.7603
-    ],
-    "zoom": 10,
-    "trailCount": 86,
-    "totalMi": 313.3
+    "zoom": 14,
+    "trailCount": 2,
+    "totalMi": 2.3,
+    "bbox": [
+      33.51018,
+      -111.97218,
+      33.52086,
+      -111.94496
+    ]
   },
   {
     "id": "discovery-park",
@@ -257,7 +86,32 @@
     ],
     "zoom": 14,
     "trailCount": 2,
-    "totalMi": 3.7
+    "totalMi": 3.7,
+    "bbox": [
+      47.65429,
+      -122.43112,
+      47.66759,
+      -122.40665
+    ]
+  },
+  {
+    "id": "dyrehaven",
+    "name": "Dyrehaven",
+    "subtitle": "Copenhagen, Denmark",
+    "location": "Jægersborg Dyrehave",
+    "center": [
+      55.795,
+      12.575
+    ],
+    "zoom": 13,
+    "trailCount": 30,
+    "totalMi": 27.9,
+    "bbox": [
+      55.77544,
+      12.53346,
+      55.81895,
+      12.58988
+    ]
   },
   {
     "id": "fredericia-volde",
@@ -270,20 +124,64 @@
     ],
     "zoom": 15,
     "trailCount": 1,
-    "totalMi": 1
+    "totalMi": 1,
+    "bbox": [
+      55.55763,
+      9.76424,
+      55.57134,
+      9.77206
+    ]
   },
   {
-    "id": "trelde-naes",
-    "name": "Trelde Næs",
-    "subtitle": "Fredericia, Denmark",
-    "location": "Trelde Næs peninsula & forest",
+    "id": "great-smoky",
+    "name": "Great Smoky Mountains",
+    "subtitle": "Tennessee / North Carolina",
+    "location": "Great Smoky Mountains National Park",
     "center": [
-      55.624,
-      9.829
+      35.6532,
+      -83.507
+    ],
+    "zoom": 10,
+    "trailCount": 183,
+    "totalMi": 832.8,
+    "bbox": [
+      35.4385,
+      -83.9362,
+      35.77574,
+      -83.04498
+    ]
+  },
+  {
+    "id": "griffith-park",
+    "name": "Griffith Park",
+    "subtitle": "Los Angeles, California",
+    "location": "Griffith Park",
+    "center": [
+      34.1365,
+      -118.2942
     ],
     "zoom": 13,
-    "trailCount": 10,
-    "totalMi": 10.2
+    "trailCount": 26,
+    "totalMi": 30.6,
+    "bbox": [
+      34.11716,
+      -118.33743,
+      34.15683,
+      -118.27328
+    ]
+  },
+  {
+    "id": "hammeren-bornholm",
+    "name": "Hammeren",
+    "subtitle": "Bornholm, Denmark",
+    "location": "Hammeren & Hammershus",
+    "center": [
+      55.295,
+      14.77
+    ],
+    "zoom": 14,
+    "trailCount": 0,
+    "totalMi": 0
   },
   {
     "id": "hannerup-skov",
@@ -309,72 +207,13 @@
     ],
     "zoom": 14,
     "trailCount": 2,
-    "totalMi": 2.2
-  },
-  {
-    "id": "mols-bjerge",
-    "name": "Mols Bjerge",
-    "subtitle": "Djursland, Denmark",
-    "location": "Mols Bjerge National Park",
-    "center": [
-      56.225,
-      10.55
-    ],
-    "zoom": 11,
-    "trailCount": 31,
-    "totalMi": 32.3
-  },
-  {
-    "id": "thy",
-    "name": "Thy National Park",
-    "subtitle": "Northwest Jutland, Denmark",
-    "location": "Thy National Park",
-    "center": [
-      57,
-      8.55
-    ],
-    "zoom": 10,
-    "trailCount": 110,
-    "totalMi": 127.2
-  },
-  {
-    "id": "rold-skov",
-    "name": "Rold Skov & Rebild",
-    "subtitle": "Himmerland, Denmark",
-    "location": "Rold Skov forest & Rebild Bakker",
-    "center": [
-      56.83,
-      9.85
-    ],
-    "zoom": 12,
-    "trailCount": 88,
-    "totalMi": 95.1
-  },
-  {
-    "id": "mons-klint",
-    "name": "Møns Klint",
-    "subtitle": "Møn, Denmark",
-    "location": "Møns Klint cliffs & Klinteskoven",
-    "center": [
-      54.967,
-      12.55
-    ],
-    "zoom": 13,
-    "trailCount": 8,
-    "totalMi": 7.7
-  },
-  {
-    "id": "dyrehaven",
-    "name": "Dyrehaven",
-    "subtitle": "Copenhagen, Denmark",
-    "location": "Jægersborg Dyrehave",
-    "center": [
-      55.795,
-      12.575
-    ],
-    "zoom": 13,
-    "trailCount": 30,
-    "totalMi": 27.9
+    "totalMi": 2.2,
+    "bbox": [
+      55.49067,
+      9.67914,
+      55.50239,
+      9.70322
+    ]
   },
   {
     "id": "kongernes-nordsjaelland",
@@ -387,46 +226,146 @@
     ],
     "zoom": 11,
     "trailCount": 162,
-    "totalMi": 191.9
+    "totalMi": 191.9,
+    "bbox": [
+      55.89455,
+      12.13906,
+      56.08235,
+      12.47417
+    ]
   },
   {
-    "id": "skjoldungernes-land",
-    "name": "Skjoldungernes Land",
-    "subtitle": "Roskilde, Denmark",
-    "location": "Skjoldungernes Land National Park",
+    "id": "marin-headlands",
+    "name": "Marin Headlands",
+    "subtitle": "Sausalito, California",
+    "location": "Marin Headlands",
     "center": [
-      55.65,
-      11.95
+      37.8316,
+      -122.5018
+    ],
+    "zoom": 13,
+    "trailCount": 19,
+    "totalMi": 31.7,
+    "bbox": [
+      37.82604,
+      -122.55637,
+      37.86478,
+      -122.4738
+    ]
+  },
+  {
+    "id": "mcdowell-sonoran",
+    "name": "McDowell Sonoran",
+    "subtitle": "Scottsdale, Arizona",
+    "location": "McDowell Sonoran Preserve",
+    "center": [
+      33.7,
+      -111.83
     ],
     "zoom": 11,
-    "trailCount": 38,
-    "totalMi": 42.4
+    "trailCount": 121,
+    "totalMi": 228.2,
+    "bbox": [
+      33.59629,
+      -111.92331,
+      33.81944,
+      -111.73272
+    ]
   },
   {
-    "id": "soehoejlandet",
-    "name": "Søhøjlandet",
-    "subtitle": "Silkeborg, Denmark",
-    "location": "Silkeborg lakes & Himmelbjerget",
+    "id": "mission-peak",
+    "name": "Mission Peak",
+    "subtitle": "Fremont, California",
+    "location": "Mission Peak Regional Preserve",
     "center": [
-      56.13,
-      9.62
-    ],
-    "zoom": 11,
-    "trailCount": 60,
-    "totalMi": 70.3
-  },
-  {
-    "id": "hammeren-bornholm",
-    "name": "Hammeren",
-    "subtitle": "Bornholm, Denmark",
-    "location": "Hammeren & Hammershus",
-    "center": [
-      55.295,
-      14.77
+      37.512,
+      -121.88
     ],
     "zoom": 14,
-    "trailCount": 0,
-    "totalMi": 0
+    "trailCount": 14,
+    "totalMi": 19.1,
+    "bbox": [
+      37.48923,
+      -121.91042,
+      37.53966,
+      -121.85275
+    ]
+  },
+  {
+    "id": "mols-bjerge",
+    "name": "Mols Bjerge",
+    "subtitle": "Djursland, Denmark",
+    "location": "Mols Bjerge National Park",
+    "center": [
+      56.225,
+      10.55
+    ],
+    "zoom": 11,
+    "trailCount": 31,
+    "totalMi": 32.3,
+    "bbox": [
+      56.16513,
+      10.38045,
+      56.29966,
+      10.72876
+    ]
+  },
+  {
+    "id": "mons-klint",
+    "name": "Møns Klint",
+    "subtitle": "Møn, Denmark",
+    "location": "Møns Klint cliffs & Klinteskoven",
+    "center": [
+      54.967,
+      12.55
+    ],
+    "zoom": 13,
+    "trailCount": 8,
+    "totalMi": 7.7,
+    "bbox": [
+      54.96025,
+      12.50266,
+      54.9839,
+      12.54563
+    ]
+  },
+  {
+    "id": "mt-rainier",
+    "name": "Mount Rainier",
+    "subtitle": "Washington",
+    "location": "Mount Rainier National Park",
+    "center": [
+      46.8523,
+      -121.7603
+    ],
+    "zoom": 10,
+    "trailCount": 86,
+    "totalMi": 313.3,
+    "bbox": [
+      46.67482,
+      -121.93672,
+      46.99632,
+      -121.42576
+    ]
+  },
+  {
+    "id": "mt-tam",
+    "name": "Mount Tamalpais",
+    "subtitle": "Marin County, California",
+    "location": "Mount Tamalpais State Park",
+    "center": [
+      37.9235,
+      -122.5965
+    ],
+    "zoom": 12,
+    "trailCount": 30,
+    "totalMi": 55.5,
+    "bbox": [
+      37.86368,
+      -122.65865,
+      37.93944,
+      -122.5546
+    ]
   },
   {
     "id": "paradisbakkerne",
@@ -439,7 +378,32 @@
     ],
     "zoom": 13,
     "trailCount": 4,
-    "totalMi": 2.8
+    "totalMi": 2.8,
+    "bbox": [
+      55.08462,
+      15.05001,
+      55.10291,
+      15.1082
+    ]
+  },
+  {
+    "id": "piestewa-peak",
+    "name": "Piestewa Peak",
+    "subtitle": "Phoenix, Arizona",
+    "location": "Phoenix Mountains Preserve",
+    "center": [
+      33.5447,
+      -112.0211
+    ],
+    "zoom": 13,
+    "trailCount": 20,
+    "totalMi": 30.9,
+    "bbox": [
+      33.53244,
+      -112.06501,
+      33.60228,
+      -111.97799
+    ]
   },
   {
     "id": "raabjerg-skagen",
@@ -452,6 +416,240 @@
     ],
     "zoom": 11,
     "trailCount": 29,
-    "totalMi": 25
+    "totalMi": 25,
+    "bbox": [
+      57.57197,
+      10.29967,
+      57.74304,
+      10.60911
+    ]
+  },
+  {
+    "id": "rocky-mountain-np",
+    "name": "Rocky Mountain NP",
+    "subtitle": "Colorado",
+    "location": "Rocky Mountain National Park",
+    "center": [
+      40.3428,
+      -105.6836
+    ],
+    "zoom": 10,
+    "trailCount": 154,
+    "totalMi": 389.3,
+    "bbox": [
+      40.13006,
+      -105.89025,
+      40.57089,
+      -105.4743
+    ]
+  },
+  {
+    "id": "rold-skov",
+    "name": "Rold Skov & Rebild",
+    "subtitle": "Himmerland, Denmark",
+    "location": "Rold Skov forest & Rebild Bakker",
+    "center": [
+      56.83,
+      9.85
+    ],
+    "zoom": 12,
+    "trailCount": 88,
+    "totalMi": 95.1,
+    "bbox": [
+      56.76975,
+      9.73933,
+      56.86179,
+      9.94849
+    ]
+  },
+  {
+    "id": "runyon-canyon",
+    "name": "Runyon Canyon",
+    "subtitle": "Los Angeles, California",
+    "location": "Runyon Canyon Park",
+    "center": [
+      34.1108,
+      -118.3499
+    ],
+    "zoom": 15,
+    "trailCount": 1,
+    "totalMi": 0.9,
+    "bbox": [
+      34.10576,
+      -118.35377,
+      34.11519,
+      -118.35044
+    ]
+  },
+  {
+    "id": "sedona-red-rocks",
+    "name": "Sedona Red Rocks",
+    "subtitle": "Sedona, Arizona",
+    "location": "Red Rock State Park & vicinity",
+    "center": [
+      34.8697,
+      -111.761
+    ],
+    "zoom": 12,
+    "trailCount": 191,
+    "totalMi": 328.1,
+    "bbox": [
+      34.76065,
+      -111.88423,
+      34.96524,
+      -111.62919
+    ]
+  },
+  {
+    "id": "shenandoah",
+    "name": "Shenandoah",
+    "subtitle": "Virginia",
+    "location": "Shenandoah National Park",
+    "center": [
+      38.533,
+      -78.3502
+    ],
+    "zoom": 10,
+    "trailCount": 167,
+    "totalMi": 498,
+    "bbox": [
+      38.03421,
+      -78.85891,
+      38.9084,
+      -78.15099
+    ]
+  },
+  {
+    "id": "skjoldungernes-land",
+    "name": "Skjoldungernes Land",
+    "subtitle": "Roskilde, Denmark",
+    "location": "Skjoldungernes Land National Park",
+    "center": [
+      55.65,
+      11.95
+    ],
+    "zoom": 11,
+    "trailCount": 38,
+    "totalMi": 42.4,
+    "bbox": [
+      55.54739,
+      11.81718,
+      55.70424,
+      12.05979
+    ]
+  },
+  {
+    "id": "soehoejlandet",
+    "name": "Søhøjlandet",
+    "subtitle": "Silkeborg, Denmark",
+    "location": "Silkeborg lakes & Himmelbjerget",
+    "center": [
+      56.13,
+      9.62
+    ],
+    "zoom": 11,
+    "trailCount": 60,
+    "totalMi": 70.3,
+    "bbox": [
+      56.03617,
+      9.43531,
+      56.22507,
+      9.75046
+    ]
+  },
+  {
+    "id": "south-mountain",
+    "name": "South Mountain",
+    "subtitle": "Phoenix, Arizona",
+    "location": "South Mountain Park & Preserve",
+    "center": [
+      33.355,
+      -112.04
+    ],
+    "zoom": 12,
+    "trailCount": 48,
+    "totalMi": 104.6,
+    "bbox": [
+      33.29602,
+      -112.16991,
+      33.37428,
+      -111.9752
+    ]
+  },
+  {
+    "id": "thy",
+    "name": "Thy National Park",
+    "subtitle": "Northwest Jutland, Denmark",
+    "location": "Thy National Park",
+    "center": [
+      57,
+      8.55
+    ],
+    "zoom": 10,
+    "trailCount": 110,
+    "totalMi": 127.2,
+    "bbox": [
+      56.82924,
+      8.36621,
+      57.11803,
+      8.73147
+    ]
+  },
+  {
+    "id": "trelde-naes",
+    "name": "Trelde Næs",
+    "subtitle": "Fredericia, Denmark",
+    "location": "Trelde Næs peninsula & forest",
+    "center": [
+      55.624,
+      9.829
+    ],
+    "zoom": 13,
+    "trailCount": 10,
+    "totalMi": 10.2,
+    "bbox": [
+      55.59735,
+      9.78142,
+      55.62563,
+      9.85933
+    ]
+  },
+  {
+    "id": "yosemite-valley",
+    "name": "Yosemite Valley",
+    "subtitle": "California",
+    "location": "Yosemite Valley",
+    "center": [
+      37.7456,
+      -119.5936
+    ],
+    "zoom": 12,
+    "trailCount": 35,
+    "totalMi": 120.6,
+    "bbox": [
+      37.68446,
+      -119.70415,
+      37.82099,
+      -119.4322
+    ]
+  },
+  {
+    "id": "zion",
+    "name": "Zion",
+    "subtitle": "Utah",
+    "location": "Zion National Park",
+    "center": [
+      37.2982,
+      -113.0263
+    ],
+    "zoom": 11,
+    "trailCount": 35,
+    "totalMi": 118.7,
+    "bbox": [
+      37.16123,
+      -113.22322,
+      37.47718,
+      -112.86634
+    ]
   }
 ]

@@ -23,6 +23,9 @@ export interface AreaSummary {
   totalMi: number;
   /** Optional bbox [s,w,n,e] used by on-demand trail fetcher. */
   bbox?: [number, number, number, number];
+  /** OSM relation name — used to fetch trails on demand for areas
+   * discovered from OSM that don't ship as static JSON. */
+  osmRelation?: string;
 }
 
 export interface Area extends AreaSummary {
@@ -116,17 +119,45 @@ export async function loadArea(id: string): Promise<Area | undefined> {
   const cacheKey = `area:${id}`;
   const cached = await idbGet<Area>(cacheKey);
   if (cached) {
-    // Refresh in background — silently skip on failure (offline ok).
+    // Refresh static file in background — silently skip on failure (offline ok).
     fetchJSON<Area>(`/areas/${id}.json`)
       .then((fresh) => idbPut(cacheKey, fresh))
       .catch(() => {});
     return cached;
   }
+  // 1. Try the prebuilt static file.
   try {
     const fresh = await fetchJSON<Area>(`/areas/${id}.json`);
     idbPut(cacheKey, fresh);
     return fresh;
   } catch {
-    return undefined;
+    // 2. Fall back to fetching from OSM via server function.
+    const summary = await getAreaSummary(id);
+    if (!summary) return undefined;
+    if (!summary.osmRelation && !summary.bbox) return undefined;
+    try {
+      const { fetchAreaTrails } = await import("@/lib/trailFetch.functions");
+      const { trails, trailCount, totalMi } = await fetchAreaTrails({
+        data: {
+          relation: summary.osmRelation,
+          bbox: summary.bbox,
+        },
+      });
+      const area: Area = { ...summary, trailCount, totalMi, trails };
+      idbPut(cacheKey, area);
+      // Also patch the cached index so cards show counts next time.
+      if (indexCache) {
+        const i = indexCache.findIndex((a) => a.id === id);
+        if (i >= 0) {
+          indexCache[i] = { ...indexCache[i], trailCount, totalMi };
+          idbPut("index", indexCache);
+        }
+      }
+      return area;
+    } catch (e) {
+      console.error("on-demand trail fetch failed", e);
+      return undefined;
+    }
   }
 }
+

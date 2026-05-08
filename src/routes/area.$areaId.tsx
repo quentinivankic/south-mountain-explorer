@@ -190,10 +190,10 @@ function AreaPage() {
               />
             </div>
             <button
-              onClick={handleStart}
+              onClick={() => setPicking(true)}
               className="pointer-events-auto mt-3 w-full inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground py-2.5 font-bold text-sm"
             >
-              <Play className="size-4 fill-current" /> Record this hike
+              <Play className="size-4 fill-current" /> Record a hike
             </button>
           </div>
         )}

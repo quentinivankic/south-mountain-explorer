@@ -13,6 +13,7 @@ import { startRecording, useRecorder, type FinishedRecording } from "@/lib/recor
 import { RecordingPanel } from "@/components/RecordingPanel";
 import { RecordingSummary } from "@/components/RecordingSummary";
 import { useAreaCoverage } from "@/lib/coverage";
+import { useLiveLocation, useLocation } from "@/lib/location";
 
 export const Route = createFileRoute("/area/$areaId")({
   loader: async ({ params }) => {

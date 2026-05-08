@@ -45,8 +45,9 @@ function Home() {
       // when the browser has previously denied access.
       let permState: PermissionState | undefined;
       try {
-        // @ts-expect-error - permissions API typing
-        const p = await navigator.permissions?.query({ name: "geolocation" });
+        const p = await (navigator as Navigator & {
+          permissions?: { query: (q: { name: string }) => Promise<{ state: PermissionState }> };
+        }).permissions?.query({ name: "geolocation" });
         permState = p?.state;
       } catch {
         // ignore

@@ -1,5 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { FeedbackDialog } from "@/components/FeedbackDialog";
+import { DownloadToasts } from "@/components/DownloadToasts";
 
 import appCss from "../styles.css?url";
 
@@ -70,6 +71,7 @@ function RootComponent() {
     <>
       <Outlet />
       <FeedbackDialog />
+      <DownloadToasts />
     </>
   );
 }

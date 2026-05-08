@@ -1,6 +1,12 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { loadArea, refreshArea } from "@/data/trails";
+import { loadArea, refreshArea, getAreaSummary, loadAreas } from "@/data/trails";
+import {
+  startDownload,
+  finishDownload,
+  failDownload,
+} from "@/lib/downloads";
+import { prefetchAreaTiles } from "@/lib/tilePrefetch";
 
 const KEY = "summit:favorites";
 const STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -80,17 +86,35 @@ async function ensurePersistent() {
 }
 
 async function downloadFavorites(ids: Iterable<string>) {
+  // Make sure the slim index is loaded so we can resolve names + bboxes.
+  await loadAreas().catch(() => {});
   for (const id of ids) {
+    const summary = await getAreaSummary(id).catch(() => undefined);
+    const label = summary?.name ?? id;
+    const downloadId = `trails:${id}`;
     try {
       const cached = await loadArea(id);
       const age = cached?.cachedAt
         ? Date.now() - new Date(cached.cachedAt).getTime()
         : Infinity;
+      let area = cached;
       if (!cached || age > STALE_MS) {
-        await refreshArea(id);
+        startDownload({ id: downloadId, kind: "trails", label });
+        area = await refreshArea(id);
+        if (area) finishDownload(downloadId);
+        else failDownload(downloadId);
+      }
+      // Prefetch map tiles for the area's bounding box.
+      if (area?.bbox) {
+        const [minLon, minLat, maxLon, maxLat] = area.bbox;
+        prefetchAreaTiles({
+          areaId: id,
+          areaName: label,
+          bbox: { minLat, minLon, maxLat, maxLon },
+        }).catch(() => {});
       }
     } catch {
-      /* ignore */
+      failDownload(downloadId);
     }
   }
 }

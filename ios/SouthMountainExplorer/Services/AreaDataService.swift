@@ -94,16 +94,10 @@ final class AreaDataService {
     private func fetchAndCacheIndex() async {
         struct IndexRow: Codable {
             let id: String
-            let name: String
-            let state: String
-            let centerLat: Double
-            let centerLon: Double
             let trailCount: Int?
             let totalMi: Double?
             enum CodingKeys: String, CodingKey {
-                case id, name, state
-                case centerLat = "center_lat"
-                case centerLon = "center_lon"
+                case id
                 case trailCount = "trail_count"
                 case totalMi = "total_mi"
             }
@@ -111,17 +105,27 @@ final class AreaDataService {
         do {
             let rows: [IndexRow] = try await supabase
                 .from("areas")
-                .select("id, name, state, center_lat, center_lon, trail_count, total_mi")
+                .select("id, trail_count, total_mi")
                 .not("trails", operator: .init(rawValue: "is")!, value: "null")
                 .execute()
                 .value
-            let fetched = rows.map {
-                AreaSummary(id: $0.id, name: $0.name, subtitle: $0.state,
-                            centerLat: $0.centerLat, centerLon: $0.centerLon,
-                            trailCount: $0.trailCount, totalMi: $0.totalMi)
+
+            // Build a lookup of Supabase-known trail counts
+            let lookup = Dictionary(uniqueKeysWithValues: rows.map { ($0.id, $0) })
+
+            // Enrich existing summaries and filter out areas confirmed to have no trails.
+            // Areas not in Supabase at all are kept (data may not be loaded yet).
+            let enriched = summaries.compactMap { summary -> AreaSummary? in
+                if let row = lookup[summary.id] {
+                    var s = summary
+                    s.trailCount = row.trailCount
+                    s.totalMi = row.totalMi
+                    return s
+                }
+                return summary  // not in Supabase yet — keep it
             }
-            summaries = fetched
-            saveSummariesToDisk(fetched)
+            summaries = enriched
+            saveSummariesToDisk(enriched)
         } catch {
             // Network unavailable — keep using bundled/cached index
         }

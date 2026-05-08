@@ -123,9 +123,33 @@ def build_counts(data: bytes):
     return trail_count, total_mi
 
 
-def overpass_query(lat, lon):
-    d = 0.045
-    s, w, n, e = lat - d, lon - d, lat + d, lon + d
+def nominatim_bbox(name: str, state: str) -> tuple | None:
+    """Look up the bounding box for an area via Nominatim. Returns (s, w, n, e) or None."""
+    q = f"{name}, {state}, USA" if state != "Denmark" else f"{name}, Denmark"
+    params = urllib.parse.urlencode({"q": q, "format": "json", "limit": 1, "featuretype": "relation"})
+    req = urllib.request.Request(
+        f"https://nominatim.openstreetmap.org/search?{params}",
+        headers={"User-Agent": "SouthMountainExplorer/1.0 (trail-index-builder)"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            results = json.loads(resp.read())
+        if results:
+            bb = results[0].get("boundingbox")  # [s, n, w, e]
+            if bb and len(bb) == 4:
+                s, n, w, e = float(bb[0]), float(bb[1]), float(bb[2]), float(bb[3])
+                return s - 0.005, w - 0.005, n + 0.005, e + 0.005
+    except Exception:
+        pass
+    return None
+
+
+def overpass_query(lat: float, lon: float, bbox: tuple | None = None) -> str:
+    if bbox:
+        s, w, n, e = bbox
+    else:
+        d = 0.10
+        s, w, n, e = lat - d, lon - d, lat + d, lon + d
     return (
         f'[out:json][timeout:90];'
         f'(way{HIGHWAY_FILTER}({s},{w},{n},{e}););'
@@ -133,8 +157,8 @@ def overpass_query(lat, lon):
     )
 
 
-def fetch_overpass(lat, lon):
-    query = overpass_query(lat, lon)
+def fetch_overpass(lat, lon, bbox=None):
+    query = overpass_query(lat, lon, bbox)
     body = ("data=" + urllib.parse.quote(query)).encode()
     last_err = None
     for endpoint in OVERPASS_ENDPOINTS:
@@ -185,12 +209,16 @@ def main():
             continue
 
         try:
-            data = fetch_overpass(lat, lon)
+            name, state = area[1], area[2]
+            bbox = nominatim_bbox(name, state)
+            time.sleep(1)  # Nominatim rate limit: 1 req/sec
+            source = f"nominatim" if bbox else "radius"
+            data = fetch_overpass(lat, lon, bbox)
             trail_count, total_mi = build_counts(data)
             cache[area_id] = {"trail_count": trail_count, "total_mi": total_mi}
             processed += 1
             print(
-                f"[{i+1}/{total}] {area_id}: {trail_count} trails, {total_mi:.2f} mi",
+                f"[{i+1}/{total}] {area_id}: {trail_count} trails, {total_mi:.2f} mi ({source})",
                 flush=True,
             )
         except Exception as e:

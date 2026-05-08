@@ -217,14 +217,32 @@ final class AreaDataService {
         }
     }
 
+    private func nominatimBbox(name: String, state: String) async -> (s: Double, w: Double, n: Double, e: Double)? {
+        let place = state == "Denmark" ? "\(name), Denmark" : "\(name), \(state), USA"
+        guard let encoded = place.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "https://nominatim.openstreetmap.org/search?q=\(encoded)&format=json&limit=1&featuretype=relation")
+        else { return nil }
+        var req = URLRequest(url: url, timeoutInterval: 15)
+        req.setValue("SouthMountainExplorer/1.0", forHTTPHeaderField: "User-Agent")
+        guard let (data, _) = try? await URLSession.shared.data(for: req),
+              let results = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+              let first = results.first,
+              let bb = first["boundingbox"] as? [String], bb.count == 4,
+              let s = Double(bb[0]), let n = Double(bb[1]),
+              let w = Double(bb[2]), let e = Double(bb[3])
+        else { return nil }
+        return (s - 0.005, w - 0.005, n + 0.005, e + 0.005)
+    }
+
     private func fetchFromOverpass(row: AreaRow) async throws -> AreaRow {
         let query: String
         if let bbox = row.bbox, bbox.count == 4 {
-            // [minLon, minLat, maxLon, maxLat] → Overpass wants (s,w,n,e)
             let s = bbox[1], w = bbox[0], n = bbox[3], e = bbox[2]
             query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(s),\(w),\(n),\(e)););out tags geom;"
+        } else if let nb = await nominatimBbox(name: row.name, state: row.state) {
+            query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(nb.s),\(nb.w),\(nb.n),\(nb.e)););out tags geom;"
         } else {
-            let lat = row.centerLat, lon = row.centerLon, d = 0.045
+            let lat = row.centerLat, lon = row.centerLon, d = 0.10
             query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(lat-d),\(lon-d),\(lat+d),\(lon+d)););out tags geom;"
         }
 

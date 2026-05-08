@@ -10,7 +10,7 @@ struct AreaCard: View {
     private var cachedArea: Area? { areas.cachedArea(id: area.id) }
 
     private var completedCount: Int { progress.completionCount(in: area.id) }
-    private var totalTrails: Int { cachedArea?.trailCount ?? 0 }
+    private var totalTrails: Int { cachedArea?.resolvedTrailCount ?? area.trailCount ?? 0 }
 
     private var progressFraction: Double {
         guard totalTrails > 0 else { return 0 }

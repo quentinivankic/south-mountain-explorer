@@ -12,15 +12,15 @@ struct TrailListView: View {
             // Summary header
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(area.trailCount) trails · \(String(format: "%.1f", area.totalMi)) mi total")
+                    Text("\(area.resolvedTrailCount) trails · \(String(format: "%.1f", area.resolvedTotalMi)) mi total")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
                     let completed = progress.completionCount(in: area.id)
-                    if area.trailCount > 0 {
-                        Text("\(completed) of \(area.trailCount) completed")
+                    if area.resolvedTrailCount > 0 {
+                        Text("\(completed) of \(area.resolvedTrailCount) completed")
                             .font(.caption)
-                            .foregroundStyle(completed == area.trailCount ? .green : .secondary)
+                            .foregroundStyle(completed == area.resolvedTrailCount ? .green : .secondary)
                     }
                 }
                 Spacer()

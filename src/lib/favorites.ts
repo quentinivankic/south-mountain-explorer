@@ -64,11 +64,45 @@ async function handleSession(uid: string | null) {
   emit();
 }
 
+async function ensurePersistent() {
+  try {
+    if (
+      typeof navigator !== "undefined" &&
+      navigator.storage?.persist &&
+      navigator.storage.persisted
+    ) {
+      const already = await navigator.storage.persisted();
+      if (!already) await navigator.storage.persist();
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+async function downloadFavorites(ids: Iterable<string>) {
+  for (const id of ids) {
+    try {
+      const cached = await loadArea(id);
+      const age = cached?.cachedAt
+        ? Date.now() - new Date(cached.cachedAt).getTime()
+        : Infinity;
+      if (!cached || age > STALE_MS) {
+        await refreshArea(id);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 export function initFavorites() {
   if (hydrated || typeof window === "undefined") return;
   hydrated = true;
   favorites = new Set(readLocal());
   emit();
+  if (typeof navigator === "undefined" || navigator.onLine !== false) {
+    downloadFavorites([...favorites]).catch(() => {});
+  }
   supabase.auth.getSession().then(({ data }) => {
     handleSession(data.session?.user.id ?? null);
   });
@@ -86,6 +120,11 @@ export async function toggleFavorite(areaId: string) {
   }
   writeLocal();
   emit();
+
+  if (!isFav) {
+    ensurePersistent();
+    downloadFavorites([areaId]).catch(() => {});
+  }
 
   if (userId) {
     if (isFav) {

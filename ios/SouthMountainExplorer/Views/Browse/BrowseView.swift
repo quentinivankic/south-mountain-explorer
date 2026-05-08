@@ -61,9 +61,15 @@ struct BrowseRow: View {
                 Text(area.name)
                     .font(.body)
                     .foregroundStyle(.primary)
-                Text(area.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Text(area.subtitle)
+                    if let count = area.trailCount, let mi = area.totalMi {
+                        Text("·")
+                        Text("\(count) trails · \(String(format: "%.1f", mi)) mi")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
 
             Spacer()

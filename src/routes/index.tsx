@@ -179,17 +179,25 @@ function Home() {
           </section>
         )}
 
-        {loc.status === "denied" && (
-          <button
-            onClick={() => requestLocation()}
-            className="flex items-center gap-3 w-full rounded-2xl bg-card border border-dashed border-border px-4 py-3 text-left"
-          >
-            <Navigation className="size-4 text-muted-foreground" />
-            <span className="text-sm flex-1 text-muted-foreground">
-              Show areas near me
-            </span>
-            <span className="text-xs font-semibold text-primary">Enable</span>
-          </button>
+        {(loc.status === "denied" || loc.status === "unsupported") && (
+          <div className="space-y-2">
+            <button
+              onClick={handleEnableLocation}
+              disabled={locBusy}
+              className="flex items-center gap-3 w-full rounded-2xl bg-card border border-dashed border-border px-4 py-3 text-left disabled:opacity-60"
+            >
+              <Navigation className="size-4 text-muted-foreground" />
+              <span className="text-sm flex-1 text-muted-foreground">
+                Show areas near me
+              </span>
+              <span className="text-xs font-semibold text-primary">
+                {locBusy ? "Asking…" : "Enable"}
+              </span>
+            </button>
+            {locError && (
+              <p className="px-1 text-xs text-destructive leading-relaxed">{locError}</p>
+            )}
+          </div>
         )}
 
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1 pt-2">

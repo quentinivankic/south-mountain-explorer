@@ -56,7 +56,7 @@ final class AreaDataService {
         return decodeIndex(from: url)
     }
 
-    private func indexDiskURL: URL {
+    private var indexDiskURL: URL {
         cacheDir.appendingPathComponent("index-v2.json")
     }
 

@@ -149,7 +149,7 @@ export const fetchAreaTrails = createServerFn({ method: "POST" })
   .inputValidator(
     (input: {
       relation?: string;
-      bbox?: [number, number, number, number];
+      bbox?: readonly [number, number, number, number];
     }) => {
       if (!input.relation && !input.bbox) {
         throw new Error("relation or bbox required");

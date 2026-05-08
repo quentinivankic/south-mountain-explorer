@@ -15,6 +15,8 @@ export interface StoredLocation {
 }
 
 const listeners = new Set<() => void>();
+let cached: StoredLocation = { status: "unset" };
+let hydrated = false;
 
 function read(): StoredLocation {
   if (typeof window === "undefined") return { status: "unset" };
@@ -25,6 +27,14 @@ function read(): StoredLocation {
   } catch {
     return { status: "unset" };
   }
+}
+
+function snapshot(): StoredLocation {
+  if (!hydrated && typeof window !== "undefined") {
+    cached = read();
+    hydrated = true;
+  }
+  return cached;
 }
 
 function write(v: StoredLocation) {

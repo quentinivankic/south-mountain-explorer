@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { areas } from "@/data/trails";
-import { Mountain, MapPin, ChevronRight, LogOut, LogIn, Search, Star } from "lucide-react";
+import { Mountain, MapPin, ChevronRight, LogOut, LogIn, Search, Star, History } from "lucide-react";
 import { useAllProgress, useAuthState } from "@/lib/progress";
 import { useFavorites } from "@/lib/favorites";
 import { supabase } from "@/integrations/supabase/client";

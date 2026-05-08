@@ -14,6 +14,7 @@ import { RecordingPanel } from "@/components/RecordingPanel";
 import { RecordingSummary } from "@/components/RecordingSummary";
 import { useAreaCoverage } from "@/lib/coverage";
 import { useLiveLocation, useLocation } from "@/lib/location";
+import { TrailStatsCard } from "@/components/TrailStatsCard";
 
 export const Route = createFileRoute("/area/$areaId")({
   loader: async ({ params }) => {
@@ -185,6 +186,19 @@ function AreaPage() {
             error={recError}
             onFinish={(r) => setFinished(r)}
           />
+        ) : highlighted ? (
+          (() => {
+            const t = area.trails.find((x) => x.id === highlighted);
+            if (!t) return null;
+            return (
+              <TrailStatsCard
+                trail={t}
+                completed={completedIds.has(t.id)}
+                coverage={coverage[t.id]}
+                onClose={() => setHighlighted(null)}
+              />
+            );
+          })()
         ) : (
           <div className="pointer-events-none absolute z-[1000] left-4 right-4 bottom-4 rounded-2xl bg-card/95 backdrop-blur-sm shadow-[var(--shadow-elev)] border border-border/60 p-4">
             <div className="flex items-baseline justify-between">

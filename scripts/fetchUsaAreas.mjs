@@ -117,9 +117,8 @@ function queryFor(s, w, n, e) {
   relation["boundary"="protected_area"]["protect_class"~"^[1-6]$"](${s},${w},${n},${e});
   relation["leisure"="nature_reserve"](${s},${w},${n},${e});
   relation["leisure"="park"]["park:type"~"state|national|regional"](${s},${w},${n},${e});
-  relation["boundary"="national_park"]["protection_title"](${s},${w},${n},${e});
 );
-out tags bb center;`;
+out tags center;`;
 }
 
 function bboxArea([s, w, n, e]) {
@@ -175,34 +174,28 @@ for (const code of targetStates) {
     const t = el.tags || {};
     const name = (t.name || t["name:en"] || "").trim();
     if (!name) continue;
-    if (!el.bounds || !el.center) continue;
-    const bbox = [
-      Number(el.bounds.minlat.toFixed(5)),
-      Number(el.bounds.minlon.toFixed(5)),
-      Number(el.bounds.maxlat.toFixed(5)),
-      Number(el.bounds.maxlon.toFixed(5)),
-    ];
-    const area = bboxArea(bbox);
-    // Skip tiny lots and giant containers (>50,000 km² is usually country-scale).
-    if (area < 1 || area > 50000) {
-      skipped++;
-      continue;
-    }
+    if (!el.center) continue;
+    // Filter: must look hike-relevant.
+    const isProtected =
+      t.boundary === "national_park" ||
+      t.boundary === "protected_area" ||
+      t.leisure === "nature_reserve" ||
+      t.leisure === "park";
+    if (!isProtected) continue;
     const id = `${slug(name)}-${code.toLowerCase()}`;
     if (byId.has(id)) continue;
-    const subtitle = stateName;
     byId.set(id, {
       id,
       name,
-      subtitle,
+      subtitle: stateName,
       location: name,
       center: [
         Number(el.center.lat.toFixed(5)),
         Number(el.center.lon.toFixed(5)),
       ],
-      zoom: bboxToZoom(bbox),
-      bbox,
-      // trailCount/totalMi unknown until trails are fetched.
+      zoom: 13,
+      // OSM relation name — used by on-demand trail fetcher.
+      osmRelation: name,
       trailCount: 0,
       totalMi: 0,
     });

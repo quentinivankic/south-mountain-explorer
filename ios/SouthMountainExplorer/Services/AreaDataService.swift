@@ -119,8 +119,27 @@ final class AreaDataService {
         return result
     }
 
+    func areaWithError(id: String) async -> (area: Area?, error: String?) {
+        if let cached = areaCache[id] { return (cached, nil) }
+        if let onDisk = loadAreaFromDisk(id: id) {
+            areaCache[id] = onDisk
+            let staleness = Date().timeIntervalSince(onDisk.cachedAt ?? .distantPast)
+            if staleness > 30 * 24 * 3600 { Task { await fetchAndCacheArea(id: id) } }
+            return (onDisk, nil)
+        }
+        if let existing = loadingTasks[id] {
+            let result = await existing.value
+            return (result, result == nil ? "Fetch already in progress but returned no data." : nil)
+        }
+        return await fetchAndCacheAreaWithError(id: id)
+    }
+
     @discardableResult
     private func fetchAndCacheArea(id: String) async -> Area? {
+        await fetchAndCacheAreaWithError(id: id).area
+    }
+
+    private func fetchAndCacheAreaWithError(id: String) async -> (area: Area?, error: String?) {
         do {
             let row: AreaRow = try await supabase
                 .from("areas")
@@ -132,9 +151,9 @@ final class AreaDataService {
             let area = row.toArea()
             areaCache[id] = area
             saveAreaToDisk(area)
-            return area
+            return (area, nil)
         } catch {
-            return nil
+            return (nil, error.localizedDescription)
         }
     }
 

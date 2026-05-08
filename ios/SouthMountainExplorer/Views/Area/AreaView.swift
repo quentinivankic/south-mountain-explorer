@@ -9,9 +9,11 @@ struct AreaView: View {
     @Environment(FavoritesService.self) private var favorites
     @Environment(LocationService.self) private var location
     @Environment(AuthService.self) private var auth
+    @Environment(\.dismiss) private var dismiss
 
     @State private var area: Area? = nil
     @State private var isLoading = true
+    @State private var loadError: String? = nil
     @State private var showTrailList = true
     @State private var finishedRecording: FinishedRecording? = nil
     @State private var showSummary = false
@@ -57,12 +59,15 @@ struct AreaView: View {
             } else {
                 ContentUnavailableView("Area Unavailable",
                     systemImage: "xmark.octagon",
-                    description: Text("Could not load trail data. Check your connection."))
+                    description: Text(loadError ?? "Could not load trail data. Check your connection."))
             }
         }
         .navigationTitle(areaName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Close", systemImage: "xmark") { dismiss() }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     Task { await favorites.toggle(areaId: areaId) }
@@ -73,7 +78,9 @@ struct AreaView: View {
             }
         }
         .task {
-            area = await areas.area(id: areaId)
+            let result = await areas.areaWithError(id: areaId)
+            area = result.area
+            loadError = result.error
             isLoading = false
         }
         .sheet(isPresented: $showSummary) {

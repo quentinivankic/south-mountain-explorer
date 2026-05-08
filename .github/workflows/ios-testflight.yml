@@ -32,6 +32,8 @@ jobs:
           CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
           echo "$CERTIFICATE_BASE64" | base64 --decode > distribution.p12
+          echo "p12 size: $(wc -c < distribution.p12) bytes"
+          openssl pkcs12 -in distribution.p12 -noout -passin pass:"$CERTIFICATE_PASSWORD" && echo "p12 password OK" || echo "p12 password FAILED"
           security create-keychain -p "" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain

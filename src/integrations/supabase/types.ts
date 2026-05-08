@@ -161,6 +161,33 @@ export type Database = {
         }
         Relationships: []
       }
+      trail_coverage: {
+        Row: {
+          area_id: string
+          coverage: number
+          id: string
+          trail_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          area_id: string
+          coverage?: number
+          id?: string
+          trail_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          area_id?: string
+          coverage?: number
+          id?: string
+          trail_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

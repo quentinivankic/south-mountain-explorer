@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Check, RotateCcw, Play, History as HistoryIcon } from "lucide-react";
+import { ArrowLeft, Check, RotateCcw, Play, History as HistoryIcon, Compass, MapPinned, X } from "lucide-react";
 import { loadArea, type Area, type Difficulty } from "@/data/trails";
 import {
   resetArea,
@@ -12,6 +12,7 @@ import { TrailMapClient } from "@/components/TrailMapClient";
 import { startRecording, useRecorder, type FinishedRecording } from "@/lib/recorder";
 import { RecordingPanel } from "@/components/RecordingPanel";
 import { RecordingSummary } from "@/components/RecordingSummary";
+import { useAreaCoverage } from "@/lib/coverage";
 
 export const Route = createFileRoute("/area/$areaId")({
   loader: async ({ params }) => {
@@ -62,9 +63,11 @@ const diffStyles: Record<Difficulty, string> = {
 function AreaPage() {
   const { area } = Route.useLoaderData() as { area: Area };
   const progress = useAreaProgress(area.id);
+  const coverage = useAreaCoverage(area.id);
   const userId = useAuthState();
   const { active: recording, error: recError } = useRecorder();
   const [finished, setFinished] = useState<FinishedRecording | null>(null);
+  const [picking, setPicking] = useState(false);
 
   const [highlighted, setHighlighted] = useState<string | null>(null);
   const [sort, setSort] = useState<"name" | "distance" | "difficulty">("distance");
@@ -79,11 +82,17 @@ function AreaPage() {
     : undefined;
   const liveCurrent = livePath && livePath.length ? livePath[livePath.length - 1] : null;
 
-  const handleStart = () => {
+  const beginStart = (mode: "roam" | "trail", trailId?: string) => {
     if (recording && recording.areaId !== area.id) {
-      if (!confirm("You have a recording in progress for another area. Discard it and start here?")) return;
+      if (
+        !confirm(
+          "You have a recording in progress for another area. Discard it and start here?",
+        )
+      )
+        return;
     }
-    startRecording(area.id);
+    startRecording(area.id, mode, trailId);
+    setPicking(false);
   };
 
   const completedIds = useMemo(() => new Set(Object.keys(progress)), [progress]);
@@ -196,10 +205,10 @@ function AreaPage() {
               />
             </div>
             <button
-              onClick={handleStart}
+              onClick={() => setPicking(true)}
               className="pointer-events-auto mt-3 w-full inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground py-2.5 font-bold text-sm"
             >
-              <Play className="size-4 fill-current" /> Record this hike
+              <Play className="size-4 fill-current" /> Record a hike
             </button>
           </div>
         )}
@@ -211,6 +220,67 @@ function AreaPage() {
           trails={area.trails}
           onClose={() => setFinished(null)}
         />
+      )}
+
+      {picking && (
+        <div
+          className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center bg-black/50 p-4"
+          onClick={() => setPicking(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl bg-card border border-border shadow-[var(--shadow-elev)] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-border/60">
+              <div className="font-bold">Start a hike</div>
+              <button
+                onClick={() => setPicking(false)}
+                className="text-muted-foreground p-1"
+                aria-label="Close"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="p-4 space-y-2">
+              <button
+                onClick={() => beginStart("roam")}
+                className="w-full flex items-start gap-3 text-left p-4 rounded-2xl border border-border/60 hover:border-primary/50 transition"
+              >
+                <Compass className="size-5 mt-0.5 text-primary shrink-0" />
+                <div>
+                  <div className="font-bold">Free roam</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Wander wherever. Any trail you walk gets credit — finish a partial trail across multiple hikes.
+                  </div>
+                </div>
+              </button>
+              <div>
+                <div className="px-1 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+                  Or pick a specific trail
+                </div>
+                <div className="max-h-[40vh] overflow-y-auto rounded-2xl border border-border/60 divide-y divide-border/60">
+                  {sorted
+                    .filter((t) => !completedIds.has(t.id))
+                    .map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => beginStart("trail", t.id)}
+                        className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/50"
+                      >
+                        <MapPinned className="size-4 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold truncate">{t.name}</div>
+                          <div className="text-[11px] text-muted-foreground tabular-nums">
+                            {t.distanceMi.toFixed(1)} mi · {t.difficulty}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* List */}
@@ -249,50 +319,80 @@ function AreaPage() {
         <ul className="space-y-2">
           {sorted.map((t) => {
             const isDone = completedIds.has(t.id);
+            const cov = coverage[t.id] ?? 0;
+            const covPct = Math.round(cov * 100);
             return (
               <li
                 key={t.id}
                 id={`t-${t.id}`}
-                className={`flex items-center gap-3 p-3 rounded-2xl border transition ${
+                className={`p-3 rounded-2xl border transition ${
                   isDone
                     ? "bg-[oklch(0.96_0.05_145)] border-[oklch(0.85_0.08_145)]"
                     : "bg-card border-border/60"
                 } ${highlighted === t.id ? "ring-2 ring-primary/50" : ""}`}
                 onClick={() => setHighlighted(t.id)}
               >
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleToggle(t.id);
-                  }}
-                  aria-label={isDone ? "Mark incomplete" : "Mark complete"}
-                  className={`shrink-0 size-7 rounded-full border-2 flex items-center justify-center transition ${
-                    isDone
-                      ? "bg-[var(--saguaro)] border-[var(--saguaro)] text-white"
-                      : "border-border bg-background"
-                  }`}
-                >
-                  {isDone && <Check className="size-4" strokeWidth={3} />}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <div
-                    className={`font-semibold leading-tight truncate ${
-                      isDone ? "line-through text-muted-foreground" : "text-foreground"
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggle(t.id);
+                    }}
+                    aria-label={isDone ? "Mark incomplete" : "Mark complete"}
+                    className={`shrink-0 size-7 rounded-full border-2 flex items-center justify-center transition ${
+                      isDone
+                        ? "bg-[var(--saguaro)] border-[var(--saguaro)] text-white"
+                        : "border-border bg-background"
                     }`}
                   >
-                    {t.name}
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
-                    <span>{t.distanceMi.toFixed(1)} mi</span>
-                    <span
-                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
-                        diffStyles[t.difficulty]
+                    {isDone && <Check className="size-4" strokeWidth={3} />}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className={`font-semibold leading-tight truncate ${
+                        isDone ? "line-through text-muted-foreground" : "text-foreground"
                       }`}
                     >
-                      {t.difficulty}
-                    </span>
+                      {t.name}
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+                      <span>{t.distanceMi.toFixed(1)} mi</span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                          diffStyles[t.difficulty]
+                        }`}
+                      >
+                        {t.difficulty}
+                      </span>
+                      {!isDone && cov > 0 && (
+                        <span className="text-primary font-semibold">{covPct}%</span>
+                      )}
+                    </div>
                   </div>
+                  {!isRecordingThisArea && !isDone && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        beginStart("trail", t.id);
+                      }}
+                      aria-label="Record this trail"
+                      className="shrink-0 size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center"
+                    >
+                      <Play className="size-3.5 fill-current" />
+                    </button>
+                  )}
                 </div>
+                {!isDone && cov > 0 && (
+                  <div className="mt-2 h-1 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${covPct}%`,
+                        background: "var(--gradient-sunrise)",
+                      }}
+                    />
+                  </div>
+                )}
               </li>
             );
           })}

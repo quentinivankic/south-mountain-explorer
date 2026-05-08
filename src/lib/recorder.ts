@@ -2,14 +2,19 @@ import { useEffect, useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Trail } from "@/data/trails";
 import { toggleTrail } from "@/lib/progress";
+import { mergeCoverage, getCoverage } from "@/lib/coverage";
 
 const KEY = "summit:active-recording";
 
 export type GpsPoint = [number, number, number]; // [lat, lon, ts(ms)]
+export type RecordingMode = "roam" | "trail";
 
 export interface ActiveRecording {
   areaId: string;
-  startedAt: number; // ms
+  mode: RecordingMode;
+  /** When mode === "trail", the trail being targeted. */
+  trailId?: string;
+  startedAt: number;
   path: GpsPoint[];
   distanceMi: number;
 }
@@ -17,8 +22,14 @@ export interface ActiveRecording {
 export interface FinishedRecording extends ActiveRecording {
   endedAt: number;
   durationS: number;
-  walkedTrailIds: string[];
+  /** Trails that crossed the completion threshold during/after this hike. */
+  newlyCompletedTrailIds: string[];
+  /** Per-trail coverage delta this session contributed (0..1). */
+  coverageDelta: Record<string, number>;
 }
+
+const COMPLETE_AT = 0.9; // ≥90% covered = mark complete
+const BUFFER_M = 30;
 
 let active: ActiveRecording | null = null;
 let watchId: number | null = null;
@@ -42,7 +53,6 @@ function readLocal(): ActiveRecording | null {
   }
 }
 
-// Haversine in meters
 function distM(a: [number, number], b: [number, number]) {
   const R = 6371000;
   const dLa = ((b[0] - a[0]) * Math.PI) / 180;
@@ -61,12 +71,10 @@ function appendPoint(lat: number, lon: number) {
   const last = active.path[active.path.length - 1];
   if (last) {
     const d = distM([last[0], last[1]], [lat, lon]);
-    // Reject GPS jitter / no movement <3m, and absurd jumps >200m between samples
-    if (d < 3 || d > 200) {
-      // Always allow first ~5 points to anchor
-      if (active.path.length > 5) return;
-      if (d > 200) return;
-    }
+    if (active.path.length > 5) {
+      if (d < 3) return; // jitter
+      if (d > 200) return; // bad fix
+    } else if (d > 200) return;
     active.distanceMi += d / 1609.344;
   }
   active.path.push([Number(lat.toFixed(6)), Number(lon.toFixed(6)), ts]);
@@ -103,8 +111,19 @@ function stopWatch() {
   watchId = null;
 }
 
-export function startRecording(areaId: string) {
-  active = { areaId, startedAt: Date.now(), path: [], distanceMi: 0 };
+export function startRecording(
+  areaId: string,
+  mode: RecordingMode,
+  trailId?: string,
+) {
+  active = {
+    areaId,
+    mode,
+    trailId: mode === "trail" ? trailId : undefined,
+    startedAt: Date.now(),
+    path: [],
+    distanceMi: 0,
+  };
   lastError = null;
   startWatch();
   emit();
@@ -117,19 +136,21 @@ export function discardRecording() {
   emit();
 }
 
-// Coverage heuristic: a trail is "walked" if ≥55% of its sampled nodes
-// fall within ~30m of some recorded GPS point.
-const BUFFER_M = 30;
-const COVERAGE = 0.55;
-
-function findWalkedTrails(path: GpsPoint[], trails: Trail[]): string[] {
-  if (path.length < 5) return [];
-  // Bucket recorded points into a ~30m grid for cheap nearest lookup.
-  const CELL = 0.0003; // ~33m
+/**
+ * For each trail, compute fraction of its sampled nodes that lie within
+ * BUFFER_M of any recorded GPS point. In "trail" mode, only the targeted
+ * trail is considered. In "roam" mode, all trails get measured.
+ */
+function measureCoverage(
+  rec: ActiveRecording,
+  trails: Trail[],
+): Record<string, number> {
+  if (rec.path.length < 3) return {};
+  const CELL = 0.0003;
   const grid = new Map<string, [number, number][]>();
   const key = (la: number, lo: number) =>
     `${Math.round(la / CELL)}:${Math.round(lo / CELL)}`;
-  for (const [la, lo] of path) {
+  for (const [la, lo] of rec.path) {
     const k = key(la, lo);
     const list = grid.get(k);
     if (list) list.push([la, lo]);
@@ -146,8 +167,14 @@ function findWalkedTrails(path: GpsPoint[], trails: Trail[]): string[] {
       }
     return out;
   };
-  const walked: string[] = [];
-  for (const t of trails) {
+
+  const candidates =
+    rec.mode === "trail" && rec.trailId
+      ? trails.filter((t) => t.id === rec.trailId)
+      : trails;
+
+  const out: Record<string, number> = {};
+  for (const t of candidates) {
     let total = 0;
     let covered = 0;
     for (const seg of t.segments) {
@@ -162,9 +189,12 @@ function findWalkedTrails(path: GpsPoint[], trails: Trail[]): string[] {
         }
       }
     }
-    if (total > 0 && covered / total >= COVERAGE) walked.push(t.id);
+    if (total > 0) {
+      const frac = covered / total;
+      if (frac > 0.02) out[t.id] = frac;
+    }
   }
-  return walked;
+  return out;
 }
 
 export async function stopRecording(
@@ -173,20 +203,33 @@ export async function stopRecording(
   if (!active) return null;
   stopWatch();
   const endedAt = Date.now();
-  const walked = findWalkedTrails(active.path, trails);
+  const sessionCoverage = measureCoverage(active, trails);
+
+  const prior = getCoverage()[active.areaId] ?? {};
+  // merged coverage = max(prior, session)
+  const merged: Record<string, number> = {};
+  const newlyCompleted: string[] = [];
+  for (const [tid, v] of Object.entries(sessionCoverage)) {
+    const m = Math.max(prior[tid] ?? 0, v);
+    merged[tid] = m;
+    if ((prior[tid] ?? 0) < COMPLETE_AT && m >= COMPLETE_AT) {
+      newlyCompleted.push(tid);
+    }
+  }
+
+  await mergeCoverage(active.areaId, merged);
+  for (const tid of newlyCompleted) {
+    await toggleTrail(active.areaId, tid).catch(() => {});
+  }
+
   const finished: FinishedRecording = {
     ...active,
     endedAt,
     durationS: Math.round((endedAt - active.startedAt) / 1000),
-    walkedTrailIds: walked,
+    newlyCompletedTrailIds: newlyCompleted,
+    coverageDelta: sessionCoverage,
   };
 
-  // Auto-mark trails complete
-  for (const tid of walked) {
-    await toggleTrail(finished.areaId, tid).catch(() => {});
-  }
-
-  // Save to server if signed in
   const { data } = await supabase.auth.getSession();
   const uid = data.session?.user.id;
   if (uid) {
@@ -198,7 +241,7 @@ export async function stopRecording(
       distance_mi: Number(finished.distanceMi.toFixed(2)),
       duration_s: finished.durationS,
       path: finished.path,
-      completed_trail_ids: walked,
+      completed_trail_ids: newlyCompleted,
     });
     if (error) console.error("save recording failed", error);
   }
@@ -208,7 +251,6 @@ export async function stopRecording(
   return finished;
 }
 
-// Re-attach watch if a recording was in progress (page reload)
 if (typeof window !== "undefined") {
   active = readLocal();
   if (active) startWatch();
@@ -223,7 +265,6 @@ function subscribe(cb: () => void) {
 
 export function useRecorder() {
   useEffect(() => {
-    // ensure watch is running if there's an active recording
     if (active && watchId === null) startWatch();
   }, []);
   const snap = useSyncExternalStore(

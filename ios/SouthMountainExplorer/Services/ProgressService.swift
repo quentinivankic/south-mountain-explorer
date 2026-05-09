@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 // areaId -> trailId -> ISO8601 completion date
 private let storageKey = "summit:completed"
@@ -31,11 +32,14 @@ final class ProgressService {
     // MARK: - Write
 
     func markComplete(areaId: String, trailId: String) async {
-        let date = ISO8601DateFormatter().string(from: Date())
         var area = completions[areaId] ?? [:]
-        area[trailId] = date
+        let wasComplete = area[trailId] != nil
+        area[trailId] = ISO8601DateFormatter().string(from: Date())
         completions[areaId] = area
         saveLocal()
+        if !wasComplete {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
     }
 
     func toggleTrail(areaId: String, trailId: String) async {
@@ -44,6 +48,7 @@ final class ProgressService {
             area.removeValue(forKey: trailId)
             completions[areaId] = area
             saveLocal()
+            UISelectionFeedbackGenerator().selectionChanged()
         } else {
             await markComplete(areaId: areaId, trailId: trailId)
         }

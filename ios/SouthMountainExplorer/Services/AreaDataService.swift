@@ -1,7 +1,7 @@
 import Foundation
 
-// Caches the bundled area index and per-area full data fetched from Supabase.
-// The bundled index.json lives at Resources/areas-index.json (copy from public/areas/index.json).
+// Caches the bundled area index and per-area full data fetched from Overpass.
+// The bundled index.json lives at Resources/areas-index.json.
 @MainActor
 @Observable
 final class AreaDataService {
@@ -10,7 +10,6 @@ final class AreaDataService {
     private(set) var summaries: [AreaSummary] = []
     private(set) var isLoadingIndex = false
 
-    // In-memory cache of full Area objects keyed by id
     private var areaCache: [String: Area] = [:]
     private var loadingTasks: [String: Task<Area?, Never>] = [:]
 
@@ -34,8 +33,6 @@ final class AreaDataService {
         let bundled = loadIndexFromBundle()
         let bundledCount = bundled?.count ?? 0
 
-        // Disk cache is only valid if it has at least as many areas as the bundle.
-        // If the bundle is newer/larger, skip the stale cache.
         if let cached = loadSummariesFromDisk(), cached.count >= bundledCount {
             summaries = cached
             Task { await fetchAndCacheIndex() }
@@ -58,23 +55,14 @@ final class AreaDataService {
     }
 
     private func loadIndexFromBundle() -> [AreaSummary]? {
-        guard let url = Bundle.main.url(forResource: "areas-index", withExtension: "json") else {
-            return nil
-        }
+        guard let url = Bundle.main.url(forResource: "areas-index", withExtension: "json") else { return nil }
         return decodeIndex(from: url)
     }
 
-    private var indexDiskURL: URL {
-        cacheDir.appendingPathComponent("index-v2.json")
-    }
+    private var indexDiskURL: URL { cacheDir.appendingPathComponent("index-v2.json") }
+    private var summariesDiskURL: URL { cacheDir.appendingPathComponent("summaries-v2.json") }
 
-    private var summariesDiskURL: URL {
-        cacheDir.appendingPathComponent("summaries-v2.json")
-    }
-
-    private func loadIndexFromDisk() -> [AreaSummary]? {
-        decodeIndex(from: indexDiskURL)
-    }
+    private func loadIndexFromDisk() -> [AreaSummary]? { decodeIndex(from: indexDiskURL) }
 
     private func loadSummariesFromDisk() -> [AreaSummary]? {
         guard let data = try? Data(contentsOf: summariesDiskURL) else { return nil }
@@ -109,30 +97,20 @@ final class AreaDataService {
                 haversineDistanceMi(lat1: lat, lon1: lon, lat2: a.centerLat, lon2: a.centerLon)
                 < haversineDistanceMi(lat1: lat, lon1: lon, lat2: b.centerLat, lon2: b.centerLon)
             }
-            .prefix(limit)
-            .map { $0 }
+            .prefix(limit).map { $0 }
     }
 
     // MARK: - Full Area Data
 
     func area(id: String) async -> Area? {
         if let cached = areaCache[id] { return cached }
-
-        // Check disk cache
         if let onDisk = loadAreaFromDisk(id: id) {
             areaCache[id] = onDisk
-            // Refresh in background if stale
             let staleness = Date().timeIntervalSince(onDisk.cachedAt ?? .distantPast)
-            if staleness > 24 * 3600 {
-                Task { await fetchAndCacheArea(id: id) }
-            }
+            if staleness > 24 * 3600 { Task { await fetchAndCacheArea(id: id) } }
             return onDisk
         }
-
-        // Deduplicate concurrent fetches
-        if let existing = loadingTasks[id] {
-            return await existing.value
-        }
+        if let existing = loadingTasks[id] { return await existing.value }
         let task = Task<Area?, Never> { await fetchAndCacheArea(id: id) }
         loadingTasks[id] = task
         let result = await task.value
@@ -165,17 +143,9 @@ final class AreaDataService {
             return (nil, "Area not found in index.")
         }
         let stub = AreaRow(
-            id: summary.id,
-            name: summary.name,
-            state: summary.subtitle,
-            centerLat: summary.centerLat,
-            centerLon: summary.centerLon,
-            zoom: 13,
-            bbox: nil,
-            trails: nil,
-            trailCount: nil,
-            totalMi: nil,
-            cachedAt: nil
+            id: summary.id, name: summary.name, state: summary.subtitle,
+            centerLat: summary.centerLat, centerLon: summary.centerLon,
+            zoom: 13, bbox: nil, trails: nil, trailCount: nil, totalMi: nil, cachedAt: nil
         )
         do {
             let row = try await fetchFromOverpass(row: stub)
@@ -247,8 +217,7 @@ final class AreaDataService {
                     id: row.id, name: row.name, state: row.state,
                     centerLat: row.centerLat, centerLon: row.centerLon,
                     zoom: row.zoom, bbox: row.bbox,
-                    trails: trails,
-                    trailCount: trails.count,
+                    trails: trails, trailCount: trails.count,
                     totalMi: trails.reduce(0) { $0 + $1.distanceMi },
                     cachedAt: row.cachedAt
                 )
@@ -302,9 +271,7 @@ final class AreaDataService {
                 guard let lat = p["lat"] as? Double, let lon = p["lon"] as? Double else { return nil }
                 return [lat, lon]
             }
-            if parkBbox.count == 4 {
-                coords = clipToBbox(coords, bbox: parkBbox)
-            }
+            if parkBbox.count == 4 { coords = clipToBbox(coords, bbox: parkBbox) }
             guard coords.count >= 2 else { continue }
             if byName[name] == nil { byName[name] = (tags, []) }
             byName[name]!.segments.append(coords)
@@ -379,11 +346,10 @@ final class AreaDataService {
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
             .filter { !$0.isEmpty }
             .joined(separator: "-")
-            .prefix(60)
-            .description
+            .prefix(60).description
     }
 
-    // MARK: - Disk persistence for full area data
+    // MARK: - Disk persistence
 
     private func areaDiskURL(id: String) -> URL {
         cacheDir.appendingPathComponent("\(id).json")
@@ -402,5 +368,14 @@ final class AreaDataService {
 
     func cachedArea(id: String) -> Area? {
         areaCache[id] ?? loadAreaFromDisk(id: id)
+    }
+
+    func clearAreaCache() {
+        areaCache.removeAll()
+        if let files = try? FileManager.default.contentsOfDirectory(at: cacheDir, includingPropertiesForKeys: nil) {
+            for file in files where file.pathExtension == "json" && file.lastPathComponent != "index-v2.json" && file.lastPathComponent != "summaries-v2.json" {
+                try? FileManager.default.removeItem(at: file)
+            }
+        }
     }
 }

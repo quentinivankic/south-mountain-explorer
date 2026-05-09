@@ -186,6 +186,14 @@ struct HomeView: View {
             }
             .padding(.horizontal, 4)
 
+            // Caption first so the chips can't be misread as "distance from
+            // me" — they filter by total trail miles inside each area.
+            Text("Filter by total trail miles in the area")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+                .padding(.top, 2)
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(LengthFilter.allCases) { filter in

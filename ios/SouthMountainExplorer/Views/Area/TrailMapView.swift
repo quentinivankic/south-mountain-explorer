@@ -11,7 +11,25 @@ struct TrailMapView: View {
     @Environment(ProgressService.self) private var progress
     @Environment(LocationService.self) private var location
 
-    @State private var position: MapCameraPosition = .automatic
+    @State private var position: MapCameraPosition
+
+    init(
+        area: Area,
+        activeRecording: ActiveRecording?,
+        pastPaths: [[GpsPoint]],
+        recenterTick: Int,
+        selectedTrailId: Binding<String?>
+    ) {
+        self.area = area
+        self.activeRecording = activeRecording
+        self.pastPaths = pastPaths
+        self.recenterTick = recenterTick
+        self._selectedTrailId = selectedTrailId
+        // Compute the initial camera position synchronously so MapKit's
+        // own .automatic frame can't briefly render a fragment of the area
+        // before .onAppear fires.
+        self._position = State(initialValue: Self.regionCovering(area: area))
+    }
 
     var body: some View {
         Map(position: $position) {
@@ -100,6 +118,42 @@ struct TrailMapView: View {
     }
 
     private func centerOnArea() {
+        withAnimation { position = Self.regionCovering(area: area) }
+    }
+
+    /// Frame the camera around the union of all trail segments. Uses the
+    /// actual trail geometry (not just `area.bbox`, which is sometimes nil
+    /// or imprecise in the bundled data) so the user always opens to a view
+    /// of the whole area rather than a random subregion.
+    private static func regionCovering(area: Area) -> MapCameraPosition {
+        let coords = area.trails
+            .flatMap { $0.segments.flatMap { $0 } }
+            .compactMap { p -> (lat: Double, lon: Double)? in
+                guard p.count >= 2 else { return nil }
+                return (p[0], p[1])
+            }
+
+        if !coords.isEmpty {
+            let lats = coords.map { $0.lat }
+            let lons = coords.map { $0.lon }
+            let minLat = lats.min()!, maxLat = lats.max()!
+            let minLon = lons.min()!, maxLon = lons.max()!
+            let region = MKCoordinateRegion(
+                center: CLLocationCoordinate2D(
+                    latitude: (minLat + maxLat) / 2,
+                    longitude: (minLon + maxLon) / 2
+                ),
+                span: MKCoordinateSpan(
+                    // Slight padding so trails don't kiss the edges, and a
+                    // floor so single-point edge cases don't render
+                    // street-level zoom.
+                    latitudeDelta: max((maxLat - minLat) * 1.3, 0.01),
+                    longitudeDelta: max((maxLon - minLon) * 1.3, 0.01)
+                )
+            )
+            return .region(region)
+        }
+
         if let bbox = area.bbox, bbox.count == 4 {
             let region = MKCoordinateRegion(
                 center: CLLocationCoordinate2D(
@@ -107,22 +161,20 @@ struct TrailMapView: View {
                     longitude: (bbox[0] + bbox[2]) / 2
                 ),
                 span: MKCoordinateSpan(
-                    latitudeDelta: abs(bbox[3] - bbox[1]) * 1.2,
-                    longitudeDelta: abs(bbox[2] - bbox[0]) * 1.2
+                    latitudeDelta: max(abs(bbox[3] - bbox[1]) * 1.2, 0.01),
+                    longitudeDelta: max(abs(bbox[2] - bbox[0]) * 1.2, 0.01)
                 )
             )
-            withAnimation { position = .region(region) }
-        } else {
-            withAnimation {
-                position = .camera(MapCamera(
-                    centerCoordinate: CLLocationCoordinate2D(
-                        latitude: area.centerLat,
-                        longitude: area.centerLon
-                    ),
-                    distance: 5000
-                ))
-            }
+            return .region(region)
         }
+
+        return .camera(MapCamera(
+            centerCoordinate: CLLocationCoordinate2D(
+                latitude: area.centerLat,
+                longitude: area.centerLon
+            ),
+            distance: 5000
+        ))
     }
 
     private func centerOn(trail: Trail) {

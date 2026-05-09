@@ -16,7 +16,14 @@ struct AreaCard: View {
 
     private var cachedArea: Area? { areas.cachedArea(id: area.id) }
 
-    private var completedCount: Int { progress.completionCount(in: area.id) }
+    /// Filter to current trail IDs when we have them so a Refresh Trail
+    /// Data call doesn't leave the count showing orphan completions.
+    private var completedCount: Int {
+        if let trails = cachedArea?.trails {
+            return progress.completionCount(in: area.id, validTrailIds: Set(trails.map { $0.id }))
+        }
+        return progress.completionCount(in: area.id)
+    }
     private var totalTrails: Int { cachedArea?.resolvedTrailCount ?? area.trailCount ?? 0 }
 
     private var progressFraction: Double {
@@ -56,20 +63,20 @@ struct AreaCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(area.name)
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
 
                 HStack(spacing: 6) {
                     Text(area.subtitle)
                         .font(.caption)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(.secondary)
 
                     if totalTrails > 0 {
                         Text("·")
-                            .foregroundStyle(.white.opacity(0.5))
+                            .foregroundStyle(.tertiary)
                         Text("\(completedCount)/\(totalTrails) trails")
                             .font(.caption)
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(.secondary)
                     }
                 }
 
@@ -81,7 +88,7 @@ struct AreaCard: View {
 
                 if totalTrails > 0 {
                     ProgressView(value: progressFraction)
-                        .tint(.white)
+                        .tint(.accentColor)
                         .padding(.top, 2)
                 }
             }
@@ -95,7 +102,7 @@ struct AreaCard: View {
                 Task { await favorites.toggle(areaId: area.id) }
             } label: {
                 Image(systemName: favorites.isFavorite(area.id) ? "heart.fill" : "heart")
-                    .foregroundStyle(favorites.isFavorite(area.id) ? .red : .white)
+                    .foregroundStyle(favorites.isFavorite(area.id) ? .red : .primary)
                     .padding(10)
                     .glassEffect(in: .circle)
             }
@@ -156,7 +163,12 @@ private struct SilhouetteArtwork: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.95)
+            // Adaptive backdrop. Reads ~black in dark mode (the look we
+            // wanted) and a soft light gray in light mode (so the card
+            // doesn't sit as a harsh black brick on a white screen).
+            // secondarySystemBackground gives the card elevation against
+            // the parent's primary background.
+            Color(.secondarySystemBackground)
 
             if style == .glow {
                 SilhouetteCanvas(silhouette: silhouette, lineWidth: 5, opacity: 0.45)
@@ -165,6 +177,12 @@ private struct SilhouetteArtwork: View {
 
             SilhouetteCanvas(silhouette: silhouette, lineWidth: 1.6, opacity: 1.0)
         }
+        .overlay(
+            // Subtle border so the card has a defined edge in both modes,
+            // especially when the artwork lines are sparse.
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color(.separator), lineWidth: 0.5)
+        )
     }
 }
 

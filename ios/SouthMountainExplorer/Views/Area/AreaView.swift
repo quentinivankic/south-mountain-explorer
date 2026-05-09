@@ -18,7 +18,10 @@ struct AreaView: View {
     @State private var loadError: String? = nil
     @State private var showTrailList = true
     @State private var trailListHeight: CGFloat = 340
-    @State private var dragOffset: CGFloat = 0
+    // Captured at gesture start so onChanged can compute an absolute
+    // height instead of accumulating per-frame translations against a
+    // moving target — the latter was the source of the drag jank.
+    @State private var dragStartHeight: CGFloat? = nil
     @State private var selectedTrailId: String? = nil
     @State private var finishedRecording: FinishedRecording? = nil
     @State private var showSummary = false
@@ -113,6 +116,15 @@ struct AreaView: View {
             area = result.area
             loadError = result.error
             isLoading = false
+            // Drop any completions whose trail IDs were rotated out by a
+            // Refresh Trail Data call so the per-row checkmarks line up with
+            // the count shown on the AreaCard.
+            if let loaded = result.area {
+                progress.pruneOrphanCompletions(
+                    areaId: areaId,
+                    validTrailIds: Set(loaded.trails.map { $0.id })
+                )
+            }
             await loadPastPaths()
         }
         .task(id: isRecording) {
@@ -177,9 +189,7 @@ struct AreaView: View {
         }
     }
 
-    private var currentListHeight: CGFloat {
-        max(180, trailListHeight - dragOffset)
-    }
+    private var currentListHeight: CGFloat { trailListHeight }
 
     private func loadPastPaths() async {
         let history = await recording.loadHistory()
@@ -242,7 +252,6 @@ struct AreaView: View {
     private func trailListSheet(area: Area) -> some View {
         GeometryReader { geo in
             let tallHeight = max(geo.size.height - 100, defaultListHeight)
-            let clampedHeight = min(currentListHeight, tallHeight)
             VStack(spacing: 0) {
                 Spacer()
                 VStack(spacing: 0) {
@@ -260,34 +269,38 @@ struct AreaView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture()
-                            .onChanged { value in
-                                dragOffset = value.translation.height
-                            }
-                            .onEnded { value in
-                                let proposed = trailListHeight - value.translation.height
-                                let snappedTall = (defaultListHeight + tallHeight) / 2
-                                let target: CGFloat
-                                if proposed > snappedTall {
-                                    target = tallHeight
-                                } else {
-                                    target = defaultListHeight
-                                }
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                    trailListHeight = target
-                                    dragOffset = 0
-                                }
-                            }
-                    )
+                    .gesture(dragGesture(tallHeight: tallHeight))
 
                     TrailListView(area: area, selectedTrailId: $selectedTrailId)
                 }
-                .frame(height: clampedHeight)
+                // Drive height from a single state variable. Drag updates
+                // trailListHeight directly (no separate offset to subtract
+                // from it), so SwiftUI does one layout pass per frame
+                // instead of racing two state mutations.
+                .frame(height: trailListHeight)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
         }
         .ignoresSafeArea(edges: .bottom)
+    }
+
+    private func dragGesture(tallHeight: CGFloat) -> some Gesture {
+        DragGesture()
+            .onChanged { value in
+                let start = dragStartHeight ?? trailListHeight
+                if dragStartHeight == nil { dragStartHeight = trailListHeight }
+                // Translate UP (negative dy) → grow the panel.
+                let proposed = start - value.translation.height
+                trailListHeight = min(max(proposed, 180), tallHeight)
+            }
+            .onEnded { _ in
+                let snapPoint = (defaultListHeight + tallHeight) / 2
+                let target: CGFloat = trailListHeight > snapPoint ? tallHeight : defaultListHeight
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                    trailListHeight = target
+                }
+                dragStartHeight = nil
+            }
     }
 
     private func controlBar(area: Area) -> some View {

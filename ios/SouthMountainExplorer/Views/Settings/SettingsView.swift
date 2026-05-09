@@ -71,7 +71,7 @@ struct SettingsView: View {
                     }
                     .disabled(trailDataRefreshed)
                     .confirmationDialog(
-                        "This clears the cached trail data for all areas. Fresh data will be fetched next time you open each area.",
+                        "Refresh trail data?",
                         isPresented: $showRefreshConfirm,
                         titleVisibility: .visible
                     ) {
@@ -79,6 +79,9 @@ struct SettingsView: View {
                             AreaDataService.shared.clearAreaCache()
                             trailDataRefreshed = true
                         }
+                        Button("Cancel", role: .cancel) { }
+                    } message: {
+                        Text("Clears cached trail data so fresh data is fetched the next time you open each area. Hike history is preserved. Trail completions stay tied to specific trails — if a trail's underlying ID changes upstream, that completion is dropped automatically when you reopen the area.")
                     }
                 }
 

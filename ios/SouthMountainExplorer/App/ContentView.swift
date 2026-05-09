@@ -9,6 +9,7 @@ struct ContentView: View {
     @AppStorage("summit:theme") private var theme: AppTheme = .system
 
     @State private var showStopConfirm = false
+    @State private var showDiscardConfirm = false
 
     var body: some View {
         TabView {
@@ -39,14 +40,29 @@ struct ContentView: View {
             }
         }
         .confirmationDialog(
-            "Stop and save this hike?",
+            "Stop this hike?",
             isPresented: $showStopConfirm,
             titleVisibility: .visible
         ) {
             Button("Stop & Save", role: .destructive) {
                 Task { await stopActiveRecording() }
             }
+            Button("Stop & Discard", role: .destructive) {
+                showDiscardConfirm = true
+            }
             Button("Keep Recording", role: .cancel) { }
+        }
+        .confirmationDialog(
+            "Discard this hike?",
+            isPresented: $showDiscardConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Discard", role: .destructive) {
+                recording.discardRecording()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This hike won't be saved to history and your trail coverage won't update. This can't be undone.")
         }
         .fullScreenCover(isPresented: Binding(
             // A writable binding so the dismiss() call inside OnboardingView

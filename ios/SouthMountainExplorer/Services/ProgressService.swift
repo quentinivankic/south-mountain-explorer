@@ -29,6 +29,28 @@ final class ProgressService {
         completions[areaId]?.count ?? 0
     }
 
+    /// Number of completed trails for an area, restricted to IDs that exist
+    /// in the supplied trail set. Use this when displaying a count alongside
+    /// the area's *current* trail data — otherwise the raw `completionCount`
+    /// can include orphan completions whose IDs were rotated out by a Refresh
+    /// Trail Data call.
+    func completionCount(in areaId: String, validTrailIds: Set<String>) -> Int {
+        guard let area = completions[areaId] else { return 0 }
+        return area.keys.filter(validTrailIds.contains).count
+    }
+
+    /// Drop completions whose trail IDs no longer match anything in the
+    /// current area data. Called from AreaView once the trails have loaded so
+    /// the user's progress display lines up with what they can actually see.
+    func pruneOrphanCompletions(areaId: String, validTrailIds: Set<String>) {
+        guard var area = completions[areaId], !area.isEmpty else { return }
+        let stale = area.keys.filter { !validTrailIds.contains($0) }
+        guard !stale.isEmpty else { return }
+        for tid in stale { area.removeValue(forKey: tid) }
+        completions[areaId] = area
+        saveLocal()
+    }
+
     // MARK: - Write
 
     func markComplete(areaId: String, trailId: String) async {

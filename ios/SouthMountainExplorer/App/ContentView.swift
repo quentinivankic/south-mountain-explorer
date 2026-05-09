@@ -5,6 +5,7 @@ struct ContentView: View {
     @Environment(RecordingService.self) private var recording
 
     @AppStorage("summit:onboarded") private var onboarded = false
+    @AppStorage("summit:theme") private var theme: AppTheme = .system
 
     var body: some View {
         TabView {
@@ -23,6 +24,7 @@ struct ContentView: View {
         }
         // iOS 26 — tab bar automatically gets Liquid Glass styling
         .tabViewStyle(.sidebarAdaptable)
+        .preferredColorScheme(theme.colorScheme)
         .fullScreenCover(isPresented: .constant(!onboarded)) {
             OnboardingView()
                 .onDisappear { onboarded = true }

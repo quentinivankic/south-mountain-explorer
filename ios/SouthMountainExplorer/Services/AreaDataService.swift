@@ -30,28 +30,29 @@ final class AreaDataService {
         isLoadingIndex = true
         defer { isLoadingIndex = false }
 
-        let bundled = loadIndexFromBundle()
-        let bundledCount = bundled?.count ?? 0
-
-        if let cached = loadSummariesFromDisk(), cached.count >= bundledCount {
-            summaries = cached
-            Task { await fetchAndCacheIndex() }
-            return
-        }
-
-        if let cached = loadIndexFromDisk(), cached.count >= bundledCount {
-            summaries = cached
-            Task { await fetchAndCacheIndex() }
-            return
-        }
-
-        if let bundled {
+        // Bundle is the source of truth (no remote backend). Prefer it over any
+        // legacy disk cache, which can be stale if the bundle has changed (e.g.
+        // areas removed by deduplication).
+        if let bundled = loadIndexFromBundle() {
             summaries = bundled
-            Task { await fetchAndCacheIndex() }
+            clearLegacyIndexCache()
             return
         }
 
-        await fetchAndCacheIndex()
+        if let cached = loadSummariesFromDisk() {
+            summaries = cached
+            return
+        }
+
+        if let cached = loadIndexFromDisk() {
+            summaries = cached
+            return
+        }
+    }
+
+    private func clearLegacyIndexCache() {
+        try? FileManager.default.removeItem(at: indexDiskURL)
+        try? FileManager.default.removeItem(at: summariesDiskURL)
     }
 
     private func loadIndexFromBundle() -> [AreaSummary]? {
@@ -69,20 +70,11 @@ final class AreaDataService {
         return try? JSONDecoder().decode([AreaSummary].self, from: data)
     }
 
-    private func saveSummariesToDisk(_ s: [AreaSummary]) {
-        guard let data = try? JSONEncoder().encode(s) else { return }
-        try? data.write(to: summariesDiskURL)
-    }
-
     private func decodeIndex(from url: URL) -> [AreaSummary]? {
         guard let data = try? Data(contentsOf: url),
               let tuples = try? JSONDecoder().decode([[JSONValue]].self, from: data)
         else { return nil }
         return tuples.compactMap { AreaSummary(tuple: $0) }
-    }
-
-    private func fetchAndCacheIndex() async {
-        // No remote backend — bundle/disk cache is the source of truth.
     }
 
     func search(_ query: String) -> [AreaSummary] {

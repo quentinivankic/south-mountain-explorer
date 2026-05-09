@@ -8,7 +8,6 @@ struct AreaView: View {
     @Environment(RecordingService.self) private var recording
     @Environment(FavoritesService.self) private var favorites
     @Environment(LocationService.self) private var location
-    @Environment(AuthService.self) private var auth
     @Environment(\.dismiss) private var dismiss
 
     @State private var area: Area? = nil
@@ -17,7 +16,6 @@ struct AreaView: View {
     @State private var showTrailList = true
     @State private var finishedRecording: FinishedRecording? = nil
     @State private var showSummary = false
-    @State private var showAuthPrompt = false
 
     private var isRecording: Bool {
         recording.activeRecording?.areaId == areaId
@@ -97,9 +95,6 @@ struct AreaView: View {
                 RecordingSummarySheet(finished: finished, areaName: areaName)
             }
         }
-        .sheet(isPresented: $showAuthPrompt) {
-            AuthView()
-        }
     }
 
     private func trailListSheet(area: Area) -> some View {
@@ -143,7 +138,6 @@ struct AreaView: View {
 
             // Record button
             Button {
-                guard auth.isSignedIn else { showAuthPrompt = true; return }
                 if !location.isAuthorized { location.requestPermission(); return }
                 recording.startRecording(areaId: areaId, mode: .roam)
             } label: {

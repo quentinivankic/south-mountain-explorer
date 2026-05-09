@@ -39,15 +39,4 @@ struct SavedRecording: Codable, Identifiable, Sendable {
     let durationSeconds: Int
     let completedTrailIds: [String]
     let path: [GpsPoint]
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case areaId = "area_id"
-        case startedAt = "started_at"
-        case endedAt = "ended_at"
-        case distanceMi = "distance_mi"
-        case durationSeconds = "duration_s"
-        case completedTrailIds = "completed_trail_ids"
-        case path
-    }
 }

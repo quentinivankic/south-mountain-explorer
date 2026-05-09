@@ -19,8 +19,12 @@ final class RecordingService {
 
     private let persistKey = "summit:active-recording"
 
+    private static var historyFileURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("hike-history.json")
+    }
+
     private init() {
-        // Restore any in-progress recording from a previous session
         if let data = UserDefaults.standard.data(forKey: persistKey),
            let restored = try? JSONDecoder().decode(ActiveRecording.self, from: data) {
             activeRecording = restored
@@ -95,7 +99,7 @@ final class RecordingService {
             coverageDelta: sessionCoverage
         )
 
-        await saveToSupabase(finished)
+        saveToHistory(finished)
 
         activeRecording = nil
         UserDefaults.standard.removeObject(forKey: persistKey)
@@ -107,13 +111,11 @@ final class RecordingService {
     private func beginObservingLocation() {
         locationObserver?.cancel()
         locationObserver = Task { [weak self] in
-            // Poll liveLocation changes via a simple loop
-            // (In a real app, a Combine publisher or async stream would be cleaner)
             while !Task.isCancelled {
                 if let coord = await MainActor.run(body: { self?.locationService.liveLocation }) {
                     await MainActor.run { self?.appendPoint(coord) }
                 }
-                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
             }
         }
     }
@@ -188,73 +190,50 @@ final class RecordingService {
         return result
     }
 
-    // MARK: - Supabase persistence
+    // MARK: - Local history persistence
 
-    private func saveToSupabase(_ rec: FinishedRecording) async {
-        guard let uid = AuthService.shared.userId else { return }
-
-        struct InsertRow: Encodable {
-            let user_id: String
-            let area_id: String
-            let started_at: String
-            let ended_at: String
-            let distance_mi: Double
-            let duration_s: Int
-            let path: [[Double]]
-            let completed_trail_ids: [String]
-        }
-
-        let iso = ISO8601DateFormatter()
-        let row = InsertRow(
-            user_id: uid,
-            area_id: rec.areaId,
-            started_at: iso.string(from: rec.startedAt),
-            ended_at: iso.string(from: rec.endedAt),
-            distance_mi: (rec.distanceMi * 100).rounded() / 100,
-            duration_s: rec.durationSeconds,
-            path: rec.path,
-            completed_trail_ids: rec.newlyCompletedTrailIds
+    private func saveToHistory(_ rec: FinishedRecording) {
+        var history = loadHistorySync()
+        let saved = SavedRecording(
+            id: UUID().uuidString,
+            areaId: rec.areaId,
+            startedAt: rec.startedAt,
+            endedAt: rec.endedAt,
+            distanceMi: (rec.distanceMi * 100).rounded() / 100,
+            durationSeconds: rec.durationSeconds,
+            completedTrailIds: rec.newlyCompletedTrailIds,
+            path: rec.path
         )
-
-        do {
-            try await supabase.from("hike_recordings").insert(row).execute()
-        } catch {
-            // Non-fatal — progress is already persisted locally
+        history.insert(saved, at: 0)
+        if let data = try? JSONEncoder().encode(history) {
+            try? data.write(to: Self.historyFileURL)
         }
     }
 
-    // MARK: - Local persistence
+    private func loadHistorySync() -> [SavedRecording] {
+        guard let data = try? Data(contentsOf: Self.historyFileURL),
+              let decoded = try? JSONDecoder().decode([SavedRecording].self, from: data)
+        else { return [] }
+        return decoded
+    }
+
+    func loadHistory() async -> [SavedRecording] {
+        loadHistorySync()
+    }
+
+    func deleteRecording(id: String) async {
+        var history = loadHistorySync()
+        history.removeAll { $0.id == id }
+        if let data = try? JSONEncoder().encode(history) {
+            try? data.write(to: Self.historyFileURL)
+        }
+    }
+
+    // MARK: - Active recording persistence
 
     private func persist() {
         guard let rec = activeRecording,
               let data = try? JSONEncoder().encode(rec) else { return }
         UserDefaults.standard.set(data, forKey: persistKey)
-    }
-
-    // MARK: - History
-
-    func loadHistory() async -> [SavedRecording] {
-        guard AuthService.shared.isSignedIn else { return [] }
-        do {
-            let rows: [SavedRecording] = try await supabase
-                .from("hike_recordings")
-                .select("id, area_id, started_at, ended_at, distance_mi, duration_s, completed_trail_ids, path")
-                .order("started_at", ascending: false)
-                .execute()
-                .value
-            return rows
-        } catch {
-            return []
-        }
-    }
-
-    func deleteRecording(id: String) async {
-        do {
-            try await supabase
-                .from("hike_recordings")
-                .delete()
-                .eq("id", value: id)
-                .execute()
-        } catch { }
     }
 }

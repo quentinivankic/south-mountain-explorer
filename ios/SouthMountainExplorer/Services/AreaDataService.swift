@@ -94,43 +94,7 @@ final class AreaDataService {
     }
 
     private func fetchAndCacheIndex() async {
-        struct IndexRow: Codable {
-            let id: String
-            let trailCount: Int?
-            let totalMi: Double?
-            enum CodingKeys: String, CodingKey {
-                case id
-                case trailCount = "trail_count"
-                case totalMi = "total_mi"
-            }
-        }
-        do {
-            let rows: [IndexRow] = try await supabase
-                .from("areas")
-                .select("id, trail_count, total_mi")
-                .not("trails", operator: .init(rawValue: "is")!, value: "null")
-                .execute()
-                .value
-
-            // Build a lookup of Supabase-known trail counts
-            let lookup = Dictionary(uniqueKeysWithValues: rows.map { ($0.id, $0) })
-
-            // Enrich existing summaries and filter out areas confirmed to have no trails.
-            // Areas not in Supabase at all are kept (data may not be loaded yet).
-            let enriched = summaries.compactMap { summary -> AreaSummary? in
-                if let row = lookup[summary.id] {
-                    var s = summary
-                    s.trailCount = row.trailCount
-                    s.totalMi = row.totalMi
-                    return s
-                }
-                return summary  // not in Supabase yet — keep it
-            }
-            summaries = enriched
-            saveSummariesToDisk(enriched)
-        } catch {
-            // Network unavailable — keep using bundled/cached index
-        }
+        // No remote backend — bundle/disk cache is the source of truth.
     }
 
     func search(_ query: String) -> [AreaSummary] {
@@ -197,18 +161,26 @@ final class AreaDataService {
     }
 
     private func fetchAndCacheAreaWithError(id: String) async -> (area: Area?, error: String?) {
+        // Build a minimal AreaRow from the summary so we can query Overpass.
+        guard let summary = summaries.first(where: { $0.id == id }) else {
+            return (nil, "Area not found in index.")
+        }
+        let stub = AreaRow(
+            id: summary.id,
+            name: summary.name,
+            state: summary.subtitle,
+            centerLat: summary.centerLat,
+            centerLon: summary.centerLon,
+            zoom: 13,
+            bbox: nil,
+            trails: nil,
+            trailCount: nil,
+            totalMi: nil,
+            cachedAt: nil
+        )
         do {
-            let row: AreaRow = try await supabase
-                .from("areas")
-                .select("id, name, state, center_lat, center_lon, zoom, bbox, trails, trail_count, total_mi, cached_at")
-                .eq("id", value: id)
-                .single()
-                .execute()
-                .value
-
-            // If Supabase has no trail data yet, fetch from Overpass
-            let resolvedRow = row.trails == nil ? (try? await fetchFromOverpass(row: row)) ?? row : row
-            let area = resolvedRow.toArea()
+            let row = try await fetchFromOverpass(row: stub)
+            let area = row.toArea()
             areaCache[id] = area
             saveAreaToDisk(area)
             return (area, nil)

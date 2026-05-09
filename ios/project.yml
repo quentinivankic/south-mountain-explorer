@@ -5,11 +5,6 @@ options:
     iOS: "26.0"
   xcodeVersion: "26.0"
 
-packages:
-  SupabaseSwift:
-    url: https://github.com/supabase/supabase-swift
-    from: 2.0.0
-
 targets:
   SouthMountainExplorer:
     type: application
@@ -40,9 +35,11 @@ targets:
         UIBackgroundModes:
           - location
         ITSAppUsesNonExemptEncryption: false
-    dependencies:
-      - package: SupabaseSwift
-        product: Supabase
+    entitlements:
+      path: SouthMountainExplorer/SouthMountainExplorer.entitlements
+      properties:
+        com.apple.developer.applesignin:
+          - Default
     settings:
       base:
         SWIFT_VERSION: "6.0"

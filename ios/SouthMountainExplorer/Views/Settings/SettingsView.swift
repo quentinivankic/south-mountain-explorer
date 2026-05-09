@@ -13,7 +13,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Account section
                 Section("Account") {
                     if auth.isSignedIn {
                         HStack {
@@ -21,7 +20,7 @@ struct SettingsView: View {
                                 .foregroundStyle(.green)
                                 .font(.title2)
                             VStack(alignment: .leading) {
-                                Text("Signed In")
+                                Text("Signed in with Apple")
                                     .fontWeight(.medium)
                                 Text(auth.userId ?? "")
                                     .font(.caption)
@@ -29,7 +28,6 @@ struct SettingsView: View {
                                     .lineLimit(1)
                             }
                         }
-
                         Button(role: .destructive) {
                             showSignOutConfirm = true
                         } label: {
@@ -37,19 +35,18 @@ struct SettingsView: View {
                         }
                         .confirmationDialog("Sign out of your account?", isPresented: $showSignOutConfirm) {
                             Button("Sign Out", role: .destructive) {
-                                Task { await auth.signOut() }
+                                auth.signOut()
                             }
                         }
                     } else {
                         Button {
                             showSignIn = true
                         } label: {
-                            Label("Sign In", systemImage: "person.circle")
+                            Label("Sign in with Apple", systemImage: "apple.logo")
                         }
                     }
                 }
 
-                // Data section
                 Section("Data") {
                     Button(role: .destructive) {
                         showResetConfirm = true
@@ -67,13 +64,9 @@ struct SettingsView: View {
                     }
                 }
 
-                // App info
                 Section("About") {
                     LabeledContent("Version", value: appVersion)
                     LabeledContent("Build", value: buildNumber)
-                    Link(destination: URL(string: "https://supabase.com")!) {
-                        Label("Powered by Supabase", systemImage: "bolt.fill")
-                    }
                 }
             }
             .navigationTitle("Settings")
@@ -84,14 +77,10 @@ struct SettingsView: View {
     }
 
     private func resetAll() async {
-        // Clear all local UserDefaults keys
         let keys = ["summit:completed", "summit:coverage", "summit:favorites", "summit:active-recording", "location.lat", "location.lon"]
         for key in keys { UserDefaults.standard.removeObject(forKey: key) }
-
-        // Clear caches directory
         if let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
-            let areasDir = caches.appendingPathComponent("areas")
-            try? FileManager.default.removeItem(at: areasDir)
+            try? FileManager.default.removeItem(at: caches.appendingPathComponent("areas"))
         }
     }
 

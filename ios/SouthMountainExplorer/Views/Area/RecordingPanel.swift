@@ -9,6 +9,7 @@ struct RecordingPanel: View {
     @State private var elapsed: TimeInterval = 0
     @State private var timer: Timer? = nil
     @State private var isStopping = false
+    @State private var showStopConfirm = false
 
     private var rec: ActiveRecording? { recording.activeRecording }
 
@@ -35,7 +36,7 @@ struct RecordingPanel: View {
 
             // Stop button
             Button {
-                stopRecording()
+                showStopConfirm = true
             } label: {
                 if isStopping {
                     ProgressView()
@@ -54,6 +55,21 @@ struct RecordingPanel: View {
         .padding(.horizontal, 16)
         .onAppear { startTimer() }
         .onDisappear { timer?.invalidate() }
+        .confirmationDialog(
+            "Stop and save this hike?",
+            isPresented: $showStopConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Stop & Save", role: .destructive) { stopRecording() }
+            Button("Keep Recording", role: .cancel) { }
+        } message: {
+            Text(stopMessage)
+        }
+    }
+
+    private var stopMessage: String {
+        let dist = String(format: "%.2f mi", rec?.distanceMi ?? 0)
+        return "\(dist) recorded so far. We'll save the hike and update your trail coverage."
     }
 
     private func statColumn(label: String, value: String) -> some View {

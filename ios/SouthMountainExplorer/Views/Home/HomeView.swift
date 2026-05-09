@@ -58,6 +58,19 @@ struct HomeView: View {
         return Array(pool.filter { lengthFilter.matches($0.totalMi) }.prefix(10))
     }
 
+    /// Distance in miles to the closest covered area, or nil if location unknown.
+    private var nearestDistanceMi: Double? {
+        guard let loc = location.userLocation else { return nil }
+        return areas.summaries
+            .map { haversine($0, lat: loc.latitude, lon: loc.longitude) }
+            .min()
+    }
+
+    /// User is far enough from coverage that we should set expectations.
+    private var farFromCoverage: Bool {
+        (nearestDistanceMi ?? 0) > 50
+    }
+
     private var unvisitedAreas: [AreaSummary] {
         let visited = visitedAreaIds
         let candidates = areas.summaries.filter { !visited.contains($0.id) }
@@ -158,11 +171,18 @@ struct HomeView: View {
 
     private var nearYouSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Near You")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                Spacer()
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(farFromCoverage ? "Closest Areas" : "Near You")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    Spacer()
+                }
+                if farFromCoverage {
+                    Text("We currently cover Phoenix, AZ and Fredericia, Denmark. More areas coming soon.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             .padding(.horizontal, 4)
 
@@ -232,7 +252,7 @@ struct HomeView: View {
             Text("Enable location to find trails near you, or browse the full catalog.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-            Button("Browse All Areas") { }
+            Button("Browse All Areas") { showAllAreasMap = true }
                 .buttonStyle(.borderedProminent)
         }
         .frame(maxWidth: .infinity)

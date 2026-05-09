@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TrailListView: View {
     let area: Area
+    @Binding var selectedTrailId: String?
 
     @Environment(ProgressService.self) private var progress
     @Environment(CoverageService.self) private var coverage
@@ -33,7 +34,7 @@ struct TrailListView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(area.trails) { trail in
-                        TrailRow(trail: trail, areaId: area.id)
+                        TrailRow(trail: trail, areaId: area.id, selectedTrailId: $selectedTrailId)
                         Divider().padding(.leading)
                     }
                 }
@@ -45,6 +46,7 @@ struct TrailListView: View {
 struct TrailRow: View {
     let trail: Trail
     let areaId: String
+    @Binding var selectedTrailId: String?
 
     @Environment(ProgressService.self) private var progress
     @Environment(CoverageService.self) private var coverage
@@ -53,6 +55,7 @@ struct TrailRow: View {
     private var isComplete: Bool { progress.isComplete(areaId: areaId, trailId: trail.id) }
     private var coveragePct: Double { coverage.trailCoverage(areaId: areaId, trailId: trail.id) }
     private var isRecordingThis: Bool { recording.activeRecording?.trailId == trail.id }
+    private var isSelected: Bool { selectedTrailId == trail.id }
 
     var body: some View {
         HStack(spacing: 14) {
@@ -107,7 +110,11 @@ struct TrailRow: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
+        .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
         .contentShape(Rectangle())
+        .onTapGesture {
+            selectedTrailId = isSelected ? nil : trail.id
+        }
     }
 
     private var difficultyColor: Color {

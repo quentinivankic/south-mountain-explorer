@@ -14,8 +14,13 @@ struct AreaView: View {
     @State private var isLoading = true
     @State private var loadError: String? = nil
     @State private var showTrailList = true
+    @State private var trailListHeight: CGFloat = 340
+    @State private var dragOffset: CGFloat = 0
+    @State private var selectedTrailId: String? = nil
     @State private var finishedRecording: FinishedRecording? = nil
     @State private var showSummary = false
+
+    private let defaultListHeight: CGFloat = 340
 
     private var isRecording: Bool {
         recording.activeRecording?.areaId == areaId
@@ -25,8 +30,12 @@ struct AreaView: View {
         ZStack(alignment: .bottom) {
             if let area {
                 // Full-screen map
-                TrailMapView(area: area, activeRecording: isRecording ? recording.activeRecording : nil)
-                    .ignoresSafeArea()
+                TrailMapView(
+                    area: area,
+                    activeRecording: isRecording ? recording.activeRecording : nil,
+                    selectedTrailId: $selectedTrailId
+                )
+                .ignoresSafeArea()
 
                 // Trail list sheet
                 if showTrailList {
@@ -41,7 +50,7 @@ struct AreaView: View {
                             finishedRecording = finished
                             showSummary = finished != nil
                         }
-                        .padding(.bottom, showTrailList ? 340 : 20)
+                        .padding(.bottom, (showTrailList ? currentListHeight : 0) + 20)
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -97,25 +106,55 @@ struct AreaView: View {
         }
     }
 
+    private var currentListHeight: CGFloat {
+        max(180, trailListHeight - dragOffset)
+    }
+
     private func trailListSheet(area: Area) -> some View {
         GeometryReader { geo in
+            let tallHeight = max(geo.size.height - 100, defaultListHeight)
+            let clampedHeight = min(currentListHeight, tallHeight)
             VStack(spacing: 0) {
                 Spacer()
                 VStack(spacing: 0) {
-                    // Drag indicator
-                    Capsule()
-                        .fill(Color(.tertiaryLabel))
-                        .frame(width: 36, height: 4)
-                        .padding(.top, 10)
-                        .padding(.bottom, 6)
+                    // Drag handle — extended hit area for the gesture
+                    VStack(spacing: 0) {
+                        Capsule()
+                            .fill(Color(.tertiaryLabel))
+                            .frame(width: 36, height: 4)
+                            .padding(.top, 10)
+                            .padding(.bottom, 6)
 
-                    Text(areaName)
-                        .font(.headline)
-                        .padding(.bottom, 4)
+                        Text(areaName)
+                            .font(.headline)
+                            .padding(.bottom, 4)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                dragOffset = value.translation.height
+                            }
+                            .onEnded { value in
+                                let proposed = trailListHeight - value.translation.height
+                                let snappedTall = (defaultListHeight + tallHeight) / 2
+                                let target: CGFloat
+                                if proposed > snappedTall {
+                                    target = tallHeight
+                                } else {
+                                    target = defaultListHeight
+                                }
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                    trailListHeight = target
+                                    dragOffset = 0
+                                }
+                            }
+                    )
 
-                    TrailListView(area: area)
+                    TrailListView(area: area, selectedTrailId: $selectedTrailId)
                 }
-                .frame(height: 340)
+                .frame(height: clampedHeight)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
         }
@@ -153,6 +192,6 @@ struct AreaView: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, showTrailList ? 350 : 20)
+        .padding(.bottom, (showTrailList ? currentListHeight : 0) + 20)
     }
 }

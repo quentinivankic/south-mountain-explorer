@@ -16,7 +16,8 @@ struct TrailMapView: View {
             ForEach(area.trails) { trail in
                 let isSelected = trail.id == selectedTrailId
                 let isComplete = progress.isComplete(areaId: area.id, trailId: trail.id)
-                let baseColor: Color = isComplete ? .green : difficultyColor(trail.difficulty)
+                // Completed trails use cyan to avoid colliding with "easy" (.green).
+                let baseColor: Color = isComplete ? .cyan : difficultyColor(trail.difficulty)
                 let dimmed = (selectedTrailId != nil && !isSelected)
                 let strokeColor = baseColor.opacity(dimmed ? 0.25 : 1.0)
                 let lineWidth: CGFloat = isSelected ? 6 : 3

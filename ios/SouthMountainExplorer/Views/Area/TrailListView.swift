@@ -59,10 +59,10 @@ struct TrailRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            // Completion indicator
+            // Difficulty / completion indicator
             ZStack {
                 Circle()
-                    .fill(isComplete ? Color.green : Color(.systemFill))
+                    .fill(isComplete ? Color.cyan : Color(.systemFill))
                     .frame(width: 32, height: 32)
                 Image(systemName: isComplete ? "checkmark" : difficultyIcon)
                     .font(.caption.weight(.semibold))
@@ -102,9 +102,10 @@ struct TrailRow: View {
             Button {
                 Task { await progress.toggleTrail(areaId: areaId, trailId: trail.id) }
             } label: {
-                Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
+                // Outlined checkmark hints the action; fills in cyan when complete.
+                Image(systemName: isComplete ? "checkmark.circle.fill" : "checkmark.circle")
                     .font(.title3)
-                    .foregroundStyle(isComplete ? .green : .secondary)
+                    .foregroundStyle(isComplete ? .cyan : .tertiary)
             }
             .buttonStyle(.plain)
         }

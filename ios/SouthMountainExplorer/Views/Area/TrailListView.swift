@@ -24,6 +24,16 @@ struct TrailListView: View {
                             .font(.caption)
                             .foregroundStyle(completed == area.resolvedTrailCount ? .green : .secondary)
                     }
+
+                    // Discoverability nudge for the long-press → "Record
+                    // This Trail" context menu. Hidden mid-recording since
+                    // the action wouldn't be available anyway.
+                    if recording.activeRecording == nil {
+                        Label("Tap to highlight on the map · long-press to record just that trail", systemImage: "hand.tap")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .padding(.top, 2)
+                    }
                 }
                 Spacer()
             }

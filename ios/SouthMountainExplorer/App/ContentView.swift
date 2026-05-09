@@ -10,6 +10,7 @@ struct ContentView: View {
 
     @State private var showStopConfirm = false
     @State private var showDiscardConfirm = false
+    @State private var jumpToAreaId: String? = nil
 
     var body: some View {
         TabView {
@@ -35,8 +36,19 @@ struct ContentView: View {
                     areaName: areaName(for: rec.areaId),
                     distanceMi: rec.distanceMi,
                     startedAt: rec.startedAt,
+                    onTap: { jumpToAreaId = rec.areaId },
                     onStop: { showStopConfirm = true }
                 )
+            }
+        }
+        .fullScreenCover(isPresented: Binding(
+            get: { jumpToAreaId != nil },
+            set: { if !$0 { jumpToAreaId = nil } }
+        )) {
+            if let id = jumpToAreaId {
+                NavigationStack {
+                    AreaView(areaId: id, areaName: areaName(for: id))
+                }
             }
         }
         .confirmationDialog(

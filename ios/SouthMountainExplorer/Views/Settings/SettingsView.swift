@@ -78,6 +78,13 @@ struct SettingsView: View {
                         Button("Clear & Refresh") {
                             AreaDataService.shared.clearAreaCache()
                             trailDataRefreshed = true
+                            // Re-enable the button after a brief
+                            // confirmation window so the user can refresh
+                            // again later in the same session.
+                            Task {
+                                try? await Task.sleep(for: .seconds(3))
+                                trailDataRefreshed = false
+                            }
                         }
                         Button("Cancel", role: .cancel) { }
                     } message: {

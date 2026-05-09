@@ -106,9 +106,14 @@ struct RecordingPanel: View {
         if let rec {
             elapsed = Date().timeIntervalSince(rec.startedAt)
         }
+        // The Timer fire closure is @Sendable / nonisolated, so hop back to
+        // the main actor before touching the @Observable RecordingService or
+        // @State elapsed value. Keeps Swift 6 strict concurrency happy.
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            if let rec = recording.activeRecording {
-                elapsed = Date().timeIntervalSince(rec.startedAt)
+            Task { @MainActor in
+                if let rec = recording.activeRecording {
+                    elapsed = Date().timeIntervalSince(rec.startedAt)
+                }
             }
         }
     }

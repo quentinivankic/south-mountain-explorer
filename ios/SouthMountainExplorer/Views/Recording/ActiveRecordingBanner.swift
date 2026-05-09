@@ -9,6 +9,7 @@ struct ActiveRecordingBanner: View {
     let areaName: String
     let distanceMi: Double
     let startedAt: Date
+    let onTap: () -> Void
     let onStop: () -> Void
 
     @State private var elapsed: TimeInterval = 0
@@ -16,21 +17,31 @@ struct ActiveRecordingBanner: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "record.circle.fill")
-                .foregroundStyle(.red)
-                .font(.title3)
-                .symbolEffect(.pulse)
+            // Info-region is its own button so a tap anywhere on the
+            // record dot / name / stats jumps to the recording area.
+            // Stop stays a separate hit target on the right.
+            Button(action: onTap) {
+                HStack(spacing: 12) {
+                    Image(systemName: "record.circle.fill")
+                        .foregroundStyle(.red)
+                        .font(.title3)
+                        .symbolEffect(.pulse)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(areaName)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-                Text("\(String(format: "%.2f", distanceMi)) mi · \(formattedElapsed)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(areaName)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                        Text("\(String(format: "%.2f", distanceMi)) mi · \(formattedElapsed)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer(minLength: 8)
+                }
+                .contentShape(Rectangle())
             }
-
-            Spacer(minLength: 8)
+            .buttonStyle(.plain)
 
             Button(action: onStop) {
                 Text("Stop")
@@ -60,8 +71,13 @@ struct ActiveRecordingBanner: View {
 
     private func startTimer() {
         elapsed = Date().timeIntervalSince(startedAt)
+        // The Timer fire closure is @Sendable / nonisolated; hop back to the
+        // main actor before touching @State to keep Swift 6 strict
+        // concurrency happy.
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            elapsed = Date().timeIntervalSince(startedAt)
+            Task { @MainActor in
+                elapsed = Date().timeIntervalSince(startedAt)
+            }
         }
     }
 }

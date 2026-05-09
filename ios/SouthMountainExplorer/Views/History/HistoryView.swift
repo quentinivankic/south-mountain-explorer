@@ -28,7 +28,11 @@ struct HistoryView: View {
     private var hikeList: some View {
         List {
             ForEach(hikes) { hike in
-                HikeRow(hike: hike, areaName: areaName(for: hike.areaId))
+                NavigationLink {
+                    HikeDetailView(hike: hike, areaName: areaName(for: hike.areaId))
+                } label: {
+                    HikeRow(hike: hike, areaName: areaName(for: hike.areaId))
+                }
             }
             .onDelete { indexSet in
                 Task { await deleteHikes(at: indexSet) }

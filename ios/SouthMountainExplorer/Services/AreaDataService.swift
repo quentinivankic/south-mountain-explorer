@@ -74,7 +74,12 @@ final class AreaDataService {
         guard let data = try? Data(contentsOf: url),
               let tuples = try? JSONDecoder().decode([[JSONValue]].self, from: data)
         else { return nil }
-        return tuples.compactMap { AreaSummary(tuple: $0) }
+        // Hide areas with no trail data — they show as broken "0/0 trails"
+        // cards with no silhouette. They re-appear automatically once a
+        // future Build Trail Index run finds trails for them.
+        return tuples
+            .compactMap { AreaSummary(tuple: $0) }
+            .filter { ($0.trailCount ?? 0) > 0 }
     }
 
     func search(_ query: String) -> [AreaSummary] {

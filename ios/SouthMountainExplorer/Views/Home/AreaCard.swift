@@ -24,6 +24,29 @@ struct AreaCard: View {
         return Double(completedCount) / Double(totalTrails)
     }
 
+    /// Easy / moderate / hard share of this area's trail lines, taken from
+    /// the bundled silhouette data so it's available without a network fetch.
+    /// Returns nil if no silhouette is bundled for the area.
+    private var difficultyMix: (easy: Double, moderate: Double, hard: Double)? {
+        guard let silhouette = silhouettes.silhouette(for: area.id) else { return nil }
+        var counts = (e: 0, m: 0, h: 0)
+        for line in silhouette.l {
+            switch line.d {
+            case "e": counts.e += 1
+            case "m": counts.m += 1
+            case "h": counts.h += 1
+            default:  break
+            }
+        }
+        let total = counts.e + counts.m + counts.h
+        guard total > 0 else { return nil }
+        return (
+            Double(counts.e) / Double(total),
+            Double(counts.m) / Double(total),
+            Double(counts.h) / Double(total)
+        )
+    }
+
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             artwork
@@ -48,6 +71,12 @@ struct AreaCard: View {
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.8))
                     }
+                }
+
+                if let mix = difficultyMix {
+                    DifficultyMixBar(mix: mix)
+                        .frame(height: 3)
+                        .padding(.top, 2)
                 }
 
                 if totalTrails > 0 {
@@ -97,6 +126,27 @@ struct AreaCard: View {
         ]
         let index = abs(area.id.hashValue) % palette.count
         return palette[index]
+    }
+}
+
+private struct DifficultyMixBar: View {
+    let mix: (easy: Double, moderate: Double, hard: Double)
+
+    var body: some View {
+        GeometryReader { geo in
+            HStack(spacing: 0) {
+                if mix.easy > 0 {
+                    Color.green.frame(width: geo.size.width * mix.easy)
+                }
+                if mix.moderate > 0 {
+                    Color.orange.frame(width: geo.size.width * mix.moderate)
+                }
+                if mix.hard > 0 {
+                    Color.red.frame(width: geo.size.width * mix.hard)
+                }
+            }
+        }
+        .clipShape(Capsule())
     }
 }
 

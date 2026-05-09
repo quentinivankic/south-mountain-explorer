@@ -66,25 +66,10 @@ final class RecordingService {
 
         let endedAt = Date()
         let sessionCoverage = measureCoverage(rec: rec, trails: trails)
-        let progressService = ProgressService.shared
-        let coverageService = CoverageService.shared
-
-        let prior = coverageService.coverage(for: rec.areaId)
-        var merged: [String: Double] = [:]
-        var newlyCompleted: [String] = []
-
-        for (tid, v) in sessionCoverage {
-            let m = max(prior[tid] ?? 0, v)
-            merged[tid] = m
-            if (prior[tid] ?? 0) < completeThreshold && m >= completeThreshold {
-                newlyCompleted.append(tid)
-            }
-        }
-
-        await coverageService.mergeCoverage(areaId: rec.areaId, delta: merged)
-        for tid in newlyCompleted {
-            await progressService.markComplete(areaId: rec.areaId, trailId: tid)
-        }
+        let (newlyCompleted, _) = await mergeCoverage(
+            areaId: rec.areaId,
+            sessionCoverage: sessionCoverage
+        )
 
         let finished = FinishedRecording(
             areaId: rec.areaId,
@@ -104,6 +89,47 @@ final class RecordingService {
         activeRecording = nil
         UserDefaults.standard.removeObject(forKey: persistKey)
         return finished
+    }
+
+    /// Recompute coverage from the in-progress path and merge any deltas into
+    /// CoverageService / ProgressService. Trails crossing the completion
+    /// threshold get marked complete (with the standard haptic) live, mid-hike.
+    /// Safe to call repeatedly — `mergeCoverage` is monotonic, so a no-op walk
+    /// produces no new completions.
+    func applyLiveCoverage(trails: [Trail]) async {
+        guard let rec = activeRecording else { return }
+        let sessionCoverage = measureCoverage(rec: rec, trails: trails)
+        _ = await mergeCoverage(areaId: rec.areaId, sessionCoverage: sessionCoverage)
+    }
+
+    /// Merge a per-trail coverage map (this hike's view of coverage) into the
+    /// persisted CoverageService, marking trails complete when they cross the
+    /// completion threshold for the first time.
+    /// Returns (newly-completed trail ids, merged coverage map).
+    @discardableResult
+    private func mergeCoverage(
+        areaId: String,
+        sessionCoverage: [String: Double]
+    ) async -> (newlyCompleted: [String], merged: [String: Double]) {
+        let progressService = ProgressService.shared
+        let coverageService = CoverageService.shared
+        let prior = coverageService.coverage(for: areaId)
+        var merged: [String: Double] = [:]
+        var newlyCompleted: [String] = []
+
+        for (tid, v) in sessionCoverage {
+            let m = max(prior[tid] ?? 0, v)
+            merged[tid] = m
+            if (prior[tid] ?? 0) < completeThreshold && m >= completeThreshold {
+                newlyCompleted.append(tid)
+            }
+        }
+
+        await coverageService.mergeCoverage(areaId: areaId, delta: merged)
+        for tid in newlyCompleted {
+            await progressService.markComplete(areaId: areaId, trailId: tid)
+        }
+        return (newlyCompleted, merged)
     }
 
     // MARK: - GPS point ingestion

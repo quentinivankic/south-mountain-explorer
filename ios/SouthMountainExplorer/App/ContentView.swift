@@ -65,8 +65,14 @@ struct ContentView: View {
         guard let rec = recording.activeRecording else { return }
         // Pull trails from cache so coverage merges still work; fall back to
         // an async fetch if the area hasn't been opened this session.
-        let cached = areas.cachedArea(id: rec.areaId)
-        let trails = cached?.trails ?? (await areas.area(id: rec.areaId))?.trails ?? []
+        // (Split into an if/else because `??` takes an autoclosure that
+        // can't host an `await`.)
+        let trails: [Trail]
+        if let cached = areas.cachedArea(id: rec.areaId) {
+            trails = cached.trails
+        } else {
+            trails = (await areas.area(id: rec.areaId))?.trails ?? []
+        }
         _ = await recording.stopRecording(trails: trails)
     }
 }

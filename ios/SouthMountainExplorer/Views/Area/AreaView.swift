@@ -227,8 +227,14 @@ struct AreaView: View {
 
     private func stopOtherRecordingThenStart() async {
         guard let active = recording.activeRecording else { return }
-        let cached = areas.cachedArea(id: active.areaId)
-        let trails = cached?.trails ?? (await areas.area(id: active.areaId))?.trails ?? []
+        // Split out of `??` because `??` takes an autoclosure that can't
+        // host an `await`.
+        let trails: [Trail]
+        if let cached = areas.cachedArea(id: active.areaId) {
+            trails = cached.trails
+        } else {
+            trails = (await areas.area(id: active.areaId))?.trails ?? []
+        }
         _ = await recording.stopRecording(trails: trails)
         recording.startRecording(areaId: areaId, mode: .roam)
     }

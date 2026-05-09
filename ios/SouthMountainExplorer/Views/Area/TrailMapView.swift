@@ -4,6 +4,7 @@ import MapKit
 struct TrailMapView: View {
     let area: Area
     let activeRecording: ActiveRecording?
+    let pastPaths: [[GpsPoint]]
     @Binding var selectedTrailId: String?
 
     @Environment(ProgressService.self) private var progress
@@ -13,6 +14,24 @@ struct TrailMapView: View {
 
     var body: some View {
         Map(position: $position) {
+            // Cumulative-coverage halo: every past hike's GPS path drawn in
+            // cyan beneath the trail polylines so walked sections glow
+            // through. Wider stroke + reduced opacity makes it read as a
+            // background highlight, not a competing line.
+            ForEach(Array(pastPaths.enumerated()), id: \.offset) { _, path in
+                let coords = path.compactMap { node -> CLLocationCoordinate2D? in
+                    guard node.count >= 2 else { return nil }
+                    return CLLocationCoordinate2D(latitude: node[0], longitude: node[1])
+                }
+                if coords.count > 1 {
+                    MapPolyline(coordinates: coords)
+                        .stroke(
+                            .cyan.opacity(0.55),
+                            style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round)
+                        )
+                }
+            }
+
             ForEach(area.trails) { trail in
                 let isSelected = trail.id == selectedTrailId
                 let isComplete = progress.isComplete(areaId: area.id, trailId: trail.id)

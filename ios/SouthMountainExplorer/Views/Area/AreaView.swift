@@ -21,6 +21,7 @@ struct AreaView: View {
     @State private var finishedRecording: FinishedRecording? = nil
     @State private var showSummary = false
     @State private var showAreaComplete = false
+    @State private var pastPaths: [[GpsPoint]] = []
 
     private let defaultListHeight: CGFloat = 340
 
@@ -35,6 +36,7 @@ struct AreaView: View {
                 TrailMapView(
                     area: area,
                     activeRecording: isRecording ? recording.activeRecording : nil,
+                    pastPaths: pastPaths,
                     selectedTrailId: $selectedTrailId
                 )
                 .ignoresSafeArea()
@@ -51,6 +53,9 @@ struct AreaView: View {
                         RecordingPanel(area: area) { finished in
                             finishedRecording = finished
                             showSummary = finished != nil
+                            // Refresh the cyan coverage halo with the
+                            // just-finished hike's path.
+                            Task { await loadPastPaths() }
                         }
                         .padding(.bottom, (showTrailList ? currentListHeight : 0) + 20)
                     }
@@ -100,6 +105,7 @@ struct AreaView: View {
             area = result.area
             loadError = result.error
             isLoading = false
+            await loadPastPaths()
         }
         .task(id: isRecording) {
             // While a recording is active for this area, recompute coverage
@@ -141,6 +147,13 @@ struct AreaView: View {
 
     private var currentListHeight: CGFloat {
         max(180, trailListHeight - dragOffset)
+    }
+
+    private func loadPastPaths() async {
+        let history = await recording.loadHistory()
+        pastPaths = history
+            .filter { $0.areaId == areaId }
+            .map { $0.path }
     }
 
     private func trailListSheet(area: Area) -> some View {

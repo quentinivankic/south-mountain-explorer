@@ -116,16 +116,7 @@ struct AreaView: View {
             area = result.area
             loadError = result.error
             isLoading = false
-            // Drop any completions whose trail IDs were rotated out by a
-            // Refresh Trail Data call so the per-row checkmarks line up with
-            // the count shown on the AreaCard.
-            if let loaded = result.area {
-                progress.pruneOrphanCompletions(
-                    areaId: areaId,
-                    validTrailIds: Set(loaded.trails.map { $0.id })
-                )
-            }
-            await loadPastPaths()
+            await loadHistoryDerivedState()
         }
         .task(id: isRecording) {
             // While a recording is active for this area, recompute coverage
@@ -198,6 +189,23 @@ struct AreaView: View {
             .map { $0.path }
     }
 
+    /// Pull recorded hike history once and use it for both:
+    ///   - the cyan coverage halo (`pastPaths`)
+    ///   - the canonical "trails completed" set (any trail listed in any
+    ///     SavedRecording.completedTrailIds for this area)
+    /// Treating history as the source of truth for completions means a
+    /// Refresh Trail Data call can never silently lose progress: if the
+    /// trail's ID still matches, the completion gets rebuilt on next open.
+    /// Manual toggles via the trail row continue to live in ProgressService
+    /// and remain the union with history-derived completions.
+    private func loadHistoryDerivedState() async {
+        let history = await recording.loadHistory()
+        let local = history.filter { $0.areaId == areaId }
+        pastPaths = local.map { $0.path }
+        let completed = Set(local.flatMap { $0.completedTrailIds })
+        progress.bulkMarkComplete(areaId: areaId, trailIds: completed)
+    }
+
     /// Pre-flight gate before kicking off a hike. Walks through the
     /// permission, conflict, and distance checks in order and either
     /// starts immediately or surfaces the appropriate confirmation.
@@ -250,36 +258,45 @@ struct AreaView: View {
     }
 
     private func trailListSheet(area: Area) -> some View {
+        // Pass 2 on the drag jank: keep the panel at its full max height
+        // and slide it up/down via .offset rather than re-laying-out a
+        // changing .frame each frame. SwiftUI optimizes offset changes
+        // aggressively (no layout pass), so the panel tracks the finger
+        // 1:1 instead of chunking. The TrailListView's ScrollView inside
+        // also doesn't have to keep recomputing its content frame.
         GeometryReader { geo in
             let tallHeight = max(geo.size.height - 100, defaultListHeight)
             VStack(spacing: 0) {
-                Spacer()
+                // Drag handle — extended hit area for the gesture
                 VStack(spacing: 0) {
-                    // Drag handle — extended hit area for the gesture
-                    VStack(spacing: 0) {
-                        Capsule()
-                            .fill(Color(.tertiaryLabel))
-                            .frame(width: 36, height: 4)
-                            .padding(.top, 10)
-                            .padding(.bottom, 6)
+                    Capsule()
+                        .fill(Color(.tertiaryLabel))
+                        .frame(width: 36, height: 4)
+                        .padding(.top, 10)
+                        .padding(.bottom, 6)
 
-                        Text(areaName)
-                            .font(.headline)
-                            .padding(.bottom, 4)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .contentShape(Rectangle())
-                    .gesture(dragGesture(tallHeight: tallHeight))
-
-                    TrailListView(area: area, selectedTrailId: $selectedTrailId)
+                    Text(areaName)
+                        .font(.headline)
+                        .padding(.bottom, 4)
                 }
-                // Drive height from a single state variable. Drag updates
-                // trailListHeight directly (no separate offset to subtract
-                // from it), so SwiftUI does one layout pass per frame
-                // instead of racing two state mutations.
-                .frame(height: trailListHeight)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+                .gesture(dragGesture(tallHeight: tallHeight))
+
+                TrailListView(area: area, selectedTrailId: $selectedTrailId)
             }
+            .frame(height: tallHeight)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.regularMaterial)
+            )
+            // Anchor the panel to the bottom of the available area, then
+            // slide its hidden portion down by (tallHeight - visibleHeight).
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            .offset(y: max(0, tallHeight - trailListHeight))
+            // Skip implicit animations during direct manipulation; the
+            // spring in onEnded is the only animated transition.
+            .animation(nil, value: trailListHeight)
         }
         .ignoresSafeArea(edges: .bottom)
     }

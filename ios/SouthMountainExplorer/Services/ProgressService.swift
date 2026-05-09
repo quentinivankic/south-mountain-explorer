@@ -40,8 +40,10 @@ final class ProgressService {
     }
 
     /// Drop completions whose trail IDs no longer match anything in the
-    /// current area data. Called from AreaView once the trails have loaded so
-    /// the user's progress display lines up with what they can actually see.
+    /// current area data. Kept for explicit cleanup paths but no longer
+    /// called automatically — pruning silently lost a tester's progress
+    /// after a Refresh Trail Data call. Display-time filtering via
+    /// `completionCount(in:validTrailIds:)` is the safer pattern.
     func pruneOrphanCompletions(areaId: String, validTrailIds: Set<String>) {
         guard var area = completions[areaId], !area.isEmpty else { return }
         let stale = area.keys.filter { !validTrailIds.contains($0) }
@@ -49,6 +51,24 @@ final class ProgressService {
         for tid in stale { area.removeValue(forKey: tid) }
         completions[areaId] = area
         saveLocal()
+    }
+
+    /// Mark a batch of trail completions without firing per-trail haptics —
+    /// used when re-deriving completions from recorded hike history on area
+    /// load so we don't buzz the user every time they open an area.
+    func bulkMarkComplete(areaId: String, trailIds: Set<String>) {
+        guard !trailIds.isEmpty else { return }
+        var area = completions[areaId] ?? [:]
+        var added = false
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        for tid in trailIds where area[tid] == nil {
+            area[tid] = stamp
+            added = true
+        }
+        if added {
+            completions[areaId] = area
+            saveLocal()
+        }
     }
 
     // MARK: - Write

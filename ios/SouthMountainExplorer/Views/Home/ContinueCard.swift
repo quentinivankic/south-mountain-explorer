@@ -9,7 +9,15 @@ struct ContinueCard: View {
 
     private var cachedArea: Area? { areas.cachedArea(id: area.id) }
     private var totalTrails: Int { cachedArea?.resolvedTrailCount ?? area.trailCount ?? 0 }
-    private var completedCount: Int { progress.completionCount(in: area.id) }
+
+    /// Filter to current trail IDs when we have them so a Refresh Trail
+    /// Data call can't leave the count showing orphan completions.
+    private var completedCount: Int {
+        if let trails = cachedArea?.trails {
+            return progress.completionCount(in: area.id, validTrailIds: Set(trails.map { $0.id }))
+        }
+        return progress.completionCount(in: area.id)
+    }
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -17,22 +25,29 @@ struct ContinueCard: View {
                 .frame(height: 200)
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .overlay(
+                    // Subtle border so the card has a defined edge in both
+                    // light and dark mode, especially when the artwork lines
+                    // are sparse.
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(Color(.separator), lineWidth: 0.5)
+                )
 
             VStack(alignment: .leading, spacing: 6) {
                 Label("Continue exploring", systemImage: "arrow.uturn.forward.circle.fill")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(.secondary)
 
                 Text(area.name)
                     .font(.title3)
                     .fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
 
                 if totalTrails > 0 {
                     Text("\(completedCount)/\(totalTrails) trails")
                         .font(.caption)
-                        .foregroundStyle(.white.opacity(0.85))
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding(16)
@@ -46,7 +61,10 @@ struct ContinueCard: View {
     private var artwork: some View {
         if let silhouette = silhouettes.silhouette(for: area.id) {
             ZStack {
-                Color.black.opacity(0.95)
+                // Adaptive backdrop — matches AreaCard treatment so the
+                // hero card doesn't sit as a black brick on a white screen
+                // in light mode while still reading near-black in dark.
+                Color(.secondarySystemBackground)
                 ContinueGlow(silhouette: silhouette)
             }
         } else {

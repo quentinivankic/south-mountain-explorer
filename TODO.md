@@ -14,6 +14,9 @@ TestFlight.
 - **#38** stacked on #37 — MVP-feel fixes (items 6–10 below).
 - **#39** stacked on #38 — onboarding, completion haptics + 100%
   celebration, trail-name resolution in Recording Summary.
+- **#40** stacked on #39 — live coverage updates during recording so
+  the trail list, map, and progress bars fill in mid-hike. Richer
+  post-hike summary (cumulative area %, partial-coverage trails).
 
 ## MVP-feel fixes (this branch: `feat/mvp-feel-fixes`)
 

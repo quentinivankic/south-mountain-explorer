@@ -101,6 +101,17 @@ struct AreaView: View {
             loadError = result.error
             isLoading = false
         }
+        .task(id: isRecording) {
+            // While a recording is active for this area, recompute coverage
+            // every 30s so partial progress visibly fills in (trail-list
+            // progress bars tick up, trails crossing 90% turn cyan live).
+            guard isRecording else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(30))
+                guard !Task.isCancelled, isRecording, let area else { break }
+                await recording.applyLiveCoverage(trails: area.trails)
+            }
+        }
         .sheet(isPresented: $showSummary) {
             if let finished = finishedRecording {
                 RecordingSummarySheet(

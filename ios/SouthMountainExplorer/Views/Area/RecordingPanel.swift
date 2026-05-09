@@ -116,10 +116,29 @@ struct RecordingSummarySheet: View {
     let finished: FinishedRecording
     let areaName: String
     let trails: [Trail]
+
     @Environment(\.dismiss) private var dismiss
+    @Environment(ProgressService.self) private var progress
 
     private func trailName(for id: String) -> String {
         trails.first { $0.id == id }?.name ?? id
+    }
+
+    private var areaTrailCount: Int { trails.count }
+    private var areaCompletedCount: Int { progress.completionCount(in: finished.areaId) }
+    private var areaCompletionFraction: Double {
+        guard areaTrailCount > 0 else { return 0 }
+        return Double(areaCompletedCount) / Double(areaTrailCount)
+    }
+
+    /// Trails with new partial coverage from this hike — covered ≥5%
+    /// (anything less is GPS noise) but not newly completed.
+    private var partialTrails: [(id: String, name: String, coverage: Double)] {
+        let completedSet = Set(finished.newlyCompletedTrailIds)
+        return finished.coverageDelta
+            .filter { tid, c in c >= 0.05 && c < 0.9 && !completedSet.contains(tid) }
+            .map { (id: $0.key, name: trailName(for: $0.key), coverage: $0.value) }
+            .sorted { $0.coverage > $1.coverage }
     }
 
     var body: some View {
@@ -150,6 +169,27 @@ struct RecordingSummarySheet: View {
                     }
                     .padding(.horizontal)
 
+                    // Cumulative area progress
+                    if areaTrailCount > 0 {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Area Progress")
+                                    .font(.headline)
+                                Spacer()
+                                Text("\(areaCompletedCount) of \(areaTrailCount) · \(Int((areaCompletionFraction * 100).rounded()))%")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .monospacedDigit()
+                            }
+                            ProgressView(value: areaCompletionFraction)
+                                .tint(.cyan)
+                        }
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .padding(.horizontal)
+                    }
+
                     // Newly completed trails
                     if !finished.newlyCompletedTrailIds.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
@@ -166,6 +206,37 @@ struct RecordingSummarySheet: View {
                                 }
                                 .padding(.horizontal)
                             }
+                        }
+                    }
+
+                    // Partial coverage from this hike
+                    if !partialTrails.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Made Progress")
+                                .font(.headline)
+                                .padding(.horizontal)
+
+                            VStack(spacing: 10) {
+                                ForEach(partialTrails, id: \.id) { trail in
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack {
+                                            Text(trail.name)
+                                                .font(.subheadline)
+                                            Spacer()
+                                            Text("\(Int((trail.coverage * 100).rounded()))%")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                                .monospacedDigit()
+                                        }
+                                        ProgressView(value: trail.coverage)
+                                            .tint(.cyan)
+                                    }
+                                }
+                            }
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .padding(.horizontal)
                         }
                     }
 

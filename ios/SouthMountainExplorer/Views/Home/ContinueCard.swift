@@ -6,6 +6,7 @@ struct ContinueCard: View {
     @Environment(AreaSilhouetteService.self) private var silhouettes
     @Environment(ProgressService.self) private var progress
     @Environment(AreaDataService.self) private var areas
+    @Environment(\.colorScheme) private var colorScheme
 
     private var cachedArea: Area? { areas.cachedArea(id: area.id) }
     private var totalTrails: Int { cachedArea?.resolvedTrailCount ?? area.trailCount ?? 0 }
@@ -65,7 +66,7 @@ struct ContinueCard: View {
                 // hero card doesn't sit as a black brick on a white screen
                 // in light mode while still reading near-black in dark.
                 Color(.secondarySystemBackground)
-                ContinueGlow(silhouette: silhouette)
+                ContinueGlow(silhouette: silhouette, glowOn: colorScheme == .dark)
             }
         } else {
             LinearGradient(colors: [.indigo, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -75,11 +76,16 @@ struct ContinueCard: View {
 
 private struct ContinueGlow: View {
     let silhouette: AreaSilhouette
+    /// Glow only reads well over a dark backdrop; in light mode it
+    /// muddies the trail lines.
+    let glowOn: Bool
 
     var body: some View {
         ZStack {
-            silhouetteCanvas(lineWidth: 7, opacity: 0.45)
-                .blur(radius: 6)
+            if glowOn {
+                silhouetteCanvas(lineWidth: 7, opacity: 0.45)
+                    .blur(radius: 6)
+            }
             silhouetteCanvas(lineWidth: 2.0, opacity: 1.0)
         }
     }

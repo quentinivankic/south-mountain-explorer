@@ -157,11 +157,12 @@ struct RecordingSummarySheet: View {
     }
 
     /// Trails with new partial coverage from this hike — covered ≥5%
-    /// (anything less is GPS noise) but not newly completed.
+    /// (anything less is GPS noise) but not newly completed and not
+    /// revisited (those get their own sections).
     private var partialTrails: [(id: String, name: String, coverage: Double)] {
-        let completedSet = Set(finished.newlyCompletedTrailIds)
+        let exclude = Set(finished.newlyCompletedTrailIds).union(finished.revisitedTrailIds)
         return finished.coverageDelta
-            .filter { tid, c in c >= 0.05 && c < 0.9 && !completedSet.contains(tid) }
+            .filter { tid, c in c >= 0.05 && c < 0.9 && !exclude.contains(tid) }
             .map { (id: $0.key, name: trailName(for: $0.key), coverage: $0.value) }
             .sorted { $0.coverage > $1.coverage }
     }
@@ -225,6 +226,25 @@ struct RecordingSummarySheet: View {
                             ForEach(finished.newlyCompletedTrailIds, id: \.self) { trailId in
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                    Text(trailName(for: trailId))
+                                        .font(.body)
+                                }
+                                .padding(.horizontal)
+                            }
+                        }
+                    }
+
+                    // Trails walked again that were already complete
+                    if !finished.revisitedTrailIds.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Previously Completed")
+                                .font(.headline)
+                                .padding(.horizontal)
+
+                            ForEach(finished.revisitedTrailIds, id: \.self) { trailId in
+                                HStack {
+                                    Image(systemName: "arrow.clockwise.circle.fill")
                                         .foregroundStyle(.cyan)
                                     Text(trailName(for: trailId))
                                         .font(.body)

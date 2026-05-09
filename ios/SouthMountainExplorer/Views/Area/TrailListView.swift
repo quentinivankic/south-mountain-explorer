@@ -54,6 +54,10 @@ struct TrailListView: View {
                         Divider().padding(.leading)
                     }
                 }
+                // Trailing space so the last row clears the home-indicator
+                // area — the parent panel uses .ignoresSafeArea(edges: .bottom)
+                // so without this, the final row scrolls under it.
+                .padding(.bottom, 56)
             }
         }
     }

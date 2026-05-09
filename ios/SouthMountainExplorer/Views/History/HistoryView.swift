@@ -128,13 +128,28 @@ struct HikeRow: View {
             HStack(spacing: 20) {
                 Label(String(format: "%.2f mi", hike.distanceMi), systemImage: "figure.walk")
                 Label(durationString, systemImage: "clock")
-                if !hike.completedTrailIds.isEmpty {
-                    Label("\(hike.completedTrailIds.count) trails", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                }
             }
             .font(.subheadline)
             .foregroundStyle(.secondary)
+
+            // Completion summary: separate "newly completed" from
+            // "previously completed" (re-walked), so a second hike of the
+            // same trail doesn't read as 0 trails done.
+            if !hike.completedTrailIds.isEmpty || !hike.revisitedTrailIds.isEmpty {
+                HStack(spacing: 14) {
+                    if !hike.completedTrailIds.isEmpty {
+                        Label("\(hike.completedTrailIds.count) newly completed",
+                              systemImage: "checkmark.seal.fill")
+                            .foregroundStyle(.green)
+                    }
+                    if !hike.revisitedTrailIds.isEmpty {
+                        Label("\(hike.revisitedTrailIds.count) revisited",
+                              systemImage: "arrow.clockwise.circle.fill")
+                            .foregroundStyle(.cyan)
+                    }
+                }
+                .font(.caption)
+            }
         }
         .padding(.vertical, 4)
     }

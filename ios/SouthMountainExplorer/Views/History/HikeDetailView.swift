@@ -24,6 +24,11 @@ struct HikeDetailView: View {
                     completedTrailsSection
                         .padding(.horizontal)
                 }
+
+                if !hike.revisitedTrailIds.isEmpty {
+                    revisitedTrailsSection
+                        .padding(.horizontal)
+                }
             }
             .padding(.vertical)
         }
@@ -120,15 +125,39 @@ struct HikeDetailView: View {
 
     private var completedTrailsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("\(hike.completedTrailIds.count) trail\(hike.completedTrailIds.count == 1 ? "" : "s") completed",
+            Label("\(hike.completedTrailIds.count) newly completed",
                   systemImage: "checkmark.seal.fill")
                 .font(.headline)
-                .foregroundStyle(.cyan)
+                .foregroundStyle(.green)
 
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(hike.completedTrailIds, id: \.self) { trailId in
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        Text(trailName(for: trailId))
+                            .font(.body)
+                        Spacer()
+                    }
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+    }
+
+    private var revisitedTrailsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("\(hike.revisitedTrailIds.count) previously completed",
+                  systemImage: "arrow.clockwise.circle.fill")
+                .font(.headline)
+                .foregroundStyle(.cyan)
+
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(hike.revisitedTrailIds, id: \.self) { trailId in
+                    HStack {
+                        Image(systemName: "arrow.clockwise")
                             .foregroundStyle(.cyan)
                         Text(trailName(for: trailId))
                             .font(.body)

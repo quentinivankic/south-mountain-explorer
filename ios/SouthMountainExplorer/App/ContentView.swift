@@ -4,6 +4,7 @@ struct ContentView: View {
     @Environment(AuthService.self) private var auth
     @Environment(RecordingService.self) private var recording
     @Environment(AreaDataService.self) private var areas
+    @Environment(ProgressService.self) private var progress
 
     @AppStorage("summit:onboarded") private var onboarded = false
     @AppStorage("summit:theme") private var theme: AppTheme = .system
@@ -84,6 +85,22 @@ struct ContentView: View {
             set: { stillShowing in onboarded = !stillShowing }
         )) {
             OnboardingView()
+        }
+        .task { await rebuildCompletionsFromHistory() }
+    }
+
+    /// Run once at app launch: scan recorded hike history and re-stamp every
+    /// trail completion into ProgressService. Without this, AreaCards on the
+    /// Explore tab read 0/N until the user opens the area — only AreaView's
+    /// own per-load history scan was populating ProgressService before.
+    /// bulkMarkComplete is silent + idempotent, so re-running on every launch
+    /// is fine.
+    private func rebuildCompletionsFromHistory() async {
+        let history = await recording.loadHistory()
+        let byArea = Dictionary(grouping: history, by: { $0.areaId })
+        for (areaId, hikes) in byArea {
+            let trailIds = Set(hikes.flatMap { $0.completedTrailIds })
+            progress.bulkMarkComplete(areaId: areaId, trailIds: trailIds)
         }
     }
 

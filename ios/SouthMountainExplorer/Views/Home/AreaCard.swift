@@ -106,7 +106,11 @@ struct AreaCard: View {
                     .padding(10)
                     .glassEffect(in: .circle)
             }
-            .padding(10)
+            // Bigger inset so the favorite button isn't touching the
+            // artwork's right edge — looked cramped on the smaller card
+            // variant.
+            .padding(.top, 14)
+            .padding(.trailing, 14)
         }
     }
 
@@ -161,6 +165,8 @@ private struct SilhouetteArtwork: View {
     let silhouette: AreaSilhouette
     let style: CardArtStyle
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         ZStack {
             // Adaptive backdrop. Reads ~black in dark mode (the look we
@@ -170,7 +176,10 @@ private struct SilhouetteArtwork: View {
             // the parent's primary background.
             Color(.secondarySystemBackground)
 
-            if style == .glow {
+            // Glow only reads well over the dark backdrop — in light mode
+            // it muddies the trail lines without adding the neon-on-black
+            // depth we get in dark mode. Restrict to .dark.
+            if style == .glow && colorScheme == .dark {
                 SilhouetteCanvas(silhouette: silhouette, lineWidth: 5, opacity: 0.45)
                     .blur(radius: 5)
             }

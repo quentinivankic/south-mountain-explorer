@@ -66,7 +66,7 @@ final class RecordingService {
 
         let endedAt = Date()
         let sessionCoverage = measureCoverage(rec: rec, trails: trails)
-        let (newlyCompleted, _) = await mergeCoverage(
+        let (newlyCompleted, revisited, _) = await mergeCoverage(
             areaId: rec.areaId,
             sessionCoverage: sessionCoverage
         )
@@ -81,6 +81,7 @@ final class RecordingService {
             path: rec.path,
             distanceMi: rec.distanceMi,
             newlyCompletedTrailIds: newlyCompleted,
+            revisitedTrailIds: revisited,
             coverageDelta: sessionCoverage
         )
 
@@ -105,23 +106,29 @@ final class RecordingService {
     /// Merge a per-trail coverage map (this hike's view of coverage) into the
     /// persisted CoverageService, marking trails complete when they cross the
     /// completion threshold for the first time.
-    /// Returns (newly-completed trail ids, merged coverage map).
+    /// Returns (newly-completed trail ids, revisited trail ids that this hike
+    /// re-walked while already complete, merged coverage map).
     @discardableResult
     private func mergeCoverage(
         areaId: String,
         sessionCoverage: [String: Double]
-    ) async -> (newlyCompleted: [String], merged: [String: Double]) {
+    ) async -> (newlyCompleted: [String], revisited: [String], merged: [String: Double]) {
         let progressService = ProgressService.shared
         let coverageService = CoverageService.shared
         let prior = coverageService.coverage(for: areaId)
         var merged: [String: Double] = [:]
         var newlyCompleted: [String] = []
+        var revisited: [String] = []
 
         for (tid, v) in sessionCoverage {
             let m = max(prior[tid] ?? 0, v)
             merged[tid] = m
-            if (prior[tid] ?? 0) < completeThreshold && m >= completeThreshold {
+            let priorComplete = (prior[tid] ?? 0) >= completeThreshold
+            let sessionComplete = v >= completeThreshold
+            if sessionComplete && !priorComplete {
                 newlyCompleted.append(tid)
+            } else if sessionComplete && priorComplete {
+                revisited.append(tid)
             }
         }
 
@@ -129,7 +136,7 @@ final class RecordingService {
         for tid in newlyCompleted {
             await progressService.markComplete(areaId: areaId, trailId: tid)
         }
-        return (newlyCompleted, merged)
+        return (newlyCompleted, revisited, merged)
     }
 
     // MARK: - GPS point ingestion
@@ -229,7 +236,8 @@ final class RecordingService {
             durationSeconds: rec.durationSeconds,
             completedTrailIds: rec.newlyCompletedTrailIds,
             path: rec.path,
-            trailId: rec.trailId
+            trailId: rec.trailId,
+            revisitedTrailIds: rec.revisitedTrailIds
         )
         history.insert(saved, at: 0)
         if let data = try? JSONEncoder().encode(history) {

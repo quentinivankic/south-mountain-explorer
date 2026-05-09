@@ -9,6 +9,8 @@ struct SettingsView: View {
     @State private var showSignIn = false
     @State private var showResetConfirm = false
     @State private var showSignOutConfirm = false
+    @State private var showRefreshConfirm = false
+    @State private var trailDataRefreshed = false
 
     var body: some View {
         NavigationStack {
@@ -43,6 +45,28 @@ struct SettingsView: View {
                             showSignIn = true
                         } label: {
                             Label("Sign in with Apple", systemImage: "apple.logo")
+                        }
+                    }
+                }
+
+                Section("Trail Data") {
+                    Button {
+                        showRefreshConfirm = true
+                    } label: {
+                        Label(
+                            trailDataRefreshed ? "Trail Data Cleared" : "Refresh Trail Data",
+                            systemImage: trailDataRefreshed ? "checkmark.circle" : "arrow.clockwise"
+                        )
+                    }
+                    .disabled(trailDataRefreshed)
+                    .confirmationDialog(
+                        "This clears the cached trail data for all areas. Fresh data will be fetched next time you open each area.",
+                        isPresented: $showRefreshConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Clear & Refresh") {
+                            AreaDataService.shared.clearAreaCache()
+                            trailDataRefreshed = true
                         }
                     }
                 }

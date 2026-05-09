@@ -189,6 +189,46 @@ def fetch_overpass(lat, lon, nominatim=None):
     raise RuntimeError(f"All endpoints failed: {last_err}")
 
 
+def haversine_mi(lat1, lon1, lat2, lon2):
+    R = 3958.8
+    d_la = math.radians(lat2 - lat1)
+    d_lo = math.radians(lon2 - lon1)
+    a = (math.sin(d_la / 2) ** 2
+         + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
+         * math.sin(d_lo / 2) ** 2)
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def deduplicate(index: list) -> list:
+    """Drop duplicate areas: same location (<0.1 mi) where one name's words are
+    a subset of the other's. Keeps the entry with more trails; ties go to the
+    longer name."""
+    kept: list = []
+    for area in index:
+        a_name = area[1].lower()
+        a_trails = area[5] if len(area) > 5 else -1
+        merged = False
+        for i, b in enumerate(kept):
+            if haversine_mi(area[3], area[4], b[3], b[4]) >= 0.1:
+                continue
+            a_words = set(a_name.split())
+            b_words = set(b[1].lower().split())
+            short, long_ = (a_words, b_words) if len(a_words) <= len(b_words) else (b_words, a_words)
+            if not short.issubset(long_):
+                continue
+            b_trails = b[5] if len(b) > 5 else -1
+            if a_trails > b_trails or (a_trails == b_trails and len(area[1]) > len(b[1])):
+                print(f"Dedup: kept '{area[1]}' over '{b[1]}'")
+                kept[i] = area
+            else:
+                print(f"Dedup: kept '{b[1]}' over '{area[1]}'")
+            merged = True
+            break
+        if not merged:
+            kept.append(area)
+    return kept
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch-size", type=int, default=50)
@@ -212,6 +252,7 @@ def main():
                                    entry["trail_count"], entry["total_mi"]])
             else:
                 new_index.append(area[:5])
+        new_index = deduplicate(new_index)
         INDEX_PATH.write_text(json.dumps(new_index, separators=(",", ":")))
         cached_count = sum(1 for a in new_index if len(a) >= 7)
         print(f"Cache-only rebuild: {cached_count}/{len(new_index)} areas have counts.")
@@ -275,6 +316,7 @@ def main():
             # Not yet queried — keep as 5-element tuple
             new_index.append(area[:5])
 
+    new_index = deduplicate(new_index)
     INDEX_PATH.write_text(json.dumps(new_index, separators=(",", ":")))
 
     cached_count = sum(1 for a in new_index if len(a) >= 7)

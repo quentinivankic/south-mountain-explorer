@@ -209,7 +209,10 @@ struct AreaView: View {
     /// Pre-flight gate before kicking off a hike. Walks through the
     /// permission, conflict, and distance checks in order and either
     /// starts immediately or surfaces the appropriate confirmation.
-    private func tryStartRecording() {
+    /// Pass a trailId to start in `.trail` mode (history will label the
+    /// hike with that trail's name and TrailMapView lights it up as a
+    /// dashed cyan guide).
+    private func tryStartRecording(trailId: String? = nil) {
         guard let area else { return }
         if !location.isAuthorized {
             location.requestPermission()
@@ -240,7 +243,8 @@ struct AreaView: View {
             }
         }
 
-        recording.startRecording(areaId: areaId, mode: .roam)
+        let mode: RecordingMode = trailId == nil ? .roam : .trail
+        recording.startRecording(areaId: areaId, mode: mode, trailId: trailId)
     }
 
     private func stopOtherRecordingThenStart() async {
@@ -283,7 +287,11 @@ struct AreaView: View {
                 .contentShape(Rectangle())
                 .gesture(dragGesture(tallHeight: tallHeight))
 
-                TrailListView(area: area, selectedTrailId: $selectedTrailId)
+                TrailListView(
+                    area: area,
+                    selectedTrailId: $selectedTrailId,
+                    onRecordTrail: { trail in tryStartRecording(trailId: trail.id) }
+                )
             }
             .frame(height: tallHeight)
             .background(

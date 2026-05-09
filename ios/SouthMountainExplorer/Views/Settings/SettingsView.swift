@@ -1,10 +1,20 @@
 import SwiftUI
 
+private struct UserStats: Equatable {
+    var hikeCount: Int
+    var totalMi: Double
+    var trailsCompleted: Int
+    var areasExplored: Int
+}
+
+private let feedbackURL = URL(string: "https://github.com/quentinivankic/south-mountain-explorer/issues/new")!
+
 struct SettingsView: View {
     @Environment(AuthService.self) private var auth
     @Environment(ProgressService.self) private var progress
     @Environment(CoverageService.self) private var coverage
     @Environment(FavoritesService.self) private var favorites
+    @Environment(RecordingService.self) private var recording
 
     @AppStorage("summit:theme") private var theme: AppTheme = .system
 
@@ -13,6 +23,7 @@ struct SettingsView: View {
     @State private var showSignOutConfirm = false
     @State private var showRefreshConfirm = false
     @State private var trailDataRefreshed = false
+    @State private var stats: UserStats? = nil
 
     var body: some View {
         NavigationStack {
@@ -47,6 +58,19 @@ struct SettingsView: View {
                             showSignIn = true
                         } label: {
                             Label("Sign in with Apple", systemImage: "apple.logo")
+                        }
+                    }
+                }
+
+                Section("Your Activity") {
+                    if let s = stats {
+                        statsBlock(s)
+                    } else {
+                        HStack {
+                            ProgressView()
+                            Text("Tallying your hikes…")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -109,6 +133,12 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("Feedback") {
+                    Link(destination: feedbackURL) {
+                        Label("Send Feedback", systemImage: "envelope")
+                    }
+                }
+
                 Section("About") {
                     LabeledContent("Version", value: appVersion)
                     LabeledContent("Build", value: buildNumber)
@@ -119,6 +149,64 @@ struct SettingsView: View {
         .sheet(isPresented: $showSignIn) {
             AuthView()
         }
+        .task { await refreshStats() }
+    }
+
+    private func statsBlock(_ s: UserStats) -> some View {
+        HStack {
+            statColumn(value: "\(s.hikeCount)", label: s.hikeCount == 1 ? "hike" : "hikes")
+            Divider().frame(height: 36)
+            statColumn(value: String(format: "%.1f", s.totalMi), label: "miles")
+            Divider().frame(height: 36)
+            statColumn(value: "\(s.trailsCompleted)", label: s.trailsCompleted == 1 ? "trail" : "trails")
+            Divider().frame(height: 36)
+            statColumn(value: "\(s.areasExplored)", label: s.areasExplored == 1 ? "area" : "areas")
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func statColumn(value: String, label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.headline.monospacedDigit())
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// Roll up history + completions into the vanity stats block. Counts a
+    /// (areaId, trailId) pair as a single completion across both sources so
+    /// auto-completes from a hike + manual toggles for the same trail don't
+    /// double-count.
+    private func refreshStats() async {
+        let history = await recording.loadHistory()
+
+        var completedPairs = Set<String>()
+        for (areaId, trails) in progress.completions {
+            for trailId in trails.keys {
+                completedPairs.insert("\(areaId):\(trailId)")
+            }
+        }
+        for hike in history {
+            for trailId in hike.completedTrailIds {
+                completedPairs.insert("\(hike.areaId):\(trailId)")
+            }
+        }
+
+        var areas = Set<String>()
+        for hike in history { areas.insert(hike.areaId) }
+        for (areaId, trails) in progress.completions where !trails.isEmpty {
+            areas.insert(areaId)
+        }
+
+        stats = UserStats(
+            hikeCount: history.count,
+            totalMi: history.reduce(0.0) { $0 + $1.distanceMi },
+            trailsCompleted: completedPairs.count,
+            areasExplored: areas.count
+        )
     }
 
     private func resetAll() async {

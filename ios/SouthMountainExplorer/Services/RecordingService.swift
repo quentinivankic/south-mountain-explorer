@@ -228,7 +228,8 @@ final class RecordingService {
             distanceMi: (rec.distanceMi * 100).rounded() / 100,
             durationSeconds: rec.durationSeconds,
             completedTrailIds: rec.newlyCompletedTrailIds,
-            path: rec.path
+            path: rec.path,
+            trailId: rec.trailId
         )
         history.insert(saved, at: 0)
         if let data = try? JSONEncoder().encode(history) {

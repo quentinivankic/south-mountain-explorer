@@ -73,6 +73,31 @@ struct TrailMapView: View {
                 }
             }
 
+            // "Following this trail" guide — when recording in .trail mode,
+            // the chosen trail gets an extra dashed cyan stroke on top of
+            // the regular rendering so the user can see at a glance which
+            // polyline to keep on. Drawn before the live GPS path so that
+            // path stays the most prominent stroke.
+            if let trailId = activeRecording?.trailId,
+               let recordingTrail = area.trails.first(where: { $0.id == trailId }) {
+                ForEach(Array(recordingTrail.segments.enumerated()), id: \.offset) { _, segment in
+                    let coords = segment.compactMap { node -> CLLocationCoordinate2D? in
+                        guard node.count >= 2 else { return nil }
+                        return CLLocationCoordinate2D(latitude: node[0], longitude: node[1])
+                    }
+                    MapPolyline(coordinates: coords)
+                        .stroke(
+                            .cyan,
+                            style: StrokeStyle(
+                                lineWidth: 8,
+                                lineCap: .round,
+                                lineJoin: .round,
+                                dash: [16, 8]
+                            )
+                        )
+                }
+            }
+
             // Recorded GPS path
             if let rec = activeRecording, rec.path.count > 1 {
                 let pathCoords = rec.path.map {

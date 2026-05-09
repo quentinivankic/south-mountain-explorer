@@ -3,6 +3,7 @@ import SwiftUI
 struct TrailListView: View {
     let area: Area
     @Binding var selectedTrailId: String?
+    var onRecordTrail: ((Trail) -> Void)? = nil
 
     @Environment(ProgressService.self) private var progress
     @Environment(CoverageService.self) private var coverage
@@ -34,7 +35,12 @@ struct TrailListView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(area.trails) { trail in
-                        TrailRow(trail: trail, areaId: area.id, selectedTrailId: $selectedTrailId)
+                        TrailRow(
+                            trail: trail,
+                            areaId: area.id,
+                            selectedTrailId: $selectedTrailId,
+                            onRecordTrail: onRecordTrail
+                        )
                         Divider().padding(.leading)
                     }
                 }
@@ -47,6 +53,7 @@ struct TrailRow: View {
     let trail: Trail
     let areaId: String
     @Binding var selectedTrailId: String?
+    var onRecordTrail: ((Trail) -> Void)? = nil
 
     @Environment(ProgressService.self) private var progress
     @Environment(CoverageService.self) private var coverage
@@ -118,6 +125,20 @@ struct TrailRow: View {
         .contentShape(Rectangle())
         .onTapGesture {
             selectedTrailId = isSelected ? nil : trail.id
+        }
+        .contextMenu {
+            // "Record This Trail" appears only when no recording is in
+            // flight; AreaView's separate conflict guard handles the
+            // bottom-bar Record Hike button. Recording in trail mode
+            // labels the saved hike with this trail's name in History
+            // and lights it up on the map as a dashed cyan guide line.
+            if recording.activeRecording == nil, let onRecordTrail {
+                Button {
+                    onRecordTrail(trail)
+                } label: {
+                    Label("Record This Trail", systemImage: "record.circle")
+                }
+            }
         }
     }
 

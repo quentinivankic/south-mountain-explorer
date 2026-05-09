@@ -31,7 +31,11 @@ struct HistoryView: View {
                 NavigationLink {
                     HikeDetailView(hike: hike, areaName: areaName(for: hike.areaId))
                 } label: {
-                    HikeRow(hike: hike, areaName: areaName(for: hike.areaId))
+                    HikeRow(
+                        hike: hike,
+                        areaName: areaName(for: hike.areaId),
+                        trailName: trailName(for: hike)
+                    )
                 }
             }
             .onDelete { indexSet in
@@ -39,6 +43,17 @@ struct HistoryView: View {
             }
         }
         .listStyle(.insetGrouped)
+    }
+
+    /// Trail-mode hikes get the trail's name as a subtitle on the row so
+    /// History reads "Hiked National Trail" instead of just "South Mountain
+    /// Park". Best-effort lookup via the cached area; falls back to nil
+    /// when the area isn't in cache yet.
+    private func trailName(for hike: SavedRecording) -> String? {
+        guard let trailId = hike.trailId,
+              let area = areas.cachedArea(id: hike.areaId)
+        else { return nil }
+        return area.trails.first { $0.id == trailId }?.name
     }
 
     private var emptyState: some View {
@@ -70,6 +85,7 @@ struct HistoryView: View {
 struct HikeRow: View {
     let hike: SavedRecording
     let areaName: String
+    let trailName: String?
 
     private var dateString: String {
         let f = DateFormatter()
@@ -85,13 +101,26 @@ struct HikeRow: View {
         return "\(m)m"
     }
 
+    private var titleText: String {
+        if let trailName { return trailName }
+        return areaName
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(areaName)
+                Text(titleText)
                     .font(.headline)
                 Spacer()
                 Text(dateString)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            // When the title is the trail name, surface the area below
+            // so the user has the geographic context.
+            if trailName != nil {
+                Text(areaName)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

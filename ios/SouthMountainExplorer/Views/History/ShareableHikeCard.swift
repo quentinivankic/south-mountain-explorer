@@ -3,7 +3,7 @@ import UIKit
 import MapKit
 
 /// 1080² square share card. When a `mapImage` is supplied (a pre-rendered
-/// MKMapSnapshot with the GPS path drawn on top), it's used as the
+/// MKMapSnapshotter.Snapshot with the GPS path drawn on top), it's used as the
 /// background; otherwise we fall back to a gradient. Stats overlay sits on
 /// a dark scrim at the bottom so the text is legible regardless of which
 /// background is in play.
@@ -124,7 +124,7 @@ struct ShareableHikeCard: View {
     }
 }
 
-/// Off-the-main-tree helper that renders an MKMapSnapshot tightly cropped
+/// Off-the-main-tree helper that renders an MKMapSnapshotter.Snapshot tightly cropped
 /// around the GPS path, then composites the path on top in cyan. Used as the
 /// background image for ShareableHikeCard.
 enum HikeMapSnapshot {
@@ -165,7 +165,7 @@ enum HikeMapSnapshot {
     }
 
     private static func composite(
-        snapshot: MKMapSnapshot,
+        snapshot: MKMapSnapshotter.Snapshot,
         coords: [CLLocationCoordinate2D],
         size: CGSize
     ) -> UIImage {
@@ -195,7 +195,7 @@ enum HikeMapSnapshot {
     private static func stroke(
         coords: [CLLocationCoordinate2D],
         in cg: CGContext,
-        snapshot: MKMapSnapshot
+        snapshot: MKMapSnapshotter.Snapshot
     ) {
         cg.beginPath()
         for (i, c) in coords.enumerated() {

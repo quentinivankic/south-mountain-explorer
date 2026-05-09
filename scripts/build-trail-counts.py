@@ -82,7 +82,6 @@ def build_counts(data: bytes):
         if e.get("type") == "way" and len(e.get("geometry", [])) > 1
     ]
 
-    # Collect nodes belonging to named ways (for stitching unnamed connectors)
     named_nodes = set()
     for w in ways:
         tags = w.get("tags", {})
@@ -94,13 +93,12 @@ def build_counts(data: bytes):
             if lat is not None and lon is not None:
                 named_nodes.add(node_key(lat, lon))
 
-    by_name: dict[str, float] = {}  # name → accumulated miles
+    by_name: dict[str, float] = {}
     for w in ways:
         tags = w.get("tags", {})
         raw_name = tags.get("name", "").strip()
         geom = w.get("geometry", [])
         if not raw_name:
-            # Only include unnamed ways that touch a named way
             endpoints = [geom[0], geom[-1]] if geom else []
             touches = any(
                 neighbor_keys(p["lat"], p["lon"]) & named_nodes
@@ -180,6 +178,42 @@ def fetch_overpass(lat, lon, bbox=None):
     raise RuntimeError(f"All endpoints failed: {last_err}")
 
 
+def deduplicate(index: list) -> list:
+    """Remove duplicate areas: same location (<0.1 mi) where one name's words
+    are a subset of the other's. Keeps higher trail count; ties go to longer name."""
+    kept = []
+    for area in index:
+        merged = False
+        a_name = area[1].lower()
+        a_trails = area[6] if len(area) > 6 else -1
+        for i, b in enumerate(kept):
+            b_name = b[1].lower()
+            dist = haversine_mi(area[3], area[4], b[3], b[4])
+            a_words = set(a_name.split())
+            b_words = set(b_name.split())
+            short, long_ = (a_words, b_words) if len(a_words) <= len(b_words) else (b_words, a_words)
+            if dist < 0.1 and short.issubset(long_):
+                b_trails = b[6] if len(b) > 6 else -1
+                if a_trails > b_trails or (a_trails == b_trails and len(area[1]) > len(b[1])):
+                    kept[i] = area
+                    print(f"Dedup: kept '{area[1]}' over '{b[1]}'")
+                else:
+                    print(f"Dedup: kept '{b[1]}' over '{area[1]}'")
+                merged = True
+                break
+        if not merged:
+            kept.append(area)
+    return kept
+
+
+def haversine_mi(lat1, lon1, lat2, lon2):
+    R = 3958.8
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch-size", type=int, default=50)
@@ -194,7 +228,6 @@ def main():
     cache: dict = json.loads(CACHE_PATH.read_text()) if CACHE_PATH.exists() else {}
 
     if args.cache_only:
-        # Just rebuild index.json from the existing cache — no network calls.
         new_index = []
         for area in index:
             entry = cache.get(area[0])
@@ -203,6 +236,7 @@ def main():
                                    entry["trail_count"], entry["total_mi"]])
             else:
                 new_index.append(area[:5])
+        new_index = deduplicate(new_index)
         INDEX_PATH.write_text(json.dumps(new_index, separators=(",", ":")))
         cached_count = sum(1 for a in new_index if len(a) >= 7)
         print(f"Cache-only rebuild: {cached_count}/{len(new_index)} areas have counts.")
@@ -228,8 +262,8 @@ def main():
         try:
             name, state = area[1], area[2]
             bbox = nominatim_bbox(name, state)
-            time.sleep(1)  # Nominatim rate limit: 1 req/sec
-            source = f"nominatim" if bbox else "radius"
+            time.sleep(1)
+            source = "nominatim" if bbox else "radius"
             data = fetch_overpass(lat, lon, bbox)
             trail_count, total_mi = build_counts(data)
             cache[area_id] = {"trail_count": trail_count, "total_mi": total_mi}
@@ -242,16 +276,13 @@ def main():
             errors += 1
             print(f"[{i+1}/{total}] ERROR {area_id}: {e}", file=sys.stderr, flush=True)
 
-        # Save cache incrementally
         if processed % args.batch_size == 0:
             CACHE_PATH.write_text(json.dumps(cache, separators=(",", ":")))
 
         time.sleep(args.delay)
 
-    # Final cache save
     CACHE_PATH.write_text(json.dumps(cache, separators=(",", ":")))
 
-    # Rebuild index with counts
     new_index = []
     for area in index:
         area_id = area[0]
@@ -263,9 +294,9 @@ def main():
                 entry["total_mi"],
             ])
         else:
-            # Not yet queried — keep as 5-element tuple
             new_index.append(area[:5])
 
+    new_index = deduplicate(new_index)
     INDEX_PATH.write_text(json.dumps(new_index, separators=(",", ":")))
 
     cached_count = sum(1 for a in new_index if len(a) >= 7)

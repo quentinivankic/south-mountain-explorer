@@ -5,9 +5,11 @@ struct HomeView: View {
     @Environment(LocationService.self) private var location
     @Environment(FavoritesService.self) private var favorites
     @Environment(AuthService.self) private var auth
+    @Environment(RecordingService.self) private var recording
 
     @State private var selectedArea: AreaSummary? = nil
     @State private var showLocationPrompt = false
+    @State private var continueArea: AreaSummary? = nil
 
     private var nearbyAreas: [AreaSummary] {
         guard let loc = location.userLocation else { return [] }
@@ -18,13 +20,16 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
+                    if let pickup = continueArea {
+                        continueSection(area: pickup)
+                    }
                     if !favorites.favoriteAreas.isEmpty {
                         areaSection(title: "Saved Areas", items: favorites.favoriteAreas)
                     }
                     if !nearbyAreas.isEmpty {
                         areaSection(title: "Near You", items: nearbyAreas)
                     }
-                    if favorites.favoriteAreas.isEmpty && nearbyAreas.isEmpty {
+                    if continueArea == nil && favorites.favoriteAreas.isEmpty && nearbyAreas.isEmpty {
                         emptyState
                     }
                 }
@@ -48,6 +53,7 @@ struct HomeView: View {
             } else {
                 location.startLiveTracking()
             }
+            Task { continueArea = await loadContinueArea() }
         }
         .sheet(isPresented: $showLocationPrompt) {
             LocationPromptView()
@@ -66,8 +72,9 @@ struct HomeView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
-                    ForEach(items) { area in
-                        AreaCard(area: area)
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, area in
+                        // Alternate styles so the user can compare card art treatments.
+                        AreaCard(area: area, style: index.isMultiple(of: 2) ? .tight : .glow)
                             .onTapGesture { selectedArea = area }
                     }
                 }
@@ -75,6 +82,24 @@ struct HomeView: View {
                 .padding(.vertical, 2)
             }
         }
+    }
+
+    private func continueSection(area: AreaSummary) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Pick Up Where You Left Off")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding(.horizontal, 4)
+
+            ContinueCard(area: area)
+                .onTapGesture { selectedArea = area }
+        }
+    }
+
+    private func loadContinueArea() async -> AreaSummary? {
+        let history = await recording.loadHistory()
+        guard let last = history.first else { return nil }
+        return areas.summaries.first { $0.id == last.areaId }
     }
 
     private var emptyState: some View {

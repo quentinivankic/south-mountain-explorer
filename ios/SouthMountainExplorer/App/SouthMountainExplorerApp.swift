@@ -5,6 +5,7 @@ struct SouthMountainExplorerApp: App {
     // Eagerly initialise all services so they start syncing immediately
     private let auth = AuthService.shared
     private let areas = AreaDataService.shared
+    private let silhouettes = AreaSilhouetteService.shared
     private let location = LocationService.shared
     private let recording = RecordingService.shared
     private let progress = ProgressService.shared
@@ -16,6 +17,7 @@ struct SouthMountainExplorerApp: App {
             ContentView()
                 .environment(auth)
                 .environment(areas)
+                .environment(silhouettes)
                 .environment(location)
                 .environment(recording)
                 .environment(progress)

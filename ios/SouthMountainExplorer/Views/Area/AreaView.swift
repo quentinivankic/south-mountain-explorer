@@ -22,6 +22,7 @@ struct AreaView: View {
     @State private var showSummary = false
     @State private var showAreaComplete = false
     @State private var pastPaths: [[GpsPoint]] = []
+    @State private var recenterTick: Int = 0
 
     private let defaultListHeight: CGFloat = 340
 
@@ -37,6 +38,7 @@ struct AreaView: View {
                     area: area,
                     activeRecording: isRecording ? recording.activeRecording : nil,
                     pastPaths: pastPaths,
+                    recenterTick: recenterTick,
                     selectedTrailId: $selectedTrailId
                 )
                 .ignoresSafeArea()
@@ -214,6 +216,18 @@ struct AreaView: View {
                 withAnimation(.spring()) { showTrailList.toggle() }
             } label: {
                 Image(systemName: showTrailList ? "map.fill" : "list.bullet")
+                    .font(.body.weight(.semibold))
+                    .frame(width: 44, height: 44)
+                    .glassEffect(in: .circle)
+            }
+
+            // Recenter on user — replaces the removed MapUserLocationButton
+            // (which MapKit placed on top of the favorite/close buttons).
+            Button {
+                if !location.isAuthorized { location.requestPermission(); return }
+                recenterTick &+= 1
+            } label: {
+                Image(systemName: "location.fill")
                     .font(.body.weight(.semibold))
                     .frame(width: 44, height: 44)
                     .glassEffect(in: .circle)

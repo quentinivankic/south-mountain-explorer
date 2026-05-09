@@ -5,6 +5,7 @@ struct TrailMapView: View {
     let area: Area
     let activeRecording: ActiveRecording?
     let pastPaths: [[GpsPoint]]
+    let recenterTick: Int
     @Binding var selectedTrailId: String?
 
     @Environment(ProgressService.self) private var progress
@@ -82,6 +83,20 @@ struct TrailMapView: View {
             }
             centerOn(trail: trail)
         }
+        .onChange(of: recenterTick) { _, _ in centerOnUser() }
+    }
+
+    private func centerOnUser() {
+        guard let coord = location.userLocation else {
+            centerOnArea()
+            return
+        }
+        let region = MKCoordinateRegion(
+            center: coord,
+            latitudinalMeters: 1500,
+            longitudinalMeters: 1500
+        )
+        withAnimation { position = .region(region) }
     }
 
     private func centerOnArea() {

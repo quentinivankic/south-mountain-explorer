@@ -7,6 +7,7 @@ struct HikeDetailView: View {
 
     @Environment(AreaDataService.self) private var areas
     @State private var area: Area? = nil
+    @State private var shareImage: Image? = nil
 
     var body: some View {
         ScrollView {
@@ -29,6 +30,28 @@ struct HikeDetailView: View {
         .navigationTitle(areaName)
         .navigationBarTitleDisplayMode(.inline)
         .task { area = await areas.area(id: hike.areaId) }
+        .task { shareImage = makeShareImage() }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if let img = shareImage {
+                    ShareLink(
+                        item: img,
+                        preview: SharePreview("Hike at \(areaName)", image: img)
+                    ) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func makeShareImage() -> Image? {
+        let card = ShareableHikeCard(hike: hike, areaName: areaName)
+        let renderer = ImageRenderer(content: card)
+        renderer.scale = 3.0
+        guard let ui = renderer.uiImage else { return nil }
+        return Image(uiImage: ui)
     }
 
     private var hikeMap: some View {

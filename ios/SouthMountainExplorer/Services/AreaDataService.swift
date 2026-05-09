@@ -189,7 +189,8 @@ final class AreaDataService {
         }
     }
 
-    private func nominatimRelationId(name: String, state: String) async -> Int? {
+    // Returns (relationId, bbox [w,s,e,n]) or nil
+    private func nominatimLookup(name: String, state: String) async -> (relationId: Int, bbox: [Double])? {
         let place = state == "Denmark" ? "\(name), Denmark" : "\(name), \(state), USA"
         guard let encoded = place.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
               let url = URL(string: "https://nominatim.openstreetmap.org/search?q=\(encoded)&format=json&limit=1&featuretype=relation")
@@ -203,17 +204,27 @@ final class AreaDataService {
               let idStr = first["osm_id"] as? String,
               let id = Int(idStr)
         else { return nil }
-        return id
+        // Nominatim boundingbox: [s, n, w, e] as strings — convert to [w, s, e, n]
+        var bbox: [Double] = []
+        if let bb = first["boundingbox"] as? [String], bb.count == 4,
+           let s = Double(bb[0]), let n = Double(bb[1]),
+           let w = Double(bb[2]), let e = Double(bb[3]) {
+            bbox = [w, s, e, n]
+        }
+        return (id, bbox)
     }
 
     private func fetchFromOverpass(row: AreaRow) async throws -> AreaRow {
         let query: String
+        var parkBbox: [Double] = []
         if let bbox = row.bbox, bbox.count == 4 {
             let s = bbox[1], w = bbox[0], n = bbox[3], e = bbox[2]
             query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(s),\(w),\(n),\(e)););out tags geom;"
-        } else if let relationId = await nominatimRelationId(name: row.name, state: row.state) {
-            let areaId = relationId + 3_600_000_000
+            parkBbox = bbox
+        } else if let result = await nominatimLookup(name: row.name, state: row.state) {
+            let areaId = result.relationId + 3_600_000_000
             query = "[out:json][timeout:90];area(\(areaId))->.a;(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](area.a););out tags geom;"
+            parkBbox = result.bbox
         } else {
             let lat = row.centerLat, lon = row.centerLon, d = 0.10
             query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(lat-d),\(lon-d),\(lat+d),\(lon+d)););out tags geom;"
@@ -232,7 +243,7 @@ final class AreaDataService {
             req.httpBody = ("data=" + query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!).data(using: .utf8)
             do {
                 let (data, _) = try await URLSession.shared.data(for: req)
-                let trails = buildTrails(from: data)
+                let trails = buildTrails(from: data, parkBbox: parkBbox)
                 return AreaRow(
                     id: row.id, name: row.name, state: row.state,
                     centerLat: row.centerLat, centerLon: row.centerLon,
@@ -249,7 +260,7 @@ final class AreaDataService {
         throw lastError ?? URLError(.unknown)
     }
 
-    private func buildTrails(from data: Data) -> [Trail] {
+    private func buildTrails(from data: Data, parkBbox: [Double] = []) -> [Trail] {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let elements = json["elements"] as? [[String: Any]] else { return [] }
 
@@ -263,6 +274,7 @@ final class AreaDataService {
         for w in ways {
             guard let tags = w["tags"] as? [String: String],
                   let name = tags["name"]?.trimmingCharacters(in: .whitespaces), !name.isEmpty,
+                  !isRoadLike(name: name, tags: tags),
                   let geom = w["geometry"] as? [[String: Any]] else { continue }
             for p in geom {
                 if let lat = p["lat"] as? Double, let lon = p["lon"] as? Double {
@@ -275,6 +287,10 @@ final class AreaDataService {
         for w in ways {
             let tags = w["tags"] as? [String: String]
             let rawName = tags?["name"]?.trimmingCharacters(in: .whitespaces) ?? ""
+
+            // Drop road-like tracks (maintenance roads, drainage, etc.)
+            if isRoadLike(name: rawName, tags: tags) { continue }
+
             guard let geom = w["geometry"] as? [[String: Any]] else { continue }
             if rawName.isEmpty {
                 let endpoints = [geom.first, geom.last].compactMap { $0 }
@@ -285,10 +301,15 @@ final class AreaDataService {
                 if !touches { continue }
             }
             let name = rawName.isEmpty ? "Unnamed \(w["id"] ?? 0)" : rawName
-            let coords = geom.compactMap { p -> [Double]? in
+            var coords = geom.compactMap { p -> [Double]? in
                 guard let lat = p["lat"] as? Double, let lon = p["lon"] as? Double else { return nil }
                 return [lat, lon]
             }
+            // Clip coordinates to park boundary (with 0.02° buffer ~1.4 mi)
+            if parkBbox.count == 4 {
+                coords = clipToBbox(coords, bbox: parkBbox)
+            }
+            guard coords.count >= 2 else { continue }
             if byName[name] == nil { byName[name] = (tags, []) }
             byName[name]!.segments.append(coords)
         }
@@ -332,6 +353,23 @@ final class AreaDataService {
             meters += R * 2 * atan2(sqrt(a), sqrt(1-a))
         }
         return meters / 1609.344
+    }
+
+    private func isRoadLike(name: String, tags: [String: String]?) -> Bool {
+        guard tags?["highway"] == "track" else { return false }
+        let roadWords = ["road", "drive", "avenue", "canal", "drain", "ditch", "boulevard", "highway", "freeway"]
+        let lower = name.lowercased()
+        if roadWords.contains(where: { lower.contains($0) }) { return true }
+        if tags?["motor_vehicle"] == "yes" || tags?["motorcar"] == "yes" { return true }
+        if tags?["access"] == "private" { return true }
+        return false
+    }
+
+    private func clipToBbox(_ coords: [[Double]], bbox: [Double]) -> [[Double]] {
+        // bbox is [w, s, e, n]; allow 0.02° buffer outside boundary
+        let buf = 0.02
+        let w = bbox[0] - buf, s = bbox[1] - buf, e = bbox[2] + buf, n = bbox[3] + buf
+        return coords.filter { $0[0] >= s && $0[0] <= n && $0[1] >= w && $0[1] <= e }
     }
 
     private func difficulty(tags: [String: String]?, mi: Double) -> Difficulty {

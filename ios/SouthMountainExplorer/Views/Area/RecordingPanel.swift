@@ -115,7 +115,12 @@ struct RecordingPanel: View {
 struct RecordingSummarySheet: View {
     let finished: FinishedRecording
     let areaName: String
+    let trails: [Trail]
     @Environment(\.dismiss) private var dismiss
+
+    private func trailName(for id: String) -> String {
+        trails.first { $0.id == id }?.name ?? id
+    }
 
     var body: some View {
         NavigationStack {
@@ -155,8 +160,8 @@ struct RecordingSummarySheet: View {
                             ForEach(finished.newlyCompletedTrailIds, id: \.self) { trailId in
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.green)
-                                    Text(trailId)
+                                        .foregroundStyle(.cyan)
+                                    Text(trailName(for: trailId))
                                         .font(.body)
                                 }
                                 .padding(.horizontal)

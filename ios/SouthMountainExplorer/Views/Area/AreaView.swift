@@ -8,6 +8,7 @@ struct AreaView: View {
     @Environment(RecordingService.self) private var recording
     @Environment(FavoritesService.self) private var favorites
     @Environment(LocationService.self) private var location
+    @Environment(ProgressService.self) private var progress
     @Environment(\.dismiss) private var dismiss
 
     @State private var area: Area? = nil
@@ -19,6 +20,7 @@ struct AreaView: View {
     @State private var selectedTrailId: String? = nil
     @State private var finishedRecording: FinishedRecording? = nil
     @State private var showSummary = false
+    @State private var showAreaComplete = false
 
     private let defaultListHeight: CGFloat = 340
 
@@ -101,7 +103,27 @@ struct AreaView: View {
         }
         .sheet(isPresented: $showSummary) {
             if let finished = finishedRecording {
-                RecordingSummarySheet(finished: finished, areaName: areaName)
+                RecordingSummarySheet(
+                    finished: finished,
+                    areaName: areaName,
+                    trails: area?.trails ?? []
+                )
+            }
+        }
+        .sheet(isPresented: $showAreaComplete) {
+            if let area {
+                AreaCompletionView(area: area)
+                    .presentationDetents([.large])
+            }
+        }
+        .onChange(of: progress.completionCount(in: areaId)) { old, new in
+            // Trigger the celebration when the area transitions into 100%.
+            // Suppress while the recording summary is up — the trophy state
+            // there is enough acknowledgement, and stacking sheets is messy.
+            guard let area, area.resolvedTrailCount > 0 else { return }
+            let total = area.resolvedTrailCount
+            if old < total && new >= total && !showSummary {
+                showAreaComplete = true
             }
         }
     }

@@ -5,12 +5,15 @@ submission tasks (privacy policy, store metadata, etc.) are intentionally
 not listed yet — we'll capture those when we're ready to ship outside
 TestFlight.
 
-## In flight (current draft PRs)
+## In flight (current draft PRs, stacked)
 
 - **#37** `feat: Explore discovery + AreaView UX` — silhouette card art
   fixes from earlier plus Explore-tab Try Something New, length chips,
   All Areas Map, AreaView UX (drag panel, tap-to-highlight, distinct
   complete color, phantom button gone). Awaiting TestFlight verification.
+- **#38** stacked on #37 — MVP-feel fixes (items 6–10 below).
+- **#39** stacked on #38 — onboarding, completion haptics + 100%
+  celebration, trail-name resolution in Recording Summary.
 
 ## MVP-feel fixes (this branch: `feat/mvp-feel-fixes`)
 
@@ -28,10 +31,9 @@ TestFlight.
 
 ## Polish (post-MVP, no rush)
 
-- [ ] First-run onboarding screen ("Find every trail. Record hikes.
-  Watch the map fill in.")
-- [ ] Haptic feedback on trail-complete
-- [ ] "Area 100% complete" celebration moment (confetti, badge, etc.)
+- [x] First-run onboarding screen — landed in #39
+- [x] Haptic feedback on trail-complete — landed in #39
+- [x] "Area 100% complete" celebration moment — landed in #39
 - [ ] Share a completed hike (PNG of map + area link)
 - [ ] iPad layout sanity-check
 - [ ] Pick a single card-art style and drop the alternating treatment
@@ -47,5 +49,4 @@ TestFlight.
   moderate, 10% hard).
 - [ ] Map-tile prefetch for offline hiking — would let people record in
   spotty signal without losing the basemap.
-- [ ] Resolve trail names in the Recording Summary (currently shows raw
-  trail IDs in the "New Completions" list).
+- [x] Resolve trail names in the Recording Summary — landed in #39

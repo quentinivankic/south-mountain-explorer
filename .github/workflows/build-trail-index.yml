@@ -19,6 +19,9 @@ jobs:
     timeout-minutes: 360
     permissions:
       contents: write
+      actions: write
+    outputs:
+      committed: ${{ steps.commit.outputs.committed }}
 
     steps:
       - uses: actions/checkout@v4
@@ -37,6 +40,7 @@ jobs:
           python3 scripts/build-trail-counts.py $ARGS
 
       - name: Commit updated index
+        id: commit
         run: |
           cp public/areas/index.json ios/SouthMountainExplorer/Resources/areas-index.json
           cp public/areas/silhouettes.json ios/SouthMountainExplorer/Resources/silhouettes.json
@@ -45,6 +49,7 @@ jobs:
           git add public/areas/index.json public/areas/counts-cache.json public/areas/silhouettes.json ios/SouthMountainExplorer/Resources/areas-index.json ios/SouthMountainExplorer/Resources/silhouettes.json
           if git diff --cached --quiet; then
             echo "No changes to commit."
+            echo "committed=false" >> "$GITHUB_OUTPUT"
           else
             CACHED=$(python3 -c "
           import json
@@ -54,4 +59,13 @@ jobs:
           ")
             git commit -m "chore: rebuild trail index — $CACHED"
             git push
+            echo "committed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      # Pushes authored by GITHUB_TOKEN don't trigger downstream workflows, so
+      # we explicitly dispatch the iOS TestFlight build when the index changes.
+      - name: Trigger iOS TestFlight build
+        if: steps.commit.outputs.committed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run ios-testflight.yml --ref main

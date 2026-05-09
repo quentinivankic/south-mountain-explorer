@@ -6,6 +6,8 @@ struct SettingsView: View {
     @Environment(CoverageService.self) private var coverage
     @Environment(FavoritesService.self) private var favorites
 
+    @AppStorage("summit:theme") private var theme: AppTheme = .system
+
     @State private var showSignIn = false
     @State private var showResetConfirm = false
     @State private var showSignOutConfirm = false
@@ -47,6 +49,15 @@ struct SettingsView: View {
                             Label("Sign in with Apple", systemImage: "apple.logo")
                         }
                     }
+                }
+
+                Section("Appearance") {
+                    Picker("Theme", selection: $theme) {
+                        ForEach(AppTheme.allCases) { theme in
+                            Text(theme.label).tag(theme)
+                        }
+                    }
+                    .pickerStyle(.segmented)
                 }
 
                 Section("Trail Data") {

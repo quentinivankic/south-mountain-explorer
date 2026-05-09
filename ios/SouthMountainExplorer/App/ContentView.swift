@@ -4,6 +4,8 @@ struct ContentView: View {
     @Environment(AuthService.self) private var auth
     @Environment(RecordingService.self) private var recording
 
+    @AppStorage("summit:theme") private var theme: AppTheme = .system
+
     var body: some View {
         TabView {
             Tab("Explore", systemImage: "mountain.2.fill") {
@@ -21,5 +23,6 @@ struct ContentView: View {
         }
         // iOS 26 — tab bar automatically gets Liquid Glass styling
         .tabViewStyle(.sidebarAdaptable)
+        .preferredColorScheme(theme.colorScheme)
     }
 }

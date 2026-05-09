@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 """
-Rebuild public/areas/index.json with trail counts from Overpass.
+Rebuild public/areas/index.json with trail counts from Overpass, and
+public/areas/silhouettes.json with downsampled trail polylines for the iOS
+Explore-tab card art.
 
-Each area becomes a 7-element tuple:
+Each area in index.json becomes a 7-element tuple:
   [id, name, state, lat, lon, trail_count, total_mi]
 
+silhouettes.json is a single dict keyed by area id:
+  { area_id: { "b": [w, s, e, n], "l": [{"d": "e|m|h", "p": [[lat,lon],...]}] } }
+where bbox is tight to the trails (not the park) and points are downsampled to
+~20 m spacing, rounded to 5 decimals.
+
 Incremental: results are saved to public/areas/counts-cache.json after each
-batch so the script can be interrupted and resumed. Only uncached areas are
-queried. Areas with zero qualifying trails are kept in the index with count=0
-so the app can filter them client-side.
+batch so the script can be interrupted and resumed. Areas with cached counts
+*and* a cached silhouette are skipped; areas missing silhouette data are
+re-fetched even if their counts are cached. Areas with zero qualifying trails
+are kept in the index with count=0 so the app can filter them client-side.
 
 Usage:
   python3 scripts/build-trail-counts.py [--batch-size N] [--delay S] [--limit N]
@@ -34,6 +42,10 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 INDEX_PATH = ROOT / "public" / "areas" / "index.json"
 CACHE_PATH = ROOT / "public" / "areas" / "counts-cache.json"
+SILHOUETTES_PATH = ROOT / "public" / "areas" / "silhouettes.json"
+
+SILHOUETTE_SPACING_M = 20.0
+SILHOUETTE_DECIMALS = 5
 
 OVERPASS_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
@@ -69,12 +81,51 @@ def neighbor_keys(lat, lon, cell=0.0001):
     return {f"{r+dr}:{c+dc}" for dr in (-1, 0, 1) for dc in (-1, 0, 1)}
 
 
+def _difficulty(tags: dict, miles: float) -> str:
+    """Mirrors AreaDataService.difficulty in the iOS app."""
+    sac = (tags.get("sac_scale") or "").strip()
+    if sac and sac != "hiking":
+        return "h"
+    if miles > 4:
+        return "h"
+    if miles > 2 or tags.get("trail_visibility") == "intermediate":
+        return "m"
+    return "e"
+
+
+def _haversine_m(lat1, lon1, lat2, lon2):
+    R = 6_371_000.0
+    d_la = math.radians(lat2 - lat1)
+    d_lo = math.radians(lon2 - lon1)
+    a = (math.sin(d_la / 2) ** 2
+         + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
+         * math.sin(d_lo / 2) ** 2)
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def _downsample(coords: list, spacing_m: float) -> list:
+    """Keep the first point, then any point that is at least spacing_m from
+    the last kept point. Always emit at least the endpoints if 2+ points."""
+    if len(coords) < 2:
+        return list(coords)
+    kept = [coords[0]]
+    for p in coords[1:-1]:
+        if _haversine_m(kept[-1][0], kept[-1][1], p[0], p[1]) >= spacing_m:
+            kept.append(p)
+    kept.append(coords[-1])
+    return kept
+
+
 def build_counts(data: bytes):
-    """Parse Overpass JSON and return (trail_count, total_mi)."""
+    """Parse Overpass JSON. Returns (trail_count, total_mi, silhouette).
+
+    silhouette is None if no qualifying trails were found, otherwise:
+      {"b": [w, s, e, n], "l": [{"d": "e|m|h", "p": [[lat,lon],...]}, ...]}
+    """
     try:
         obj = json.loads(data)
     except json.JSONDecodeError:
-        return 0, 0.0
+        return 0, 0.0, None
 
     elements = obj.get("elements", [])
     ways = [
@@ -82,7 +133,6 @@ def build_counts(data: bytes):
         if e.get("type") == "way" and len(e.get("geometry", [])) > 1
     ]
 
-    # Collect nodes belonging to named ways (for stitching unnamed connectors)
     named_nodes = set()
     for w in ways:
         tags = w.get("tags", {})
@@ -94,13 +144,13 @@ def build_counts(data: bytes):
             if lat is not None and lon is not None:
                 named_nodes.add(node_key(lat, lon))
 
-    by_name: dict[str, float] = {}  # name → accumulated miles
+    # name -> {"miles": float, "tags": dict, "segments": [[[lat,lon],...]]}
+    by_name: dict = {}
     for w in ways:
         tags = w.get("tags", {})
         raw_name = tags.get("name", "").strip()
         geom = w.get("geometry", [])
         if not raw_name:
-            # Only include unnamed ways that touch a named way
             endpoints = [geom[0], geom[-1]] if geom else []
             touches = any(
                 neighbor_keys(p["lat"], p["lon"]) & named_nodes
@@ -115,12 +165,47 @@ def build_counts(data: bytes):
             for p in geom
             if p.get("lat") is not None and p.get("lon") is not None
         ]
-        by_name[name] = by_name.get(name, 0.0) + dist_mi(coords)
+        if len(coords) < 2:
+            continue
+        if name not in by_name:
+            by_name[name] = {"miles": 0.0, "tags": tags, "segments": []}
+        by_name[name]["miles"] += dist_mi(coords)
+        by_name[name]["segments"].append(coords)
 
-    qualifying = {k: v for k, v in by_name.items() if v >= MIN_TRAIL_MI}
+    qualifying = {k: v for k, v in by_name.items() if v["miles"] >= MIN_TRAIL_MI}
     trail_count = len(qualifying)
-    total_mi = round(sum(qualifying.values()), 2)
-    return trail_count, total_mi
+    total_mi = round(sum(t["miles"] for t in qualifying.values()), 2)
+
+    if not qualifying:
+        return trail_count, total_mi, None
+
+    lines = []
+    min_lat = min_lon = float("inf")
+    max_lat = max_lon = float("-inf")
+    for trail in qualifying.values():
+        d = _difficulty(trail["tags"], trail["miles"])
+        for seg in trail["segments"]:
+            ds = _downsample(seg, SILHOUETTE_SPACING_M)
+            if len(ds) < 2:
+                continue
+            pts = [[round(p[0], SILHOUETTE_DECIMALS), round(p[1], SILHOUETTE_DECIMALS)] for p in ds]
+            for la, lo in pts:
+                if la < min_lat: min_lat = la
+                if la > max_lat: max_lat = la
+                if lo < min_lon: min_lon = lo
+                if lo > max_lon: max_lon = lo
+            lines.append({"d": d, "p": pts})
+
+    silhouette = {
+        "b": [
+            round(min_lon, SILHOUETTE_DECIMALS),
+            round(min_lat, SILHOUETTE_DECIMALS),
+            round(max_lon, SILHOUETTE_DECIMALS),
+            round(max_lat, SILHOUETTE_DECIMALS),
+        ],
+        "l": lines,
+    }
+    return trail_count, total_mi, silhouette
 
 
 def nominatim_lookup(name: str, state: str) -> dict | None:
@@ -243,7 +328,6 @@ def main():
     cache: dict = json.loads(CACHE_PATH.read_text()) if CACHE_PATH.exists() else {}
 
     if args.cache_only:
-        # Just rebuild index.json from the existing cache — no network calls.
         new_index = []
         for area in index:
             entry = cache.get(area[0])
@@ -254,8 +338,10 @@ def main():
                 new_index.append(area[:5])
         new_index = deduplicate(new_index)
         INDEX_PATH.write_text(json.dumps(new_index, separators=(",", ":")))
+        write_silhouettes(cache, new_index)
         cached_count = sum(1 for a in new_index if len(a) >= 7)
-        print(f"Cache-only rebuild: {cached_count}/{len(new_index)} areas have counts.")
+        sil_count = sum(1 for a in new_index if cache.get(a[0], {}).get("silhouette"))
+        print(f"Cache-only rebuild: {cached_count}/{len(new_index)} areas have counts, {sil_count} have silhouettes.")
         return
 
     targets = index if args.limit is None else index[: args.limit]
@@ -271,7 +357,8 @@ def main():
         lat = area[3]
         lon = area[4]
 
-        if not args.force and area_id in cache:
+        cached_entry = cache.get(area_id)
+        if not args.force and cached_entry is not None and "silhouette" in cached_entry:
             skipped += 1
             continue
 
@@ -281,11 +368,16 @@ def main():
             time.sleep(1)  # Nominatim rate limit: 1 req/sec
             source = "relation" if nominatim else "radius"
             data = fetch_overpass(lat, lon, nominatim)
-            trail_count, total_mi = build_counts(data)
-            cache[area_id] = {"trail_count": trail_count, "total_mi": total_mi}
+            trail_count, total_mi, silhouette = build_counts(data)
+            cache[area_id] = {
+                "trail_count": trail_count,
+                "total_mi": total_mi,
+                "silhouette": silhouette,
+            }
             processed += 1
+            sil_lines = len(silhouette["l"]) if silhouette else 0
             print(
-                f"[{i+1}/{total}] {area_id}: {trail_count} trails, {total_mi:.2f} mi ({source})",
+                f"[{i+1}/{total}] {area_id}: {trail_count} trails, {total_mi:.2f} mi, {sil_lines} silhouette lines ({source})",
                 flush=True,
             )
         except Exception as e:
@@ -318,12 +410,25 @@ def main():
 
     new_index = deduplicate(new_index)
     INDEX_PATH.write_text(json.dumps(new_index, separators=(",", ":")))
+    write_silhouettes(cache, new_index)
 
     cached_count = sum(1 for a in new_index if len(a) >= 7)
+    sil_count = sum(1 for a in new_index if cache.get(a[0], {}).get("silhouette"))
     print(
         f"\nDone. processed={processed}, skipped={skipped}, errors={errors}. "
-        f"{cached_count}/{len(new_index)} areas have counts."
+        f"{cached_count}/{len(new_index)} areas have counts, {sil_count} have silhouettes."
     )
+
+
+def write_silhouettes(cache: dict, index: list) -> None:
+    """Write silhouettes.json from the cache, scoped to the given index."""
+    out: dict = {}
+    for area in index:
+        area_id = area[0]
+        sil = cache.get(area_id, {}).get("silhouette")
+        if sil:
+            out[area_id] = sil
+    SILHOUETTES_PATH.write_text(json.dumps(out, separators=(",", ":")))
 
 
 if __name__ == "__main__":

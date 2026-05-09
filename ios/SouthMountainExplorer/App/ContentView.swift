@@ -46,9 +46,14 @@ struct ContentView: View {
             }
             Button("Keep Recording", role: .cancel) { }
         }
-        .fullScreenCover(isPresented: .constant(!onboarded)) {
+        .fullScreenCover(isPresented: Binding(
+            // A writable binding so the dismiss() call inside OnboardingView
+            // actually flips `onboarded`. .constant(!onboarded) silently
+            // ignores writes, leaving the cover stuck open.
+            get: { !onboarded },
+            set: { stillShowing in onboarded = !stillShowing }
+        )) {
             OnboardingView()
-                .onDisappear { onboarded = true }
         }
     }
 

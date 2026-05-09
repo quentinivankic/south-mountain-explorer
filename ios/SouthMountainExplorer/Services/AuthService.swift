@@ -59,7 +59,7 @@ final class AuthService: NSObject {
             let delegate = AppleAuthDelegate(continuation: continuation)
             controller.delegate = delegate
             controller.presentationContextProvider = self
-            objc_setAssociatedObject(controller, &AssociatedKeys.delegate, delegate, .OBJC_ASSOCIATION_RETAIN)
+            objc_setAssociatedObject(controller, &delegateKey, delegate, .OBJC_ASSOCIATION_RETAIN)
             controller.performRequests()
         }
     }
@@ -90,7 +90,7 @@ final class AuthService: NSObject {
     }
 }
 
-private enum AssociatedKeys { static var delegate = 0 }
+private nonisolated(unsafe) var delegateKey: UInt8 = 0
 
 extension AuthService: ASAuthorizationControllerPresentationContextProviding {
     nonisolated func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {

@@ -103,9 +103,12 @@ struct TrailRow: View {
                 Task { await progress.toggleTrail(areaId: areaId, trailId: trail.id) }
             } label: {
                 // Outlined checkmark hints the action; fills in cyan when complete.
+                // Wrap both branches in AnyShapeStyle so the ternary has a single
+                // type — .cyan is a Color, .tertiary is a HierarchicalShapeStyle,
+                // and Swift can't unify them otherwise.
                 Image(systemName: isComplete ? "checkmark.circle.fill" : "checkmark.circle")
                     .font(.title3)
-                    .foregroundStyle(isComplete ? .cyan : .tertiary)
+                    .foregroundStyle(isComplete ? AnyShapeStyle(Color.cyan) : AnyShapeStyle(.tertiary))
             }
             .buttonStyle(.plain)
         }

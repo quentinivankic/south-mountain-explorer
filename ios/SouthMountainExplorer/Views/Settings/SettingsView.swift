@@ -149,7 +149,10 @@ struct SettingsView: View {
         .sheet(isPresented: $showSignIn) {
             AuthView()
         }
-        .task { await refreshStats() }
+        // Re-run when the recording state flips (recording starts or stops)
+        // so completing a hike then opening Settings shows fresh numbers
+        // instead of whatever was cached on the last view appearance.
+        .task(id: recording.activeRecording == nil) { await refreshStats() }
     }
 
     private func statsBlock(_ s: UserStats) -> some View {

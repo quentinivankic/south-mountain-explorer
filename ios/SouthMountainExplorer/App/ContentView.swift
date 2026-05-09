@@ -6,6 +6,7 @@ struct ContentView: View {
     @Environment(AreaDataService.self) private var areas
 
     @AppStorage("summit:onboarded") private var onboarded = false
+    @AppStorage("summit:theme") private var theme: AppTheme = .system
 
     @State private var showStopConfirm = false
 
@@ -26,6 +27,7 @@ struct ContentView: View {
         }
         // iOS 26 — tab bar automatically gets Liquid Glass styling
         .tabViewStyle(.sidebarAdaptable)
+        .preferredColorScheme(theme.colorScheme)
         .safeAreaInset(edge: .top, spacing: 0) {
             if let rec = recording.activeRecording {
                 ActiveRecordingBanner(

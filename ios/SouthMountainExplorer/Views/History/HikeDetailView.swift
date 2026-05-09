@@ -30,7 +30,7 @@ struct HikeDetailView: View {
         .navigationTitle(areaName)
         .navigationBarTitleDisplayMode(.inline)
         .task { area = await areas.area(id: hike.areaId) }
-        .task { shareImage = makeShareImage() }
+        .task { await prepareShareImage() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if let img = shareImage {
@@ -45,13 +45,16 @@ struct HikeDetailView: View {
         }
     }
 
-    @MainActor
-    private func makeShareImage() -> Image? {
-        let card = ShareableHikeCard(hike: hike, areaName: areaName)
+    /// Render the MKMapSnapshot first (off main, since it's async), then
+    /// build the SwiftUI share card on top of it via ImageRenderer.
+    private func prepareShareImage() async {
+        let mapImage = await HikeMapSnapshot.render(path: hike.path)
+        let card = ShareableHikeCard(hike: hike, areaName: areaName, mapImage: mapImage)
         let renderer = ImageRenderer(content: card)
-        renderer.scale = 3.0
-        guard let ui = renderer.uiImage else { return nil }
-        return Image(uiImage: ui)
+        renderer.scale = 1
+        if let ui = renderer.uiImage {
+            shareImage = Image(uiImage: ui)
+        }
     }
 
     private var hikeMap: some View {

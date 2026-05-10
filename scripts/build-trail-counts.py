@@ -122,6 +122,28 @@ def _downsample(coords: list, spacing_m: float) -> list:
     return kept
 
 
+def _is_road_like(tags: dict, name: str) -> bool:
+    """Mirrors AreaDataService.isRoadLike on the iOS side. Drops
+    forest-service / utility roads tagged as `highway=track` with names
+    like "FR-123 Road" or motor_vehicle=yes — those flood the trail
+    count for national forests but aren't real hiking trails. Without
+    this filter the bundled count is hundreds higher than what the iOS
+    app shows after fetching the same area (Apache-Sitgreaves was 741
+    in the bundle vs 465 on device)."""
+    if tags.get("highway") != "track":
+        return False
+    road_words = ("road", "drive", "avenue", "canal", "drain", "ditch",
+                  "boulevard", "highway", "freeway")
+    lower = (name or "").lower()
+    if any(w in lower for w in road_words):
+        return True
+    if tags.get("motor_vehicle") == "yes" or tags.get("motorcar") == "yes":
+        return True
+    if tags.get("access") == "private":
+        return True
+    return False
+
+
 def build_counts(data: bytes):
     """Parse Overpass JSON. Returns (trail_count, total_mi, silhouette).
 
@@ -145,6 +167,8 @@ def build_counts(data: bytes):
         name = tags.get("name", "").strip()
         if not name:
             continue
+        if _is_road_like(tags, name):
+            continue
         for p in w.get("geometry", []):
             lat, lon = p.get("lat"), p.get("lon")
             if lat is not None and lon is not None:
@@ -155,6 +179,8 @@ def build_counts(data: bytes):
     for w in ways:
         tags = w.get("tags", {})
         raw_name = tags.get("name", "").strip()
+        if _is_road_like(tags, raw_name):
+            continue
         geom = w.get("geometry", [])
         if not raw_name:
             endpoints = [geom[0], geom[-1]] if geom else []

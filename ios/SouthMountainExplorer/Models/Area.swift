@@ -63,7 +63,12 @@ struct AreaRow: Codable, Sendable {
             trails: resolvedTrails,
             trailCount: trailCount ?? resolvedTrails.count,
             totalMi: totalMi ?? resolvedTrails.reduce(0) { $0 + $1.distanceMi },
-            cachedAt: cachedAt.flatMap { formatter.date(from: $0) }
+            // Stamp `now` when the row didn't carry a date so freshly-fetched
+            // areas have a real cache timestamp. Without this, every disk-
+            // cached Area read back as cachedAt=nil → staleness=∞ → a silent
+            // background refresh on every open, which non-deterministically
+            // re-shuffled trail IDs and double-counted completions.
+            cachedAt: cachedAt.flatMap { formatter.date(from: $0) } ?? Date()
         )
     }
 }

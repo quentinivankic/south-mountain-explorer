@@ -14,6 +14,10 @@ struct ContentView: View {
     @State private var showStopConfirm = false
     @State private var showDiscardConfirm = false
     @State private var jumpToAreaId: String? = nil
+    /// Set when the user taps a trail-completion push notification. The
+    /// AreaView opened by `jumpToAreaId` reads this to play a one-shot
+    /// celebration overlay, then clears itself.
+    @State private var celebrationTrailName: String? = nil
 
     var body: some View {
         TabView {
@@ -47,11 +51,15 @@ struct ContentView: View {
         }
         .fullScreenCover(isPresented: Binding(
             get: { jumpToAreaId != nil },
-            set: { if !$0 { jumpToAreaId = nil } }
+            set: { if !$0 { jumpToAreaId = nil; celebrationTrailName = nil } }
         )) {
             if let id = jumpToAreaId {
                 NavigationStack {
-                    AreaView(areaId: id, areaName: areaName(for: id))
+                    AreaView(
+                        areaId: id,
+                        areaName: areaName(for: id),
+                        initialCelebrationTrailName: celebrationTrailName
+                    )
                 }
             }
         }
@@ -100,6 +108,17 @@ struct ContentView: View {
             case .inactive, .background: activity.endSession()
             @unknown default: break
             }
+        }
+        // Notification-tap deep-link. Set the celebration name first so
+        // AreaView reads it on its first .task, then trigger the cover.
+        .onReceive(NotificationCenter.default.publisher(for: NotificationService.celebrateNotification)) { msg in
+            guard
+                let info = msg.userInfo,
+                let areaId = info["areaId"] as? String,
+                let trailName = info["trailName"] as? String
+            else { return }
+            celebrationTrailName = trailName
+            jumpToAreaId = areaId
         }
     }
 

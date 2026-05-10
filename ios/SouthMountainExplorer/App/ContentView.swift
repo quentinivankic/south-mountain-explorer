@@ -5,6 +5,8 @@ struct ContentView: View {
     @Environment(RecordingService.self) private var recording
     @Environment(AreaDataService.self) private var areas
     @Environment(ProgressService.self) private var progress
+    @Environment(ActivityService.self) private var activity
+    @Environment(\.scenePhase) private var scenePhase
 
     @AppStorage("summit:onboarded") private var onboarded = false
     @AppStorage("summit:theme") private var theme: AppTheme = .system
@@ -87,6 +89,17 @@ struct ContentView: View {
             OnboardingView()
         }
         .task { await rebuildCompletionsFromHistory() }
+        // Track foreground sessions for engagement telemetry. .active fires
+        // on initial launch and on every return from background; .inactive
+        // / .background fires when the app loses foreground (incl. when
+        // killed). endSession is a no-op if no start has been recorded.
+        .onChange(of: scenePhase, initial: true) { _, newPhase in
+            switch newPhase {
+            case .active: activity.startSession()
+            case .inactive, .background: activity.endSession()
+            @unknown default: break
+            }
+        }
     }
 
     /// Run once at app launch: scan recorded hike history and re-stamp every

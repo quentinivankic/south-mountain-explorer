@@ -11,6 +11,7 @@ struct SouthMountainExplorerApp: App {
     private let progress = ProgressService.shared
     private let coverage = CoverageService.shared
     private let favorites = FavoritesService.shared
+    private let activity = ActivityService.shared
 
     var body: some Scene {
         WindowGroup {
@@ -23,6 +24,7 @@ struct SouthMountainExplorerApp: App {
                 .environment(progress)
                 .environment(coverage)
                 .environment(favorites)
+                .environment(activity)
         }
     }
 }

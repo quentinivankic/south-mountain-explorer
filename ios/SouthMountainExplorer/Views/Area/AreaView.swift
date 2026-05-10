@@ -11,6 +11,7 @@ struct AreaView: View {
     @Environment(FavoritesService.self) private var favorites
     @Environment(LocationService.self) private var location
     @Environment(ProgressService.self) private var progress
+    @Environment(ActivityService.self) private var activity
     @Environment(\.dismiss) private var dismiss
 
     @State private var area: Area? = nil
@@ -112,6 +113,9 @@ struct AreaView: View {
             .safeAreaPadding(.top)
         }
         .task {
+            // Telemetry: log "user opened this area" so we can later
+            // surface "you haven't visited X in a while" reminders.
+            activity.recordAreaOpened(areaId)
             let result = await areas.areaWithError(id: areaId)
             area = result.area
             loadError = result.error

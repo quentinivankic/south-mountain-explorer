@@ -51,6 +51,19 @@ Plus:
 
 ## Next-build candidates (not yet started)
 
+- [ ] **Speed up area-load.** Currently AreaView's `.task` fetches
+  the area from Overpass API on every first-tap (~1–3s "Loading…"
+  spinner). Two compounding fixes:
+    1. **Prefetch on Explore.** Kick off background `areas.area(id:)`
+       calls for the visible AreaCards on HomeView appear so the
+       cache is warm by the time the user taps in. ~30 lines in
+       HomeView, network paid silently.
+    2. **Persist the area cache to disk.** AreaDataService keeps
+       cached `Area` objects in memory only — they evaporate on
+       relaunch. Save to `.../caches/areas/<id>.json` after every
+       fetch, hydrate on init. First-open-of-day stays slow but
+       subsequent launches are <100ms.
+  Combined effect: instant AreaView opens after the first session.
 - [ ] **B4** Filter the trail list by completed/incomplete,
   difficulty, length, route type (out-and-back, loop, etc.). Route
   type isn't currently in the trail model — would need to compute
@@ -58,10 +71,6 @@ Plus:
 - [ ] Pick a single card-art style and drop the alternating
   treatment between `.tight` and `.glow`.
 - [ ] iPad layout sanity-check.
-- [ ] Settings stats refresh after a hike completes (currently the
-  block is captured on first .task fire and won't re-tally until
-  app relaunch). Probably `.task(id:)` keyed on
-  `recording.activeRecording?.startedAt` or similar.
 
 ## Backlog / ideas
 

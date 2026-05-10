@@ -154,7 +154,10 @@ struct HomeView: View {
                 location.startLiveTracking()
             }
             Task { history = await recording.loadHistory() }
+            prefetchVisibleAreas()
         }
+        .onChange(of: location.userLocation?.latitude) { _, _ in prefetchVisibleAreas() }
+        .onChange(of: lengthFilter) { _, _ in prefetchVisibleAreas() }
         .sheet(isPresented: $showLocationPrompt) {
             LocationPromptView()
         }
@@ -176,10 +179,7 @@ struct HomeView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
                     ForEach(items) { area in
-                        // Always .glow — the SilhouetteArtwork gates the
-                        // blur effect on dark mode, so light mode renders
-                        // crisp lines without the muddied halo regardless.
-                        AreaCard(area: area, style: .glow)
+                        AreaCard(area: area)
                             .onTapGesture { selectedArea = area }
                     }
                 }
@@ -246,7 +246,7 @@ struct HomeView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14) {
                         ForEach(nearbyAreas) { area in
-                            AreaCard(area: area, style: .glow)
+                            AreaCard(area: area)
                                 .onTapGesture { selectedArea = area }
                         }
                     }
@@ -285,6 +285,31 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
+    }
+
+    /// Warm the per-area cache for every card currently rendered on Explore so
+    /// tapping in opens AreaView instantly instead of showing the 1–3s
+    /// "Loading…" spinner. `areas.area(id:)` is idempotent: it short-circuits
+    /// on a cache hit (memory or disk), refreshes silently if stale, and
+    /// dedupes concurrent fetches per id, so calling it for the same set of
+    /// ids on repeated appears or filter changes is safe and free.
+    private func prefetchVisibleAreas() {
+        var seen = Set<String>()
+        var ids: [String] = []
+        let pools: [[AreaSummary]] = [
+            continueArea.map { [$0] } ?? [],
+            unvisitedAreas,
+            favorites.favoriteAreas,
+            nearbyAreas
+        ]
+        for pool in pools {
+            for area in pool where seen.insert(area.id).inserted {
+                ids.append(area.id)
+            }
+        }
+        for id in ids {
+            Task { _ = await areas.area(id: id) }
+        }
     }
 
     /// Pick a random area the user hasn't recorded in yet and open it.

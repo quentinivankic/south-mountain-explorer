@@ -1,13 +1,7 @@
 import SwiftUI
 
-enum CardArtStyle {
-    case tight   // Just trail polylines on a dark backdrop, no halo.
-    case glow    // Trail polylines with a soft glow underneath, hinting at territory.
-}
-
 struct AreaCard: View {
     let area: AreaSummary
-    var style: CardArtStyle = .tight
 
     @Environment(FavoritesService.self) private var favorites
     @Environment(ProgressService.self) private var progress
@@ -118,7 +112,7 @@ struct AreaCard: View {
     @ViewBuilder
     private var artwork: some View {
         if let silhouette = silhouettes.silhouette(for: area.id) {
-            SilhouetteArtwork(silhouette: silhouette, style: style)
+            SilhouetteArtwork(silhouette: silhouette)
         } else {
             LinearGradient(
                 colors: gradientColors,
@@ -164,23 +158,20 @@ private struct DifficultyMixBar: View {
 
 private struct SilhouetteArtwork: View {
     let silhouette: AreaSilhouette
-    let style: CardArtStyle
 
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
-            // Adaptive backdrop. Reads ~black in dark mode (the look we
-            // wanted) and a soft light gray in light mode (so the card
-            // doesn't sit as a harsh black brick on a white screen).
-            // secondarySystemBackground gives the card elevation against
-            // the parent's primary background.
+            // Adaptive backdrop. Reads ~black in dark mode and a soft light
+            // gray in light mode so the card has elevation against the
+            // parent's primary background without being a harsh black brick.
             Color(.secondarySystemBackground)
 
-            // Glow only reads well over the dark backdrop — in light mode
-            // it muddies the trail lines without adding the neon-on-black
-            // depth we get in dark mode. Restrict to .dark.
-            if style == .glow && colorScheme == .dark {
+            // Glow halo only reads well over the dark backdrop — in light
+            // mode it muddies the trail lines without adding the neon-on-
+            // black depth we get in dark mode.
+            if colorScheme == .dark {
                 SilhouetteCanvas(silhouette: silhouette, lineWidth: 5, opacity: 0.45)
                     .blur(radius: 5)
             }

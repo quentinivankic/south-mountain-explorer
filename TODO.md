@@ -48,29 +48,23 @@ Plus:
   recorded so the user can see at a glance which polyline to follow.
 - Trail-list summary header now has a "Tap to highlight · long-press
   to record" tip so the context-menu action is discoverable.
+- Prefetch visible AreaCard areas on Explore appear / location /
+  filter change. Combined with the existing on-disk area cache, area
+  opens are now instant after the first warm-up.
+- B4 — Trail-list filter menu: status (all / incomplete / complete),
+  difficulty (all / easy / moderate / hard), length (all / <1mi /
+  1–3mi / >3mi). Live count badge on the filter button + "Showing X
+  of Y" line in the header.
+- AreaCard.style param dropped — only `.glow` was ever used and the
+  blur halo is already gated to dark mode inside SilhouetteArtwork,
+  so the `.tight` branch never rendered differently. Cleaner API.
 
 ## Next-build candidates (not yet started)
 
-- [ ] **Speed up area-load.** Currently AreaView's `.task` fetches
-  the area from Overpass API on every first-tap (~1–3s "Loading…"
-  spinner). Two compounding fixes:
-    1. **Prefetch on Explore.** Kick off background `areas.area(id:)`
-       calls for the visible AreaCards on HomeView appear so the
-       cache is warm by the time the user taps in. ~30 lines in
-       HomeView, network paid silently.
-    2. **Persist the area cache to disk.** AreaDataService keeps
-       cached `Area` objects in memory only — they evaporate on
-       relaunch. Save to `.../caches/areas/<id>.json` after every
-       fetch, hydrate on init. First-open-of-day stays slow but
-       subsequent launches are <100ms.
-  Combined effect: instant AreaView opens after the first session.
-- [ ] **B4** Filter the trail list by completed/incomplete,
-  difficulty, length, route type (out-and-back, loop, etc.). Route
-  type isn't currently in the trail model — would need to compute
-  from GPS shape or pull from OSM `route` / `network` tags.
-- [ ] Pick a single card-art style and drop the alternating
-  treatment between `.tight` and `.glow`.
 - [ ] iPad layout sanity-check.
+- [ ] Route type filter for trails (out-and-back, loop, etc.) — not
+  in the trail model yet, would need to compute from GPS shape or
+  pull from OSM `route` / `network` tags.
 
 ## Backlog / ideas
 

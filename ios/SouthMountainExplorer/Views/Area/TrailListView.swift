@@ -1,5 +1,59 @@
 import SwiftUI
 
+enum TrailStatusFilter: String, CaseIterable, Identifiable {
+    case all, incomplete, complete
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .all: return "All"
+        case .incomplete: return "Incomplete"
+        case .complete: return "Complete"
+        }
+    }
+}
+
+enum TrailDifficultyFilter: String, CaseIterable, Identifiable {
+    case all, easy, moderate, hard
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .all: return "All"
+        case .easy: return "Easy"
+        case .moderate: return "Moderate"
+        case .hard: return "Hard"
+        }
+    }
+    func matches(_ d: Difficulty) -> Bool {
+        switch self {
+        case .all: return true
+        case .easy: return d == .easy
+        case .moderate: return d == .moderate
+        case .hard: return d == .hard
+        }
+    }
+}
+
+enum TrailLengthFilter: String, CaseIterable, Identifiable {
+    case all, short, medium, long
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .all: return "All"
+        case .short: return "< 1 mi"
+        case .medium: return "1–3 mi"
+        case .long: return "> 3 mi"
+        }
+    }
+    func matches(_ mi: Double) -> Bool {
+        switch self {
+        case .all: return true
+        case .short: return mi < 1
+        case .medium: return (1..<3).contains(mi)
+        case .long: return mi >= 3
+        }
+    }
+}
+
 struct TrailListView: View {
     let area: Area
     @Binding var selectedTrailId: String?
@@ -9,10 +63,36 @@ struct TrailListView: View {
     @Environment(CoverageService.self) private var coverage
     @Environment(RecordingService.self) private var recording
 
+    @State private var statusFilter: TrailStatusFilter = .all
+    @State private var difficultyFilter: TrailDifficultyFilter = .all
+    @State private var lengthFilter: TrailLengthFilter = .all
+
+    private var activeFilterCount: Int {
+        var n = 0
+        if statusFilter != .all { n += 1 }
+        if difficultyFilter != .all { n += 1 }
+        if lengthFilter != .all { n += 1 }
+        return n
+    }
+
+    private var filteredTrails: [Trail] {
+        area.trails.filter { trail in
+            let isComplete = progress.isComplete(areaId: area.id, trailId: trail.id)
+            switch statusFilter {
+            case .all: break
+            case .incomplete: if isComplete { return false }
+            case .complete: if !isComplete { return false }
+            }
+            if !difficultyFilter.matches(trail.difficulty) { return false }
+            if !lengthFilter.matches(trail.distanceMi) { return false }
+            return true
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Summary header
-            HStack {
+            HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(area.resolvedTrailCount) trails · \(String(format: "%.1f", area.resolvedTotalMi)) mi total")
                         .font(.subheadline)
@@ -23,6 +103,12 @@ struct TrailListView: View {
                         Text("\(completed) of \(area.resolvedTrailCount) completed")
                             .font(.caption)
                             .foregroundStyle(completed == area.resolvedTrailCount ? .green : .secondary)
+                    }
+
+                    if activeFilterCount > 0 {
+                        Text("Showing \(filteredTrails.count) of \(area.trails.count)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
 
                     // Discoverability nudge for the long-press → "Record
@@ -36,6 +122,7 @@ struct TrailListView: View {
                     }
                 }
                 Spacer()
+                filterMenu
             }
             .padding(.horizontal)
             .padding(.vertical, 12)
@@ -44,14 +131,33 @@ struct TrailListView: View {
 
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    ForEach(area.trails) { trail in
-                        TrailRow(
-                            trail: trail,
-                            areaId: area.id,
-                            selectedTrailId: $selectedTrailId,
-                            onRecordTrail: onRecordTrail
-                        )
-                        Divider().padding(.leading)
+                    if filteredTrails.isEmpty {
+                        VStack(spacing: 6) {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                                .font(.title2)
+                                .foregroundStyle(.tertiary)
+                            Text("No trails match these filters.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Button("Clear filters") {
+                                statusFilter = .all
+                                difficultyFilter = .all
+                                lengthFilter = .all
+                            }
+                            .font(.caption)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                    } else {
+                        ForEach(filteredTrails) { trail in
+                            TrailRow(
+                                trail: trail,
+                                areaId: area.id,
+                                selectedTrailId: $selectedTrailId,
+                                onRecordTrail: onRecordTrail
+                            )
+                            Divider().padding(.leading)
+                        }
                     }
                 }
                 // The parent panel uses .ignoresSafeArea(.bottom) so it
@@ -62,6 +168,51 @@ struct TrailListView: View {
                 .padding(.bottom, 50)
             }
         }
+    }
+
+    private var filterMenu: some View {
+        Menu {
+            Picker("Status", selection: $statusFilter) {
+                ForEach(TrailStatusFilter.allCases) { f in
+                    Text(f.label).tag(f)
+                }
+            }
+            Picker("Difficulty", selection: $difficultyFilter) {
+                ForEach(TrailDifficultyFilter.allCases) { f in
+                    Text(f.label).tag(f)
+                }
+            }
+            Picker("Length", selection: $lengthFilter) {
+                ForEach(TrailLengthFilter.allCases) { f in
+                    Text(f.label).tag(f)
+                }
+            }
+            if activeFilterCount > 0 {
+                Divider()
+                Button(role: .destructive) {
+                    statusFilter = .all
+                    difficultyFilter = .all
+                    lengthFilter = .all
+                } label: {
+                    Label("Clear All", systemImage: "xmark.circle")
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: activeFilterCount > 0
+                      ? "line.3.horizontal.decrease.circle.fill"
+                      : "line.3.horizontal.decrease.circle")
+                if activeFilterCount > 0 {
+                    Text("\(activeFilterCount)")
+                        .font(.caption.weight(.semibold))
+                }
+            }
+            .font(.title3)
+            .foregroundStyle(activeFilterCount > 0 ? Color.accentColor : .secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+        }
+        .accessibilityLabel("Filter trails")
     }
 }
 

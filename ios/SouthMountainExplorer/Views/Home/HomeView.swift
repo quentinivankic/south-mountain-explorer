@@ -109,6 +109,15 @@ struct HomeView: View {
                 }
                 .padding()
             }
+            .refreshable {
+                // Pull-to-refresh: re-load history (so a hike completed
+                // mid-session shows up in Pick Up / Try Something New),
+                // re-poke the location service so Near You can recompute.
+                history = await recording.loadHistory()
+                if location.isAuthorized {
+                    location.startLiveTracking()
+                }
+            }
             .navigationTitle("Explore")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -118,6 +127,15 @@ struct HomeView: View {
                         Image(systemName: "map")
                     }
                     .accessibilityLabel("All Areas Map")
+                }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        surpriseMe()
+                    } label: {
+                        Image(systemName: "dice")
+                    }
+                    .accessibilityLabel("Surprise Me")
+                    .disabled(areas.summaries.isEmpty)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     if !auth.isSignedIn {
@@ -267,6 +285,17 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
+    }
+
+    /// Pick a random area the user hasn't recorded in yet and open it.
+    /// Falls back to any area when every area has been visited (or
+    /// when there's no history yet — then "unvisited" is everything).
+    private func surpriseMe() {
+        let visited = visitedAreaIds
+        let unvisited = areas.summaries.filter { !visited.contains($0.id) }
+        let pool = unvisited.isEmpty ? areas.summaries : unvisited
+        guard let pick = pool.randomElement() else { return }
+        selectedArea = pick
     }
 
     private func haversine(_ a: AreaSummary, lat: Double, lon: Double) -> Double {

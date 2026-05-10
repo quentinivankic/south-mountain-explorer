@@ -37,6 +37,7 @@ struct ContentView: View {
             if let rec = recording.activeRecording {
                 ActiveRecordingBanner(
                     areaName: areaName(for: rec.areaId),
+                    trailName: trailName(forAreaId: rec.areaId, trailId: rec.trailId),
                     distanceMi: rec.distanceMi,
                     startedAt: rec.startedAt,
                     onTap: { jumpToAreaId = rec.areaId },
@@ -124,6 +125,14 @@ struct ContentView: View {
         if let cached = areas.cachedArea(id: id)?.name { return cached }
         if let summary = areas.summaries.first(where: { $0.id == id })?.name { return summary }
         return "Hiking"
+    }
+
+    /// Resolve the trail name for trail-mode recordings so the banner can
+    /// promote it to the primary label. Returns nil when the recording is
+    /// in roam mode or the area's trails aren't cached yet.
+    private func trailName(forAreaId areaId: String, trailId: String?) -> String? {
+        guard let trailId else { return nil }
+        return areas.cachedArea(id: areaId)?.trails.first { $0.id == trailId }?.name
     }
 
     private func stopActiveRecording() async {

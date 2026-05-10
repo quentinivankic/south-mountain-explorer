@@ -7,6 +7,10 @@ import SwiftUI
 /// user doesn't have to navigate back to the area to end a hike.
 struct ActiveRecordingBanner: View {
     let areaName: String
+    /// Set when the active recording is in `.trail` mode — promoted to
+    /// the banner's primary label so the user sees "West Alta" instead
+    /// of just "South Mountain Park". Mirrors HikeRow's title treatment.
+    let trailName: String?
     let distanceMi: Double
     let startedAt: Date
     let onTap: () -> Void
@@ -28,13 +32,16 @@ struct ActiveRecordingBanner: View {
                         .symbolEffect(.pulse)
 
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(areaName)
+                        // Trail name wins the primary slot when in
+                        // .trail mode; area name slips to a caption.
+                        Text(trailName ?? areaName)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.primary)
                             .lineLimit(1)
-                        Text("\(String(format: "%.2f", distanceMi)) mi · \(formattedElapsed)")
+                        Text(subtitleLine)
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
 
                     Spacer(minLength: 8)
@@ -58,6 +65,16 @@ struct ActiveRecordingBanner: View {
         .background(.regularMaterial)
         .onAppear { startTimer() }
         .onDisappear { timer?.invalidate() }
+    }
+
+    /// "South Mountain Park · 1.23 mi · 14:32" when in trail mode,
+    /// "1.23 mi · 14:32" when in roam mode (area is already the title).
+    private var subtitleLine: String {
+        let stats = "\(String(format: "%.2f", distanceMi)) mi · \(formattedElapsed)"
+        if trailName != nil {
+            return "\(areaName) · \(stats)"
+        }
+        return stats
     }
 
     private var formattedElapsed: String {

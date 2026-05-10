@@ -146,7 +146,8 @@ final class AreaDataService {
         let stub = AreaRow(
             id: summary.id, name: summary.name, state: summary.subtitle,
             centerLat: summary.centerLat, centerLon: summary.centerLon,
-            zoom: 13, bbox: nil, trails: nil, trailCount: nil, totalMi: nil, cachedAt: nil
+            zoom: 13, bbox: nil, trails: nil, trailCount: nil, totalMi: nil, cachedAt: nil,
+            osmRelationId: summary.osmRelationId
         )
         // Inline retry: Overpass occasionally returns an empty body (timeout
         // converted to 200, rate-limit slot, etc.). One trip ≈ a 1–3s "Trail
@@ -229,16 +230,18 @@ final class AreaDataService {
             let s = bbox[1], w = bbox[0], n = bbox[3], e = bbox[2]
             query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(s),\(w),\(n),\(e)););out tags geom;"
             parkBbox = bbox
+        } else if let osmId = row.osmRelationId {
+            // Fast path: bundled index already pinned the relation id, so
+            // we query the same polygon Python used. Skipping Nominatim
+            // entirely also drops a network round-trip and a rate-limit
+            // sleep from every cold area open.
+            let areaId = osmId + 3_600_000_000
+            query = "[out:json][timeout:90];area(\(areaId))->.a;(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](area.a););out tags geom;"
         } else if let result = await nominatimLookup(name: row.name, state: row.state) {
             let areaId = result.relationId + 3_600_000_000
             query = "[out:json][timeout:90];area(\(areaId))->.a;(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](area.a););out tags geom;"
             // Intentionally don't set parkBbox here — Overpass's `area(id)`
-            // already constrains results to the relation polygon. Clipping
-            // by Nominatim's bbox on top of that was lopping off ~99% of
-            // trails for huge areas like national forests, where Nominatim
-            // returns a small or inaccurate sub-feature bbox (Coronado NF
-            // showed 7/30mi on iOS vs the true 992/2542mi from the same
-            // area query).
+            // already constrains results to the relation polygon.
         } else {
             let lat = row.centerLat, lon = row.centerLon, d = 0.10
             query = "[out:json][timeout:90];(way[\"highway\"~\"^(path|footway|track|bridleway)$\"](\(lat-d),\(lon-d),\(lat+d),\(lon+d)););out tags geom;"
@@ -264,7 +267,8 @@ final class AreaDataService {
                     zoom: row.zoom, bbox: row.bbox,
                     trails: trails, trailCount: trails.count,
                     totalMi: trails.reduce(0) { $0 + $1.distanceMi },
-                    cachedAt: row.cachedAt
+                    cachedAt: row.cachedAt,
+                    osmRelationId: row.osmRelationId
                 )
             } catch {
                 lastError = error

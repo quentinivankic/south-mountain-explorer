@@ -37,6 +37,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INDEX_PATH = ROOT / "public" / "areas" / "index.json"
+CACHE_PATH = ROOT / "public" / "areas" / "counts-cache.json"
 SCRIPTS_DIR = Path(__file__).resolve().parent
 SEED_INCLUDE = SCRIPTS_DIR / "seeds-include.txt"
 SEED_EXCLUDE = SCRIPTS_DIR / "seeds-exclude.txt"
@@ -140,10 +141,15 @@ def slugify(name: str, state_code: str) -> str:
     return f"{s[:60]}-{state_code.lower()}"
 
 
-def fetch_state(state_code: str) -> list[list]:
+def fetch_state(state_code: str) -> list[tuple[list, int]]:
+    """Returns (index_row, osm_relation_id) pairs. The osm_id is what
+    we'll pin into counts-cache so both build-trail-counts.py and the
+    iOS app query Overpass with the same polygon — Nominatim's
+    `featuretype=relation` lookup is unstable for ambiguous names
+    and was causing 48 vs 56 trail-count mismatches."""
     print(f"Querying Overpass for {state_code}...", file=sys.stderr, flush=True)
     data = fetch_overpass(overpass_query(state_code))
-    out: list[list] = []
+    out: list[tuple[list, int]] = []
     raw = 0
     for el in data.get("elements", []):
         if el.get("type") != "relation":
@@ -156,15 +162,19 @@ def fetch_state(state_code: str) -> list[list]:
         lat, lon = center.get("lat"), center.get("lon")
         if lat is None or lon is None:
             continue
+        osm_id = el.get("id")
+        if osm_id is None:
+            continue
         name = tags["name"].strip()
         state_name = STATE_NAMES.get(state_code, state_code)
-        out.append([
+        row = [
             slugify(name, state_code),
             name,
             state_name,
             round(float(lat), 4),
             round(float(lon), 4),
-        ])
+        ]
+        out.append((row, int(osm_id)))
     print(
         f"  {state_code}: {raw} candidates, {len(out)} passed quality filter",
         file=sys.stderr,
@@ -201,14 +211,16 @@ def main() -> None:
 
     seen_ids: set[str] = set()
     candidates: list[list] = []
+    osm_id_by_area: dict[str, int] = {}
     for state in args.states:
-        for c in fetch_state(state):
-            if c[1].lower() in excludes:
+        for row, osm_id in fetch_state(state):
+            if row[1].lower() in excludes:
                 continue
-            if c[0] in seen_ids:
+            if row[0] in seen_ids:
                 continue
-            seen_ids.add(c[0])
-            candidates.append(c)
+            seen_ids.add(row[0])
+            candidates.append(row)
+            osm_id_by_area[row[0]] = osm_id
 
     if includes:
         print(
@@ -237,7 +249,19 @@ def main() -> None:
         candidates.sort(key=lambda x: (x[2], x[1]))
 
     INDEX_PATH.write_text(json.dumps(candidates, separators=(",", ":")))
+
+    # Stash the OSM relation IDs in counts-cache so build-trail-counts.py
+    # can skip Nominatim entirely (and so iOS gets the same id baked
+    # into the bundled index alongside trail counts).
+    cache: dict = json.loads(CACHE_PATH.read_text()) if CACHE_PATH.exists() else {}
+    for area_id, osm_id in osm_id_by_area.items():
+        entry = cache.get(area_id) or {}
+        entry["osm_id"] = osm_id
+        cache[area_id] = entry
+    CACHE_PATH.write_text(json.dumps(cache, separators=(",", ":")))
+
     print(f"Wrote {len(candidates)} areas to {INDEX_PATH}", file=sys.stderr)
+    print(f"Cached {len(osm_id_by_area)} OSM relation IDs in {CACHE_PATH}", file=sys.stderr)
     print(
         "Next: run `python3 scripts/build-trail-counts.py "
         "--min-trails 3 --min-miles 2` to fetch trail counts and apply "

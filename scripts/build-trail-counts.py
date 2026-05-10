@@ -382,9 +382,12 @@ def main():
         new_index = []
         for area in index:
             entry = cache.get(area[0])
-            if entry is not None:
-                new_index.append([area[0], area[1], area[2], area[3], area[4],
-                                   entry["trail_count"], entry["total_mi"]])
+            if entry is not None and "trail_count" in entry:
+                row = [area[0], area[1], area[2], area[3], area[4],
+                       entry["trail_count"], entry["total_mi"]]
+                if entry.get("osm_id") is not None:
+                    row.append(int(entry["osm_id"]))
+                new_index.append(row)
             else:
                 new_index.append(area[:5])
         new_index = apply_threshold(new_index, args.min_trails, args.min_miles)
@@ -416,16 +419,33 @@ def main():
 
         try:
             name, state = area[1], area[2]
-            nominatim = nominatim_lookup(name, state)
-            time.sleep(1)  # Nominatim rate limit: 1 req/sec
-            source = "relation" if nominatim else "radius"
+            cached_osm_id = (cached_entry or {}).get("osm_id")
+            if cached_osm_id is not None:
+                # Skip Nominatim — we already know the relation. Avoids
+                # the instability where Nominatim picks different relations
+                # for the same name on different runs (Python and iOS would
+                # then fetch different polygons and report different counts).
+                nominatim = {"osm_id": str(cached_osm_id), "boundingbox": []}
+                source = "cached_osm_id"
+            else:
+                nominatim = nominatim_lookup(name, state)
+                time.sleep(1)  # Nominatim rate limit: 1 req/sec
+                source = "relation" if nominatim else "radius"
             data = fetch_overpass(lat, lon, nominatim)
             trail_count, total_mi, silhouette = build_counts(data)
-            cache[area_id] = {
+            cache_entry = cache.get(area_id) or {}
+            cache_entry.update({
                 "trail_count": trail_count,
                 "total_mi": total_mi,
                 "silhouette": silhouette,
-            }
+            })
+            # Capture the relation id we used so subsequent runs skip
+            # Nominatim entirely and the iOS app gets it via the index.
+            if cached_osm_id is not None:
+                cache_entry["osm_id"] = cached_osm_id
+            elif nominatim and "osm_id" in nominatim:
+                cache_entry["osm_id"] = int(nominatim["osm_id"])
+            cache[area_id] = cache_entry
             processed += 1
             sil_lines = len(silhouette["l"]) if silhouette else 0
             print(
@@ -445,17 +465,21 @@ def main():
     # Final cache save
     CACHE_PATH.write_text(json.dumps(cache, separators=(",", ":")))
 
-    # Rebuild index with counts
+    # Rebuild index with counts (and osm_id when we have it, so iOS can
+    # skip Nominatim and query the same polygon Python did).
     new_index = []
     for area in index:
         area_id = area[0]
         entry = cache.get(area_id)
-        if entry is not None:
-            new_index.append([
+        if entry is not None and "trail_count" in entry:
+            row = [
                 area[0], area[1], area[2], area[3], area[4],
                 entry["trail_count"],
                 entry["total_mi"],
-            ])
+            ]
+            if entry.get("osm_id") is not None:
+                row.append(int(entry["osm_id"]))
+            new_index.append(row)
         else:
             # Not yet queried — keep as 5-element tuple
             new_index.append(area[:5])

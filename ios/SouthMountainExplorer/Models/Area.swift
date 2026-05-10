@@ -39,6 +39,11 @@ struct AreaRow: Codable, Sendable {
     let trailCount: Int?
     let totalMi: Double?
     let cachedAt: String?
+    /// Pre-resolved OSM relation id from the bundled index. When set,
+    /// fetchFromOverpass uses it directly instead of round-tripping
+    /// through Nominatim, which keeps Python (build-time) and iOS
+    /// (runtime) querying the same polygon.
+    let osmRelationId: Int?
 
     enum CodingKeys: String, CodingKey {
         case id, name, state, zoom, bbox, trails
@@ -47,6 +52,7 @@ struct AreaRow: Codable, Sendable {
         case trailCount = "trail_count"
         case totalMi = "total_mi"
         case cachedAt = "cached_at"
+        case osmRelationId = "osm_relation_id"
     }
 
     func toArea() -> Area {

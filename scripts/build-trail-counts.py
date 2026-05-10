@@ -46,6 +46,12 @@ SILHOUETTES_PATH = ROOT / "public" / "areas" / "silhouettes.json"
 
 SILHOUETTE_SPACING_M = 20.0
 SILHOUETTE_DECIMALS = 5
+# Cap the number of trails contributing to a single area's silhouette,
+# keeping the longest first. Without this, national-forest-sized areas
+# blow silhouettes.json up by orders of magnitude (Coconino NF alone
+# contributes ~1100 polylines). The card art is 220×160pt — beyond
+# ~150 polylines you're rendering noise the user can't see.
+SILHOUETTE_MAX_TRAILS = 150
 
 OVERPASS_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
@@ -179,10 +185,18 @@ def build_counts(data: bytes):
     if not qualifying:
         return trail_count, total_mi, None
 
+    # Cap the silhouette to the longest N trails so card-art bundles
+    # don't balloon for huge areas (e.g. national forests). The full
+    # trail_count and total_mi above still reflect every qualifying
+    # trail — the cap only affects the visual silhouette.
+    silhouette_trails = sorted(
+        qualifying.values(), key=lambda t: -t["miles"]
+    )[:SILHOUETTE_MAX_TRAILS]
+
     lines = []
     min_lat = min_lon = float("inf")
     max_lat = max_lon = float("-inf")
-    for trail in qualifying.values():
+    for trail in silhouette_trails:
         d = _difficulty(trail["tags"], trail["miles"])
         for seg in trail["segments"]:
             ds = _downsample(seg, SILHOUETTE_SPACING_M)

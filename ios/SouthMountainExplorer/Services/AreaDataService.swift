@@ -12,6 +12,10 @@ final class AreaDataService {
 
     private var areaCache: [String: Area] = [:]
     private var loadingTasks: [String: Task<Area?, Never>] = [:]
+    /// Round-robin starting index for Overpass endpoints. Bumped per fetch so
+    /// successive retries of the same area hit different mirrors instead of
+    /// hammering a single one that just rate-limited us.
+    private var endpointCursor = 0
 
     private let cacheDir: URL = {
         FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -251,17 +255,41 @@ final class AreaDataService {
             "https://overpass-api.de/api/interpreter",
             "https://overpass.kumi.systems/api/interpreter"
         ]
+        // Rotate which endpoint we try first per fetch so a flapping mirror
+        // doesn't poison every retry of the same area open.
+        let start = endpointCursor % endpoints.count
+        endpointCursor &+= 1
+        let ordered = (0..<endpoints.count).map { endpoints[(start + $0) % endpoints.count] }
+
         var lastError: Error?
-        for endpoint in endpoints {
+        var lastEmptyResult: AreaRow?
+        for endpoint in ordered {
             guard let url = URL(string: endpoint) else { continue }
             var req = URLRequest(url: url, timeoutInterval: 100)
             req.httpMethod = "POST"
             req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
             req.httpBody = ("data=" + query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!).data(using: .utf8)
             do {
-                let (data, _) = try await URLSession.shared.data(for: req)
+                let (data, response) = try await URLSession.shared.data(for: req)
+                // Overpass returns 429/504 (rate limit, gateway timeout) with
+                // text/HTML bodies that JSON-parse to nothing. Without this
+                // check we'd treat that as "successfully fetched, 0 trails"
+                // and never try the fallback mirror.
+                if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                    lastError = URLError(.badServerResponse)
+                    continue
+                }
+                // Overpass error responses sometimes come back as 200 with
+                // {"remark": "runtime error: Query timed out ..."} and no
+                // elements. Detect and fail through to the next endpoint.
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let remark = json["remark"] as? String,
+                   remark.lowercased().contains("error") || remark.lowercased().contains("timed out") {
+                    lastError = URLError(.timedOut)
+                    continue
+                }
                 let trails = buildTrails(from: data, parkBbox: parkBbox)
-                return AreaRow(
+                let result = AreaRow(
                     id: row.id, name: row.name, state: row.state,
                     centerLat: row.centerLat, centerLon: row.centerLon,
                     zoom: row.zoom, bbox: row.bbox,
@@ -270,9 +298,21 @@ final class AreaDataService {
                     cachedAt: row.cachedAt,
                     osmRelationId: row.osmRelationId
                 )
+                if !trails.isEmpty {
+                    return result
+                }
+                // Empty result from a healthy-looking response. Could be a
+                // genuinely empty area, but more often it's a quiet upstream
+                // hiccup. Stash it and try the other endpoint before giving
+                // up — if the second endpoint also returns empty we'll trust
+                // that this area really has no trails right now.
+                lastEmptyResult = result
             } catch {
                 lastError = error
             }
+        }
+        if let empty = lastEmptyResult {
+            return empty
         }
         throw lastError ?? URLError(.unknown)
     }

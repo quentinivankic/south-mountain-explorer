@@ -245,6 +245,14 @@ struct AreaView: View {
 
         let mode: RecordingMode = trailId == nil ? .roam : .trail
         recording.startRecording(areaId: areaId, mode: mode, trailId: trailId)
+        // Highlight the chosen trail on the map by also selecting it.
+        // This pipes through TrailMapView's existing selected-trail
+        // styling (thicker stroke, others dimmed, camera pans to bbox)
+        // so the user can see at a glance which polyline they're
+        // following — the dashed cyan emphasis layer alone is too subtle.
+        if let trailId {
+            withAnimation { selectedTrailId = trailId }
+        }
     }
 
     private func stopOtherRecordingThenStart() async {

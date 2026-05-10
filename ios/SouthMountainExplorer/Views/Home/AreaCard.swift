@@ -16,13 +16,13 @@ struct AreaCard: View {
 
     private var cachedArea: Area? { areas.cachedArea(id: area.id) }
 
-    /// Filter to current trail IDs when we have them so a Refresh Trail
-    /// Data call doesn't leave the count showing orphan completions.
+    /// Use the unfiltered count so AreaCard stays in sync with the
+    /// AreaView header (also unfiltered). Filtering by current trail IDs
+    /// silently zeroed the count after a Refresh Trail Data call when
+    /// upstream OSM IDs rotated, leaving "0 / 56" on the card while the
+    /// area itself showed the completion was still tracked.
     private var completedCount: Int {
-        if let trails = cachedArea?.trails {
-            return progress.completionCount(in: area.id, validTrailIds: Set(trails.map { $0.id }))
-        }
-        return progress.completionCount(in: area.id)
+        progress.completionCount(in: area.id)
     }
     private var totalTrails: Int { cachedArea?.resolvedTrailCount ?? area.trailCount ?? 0 }
 
@@ -106,11 +106,12 @@ struct AreaCard: View {
                     .padding(10)
                     .glassEffect(in: .circle)
             }
-            // Bigger inset so the favorite button isn't touching the
-            // artwork's right edge — looked cramped on the smaller card
-            // variant.
-            .padding(.top, 14)
-            .padding(.trailing, 14)
+            // Sit closer to the top edge but pulled in further from the
+            // right so the heart isn't touching the artwork's rounded
+            // corner. Equal padding read as "vertically too far down"
+            // because the small card is wider than tall.
+            .padding(.top, 10)
+            .padding(.trailing, 18)
         }
     }
 

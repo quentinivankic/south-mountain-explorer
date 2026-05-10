@@ -157,9 +157,11 @@ struct HomeView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
-                    ForEach(Array(items.enumerated()), id: \.element.id) { index, area in
-                        // Alternate styles so the user can compare card art treatments.
-                        AreaCard(area: area, style: index.isMultiple(of: 2) ? .tight : .glow)
+                    ForEach(items) { area in
+                        // Always .glow — the SilhouetteArtwork gates the
+                        // blur effect on dark mode, so light mode renders
+                        // crisp lines without the muddied halo regardless.
+                        AreaCard(area: area, style: .glow)
                             .onTapGesture { selectedArea = area }
                     }
                 }
@@ -225,8 +227,8 @@ struct HomeView: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14) {
-                        ForEach(Array(nearbyAreas.enumerated()), id: \.element.id) { index, area in
-                            AreaCard(area: area, style: index.isMultiple(of: 2) ? .tight : .glow)
+                        ForEach(nearbyAreas) { area in
+                            AreaCard(area: area, style: .glow)
                                 .onTapGesture { selectedArea = area }
                         }
                     }

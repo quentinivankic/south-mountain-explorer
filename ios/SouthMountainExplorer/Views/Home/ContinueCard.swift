@@ -21,6 +21,17 @@ struct ContinueCard: View {
         return progress.completionCount(in: area.id)
     }
 
+    /// Same logic as AreaCard.effectiveSilhouette — prefer runtime data
+    /// over the bundled silhouettes.json so per-line difficulty colors
+    /// match the current Overpass output.
+    private var effectiveSilhouette: AreaSilhouette? {
+        if let cached = cachedArea, !cached.trails.isEmpty {
+            let computed = cached.computedSilhouette
+            if !computed.l.isEmpty { return computed }
+        }
+        return silhouettes.silhouette(for: area.id)
+    }
+
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             artwork
@@ -61,7 +72,7 @@ struct ContinueCard: View {
 
     @ViewBuilder
     private var artwork: some View {
-        if let silhouette = silhouettes.silhouette(for: area.id) {
+        if let silhouette = effectiveSilhouette {
             ZStack {
                 // Adaptive backdrop — matches AreaCard treatment so the
                 // hero card doesn't sit as a black brick on a white screen

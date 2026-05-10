@@ -528,60 +528,90 @@ struct AreaView: View {
     }
 }
 
-/// Full-screen silhouette behind the AreaView loading state. Reuses the
-/// bundled per-difficulty trail outlines (same data the AreaCard art
-/// uses) but at a larger scale and softer opacity so it reads as
-/// background art instead of a primary canvas.
+/// Full-screen silhouette behind the AreaView loading state. Trails light
+/// up one-by-one driven by elapsed time so the wait reads as the area
+/// arriving instead of dead air. Long trails are drawn first (they carry
+/// the most visual weight); then medium, then short. Total animation is
+/// capped so a 200-trail area still finishes in ~2.5s.
 private struct LoadingSilhouetteCanvas: View {
     let silhouette: AreaSilhouette
 
     @Environment(\.colorScheme) private var colorScheme
+    @State private var startDate = Date()
+
+    private var orderedLines: [SilhouetteLine] {
+        // Longest segments first → big spines reveal early, capillaries
+        // fill in afterwards.
+        silhouette.l.sorted { $0.p.count > $1.p.count }
+    }
 
     var body: some View {
-        Canvas { context, size in
-            guard let bbox = silhouette.bbox else { return }
-            let pad: CGFloat = 24
-            let drawW = size.width - 2 * pad
-            let drawH = size.height - 2 * pad
-            guard drawW > 0, drawH > 0 else { return }
+        TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: false)) { context in
+            Canvas { ctx, size in
+                guard let bbox = silhouette.bbox else { return }
+                let lines = orderedLines
+                guard !lines.isEmpty else { return }
 
-            // Equirectangular projection with longitude scaled by cos(centerLat)
-            // so the trails don't look horizontally stretched.
-            let centerLat = (bbox.s + bbox.n) / 2
-            let lonScale = cos(centerLat * .pi / 180)
-            let xRange = max((bbox.e - bbox.w) * lonScale, .leastNonzeroMagnitude)
-            let yRange = max(bbox.n - bbox.s, .leastNonzeroMagnitude)
-            let scale = min(drawW / xRange, drawH / yRange)
-            let canvasW = xRange * scale
-            let canvasH = yRange * scale
-            let xOffset = pad + (drawW - canvasW) / 2
-            let yOffset = pad + (drawH - canvasH) / 2
+                let pad: CGFloat = 24
+                let drawW = size.width - 2 * pad
+                let drawH = size.height - 2 * pad
+                guard drawW > 0, drawH > 0 else { return }
 
-            let baseOpacity: Double = colorScheme == .dark ? 0.55 : 0.35
-            for line in silhouette.l {
-                guard line.p.count >= 2 else { continue }
-                var path = Path()
-                for (i, pt) in line.p.enumerated() {
-                    guard pt.count >= 2 else { continue }
-                    let lat = pt[0], lon = pt[1]
-                    let x = xOffset + (lon - bbox.w) * lonScale * scale
-                    let y = yOffset + canvasH - (lat - bbox.s) * scale
-                    let p = CGPoint(x: x, y: y)
-                    if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
+                let centerLat = (bbox.s + bbox.n) / 2
+                let lonScale = cos(centerLat * .pi / 180)
+                let xRange = max((bbox.e - bbox.w) * lonScale, .leastNonzeroMagnitude)
+                let yRange = max(bbox.n - bbox.s, .leastNonzeroMagnitude)
+                let scale = min(drawW / xRange, drawH / yRange)
+                let canvasW = xRange * scale
+                let canvasH = yRange * scale
+                let xOffset = pad + (drawW - canvasW) / 2
+                let yOffset = pad + (drawH - canvasH) / 2
+
+                let baseOpacity: Double = colorScheme == .dark ? 0.55 : 0.35
+                let totalAnimation: TimeInterval = 2.5
+                let perLineDuration: TimeInterval = 0.45
+                // Stagger each line's start so the whole reveal completes
+                // within totalAnimation regardless of trail count.
+                let stagger = max(0.018, (totalAnimation - perLineDuration) / Double(max(1, lines.count - 1)))
+                let elapsed = context.date.timeIntervalSince(startDate)
+
+                for (i, line) in lines.enumerated() {
+                    guard line.p.count >= 2 else { continue }
+                    let lineStart = Double(i) * stagger
+                    let raw = (elapsed - lineStart) / perLineDuration
+                    let progress = max(0, min(1, raw))
+                    if progress <= 0 { continue }
+
+                    var path = Path()
+                    for (j, pt) in line.p.enumerated() {
+                        guard pt.count >= 2 else { continue }
+                        let lat = pt[0], lon = pt[1]
+                        let x = xOffset + (lon - bbox.w) * lonScale * scale
+                        let y = yOffset + canvasH - (lat - bbox.s) * scale
+                        let p = CGPoint(x: x, y: y)
+                        if j == 0 { path.move(to: p) } else { path.addLine(to: p) }
+                    }
+                    let trimmed = progress >= 1 ? path : path.trimmedPath(from: 0, to: progress)
+
+                    let color: Color
+                    switch line.d {
+                    case "e": color = .green
+                    case "m": color = .orange
+                    case "h": color = .red
+                    default:  color = .gray
+                    }
+                    // Slight pop while a line is in-flight (progress < 1)
+                    // so the leading edge feels brighter than the settled
+                    // body of already-revealed trails.
+                    let opacity = progress < 1 ? min(1.0, baseOpacity + 0.25) : baseOpacity
+                    ctx.stroke(
+                        trimmed,
+                        with: .color(color.opacity(opacity)),
+                        style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round)
+                    )
                 }
-                let color: Color
-                switch line.d {
-                case "e": color = .green
-                case "m": color = .orange
-                case "h": color = .red
-                default:  color = .gray
-                }
-                context.stroke(
-                    path,
-                    with: .color(color.opacity(baseOpacity)),
-                    style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round)
-                )
             }
         }
+        .onAppear { startDate = Date() }
     }
 }

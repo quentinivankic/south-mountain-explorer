@@ -148,35 +148,53 @@ final class AreaDataService {
             centerLat: summary.centerLat, centerLon: summary.centerLon,
             zoom: 13, bbox: nil, trails: nil, trailCount: nil, totalMi: nil, cachedAt: nil
         )
-        do {
-            let row = try await fetchFromOverpass(row: stub)
-            let area = row.toArea()
-            // Defensive: a flaky Overpass response can succeed with zero
-            // trails (timeout returning an empty body, intermittent
-            // upstream issue). Don't overwrite a previously-good cache
-            // with empty data — the user just lost their entire trail
-            // list. Keep the existing memory/disk cache and surface a
-            // soft error so the caller can decide what to show.
-            if area.trails.isEmpty {
-                if let existingMemory = areaCache[id], !existingMemory.trails.isEmpty {
-                    return (existingMemory, nil)
+        // Inline retry: Overpass occasionally returns an empty body (timeout
+        // converted to 200, rate-limit slot, etc.). One trip ≈ a 1–3s "Trail
+        // data didn't load" screen for the user; a quick second/third attempt
+        // catches the transient case in the same load instead of pushing the
+        // recovery onto a manual close-and-reopen.
+        let maxAttempts = 3
+        var attempt = 0
+        var lastError: Error? = nil
+        while attempt < maxAttempts {
+            attempt += 1
+            do {
+                let row = try await fetchFromOverpass(row: stub)
+                let area = row.toArea()
+                if area.trails.isEmpty {
+                    // Defensive: a flaky Overpass response can succeed with
+                    // zero trails. Don't overwrite a previously-good cache
+                    // with empty data.
+                    if let existingMemory = areaCache[id], !existingMemory.trails.isEmpty {
+                        return (existingMemory, nil)
+                    }
+                    if let existingDisk = loadAreaFromDisk(id: id), !existingDisk.trails.isEmpty {
+                        areaCache[id] = existingDisk
+                        return (existingDisk, nil)
+                    }
+                    if attempt < maxAttempts {
+                        // No prior cache. Brief backoff and retry — the
+                        // failure mode here is usually a one-shot upstream
+                        // hiccup that resolves a second later.
+                        try? await Task.sleep(for: .milliseconds(600 * attempt))
+                        continue
+                    }
+                    // Final attempt also empty. Don't write to disk so the
+                    // next open retries instead of caching the empty result.
+                    areaCache[id] = area
+                    return (area, nil)
                 }
-                if let existingDisk = loadAreaFromDisk(id: id), !existingDisk.trails.isEmpty {
-                    areaCache[id] = existingDisk
-                    return (existingDisk, nil)
-                }
-                // No existing data — this is genuinely empty. Don't write
-                // it to disk so the next open retries instead of caching
-                // the empty result for 24h.
                 areaCache[id] = area
+                saveAreaToDisk(area)
                 return (area, nil)
+            } catch {
+                lastError = error
+                if attempt < maxAttempts {
+                    try? await Task.sleep(for: .milliseconds(600 * attempt))
+                }
             }
-            areaCache[id] = area
-            saveAreaToDisk(area)
-            return (area, nil)
-        } catch {
-            return (nil, error.localizedDescription)
         }
+        return (nil, lastError?.localizedDescription ?? "Could not load trail data.")
     }
 
     // Returns (relationId, bbox [w,s,e,n]) or nil

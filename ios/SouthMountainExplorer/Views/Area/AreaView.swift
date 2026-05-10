@@ -296,14 +296,17 @@ struct AreaView: View {
     }
 
     private func trailListSheet(area: Area) -> some View {
-        // AreaView is presented via .sheet from HomeView, so the only
-        // chrome eating the bottom safe area here is the home indicator
-        // (~34pt) — there's no floating tab bar to worry about. Earlier
-        // attempts assumed a tab bar and stayed inside the safe area,
-        // which left an awkward dead zone below the panel. Re-extend
-        // the panel to the screen edge with .ignoresSafeArea(.bottom)
-        // and let the inner ScrollView pad past the home-indicator
-        // area instead.
+        // Pass 5 on the panel layout. Each previous attempt fixed one
+        // axis of the problem and broke another:
+        //   - .offset trick was smooth but ScrollView bounds wrong
+        //   - .frame trick had right bounds but glitchy drag
+        // This pass keeps the .frame approach but adds .geometryGroup()
+        // to isolate the panel's layout from the parent. Without it,
+        // every trailListHeight tick during a drag invalidates layout
+        // up the parent chain (TrailMapView, the bottom controls VStack,
+        // etc.) which is what was producing the visible stutter.
+        // Combined with .interactiveSpring (designed for direct
+        // manipulation) for the release snap.
         GeometryReader { geo in
             let tallHeight = max(geo.size.height - 100, defaultListHeight)
             VStack(spacing: 0) {
@@ -331,10 +334,6 @@ struct AreaView: View {
             }
             .frame(height: trailListHeight)
             .background(
-                // Round only the top corners — the bottom edge sits flush
-                // against the screen edge, so square corners there make
-                // the panel read as "anchored bottom sheet" instead of
-                // "floating box".
                 UnevenRoundedRectangle(
                     topLeadingRadius: 20,
                     bottomLeadingRadius: 0,
@@ -345,6 +344,7 @@ struct AreaView: View {
                 .fill(.regularMaterial)
             )
             .frame(maxHeight: .infinity, alignment: .bottom)
+            .geometryGroup()
             .animation(nil, value: trailListHeight)
         }
         .ignoresSafeArea(edges: .bottom)
@@ -362,7 +362,11 @@ struct AreaView: View {
             .onEnded { _ in
                 let snapPoint = (defaultListHeight + tallHeight) / 2
                 let target: CGFloat = trailListHeight > snapPoint ? tallHeight : defaultListHeight
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                // .interactiveSpring is tuned for drag-driven animations —
+                // shorter response, lower bounce than the regular spring,
+                // so the snap feels like a natural continuation of the
+                // user's gesture instead of a separate animation event.
+                withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.85)) {
                     trailListHeight = target
                 }
                 dragStartHeight = nil

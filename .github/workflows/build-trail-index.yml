@@ -25,6 +25,10 @@ on:
       limit:
         description: "Max areas to process (blank = all)"
         default: ""
+      force:
+        description: "Re-fetch every area even if it's already cached (use after build-script logic changes, e.g. trail-filter tweaks)"
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -63,6 +67,9 @@ jobs:
             ARGS="$ARGS --limit ${{ github.event.inputs.limit }}"
           fi
           ARGS="$ARGS --min-trails ${{ github.event.inputs.min_trails }} --min-miles ${{ github.event.inputs.min_miles }}"
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            ARGS="$ARGS --force"
+          fi
           python3 scripts/build-trail-counts.py $ARGS
 
       - name: Commit updated index

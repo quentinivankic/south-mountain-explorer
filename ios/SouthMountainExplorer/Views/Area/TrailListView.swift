@@ -194,29 +194,41 @@ struct TrailListView: View {
 
     private var filterMenu: some View {
         Menu {
-            Picker("Status", selection: $statusFilter) {
-                ForEach(TrailStatusFilter.allCases) { f in
-                    Text(f.label).tag(f)
+            // Wrap each picker in a Section so the dimension label
+            // ("Status" / "Difficulty" / "Length") renders as a header
+            // in the menu — without it, three identical "All" rows
+            // stack on top of each other and the user can't tell which
+            // dimension they're toggling.
+            Section("Status") {
+                Picker("Status", selection: $statusFilter) {
+                    ForEach(TrailStatusFilter.allCases) { f in
+                        Text(f.label).tag(f)
+                    }
                 }
             }
-            Picker("Difficulty", selection: $difficultyFilter) {
-                ForEach(TrailDifficultyFilter.allCases) { f in
-                    Text(f.label).tag(f)
+            Section("Difficulty") {
+                Picker("Difficulty", selection: $difficultyFilter) {
+                    ForEach(TrailDifficultyFilter.allCases) { f in
+                        Text(f.label).tag(f)
+                    }
                 }
             }
-            Picker("Length", selection: $lengthFilter) {
-                ForEach(TrailLengthFilter.allCases) { f in
-                    Text(f.label).tag(f)
+            Section("Length") {
+                Picker("Length", selection: $lengthFilter) {
+                    ForEach(TrailLengthFilter.allCases) { f in
+                        Text(f.label).tag(f)
+                    }
                 }
             }
             if activeFilterCount > 0 {
-                Divider()
-                Button(role: .destructive) {
-                    statusFilter = .all
-                    difficultyFilter = .all
-                    lengthFilter = .all
-                } label: {
-                    Label("Clear All", systemImage: "xmark.circle")
+                Section {
+                    Button(role: .destructive) {
+                        statusFilter = .all
+                        difficultyFilter = .all
+                        lengthFilter = .all
+                    } label: {
+                        Label("Clear All", systemImage: "xmark.circle")
+                    }
                 }
             }
         } label: {

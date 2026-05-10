@@ -284,6 +284,32 @@ def haversine_mi(lat1, lon1, lat2, lon2):
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
+def apply_threshold(index: list, min_trails: int, min_miles: float) -> list:
+    """Drop entries whose hydrated trail_count / total_mi is below the
+    given thresholds. Areas that haven't been fetched yet (5-element
+    tuples) are always kept so a partial run doesn't lose them."""
+    if min_trails <= 0 and min_miles <= 0:
+        return index
+    out = []
+    dropped = 0
+    for area in index:
+        if len(area) < 7:
+            out.append(area)
+            continue
+        trail_count = area[5]
+        total_mi = area[6]
+        if trail_count < min_trails or total_mi < min_miles:
+            dropped += 1
+            continue
+        out.append(area)
+    if dropped:
+        print(
+            f"Threshold: dropped {dropped} areas with < {min_trails} trails "
+            f"or < {min_miles} mi"
+        )
+    return out
+
+
 def deduplicate(index: list) -> list:
     """Drop duplicate areas: same location (<0.1 mi) where one name's words are
     a subset of the other's. Keeps the entry with more trails; ties go to the
@@ -322,6 +348,17 @@ def main():
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--cache-only", action="store_true",
                         help="Skip all network requests; just rebuild index.json from existing cache")
+    parser.add_argument(
+        "--min-trails", type=int, default=0,
+        help="After fetching, drop areas with fewer than N qualifying trails. "
+        "Useful when the index was auto-seeded and contains pocket parks with "
+        "no real hiking. 0 = keep everything (default).",
+    )
+    parser.add_argument(
+        "--min-miles", type=float, default=0.0,
+        help="After fetching, drop areas with less than N total trail miles. "
+        "Pairs with --min-trails. 0 = keep everything (default).",
+    )
     args = parser.parse_args()
 
     index = json.loads(INDEX_PATH.read_text())
@@ -336,6 +373,7 @@ def main():
                                    entry["trail_count"], entry["total_mi"]])
             else:
                 new_index.append(area[:5])
+        new_index = apply_threshold(new_index, args.min_trails, args.min_miles)
         new_index = deduplicate(new_index)
         INDEX_PATH.write_text(json.dumps(new_index, separators=(",", ":")))
         write_silhouettes(cache, new_index)
@@ -408,6 +446,7 @@ def main():
             # Not yet queried — keep as 5-element tuple
             new_index.append(area[:5])
 
+    new_index = apply_threshold(new_index, args.min_trails, args.min_miles)
     new_index = deduplicate(new_index)
     INDEX_PATH.write_text(json.dumps(new_index, separators=(",", ":")))
     write_silhouettes(cache, new_index)

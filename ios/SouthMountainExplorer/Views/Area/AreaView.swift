@@ -113,23 +113,31 @@ struct AreaView: View {
                 // Bottom controls — controlBar (map toggle, recenter,
                 // record) sits above the RecordingPanel so the location/
                 // recenter buttons stay reachable above the recording bar
-                // instead of being buried under it. Spacing dropped to 4
-                // and bottom padding to 0 so the REC bar sits flush with
-                // the trail-list panel beneath.
-                VStack(spacing: 4) {
-                    controlBar(area: area)
-                    if isRecording {
-                        RecordingPanel(area: area) { finished in
-                            finishedRecording = finished
-                            showSummary = finished != nil
-                            // Refresh the cyan coverage halo with the
-                            // just-finished hike's path.
-                            Task { await loadPastPaths() }
+                // instead of being buried under it. The trail-list panel
+                // ignores the bottom safe area to extend under the home
+                // indicator, so we have to subtract that inset from the
+                // padding here — otherwise the REC bar would still float
+                // ~34pt above the visible top of the trail list panel.
+                GeometryReader { proxy in
+                    VStack(spacing: 4) {
+                        controlBar(area: area)
+                        if isRecording {
+                            RecordingPanel(area: area) { finished in
+                                finishedRecording = finished
+                                showSummary = finished != nil
+                                // Refresh the cyan coverage halo with the
+                                // just-finished hike's path.
+                                Task { await loadPastPaths() }
+                            }
                         }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .padding(.bottom, showTrailList
+                        ? max(0, currentListHeight - proxy.safeAreaInsets.bottom)
+                        : 0)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .padding(.bottom, showTrailList ? currentListHeight : 0)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .allowsHitTesting(true)
 
             } else if isLoading {
                 loadingState

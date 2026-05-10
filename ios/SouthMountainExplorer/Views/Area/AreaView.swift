@@ -57,6 +57,7 @@ struct AreaView: View {
     @State private var statusFilter: TrailStatusFilter = .all
     @State private var difficultyFilter: TrailDifficultyFilter = .all
     @State private var lengthFilter: TrailLengthFilter = .all
+    @State private var routeFilter: TrailRouteFilter = .all
 
     private let defaultListHeight: CGFloat = 340
 
@@ -77,6 +78,7 @@ struct AreaView: View {
             }
             if !difficultyFilter.matches(trail.difficulty) { return false }
             if !lengthFilter.matches(trail.distanceMi) { return false }
+            if !routeFilter.matches(trail.routeType) { return false }
             return true
         }
     }
@@ -85,7 +87,7 @@ struct AreaView: View {
     /// `nil` to TrailMapView so it skips the per-trail filter check
     /// entirely, since the unfiltered render is the common case.
     private var hasActiveFilter: Bool {
-        statusFilter != .all || difficultyFilter != .all || lengthFilter != .all
+        statusFilter != .all || difficultyFilter != .all || lengthFilter != .all || routeFilter != .all
     }
 
     var body: some View {
@@ -479,6 +481,7 @@ struct AreaView: View {
                     statusFilter: $statusFilter,
                     difficultyFilter: $difficultyFilter,
                     lengthFilter: $lengthFilter,
+                    routeFilter: $routeFilter,
                     filteredTrails: filtered,
                     onRecordTrail: { trail in tryStartRecording(trailId: trail.id) }
                 )

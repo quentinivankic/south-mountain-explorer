@@ -90,6 +90,8 @@ UX polish:
   briefly. The script takes ~1 hour for the current 22-area index
   with Overpass rate limits, so probably worth its own background
   task or CI run.
+- [ ] **Tweak the loading-state trail-reveal animation.** Direction
+  TBD on device — pacing / opacity / stagger / line width.
 
 ## Next-build candidates (not yet started)
 

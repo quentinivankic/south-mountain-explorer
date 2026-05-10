@@ -3,6 +3,19 @@ name: Build Trail Index
 on:
   workflow_dispatch:
     inputs:
+      seed_states:
+        description: "Seed index from OSM for these state codes (space-separated, e.g. AZ CA). Leave blank to skip seeding and just rehydrate the existing index."
+        default: ""
+      seed_merge:
+        description: "Merge seeded results with existing index instead of replacing"
+        type: boolean
+        default: true
+      min_trails:
+        description: "Drop areas with fewer than N qualifying trails (0 = keep all)"
+        default: "3"
+      min_miles:
+        description: "Drop areas with less than N total trail miles (0 = keep all)"
+        default: "2"
       batch_size:
         description: "Areas per save batch"
         default: "50"
@@ -31,12 +44,25 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Optional: re-seed the index from OSM. Skipped when seed_states is
+      # blank so the default workflow (rehydrate existing curated index) is
+      # unchanged.
+      - name: Seed area index from OSM
+        if: ${{ github.event.inputs.seed_states != '' }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.seed_merge }}" = "true" ]; then
+            ARGS="$ARGS --merge"
+          fi
+          python3 scripts/seed-areas.py $ARGS ${{ github.event.inputs.seed_states }}
+
       - name: Run trail count builder
         run: |
           ARGS="--batch-size ${{ github.event.inputs.batch_size }} --delay ${{ github.event.inputs.delay }}"
           if [ -n "${{ github.event.inputs.limit }}" ]; then
             ARGS="$ARGS --limit ${{ github.event.inputs.limit }}"
           fi
+          ARGS="$ARGS --min-trails ${{ github.event.inputs.min_trails }} --min-miles ${{ github.event.inputs.min_miles }}"
           python3 scripts/build-trail-counts.py $ARGS
 
       - name: Commit updated index
@@ -51,13 +77,17 @@ jobs:
             echo "No changes to commit."
             echo "committed=false" >> "$GITHUB_OUTPUT"
           else
-            CACHED=$(python3 -c "
+            SUMMARY=$(python3 -c "
           import json
           idx = json.load(open('public/areas/index.json'))
           n = sum(1 for a in idx if len(a) >= 7)
           print(f'{n}/{len(idx)} areas have trail counts')
           ")
-            git commit -m "chore: rebuild trail index — $CACHED"
+            SEED_NOTE=""
+            if [ -n "${{ github.event.inputs.seed_states }}" ]; then
+              SEED_NOTE=" (seeded from ${{ github.event.inputs.seed_states }})"
+            fi
+            git commit -m "chore: rebuild trail index — $SUMMARY$SEED_NOTE"
             git push
             echo "committed=true" >> "$GITHUB_OUTPUT"
           fi
@@ -68,4 +98,4 @@ jobs:
         if: steps.commit.outputs.committed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run ios-testflight.yml --ref main
+        run: gh workflow run ios-testflight.yml --ref ${{ github.ref_name }}

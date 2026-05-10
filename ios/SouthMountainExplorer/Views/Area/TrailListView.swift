@@ -54,12 +54,32 @@ enum TrailLengthFilter: String, CaseIterable, Identifiable {
     }
 }
 
+enum TrailRouteFilter: String, CaseIterable, Identifiable {
+    case all, loop, linear
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .all:    return "All"
+        case .loop:   return "Loop"
+        case .linear: return "Linear"
+        }
+    }
+    func matches(_ t: RouteType) -> Bool {
+        switch self {
+        case .all:    return true
+        case .loop:   return t == .loop
+        case .linear: return t == .linear
+        }
+    }
+}
+
 struct TrailListView: View {
     let area: Area
     @Binding var selectedTrailId: String?
     @Binding var statusFilter: TrailStatusFilter
     @Binding var difficultyFilter: TrailDifficultyFilter
     @Binding var lengthFilter: TrailLengthFilter
+    @Binding var routeFilter: TrailRouteFilter
     /// Pre-filtered trail set computed in AreaView so the map view can see
     /// the same set without TrailListView having to fan it back out.
     let filteredTrails: [Trail]
@@ -74,6 +94,7 @@ struct TrailListView: View {
         if statusFilter != .all { n += 1 }
         if difficultyFilter != .all { n += 1 }
         if lengthFilter != .all { n += 1 }
+        if routeFilter != .all { n += 1 }
         return n
     }
 
@@ -137,6 +158,7 @@ struct TrailListView: View {
                                     statusFilter = .all
                                     difficultyFilter = .all
                                     lengthFilter = .all
+                                    routeFilter = .all
                                 }
                                 .font(.caption)
                             } else {
@@ -215,12 +237,22 @@ struct TrailListView: View {
             } label: {
                 Label("Length: \(lengthFilter.label)", systemImage: "ruler")
             }
+            Menu {
+                Picker("Route", selection: $routeFilter) {
+                    ForEach(TrailRouteFilter.allCases) { f in
+                        Text(f.label).tag(f)
+                    }
+                }
+            } label: {
+                Label("Route: \(routeFilter.label)", systemImage: "arrow.triangle.2.circlepath")
+            }
             if activeFilterCount > 0 {
                 Divider()
                 Button(role: .destructive) {
                     statusFilter = .all
                     difficultyFilter = .all
                     lengthFilter = .all
+                    routeFilter = .all
                 } label: {
                     Label("Clear All", systemImage: "xmark.circle")
                 }
@@ -288,6 +320,8 @@ struct TrailRow: View {
                     Text("·")
                     Text(trail.difficulty.rawValue)
                         .foregroundStyle(difficultyColor)
+                    Text("·")
+                    Label(trail.routeType.label, systemImage: trail.routeType.systemImage)
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)

@@ -23,6 +23,33 @@ private enum BrowseSort: String, CaseIterable, Identifiable {
     }
 }
 
+/// Drive-time bands estimated from straight-line distance. Real routing would
+/// be a per-area MKDirections call (too expensive for a list filter), so we
+/// approximate at ~1.3 min/mi — a mix of highway + local roads.
+private enum BrowseDriveTime: String, CaseIterable, Identifiable {
+    case any, t30, t60, t120
+
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .any:  return "Any distance"
+        case .t30:  return "< 30 min"
+        case .t60:  return "< 1 hr"
+        case .t120: return "< 2 hr"
+        }
+    }
+    /// Max straight-line miles that fit under this band, given our 1.3 min/mi
+    /// estimate. nil means no cap.
+    var maxMiles: Double? {
+        switch self {
+        case .any:  return nil
+        case .t30:  return 30.0 / 1.3
+        case .t60:  return 60.0 / 1.3
+        case .t120: return 120.0 / 1.3
+        }
+    }
+}
+
 struct BrowseView: View {
     @Environment(AreaDataService.self) private var areas
     @Environment(FavoritesService.self) private var favorites
@@ -31,12 +58,18 @@ struct BrowseView: View {
     @State private var query = ""
     @State private var selectedArea: AreaSummary? = nil
     @State private var sort: BrowseSort = .alphabetic
+    @State private var driveTime: BrowseDriveTime = .any
 
-    /// Sort + filter pipeline. Search happens first (cheap string match),
-    /// then sort. Nearest falls back to alphabetic when location is
+    /// Sort + filter pipeline. Search happens first (cheap string match), then
+    /// drive-time cap (silently skipped when we don't have a user location —
+    /// hiding everything would be more surprising than showing the unfiltered
+    /// list), then sort. Nearest falls back to alphabetic when location is
     /// unavailable rather than producing an arbitrary order.
     private var results: [AreaSummary] {
-        let pool = query.isEmpty ? areas.summaries : areas.search(query)
+        var pool = query.isEmpty ? areas.summaries : areas.search(query)
+        if let cap = driveTime.maxMiles, let loc = location.userLocation {
+            pool = pool.filter { haversine($0, loc) <= cap }
+        }
         switch sort {
         case .alphabetic:
             return pool.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
@@ -82,10 +115,21 @@ struct BrowseView: View {
                                 Label(option.label, systemImage: option.systemImage).tag(option)
                             }
                         }
+                        Divider()
+                        // Drive-time cap. Disabled-styled (still tappable, but
+                        // no-op) when location is unavailable so the user
+                        // understands why the filter wouldn't apply.
+                        Picker("Drive time", selection: $driveTime) {
+                            ForEach(BrowseDriveTime.allCases) { option in
+                                Label(option.label, systemImage: "car").tag(option)
+                            }
+                        }
                     } label: {
-                        Image(systemName: "arrow.up.arrow.down.circle")
+                        Image(systemName: driveTime == .any
+                              ? "arrow.up.arrow.down.circle"
+                              : "line.3.horizontal.decrease.circle.fill")
                     }
-                    .accessibilityLabel("Sort areas")
+                    .accessibilityLabel("Sort and filter areas")
                 }
             }
         }

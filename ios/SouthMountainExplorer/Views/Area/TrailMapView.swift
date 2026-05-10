@@ -74,9 +74,11 @@ struct TrailMapView: View {
             }
 
             // "Following this trail" guide — when recording in .trail mode,
-            // the chosen trail gets an extra dashed cyan stroke on top of
-            // the regular rendering so the user can see at a glance which
-            // polyline to keep on. Drawn before the live GPS path so that
+            // the chosen trail gets a solid cyan stroke with a white halo
+            // behind it so it stands out against the rest of the trail
+            // network. Dropped the dashed style (which MapKit's MapPolyline
+            // didn't render reliably enough to be visible) in favour of two
+            // stacked solid strokes. Drawn before the live GPS path so that
             // path stays the most prominent stroke.
             if let trailId = activeRecording?.trailId,
                let recordingTrail = area.trails.first(where: { $0.id == trailId }) {
@@ -85,16 +87,14 @@ struct TrailMapView: View {
                         guard node.count >= 2 else { return nil }
                         return CLLocationCoordinate2D(latitude: node[0], longitude: node[1])
                     }
+                    // White halo for contrast against busy basemap colours
                     MapPolyline(coordinates: coords)
-                        .stroke(
-                            .cyan,
-                            style: StrokeStyle(
-                                lineWidth: 8,
-                                lineCap: .round,
-                                lineJoin: .round,
-                                dash: [16, 8]
-                            )
-                        )
+                        .stroke(.white,
+                                style: StrokeStyle(lineWidth: 14, lineCap: .round, lineJoin: .round))
+                    // Bright cyan on top of the halo
+                    MapPolyline(coordinates: coords)
+                        .stroke(.cyan,
+                                style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
                 }
             }
 

@@ -54,11 +54,10 @@ struct TrailListView: View {
                         Divider().padding(.leading)
                     }
                 }
-                // Trailing space so the last row clears the iOS 26
-                // floating tab bar (~80pt) plus the home-indicator zone.
-                // The parent panel uses .ignoresSafeArea(edges: .bottom),
-                // so without this, the final rows scroll under both.
-                .padding(.bottom, 120)
+                // Modest breathing room at the bottom — the parent panel
+                // now respects the bottom safe area, so the home
+                // indicator + tab bar are already accounted for.
+                .padding(.bottom, 24)
             }
         }
     }

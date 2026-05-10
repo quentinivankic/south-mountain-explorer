@@ -314,7 +314,11 @@ struct AreaView: View {
             // spring in onEnded is the only animated transition.
             .animation(nil, value: trailListHeight)
         }
-        .ignoresSafeArea(edges: .bottom)
+        // Don't .ignoresSafeArea(.bottom) here — the iOS 26 floating tab
+        // bar overlays content when we ignore the bottom inset, which
+        // hides the last few trail rows under it. The small visible gap
+        // between the panel's rounded corners and the tab bar reads as
+        // intentional spacing.
     }
 
     private func dragGesture(tallHeight: CGFloat) -> some Gesture {

@@ -215,7 +215,7 @@ struct AreaView: View {
     /// starts immediately or surfaces the appropriate confirmation.
     /// Pass a trailId to start in `.trail` mode (history will label the
     /// hike with that trail's name and TrailMapView lights it up as a
-    /// dashed cyan guide).
+    /// purple stroke).
     private func tryStartRecording(trailId: String? = nil) {
         guard let area else { return }
         if !location.isAuthorized {
@@ -249,13 +249,14 @@ struct AreaView: View {
 
         let mode: RecordingMode = trailId == nil ? .roam : .trail
         recording.startRecording(areaId: areaId, mode: mode, trailId: trailId)
-        // Highlight the chosen trail on the map by also selecting it.
-        // This pipes through TrailMapView's existing selected-trail
-        // styling (thicker stroke, others dimmed, camera pans to bbox)
-        // so the user can see at a glance which polyline they're
-        // following — the dashed cyan emphasis layer alone is too subtle.
+        // Mirror the trail-row tap flow exactly: direct assignment, no
+        // withAnimation wrapper. Earlier the wrapper was eating the state
+        // change in some context-menu transitions so the highlight never
+        // showed. TrailMapView's render loop now also uses
+        // activeRecording.trailId directly for the purple recording
+        // highlight, so this is belt + suspenders.
         if let trailId {
-            withAnimation { selectedTrailId = trailId }
+            selectedTrailId = trailId
         }
     }
 

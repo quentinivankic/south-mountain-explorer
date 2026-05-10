@@ -51,14 +51,29 @@ struct TrailMapView: View {
                 }
             }
 
+            // Trails. The recording-mode highlight is folded INTO this loop
+            // (rather than as a separate overlay layer) so it uses the same
+            // code path as tap-to-highlight, which is known to render. The
+            // recording trail gets a distinct purple stroke at lineWidth 10
+            // — purple sits outside the existing palette (green easy /
+            // orange moderate / red hard / cyan completed+halo / blue
+            // live-GPS) so it can't be confused for any of those.
+            let recordingTrailId = activeRecording?.trailId
+            let highlightedTrailId = recordingTrailId ?? selectedTrailId
             ForEach(area.trails) { trail in
+                let isRecordingThis = trail.id == recordingTrailId
                 let isSelected = trail.id == selectedTrailId
+                let isHighlighted = isRecordingThis || isSelected
                 let isComplete = progress.isComplete(areaId: area.id, trailId: trail.id)
-                // Completed trails use cyan to avoid colliding with "easy" (.green).
-                let baseColor: Color = isComplete ? .cyan : difficultyColor(trail.difficulty)
-                let dimmed = (selectedTrailId != nil && !isSelected)
+
+                let baseColor: Color = {
+                    if isRecordingThis { return .purple }
+                    if isComplete { return .cyan }
+                    return difficultyColor(trail.difficulty)
+                }()
+                let dimmed = (highlightedTrailId != nil && !isHighlighted)
                 let strokeColor = baseColor.opacity(dimmed ? 0.25 : 1.0)
-                let lineWidth: CGFloat = isSelected ? 6 : 3
+                let lineWidth: CGFloat = isRecordingThis ? 10 : (isSelected ? 6 : 3)
 
                 ForEach(Array(trail.segments.enumerated()), id: \.offset) { _, segment in
                     let coords = segment.compactMap { node -> CLLocationCoordinate2D? in
@@ -70,29 +85,6 @@ struct TrailMapView: View {
                             strokeColor,
                             style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
                         )
-                }
-            }
-
-            // "Following this trail" guide — when recording in .trail mode,
-            // the chosen trail gets a single bold yellow stroke on top of
-            // the regular rendering. Yellow has high contrast against any
-            // basemap colour and is distinct from the cyan past-paths halo
-            // and the blue live GPS path. Drawn before the live GPS path
-            // so that path stays the most prominent stroke.
-            // Earlier attempts used a dashed cyan stroke (MapKit silently
-            // ignored the dash) and then a white-halo + cyan stack (z-order
-            // was unreliable in MapKit's content builder). A single bright
-            // stroke renders consistently.
-            if let trailId = activeRecording?.trailId,
-               let recordingTrail = area.trails.first(where: { $0.id == trailId }) {
-                ForEach(Array(recordingTrail.segments.enumerated()), id: \.offset) { _, segment in
-                    let coords = segment.compactMap { node -> CLLocationCoordinate2D? in
-                        guard node.count >= 2 else { return nil }
-                        return CLLocationCoordinate2D(latitude: node[0], longitude: node[1])
-                    }
-                    MapPolyline(coordinates: coords)
-                        .stroke(.yellow,
-                                style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round))
                 }
             }
 

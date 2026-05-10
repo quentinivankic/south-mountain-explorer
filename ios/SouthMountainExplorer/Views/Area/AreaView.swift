@@ -296,15 +296,14 @@ struct AreaView: View {
     }
 
     private func trailListSheet(area: Area) -> some View {
-        // Pass 3 on the panel layout. The offset trick (keep panel sized at
-        // tallHeight, slide via .offset) was smooth but the ScrollView's
-        // *frame* stayed tallHeight tall — so when collapsed, scrolling
-        // landed at the frame bottom which was geometrically below the
-        // visible area, hiding the last few rows.
-        // Switching back to direct frame-height sizing so the ScrollView's
-        // bounds match what the user can see. .animation(nil, value:)
-        // keeps the drag 1:1 (no implicit resize animation); the spring in
-        // onEnded is the only animated transition.
+        // AreaView is presented via .sheet from HomeView, so the only
+        // chrome eating the bottom safe area here is the home indicator
+        // (~34pt) — there's no floating tab bar to worry about. Earlier
+        // attempts assumed a tab bar and stayed inside the safe area,
+        // which left an awkward dead zone below the panel. Re-extend
+        // the panel to the screen edge with .ignoresSafeArea(.bottom)
+        // and let the inner ScrollView pad past the home-indicator
+        // area instead.
         GeometryReader { geo in
             let tallHeight = max(geo.size.height - 100, defaultListHeight)
             VStack(spacing: 0) {
@@ -333,9 +332,9 @@ struct AreaView: View {
             .frame(height: trailListHeight)
             .background(
                 // Round only the top corners — the bottom edge sits flush
-                // against the floating tab bar, so square corners there
-                // make the panel read as "anchored" instead of "floating
-                // with a weird gap".
+                // against the screen edge, so square corners there make
+                // the panel read as "anchored bottom sheet" instead of
+                // "floating box".
                 UnevenRoundedRectangle(
                     topLeadingRadius: 20,
                     bottomLeadingRadius: 0,
@@ -348,6 +347,7 @@ struct AreaView: View {
             .frame(maxHeight: .infinity, alignment: .bottom)
             .animation(nil, value: trailListHeight)
         }
+        .ignoresSafeArea(edges: .bottom)
     }
 
     private func dragGesture(tallHeight: CGFloat) -> some Gesture {

@@ -54,10 +54,12 @@ struct TrailListView: View {
                         Divider().padding(.leading)
                     }
                 }
-                // Modest breathing room at the bottom — the parent panel
-                // now respects the bottom safe area, so the home
-                // indicator + tab bar are already accounted for.
-                .padding(.bottom, 24)
+                // The parent panel uses .ignoresSafeArea(.bottom) so it
+                // can extend flush to the screen edge. That means the
+                // last row would land in the home-indicator zone without
+                // padding to push it back up. ~50pt covers the home
+                // indicator area on every modern iPhone with margin.
+                .padding(.bottom, 50)
             }
         }
     }

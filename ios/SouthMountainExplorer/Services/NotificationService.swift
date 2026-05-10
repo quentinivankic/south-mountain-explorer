@@ -81,6 +81,13 @@ extension NotificationService: UNUserNotificationCenterDelegate {
             completionHandler()
             return
         }
+        // Post on the main actor so SwiftUI subscribers see it on the
+        // expected thread, then signal the system. completionHandler is
+        // task-isolated (the delegate method is nonisolated), so calling
+        // it from inside the @MainActor Task trips Swift 6 strict
+        // concurrency. Calling it after dispatching the post is safe —
+        // post is synchronous from the caller's perspective and the
+        // system only needs the handler called within ~30s.
         Task { @MainActor in
             NotificationCenter.default.post(
                 name: NotificationService.celebrateNotification,
@@ -91,7 +98,7 @@ extension NotificationService: UNUserNotificationCenterDelegate {
                     "trailName": trailName
                 ]
             )
-            completionHandler()
         }
+        completionHandler()
     }
 }

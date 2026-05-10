@@ -35,6 +35,12 @@ struct AreaView: View {
     @State private var conflictAreaName: String = ""
     @State private var showFarWarning = false
     @State private var farDistanceMi: Double = 0
+    /// Captured by tryStartRecording when a confirmation dialog interrupts
+    /// the start. The dialog's "proceed" button reads this so a trail-mode
+    /// request survives the round-trip — without it, "Start Anyway" /
+    /// "Stop & Start Here" silently downgraded to .roam mode and the
+    /// recording-trail highlight never engaged.
+    @State private var pendingRecordTrailId: String? = nil
 
     private let defaultListHeight: CGFloat = 340
 
@@ -154,9 +160,13 @@ struct AreaView: View {
             titleVisibility: .visible
         ) {
             Button("Stop That Hike & Start Here", role: .destructive) {
-                Task { await stopOtherRecordingThenStart() }
+                let trailId = pendingRecordTrailId
+                pendingRecordTrailId = nil
+                Task { await stopOtherRecordingThenStart(trailId: trailId) }
             }
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) {
+                pendingRecordTrailId = nil
+            }
         } message: {
             Text("Starting a new hike here will save and end your hike at \(conflictAreaName).")
         }
@@ -166,9 +176,13 @@ struct AreaView: View {
             titleVisibility: .visible
         ) {
             Button("Start Anyway", role: .destructive) {
-                recording.startRecording(areaId: areaId, mode: .roam)
+                let trailId = pendingRecordTrailId
+                pendingRecordTrailId = nil
+                startRecordingNow(trailId: trailId)
             }
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) {
+                pendingRecordTrailId = nil
+            }
         } message: {
             Text("Recording from this far away will track GPS but won't update trail coverage in this area.")
         }
@@ -215,7 +229,8 @@ struct AreaView: View {
     /// starts immediately or surfaces the appropriate confirmation.
     /// Pass a trailId to start in `.trail` mode (history will label the
     /// hike with that trail's name and TrailMapView lights it up as a
-    /// purple stroke).
+    /// purple stroke). The trailId is preserved through the conflict /
+    /// far-warning dialogs via `pendingRecordTrailId`.
     private func tryStartRecording(trailId: String? = nil) {
         guard let area else { return }
         if !location.isAuthorized {
@@ -225,6 +240,7 @@ struct AreaView: View {
 
         // Item 1 — concurrent recording prevention.
         if let active = recording.activeRecording, active.areaId != areaId {
+            pendingRecordTrailId = trailId
             conflictAreaName = areas.cachedArea(id: active.areaId)?.name
                 ?? areas.summaries.first { $0.id == active.areaId }?.name
                 ?? "another area"
@@ -241,26 +257,31 @@ struct AreaView: View {
                 lat2: area.centerLat,    lon2: area.centerLon
             )
             if distMi > farFromAreaThresholdMi {
+                pendingRecordTrailId = trailId
                 farDistanceMi = distMi
                 showFarWarning = true
                 return
             }
         }
 
+        startRecordingNow(trailId: trailId)
+    }
+
+    /// Actually start the recording. Used both directly from
+    /// `tryStartRecording` (no preflight conflicts) and from the dialog
+    /// "proceed" buttons after preflight resolves.
+    private func startRecordingNow(trailId: String?) {
         let mode: RecordingMode = trailId == nil ? .roam : .trail
         recording.startRecording(areaId: areaId, mode: mode, trailId: trailId)
-        // Mirror the trail-row tap flow exactly: direct assignment, no
-        // withAnimation wrapper. Earlier the wrapper was eating the state
-        // change in some context-menu transitions so the highlight never
-        // showed. TrailMapView's render loop now also uses
-        // activeRecording.trailId directly for the purple recording
-        // highlight, so this is belt + suspenders.
+        // Mirror the trail-row tap flow exactly (direct assignment, no
+        // withAnimation wrapper) so TrailMapView's existing selected-trail
+        // styling kicks in on top of the purple recording-trail render.
         if let trailId {
             selectedTrailId = trailId
         }
     }
 
-    private func stopOtherRecordingThenStart() async {
+    private func stopOtherRecordingThenStart(trailId: String?) async {
         guard let active = recording.activeRecording else { return }
         // Split out of `??` because `??` takes an autoclosure that can't
         // host an `await`.
@@ -271,7 +292,7 @@ struct AreaView: View {
             trails = (await areas.area(id: active.areaId))?.trails ?? []
         }
         _ = await recording.stopRecording(trails: trails)
-        recording.startRecording(areaId: areaId, mode: .roam)
+        startRecordingNow(trailId: trailId)
     }
 
     private func trailListSheet(area: Area) -> some View {
@@ -311,8 +332,18 @@ struct AreaView: View {
             }
             .frame(height: trailListHeight)
             .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(.regularMaterial)
+                // Round only the top corners — the bottom edge sits flush
+                // against the floating tab bar, so square corners there
+                // make the panel read as "anchored" instead of "floating
+                // with a weird gap".
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 20,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: 20,
+                    style: .continuous
+                )
+                .fill(.regularMaterial)
             )
             .frame(maxHeight: .infinity, alignment: .bottom)
             .animation(nil, value: trailListHeight)

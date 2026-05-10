@@ -4,60 +4,92 @@ Tracking work toward a polished MVP. App Store submission tasks (privacy
 policy, store metadata, etc.) are intentionally not listed yet — we'll
 capture those when we're ready to ship outside TestFlight.
 
-## On feat/build-3-fixes (PR #46, awaiting next TestFlight upload)
+## On feat/build-3-fixes (awaiting next TestFlight upload)
 
 Bug fixes from the first device test of the merged main:
 
 - B1 — Completion mismatch after Refresh Trail Data. Display now
   filters by current-trail IDs; AreaView re-derives completions from
-  hike history on load via ProgressService.bulkMarkComplete (silent,
-  idempotent). Refresh dialog rewritten with explicit messaging.
+  hike history on load via ProgressService.bulkMarkComplete.
 - B2 — AreaView opens on a fragment of the area. Initial map region
-  now computed from union of trail-segment coordinates and seeded
-  synchronously in init, falling back to area.bbox then to a camera.
-- B3 — Trail-list panel drag jankiness. Switched to fixed-height +
-  .offset(y:) layout with .animation(nil, value:) so SwiftUI treats
-  the drag as a pure visual translation (no per-frame layout pass).
-- B5 — Length-filter chips ambiguous. Added "Filter by total trail
-  miles in the area" caption above the chips.
-- B7 — Card-art black bg persists in light mode. AreaCard +
-  ContinueCard hero now use Color(.secondarySystemBackground) with
-  a .separator border; text flipped to .primary / .secondary so it
-  adapts.
-- B8 — Stop & Discard option with double-confirm dialog, in both
-  RecordingPanel and the global ActiveRecordingBanner.
+  computed from union of trail-segment coordinates.
+- B3 — Trail-list panel drag jankiness. Pass 5: fixed-height layout +
+  .geometryGroup() + .interactiveSpring snap.
+- B4 — Trail-list filter menu: status / difficulty / length, single-
+  select per dimension, sectioned with explicit headers, count badge
+  on the filter button, "Showing X of Y" line, dedicated empty state.
+- B5 — Length-filter chips clarified with caption.
+- B7 — Card-art black bg in light mode → secondarySystemBackground
+  with a .separator border.
+- B8 — Stop & Discard with double-confirm dialog.
 
-Plus:
+Trail recording / completion accuracy:
 
-- ActiveRecordingBanner is tappable → fullScreenCover hosts the
-  recording's AreaView so users mid-hike can jump back to the map
-  without manual navigation.
-- Settings → Refresh Trail Data button re-enables 3s after a refresh
-  instead of staying disabled until app relaunch.
-- Timer / @MainActor concurrency warnings cleaned up in
-  ActiveRecordingBanner and RecordingPanel.
-- Settings → "Your Activity" vanity stats block: hikes / miles /
-  trails / areas, deduped across history + ProgressService.
-- Settings → "Send Feedback" link to the GitHub issues page.
-- "Record This Trail" context-menu action on trail rows starts a
-  recording in .trail mode for that specific trail. SavedRecording
-  grew an optional trailId field with a custom Codable init so old
-  hikes still decode. HistoryView surfaces the trail name as the
+- Trail-id determinism. Sorted byName.keys before assigning the
+  count-suffix in AreaDataService so the same trail always gets the
+  same ID across fetches. Was scrambling completions when an area
+  silently re-fetched.
+- cachedAt = Date() stamped on fresh fetches so the staleness check
+  actually works (was nil → ∞ → silent re-fetch on every open).
+- Display-time filtering on completion counts (AreaCard, ContinueCard,
+  TrailListView header, AreaView celebration trigger) so orphan
+  completions don't inflate.
+- rebuildCoverageFromHistory replays saved GPS paths against current
+  trails on AreaView load → completions self-heal under id rotation.
+- Empty-cache self-heal: 0-trail entries treated as cache misses on
+  subsequent opens. Defensive guard in fetchAndCacheAreaWithError
+  prevents overwriting a good cache with empty data on a flaky fetch.
+- Inline retry (3 attempts, 600/1200ms backoff) when Overpass returns
+  zero trails and there's no prior cache.
+
+Recording / activity:
+
+- ActiveRecordingBanner tappable → jumps back to recording's AreaView.
+- Trail name in banner when in .trail mode.
+- "Record This Trail" context-menu on trail rows; SavedRecording
+  grew an optional trailId field. HistoryView shows trail name as
   row title for trail-mode hikes.
-- TrailMapView paints a dashed cyan stroke over the trail being
-  recorded so the user can see at a glance which polyline to follow.
-- Trail-list summary header now has a "Tap to highlight · long-press
-  to record" tip so the context-menu action is discoverable.
-- Prefetch visible AreaCard areas on Explore appear / location /
-  filter change. Combined with the existing on-disk area cache, area
-  opens are now instant after the first warm-up.
-- B4 — Trail-list filter menu: status (all / incomplete / complete),
-  difficulty (all / easy / moderate / hard), length (all / <1mi /
-  1–3mi / >3mi). Live count badge on the filter button + "Showing X
-  of Y" line in the header.
-- AreaCard.style param dropped — only `.glow` was ever used and the
-  blur halo is already gated to dark mode inside SilhouetteArtwork,
-  so the `.tight` branch never rendered differently. Cleaner API.
+- TrailMapView paints purple over the trail being recorded.
+- Trail-list summary tip: "Tap to highlight · long-press to record".
+- Trail-completion push notifications via NotificationService (local
+  notifications, no APNs). Permission requested at first hike start.
+- Tap-to-celebrate overlay (checkmark seal, bounce, success haptic,
+  tap or 3.5s to dismiss).
+- AreaView layout: controlBar above RecordingPanel, gap tightened to
+  6pt so the recording bar sits closer to the trail list panel.
+
+UX polish:
+
+- Pull-to-refresh on Explore.
+- "Surprise Me" dice toolbar button — random unvisited area.
+- Prefetch visible AreaCards on Explore appear / location / filter
+  change. Combined with the on-disk Area cache, area opens are now
+  instant after first warm-up.
+- AreaCard.style param dropped — only .glow ever used.
+- Settings → Refresh Trail Data button re-enables 3s after refresh.
+- Settings → "Your Activity" vanity stats block.
+- Settings → "Send Feedback" link.
+- AreaView loading state paints the bundled silhouette behind a
+  "Loading…" pill, with trails lighting up sequentially via
+  TimelineView + Path.trimmedPath. Stagger auto-scales to trail
+  count so 5-trail and 200-trail areas both finish in ~2.5s.
+- Runtime-computed silhouettes: Area.computedSilhouette builds the
+  silhouette from live trail data so AreaCard / ContinueCard art
+  reflects current Overpass output (fixes Shadow Mountain rendering
+  as all-easy when it actually has a mix).
+
+## Reminders
+
+- [ ] **Regenerate `public/areas/silhouettes.json`** by running
+  `python3 scripts/build-trail-counts.py --force`. The bundled file
+  is stale relative to current Overpass output (Shadow Mountain
+  Preserve was the prompt — bundle had it as all-easy, real data
+  has a mix). The runtime-computed silhouette workaround in
+  Area.computedSilhouette covers the iOS app once an area is
+  cached, but cold-load AreaCards still show the stale colors
+  briefly. The script takes ~1 hour for the current 22-area index
+  with Overpass rate limits, so probably worth its own background
+  task or CI run.
 
 ## Next-build candidates (not yet started)
 
@@ -65,13 +97,13 @@ Plus:
 - [ ] Route type filter for trails (out-and-back, loop, etc.) — not
   in the trail model yet, would need to compute from GPS shape or
   pull from OSM `route` / `network` tags.
+- [ ] Drive-time bands instead of fixed-mile ranges ("Within 30 min",
+  "Within 1 hr") — better answer to the original B5 if the chip
+  caption isn't enough. Needs MapKit routing per area on a
+  background queue with caching.
 
 ## Backlog / ideas
 
-- [ ] Drive-time bands instead of fixed-mile ranges ("Within 30 min",
-  "Within 1 hr") — likely the right answer to the original B5 if
-  the caption isn't enough.
-- [ ] "Surprise Me" button — pick a random unvisited area.
 - [ ] Featured area of the week (auto-rotate by ISO week).
 - [ ] Map-tile prefetch for offline hiking — record in spotty signal
   without losing the basemap.

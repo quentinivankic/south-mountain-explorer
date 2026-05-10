@@ -74,12 +74,15 @@ struct TrailMapView: View {
             }
 
             // "Following this trail" guide — when recording in .trail mode,
-            // the chosen trail gets a solid cyan stroke with a white halo
-            // behind it so it stands out against the rest of the trail
-            // network. Dropped the dashed style (which MapKit's MapPolyline
-            // didn't render reliably enough to be visible) in favour of two
-            // stacked solid strokes. Drawn before the live GPS path so that
-            // path stays the most prominent stroke.
+            // the chosen trail gets a single bold yellow stroke on top of
+            // the regular rendering. Yellow has high contrast against any
+            // basemap colour and is distinct from the cyan past-paths halo
+            // and the blue live GPS path. Drawn before the live GPS path
+            // so that path stays the most prominent stroke.
+            // Earlier attempts used a dashed cyan stroke (MapKit silently
+            // ignored the dash) and then a white-halo + cyan stack (z-order
+            // was unreliable in MapKit's content builder). A single bright
+            // stroke renders consistently.
             if let trailId = activeRecording?.trailId,
                let recordingTrail = area.trails.first(where: { $0.id == trailId }) {
                 ForEach(Array(recordingTrail.segments.enumerated()), id: \.offset) { _, segment in
@@ -87,14 +90,9 @@ struct TrailMapView: View {
                         guard node.count >= 2 else { return nil }
                         return CLLocationCoordinate2D(latitude: node[0], longitude: node[1])
                     }
-                    // White halo for contrast against busy basemap colours
                     MapPolyline(coordinates: coords)
-                        .stroke(.white,
-                                style: StrokeStyle(lineWidth: 14, lineCap: .round, lineJoin: .round))
-                    // Bright cyan on top of the halo
-                    MapPolyline(coordinates: coords)
-                        .stroke(.cyan,
-                                style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
+                        .stroke(.yellow,
+                                style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round))
                 }
             }
 

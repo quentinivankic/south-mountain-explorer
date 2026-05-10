@@ -274,12 +274,15 @@ struct AreaView: View {
     }
 
     private func trailListSheet(area: Area) -> some View {
-        // Pass 2 on the drag jank: keep the panel at its full max height
-        // and slide it up/down via .offset rather than re-laying-out a
-        // changing .frame each frame. SwiftUI optimizes offset changes
-        // aggressively (no layout pass), so the panel tracks the finger
-        // 1:1 instead of chunking. The TrailListView's ScrollView inside
-        // also doesn't have to keep recomputing its content frame.
+        // Pass 3 on the panel layout. The offset trick (keep panel sized at
+        // tallHeight, slide via .offset) was smooth but the ScrollView's
+        // *frame* stayed tallHeight tall — so when collapsed, scrolling
+        // landed at the frame bottom which was geometrically below the
+        // visible area, hiding the last few rows.
+        // Switching back to direct frame-height sizing so the ScrollView's
+        // bounds match what the user can see. .animation(nil, value:)
+        // keeps the drag 1:1 (no implicit resize animation); the spring in
+        // onEnded is the only animated transition.
         GeometryReader { geo in
             let tallHeight = max(geo.size.height - 100, defaultListHeight)
             VStack(spacing: 0) {
@@ -305,24 +308,14 @@ struct AreaView: View {
                     onRecordTrail: { trail in tryStartRecording(trailId: trail.id) }
                 )
             }
-            .frame(height: tallHeight)
+            .frame(height: trailListHeight)
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(.regularMaterial)
             )
-            // Anchor the panel to the bottom of the available area, then
-            // slide its hidden portion down by (tallHeight - visibleHeight).
             .frame(maxHeight: .infinity, alignment: .bottom)
-            .offset(y: max(0, tallHeight - trailListHeight))
-            // Skip implicit animations during direct manipulation; the
-            // spring in onEnded is the only animated transition.
             .animation(nil, value: trailListHeight)
         }
-        // Don't .ignoresSafeArea(.bottom) here — the iOS 26 floating tab
-        // bar overlays content when we ignore the bottom inset, which
-        // hides the last few trail rows under it. The small visible gap
-        // between the panel's rounded corners and the tab bar reads as
-        // intentional spacing.
     }
 
     private func dragGesture(tallHeight: CGFloat) -> some Gesture {

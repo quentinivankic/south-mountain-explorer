@@ -51,35 +51,72 @@ struct AreaView: View {
     /// short delay so the overlay doesn't sit forever.
     @State private var celebrationTrailName: String? = nil
 
+    // Trail-list filters live up here so the map and the list share the
+    // same source of truth — flipping a filter hides the corresponding
+    // polylines from the map too, not just the list rows.
+    @State private var statusFilter: TrailStatusFilter = .all
+    @State private var difficultyFilter: TrailDifficultyFilter = .all
+    @State private var lengthFilter: TrailLengthFilter = .all
+
     private let defaultListHeight: CGFloat = 340
 
     private var isRecording: Bool {
         recording.activeRecording?.areaId == areaId
     }
 
+    /// Trail set after applying the user's filters. Single source of
+    /// truth shared between TrailListView (which renders the rows) and
+    /// TrailMapView (which renders the polylines).
+    private func computeFilteredTrails(_ area: Area) -> [Trail] {
+        area.trails.filter { trail in
+            let isComplete = progress.isComplete(areaId: areaId, trailId: trail.id)
+            switch statusFilter {
+            case .all: break
+            case .incomplete: if isComplete { return false }
+            case .complete:   if !isComplete { return false }
+            }
+            if !difficultyFilter.matches(trail.difficulty) { return false }
+            if !lengthFilter.matches(trail.distanceMi) { return false }
+            return true
+        }
+    }
+
+    /// Whether any non-default filter is active. When false we pass
+    /// `nil` to TrailMapView so it skips the per-trail filter check
+    /// entirely, since the unfiltered render is the common case.
+    private var hasActiveFilter: Bool {
+        statusFilter != .all || difficultyFilter != .all || lengthFilter != .all
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             if let area {
+                let filtered = computeFilteredTrails(area)
+                let visibleTrailIds: Set<String>? = hasActiveFilter
+                    ? Set(filtered.map(\.id)) : nil
                 // Full-screen map
                 TrailMapView(
                     area: area,
                     activeRecording: isRecording ? recording.activeRecording : nil,
                     pastPaths: pastPaths,
                     recenterTick: recenterTick,
-                    selectedTrailId: $selectedTrailId
+                    selectedTrailId: $selectedTrailId,
+                    visibleTrailIds: visibleTrailIds
                 )
                 .ignoresSafeArea()
 
                 // Trail list sheet
                 if showTrailList {
-                    trailListSheet(area: area)
+                    trailListSheet(area: area, filtered: filtered)
                 }
 
                 // Bottom controls — controlBar (map toggle, recenter,
                 // record) sits above the RecordingPanel so the location/
                 // recenter buttons stay reachable above the recording bar
-                // instead of being buried under it.
-                VStack(spacing: 12) {
+                // instead of being buried under it. Spacing dropped to 4
+                // and bottom padding to 0 so the REC bar sits flush with
+                // the trail-list panel beneath.
+                VStack(spacing: 4) {
                     controlBar(area: area)
                     if isRecording {
                         RecordingPanel(area: area) { finished in
@@ -91,10 +128,7 @@ struct AreaView: View {
                         }
                     }
                 }
-                // Tighten the gap above the trail-list panel so the
-                // RecordingPanel sits closer to it instead of leaving
-                // ~20pt of empty map between them.
-                .padding(.bottom, (showTrailList ? currentListHeight : 0) + 6)
+                .padding(.bottom, showTrailList ? currentListHeight : 0)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
 
             } else if isLoading {
@@ -400,7 +434,7 @@ struct AreaView: View {
         startRecordingNow(trailId: trailId)
     }
 
-    private func trailListSheet(area: Area) -> some View {
+    private func trailListSheet(area: Area, filtered: [Trail]) -> some View {
         // Pass 5 on the panel layout. Each previous attempt fixed one
         // axis of the problem and broke another:
         //   - .offset trick was smooth but ScrollView bounds wrong
@@ -434,6 +468,10 @@ struct AreaView: View {
                 TrailListView(
                     area: area,
                     selectedTrailId: $selectedTrailId,
+                    statusFilter: $statusFilter,
+                    difficultyFilter: $difficultyFilter,
+                    lengthFilter: $lengthFilter,
+                    filteredTrails: filtered,
                     onRecordTrail: { trail in tryStartRecording(trailId: trail.id) }
                 )
             }

@@ -57,15 +57,17 @@ enum TrailLengthFilter: String, CaseIterable, Identifiable {
 struct TrailListView: View {
     let area: Area
     @Binding var selectedTrailId: String?
+    @Binding var statusFilter: TrailStatusFilter
+    @Binding var difficultyFilter: TrailDifficultyFilter
+    @Binding var lengthFilter: TrailLengthFilter
+    /// Pre-filtered trail set computed in AreaView so the map view can see
+    /// the same set without TrailListView having to fan it back out.
+    let filteredTrails: [Trail]
     var onRecordTrail: ((Trail) -> Void)? = nil
 
     @Environment(ProgressService.self) private var progress
     @Environment(CoverageService.self) private var coverage
     @Environment(RecordingService.self) private var recording
-
-    @State private var statusFilter: TrailStatusFilter = .all
-    @State private var difficultyFilter: TrailDifficultyFilter = .all
-    @State private var lengthFilter: TrailLengthFilter = .all
 
     private var activeFilterCount: Int {
         var n = 0
@@ -73,20 +75,6 @@ struct TrailListView: View {
         if difficultyFilter != .all { n += 1 }
         if lengthFilter != .all { n += 1 }
         return n
-    }
-
-    private var filteredTrails: [Trail] {
-        area.trails.filter { trail in
-            let isComplete = progress.isComplete(areaId: area.id, trailId: trail.id)
-            switch statusFilter {
-            case .all: break
-            case .incomplete: if isComplete { return false }
-            case .complete: if !isComplete { return false }
-            }
-            if !difficultyFilter.matches(trail.difficulty) { return false }
-            if !lengthFilter.matches(trail.distanceMi) { return false }
-            return true
-        }
     }
 
     var body: some View {
@@ -194,41 +182,47 @@ struct TrailListView: View {
 
     private var filterMenu: some View {
         Menu {
-            // Wrap each picker in a Section so the dimension label
-            // ("Status" / "Difficulty" / "Length") renders as a header
-            // in the menu — without it, three identical "All" rows
-            // stack on top of each other and the user can't tell which
-            // dimension they're toggling.
-            Section("Status") {
+            // Nested submenus give each dimension a tappable, labelled
+            // entry point ("Status ▸") in the parent menu, so the user
+            // can tell what they're toggling instead of seeing three
+            // identical "All" rows stacked. Selected option is shown
+            // inline next to the submenu label by SwiftUI when the
+            // Picker has a single selection.
+            Menu {
                 Picker("Status", selection: $statusFilter) {
                     ForEach(TrailStatusFilter.allCases) { f in
                         Text(f.label).tag(f)
                     }
                 }
+            } label: {
+                Label("Status: \(statusFilter.label)", systemImage: "checkmark.circle")
             }
-            Section("Difficulty") {
+            Menu {
                 Picker("Difficulty", selection: $difficultyFilter) {
                     ForEach(TrailDifficultyFilter.allCases) { f in
                         Text(f.label).tag(f)
                     }
                 }
+            } label: {
+                Label("Difficulty: \(difficultyFilter.label)", systemImage: "figure.hiking")
             }
-            Section("Length") {
+            Menu {
                 Picker("Length", selection: $lengthFilter) {
                     ForEach(TrailLengthFilter.allCases) { f in
                         Text(f.label).tag(f)
                     }
                 }
+            } label: {
+                Label("Length: \(lengthFilter.label)", systemImage: "ruler")
             }
             if activeFilterCount > 0 {
-                Section {
-                    Button(role: .destructive) {
-                        statusFilter = .all
-                        difficultyFilter = .all
-                        lengthFilter = .all
-                    } label: {
-                        Label("Clear All", systemImage: "xmark.circle")
-                    }
+                Divider()
+                Button(role: .destructive) {
+                    statusFilter = .all
+                    difficultyFilter = .all
+                    lengthFilter = .all
+                } label: {
+                    Label("Clear All", systemImage: "xmark.circle")
                 }
             }
         } label: {

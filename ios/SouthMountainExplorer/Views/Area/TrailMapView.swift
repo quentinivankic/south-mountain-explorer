@@ -7,6 +7,11 @@ struct TrailMapView: View {
     let pastPaths: [[GpsPoint]]
     let recenterTick: Int
     @Binding var selectedTrailId: String?
+    /// nil = render every trail. Non-nil = only render trails whose id is
+    /// in this set (plus the recording trail and the selected trail, which
+    /// always render so the user can see what they tapped or what they're
+    /// recording even if a filter would otherwise hide it).
+    let visibleTrailIds: Set<String>?
 
     @Environment(ProgressService.self) private var progress
     @Environment(LocationService.self) private var location
@@ -18,13 +23,15 @@ struct TrailMapView: View {
         activeRecording: ActiveRecording?,
         pastPaths: [[GpsPoint]],
         recenterTick: Int,
-        selectedTrailId: Binding<String?>
+        selectedTrailId: Binding<String?>,
+        visibleTrailIds: Set<String>? = nil
     ) {
         self.area = area
         self.activeRecording = activeRecording
         self.pastPaths = pastPaths
         self.recenterTick = recenterTick
         self._selectedTrailId = selectedTrailId
+        self.visibleTrailIds = visibleTrailIds
         // Compute the initial camera position synchronously so MapKit's
         // own .automatic frame can't briefly render a fragment of the area
         // before .onAppear fires.
@@ -60,7 +67,17 @@ struct TrailMapView: View {
             // live-GPS) so it can't be confused for any of those.
             let recordingTrailId = activeRecording?.trailId
             let highlightedTrailId = recordingTrailId ?? selectedTrailId
-            ForEach(area.trails) { trail in
+            // Drop trails the user has filtered out, but always keep the
+            // currently-recording trail and the currently-selected trail
+            // visible so the user can see what's happening.
+            let drawableTrails: [Trail] = visibleTrailIds.map { allowed in
+                area.trails.filter { trail in
+                    allowed.contains(trail.id)
+                        || trail.id == recordingTrailId
+                        || trail.id == selectedTrailId
+                }
+            } ?? area.trails
+            ForEach(drawableTrails) { trail in
                 let isRecordingThis = trail.id == recordingTrailId
                 let isSelected = trail.id == selectedTrailId
                 let isHighlighted = isRecordingThis || isSelected

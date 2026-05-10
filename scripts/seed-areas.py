@@ -238,14 +238,34 @@ def main() -> None:
             print(f"  {c[1]:60s}  {c[2]:12s}  {c[3]:>8.3f}, {c[4]:>9.3f}")
         return
 
-    if args.merge and INDEX_PATH.exists():
+    # Even in replace mode, preserve entries whose state isn't being
+    # re-seeded — otherwise a "replace AZ" run nukes Denmark, California,
+    # and anything else hand-curated, which is almost never the user's
+    # intent. Replace is meant to drop *stale* entries from the seeded
+    # state, not the whole index.
+    target_state_names = {STATE_NAMES.get(s, s) for s in args.states}
+    if INDEX_PATH.exists():
         existing = json.loads(INDEX_PATH.read_text())
-        existing_ids = {row[0] for row in existing}
-        merged = list(existing)
-        for c in candidates:
-            if c[0] not in existing_ids:
-                merged.append(c)
-        candidates = merged
+        if args.merge:
+            existing_ids = {row[0] for row in existing}
+            merged = list(existing)
+            for c in candidates:
+                if c[0] not in existing_ids:
+                    merged.append(c)
+            candidates = merged
+        else:
+            preserved = [row for row in existing if row[2] not in target_state_names]
+            if preserved:
+                print(
+                    f"  preserved {len(preserved)} entries from states not "
+                    f"in this seed run ({sorted({r[2] for r in preserved})})",
+                    file=sys.stderr,
+                )
+            preserved_ids = {row[0] for row in preserved}
+            for c in candidates:
+                if c[0] not in preserved_ids:
+                    preserved.append(c)
+            candidates = preserved
         candidates.sort(key=lambda x: (x[2], x[1]))
 
     INDEX_PATH.write_text(json.dumps(candidates, separators=(",", ":")))

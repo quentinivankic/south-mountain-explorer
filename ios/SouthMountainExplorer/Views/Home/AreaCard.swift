@@ -7,8 +7,23 @@ struct AreaCard: View {
     @Environment(ProgressService.self) private var progress
     @Environment(AreaDataService.self) private var areas
     @Environment(AreaSilhouetteService.self) private var silhouettes
+    @Environment(LocationService.self) private var location
 
     private var cachedArea: Area? { areas.cachedArea(id: area.id) }
+
+    /// Great-circle distance from user to area centroid, in miles.
+    /// Used for the "X mi away" caption on the card. Returns nil when
+    /// user location is unknown.
+    private var distanceMi: Double? {
+        guard let loc = location.userLocation else { return nil }
+        let R = 3958.8
+        let dLat = (area.centerLat - loc.latitude) * .pi / 180
+        let dLon = (area.centerLon - loc.longitude) * .pi / 180
+        let h = sin(dLat / 2) * sin(dLat / 2)
+            + cos(loc.latitude * .pi / 180) * cos(area.centerLat * .pi / 180)
+            * sin(dLon / 2) * sin(dLon / 2)
+        return R * 2 * atan2(sqrt(h), sqrt(1 - h))
+    }
 
     /// Prefer the cached area's runtime-computed silhouette so per-line
     /// difficulty colors match what the user sees inside AreaView. The
@@ -93,6 +108,12 @@ struct AreaCard: View {
                     }
                 }
 
+                if let d = distanceMi {
+                    Text("\(formatDistance(d)) away")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
                 if let mix = difficultyMix {
                     DifficultyMixBar(mix: mix)
                         .frame(height: 3)
@@ -139,6 +160,11 @@ struct AreaCard: View {
                 endPoint: .bottomTrailing
             )
         }
+    }
+
+    private func formatDistance(_ mi: Double) -> String {
+        if mi < 10 { return String(format: "%.1f mi", mi) }
+        return "\(Int(mi.rounded())) mi"
     }
 
     private var gradientColors: [Color] {

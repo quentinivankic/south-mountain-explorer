@@ -1,14 +1,57 @@
 import SwiftUI
+import CoreLocation
+
+private enum BrowseSort: String, CaseIterable, Identifiable {
+    case alphabetic, nearest, mostTrails, longest
+
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .alphabetic: return "A → Z"
+        case .nearest:    return "Nearest"
+        case .mostTrails: return "Most trails"
+        case .longest:    return "Total miles"
+        }
+    }
+    var systemImage: String {
+        switch self {
+        case .alphabetic: return "textformat.abc"
+        case .nearest:    return "location"
+        case .mostTrails: return "map"
+        case .longest:    return "ruler"
+        }
+    }
+}
 
 struct BrowseView: View {
     @Environment(AreaDataService.self) private var areas
     @Environment(FavoritesService.self) private var favorites
+    @Environment(LocationService.self) private var location
 
     @State private var query = ""
     @State private var selectedArea: AreaSummary? = nil
+    @State private var sort: BrowseSort = .alphabetic
 
+    /// Sort + filter pipeline. Search happens first (cheap string match),
+    /// then sort. Nearest falls back to alphabetic when location is
+    /// unavailable rather than producing an arbitrary order.
     private var results: [AreaSummary] {
-        query.isEmpty ? areas.summaries : areas.search(query)
+        let pool = query.isEmpty ? areas.summaries : areas.search(query)
+        switch sort {
+        case .alphabetic:
+            return pool.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        case .nearest:
+            guard let loc = location.userLocation else {
+                return pool.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            }
+            return pool.sorted {
+                haversine($0, loc) < haversine($1, loc)
+            }
+        case .mostTrails:
+            return pool.sorted { ($0.trailCount ?? 0) > ($1.trailCount ?? 0) }
+        case .longest:
+            return pool.sorted { ($0.totalMi ?? 0) > ($1.totalMi ?? 0) }
+        }
     }
 
     var body: some View {
@@ -31,6 +74,20 @@ struct BrowseView: View {
                 }
             }
             .navigationTitle("Browse")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Picker("Sort", selection: $sort) {
+                            ForEach(BrowseSort.allCases) { option in
+                                Label(option.label, systemImage: option.systemImage).tag(option)
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "arrow.up.arrow.down.circle")
+                    }
+                    .accessibilityLabel("Sort areas")
+                }
+            }
         }
         .sheet(item: $selectedArea) { area in
             NavigationStack {
@@ -38,12 +95,34 @@ struct BrowseView: View {
             }
         }
     }
+
+    private func haversine(_ a: AreaSummary, _ loc: CLLocationCoordinate2D) -> Double {
+        let R = 3958.8
+        let dLat = (a.centerLat - loc.latitude) * .pi / 180
+        let dLon = (a.centerLon - loc.longitude) * .pi / 180
+        let h = sin(dLat / 2) * sin(dLat / 2)
+            + cos(loc.latitude * .pi / 180) * cos(a.centerLat * .pi / 180)
+            * sin(dLon / 2) * sin(dLon / 2)
+        return R * 2 * atan2(sqrt(h), sqrt(1 - h))
+    }
 }
 
 struct BrowseRow: View {
     let area: AreaSummary
     @Environment(FavoritesService.self) private var favorites
     @Environment(ProgressService.self) private var progress
+    @Environment(LocationService.self) private var location
+
+    private var distanceMi: Double? {
+        guard let loc = location.userLocation else { return nil }
+        let R = 3958.8
+        let dLat = (area.centerLat - loc.latitude) * .pi / 180
+        let dLon = (area.centerLon - loc.longitude) * .pi / 180
+        let h = sin(dLat / 2) * sin(dLat / 2)
+            + cos(loc.latitude * .pi / 180) * cos(area.centerLat * .pi / 180)
+            * sin(dLon / 2) * sin(dLon / 2)
+        return R * 2 * atan2(sqrt(h), sqrt(1 - h))
+    }
 
     var body: some View {
         HStack(spacing: 14) {
@@ -67,6 +146,10 @@ struct BrowseRow: View {
                         Text("·")
                         Text("\(count) trails · \(String(format: "%.1f", mi)) mi")
                     }
+                    if let d = distanceMi {
+                        Text("·")
+                        Text("\(formatDistance(d)) away")
+                    }
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -85,6 +168,11 @@ struct BrowseRow: View {
                 .font(.caption)
         }
         .contentShape(Rectangle())
+    }
+
+    private func formatDistance(_ mi: Double) -> String {
+        if mi < 10 { return String(format: "%.1f mi", mi) }
+        return "\(Int(mi.rounded())) mi"
     }
 
     private var cardColors: [Color] {

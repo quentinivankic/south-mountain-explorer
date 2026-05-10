@@ -274,8 +274,14 @@ final class AreaDataService {
             byName[name]!.segments.append(coords)
         }
 
+        // Sort names before assigning IDs so the count-based suffix is
+        // deterministic across fetches. Swift Dictionary iteration order is
+        // randomized, so without this sort the same trail could get
+        // "name-3" on one fetch and "name-7" on the next, scrambling
+        // ProgressService completions when an area got silently re-fetched.
         var trails: [Trail] = []
-        for (name, info) in byName {
+        for name in byName.keys.sorted() {
+            guard let info = byName[name] else { continue }
             let totalMi = info.segments.reduce(0.0) { $0 + segmentMiles($1) }
             if totalMi < 0.59 { continue }
             let id = slugify(name) + "-\(trails.count)"

@@ -5,6 +5,11 @@ private let farFromAreaThresholdMi = 5.0
 struct AreaView: View {
     let areaId: String
     let areaName: String
+    /// When set on init, the view plays a one-shot trail-completion
+    /// celebration overlay on first appear. Used by the notification-tap
+    /// deep-link from ContentView so a user opening the "Trail Complete!"
+    /// notification gets a celebratory beat instead of a silent jump in.
+    var initialCelebrationTrailName: String? = nil
 
     @Environment(AreaDataService.self) private var areas
     @Environment(RecordingService.self) private var recording
@@ -41,6 +46,9 @@ struct AreaView: View {
     /// "Stop & Start Here" silently downgraded to .roam mode and the
     /// recording-trail highlight never engaged.
     @State private var pendingRecordTrailId: String? = nil
+    /// Name of the trail to celebrate over the map. Auto-clears after a
+    /// short delay so the overlay doesn't sit forever.
+    @State private var celebrationTrailName: String? = nil
 
     private let defaultListHeight: CGFloat = 340
 
@@ -66,11 +74,12 @@ struct AreaView: View {
                     trailListSheet(area: area)
                 }
 
-                // Bottom controls — RecordingPanel stacks above the
-                // controlBar so the user can still toggle the trail list
-                // (and tap rows to highlight trails on the map) while a
-                // hike is being recorded.
+                // Bottom controls — controlBar (map toggle, recenter,
+                // record) sits above the RecordingPanel so the location/
+                // recenter buttons stay reachable above the recording bar
+                // instead of being buried under it.
                 VStack(spacing: 12) {
+                    controlBar(area: area)
                     if isRecording {
                         RecordingPanel(area: area) { finished in
                             finishedRecording = finished
@@ -80,7 +89,6 @@ struct AreaView: View {
                             Task { await loadPastPaths() }
                         }
                     }
-                    controlBar(area: area)
                 }
                 .padding(.bottom, (showTrailList ? currentListHeight : 0) + 20)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -127,6 +135,12 @@ struct AreaView: View {
             loadError = result.error
             isLoading = false
             await loadHistoryDerivedState()
+            // Pop the celebration overlay if the view was opened via a
+            // trail-complete push notification. Done after the area loads
+            // so the overlay sits over the map, not a spinner.
+            if let name = initialCelebrationTrailName {
+                showCelebration(name: name)
+            }
         }
         .task(id: isRecording) {
             // While a recording is active for this area, recompute coverage
@@ -186,7 +200,13 @@ struct AreaView: View {
         } message: {
             Text("Recording from this far away will track GPS but won't update trail coverage in this area.")
         }
-        .onChange(of: progress.completionCount(in: areaId)) { old, new in
+        .overlay {
+            if let name = celebrationTrailName {
+                trailCompletionOverlay(name: name)
+                    .transition(.scale(scale: 0.8).combined(with: .opacity))
+            }
+        }
+        .onChange(of: filteredCompletedCount) { old, new in
             // Trigger the celebration when the area transitions into 100%.
             // Suppress while the recording summary is up — the trophy state
             // there is enough acknowledgement, and stacking sheets is messy.
@@ -200,6 +220,57 @@ struct AreaView: View {
 
     private var currentListHeight: CGFloat { trailListHeight }
 
+    /// Show the trail-completion celebration overlay for `name` and auto-
+    /// dismiss after 3.5s. Tapping the overlay dismisses it sooner.
+    private func showCelebration(name: String) {
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
+            celebrationTrailName = name
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(3.5))
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    if celebrationTrailName == name { celebrationTrailName = nil }
+                }
+            }
+        }
+    }
+
+    private func trailCompletionOverlay(name: String) -> some View {
+        ZStack {
+            Color.black.opacity(0.35).ignoresSafeArea()
+            VStack(spacing: 14) {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 84))
+                    .foregroundStyle(.cyan)
+                    .symbolEffect(.bounce, options: .repeat(2))
+                Text("Trail Complete!")
+                    .font(.title.bold())
+                Text(name)
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(36)
+            .frame(maxWidth: 320)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .padding(24)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeOut(duration: 0.2)) { celebrationTrailName = nil }
+        }
+    }
+
+    /// Completion count restricted to the current area's trail IDs so orphan
+    /// completions (from before the trail-id determinism fix) don't inflate
+    /// the celebration trigger or any header counters that reference it.
+    private var filteredCompletedCount: Int {
+        guard let area else { return 0 }
+        return progress.completionCount(in: areaId, validTrailIds: Set(area.trails.map(\.id)))
+    }
+
     private func loadPastPaths() async {
         let history = await recording.loadHistory()
         pastPaths = history
@@ -209,19 +280,26 @@ struct AreaView: View {
 
     /// Pull recorded hike history once and use it for both:
     ///   - the cyan coverage halo (`pastPaths`)
-    ///   - the canonical "trails completed" set (any trail listed in any
-    ///     SavedRecording.completedTrailIds for this area)
-    /// Treating history as the source of truth for completions means a
-    /// Refresh Trail Data call can never silently lose progress: if the
-    /// trail's ID still matches, the completion gets rebuilt on next open.
-    /// Manual toggles via the trail row continue to live in ProgressService
-    /// and remain the union with history-derived completions.
+    ///   - canonical completions, replayed from saved GPS paths against the
+    ///     current trails. This self-heals after a re-fetch that changed
+    ///     trail IDs: even if `completedTrailIds` in history points at a
+    ///     stale id, replaying the path against the new trails reproduces
+    ///     the right coverage and re-marks completion under the new id.
+    /// Manual toggles via the trail-row checkbox still live in ProgressService
+    /// and union with history-derived completions.
     private func loadHistoryDerivedState() async {
         let history = await recording.loadHistory()
         let local = history.filter { $0.areaId == areaId }
         pastPaths = local.map { $0.path }
-        let completed = Set(local.flatMap { $0.completedTrailIds })
+        // Carry forward any completedTrailIds whose ids still match — cheap
+        // path that doesn't need to walk the GPS grid. The path-replay below
+        // covers the case where ids changed.
+        let stillValid = Set(area?.trails.map(\.id) ?? [])
+        let completed = Set(local.flatMap { $0.completedTrailIds }).intersection(stillValid)
         progress.bulkMarkComplete(areaId: areaId, trailIds: completed)
+        if let trails = area?.trails {
+            await recording.rebuildCoverageFromHistory(areaId: areaId, trails: trails)
+        }
     }
 
     /// Pre-flight gate before kicking off a hike. Walks through the

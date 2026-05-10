@@ -47,6 +47,10 @@ final class RecordingService {
         persist()
         locationService.startBackgroundTracking()
         beginObservingLocation()
+        // Lazy-prompt for notifications now that the user has actually
+        // started a hike. The OS only asks once per install, so the
+        // request is a no-op on subsequent calls.
+        Task { await NotificationService.shared.ensurePermission() }
     }
 
     func discardRecording() {
@@ -68,7 +72,8 @@ final class RecordingService {
         let sessionCoverage = measureCoverage(rec: rec, trails: trails)
         let (newlyCompleted, revisited, _) = await mergeCoverage(
             areaId: rec.areaId,
-            sessionCoverage: sessionCoverage
+            sessionCoverage: sessionCoverage,
+            trails: trails
         )
 
         let finished = FinishedRecording(
@@ -100,7 +105,32 @@ final class RecordingService {
     func applyLiveCoverage(trails: [Trail]) async {
         guard let rec = activeRecording else { return }
         let sessionCoverage = measureCoverage(rec: rec, trails: trails)
-        _ = await mergeCoverage(areaId: rec.areaId, sessionCoverage: sessionCoverage)
+        _ = await mergeCoverage(areaId: rec.areaId, sessionCoverage: sessionCoverage, trails: trails)
+    }
+
+    /// Replay every saved hike's GPS path against the area's *current* trails
+    /// and merge the resulting coverage. Idempotent and self-healing: if an
+    /// upstream re-fetch ever assigns new IDs to the same trails (e.g. after
+    /// the trail-id determinism fix), the next AreaView open recomputes
+    /// completions against the new IDs from history alone — no manual
+    /// re-toggle needed. Suppresses the "newly complete" haptic by going
+    /// straight through CoverageService + ProgressService.bulkMarkComplete.
+    func rebuildCoverageFromHistory(areaId: String, trails: [Trail]) async {
+        let history = loadHistorySync().filter { $0.areaId == areaId }
+        guard !history.isEmpty, !trails.isEmpty else { return }
+
+        var aggregate: [String: Double] = [:]
+        for hike in history {
+            let cov = measureCoverage(path: hike.path, trails: trails)
+            for (tid, v) in cov {
+                aggregate[tid] = max(aggregate[tid] ?? 0, v)
+            }
+        }
+        guard !aggregate.isEmpty else { return }
+
+        await CoverageService.shared.mergeCoverage(areaId: areaId, delta: aggregate)
+        let nowComplete = aggregate.compactMap { $0.value >= completeThreshold ? $0.key : nil }
+        ProgressService.shared.bulkMarkComplete(areaId: areaId, trailIds: Set(nowComplete))
     }
 
     /// Merge a per-trail coverage map (this hike's view of coverage) into the
@@ -111,7 +141,8 @@ final class RecordingService {
     @discardableResult
     private func mergeCoverage(
         areaId: String,
-        sessionCoverage: [String: Double]
+        sessionCoverage: [String: Double],
+        trails: [Trail] = []
     ) async -> (newlyCompleted: [String], revisited: [String], merged: [String: Double]) {
         let progressService = ProgressService.shared
         let coverageService = CoverageService.shared
@@ -133,8 +164,21 @@ final class RecordingService {
         }
 
         await coverageService.mergeCoverage(areaId: areaId, delta: merged)
+        let areaName = AreaDataService.shared.cachedArea(id: areaId)?.name
+            ?? AreaDataService.shared.summaries.first { $0.id == areaId }?.name
+            ?? "this area"
         for tid in newlyCompleted {
             await progressService.markComplete(areaId: areaId, trailId: tid)
+            // Local push notification for the trail completion. Fires
+            // whether the app is foreground or background, so a user with
+            // the phone in their pocket on the trail still gets the beat.
+            let trailName = trails.first { $0.id == tid }?.name ?? "a trail"
+            NotificationService.shared.notifyTrailComplete(
+                areaId: areaId,
+                areaName: areaName,
+                trailId: tid,
+                trailName: trailName
+            )
         }
         return (newlyCompleted, revisited, merged)
     }
@@ -175,14 +219,18 @@ final class RecordingService {
     // MARK: - Coverage calculation
 
     private func measureCoverage(rec: ActiveRecording, trails: [Trail]) -> [String: Double] {
-        guard rec.path.count >= 3 else { return [:] }
+        measureCoverage(path: rec.path, trails: trails)
+    }
+
+    private func measureCoverage(path: [GpsPoint], trails: [Trail]) -> [String: Double] {
+        guard path.count >= 3 else { return [:] }
 
         let cell = 0.0003
         var grid: [String: [[Double]]] = [:]
         func gridKey(_ la: Double, _ lo: Double) -> String {
             "\(Int((la / cell).rounded())):\(Int((lo / cell).rounded()))"
         }
-        for p in rec.path {
+        for p in path {
             let k = gridKey(p[0], p[1])
             grid[k, default: []].append([p[0], p[1]])
         }

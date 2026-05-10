@@ -98,7 +98,10 @@ struct TrailListView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
-                    let completed = progress.completionCount(in: area.id)
+                    // Filter to the area's current trail IDs so orphan
+                    // completions (from before the trail-id determinism fix)
+                    // don't double-count.
+                    let completed = progress.completionCount(in: area.id, validTrailIds: Set(area.trails.map(\.id)))
                     if area.resolvedTrailCount > 0 {
                         Text("\(completed) of \(area.resolvedTrailCount) completed")
                             .font(.caption)

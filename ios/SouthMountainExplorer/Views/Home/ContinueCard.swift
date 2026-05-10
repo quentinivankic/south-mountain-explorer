@@ -11,12 +11,14 @@ struct ContinueCard: View {
     private var cachedArea: Area? { areas.cachedArea(id: area.id) }
     private var totalTrails: Int { cachedArea?.resolvedTrailCount ?? area.trailCount ?? 0 }
 
-    /// Use the unfiltered count so the hero card stays in sync with the
-    /// AreaView header. Filtering by current trail IDs silently zeroed
-    /// the count after a Refresh Trail Data call when upstream OSM IDs
-    /// rotated.
+    /// Filter by the cached area's current trail IDs to mask orphan
+    /// completions from before the trail-id determinism fix. Falls back
+    /// to unfiltered when the area hasn't hydrated yet.
     private var completedCount: Int {
-        progress.completionCount(in: area.id)
+        if let trails = cachedArea?.trails, !trails.isEmpty {
+            return progress.completionCount(in: area.id, validTrailIds: Set(trails.map(\.id)))
+        }
+        return progress.completionCount(in: area.id)
     }
 
     var body: some View {

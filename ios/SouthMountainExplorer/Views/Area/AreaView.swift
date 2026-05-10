@@ -12,6 +12,7 @@ struct AreaView: View {
     var initialCelebrationTrailName: String? = nil
 
     @Environment(AreaDataService.self) private var areas
+    @Environment(AreaSilhouetteService.self) private var silhouettes
     @Environment(RecordingService.self) private var recording
     @Environment(FavoritesService.self) private var favorites
     @Environment(LocationService.self) private var location
@@ -97,8 +98,7 @@ struct AreaView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
 
             } else if isLoading {
-                ProgressView("Loading \(areaName)...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                loadingState
             } else {
                 ContentUnavailableView("Area Unavailable",
                     systemImage: "xmark.octagon",
@@ -222,6 +222,30 @@ struct AreaView: View {
     }
 
     private var currentListHeight: CGFloat { trailListHeight }
+
+    /// Loading state. Paints the bundled silhouette behind a soft "Loading…"
+    /// pill so the wait feels like the screen has already arrived. Falls
+    /// back to a plain spinner when no silhouette is bundled for this area.
+    @ViewBuilder
+    private var loadingState: some View {
+        ZStack {
+            Color(.secondarySystemBackground)
+                .ignoresSafeArea()
+            if let silhouette = silhouettes.silhouette(for: areaId) {
+                LoadingSilhouetteCanvas(silhouette: silhouette)
+                    .ignoresSafeArea()
+            }
+            VStack(spacing: 12) {
+                ProgressView()
+                Text("Loading \(areaName)…")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 22)
+            .padding(.vertical, 14)
+            .background(.regularMaterial, in: Capsule())
+        }
+    }
 
     /// Show the trail-completion celebration overlay for `name` and auto-
     /// dismiss after 3.5s. Tapping the overlay dismisses it sooner.
@@ -501,5 +525,63 @@ struct AreaView: View {
             }
         }
         .padding(.horizontal, 20)
+    }
+}
+
+/// Full-screen silhouette behind the AreaView loading state. Reuses the
+/// bundled per-difficulty trail outlines (same data the AreaCard art
+/// uses) but at a larger scale and softer opacity so it reads as
+/// background art instead of a primary canvas.
+private struct LoadingSilhouetteCanvas: View {
+    let silhouette: AreaSilhouette
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Canvas { context, size in
+            guard let bbox = silhouette.bbox else { return }
+            let pad: CGFloat = 24
+            let drawW = size.width - 2 * pad
+            let drawH = size.height - 2 * pad
+            guard drawW > 0, drawH > 0 else { return }
+
+            // Equirectangular projection with longitude scaled by cos(centerLat)
+            // so the trails don't look horizontally stretched.
+            let centerLat = (bbox.s + bbox.n) / 2
+            let lonScale = cos(centerLat * .pi / 180)
+            let xRange = max((bbox.e - bbox.w) * lonScale, .leastNonzeroMagnitude)
+            let yRange = max(bbox.n - bbox.s, .leastNonzeroMagnitude)
+            let scale = min(drawW / xRange, drawH / yRange)
+            let canvasW = xRange * scale
+            let canvasH = yRange * scale
+            let xOffset = pad + (drawW - canvasW) / 2
+            let yOffset = pad + (drawH - canvasH) / 2
+
+            let baseOpacity: Double = colorScheme == .dark ? 0.55 : 0.35
+            for line in silhouette.l {
+                guard line.p.count >= 2 else { continue }
+                var path = Path()
+                for (i, pt) in line.p.enumerated() {
+                    guard pt.count >= 2 else { continue }
+                    let lat = pt[0], lon = pt[1]
+                    let x = xOffset + (lon - bbox.w) * lonScale * scale
+                    let y = yOffset + canvasH - (lat - bbox.s) * scale
+                    let p = CGPoint(x: x, y: y)
+                    if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
+                }
+                let color: Color
+                switch line.d {
+                case "e": color = .green
+                case "m": color = .orange
+                case "h": color = .red
+                default:  color = .gray
+                }
+                context.stroke(
+                    path,
+                    with: .color(color.opacity(baseOpacity)),
+                    style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round)
+                )
+            }
+        }
     }
 }

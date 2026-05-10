@@ -100,8 +100,8 @@ final class AreaDataService {
     // MARK: - Full Area Data
 
     func area(id: String) async -> Area? {
-        if let cached = areaCache[id] { return cached }
-        if let onDisk = loadAreaFromDisk(id: id) {
+        if let cached = areaCache[id], !cached.trails.isEmpty { return cached }
+        if let onDisk = loadAreaFromDisk(id: id), !onDisk.trails.isEmpty {
             areaCache[id] = onDisk
             let staleness = Date().timeIntervalSince(onDisk.cachedAt ?? .distantPast)
             if staleness > 24 * 3600 { Task { await fetchAndCacheArea(id: id) } }
@@ -116,8 +116,12 @@ final class AreaDataService {
     }
 
     func areaWithError(id: String) async -> (area: Area?, error: String?) {
-        if let cached = areaCache[id] { return (cached, nil) }
-        if let onDisk = loadAreaFromDisk(id: id) {
+        // Treat 0-trail entries as cache misses so a polluted cache (legacy
+        // data from before the empty-overwrite guard, or a one-off bad
+        // fetch we managed to persist) doesn't pin the area to the empty
+        // state. The next fetch will replace it with good data.
+        if let cached = areaCache[id], !cached.trails.isEmpty { return (cached, nil) }
+        if let onDisk = loadAreaFromDisk(id: id), !onDisk.trails.isEmpty {
             areaCache[id] = onDisk
             let staleness = Date().timeIntervalSince(onDisk.cachedAt ?? .distantPast)
             if staleness > 24 * 3600 { Task { await fetchAndCacheArea(id: id) } }

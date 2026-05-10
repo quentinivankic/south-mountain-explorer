@@ -90,7 +90,10 @@ struct AreaView: View {
                         }
                     }
                 }
-                .padding(.bottom, (showTrailList ? currentListHeight : 0) + 20)
+                // Tighten the gap above the trail-list panel so the
+                // RecordingPanel sits closer to it instead of leaving
+                // ~20pt of empty map between them.
+                .padding(.bottom, (showTrailList ? currentListHeight : 0) + 6)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
 
             } else if isLoading {

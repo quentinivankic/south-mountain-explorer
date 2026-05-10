@@ -147,6 +147,26 @@ final class AreaDataService {
         do {
             let row = try await fetchFromOverpass(row: stub)
             let area = row.toArea()
+            // Defensive: a flaky Overpass response can succeed with zero
+            // trails (timeout returning an empty body, intermittent
+            // upstream issue). Don't overwrite a previously-good cache
+            // with empty data — the user just lost their entire trail
+            // list. Keep the existing memory/disk cache and surface a
+            // soft error so the caller can decide what to show.
+            if area.trails.isEmpty {
+                if let existingMemory = areaCache[id], !existingMemory.trails.isEmpty {
+                    return (existingMemory, nil)
+                }
+                if let existingDisk = loadAreaFromDisk(id: id), !existingDisk.trails.isEmpty {
+                    areaCache[id] = existingDisk
+                    return (existingDisk, nil)
+                }
+                // No existing data — this is genuinely empty. Don't write
+                // it to disk so the next open retries instead of caching
+                // the empty result for 24h.
+                areaCache[id] = area
+                return (area, nil)
+            }
             areaCache[id] = area
             saveAreaToDisk(area)
             return (area, nil)

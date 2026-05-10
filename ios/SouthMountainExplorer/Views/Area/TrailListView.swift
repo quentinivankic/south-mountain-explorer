@@ -136,18 +136,37 @@ struct TrailListView: View {
                 LazyVStack(spacing: 0) {
                     if filteredTrails.isEmpty {
                         VStack(spacing: 6) {
-                            Image(systemName: "line.3.horizontal.decrease.circle")
+                            Image(systemName: activeFilterCount > 0
+                                  ? "line.3.horizontal.decrease.circle"
+                                  : "exclamationmark.triangle")
                                 .font(.title2)
                                 .foregroundStyle(.tertiary)
-                            Text("No trails match these filters.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            Button("Clear filters") {
-                                statusFilter = .all
-                                difficultyFilter = .all
-                                lengthFilter = .all
+                            if activeFilterCount > 0 {
+                                Text("No trails match these filters.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                Button("Clear filters") {
+                                    statusFilter = .all
+                                    difficultyFilter = .all
+                                    lengthFilter = .all
+                                }
+                                .font(.caption)
+                            } else {
+                                // Reached when the area's trail data fetch
+                                // came back empty (rare — usually an Overpass
+                                // hiccup). The defensive guard in
+                                // AreaDataService prevents overwriting good
+                                // cached data with empty, so this state
+                                // should self-resolve on next open.
+                                Text("Trail data didn't load.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                Text("Try closing and reopening this area, or use Settings → Refresh Trail Data.")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 24)
                             }
-                            .font(.caption)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 40)

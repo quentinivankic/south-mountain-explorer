@@ -12,6 +12,11 @@ struct TrailMapView: View {
     /// always render so the user can see what they tapped or what they're
     /// recording even if a filter would otherwise hide it).
     let visibleTrailIds: Set<String>?
+    /// Height (in points) of UI chrome covering the bottom of the map —
+    /// recording panel, trail list sheet, etc. Used by `centerOnUser` to
+    /// shift the camera south so the user dot lands in the geometric
+    /// middle of the *visible* map instead of the full screen.
+    let bottomInset: CGFloat
 
     @Environment(ProgressService.self) private var progress
     @Environment(LocationService.self) private var location
@@ -24,7 +29,8 @@ struct TrailMapView: View {
         pastPaths: [[GpsPoint]],
         recenterTick: Int,
         selectedTrailId: Binding<String?>,
-        visibleTrailIds: Set<String>? = nil
+        visibleTrailIds: Set<String>? = nil,
+        bottomInset: CGFloat = 0
     ) {
         self.area = area
         self.activeRecording = activeRecording
@@ -32,6 +38,7 @@ struct TrailMapView: View {
         self.recenterTick = recenterTick
         self._selectedTrailId = selectedTrailId
         self.visibleTrailIds = visibleTrailIds
+        self.bottomInset = bottomInset
         // Compute the initial camera position synchronously so MapKit's
         // own .automatic frame can't briefly render a fragment of the area
         // before .onAppear fires.
@@ -141,10 +148,32 @@ struct TrailMapView: View {
             centerOnArea()
             return
         }
+        // Shift the region center south by half the bottom inset (in
+        // meters at the current zoom) so the user dot lands in the
+        // geometric middle of the *visible* map. The bottom is
+        // occluded by the controlBar + recording panel + trail list
+        // sheet; without this the dot reads as below-center.
+        let latMeters = 1500.0
+        let center: CLLocationCoordinate2D
+        if bottomInset > 0 {
+            // UIScreen height is the assumed map view height — fine in
+            // practice since TrailMapView is rendered .ignoresSafeArea()
+            // edge-to-edge on the AreaView root.
+            let screenH = UIScreen.main.bounds.height
+            let metersPerPoint = latMeters / max(screenH, 1)
+            let shiftMeters = (bottomInset / 2) * metersPerPoint
+            let shiftDegrees = shiftMeters / 111_000.0
+            center = CLLocationCoordinate2D(
+                latitude: coord.latitude - shiftDegrees,
+                longitude: coord.longitude
+            )
+        } else {
+            center = coord
+        }
         let region = MKCoordinateRegion(
-            center: coord,
-            latitudinalMeters: 1500,
-            longitudinalMeters: 1500
+            center: center,
+            latitudinalMeters: latMeters,
+            longitudinalMeters: latMeters
         )
         withAnimation { position = .region(region) }
     }

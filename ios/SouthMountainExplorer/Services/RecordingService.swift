@@ -87,7 +87,7 @@ final class RecordingService {
             distanceMi: rec.distanceMi,
             newlyCompletedTrailIds: newlyCompleted,
             revisitedTrailIds: revisited,
-            coverageDelta: sessionCoverage
+            coverageDelta: sessionCoverage.mapValues(\.fraction)
         )
 
         saveToHistory(finished)
@@ -119,17 +119,25 @@ final class RecordingService {
         let history = loadHistorySync().filter { $0.areaId == areaId }
         guard !history.isEmpty, !trails.isEmpty else { return }
 
+        // Coverage fraction aggregates as before (max across hikes).
+        // Endpoint-visited rolls up too: a trail counts as "endpoints
+        // hit" if at least one past hike visited both ends. This keeps
+        // rebuild consistent with the new live-completion gate.
         var aggregate: [String: Double] = [:]
+        var endpointsHit: [String: Bool] = [:]
         for hike in history {
             let cov = measureCoverage(path: hike.path, trails: trails)
-            for (tid, v) in cov {
-                aggregate[tid] = max(aggregate[tid] ?? 0, v)
+            for (tid, score) in cov {
+                aggregate[tid] = max(aggregate[tid] ?? 0, score.fraction)
+                if score.endpointsVisited { endpointsHit[tid] = true }
             }
         }
         guard !aggregate.isEmpty else { return }
 
         await CoverageService.shared.mergeCoverage(areaId: areaId, delta: aggregate)
-        let nowComplete = aggregate.compactMap { $0.value >= completeThreshold ? $0.key : nil }
+        let nowComplete = aggregate.compactMap { (tid, v) in
+            v >= completeThreshold && (endpointsHit[tid] ?? false) ? tid : nil
+        }
         ProgressService.shared.bulkMarkComplete(areaId: areaId, trailIds: Set(nowComplete))
     }
 
@@ -141,7 +149,7 @@ final class RecordingService {
     @discardableResult
     private func mergeCoverage(
         areaId: String,
-        sessionCoverage: [String: Double],
+        sessionCoverage: [String: CoverageScore],
         trails: [Trail] = []
     ) async -> (newlyCompleted: [String], revisited: [String], merged: [String: Double]) {
         let progressService = ProgressService.shared
@@ -151,11 +159,16 @@ final class RecordingService {
         var newlyCompleted: [String] = []
         var revisited: [String] = []
 
-        for (tid, v) in sessionCoverage {
-            let m = max(prior[tid] ?? 0, v)
+        for (tid, score) in sessionCoverage {
+            let m = max(prior[tid] ?? 0, score.fraction)
             merged[tid] = m
             let priorComplete = (prior[tid] ?? 0) >= completeThreshold
-            let sessionComplete = v >= completeThreshold
+            // Both gates required: enough of the trail covered AND
+            // the hiker actually reached both endpoints in this
+            // session. The endpoint gate is what stops "I walked 90%
+            // of a linear trail but turned around before the end"
+            // from firing the celebration.
+            let sessionComplete = score.fraction >= completeThreshold && score.endpointsVisited
             if sessionComplete && !priorComplete {
                 newlyCompleted.append(tid)
             } else if sessionComplete && priorComplete {
@@ -218,11 +231,22 @@ final class RecordingService {
 
     // MARK: - Coverage calculation
 
-    private func measureCoverage(rec: ActiveRecording, trails: [Trail]) -> [String: Double] {
+    /// Per-trail measurement output. `fraction` is the share of polyline
+    /// nodes within `bufferMeters` of the recorded GPS path.
+    /// `endpointsVisited` is true only when BOTH the first and last
+    /// polyline nodes have been within `bufferMeters` of the recorded
+    /// path — i.e. the hiker actually reached both ends of the trail,
+    /// not just covered most of its length.
+    private struct CoverageScore {
+        let fraction: Double
+        let endpointsVisited: Bool
+    }
+
+    private func measureCoverage(rec: ActiveRecording, trails: [Trail]) -> [String: CoverageScore] {
         measureCoverage(path: rec.path, trails: trails)
     }
 
-    private func measureCoverage(path: [GpsPoint], trails: [Trail]) -> [String: Double] {
+    private func measureCoverage(path: [GpsPoint], trails: [Trail]) -> [String: CoverageScore] {
         guard path.count >= 3 else { return [:] }
 
         let cell = 0.0003
@@ -245,8 +269,17 @@ final class RecordingService {
             }
             return out
         }
+        func nodeVisited(_ node: [Double]) -> Bool {
+            guard node.count >= 2 else { return false }
+            for p in neighbors(la: node[0], lo: node[1]) {
+                if haversineDistanceM(lat1: node[0], lon1: node[1], lat2: p[0], lon2: p[1]) <= bufferMeters {
+                    return true
+                }
+            }
+            return false
+        }
 
-        var result: [String: Double] = [:]
+        var result: [String: CoverageScore] = [:]
         for trail in trails {
             var total = 0
             var covered = 0
@@ -254,19 +287,30 @@ final class RecordingService {
                 for node in seg {
                     guard node.count >= 2 else { continue }
                     total += 1
-                    let cands = neighbors(la: node[0], lo: node[1])
-                    for p in cands {
-                        if haversineDistanceM(lat1: node[0], lon1: node[1], lat2: p[0], lon2: p[1]) <= bufferMeters {
-                            covered += 1
-                            break
-                        }
-                    }
+                    if nodeVisited(node) { covered += 1 }
                 }
             }
-            if total > 0 {
-                let frac = Double(covered) / Double(total)
-                if frac > 0.02 { result[trail.id] = frac }
+            guard total > 0 else { continue }
+            let frac = Double(covered) / Double(total)
+            guard frac > 0.02 else { continue }
+
+            // Endpoints: start of first segment, end of last segment.
+            // For loops these collapse to the same point — a loop user
+            // who returned to the trailhead satisfies both. For linear
+            // trails this forces the hiker to have actually reached
+            // both ends before celebration fires (otherwise the old
+            // 0.9-fraction rule would notify someone who covered most
+            // of the trail but stopped short of the actual terminus).
+            let endpointsHit: Bool
+            if
+                let firstSeg = trail.segments.first, let start = firstSeg.first,
+                let lastSeg = trail.segments.last, let end = lastSeg.last
+            {
+                endpointsHit = nodeVisited(start) && nodeVisited(end)
+            } else {
+                endpointsHit = false
             }
+            result[trail.id] = CoverageScore(fraction: frac, endpointsVisited: endpointsHit)
         }
         return result
     }

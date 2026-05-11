@@ -275,9 +275,10 @@ struct AreaView: View {
 
     private var currentListHeight: CGFloat { trailListHeight }
 
-    /// Loading state. Paints the bundled silhouette behind a soft "Loading…"
-    /// pill so the wait feels like the screen has already arrived. Falls
-    /// back to a plain spinner when no silhouette is bundled for this area.
+    /// Loading state. Paints the bundled silhouette so the wait feels
+    /// like the screen has already arrived. After the 2 s reveal
+    /// completes, the trails wave gently in place until real area data
+    /// lands. Plain spinner fallback only when no silhouette is bundled.
     @ViewBuilder
     private var loadingState: some View {
         ZStack {
@@ -286,16 +287,9 @@ struct AreaView: View {
             if let silhouette = silhouettes.silhouette(for: areaId) {
                 LoadingSilhouetteCanvas(silhouette: silhouette)
                     .ignoresSafeArea()
-            }
-            VStack(spacing: 12) {
+            } else {
                 ProgressView()
-                Text("Loading \(areaName)…")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 22)
-            .padding(.vertical, 14)
-            .background(.regularMaterial, in: Capsule())
         }
     }
 
@@ -625,12 +619,26 @@ private struct LoadingSilhouetteCanvas: View {
                 let yOffset = pad + (drawH - canvasH) / 2
 
                 let baseOpacity: Double = colorScheme == .dark ? 0.55 : 0.35
-                let totalAnimation: TimeInterval = 2.5
-                let perLineDuration: TimeInterval = 0.45
-                // Stagger each line's start so the whole reveal completes
-                // within totalAnimation regardless of trail count.
-                let stagger = max(0.018, (totalAnimation - perLineDuration) / Double(max(1, lines.count - 1)))
+                let totalAnimation: TimeInterval = 2.0
+                // Single-line silhouettes get the full 2 s to themselves
+                // so a tiny area doesn't snap-in in 0.4 s and look broken;
+                // everything else uses 0.4 s per line with the stagger
+                // sized to land the last line exactly at totalAnimation.
+                let perLineDuration: TimeInterval = lines.count == 1 ? totalAnimation : 0.4
+                let stagger: TimeInterval = lines.count > 1
+                    ? (totalAnimation - perLineDuration) / Double(lines.count - 1)
+                    : 0
                 let elapsed = context.date.timeIntervalSince(startDate)
+
+                // Post-reveal subtle wave: once the reveal is done, displace
+                // each path point vertically by a small sine of its x
+                // position + time so the silhouette feels alive instead of
+                // frozen while we wait for trail data. Ramped in over 0.6 s
+                // so it doesn't pop on the moment reveal completes.
+                let waveActive = max(0, elapsed - totalAnimation)
+                let waveRamp = min(1.0, waveActive / 0.6)
+                let waveAmp = 2.0 * waveRamp
+                let waveOmegaT = waveActive * 1.4
 
                 for (i, line) in lines.enumerated() {
                     guard line.p.count >= 2 else { continue }
@@ -644,7 +652,8 @@ private struct LoadingSilhouetteCanvas: View {
                         guard pt.count >= 2 else { continue }
                         let lat = pt[0], lon = pt[1]
                         let x = xOffset + (lon - bbox.w) * lonScale * scale
-                        let y = yOffset + canvasH - (lat - bbox.s) * scale
+                        let yBase = yOffset + canvasH - (lat - bbox.s) * scale
+                        let y = yBase + waveAmp * sin(x / 60.0 + waveOmegaT)
                         let p = CGPoint(x: x, y: y)
                         if j == 0 { path.move(to: p) } else { path.addLine(to: p) }
                     }

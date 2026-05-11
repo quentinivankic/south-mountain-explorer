@@ -113,6 +113,35 @@ final class AreaDataService {
             .prefix(limit).map { $0 }
     }
 
+    /// Pull favorites and the user's 10 most-recently-opened areas down
+    /// to disk so they're available offline. Reuses the public
+    /// `area(id:)` path, which short-circuits anything fresher than 24 h
+    /// — so on warm caches this is essentially free. Progress callback
+    /// fires per item with `(completed, total)`; pass `nil` for silent
+    /// background runs (the cold-launch path).
+    func prefetchOffline(progress: ((Int, Int) -> Void)? = nil) async {
+        let favorites = FavoritesService.shared.favoriteAreas.map(\.id)
+        let recents = ActivityService.shared.areaOpenedAt
+            .sorted { $0.value > $1.value }
+            .prefix(10)
+            .map(\.key)
+        // Stable de-dupe: favorites first (the user's explicit signal),
+        // then any recents that aren't already a favorite. Keeps the
+        // Settings progress count climbing predictably and means a user
+        // with overlap doesn't double-fetch.
+        var seen = Set<String>()
+        var targets: [String] = []
+        for id in favorites + recents {
+            if seen.insert(id).inserted { targets.append(id) }
+        }
+        let total = targets.count
+        progress?(0, total)
+        for (i, id) in targets.enumerated() {
+            _ = await area(id: id)
+            progress?(i + 1, total)
+        }
+    }
+
     // MARK: - Full Area Data
 
     func area(id: String) async -> Area? {

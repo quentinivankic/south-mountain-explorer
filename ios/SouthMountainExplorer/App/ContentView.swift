@@ -97,7 +97,16 @@ struct ContentView: View {
         )) {
             OnboardingView()
         }
-        .task { await rebuildCompletionsFromHistory() }
+        .task {
+            await rebuildCompletionsFromHistory()
+            // Background prefetch of favorites + recent areas so the
+            // user's saved spots are usable offline. Fire-and-forget —
+            // the inner Task outlives this .task block so it keeps
+            // running if SwiftUI ever decides to cancel the root task.
+            // prefetchOffline short-circuits anything fresher than 24 h
+            // so this is cheap on warm caches.
+            Task { await areas.prefetchOffline() }
+        }
         // Track foreground sessions for engagement telemetry. .active fires
         // on initial launch and on every return from background; .inactive
         // / .background fires when the app loses foreground (incl. when

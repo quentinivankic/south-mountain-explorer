@@ -6,11 +6,7 @@ import Foundation
 /// pinned here so we can promote a build atomically (and roll back by
 /// changing one constant). jsDelivr caches branch URLs roughly 12 h, so
 /// a workflow push doesn't go live instantly — fine for our cadence.
-///
-/// Note: branch name contains a slash (`feat/build-3-fixes`), URL-encoded
-/// as `%2F` so jsDelivr parses it as part of the ref instead of treating
-/// `feat` as the ref and `build-3-fixes/...` as a file path.
-private let cdnBaseURL = "https://cdn.jsdelivr.net/gh/quentinivankic/south-mountain-explorer@feat%2Fbuild-3-fixes/public/areas/geom"
+private let cdnBaseURL = "https://cdn.jsdelivr.net/gh/quentinivankic/south-mountain-explorer@main/public/areas/geom"
 
 // Caches the bundled area index and per-area full data fetched from Overpass.
 // The bundled index.json lives at Resources/areas-index.json.

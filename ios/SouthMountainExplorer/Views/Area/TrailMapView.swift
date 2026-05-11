@@ -95,7 +95,12 @@ struct TrailMapView: View {
                     return difficultyColor(trail.difficulty)
                 }()
                 let dimmed = (highlightedTrailId != nil && !isHighlighted)
-                let strokeColor = baseColor.opacity(dimmed ? 0.25 : 1.0)
+                // Dimmed trails sit behind the active/selected one. 0.25
+                // washed out against the satellite background — barely
+                // visible next to the bold purple recording line in
+                // trail-mode. 0.5 reads as a clear "secondary trail"
+                // without competing for attention.
+                let strokeColor = baseColor.opacity(dimmed ? 0.5 : 1.0)
                 let lineWidth: CGFloat = isRecordingThis ? 10 : (isSelected ? 6 : 3)
 
                 ForEach(Array(trail.segments.enumerated()), id: \.offset) { _, segment in

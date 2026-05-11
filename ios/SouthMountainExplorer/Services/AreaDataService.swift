@@ -634,5 +634,52 @@ final class AreaDataService {
                 try? FileManager.default.removeItem(at: file)
             }
         }
+        // Reset the nearby-prefetch movement check so the next launch
+        // re-sweeps the radius (otherwise we'd be in an inconsistent
+        // state — UserDefaults says we've prefetched here but the
+        // files are gone).
+        UserDefaults.standard.removeObject(forKey: Self.lastNearbyLatKey)
+        UserDefaults.standard.removeObject(forKey: Self.lastNearbyLonKey)
+    }
+
+    /// One downloaded area entry as surfaced in the Manage Downloads list.
+    /// Pre-resolved name (from the in-memory index when available) and
+    /// file size on disk so the UI can render rows without per-row IO.
+    struct DownloadedArea: Identifiable, Hashable {
+        let id: String
+        let name: String
+        let sizeBytes: Int
+    }
+
+    /// Enumerate every area JSON cached on disk. Names come from the
+    /// loaded summaries index (`summaries`) — orphan cache files
+    /// (whose area is no longer in the index) fall back to the id.
+    /// Sorted by name for stable UI rendering.
+    func downloadedAreas() -> [DownloadedArea] {
+        let summariesById = Dictionary(uniqueKeysWithValues: summaries.map { ($0.id, $0) })
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: cacheDir,
+            includingPropertiesForKeys: [.fileSizeKey]
+        ) else { return [] }
+        var rows: [DownloadedArea] = []
+        for file in files where file.pathExtension == "json" {
+            let last = file.lastPathComponent
+            if last == "index-v2.json" || last == "summaries-v2.json" { continue }
+            let id = String(last.dropLast(".json".count))
+            let resourceValues = try? file.resourceValues(forKeys: [.fileSizeKey])
+            let size = resourceValues?.fileSize ?? 0
+            let name = summariesById[id]?.name ?? id
+            rows.append(DownloadedArea(id: id, name: name, sizeBytes: size))
+        }
+        rows.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        return rows
+    }
+
+    /// Remove a single area from the on-disk + in-memory cache. The
+    /// next `area(id:)` call will re-fetch from the CDN. Used by the
+    /// Manage Downloads list's swipe-to-delete.
+    func removeDownloadedArea(id: String) {
+        areaCache.removeValue(forKey: id)
+        try? FileManager.default.removeItem(at: areaDiskURL(id: id))
     }
 }

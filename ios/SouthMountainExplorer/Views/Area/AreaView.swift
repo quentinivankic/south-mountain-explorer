@@ -103,7 +103,15 @@ struct AreaView: View {
                     pastPaths: pastPaths,
                     recenterTick: recenterTick,
                     selectedTrailId: $selectedTrailId,
-                    visibleTrailIds: visibleTrailIds
+                    visibleTrailIds: visibleTrailIds,
+                    // Bottom chrome that occludes the map: trail list
+                    // sheet (when shown) plus the recording panel +
+                    // control bar (when recording). Drives the camera
+                    // shift in TrailMapView.centerOnUser so the user
+                    // dot lands in the visible middle, not behind the
+                    // panel.
+                    bottomInset: (showTrailList ? currentListHeight : 0)
+                        + (isRecording ? 110 : 0)
                 )
                 .ignoresSafeArea()
 

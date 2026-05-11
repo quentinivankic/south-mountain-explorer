@@ -29,6 +29,10 @@ on:
         description: "Re-fetch every area even if it's already cached (use after build-script logic changes, e.g. trail-filter tweaks)"
         type: boolean
         default: false
+      trigger_testflight:
+        description: "Also trigger an iOS TestFlight build after the index commits (costs macOS runner minutes — leave off for data-only rebuilds)"
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -100,9 +104,12 @@ jobs:
           fi
 
       # Pushes authored by GITHUB_TOKEN don't trigger downstream workflows, so
-      # we explicitly dispatch the iOS TestFlight build when the index changes.
+      # we explicitly dispatch the iOS TestFlight build — but only when the
+      # caller asked for it. macOS runner minutes bill at ~10x Linux, so we
+      # don't want every data-only rebuild to spend minutes building an .ipa
+      # nobody asked for.
       - name: Trigger iOS TestFlight build
-        if: steps.commit.outputs.committed == 'true'
+        if: steps.commit.outputs.committed == 'true' && github.event.inputs.trigger_testflight == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run ios-testflight.yml --ref ${{ github.ref_name }}

@@ -24,6 +24,12 @@ struct SettingsView: View {
     @State private var showRefreshConfirm = false
     @State private var trailDataRefreshed = false
     @State private var stats: UserStats? = nil
+    /// Active "Download for Offline" progress as `(completed, total)`.
+    /// Non-nil while the prefetch task is running so the button label can
+    /// show "Downloading 2 of 5…". Cleared a beat after completion so the
+    /// user sees the final state briefly before it reverts.
+    @State private var downloadProgress: (Int, Int)? = nil
+    @State private var showDownloadConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -113,6 +119,40 @@ struct SettingsView: View {
                         Button("Cancel", role: .cancel) { }
                     } message: {
                         Text("Clears cached trail data so fresh data is fetched the next time you open each area. Hike history is preserved. Trail completions stay tied to specific trails — if a trail's underlying ID changes upstream, that completion is dropped automatically when you reopen the area.")
+                    }
+
+                    Button {
+                        showDownloadConfirm = true
+                    } label: {
+                        if let p = downloadProgress {
+                            Label("Downloading \(p.0) of \(p.1)…", systemImage: "arrow.down.circle")
+                        } else {
+                            Label("Download for Offline", systemImage: "arrow.down.circle")
+                        }
+                    }
+                    .disabled(downloadProgress != nil)
+                    .confirmationDialog(
+                        "Download favorites and recent areas for offline use?",
+                        isPresented: $showDownloadConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Download") {
+                            Task {
+                                downloadProgress = (0, 0)
+                                await AreaDataService.shared.prefetchOffline { completed, total in
+                                    downloadProgress = (completed, total)
+                                }
+                                // Hold the final "(N of N)" reading for a
+                                // beat so the user sees the result land
+                                // instead of the label snapping back
+                                // immediately.
+                                try? await Task.sleep(for: .seconds(1.5))
+                                downloadProgress = nil
+                            }
+                        }
+                        Button("Cancel", role: .cancel) { }
+                    } message: {
+                        Text("Saves trail data for your favorited and recently-opened areas so you can open them without a signal. Skips anything that's already up to date.")
                     }
                 }
 

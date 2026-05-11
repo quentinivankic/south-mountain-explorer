@@ -37,15 +37,33 @@ import urllib.request
 import urllib.parse
 import urllib.error
 import argparse
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 INDEX_PATH = ROOT / "public" / "areas" / "index.json"
 CACHE_PATH = ROOT / "public" / "areas" / "counts-cache.json"
 SILHOUETTES_PATH = ROOT / "public" / "areas" / "silhouettes.json"
+# Per-area full trail geometry, one JSON file per area. Served via
+# jsDelivr at runtime so the iOS app can skip the live Overpass call
+# (and the resulting empty/timeout failure modes) on cold open.
+GEOM_DIR = ROOT / "public" / "areas" / "geom"
 
 SILHOUETTE_SPACING_M = 20.0
 SILHOUETTE_DECIMALS = 5
+# Cap the number of trails contributing to a single area's silhouette,
+# keeping the longest first. Without this, national-forest-sized areas
+# blow silhouettes.json up by orders of magnitude (Coconino NF alone
+# contributes ~1100 polylines). The card art is 220×160pt — beyond
+# ~150 polylines you're rendering noise the user can't see.
+SILHOUETTE_MAX_TRAILS = 150
+
+# Geom output spacing — much finer than silhouettes since these polylines
+# are rendered into the actual trail map, not a 220pt card. 5m is sub-pixel
+# at hiking zoom levels, so increasing the resolution past this is just
+# more bytes for no visible win.
+GEOM_SPACING_M = 5.0
+GEOM_DECIMALS = 6
 
 OVERPASS_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
@@ -93,6 +111,28 @@ def _difficulty(tags: dict, miles: float) -> str:
     return "e"
 
 
+# Difficulty as the full label string the iOS Trail.Difficulty enum
+# decodes from JSON ("Easy" / "Moderate" / "Hard"). Same predicate as
+# `_difficulty` above; we just emit different strings depending on the
+# consumer. Silhouettes use "e"/"m"/"h" to keep the JSON tiny; the geom
+# files use the full label because iOS expects the rawValue of the enum.
+def _difficulty_label(tags: dict, miles: float) -> str:
+    code = _difficulty(tags, miles)
+    return {"e": "Easy", "m": "Moderate", "h": "Hard"}[code]
+
+
+def _trail_slug(name: str) -> str:
+    """Mirrors AreaDataService.slugify on the iOS side: lowercase,
+    non-alphanumerics → hyphens, collapse repeats, trim to 60 chars.
+    Pre-computing trail IDs in the build step (instead of letting iOS
+    derive them at fetch time) is how we keep recorded-hike completions
+    stable across builds — the id baked into the geom file is the same
+    string iOS would have computed locally."""
+    parts = re.split(r"[^a-z0-9]+", name.lower())
+    parts = [p for p in parts if p]
+    return "-".join(parts)[:60]
+
+
 def _haversine_m(lat1, lon1, lat2, lon2):
     R = 6_371_000.0
     d_la = math.radians(lat2 - lat1)
@@ -116,16 +156,52 @@ def _downsample(coords: list, spacing_m: float) -> list:
     return kept
 
 
+def _is_road_like(tags: dict, name: str) -> bool:
+    """Mirrors AreaDataService.isRoadLike on the iOS side. Drops
+    forest-service / utility roads tagged as `highway=track` with names
+    like "FR-123 Road" or motor_vehicle=yes — those flood the trail
+    count for national forests but aren't real hiking trails. Without
+    this filter the bundled count is hundreds higher than what the iOS
+    app shows after fetching the same area (Apache-Sitgreaves was 741
+    in the bundle vs 465 on device)."""
+    if tags.get("highway") != "track":
+        return False
+    road_words = ("road", "drive", "avenue", "canal", "drain", "ditch",
+                  "boulevard", "highway", "freeway")
+    lower = (name or "").lower()
+    if any(w in lower for w in road_words):
+        return True
+    if tags.get("motor_vehicle") == "yes" or tags.get("motorcar") == "yes":
+        return True
+    if tags.get("access") == "private":
+        return True
+    return False
+
+
 def build_counts(data: bytes):
-    """Parse Overpass JSON. Returns (trail_count, total_mi, silhouette).
+    """Parse Overpass JSON.
+
+    Returns ``(trail_count, total_mi, silhouette, geom_trails, geom_bbox)``.
 
     silhouette is None if no qualifying trails were found, otherwise:
       {"b": [w, s, e, n], "l": [{"d": "e|m|h", "p": [[lat,lon],...]}, ...]}
+
+    geom_trails is the list of full trail dicts the iOS app expects in
+    its ``AreaRow.trails`` payload — each item carries ``id``, ``name``,
+    ``distanceMi``, ``difficulty`` (the full "Easy"/"Moderate"/"Hard"
+    label), and ``segments`` downsampled to ``GEOM_SPACING_M``. IDs use
+    the same slugify + sorted-name + index scheme iOS uses for trails it
+    builds locally, so recorded-hike completions survive the switch
+    from live Overpass to the CDN.
+
+    geom_bbox is ``[minLon, minLat, maxLon, maxLat]`` covering every
+    point in geom_trails (note: looser than the silhouette bbox, which
+    is capped at the longest 150 trails).
     """
     try:
         obj = json.loads(data)
     except json.JSONDecodeError:
-        return 0, 0.0, None
+        return 0, 0.0, None, [], None
 
     elements = obj.get("elements", [])
     ways = [
@@ -139,6 +215,8 @@ def build_counts(data: bytes):
         name = tags.get("name", "").strip()
         if not name:
             continue
+        if _is_road_like(tags, name):
+            continue
         for p in w.get("geometry", []):
             lat, lon = p.get("lat"), p.get("lon")
             if lat is not None and lon is not None:
@@ -149,6 +227,8 @@ def build_counts(data: bytes):
     for w in ways:
         tags = w.get("tags", {})
         raw_name = tags.get("name", "").strip()
+        if _is_road_like(tags, raw_name):
+            continue
         geom = w.get("geometry", [])
         if not raw_name:
             endpoints = [geom[0], geom[-1]] if geom else []
@@ -176,13 +256,63 @@ def build_counts(data: bytes):
     trail_count = len(qualifying)
     total_mi = round(sum(t["miles"] for t in qualifying.values()), 2)
 
+    # Build the geom payload in the same name-sorted order iOS uses
+    # locally, so trail ids match across the CDN and any legacy live
+    # fetch. Sorting before counting means a trail's ordinal id is
+    # deterministic regardless of Overpass's response order.
+    geom_trails: list = []
+    g_min_lat = g_min_lon = float("inf")
+    g_max_lat = g_max_lon = float("-inf")
+    for name in sorted(qualifying.keys()):
+        info = qualifying[name]
+        miles = info["miles"]
+        ds_segments: list = []
+        for seg in info["segments"]:
+            ds = _downsample(seg, GEOM_SPACING_M)
+            if len(ds) < 2:
+                continue
+            pts = [
+                [round(p[0], GEOM_DECIMALS), round(p[1], GEOM_DECIMALS)]
+                for p in ds
+            ]
+            for la, lo in pts:
+                if la < g_min_lat: g_min_lat = la
+                if la > g_max_lat: g_max_lat = la
+                if lo < g_min_lon: g_min_lon = lo
+                if lo > g_max_lon: g_max_lon = lo
+            ds_segments.append(pts)
+        geom_trails.append({
+            "id": f"{_trail_slug(name)}-{len(geom_trails)}",
+            "name": name,
+            "distanceMi": round(miles, 2),
+            "difficulty": _difficulty_label(info["tags"], miles),
+            "segments": ds_segments,
+        })
+    if g_min_lat != float("inf"):
+        geom_bbox = [
+            round(g_min_lon, GEOM_DECIMALS),
+            round(g_min_lat, GEOM_DECIMALS),
+            round(g_max_lon, GEOM_DECIMALS),
+            round(g_max_lat, GEOM_DECIMALS),
+        ]
+    else:
+        geom_bbox = None
+
     if not qualifying:
-        return trail_count, total_mi, None
+        return trail_count, total_mi, None, geom_trails, geom_bbox
+
+    # Cap the silhouette to the longest N trails so card-art bundles
+    # don't balloon for huge areas (e.g. national forests). The full
+    # trail_count and total_mi above still reflect every qualifying
+    # trail — the cap only affects the visual silhouette.
+    silhouette_trails = sorted(
+        qualifying.values(), key=lambda t: -t["miles"]
+    )[:SILHOUETTE_MAX_TRAILS]
 
     lines = []
     min_lat = min_lon = float("inf")
     max_lat = max_lon = float("-inf")
-    for trail in qualifying.values():
+    for trail in silhouette_trails:
         d = _difficulty(trail["tags"], trail["miles"])
         for seg in trail["segments"]:
             ds = _downsample(seg, SILHOUETTE_SPACING_M)
@@ -205,7 +335,7 @@ def build_counts(data: bytes):
         ],
         "l": lines,
     }
-    return trail_count, total_mi, silhouette
+    return trail_count, total_mi, silhouette, geom_trails, geom_bbox
 
 
 def nominatim_lookup(name: str, state: str) -> dict | None:
@@ -284,6 +414,32 @@ def haversine_mi(lat1, lon1, lat2, lon2):
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
+def apply_threshold(index: list, min_trails: int, min_miles: float) -> list:
+    """Drop entries whose hydrated trail_count / total_mi is below the
+    given thresholds. Areas that haven't been fetched yet (5-element
+    tuples) are always kept so a partial run doesn't lose them."""
+    if min_trails <= 0 and min_miles <= 0:
+        return index
+    out = []
+    dropped = 0
+    for area in index:
+        if len(area) < 7:
+            out.append(area)
+            continue
+        trail_count = area[5]
+        total_mi = area[6]
+        if trail_count < min_trails or total_mi < min_miles:
+            dropped += 1
+            continue
+        out.append(area)
+    if dropped:
+        print(
+            f"Threshold: dropped {dropped} areas with < {min_trails} trails "
+            f"or < {min_miles} mi"
+        )
+    return out
+
+
 def deduplicate(index: list) -> list:
     """Drop duplicate areas: same location (<0.1 mi) where one name's words are
     a subset of the other's. Keeps the entry with more trails; ties go to the
@@ -322,6 +478,17 @@ def main():
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--cache-only", action="store_true",
                         help="Skip all network requests; just rebuild index.json from existing cache")
+    parser.add_argument(
+        "--min-trails", type=int, default=0,
+        help="After fetching, drop areas with fewer than N qualifying trails. "
+        "Useful when the index was auto-seeded and contains pocket parks with "
+        "no real hiking. 0 = keep everything (default).",
+    )
+    parser.add_argument(
+        "--min-miles", type=float, default=0.0,
+        help="After fetching, drop areas with less than N total trail miles. "
+        "Pairs with --min-trails. 0 = keep everything (default).",
+    )
     args = parser.parse_args()
 
     index = json.loads(INDEX_PATH.read_text())
@@ -331,11 +498,15 @@ def main():
         new_index = []
         for area in index:
             entry = cache.get(area[0])
-            if entry is not None:
-                new_index.append([area[0], area[1], area[2], area[3], area[4],
-                                   entry["trail_count"], entry["total_mi"]])
+            if entry is not None and "trail_count" in entry:
+                row = [area[0], area[1], area[2], area[3], area[4],
+                       entry["trail_count"], entry["total_mi"]]
+                if entry.get("osm_id") is not None:
+                    row.append(int(entry["osm_id"]))
+                new_index.append(row)
             else:
                 new_index.append(area[:5])
+        new_index = apply_threshold(new_index, args.min_trails, args.min_miles)
         new_index = deduplicate(new_index)
         INDEX_PATH.write_text(json.dumps(new_index, separators=(",", ":")))
         write_silhouettes(cache, new_index)
@@ -364,16 +535,49 @@ def main():
 
         try:
             name, state = area[1], area[2]
-            nominatim = nominatim_lookup(name, state)
-            time.sleep(1)  # Nominatim rate limit: 1 req/sec
-            source = "relation" if nominatim else "radius"
+            cached_osm_id = (cached_entry or {}).get("osm_id")
+            if cached_osm_id is not None:
+                # Skip Nominatim — we already know the relation. Avoids
+                # the instability where Nominatim picks different relations
+                # for the same name on different runs (Python and iOS would
+                # then fetch different polygons and report different counts).
+                nominatim = {"osm_id": str(cached_osm_id), "boundingbox": []}
+                source = "cached_osm_id"
+            else:
+                nominatim = nominatim_lookup(name, state)
+                time.sleep(1)  # Nominatim rate limit: 1 req/sec
+                source = "relation" if nominatim else "radius"
             data = fetch_overpass(lat, lon, nominatim)
-            trail_count, total_mi, silhouette = build_counts(data)
-            cache[area_id] = {
+            trail_count, total_mi, silhouette, geom_trails, geom_bbox = build_counts(data)
+            cache_entry = cache.get(area_id) or {}
+            cache_entry.update({
                 "trail_count": trail_count,
                 "total_mi": total_mi,
                 "silhouette": silhouette,
-            }
+            })
+            # Capture the relation id we used so subsequent runs skip
+            # Nominatim entirely and the iOS app gets it via the index.
+            if cached_osm_id is not None:
+                cache_entry["osm_id"] = cached_osm_id
+            elif nominatim and "osm_id" in nominatim:
+                cache_entry["osm_id"] = int(nominatim["osm_id"])
+            cache[area_id] = cache_entry
+            # Write the per-area geom file for jsDelivr. We deliberately
+            # write even when geom_trails is empty so the file exists
+            # and the iOS CDN path doesn't have to distinguish "no
+            # trails" from "not built yet" (those mean different things).
+            write_geom(
+                area_id=area_id,
+                name=name,
+                state=state,
+                center_lat=lat,
+                center_lon=lon,
+                trail_count=trail_count,
+                total_mi=total_mi,
+                osm_relation_id=cache_entry.get("osm_id"),
+                geom_trails=geom_trails,
+                geom_bbox=geom_bbox,
+            )
             processed += 1
             sil_lines = len(silhouette["l"]) if silhouette else 0
             print(
@@ -393,21 +597,26 @@ def main():
     # Final cache save
     CACHE_PATH.write_text(json.dumps(cache, separators=(",", ":")))
 
-    # Rebuild index with counts
+    # Rebuild index with counts (and osm_id when we have it, so iOS can
+    # skip Nominatim and query the same polygon Python did).
     new_index = []
     for area in index:
         area_id = area[0]
         entry = cache.get(area_id)
-        if entry is not None:
-            new_index.append([
+        if entry is not None and "trail_count" in entry:
+            row = [
                 area[0], area[1], area[2], area[3], area[4],
                 entry["trail_count"],
                 entry["total_mi"],
-            ])
+            ]
+            if entry.get("osm_id") is not None:
+                row.append(int(entry["osm_id"]))
+            new_index.append(row)
         else:
             # Not yet queried — keep as 5-element tuple
             new_index.append(area[:5])
 
+    new_index = apply_threshold(new_index, args.min_trails, args.min_miles)
     new_index = deduplicate(new_index)
     INDEX_PATH.write_text(json.dumps(new_index, separators=(",", ":")))
     write_silhouettes(cache, new_index)
@@ -429,6 +638,47 @@ def write_silhouettes(cache: dict, index: list) -> None:
         if sil:
             out[area_id] = sil
     SILHOUETTES_PATH.write_text(json.dumps(out, separators=(",", ":")))
+
+
+def write_geom(
+    area_id: str,
+    name: str,
+    state: str,
+    center_lat: float,
+    center_lon: float,
+    trail_count: int,
+    total_mi: float,
+    osm_relation_id: int | None,
+    geom_trails: list,
+    geom_bbox: list | None,
+) -> None:
+    """Write one area's full trail geometry to ``public/areas/geom/<id>.json``.
+
+    Shape matches what ``AreaRow`` decodes on the iOS side — same
+    snake_case keys, same ``trails`` shape (``id`` / ``name`` /
+    ``distanceMi`` / ``difficulty`` / ``segments``). The iOS app fetches
+    these via jsDelivr, falls back to live Overpass only on 404.
+    """
+    GEOM_DIR.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "id": area_id,
+        "name": name,
+        "state": state,
+        "center_lat": center_lat,
+        "center_lon": center_lon,
+        # AreaRow requires `zoom`; 13 is what the Overpass path used to
+        # bake into stubs — preserve the value so AreaView's initial
+        # camera span is unchanged.
+        "zoom": 13,
+        "bbox": geom_bbox,
+        "trails": geom_trails,
+        "trail_count": trail_count,
+        "total_mi": total_mi,
+        "cached_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "osm_relation_id": osm_relation_id,
+    }
+    out_path = GEOM_DIR / f"{area_id}.json"
+    out_path.write_text(json.dumps(payload, separators=(",", ":")))
 
 
 if __name__ == "__main__":

@@ -47,6 +47,10 @@ final class RecordingService {
         persist()
         locationService.startBackgroundTracking()
         beginObservingLocation()
+        // Lazy-prompt for notifications now that the user has actually
+        // started a hike. The OS only asks once per install, so the
+        // request is a no-op on subsequent calls.
+        Task { await NotificationService.shared.ensurePermission() }
     }
 
     func discardRecording() {
@@ -66,9 +70,10 @@ final class RecordingService {
 
         let endedAt = Date()
         let sessionCoverage = measureCoverage(rec: rec, trails: trails)
-        let (newlyCompleted, _) = await mergeCoverage(
+        let (newlyCompleted, revisited, _) = await mergeCoverage(
             areaId: rec.areaId,
-            sessionCoverage: sessionCoverage
+            sessionCoverage: sessionCoverage,
+            trails: trails
         )
 
         let finished = FinishedRecording(
@@ -81,7 +86,8 @@ final class RecordingService {
             path: rec.path,
             distanceMi: rec.distanceMi,
             newlyCompletedTrailIds: newlyCompleted,
-            coverageDelta: sessionCoverage
+            revisitedTrailIds: revisited,
+            coverageDelta: sessionCoverage.mapValues(\.fraction)
         )
 
         saveToHistory(finished)
@@ -99,37 +105,95 @@ final class RecordingService {
     func applyLiveCoverage(trails: [Trail]) async {
         guard let rec = activeRecording else { return }
         let sessionCoverage = measureCoverage(rec: rec, trails: trails)
-        _ = await mergeCoverage(areaId: rec.areaId, sessionCoverage: sessionCoverage)
+        _ = await mergeCoverage(areaId: rec.areaId, sessionCoverage: sessionCoverage, trails: trails)
+    }
+
+    /// Replay every saved hike's GPS path against the area's *current* trails
+    /// and merge the resulting coverage. Idempotent and self-healing: if an
+    /// upstream re-fetch ever assigns new IDs to the same trails (e.g. after
+    /// the trail-id determinism fix), the next AreaView open recomputes
+    /// completions against the new IDs from history alone — no manual
+    /// re-toggle needed. Suppresses the "newly complete" haptic by going
+    /// straight through CoverageService + ProgressService.bulkMarkComplete.
+    func rebuildCoverageFromHistory(areaId: String, trails: [Trail]) async {
+        let history = loadHistorySync().filter { $0.areaId == areaId }
+        guard !history.isEmpty, !trails.isEmpty else { return }
+
+        // Coverage fraction aggregates as before (max across hikes).
+        // Endpoint-visited rolls up too: a trail counts as "endpoints
+        // hit" if at least one past hike visited both ends. This keeps
+        // rebuild consistent with the new live-completion gate.
+        var aggregate: [String: Double] = [:]
+        var endpointsHit: [String: Bool] = [:]
+        for hike in history {
+            let cov = measureCoverage(path: hike.path, trails: trails)
+            for (tid, score) in cov {
+                aggregate[tid] = max(aggregate[tid] ?? 0, score.fraction)
+                if score.endpointsVisited { endpointsHit[tid] = true }
+            }
+        }
+        guard !aggregate.isEmpty else { return }
+
+        await CoverageService.shared.mergeCoverage(areaId: areaId, delta: aggregate)
+        let nowComplete = aggregate.compactMap { (tid, v) in
+            v >= completeThreshold && (endpointsHit[tid] ?? false) ? tid : nil
+        }
+        ProgressService.shared.bulkMarkComplete(areaId: areaId, trailIds: Set(nowComplete))
     }
 
     /// Merge a per-trail coverage map (this hike's view of coverage) into the
     /// persisted CoverageService, marking trails complete when they cross the
     /// completion threshold for the first time.
-    /// Returns (newly-completed trail ids, merged coverage map).
+    /// Returns (newly-completed trail ids, revisited trail ids that this hike
+    /// re-walked while already complete, merged coverage map).
     @discardableResult
     private func mergeCoverage(
         areaId: String,
-        sessionCoverage: [String: Double]
-    ) async -> (newlyCompleted: [String], merged: [String: Double]) {
+        sessionCoverage: [String: CoverageScore],
+        trails: [Trail] = []
+    ) async -> (newlyCompleted: [String], revisited: [String], merged: [String: Double]) {
         let progressService = ProgressService.shared
         let coverageService = CoverageService.shared
         let prior = coverageService.coverage(for: areaId)
         var merged: [String: Double] = [:]
         var newlyCompleted: [String] = []
+        var revisited: [String] = []
 
-        for (tid, v) in sessionCoverage {
-            let m = max(prior[tid] ?? 0, v)
+        for (tid, score) in sessionCoverage {
+            let m = max(prior[tid] ?? 0, score.fraction)
             merged[tid] = m
-            if (prior[tid] ?? 0) < completeThreshold && m >= completeThreshold {
+            let priorComplete = (prior[tid] ?? 0) >= completeThreshold
+            // Both gates required: enough of the trail covered AND
+            // the hiker actually reached both endpoints in this
+            // session. The endpoint gate is what stops "I walked 90%
+            // of a linear trail but turned around before the end"
+            // from firing the celebration.
+            let sessionComplete = score.fraction >= completeThreshold && score.endpointsVisited
+            if sessionComplete && !priorComplete {
                 newlyCompleted.append(tid)
+            } else if sessionComplete && priorComplete {
+                revisited.append(tid)
             }
         }
 
         await coverageService.mergeCoverage(areaId: areaId, delta: merged)
+        let areaName = AreaDataService.shared.cachedArea(id: areaId)?.name
+            ?? AreaDataService.shared.summaries.first { $0.id == areaId }?.name
+            ?? "this area"
         for tid in newlyCompleted {
             await progressService.markComplete(areaId: areaId, trailId: tid)
+            // Local push notification for the trail completion. Fires
+            // whether the app is foreground or background, so a user with
+            // the phone in their pocket on the trail still gets the beat.
+            let trailName = trails.first { $0.id == tid }?.name ?? "a trail"
+            NotificationService.shared.notifyTrailComplete(
+                areaId: areaId,
+                areaName: areaName,
+                trailId: tid,
+                trailName: trailName
+            )
         }
-        return (newlyCompleted, merged)
+        return (newlyCompleted, revisited, merged)
     }
 
     // MARK: - GPS point ingestion
@@ -167,15 +231,30 @@ final class RecordingService {
 
     // MARK: - Coverage calculation
 
-    private func measureCoverage(rec: ActiveRecording, trails: [Trail]) -> [String: Double] {
-        guard rec.path.count >= 3 else { return [:] }
+    /// Per-trail measurement output. `fraction` is the share of polyline
+    /// nodes within `bufferMeters` of the recorded GPS path.
+    /// `endpointsVisited` is true only when BOTH the first and last
+    /// polyline nodes have been within `bufferMeters` of the recorded
+    /// path — i.e. the hiker actually reached both ends of the trail,
+    /// not just covered most of its length.
+    private struct CoverageScore {
+        let fraction: Double
+        let endpointsVisited: Bool
+    }
+
+    private func measureCoverage(rec: ActiveRecording, trails: [Trail]) -> [String: CoverageScore] {
+        measureCoverage(path: rec.path, trails: trails)
+    }
+
+    private func measureCoverage(path: [GpsPoint], trails: [Trail]) -> [String: CoverageScore] {
+        guard path.count >= 3 else { return [:] }
 
         let cell = 0.0003
         var grid: [String: [[Double]]] = [:]
         func gridKey(_ la: Double, _ lo: Double) -> String {
             "\(Int((la / cell).rounded())):\(Int((lo / cell).rounded()))"
         }
-        for p in rec.path {
+        for p in path {
             let k = gridKey(p[0], p[1])
             grid[k, default: []].append([p[0], p[1]])
         }
@@ -190,8 +269,17 @@ final class RecordingService {
             }
             return out
         }
+        func nodeVisited(_ node: [Double]) -> Bool {
+            guard node.count >= 2 else { return false }
+            for p in neighbors(la: node[0], lo: node[1]) {
+                if haversineDistanceM(lat1: node[0], lon1: node[1], lat2: p[0], lon2: p[1]) <= bufferMeters {
+                    return true
+                }
+            }
+            return false
+        }
 
-        var result: [String: Double] = [:]
+        var result: [String: CoverageScore] = [:]
         for trail in trails {
             var total = 0
             var covered = 0
@@ -199,19 +287,30 @@ final class RecordingService {
                 for node in seg {
                     guard node.count >= 2 else { continue }
                     total += 1
-                    let cands = neighbors(la: node[0], lo: node[1])
-                    for p in cands {
-                        if haversineDistanceM(lat1: node[0], lon1: node[1], lat2: p[0], lon2: p[1]) <= bufferMeters {
-                            covered += 1
-                            break
-                        }
-                    }
+                    if nodeVisited(node) { covered += 1 }
                 }
             }
-            if total > 0 {
-                let frac = Double(covered) / Double(total)
-                if frac > 0.02 { result[trail.id] = frac }
+            guard total > 0 else { continue }
+            let frac = Double(covered) / Double(total)
+            guard frac > 0.02 else { continue }
+
+            // Endpoints: start of first segment, end of last segment.
+            // For loops these collapse to the same point — a loop user
+            // who returned to the trailhead satisfies both. For linear
+            // trails this forces the hiker to have actually reached
+            // both ends before celebration fires (otherwise the old
+            // 0.9-fraction rule would notify someone who covered most
+            // of the trail but stopped short of the actual terminus).
+            let endpointsHit: Bool
+            if
+                let firstSeg = trail.segments.first, let start = firstSeg.first,
+                let lastSeg = trail.segments.last, let end = lastSeg.last
+            {
+                endpointsHit = nodeVisited(start) && nodeVisited(end)
+            } else {
+                endpointsHit = false
             }
+            result[trail.id] = CoverageScore(fraction: frac, endpointsVisited: endpointsHit)
         }
         return result
     }
@@ -228,7 +327,9 @@ final class RecordingService {
             distanceMi: (rec.distanceMi * 100).rounded() / 100,
             durationSeconds: rec.durationSeconds,
             completedTrailIds: rec.newlyCompletedTrailIds,
-            path: rec.path
+            path: rec.path,
+            trailId: rec.trailId,
+            revisitedTrailIds: rec.revisitedTrailIds
         )
         history.insert(saved, at: 0)
         if let data = try? JSONEncoder().encode(history) {

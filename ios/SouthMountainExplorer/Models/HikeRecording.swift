@@ -26,7 +26,13 @@ struct FinishedRecording: Sendable {
     let durationSeconds: Int
     let path: [GpsPoint]
     let distanceMi: Double
+    /// Trails that crossed the completion threshold for the first time on
+    /// this hike.
     let newlyCompletedTrailIds: [String]
+    /// Trails that were already complete before this hike but were walked
+    /// to ≥ the completion threshold again on this hike. Lets History
+    /// show "X previously completed" instead of swallowing the visit.
+    let revisitedTrailIds: [String]
     let coverageDelta: [String: Double]
 }
 
@@ -39,4 +45,53 @@ struct SavedRecording: Codable, Identifiable, Sendable {
     let durationSeconds: Int
     let completedTrailIds: [String]
     let path: [GpsPoint]
+    /// Set when the user started the hike via "Record This Trail" on a
+    /// trail row. Optional + decoded with a default so old persisted
+    /// records (which don't have this key) still parse.
+    let trailId: String?
+    /// Trails walked again on this hike that were already complete before
+    /// it. Empty for old persisted records.
+    let revisitedTrailIds: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case id, areaId, startedAt, endedAt, distanceMi, durationSeconds, completedTrailIds, path, trailId, revisitedTrailIds
+    }
+
+    init(
+        id: String,
+        areaId: String,
+        startedAt: Date,
+        endedAt: Date,
+        distanceMi: Double,
+        durationSeconds: Int,
+        completedTrailIds: [String],
+        path: [GpsPoint],
+        trailId: String? = nil,
+        revisitedTrailIds: [String] = []
+    ) {
+        self.id = id
+        self.areaId = areaId
+        self.startedAt = startedAt
+        self.endedAt = endedAt
+        self.distanceMi = distanceMi
+        self.durationSeconds = durationSeconds
+        self.completedTrailIds = completedTrailIds
+        self.path = path
+        self.trailId = trailId
+        self.revisitedTrailIds = revisitedTrailIds
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        areaId = try c.decode(String.self, forKey: .areaId)
+        startedAt = try c.decode(Date.self, forKey: .startedAt)
+        endedAt = try c.decode(Date.self, forKey: .endedAt)
+        distanceMi = try c.decode(Double.self, forKey: .distanceMi)
+        durationSeconds = try c.decode(Int.self, forKey: .durationSeconds)
+        completedTrailIds = try c.decode([String].self, forKey: .completedTrailIds)
+        path = try c.decode([GpsPoint].self, forKey: .path)
+        trailId = try c.decodeIfPresent(String.self, forKey: .trailId)
+        revisitedTrailIds = try c.decodeIfPresent([String].self, forKey: .revisitedTrailIds) ?? []
+    }
 }

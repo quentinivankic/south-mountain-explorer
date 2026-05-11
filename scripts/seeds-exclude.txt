@@ -1,0 +1,7 @@
+# One area name per line to always exclude from the seeded index.
+# Use this for false positives that pass the Overpass tag filter
+# but shouldn't appear (HOA "open spaces", overlapping municipal
+# sub-boundaries, training areas, etc.).
+#
+# Lines starting with `#` are comments. Blank lines ignored.
+# Match is case-insensitive against the OSM `name` tag.

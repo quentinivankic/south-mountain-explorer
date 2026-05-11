@@ -28,6 +28,12 @@ struct AreaSummary: Codable, Identifiable, Sendable {
     let centerLon: Double
     var trailCount: Int?
     var totalMi: Double?
+    /// OSM relation ID baked in by the seed/build pipeline so the iOS
+    /// side can query Overpass with the exact same polygon Python used.
+    /// Without this, both sides re-run Nominatim and sometimes pick
+    /// different relations for the same name (the 48 vs 56 South
+    /// Mountain mismatch).
+    var osmRelationId: Int?
 
     var search: String { "\(name) \(subtitle)".lowercased() }
 }
@@ -75,5 +81,6 @@ extension AreaSummary {
         self.centerLon = lon
         self.trailCount = tuple.count > 5 ? tuple[5].doubleValue.map { Int($0) } : nil
         self.totalMi = tuple.count > 6 ? tuple[6].doubleValue : nil
+        self.osmRelationId = tuple.count > 7 ? tuple[7].doubleValue.map { Int($0) } : nil
     }
 }

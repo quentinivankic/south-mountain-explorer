@@ -4,80 +4,99 @@ Tracking work toward a polished MVP. App Store submission tasks (privacy
 policy, store metadata, etc.) are intentionally not listed yet — we'll
 capture those when we're ready to ship outside TestFlight.
 
-## On TestFlight (build/rc, awaiting field test)
+## Verified shipped on feat/build-3-fixes
 
-The current TestFlight build bundles PRs #37 → #44 + #41:
+Confirmed working on device:
 
-- #37 — Explore discovery + AreaView UX (silhouettes, Try Something
-  New, length chips, All Areas Map, drag panel, tap-to-highlight,
-  cyan complete color, phantom button gone)
-- #38 — Wire Browse All Areas button, geographic-honesty note, History
-  detail view, hide empty areas, stop-recording confirmation
-- #39 — First-run onboarding, completion haptics, 100% celebration,
-  trail-name resolution in Recording Summary
-- #40 — Live coverage updates during recording + richer post-hike
-  summary (cumulative area %, partial-coverage trails)
-- #41 — Light/dark/match-phone theme toggle in Settings
-- #42 — Recenter button + shareable hike card v1
-- #43 — Difficulty mix bar on AreaCard + map-snapshot share card
-- #44 — Concurrent recording prevention, far-from-area warning, global
-  active-recording banner, map/list toggle stays visible during
-  recording, onboarding "Get Started" hot-fix
+- B1 — Completion mismatch fixed. South Mountain shows 1/56 after the
+  same-trail-twice hike instead of 2/56.
+- B2 — AreaView opens on the full area extent.
+- B5 / B7 / B8 — caption / card-art bg / discard double-confirm.
+- Trail-id determinism + cachedAt + display-time filter +
+  rebuildCoverageFromHistory + empty-cache self-heal + inline retry.
+  Areas previously stuck on the empty state self-recover, areas you've
+  hiked retain correct completion counts.
+- Runtime-computed silhouettes — Shadow Mountain card now shows the
+  real difficulty mix instead of all-green. AreaCard / ContinueCard
+  art reflects current Overpass output once cache is warm.
+- Trail-completion push notifications + tap-to-celebrate overlay.
+- Pull-to-refresh on Explore.
+- Surprise Me dice button.
+- Settings → Refresh Trail Data button (re-enables 3s after refresh).
+- Settings → "Your Activity" stats + Send Feedback link.
+- Prefetch on Explore (instant area opens after warm-up).
+- Animated trail-by-trail loading reveal (pacing tweak still pending).
+- Trail-list filter menu (status / difficulty / length) — chips work,
+  count badge works, "Showing X of Y" works, empty state works.
+  *Caveat: section headers and map sync still open — see below.*
+- AreaView layout swap — map controls above REC bar.
+  *Caveat: gap still too large — see below.*
+- ActiveRecordingBanner tappable, trail name in banner.
+- "Record This Trail" context-menu, purple recording stroke,
+  long-press tip in trail-list header.
 
-## Bugs from device test (priority for next build)
+## Still open after device test (carry into next build)
 
-- [ ] **B1** Trail completion count mismatch — Explore card shows
-  "1 trail completed" but the trail list inside the area shows nothing
-  checked off. Possibly tied to "Refresh Trail Data" in Settings —
-  refresh may be clearing per-trail completions while leaving the area
-  count intact (or vice versa).
-- [ ] **B2** AreaView opens with the map zoomed into a random subregion
-  instead of fitting the whole area. `centerOnArea()` either has stale
-  bbox data or the camera animation lands on a fallback before the
-  bbox-derived region applies.
-- [ ] **B3** Trail-list panel drag is janky — works but feels glitchy
-  during the swipe. Likely the `dragOffset` + `trailListHeight` math
-  fighting the snap animation, or GeometryReader recomputing per-frame.
-- [ ] **B4** Add filters to the trail list: completed/incomplete,
-  difficulty, length, route type (out-and-back, loop, etc.). Route type
-  isn't currently in the trail model; would need to either compute from
-  the GPS shape or pull from OSM `route` / `network` tags.
-- [ ] **B5** Length filter chips on Explore are ambiguous — testers
-  assume they mean distance from the user, not total trail miles inside
-  the area. Either rename ("Total miles" vs "Drive time") or restructure
-  to actually use distance from user. (Pairs with the "drive-time
-  bands" backlog idea.)
-- [ ] **B6** Appearance picker in Settings has no effect — caused by
-  ContentView force-pushes overwriting the `.preferredColorScheme`
-  modifier. Restored on build/rc; verify in next build.
-- [ ] **B7** Card art glow + harsh black background looks bad. Try
-  a softer dark backdrop (charcoal, gradient, or the area's own colour)
-  and tone down or rethink the glow effect.
-- [ ] **B8** Stop-recording dialog needs a "Stop & Discard" option in
-  addition to "Stop & Save". Discard should ask for confirmation again
-  ("Discard hike? This can't be undone").
+- [ ] **Trail-list filter menu has no visible section headers.**
+  Wrapping each Picker in `Section("Status") { Picker(...) }`
+  didn't render headers in iOS 26 — three "All" rows still stack
+  with no label. Try a different structure: explicit `Text("Status")
+  .font(.caption).foregroundStyle(.secondary)` rows between the
+  pickers, or split the menu into nested submenus
+  (`Menu("Status") { Picker(...) }`).
+- [ ] **Filter trails on the map, not just in the list.** When
+  Incomplete / difficulty / length filters are active, the map
+  should hide non-matching trail polylines too. Currently
+  TrailMapView renders all `area.trails`. Plumb the filtered set
+  (or the active filters) from TrailListView → AreaView →
+  TrailMapView.
+- [ ] **Bottom-stack gap still too large.** Tightened from 20pt → 6pt
+  but a visible space remains between the RecordingPanel and the
+  trail list panel. Probably the VStack's intrinsic spacing(12) +
+  controlBar's vertical padding. Either drop the VStack spacing,
+  or move the RecordingPanel inline with the trail-list panel
+  itself instead of in the bottom-stack.
+- [ ] **Trail-list panel drag still glitchy.** Pass 5
+  (geometryGroup + interactiveSpring) didn't fully fix it. Options:
+  (a) accept SwiftUI's limits and rewrite as native sheet with
+  `.presentationDetents([.medium, .large])`, (b) move the
+  ScrollView contents into a separate view tree so layout
+  invalidation stays scoped, (c) precompute the panel's frame in
+  the parent and only animate `.offset(y:)` during drag.
+- [ ] **Tweak the loading-state trail-reveal animation.** Pacing /
+  opacity / stagger / line width — direction TBD.
 
-## Polish (post-MVP)
+## Reminders
 
-- [ ] iPad layout sanity-check
-- [ ] Pick a single card-art style and drop the alternating treatment
-  once you've decided between `.tight` and `.glow`
-- [ ] Concurrency warnings cleanup (RecordingPanel timer,
-  ActiveRecordingBanner timer, AuthService scene access — all warnings
-  today, will become errors under stricter Swift 6 modes)
-- [ ] Ad-Hoc + Diawi distribution pipeline (only if TestFlight cycle
-  becomes a bottleneck)
+- [ ] **Regenerate `public/areas/silhouettes.json`** by running
+  `python3 scripts/build-trail-counts.py --force`. The bundled file
+  is stale relative to current Overpass output. The runtime-computed
+  silhouette workaround in Area.computedSilhouette covers the iOS
+  app once an area is cached, but cold-load AreaCards still show
+  the stale colors briefly. The script takes ~1 hour for the
+  current 22-area index with Overpass rate limits, so probably
+  worth its own background task or CI run.
+
+## Next-build candidates (not yet started)
+
+- [ ] iPad layout sanity-check.
+- [ ] Route type filter for trails (out-and-back, loop, etc.) — not
+  in the trail model yet, would need to compute from GPS shape or
+  pull from OSM `route` / `network` tags.
+- [ ] Drive-time bands instead of fixed-mile ranges ("Within 30 min",
+  "Within 1 hr") — better answer to the original B5 if the chip
+  caption isn't enough. Needs MapKit routing per area on a
+  background queue with caching.
 
 ## Backlog / ideas
 
-- [ ] Drive-time bands instead of fixed-mile ranges ("Within 30 min",
-  "Within 1 hr") — almost certainly the right answer to B5
-- [ ] "Surprise Me" button — pick a random unvisited area
-- [ ] Featured area of the week (auto-rotate by ISO week)
+- [ ] Featured area of the week (auto-rotate by ISO week).
 - [ ] Map-tile prefetch for offline hiking — record in spotty signal
-  without losing the basemap
+  without losing the basemap.
+- [ ] Ad-Hoc + Diawi distribution pipeline (only if the TestFlight
+  cycle becomes a real bottleneck).
 
-## Done (recent)
+## Done (older)
 
 - [x] First-run onboarding screen — #39 (Get Started bug fixed in #44)
 - [x] Haptic feedback on trail-complete — #39

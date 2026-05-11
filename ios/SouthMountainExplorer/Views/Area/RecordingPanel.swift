@@ -10,6 +10,7 @@ struct RecordingPanel: View {
     @State private var timer: Timer? = nil
     @State private var isStopping = false
     @State private var showStopConfirm = false
+    @State private var showDiscardConfirm = false
 
     private var rec: ActiveRecording? { recording.activeRecording }
 
@@ -56,20 +57,31 @@ struct RecordingPanel: View {
         .onAppear { startTimer() }
         .onDisappear { timer?.invalidate() }
         .confirmationDialog(
-            "Stop and save this hike?",
+            "Stop this hike?",
             isPresented: $showStopConfirm,
             titleVisibility: .visible
         ) {
             Button("Stop & Save", role: .destructive) { stopRecording() }
+            Button("Stop & Discard", role: .destructive) { showDiscardConfirm = true }
             Button("Keep Recording", role: .cancel) { }
         } message: {
             Text(stopMessage)
+        }
+        .confirmationDialog(
+            "Discard this hike?",
+            isPresented: $showDiscardConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Discard", role: .destructive) { discardRecording() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This hike won't be saved to history and your trail coverage won't update. This can't be undone.")
         }
     }
 
     private var stopMessage: String {
         let dist = String(format: "%.2f mi", rec?.distanceMi ?? 0)
-        return "\(dist) recorded so far. We'll save the hike and update your trail coverage."
+        return "\(dist) recorded so far. Save adds it to history and updates your trail coverage. Discard throws it away."
     }
 
     private func statColumn(label: String, value: String) -> some View {
@@ -94,9 +106,14 @@ struct RecordingPanel: View {
         if let rec {
             elapsed = Date().timeIntervalSince(rec.startedAt)
         }
+        // The Timer fire closure is @Sendable / nonisolated, so hop back to
+        // the main actor before touching the @Observable RecordingService or
+        // @State elapsed value. Keeps Swift 6 strict concurrency happy.
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            if let rec = recording.activeRecording {
-                elapsed = Date().timeIntervalSince(rec.startedAt)
+            Task { @MainActor in
+                if let rec = recording.activeRecording {
+                    elapsed = Date().timeIntervalSince(rec.startedAt)
+                }
             }
         }
     }
@@ -109,6 +126,14 @@ struct RecordingPanel: View {
             onStop(finished)
             isStopping = false
         }
+    }
+
+    private func discardRecording() {
+        timer?.invalidate()
+        recording.discardRecording()
+        // Same callback contract as Stop & Save, but with no FinishedRecording
+        // so AreaView skips the summary sheet.
+        onStop(nil)
     }
 }
 
@@ -132,11 +157,12 @@ struct RecordingSummarySheet: View {
     }
 
     /// Trails with new partial coverage from this hike — covered ≥5%
-    /// (anything less is GPS noise) but not newly completed.
+    /// (anything less is GPS noise) but not newly completed and not
+    /// revisited (those get their own sections).
     private var partialTrails: [(id: String, name: String, coverage: Double)] {
-        let completedSet = Set(finished.newlyCompletedTrailIds)
+        let exclude = Set(finished.newlyCompletedTrailIds).union(finished.revisitedTrailIds)
         return finished.coverageDelta
-            .filter { tid, c in c >= 0.05 && c < 0.9 && !completedSet.contains(tid) }
+            .filter { tid, c in c >= 0.05 && c < 0.9 && !exclude.contains(tid) }
             .map { (id: $0.key, name: trailName(for: $0.key), coverage: $0.value) }
             .sorted { $0.coverage > $1.coverage }
     }
@@ -200,6 +226,25 @@ struct RecordingSummarySheet: View {
                             ForEach(finished.newlyCompletedTrailIds, id: \.self) { trailId in
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                    Text(trailName(for: trailId))
+                                        .font(.body)
+                                }
+                                .padding(.horizontal)
+                            }
+                        }
+                    }
+
+                    // Trails walked again that were already complete
+                    if !finished.revisitedTrailIds.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Previously Completed")
+                                .font(.headline)
+                                .padding(.horizontal)
+
+                            ForEach(finished.revisitedTrailIds, id: \.self) { trailId in
+                                HStack {
+                                    Image(systemName: "arrow.clockwise.circle.fill")
                                         .foregroundStyle(.cyan)
                                     Text(trailName(for: trailId))
                                         .font(.body)

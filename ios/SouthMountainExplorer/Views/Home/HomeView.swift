@@ -109,6 +109,15 @@ struct HomeView: View {
                 }
                 .padding()
             }
+            .refreshable {
+                // Pull-to-refresh: re-load history (so a hike completed
+                // mid-session shows up in Pick Up / Try Something New),
+                // re-poke the location service so Near You can recompute.
+                history = await recording.loadHistory()
+                if location.isAuthorized {
+                    location.startLiveTracking()
+                }
+            }
             .navigationTitle("Explore")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -118,6 +127,15 @@ struct HomeView: View {
                         Image(systemName: "map")
                     }
                     .accessibilityLabel("All Areas Map")
+                }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        surpriseMe()
+                    } label: {
+                        Image(systemName: "dice")
+                    }
+                    .accessibilityLabel("Surprise Me")
+                    .disabled(areas.summaries.isEmpty)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     if !auth.isSignedIn {
@@ -136,7 +154,10 @@ struct HomeView: View {
                 location.startLiveTracking()
             }
             Task { history = await recording.loadHistory() }
+            prefetchVisibleAreas()
         }
+        .onChange(of: location.userLocation?.latitude) { _, _ in prefetchVisibleAreas() }
+        .onChange(of: lengthFilter) { _, _ in prefetchVisibleAreas() }
         .sheet(isPresented: $showLocationPrompt) {
             LocationPromptView()
         }
@@ -157,9 +178,8 @@ struct HomeView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
-                    ForEach(Array(items.enumerated()), id: \.element.id) { index, area in
-                        // Alternate styles so the user can compare card art treatments.
-                        AreaCard(area: area, style: index.isMultiple(of: 2) ? .tight : .glow)
+                    ForEach(items) { area in
+                        AreaCard(area: area)
                             .onTapGesture { selectedArea = area }
                     }
                 }
@@ -185,6 +205,14 @@ struct HomeView: View {
                 }
             }
             .padding(.horizontal, 4)
+
+            // Caption first so the chips can't be misread as "distance from
+            // me" — they filter by total trail miles inside each area.
+            Text("Filter by total trail miles in the area")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+                .padding(.top, 2)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -217,8 +245,8 @@ struct HomeView: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14) {
-                        ForEach(Array(nearbyAreas.enumerated()), id: \.element.id) { index, area in
-                            AreaCard(area: area, style: index.isMultiple(of: 2) ? .tight : .glow)
+                        ForEach(nearbyAreas) { area in
+                            AreaCard(area: area)
                                 .onTapGesture { selectedArea = area }
                         }
                     }
@@ -257,6 +285,42 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
+    }
+
+    /// Warm the per-area cache for every card currently rendered on Explore so
+    /// tapping in opens AreaView instantly instead of showing the 1–3s
+    /// "Loading…" spinner. `areas.area(id:)` is idempotent: it short-circuits
+    /// on a cache hit (memory or disk), refreshes silently if stale, and
+    /// dedupes concurrent fetches per id, so calling it for the same set of
+    /// ids on repeated appears or filter changes is safe and free.
+    private func prefetchVisibleAreas() {
+        var seen = Set<String>()
+        var ids: [String] = []
+        let pools: [[AreaSummary]] = [
+            continueArea.map { [$0] } ?? [],
+            unvisitedAreas,
+            favorites.favoriteAreas,
+            nearbyAreas
+        ]
+        for pool in pools {
+            for area in pool where seen.insert(area.id).inserted {
+                ids.append(area.id)
+            }
+        }
+        for id in ids {
+            Task { _ = await areas.area(id: id) }
+        }
+    }
+
+    /// Pick a random area the user hasn't recorded in yet and open it.
+    /// Falls back to any area when every area has been visited (or
+    /// when there's no history yet — then "unvisited" is everything).
+    private func surpriseMe() {
+        let visited = visitedAreaIds
+        let unvisited = areas.summaries.filter { !visited.contains($0.id) }
+        let pool = unvisited.isEmpty ? areas.summaries : unvisited
+        guard let pick = pool.randomElement() else { return }
+        selectedArea = pick
     }
 
     private func haversine(_ a: AreaSummary, lat: Double, lon: Double) -> Double {

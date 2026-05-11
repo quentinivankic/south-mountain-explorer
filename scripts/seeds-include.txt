@@ -1,0 +1,7 @@
+# One area name per line. These are always included even if the
+# Overpass tag-quality filter would normally drop them. Useful for
+# tiny named summits or local trail systems that don't have
+# protect_class tagged.
+#
+# Lines starting with `#` are comments. Blank lines ignored.
+# Match is case-insensitive against the OSM `name` tag.

@@ -30,6 +30,9 @@ struct SettingsView: View {
     /// user sees the final state briefly before it reverts.
     @State private var downloadProgress: (Int, Int)? = nil
     @State private var showDownloadConfirm = false
+    /// Same idea for the "Download Nearby Areas" radius prefetch button.
+    @State private var nearbyProgress: (Int, Int)? = nil
+    @State private var showNearbyCellularConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -140,7 +143,13 @@ struct SettingsView: View {
                             Task {
                                 downloadProgress = (0, 0)
                                 await AreaDataService.shared.prefetchOffline { completed, total in
-                                    downloadProgress = (completed, total)
+                                    // prefetchOffline runs off MainActor, so
+                                    // hop back here before touching @State —
+                                    // otherwise writes race the renderer and
+                                    // get coalesced away.
+                                    await MainActor.run {
+                                        downloadProgress = (completed, total)
+                                    }
                                 }
                                 // Hold the final "(N of N)" reading for a
                                 // beat so the user sees the result land
@@ -153,6 +162,38 @@ struct SettingsView: View {
                         Button("Cancel", role: .cancel) { }
                     } message: {
                         Text("Saves trail data for your favorited and recently-opened areas so you can open them without a signal. Skips anything that's already up to date.")
+                    }
+
+                    Button {
+                        guard LocationService.shared.userLocation != nil else {
+                            // No location yet — kick off the permission
+                            // prompt; user can tap again once they've
+                            // granted access and a fix has come in.
+                            LocationService.shared.requestPermission()
+                            return
+                        }
+                        if NetworkService.shared.isExpensive {
+                            showNearbyCellularConfirm = true
+                        } else {
+                            runNearbyDownload()
+                        }
+                    } label: {
+                        if let p = nearbyProgress {
+                            Label("Downloading \(p.0) of \(p.1)…", systemImage: "location.circle")
+                        } else {
+                            Label("Download Nearby Areas", systemImage: "location.circle")
+                        }
+                    }
+                    .disabled(nearbyProgress != nil)
+                    .confirmationDialog(
+                        "You're on a cellular network. Download anyway?",
+                        isPresented: $showNearbyCellularConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Download") { runNearbyDownload() }
+                        Button("Cancel", role: .cancel) { }
+                    } message: {
+                        Text("Sweeps a 50-mile radius around your current location. May use significant cellular data depending on how many areas are nearby.")
                     }
                 }
 
@@ -193,6 +234,23 @@ struct SettingsView: View {
         // so completing a hike then opening Settings shows fresh numbers
         // instead of whatever was cached on the last view appearance.
         .task(id: recording.activeRecording == nil) { await refreshStats() }
+    }
+
+    /// Kick off a manual "Download Nearby" run with `force: true` so it
+    /// bypasses the network / movement gates the cold-launch path
+    /// respects. Same progress-on-MainActor + 1.5 s post-completion hold
+    /// pattern as the favorites prefetch above.
+    private func runNearbyDownload() {
+        Task {
+            nearbyProgress = (0, 0)
+            await AreaDataService.shared.runNearbyPrefetchIfAppropriate(force: true) { completed, total in
+                await MainActor.run {
+                    nearbyProgress = (completed, total)
+                }
+            }
+            try? await Task.sleep(for: .seconds(1.5))
+            nearbyProgress = nil
+        }
     }
 
     private func statsBlock(_ s: UserStats) -> some View {

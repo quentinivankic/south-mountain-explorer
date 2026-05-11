@@ -119,7 +119,7 @@ final class AreaDataService {
     /// — so on warm caches this is essentially free. Progress callback
     /// fires per item with `(completed, total)`; pass `nil` for silent
     /// background runs (the cold-launch path).
-    func prefetchOffline(progress: ((Int, Int) -> Void)? = nil) async {
+    func prefetchOffline(progress: ((Int, Int) async -> Void)? = nil) async {
         let favorites = FavoritesService.shared.favoriteAreas.map(\.id)
         let recents = ActivityService.shared.areaOpenedAt
             .sorted { $0.value > $1.value }
@@ -135,11 +135,100 @@ final class AreaDataService {
             if seen.insert(id).inserted { targets.append(id) }
         }
         let total = targets.count
-        progress?(0, total)
+        await progress?(0, total)
         for (i, id) in targets.enumerated() {
             _ = await area(id: id)
-            progress?(i + 1, total)
+            await progress?(i + 1, total)
+            // Yield so SwiftUI can render between cache-warm items;
+            // without it the loop completes inside one render tick and
+            // the count appears to flash straight to N of N.
+            await Task.yield()
         }
+    }
+
+    // MARK: - Nearby-Radius Prefetch
+
+    /// UserDefaults keys for the nearby-prefetch cooldown / movement check.
+    private static let lastNearbyLatKey = "prefetch.nearby.lastLat"
+    private static let lastNearbyLonKey = "prefetch.nearby.lastLon"
+
+    /// Pull every area whose center is within `radiusMi` of the given
+    /// coordinate down to disk. Skips anything already covered by
+    /// `prefetchOffline` (favorites + recents) so the two callers can
+    /// safely run back-to-back without double-fetching. Same per-item
+    /// loop pattern as `prefetchOffline`.
+    func prefetchNearby(
+        centerLat: Double,
+        centerLon: Double,
+        radiusMi: Double,
+        progress: ((Int, Int) async -> Void)? = nil
+    ) async {
+        let already = Set(
+            FavoritesService.shared.favoriteAreas.map(\.id)
+            + ActivityService.shared.areaOpenedAt
+                .sorted { $0.value > $1.value }
+                .prefix(10)
+                .map(\.key)
+        )
+        let targets: [String] = summaries.compactMap { s in
+            guard !already.contains(s.id) else { return nil }
+            let d = haversineDistanceMi(
+                lat1: centerLat, lon1: centerLon,
+                lat2: s.centerLat, lon2: s.centerLon
+            )
+            return d <= radiusMi ? s.id : nil
+        }
+        let total = targets.count
+        await progress?(0, total)
+        for (i, id) in targets.enumerated() {
+            _ = await area(id: id)
+            await progress?(i + 1, total)
+            await Task.yield()
+        }
+    }
+
+    /// Orchestrator for the cold-launch / foreground-resume nearby
+    /// prefetch. Returns `true` if a prefetch ran (or was already
+    /// cache-fresh by the movement check), `false` if it was skipped
+    /// because of network policy / no location / not enough movement.
+    ///
+    /// Movement check: skips if the user hasn't moved more than 25 mi
+    /// since the last successful prefetch — keeps us from re-fetching
+    /// the same 50-mi disc on every foreground transition.
+    ///
+    /// Network check: defaults to Wi-Fi only. Pass `force: true` from a
+    /// user-initiated Settings button after they've confirmed cellular
+    /// is OK.
+    @discardableResult
+    func runNearbyPrefetchIfAppropriate(
+        radiusMi: Double = 50,
+        movementThresholdMi: Double = 25,
+        force: Bool = false,
+        progress: ((Int, Int) async -> Void)? = nil
+    ) async -> Bool {
+        guard let loc = LocationService.shared.userLocation else { return false }
+        if !force && NetworkService.shared.isExpensive { return false }
+
+        let ud = UserDefaults.standard
+        let lastLat = ud.object(forKey: Self.lastNearbyLatKey) as? Double
+        let lastLon = ud.object(forKey: Self.lastNearbyLonKey) as? Double
+        if !force, let lastLat, let lastLon {
+            let moved = haversineDistanceMi(
+                lat1: lastLat, lon1: lastLon,
+                lat2: loc.latitude, lon2: loc.longitude
+            )
+            if moved < movementThresholdMi { return false }
+        }
+
+        await prefetchNearby(
+            centerLat: loc.latitude,
+            centerLon: loc.longitude,
+            radiusMi: radiusMi,
+            progress: progress
+        )
+        ud.set(loc.latitude, forKey: Self.lastNearbyLatKey)
+        ud.set(loc.longitude, forKey: Self.lastNearbyLonKey)
+        return true
     }
 
     // MARK: - Full Area Data

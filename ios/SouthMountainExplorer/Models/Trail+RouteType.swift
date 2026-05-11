@@ -23,27 +23,26 @@ enum RouteType: String, CaseIterable, Identifiable, Sendable {
 extension Trail {
     /// Classify a trail as loop vs linear.
     ///
-    /// OSM models named "loop trails" two ways:
-    ///   1. A single closed way where the first node == last node, or
-    ///   2. Several same-named ways stitched together at shared endpoints
-    ///      (each individual way is linear; the loop emerges from the union).
+    /// OSM models named loop trails two ways:
+    ///   1. A single closed way where the first node == last node.
+    ///   2. Several same-named ways stitched at shared endpoints (each
+    ///      individual way is linear; the loop emerges from the union).
     ///
-    /// We detect both cases:
-    ///   - Closed-way path: any segment whose first ≈ last point.
-    ///   - Stitched-loop path: total trail length comfortably exceeds the
-    ///     straight-line distance between the two farthest segment
-    ///     endpoints. A linear trail walks ≈ 1× span end-to-end, an
-    ///     out-and-back ≈ 2×, a real loop ≈ 3×+. 2.2× catches loops while
-    ///     leaving out-and-backs labelled linear.
+    /// Heuristic, in priority order:
+    ///   - **Cluster check.** If every segment endpoint sits inside a
+    ///     ~0.1 mi cluster (maxSpan ≈ 0), the trail loops back on
+    ///     itself. Catches single closed ways automatically (their
+    ///     first/last point coincide) without needing a per-segment
+    ///     shortcut — earlier versions did that and would flip a long
+    ///     linear trail to Loop the moment it contained one tiny
+    ///     closed spur or switchback artifact.
+    ///   - **Length/span ratio.** A true loop's total mileage exceeds
+    ///     its span by ≈ π (circle: circumference / diameter ≈ 3.14).
+    ///     Switchback-heavy linear trails — common in real OSM data
+    ///     for mountain ascents — top out around 2.5×. So the
+    ///     threshold sits at 3.0×, comfortably above switchbacks and
+    ///     right at the geometric floor for real loops.
     var routeType: RouteType {
-        for seg in segments where seg.count >= 3 {
-            if let first = seg.first, let last = seg.last,
-               first.count >= 2, last.count >= 2,
-               endpointGapMi(first, last) < 0.05 {
-                return .loop
-            }
-        }
-
         var endpoints: [[Double]] = []
         for seg in segments where seg.count >= 2 {
             if let f = seg.first, f.count >= 2 { endpoints.append(f) }
@@ -58,11 +57,8 @@ extension Trail {
                 if g > maxSpan { maxSpan = g }
             }
         }
-        // Very-tight cluster of endpoints (everything within ~0.1 mi) is a
-        // small loop regardless of total miles. Otherwise apply the
-        // length/span ratio test.
         if maxSpan < 0.1 { return .loop }
-        return distanceMi > 2.2 * maxSpan ? .loop : .linear
+        return distanceMi > 3.0 * maxSpan ? .loop : .linear
     }
 }
 

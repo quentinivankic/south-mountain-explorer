@@ -21,17 +21,48 @@ enum RouteType: String, CaseIterable, Identifiable, Sendable {
 }
 
 extension Trail {
-    /// Classify a trail as loop vs linear by checking whether the longest
-    /// segment's endpoints meet up. Picking the longest segment (instead of
-    /// concatenating all of them) keeps the signal clean for OSM trails made
-    /// of multiple same-named ways — short connector spurs would otherwise
-    /// make a real loop look linear.
+    /// Classify a trail as loop vs linear.
+    ///
+    /// OSM models named "loop trails" two ways:
+    ///   1. A single closed way where the first node == last node, or
+    ///   2. Several same-named ways stitched together at shared endpoints
+    ///      (each individual way is linear; the loop emerges from the union).
+    ///
+    /// We detect both cases:
+    ///   - Closed-way path: any segment whose first ≈ last point.
+    ///   - Stitched-loop path: total trail length comfortably exceeds the
+    ///     straight-line distance between the two farthest segment
+    ///     endpoints. A linear trail walks ≈ 1× span end-to-end, an
+    ///     out-and-back ≈ 2×, a real loop ≈ 3×+. 2.2× catches loops while
+    ///     leaving out-and-backs labelled linear.
     var routeType: RouteType {
-        guard let longest = segments.max(by: { $0.count < $1.count }),
-              let first = longest.first, first.count >= 2,
-              let last = longest.last, last.count >= 2
-        else { return .linear }
-        return endpointGapMi(first, last) < 0.15 ? .loop : .linear
+        for seg in segments where seg.count >= 3 {
+            if let first = seg.first, let last = seg.last,
+               first.count >= 2, last.count >= 2,
+               endpointGapMi(first, last) < 0.05 {
+                return .loop
+            }
+        }
+
+        var endpoints: [[Double]] = []
+        for seg in segments where seg.count >= 2 {
+            if let f = seg.first, f.count >= 2 { endpoints.append(f) }
+            if let l = seg.last,  l.count >= 2 { endpoints.append(l) }
+        }
+        guard endpoints.count >= 2 else { return .linear }
+
+        var maxSpan = 0.0
+        for i in 0..<endpoints.count {
+            for j in (i + 1)..<endpoints.count {
+                let g = endpointGapMi(endpoints[i], endpoints[j])
+                if g > maxSpan { maxSpan = g }
+            }
+        }
+        // Very-tight cluster of endpoints (everything within ~0.1 mi) is a
+        // small loop regardless of total miles. Otherwise apply the
+        // length/span ratio test.
+        if maxSpan < 0.1 { return .loop }
+        return distanceMi > 2.2 * maxSpan ? .loop : .linear
     }
 }
 

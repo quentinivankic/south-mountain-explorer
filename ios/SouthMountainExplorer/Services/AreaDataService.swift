@@ -1,5 +1,13 @@
 import Foundation
 
+/// jsDelivr CDN mirror of the precomputed per-area trail geometry. The
+/// workflow writes `public/areas/geom/<id>.json` on every build; jsDelivr
+/// serves those files from GitHub with proper edge caching. Branch ref is
+/// pinned here so we can promote a build atomically (and roll back by
+/// changing one constant). jsDelivr caches branch URLs roughly 12 h, so
+/// a workflow push doesn't go live instantly — fine for our cadence.
+private let cdnBaseURL = "https://cdn.jsdelivr.net/gh/quentinivankic/south-mountain-explorer@feat/build-3-fixes/public/areas/geom"
+
 // Caches the bundled area index and per-area full data fetched from Overpass.
 // The bundled index.json lives at Resources/areas-index.json.
 @MainActor
@@ -147,6 +155,18 @@ final class AreaDataService {
         guard let summary = summaries.first(where: { $0.id == id }) else {
             return (nil, "Area not found in index.")
         }
+
+        // CDN-first: precomputed per-area JSON gives us deterministic
+        // trail ids and the same counts Browse shows. On 404 / network
+        // error / empty payload we fall through to the live Overpass
+        // path below, which still has its mirror-rotation + retry
+        // safety net for areas not yet present in our build.
+        if let cdnArea = await fetchFromCdn(id: id), !cdnArea.trails.isEmpty {
+            areaCache[id] = cdnArea
+            saveAreaToDisk(cdnArea)
+            return (cdnArea, nil)
+        }
+
         let stub = AreaRow(
             id: summary.id, name: summary.name, state: summary.subtitle,
             centerLat: summary.centerLat, centerLon: summary.centerLon,
@@ -225,6 +245,26 @@ final class AreaDataService {
             bbox = [w, s, e, n]
         }
         return (id, bbox)
+    }
+
+    /// Fetch the precomputed geometry for `id` from the jsDelivr CDN.
+    /// Returns `nil` for any failure mode — 404 (area not in the build
+    /// yet), non-2xx, network down, malformed JSON. Caller falls back to
+    /// the live Overpass path, which has its own retry / mirror logic.
+    private func fetchFromCdn(id: String) async -> Area? {
+        guard let url = URL(string: "\(cdnBaseURL)/\(id).json") else { return nil }
+        var req = URLRequest(url: url, timeoutInterval: 20)
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        do {
+            let (data, response) = try await URLSession.shared.data(for: req)
+            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                return nil
+            }
+            let row = try JSONDecoder().decode(AreaRow.self, from: data)
+            return row.toArea()
+        } catch {
+            return nil
+        }
     }
 
     private func fetchFromOverpass(row: AreaRow) async throws -> AreaRow {

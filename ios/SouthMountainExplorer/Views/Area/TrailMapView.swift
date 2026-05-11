@@ -50,14 +50,13 @@ struct TrailMapView: View {
             // Cumulative-coverage halo: every past hike's GPS path drawn in
             // cyan beneath the trail polylines so walked sections glow
             // through. Wider stroke + reduced opacity makes it read as a
-            // background highlight, not a competing line.
+            // background highlight, not a competing line. Off-trail
+            // portions (e.g. walking from home to the trailhead) are
+            // filtered out so the halo only paints actual trail coverage.
             ForEach(Array(pastPaths.enumerated()), id: \.offset) { _, path in
-                let coords = path.compactMap { node -> CLLocationCoordinate2D? in
-                    guard node.count >= 2 else { return nil }
-                    return CLLocationCoordinate2D(latitude: node[0], longitude: node[1])
-                }
-                if coords.count > 1 {
-                    MapPolyline(coordinates: coords)
+                let segments = onTrailSegments(path)
+                ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                    MapPolyline(coordinates: segment)
                         .stroke(
                             .cyan.opacity(0.55),
                             style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round)
@@ -184,6 +183,56 @@ struct TrailMapView: View {
 
     private func centerOnArea() {
         withAnimation { position = Self.regionCovering(area: area) }
+    }
+
+    /// Split a recorded GPS path into runs of consecutive points that lie
+    /// within `bufferMeters` of any trail node. Off-trail runs (e.g.
+    /// commuting from home to the trailhead) drop out so the cyan halo
+    /// only paints actual trail coverage. Spatial grid keeps the
+    /// per-point check O(1).
+    private func onTrailSegments(_ path: [GpsPoint]) -> [[CLLocationCoordinate2D]] {
+        let bufferM = 30.0
+        let cell = 0.0003
+        var grid: [String: [[Double]]] = [:]
+        for trail in area.trails {
+            for seg in trail.segments {
+                for node in seg {
+                    guard node.count >= 2 else { continue }
+                    let r = Int((node[0] / cell).rounded())
+                    let c = Int((node[1] / cell).rounded())
+                    grid["\(r):\(c)", default: []].append([node[0], node[1]])
+                }
+            }
+        }
+        func nearTrail(_ la: Double, _ lo: Double) -> Bool {
+            let r = Int((la / cell).rounded())
+            let c = Int((lo / cell).rounded())
+            for dr in -1...1 {
+                for dc in -1...1 {
+                    if let nodes = grid["\(r + dr):\(c + dc)"] {
+                        for n in nodes {
+                            if haversineDistanceM(lat1: la, lon1: lo, lat2: n[0], lon2: n[1]) <= bufferM {
+                                return true
+                            }
+                        }
+                    }
+                }
+            }
+            return false
+        }
+        var segments: [[CLLocationCoordinate2D]] = []
+        var current: [CLLocationCoordinate2D] = []
+        for p in path {
+            guard p.count >= 2 else { continue }
+            if nearTrail(p[0], p[1]) {
+                current.append(CLLocationCoordinate2D(latitude: p[0], longitude: p[1]))
+            } else if !current.isEmpty {
+                if current.count >= 2 { segments.append(current) }
+                current.removeAll(keepingCapacity: true)
+            }
+        }
+        if current.count >= 2 { segments.append(current) }
+        return segments
     }
 
     /// Frame the camera around the union of all trail segments. Uses the

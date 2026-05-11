@@ -195,6 +195,12 @@ struct SettingsView: View {
                     } message: {
                         Text("Sweeps a 50-mile radius around your current location. May use significant cellular data depending on how many areas are nearby.")
                     }
+
+                    NavigationLink {
+                        DownloadedAreasView()
+                    } label: {
+                        Label("Manage Downloads", systemImage: "internaldrive")
+                    }
                 }
 
                 Section("Data") {

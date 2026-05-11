@@ -156,11 +156,15 @@ struct TrailMapView: View {
         let latMeters = 1500.0
         let center: CLLocationCoordinate2D
         if bottomInset > 0 {
-            // UIScreen height is the assumed map view height — fine in
-            // practice since TrailMapView is rendered .ignoresSafeArea()
-            // edge-to-edge on the AreaView root.
-            let screenH = UIScreen.main.bounds.height
-            let metersPerPoint = latMeters / max(screenH, 1)
+            // MKCoordinateRegion with a square latitudinalMeters /
+            // longitudinalMeters gets fit to the SHORTER screen axis
+            // — in portrait that's width, not height. So m/pt is
+            // latMeters / min(width, height), not / height. (Using
+            // height in portrait gave a ~2× under-shift that read
+            // visually as "still centered on the phone screen".)
+            let b = UIScreen.main.bounds
+            let shortDim = min(b.width, b.height)
+            let metersPerPoint = latMeters / max(shortDim, 1)
             let shiftMeters = (bottomInset / 2) * metersPerPoint
             let shiftDegrees = shiftMeters / 111_000.0
             center = CLLocationCoordinate2D(

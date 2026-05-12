@@ -35,6 +35,12 @@ struct AreaView: View {
     @State private var showAreaComplete = false
     @State private var pastPaths: [[GpsPoint]] = []
     @State private var recenterTick: Int = 0
+    /// Owns the camera tracking cycle for the map. The rotation button
+    /// in `controlBar` cycles this; TrailMapView observes via Binding
+    /// and swaps `MapCameraPosition` accordingly. Tapping the recenter
+    /// button forces this back to `.free` so a one-shot recenter isn't
+    /// immediately undone by re-engaged tracking.
+    @State private var trackingMode: MapTrackingMode = .free
 
     // Pre-flight checks before kicking off a recording.
     @State private var showConflictAlert = false
@@ -111,7 +117,8 @@ struct AreaView: View {
                     // dot lands in the visible middle, not behind the
                     // panel.
                     bottomInset: (showTrailList ? currentListHeight : 0)
-                        + (isRecording ? 110 : 0)
+                        + (isRecording ? 110 : 0),
+                    trackingMode: $trackingMode
                 )
                 .ignoresSafeArea()
 
@@ -543,17 +550,34 @@ struct AreaView: View {
                     .glassEffect(in: .circle)
             }
 
-            // Recenter on user — replaces the removed MapUserLocationButton
-            // (which MapKit placed on top of the favorite/close buttons).
+            // Camera tracking cycle — Apple Maps style. Cycles
+            // free → follow → follow-with-heading → free. Icon
+            // reflects the current mode.
             Button {
                 if !location.isAuthorized { location.requestPermission(); return }
-                recenterTick &+= 1
+                withAnimation { trackingMode = trackingMode.next }
             } label: {
-                Image(systemName: "location.fill")
+                Image(systemName: trackingMode.symbol)
                     .font(.body.weight(.semibold))
                     .frame(width: 44, height: 44)
                     .glassEffect(in: .circle)
             }
+            .accessibilityLabel(trackingMode.accessibilityLabel)
+
+            // Recenter on user — one-shot center. Doesn't engage
+            // tracking; cycle button above is the way to opt into
+            // continuous follow. Distinct viewfinder icon so it
+            // doesn't collide with the cycle's `location.fill` state.
+            Button {
+                if !location.isAuthorized { location.requestPermission(); return }
+                recenterTick &+= 1
+            } label: {
+                Image(systemName: "location.fill.viewfinder")
+                    .font(.body.weight(.semibold))
+                    .frame(width: 44, height: 44)
+                    .glassEffect(in: .circle)
+            }
+            .accessibilityLabel("Recenter on my location")
 
             Spacer()
 

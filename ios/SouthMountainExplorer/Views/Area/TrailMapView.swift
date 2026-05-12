@@ -171,22 +171,38 @@ struct TrailMapView: View {
             MapScaleView()
         }
         .onAppear {
-            // Build all four caches (trail grid, per-trail polyline
-            // coords, per-trail bbox, per-hike halo segments) in a
-            // single pass over the area's trails. Per-render Map
-            // work then collapses to dictionary lookups + bbox
-            // intersection + MapPolyline construction.
+            // Build the four caches (spatial grid, per-trail polyline
+            // coords, per-trail bbox, per-hike halo segments).
+            //
+            // Critical split: the spatial grid feeds halo on-trail
+            // clipping and live coverage measurement, both of which
+            // need DENSE node coverage — building from decimated
+            // trails leaves 25-30m gaps between nodes that the user's
+            // raw GPS path drops into, dropping halo segments and
+            // under-counting trail length so coverage fraction
+            // inflates. So the grid pulls from `area.rawTrails` (the
+            // pre-decimation set carried in-memory by AreaDataService)
+            // when available, while the polyline coords / bboxes used
+            // for actual MapPolyline rendering pull from
+            // `area.trails` (decimated, fewer points to render).
+            let renderTrails = area.trails
+            let gridTrails = area.rawTrails ?? area.trails
             var grid = SpatialGrid()
+            for trail in gridTrails {
+                for seg in trail.segments {
+                    for node in seg where node.count >= 2 {
+                        grid.insert(node)
+                    }
+                }
+            }
             var coords: [String: [[CLLocationCoordinate2D]]] = [:]
             var bboxes: [String: DegreeBBox] = [:]
-            for trail in area.trails {
+            for trail in renderTrails {
                 var segs: [[CLLocationCoordinate2D]] = []
                 var minLat = Double.infinity, maxLat = -Double.infinity
                 var minLon = Double.infinity, maxLon = -Double.infinity
                 for seg in trail.segments {
-                    for node in seg {
-                        grid.insert(node)
-                        guard node.count >= 2 else { continue }
+                    for node in seg where node.count >= 2 {
                         if node[0] < minLat { minLat = node[0] }
                         if node[0] > maxLat { maxLat = node[0] }
                         if node[1] < minLon { minLon = node[1] }
@@ -369,9 +385,14 @@ struct TrailMapView: View {
         let isSelected = trail.id == selectedTrailId
         let isHighlighted = isRecordingThis || isSelected
         let isComplete = progress.isComplete(areaId: area.id, trailId: trail.id)
+        // Completed trails get `.mint` rather than `.cyan` so the
+        // trail outline stays distinct from the cyan halo overlay
+        // (which is the user's past-hike GPS path). Same-color
+        // halo+trail blends into one indistinguishable cyan blob and
+        // makes completed trails look "missing" from the map.
         let baseColor: Color = isRecordingThis
             ? .purple
-            : (isComplete ? .cyan : difficultyColor(trail.difficulty))
+            : (isComplete ? .mint : difficultyColor(trail.difficulty))
         let dimmed = (highlightedTrailId != nil && !isHighlighted)
         // 0.5 (vs the earlier 0.25) keeps non-active trails legible
         // next to the bold purple recording stroke without competing

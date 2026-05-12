@@ -246,20 +246,56 @@ final class AreaDataService {
     /// without invalidating any persisted area.
     private static let renderDecimationEpsilonMeters = 5.0
 
-    /// Run an Area through the rendering-side decimation pass and write
-    /// the result to the in-memory cache. Wrapped in a signpost so the
-    /// existing `areaLoad` Instruments category captures it. Callers
-    /// should use the returned Area downstream — never the raw one —
-    /// since coverage / grid / bbox caches built in `TrailMapView.onAppear`
-    /// must see the same coords MapKit renders.
+    /// Canonicalize every Trail.id in the supplied Area through
+    /// `String.canonicalTrailId`. This is the iOS-side guard against
+    /// legacy CDN payloads (and on-disk caches) that still carry
+    /// position-counter suffixes like `unnamed-494466239-43`. After
+    /// the build-trail-counts.py change these suffixes don't appear
+    /// in fresh data, but old persisted Area JSON does until the
+    /// next refetch.
+    private func canonicalizeTrailIds(_ area: Area) -> Area {
+        let canon = area.trails.map { t in
+            Trail(
+                id: t.id.canonicalTrailId,
+                name: t.name,
+                distanceMi: t.distanceMi,
+                difficulty: t.difficulty,
+                segments: t.segments
+            )
+        }
+        return Area(
+            id: area.id,
+            name: area.name,
+            subtitle: area.subtitle,
+            centerLat: area.centerLat,
+            centerLon: area.centerLon,
+            zoom: area.zoom,
+            bbox: area.bbox,
+            trails: canon,
+            trailCount: area.trailCount,
+            totalMi: area.totalMi,
+            cachedAt: area.cachedAt
+        )
+    }
+
+    /// Run an Area through canonicalization + the rendering-side
+    /// decimation pass and write the result to the in-memory cache.
+    /// The cached Area carries TWO trail sets: `trails` (decimated,
+    /// for `MapKit` rendering) and `rawTrails` (the canonicalized
+    /// pre-decimation set, for the spatial grid / halo on-trail
+    /// clipping / coverage measurement). Wrapped in a signpost so
+    /// the existing `areaLoad` Instruments category captures the
+    /// decimation cost.
     @discardableResult
     private func cacheAreaForRendering(_ area: Area) -> Area {
         let signpostID = OSSignpostID(log: areaLoadLog)
         os_signpost(.begin, log: areaLoadLog, name: "decimate", signpostID: signpostID, "%{public}s", area.id)
-        let decimated = area.withDecimatedSegments(epsilonMeters: Self.renderDecimationEpsilonMeters)
+        let canonical = canonicalizeTrailIds(area)
+        let decimated = canonical.withDecimatedSegments(epsilonMeters: Self.renderDecimationEpsilonMeters)
+        let attached = decimated.with(rawTrails: canonical.trails)
         os_signpost(.end, log: areaLoadLog, name: "decimate", signpostID: signpostID)
-        areaCache[area.id] = decimated
-        return decimated
+        areaCache[attached.id] = attached
+        return attached
     }
 
     func area(id: String) async -> Area? {

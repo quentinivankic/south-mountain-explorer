@@ -36,6 +36,25 @@ final class CoverageService {
         saveLocal()
     }
 
+    /// Rewrite every trail-id key through `transform`. Used by the
+    /// build-8 migration to canonicalize legacy ids (stripping the
+    /// position-counter suffix) so old recorded coverage lines up
+    /// with stable post-fix ids. On collision (two old keys collapse
+    /// to the same canonical key), keep the higher fraction.
+    func rekeyTrailIds(_ transform: (String) -> String) {
+        var newState: [String: [String: Double]] = [:]
+        for (areaId, areaCov) in state {
+            var newArea: [String: Double] = [:]
+            for (tid, v) in areaCov {
+                let newTid = transform(tid)
+                newArea[newTid] = max(newArea[newTid] ?? 0, v)
+            }
+            newState[areaId] = newArea
+        }
+        state = newState
+        saveLocal()
+    }
+
     // MARK: - Local persistence
 
     private func readLocal() -> [String: [String: Double]] {

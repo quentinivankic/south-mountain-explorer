@@ -12,6 +12,17 @@ struct Area: Codable, Identifiable, Sendable {
     let trailCount: Int?
     let totalMi: Double?
     let cachedAt: Date?
+    /// In-memory-only carrier for the pre-decimation trail geometry.
+    /// `trails` is the decimated render-side data; `rawTrails`, when
+    /// set, holds the dense node set used for spatial-grid build,
+    /// halo on-trail clipping, and coverage measurement so those
+    /// algorithms keep working at full fidelity. Default `nil` keeps
+    /// it absent from JSON (not in `CodingKeys`); Codable's
+    /// synthesized init/encode skip stored properties with defaults
+    /// that aren't listed in `CodingKeys`. `var` rather than `let`
+    /// so the memberwise init exposes `rawTrails:` as a parameter
+    /// (Swift omits `let`-with-default from the synthesized init).
+    var rawTrails: [Trail]? = nil
 
     var resolvedTrailCount: Int { trailCount ?? trails.count }
     var resolvedTotalMi: Double { totalMi ?? trails.reduce(0) { $0 + $1.distanceMi } }
@@ -80,6 +91,28 @@ struct AreaRow: Codable, Sendable {
 }
 
 extension Area {
+    /// Returns a copy of this Area carrying `newRawTrails` as its
+    /// in-memory raw geometry. Used by `AreaDataService` right after
+    /// decimation so the cached Area has both the decimated render
+    /// set (`trails`) and the dense pre-decimation set (`rawTrails`)
+    /// for coverage / grid / halo consumers.
+    func with(rawTrails newRawTrails: [Trail]) -> Area {
+        Area(
+            id: id,
+            name: name,
+            subtitle: subtitle,
+            centerLat: centerLat,
+            centerLon: centerLon,
+            zoom: zoom,
+            bbox: bbox,
+            trails: trails,
+            trailCount: trailCount,
+            totalMi: totalMi,
+            cachedAt: cachedAt,
+            rawTrails: newRawTrails
+        )
+    }
+
     /// Returns a copy of this Area with each Trail's polyline segments
     /// run through Douglas-Peucker simplification. Used by
     /// `AreaDataService` before storing in the in-memory cache to cut

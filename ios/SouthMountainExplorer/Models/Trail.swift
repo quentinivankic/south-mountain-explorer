@@ -20,6 +20,45 @@ struct Trail: Codable, Identifiable, Sendable {
     }
 }
 
+extension String {
+    /// Strips a trailing `-<digits>` segment counter from a trail id.
+    /// Legacy build-trail-counts.py ids embedded the trail's position
+    /// in the alphabetically-sorted build list (e.g.
+    /// `unnamed-494466239-29`). Position is unstable across area
+    /// rebuilds, so the same physical trail could get different ids
+    /// on different days, breaking history dedup + the running
+    /// coverage state. This helper makes the id position-independent
+    /// at the iOS data boundary so old persisted state lines up with
+    /// new CDN payloads.
+    ///
+    /// Idempotent. Examples:
+    /// - `unnamed-494466239-43` → `unnamed-494466239` (position
+    ///   counter stripped)
+    /// - `alta-0` → `alta` (position counter stripped)
+    /// - `unnamed-494466239` → `unnamed-494466239` (9-digit wayid,
+    ///   not a position counter — left alone)
+    /// - `pima-canyon-loop-trail` → unchanged
+    ///
+    /// Heuristic for telling "position counter" from "wayid trailing
+    /// digits": position counters from `build-trail-counts.py` were
+    /// 1-3 digits in practice (no real area exceeds 999 trails),
+    /// while OSM way ids embedded in `unnamed-<wayid>` slugs are
+    /// always 7+ digits. So we only strip a trailing `-<digits>`
+    /// group when the digit count is 1-3. This collapses with new
+    /// build-script slug-collision counters too — acceptable since
+    /// slug collisions across distinct named trails are
+    /// vanishingly rare in our areas.
+    var canonicalTrailId: String {
+        guard let dashIdx = self.lastIndex(of: "-") else { return self }
+        let after = self.index(after: dashIdx)
+        guard after < self.endIndex else { return self }
+        let tail = self[after...]
+        guard !tail.isEmpty, tail.allSatisfy(\.isNumber), tail.count <= 3
+        else { return self }
+        return String(self[..<dashIdx])
+    }
+}
+
 struct AreaSummary: Codable, Identifiable, Sendable {
     let id: String
     let name: String

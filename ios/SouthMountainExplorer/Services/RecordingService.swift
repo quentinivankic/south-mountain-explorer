@@ -17,7 +17,7 @@ final class RecordingService {
     private let locationService = LocationService.shared
     private var locationObserver: Task<Void, Never>? = nil
 
-    private let persistKey = "summit:active-recording"
+    private let persistKey = StorageKeys.activeRecording
 
     private static var historyFileURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]

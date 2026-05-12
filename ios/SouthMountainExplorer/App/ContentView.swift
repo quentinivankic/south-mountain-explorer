@@ -8,8 +8,8 @@ struct ContentView: View {
     @Environment(ActivityService.self) private var activity
     @Environment(\.scenePhase) private var scenePhase
 
-    @AppStorage("summit:onboarded") private var onboarded = false
-    @AppStorage("summit:theme") private var theme: AppTheme = .system
+    @AppStorage(StorageKeys.onboarded) private var onboarded = false
+    @AppStorage(StorageKeys.theme) private var theme: AppTheme = .system
 
     @State private var showStopConfirm = false
     @State private var showDiscardConfirm = false

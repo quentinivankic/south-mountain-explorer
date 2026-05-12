@@ -1,7 +1,7 @@
 import Foundation
 
 // areaId -> trailId -> coverage (0..1)
-private let storageKey = "summit:coverage"
+private let storageKey = StorageKeys.coverage
 
 @MainActor
 @Observable

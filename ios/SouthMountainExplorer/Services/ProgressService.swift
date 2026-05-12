@@ -2,7 +2,7 @@ import Foundation
 import UIKit
 
 // areaId -> trailId -> ISO8601 completion date
-private let storageKey = "summit:completed"
+private let storageKey = StorageKeys.completedTrails
 
 @MainActor
 @Observable

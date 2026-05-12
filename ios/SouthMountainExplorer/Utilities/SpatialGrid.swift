@@ -7,8 +7,8 @@ import Foundation
 /// actual haversine distance.
 ///
 /// Used in two places that historically hand-rolled the same grid:
-/// - `RecordingService.measureCoverage` — grid of recorded GPS points,
-///   queried per trail node.
+/// - `measureCoverage` (Utilities/TrailCoverage.swift) — grid of
+///   recorded GPS points, queried per trail node.
 /// - `TrailMapView.onTrailSegments` — grid of trail nodes, queried per
 ///   recorded GPS point.
 ///

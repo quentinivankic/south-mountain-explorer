@@ -3,7 +3,14 @@ name: iOS – Build & Upload to TestFlight
 on:
   push:
     branches: [main]
-    paths: ["ios/**", "public/areas/index.json", "public/areas/silhouettes.json"]
+    # Exclude the test target — tests changes shouldn't trigger a
+    # TestFlight upload. App source, project config, and the bundled
+    # trail data all still do.
+    paths:
+      - "ios/**"
+      - "!ios/SouthMountainExplorerTests/**"
+      - "public/areas/index.json"
+      - "public/areas/silhouettes.json"
   workflow_dispatch:
 
 jobs:
@@ -49,6 +56,18 @@ jobs:
           security set-key-partition-list \
             -S apple-tool:,apple:,codesign: -s -k "build" build.keychain
           rm distribution.p12
+
+      - name: Inject build number
+        # CFBundleVersion in project.yml is "1" as a placeholder so
+        # local builds work. CI replaces it with github.run_number per
+        # push so App Store Connect doesn't reject subsequent uploads
+        # as redundant (error 90189 — "you've already uploaded a build
+        # with build number X for version Y"). github.run_number is
+        # monotonic per workflow file, so every successive push gets a
+        # strictly larger build number.
+        run: |
+          sed -i "" "s/CFBundleVersion: \"1\"/CFBundleVersion: \"${{ github.run_number }}\"/" ios/project.yml
+          echo "Build number set to ${{ github.run_number }}"
 
       - name: Install provisioning profile and inject UUID
         env:

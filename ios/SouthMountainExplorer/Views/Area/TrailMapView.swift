@@ -116,6 +116,11 @@ struct TrailMapView: View {
     /// `pastPaths.count` changes — i.e. only when a new hike
     /// finishes — instead of per-render.
     @State private var cachedHaloSegments: [[[CLLocationCoordinate2D]]] = []
+    /// Per-past-hike bbox over its on-trail halo segments. Parallel
+    /// to `cachedHaloSegments` (same index). Drives the halo
+    /// viewport cull — typically 1-20 hikes per area so not a huge
+    /// win, but follows the same architecture as trail culling.
+    @State private var cachedHaloBboxes: [DegreeBBox?] = []
     /// Per-trail lat/lon bounding box. Drives the viewport cull in
     /// `trailPolylines` so 200+ trail areas only build MapPolyline
     /// children for trails currently on (or near) the screen.
@@ -206,7 +211,9 @@ struct TrailMapView: View {
             cachedTrailBboxes = bboxes
             // Halo cache uses the freshly-built grid (passed
             // explicitly so we don't depend on @State commit timing).
-            cachedHaloSegments = pastPaths.map { onTrailSegments($0, grid: grid) }
+            let haloSegments = pastPaths.map { onTrailSegments($0, grid: grid) }
+            cachedHaloSegments = haloSegments
+            cachedHaloBboxes = haloSegments.map { Self.bboxFromSegments($0) }
             centerOnArea()
         }
         // Track the visible camera region so `trailPolylines` can
@@ -220,7 +227,9 @@ struct TrailMapView: View {
             // New hike finished and AreaView reloaded pastPaths — refresh
             // the halo cache against the (already-cached) trail grid so
             // the new path lights up without re-filtering on every render.
-            cachedHaloSegments = pastPaths.map { onTrailSegments($0) }
+            let segments = pastPaths.map { onTrailSegments($0) }
+            cachedHaloSegments = segments
+            cachedHaloBboxes = segments.map { Self.bboxFromSegments($0) }
         }
         .onChange(of: selectedTrailId) { _, newId in
             guard let id = newId,
@@ -265,19 +274,47 @@ struct TrailMapView: View {
     /// Cumulative-coverage halo: every past hike's GPS path drawn in
     /// cyan beneath the trail polylines so walked sections glow
     /// through. Iterates the precomputed `cachedHaloSegments`
-    /// directly — no per-render spatial filtering against the trail
-    /// grid.
+    /// directly, viewport-culled by per-hike bbox.
     @MapContentBuilder
     private var haloPolylines: some MapContent {
-        ForEach(Array(cachedHaloSegments.enumerated()), id: \.offset) { _, segments in
-            ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
-                MapPolyline(coordinates: segment)
-                    .stroke(
-                        .cyan.opacity(0.55),
-                        style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round)
-                    )
+        ForEach(Array(cachedHaloSegments.enumerated()), id: \.offset) { index, segments in
+            if haloVisible(at: index) {
+                ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                    MapPolyline(coordinates: segment)
+                        .stroke(
+                            .cyan.opacity(0.55),
+                            style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round)
+                        )
+                }
             }
         }
+    }
+
+    private func haloVisible(at index: Int) -> Bool {
+        guard let region = visibleRegion else { return true }
+        guard index < cachedHaloBboxes.count, let bbox = cachedHaloBboxes[index] else {
+            return true
+        }
+        return bbox.intersects(region)
+    }
+
+    /// Compute the lat/lon bbox covering every coord in every segment
+    /// of a hike's halo. Returns nil if the hike has no on-trail
+    /// segments (so it gets implicit-true visibility — nothing to
+    /// draw anyway).
+    private static func bboxFromSegments(_ segments: [[CLLocationCoordinate2D]]) -> DegreeBBox? {
+        var minLat = Double.infinity, maxLat = -Double.infinity
+        var minLon = Double.infinity, maxLon = -Double.infinity
+        for seg in segments {
+            for coord in seg {
+                if coord.latitude < minLat { minLat = coord.latitude }
+                if coord.latitude > maxLat { maxLat = coord.latitude }
+                if coord.longitude < minLon { minLon = coord.longitude }
+                if coord.longitude > maxLon { maxLon = coord.longitude }
+            }
+        }
+        guard minLat.isFinite else { return nil }
+        return DegreeBBox(minLat: minLat, maxLat: maxLat, minLon: minLon, maxLon: maxLon)
     }
 
     /// Trail polylines themselves, with the recording-mode purple

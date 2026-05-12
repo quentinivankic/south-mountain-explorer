@@ -42,13 +42,22 @@ final class RecordingService {
     // MARK: - Start / Stop
 
     func startRecording(areaId: String, mode: RecordingMode, trailId: String? = nil) {
+        // Snapshot which trails are ALREADY complete in this area at
+        // recording-start. Used by stopRecording to classify each
+        // covered trail as "newly completed" (not in snapshot) vs
+        // "revisited" (in snapshot) — independent of the intra-session
+        // CoverageService writes that applyLiveCoverage performs.
+        let priorComplete = CoverageService.shared.coverage(for: areaId)
+            .filter { $0.value >= completeThreshold }
+            .map(\.key)
         activeRecording = ActiveRecording(
             areaId: areaId,
             mode: mode,
             trailId: mode == .trail ? trailId : nil,
             startedAt: Date(),
             path: [],
-            distanceMi: 0
+            distanceMi: 0,
+            priorCompleteTrailIds: Set(priorComplete)
         )
         errorMessage = nil
         persist()
@@ -77,11 +86,30 @@ final class RecordingService {
 
         let endedAt = Date()
         let sessionCoverage = measureCoverage(path: rec.path, trails: trails, bufferMeters: bufferMeters)
-        let (newlyCompleted, revisited, _) = await mergeCoverage(
+        let (mergeNew, mergeRevisited, _) = await mergeCoverage(
             areaId: rec.areaId,
             sessionCoverage: sessionCoverage,
             trails: trails
         )
+        // mergeCoverage's intra-session writes mean its returned
+        // newly/revisited split is racy at stop time — a trail
+        // completed mid-hike lands in `mergeRevisited` because by the
+        // time the final mergeCoverage runs, prior coverage already
+        // shows it complete. Reclassify against the snapshot taken at
+        // startRecording so the FinishedRecording fields reflect
+        // "did this recording bring the trail to completion?" not
+        // "was the trail complete a moment ago?".
+        let priorSnapshot = rec.priorCompleteTrailIds ?? []
+        let allCompleted = Set(mergeNew + mergeRevisited)
+        var newlyCompleted: [String] = []
+        var revisited: [String] = []
+        for tid in allCompleted {
+            if priorSnapshot.contains(tid) {
+                revisited.append(tid)
+            } else {
+                newlyCompleted.append(tid)
+            }
+        }
 
         let finished = FinishedRecording(
             areaId: rec.areaId,

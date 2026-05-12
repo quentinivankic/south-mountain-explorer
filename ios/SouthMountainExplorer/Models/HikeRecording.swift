@@ -15,6 +15,18 @@ struct ActiveRecording: Codable, Sendable {
     let startedAt: Date
     var path: [GpsPoint]
     var distanceMi: Double
+    /// Trail IDs that were ALREADY at completion coverage when this
+    /// recording started — captured by `RecordingService.startRecording`
+    /// so the end-of-hike classification can distinguish "newly
+    /// completed by this session" from "re-walked while already
+    /// complete." Without this snapshot, intra-session
+    /// `applyLiveCoverage` writes flip the trail to "complete" in
+    /// CoverageService mid-hike, and `stopRecording` then misreads it
+    /// as "previously complete" — surfacing a first-time-walked trail
+    /// in History under "previously completed."
+    /// Optional for backward-compat with recordings persisted before
+    /// this field existed (nil → treat as empty set).
+    let priorCompleteTrailIds: Set<String>?
 }
 
 struct FinishedRecording: Sendable {

@@ -1,4 +1,11 @@
 import Foundation
+import OSLog
+
+/// Signpost log for measuring area-load timing. Inspect in Instruments
+/// (Logging template) to see where slow opens spend their time:
+/// `fetchFromCdn` is network + JSON parse; the `area(id:)` interval
+/// wraps the whole disk-cache-or-fetch path.
+private let areaLoadLog = OSLog(subsystem: "com.southmountainexplorer.app", category: "areaLoad")
 
 /// jsDelivr CDN mirror of the precomputed per-area trail geometry. The
 /// workflow writes `public/areas/geom/<id>.json` on every build; jsDelivr
@@ -230,8 +237,16 @@ final class AreaDataService {
     // MARK: - Full Area Data
 
     func area(id: String) async -> Area? {
-        if let cached = areaCache[id], !cached.trails.isEmpty { return cached }
+        let signpostID = OSSignpostID(log: areaLoadLog)
+        os_signpost(.begin, log: areaLoadLog, name: "area(id:)", signpostID: signpostID, "%{public}s", id)
+        defer { os_signpost(.end, log: areaLoadLog, name: "area(id:)", signpostID: signpostID) }
+
+        if let cached = areaCache[id], !cached.trails.isEmpty {
+            os_signpost(.event, log: areaLoadLog, name: "memCache hit", signpostID: signpostID)
+            return cached
+        }
         if let onDisk = loadAreaFromDisk(id: id), !onDisk.trails.isEmpty {
+            os_signpost(.event, log: areaLoadLog, name: "diskCache hit", signpostID: signpostID)
             areaCache[id] = onDisk
             let staleness = Date().timeIntervalSince(onDisk.cachedAt ?? .distantPast)
             if staleness > 24 * 3600 { Task { await fetchAndCacheArea(id: id) } }
@@ -370,15 +385,22 @@ final class AreaDataService {
     /// yet), non-2xx, network down, malformed JSON. Caller falls back to
     /// the live Overpass path, which has its own retry / mirror logic.
     private func fetchFromCdn(id: String) async -> Area? {
+        let signpostID = OSSignpostID(log: areaLoadLog)
+        os_signpost(.begin, log: areaLoadLog, name: "fetchFromCdn", signpostID: signpostID, "%{public}s", id)
+        defer { os_signpost(.end, log: areaLoadLog, name: "fetchFromCdn", signpostID: signpostID) }
+
         guard let url = URL(string: "\(cdnBaseURL)/\(id).json") else { return nil }
         var req = URLRequest(url: url, timeoutInterval: 20)
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         do {
             let (data, response) = try await URLSession.shared.data(for: req)
+            os_signpost(.event, log: areaLoadLog, name: "cdn bytes", signpostID: signpostID, "%d", data.count)
             if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
                 return nil
             }
+            os_signpost(.begin, log: areaLoadLog, name: "cdn decode", signpostID: signpostID)
             let row = try JSONDecoder().decode(AreaRow.self, from: data)
+            os_signpost(.end, log: areaLoadLog, name: "cdn decode", signpostID: signpostID)
             return row.toArea()
         } catch {
             return nil

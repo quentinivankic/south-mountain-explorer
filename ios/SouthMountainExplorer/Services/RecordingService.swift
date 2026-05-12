@@ -32,11 +32,69 @@ final class RecordingService {
     }
 
     private init() {
+        migrateHistoryClassificationIfNeeded()
         if let data = UserDefaults.standard.data(forKey: persistKey),
            let restored = try? JSONDecoder().decode(ActiveRecording.self, from: data) {
             activeRecording = restored
             beginObservingLocation()
         }
+    }
+
+    // MARK: - History migrations
+
+    /// One-shot backfill for the History "previously completed" bug
+    /// fixed forward in build 6. Pre-fix `stopRecording` read its own
+    /// intra-session `applyLiveCoverage` writes back from
+    /// `CoverageService`, so trails newly completed mid-hike were
+    /// shuffled into `revisitedTrailIds` instead of
+    /// `completedTrailIds`. The total set (union of both lists) is
+    /// still correct on every saved record — the bug only moves trails
+    /// between the buckets, never drops them. So we can rebuild the
+    /// classification by walking history in chronological order with a
+    /// running "ever-complete-before-this-hike" set and re-splitting
+    /// each hike's union against it.
+    ///
+    /// Idempotent: running on already-correct data produces the same
+    /// arrays. Version marker is belt-and-suspenders so we don't
+    /// re-walk the file on every cold launch.
+    private func migrateHistoryClassificationIfNeeded() {
+        let ud = UserDefaults.standard
+        let key = StorageKeys.hikeHistoryMigrationVersion
+        if ud.integer(forKey: key) >= 1 { return }
+
+        let history = loadHistorySync()
+        guard !history.isEmpty else {
+            ud.set(1, forKey: key)
+            return
+        }
+
+        let sorted = history.sorted { $0.startedAt < $1.startedAt }
+        var everComplete: Set<String> = []
+        var rebuilt: [SavedRecording] = []
+        rebuilt.reserveCapacity(sorted.count)
+        for hike in sorted {
+            let union = Set(hike.completedTrailIds).union(hike.revisitedTrailIds)
+            let newly = union.subtracting(everComplete)
+            let revisited = union.intersection(everComplete)
+            rebuilt.append(SavedRecording(
+                id: hike.id,
+                areaId: hike.areaId,
+                startedAt: hike.startedAt,
+                endedAt: hike.endedAt,
+                distanceMi: hike.distanceMi,
+                durationSeconds: hike.durationSeconds,
+                completedTrailIds: Array(newly),
+                path: hike.path,
+                trailId: hike.trailId,
+                revisitedTrailIds: Array(revisited)
+            ))
+            everComplete.formUnion(union)
+        }
+
+        if let data = try? JSONEncoder().encode(rebuilt) {
+            try? data.write(to: Self.historyFileURL)
+        }
+        ud.set(1, forKey: key)
     }
 
     // MARK: - Start / Stop

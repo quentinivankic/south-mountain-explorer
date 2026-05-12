@@ -236,6 +236,32 @@ final class AreaDataService {
 
     // MARK: - Full Area Data
 
+    /// Epsilon (meters) for the load-time polyline simplification. Trails
+    /// average ~100 GPS points each from the source data, and at typical
+    /// phone zoom levels a 5 m perpendicular tolerance is well below the
+    /// pixel size of a polyline stroke — visually indistinguishable from
+    /// the raw geometry, but cuts coord count 3-5×, shrinking both
+    /// MapKit's per-frame work and SwiftUI's MapContent diff size on
+    /// camera change. On-disk cache stays raw so this knob can be tuned
+    /// without invalidating any persisted area.
+    private static let renderDecimationEpsilonMeters = 5.0
+
+    /// Run an Area through the rendering-side decimation pass and write
+    /// the result to the in-memory cache. Wrapped in a signpost so the
+    /// existing `areaLoad` Instruments category captures it. Callers
+    /// should use the returned Area downstream — never the raw one —
+    /// since coverage / grid / bbox caches built in `TrailMapView.onAppear`
+    /// must see the same coords MapKit renders.
+    @discardableResult
+    private func cacheAreaForRendering(_ area: Area) -> Area {
+        let signpostID = OSSignpostID(log: areaLoadLog)
+        os_signpost(.begin, log: areaLoadLog, name: "decimate", signpostID: signpostID, "%{public}s", area.id)
+        let decimated = area.withDecimatedSegments(epsilonMeters: Self.renderDecimationEpsilonMeters)
+        os_signpost(.end, log: areaLoadLog, name: "decimate", signpostID: signpostID)
+        areaCache[area.id] = decimated
+        return decimated
+    }
+
     func area(id: String) async -> Area? {
         let signpostID = OSSignpostID(log: areaLoadLog)
         os_signpost(.begin, log: areaLoadLog, name: "area(id:)", signpostID: signpostID, "%{public}s", id)
@@ -247,10 +273,10 @@ final class AreaDataService {
         }
         if let onDisk = loadAreaFromDisk(id: id), !onDisk.trails.isEmpty {
             os_signpost(.event, log: areaLoadLog, name: "diskCache hit", signpostID: signpostID)
-            areaCache[id] = onDisk
+            let cached = cacheAreaForRendering(onDisk)
             let staleness = Date().timeIntervalSince(onDisk.cachedAt ?? .distantPast)
             if staleness > 24 * 3600 { Task { await fetchAndCacheArea(id: id) } }
-            return onDisk
+            return cached
         }
         if let existing = loadingTasks[id] { return await existing.value }
         let task = Task<Area?, Never> { await fetchAndCacheArea(id: id) }
@@ -267,10 +293,10 @@ final class AreaDataService {
         // state. The next fetch will replace it with good data.
         if let cached = areaCache[id], !cached.trails.isEmpty { return (cached, nil) }
         if let onDisk = loadAreaFromDisk(id: id), !onDisk.trails.isEmpty {
-            areaCache[id] = onDisk
+            let cached = cacheAreaForRendering(onDisk)
             let staleness = Date().timeIntervalSince(onDisk.cachedAt ?? .distantPast)
             if staleness > 24 * 3600 { Task { await fetchAndCacheArea(id: id) } }
-            return (onDisk, nil)
+            return (cached, nil)
         }
         if let existing = loadingTasks[id] {
             let result = await existing.value
@@ -295,9 +321,11 @@ final class AreaDataService {
         // path below, which still has its mirror-rotation + retry
         // safety net for areas not yet present in our build.
         if let cdnArea = await fetchFromCdn(id: id), !cdnArea.trails.isEmpty {
-            areaCache[id] = cdnArea
+            // Persist the raw CDN payload to disk first; decimation is a
+            // render-side concern and stays out of the on-disk cache.
             saveAreaToDisk(cdnArea)
-            return (cdnArea, nil)
+            let cached = cacheAreaForRendering(cdnArea)
+            return (cached, nil)
         }
 
         let stub = AreaRow(
@@ -327,8 +355,8 @@ final class AreaDataService {
                         return (existingMemory, nil)
                     }
                     if let existingDisk = loadAreaFromDisk(id: id), !existingDisk.trails.isEmpty {
-                        areaCache[id] = existingDisk
-                        return (existingDisk, nil)
+                        let cached = cacheAreaForRendering(existingDisk)
+                        return (cached, nil)
                     }
                     if attempt < maxAttempts {
                         // No prior cache. Brief backoff and retry — the
@@ -339,12 +367,12 @@ final class AreaDataService {
                     }
                     // Final attempt also empty. Don't write to disk so the
                     // next open retries instead of caching the empty result.
-                    areaCache[id] = area
-                    return (area, nil)
+                    let cached = cacheAreaForRendering(area)
+                    return (cached, nil)
                 }
-                areaCache[id] = area
                 saveAreaToDisk(area)
-                return (area, nil)
+                let cached = cacheAreaForRendering(area)
+                return (cached, nil)
             } catch {
                 lastError = error
                 if attempt < maxAttempts {

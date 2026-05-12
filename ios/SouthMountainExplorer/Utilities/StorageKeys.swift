@@ -29,6 +29,14 @@ enum StorageKeys {
     static let prefetchNearbyLastLat = "prefetch.nearby.lastLat"
     static let prefetchNearbyLastLon = "prefetch.nearby.lastLon"
 
+    // MARK: - One-time migrations
+
+    /// Schema version for `hike-history.json` classification fields
+    /// (`completedTrailIds` vs `revisitedTrailIds`). v1 backfills the
+    /// shuffle introduced by the pre-build-6 mergeCoverage bug. Bump
+    /// if a future migration touches the same fields.
+    static let hikeHistoryMigrationVersion = "summit:history-migration-version"
+
     /// Keys wiped by the "Reset All Progress" action in Settings.
     /// Onboarding, theme, telemetry, and prefetch cooldowns stay
     /// untouched — see comments above.

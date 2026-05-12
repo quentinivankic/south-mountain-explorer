@@ -249,34 +249,11 @@ final class RecordingService {
     private func measureCoverage(path: [GpsPoint], trails: [Trail]) -> [String: CoverageScore] {
         guard path.count >= 3 else { return [:] }
 
-        let cell = 0.0003
-        var grid: [String: [[Double]]] = [:]
-        func gridKey(_ la: Double, _ lo: Double) -> String {
-            "\(Int((la / cell).rounded())):\(Int((lo / cell).rounded()))"
-        }
-        for p in path {
-            let k = gridKey(p[0], p[1])
-            grid[k, default: []].append([p[0], p[1]])
-        }
-        func neighbors(la: Double, lo: Double) -> [[Double]] {
-            let r = Int((la / cell).rounded())
-            let c = Int((lo / cell).rounded())
-            var out: [[Double]] = []
-            for dr in -1...1 {
-                for dc in -1...1 {
-                    if let pts = grid["\(r + dr):\(c + dc)"] { out += pts }
-                }
-            }
-            return out
-        }
+        var grid = SpatialGrid()
+        for p in path { grid.insert(p) }
         func nodeVisited(_ node: [Double]) -> Bool {
             guard node.count >= 2 else { return false }
-            for p in neighbors(la: node[0], lo: node[1]) {
-                if haversineDistanceM(lat1: node[0], lon1: node[1], lat2: p[0], lon2: p[1]) <= bufferMeters {
-                    return true
-                }
-            }
-            return false
+            return grid.hasNeighbor(lat: node[0], lon: node[1], withinMeters: bufferMeters)
         }
 
         var result: [String: CoverageScore] = [:]

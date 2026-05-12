@@ -191,45 +191,22 @@ struct TrailMapView: View {
     }
 
     /// Split a recorded GPS path into runs of consecutive points that lie
-    /// within `bufferMeters` of any trail node. Off-trail runs (e.g.
-    /// commuting from home to the trailhead) drop out so the cyan halo
-    /// only paints actual trail coverage. Spatial grid keeps the
-    /// per-point check O(1).
+    /// within `bufferM` of any trail node. Off-trail runs (e.g. commuting
+    /// from home to the trailhead) drop out so the cyan halo only paints
+    /// actual trail coverage.
     private func onTrailSegments(_ path: [GpsPoint]) -> [[CLLocationCoordinate2D]] {
         let bufferM = 30.0
-        let cell = 0.0003
-        var grid: [String: [[Double]]] = [:]
+        var grid = SpatialGrid()
         for trail in area.trails {
             for seg in trail.segments {
-                for node in seg {
-                    guard node.count >= 2 else { continue }
-                    let r = Int((node[0] / cell).rounded())
-                    let c = Int((node[1] / cell).rounded())
-                    grid["\(r):\(c)", default: []].append([node[0], node[1]])
-                }
+                for node in seg { grid.insert(node) }
             }
-        }
-        func nearTrail(_ la: Double, _ lo: Double) -> Bool {
-            let r = Int((la / cell).rounded())
-            let c = Int((lo / cell).rounded())
-            for dr in -1...1 {
-                for dc in -1...1 {
-                    if let nodes = grid["\(r + dr):\(c + dc)"] {
-                        for n in nodes {
-                            if haversineDistanceM(lat1: la, lon1: lo, lat2: n[0], lon2: n[1]) <= bufferM {
-                                return true
-                            }
-                        }
-                    }
-                }
-            }
-            return false
         }
         var segments: [[CLLocationCoordinate2D]] = []
         var current: [CLLocationCoordinate2D] = []
         for p in path {
             guard p.count >= 2 else { continue }
-            if nearTrail(p[0], p[1]) {
+            if grid.hasNeighbor(lat: p[0], lon: p[1], withinMeters: bufferM) {
                 current.append(CLLocationCoordinate2D(latitude: p[0], longitude: p[1]))
             } else if !current.isEmpty {
                 if current.count >= 2 { segments.append(current) }

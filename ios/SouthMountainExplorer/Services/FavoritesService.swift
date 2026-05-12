@@ -1,6 +1,6 @@
 import Foundation
 
-private let storageKey = "summit:favorites"
+private let storageKey = StorageKeys.favorites
 
 @MainActor
 @Observable

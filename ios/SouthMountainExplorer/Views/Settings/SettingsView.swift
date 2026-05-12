@@ -16,7 +16,7 @@ struct SettingsView: View {
     @Environment(FavoritesService.self) private var favorites
     @Environment(RecordingService.self) private var recording
 
-    @AppStorage("summit:theme") private var theme: AppTheme = .system
+    @AppStorage(StorageKeys.theme) private var theme: AppTheme = .system
 
     @State private var showSignIn = false
     @State private var showResetConfirm = false
@@ -317,8 +317,7 @@ struct SettingsView: View {
     }
 
     private func resetAll() async {
-        let keys = ["summit:completed", "summit:coverage", "summit:favorites", "summit:active-recording", "location.lat", "location.lon"]
-        for key in keys { UserDefaults.standard.removeObject(forKey: key) }
+        for key in StorageKeys.resetAllKeys { UserDefaults.standard.removeObject(forKey: key) }
         if let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
             try? FileManager.default.removeItem(at: caches.appendingPathComponent("areas"))
         }

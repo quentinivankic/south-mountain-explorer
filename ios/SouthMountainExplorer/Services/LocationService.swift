@@ -21,8 +21,8 @@ final class LocationService: NSObject {
 
         // Restore last known location from UserDefaults
         let ud = UserDefaults.standard
-        let lat = ud.double(forKey: "location.lat")
-        let lon = ud.double(forKey: "location.lon")
+        let lat = ud.double(forKey: StorageKeys.userLocationLat)
+        let lon = ud.double(forKey: StorageKeys.userLocationLon)
         if lat != 0 || lon != 0 {
             userLocation = CLLocationCoordinate2D(latitude: lat, longitude: lon)
         }
@@ -77,8 +77,8 @@ extension LocationService: CLLocationManagerDelegate {
         Task { @MainActor in
             self.liveLocation = coord
             self.userLocation = coord
-            UserDefaults.standard.set(coord.latitude, forKey: "location.lat")
-            UserDefaults.standard.set(coord.longitude, forKey: "location.lon")
+            UserDefaults.standard.set(coord.latitude, forKey: StorageKeys.userLocationLat)
+            UserDefaults.standard.set(coord.longitude, forKey: StorageKeys.userLocationLon)
         }
     }
 

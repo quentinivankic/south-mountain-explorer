@@ -28,8 +28,8 @@ final class ActivityService {
 
     private var currentSessionStart: Date? = nil
 
-    private let areaOpenedKey = "summit:area-opened-at"
-    private let sessionsKey = "summit:app-sessions"
+    private let areaOpenedKey = StorageKeys.areaOpenedAt
+    private let sessionsKey = StorageKeys.appSessions
     private let maxSessions = 1000
 
     private init() {

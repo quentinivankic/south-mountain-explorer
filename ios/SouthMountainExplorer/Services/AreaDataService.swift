@@ -145,8 +145,8 @@ final class AreaDataService {
     // MARK: - Nearby-Radius Prefetch
 
     /// UserDefaults keys for the nearby-prefetch cooldown / movement check.
-    private static let lastNearbyLatKey = "prefetch.nearby.lastLat"
-    private static let lastNearbyLonKey = "prefetch.nearby.lastLon"
+    private static let lastNearbyLatKey = StorageKeys.prefetchNearbyLastLat
+    private static let lastNearbyLonKey = StorageKeys.prefetchNearbyLastLon
 
     /// Pull every area whose center is within `radiusMi` of the given
     /// coordinate down to disk. Skips anything already covered by

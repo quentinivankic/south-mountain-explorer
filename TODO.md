@@ -1,102 +1,96 @@
 # TODO
 
-Tracking work toward a polished MVP. App Store submission tasks (privacy
-policy, store metadata, etc.) are intentionally not listed yet — we'll
-capture those when we're ready to ship outside TestFlight.
+Long-running tracker of shipped work + open items. Live "what's in the
+current build" planning lives in `~/.claude/plans/binary-hatching-
+toucan.md`; this file is the historical record.
 
-## Verified shipped on feat/build-3-fixes
+App Store submission tasks (privacy policy, store metadata, etc.) are
+intentionally not listed yet — capture those when shipping outside
+TestFlight.
 
-Confirmed working on device:
-
-- B1 — Completion mismatch fixed. South Mountain shows 1/56 after the
-  same-trail-twice hike instead of 2/56.
-- B2 — AreaView opens on the full area extent.
-- B5 / B7 / B8 — caption / card-art bg / discard double-confirm.
-- Trail-id determinism + cachedAt + display-time filter +
-  rebuildCoverageFromHistory + empty-cache self-heal + inline retry.
-  Areas previously stuck on the empty state self-recover, areas you've
-  hiked retain correct completion counts.
-- Runtime-computed silhouettes — Shadow Mountain card now shows the
-  real difficulty mix instead of all-green. AreaCard / ContinueCard
-  art reflects current Overpass output once cache is warm.
-- Trail-completion push notifications + tap-to-celebrate overlay.
-- Pull-to-refresh on Explore.
-- Surprise Me dice button.
-- Settings → Refresh Trail Data button (re-enables 3s after refresh).
-- Settings → "Your Activity" stats + Send Feedback link.
-- Prefetch on Explore (instant area opens after warm-up).
-- Animated trail-by-trail loading reveal (pacing tweak still pending).
-- Trail-list filter menu (status / difficulty / length) — chips work,
-  count badge works, "Showing X of Y" works, empty state works.
-  *Caveat: section headers and map sync still open — see below.*
-- AreaView layout swap — map controls above REC bar.
-  *Caveat: gap still too large — see below.*
-- ActiveRecordingBanner tappable, trail name in banner.
-- "Record This Trail" context-menu, purple recording stroke,
-  long-press tip in trail-list header.
-
-## Still open after device test (carry into next build)
+## Still open
 
 - [ ] **Trail-list filter menu has no visible section headers.**
-  Wrapping each Picker in `Section("Status") { Picker(...) }`
-  didn't render headers in iOS 26 — three "All" rows still stack
-  with no label. Try a different structure: explicit `Text("Status")
-  .font(.caption).foregroundStyle(.secondary)` rows between the
-  pickers, or split the menu into nested submenus
+  Wrapping each Picker in `Section("Status") { Picker(...) }` didn't
+  render headers in iOS 26 — three "All" rows still stack with no
+  label. Try a different structure: explicit
+  `Text("Status").font(.caption).foregroundStyle(.secondary)` rows
+  between the pickers, or split the menu into nested submenus
   (`Menu("Status") { Picker(...) }`).
-- [ ] **Filter trails on the map, not just in the list.** When
-  Incomplete / difficulty / length filters are active, the map
-  should hide non-matching trail polylines too. Currently
-  TrailMapView renders all `area.trails`. Plumb the filtered set
-  (or the active filters) from TrailListView → AreaView →
-  TrailMapView.
-- [ ] **Bottom-stack gap still too large.** Tightened from 20pt → 6pt
-  but a visible space remains between the RecordingPanel and the
-  trail list panel. Probably the VStack's intrinsic spacing(12) +
-  controlBar's vertical padding. Either drop the VStack spacing,
-  or move the RecordingPanel inline with the trail-list panel
-  itself instead of in the bottom-stack.
-- [ ] **Trail-list panel drag still glitchy.** Pass 5
-  (geometryGroup + interactiveSpring) didn't fully fix it. Options:
-  (a) accept SwiftUI's limits and rewrite as native sheet with
-  `.presentationDetents([.medium, .large])`, (b) move the
+- [ ] **Bottom-stack gap.** Tightened from 20pt → 6pt during build 3
+  but visible space remains between RecordingPanel and the trail
+  list panel. Probably the VStack's intrinsic spacing(12) +
+  controlBar's vertical padding. Either drop the VStack spacing
+  or fold the RecordingPanel inline with the trail-list panel.
+- [ ] **Trail-list panel drag still glitchy.** Build 3 didn't
+  rewrite this. Options when picked up: (a) accept SwiftUI's limits
+  and rewrite as native sheet with
+  `.presentationDetents([.medium, .large])`; (b) move the
   ScrollView contents into a separate view tree so layout
-  invalidation stays scoped, (c) precompute the panel's frame in
+  invalidation stays scoped; (c) precompute the panel's frame in
   the parent and only animate `.offset(y:)` during drag.
-- [ ] **Tweak the loading-state trail-reveal animation.** Pacing /
-  opacity / stagger / line width — direction TBD.
-
-## Reminders
-
-- [ ] **Regenerate `public/areas/silhouettes.json`** by running
-  `python3 scripts/build-trail-counts.py --force`. The bundled file
-  is stale relative to current Overpass output. The runtime-computed
-  silhouette workaround in Area.computedSilhouette covers the iOS
-  app once an area is cached, but cold-load AreaCards still show
-  the stale colors briefly. The script takes ~1 hour for the
-  current 22-area index with Overpass rate limits, so probably
-  worth its own background task or CI run.
-
-## Next-build candidates (not yet started)
-
-- [ ] iPad layout sanity-check.
-- [ ] Route type filter for trails (out-and-back, loop, etc.) — not
-  in the trail model yet, would need to compute from GPS shape or
-  pull from OSM `route` / `network` tags.
-- [ ] Drive-time bands instead of fixed-mile ranges ("Within 30 min",
-  "Within 1 hr") — better answer to the original B5 if the chip
-  caption isn't enough. Needs MapKit routing per area on a
-  background queue with caching.
 
 ## Backlog / ideas
 
+- [ ] iPad layout sanity-check.
 - [ ] Featured area of the week (auto-rotate by ISO week).
 - [ ] Map-tile prefetch for offline hiking — record in spotty signal
   without losing the basemap.
 - [ ] Ad-Hoc + Diawi distribution pipeline (only if the TestFlight
   cycle becomes a real bottleneck).
 
-## Done (older)
+## Shipped — build 3 (2026-05-12)
+
+Major scope (rolled up in PR #53):
+
+- CDN-hosted per-area trail geometry via jsDelivr (
+  `public/areas/geom/<id>.json`) — iOS fetches there instead of live
+  Overpass. Counts match Browse exactly.
+- Area index seeded from OSM with quality filters (511 areas across
+  AZ + CA).
+- Trail-id determinism end-to-end so completion records survive
+  upstream re-fetches.
+- Loop classification fix (closed-segment shortcut dropped, length /
+  span ratio raised 2.2 → 3.0).
+- Offline prefetch — cold-launch download of favorites + 10 most-
+  recently-opened areas. Settings "Download for Offline" button.
+- Step 4 nearby-radius prefetch (50 mi radius, 25 mi movement
+  threshold, Wi-Fi-only by default). `NetworkService` wrapping
+  `NWPathMonitor`. Manual "Download Nearby Areas" button with
+  cellular confirmation dialog.
+- Manage Downloads — per-area swipe-to-delete + Clear All.
+- Endpoint-gated trail completion — celebration requires both
+  polyline endpoints within 30 m of the recorded path, not just
+  90% coverage.
+- "Stop & Discard" option in the recording stop dialog.
+- Recenter centers user in visible map (camera shifts south by half
+  the bottom inset, scaled against the shorter screen axis).
+- Cyan coverage halo clipped to on-trail GPS points only.
+- Dimmed non-active trail opacity bumped 0.25 → 0.5 for legibility.
+- Drive-time filter on Browse + route-type filter (loop / linear)
+  on the trail list.
+- Loading state: pill removed, silhouette reveal locked to 2.0 s,
+  post-reveal sine wave so trails sway gently if data is slow.
+- Trail-list filter chips, count badge, "Showing X of Y", empty
+  state, map sync via `routeFilter` + `visibleTrailIds`.
+- ActiveRecordingBanner tappable, trail name in banner.
+- "Record This Trail" context-menu, purple recording stroke,
+  long-press tip in trail-list header.
+- Settings: "Refresh Trail Data" button, "Your Activity" stats,
+  Send Feedback link.
+- Pull-to-refresh + Surprise Me dice on Explore.
+- Animated trail-by-trail loading reveal.
+- Original device-test fixes B1 (completion mismatch), B2 (full
+  area on open), B5 / B7 / B8 (caption, card-art bg, discard
+  confirm).
+- Concurrency cleanup — Swift 6 strict-concurrency throughout,
+  `NotificationService` MainActor patterns, prefetch progress UI
+  fixed to land writes on MainActor with `Task.yield()` between
+  items.
+- Build 3 cleanup PRs (#55–#57): `SpatialGrid` utility extracted,
+  `StorageKeys` centralized, timing constants named.
+
+## Shipped — earlier rollups
 
 - [x] First-run onboarding screen — #39 (Get Started bug fixed in #44)
 - [x] Haptic feedback on trail-complete — #39

@@ -23,6 +23,11 @@ struct AreaView: View {
     @State private var area: Area? = nil
     @State private var isLoading = true
     @State private var loadError: String? = nil
+    /// Loading view always plays for at least 1.5 s so the silhouette
+    /// reveal animation finishes even when real data lands in under
+    /// half a second. Flipped by a task timer that starts on
+    /// `.task(id: areaId)` and ends 1.5 s later.
+    @State private var minLoadingTimeElapsed = false
     @State private var showTrailList = true
     @State private var trailListHeight: CGFloat = 340
     // Captured at gesture start so onChanged can compute an absolute
@@ -98,7 +103,7 @@ struct AreaView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            if let area {
+            if let area, minLoadingTimeElapsed {
                 let filtered = computeFilteredTrails(area)
                 let visibleTrailIds: Set<String>? = hasActiveFilter
                     ? Set(filtered.map(\.id)) : nil
@@ -156,7 +161,7 @@ struct AreaView: View {
                 }
                 .allowsHitTesting(true)
 
-            } else if isLoading {
+            } else if isLoading || (area != nil && !minLoadingTimeElapsed) {
                 loadingState
             } else {
                 ContentUnavailableView("Area Unavailable",
@@ -203,6 +208,14 @@ struct AreaView: View {
             if let name = initialCelebrationTrailName {
                 showCelebration(name: name)
             }
+        }
+        .task(id: areaId) {
+            // Floor the loading view at 1.5 s so the silhouette reveal
+            // animation always completes — even when the area's data is
+            // already on disk and lands in microseconds.
+            minLoadingTimeElapsed = false
+            try? await Task.sleep(for: .seconds(1.5))
+            minLoadingTimeElapsed = true
         }
         .task(id: isRecording) {
             // While a recording is active for this area, recompute coverage
@@ -643,11 +656,14 @@ private struct LoadingSilhouetteCanvas: View {
                 let yOffset = pad + (drawH - canvasH) / 2
 
                 let baseOpacity: Double = colorScheme == .dark ? 0.55 : 0.35
-                let totalAnimation: TimeInterval = 2.0
-                // Single-line silhouettes get the full 2 s to themselves
-                // so a tiny area doesn't snap-in in 0.4 s and look broken;
-                // everything else uses 0.4 s per line with the stagger
-                // sized to land the last line exactly at totalAnimation.
+                let totalAnimation: TimeInterval = 1.5
+                // Single-line silhouettes get the full duration to
+                // themselves so a tiny area doesn't snap-in in 0.4 s and
+                // look broken; everything else uses 0.4 s per line with
+                // the stagger sized to land the last line exactly at
+                // totalAnimation. AreaView holds the loading view for
+                // the same 1.5 s minimum so the animation always plays
+                // through.
                 let perLineDuration: TimeInterval = lines.count == 1 ? totalAnimation : 0.4
                 let stagger: TimeInterval = lines.count > 1
                     ? (totalAnimation - perLineDuration) / Double(lines.count - 1)

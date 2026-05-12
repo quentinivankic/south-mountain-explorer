@@ -6,6 +6,13 @@ private let bufferMeters = 30.0
 private let jitterMeters = 3.0
 private let badFixMeters = 200.0
 
+/// Interval between samples of `LocationService.liveLocation` while
+/// a recording is active. 2 s is a comfortable hiking cadence —
+/// frequent enough that GPS jitter is averaged out by the
+/// `jitterMeters` filter, infrequent enough to keep battery use
+/// reasonable on a multi-hour hike.
+private let gpsPollingInterval: Duration = .seconds(2)
+
 @MainActor
 @Observable
 final class RecordingService {
@@ -205,7 +212,7 @@ final class RecordingService {
                 if let coord = await MainActor.run(body: { self?.locationService.liveLocation }) {
                     await MainActor.run { self?.appendPoint(coord) }
                 }
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                try? await Task.sleep(for: gpsPollingInterval)
             }
         }
     }

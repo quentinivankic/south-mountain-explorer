@@ -66,6 +66,12 @@ struct TrailMapView: View {
     @Environment(LocationService.self) private var location
 
     @State private var position: MapCameraPosition
+    /// Pre-built spatial index over every trail node in the area, used
+    /// by the halo's `onTrailSegments` filter. Building this once at
+    /// view appear and reusing it across renders avoids rebuilding a
+    /// 5000-node grid for every past hike on every camera change —
+    /// the hot loop that made hundred-trail areas feel glitchy.
+    @State private var cachedTrailGrid = SpatialGrid()
 
     init(
         area: Area,
@@ -87,8 +93,9 @@ struct TrailMapView: View {
         self._trackingMode = trackingMode
         // Compute the initial camera position synchronously so MapKit's
         // own .automatic frame can't briefly render a fragment of the area
-        // before .onAppear fires.
-        self._position = State(initialValue: Self.regionCovering(area: area))
+        // before .onAppear fires. Pass bottomInset so the framing
+        // accounts for the panel from the very first frame.
+        self._position = State(initialValue: Self.regionCovering(area: area, bottomInset: bottomInset))
     }
 
     var body: some View {
@@ -106,7 +113,19 @@ struct TrailMapView: View {
             MapCompass()
             MapScaleView()
         }
-        .onAppear { centerOnArea() }
+        .onAppear {
+            // Build the trail-node spatial grid once so the halo's
+            // onTrailSegments doesn't rebuild it on every render. Big
+            // win on hundred-trail areas.
+            var grid = SpatialGrid()
+            for trail in area.trails {
+                for seg in trail.segments {
+                    for node in seg { grid.insert(node) }
+                }
+            }
+            cachedTrailGrid = grid
+            centerOnArea()
+        }
         .onChange(of: selectedTrailId) { _, newId in
             guard let id = newId,
                   let trail = area.trails.first(where: { $0.id == id }) else {
@@ -235,16 +254,13 @@ struct TrailMapView: View {
         switch mode {
         case .free:
             // Break out of any active tracking by snapping to a static
-            // region centered on the user (1500 m, north up). Heading
-            // updates aren't needed here, so cut them off to save the
-            // magnetometer.
+            // region centered on the user (1500 m, north up). The
+            // shift logic from centerOnUser still applies so the dot
+            // lands in the visible map middle, not phone-screen
+            // middle — earlier this didn't shift, putting the dot
+            // near the bottom of the visible area when a panel was open.
             location.stopHeadingUpdates()
-            let region = location.userLocation.map {
-                MKCoordinateRegion(center: $0, latitudinalMeters: 1500, longitudinalMeters: 1500)
-            }
-            withAnimation {
-                position = region.map { .region($0) } ?? Self.regionCovering(area: area)
-            }
+            centerOnUser()
         case .follow:
             // Ensure live location is pumping (idempotent — no-op if
             // already running, e.g. during a recording). Heading
@@ -289,13 +305,15 @@ struct TrailMapView: View {
         )
 
         if trackingMode == .followHeading {
-            // MapCamera distance ~2500 m approximates the visual zoom
-            // of MKCoordinateRegion(latitudinalMeters: 1500) at our
-            // typical screen aspect. Tune if the zoom feels off vs
-            // the plain follow mode.
+            // distance ~6000 m roughly matches the vertical span of
+            // MKCoordinateRegion(latitudinalMeters: 1500) in portrait
+            // (region fits the SHORTER axis = width, so vertical span
+            // is ~3.3 km on a typical phone). distance 2500 was ~2×
+            // zoomed in, which made the shift proportionally too big
+            // and put the dot at the top of the visible area.
             position = .camera(MapCamera(
                 centerCoordinate: shifted,
-                distance: 2500,
+                distance: 6000,
                 heading: heading,
                 pitch: 0
             ))
@@ -313,61 +331,38 @@ struct TrailMapView: View {
             centerOnArea()
             return
         }
-        // Shift the region center south by half the bottom inset (in
-        // meters at the current zoom) so the user dot lands in the
-        // geometric middle of the *visible* map. The bottom is
-        // occluded by the controlBar + recording panel + trail list
-        // sheet; without this the dot reads as below-center.
-        let latMeters = 1500.0
-        let center: CLLocationCoordinate2D
-        if bottomInset > 0 {
-            // MKCoordinateRegion with a square latitudinalMeters /
-            // longitudinalMeters gets fit to the SHORTER screen axis
-            // — in portrait that's width, not height. So m/pt is
-            // latMeters / min(width, height), not / height. (Using
-            // height in portrait gave a ~2× under-shift that read
-            // visually as "still centered on the phone screen".)
-            let b = UIScreen.main.bounds
-            let shortDim = min(b.width, b.height)
-            let metersPerPoint = latMeters / max(shortDim, 1)
-            let shiftMeters = (bottomInset / 2) * metersPerPoint
-            let shiftDegrees = shiftMeters / 111_000.0
-            center = CLLocationCoordinate2D(
-                latitude: coord.latitude - shiftDegrees,
-                longitude: coord.longitude
+        // 1500 m square region around the user, fed through fittedRegion
+        // so the dot lands in the visible (above-panel) center.
+        let latDelta = 1500.0 / 111_000.0
+        let cosLat = max(0.0001, cos(coord.latitude * .pi / 180))
+        let lonDelta = 1500.0 / (111_000.0 * cosLat)
+        withAnimation {
+            position = Self.fittedRegion(
+                centerLat: coord.latitude,
+                centerLon: coord.longitude,
+                latDelta: latDelta,
+                lonDelta: lonDelta,
+                bottomInset: bottomInset
             )
-        } else {
-            center = coord
         }
-        let region = MKCoordinateRegion(
-            center: center,
-            latitudinalMeters: latMeters,
-            longitudinalMeters: latMeters
-        )
-        withAnimation { position = .region(region) }
     }
 
     private func centerOnArea() {
-        withAnimation { position = Self.regionCovering(area: area) }
+        withAnimation { position = Self.regionCovering(area: area, bottomInset: bottomInset) }
     }
 
     /// Split a recorded GPS path into runs of consecutive points that lie
     /// within `bufferM` of any trail node. Off-trail runs (e.g. commuting
     /// from home to the trailhead) drop out so the cyan halo only paints
-    /// actual trail coverage.
+    /// actual trail coverage. Reuses `cachedTrailGrid` so we don't
+    /// rebuild a 5000-node spatial index per past hike per render.
     private func onTrailSegments(_ path: [GpsPoint]) -> [[CLLocationCoordinate2D]] {
         let bufferM = 30.0
-        var grid = SpatialGrid()
-        for trail in area.trails {
-            for seg in trail.segments {
-                for node in seg { grid.insert(node) }
-            }
-        }
         var segments: [[CLLocationCoordinate2D]] = []
         var current: [CLLocationCoordinate2D] = []
         for p in path {
             guard p.count >= 2 else { continue }
-            if grid.hasNeighbor(lat: p[0], lon: p[1], withinMeters: bufferM) {
+            if cachedTrailGrid.hasNeighbor(lat: p[0], lon: p[1], withinMeters: bufferM) {
                 current.append(CLLocationCoordinate2D(latitude: p[0], longitude: p[1]))
             } else if !current.isEmpty {
                 if current.count >= 2 { segments.append(current) }
@@ -382,7 +377,45 @@ struct TrailMapView: View {
     /// actual trail geometry (not just `area.bbox`, which is sometimes nil
     /// or imprecise in the bundled data) so the user always opens to a view
     /// of the whole area rather than a random subregion.
-    private static func regionCovering(area: Area) -> MapCameraPosition {
+    /// Returns a MapCameraPosition that frames a target bbox in the
+    /// *visible* portion of the map (above the bottom panel).
+    /// Inflates the latitudinal span so the bbox fits in the
+    /// `(1 - p)` fraction of the screen that's not covered, then
+    /// shifts the center south so the bbox sits in that visible top
+    /// portion. Without this, the bottom of the framed region was
+    /// hidden behind the recording panel / trail list sheet.
+    private static func fittedRegion(
+        centerLat: Double, centerLon: Double,
+        latDelta: Double, lonDelta: Double,
+        bottomInset: CGFloat
+    ) -> MapCameraPosition {
+        let screenH = UIScreen.main.bounds.height
+        // Cap p at 0.7 so a worst-case panel-covers-everything state
+        // still leaves a sane minimum visible area.
+        let p = min(0.7, bottomInset / max(screenH, 1))
+        let visibleFraction = max(0.3, 1 - p)
+
+        // Inflate the latitudinal span so the requested content fits
+        // in the visible (top) portion. Longitudinal needs no inflation
+        // — the panel doesn't constrain horizontally.
+        let regionLatDelta = max(latDelta / visibleFraction, 0.005)
+        let regionLonDelta = max(lonDelta, 0.005)
+
+        // Shift center south by half the extra span we just added, so
+        // the visible center of the region matches the requested
+        // centerLat.
+        let shiftLat = regionLatDelta * p / 2
+        let center = CLLocationCoordinate2D(
+            latitude: centerLat - shiftLat,
+            longitude: centerLon
+        )
+        return .region(MKCoordinateRegion(
+            center: center,
+            span: MKCoordinateSpan(latitudeDelta: regionLatDelta, longitudeDelta: regionLonDelta)
+        ))
+    }
+
+    private static func regionCovering(area: Area, bottomInset: CGFloat) -> MapCameraPosition {
         let coords = area.trails
             .flatMap { $0.segments.flatMap { $0 } }
             .compactMap { p -> (lat: Double, lon: Double)? in
@@ -395,34 +428,24 @@ struct TrailMapView: View {
             let lons = coords.map { $0.lon }
             let minLat = lats.min()!, maxLat = lats.max()!
             let minLon = lons.min()!, maxLon = lons.max()!
-            let region = MKCoordinateRegion(
-                center: CLLocationCoordinate2D(
-                    latitude: (minLat + maxLat) / 2,
-                    longitude: (minLon + maxLon) / 2
-                ),
-                span: MKCoordinateSpan(
-                    // Slight padding so trails don't kiss the edges, and a
-                    // floor so single-point edge cases don't render
-                    // street-level zoom.
-                    latitudeDelta: max((maxLat - minLat) * 1.3, 0.01),
-                    longitudeDelta: max((maxLon - minLon) * 1.3, 0.01)
-                )
+            return fittedRegion(
+                centerLat: (minLat + maxLat) / 2,
+                centerLon: (minLon + maxLon) / 2,
+                // 1.3x padding so trails don't kiss the visible edges.
+                latDelta: max((maxLat - minLat) * 1.3, 0.01),
+                lonDelta: max((maxLon - minLon) * 1.3, 0.01),
+                bottomInset: bottomInset
             )
-            return .region(region)
         }
 
         if let bbox = area.bbox, bbox.count == 4 {
-            let region = MKCoordinateRegion(
-                center: CLLocationCoordinate2D(
-                    latitude: (bbox[1] + bbox[3]) / 2,
-                    longitude: (bbox[0] + bbox[2]) / 2
-                ),
-                span: MKCoordinateSpan(
-                    latitudeDelta: max(abs(bbox[3] - bbox[1]) * 1.2, 0.01),
-                    longitudeDelta: max(abs(bbox[2] - bbox[0]) * 1.2, 0.01)
-                )
+            return fittedRegion(
+                centerLat: (bbox[1] + bbox[3]) / 2,
+                centerLon: (bbox[0] + bbox[2]) / 2,
+                latDelta: max(abs(bbox[3] - bbox[1]) * 1.2, 0.01),
+                lonDelta: max(abs(bbox[2] - bbox[0]) * 1.2, 0.01),
+                bottomInset: bottomInset
             )
-            return .region(region)
         }
 
         return .camera(MapCamera(
@@ -444,17 +467,15 @@ struct TrailMapView: View {
         let lons = pts.map { $0.1 }
         let minLat = lats.min()!, maxLat = lats.max()!
         let minLon = lons.min()!, maxLon = lons.max()!
-        let region = MKCoordinateRegion(
-            center: CLLocationCoordinate2D(
-                latitude: (minLat + maxLat) / 2,
-                longitude: (minLon + maxLon) / 2
-            ),
-            span: MKCoordinateSpan(
-                latitudeDelta: max((maxLat - minLat) * 1.4, 0.005),
-                longitudeDelta: max((maxLon - minLon) * 1.4, 0.005)
+        withAnimation {
+            position = Self.fittedRegion(
+                centerLat: (minLat + maxLat) / 2,
+                centerLon: (minLon + maxLon) / 2,
+                latDelta: max((maxLat - minLat) * 1.4, 0.005),
+                lonDelta: max((maxLon - minLon) * 1.4, 0.005),
+                bottomInset: bottomInset
             )
-        )
-        withAnimation { position = .region(region) }
+        }
     }
 
     private func difficultyColor(_ difficulty: Difficulty) -> Color {

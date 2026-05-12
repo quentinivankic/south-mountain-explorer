@@ -37,6 +37,16 @@ enum MapTrackingMode: Int, CaseIterable {
         case .followHeading: return "Follow user location and heading"
         }
     }
+
+    /// Short user-facing label for the toast that pops up when the
+    /// rotation cycle button advances. Self-documenting on first use.
+    var toastLabel: String {
+        switch self {
+        case .free: return "Map unlocked"
+        case .follow: return "Following your location"
+        case .followHeading: return "Following your direction"
+        }
+    }
 }
 
 struct TrailMapView: View {
@@ -149,12 +159,17 @@ struct TrailMapView: View {
         // every heading change in followHeading) through the same
         // shifted-center math the recenter button uses, so the user
         // dot lands above the bottom panel — not behind it like
-        // MapKit's built-in .userLocation camera does.
+        // MapKit's built-in .userLocation camera does. Linear 0.3s
+        // per update so the camera flows smoothly between samples
+        // (especially in followHeading where a 2° heading filter
+        // produces frequent updates during a turn).
         .onChange(of: location.liveLocation) { _, _ in
-            if trackingMode != .free { updateTrackedPosition() }
+            guard trackingMode != .free else { return }
+            withAnimation(.linear(duration: 0.3)) { updateTrackedPosition() }
         }
         .onChange(of: location.liveHeading) { _, _ in
-            if trackingMode == .followHeading { updateTrackedPosition() }
+            guard trackingMode == .followHeading else { return }
+            withAnimation(.linear(duration: 0.3)) { updateTrackedPosition() }
         }
     }
 
@@ -251,27 +266,26 @@ struct TrailMapView: View {
     }
 
     private func applyTrackingMode(_ mode: MapTrackingMode) {
+        // One-shot mode entry uses a brief easeInOut so the camera
+        // glides to its new framing. Continuous tracking updates
+        // (.onChange handlers below) use a faster linear animation
+        // so the camera flows with each GPS / heading sample without
+        // queuing up.
         switch mode {
         case .free:
-            // Break out of any active tracking by snapping to a static
-            // region centered on the user (1500 m, north up). The
-            // shift logic from centerOnUser still applies so the dot
-            // lands in the visible map middle, not phone-screen
-            // middle — earlier this didn't shift, putting the dot
-            // near the bottom of the visible area when a panel was open.
             location.stopHeadingUpdates()
-            centerOnUser()
+            withAnimation(.easeInOut(duration: 0.3)) { centerOnUser() }
         case .follow:
             // Ensure live location is pumping (idempotent — no-op if
             // already running, e.g. during a recording). Heading
             // isn't needed for plain follow.
             location.startLiveTracking()
             location.stopHeadingUpdates()
-            updateTrackedPosition()
+            withAnimation(.easeInOut(duration: 0.3)) { updateTrackedPosition() }
         case .followHeading:
             location.startLiveTracking()
             location.startHeadingUpdates()
-            updateTrackedPosition()
+            withAnimation(.easeInOut(duration: 0.3)) { updateTrackedPosition() }
         }
     }
 

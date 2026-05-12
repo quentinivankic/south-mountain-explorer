@@ -46,6 +46,12 @@ struct AreaView: View {
     /// button forces this back to `.free` so a one-shot recenter isn't
     /// immediately undone by re-engaged tracking.
     @State private var trackingMode: MapTrackingMode = .free
+    /// Ephemeral hint that pops above the controlBar when the user
+    /// taps the rotation cycle button. Set to the new mode's
+    /// `toastLabel`; auto-clears after ~2 s. Self-documents the
+    /// otherwise-cryptic three-state cycle.
+    @State private var trackingModeToast: String? = nil
+    @State private var trackingModeToastTask: Task<Void, Never>? = nil
 
     // Pre-flight checks before kicking off a recording.
     @State private var showConflictAlert = false
@@ -142,6 +148,14 @@ struct AreaView: View {
                 // ~34pt above the visible top of the trail list panel.
                 GeometryReader { proxy in
                     VStack(spacing: 4) {
+                        if let toast = trackingModeToast {
+                            Text(toast)
+                                .font(.caption)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(.regularMaterial, in: Capsule())
+                                .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                        }
                         controlBar(area: area)
                         if isRecording {
                             RecordingPanel(area: area) { finished in
@@ -549,6 +563,27 @@ struct AreaView: View {
             }
     }
 
+    /// Show a brief "Following your direction" / similar pill above
+    /// the controlBar so users learn what each tracking-mode icon
+    /// means without us cluttering the UI with permanent labels.
+    /// Cancels any in-flight dismiss timer so rapid cycle-taps don't
+    /// fight each other.
+    private func showTrackingModeToast(_ label: String) {
+        trackingModeToastTask?.cancel()
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+            trackingModeToast = label
+        }
+        trackingModeToastTask = Task {
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.3)) {
+                    trackingModeToast = nil
+                }
+            }
+        }
+    }
+
     private func controlBar(area: Area) -> some View {
         HStack(spacing: 14) {
             // Map/List toggle — always visible so the user can show the
@@ -565,10 +600,13 @@ struct AreaView: View {
 
             // Camera tracking cycle — Apple Maps style. Cycles
             // free → follow → follow-with-heading → free. Icon
-            // reflects the current mode.
+            // reflects the current mode. Toast under the controlBar
+            // (rendered in body) names the new mode for ~2 s so users
+            // learn the cycle without permanent on-screen labels.
             Button {
                 if !location.isAuthorized { location.requestPermission(); return }
-                withAnimation { trackingMode = trackingMode.next }
+                trackingMode = trackingMode.next
+                showTrackingModeToast(trackingMode.toastLabel)
             } label: {
                 Image(systemName: trackingMode.symbol)
                     .font(.body.weight(.semibold))
@@ -656,14 +694,17 @@ private struct LoadingSilhouetteCanvas: View {
                 let yOffset = pad + (drawH - canvasH) / 2
 
                 let baseOpacity: Double = colorScheme == .dark ? 0.55 : 0.35
-                let totalAnimation: TimeInterval = 1.5
+                let totalAnimation: TimeInterval = 1.0
                 // Single-line silhouettes get the full duration to
                 // themselves so a tiny area doesn't snap-in in 0.4 s and
                 // look broken; everything else uses 0.4 s per line with
                 // the stagger sized to land the last line exactly at
                 // totalAnimation. AreaView holds the loading view for
-                // the same 1.5 s minimum so the animation always plays
-                // through.
+                // 1.5 s total — the reveal lands at 1.0 s, leaving
+                // ~0.5 s of "all trails visible + gentle wave" before
+                // the loaded view takes over. That settled window is
+                // what stops the eye from registering trails as
+                // "cut off mid-reveal" on hundred-trail areas.
                 let perLineDuration: TimeInterval = lines.count == 1 ? totalAnimation : 0.4
                 let stagger: TimeInterval = lines.count > 1
                     ? (totalAnimation - perLineDuration) / Double(lines.count - 1)

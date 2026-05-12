@@ -9,6 +9,12 @@ final class LocationService: NSObject {
     private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
     private(set) var userLocation: CLLocationCoordinate2D? = nil
     private(set) var liveLocation: CLLocationCoordinate2D? = nil
+    /// Compass heading in degrees clockwise from true north (or magnetic
+    /// north if true north isn't available). Populated when
+    /// `startHeadingUpdates()` is active. Used by the map's
+    /// follow-with-heading camera mode so the user's facing direction
+    /// stays "up" on screen.
+    private(set) var liveHeading: CLLocationDirection? = nil
 
     private let manager = CLLocationManager()
     private var liveWatching = false
@@ -61,6 +67,16 @@ final class LocationService: NSObject {
         manager.stopUpdatingLocation()
     }
 
+    func startHeadingUpdates() {
+        guard CLLocationManager.headingAvailable() else { return }
+        manager.startUpdatingHeading()
+    }
+
+    func stopHeadingUpdates() {
+        manager.stopUpdatingHeading()
+        liveHeading = nil
+    }
+
     var isAuthorized: Bool {
         authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways
     }
@@ -86,6 +102,19 @@ extension LocationService: CLLocationManagerDelegate {
         let status = manager.authorizationStatus
         Task { @MainActor in
             self.authorizationStatus = status
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        // Prefer true heading; fall back to magnetic if true isn't
+        // available yet (calibration). Either is fine for "make the
+        // user's facing direction up on screen" — small magnetic vs
+        // true offset isn't perceptible at city/trail zoom.
+        let heading: CLLocationDirection = newHeading.trueHeading >= 0
+            ? newHeading.trueHeading
+            : newHeading.magneticHeading
+        Task { @MainActor in
+            self.liveHeading = heading
         }
     }
 }

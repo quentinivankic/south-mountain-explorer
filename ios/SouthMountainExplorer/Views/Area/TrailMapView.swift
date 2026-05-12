@@ -201,18 +201,27 @@ struct TrailMapView: View {
         .onChange(of: trackingMode, initial: false) { _, newMode in
             applyTrackingMode(newMode)
         }
+        // While in a tracking mode, push every new GPS sample (and
+        // every heading change in followHeading) through the same
+        // shifted-center math the recenter button uses, so the user
+        // dot lands above the bottom panel — not behind it like
+        // MapKit's built-in .userLocation camera does.
+        .onChange(of: location.liveLocation) { _, _ in
+            if trackingMode != .free { updateTrackedPosition() }
+        }
+        .onChange(of: location.liveHeading) { _, _ in
+            if trackingMode == .followHeading { updateTrackedPosition() }
+        }
     }
 
     private func applyTrackingMode(_ mode: MapTrackingMode) {
         switch mode {
         case .free:
-            // Break out of MapKit's tracking by snapping `position`
-            // to a static region. Without this, transitioning from
-            // .follow / .followHeading into .free leaves the camera
-            // still auto-following because position remains the
-            // userLocation case. Snap to the user's last known
-            // location (1500 m zoom, north up) so the camera stops
-            // moving / rotating right where it is.
+            // Break out of any active tracking by snapping to a static
+            // region centered on the user (1500 m, north up). Heading
+            // updates aren't needed here, so cut them off to save the
+            // magnetometer.
+            location.stopHeadingUpdates()
             let region = location.userLocation.map {
                 MKCoordinateRegion(center: $0, latitudinalMeters: 1500, longitudinalMeters: 1500)
             }
@@ -220,13 +229,65 @@ struct TrailMapView: View {
                 position = region.map { .region($0) } ?? Self.regionCovering(area: area)
             }
         case .follow:
-            withAnimation {
-                position = .userLocation(fallback: Self.regionCovering(area: area))
-            }
+            // Ensure live location is pumping (idempotent — no-op if
+            // already running, e.g. during a recording). Heading
+            // isn't needed for plain follow.
+            location.startLiveTracking()
+            location.stopHeadingUpdates()
+            updateTrackedPosition()
         case .followHeading:
-            withAnimation {
-                position = .userLocation(followsHeading: true, fallback: Self.regionCovering(area: area))
-            }
+            location.startLiveTracking()
+            location.startHeadingUpdates()
+            updateTrackedPosition()
+        }
+    }
+
+    /// Position the camera on the user with the bottomInset shift
+    /// (same method PR #48 used for the one-shot recenter). For
+    /// followHeading the shift is rotated into the camera's frame so
+    /// "above the panel" stays above the panel after rotation, and
+    /// the position is set via MapCamera (only camera mode supports
+    /// heading; .region doesn't).
+    private func updateTrackedPosition() {
+        guard let coord = location.liveLocation ?? location.userLocation else { return }
+        let heading: CLLocationDirection = trackingMode == .followHeading
+            ? (location.liveHeading ?? 0)
+            : 0
+
+        let latMeters = 1500.0
+        let b = UIScreen.main.bounds
+        let shortDim = min(b.width, b.height)
+        let metersPerPoint = latMeters / max(shortDim, 1)
+        let shiftMeters = (bottomInset / 2) * metersPerPoint
+        // Shift "screen down" relative to the camera. For heading=0
+        // (north up) that's south. For arbitrary heading θ, screen-
+        // down is the bearing (θ + 180°) measured from north.
+        let radians = heading * .pi / 180
+        let dLat = -shiftMeters * cos(radians) / 111_000.0
+        let cosLat = max(0.0001, cos(coord.latitude * .pi / 180))
+        let dLon = -shiftMeters * sin(radians) / (111_000.0 * cosLat)
+        let shifted = CLLocationCoordinate2D(
+            latitude: coord.latitude + dLat,
+            longitude: coord.longitude + dLon
+        )
+
+        if trackingMode == .followHeading {
+            // MapCamera distance ~2500 m approximates the visual zoom
+            // of MKCoordinateRegion(latitudinalMeters: 1500) at our
+            // typical screen aspect. Tune if the zoom feels off vs
+            // the plain follow mode.
+            position = .camera(MapCamera(
+                centerCoordinate: shifted,
+                distance: 2500,
+                heading: heading,
+                pitch: 0
+            ))
+        } else {
+            position = .region(MKCoordinateRegion(
+                center: shifted,
+                latitudinalMeters: latMeters,
+                longitudinalMeters: latMeters
+            ))
         }
     }
 

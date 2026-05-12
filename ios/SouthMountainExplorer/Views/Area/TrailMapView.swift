@@ -77,11 +77,20 @@ struct TrailMapView: View {
 
     @State private var position: MapCameraPosition
     /// Pre-built spatial index over every trail node in the area, used
-    /// by the halo's `onTrailSegments` filter. Building this once at
-    /// view appear and reusing it across renders avoids rebuilding a
-    /// 5000-node grid for every past hike on every camera change —
-    /// the hot loop that made hundred-trail areas feel glitchy.
+    /// by the halo's `onTrailSegments` filter. Built once on appear so
+    /// the per-render hot path doesn't rebuild a 5000-node grid.
     @State private var cachedTrailGrid = SpatialGrid()
+    /// Per-trail pre-converted polyline coords. Built once on appear
+    /// so `trailPolylineLayer` doesn't `compactMap` every segment on
+    /// every Map render — that allocation pressure (25k+ per render
+    /// on hundred-trail areas) is what made the map glitchy whenever
+    /// `position` updated frequently.
+    @State private var cachedTrailCoords: [String: [[CLLocationCoordinate2D]]] = [:]
+    /// Per-past-hike pre-filtered halo segments (the on-trail subset
+    /// of each recorded GPS path). Rebuilt on appear and whenever
+    /// `pastPaths.count` changes — i.e. only when a new hike
+    /// finishes — instead of per-render.
+    @State private var cachedHaloSegments: [[[CLLocationCoordinate2D]]] = []
 
     init(
         area: Area,
@@ -124,17 +133,36 @@ struct TrailMapView: View {
             MapScaleView()
         }
         .onAppear {
-            // Build the trail-node spatial grid once so the halo's
-            // onTrailSegments doesn't rebuild it on every render. Big
-            // win on hundred-trail areas.
+            // Build all three caches (trail grid, per-trail polyline
+            // coords, per-hike halo segments) in one pass over the
+            // area's trails. Per-render Map work then collapses to
+            // dictionary lookups + MapPolyline construction.
             var grid = SpatialGrid()
+            var coords: [String: [[CLLocationCoordinate2D]]] = [:]
             for trail in area.trails {
+                var segs: [[CLLocationCoordinate2D]] = []
                 for seg in trail.segments {
                     for node in seg { grid.insert(node) }
+                    let segCoords: [CLLocationCoordinate2D] = seg.compactMap { node in
+                        guard node.count >= 2 else { return nil }
+                        return CLLocationCoordinate2D(latitude: node[0], longitude: node[1])
+                    }
+                    segs.append(segCoords)
                 }
+                coords[trail.id] = segs
             }
             cachedTrailGrid = grid
+            cachedTrailCoords = coords
+            // Halo cache uses the freshly-built grid (passed
+            // explicitly so we don't depend on @State commit timing).
+            cachedHaloSegments = pastPaths.map { onTrailSegments($0, grid: grid) }
             centerOnArea()
+        }
+        .onChange(of: pastPaths.count) { _, _ in
+            // New hike finished and AreaView reloaded pastPaths — refresh
+            // the halo cache against the (already-cached) trail grid so
+            // the new path lights up without re-filtering on every render.
+            cachedHaloSegments = pastPaths.map { onTrailSegments($0) }
         }
         .onChange(of: selectedTrailId) { _, newId in
             guard let id = newId,
@@ -159,17 +187,18 @@ struct TrailMapView: View {
         // every heading change in followHeading) through the same
         // shifted-center math the recenter button uses, so the user
         // dot lands above the bottom panel — not behind it like
-        // MapKit's built-in .userLocation camera does. Linear 0.3s
-        // per update so the camera flows smoothly between samples
-        // (especially in followHeading where a 2° heading filter
-        // produces frequent updates during a turn).
+        // MapKit's built-in .userLocation camera does. Snap (no
+        // withAnimation) — wrapping these in .linear(0.3) made
+        // SwiftUI re-render the whole MapContent on every animation
+        // frame at 60 Hz, which thrashed the UI thread on hundred-
+        // trail areas during a rotation. Discrete 2° heading steps
+        // are visible but cheap; the precomputed coord caches keep
+        // the per-render work small.
         .onChange(of: location.liveLocation) { _, _ in
-            guard trackingMode != .free else { return }
-            withAnimation(.linear(duration: 0.3)) { updateTrackedPosition() }
+            if trackingMode != .free { updateTrackedPosition() }
         }
         .onChange(of: location.liveHeading) { _, _ in
-            guard trackingMode == .followHeading else { return }
-            withAnimation(.linear(duration: 0.3)) { updateTrackedPosition() }
+            if trackingMode == .followHeading { updateTrackedPosition() }
         }
     }
 
@@ -177,12 +206,12 @@ struct TrailMapView: View {
 
     /// Cumulative-coverage halo: every past hike's GPS path drawn in
     /// cyan beneath the trail polylines so walked sections glow
-    /// through. Off-trail portions (commute to/from trailhead) drop
-    /// out via `onTrailSegments`.
+    /// through. Iterates the precomputed `cachedHaloSegments`
+    /// directly — no per-render spatial filtering against the trail
+    /// grid.
     @MapContentBuilder
     private var haloPolylines: some MapContent {
-        ForEach(Array(pastPaths.enumerated()), id: \.offset) { _, path in
-            let segments = onTrailSegments(path)
+        ForEach(Array(cachedHaloSegments.enumerated()), id: \.offset) { _, segments in
             ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
                 MapPolyline(coordinates: segment)
                     .stroke(
@@ -239,11 +268,12 @@ struct TrailMapView: View {
         // for attention.
         let strokeColor = baseColor.opacity(dimmed ? 0.5 : 1.0)
         let lineWidth: CGFloat = isRecordingThis ? 10 : (isSelected ? 6 : 3)
-        ForEach(Array(trail.segments.enumerated()), id: \.offset) { _, segment in
-            let coords: [CLLocationCoordinate2D] = segment.compactMap { node in
-                guard node.count >= 2 else { return nil }
-                return CLLocationCoordinate2D(latitude: node[0], longitude: node[1])
-            }
+        // Pre-converted CLLocationCoordinate2D arrays from the
+        // .onAppear cache. Empty array if the trail isn't in the
+        // cache (shouldn't happen in practice — every area trail is
+        // cached on appear).
+        let segCoords = cachedTrailCoords[trail.id] ?? []
+        ForEach(Array(segCoords.enumerated()), id: \.offset) { _, coords in
             MapPolyline(coordinates: coords)
                 .stroke(
                     strokeColor,
@@ -365,18 +395,25 @@ struct TrailMapView: View {
         withAnimation { position = Self.regionCovering(area: area, bottomInset: bottomInset) }
     }
 
-    /// Split a recorded GPS path into runs of consecutive points that lie
-    /// within `bufferM` of any trail node. Off-trail runs (e.g. commuting
-    /// from home to the trailhead) drop out so the cyan halo only paints
-    /// actual trail coverage. Reuses `cachedTrailGrid` so we don't
-    /// rebuild a 5000-node spatial index per past hike per render.
-    private func onTrailSegments(_ path: [GpsPoint]) -> [[CLLocationCoordinate2D]] {
+    /// Split a recorded GPS path into runs of consecutive points that
+    /// lie within `bufferM` of any trail node. Off-trail runs
+    /// (e.g. commuting from home to the trailhead) drop out so the
+    /// cyan halo only paints actual trail coverage. The grid is
+    /// usually pulled from `cachedTrailGrid`, but `.onAppear` passes
+    /// the freshly-built grid explicitly because @State writes within
+    /// the same closure aren't guaranteed to be visible to subsequent
+    /// reads in that closure.
+    private func onTrailSegments(
+        _ path: [GpsPoint],
+        grid: SpatialGrid? = nil
+    ) -> [[CLLocationCoordinate2D]] {
+        let g = grid ?? cachedTrailGrid
         let bufferM = 30.0
         var segments: [[CLLocationCoordinate2D]] = []
         var current: [CLLocationCoordinate2D] = []
         for p in path {
             guard p.count >= 2 else { continue }
-            if cachedTrailGrid.hasNeighbor(lat: p[0], lon: p[1], withinMeters: bufferM) {
+            if g.hasNeighbor(lat: p[0], lon: p[1], withinMeters: bufferM) {
                 current.append(CLLocationCoordinate2D(latitude: p[0], longitude: p[1]))
             } else if !current.isEmpty {
                 if current.count >= 2 { segments.append(current) }

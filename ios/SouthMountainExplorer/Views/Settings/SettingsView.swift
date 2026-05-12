@@ -9,6 +9,17 @@ private struct UserStats: Equatable {
 
 private let feedbackURL = URL(string: "https://github.com/quentinivankic/south-mountain-explorer/issues/new")!
 
+/// How long the "Refresh Trail Data" button stays in its
+/// disabled / "Trail Data Cleared" confirmation state before
+/// flipping back to the actionable label.
+private let refreshButtonReenableDelay: Duration = .seconds(3)
+
+/// How long the download buttons hold their "(N of N)" final
+/// count visible after a prefetch completes, so the user sees
+/// the result land instead of the label snapping back to the
+/// idle state immediately.
+private let progressHoldDuration: Duration = .seconds(1.5)
+
 struct SettingsView: View {
     @Environment(AuthService.self) private var auth
     @Environment(ProgressService.self) private var progress
@@ -115,7 +126,7 @@ struct SettingsView: View {
                             // confirmation window so the user can refresh
                             // again later in the same session.
                             Task {
-                                try? await Task.sleep(for: .seconds(3))
+                                try? await Task.sleep(for: refreshButtonReenableDelay)
                                 trailDataRefreshed = false
                             }
                         }
@@ -155,7 +166,7 @@ struct SettingsView: View {
                                 // beat so the user sees the result land
                                 // instead of the label snapping back
                                 // immediately.
-                                try? await Task.sleep(for: .seconds(1.5))
+                                try? await Task.sleep(for: progressHoldDuration)
                                 downloadProgress = nil
                             }
                         }
@@ -254,7 +265,7 @@ struct SettingsView: View {
                     nearbyProgress = (completed, total)
                 }
             }
-            try? await Task.sleep(for: .seconds(1.5))
+            try? await Task.sleep(for: progressHoldDuration)
             nearbyProgress = nil
         }
     }

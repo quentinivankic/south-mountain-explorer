@@ -1,6 +1,44 @@
 import SwiftUI
 import MapKit
 
+/// Three-state camera tracking cycle for the map. Mirrors Apple Maps'
+/// own location button — outline (free), filled (follow), filled-with-
+/// heading (follow + rotate). Owned by `AreaView` so the rotation
+/// button there can both cycle and read the current mode for its icon.
+enum MapTrackingMode: Int, CaseIterable {
+    /// Camera doesn't follow the user; map stays where the user last
+    /// panned / where it was framed on open.
+    case free
+    /// Camera pans to follow the user; north stays up.
+    case follow
+    /// Camera follows AND rotates so the user's heading is "up".
+    case followHeading
+
+    var next: MapTrackingMode {
+        switch self {
+        case .free: return .follow
+        case .follow: return .followHeading
+        case .followHeading: return .free
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .free: return "location"
+        case .follow: return "location.fill"
+        case .followHeading: return "location.north.fill"
+        }
+    }
+
+    var accessibilityLabel: String {
+        switch self {
+        case .free: return "Map tracking off"
+        case .follow: return "Follow user location"
+        case .followHeading: return "Follow user location and heading"
+        }
+    }
+}
+
 struct TrailMapView: View {
     let area: Area
     let activeRecording: ActiveRecording?
@@ -17,6 +55,12 @@ struct TrailMapView: View {
     /// shift the camera south so the user dot lands in the geometric
     /// middle of the *visible* map instead of the full screen.
     let bottomInset: CGFloat
+    /// Three-state camera tracking cycle. AreaView owns the state via
+    /// `@State`; the rotation button there reads it for the icon and
+    /// flips it on tap. TrailMapView reacts via `.onChange` to swap the
+    /// `MapCameraPosition` between a static region and a userLocation-
+    /// following one.
+    @Binding var trackingMode: MapTrackingMode
 
     @Environment(ProgressService.self) private var progress
     @Environment(LocationService.self) private var location
@@ -30,7 +74,8 @@ struct TrailMapView: View {
         recenterTick: Int,
         selectedTrailId: Binding<String?>,
         visibleTrailIds: Set<String>? = nil,
-        bottomInset: CGFloat = 0
+        bottomInset: CGFloat = 0,
+        trackingMode: Binding<MapTrackingMode>
     ) {
         self.area = area
         self.activeRecording = activeRecording
@@ -39,6 +84,7 @@ struct TrailMapView: View {
         self._selectedTrailId = selectedTrailId
         self.visibleTrailIds = visibleTrailIds
         self.bottomInset = bottomInset
+        self._trackingMode = trackingMode
         // Compute the initial camera position synchronously so MapKit's
         // own .automatic frame can't briefly render a fragment of the area
         // before .onAppear fires.
@@ -144,7 +190,44 @@ struct TrailMapView: View {
             }
             centerOn(trail: trail)
         }
-        .onChange(of: recenterTick) { _, _ in centerOnUser() }
+        .onChange(of: recenterTick) { _, _ in
+            // Manual recenter — always a one-shot center on user with
+            // no rotation. If the user is currently in a tracking mode,
+            // drop back to .free so the camera doesn't immediately
+            // re-engage tracking and override the recenter.
+            trackingMode = .free
+            centerOnUser()
+        }
+        .onChange(of: trackingMode, initial: false) { _, newMode in
+            applyTrackingMode(newMode)
+        }
+    }
+
+    private func applyTrackingMode(_ mode: MapTrackingMode) {
+        switch mode {
+        case .free:
+            // Break out of MapKit's tracking by snapping `position`
+            // to a static region. Without this, transitioning from
+            // .follow / .followHeading into .free leaves the camera
+            // still auto-following because position remains the
+            // userLocation case. Snap to the user's last known
+            // location (1500 m zoom, north up) so the camera stops
+            // moving / rotating right where it is.
+            let region = location.userLocation.map {
+                MKCoordinateRegion(center: $0, latitudinalMeters: 1500, longitudinalMeters: 1500)
+            }
+            withAnimation {
+                position = region.map { .region($0) } ?? Self.regionCovering(area: area)
+            }
+        case .follow:
+            withAnimation {
+                position = .userLocation(fallback: Self.regionCovering(area: area))
+            }
+        case .followHeading:
+            withAnimation {
+                position = .userLocation(followsHeading: true, fallback: Self.regionCovering(area: area))
+            }
+        }
     }
 
     private func centerOnUser() {

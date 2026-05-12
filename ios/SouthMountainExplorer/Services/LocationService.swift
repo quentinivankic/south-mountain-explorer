@@ -23,10 +23,12 @@ final class LocationService: NSObject {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
-        // Throttle heading updates to 5° changes — default kCLHeadingFilterNone
-        // fires on every micro-movement and makes the follow-with-heading
-        // map mode visibly jumpy.
-        manager.headingFilter = 5
+        // Throttle heading updates to 2° changes. Default
+        // kCLHeadingFilterNone fires on every micro-movement; 5° was
+        // an initial smoothing attempt but felt steppy on slow
+        // rotations. 2° keeps update frequency reasonable while
+        // letting the camera animation interpolate the gaps cleanly.
+        manager.headingFilter = 2
         authorizationStatus = manager.authorizationStatus
 
         // Restore last known location from UserDefaults

@@ -93,84 +93,9 @@ struct TrailMapView: View {
 
     var body: some View {
         Map(position: $position) {
-            // Cumulative-coverage halo: every past hike's GPS path drawn in
-            // cyan beneath the trail polylines so walked sections glow
-            // through. Wider stroke + reduced opacity makes it read as a
-            // background highlight, not a competing line. Off-trail
-            // portions (e.g. walking from home to the trailhead) are
-            // filtered out so the halo only paints actual trail coverage.
-            ForEach(Array(pastPaths.enumerated()), id: \.offset) { _, path in
-                let segments = onTrailSegments(path)
-                ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
-                    MapPolyline(coordinates: segment)
-                        .stroke(
-                            .cyan.opacity(0.55),
-                            style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round)
-                        )
-                }
-            }
-
-            // Trails. The recording-mode highlight is folded INTO this loop
-            // (rather than as a separate overlay layer) so it uses the same
-            // code path as tap-to-highlight, which is known to render. The
-            // recording trail gets a distinct purple stroke at lineWidth 10
-            // — purple sits outside the existing palette (green easy /
-            // orange moderate / red hard / cyan completed+halo / blue
-            // live-GPS) so it can't be confused for any of those.
-            let recordingTrailId = activeRecording?.trailId
-            let highlightedTrailId = recordingTrailId ?? selectedTrailId
-            // Drop trails the user has filtered out, but always keep the
-            // currently-recording trail and the currently-selected trail
-            // visible so the user can see what's happening.
-            let drawableTrails: [Trail] = visibleTrailIds.map { allowed in
-                area.trails.filter { trail in
-                    allowed.contains(trail.id)
-                        || trail.id == recordingTrailId
-                        || trail.id == selectedTrailId
-                }
-            } ?? area.trails
-            ForEach(drawableTrails) { trail in
-                let isRecordingThis = trail.id == recordingTrailId
-                let isSelected = trail.id == selectedTrailId
-                let isHighlighted = isRecordingThis || isSelected
-                let isComplete = progress.isComplete(areaId: area.id, trailId: trail.id)
-
-                let baseColor: Color = {
-                    if isRecordingThis { return .purple }
-                    if isComplete { return .cyan }
-                    return difficultyColor(trail.difficulty)
-                }()
-                let dimmed = (highlightedTrailId != nil && !isHighlighted)
-                // Dimmed trails sit behind the active/selected one. 0.25
-                // washed out against the satellite background — barely
-                // visible next to the bold purple recording line in
-                // trail-mode. 0.5 reads as a clear "secondary trail"
-                // without competing for attention.
-                let strokeColor = baseColor.opacity(dimmed ? 0.5 : 1.0)
-                let lineWidth: CGFloat = isRecordingThis ? 10 : (isSelected ? 6 : 3)
-
-                ForEach(Array(trail.segments.enumerated()), id: \.offset) { _, segment in
-                    let coords = segment.compactMap { node -> CLLocationCoordinate2D? in
-                        guard node.count >= 2 else { return nil }
-                        return CLLocationCoordinate2D(latitude: node[0], longitude: node[1])
-                    }
-                    MapPolyline(coordinates: coords)
-                        .stroke(
-                            strokeColor,
-                            style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
-                        )
-                }
-            }
-
-            // Recorded GPS path
-            if let rec = activeRecording, rec.path.count > 1 {
-                let pathCoords = rec.path.map {
-                    CLLocationCoordinate2D(latitude: $0[0], longitude: $0[1])
-                }
-                MapPolyline(coordinates: pathCoords)
-                    .stroke(.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
-            }
-
+            haloPolylines
+            trailPolylines
+            recordingPathPolyline
             UserAnnotation()
         }
         .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .excludingAll))
@@ -211,6 +136,98 @@ struct TrailMapView: View {
         }
         .onChange(of: location.liveHeading) { _, _ in
             if trackingMode == .followHeading { updateTrackedPosition() }
+        }
+    }
+
+    // MARK: - Map content (split out so the type-checker can keep up)
+
+    /// Cumulative-coverage halo: every past hike's GPS path drawn in
+    /// cyan beneath the trail polylines so walked sections glow
+    /// through. Off-trail portions (commute to/from trailhead) drop
+    /// out via `onTrailSegments`.
+    @MapContentBuilder
+    private var haloPolylines: some MapContent {
+        ForEach(Array(pastPaths.enumerated()), id: \.offset) { _, path in
+            let segments = onTrailSegments(path)
+            ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                MapPolyline(coordinates: segment)
+                    .stroke(
+                        .cyan.opacity(0.55),
+                        style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round)
+                    )
+            }
+        }
+    }
+
+    /// Trail polylines themselves, with the recording-mode purple
+    /// highlight folded in alongside the tap-to-highlight cyan/colored
+    /// strokes (same code path as ordinary rendering, just different
+    /// styling).
+    @MapContentBuilder
+    private var trailPolylines: some MapContent {
+        let recordingTrailId = activeRecording?.trailId
+        let highlightedTrailId = recordingTrailId ?? selectedTrailId
+        // Drop trails filtered out by the trail-list filter, but
+        // always keep the currently-recording trail and the currently-
+        // selected trail visible so the user can see what's happening.
+        let drawableTrails: [Trail] = visibleTrailIds.map { allowed in
+            area.trails.filter { trail in
+                allowed.contains(trail.id)
+                    || trail.id == recordingTrailId
+                    || trail.id == selectedTrailId
+            }
+        } ?? area.trails
+        ForEach(drawableTrails) { trail in
+            trailPolylineLayer(
+                trail: trail,
+                recordingTrailId: recordingTrailId,
+                highlightedTrailId: highlightedTrailId
+            )
+        }
+    }
+
+    @MapContentBuilder
+    private func trailPolylineLayer(
+        trail: Trail,
+        recordingTrailId: String?,
+        highlightedTrailId: String?
+    ) -> some MapContent {
+        let isRecordingThis = trail.id == recordingTrailId
+        let isSelected = trail.id == selectedTrailId
+        let isHighlighted = isRecordingThis || isSelected
+        let isComplete = progress.isComplete(areaId: area.id, trailId: trail.id)
+        let baseColor: Color = isRecordingThis
+            ? .purple
+            : (isComplete ? .cyan : difficultyColor(trail.difficulty))
+        let dimmed = (highlightedTrailId != nil && !isHighlighted)
+        // 0.5 (vs the earlier 0.25) keeps non-active trails legible
+        // next to the bold purple recording stroke without competing
+        // for attention.
+        let strokeColor = baseColor.opacity(dimmed ? 0.5 : 1.0)
+        let lineWidth: CGFloat = isRecordingThis ? 10 : (isSelected ? 6 : 3)
+        ForEach(Array(trail.segments.enumerated()), id: \.offset) { _, segment in
+            let coords: [CLLocationCoordinate2D] = segment.compactMap { node in
+                guard node.count >= 2 else { return nil }
+                return CLLocationCoordinate2D(latitude: node[0], longitude: node[1])
+            }
+            MapPolyline(coordinates: coords)
+                .stroke(
+                    strokeColor,
+                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+                )
+        }
+    }
+
+    /// Live recording GPS path drawn over the trails so the user can
+    /// see exactly where they've walked in this session.
+    @MapContentBuilder
+    private var recordingPathPolyline: some MapContent {
+        if let rec = activeRecording, rec.path.count > 1 {
+            let pathCoords = rec.path.map {
+                CLLocationCoordinate2D(latitude: $0[0], longitude: $0[1])
+            }
+            MapPolyline(coordinates: pathCoords)
+                .stroke(.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
         }
     }
 

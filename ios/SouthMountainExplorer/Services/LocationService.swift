@@ -118,3 +118,15 @@ extension LocationService: CLLocationManagerDelegate {
         }
     }
 }
+
+// CLLocationCoordinate2D doesn't conform to Equatable out of the box,
+// which trips up `.onChange(of: optionalCoord)` in SwiftUI. Add a
+// component-wise comparison so TrailMapView can observe liveLocation
+// updates. `@retroactive` acknowledges that Apple may add their own
+// conformance later; we'd see a clear conflict error here and drop
+// this extension.
+extension CLLocationCoordinate2D: @retroactive Equatable {
+    public static func == (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
+        lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
+    }
+}

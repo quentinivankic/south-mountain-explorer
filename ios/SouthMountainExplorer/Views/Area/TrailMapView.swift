@@ -49,6 +49,31 @@ enum MapTrackingMode: Int, CaseIterable {
     }
 }
 
+/// Lat/lon bounding box for a trail. Used by the viewport-cull pass
+/// in `trailPolylines` so SwiftUI doesn't have to diff a thousand
+/// MapPolyline children when only a few hundred are on-screen.
+struct DegreeBBox: Equatable {
+    let minLat: Double
+    let maxLat: Double
+    let minLon: Double
+    let maxLon: Double
+
+    /// Does this bbox intersect a (padded) `MKCoordinateRegion`?
+    /// `padding` of 1.25 means the cull keeps trails up to 25% of a
+    /// span past the visible edge, so small pans don't pop trails
+    /// in/out at the screen edges.
+    func intersects(_ region: MKCoordinateRegion, padding: Double = 1.25) -> Bool {
+        let halfLat = region.span.latitudeDelta * padding / 2
+        let halfLon = region.span.longitudeDelta * padding / 2
+        let rMinLat = region.center.latitude - halfLat
+        let rMaxLat = region.center.latitude + halfLat
+        let rMinLon = region.center.longitude - halfLon
+        let rMaxLon = region.center.longitude + halfLon
+        return !(maxLat < rMinLat || minLat > rMaxLat ||
+                 maxLon < rMinLon || minLon > rMaxLon)
+    }
+}
+
 struct TrailMapView: View {
     let area: Area
     let activeRecording: ActiveRecording?
@@ -91,6 +116,14 @@ struct TrailMapView: View {
     /// `pastPaths.count` changes — i.e. only when a new hike
     /// finishes — instead of per-render.
     @State private var cachedHaloSegments: [[[CLLocationCoordinate2D]]] = []
+    /// Per-trail lat/lon bounding box. Drives the viewport cull in
+    /// `trailPolylines` so 200+ trail areas only build MapPolyline
+    /// children for trails currently on (or near) the screen.
+    @State private var cachedTrailBboxes: [String: DegreeBBox] = [:]
+    /// Last reported visible camera region from `.onMapCameraChange`.
+    /// `nil` until the first camera-change fires — until then we
+    /// render every trail (no cull) so the first frame isn't blank.
+    @State private var visibleRegion: MKCoordinateRegion? = nil
 
     init(
         area: Area,
@@ -133,16 +166,27 @@ struct TrailMapView: View {
             MapScaleView()
         }
         .onAppear {
-            // Build all three caches (trail grid, per-trail polyline
-            // coords, per-hike halo segments) in one pass over the
-            // area's trails. Per-render Map work then collapses to
-            // dictionary lookups + MapPolyline construction.
+            // Build all four caches (trail grid, per-trail polyline
+            // coords, per-trail bbox, per-hike halo segments) in a
+            // single pass over the area's trails. Per-render Map
+            // work then collapses to dictionary lookups + bbox
+            // intersection + MapPolyline construction.
             var grid = SpatialGrid()
             var coords: [String: [[CLLocationCoordinate2D]]] = [:]
+            var bboxes: [String: DegreeBBox] = [:]
             for trail in area.trails {
                 var segs: [[CLLocationCoordinate2D]] = []
+                var minLat = Double.infinity, maxLat = -Double.infinity
+                var minLon = Double.infinity, maxLon = -Double.infinity
                 for seg in trail.segments {
-                    for node in seg { grid.insert(node) }
+                    for node in seg {
+                        grid.insert(node)
+                        guard node.count >= 2 else { continue }
+                        if node[0] < minLat { minLat = node[0] }
+                        if node[0] > maxLat { maxLat = node[0] }
+                        if node[1] < minLon { minLon = node[1] }
+                        if node[1] > maxLon { maxLon = node[1] }
+                    }
                     let segCoords: [CLLocationCoordinate2D] = seg.compactMap { node in
                         guard node.count >= 2 else { return nil }
                         return CLLocationCoordinate2D(latitude: node[0], longitude: node[1])
@@ -150,13 +194,27 @@ struct TrailMapView: View {
                     segs.append(segCoords)
                 }
                 coords[trail.id] = segs
+                if minLat.isFinite {
+                    bboxes[trail.id] = DegreeBBox(
+                        minLat: minLat, maxLat: maxLat,
+                        minLon: minLon, maxLon: maxLon
+                    )
+                }
             }
             cachedTrailGrid = grid
             cachedTrailCoords = coords
+            cachedTrailBboxes = bboxes
             // Halo cache uses the freshly-built grid (passed
             // explicitly so we don't depend on @State commit timing).
             cachedHaloSegments = pastPaths.map { onTrailSegments($0, grid: grid) }
             centerOnArea()
+        }
+        // Track the visible camera region so `trailPolylines` can
+        // viewport-cull. `.onEnd` fires once per gesture / animation
+        // settle — not per frame — which is what we want: a single
+        // re-cull per pan / zoom / tracking-mode camera step.
+        .onMapCameraChange(frequency: .onEnd) { context in
+            visibleRegion = context.region
         }
         .onChange(of: pastPaths.count) { _, _ in
             // New hike finished and AreaView reloaded pastPaths — refresh
@@ -230,16 +288,31 @@ struct TrailMapView: View {
     private var trailPolylines: some MapContent {
         let recordingTrailId = activeRecording?.trailId
         let highlightedTrailId = recordingTrailId ?? selectedTrailId
-        // Drop trails filtered out by the trail-list filter, but
-        // always keep the currently-recording trail and the currently-
-        // selected trail visible so the user can see what's happening.
-        let drawableTrails: [Trail] = visibleTrailIds.map { allowed in
-            area.trails.filter { trail in
-                allowed.contains(trail.id)
-                    || trail.id == recordingTrailId
-                    || trail.id == selectedTrailId
+        // Two filters layered. (1) Trail-list filter (visibleTrailIds),
+        // unchanged from before. (2) Viewport cull: drop trails whose
+        // bbox doesn't intersect the (padded) visible camera region,
+        // so 200+ trail areas only build MapPolyline children for
+        // what's on screen. Both filters exempt the recording and
+        // selected trails — they must stay rendered even when the
+        // camera has panned away.
+        let drawableTrails: [Trail] = area.trails.filter { trail in
+            let isExempt = trail.id == recordingTrailId
+                || trail.id == selectedTrailId
+            if let allowed = visibleTrailIds,
+               !allowed.contains(trail.id),
+               !isExempt {
+                return false
             }
-        } ?? area.trails
+            if isExempt { return true }
+            if let region = visibleRegion,
+               let bbox = cachedTrailBboxes[trail.id] {
+                return bbox.intersects(region)
+            }
+            // No region reported yet (initial frame, before the first
+            // .onMapCameraChange fires) — render everything so the
+            // first paint isn't blank.
+            return true
+        }
         ForEach(drawableTrails) { trail in
             trailPolylineLayer(
                 trail: trail,

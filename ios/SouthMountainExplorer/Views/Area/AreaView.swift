@@ -158,6 +158,24 @@ struct AreaView: View {
                         }
                         controlBar(area: area)
                         if isRecording {
+                            // Retarget banner: only shown when the user has
+                            // tapped a trail different from the one the
+                            // recording is targeted at. Tapping Switch flips
+                            // `RecordingService.activeRecording.trailId` and
+                            // clears the selection (so the banner unmounts);
+                            // tapping × just clears the selection. Coverage
+                            // accumulation isn't affected — only the
+                            // end-of-recording classification.
+                            if let retargetTrail = retargetCandidate(area: area) {
+                                RetargetTrailBanner(
+                                    selectedTrail: retargetTrail,
+                                    onSwitch: {
+                                        recording.retargetTrail(retargetTrail.id)
+                                        selectedTrailId = nil
+                                    },
+                                    onDismiss: { selectedTrailId = nil }
+                                )
+                            }
                             RecordingPanel(area: area) { finished in
                                 finishedRecording = finished
                                 showSummary = finished != nil
@@ -387,6 +405,22 @@ struct AreaView: View {
         pastPaths = history
             .filter { $0.areaId == areaId }
             .map { $0.path }
+    }
+
+    /// Trail the retarget banner should offer to switch to, or nil
+    /// if no banner should render. Nil when there's no recording,
+    /// no selected trail, the selected trail IS the recording
+    /// trail, the recording is in roam mode (no trail to switch
+    /// from), or the selection points at a trail not in this
+    /// area's list (defensive — shouldn't happen, but cheap to
+    /// guard).
+    private func retargetCandidate(area: Area) -> Trail? {
+        guard let activeRec = recording.activeRecording,
+              activeRec.mode == .trail,
+              let selectedId = selectedTrailId,
+              selectedId != activeRec.trailId
+        else { return nil }
+        return area.trails.first(where: { $0.id == selectedId })
     }
 
     /// Pull recorded hike history once and use it for both:

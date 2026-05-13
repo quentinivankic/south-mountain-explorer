@@ -157,6 +157,46 @@ final class RecordingService {
         UserDefaults.standard.removeObject(forKey: persistKey)
     }
 
+    /// Switch which trail the active recording is targeted at,
+    /// without stopping the recording. Used by the recording panel
+    /// when the user taps a different trail mid-hike (e.g. they
+    /// detoured onto an adjacent trail and want the celebration to
+    /// fire against the new one instead of the original target).
+    ///
+    /// Coverage continues to accumulate against every trail the
+    /// GPS path crosses — that's already how CoverageService
+    /// works, and we don't touch it here. The retarget only
+    /// changes the *classification* that stopRecording uses for
+    /// the end-of-trail celebration and history-entry trailId.
+    ///
+    /// No-op when there's no active recording, the recording is
+    /// in roam mode (no trail to switch from), or the new id
+    /// matches the current one.
+    func retargetTrail(_ newTrailId: String) {
+        guard let rec = activeRecording,
+              let updated = Self.retargeted(rec, newTrailId: newTrailId)
+        else { return }
+        activeRecording = updated
+        persist()
+    }
+
+    /// Pure-function form of `retargetTrail` so tests can exercise
+    /// the gating + struct-rebuild without instantiating the
+    /// `@MainActor` singleton. Returns the rebuilt `ActiveRecording`
+    /// when the retarget is valid, or `nil` to indicate "no-op."
+    nonisolated static func retargeted(_ rec: ActiveRecording, newTrailId: String) -> ActiveRecording? {
+        guard rec.mode == .trail, rec.trailId != newTrailId else { return nil }
+        return ActiveRecording(
+            areaId: rec.areaId,
+            mode: rec.mode,
+            trailId: newTrailId,
+            startedAt: rec.startedAt,
+            path: rec.path,
+            distanceMi: rec.distanceMi,
+            priorCompleteTrailIds: rec.priorCompleteTrailIds
+        )
+    }
+
     func stopRecording(trails: [Trail]) async -> FinishedRecording? {
         guard let rec = activeRecording else { return nil }
         locationObserver?.cancel()

@@ -127,7 +127,11 @@ struct TrailMapView: View {
         // Compute the initial camera target synchronously so the
         // first frame paints the right region — no flash to a
         // default location before .onAppear fires.
-        self._cameraTarget = State(initialValue: Self.regionCoveringArea(area: area, bottomInset: bottomInset))
+        self._cameraTarget = State(initialValue: Self.regionCoveringArea(
+            area: area,
+            bottomInset: bottomInset,
+            screenHeight: UIScreen.main.bounds.height
+        ))
     }
 
     var body: some View {
@@ -305,12 +309,17 @@ struct TrailMapView: View {
             centerLon: coord.longitude,
             latDelta: latDelta,
             lonDelta: lonDelta,
-            bottomInset: bottomInset
+            bottomInset: bottomInset,
+            screenHeight: UIScreen.main.bounds.height
         ))
     }
 
     private func centerOnArea() {
-        setCameraTarget(Self.regionCoveringArea(area: area, bottomInset: bottomInset))
+        setCameraTarget(Self.regionCoveringArea(
+            area: area,
+            bottomInset: bottomInset,
+            screenHeight: UIScreen.main.bounds.height
+        ))
     }
 
     private func centerOn(trail: Trail) {
@@ -328,7 +337,8 @@ struct TrailMapView: View {
             centerLon: (minLon + maxLon) / 2,
             latDelta: max((maxLat - minLat) * 1.4, 0.005),
             lonDelta: max((maxLon - minLon) * 1.4, 0.005),
-            bottomInset: bottomInset
+            bottomInset: bottomInset,
+            screenHeight: UIScreen.main.bounds.height
         ))
     }
 
@@ -377,15 +387,24 @@ struct TrailMapView: View {
     /// that visible top portion. Without this, the bottom of the
     /// framed region was hidden behind the recording panel or trail
     /// list sheet.
-    static func fittedRegion(
+    ///
+    /// `screenHeight` is plumbed in by the caller rather than read
+    /// from `UIScreen.main` inside this function so the math stays
+    /// `nonisolated` and unit-testable — `UIScreen.main` is itself
+    /// `@MainActor`, and pulling it into a pure helper would force
+    /// every caller (including XCTests) onto the main actor for no
+    /// real reason. Call sites in TrailMapView already run on the
+    /// main actor, so reading `UIScreen.main` at the call site is
+    /// free for them.
+    nonisolated static func fittedRegion(
         centerLat: Double, centerLon: Double,
         latDelta: Double, lonDelta: Double,
-        bottomInset: CGFloat
+        bottomInset: CGFloat,
+        screenHeight: CGFloat
     ) -> MapTarget {
-        let screenH = UIScreen.main.bounds.height
         // Cap p at 0.7 so a worst-case panel-covers-everything state
         // still leaves a sane minimum visible area.
-        let p = min(0.7, bottomInset / max(screenH, 1))
+        let p = min(0.7, bottomInset / max(screenHeight, 1))
         let visibleFraction = max(0.3, 1 - p)
 
         // Inflate the latitudinal span so the requested content fits
@@ -406,7 +425,7 @@ struct TrailMapView: View {
         )
     }
 
-    static func regionCoveringArea(area: Area, bottomInset: CGFloat) -> MapTarget {
+    nonisolated static func regionCoveringArea(area: Area, bottomInset: CGFloat, screenHeight: CGFloat) -> MapTarget {
         let coords = area.trails
             .flatMap { $0.segments.flatMap { $0 } }
             .compactMap { p -> (lat: Double, lon: Double)? in
@@ -425,7 +444,8 @@ struct TrailMapView: View {
                 // 1.3x padding so trails don't kiss the visible edges.
                 latDelta: max((maxLat - minLat) * 1.3, 0.01),
                 lonDelta: max((maxLon - minLon) * 1.3, 0.01),
-                bottomInset: bottomInset
+                bottomInset: bottomInset,
+                screenHeight: screenHeight
             )
         }
 
@@ -435,7 +455,8 @@ struct TrailMapView: View {
                 centerLon: (bbox[0] + bbox[2]) / 2,
                 latDelta: max(abs(bbox[3] - bbox[1]) * 1.2, 0.01),
                 lonDelta: max(abs(bbox[2] - bbox[0]) * 1.2, 0.01),
-                bottomInset: bottomInset
+                bottomInset: bottomInset,
+                screenHeight: screenHeight
             )
         }
 

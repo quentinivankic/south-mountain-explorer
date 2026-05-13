@@ -1,0 +1,104 @@
+name: iOS – PR build & test
+
+# Fast compile-check + unit-test gate that runs on every pull
+# request touching iOS sources, the test target, the bundled trail
+# data, or the project config. Catches Swift compiler / type errors
+# and any regression in the unit tests before code lands on main —
+# without the cert / provisioning / TestFlight upload overhead of
+# `ios-testflight.yml`.
+#
+# Build is performed against the iOS Simulator with code signing
+# fully disabled so this workflow needs no secrets.
+
+on:
+  pull_request:
+    paths:
+      - "ios/**"
+      - "public/areas/index.json"
+      - "public/areas/silhouettes.json"
+      - ".github/workflows/ios-pr-build.yml"
+  workflow_dispatch:
+
+# Cancel an in-flight build for a PR when a new commit lands on its
+# branch — no point continuing the older build's compile+test if
+# the user just pushed a fix.
+concurrency:
+  group: ios-pr-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: sudo xcode-select -s /Applications/Xcode_26.0.app/Contents/Developer
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Rebuild trail index from cache and copy into bundle
+        # Same as ios-testflight.yml — Resources/ inputs need to be
+        # present before `xcodegen generate` runs the build target.
+        # `--cache-only` skips all network traffic so this step
+        # finishes in under a second.
+        run: |
+          python3 scripts/build-trail-counts.py --cache-only
+          cp public/areas/index.json ios/SouthMountainExplorer/Resources/areas-index.json
+          cp public/areas/silhouettes.json ios/SouthMountainExplorer/Resources/silhouettes.json
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build (iOS Simulator, no code signing)
+        working-directory: ios
+        # Build for the simulator destination so signing isn't
+        # required. The three CODE_SIGN_* overrides defensively
+        # disable signing even though simulator builds default to
+        # off — guarantees we never bounce on a missing provisioning
+        # profile.
+        #
+        # `-quiet` keeps the log small enough to skim when a build
+        # fails; full xcodebuild output dumps thousands of lines per
+        # target.
+        run: |
+          xcodebuild build \
+            -project SouthMountainExplorer.xcodeproj \
+            -scheme SouthMountainExplorer \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" \
+            -quiet \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Run unit tests (iOS Simulator)
+        working-directory: ios
+        # `test` reuses the build products from the previous step
+        # via Xcode's derived-data cache, so this is fast — only the
+        # test target itself recompiles + the simulator boots.
+        #
+        # No `-quiet` here, intentionally: when a test fails we
+        # want the per-test output (failure messages, expected vs
+        # actual, file:line) in the CI log so it can be diagnosed
+        # without rerunning locally. The build step above stays
+        # quiet because its only useful output is errors/warnings,
+        # which xcodebuild emits even with `-quiet`.
+        run: |
+          xcodebuild test \
+            -project SouthMountainExplorer.xcodeproj \
+            -scheme SouthMountainExplorer \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO

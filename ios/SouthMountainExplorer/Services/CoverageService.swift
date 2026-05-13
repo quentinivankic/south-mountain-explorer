@@ -42,6 +42,24 @@ final class CoverageService {
     /// with stable post-fix ids. On collision (two old keys collapse
     /// to the same canonical key), keep the higher fraction.
     func rekeyTrailIds(_ transform: (String) -> String) {
+        state = Self.rekey(state, transform: transform)
+        saveLocal()
+    }
+
+    /// Pure-function form of the rekey-with-collision-merge logic.
+    /// Lives alongside the instance method so unit tests can
+    /// exercise the merge rule without singleton / UserDefaults
+    /// plumbing. The collision rule is "keep the higher fraction"
+    /// — when two old keys collapse to the same canonical key, we
+    /// preserve whatever the user has actually covered the most of.
+    ///
+    /// `nonisolated` because this is a pure function over its
+    /// arguments — it touches no `CoverageService` instance state.
+    /// Without this the static would inherit the enclosing class's
+    /// `@MainActor` isolation and become unreachable from
+    /// non-actor-isolated callers (including unit tests).
+    nonisolated static func rekey(_ state: [String: [String: Double]],
+                                  transform: (String) -> String) -> [String: [String: Double]] {
         var newState: [String: [String: Double]] = [:]
         for (areaId, areaCov) in state {
             var newArea: [String: Double] = [:]
@@ -51,8 +69,7 @@ final class CoverageService {
             }
             newState[areaId] = newArea
         }
-        state = newState
-        saveLocal()
+        return newState
     }
 
     // MARK: - Local persistence

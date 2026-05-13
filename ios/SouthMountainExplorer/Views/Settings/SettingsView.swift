@@ -8,7 +8,12 @@ private struct UserStats: Equatable {
     var areasExplored: Int
 }
 
-private let privacyPolicyURL = URL(string: "https://quentinivankic.github.io/south-mountain-explorer/privacy/")!
+/// Privacy policy hosting location. Set once the v1 host is chosen
+/// (non-GitHub) so the Privacy Policy row in Settings starts rendering.
+/// Until then the row stays hidden — App Store Connect carries the
+/// authoritative privacy policy URL the user sees on the TestFlight
+/// listing.
+private let privacyPolicyURL: URL? = nil
 
 /// Small `Identifiable` wrapper around a `URL` so we can drive a
 /// `.sheet(item:)` from the diagnostics-export flow. `URL` itself
@@ -310,8 +315,10 @@ struct SettingsView: View {
                 Section("About") {
                     LabeledContent("Version", value: appVersion)
                     LabeledContent("Build", value: buildNumber)
-                    Link(destination: privacyPolicyURL) {
-                        Label("Privacy Policy", systemImage: "hand.raised")
+                    if let url = privacyPolicyURL {
+                        Link(destination: url) {
+                            Label("Privacy Policy", systemImage: "hand.raised")
+                        }
                     }
                 }
             }

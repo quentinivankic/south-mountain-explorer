@@ -9,6 +9,12 @@ enum StorageKeys {
     static let onboarded = "summit:onboarded"
     static let theme = "summit:theme"
 
+    /// Developer-facing debug HUD toggle. When true, TrailMapView
+    /// overlays a translucent box showing FPS, MKMapView overlay
+    /// count, last `updateUIView` duration, and resident memory.
+    /// Off by default; flipped from Settings → Developer.
+    static let debugHUD = "summit:debug-hud"
+
     // MARK: - User progress (cleared by Reset All Progress)
 
     static let completedTrails = "summit:completed"

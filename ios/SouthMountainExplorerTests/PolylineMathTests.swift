@@ -135,6 +135,22 @@ struct PolylineMathTests {
         #expect(!PolylineMath.isLoop(coords))
     }
 
+    @Test func isLoop_falseForOutAndBackWith30mEndpointGap() {
+        // Regression test for the build-12 device-test bug: an
+        // out-and-back trail whose OSM polyline starts at the
+        // trailhead and ends at the summit had a ~30m gap between
+        // first and last vertex. Under the old 50m threshold this
+        // misclassified as a loop and short-circuited TrailETA to
+        // nil. The new 10m threshold lets it pass as linear.
+        // 0.00027° lat ≈ 30 m at lat 33.3.
+        let coords = [
+            CLLocationCoordinate2D(latitude: 33.3,        longitude: -112.0),
+            CLLocationCoordinate2D(latitude: 33.305,      longitude: -112.0),
+            CLLocationCoordinate2D(latitude: 33.30027,    longitude: -112.0),
+        ]
+        #expect(!PolylineMath.isLoop(coords))
+    }
+
     // MARK: - Trail.flattenedCoords
 
     @Test func flattenedCoords_concatenatesSegments() {

@@ -141,9 +141,15 @@ struct TrailListView: View {
 
             Divider()
 
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    if filteredTrails.isEmpty {
+            // ScrollViewReader so we can scroll the just-selected
+            // trail's row into view when the user taps a trail on
+            // the map. Without this, selecting a trail far down the
+            // alphabetical list left the row off-screen and the
+            // selection was effectively invisible.
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        if filteredTrails.isEmpty {
                         VStack(spacing: 6) {
                             Image(systemName: activeFilterCount > 0
                                   ? "line.3.horizontal.decrease.circle"
@@ -188,6 +194,10 @@ struct TrailListView: View {
                                 selectedTrailId: $selectedTrailId,
                                 onRecordTrail: onRecordTrail
                             )
+                            // Tag each row with the trail id so
+                            // ScrollViewReader can target it via
+                            // proxy.scrollTo when selection changes.
+                            .id(trail.id)
                             Divider().padding(.leading)
                         }
                     }
@@ -198,6 +208,16 @@ struct TrailListView: View {
                 // padding to push it back up. ~50pt covers the home
                 // indicator area on every modern iPhone with margin.
                 .padding(.bottom, 50)
+            }
+            .onChange(of: selectedTrailId) { _, newId in
+                guard let newId else { return }
+                // Animate the row into view. LazyVStack only realizes
+                // rows that are on-screen, so scrollTo must trigger
+                // both the scroll AND lazy-row materialization.
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    proxy.scrollTo(newId, anchor: .center)
+                }
+            }
             }
         }
     }

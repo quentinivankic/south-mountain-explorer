@@ -40,9 +40,20 @@ enum TrailSuggestionEngine {
     /// "you could knock it out in well under an hour." Tweakable
     /// per-call so a future Settings toggle or an A/B test can
     /// loosen / tighten without editing the engine.
-    static let defaultMaxDetourMeters: Double = 200
-    static let defaultMaxRemainingMiles: Double = 1.0
-    static let defaultCompleteThreshold: Double = 0.9
+    /// Defaults tightened after the build-12 device test surfaced
+    /// that the original 200 m / 1.0 mi caps excluded every
+    /// surrounding trail in South Mountain (most are 1-2 mi and
+    /// users hike multiple at a time). 300 m / 1.5 mi qualifies
+    /// realistic detour candidates without crossing into "this
+    /// isn't really a detour anymore" territory.
+    static let defaultMaxDetourMeters: Double = 300
+    static let defaultMaxRemainingMiles: Double = 1.5
+    /// Tracks the completion threshold from RecordingService —
+    /// bumped from 0.9 → 0.95 in build 13. The engine's "skip
+    /// already-completed trails" filter uses the same cutoff so a
+    /// trail the user just completed doesn't keep getting
+    /// suggested.
+    static let defaultCompleteThreshold: Double = 0.95
 
     static func candidates(
         userLocation: CLLocationCoordinate2D,

@@ -128,8 +128,18 @@ enum PolylineMath {
     /// vertex within `closingThresholdMeters`. Loop trails have no
     /// natural "end" for ETA purposes, so the recording panel
     /// shows "—" for them rather than a meaningless number.
+    ///
+    /// Default threshold dropped from 50 m → 10 m after the build
+    /// 12 device test surfaced an out-and-back trail whose first
+    /// and last vertices happened to be ~30 m apart (typical for
+    /// open OSM ways at trailhead-to-summit-and-back). The 50 m
+    /// threshold classified it as a loop, `TrailETA.compute`
+    /// short-circuited to nil, and the ETA pill never appeared.
+    /// 10 m is tight enough that only genuinely closed polylines
+    /// (where the OSM way closes on itself, vertex coincidence
+    /// well under 1 m) qualify.
     static func isLoop(_ coords: [CLLocationCoordinate2D],
-                       closingThresholdMeters: Double = 50) -> Bool {
+                       closingThresholdMeters: Double = 10) -> Bool {
         guard let first = coords.first, let last = coords.last, coords.count >= 3 else { return false }
         let d = MapMath.haversineMeters(
             lat1: first.latitude, lon1: first.longitude,

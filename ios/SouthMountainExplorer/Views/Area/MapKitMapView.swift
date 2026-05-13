@@ -484,7 +484,7 @@ struct MapKitMapView: UIViewRepresentable {
                 CGPoint(x: pt.x + 22, y: pt.y),
                 toCoordinateFrom: mapView
             )
-            let toleranceMeters = haversineMeters(
+            let toleranceMeters = MapMath.haversineMeters(
                 lat1: tapCoord.latitude, lon1: tapCoord.longitude,
                 lat2: edgeCoord.latitude, lon2: edgeCoord.longitude
             )
@@ -527,7 +527,9 @@ struct MapKitMapView: UIViewRepresentable {
         /// segment of `polyline`. Iterates the polyline's points in
         /// pairs and runs point-to-segment math in flat-earth
         /// approximation — adequate for trail-scale (single-area)
-        /// distances where 1° lat ≈ 111 km.
+        /// distances where 1° lat ≈ 111 km. The actual math lives in
+        /// `MapMath` so it's reachable from the unit-test target;
+        /// this method just unpacks the MKPolyline's coords buffer.
         private func distance(from tap: CLLocationCoordinate2D,
                               toPolyline polyline: MKPolyline) -> Double {
             let n = polyline.pointCount
@@ -535,54 +537,78 @@ struct MapKitMapView: UIViewRepresentable {
             let coordsPtr = UnsafeMutablePointer<CLLocationCoordinate2D>.allocate(capacity: n)
             defer { coordsPtr.deallocate() }
             polyline.getCoordinates(coordsPtr, range: NSRange(location: 0, length: n))
+            let coords = Array(UnsafeBufferPointer(start: coordsPtr, count: n))
+            return MapMath.distanceFromPoint(tap, toPolylineCoords: coords)
+        }
+    }
+}
 
-            let tapLat = tap.latitude * .pi / 180
-            let metersPerLat = 111_000.0
-            let metersPerLon = 111_000.0 * cos(tapLat)
+/// Map-coordinate math broken out from `MapKitMapView.Coordinator`
+/// into a namespace so unit tests can reach it via
+/// `@testable import SouthMountainExplorer`. Everything here is
+/// pure — no MKMapView / UIKit state — so the tests run on any
+/// platform the test bundle supports.
+enum MapMath {
+    /// Minimum flat-earth distance in meters from `tap` to the
+    /// polyline described by `coords`. Returns `.infinity` for a
+    /// polyline of fewer than two points.
+    static func distanceFromPoint(_ tap: CLLocationCoordinate2D,
+                                  toPolylineCoords coords: [CLLocationCoordinate2D]) -> Double {
+        guard coords.count >= 2 else { return .infinity }
+        let tapLat = tap.latitude * .pi / 180
+        let metersPerLat = 111_000.0
+        let metersPerLon = 111_000.0 * cos(tapLat)
 
-            func toMeters(_ c: CLLocationCoordinate2D) -> (x: Double, y: Double) {
-                let dx = (c.longitude - tap.longitude) * metersPerLon
-                let dy = (c.latitude - tap.latitude) * metersPerLat
-                return (dx, dy)
-            }
-
-            var best = Double.infinity
-            for i in 0..<(n - 1) {
-                let a = toMeters(coordsPtr[i])
-                let b = toMeters(coordsPtr[i + 1])
-                let d = pointToSegmentDistance(px: 0, py: 0,
-                                               ax: a.x, ay: a.y,
-                                               bx: b.x, by: b.y)
-                if d < best { best = d }
-            }
-            return best
+        func toMeters(_ c: CLLocationCoordinate2D) -> (x: Double, y: Double) {
+            let dx = (c.longitude - tap.longitude) * metersPerLon
+            let dy = (c.latitude - tap.latitude) * metersPerLat
+            return (dx, dy)
         }
 
-        private func pointToSegmentDistance(px: Double, py: Double,
-                                            ax: Double, ay: Double,
-                                            bx: Double, by: Double) -> Double {
-            let dx = bx - ax, dy = by - ay
-            let lengthSq = dx * dx + dy * dy
-            if lengthSq == 0 {
-                let ex = px - ax, ey = py - ay
-                return (ex * ex + ey * ey).squareRoot()
-            }
-            var t = ((px - ax) * dx + (py - ay) * dy) / lengthSq
-            t = max(0, min(1, t))
-            let qx = ax + t * dx, qy = ay + t * dy
-            let ex = px - qx, ey = py - qy
+        var best = Double.infinity
+        for i in 0..<(coords.count - 1) {
+            let a = toMeters(coords[i])
+            let b = toMeters(coords[i + 1])
+            let d = pointToSegmentDistance(px: 0, py: 0,
+                                           ax: a.x, ay: a.y,
+                                           bx: b.x, by: b.y)
+            if d < best { best = d }
+        }
+        return best
+    }
+
+    /// Perpendicular distance from `(px, py)` to the line segment
+    /// `(ax, ay)`–`(bx, by)`. Clamps to endpoints when the
+    /// perpendicular foot lands outside the segment. Returns 0 for
+    /// degenerate (zero-length) segments where the start point is
+    /// the closest point.
+    static func pointToSegmentDistance(px: Double, py: Double,
+                                       ax: Double, ay: Double,
+                                       bx: Double, by: Double) -> Double {
+        let dx = bx - ax, dy = by - ay
+        let lengthSq = dx * dx + dy * dy
+        if lengthSq == 0 {
+            let ex = px - ax, ey = py - ay
             return (ex * ex + ey * ey).squareRoot()
         }
+        var t = ((px - ax) * dx + (py - ay) * dy) / lengthSq
+        t = max(0, min(1, t))
+        let qx = ax + t * dx, qy = ay + t * dy
+        let ex = px - qx, ey = py - qy
+        return (ex * ex + ey * ey).squareRoot()
+    }
 
-        private func haversineMeters(lat1: Double, lon1: Double,
-                                     lat2: Double, lon2: Double) -> Double {
-            let R = 6_371_000.0
-            let dLat = (lat2 - lat1) * .pi / 180
-            let dLon = (lon2 - lon1) * .pi / 180
-            let a = sin(dLat / 2) * sin(dLat / 2) +
-                cos(lat1 * .pi / 180) * cos(lat2 * .pi / 180) *
-                sin(dLon / 2) * sin(dLon / 2)
-            return 2 * R * atan2(sqrt(a), sqrt(1 - a))
-        }
+    /// Great-circle distance in meters between two lat/lon pairs via
+    /// the haversine formula. Earth radius taken as 6 371 000 m
+    /// (mean radius). Accurate to within ~0.5% at trail scale.
+    static func haversineMeters(lat1: Double, lon1: Double,
+                                lat2: Double, lon2: Double) -> Double {
+        let R = 6_371_000.0
+        let dLat = (lat2 - lat1) * .pi / 180
+        let dLon = (lon2 - lon1) * .pi / 180
+        let a = sin(dLat / 2) * sin(dLat / 2) +
+            cos(lat1 * .pi / 180) * cos(lat2 * .pi / 180) *
+            sin(dLon / 2) * sin(dLon / 2)
+        return 2 * R * atan2(sqrt(a), sqrt(1 - a))
     }
 }

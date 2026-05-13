@@ -10,7 +10,7 @@ import UIKit
 /// drops half the signal.
 ///
 /// Logs are pulled from `OSLogStore`, scoped to the subsystem the
-/// app's `OSLog` instances already use (`com.southmountainexplorer.app`,
+/// app's `OSLog` instances already use (`com.trekdex.app`,
 /// see `AreaDataService.areaLoadLog`). Entries from system
 /// frameworks are filtered out so the bundle stays small and
 /// human-readable.
@@ -48,7 +48,7 @@ enum DiagnosticsService {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(bundle)
-        let filename = "south-mountain-diagnostics-\(Int(Date().timeIntervalSince1970)).json"
+        let filename = "trekdex-diagnostics-\(Int(Date().timeIntervalSince1970)).json"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         try data.write(to: url, options: .atomic)
         return url
@@ -56,7 +56,7 @@ enum DiagnosticsService {
 
     // MARK: - OSLog collection
 
-    private static let logSubsystem = "com.southmountainexplorer.app"
+    private static let logSubsystem = "com.trekdex.app"
 
     /// Pull recent log entries from `OSLogStore`. Scoped to this
     /// process so we don't accidentally bundle other apps' logs;

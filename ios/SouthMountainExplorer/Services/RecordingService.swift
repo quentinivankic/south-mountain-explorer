@@ -8,7 +8,7 @@ import OSLog
 /// sequence of events that led to it, not just the user's
 /// reconstruction. Subsystem matches `DiagnosticsService`'s
 /// filter so the entries land in the bundle.
-private let log = Logger(subsystem: "com.southmountainexplorer.app", category: "recording")
+private let log = Logger(subsystem: "com.trekdex.app", category: "recording")
 
 /// Fraction-of-trail-nodes-covered required for a trail to count
 /// as complete. Bumped from 0.90 → 0.95 in build 13 after device

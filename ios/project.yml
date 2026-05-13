@@ -18,8 +18,8 @@ targets:
     info:
       path: SouthMountainExplorer/Info.plist
       properties:
-        CFBundleName: South Mountain Explorer
-        CFBundleDisplayName: South Mountain Explorer
+        CFBundleName: TrekDex
+        CFBundleDisplayName: TrekDex
         CFBundleShortVersionString: "1.0"
         CFBundleVersion: "1"
         CFBundleIconName: AppIcon
@@ -30,8 +30,8 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        NSLocationWhenInUseUsageDescription: "South Mountain Explorer uses your location to find nearby trails and show your position on the map."
-        NSLocationAlwaysAndWhenInUseUsageDescription: "South Mountain Explorer uses your location in the background to record your hike even when the app is minimised."
+        NSLocationWhenInUseUsageDescription: "TrekDex uses your location to find nearby trails and show your position on the map."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "TrekDex uses your location in the background to record your hike even when the app is minimised."
         UIBackgroundModes:
           - location
         ITSAppUsesNonExemptEncryption: false

@@ -14,7 +14,7 @@ final class NetworkService {
     private(set) var isExpensive: Bool = false
 
     private let monitor = NWPathMonitor()
-    private let queue = DispatchQueue(label: "com.southmountainexplorer.network-monitor")
+    private let queue = DispatchQueue(label: "com.trekdex.network-monitor")
 
     private init() {
         monitor.pathUpdateHandler = { [weak self] path in

@@ -89,7 +89,7 @@ struct DiagnosticsTests {
         // DiagnosticsService filter accepts it. The category is
         // unique to this test so we can scan the bundle for it
         // without colliding with real app logs.
-        let log = Logger(subsystem: "com.southmountainexplorer.app", category: "DiagnosticsTests")
+        let log = Logger(subsystem: "com.trekdex.app", category: "DiagnosticsTests")
         let marker = "diagnostics-marker-\(UUID().uuidString)"
         log.info("\(marker, privacy: .public)")
 

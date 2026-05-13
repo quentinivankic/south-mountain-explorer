@@ -6,7 +6,7 @@ import OSLog
 /// Lands in the Send Diagnostics bundle so a field report carries
 /// the sequence of UI events the user saw, not just the recording
 /// state.
-private let log = Logger(subsystem: "com.southmountainexplorer.app", category: "area")
+private let log = Logger(subsystem: "com.trekdex.app", category: "area")
 
 private let farFromAreaThresholdMi = 5.0
 

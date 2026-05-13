@@ -19,7 +19,7 @@ struct OnboardingView: View {
                     )
                     .symbolEffect(.bounce, value: true)
 
-                Text("South Mountain Explorer")
+                Text("TrekDex")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)

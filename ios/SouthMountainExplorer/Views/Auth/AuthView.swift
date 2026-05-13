@@ -15,7 +15,7 @@ struct AuthView: View {
                     Image(systemName: "mountain.2.fill")
                         .font(.system(size: 72))
                         .foregroundStyle(.green)
-                    Text("South Mountain Explorer")
+                    Text("TrekDex")
                         .font(.title2.bold())
                     Text("Sign in to record hikes and\ntrack your trail progress.")
                         .font(.subheadline)

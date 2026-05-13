@@ -1,4 +1,4 @@
-# South Mountain Explorer – iOS App
+# TrekDex – iOS App
 
 SwiftUI app targeting iOS 26 with native Liquid Glass UI.
 

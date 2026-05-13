@@ -5,7 +5,7 @@ import OSLog
 /// (Logging template) to see where slow opens spend their time:
 /// `fetchFromCdn` is network + JSON parse; the `area(id:)` interval
 /// wraps the whole disk-cache-or-fetch path.
-private let areaLoadLog = OSLog(subsystem: "com.southmountainexplorer.app", category: "areaLoad")
+private let areaLoadLog = OSLog(subsystem: "com.trekdex.app", category: "areaLoad")
 
 /// jsDelivr CDN mirror of the precomputed per-area trail geometry. The
 /// workflow writes `public/areas/geom/<id>.json` on every build; jsDelivr

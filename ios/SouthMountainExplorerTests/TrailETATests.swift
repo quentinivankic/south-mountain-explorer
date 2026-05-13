@@ -80,7 +80,7 @@ struct TrailETATests {
         #expect(value ?? 0 < 600)
     }
 
-    @Test func eta_doublePaceHalvesTime() {
+    @Test func eta_doublePaceHalvesTime() throws {
         let coord = CLLocationCoordinate2D(latitude: 33.3, longitude: -112.0)
         let slow = TrailETA.compute(currentLocation: coord, trail: Self.linearTrail, paceMetersPerSec: 1.0)
         let fast = TrailETA.compute(currentLocation: coord, trail: Self.linearTrail, paceMetersPerSec: 2.0)

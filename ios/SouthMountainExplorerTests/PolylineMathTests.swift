@@ -70,7 +70,7 @@ struct PolylineMathTests {
         #expect(projection?.perpendicularDistance ?? -1 < 0.5)
     }
 
-    @Test func project_pointOffSegmentMeasuresPerpendicular() {
+    @Test func project_pointOffSegmentMeasuresPerpendicular() throws {
         // Polyline runs north along longitude -112.0. Tap at
         // longitude -111.9999 (about 9.3 m east at lat 33.3).
         // Arc length should be midway, perpendicular ~9.3 m.
@@ -87,7 +87,7 @@ struct PolylineMathTests {
                 "Expected ~9.28 m perpendicular, got \(projection.perpendicularDistance)")
     }
 
-    @Test func project_picksClosestSegmentOnMultiSegmentPath() {
+    @Test func project_picksClosestSegmentOnMultiSegmentPath() throws {
         // Two segments — one near origin, one far east. Tap near
         // the second one and verify it's picked, with arc length
         // > first segment's length.

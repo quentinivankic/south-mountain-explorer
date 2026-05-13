@@ -75,7 +75,16 @@ struct TrailCoverageTests {
     }
 
     @Test func sparsePathBelowMinFractionFiltersOut() {
-        let trail = linearTrail(count: 100)
+        // Trail with 100 nodes spaced ~111 m apart (deltaLat 0.001),
+        // chosen so the 30 m coverage buffer in measureCoverage
+        // catches at most one trail node per GPS sample — otherwise
+        // the buffer reaches into adjacent neighbors and the
+        // fraction climbs out of the "sparse" range the filter is
+        // supposed to drop. With the default trail (1.1 m node
+        // spacing) the buffer would catch ~27 neighbors and produce
+        // fraction 0.27, which is what slipped this test past
+        // review back when the test target wasn't wired to CI.
+        let trail = linearTrail(count: 100, deltaLat: 0.001)
         // Three GPS samples clustered around a single node — fraction
         // is ~0.01 (1 node out of 100), below the default 0.02 sparse
         // filter, so the trail drops out of the result entirely.

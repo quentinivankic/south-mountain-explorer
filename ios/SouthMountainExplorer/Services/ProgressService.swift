@@ -117,8 +117,14 @@ final class ProgressService {
     /// Collision rule: keep the earlier ISO8601 timestamp. The
     /// timestamps are formatted ISO8601 strings, so lexicographic
     /// comparison gives chronological ordering.
-    static func rekey(_ completions: [String: [String: String]],
-                      transform: (String) -> String) -> [String: [String: String]] {
+    ///
+    /// `nonisolated` because this is a pure function over its
+    /// arguments — it touches no `ProgressService` instance state.
+    /// Without this the static would inherit the enclosing class's
+    /// `@MainActor` isolation and become unreachable from
+    /// non-actor-isolated callers (including unit tests).
+    nonisolated static func rekey(_ completions: [String: [String: String]],
+                                  transform: (String) -> String) -> [String: [String: String]] {
         var newCompletions: [String: [String: String]] = [:]
         for (areaId, areaComp) in completions {
             var newArea: [String: String] = [:]

@@ -52,8 +52,14 @@ final class CoverageService {
     /// plumbing. The collision rule is "keep the higher fraction"
     /// — when two old keys collapse to the same canonical key, we
     /// preserve whatever the user has actually covered the most of.
-    static func rekey(_ state: [String: [String: Double]],
-                      transform: (String) -> String) -> [String: [String: Double]] {
+    ///
+    /// `nonisolated` because this is a pure function over its
+    /// arguments — it touches no `CoverageService` instance state.
+    /// Without this the static would inherit the enclosing class's
+    /// `@MainActor` isolation and become unreachable from
+    /// non-actor-isolated callers (including unit tests).
+    nonisolated static func rekey(_ state: [String: [String: Double]],
+                                  transform: (String) -> String) -> [String: [String: Double]] {
         var newState: [String: [String: Double]] = [:]
         for (areaId, areaCov) in state {
             var newArea: [String: Double] = [:]

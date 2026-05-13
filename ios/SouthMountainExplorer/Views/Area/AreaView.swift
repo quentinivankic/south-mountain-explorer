@@ -17,6 +17,7 @@ struct AreaView: View {
     @Environment(FavoritesService.self) private var favorites
     @Environment(LocationService.self) private var location
     @Environment(ProgressService.self) private var progress
+    @Environment(CoverageService.self) private var coverage
     @Environment(ActivityService.self) private var activity
     @Environment(\.dismiss) private var dismiss
 
@@ -35,6 +36,12 @@ struct AreaView: View {
     // moving target — the latter was the source of the drag jank.
     @State private var dragStartHeight: CGFloat? = nil
     @State private var selectedTrailId: String? = nil
+    /// Per-recording-session set of trail ids the user has
+    /// dismissed from the suggestion banner. Prevents the same
+    /// "Add Bajada Trail" pill from re-appearing five seconds
+    /// after the user × it. Cleared whenever the active recording
+    /// goes nil (a new recording starts fresh).
+    @State private var dismissedSuggestionIds: Set<String> = []
     @State private var finishedRecording: FinishedRecording? = nil
     @State private var showSummary = false
     @State private var showAreaComplete = false
@@ -158,14 +165,18 @@ struct AreaView: View {
                         }
                         controlBar(area: area)
                         if isRecording {
-                            // Retarget banner: only shown when the user has
-                            // tapped a trail different from the one the
-                            // recording is targeted at. Tapping Switch flips
-                            // `RecordingService.activeRecording.trailId` and
-                            // clears the selection (so the banner unmounts);
-                            // tapping × just clears the selection. Coverage
-                            // accumulation isn't affected — only the
-                            // end-of-recording classification.
+                            // Retarget banner: shown when the user has
+                            // manually tapped a trail different from the one
+                            // the recording is targeted at. Takes priority
+                            // over the suggestion banner — manual selection
+                            // is a stronger signal than a heuristic
+                            // suggestion.
+                            //
+                            // Otherwise: suggestion banner, shown when
+                            // `TrailSuggestionEngine` returns a nearby
+                            // incomplete trail the user could easily finish.
+                            // Both banners call the same
+                            // `recording.retargetTrail` to commit the switch.
                             if let retargetTrail = retargetCandidate(area: area) {
                                 RetargetTrailBanner(
                                     selectedTrail: retargetTrail,
@@ -174,6 +185,21 @@ struct AreaView: View {
                                         selectedTrailId = nil
                                     },
                                     onDismiss: { selectedTrailId = nil }
+                                )
+                            } else if let suggestion = suggestionCandidate(area: area) {
+                                SuggestionBanner(
+                                    suggestion: suggestion,
+                                    onSwitch: {
+                                        recording.retargetTrail(suggestion.trail.id)
+                                        // No need to add the just-switched
+                                        // trail to `dismissedSuggestionIds` —
+                                        // the engine's "skip the current
+                                        // trail" filter takes care of it on
+                                        // the next body eval.
+                                    },
+                                    onDismiss: {
+                                        dismissedSuggestionIds.insert(suggestion.trail.id)
+                                    }
                                 )
                             }
                             RecordingPanel(area: area) { finished in
@@ -248,6 +274,14 @@ struct AreaView: View {
             minLoadingTimeElapsed = false
             try? await Task.sleep(for: .seconds(1.5))
             minLoadingTimeElapsed = true
+        }
+        .onChange(of: isRecording) { _, recordingNow in
+            // Each new recording session starts with a clean slate of
+            // suggestion dismissals — the user's "× this" from a
+            // previous hike shouldn't suppress the same trail forever.
+            if !recordingNow {
+                dismissedSuggestionIds.removeAll()
+            }
         }
         .task(id: isRecording) {
             // While a recording is active for this area, recompute coverage
@@ -421,6 +455,35 @@ struct AreaView: View {
               selectedId != activeRec.trailId
         else { return nil }
         return area.trails.first(where: { $0.id == selectedId })
+    }
+
+    /// Top suggestion from `TrailSuggestionEngine`, filtered by
+    /// the user's per-session dismissals, or nil if no candidate
+    /// qualifies. Recomputed each body eval — the engine runs in
+    /// O(trail count × ~100 nodes) which is cheap at the scales
+    /// the app sees (~200 trails per area max).
+    ///
+    /// Uses the raw (pre-decimation) trail set when available so
+    /// the projection math sees the same dense node geometry the
+    /// halo / coverage paths use. Decimated trails would over-
+    /// estimate the detour distance by up to the decimation
+    /// epsilon (5 m).
+    private func suggestionCandidate(area: Area) -> TrailSuggestion? {
+        guard let activeRec = recording.activeRecording,
+              let coord = location.liveLocation ?? location.userLocation
+        else { return nil }
+        let trails = area.rawTrails ?? area.trails
+        let coverageByTrailId = coverage.coverage(for: area.id)
+        let pace = recording.smoothedPaceMetersPerSec()
+        let candidates = TrailSuggestionEngine.candidates(
+            userLocation: coord,
+            currentTrailId: activeRec.trailId,
+            trails: trails,
+            coverageByTrailId: coverageByTrailId,
+            paceMetersPerSec: pace,
+            maxResults: 5  // request a few so we can skip dismissed ones
+        )
+        return candidates.first(where: { !dismissedSuggestionIds.contains($0.trail.id) })
     }
 
     /// Pull recorded hike history once and use it for both:

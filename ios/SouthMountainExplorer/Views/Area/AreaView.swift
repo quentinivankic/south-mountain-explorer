@@ -182,7 +182,16 @@ struct AreaView: View {
                                     selectedTrail: retargetTrail,
                                     onSwitch: {
                                         recording.retargetTrail(retargetTrail.id)
-                                        selectedTrailId = nil
+                                        // Keep selectedTrailId pointed at the
+                                        // just-retargeted trail (rather than
+                                        // clearing to nil) so TrailMapView's
+                                        // .onChange(of: selectedTrailId) re-
+                                        // frames the camera onto the NEW
+                                        // active trail. Clearing to nil
+                                        // triggered centerOnArea() and
+                                        // zoomed all the way out — the
+                                        // build-12 device-test bug.
+                                        selectedTrailId = retargetTrail.id
                                     },
                                     onDismiss: { selectedTrailId = nil }
                                 )
@@ -191,11 +200,14 @@ struct AreaView: View {
                                     suggestion: suggestion,
                                     onSwitch: {
                                         recording.retargetTrail(suggestion.trail.id)
-                                        // No need to add the just-switched
-                                        // trail to `dismissedSuggestionIds` —
-                                        // the engine's "skip the current
-                                        // trail" filter takes care of it on
-                                        // the next body eval.
+                                        // Same as the retarget banner: point
+                                        // the selection at the now-active
+                                        // trail so the camera fits user +
+                                        // new trail. The engine's "skip the
+                                        // current trail" filter handles
+                                        // banner unmount on the next body
+                                        // eval.
+                                        selectedTrailId = suggestion.trail.id
                                     },
                                     onDismiss: {
                                         dismissedSuggestionIds.insert(suggestion.trail.id)
@@ -444,13 +456,19 @@ struct AreaView: View {
     /// Trail the retarget banner should offer to switch to, or nil
     /// if no banner should render. Nil when there's no recording,
     /// no selected trail, the selected trail IS the recording
-    /// trail, the recording is in roam mode (no trail to switch
-    /// from), or the selection points at a trail not in this
-    /// area's list (defensive — shouldn't happen, but cheap to
-    /// guard).
+    /// trail (no-op), or the selection points at a trail not in
+    /// this area's list (defensive — shouldn't happen, but cheap
+    /// to guard).
+    ///
+    /// Roam-mode recordings DO get the banner: tapping a trail on
+    /// the map while recording roam-style offers to convert the
+    /// recording to a trail-mode recording targeted at the tapped
+    /// trail. Build 12's `RecordingService.retargeted` already
+    /// handles the roam→trail conversion path; this used to be
+    /// gated on `mode == .trail` here, which was the build-12
+    /// device-test bug.
     private func retargetCandidate(area: Area) -> Trail? {
         guard let activeRec = recording.activeRecording,
-              activeRec.mode == .trail,
               let selectedId = selectedTrailId,
               selectedId != activeRec.trailId
         else { return nil }

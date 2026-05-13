@@ -1,7 +1,14 @@
 import Foundation
 import CoreLocation
 
-private let completeThreshold = 0.9
+/// Fraction-of-trail-nodes-covered required for a trail to count
+/// as complete. Bumped from 0.90 → 0.95 in build 13 after device
+/// testing showed completions celebrating noticeably before the
+/// user reached the actual end of the trail. With the build-8
+/// raw-geometry split, fraction now reflects dense-node coverage
+/// accurately, so 0.95 is achievable on real walks without being
+/// frustrating.
+private let completeThreshold = 0.95
 private let bufferMeters = 30.0
 private let jitterMeters = 3.0
 private let badFixMeters = 200.0

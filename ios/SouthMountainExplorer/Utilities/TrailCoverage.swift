@@ -22,10 +22,20 @@ struct CoverageScore: Equatable, Sendable {
 /// coverage (on stop), and replayed against historical hikes by
 /// `rebuildCoverageFromHistory`. Also used directly by
 /// `RecordingServiceTests`.
+///
+/// `bufferMeters` is the radius used for the per-node "did the GPS
+/// path come within range" check. `endpointBufferMeters` is the
+/// tighter radius used specifically for the start/end endpoint
+/// check — bumped tighter in build 13 (15 m vs the 30 m general
+/// buffer) so the completion celebration doesn't fire while the
+/// user is still ~30 m short of the actual trail endpoint. GPS
+/// scatter at hiking pace is ±5-10 m, so 15 m still triggers when
+/// the user is physically at the endpoint.
 func measureCoverage(
     path: [GpsPoint],
     trails: [Trail],
     bufferMeters: Double = 30.0,
+    endpointBufferMeters: Double = 15.0,
     minVisibleFraction: Double = 0.02
 ) -> [String: CoverageScore] {
     guard path.count >= 3 else { return [:] }
@@ -33,9 +43,9 @@ func measureCoverage(
     var grid = SpatialGrid()
     for p in path { grid.insert(p) }
 
-    func nodeVisited(_ node: [Double]) -> Bool {
+    func nodeVisited(_ node: [Double], withinMeters: Double) -> Bool {
         guard node.count >= 2 else { return false }
-        return grid.hasNeighbor(lat: node[0], lon: node[1], withinMeters: bufferMeters)
+        return grid.hasNeighbor(lat: node[0], lon: node[1], withinMeters: withinMeters)
     }
 
     var result: [String: CoverageScore] = [:]
@@ -46,22 +56,25 @@ func measureCoverage(
             for node in seg {
                 guard node.count >= 2 else { continue }
                 total += 1
-                if nodeVisited(node) { covered += 1 }
+                if nodeVisited(node, withinMeters: bufferMeters) { covered += 1 }
             }
         }
         guard total > 0 else { continue }
         let frac = Double(covered) / Double(total)
         guard frac > minVisibleFraction else { continue }
 
-        // Endpoints: start of first segment, end of last segment. For
-        // loops these collapse to the same point — a loop user who
-        // returned to the trailhead satisfies both naturally.
+        // Endpoints: start of first segment, end of last segment.
+        // Uses a TIGHTER buffer than the general-coverage check —
+        // we want endpoints to read true only when the user
+        // actually reached them, not when they got "close enough"
+        // for general coverage purposes.
         let endpointsHit: Bool
         if
             let firstSeg = trail.segments.first, let start = firstSeg.first,
             let lastSeg = trail.segments.last, let end = lastSeg.last
         {
-            endpointsHit = nodeVisited(start) && nodeVisited(end)
+            endpointsHit = nodeVisited(start, withinMeters: endpointBufferMeters)
+                && nodeVisited(end, withinMeters: endpointBufferMeters)
         } else {
             endpointsHit = false
         }

@@ -141,7 +141,13 @@ struct TrailMapView: View {
     @AppStorage(StorageKeys.debugHUD) private var showDebugHUD: Bool = false
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        // ZStack anchored top-LEADING — the HUD goes on the left
+        // side because the top-trailing area is occupied by
+        // AreaView's favorite-heart button (SwiftUI overlay) AND
+        // MapKit's built-in compass (MKMapView UIKit control).
+        // Top-leading is clear except for the close-X button which
+        // we offset around via padding below.
+        ZStack(alignment: .topLeading) {
             MapKitMapView(
                 area: area,
                 activeRecording: activeRecording,
@@ -163,9 +169,13 @@ struct TrailMapView: View {
             )
 
             if showDebugHUD {
+                // Top-leading, offset past the close-X button which
+                // sits at ~(20, 8) above the safe area in AreaView's
+                // overlay. 60pt leading gets us clear of the 36×36
+                // glass-effect button + a comfortable gap.
                 DebugHUDView(diagnostics: MapDiagnostics.shared)
-                    .padding(.top, 72)
-                    .padding(.trailing, 12)
+                    .padding(.top, 56)
+                    .padding(.leading, 60)
             }
         }
         .onChange(of: showDebugHUD, initial: true) { _, on in

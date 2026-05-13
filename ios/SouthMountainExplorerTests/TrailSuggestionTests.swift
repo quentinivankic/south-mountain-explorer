@@ -105,10 +105,10 @@ struct TrailSuggestionTests {
             userLocation: Self.userLocation,
             currentTrailId: nil,
             trails: [Self.nearbyTrail],
-            coverageByTrailId: ["nearby": 0.95],   // already complete
+            coverageByTrailId: ["nearby": 0.96],   // ≥ 0.95 = complete
             paceMetersPerSec: 1.0
         )
-        #expect(candidates.isEmpty, "Trails ≥ 0.9 coverage shouldn't be suggested")
+        #expect(candidates.isEmpty, "Trails ≥ 0.95 coverage shouldn't be suggested")
     }
 
     @Test func skipsFarTrail() {
@@ -119,7 +119,7 @@ struct TrailSuggestionTests {
             coverageByTrailId: [:],
             paceMetersPerSec: 1.0
         )
-        #expect(candidates.isEmpty, "~930 m detour exceeds the 200 m default cap")
+        #expect(candidates.isEmpty, "~930 m detour exceeds the 300 m default cap")
     }
 
     @Test func skipsLongTrail() {
@@ -130,7 +130,27 @@ struct TrailSuggestionTests {
             coverageByTrailId: [:],
             paceMetersPerSec: 1.0
         )
-        #expect(candidates.isEmpty, "5 mi remaining exceeds the 1 mi default cap")
+        #expect(candidates.isEmpty, "5 mi remaining exceeds the 1.5 mi default cap")
+    }
+
+    @Test func acceptsTrailWithinNewRelaxedCap() throws {
+        // Regression test for the build-12 device-test bug. A
+        // 1.2 mi uncovered trail (Beverly-Pima-style) was excluded
+        // under the original 1.0 mi cap → suggestion banner never
+        // fired. Under the build-13 1.5 mi cap it qualifies.
+        let mediumTrail = Trail(
+            id: "medium", name: "Medium", distanceMi: 1.2, difficulty: .easy,
+            segments: [(0..<100).map { i in [33.3 + Double(i) * 0.0001, -112.0] }]
+        )
+        let candidates = TrailSuggestionEngine.candidates(
+            userLocation: Self.userLocation,
+            currentTrailId: nil,
+            trails: [mediumTrail],
+            coverageByTrailId: [:],
+            paceMetersPerSec: 1.0
+        )
+        let first = try #require(candidates.first)
+        #expect(first.trail.id == "medium")
     }
 
     @Test func skipsWhenPaceUnavailable() {

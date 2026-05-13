@@ -63,6 +63,13 @@ enum DiagnosticsService {
     /// further filtered to our subsystem so system-framework
     /// chatter doesn't dominate the file.
     ///
+    /// Captures both `OSLogEntryLog` (regular `Logger.info` /
+    /// `os_log` calls) AND `OSLogEntrySignpost` (the existing
+    /// `os_signpost` markers in `AreaDataService` — area-load
+    /// timing, cache hits, etc.). Without the signpost pass the
+    /// bundle was empty for the build-12 user hike, because the
+    /// only OSLog calls the app made were signposts.
+    ///
     /// Capped at the most recent 500 entries — enough to span the
     /// past few minutes of activity at typical log volume, small
     /// enough that the resulting file stays under ~100 KB and
@@ -83,16 +90,39 @@ enum DiagnosticsService {
         }
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        var lines: [String] = []
-        lines.reserveCapacity(min(entries.count, 500))
-        for entry in entries.suffix(500) {
-            guard let log = entry as? OSLogEntryLog,
-                  log.subsystem == logSubsystem
-            else { continue }
-            let ts = formatter.string(from: log.date)
-            lines.append("[\(ts)] [\(log.category)] \(log.composedMessage)")
+
+        // Two passes, merged by timestamp. Building a single ordered
+        // list rather than concatenating preserves the actual event
+        // sequence so the bundle reads chronologically.
+        var dated: [(Date, String)] = []
+        dated.reserveCapacity(min(entries.count, 500))
+        for entry in entries {
+            if let logEntry = entry as? OSLogEntryLog,
+               logEntry.subsystem == logSubsystem {
+                let ts = formatter.string(from: logEntry.date)
+                dated.append((logEntry.date, "[\(ts)] [\(logEntry.category)] \(logEntry.composedMessage)"))
+                continue
+            }
+            if let signpost = entry as? OSLogEntrySignpost,
+               signpost.subsystem == logSubsystem {
+                let ts = formatter.string(from: signpost.date)
+                let kind: String
+                switch signpost.signpostType {
+                case .intervalBegin: kind = "begin"
+                case .intervalEnd:   kind = "end"
+                case .event:         kind = "event"
+                default:             kind = "signpost"
+                }
+                let message = signpost.composedMessage
+                let suffix = message.isEmpty ? "" : " \(message)"
+                dated.append((signpost.date, "[\(ts)] [\(signpost.category)] signpost.\(signpost.signpostName) \(kind)\(suffix)"))
+            }
         }
-        return lines
+        // Sort + cap at the most recent 500 entries. Sorting first
+        // would lose tail entries on cap; cap first would break
+        // chronology. Sort, then suffix.
+        dated.sort { $0.0 < $1.0 }
+        return Array(dated.suffix(500)).map(\.1)
     }
 
     // MARK: - App + device metadata

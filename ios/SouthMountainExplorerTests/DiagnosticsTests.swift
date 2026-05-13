@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import Testing
 @testable import SouthMountainExplorer
 
@@ -74,5 +75,43 @@ struct DiagnosticsTests {
         // Either way, the strings are non-empty.
         #expect(!DiagnosticsService.appVersion.isEmpty)
         #expect(!DiagnosticsService.buildNumber.isEmpty)
+    }
+
+    @Test @MainActor func exportBundleCapturesRecentLoggerCall() async throws {
+        // Build-13 PR 2 regression test: confirm a Logger.info call
+        // emitted right before exportBundle gets captured in the
+        // bundle's logs array. Pre-PR-2 the collector only matched
+        // OSLogEntryLog with the right subsystem, but the app
+        // emitted no log lines at all (only signposts), so the
+        // array was empty. After PR 2 the same call shows up.
+        //
+        // Logger uses the app's subsystem so the
+        // DiagnosticsService filter accepts it. The category is
+        // unique to this test so we can scan the bundle for it
+        // without colliding with real app logs.
+        let log = Logger(subsystem: "com.southmountainexplorer.app", category: "DiagnosticsTests")
+        let marker = "diagnostics-marker-\(UUID().uuidString)"
+        log.info("\(marker, privacy: .public)")
+
+        // Small delay so OSLogStore's writer has time to flush
+        // before we read. Without this the test races and
+        // occasionally finds the bundle empty.
+        try await Task.sleep(for: .milliseconds(200))
+
+        let url = try await DiagnosticsService.exportBundle()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let data = try Data(contentsOf: url)
+        let parsed = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let logs = try #require(parsed["logs"] as? [String])
+
+        // Best-effort: OSLogStore in unit-test mode sometimes
+        // doesn't surface entries from the same process. If the
+        // test consistently passes locally + on CI, we keep the
+        // assertion strict. If it flakes, weaken to "logs is non-
+        // empty" or drop the assertion.
+        #expect(
+            logs.contains(where: { $0.contains(marker) }),
+            "Bundle didn't include the test-emitted Logger.info call. Logs: \(logs.suffix(5))"
+        )
     }
 }

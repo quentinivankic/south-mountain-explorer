@@ -54,6 +54,13 @@ struct OnboardingView: View {
 
             Spacer()
 
+            Text("Tip: enable iCloud Backup in iOS Settings to keep your hikes safe across reinstalls.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+                .padding(.bottom, 12)
+
             Button {
                 dismiss()
             } label: {

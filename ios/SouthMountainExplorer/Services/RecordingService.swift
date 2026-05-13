@@ -32,11 +32,90 @@ final class RecordingService {
     }
 
     private init() {
+        migrateHistoryClassificationIfNeeded()
         if let data = UserDefaults.standard.data(forKey: persistKey),
            let restored = try? JSONDecoder().decode(ActiveRecording.self, from: data) {
             activeRecording = restored
             beginObservingLocation()
         }
+    }
+
+    // MARK: - History migrations
+
+    /// One-shot backfill, currently at schema v2.
+    ///
+    /// **v1** (build 7): fix the History "previously completed" bug
+    /// where pre-build-6 `stopRecording` read its own intra-session
+    /// `applyLiveCoverage` writes back from `CoverageService` and
+    /// shuffled newly-completed trails into `revisitedTrailIds`. The
+    /// union per record is correct (the bug never drops trails), so
+    /// we rebuild the classification by walking history
+    /// chronologically with a running "ever-complete-before-this-hike"
+    /// set and re-splitting each hike's union against it.
+    ///
+    /// **v2** (build 8): canonicalize every stored trail id through
+    /// `String.canonicalTrailId`. Legacy build-trail-counts.py emitted
+    /// `{slug}-{position}` ids where `position` was unstable across
+    /// area rebuilds, so the same physical trail received different
+    /// ids on different days and broke dedup. v2 strips the suffix
+    /// from `SavedRecording.completedTrailIds` /
+    /// `revisitedTrailIds`, then re-runs the v1 chronological
+    /// reclassification (now with stable ids), then rekeys
+    /// `CoverageService.state` and `ProgressService.completions`
+    /// through the same canonicalizer (with collision-merge by
+    /// max-fraction / earliest-stamp respectively).
+    ///
+    /// Both passes are idempotent. Version marker prevents re-walking
+    /// the file on every cold launch.
+    private func migrateHistoryClassificationIfNeeded() {
+        let ud = UserDefaults.standard
+        let key = StorageKeys.hikeHistoryMigrationVersion
+        let currentVersion = ud.integer(forKey: key)
+        guard currentVersion < 2 else { return }
+
+        let history = loadHistorySync()
+        if !history.isEmpty {
+            let sorted = history.sorted { $0.startedAt < $1.startedAt }
+            var everComplete: Set<String> = []
+            var rebuilt: [SavedRecording] = []
+            rebuilt.reserveCapacity(sorted.count)
+            for hike in sorted {
+                // Canonicalize first, then take the union. Two
+                // legacy ids that differ only by position counter
+                // collapse to the same canonical id and naturally
+                // de-dupe in the Set.
+                let canonCompleted = hike.completedTrailIds.map(\.canonicalTrailId)
+                let canonRevisited = hike.revisitedTrailIds.map(\.canonicalTrailId)
+                let union = Set(canonCompleted).union(canonRevisited)
+                let newly = union.subtracting(everComplete)
+                let revisited = union.intersection(everComplete)
+                rebuilt.append(SavedRecording(
+                    id: hike.id,
+                    areaId: hike.areaId,
+                    startedAt: hike.startedAt,
+                    endedAt: hike.endedAt,
+                    distanceMi: hike.distanceMi,
+                    durationSeconds: hike.durationSeconds,
+                    completedTrailIds: Array(newly),
+                    path: hike.path,
+                    trailId: hike.trailId,
+                    revisitedTrailIds: Array(revisited)
+                ))
+                everComplete.formUnion(union)
+            }
+            if let data = try? JSONEncoder().encode(rebuilt) {
+                try? data.write(to: Self.historyFileURL)
+            }
+        }
+
+        // Rekey the persisted-and-in-memory coverage + progress
+        // dicts. Touching `.shared` triggers init if those services
+        // haven't been used yet; rekey then mutates state in place
+        // and persists. Subsequent reads see canonical keys.
+        CoverageService.shared.rekeyTrailIds { $0.canonicalTrailId }
+        ProgressService.shared.rekeyTrailIds { $0.canonicalTrailId }
+
+        ud.set(2, forKey: key)
     }
 
     // MARK: - Start / Stop

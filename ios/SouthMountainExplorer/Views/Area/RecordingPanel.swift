@@ -122,7 +122,10 @@ struct RecordingPanel: View {
         isStopping = true
         timer?.invalidate()
         Task {
-            let finished = await recording.stopRecording(trails: area.trails)
+            // Use raw trails for coverage finalization so the
+            // fraction denominator is the dense pre-decimation node
+            // count (see AreaView's applyLiveCoverage caller).
+            let finished = await recording.stopRecording(trails: area.rawTrails ?? area.trails)
             onStop(finished)
             isStopping = false
         }

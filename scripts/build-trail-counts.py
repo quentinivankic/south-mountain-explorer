@@ -189,10 +189,12 @@ def build_counts(data: bytes):
     geom_trails is the list of full trail dicts the iOS app expects in
     its ``AreaRow.trails`` payload — each item carries ``id``, ``name``,
     ``distanceMi``, ``difficulty`` (the full "Easy"/"Moderate"/"Hard"
-    label), and ``segments`` downsampled to ``GEOM_SPACING_M``. IDs use
-    the same slugify + sorted-name + index scheme iOS uses for trails it
-    builds locally, so recorded-hike completions survive the switch
-    from live Overpass to the CDN.
+    label), and ``segments`` downsampled to ``GEOM_SPACING_M``. IDs are
+    the slugified trail name; on the rare slug collision a
+    deterministic per-slug counter resolves the duplicate. Critically
+    no build-time ordinal is part of the id, so a refetch that adds
+    or removes trails doesn't reshuffle the surviving ones' ids and
+    invalidate existing user completions.
 
     geom_bbox is ``[minLon, minLat, maxLon, maxLat]`` covering every
     point in geom_trails (note: looser than the silhouette bbox, which
@@ -257,12 +259,17 @@ def build_counts(data: bytes):
     total_mi = round(sum(t["miles"] for t in qualifying.values()), 2)
 
     # Build the geom payload in the same name-sorted order iOS uses
-    # locally, so trail ids match across the CDN and any legacy live
-    # fetch. Sorting before counting means a trail's ordinal id is
-    # deterministic regardless of Overpass's response order.
+    # locally. Trail ids are derived from the slug alone — never from
+    # the build-time ordinal — so a refetch with shifted trail
+    # composition doesn't reshuffle ids and break recorded-hike
+    # completion dedup. For the rare slug collision (two distinct
+    # named trails that lowercase-hyphenate identically), suffix the
+    # second-and-later occurrence with a deterministic counter so the
+    # collisions resolve the same way on every rebuild.
     geom_trails: list = []
     g_min_lat = g_min_lon = float("inf")
     g_max_lat = g_max_lon = float("-inf")
+    slug_counts: dict = {}
     for name in sorted(qualifying.keys()):
         info = qualifying[name]
         miles = info["miles"]
@@ -281,8 +288,12 @@ def build_counts(data: bytes):
                 if lo < g_min_lon: g_min_lon = lo
                 if lo > g_max_lon: g_max_lon = lo
             ds_segments.append(pts)
+        base_slug = _trail_slug(name)
+        seen = slug_counts.get(base_slug, 0)
+        slug_counts[base_slug] = seen + 1
+        trail_id = base_slug if seen == 0 else f"{base_slug}-{seen}"
         geom_trails.append({
-            "id": f"{_trail_slug(name)}-{len(geom_trails)}",
+            "id": trail_id,
             "name": name,
             "distanceMi": round(miles, 2),
             "difficulty": _difficulty_label(info["tags"], miles),

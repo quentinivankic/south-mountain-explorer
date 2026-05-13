@@ -101,6 +101,28 @@ final class ProgressService {
         saveLocal()
     }
 
+    /// Rewrite every trail-id key through `transform`. Used by the
+    /// build-8 migration to canonicalize legacy ids so old marked
+    /// completions line up with stable post-fix ids. On collision
+    /// (two old keys collapse to the same canonical key), keep the
+    /// earlier completion timestamp.
+    func rekeyTrailIds(_ transform: (String) -> String) {
+        var newCompletions: [String: [String: String]] = [:]
+        for (areaId, areaComp) in completions {
+            var newArea: [String: String] = [:]
+            for (tid, stamp) in areaComp {
+                let newTid = transform(tid)
+                if let existing = newArea[newTid], existing <= stamp {
+                    continue
+                }
+                newArea[newTid] = stamp
+            }
+            newCompletions[areaId] = newArea
+        }
+        completions = newCompletions
+        saveLocal()
+    }
+
     // MARK: - Local persistence
 
     private func readLocal() -> [String: [String: String]] {

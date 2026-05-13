@@ -239,7 +239,11 @@ struct AreaView: View {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(30))
                 guard !Task.isCancelled, isRecording, let area else { break }
-                await recording.applyLiveCoverage(trails: area.trails)
+                // Coverage measurement uses the raw (pre-decimation)
+                // trail node set when available — decimation drops the
+                // node-count denominator in the fraction calc and
+                // inflates coverage, so prefer rawTrails here.
+                await recording.applyLiveCoverage(trails: area.rawTrails ?? area.trails)
             }
         }
         .sheet(isPresented: $showSummary) {
@@ -471,10 +475,13 @@ struct AreaView: View {
         // Split out of `??` because `??` takes an autoclosure that can't
         // host an `await`.
         let trails: [Trail]
+        // Prefer raw trails for stopRecording so coverage finalization
+        // uses the dense node set — see the live-coverage call above.
         if let cached = areas.cachedArea(id: active.areaId) {
-            trails = cached.trails
+            trails = cached.rawTrails ?? cached.trails
         } else {
-            trails = (await areas.area(id: active.areaId))?.trails ?? []
+            let loaded = await areas.area(id: active.areaId)
+            trails = loaded?.rawTrails ?? loaded?.trails ?? []
         }
         _ = await recording.stopRecording(trails: trails)
         startRecordingNow(trailId: trailId)

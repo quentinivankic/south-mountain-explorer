@@ -24,7 +24,8 @@ struct FittedRegionTests {
             centerLon: -112.0,
             latDelta: 0.02,
             lonDelta: 0.025,
-            bottomInset: 0
+            bottomInset: 0,
+            screenHeight: 800
         )
         switch target {
         case .region(let lat, let lon, let latDelta, let lonDelta):
@@ -43,12 +44,14 @@ struct FittedRegionTests {
         let zero = TrailMapView.fittedRegion(
             centerLat: 33.3, centerLon: -112.0,
             latDelta: 0.02, lonDelta: 0.025,
-            bottomInset: 0
+            bottomInset: 0,
+            screenHeight: 800
         )
         let shifted = TrailMapView.fittedRegion(
             centerLat: 33.3, centerLon: -112.0,
             latDelta: 0.02, lonDelta: 0.025,
-            bottomInset: 200
+            bottomInset: 200,
+            screenHeight: 800
         )
         guard case .region(let zLat, let zLon, let zDLat, let zDLon) = zero,
               case .region(let sLat, let sLon, let sDLat, let sDLon) = shifted
@@ -76,7 +79,8 @@ struct FittedRegionTests {
         let target = TrailMapView.fittedRegion(
             centerLat: 33.3, centerLon: -112.0,
             latDelta: 0.0001, lonDelta: 0.0001,
-            bottomInset: 0
+            bottomInset: 0,
+            screenHeight: 800
         )
         guard case .region(_, _, let latDelta, let lonDelta) = target else {
             Issue.record("Expected .region")
@@ -106,7 +110,7 @@ struct FittedRegionTests {
             trails: [trail1, trail2],
             trailCount: 2, totalMi: 2.0, cachedAt: nil
         )
-        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0)
+        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0, screenHeight: 800)
         guard case .region(let lat, let lon, _, _) = target else {
             Issue.record("Expected .region")
             return
@@ -131,7 +135,7 @@ struct FittedRegionTests {
             trails: [trail1, trail2],
             trailCount: 2, totalMi: 2.0, cachedAt: nil
         )
-        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0)
+        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0, screenHeight: 800)
         guard case .region(_, _, let latDelta, let lonDelta) = target else {
             Issue.record("Expected .region")
             return
@@ -152,7 +156,7 @@ struct FittedRegionTests {
             trails: [],
             trailCount: 0, totalMi: 0, cachedAt: nil
         )
-        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0)
+        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0, screenHeight: 800)
         guard case .region(let lat, let lon, _, _) = target else {
             Issue.record("Expected .region")
             return
@@ -169,7 +173,7 @@ struct FittedRegionTests {
             trails: [],
             trailCount: 0, totalMi: 0, cachedAt: nil
         )
-        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0)
+        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0, screenHeight: 800)
         guard case .camera(let lat, let lon, let distance, let heading) = target else {
             Issue.record("Expected .camera fallback")
             return

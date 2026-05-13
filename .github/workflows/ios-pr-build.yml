@@ -86,13 +86,19 @@ jobs:
         # `test` reuses the build products from the previous step
         # via Xcode's derived-data cache, so this is fast — only the
         # test target itself recompiles + the simulator boots.
+        #
+        # No `-quiet` here, intentionally: when a test fails we
+        # want the per-test output (failure messages, expected vs
+        # actual, file:line) in the CI log so it can be diagnosed
+        # without rerunning locally. The build step above stays
+        # quiet because its only useful output is errors/warnings,
+        # which xcodebuild emits even with `-quiet`.
         run: |
           xcodebuild test \
             -project SouthMountainExplorer.xcodeproj \
             -scheme SouthMountainExplorer \
             -configuration Debug \
             -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" \
-            -quiet \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO

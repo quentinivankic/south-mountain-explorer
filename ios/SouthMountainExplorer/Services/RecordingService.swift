@@ -1,5 +1,14 @@
 import Foundation
 import CoreLocation
+import OSLog
+
+/// Logger for `RecordingService` lifecycle events — start, stop,
+/// discard, retarget, coverage merges. Surfaced in the Send
+/// Diagnostics bundle so a field bug report carries the actual
+/// sequence of events that led to it, not just the user's
+/// reconstruction. Subsystem matches `DiagnosticsService`'s
+/// filter so the entries land in the bundle.
+private let log = Logger(subsystem: "com.southmountainexplorer.app", category: "recording")
 
 /// Fraction-of-trail-nodes-covered required for a trail to count
 /// as complete. Bumped from 0.90 → 0.95 in build 13 after device
@@ -147,6 +156,7 @@ final class RecordingService {
         )
         errorMessage = nil
         persist()
+        log.info("startRecording mode=\(mode.rawValue, privacy: .public) areaId=\(areaId, privacy: .public) trailId=\(trailId ?? "nil", privacy: .public) priorComplete=\(priorComplete.count)")
         locationService.startBackgroundTracking()
         beginObservingLocation()
         // Lazy-prompt for notifications now that the user has actually
@@ -156,12 +166,14 @@ final class RecordingService {
     }
 
     func discardRecording() {
+        let prev = activeRecording
         locationObserver?.cancel()
         locationObserver = nil
         locationService.stopBackgroundTracking()
         activeRecording = nil
         errorMessage = nil
         UserDefaults.standard.removeObject(forKey: persistKey)
+        log.info("discardRecording areaId=\(prev?.areaId ?? "nil", privacy: .public) duration=\(prev.map { Date().timeIntervalSince($0.startedAt) } ?? 0)s pathPoints=\(prev?.path.count ?? 0)")
     }
 
     /// Switch which trail the active recording is targeted at,
@@ -188,7 +200,11 @@ final class RecordingService {
     func retargetTrail(_ newTrailId: String) {
         guard let rec = activeRecording,
               let updated = Self.retargeted(rec, newTrailId: newTrailId)
-        else { return }
+        else {
+            log.debug("retargetTrail no-op newTrailId=\(newTrailId, privacy: .public) current=\(self.activeRecording?.trailId ?? "nil", privacy: .public)")
+            return
+        }
+        log.info("retargetTrail oldMode=\(rec.mode.rawValue, privacy: .public) oldTrailId=\(rec.trailId ?? "nil", privacy: .public) newTrailId=\(newTrailId, privacy: .public)")
         activeRecording = updated
         persist()
     }
@@ -268,6 +284,7 @@ final class RecordingService {
         )
 
         saveToHistory(finished)
+        log.info("stopRecording areaId=\(rec.areaId, privacy: .public) trailId=\(rec.trailId ?? "nil", privacy: .public) duration=\(finished.durationSeconds)s distanceMi=\(rec.distanceMi) newlyCompleted=\(newlyCompleted.count) revisited=\(revisited.count)")
 
         activeRecording = nil
         UserDefaults.standard.removeObject(forKey: persistKey)

@@ -1,4 +1,12 @@
 import SwiftUI
+import OSLog
+
+/// Logger for `AreaView` lifecycle and decision events — area
+/// loads, suggestion-banner mounts, trail-completion celebrations.
+/// Lands in the Send Diagnostics bundle so a field report carries
+/// the sequence of UI events the user saw, not just the recording
+/// state.
+private let log = Logger(subsystem: "com.southmountainexplorer.app", category: "area")
 
 private let farFromAreaThresholdMi = 5.0
 
@@ -210,9 +218,24 @@ struct AreaView: View {
                                         selectedTrailId = suggestion.trail.id
                                     },
                                     onDismiss: {
+                                        log.info("suggestion dismiss trail=\(suggestion.trail.name, privacy: .public)")
                                         dismissedSuggestionIds.insert(suggestion.trail.id)
                                     }
                                 )
+                                // Diagnostics: log when the banner mounts and
+                                // unmounts so a Send Diagnostics bundle can
+                                // explain why the user did or didn't see it
+                                // at a given moment. SwiftUI calls .onAppear
+                                // exactly once per identity, and the banner's
+                                // identity is the suggestion trail id (it
+                                // remounts when the candidate changes).
+                                .onAppear {
+                                    log.info("suggestion mount trail=\(suggestion.trail.name, privacy: .public) detour=\(Int(suggestion.detourMeters))m remaining=\(Int(suggestion.remainingMeters))m extraSec=\(Int(suggestion.extraSeconds))")
+                                }
+                                .onDisappear {
+                                    log.info("suggestion unmount trail=\(suggestion.trail.name, privacy: .public)")
+                                }
+                                .id(suggestion.trail.id)
                             }
                             RecordingPanel(area: area) { finished in
                                 finishedRecording = finished
@@ -398,6 +421,7 @@ struct AreaView: View {
     /// Show the trail-completion celebration overlay for `name` and auto-
     /// dismiss after 3.5s. Tapping the overlay dismisses it sooner.
     private func showCelebration(name: String) {
+        log.info("trailCompletion areaId=\(self.areaId, privacy: .public) trail=\(name, privacy: .public)")
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
             celebrationTrailName = name

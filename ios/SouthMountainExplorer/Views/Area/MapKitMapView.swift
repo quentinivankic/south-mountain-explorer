@@ -113,6 +113,17 @@ struct MapKitMapView: UIViewRepresentable {
     }
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
+        // Stamp the start time so we can publish the per-update
+        // duration into MapDiagnostics for the debug HUD. Cheap
+        // when the HUD is off (no observer is subscribed) — the
+        // measurement itself is a CACurrentMediaTime call.
+        let startTime = CACurrentMediaTime()
+        defer {
+            let elapsedMs = (CACurrentMediaTime() - startTime) * 1000
+            MapDiagnostics.shared.lastUpdateDurationMs = elapsedMs
+            MapDiagnostics.shared.overlayCount = mapView.overlays.count
+        }
+
         let coord = context.coordinator
         // Refresh the parent reference so the coordinator's callbacks
         // and delegate methods see the latest closures and bindings.

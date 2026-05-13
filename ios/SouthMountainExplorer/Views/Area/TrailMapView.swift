@@ -134,26 +134,50 @@ struct TrailMapView: View {
         ))
     }
 
+    /// Developer-mode HUD toggle. Off by default; flipped from
+    /// Settings → Developer. When on, an overlay in the top-right
+    /// corner shows FPS / overlay count / last update duration /
+    /// memory footprint, drawn over the map.
+    @AppStorage(StorageKeys.debugHUD) private var showDebugHUD: Bool = false
+
     var body: some View {
-        MapKitMapView(
-            area: area,
-            activeRecording: activeRecording,
-            haloSegments: cachedHaloSegments,
-            selectedTrailId: $selectedTrailId,
-            visibleTrailIds: visibleTrailIds,
-            completedTrailIds: completedTrailIdsForArea,
-            cameraTarget: cameraTarget,
-            cameraTick: cameraTick,
-            showsUserLocation: true,
-            // We always pass `.none` here: the bottom-inset shift
-            // means we need custom camera math for tracking modes
-            // (MKMapView's built-in tracking centers the dot at the
-            // geometric middle of the view, which sits behind the
-            // recording panel / trail list sheet). The `.onChange`
-            // handlers below imperatively re-frame on each location
-            // / heading update.
-            userTrackingMode: .none
-        )
+        ZStack(alignment: .topTrailing) {
+            MapKitMapView(
+                area: area,
+                activeRecording: activeRecording,
+                haloSegments: cachedHaloSegments,
+                selectedTrailId: $selectedTrailId,
+                visibleTrailIds: visibleTrailIds,
+                completedTrailIds: completedTrailIdsForArea,
+                cameraTarget: cameraTarget,
+                cameraTick: cameraTick,
+                showsUserLocation: true,
+                // We always pass `.none` here: the bottom-inset shift
+                // means we need custom camera math for tracking modes
+                // (MKMapView's built-in tracking centers the dot at the
+                // geometric middle of the view, which sits behind the
+                // recording panel / trail list sheet). The `.onChange`
+                // handlers below imperatively re-frame on each location
+                // / heading update.
+                userTrackingMode: .none
+            )
+
+            if showDebugHUD {
+                DebugHUDView(diagnostics: MapDiagnostics.shared)
+                    .padding(.top, 72)
+                    .padding(.trailing, 12)
+            }
+        }
+        .onChange(of: showDebugHUD, initial: true) { _, on in
+            // The FPS counter runs a CADisplayLink — pause it when
+            // the HUD is off so the display-link callback isn't
+            // sitting in main's run loop doing nothing useful.
+            if on {
+                FPSCounter.shared.start()
+            } else {
+                FPSCounter.shared.stop()
+            }
+        }
         .onAppear {
             // Build the spatial grid once on appear from the dense
             // pre-decimation node set (rawTrails when available). The
@@ -208,6 +232,13 @@ struct TrailMapView: View {
         }
         .onChange(of: location.liveHeading) { _, _ in
             if trackingMode == .followHeading { updateTrackedPosition() }
+        }
+        .onDisappear {
+            // Tear down the FPS sampler when leaving the area so the
+            // CADisplayLink isn't sitting in the main run loop on
+            // every other screen for no benefit. Idempotent — safe
+            // even when the HUD was never enabled.
+            FPSCounter.shared.stop()
         }
     }
 

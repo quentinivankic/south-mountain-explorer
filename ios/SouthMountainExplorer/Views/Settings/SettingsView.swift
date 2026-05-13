@@ -9,6 +9,15 @@ private struct UserStats: Equatable {
 
 private let feedbackURL = URL(string: "https://github.com/quentinivankic/south-mountain-explorer/issues/new")!
 
+/// Small `Identifiable` wrapper around a `URL` so we can drive a
+/// `.sheet(item:)` from the diagnostics-export flow. `URL` itself
+/// doesn't conform to `Identifiable`, and `sheet(item:)` needs an
+/// identity to know when to re-present.
+private struct IdentifiedURL: Identifiable {
+    let url: URL
+    var id: String { url.absoluteString }
+}
+
 /// How long the "Refresh Trail Data" button stays in its
 /// disabled / "Trail Data Cleared" confirmation state before
 /// flipping back to the actionable label.
@@ -28,6 +37,18 @@ struct SettingsView: View {
     @Environment(RecordingService.self) private var recording
 
     @AppStorage(StorageKeys.theme) private var theme: AppTheme = .system
+    @AppStorage(StorageKeys.debugHUD) private var showDebugHUD: Bool = false
+
+    /// URL of the most recent diagnostics bundle. Non-nil while
+    /// the share sheet is presented; cleared when it dismisses
+    /// (sheet's `onDismiss`). Identifiable via `Self` already
+    /// (URL is Hashable + Identifiable in iOS 16+).
+    @State private var diagnosticsShareURL: IdentifiedURL? = nil
+    /// User-visible error from the diagnostics export — surfaced
+    /// inline in the Developer section rather than as an alert so
+    /// it doesn't interrupt the user mid-flow.
+    @State private var diagnosticsError: String? = nil
+    @State private var diagnosticsExporting: Bool = false
 
     @State private var showSignIn = false
     @State private var showResetConfirm = false
@@ -237,6 +258,33 @@ struct SettingsView: View {
                     }
                 }
 
+                // Developer-mode controls. Not gated by a flag — small
+                // enough that the cost of always-on visibility is low,
+                // and the user explicitly opted in by installing
+                // TestFlight builds.
+                Section("Developer") {
+                    Toggle(isOn: $showDebugHUD) {
+                        Label("Show Debug HUD", systemImage: "speedometer")
+                    }
+                    Button {
+                        runDiagnosticsExport()
+                    } label: {
+                        HStack {
+                            Label("Send Diagnostics", systemImage: "doc.text.magnifyingglass")
+                            Spacer()
+                            if diagnosticsExporting {
+                                ProgressView()
+                            }
+                        }
+                    }
+                    .disabled(diagnosticsExporting)
+                    if let err = diagnosticsError {
+                        Text(err)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+
                 Section("About") {
                     LabeledContent("Version", value: appVersion)
                     LabeledContent("Build", value: buildNumber)
@@ -246,6 +294,9 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showSignIn) {
             AuthView()
+        }
+        .sheet(item: $diagnosticsShareURL) { wrapped in
+            ShareSheet(items: [wrapped.url])
         }
         // Re-run when the recording state flips (recording starts or stops)
         // so completing a hike then opening Settings shows fresh numbers
@@ -257,6 +308,26 @@ struct SettingsView: View {
     /// bypasses the network / movement gates the cold-launch path
     /// respects. Same progress-on-MainActor + 1.5 s post-completion hold
     /// pattern as the favorites prefetch above.
+    /// Kick off the diagnostics-export flow. Builds the JSON
+    /// bundle off the main actor (mostly — OSLogStore reads stay
+    /// on main), then presents the share sheet with the resulting
+    /// file URL. Errors are surfaced inline under the button so
+    /// the user doesn't lose the rest of their Settings context to
+    /// an alert.
+    private func runDiagnosticsExport() {
+        diagnosticsError = nil
+        diagnosticsExporting = true
+        Task {
+            do {
+                let url = try await DiagnosticsService.exportBundle()
+                diagnosticsShareURL = IdentifiedURL(url: url)
+            } catch {
+                diagnosticsError = "Couldn't build diagnostics: \(error.localizedDescription)"
+            }
+            diagnosticsExporting = false
+        }
+    }
+
     private func runNearbyDownload() {
         Task {
             nearbyProgress = (0, 0)

@@ -5,6 +5,7 @@ struct RecordingPanel: View {
     let onStop: (FinishedRecording?) -> Void
 
     @Environment(RecordingService.self) private var recording
+    @Environment(LocationService.self) private var location
 
     @State private var elapsed: TimeInterval = 0
     @State private var timer: Timer? = nil
@@ -13,6 +14,25 @@ struct RecordingPanel: View {
     @State private var showDiscardConfirm = false
 
     private var rec: ActiveRecording? { recording.activeRecording }
+
+    /// Human-readable ETA to the end of the recording's active
+    /// trail, or `nil` when one of the gating conditions in
+    /// `TrailETA` short-circuits the math (loop trail, off-trail
+    /// user, insufficient pace data, area-mode recording with no
+    /// trail id at all). Recomputed on every body eval, which
+    /// re-fires whenever location.liveLocation or the recording
+    /// path changes — both already publish via @Observable.
+    private var etaLabel: String? {
+        guard let rec, let trailId = rec.trailId else { return nil }
+        guard let trail = (area.rawTrails ?? area.trails).first(where: { $0.id == trailId }) else {
+            return nil
+        }
+        guard let coord = location.liveLocation ?? location.userLocation else { return nil }
+        let pace = recording.smoothedPaceMetersPerSec()
+        guard let seconds = TrailETA.compute(currentLocation: coord, trail: trail, paceMetersPerSec: pace)
+        else { return nil }
+        return TrailETA.formatLabel(seconds)
+    }
 
     var body: some View {
         HStack(spacing: 20) {
@@ -32,6 +52,14 @@ struct RecordingPanel: View {
             // Stats
             statColumn(label: "Distance", value: String(format: "%.2f mi", rec?.distanceMi ?? 0))
             statColumn(label: "Duration", value: formattedElapsed)
+            // ETA only renders when the recording is bound to a
+            // trail AND the math has enough signal (see TrailETA's
+            // gating). For area-mode recordings (no trailId) or
+            // loop trails the column simply doesn't appear — better
+            // than a permanent "—" that just takes space.
+            if let etaLabel {
+                statColumn(label: "ETA", value: etaLabel)
+            }
 
             Spacer()
 

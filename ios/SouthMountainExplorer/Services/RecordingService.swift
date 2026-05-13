@@ -222,6 +222,55 @@ final class RecordingService {
         _ = await mergeCoverage(areaId: rec.areaId, sessionCoverage: sessionCoverage, trails: trails)
     }
 
+    /// Smoothed pace in meters per second from the active
+    /// recording's recent path samples. `nil` when there isn't
+    /// enough data — caller (`TrailETA`, recording-panel ETA pill)
+    /// should render the absence as "—" rather than 0.
+    ///
+    /// Walks the path's tail backwards collecting samples whose
+    /// timestamp is within `windowSeconds` of the latest sample,
+    /// sums the haversine distance between adjacent samples, and
+    /// divides by the elapsed time across that span. Naturally
+    /// adapts to whatever GPS rate the device is producing (1-2 Hz
+    /// while moving, less when stationary) without us having to
+    /// resample to a fixed cadence.
+    ///
+    /// `bufferMeters / 2` minimum sample count to defuse the early-
+    /// recording case where 2-3 GPS points produce a wildly noisy
+    /// pace. ~5 samples spanning >30 s is a sane floor for a
+    /// hiker (which is what this app is for) — a runner would want
+    /// a longer window.
+    func smoothedPaceMetersPerSec(windowSeconds: TimeInterval = 60) -> Double? {
+        guard let path = activeRecording?.path, path.count >= 5 else { return nil }
+        let lastTs = path.last![2]
+        let cutoff = lastTs - windowSeconds
+        // Collect tail samples within the time window.
+        var tail: [GpsPoint] = []
+        for p in path.reversed() {
+            guard p.count >= 3 else { continue }
+            if p[2] < cutoff { break }
+            tail.append(p)
+        }
+        let recent = Array(tail.reversed())
+        guard recent.count >= 2 else { return nil }
+        let elapsed = recent.last![2] - recent.first![2]
+        guard elapsed >= 30 else { return nil }
+        var meters = 0.0
+        for i in 1..<recent.count {
+            meters += MapMath.haversineMeters(
+                lat1: recent[i - 1][0], lon1: recent[i - 1][1],
+                lat2: recent[i][0],     lon2: recent[i][1]
+            )
+        }
+        let pace = meters / elapsed
+        // Filter out near-zero "user is standing still" pace —
+        // dividing trail distance by it would produce huge ETAs
+        // that just confuse the user. Threshold of 0.3 m/s ≈ 1
+        // km/h, well below any sustained walking pace.
+        guard pace >= 0.3 else { return nil }
+        return pace
+    }
+
     /// Replay every saved hike's GPS path against the area's *current* trails
     /// and merge the resulting coverage. Idempotent and self-healing: if an
     /// upstream re-fetch ever assigns new IDs to the same trails (e.g. after

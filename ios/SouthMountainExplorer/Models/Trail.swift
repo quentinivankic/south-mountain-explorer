@@ -6,7 +6,7 @@ enum Difficulty: String, Codable, CaseIterable {
     case hard = "Hard"
 }
 
-struct Trail: Codable, Identifiable, Sendable {
+struct Trail: Codable, Identifiable, Sendable, Equatable {
     let id: String
     let name: String
     let distanceMi: Double

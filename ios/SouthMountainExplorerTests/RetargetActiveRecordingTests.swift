@@ -40,7 +40,40 @@ struct RetargetActiveRecordingTests {
 
     // MARK: - No-op cases
 
-    @Test func retargetReturnsNilForRoamMode() {
+    // MARK: - Roam → trail conversion (build 12)
+
+    @Test func retargetConvertsRoamModeToTrailMode() throws {
+        // Build 12 loosened `retargeted` to support the suggestion
+        // banner flow: a roam-mode recording can be promoted to
+        // trail mode with a one-tap retarget. mode and trailId
+        // both change; everything else is preserved.
+        let roam = ActiveRecording(
+            areaId: "south-mountain",
+            mode: .roam,
+            trailId: nil,
+            startedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            path: [
+                [33.3, -112.0, 1_700_000_000],
+                [33.3001, -112.0, 1_700_000_010],
+            ],
+            distanceMi: 0.5,
+            priorCompleteTrailIds: ["pima-canyon-loop-trail"]
+        )
+        let out = try #require(RecordingService.retargeted(roam, newTrailId: "alta"))
+        #expect(out.mode == .trail)
+        #expect(out.trailId == "alta")
+        #expect(out.areaId == roam.areaId)
+        #expect(out.startedAt == roam.startedAt)
+        #expect(out.path == roam.path)
+        #expect(out.distanceMi == roam.distanceMi)
+        #expect(out.priorCompleteTrailIds == roam.priorCompleteTrailIds)
+    }
+
+    @Test func retargetFromRoamWorksWithEmptyPath() throws {
+        // Roam-mode recording with no GPS samples yet — user
+        // tapped Start Recording then accepted the first
+        // suggestion that popped up. Conversion should still
+        // succeed.
         let roam = ActiveRecording(
             areaId: "south-mountain",
             mode: .roam,
@@ -48,10 +81,12 @@ struct RetargetActiveRecordingTests {
             startedAt: Date(),
             path: [],
             distanceMi: 0,
-            priorCompleteTrailIds: []
+            priorCompleteTrailIds: nil
         )
-        let out = RecordingService.retargeted(roam, newTrailId: "alta")
-        #expect(out == nil, "Roam-mode recordings have no trail to switch from")
+        let out = try #require(RecordingService.retargeted(roam, newTrailId: "alta"))
+        #expect(out.mode == .trail)
+        #expect(out.trailId == "alta")
+        #expect(out.path.isEmpty)
     }
 
     @Test func retargetReturnsNilWhenSameTrailId() {

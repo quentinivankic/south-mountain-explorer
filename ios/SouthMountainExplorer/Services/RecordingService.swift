@@ -158,10 +158,15 @@ final class RecordingService {
     }
 
     /// Switch which trail the active recording is targeted at,
-    /// without stopping the recording. Used by the recording panel
-    /// when the user taps a different trail mid-hike (e.g. they
-    /// detoured onto an adjacent trail and want the celebration to
-    /// fire against the new one instead of the original target).
+    /// without stopping the recording. Used by two flows:
+    ///
+    /// - The "Switch active trail" retarget banner that appears
+    ///   when a user manually taps a different trail mid-hike on
+    ///   a trail-mode recording.
+    /// - The build-12 suggestion banner that proactively offers
+    ///   a nearby incomplete trail. The suggestion banner can fire
+    ///   on roam-mode recordings too, which is why this method
+    ///   also handles the roam → trail conversion case.
     ///
     /// Coverage continues to accumulate against every trail the
     /// GPS path crosses — that's already how CoverageService
@@ -169,9 +174,10 @@ final class RecordingService {
     /// changes the *classification* that stopRecording uses for
     /// the end-of-trail celebration and history-entry trailId.
     ///
-    /// No-op when there's no active recording, the recording is
-    /// in roam mode (no trail to switch from), or the new id
-    /// matches the current one.
+    /// No-op when there's no active recording, or when the new
+    /// id matches the current one (a same-id "retarget" would be
+    /// pointless and the suggestion engine's filter rules already
+    /// exclude that case).
     func retargetTrail(_ newTrailId: String) {
         guard let rec = activeRecording,
               let updated = Self.retargeted(rec, newTrailId: newTrailId)
@@ -184,11 +190,21 @@ final class RecordingService {
     /// the gating + struct-rebuild without instantiating the
     /// `@MainActor` singleton. Returns the rebuilt `ActiveRecording`
     /// when the retarget is valid, or `nil` to indicate "no-op."
+    ///
+    /// Roam → trail conversion: when called on a `.roam` recording,
+    /// the result has `mode == .trail` and `trailId == newTrailId`.
+    /// This is the path the build-12 suggestion banner uses —
+    /// "you've been wandering, but you're 30 m from finishing
+    /// Bajada, want to make this a Bajada recording?"
     nonisolated static func retargeted(_ rec: ActiveRecording, newTrailId: String) -> ActiveRecording? {
-        guard rec.mode == .trail, rec.trailId != newTrailId else { return nil }
+        // Same-id retarget on a trail-mode recording is the only
+        // no-op case. Roam-mode recordings never have a matching
+        // trailId (it's nil), so they always fall through to the
+        // rebuild branch.
+        if rec.mode == .trail, rec.trailId == newTrailId { return nil }
         return ActiveRecording(
             areaId: rec.areaId,
-            mode: rec.mode,
+            mode: .trail,
             trailId: newTrailId,
             startedAt: rec.startedAt,
             path: rec.path,

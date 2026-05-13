@@ -294,6 +294,11 @@ struct AreaView: View {
             area = result.area
             loadError = result.error
             isLoading = false
+            if let loadedArea = result.area {
+                log.info("areaOpened areaId=\(self.areaId, privacy: .public) trails=\(loadedArea.trails.count) rawTrails=\(loadedArea.rawTrails?.count ?? 0)")
+            } else if let err = result.error {
+                log.error("areaOpenFailed areaId=\(self.areaId, privacy: .public) error=\(err, privacy: .public)")
+            }
             await loadHistoryDerivedState()
             // Pop the celebration overlay if the view was opened via a
             // trail-complete push notification. Done after the area loads

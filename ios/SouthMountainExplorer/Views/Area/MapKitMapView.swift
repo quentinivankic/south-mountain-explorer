@@ -79,6 +79,13 @@ struct MapKitMapView: UIViewRepresentable {
         mv.showsCompass = true
         mv.showsScale = true
         mv.showsUserLocation = showsUserLocation
+        // Push MKMapView's built-in compass (top-right) down below
+        // AreaView's favorite-heart button. MKMapView positions the
+        // compass with respect to its `layoutMargins.top` — a 60pt
+        // top margin clears the heart row, which sits at ~y=8 with
+        // its own 36pt height. Without this, heart + compass stack
+        // in the same screen cell and read as a single jumbled glyph.
+        mv.layoutMargins = UIEdgeInsets(top: 60, left: 0, bottom: 0, right: 0)
 
         // Initial camera (no animation — instant frame).
         Self.applyCameraTarget(cameraTarget, to: mv, animated: false)

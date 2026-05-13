@@ -49,31 +49,19 @@ enum MapTrackingMode: Int, CaseIterable {
     }
 }
 
-/// Lat/lon bounding box for a trail. Used by the viewport-cull pass
-/// in `trailPolylines` so SwiftUI doesn't have to diff a thousand
-/// MapPolyline children when only a few hundred are on-screen.
-struct DegreeBBox: Equatable {
-    let minLat: Double
-    let maxLat: Double
-    let minLon: Double
-    let maxLon: Double
-
-    /// Does this bbox intersect a (padded) `MKCoordinateRegion`?
-    /// `padding` of 1.25 means the cull keeps trails up to 25% of a
-    /// span past the visible edge, so small pans don't pop trails
-    /// in/out at the screen edges.
-    func intersects(_ region: MKCoordinateRegion, padding: Double = 1.25) -> Bool {
-        let halfLat = region.span.latitudeDelta * padding / 2
-        let halfLon = region.span.longitudeDelta * padding / 2
-        let rMinLat = region.center.latitude - halfLat
-        let rMaxLat = region.center.latitude + halfLat
-        let rMinLon = region.center.longitude - halfLon
-        let rMaxLon = region.center.longitude + halfLon
-        return !(maxLat < rMinLat || minLat > rMaxLat ||
-                 maxLon < rMinLon || minLon > rMaxLon)
-    }
-}
-
+/// SwiftUI shell that owns the map's state (camera target, tracking
+/// mode, halo cache) and hands the actual rendering off to a UIKit
+/// `MKMapView` via `MapKitMapView`. The wrapper handles the heavy
+/// lifting (overlay reconciliation, custom renderers, viewport
+/// culling) — this view just drives camera moves and refreshes the
+/// halo cache when a new hike finishes.
+///
+/// Previously this view rendered overlays directly through SwiftUI's
+/// `Map { ... }` content builder, which re-diffed the entire overlay
+/// tree on every camera-end change. At 200+ overlays the diff
+/// dominated frame time and the Map view would intermittently drop
+/// its content under render pressure (the "map disappears" symptom
+/// from the build-8 device test). Build 9 moves to `MKMapView`.
 struct TrailMapView: View {
     let area: Area
     let activeRecording: ActiveRecording?
@@ -92,43 +80,31 @@ struct TrailMapView: View {
     let bottomInset: CGFloat
     /// Three-state camera tracking cycle. AreaView owns the state via
     /// `@State`; the rotation button there reads it for the icon and
-    /// flips it on tap. TrailMapView reacts via `.onChange` to swap the
-    /// `MapCameraPosition` between a static region and a userLocation-
-    /// following one.
+    /// flips it on tap. TrailMapView reacts via `.onChange` to apply
+    /// the new mode (and to update the camera as live location /
+    /// heading samples arrive).
     @Binding var trackingMode: MapTrackingMode
 
     @Environment(ProgressService.self) private var progress
     @Environment(LocationService.self) private var location
 
-    @State private var position: MapCameraPosition
     /// Pre-built spatial index over every trail node in the area, used
     /// by the halo's `onTrailSegments` filter. Built once on appear so
-    /// the per-render hot path doesn't rebuild a 5000-node grid.
+    /// new hikes don't rebuild a 5000-node grid.
     @State private var cachedTrailGrid = SpatialGrid()
-    /// Per-trail pre-converted polyline coords. Built once on appear
-    /// so `trailPolylineLayer` doesn't `compactMap` every segment on
-    /// every Map render — that allocation pressure (25k+ per render
-    /// on hundred-trail areas) is what made the map glitchy whenever
-    /// `position` updated frequently.
-    @State private var cachedTrailCoords: [String: [[CLLocationCoordinate2D]]] = [:]
     /// Per-past-hike pre-filtered halo segments (the on-trail subset
     /// of each recorded GPS path). Rebuilt on appear and whenever
     /// `pastPaths.count` changes — i.e. only when a new hike
-    /// finishes — instead of per-render.
+    /// finishes. Passed straight through to `MapKitMapView`, which
+    /// renders each segment as an `MKPolyline` overlay.
     @State private var cachedHaloSegments: [[[CLLocationCoordinate2D]]] = []
-    /// Per-past-hike bbox over its on-trail halo segments. Parallel
-    /// to `cachedHaloSegments` (same index). Drives the halo
-    /// viewport cull — typically 1-20 hikes per area so not a huge
-    /// win, but follows the same architecture as trail culling.
-    @State private var cachedHaloBboxes: [DegreeBBox?] = []
-    /// Per-trail lat/lon bounding box. Drives the viewport cull in
-    /// `trailPolylines` so 200+ trail areas only build MapPolyline
-    /// children for trails currently on (or near) the screen.
-    @State private var cachedTrailBboxes: [String: DegreeBBox] = [:]
-    /// Last reported visible camera region from `.onMapCameraChange`.
-    /// `nil` until the first camera-change fires — until then we
-    /// render every trail (no cull) so the first frame isn't blank.
-    @State private var visibleRegion: MKCoordinateRegion? = nil
+
+    /// Where the camera should be. Applied by `MapKitMapView`
+    /// whenever `cameraTick` changes — the tick is the "go!" signal,
+    /// the target is the payload. This indirection keeps unrelated
+    /// view-state updates from accidentally re-framing the map.
+    @State private var cameraTarget: MapTarget
+    @State private var cameraTick: Int = 0
 
     init(
         area: Area,
@@ -148,44 +124,38 @@ struct TrailMapView: View {
         self.visibleTrailIds = visibleTrailIds
         self.bottomInset = bottomInset
         self._trackingMode = trackingMode
-        // Compute the initial camera position synchronously so MapKit's
-        // own .automatic frame can't briefly render a fragment of the area
-        // before .onAppear fires. Pass bottomInset so the framing
-        // accounts for the panel from the very first frame.
-        self._position = State(initialValue: Self.regionCovering(area: area, bottomInset: bottomInset))
+        // Compute the initial camera target synchronously so the
+        // first frame paints the right region — no flash to a
+        // default location before .onAppear fires.
+        self._cameraTarget = State(initialValue: Self.regionCoveringArea(area: area, bottomInset: bottomInset))
     }
 
     var body: some View {
-        Map(position: $position) {
-            haloPolylines
-            trailPolylines
-            recordingPathPolyline
-            UserAnnotation()
-        }
-        .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .excludingAll))
-        .mapControls {
-            // MapUserLocationButton is intentionally omitted — MapKit places it
-            // at the top-right where AreaView's favorite/close buttons live, and
-            // taps were leaking through to it.
-            MapCompass()
-            MapScaleView()
-        }
+        MapKitMapView(
+            area: area,
+            activeRecording: activeRecording,
+            haloSegments: cachedHaloSegments,
+            selectedTrailId: $selectedTrailId,
+            visibleTrailIds: visibleTrailIds,
+            completedTrailIds: completedTrailIdsForArea,
+            cameraTarget: cameraTarget,
+            cameraTick: cameraTick,
+            showsUserLocation: true,
+            // We always pass `.none` here: the bottom-inset shift
+            // means we need custom camera math for tracking modes
+            // (MKMapView's built-in tracking centers the dot at the
+            // geometric middle of the view, which sits behind the
+            // recording panel / trail list sheet). The `.onChange`
+            // handlers below imperatively re-frame on each location
+            // / heading update.
+            userTrackingMode: .none
+        )
         .onAppear {
-            // Build the four caches (spatial grid, per-trail polyline
-            // coords, per-trail bbox, per-hike halo segments).
-            //
-            // Critical split: the spatial grid feeds halo on-trail
-            // clipping and live coverage measurement, both of which
-            // need DENSE node coverage — building from decimated
-            // trails leaves 25-30m gaps between nodes that the user's
-            // raw GPS path drops into, dropping halo segments and
-            // under-counting trail length so coverage fraction
-            // inflates. So the grid pulls from `area.rawTrails` (the
-            // pre-decimation set carried in-memory by AreaDataService)
-            // when available, while the polyline coords / bboxes used
-            // for actual MapPolyline rendering pull from
-            // `area.trails` (decimated, fewer points to render).
-            let renderTrails = area.trails
+            // Build the spatial grid once on appear from the dense
+            // pre-decimation node set (rawTrails when available). The
+            // grid feeds the halo on-trail filter — building from
+            // decimated nodes leaves 25-30 m gaps that the user's
+            // raw GPS path drops through, dropping halo segments.
             let gridTrails = area.rawTrails ?? area.trails
             var grid = SpatialGrid()
             for trail in gridTrails {
@@ -195,57 +165,14 @@ struct TrailMapView: View {
                     }
                 }
             }
-            var coords: [String: [[CLLocationCoordinate2D]]] = [:]
-            var bboxes: [String: DegreeBBox] = [:]
-            for trail in renderTrails {
-                var segs: [[CLLocationCoordinate2D]] = []
-                var minLat = Double.infinity, maxLat = -Double.infinity
-                var minLon = Double.infinity, maxLon = -Double.infinity
-                for seg in trail.segments {
-                    for node in seg where node.count >= 2 {
-                        if node[0] < minLat { minLat = node[0] }
-                        if node[0] > maxLat { maxLat = node[0] }
-                        if node[1] < minLon { minLon = node[1] }
-                        if node[1] > maxLon { maxLon = node[1] }
-                    }
-                    let segCoords: [CLLocationCoordinate2D] = seg.compactMap { node in
-                        guard node.count >= 2 else { return nil }
-                        return CLLocationCoordinate2D(latitude: node[0], longitude: node[1])
-                    }
-                    segs.append(segCoords)
-                }
-                coords[trail.id] = segs
-                if minLat.isFinite {
-                    bboxes[trail.id] = DegreeBBox(
-                        minLat: minLat, maxLat: maxLat,
-                        minLon: minLon, maxLon: maxLon
-                    )
-                }
-            }
             cachedTrailGrid = grid
-            cachedTrailCoords = coords
-            cachedTrailBboxes = bboxes
-            // Halo cache uses the freshly-built grid (passed
-            // explicitly so we don't depend on @State commit timing).
-            let haloSegments = pastPaths.map { onTrailSegments($0, grid: grid) }
-            cachedHaloSegments = haloSegments
-            cachedHaloBboxes = haloSegments.map { Self.bboxFromSegments($0) }
+            cachedHaloSegments = pastPaths.map { onTrailSegments($0, grid: grid) }
             centerOnArea()
         }
-        // Track the visible camera region so `trailPolylines` can
-        // viewport-cull. `.onEnd` fires once per gesture / animation
-        // settle — not per frame — which is what we want: a single
-        // re-cull per pan / zoom / tracking-mode camera step.
-        .onMapCameraChange(frequency: .onEnd) { context in
-            visibleRegion = context.region
-        }
         .onChange(of: pastPaths.count) { _, _ in
-            // New hike finished and AreaView reloaded pastPaths — refresh
-            // the halo cache against the (already-cached) trail grid so
-            // the new path lights up without re-filtering on every render.
-            let segments = pastPaths.map { onTrailSegments($0) }
-            cachedHaloSegments = segments
-            cachedHaloBboxes = segments.map { Self.bboxFromSegments($0) }
+            // New hike finished and AreaView reloaded pastPaths.
+            // Refresh the halo cache against the existing grid.
+            cachedHaloSegments = pastPaths.map { onTrailSegments($0) }
         }
         .onChange(of: selectedTrailId) { _, newId in
             guard let id = newId,
@@ -257,9 +184,10 @@ struct TrailMapView: View {
         }
         .onChange(of: recenterTick) { _, _ in
             // Manual recenter — always a one-shot center on user with
-            // no rotation. If the user is currently in a tracking mode,
-            // drop back to .free so the camera doesn't immediately
-            // re-engage tracking and override the recenter.
+            // no rotation. If the user is currently in a tracking
+            // mode, drop back to .free so the camera doesn't
+            // immediately re-engage tracking and override the
+            // recenter.
             trackingMode = .free
             centerOnUser()
         }
@@ -270,13 +198,7 @@ struct TrailMapView: View {
         // every heading change in followHeading) through the same
         // shifted-center math the recenter button uses, so the user
         // dot lands above the bottom panel — not behind it like
-        // MapKit's built-in .userLocation camera does. Snap (no
-        // withAnimation) — wrapping these in .linear(0.3) made
-        // SwiftUI re-render the whole MapContent on every animation
-        // frame at 60 Hz, which thrashed the UI thread on hundred-
-        // trail areas during a rotation. Discrete 2° heading steps
-        // are visible but cheap; the precomputed coord caches keep
-        // the per-render work small.
+        // MapKit's built-in .userLocation camera does.
         .onChange(of: location.liveLocation) { _, _ in
             if trackingMode != .free { updateTrackedPosition() }
         }
@@ -285,177 +207,43 @@ struct TrailMapView: View {
         }
     }
 
-    // MARK: - Map content (split out so the type-checker can keep up)
-
-    /// Cumulative-coverage halo: every past hike's GPS path drawn in
-    /// cyan beneath the trail polylines so walked sections glow
-    /// through. Iterates the precomputed `cachedHaloSegments`
-    /// directly, viewport-culled by per-hike bbox.
-    @MapContentBuilder
-    private var haloPolylines: some MapContent {
-        ForEach(Array(cachedHaloSegments.enumerated()), id: \.offset) { index, segments in
-            if haloVisible(at: index) {
-                ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
-                    MapPolyline(coordinates: segment)
-                        .stroke(
-                            .cyan.opacity(0.55),
-                            style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round)
-                        )
-                }
-            }
-        }
+    /// Set of trail ids in this area that ProgressService considers
+    /// complete. Recomputed each body eval — the dict is small (<50
+    /// completed trails per area in practice) so the allocation is
+    /// negligible, and going through @Observable here means the
+    /// MapKitMapView gets a stable Equatable input that detects
+    /// toggles without manual plumbing.
+    private var completedTrailIdsForArea: Set<String> {
+        Set(progress.completedTrails(in: area.id).keys)
     }
 
-    private func haloVisible(at index: Int) -> Bool {
-        guard let region = visibleRegion else { return true }
-        guard index < cachedHaloBboxes.count, let bbox = cachedHaloBboxes[index] else {
-            return true
-        }
-        return bbox.intersects(region)
-    }
-
-    /// Compute the lat/lon bbox covering every coord in every segment
-    /// of a hike's halo. Returns nil if the hike has no on-trail
-    /// segments (so it gets implicit-true visibility — nothing to
-    /// draw anyway).
-    private static func bboxFromSegments(_ segments: [[CLLocationCoordinate2D]]) -> DegreeBBox? {
-        var minLat = Double.infinity, maxLat = -Double.infinity
-        var minLon = Double.infinity, maxLon = -Double.infinity
-        for seg in segments {
-            for coord in seg {
-                if coord.latitude < minLat { minLat = coord.latitude }
-                if coord.latitude > maxLat { maxLat = coord.latitude }
-                if coord.longitude < minLon { minLon = coord.longitude }
-                if coord.longitude > maxLon { maxLon = coord.longitude }
-            }
-        }
-        guard minLat.isFinite else { return nil }
-        return DegreeBBox(minLat: minLat, maxLat: maxLat, minLon: minLon, maxLon: maxLon)
-    }
-
-    /// Trail polylines themselves, with the recording-mode purple
-    /// highlight folded in alongside the tap-to-highlight cyan/colored
-    /// strokes (same code path as ordinary rendering, just different
-    /// styling).
-    @MapContentBuilder
-    private var trailPolylines: some MapContent {
-        let recordingTrailId = activeRecording?.trailId
-        let highlightedTrailId = recordingTrailId ?? selectedTrailId
-        // Two filters layered. (1) Trail-list filter (visibleTrailIds),
-        // unchanged from before. (2) Viewport cull: drop trails whose
-        // bbox doesn't intersect the (padded) visible camera region,
-        // so 200+ trail areas only build MapPolyline children for
-        // what's on screen. Both filters exempt the recording and
-        // selected trails — they must stay rendered even when the
-        // camera has panned away.
-        let drawableTrails: [Trail] = area.trails.filter { trail in
-            let isExempt = trail.id == recordingTrailId
-                || trail.id == selectedTrailId
-            if let allowed = visibleTrailIds,
-               !allowed.contains(trail.id),
-               !isExempt {
-                return false
-            }
-            if isExempt { return true }
-            if let region = visibleRegion,
-               let bbox = cachedTrailBboxes[trail.id] {
-                return bbox.intersects(region)
-            }
-            // No region reported yet (initial frame, before the first
-            // .onMapCameraChange fires) — render everything so the
-            // first paint isn't blank.
-            return true
-        }
-        ForEach(drawableTrails) { trail in
-            trailPolylineLayer(
-                trail: trail,
-                recordingTrailId: recordingTrailId,
-                highlightedTrailId: highlightedTrailId
-            )
-        }
-    }
-
-    @MapContentBuilder
-    private func trailPolylineLayer(
-        trail: Trail,
-        recordingTrailId: String?,
-        highlightedTrailId: String?
-    ) -> some MapContent {
-        let isRecordingThis = trail.id == recordingTrailId
-        let isSelected = trail.id == selectedTrailId
-        let isHighlighted = isRecordingThis || isSelected
-        let isComplete = progress.isComplete(areaId: area.id, trailId: trail.id)
-        // Completed trails get `.mint` rather than `.cyan` so the
-        // trail outline stays distinct from the cyan halo overlay
-        // (which is the user's past-hike GPS path). Same-color
-        // halo+trail blends into one indistinguishable cyan blob and
-        // makes completed trails look "missing" from the map.
-        let baseColor: Color = isRecordingThis
-            ? .purple
-            : (isComplete ? .mint : difficultyColor(trail.difficulty))
-        let dimmed = (highlightedTrailId != nil && !isHighlighted)
-        // 0.5 (vs the earlier 0.25) keeps non-active trails legible
-        // next to the bold purple recording stroke without competing
-        // for attention.
-        let strokeColor = baseColor.opacity(dimmed ? 0.5 : 1.0)
-        let lineWidth: CGFloat = isRecordingThis ? 10 : (isSelected ? 6 : 3)
-        // Pre-converted CLLocationCoordinate2D arrays from the
-        // .onAppear cache. Empty array if the trail isn't in the
-        // cache (shouldn't happen in practice — every area trail is
-        // cached on appear).
-        let segCoords = cachedTrailCoords[trail.id] ?? []
-        ForEach(Array(segCoords.enumerated()), id: \.offset) { _, coords in
-            MapPolyline(coordinates: coords)
-                .stroke(
-                    strokeColor,
-                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
-                )
-        }
-    }
-
-    /// Live recording GPS path drawn over the trails so the user can
-    /// see exactly where they've walked in this session.
-    @MapContentBuilder
-    private var recordingPathPolyline: some MapContent {
-        if let rec = activeRecording, rec.path.count > 1 {
-            let pathCoords = rec.path.map {
-                CLLocationCoordinate2D(latitude: $0[0], longitude: $0[1])
-            }
-            MapPolyline(coordinates: pathCoords)
-                .stroke(.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
-        }
-    }
+    // MARK: - Camera control
 
     private func applyTrackingMode(_ mode: MapTrackingMode) {
-        // One-shot mode entry uses a brief easeInOut so the camera
-        // glides to its new framing. Continuous tracking updates
-        // (.onChange handlers below) use a faster linear animation
-        // so the camera flows with each GPS / heading sample without
-        // queuing up.
         switch mode {
         case .free:
             location.stopHeadingUpdates()
-            withAnimation(.easeInOut(duration: 0.3)) { centerOnUser() }
+            centerOnUser()
         case .follow:
             // Ensure live location is pumping (idempotent — no-op if
             // already running, e.g. during a recording). Heading
             // isn't needed for plain follow.
             location.startLiveTracking()
             location.stopHeadingUpdates()
-            withAnimation(.easeInOut(duration: 0.3)) { updateTrackedPosition() }
+            updateTrackedPosition()
         case .followHeading:
             location.startLiveTracking()
             location.startHeadingUpdates()
-            withAnimation(.easeInOut(duration: 0.3)) { updateTrackedPosition() }
+            updateTrackedPosition()
         }
     }
 
     /// Position the camera on the user with the bottomInset shift
-    /// (same method PR #48 used for the one-shot recenter). For
+    /// (same math the previous SwiftUI-Map version used). For
     /// followHeading the shift is rotated into the camera's frame so
     /// "above the panel" stays above the panel after rotation, and
-    /// the position is set via MapCamera (only camera mode supports
-    /// heading; .region doesn't).
+    /// the target uses MKMapCamera with heading rather than a region
+    /// (regions can't carry a heading).
     private func updateTrackedPosition() {
         guard let coord = location.liveLocation ?? location.userLocation else { return }
         let heading: CLLocationDirection = trackingMode == .followHeading
@@ -483,20 +271,21 @@ struct TrailMapView: View {
             // distance ~6000 m roughly matches the vertical span of
             // MKCoordinateRegion(latitudinalMeters: 1500) in portrait
             // (region fits the SHORTER axis = width, so vertical span
-            // is ~3.3 km on a typical phone). distance 2500 was ~2×
-            // zoomed in, which made the shift proportionally too big
-            // and put the dot at the top of the visible area.
-            position = .camera(MapCamera(
-                centerCoordinate: shifted,
+            // is ~3.3 km on a typical phone).
+            setCameraTarget(.camera(
+                centerLat: shifted.latitude,
+                centerLon: shifted.longitude,
                 distance: 6000,
-                heading: heading,
-                pitch: 0
+                heading: heading
             ))
         } else {
-            position = .region(MKCoordinateRegion(
-                center: shifted,
-                latitudinalMeters: latMeters,
-                longitudinalMeters: latMeters
+            let latDelta = latMeters / 111_000.0
+            let lonDelta = latMeters / (111_000.0 * cosLat)
+            setCameraTarget(.region(
+                centerLat: shifted.latitude,
+                centerLon: shifted.longitude,
+                latDelta: latDelta,
+                lonDelta: lonDelta
             ))
         }
     }
@@ -511,20 +300,44 @@ struct TrailMapView: View {
         let latDelta = 1500.0 / 111_000.0
         let cosLat = max(0.0001, cos(coord.latitude * .pi / 180))
         let lonDelta = 1500.0 / (111_000.0 * cosLat)
-        withAnimation {
-            position = Self.fittedRegion(
-                centerLat: coord.latitude,
-                centerLon: coord.longitude,
-                latDelta: latDelta,
-                lonDelta: lonDelta,
-                bottomInset: bottomInset
-            )
-        }
+        setCameraTarget(Self.fittedRegion(
+            centerLat: coord.latitude,
+            centerLon: coord.longitude,
+            latDelta: latDelta,
+            lonDelta: lonDelta,
+            bottomInset: bottomInset
+        ))
     }
 
     private func centerOnArea() {
-        withAnimation { position = Self.regionCovering(area: area, bottomInset: bottomInset) }
+        setCameraTarget(Self.regionCoveringArea(area: area, bottomInset: bottomInset))
     }
+
+    private func centerOn(trail: Trail) {
+        let pts = trail.segments.flatMap { $0 }.compactMap { p -> (Double, Double)? in
+            guard p.count >= 2 else { return nil }
+            return (p[0], p[1])
+        }
+        guard !pts.isEmpty else { return }
+        let lats = pts.map { $0.0 }
+        let lons = pts.map { $0.1 }
+        let minLat = lats.min()!, maxLat = lats.max()!
+        let minLon = lons.min()!, maxLon = lons.max()!
+        setCameraTarget(Self.fittedRegion(
+            centerLat: (minLat + maxLat) / 2,
+            centerLon: (minLon + maxLon) / 2,
+            latDelta: max((maxLat - minLat) * 1.4, 0.005),
+            lonDelta: max((maxLon - minLon) * 1.4, 0.005),
+            bottomInset: bottomInset
+        ))
+    }
+
+    private func setCameraTarget(_ target: MapTarget) {
+        cameraTarget = target
+        cameraTick &+= 1
+    }
+
+    // MARK: - Halo segment filter
 
     /// Split a recorded GPS path into runs of consecutive points that
     /// lie within `bufferM` of any trail node. Off-trail runs
@@ -555,22 +368,20 @@ struct TrailMapView: View {
         return segments
     }
 
-    /// Frame the camera around the union of all trail segments. Uses the
-    /// actual trail geometry (not just `area.bbox`, which is sometimes nil
-    /// or imprecise in the bundled data) so the user always opens to a view
-    /// of the whole area rather than a random subregion.
-    /// Returns a MapCameraPosition that frames a target bbox in the
-    /// *visible* portion of the map (above the bottom panel).
-    /// Inflates the latitudinal span so the bbox fits in the
-    /// `(1 - p)` fraction of the screen that's not covered, then
-    /// shifts the center south so the bbox sits in that visible top
-    /// portion. Without this, the bottom of the framed region was
-    /// hidden behind the recording panel / trail list sheet.
-    private static func fittedRegion(
+    // MARK: - Fitted-region math
+
+    /// Frame a target lat/lon bbox in the visible portion of the map
+    /// (above the bottom panel). Inflates the latitudinal span so the
+    /// bbox fits in the `(1 - p)` fraction of the screen that's not
+    /// covered, then shifts the center south so the bbox sits in
+    /// that visible top portion. Without this, the bottom of the
+    /// framed region was hidden behind the recording panel or trail
+    /// list sheet.
+    static func fittedRegion(
         centerLat: Double, centerLon: Double,
         latDelta: Double, lonDelta: Double,
         bottomInset: CGFloat
-    ) -> MapCameraPosition {
+    ) -> MapTarget {
         let screenH = UIScreen.main.bounds.height
         // Cap p at 0.7 so a worst-case panel-covers-everything state
         // still leaves a sane minimum visible area.
@@ -578,26 +389,24 @@ struct TrailMapView: View {
         let visibleFraction = max(0.3, 1 - p)
 
         // Inflate the latitudinal span so the requested content fits
-        // in the visible (top) portion. Longitudinal needs no inflation
-        // — the panel doesn't constrain horizontally.
+        // in the visible (top) portion. Longitudinal needs no
+        // inflation — the panel doesn't constrain horizontally.
         let regionLatDelta = max(latDelta / visibleFraction, 0.005)
         let regionLonDelta = max(lonDelta, 0.005)
 
-        // Shift center south by half the extra span we just added, so
-        // the visible center of the region matches the requested
+        // Shift center south by half the extra span we just added,
+        // so the visible center of the region matches the requested
         // centerLat.
         let shiftLat = regionLatDelta * p / 2
-        let center = CLLocationCoordinate2D(
-            latitude: centerLat - shiftLat,
-            longitude: centerLon
+        return .region(
+            centerLat: centerLat - shiftLat,
+            centerLon: centerLon,
+            latDelta: regionLatDelta,
+            lonDelta: regionLonDelta
         )
-        return .region(MKCoordinateRegion(
-            center: center,
-            span: MKCoordinateSpan(latitudeDelta: regionLatDelta, longitudeDelta: regionLonDelta)
-        ))
     }
 
-    private static func regionCovering(area: Area, bottomInset: CGFloat) -> MapCameraPosition {
+    static func regionCoveringArea(area: Area, bottomInset: CGFloat) -> MapTarget {
         let coords = area.trails
             .flatMap { $0.segments.flatMap { $0 } }
             .compactMap { p -> (lat: Double, lon: Double)? in
@@ -630,41 +439,14 @@ struct TrailMapView: View {
             )
         }
 
-        return .camera(MapCamera(
-            centerCoordinate: CLLocationCoordinate2D(
-                latitude: area.centerLat,
-                longitude: area.centerLon
-            ),
-            distance: 5000
-        ))
-    }
-
-    private func centerOn(trail: Trail) {
-        let pts = trail.segments.flatMap { $0 }.compactMap { p -> (Double, Double)? in
-            guard p.count >= 2 else { return nil }
-            return (p[0], p[1])
-        }
-        guard !pts.isEmpty else { return }
-        let lats = pts.map { $0.0 }
-        let lons = pts.map { $0.1 }
-        let minLat = lats.min()!, maxLat = lats.max()!
-        let minLon = lons.min()!, maxLon = lons.max()!
-        withAnimation {
-            position = Self.fittedRegion(
-                centerLat: (minLat + maxLat) / 2,
-                centerLon: (minLon + maxLon) / 2,
-                latDelta: max((maxLat - minLat) * 1.4, 0.005),
-                lonDelta: max((maxLon - minLon) * 1.4, 0.005),
-                bottomInset: bottomInset
-            )
-        }
-    }
-
-    private func difficultyColor(_ difficulty: Difficulty) -> Color {
-        switch difficulty {
-        case .easy: return .green
-        case .moderate: return .orange
-        case .hard: return .red
-        }
+        // Fallback: a fixed-distance camera around the area's
+        // bundled center. Used only when the area carries no trail
+        // geometry AND no bbox — vanishingly rare in practice.
+        return .camera(
+            centerLat: area.centerLat,
+            centerLon: area.centerLon,
+            distance: 5000,
+            heading: 0
+        )
     }
 }

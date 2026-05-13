@@ -20,8 +20,11 @@ on:
         description: "Areas per save batch"
         default: "50"
       delay:
-        description: "Seconds between Overpass requests"
+        description: "Seconds between Overpass requests, per worker"
         default: "1.5"
+      concurrency:
+        description: "Parallel worker count (default 3 = ~2 rps to Overpass at default delay; 1 = serial)"
+        default: "3"
       limit:
         description: "Max areas to process (blank = all)"
         default: ""
@@ -66,7 +69,7 @@ jobs:
 
       - name: Run trail count builder
         run: |
-          ARGS="--batch-size ${{ github.event.inputs.batch_size }} --delay ${{ github.event.inputs.delay }}"
+          ARGS="--batch-size ${{ github.event.inputs.batch_size }} --delay ${{ github.event.inputs.delay }} --concurrency ${{ github.event.inputs.concurrency }}"
           if [ -n "${{ github.event.inputs.limit }}" ]; then
             ARGS="$ARGS --limit ${{ github.event.inputs.limit }}"
           fi

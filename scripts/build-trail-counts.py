@@ -20,14 +20,21 @@ are kept in the index with count=0 so the app can filter them client-side.
 
 Usage:
   python3 scripts/build-trail-counts.py [--batch-size N] [--delay S] [--limit N]
+                                        [--concurrency N]
 
 Options:
   --batch-size N   Areas to process per batch before saving (default 50)
-  --delay S        Seconds to sleep between Overpass requests (default 1.5)
+  --delay S        Seconds to sleep between Overpass requests, per worker
+                   (default 1.5). Global request rate is concurrency / delay.
   --limit N        Stop after N areas (for testing)
   --force          Re-query even cached areas
+  --concurrency N  Parallel worker count (default 3). Each worker holds the
+                   per-request `--delay` between its own Overpass requests, so
+                   global throughput is roughly N/delay req/s — still polite
+                   to the public Overpass instance at the default 3/1.5 ≈ 2 rps.
 """
 
+import asyncio
 import json
 import math
 import re
@@ -481,12 +488,158 @@ def deduplicate(index: list) -> list:
     return kept
 
 
+def fetch_one_area(area, cache, args) -> dict:
+    """Synchronous per-area fetch + count. Pure with respect to
+    cache state — returns a result dict the caller will merge into
+    the cache + write-geom on the main task. Splitting the network
+    work (slow, parallelizable) from the cache mutation (fast,
+    serial) is what lets `run_parallel` use a thread pool without
+    needing a lock around the cache dict.
+    """
+    area_id = area[0]
+    name, state = area[1], area[2]
+    lat, lon = area[3], area[4]
+    cached_entry = cache.get(area_id)
+    if not args.force and cached_entry is not None and "silhouette" in cached_entry:
+        return {"area_id": area_id, "status": "skipped"}
+    try:
+        cached_osm_id = (cached_entry or {}).get("osm_id")
+        if cached_osm_id is not None:
+            # Skip Nominatim — we already know the relation. Avoids
+            # the instability where Nominatim picks different
+            # relations for the same name on different runs (Python
+            # and iOS would then fetch different polygons and report
+            # different counts).
+            nominatim = {"osm_id": str(cached_osm_id), "boundingbox": []}
+            source = "cached_osm_id"
+        else:
+            nominatim = nominatim_lookup(name, state)
+            time.sleep(1)  # Nominatim rate limit: 1 req/sec
+            source = "relation" if nominatim else "radius"
+        data = fetch_overpass(lat, lon, nominatim)
+        trail_count, total_mi, silhouette, geom_trails, geom_bbox = build_counts(data)
+        return {
+            "area_id": area_id,
+            "status": "ok",
+            "name": name,
+            "state": state,
+            "lat": lat,
+            "lon": lon,
+            "trail_count": trail_count,
+            "total_mi": total_mi,
+            "silhouette": silhouette,
+            "geom_trails": geom_trails,
+            "geom_bbox": geom_bbox,
+            "cached_osm_id": cached_osm_id,
+            "nominatim": nominatim,
+            "source": source,
+        }
+    except Exception as e:
+        return {"area_id": area_id, "status": "error", "error": str(e)}
+
+
+async def run_parallel(targets, cache, args, total):
+    """Drive `fetch_one_area` across `args.concurrency` worker
+    tasks via asyncio + to_thread. Cache writes + result handling
+    stay on the main task so we don't have to lock the cache dict
+    (and so the existing per-batch checkpoint semantics carry over).
+
+    Per-worker delay (not global): each worker sleeps `args.delay`
+    after its own request, so the global request rate is roughly
+    `concurrency / delay` per second. With the defaults (3 / 1.5)
+    that's ~2 rps to Overpass — well within the public instance's
+    tolerance and only a 3× speedup relative to the serial loop,
+    but enough to take the AZ+CA rebuild from ~50min → ~17min and
+    a hypothetical full-US rebuild from days → most-of-a-day.
+    """
+    semaphore = asyncio.Semaphore(args.concurrency)
+
+    async def worker(area):
+        async with semaphore:
+            result = await asyncio.to_thread(fetch_one_area, area, cache, args)
+            # Stagger inside the semaphore so the per-request delay
+            # serializes against this worker's NEXT acquisition,
+            # not against unrelated cache-write work on the main
+            # task. Skip the sleep on a cache hit — those return
+            # without making a network call.
+            if result["status"] == "ok":
+                await asyncio.sleep(args.delay)
+            return result
+
+    tasks = [asyncio.create_task(worker(area)) for area in targets]
+    processed = 0
+    skipped = 0
+    errors = 0
+    completed = 0
+    for finished in asyncio.as_completed(tasks):
+        result = await finished
+        completed += 1
+        area_id = result["area_id"]
+        if result["status"] == "skipped":
+            skipped += 1
+            continue
+        if result["status"] == "error":
+            errors += 1
+            print(
+                f"[{completed}/{total}] ERROR {area_id}: {result['error']}",
+                file=sys.stderr,
+                flush=True,
+            )
+            continue
+        # status == "ok" — merge into cache and write the geom file.
+        cache_entry = cache.get(area_id) or {}
+        cache_entry.update({
+            "trail_count": result["trail_count"],
+            "total_mi": result["total_mi"],
+            "silhouette": result["silhouette"],
+        })
+        if result["cached_osm_id"] is not None:
+            cache_entry["osm_id"] = result["cached_osm_id"]
+        elif result["nominatim"] and "osm_id" in result["nominatim"]:
+            cache_entry["osm_id"] = int(result["nominatim"]["osm_id"])
+        cache[area_id] = cache_entry
+        # Write the per-area geom file for jsDelivr. We deliberately
+        # write even when geom_trails is empty so the file exists
+        # and the iOS CDN path doesn't have to distinguish "no
+        # trails" from "not built yet" (those mean different things).
+        write_geom(
+            area_id=area_id,
+            name=result["name"],
+            state=result["state"],
+            center_lat=result["lat"],
+            center_lon=result["lon"],
+            trail_count=result["trail_count"],
+            total_mi=result["total_mi"],
+            osm_relation_id=cache_entry.get("osm_id"),
+            geom_trails=result["geom_trails"],
+            geom_bbox=result["geom_bbox"],
+        )
+        processed += 1
+        sil_lines = len(result["silhouette"]["l"]) if result["silhouette"] else 0
+        print(
+            f"[{completed}/{total}] {area_id}: {result['trail_count']} trails, "
+            f"{result['total_mi']:.2f} mi, {sil_lines} silhouette lines ({result['source']})",
+            flush=True,
+        )
+        # Save cache incrementally — same cadence the serial loop used.
+        if processed % args.batch_size == 0:
+            CACHE_PATH.write_text(json.dumps(cache, separators=(",", ":")))
+
+    return processed, skipped, errors
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch-size", type=int, default=50)
     parser.add_argument("--delay", type=float, default=1.5)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--concurrency", type=int, default=3,
+        help="Parallel worker count. Each worker holds the per-request "
+        "--delay between its own Overpass requests, so global throughput "
+        "is roughly N/delay req/s. 1 = serial (the pre-PR-3 behavior).",
+    )
     parser.add_argument("--cache-only", action="store_true",
                         help="Skip all network requests; just rebuild index.json from existing cache")
     parser.add_argument(
@@ -528,82 +681,12 @@ def main():
 
     targets = index if args.limit is None else index[: args.limit]
     total = len(targets)
-    skipped = 0
-    processed = 0
-    errors = 0
 
-    print(f"Index has {len(index)} areas. Processing {total}.")
+    print(f"Index has {len(index)} areas. Processing {total} (concurrency={args.concurrency}).")
 
-    for i, area in enumerate(targets):
-        area_id = area[0]
-        lat = area[3]
-        lon = area[4]
-
-        cached_entry = cache.get(area_id)
-        if not args.force and cached_entry is not None and "silhouette" in cached_entry:
-            skipped += 1
-            continue
-
-        try:
-            name, state = area[1], area[2]
-            cached_osm_id = (cached_entry or {}).get("osm_id")
-            if cached_osm_id is not None:
-                # Skip Nominatim — we already know the relation. Avoids
-                # the instability where Nominatim picks different relations
-                # for the same name on different runs (Python and iOS would
-                # then fetch different polygons and report different counts).
-                nominatim = {"osm_id": str(cached_osm_id), "boundingbox": []}
-                source = "cached_osm_id"
-            else:
-                nominatim = nominatim_lookup(name, state)
-                time.sleep(1)  # Nominatim rate limit: 1 req/sec
-                source = "relation" if nominatim else "radius"
-            data = fetch_overpass(lat, lon, nominatim)
-            trail_count, total_mi, silhouette, geom_trails, geom_bbox = build_counts(data)
-            cache_entry = cache.get(area_id) or {}
-            cache_entry.update({
-                "trail_count": trail_count,
-                "total_mi": total_mi,
-                "silhouette": silhouette,
-            })
-            # Capture the relation id we used so subsequent runs skip
-            # Nominatim entirely and the iOS app gets it via the index.
-            if cached_osm_id is not None:
-                cache_entry["osm_id"] = cached_osm_id
-            elif nominatim and "osm_id" in nominatim:
-                cache_entry["osm_id"] = int(nominatim["osm_id"])
-            cache[area_id] = cache_entry
-            # Write the per-area geom file for jsDelivr. We deliberately
-            # write even when geom_trails is empty so the file exists
-            # and the iOS CDN path doesn't have to distinguish "no
-            # trails" from "not built yet" (those mean different things).
-            write_geom(
-                area_id=area_id,
-                name=name,
-                state=state,
-                center_lat=lat,
-                center_lon=lon,
-                trail_count=trail_count,
-                total_mi=total_mi,
-                osm_relation_id=cache_entry.get("osm_id"),
-                geom_trails=geom_trails,
-                geom_bbox=geom_bbox,
-            )
-            processed += 1
-            sil_lines = len(silhouette["l"]) if silhouette else 0
-            print(
-                f"[{i+1}/{total}] {area_id}: {trail_count} trails, {total_mi:.2f} mi, {sil_lines} silhouette lines ({source})",
-                flush=True,
-            )
-        except Exception as e:
-            errors += 1
-            print(f"[{i+1}/{total}] ERROR {area_id}: {e}", file=sys.stderr, flush=True)
-
-        # Save cache incrementally
-        if processed % args.batch_size == 0:
-            CACHE_PATH.write_text(json.dumps(cache, separators=(",", ":")))
-
-        time.sleep(args.delay)
+    processed, skipped, errors = asyncio.run(
+        run_parallel(targets, cache, args, total)
+    )
 
     # Final cache save
     CACHE_PATH.write_text(json.dumps(cache, separators=(",", ":")))

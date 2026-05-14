@@ -31,8 +31,8 @@ struct DiagnosticsTests {
         #expect(FileManager.default.fileExists(atPath: url.path),
                 "Bundle file not at \(url.path)")
 
-        // Filename pattern is the documented `south-mountain-diagnostics-<epoch>.json`.
-        #expect(url.lastPathComponent.hasPrefix("south-mountain-diagnostics-"))
+        // Filename pattern is the documented `trekdex-diagnostics-<epoch>.json`.
+        #expect(url.lastPathComponent.hasPrefix("trekdex-diagnostics-"))
         #expect(url.pathExtension == "json")
 
         // Round-trip parse to verify the bundle structure didn't
@@ -89,7 +89,7 @@ struct DiagnosticsTests {
         // DiagnosticsService filter accepts it. The category is
         // unique to this test so we can scan the bundle for it
         // without colliding with real app logs.
-        let log = Logger(subsystem: "com.southmountainexplorer.app", category: "DiagnosticsTests")
+        let log = Logger(subsystem: "com.trekdex.app", category: "DiagnosticsTests")
         let marker = "diagnostics-marker-\(UUID().uuidString)"
         log.info("\(marker, privacy: .public)")
 

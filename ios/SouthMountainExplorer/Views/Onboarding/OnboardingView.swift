@@ -19,7 +19,7 @@ struct OnboardingView: View {
                     )
                     .symbolEffect(.bounce, value: true)
 
-                Text("South Mountain Explorer")
+                Text("TrekDex")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)
@@ -53,6 +53,13 @@ struct OnboardingView: View {
             .padding(.horizontal, 32)
 
             Spacer()
+
+            Text("Tip: enable iCloud Backup in iOS Settings to keep your hikes safe across reinstalls.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+                .padding(.bottom, 12)
 
             Button {
                 dismiss()

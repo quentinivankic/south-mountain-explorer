@@ -61,11 +61,13 @@ jobs:
 
       - name: Build (iOS Simulator, no code signing)
         working-directory: ios
-        # Build for the simulator destination so signing isn't
-        # required. The three CODE_SIGN_* overrides defensively
-        # disable signing even though simulator builds default to
-        # off — guarantees we never bounce on a missing provisioning
-        # profile.
+        # Build for `generic/platform=iOS Simulator` so the compile-
+        # check works even when the runner has no iOS Simulator
+        # runtime installed (macos-latest stopped shipping one with
+        # Xcode 26 around 2026-05). The three CODE_SIGN_* overrides
+        # defensively disable signing even though simulator builds
+        # default to off — guarantees we never bounce on a missing
+        # provisioning profile.
         #
         # `-quiet` keeps the log small enough to skim when a build
         # fails; full xcodebuild output dumps thousands of lines per
@@ -75,11 +77,22 @@ jobs:
             -project SouthMountainExplorer.xcodeproj \
             -scheme SouthMountainExplorer \
             -configuration Debug \
-            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" \
+            -destination "generic/platform=iOS Simulator" \
             -quiet \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Install iOS Simulator runtime
+        # macos-latest's Xcode 26 image stopped shipping an iOS
+        # Simulator runtime preinstalled (around 2026-05). Without
+        # this download, xcodebuild's destination resolver only
+        # returns the `Any iOS Simulator Device` placeholder and
+        # the build step's `generic/platform=...` is the only thing
+        # that works. After the download, Apple's standard set of
+        # simulators (iPhone 16, iPad, etc.) becomes available
+        # for the test step's name-based destination.
+        run: sudo xcodebuild -downloadPlatform iOS
 
       - name: Run unit tests (iOS Simulator)
         working-directory: ios

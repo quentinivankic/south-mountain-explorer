@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 private struct UserStats: Equatable {
     var hikeCount: Int
@@ -7,7 +8,12 @@ private struct UserStats: Equatable {
     var areasExplored: Int
 }
 
-private let feedbackURL = URL(string: "https://github.com/quentinivankic/south-mountain-explorer/issues/new")!
+/// Privacy policy hosting location. Set once the v1 host is chosen
+/// (non-GitHub) so the Privacy Policy row in Settings starts rendering.
+/// Until then the row stays hidden — App Store Connect carries the
+/// authoritative privacy policy URL the user sees on the TestFlight
+/// listing.
+private let privacyPolicyURL: URL? = nil
 
 /// Small `Identifiable` wrapper around a `URL` so we can drive a
 /// `.sheet(item:)` from the diagnostics-export flow. `URL` itself
@@ -253,9 +259,30 @@ struct SettingsView: View {
                 }
 
                 Section("Feedback") {
-                    Link(destination: feedbackURL) {
-                        Label("Send Feedback", systemImage: "envelope")
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label("Share Beta Feedback", systemImage: "envelope")
+                        Text("In the TestFlight app, take a screenshot inside the app and tap Share to send a comment with your screenshot attached.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
+                    .padding(.vertical, 2)
+                }
+
+                Section {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label("Back up your hikes", systemImage: "icloud.and.arrow.up")
+                        Text("Hike history and trail completions live on this device. Enable iCloud Backup (iOS Settings → your Apple ID → iCloud → iCloud Backup) so your progress survives reinstalls and new devices. Cloud sync is coming in a future update.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 2)
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        Link(destination: url) {
+                            Label("Open iOS Settings", systemImage: "gear")
+                        }
+                    }
+                } header: {
+                    Text("Backup")
                 }
 
                 // Developer-mode controls. Not gated by a flag — small
@@ -288,6 +315,11 @@ struct SettingsView: View {
                 Section("About") {
                     LabeledContent("Version", value: appVersion)
                     LabeledContent("Build", value: buildNumber)
+                    if let url = privacyPolicyURL {
+                        Link(destination: url) {
+                            Label("Privacy Policy", systemImage: "hand.raised")
+                        }
+                    }
                 }
             }
             .navigationTitle("Settings")

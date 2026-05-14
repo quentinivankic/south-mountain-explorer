@@ -20,7 +20,7 @@ struct ShareableHikeCard: View {
             HStack(spacing: 8) {
                 Image(systemName: "mountain.2.fill")
                     .font(.title2)
-                Text("South Mountain Explorer")
+                Text("TrekDex")
                     .font(.headline)
             }
             .foregroundStyle(.white)

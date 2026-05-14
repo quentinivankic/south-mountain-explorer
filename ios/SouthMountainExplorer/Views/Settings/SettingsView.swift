@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 private struct UserStats: Equatable {
     var hikeCount: Int
@@ -276,11 +275,6 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 2)
-                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                        Link(destination: url) {
-                            Label("Open iOS Settings", systemImage: "gear")
-                        }
-                    }
                 } header: {
                     Text("Backup")
                 }

@@ -281,28 +281,36 @@ final class RecordingService {
             }
         }
 
-        // Supplement: trails that were already complete at recording
-        // start AND got walked enough on THIS hike to be a meaningful
-        // re-visit, even if they don't pass the strict sessionComplete
-        // gate (which also requires `endpointsVisited` in the union
-        // path). Why: completions stored before build 13's endpoint
-        // gate sit at fraction >= 0.95 in CoverageService without
-        // ever having proved both endpoints were reached. The union
-        // path inherits that absence — no past hike hit both
-        // endpoints, so `endpointsVisited` stays false, and
-        // mergeCoverage filters the trail out of `mergeRevisited`.
-        // The user then sees no "X revisited" badge in History for a
-        // hike that obviously re-walked an already-complete trail
-        // (the reporter's South Mountain unnamed-494466239 case).
-        // This pure per-hike-fraction check closes the gap without
-        // loosening the gate for fresh completions.
-        let revisitFractionThreshold = 0.30
+        // Symmetric-with-initial-completion revisit check. For each
+        // trail the user has previously completed (per
+        // ProgressService), look at the UNION of GPS paths since that
+        // trail's last "full coverage" event — the later of the
+        // initial completion date and any subsequent hike that
+        // classified the trail as newly-completed or revisited. If
+        // that union covers the trail to >= 0.95 with both endpoints,
+        // the user has fully re-walked the trail since the last time
+        // it was credited.
+        //
+        // Why this shape: the previous strict `sessionComplete` gate
+        // on the all-hikes union missed two real cases —
+        //
+        // (a) Trails completed under build 8's pre-endpoint logic sit
+        //     at fraction 1.0 in CoverageService without proof that
+        //     endpoints were ever physically reached. The all-hikes
+        //     union inherits that absence and the gate filters them.
+        // (b) Multi-day revisits: half today + half tomorrow should
+        //     credit on tomorrow's stop, mirroring how initial
+        //     completions work after the union-of-paths fix in PR #84.
+        //
+        // Both fall out of "look at GPS samples since the anchor."
         let alreadyClassified = Set(newlyCompleted).union(revisited)
-        for tid in priorSnapshot where !alreadyClassified.contains(tid) {
-            if let delta = perHikeDelta[tid], delta.fraction >= revisitFractionThreshold {
-                revisited.append(tid)
-            }
-        }
+        let pendingRevisits = computeRevisits(
+            areaId: rec.areaId,
+            currentPath: rec.path,
+            trails: trails,
+            alreadyClassified: alreadyClassified
+        )
+        revisited.append(contentsOf: pendingRevisits)
 
         let finished = FinishedRecording(
             areaId: rec.areaId,
@@ -621,6 +629,68 @@ final class RecordingService {
             combined.append(contentsOf: hike.path)
         }
         return combined
+    }
+
+    /// For each trail the user has previously completed in this
+    /// area, decide whether this hike's stop should credit a fresh
+    /// "revisit" — symmetric with how initial completions work after
+    /// the PR #84 union fix. The per-trail anchor is the most recent
+    /// time the trail was fully covered (initial mark in
+    /// `ProgressService`, or any later hike whose stop classified
+    /// the trail as `newlyCompleted` / `revisited`). The post-anchor
+    /// union of paths is the slice of history that hasn't yet been
+    /// "credited" to a completion; if it covers the trail to >= 0.95
+    /// with both endpoints reached, this hike is the one that closes
+    /// the revisit.
+    ///
+    /// Returns only trails *not* already in `alreadyClassified`, so
+    /// it composes safely after the strict `mergeCoverage` pass.
+    /// Pure-ish: depends on `loadHistorySync()` + `ProgressService`,
+    /// but takes the current hike's path explicitly so the same
+    /// shape is testable by hand-feeding history + completion dates
+    /// to `Self.computeRevisits(...)` if needed in the future.
+    private func computeRevisits(
+        areaId: String,
+        currentPath: [GpsPoint],
+        trails: [Trail],
+        alreadyClassified: Set<String>
+    ) -> [String] {
+        let history = loadHistorySync().filter { $0.areaId == areaId }
+        let completionDates = ProgressService.shared.completedTrails(in: areaId)
+        guard !completionDates.isEmpty else { return [] }
+        let iso = ISO8601DateFormatter()
+
+        var out: [String] = []
+        for (tid, completionStamp) in completionDates where !alreadyClassified.contains(tid) {
+            // Anchor: latest "trail was fully covered" event we know
+            // about. Start with the initial-mark date; walk forward
+            // through history and bump anchor to any later hike that
+            // claimed this trail as newly-complete or revisited.
+            var anchor: Date? = iso.date(from: completionStamp)
+            for hike in history {
+                if hike.completedTrailIds.contains(tid) || hike.revisitedTrailIds.contains(tid) {
+                    if anchor == nil || hike.endedAt > anchor! {
+                        anchor = hike.endedAt
+                    }
+                }
+            }
+            guard let anchor else { continue }
+
+            // Union of GPS samples taken after the anchor: every
+            // past hike whose recording started after the anchor,
+            // plus this hike's path. Anything earlier already
+            // contributed to the previous completion.
+            var postAnchor: [GpsPoint] = currentPath
+            for hike in history where hike.startedAt > anchor {
+                postAnchor.append(contentsOf: hike.path)
+            }
+
+            let scores = measureCoverage(path: postAnchor, trails: trails, bufferMeters: bufferMeters)
+            if let s = scores[tid], s.fraction >= completeThreshold, s.endpointsVisited {
+                out.append(tid)
+            }
+        }
+        return out
     }
 
     func loadHistory() async -> [SavedRecording] {

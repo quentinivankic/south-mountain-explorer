@@ -7,12 +7,12 @@ private struct UserStats: Equatable {
     var areasExplored: Int
 }
 
-/// Privacy policy hosting location. Set once the v1 host is chosen
-/// (non-GitHub) so the Privacy Policy row in Settings starts rendering.
-/// Until then the row stays hidden — App Store Connect carries the
-/// authoritative privacy policy URL the user sees on the TestFlight
-/// listing.
-private let privacyPolicyURL: URL? = nil
+/// Privacy policy hosted on Notion. Pinned here so the Privacy
+/// Policy row in Settings → About renders and links to the
+/// authoritative copy of the policy. Same URL goes into App Store
+/// Connect's Privacy Policy URL field before External Beta
+/// submission.
+private let privacyPolicyURL: URL? = URL(string: "https://flint-tent-6ef.notion.site/TrekDex-Privacy-Policy-36061eb3c1d28043b1d4e58f3de860e6")
 
 /// Small `Identifiable` wrapper around a `URL` so we can drive a
 /// `.sheet(item:)` from the diagnostics-export flow. `URL` itself

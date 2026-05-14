@@ -83,54 +83,16 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: Prepare iOS Simulator for tests
-        # The test step needs an actual booted simulator (generic
-        # platform won't work for `xcodebuild test`). The runner
-        # image no longer ships an iOS runtime by default, so
-        # download the latest one if it's missing and create a
-        # default iPhone simulator against it. Picks the latest
-        # iOS runtime + first iPhone device type Apple ships.
-        run: |
-          set -e
-          have_iphone=$(xcrun simctl list devices available -j | python3 -c "
-          import json, sys
-          d = json.load(sys.stdin)
-          for runtime, devs in d['devices'].items():
-              if 'iOS' in runtime:
-                  for dev in devs:
-                      if dev['name'].startswith('iPhone'):
-                          print(dev['udid'])
-                          sys.exit(0)
-          sys.exit(1)
-          " || echo "")
-          if [ -z "$have_iphone" ]; then
-            echo "No iOS simulator runtime available — downloading…"
-            sudo xcodebuild -downloadPlatform iOS
-            RUNTIME=$(xcrun simctl list runtimes -j | python3 -c "
-          import json, sys
-          r = json.load(sys.stdin)
-          print(next(rt['identifier'] for rt in r['runtimes'] if rt['platform']=='iOS' and rt.get('isAvailable')))
-          ")
-            DEVICE=$(xcrun simctl list devicetypes -j | python3 -c "
-          import json, sys
-          t = json.load(sys.stdin)
-          print(next(dt['identifier'] for dt in t['devicetypes'] if 'iPhone' in dt['identifier']))
-          ")
-            xcrun simctl create "CI iPhone" "$DEVICE" "$RUNTIME"
-            have_iphone=$(xcrun simctl list devices available -j | python3 -c "
-          import json, sys
-          d = json.load(sys.stdin)
-          for runtime, devs in d['devices'].items():
-              if 'iOS' in runtime:
-                  for dev in devs:
-                      if dev['name'].startswith('iPhone') or dev['name'] == 'CI iPhone':
-                          print(dev['udid'])
-                          sys.exit(0)
-          sys.exit(1)
-          ")
-          fi
-          echo "Using simulator UDID: $have_iphone"
-          echo "SIM_UDID=$have_iphone" >> $GITHUB_ENV
+      - name: Install iOS Simulator runtime
+        # macos-latest's Xcode 26 image stopped shipping an iOS
+        # Simulator runtime preinstalled (around 2026-05). Without
+        # this download, xcodebuild's destination resolver only
+        # returns the `Any iOS Simulator Device` placeholder and
+        # the build step's `generic/platform=...` is the only thing
+        # that works. After the download, Apple's standard set of
+        # simulators (iPhone 16, iPad, etc.) becomes available
+        # for the test step's name-based destination.
+        run: sudo xcodebuild -downloadPlatform iOS
 
       - name: Run unit tests (iOS Simulator)
         working-directory: ios
@@ -149,7 +111,7 @@ jobs:
             -project SouthMountainExplorer.xcodeproj \
             -scheme SouthMountainExplorer \
             -configuration Debug \
-            -destination "id=$SIM_UDID" \
+            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO

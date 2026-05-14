@@ -483,13 +483,26 @@ final class RecordingService {
         // logic landing.
         let completionDates = ProgressService.shared.completedTrails(in: areaId)
         var revisitCreditByHikeId: [String: Set<String>] = [:]
-        for (tid, _) in completionDates {
-            // Start anchor at the EARLIEST hike-credit event for
-            // this trail (the initial completion). The
-            // `latestCompletionAnchor` helper returns the latest,
-            // which isn't what we want at the start of a chrono
-            // walk — we need to walk FORWARD from the initial
-            // completion. Compute earliest directly.
+        let iso = ISO8601DateFormatter()
+        var retroSkippedNoAnchor = 0
+        var retroConsidered = 0
+        for (tid, progressStamp) in completionDates {
+            retroConsidered += 1
+            // Anchor: the earliest hike-credit event for this trail
+            // (initial completion claimed by a saved hike), with a
+            // fallback to the ProgressService completion stamp when
+            // no hike has it credited. The fallback covers two real
+            // cases that the previous code silently skipped:
+            //   (a) The trail was completed under pre-build-13 logic
+            //       which didn't enforce the endpoint gate, so no
+            //       hike's stop credited it in `completedTrailIds`
+            //       even though it sits at fraction >= 0.95 in
+            //       CoverageService.
+            //   (b) The trail was completed via manual toggle and
+            //       no hike has it credited.
+            // In both cases, walk forward from the ProgressService
+            // stamp and look for the first hike whose post-stamp
+            // union path covers the trail to 0.95 + endpoints.
             var initialAnchor: Date? = nil
             for hike in areaHistory {
                 if hike.completedTrailIds.contains(tid) {
@@ -498,16 +511,13 @@ final class RecordingService {
                     }
                 }
             }
-            // Trail completed without ever being in a hike's
-            // `completedTrailIds`? Possible for manual-toggle
-            // completions OR for trails just marked by
-            // `bulkMarkComplete` above this very call (no
-            // tipping hike found). Skip — `currentlyClassified`
-            // covers the manual-toggle case via the live
-            // `computeRevisits` path on the next stopRecording;
-            // we don't try to backfill revisits without a hike
-            // anchor.
-            guard var anchor = initialAnchor else { continue }
+            if initialAnchor == nil {
+                initialAnchor = iso.date(from: progressStamp)
+            }
+            guard var anchor = initialAnchor else {
+                retroSkippedNoAnchor += 1
+                continue
+            }
 
             var postAnchor: [GpsPoint] = []
             for hike in areaHistory where hike.endedAt > anchor {
@@ -528,6 +538,11 @@ final class RecordingService {
                 postAnchor = []
             }
         }
+
+        // Diagnostic summary of the retro-credit pass so the next
+        // diag bundle reveals what the rebuild actually did. Without
+        // this, debugging "why didn't my history heal" is opaque.
+        log.notice("rebuildCoverageFromHistory area=\(areaId, privacy: .public) hikes=\(areaHistory.count) completedTrails=\(retroConsidered) newRevisitCredits=\(revisitCreditByHikeId.values.map(\.count).reduce(0, +)) newCompletionCredits=\(creditedByHikeId.values.map(\.count).reduce(0, +)) skippedNoAnchor=\(retroSkippedNoAnchor)")
 
         if creditedByHikeId.isEmpty && revisitCreditByHikeId.isEmpty { return }
 

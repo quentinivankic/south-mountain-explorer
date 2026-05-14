@@ -243,7 +243,19 @@ final class RecordingService {
         locationService.stopBackgroundTracking()
 
         let endedAt = Date()
-        let sessionCoverage = measureCoverage(path: rec.path, trails: trails, bufferMeters: bufferMeters)
+        // Coverage is computed against the UNION of every prior hike's GPS
+        // path in this area + the path that just finished. Per-hike-fraction
+        // merging would lose progress when two hikes cover different halves
+        // of the same trail (yesterday west half, today east half → each
+        // hike reads 0.5, max(0.5, 0.5) = 0.5, never crosses the completion
+        // threshold). With the union, the spatial grid in `measureCoverage`
+        // sees every node that has EVER been visited and reports the true
+        // cumulative fraction. We still compute the per-hike delta
+        // separately for the post-stop "Trails with new partial coverage
+        // from this hike" summary in `RecordingPanel`.
+        let combinedPath = combinedPathForArea(rec.areaId, currentPath: rec.path)
+        let sessionCoverage = measureCoverage(path: combinedPath, trails: trails, bufferMeters: bufferMeters)
+        let perHikeDelta = measureCoverage(path: rec.path, trails: trails, bufferMeters: bufferMeters)
         let (mergeNew, mergeRevisited, _) = await mergeCoverage(
             areaId: rec.areaId,
             sessionCoverage: sessionCoverage,
@@ -280,7 +292,7 @@ final class RecordingService {
             distanceMi: rec.distanceMi,
             newlyCompletedTrailIds: newlyCompleted,
             revisitedTrailIds: revisited,
-            coverageDelta: sessionCoverage.mapValues(\.fraction)
+            coverageDelta: perHikeDelta.mapValues(\.fraction)
         )
 
         saveToHistory(finished)
@@ -298,7 +310,13 @@ final class RecordingService {
     /// produces no new completions.
     func applyLiveCoverage(trails: [Trail]) async {
         guard let rec = activeRecording else { return }
-        let sessionCoverage = measureCoverage(path: rec.path, trails: trails, bufferMeters: bufferMeters)
+        // Same union-of-paths reasoning as `stopRecording` — combine the
+        // in-progress recording's path with every prior hike's path in the
+        // area so live completions fire even when this session is
+        // completing the half of a trail that was already partly walked
+        // on a previous day.
+        let combinedPath = combinedPathForArea(rec.areaId, currentPath: rec.path)
+        let sessionCoverage = measureCoverage(path: combinedPath, trails: trails, bufferMeters: bufferMeters)
         _ = await mergeCoverage(areaId: rec.areaId, sessionCoverage: sessionCoverage, trails: trails)
     }
 
@@ -362,20 +380,24 @@ final class RecordingService {
         let history = loadHistorySync().filter { $0.areaId == areaId }
         guard !history.isEmpty, !trails.isEmpty else { return }
 
-        // Coverage fraction aggregates as before (max across hikes).
-        // Endpoint-visited rolls up too: a trail counts as "endpoints
-        // hit" if at least one past hike visited both ends. This keeps
-        // rebuild consistent with the new live-completion gate.
+        // Combine every hike's GPS path into one big path and measure
+        // coverage once. This is the union-of-visits computation —
+        // any trail node within bufferMeters of ANY historical GPS
+        // sample counts. Replaces the previous per-hike-then-max
+        // approach which lost progress when two hikes covered
+        // disjoint halves of the same trail (each hike read ~0.5,
+        // max(0.5, 0.5) = 0.5, never crossing the completion gate).
+        var combined: [GpsPoint] = []
+        for hike in history { combined.append(contentsOf: hike.path) }
+        let cov = measureCoverage(path: combined, trails: trails, bufferMeters: bufferMeters)
+        guard !cov.isEmpty else { return }
+
         var aggregate: [String: Double] = [:]
         var endpointsHit: [String: Bool] = [:]
-        for hike in history {
-            let cov = measureCoverage(path: hike.path, trails: trails, bufferMeters: bufferMeters)
-            for (tid, score) in cov {
-                aggregate[tid] = max(aggregate[tid] ?? 0, score.fraction)
-                if score.endpointsVisited { endpointsHit[tid] = true }
-            }
+        for (tid, score) in cov {
+            aggregate[tid] = score.fraction
+            if score.endpointsVisited { endpointsHit[tid] = true }
         }
-        guard !aggregate.isEmpty else { return }
 
         await CoverageService.shared.mergeCoverage(areaId: areaId, delta: aggregate)
         let nowComplete = aggregate.compactMap { (tid, v) in
@@ -499,6 +521,20 @@ final class RecordingService {
               let decoded = try? JSONDecoder().decode([SavedRecording].self, from: data)
         else { return [] }
         return decoded
+    }
+
+    /// Build a single GPS path that's the union of every prior hike's path
+    /// in `areaId` plus an optional in-progress `currentPath`. Used by
+    /// `stopRecording` and `applyLiveCoverage` to compute coverage from
+    /// the union of all visits, not the max of per-hike fractions — that
+    /// max-merge would lose progress when two hikes cover different
+    /// halves of the same trail.
+    private func combinedPathForArea(_ areaId: String, currentPath: [GpsPoint] = []) -> [GpsPoint] {
+        var combined = currentPath
+        for hike in loadHistorySync() where hike.areaId == areaId {
+            combined.append(contentsOf: hike.path)
+        }
+        return combined
     }
 
     func loadHistory() async -> [SavedRecording] {

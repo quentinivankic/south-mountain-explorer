@@ -424,8 +424,8 @@ struct TrailMapView: View {
                 lons.append(p[1])
             }
         }
-        lats.append(userLoc.coordinate.latitude)
-        lons.append(userLoc.coordinate.longitude)
+        lats.append(userLoc.latitude)
+        lons.append(userLoc.longitude)
         guard !lats.isEmpty else {
             centerOn(trail: trail)
             return

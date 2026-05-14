@@ -67,6 +67,14 @@ struct TrailMapView: View {
     let activeRecording: ActiveRecording?
     let pastPaths: [[GpsPoint]]
     let recenterTick: Int
+    /// Bump from `AreaView` when the user taps Switch on the retarget
+    /// or suggestion banner. Forces a re-fit of the camera around
+    /// `selectedTrailId` + the user's current location, even when
+    /// `selectedTrailId` is unchanged (the banner shows up because
+    /// the user already tapped that trail, so the binding is
+    /// already pointing at it and `.onChange(of: selectedTrailId)`
+    /// would not fire).
+    let centerOnSwitchedTrailTick: Int
     @Binding var selectedTrailId: String?
     /// nil = render every trail. Non-nil = only render trails whose id is
     /// in this set (plus the recording trail and the selected trail, which
@@ -111,6 +119,7 @@ struct TrailMapView: View {
         activeRecording: ActiveRecording?,
         pastPaths: [[GpsPoint]],
         recenterTick: Int,
+        centerOnSwitchedTrailTick: Int,
         selectedTrailId: Binding<String?>,
         visibleTrailIds: Set<String>? = nil,
         bottomInset: CGFloat = 0,
@@ -120,6 +129,7 @@ struct TrailMapView: View {
         self.activeRecording = activeRecording
         self.pastPaths = pastPaths
         self.recenterTick = recenterTick
+        self.centerOnSwitchedTrailTick = centerOnSwitchedTrailTick
         self._selectedTrailId = selectedTrailId
         self.visibleTrailIds = visibleTrailIds
         self.bottomInset = bottomInset
@@ -219,6 +229,18 @@ struct TrailMapView: View {
                 return
             }
             centerOn(trail: trail)
+        }
+        .onChange(of: centerOnSwitchedTrailTick) { _, _ in
+            // Fired by AreaView when Switch is tapped on the retarget
+            // or suggestion banner. Fit the camera around the new
+            // active trail PLUS the user's current location so they
+            // can see both. Falls back to centerOn(trail:) if we
+            // don't have a fresh location fix yet.
+            guard let id = selectedTrailId,
+                  let trail = area.trails.first(where: { $0.id == id }) else {
+                return
+            }
+            centerOnUserAndTrail(trail)
         }
         .onChange(of: recenterTick) { _, _ in
             // Manual recenter — always a one-shot center on user with
@@ -371,6 +393,43 @@ struct TrailMapView: View {
         guard !pts.isEmpty else { return }
         let lats = pts.map { $0.0 }
         let lons = pts.map { $0.1 }
+        let minLat = lats.min()!, maxLat = lats.max()!
+        let minLon = lons.min()!, maxLon = lons.max()!
+        setCameraTarget(Self.fittedRegion(
+            centerLat: (minLat + maxLat) / 2,
+            centerLon: (minLon + maxLon) / 2,
+            latDelta: max((maxLat - minLat) * 1.4, 0.005),
+            lonDelta: max((maxLon - minLon) * 1.4, 0.005),
+            bottomInset: bottomInset,
+            screenHeight: UIScreen.main.bounds.height
+        ))
+    }
+
+    /// Like `centerOn(trail:)` but expands the bbox to also include
+    /// the user's current location. Used after a retarget Switch so
+    /// the camera frames "you + the new active trail" instead of
+    /// just the trail (which can leave the user off-screen if they
+    /// were standing well outside the trail's extent). Falls back
+    /// to `centerOn(trail:)` if we don't have a location fix yet.
+    private func centerOnUserAndTrail(_ trail: Trail) {
+        guard let userLoc = location.liveLocation ?? location.userLocation else {
+            centerOn(trail: trail)
+            return
+        }
+        var lats: [Double] = []
+        var lons: [Double] = []
+        for seg in trail.segments {
+            for p in seg where p.count >= 2 {
+                lats.append(p[0])
+                lons.append(p[1])
+            }
+        }
+        lats.append(userLoc.coordinate.latitude)
+        lons.append(userLoc.coordinate.longitude)
+        guard !lats.isEmpty else {
+            centerOn(trail: trail)
+            return
+        }
         let minLat = lats.min()!, maxLat = lats.max()!
         let minLon = lons.min()!, maxLon = lons.max()!
         setCameraTarget(Self.fittedRegion(

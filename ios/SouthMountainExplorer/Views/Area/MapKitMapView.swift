@@ -364,9 +364,21 @@ struct MapKitMapView: UIViewRepresentable {
             // on style invalidation, not per frame.
             let difficulty = p.area.trails.first(where: { $0.id == trailId })?.difficulty
 
+            // Selection is iOS-blue regardless of difficulty / completion
+            // state. The previous selected-stays-mint behavior made a
+            // selected completed trail nearly indistinguishable from
+            // surrounding completed trails — same hue, only 6 vs 3 px
+            // wider, easy to lose on a busy network. Completion state
+            // is still communicated by the green checkmark in the trail
+            // list row; the map's job during selection is to scream
+            // "this is the trail you tapped." Recording purple still
+            // wins over selection because the active recording is the
+            // higher-priority state.
             let baseColor: UIColor
             if isRecordingThis {
                 baseColor = .systemPurple
+            } else if isSelected {
+                baseColor = .systemBlue
             } else if isComplete {
                 // .mint via UIKit — matches the SwiftUI .mint from build 8.
                 baseColor = UIColor.systemMint
@@ -374,10 +386,16 @@ struct MapKitMapView: UIViewRepresentable {
                 baseColor = Self.difficultyColor(difficulty)
             }
             let dimmed = (highlightedTrailId != nil && !isHighlighted)
-            let alpha: CGFloat = dimmed ? 0.5 : 1.0
+            // Tightened dim alpha 0.5 → 0.35 so the selected trail's
+            // bright blue pops harder against the surrounding tangle.
+            let alpha: CGFloat = dimmed ? 0.35 : 1.0
 
             renderer.strokeColor = baseColor.withAlphaComponent(alpha)
-            renderer.lineWidth = isRecordingThis ? 10 : (isSelected ? 6 : 3)
+            // Selected width bumped 6 → 9 so the selection still reads
+            // as obviously distinct even when paralleling a completed
+            // trail at full opacity (they overlap, both visible — width
+            // is the differentiator).
+            renderer.lineWidth = isRecordingThis ? 10 : (isSelected ? 9 : 3)
             renderer.lineCap = .round
             renderer.lineJoin = .round
         }

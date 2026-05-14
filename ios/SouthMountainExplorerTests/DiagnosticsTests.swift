@@ -31,8 +31,8 @@ struct DiagnosticsTests {
         #expect(FileManager.default.fileExists(atPath: url.path),
                 "Bundle file not at \(url.path)")
 
-        // Filename pattern is the documented `south-mountain-diagnostics-<epoch>.json`.
-        #expect(url.lastPathComponent.hasPrefix("south-mountain-diagnostics-"))
+        // Filename pattern is the documented `trekdex-diagnostics-<epoch>.json`.
+        #expect(url.lastPathComponent.hasPrefix("trekdex-diagnostics-"))
         #expect(url.pathExtension == "json")
 
         // Round-trip parse to verify the bundle structure didn't

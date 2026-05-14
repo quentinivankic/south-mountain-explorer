@@ -61,11 +61,13 @@ jobs:
 
       - name: Build (iOS Simulator, no code signing)
         working-directory: ios
-        # Build for the simulator destination so signing isn't
-        # required. The three CODE_SIGN_* overrides defensively
-        # disable signing even though simulator builds default to
-        # off — guarantees we never bounce on a missing provisioning
-        # profile.
+        # Build for `generic/platform=iOS Simulator` so the compile-
+        # check works even when the runner has no iOS Simulator
+        # runtime installed (macos-latest stopped shipping one with
+        # Xcode 26 around 2026-05). The three CODE_SIGN_* overrides
+        # defensively disable signing even though simulator builds
+        # default to off — guarantees we never bounce on a missing
+        # provisioning profile.
         #
         # `-quiet` keeps the log small enough to skim when a build
         # fails; full xcodebuild output dumps thousands of lines per
@@ -75,11 +77,60 @@ jobs:
             -project SouthMountainExplorer.xcodeproj \
             -scheme SouthMountainExplorer \
             -configuration Debug \
-            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" \
+            -destination "generic/platform=iOS Simulator" \
             -quiet \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Prepare iOS Simulator for tests
+        # The test step needs an actual booted simulator (generic
+        # platform won't work for `xcodebuild test`). The runner
+        # image no longer ships an iOS runtime by default, so
+        # download the latest one if it's missing and create a
+        # default iPhone simulator against it. Picks the latest
+        # iOS runtime + first iPhone device type Apple ships.
+        run: |
+          set -e
+          have_iphone=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          for runtime, devs in d['devices'].items():
+              if 'iOS' in runtime:
+                  for dev in devs:
+                      if dev['name'].startswith('iPhone'):
+                          print(dev['udid'])
+                          sys.exit(0)
+          sys.exit(1)
+          " || echo "")
+          if [ -z "$have_iphone" ]; then
+            echo "No iOS simulator runtime available — downloading…"
+            sudo xcodebuild -downloadPlatform iOS
+            RUNTIME=$(xcrun simctl list runtimes -j | python3 -c "
+          import json, sys
+          r = json.load(sys.stdin)
+          print(next(rt['identifier'] for rt in r['runtimes'] if rt['platform']=='iOS' and rt.get('isAvailable')))
+          ")
+            DEVICE=$(xcrun simctl list devicetypes -j | python3 -c "
+          import json, sys
+          t = json.load(sys.stdin)
+          print(next(dt['identifier'] for dt in t['devicetypes'] if 'iPhone' in dt['identifier']))
+          ")
+            xcrun simctl create "CI iPhone" "$DEVICE" "$RUNTIME"
+            have_iphone=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          for runtime, devs in d['devices'].items():
+              if 'iOS' in runtime:
+                  for dev in devs:
+                      if dev['name'].startswith('iPhone') or dev['name'] == 'CI iPhone':
+                          print(dev['udid'])
+                          sys.exit(0)
+          sys.exit(1)
+          ")
+          fi
+          echo "Using simulator UDID: $have_iphone"
+          echo "SIM_UDID=$have_iphone" >> $GITHUB_ENV
 
       - name: Run unit tests (iOS Simulator)
         working-directory: ios
@@ -98,7 +149,7 @@ jobs:
             -project SouthMountainExplorer.xcodeproj \
             -scheme SouthMountainExplorer \
             -configuration Debug \
-            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" \
+            -destination "id=$SIM_UDID" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO

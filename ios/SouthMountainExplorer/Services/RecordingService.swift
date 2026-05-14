@@ -156,7 +156,7 @@ final class RecordingService {
         )
         errorMessage = nil
         persist()
-        log.info("startRecording mode=\(mode.rawValue, privacy: .public) areaId=\(areaId, privacy: .public) trailId=\(trailId ?? "nil", privacy: .public) priorComplete=\(priorComplete.count)")
+        log.notice("startRecording mode=\(mode.rawValue, privacy: .public) areaId=\(areaId, privacy: .public) trailId=\(trailId ?? "nil", privacy: .public) priorComplete=\(priorComplete.count)")
         locationService.startBackgroundTracking()
         beginObservingLocation()
         // Lazy-prompt for notifications now that the user has actually
@@ -173,7 +173,7 @@ final class RecordingService {
         activeRecording = nil
         errorMessage = nil
         UserDefaults.standard.removeObject(forKey: persistKey)
-        log.info("discardRecording areaId=\(prev?.areaId ?? "nil", privacy: .public) duration=\(prev.map { Date().timeIntervalSince($0.startedAt) } ?? 0)s pathPoints=\(prev?.path.count ?? 0)")
+        log.notice("discardRecording areaId=\(prev?.areaId ?? "nil", privacy: .public) duration=\(prev.map { Date().timeIntervalSince($0.startedAt) } ?? 0)s pathPoints=\(prev?.path.count ?? 0)")
     }
 
     /// Switch which trail the active recording is targeted at,
@@ -204,7 +204,7 @@ final class RecordingService {
             log.debug("retargetTrail no-op newTrailId=\(newTrailId, privacy: .public) current=\(self.activeRecording?.trailId ?? "nil", privacy: .public)")
             return
         }
-        log.info("retargetTrail oldMode=\(rec.mode.rawValue, privacy: .public) oldTrailId=\(rec.trailId ?? "nil", privacy: .public) newTrailId=\(newTrailId, privacy: .public)")
+        log.notice("retargetTrail oldMode=\(rec.mode.rawValue, privacy: .public) oldTrailId=\(rec.trailId ?? "nil", privacy: .public) newTrailId=\(newTrailId, privacy: .public)")
         activeRecording = updated
         persist()
     }
@@ -281,6 +281,37 @@ final class RecordingService {
             }
         }
 
+        // Symmetric-with-initial-completion revisit check. For each
+        // trail the user has previously completed (per
+        // ProgressService), look at the UNION of GPS paths since that
+        // trail's last "full coverage" event — the later of the
+        // initial completion date and any subsequent hike that
+        // classified the trail as newly-completed or revisited. If
+        // that union covers the trail to >= 0.95 with both endpoints,
+        // the user has fully re-walked the trail since the last time
+        // it was credited.
+        //
+        // Why this shape: the previous strict `sessionComplete` gate
+        // on the all-hikes union missed two real cases —
+        //
+        // (a) Trails completed under build 8's pre-endpoint logic sit
+        //     at fraction 1.0 in CoverageService without proof that
+        //     endpoints were ever physically reached. The all-hikes
+        //     union inherits that absence and the gate filters them.
+        // (b) Multi-day revisits: half today + half tomorrow should
+        //     credit on tomorrow's stop, mirroring how initial
+        //     completions work after the union-of-paths fix in PR #84.
+        //
+        // Both fall out of "look at GPS samples since the anchor."
+        let alreadyClassified = Set(newlyCompleted).union(revisited)
+        let pendingRevisits = computeRevisits(
+            areaId: rec.areaId,
+            currentPath: rec.path,
+            trails: trails,
+            alreadyClassified: alreadyClassified
+        )
+        revisited.append(contentsOf: pendingRevisits)
+
         let finished = FinishedRecording(
             areaId: rec.areaId,
             mode: rec.mode,
@@ -296,7 +327,7 @@ final class RecordingService {
         )
 
         saveToHistory(finished)
-        log.info("stopRecording areaId=\(rec.areaId, privacy: .public) trailId=\(rec.trailId ?? "nil", privacy: .public) duration=\(finished.durationSeconds)s distanceMi=\(rec.distanceMi) newlyCompleted=\(newlyCompleted.count) revisited=\(revisited.count)")
+        log.notice("stopRecording areaId=\(rec.areaId, privacy: .public) trailId=\(rec.trailId ?? "nil", privacy: .public) duration=\(finished.durationSeconds)s distanceMi=\(rec.distanceMi) newlyCompleted=\(newlyCompleted.count) revisited=\(revisited.count)")
 
         activeRecording = nil
         UserDefaults.standard.removeObject(forKey: persistKey)
@@ -440,7 +471,65 @@ final class RecordingService {
             for t in toCredit { pending.remove(t) }
         }
 
-        guard !creditedByHikeId.isEmpty else { return }
+        // Retro-credit revisits: walk history chronologically per
+        // already-completed trail, maintaining an anchor + post-
+        // anchor union path. Every time the post-anchor union
+        // crosses the completion gate, that hike fired a revisit
+        // event. If it isn't already in the hike's
+        // `revisitedTrailIds` or `completedTrailIds`, schedule a
+        // patch. Same semantics as the live revisit check at
+        // stopRecording time — this pass closes the gap for
+        // historical hikes that pre-date the symmetric-revisit
+        // logic landing.
+        let completionDates = ProgressService.shared.completedTrails(in: areaId)
+        var revisitCreditByHikeId: [String: Set<String>] = [:]
+        for (tid, _) in completionDates {
+            // Start anchor at the EARLIEST hike-credit event for
+            // this trail (the initial completion). The
+            // `latestCompletionAnchor` helper returns the latest,
+            // which isn't what we want at the start of a chrono
+            // walk — we need to walk FORWARD from the initial
+            // completion. Compute earliest directly.
+            var initialAnchor: Date? = nil
+            for hike in areaHistory {
+                if hike.completedTrailIds.contains(tid) {
+                    if initialAnchor == nil || hike.endedAt < initialAnchor! {
+                        initialAnchor = hike.endedAt
+                    }
+                }
+            }
+            // Trail completed without ever being in a hike's
+            // `completedTrailIds`? Possible for manual-toggle
+            // completions OR for trails just marked by
+            // `bulkMarkComplete` above this very call (no
+            // tipping hike found). Skip — `currentlyClassified`
+            // covers the manual-toggle case via the live
+            // `computeRevisits` path on the next stopRecording;
+            // we don't try to backfill revisits without a hike
+            // anchor.
+            guard var anchor = initialAnchor else { continue }
+
+            var postAnchor: [GpsPoint] = []
+            for hike in areaHistory where hike.endedAt > anchor {
+                postAnchor.append(contentsOf: hike.path)
+                guard let s = measureCoverage(
+                    path: postAnchor,
+                    trails: trails,
+                    bufferMeters: bufferMeters
+                )[tid], s.fraction >= completeThreshold, s.endpointsVisited else {
+                    continue
+                }
+                let alreadyClaimed = hike.completedTrailIds.contains(tid)
+                    || hike.revisitedTrailIds.contains(tid)
+                if !alreadyClaimed {
+                    revisitCreditByHikeId[hike.id, default: []].insert(tid)
+                }
+                anchor = hike.endedAt
+                postAnchor = []
+            }
+        }
+
+        if creditedByHikeId.isEmpty && revisitCreditByHikeId.isEmpty { return }
 
         // Persist: rewrite the full history file with the credited
         // entries patched in. Re-load to avoid clobbering hikes from
@@ -448,8 +537,15 @@ final class RecordingService {
         // load and now.
         var allHistory = loadHistorySync()
         for i in allHistory.indices {
-            guard let extras = creditedByHikeId[allHistory[i].id] else { continue }
-            let merged = Array(Set(allHistory[i].completedTrailIds).union(extras))
+            let newCompletions = creditedByHikeId[allHistory[i].id]
+            let newRevisits = revisitCreditByHikeId[allHistory[i].id]
+            if newCompletions == nil, newRevisits == nil { continue }
+            let mergedCompleted = newCompletions.map { extras in
+                Array(Set(allHistory[i].completedTrailIds).union(extras))
+            } ?? allHistory[i].completedTrailIds
+            let mergedRevisited = newRevisits.map { extras in
+                Array(Set(allHistory[i].revisitedTrailIds).union(extras))
+            } ?? allHistory[i].revisitedTrailIds
             let old = allHistory[i]
             allHistory[i] = SavedRecording(
                 id: old.id,
@@ -458,10 +554,10 @@ final class RecordingService {
                 endedAt: old.endedAt,
                 distanceMi: old.distanceMi,
                 durationSeconds: old.durationSeconds,
-                completedTrailIds: merged,
+                completedTrailIds: mergedCompleted,
                 path: old.path,
                 trailId: old.trailId,
-                revisitedTrailIds: old.revisitedTrailIds
+                revisitedTrailIds: mergedRevisited
             )
         }
         if let data = try? JSONEncoder().encode(allHistory) {
@@ -598,6 +694,89 @@ final class RecordingService {
             combined.append(contentsOf: hike.path)
         }
         return combined
+    }
+
+    /// For each trail the user has previously completed in this
+    /// area, decide whether this hike's stop should credit a fresh
+    /// "revisit" — symmetric with how initial completions work after
+    /// the PR #84 union fix. The per-trail anchor is the most recent
+    /// time the trail was fully covered (initial mark in
+    /// `ProgressService`, or any later hike whose stop classified
+    /// the trail as `newlyCompleted` / `revisited`). The post-anchor
+    /// union of paths is the slice of history that hasn't yet been
+    /// "credited" to a completion; if it covers the trail to >= 0.95
+    /// with both endpoints reached, this hike is the one that closes
+    /// the revisit.
+    ///
+    /// Returns only trails *not* already in `alreadyClassified`, so
+    /// it composes safely after the strict `mergeCoverage` pass.
+    /// Pure-ish: depends on `loadHistorySync()` + `ProgressService`,
+    /// but takes the current hike's path explicitly so the same
+    /// shape is testable by hand-feeding history + completion dates
+    /// to `Self.computeRevisits(...)` if needed in the future.
+    private func computeRevisits(
+        areaId: String,
+        currentPath: [GpsPoint],
+        trails: [Trail],
+        alreadyClassified: Set<String>
+    ) -> [String] {
+        let history = loadHistorySync().filter { $0.areaId == areaId }
+        let completionDates = ProgressService.shared.completedTrails(in: areaId)
+        guard !completionDates.isEmpty else { return [] }
+
+        var out: [String] = []
+        for (tid, completionStamp) in completionDates where !alreadyClassified.contains(tid) {
+            guard let anchor = Self.latestCompletionAnchor(
+                trailId: tid,
+                areaHistory: history,
+                progressStamp: completionStamp
+            ) else { continue }
+
+            // Union of GPS samples taken after the anchor: every
+            // past hike whose recording started after the anchor,
+            // plus this hike's path. Anything earlier already
+            // contributed to the previous completion.
+            var postAnchor: [GpsPoint] = currentPath
+            for hike in history where hike.startedAt > anchor {
+                postAnchor.append(contentsOf: hike.path)
+            }
+
+            let scores = measureCoverage(path: postAnchor, trails: trails, bufferMeters: bufferMeters)
+            if let s = scores[tid], s.fraction >= completeThreshold, s.endpointsVisited {
+                out.append(tid)
+            }
+        }
+        return out
+    }
+
+    /// The "anchor date" for revisit detection — the most recent
+    /// moment we have evidence the trail was fully covered. Picks
+    /// the LATEST date among saved hikes that credit this trail in
+    /// either `completedTrailIds` or `revisitedTrailIds`. Falls back
+    /// to the `ProgressService` completion stamp only when no hike
+    /// has claimed the trail (manual toggle case). Returns nil when
+    /// neither source is usable.
+    ///
+    /// `nonisolated` and `static` so the rebuild pass and the live
+    /// pass share the exact same anchor logic — no risk of the two
+    /// drifting apart and disagreeing on when a revisit should fire.
+    nonisolated static func latestCompletionAnchor(
+        trailId tid: String,
+        areaHistory: [SavedRecording],
+        progressStamp: String
+    ) -> Date? {
+        var anchor: Date? = nil
+        for hike in areaHistory {
+            if hike.completedTrailIds.contains(tid) || hike.revisitedTrailIds.contains(tid) {
+                if anchor == nil || hike.endedAt > anchor! {
+                    anchor = hike.endedAt
+                }
+            }
+        }
+        if anchor == nil {
+            anchor = ISO8601DateFormatter().date(from: progressStamp)
+        }
+        return anchor
     }
 
     func loadHistory() async -> [SavedRecording] {

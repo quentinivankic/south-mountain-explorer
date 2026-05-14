@@ -377,8 +377,10 @@ final class RecordingService {
     /// re-toggle needed. Suppresses the "newly complete" haptic by going
     /// straight through CoverageService + ProgressService.bulkMarkComplete.
     func rebuildCoverageFromHistory(areaId: String, trails: [Trail]) async {
-        let history = loadHistorySync().filter { $0.areaId == areaId }
-        guard !history.isEmpty, !trails.isEmpty else { return }
+        let areaHistory = loadHistorySync()
+            .filter { $0.areaId == areaId }
+            .sorted { $0.startedAt < $1.startedAt }   // oldest first, for the credit pass below
+        guard !areaHistory.isEmpty, !trails.isEmpty else { return }
 
         // Combine every hike's GPS path into one big path and measure
         // coverage once. This is the union-of-visits computation —
@@ -388,7 +390,7 @@ final class RecordingService {
         // disjoint halves of the same trail (each hike read ~0.5,
         // max(0.5, 0.5) = 0.5, never crossing the completion gate).
         var combined: [GpsPoint] = []
-        for hike in history { combined.append(contentsOf: hike.path) }
+        for hike in areaHistory { combined.append(contentsOf: hike.path) }
         let cov = measureCoverage(path: combined, trails: trails, bufferMeters: bufferMeters)
         guard !cov.isEmpty else { return }
 
@@ -404,6 +406,67 @@ final class RecordingService {
             v >= completeThreshold && (endpointsHit[tid] ?? false) ? tid : nil
         }
         ProgressService.shared.bulkMarkComplete(areaId: areaId, trailIds: Set(nowComplete))
+
+        // Retro-credit the historical hike that tipped each
+        // multi-hike completion. Without this, the History tab's
+        // "newly completed" badge stays at zero for the hike that
+        // actually closed the loop — the trail shows complete on the
+        // map but no past hike claims responsibility.
+        //
+        // Only attempt the credit pass for trails that aren't already
+        // in some hike's `completedTrailIds`. Common case: single-
+        // hike completion stored correctly at stopRecording time.
+        let alreadyCredited = Set(areaHistory.flatMap { $0.completedTrailIds })
+        var pending = Set(nowComplete).subtracting(alreadyCredited)
+        guard !pending.isEmpty else { return }
+
+        var running: [GpsPoint] = []
+        var creditedByHikeId: [String: [String]] = [:]
+        for hike in areaHistory {
+            if pending.isEmpty { break }
+            running.append(contentsOf: hike.path)
+            let snapshot = measureCoverage(path: running, trails: trails, bufferMeters: bufferMeters)
+            var toCredit: [String] = []
+            for tid in pending {
+                if let s = snapshot[tid],
+                   s.fraction >= completeThreshold,
+                   s.endpointsVisited
+                {
+                    toCredit.append(tid)
+                }
+            }
+            if toCredit.isEmpty { continue }
+            creditedByHikeId[hike.id, default: []].append(contentsOf: toCredit)
+            for t in toCredit { pending.remove(t) }
+        }
+
+        guard !creditedByHikeId.isEmpty else { return }
+
+        // Persist: rewrite the full history file with the credited
+        // entries patched in. Re-load to avoid clobbering hikes from
+        // other areas that may have been written between our initial
+        // load and now.
+        var allHistory = loadHistorySync()
+        for i in allHistory.indices {
+            guard let extras = creditedByHikeId[allHistory[i].id] else { continue }
+            let merged = Array(Set(allHistory[i].completedTrailIds).union(extras))
+            let old = allHistory[i]
+            allHistory[i] = SavedRecording(
+                id: old.id,
+                areaId: old.areaId,
+                startedAt: old.startedAt,
+                endedAt: old.endedAt,
+                distanceMi: old.distanceMi,
+                durationSeconds: old.durationSeconds,
+                completedTrailIds: merged,
+                path: old.path,
+                trailId: old.trailId,
+                revisitedTrailIds: old.revisitedTrailIds
+            )
+        }
+        if let data = try? JSONEncoder().encode(allHistory) {
+            try? data.write(to: Self.historyFileURL)
+        }
     }
 
     /// Merge a per-trail coverage map (this hike's view of coverage) into the

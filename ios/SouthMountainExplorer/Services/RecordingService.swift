@@ -156,7 +156,7 @@ final class RecordingService {
         )
         errorMessage = nil
         persist()
-        log.info("startRecording mode=\(mode.rawValue, privacy: .public) areaId=\(areaId, privacy: .public) trailId=\(trailId ?? "nil", privacy: .public) priorComplete=\(priorComplete.count)")
+        log.notice("startRecording mode=\(mode.rawValue, privacy: .public) areaId=\(areaId, privacy: .public) trailId=\(trailId ?? "nil", privacy: .public) priorComplete=\(priorComplete.count)")
         locationService.startBackgroundTracking()
         beginObservingLocation()
         // Lazy-prompt for notifications now that the user has actually
@@ -173,7 +173,7 @@ final class RecordingService {
         activeRecording = nil
         errorMessage = nil
         UserDefaults.standard.removeObject(forKey: persistKey)
-        log.info("discardRecording areaId=\(prev?.areaId ?? "nil", privacy: .public) duration=\(prev.map { Date().timeIntervalSince($0.startedAt) } ?? 0)s pathPoints=\(prev?.path.count ?? 0)")
+        log.notice("discardRecording areaId=\(prev?.areaId ?? "nil", privacy: .public) duration=\(prev.map { Date().timeIntervalSince($0.startedAt) } ?? 0)s pathPoints=\(prev?.path.count ?? 0)")
     }
 
     /// Switch which trail the active recording is targeted at,
@@ -204,7 +204,7 @@ final class RecordingService {
             log.debug("retargetTrail no-op newTrailId=\(newTrailId, privacy: .public) current=\(self.activeRecording?.trailId ?? "nil", privacy: .public)")
             return
         }
-        log.info("retargetTrail oldMode=\(rec.mode.rawValue, privacy: .public) oldTrailId=\(rec.trailId ?? "nil", privacy: .public) newTrailId=\(newTrailId, privacy: .public)")
+        log.notice("retargetTrail oldMode=\(rec.mode.rawValue, privacy: .public) oldTrailId=\(rec.trailId ?? "nil", privacy: .public) newTrailId=\(newTrailId, privacy: .public)")
         activeRecording = updated
         persist()
     }
@@ -281,6 +281,29 @@ final class RecordingService {
             }
         }
 
+        // Supplement: trails that were already complete at recording
+        // start AND got walked enough on THIS hike to be a meaningful
+        // re-visit, even if they don't pass the strict sessionComplete
+        // gate (which also requires `endpointsVisited` in the union
+        // path). Why: completions stored before build 13's endpoint
+        // gate sit at fraction >= 0.95 in CoverageService without
+        // ever having proved both endpoints were reached. The union
+        // path inherits that absence — no past hike hit both
+        // endpoints, so `endpointsVisited` stays false, and
+        // mergeCoverage filters the trail out of `mergeRevisited`.
+        // The user then sees no "X revisited" badge in History for a
+        // hike that obviously re-walked an already-complete trail
+        // (the reporter's South Mountain unnamed-494466239 case).
+        // This pure per-hike-fraction check closes the gap without
+        // loosening the gate for fresh completions.
+        let revisitFractionThreshold = 0.30
+        let alreadyClassified = Set(newlyCompleted).union(revisited)
+        for tid in priorSnapshot where !alreadyClassified.contains(tid) {
+            if let delta = perHikeDelta[tid], delta.fraction >= revisitFractionThreshold {
+                revisited.append(tid)
+            }
+        }
+
         let finished = FinishedRecording(
             areaId: rec.areaId,
             mode: rec.mode,
@@ -296,7 +319,7 @@ final class RecordingService {
         )
 
         saveToHistory(finished)
-        log.info("stopRecording areaId=\(rec.areaId, privacy: .public) trailId=\(rec.trailId ?? "nil", privacy: .public) duration=\(finished.durationSeconds)s distanceMi=\(rec.distanceMi) newlyCompleted=\(newlyCompleted.count) revisited=\(revisited.count)")
+        log.notice("stopRecording areaId=\(rec.areaId, privacy: .public) trailId=\(rec.trailId ?? "nil", privacy: .public) duration=\(finished.durationSeconds)s distanceMi=\(rec.distanceMi) newlyCompleted=\(newlyCompleted.count) revisited=\(revisited.count)")
 
         activeRecording = nil
         UserDefaults.standard.removeObject(forKey: persistKey)

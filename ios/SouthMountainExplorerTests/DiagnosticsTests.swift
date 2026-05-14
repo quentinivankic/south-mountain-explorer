@@ -91,7 +91,12 @@ struct DiagnosticsTests {
         // without colliding with real app logs.
         let log = Logger(subsystem: "com.trekdex.app", category: "DiagnosticsTests")
         let marker = "diagnostics-marker-\(UUID().uuidString)"
-        log.info("\(marker, privacy: .public)")
+        // Emit at `.notice` so the entry is persisted to OSLogStore.
+        // `.info` is the default for `Logger.log(...)` but iOS only
+        // keeps `.default`-level and above in persistent storage, so
+        // a build that exercises this test via OSLogStore must use
+        // notice+ or the entry is gone by the time we read.
+        log.notice("\(marker, privacy: .public)")
 
         // Small delay so OSLogStore's writer has time to flush
         // before we read. Without this the test races and

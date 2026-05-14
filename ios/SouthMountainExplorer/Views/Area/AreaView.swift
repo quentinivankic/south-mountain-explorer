@@ -234,7 +234,7 @@ struct AreaView: View {
                                         centerOnSwitchedTrailTick &+= 1
                                     },
                                     onDismiss: {
-                                        log.info("suggestion dismiss trail=\(suggestion.trail.name, privacy: .public)")
+                                        log.notice("suggestion dismiss trail=\(suggestion.trail.name, privacy: .public)")
                                         dismissedSuggestionIds.insert(suggestion.trail.id)
                                     }
                                 )
@@ -246,10 +246,10 @@ struct AreaView: View {
                                 // identity is the suggestion trail id (it
                                 // remounts when the candidate changes).
                                 .onAppear {
-                                    log.info("suggestion mount trail=\(suggestion.trail.name, privacy: .public) detour=\(Int(suggestion.detourMeters))m remaining=\(Int(suggestion.remainingMeters))m extraSec=\(Int(suggestion.extraSeconds))")
+                                    log.notice("suggestion mount trail=\(suggestion.trail.name, privacy: .public) detour=\(Int(suggestion.detourMeters))m remaining=\(Int(suggestion.remainingMeters))m extraSec=\(Int(suggestion.extraSeconds))")
                                 }
                                 .onDisappear {
-                                    log.info("suggestion unmount trail=\(suggestion.trail.name, privacy: .public)")
+                                    log.notice("suggestion unmount trail=\(suggestion.trail.name, privacy: .public)")
                                 }
                                 .id(suggestion.trail.id)
                             }
@@ -311,7 +311,7 @@ struct AreaView: View {
             loadError = result.error
             isLoading = false
             if let loadedArea = result.area {
-                log.info("areaOpened areaId=\(self.areaId, privacy: .public) trails=\(loadedArea.trails.count) rawTrails=\(loadedArea.rawTrails?.count ?? 0)")
+                log.notice("areaOpened areaId=\(self.areaId, privacy: .public) trails=\(loadedArea.trails.count) rawTrails=\(loadedArea.rawTrails?.count ?? 0)")
             } else if let err = result.error {
                 log.error("areaOpenFailed areaId=\(self.areaId, privacy: .public) error=\(err, privacy: .public)")
             }
@@ -442,7 +442,7 @@ struct AreaView: View {
     /// Show the trail-completion celebration overlay for `name` and auto-
     /// dismiss after 3.5s. Tapping the overlay dismisses it sooner.
     private func showCelebration(name: String) {
-        log.info("trailCompletion areaId=\(self.areaId, privacy: .public) trail=\(name, privacy: .public)")
+        log.notice("trailCompletion areaId=\(self.areaId, privacy: .public) trail=\(name, privacy: .public)")
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
             celebrationTrailName = name

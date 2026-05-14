@@ -63,12 +63,17 @@ enum DiagnosticsService {
     /// further filtered to our subsystem so system-framework
     /// chatter doesn't dominate the file.
     ///
-    /// Captures both `OSLogEntryLog` (regular `Logger.info` /
-    /// `os_log` calls) AND `OSLogEntrySignpost` (the existing
-    /// `os_signpost` markers in `AreaDataService` — area-load
-    /// timing, cache hits, etc.). Without the signpost pass the
-    /// bundle was empty for the build-12 user hike, because the
-    /// only OSLog calls the app made were signposts.
+    /// Captures both `OSLogEntryLog` (regular `Logger.notice` /
+    /// `Logger.error` / `os_log` calls — anything at level
+    /// `.default` or higher, which is the iOS persistence cutoff)
+    /// AND `OSLogEntrySignpost` (the existing `os_signpost`
+    /// markers in `AreaDataService`). Without the signpost pass
+    /// the bundle was empty for the build-12 user hike. Without
+    /// emitting at `.notice`+ instead of `.info`, the bundle was
+    /// STILL empty in build 114 — iOS doesn't persist `.info` by
+    /// default, so OSLogStore couldn't see those entries after
+    /// the fact. Fixed by promoting every diagnostic-relevant
+    /// call site to `Logger.notice(...)`.
     ///
     /// Capped at the most recent 500 entries — enough to span the
     /// past few minutes of activity at typical log volume, small

@@ -55,6 +55,15 @@ struct AreaView: View {
     @State private var showAreaComplete = false
     @State private var pastPaths: [[GpsPoint]] = []
     @State private var recenterTick: Int = 0
+    /// Bumped when the user taps Switch on the retarget or
+    /// suggestion banner. Tells `TrailMapView` to re-fit the camera
+    /// around the new active trail PLUS the user's current
+    /// location. We need a separate signal from `selectedTrailId`
+    /// because the banner shows up precisely because the user
+    /// already tapped a different trail — i.e. `selectedTrailId`
+    /// is ALREADY pointing at the new trail by the time Switch is
+    /// tapped, so SwiftUI's `.onChange(of:)` would not fire.
+    @State private var centerOnSwitchedTrailTick: Int = 0
     /// Owns the camera tracking cycle for the map. The rotation button
     /// in `controlBar` cycles this; TrailMapView observes via Binding
     /// and swaps `MapCameraPosition` accordingly. Tapping the recenter
@@ -134,6 +143,7 @@ struct AreaView: View {
                     activeRecording: isRecording ? recording.activeRecording : nil,
                     pastPaths: pastPaths,
                     recenterTick: recenterTick,
+                    centerOnSwitchedTrailTick: centerOnSwitchedTrailTick,
                     selectedTrailId: $selectedTrailId,
                     visibleTrailIds: visibleTrailIds,
                     // Bottom chrome that occludes the map: trail list
@@ -190,16 +200,20 @@ struct AreaView: View {
                                     selectedTrail: retargetTrail,
                                     onSwitch: {
                                         recording.retargetTrail(retargetTrail.id)
-                                        // Keep selectedTrailId pointed at the
-                                        // just-retargeted trail (rather than
-                                        // clearing to nil) so TrailMapView's
-                                        // .onChange(of: selectedTrailId) re-
-                                        // frames the camera onto the NEW
-                                        // active trail. Clearing to nil
-                                        // triggered centerOnArea() and
-                                        // zoomed all the way out — the
-                                        // build-12 device-test bug.
+                                        // selectedTrailId is already pointing
+                                        // at retargetTrail.id (the banner
+                                        // only renders when the user has
+                                        // tapped a different trail, which
+                                        // set the binding). Re-assigning the
+                                        // same value is a no-op for SwiftUI,
+                                        // so `.onChange(of: selectedTrailId)`
+                                        // wouldn't fire. Bump a separate
+                                        // tick instead — TrailMapView's
+                                        // `.onChange(of: centerOnSwitched-
+                                        // TrailTick)` re-fits the camera
+                                        // around user + the new active trail.
                                         selectedTrailId = retargetTrail.id
+                                        centerOnSwitchedTrailTick &+= 1
                                     },
                                     onDismiss: { selectedTrailId = nil }
                                 )
@@ -208,14 +222,16 @@ struct AreaView: View {
                                     suggestion: suggestion,
                                     onSwitch: {
                                         recording.retargetTrail(suggestion.trail.id)
-                                        // Same as the retarget banner: point
-                                        // the selection at the now-active
-                                        // trail so the camera fits user +
-                                        // new trail. The engine's "skip the
-                                        // current trail" filter handles
-                                        // banner unmount on the next body
-                                        // eval.
+                                        // Same shape as the retarget banner
+                                        // above: assign selectedTrailId for
+                                        // any downstream observers that
+                                        // diff on it, then bump the
+                                        // centerOnSwitchedTrailTick so the
+                                        // camera re-fits user + new trail
+                                        // even though the binding may
+                                        // already point at this trail.
                                         selectedTrailId = suggestion.trail.id
+                                        centerOnSwitchedTrailTick &+= 1
                                     },
                                     onDismiss: {
                                         log.info("suggestion dismiss trail=\(suggestion.trail.name, privacy: .public)")

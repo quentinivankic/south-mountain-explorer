@@ -74,6 +74,29 @@ struct TrailCoverageTests {
         #expect(score.endpointsVisited == false)
     }
 
+    /// Build 16 regression: a path that ends ~13 m short of the trail
+    /// endpoint used to satisfy the 15 m endpoint buffer and trigger
+    /// the completion celebration. The buffer is now 10 m, so this
+    /// case correctly fails the endpoint gate. Pins the tighter
+    /// threshold so any future loosening surfaces here.
+    @Test func endpointJustBeyondTighterBufferFails() throws {
+        let trail = linearTrail(count: 100)
+        // Drop 12 nodes from the end → path's last sample is ~13 m
+        // from the actual endpoint (12 × 1.1 m). Outside the new
+        // 10 m gate; would have been inside the old 15 m gate.
+        let path = walkingPath(for: trail, dropFromEnd: 12)
+        let scores = measureCoverage(path: path, trails: [trail])
+        let score = try #require(scores[trail.id])
+        #expect(score.endpointsVisited == false,
+                "10 m endpoint buffer should reject a path ending 13 m short")
+        // Same case still satisfies the old 15 m buffer — pinning
+        // the gap distance, not the implementation.
+        let lax = measureCoverage(path: path, trails: [trail], endpointBufferMeters: 15)
+        let laxScore = try #require(lax[trail.id])
+        #expect(laxScore.endpointsVisited == true,
+                "control: 15 m buffer would have accepted the same path")
+    }
+
     @Test func sparsePathBelowMinFractionFiltersOut() {
         // Trail with 100 nodes spaced ~111 m apart (deltaLat 0.001),
         // chosen so the 30 m coverage buffer in measureCoverage

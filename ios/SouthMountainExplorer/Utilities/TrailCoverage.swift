@@ -26,16 +26,17 @@ struct CoverageScore: Equatable, Sendable {
 /// `bufferMeters` is the radius used for the per-node "did the GPS
 /// path come within range" check. `endpointBufferMeters` is the
 /// tighter radius used specifically for the start/end endpoint
-/// check — bumped tighter in build 13 (15 m vs the 30 m general
-/// buffer) so the completion celebration doesn't fire while the
-/// user is still ~30 m short of the actual trail endpoint. GPS
-/// scatter at hiking pace is ±5-10 m, so 15 m still triggers when
-/// the user is physically at the endpoint.
+/// check — tightened in build 16 from 15 m → 10 m after a user
+/// report that completion fired with the hiker still noticeably
+/// short of the trail end. GPS scatter at hiking pace is ±5-10 m,
+/// so 10 m still triggers when the user is physically at the
+/// endpoint while ruling out the "I turned around 12 m short"
+/// false positive.
 func measureCoverage(
     path: [GpsPoint],
     trails: [Trail],
     bufferMeters: Double = 30.0,
-    endpointBufferMeters: Double = 15.0,
+    endpointBufferMeters: Double = 10.0,
     minVisibleFraction: Double = 0.02
 ) -> [String: CoverageScore] {
     guard path.count >= 3 else { return [:] }

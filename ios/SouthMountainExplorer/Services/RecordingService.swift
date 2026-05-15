@@ -29,6 +29,19 @@ private let badFixMeters = 200.0
 /// reasonable on a multi-hour hike.
 private let gpsPollingInterval: Duration = .seconds(2)
 
+/// Closest haversine distance in meters from any sample in `path`
+/// to `(lat, lon)`. Returns `.infinity` for an empty path. Used by
+/// the trailComplete diagnostic log to capture how close the user
+/// actually got to each trail endpoint when completion fired.
+private func closestPathDistanceMeters(path: [GpsPoint], lat: Double, lon: Double) -> Double {
+    var best = Double.infinity
+    for p in path where p.count >= 2 {
+        let d = haversineDistanceM(lat1: lat, lon1: lon, lat2: p[0], lon2: p[1])
+        if d < best { best = d }
+    }
+    return best
+}
+
 @MainActor
 @Observable
 final class RecordingService {
@@ -259,7 +272,8 @@ final class RecordingService {
         let (mergeNew, mergeRevisited, _) = await mergeCoverage(
             areaId: rec.areaId,
             sessionCoverage: sessionCoverage,
-            trails: trails
+            trails: trails,
+            combinedPath: combinedPath
         )
         // mergeCoverage's intra-session writes mean its returned
         // newly/revisited split is racy at stop time — a trail
@@ -348,7 +362,12 @@ final class RecordingService {
         // on a previous day.
         let combinedPath = combinedPathForArea(rec.areaId, currentPath: rec.path)
         let sessionCoverage = measureCoverage(path: combinedPath, trails: trails, bufferMeters: bufferMeters)
-        _ = await mergeCoverage(areaId: rec.areaId, sessionCoverage: sessionCoverage, trails: trails)
+        _ = await mergeCoverage(
+            areaId: rec.areaId,
+            sessionCoverage: sessionCoverage,
+            trails: trails,
+            combinedPath: combinedPath
+        )
     }
 
     /// Smoothed pace in meters per second from the active
@@ -592,7 +611,8 @@ final class RecordingService {
     private func mergeCoverage(
         areaId: String,
         sessionCoverage: [String: CoverageScore],
-        trails: [Trail] = []
+        trails: [Trail] = [],
+        combinedPath: [GpsPoint] = []
     ) async -> (newlyCompleted: [String], revisited: [String], merged: [String: Double]) {
         let progressService = ProgressService.shared
         let coverageService = CoverageService.shared
@@ -646,6 +666,26 @@ final class RecordingService {
                 trailId: tid,
                 trailName: trailName
             )
+            // Diagnostic log so future "completion fired too early"
+            // reports carry the actual endpoint distances + union
+            // fraction in the diag bundle. startDist / endDist are
+            // the closest GPS sample (from the union of every hike
+            // in this area) to each polyline endpoint. If both are
+            // ≤ endpointBufferMeters (10 m), the user genuinely
+            // reached both ends; otherwise the OSM endpoint and the
+            // user's stopping point disagree, which usually means
+            // a trail-segmentation artifact.
+            let trail = trails.first { $0.id == tid }
+            let frac = sessionCoverage[tid]?.fraction ?? 0
+            let startDist = trail.flatMap { t -> Double? in
+                guard let p = t.segments.first?.first, p.count >= 2 else { return nil }
+                return closestPathDistanceMeters(path: combinedPath, lat: p[0], lon: p[1])
+            } ?? -1
+            let endDist = trail.flatMap { t -> Double? in
+                guard let p = t.segments.last?.last, p.count >= 2 else { return nil }
+                return closestPathDistanceMeters(path: combinedPath, lat: p[0], lon: p[1])
+            } ?? -1
+            log.notice("trailComplete tid=\(tid, privacy: .public) fraction=\(frac) startDist=\(startDist)m endDist=\(endDist)m")
         }
         return (newlyCompleted, revisited, merged)
     }

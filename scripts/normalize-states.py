@@ -9,8 +9,8 @@ later-seeded states (AL, AK, AR, ...) fell through the
 .get(state_code, state_code) and stored bare 2-letter codes.
 After seed-areas.py was expanded to all 50 + DC, this one-shot
 backfills the existing index so the iOS Browse tab reads
-consistent full names. Also drops the lone "Denmark" stray that
-predates the US-only seed flow.
+consistent full names. Hand-curated non-US entries (e.g. the
+Fredericia, Denmark sample) are preserved as-is.
 
 Run once, commit the diff. The seed script now produces full
 names natively so this script is single-use.
@@ -55,29 +55,18 @@ def main() -> None:
 
     before = Counter(r[2] for r in data)
     out: list[list] = []
-    dropped: list[list] = []
-
     for row in data:
         state = row[2]
         if state in CODE_TO_NAME:
             row[2] = CODE_TO_NAME[state]
-            out.append(row)
-        elif state in VALID_NAMES:
-            out.append(row)
-        else:
-            # Stray non-US entry (e.g. "Denmark") — drop.
-            dropped.append(row)
+        out.append(row)
 
     out.sort(key=lambda r: (r[2], r[1]))
     INDEX_PATH.write_text(json.dumps(out, separators=(",", ":")))
 
     after = Counter(r[2] for r in out)
     print(f"Read  {len(data)} entries from {INDEX_PATH}")
-    print(f"Wrote {len(out)} entries (dropped {len(dropped)})")
-    if dropped:
-        print("Dropped:")
-        for r in dropped:
-            print(f"  {r}")
+    print(f"Wrote {len(out)} entries")
     print("\nBefore:")
     for k, v in before.most_common():
         print(f"  {k!r}: {v}")

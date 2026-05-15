@@ -12,6 +12,19 @@ on:
       - "public/areas/index.json"
   workflow_dispatch:
 
+# Coalesce back-to-back merges into a single TestFlight upload.
+# When three PRs land within ~30 seconds of each other (typical
+# "merge a batch" cadence), without this each push would race
+# Apple's build-number gate and burn an upload slot per merge.
+# `cancel-in-progress: true` kills the in-flight archive when a
+# newer commit lands on main; only the latest commit's run
+# completes the archive + TestFlight upload. The cleanup step
+# already has `if: always()` so keychain teardown still runs on
+# cancellation.
+concurrency:
+  group: ios-testflight
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-latest

@@ -444,31 +444,34 @@ final class RecordingService {
         // actually closed the loop — the trail shows complete on the
         // map but no past hike claims responsibility.
         //
-        // Only attempt the credit pass for trails that aren't already
-        // in some hike's `completedTrailIds`. Common case: single-
-        // hike completion stored correctly at stopRecording time.
+        // Only attempt the newly-completed credit pass for trails
+        // that aren't already in some hike's `completedTrailIds`.
+        // Common case: single-hike completion stored correctly at
+        // stopRecording time, or PR #85's tipping-hike pass already
+        // ran and credited everything that could be.
         let alreadyCredited = Set(areaHistory.flatMap { $0.completedTrailIds })
         var pending = Set(nowComplete).subtracting(alreadyCredited)
-        guard !pending.isEmpty else { return }
 
-        var running: [GpsPoint] = []
         var creditedByHikeId: [String: [String]] = [:]
-        for hike in areaHistory {
-            if pending.isEmpty { break }
-            running.append(contentsOf: hike.path)
-            let snapshot = measureCoverage(path: running, trails: trails, bufferMeters: bufferMeters)
-            var toCredit: [String] = []
-            for tid in pending {
-                if let s = snapshot[tid],
-                   s.fraction >= completeThreshold,
-                   s.endpointsVisited
-                {
-                    toCredit.append(tid)
+        if !pending.isEmpty {
+            var running: [GpsPoint] = []
+            for hike in areaHistory {
+                if pending.isEmpty { break }
+                running.append(contentsOf: hike.path)
+                let snapshot = measureCoverage(path: running, trails: trails, bufferMeters: bufferMeters)
+                var toCredit: [String] = []
+                for tid in pending {
+                    if let s = snapshot[tid],
+                       s.fraction >= completeThreshold,
+                       s.endpointsVisited
+                    {
+                        toCredit.append(tid)
+                    }
                 }
+                if toCredit.isEmpty { continue }
+                creditedByHikeId[hike.id, default: []].append(contentsOf: toCredit)
+                for t in toCredit { pending.remove(t) }
             }
-            if toCredit.isEmpty { continue }
-            creditedByHikeId[hike.id, default: []].append(contentsOf: toCredit)
-            for t in toCredit { pending.remove(t) }
         }
 
         // Retro-credit revisits: walk history chronologically per

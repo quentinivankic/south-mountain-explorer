@@ -31,6 +31,7 @@ private enum LengthFilter: String, CaseIterable, Identifiable {
 
 struct HomeView: View {
     @Environment(AreaDataService.self) private var areas
+    @Environment(AreaSilhouetteService.self) private var silhouettes
     @Environment(LocationService.self) private var location
     @Environment(FavoritesService.self) private var favorites
     @Environment(AuthService.self) private var auth
@@ -309,6 +310,13 @@ struct HomeView: View {
         }
         for id in ids {
             Task { _ = await areas.area(id: id) }
+            // Silhouettes live on R2 too now (no longer bundled in
+            // the iOS binary). Kick the per-area fetch in parallel
+            // with the full-area fetch so cards have artwork ready
+            // by the time they hit the visible scroll window.
+            // AreaSilhouetteService dedupes in-flight requests, so
+            // racing the per-card `.task` is harmless.
+            Task { _ = await silhouettes.silhouette(for: id) }
         }
     }
 

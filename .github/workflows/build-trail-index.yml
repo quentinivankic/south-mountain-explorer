@@ -83,10 +83,12 @@ jobs:
         id: commit
         run: |
           cp public/areas/index.json ios/SouthMountainExplorer/Resources/areas-index.json
-          cp public/areas/silhouettes.json ios/SouthMountainExplorer/Resources/silhouettes.json
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/areas/index.json public/areas/counts-cache.json public/areas/silhouettes.json public/areas/geom ios/SouthMountainExplorer/Resources/areas-index.json ios/SouthMountainExplorer/Resources/silhouettes.json
+          # Silhouettes are now per-area files under public/areas/silhouettes/,
+          # not a single bundled JSON. The iOS app fetches them from R2 at
+          # runtime via AreaSilhouetteService, mirroring the geom flow.
+          git add public/areas/index.json public/areas/counts-cache.json public/areas/silhouettes public/areas/geom ios/SouthMountainExplorer/Resources/areas-index.json
           if git diff --cached --quiet; then
             echo "No changes to commit."
             echo "committed=false" >> "$GITHUB_OUTPUT"

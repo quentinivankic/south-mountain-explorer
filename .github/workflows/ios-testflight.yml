@@ -10,7 +10,6 @@ on:
       - "ios/**"
       - "!ios/SouthMountainExplorerTests/**"
       - "public/areas/index.json"
-      - "public/areas/silhouettes.json"
   workflow_dispatch:
 
 jobs:
@@ -35,7 +34,6 @@ jobs:
         run: |
           python3 scripts/build-trail-counts.py --cache-only
           cp public/areas/index.json ios/SouthMountainExplorer/Resources/areas-index.json
-          cp public/areas/silhouettes.json ios/SouthMountainExplorer/Resources/silhouettes.json
 
       - name: Import distribution certificate
         env:

@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """
 Rebuild public/areas/index.json with trail counts from Overpass, and
-public/areas/silhouettes.json with downsampled trail polylines for the iOS
-Explore-tab card art.
+public/areas/silhouettes/<id>.json with downsampled trail polylines for
+the iOS Explore-tab card art.
 
 Each area in index.json becomes a 7-element tuple:
   [id, name, state, lat, lon, trail_count, total_mi]
 
-silhouettes.json is a single dict keyed by area id:
-  { area_id: { "b": [w, s, e, n], "l": [{"d": "e|m|h", "p": [[lat,lon],...]}] } }
-where bbox is tight to the trails (not the park) and points are downsampled to
-~20 m spacing, rounded to 5 decimals.
+Per-area silhouette files have shape:
+  { "b": [w, s, e, n], "l": [{"d": "e|m|h", "p": [[lat,lon],...]}] }
+where bbox is tight to the trails (not the park) and points are
+downsampled to ~20 m spacing, rounded to 5 decimals. These files
+are served from Cloudflare R2 at runtime (same bucket as the geom
+files, under a `silhouettes/` prefix) so the iOS app binary stays
+small as state coverage grows.
 
 Incremental: results are saved to public/areas/counts-cache.json after each
 batch so the script can be interrupted and resumed. Areas with cached counts
@@ -50,20 +53,26 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 INDEX_PATH = ROOT / "public" / "areas" / "index.json"
 CACHE_PATH = ROOT / "public" / "areas" / "counts-cache.json"
-SILHOUETTES_PATH = ROOT / "public" / "areas" / "silhouettes.json"
+# Per-area silhouette JSON, one file per area. Mirrors the geom layout
+# below — both live next to each other on R2 in production, so the
+# iOS app fetches a silhouette the same way it fetches full geometry.
+# Replaces the old monolithic `silhouettes.json` (~45 MB in-bundle) so
+# the binary stays small as area count grows past California-and-
+# Arizona scale.
+SILHOUETTES_DIR = ROOT / "public" / "areas" / "silhouettes"
 # Per-area full trail geometry, one JSON file per area. Served via
-# jsDelivr at runtime so the iOS app can skip the live Overpass call
-# (and the resulting empty/timeout failure modes) on cold open.
+# Cloudflare R2 at runtime so the iOS app can skip the live Overpass
+# call (and the resulting empty/timeout failure modes) on cold open.
 GEOM_DIR = ROOT / "public" / "areas" / "geom"
 
 SILHOUETTE_SPACING_M = 20.0
 SILHOUETTE_DECIMALS = 5
 # Cap the number of trails contributing to a single area's silhouette,
-# keeping the longest first. Without this, national-forest-sized areas
-# blow silhouettes.json up by orders of magnitude (Coconino NF alone
-# contributes ~1100 polylines). The card art is 220×160pt — beyond
-# ~150 polylines you're rendering noise the user can't see.
-SILHOUETTE_MAX_TRAILS = 150
+# keeping the longest first. Now that silhouettes live off-bundle on
+# R2 we can afford a much higher cap; national forests show closer to
+# their real trail network instead of the most-truncated-150 view.
+# Above ~400 the rendered card just becomes noise — that's the cap.
+SILHOUETTE_MAX_TRAILS = 400
 
 # Geom output spacing — much finer than silhouettes since these polylines
 # are rendered into the actual trail map, not a 220pt card. 5m is sub-pixel
@@ -724,14 +733,23 @@ def main():
 
 
 def write_silhouettes(cache: dict, index: list) -> None:
-    """Write silhouettes.json from the cache, scoped to the given index."""
-    out: dict = {}
+    """Write per-area silhouettes to `public/areas/silhouettes/<id>.json`.
+
+    Replaces the old monolithic `silhouettes.json`. The iOS app fetches
+    one file per area from R2 on demand (mirrors the per-area geom
+    pattern). This function only WRITES — it never deletes — so a
+    previously-built area whose row vanishes from `index` keeps its
+    file on disk until the next clean rebuild. Acceptable; the index
+    is what governs which areas the app considers visible.
+    """
+    SILHOUETTES_DIR.mkdir(parents=True, exist_ok=True)
     for area in index:
         area_id = area[0]
         sil = cache.get(area_id, {}).get("silhouette")
-        if sil:
-            out[area_id] = sil
-    SILHOUETTES_PATH.write_text(json.dumps(out, separators=(",", ":")))
+        if not sil:
+            continue
+        path = SILHOUETTES_DIR / f"{area_id}.json"
+        path.write_text(json.dumps(sil, separators=(",", ":")))
 
 
 def write_geom(

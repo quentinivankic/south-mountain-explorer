@@ -116,3 +116,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run ios-testflight.yml --ref ${{ github.ref_name }}
+
+      # Same GITHUB_TOKEN gotcha — `sync-geom-to-r2.yml`'s
+      # path-filter on `public/areas/geom/**` would normally fire
+      # automatically when the commit step above pushes new geom
+      # files, but bot-authored pushes don't trigger downstream
+      # workflows. Dispatch explicitly so R2 stays in sync with
+      # the committed geom data without any manual click.
+      #
+      # Unlike the TestFlight build above, this one runs
+      # unconditionally on every successful commit — sync is
+      # cheap (Linux runner, ~1 min total), and the whole point
+      # of moving the CDN to R2 was to make this transparent.
+      - name: Sync geom files to R2
+        if: steps.commit.outputs.committed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run sync-geom-to-r2.yml --ref ${{ github.ref_name }}

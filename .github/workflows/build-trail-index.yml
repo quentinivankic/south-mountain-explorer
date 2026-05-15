@@ -50,6 +50,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # `counts-cache.json` is the per-area Overpass response cache
+      # the builder writes to between batches so subsequent runs can
+      # skip already-fetched areas. At full-US scale it grows past
+      # 250 MB — well over GitHub's 100 MB single-file push limit —
+      # so we deliberately keep it OUT of git and instead persist
+      # it via Actions cache across workflow runs.
+      #
+      # The cache key is intentionally constant (`counts-cache-v1`)
+      # so every run uses the same slot; `restore-keys` falls back
+      # gracefully when no cache exists yet (first run after this
+      # change). `save: always` (post step) writes whatever's at
+      # `public/areas/counts-cache.json` when the workflow finishes,
+      # regardless of step failures, so partial progress survives
+      # timeouts.
+      - name: Restore counts-cache from Actions cache
+        id: cache-restore
+        uses: actions/cache@v4
+        with:
+          path: public/areas/counts-cache.json
+          key: counts-cache-v1
+          # No restore-keys — we want exact-match-or-cold-start
+          # semantics. A stale partial cache from a much older
+          # build would only confuse the diff logic.
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -88,7 +112,12 @@ jobs:
           # Silhouettes are now per-area files under public/areas/silhouettes/,
           # not a single bundled JSON. The iOS app fetches them from R2 at
           # runtime via AreaSilhouetteService, mirroring the geom flow.
-          git add public/areas/index.json public/areas/counts-cache.json public/areas/silhouettes public/areas/geom ios/SouthMountainExplorer/Resources/areas-index.json
+          #
+          # `counts-cache.json` is intentionally NOT staged — at full-US
+          # scale it crosses 250 MB, well past GitHub's 100 MB per-file
+          # push limit. It lives in Actions cache instead (see the cache
+          # restore step above) and as a workflow artifact below.
+          git add public/areas/index.json public/areas/silhouettes public/areas/geom ios/SouthMountainExplorer/Resources/areas-index.json
           if git diff --cached --quiet; then
             echo "No changes to commit."
             echo "committed=false" >> "$GITHUB_OUTPUT"
@@ -135,3 +164,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run sync-geom-to-r2.yml --ref ${{ github.ref_name }}
+
+      # Side-channel safety net: upload counts-cache.json as a
+      # workflow artifact so it's downloadable from the run page
+      # even if the Actions cache step fails (e.g. cache eviction
+      # under storage pressure). 90-day retention is the default
+      # and fine for our purposes — we'd notice a stale cache
+      # well before then. `if: always()` so the artifact lands
+      # even when the workflow times out partway through.
+      - name: Upload counts-cache.json as artifact
+        if: always() && hashFiles('public/areas/counts-cache.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: counts-cache
+          path: public/areas/counts-cache.json
+          retention-days: 30
+          if-no-files-found: ignore

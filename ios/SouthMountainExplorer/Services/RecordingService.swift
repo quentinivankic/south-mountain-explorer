@@ -616,31 +616,79 @@ final class RecordingService {
         // ever actually get covered, or is the gate firing on
         // coincidence?" without re-hiking. Bounded by the area's
         // completed-trail count (typically < 50).
+        //
+        // Two anchors logged per trail:
+        // - `earliestAnchor` — first hike whose stop credited the
+        //   trail as completed. Used by the retro-credit forward-walk
+        //   pass above.
+        // - `latestAnchor` — most recent hike that claims the trail
+        //   in EITHER completedTrailIds OR revisitedTrailIds. Used by
+        //   the live `computeRevisits` gate at every stopRecording.
+        //   This is the one that determines whether *today's* hike
+        //   re-fires a revisit, so it's the more diagnostic of the
+        //   two when a user reports "I didn't even walk that today."
+        //
+        // Also logs the all-time union fraction at three buffer
+        // widths (30m default + 15m + 10m). If a trail reads 1.0 at
+        // 30m but drops sharply at 15m/10m, the gate is firing
+        // because the user's GPS path runs *parallel to* the trail
+        // 15-30m away (dense network coincidence), not on it. If
+        // fraction stays high at 10m, the GPS path is genuinely on
+        // top of the trail's polyline — the user walked it (perhaps
+        // not knowing the trail's name) or two OSM ways share
+        // geometry.
+        let cov15 = measureCoverage(path: combined, trails: trails, bufferMeters: 15.0)
+        let cov10 = measureCoverage(path: combined, trails: trails, bufferMeters: 10.0)
         for (tid, progressStamp) in completionDates {
             let score = cov[tid]
-            let frac = score?.fraction ?? -1
+            let frac30 = score?.fraction ?? -1
+            let frac15 = cov15[tid]?.fraction ?? -1
+            let frac10 = cov10[tid]?.fraction ?? -1
             let endpointsHit = score?.endpointsVisited ?? false
             let (startDist, endDist) = trailEndpointDistances(trailId: tid, trails: trails, path: combined)
-            // Anchor source: which hike claims this trail in its
-            // completedTrailIds (earliest wins). Falls back to the
-            // ProgressService stamp when no hike does — same shape as
-            // the retro-credit pass above.
-            var anchorHikeId = "none"
-            var anchorAt: TimeInterval = -1
+
+            // Earliest anchor — first hike to credit the trail
+            // complete. Matches the retro-credit pass's anchor
+            // selection.
+            var earliestHikeId = "none"
+            var earliestAt: TimeInterval = -1
             for hike in areaHistory where hike.completedTrailIds.contains(tid) {
-                if anchorAt < 0 || hike.endedAt.timeIntervalSince1970 < anchorAt {
-                    anchorHikeId = hike.id
-                    anchorAt = hike.endedAt.timeIntervalSince1970
+                if earliestAt < 0 || hike.endedAt.timeIntervalSince1970 < earliestAt {
+                    earliestHikeId = hike.id
+                    earliestAt = hike.endedAt.timeIntervalSince1970
                 }
             }
-            let anchorSource: String
-            if anchorAt < 0 {
-                anchorSource = "progressFallback"
-                anchorAt = iso.date(from: progressStamp)?.timeIntervalSince1970 ?? -1
+            let earliestSource: String
+            if earliestAt < 0 {
+                earliestSource = "progressFallback"
+                earliestAt = iso.date(from: progressStamp)?.timeIntervalSince1970 ?? -1
             } else {
-                anchorSource = "hike"
+                earliestSource = "hike"
             }
-            log.notice("trailCompletionState tid=\(tid, privacy: .public) fraction=\(frac) startDist=\(startDist)m endDist=\(endDist)m endpointsHit=\(endpointsHit) anchorSource=\(anchorSource, privacy: .public) anchorHikeId=\(anchorHikeId, privacy: .public) anchorAt=\(anchorAt)")
+
+            // Latest anchor — same logic as `latestCompletionAnchor`
+            // (the static helper used by computeRevisits). Picks the
+            // MOST RECENT hike whose completedTrailIds OR
+            // revisitedTrailIds contains the trail.
+            var latestHikeId = "none"
+            var latestAt: TimeInterval = -1
+            for hike in areaHistory where hike.completedTrailIds.contains(tid)
+                || hike.revisitedTrailIds.contains(tid)
+            {
+                if latestAt < 0 || hike.endedAt.timeIntervalSince1970 > latestAt {
+                    latestHikeId = hike.id
+                    latestAt = hike.endedAt.timeIntervalSince1970
+                }
+            }
+            let latestSource: String
+            if latestAt < 0 {
+                latestSource = "progressFallback"
+                latestAt = iso.date(from: progressStamp)?.timeIntervalSince1970 ?? -1
+            } else {
+                latestSource = "hike"
+            }
+
+            log.notice("trailCompletionState tid=\(tid, privacy: .public) frac30=\(frac30) frac15=\(frac15) frac10=\(frac10) startDist=\(startDist)m endDist=\(endDist)m endpointsHit=\(endpointsHit) earliestAnchor=\(earliestSource, privacy: .public)/\(earliestHikeId, privacy: .public)@\(earliestAt) latestAnchor=\(latestSource, privacy: .public)/\(latestHikeId, privacy: .public)@\(latestAt)")
         }
 
         if creditedByHikeId.isEmpty && revisitCreditByHikeId.isEmpty { return }

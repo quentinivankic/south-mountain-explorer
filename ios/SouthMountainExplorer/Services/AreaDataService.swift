@@ -7,13 +7,23 @@ import OSLog
 /// wraps the whole disk-cache-or-fetch path.
 private let areaLoadLog = OSLog(subsystem: "com.trekdex.app", category: "areaLoad")
 
-/// jsDelivr CDN mirror of the precomputed per-area trail geometry. The
-/// workflow writes `public/areas/geom/<id>.json` on every build; jsDelivr
-/// serves those files from GitHub with proper edge caching. Branch ref is
-/// pinned here so we can promote a build atomically (and roll back by
-/// changing one constant). jsDelivr caches branch URLs roughly 12 h, so
-/// a workflow push doesn't go live instantly — fine for our cadence.
-private let cdnBaseURL = "https://cdn.jsdelivr.net/gh/quentinivankic/south-mountain-explorer@main/public/areas/geom"
+/// CDN for the precomputed per-area trail geometry. Cloudflare R2
+/// public-dev bucket — the `.r2.dev` hostname is randomized and
+/// reveals neither the developer name nor the source repository,
+/// which the previous `cdn.jsdelivr.net/gh/<user>/<repo>@main`
+/// URL did. Egress is free; storage well under the R2 free tier.
+///
+/// Uploads to this bucket are currently manual via the Cloudflare
+/// dashboard — the build-trail-index workflow regenerates
+/// `public/areas/geom/*.json` and we drag-drop the folder up after
+/// any data refresh. Wire into CI when refresh cadence picks up.
+///
+/// Production caveat: `.r2.dev` is rate-limited and lacks
+/// Cloudflare's CDN cache layer. For App Store-scale launch this
+/// should swap to a custom domain bound to the same bucket
+/// (`cdn.trekdex.app/areas/...`) — one constant change here, no
+/// data migration required. v1.1 task.
+private let cdnBaseURL = "https://pub-627277b6b01a48ce8800680cca6598dc.r2.dev"
 
 // Caches the bundled area index and per-area full data fetched from Overpass.
 // The bundled index.json lives at Resources/areas-index.json.

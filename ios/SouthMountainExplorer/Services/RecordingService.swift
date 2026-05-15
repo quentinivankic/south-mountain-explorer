@@ -31,8 +31,8 @@ private let gpsPollingInterval: Duration = .seconds(2)
 
 /// Closest haversine distance in meters from any sample in `path`
 /// to `(lat, lon)`. Returns `.infinity` for an empty path. Used by
-/// the trailComplete diagnostic log to capture how close the user
-/// actually got to each trail endpoint when completion fired.
+/// the completion-gate diagnostic logs to capture how close the
+/// user actually got to each trail endpoint when a gate fired.
 private func closestPathDistanceMeters(path: [GpsPoint], lat: Double, lon: Double) -> Double {
     var best = Double.infinity
     for p in path where p.count >= 2 {
@@ -40,6 +40,33 @@ private func closestPathDistanceMeters(path: [GpsPoint], lat: Double, lon: Doubl
         if d < best { best = d }
     }
     return best
+}
+
+/// Distance in meters from the GPS samples in `path` to a trail's
+/// first and last polyline node. Returns `(-1, -1)` when the trail
+/// isn't in `trails` or its first/last segment is empty — those
+/// sentinels are surfaced in the log so an unexpected -1 reads as
+/// "lookup failed" rather than "user was 0 m away." Shared by the
+/// three completion-gate diagnostic call sites (trailComplete,
+/// trailRevisit, trailRetroComplete) so they all describe endpoint
+/// distance the same way.
+private func trailEndpointDistances(
+    trailId: String,
+    trails: [Trail],
+    path: [GpsPoint]
+) -> (startDist: Double, endDist: Double) {
+    guard let trail = trails.first(where: { $0.id == trailId }) else {
+        return (-1, -1)
+    }
+    let startDist: Double = {
+        guard let p = trail.segments.first?.first, p.count >= 2 else { return -1 }
+        return closestPathDistanceMeters(path: path, lat: p[0], lon: p[1])
+    }()
+    let endDist: Double = {
+        guard let p = trail.segments.last?.last, p.count >= 2 else { return -1 }
+        return closestPathDistanceMeters(path: path, lat: p[0], lon: p[1])
+    }()
+    return (startDist, endDist)
 }
 
 @MainActor
@@ -467,16 +494,8 @@ final class RecordingService {
         let priorComplete = Set(ProgressService.shared.completedTrails(in: areaId).keys)
         ProgressService.shared.bulkMarkComplete(areaId: areaId, trailIds: Set(nowComplete))
         for tid in nowComplete where !priorComplete.contains(tid) {
-            let trail = trails.first { $0.id == tid }
             let frac = aggregate[tid] ?? 0
-            let startDist = trail.flatMap { t -> Double? in
-                guard let p = t.segments.first?.first, p.count >= 2 else { return nil }
-                return closestPathDistanceMeters(path: combined, lat: p[0], lon: p[1])
-            } ?? -1
-            let endDist = trail.flatMap { t -> Double? in
-                guard let p = t.segments.last?.last, p.count >= 2 else { return nil }
-                return closestPathDistanceMeters(path: combined, lat: p[0], lon: p[1])
-            } ?? -1
+            let (startDist, endDist) = trailEndpointDistances(trailId: tid, trails: trails, path: combined)
             log.notice("trailRetroComplete tid=\(tid, privacy: .public) fraction=\(frac) startDist=\(startDist)m endDist=\(endDist)m unionPathPoints=\(combined.count)")
         }
 
@@ -589,6 +608,41 @@ final class RecordingService {
         // this, debugging "why didn't my history heal" is opaque.
         log.notice("rebuildCoverageFromHistory area=\(areaId, privacy: .public) hikes=\(areaHistory.count) completedTrails=\(retroConsidered) newRevisitCredits=\(revisitCreditByHikeId.values.map(\.count).reduce(0, +)) newCompletionCredits=\(creditedByHikeId.values.map(\.count).reduce(0, +)) skippedNoAnchor=\(retroSkippedNoAnchor)")
 
+        // Per-trail snapshot so a "previously completed going crazy"
+        // bundle reveals, for each currently-complete trail, whether
+        // the all-time union math thinks the trail is genuinely
+        // covered + which hike (or fallback) provides the revisit
+        // anchor. Lets a future investigation answer "did this trail
+        // ever actually get covered, or is the gate firing on
+        // coincidence?" without re-hiking. Bounded by the area's
+        // completed-trail count (typically < 50).
+        for (tid, progressStamp) in completionDates {
+            let score = cov[tid]
+            let frac = score?.fraction ?? -1
+            let endpointsHit = score?.endpointsVisited ?? false
+            let (startDist, endDist) = trailEndpointDistances(trailId: tid, trails: trails, path: combined)
+            // Anchor source: which hike claims this trail in its
+            // completedTrailIds (earliest wins). Falls back to the
+            // ProgressService stamp when no hike does — same shape as
+            // the retro-credit pass above.
+            var anchorHikeId = "none"
+            var anchorAt: TimeInterval = -1
+            for hike in areaHistory where hike.completedTrailIds.contains(tid) {
+                if anchorAt < 0 || hike.endedAt.timeIntervalSince1970 < anchorAt {
+                    anchorHikeId = hike.id
+                    anchorAt = hike.endedAt.timeIntervalSince1970
+                }
+            }
+            let anchorSource: String
+            if anchorAt < 0 {
+                anchorSource = "progressFallback"
+                anchorAt = iso.date(from: progressStamp)?.timeIntervalSince1970 ?? -1
+            } else {
+                anchorSource = "hike"
+            }
+            log.notice("trailCompletionState tid=\(tid, privacy: .public) fraction=\(frac) startDist=\(startDist)m endDist=\(endDist)m endpointsHit=\(endpointsHit) anchorSource=\(anchorSource, privacy: .public) anchorHikeId=\(anchorHikeId, privacy: .public) anchorAt=\(anchorAt)")
+        }
+
         if creditedByHikeId.isEmpty && revisitCreditByHikeId.isEmpty { return }
 
         // Persist: rewrite the full history file with the credited
@@ -691,23 +745,13 @@ final class RecordingService {
             )
             // Diagnostic log so future "completion fired too early"
             // reports carry the actual endpoint distances + union
-            // fraction in the diag bundle. startDist / endDist are
-            // the closest GPS sample (from the union of every hike
-            // in this area) to each polyline endpoint. If both are
+            // fraction in the diag bundle. If both are
             // ≤ endpointBufferMeters (10 m), the user genuinely
             // reached both ends; otherwise the OSM endpoint and the
             // user's stopping point disagree, which usually means
             // a trail-segmentation artifact.
-            let trail = trails.first { $0.id == tid }
             let frac = sessionCoverage[tid]?.fraction ?? 0
-            let startDist = trail.flatMap { t -> Double? in
-                guard let p = t.segments.first?.first, p.count >= 2 else { return nil }
-                return closestPathDistanceMeters(path: combinedPath, lat: p[0], lon: p[1])
-            } ?? -1
-            let endDist = trail.flatMap { t -> Double? in
-                guard let p = t.segments.last?.last, p.count >= 2 else { return nil }
-                return closestPathDistanceMeters(path: combinedPath, lat: p[0], lon: p[1])
-            } ?? -1
+            let (startDist, endDist) = trailEndpointDistances(trailId: tid, trails: trails, path: combinedPath)
             log.notice("trailComplete tid=\(tid, privacy: .public) fraction=\(frac) startDist=\(startDist)m endDist=\(endDist)m")
         }
         return (newlyCompleted, revisited, merged)
@@ -845,15 +889,7 @@ final class RecordingService {
                 // completed going crazy" reports have no way to
                 // distinguish dense-network over-crediting from a
                 // legitimate revisit.
-                let trail = trails.first { $0.id == tid }
-                let startDist = trail.flatMap { t -> Double? in
-                    guard let p = t.segments.first?.first, p.count >= 2 else { return nil }
-                    return closestPathDistanceMeters(path: postAnchor, lat: p[0], lon: p[1])
-                } ?? -1
-                let endDist = trail.flatMap { t -> Double? in
-                    guard let p = t.segments.last?.last, p.count >= 2 else { return nil }
-                    return closestPathDistanceMeters(path: postAnchor, lat: p[0], lon: p[1])
-                } ?? -1
+                let (startDist, endDist) = trailEndpointDistances(trailId: tid, trails: trails, path: postAnchor)
                 log.notice("trailRevisit tid=\(tid, privacy: .public) fraction=\(s.fraction) startDist=\(startDist)m endDist=\(endDist)m postAnchorPoints=\(postAnchor.count) anchor=\(anchor.timeIntervalSince1970)")
             }
         }

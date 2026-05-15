@@ -38,9 +38,12 @@ final class AreaSilhouetteService {
     private(set) var byId: [String: AreaSilhouette] = [:]
     private var loadingTasks: [String: Task<AreaSilhouette?, Never>] = [:]
 
-    /// Same prefix as the geom files — both datasets live in
-    /// the same R2 bucket so a single API token covers them.
-    private let cdnBaseURL = "https://pub-627277b6b01a48ce8800680cca6598dc.r2.dev/silhouettes"
+    /// Same custom domain + bucket as the geom files; per-area
+    /// silhouettes live under the `silhouettes/` prefix on the
+    /// same `trekdex-areas` bucket so a single API token covers
+    /// both datasets and there's only one hostname to swap if
+    /// the CDN ever changes.
+    private let cdnBaseURL = "https://cdn.trekdex.app/silhouettes"
 
     private let cacheDir: URL = {
         FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]

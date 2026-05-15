@@ -430,12 +430,20 @@ struct AreaView: View {
         ZStack {
             Color(.secondarySystemBackground)
                 .ignoresSafeArea()
-            if let silhouette = silhouettes.silhouette(for: areaId) {
+            if let silhouette = silhouettes.cachedSilhouette(for: areaId) {
                 LoadingSilhouetteCanvas(silhouette: silhouette)
                     .ignoresSafeArea()
             } else {
                 ProgressView()
             }
+        }
+        // Kick the R2 fetch so the loading-state silhouette
+        // shows up if we don't already have it cached. Most of
+        // the time HomeView.prefetchVisibleAreas + AreaCard's
+        // own `.task` will have populated this before the user
+        // navigates in, but this is the safety net.
+        .task(id: areaId) {
+            await silhouettes.silhouette(for: areaId)
         }
     }
 

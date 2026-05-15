@@ -22,14 +22,16 @@ struct ContinueCard: View {
     }
 
     /// Same logic as AreaCard.effectiveSilhouette — prefer runtime data
-    /// over the bundled silhouettes.json so per-line difficulty colors
-    /// match the current Overpass output.
+    /// over the pre-rendered silhouette so per-line difficulty colors
+    /// match the current Overpass output. `cachedSilhouette` is a
+    /// non-blocking sync read; the `.task` modifier on artwork below
+    /// triggers the R2 fetch when the card appears.
     private var effectiveSilhouette: AreaSilhouette? {
         if let cached = cachedArea, !cached.trails.isEmpty {
             let computed = cached.computedSilhouette
             if !computed.l.isEmpty { return computed }
         }
-        return silhouettes.silhouette(for: area.id)
+        return silhouettes.cachedSilhouette(for: area.id)
     }
 
     var body: some View {
@@ -72,16 +74,24 @@ struct ContinueCard: View {
 
     @ViewBuilder
     private var artwork: some View {
-        if let silhouette = effectiveSilhouette {
-            ZStack {
-                // Adaptive backdrop — matches AreaCard treatment so the
-                // hero card doesn't sit as a black brick on a white screen
-                // in light mode while still reading near-black in dark.
-                Color(.secondarySystemBackground)
-                ContinueGlow(silhouette: silhouette, glowOn: colorScheme == .dark)
+        Group {
+            if let silhouette = effectiveSilhouette {
+                ZStack {
+                    // Adaptive backdrop — matches AreaCard treatment so the
+                    // hero card doesn't sit as a black brick on a white screen
+                    // in light mode while still reading near-black in dark.
+                    Color(.secondarySystemBackground)
+                    ContinueGlow(silhouette: silhouette, glowOn: colorScheme == .dark)
+                }
+            } else {
+                LinearGradient(colors: [.indigo, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
             }
-        } else {
-            LinearGradient(colors: [.indigo, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        // Same shape as AreaCard's `.task` — kick the R2 fetch when
+        // the card appears or its area changes. Service dedupes
+        // in-flight requests so racing with HomeView.prefetch is fine.
+        .task(id: area.id) {
+            await silhouettes.silhouette(for: area.id)
         }
     }
 }

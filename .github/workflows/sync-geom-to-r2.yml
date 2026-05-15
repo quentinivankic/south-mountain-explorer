@@ -1,9 +1,9 @@
 name: Sync Geom to R2
 
-# Mirrors `public/areas/geom/*.json` to the Cloudflare R2 bucket
-# the app reads from. R2 is S3-compatible, so the AWS CLI (pre-
-# installed on `ubuntu-latest`) talks to it with a custom
-# `--endpoint-url`. `aws s3 sync` only uploads new or changed
+# Mirrors `public/areas/geom/*.json` AND `public/areas/silhouettes/*.json`
+# to the Cloudflare R2 bucket the app reads from. R2 is S3-compatible,
+# so the AWS CLI (pre-installed on `ubuntu-latest`) talks to it with a
+# custom `--endpoint-url`. `aws s3 sync` only uploads new or changed
 # objects, so re-running is cheap.
 #
 # Two triggers:
@@ -11,9 +11,13 @@ name: Sync Geom to R2
 # 1. `workflow_dispatch` — manual one-shot, used for the initial
 #    bulk upload and any time you want to force a re-sync without
 #    waiting on `build-trail-index`.
-# 2. `push` on main when any file under `public/areas/geom/`
-#    changes — keeps the bucket in lock-step with whatever the
-#    upstream `build-trail-index` workflow commits.
+# 2. `push` on main when any file under `public/areas/geom/` or
+#    `public/areas/silhouettes/` changes — keeps the bucket in
+#    lock-step with whatever the upstream `build-trail-index`
+#    workflow commits. Note: bot-authored pushes by
+#    GITHUB_TOKEN don't trigger downstream workflows, so
+#    `build-trail-index` ALSO explicitly dispatches this workflow
+#    in its final step.
 #
 # Required repo secrets (Settings → Secrets and variables →
 # Actions):
@@ -22,7 +26,9 @@ name: Sync Geom to R2
 #   - R2_SECRET_ACCESS_KEY  (same)
 #
 # Bucket name `trekdex-areas` is hard-coded below. Change there if
-# the bucket is ever renamed.
+# the bucket is ever renamed. Per-area silhouettes land under a
+# `silhouettes/` prefix in the same bucket so a single API token
+# covers both datasets.
 
 on:
   workflow_dispatch:
@@ -30,6 +36,7 @@ on:
     branches: [main]
     paths:
       - 'public/areas/geom/**'
+      - 'public/areas/silhouettes/**'
 
 concurrency:
   group: sync-geom-to-r2
@@ -42,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Sync public/areas/geom/ to R2
+      - name: Sync area data to R2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -54,10 +61,22 @@ jobs:
             echo "Missing one of R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY repo secrets."
             exit 1
           fi
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+
+          echo "Syncing geom..."
           aws s3 sync public/areas/geom/ s3://trekdex-areas/ \
-            --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+            --endpoint-url "$ENDPOINT" \
             --content-type "application/json" \
             --cache-control "public, max-age=86400" \
             --no-progress \
             --size-only
+
+          echo "Syncing silhouettes..."
+          aws s3 sync public/areas/silhouettes/ s3://trekdex-areas/silhouettes/ \
+            --endpoint-url "$ENDPOINT" \
+            --content-type "application/json" \
+            --cache-control "public, max-age=86400" \
+            --no-progress \
+            --size-only
+
           echo "Sync complete."

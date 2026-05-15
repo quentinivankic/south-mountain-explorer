@@ -1,0 +1,63 @@
+name: Sync Geom to R2
+
+# Mirrors `public/areas/geom/*.json` to the Cloudflare R2 bucket
+# the app reads from. R2 is S3-compatible, so the AWS CLI (pre-
+# installed on `ubuntu-latest`) talks to it with a custom
+# `--endpoint-url`. `aws s3 sync` only uploads new or changed
+# objects, so re-running is cheap.
+#
+# Two triggers:
+#
+# 1. `workflow_dispatch` — manual one-shot, used for the initial
+#    bulk upload and any time you want to force a re-sync without
+#    waiting on `build-trail-index`.
+# 2. `push` on main when any file under `public/areas/geom/`
+#    changes — keeps the bucket in lock-step with whatever the
+#    upstream `build-trail-index` workflow commits.
+#
+# Required repo secrets (Settings → Secrets and variables →
+# Actions):
+#   - R2_ACCOUNT_ID         (e.g. cef9652b6e340f839f8f52a0fe2063a6)
+#   - R2_ACCESS_KEY_ID      (from Cloudflare R2 → Manage API Tokens)
+#   - R2_SECRET_ACCESS_KEY  (same)
+#
+# Bucket name `trekdex-areas` is hard-coded below. Change there if
+# the bucket is ever renamed.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'public/areas/geom/**'
+
+concurrency:
+  group: sync-geom-to-r2
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync public/areas/geom/ to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        run: |
+          set -e
+          if [ -z "$R2_ACCOUNT_ID" ] || [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "Missing one of R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY repo secrets."
+            exit 1
+          fi
+          aws s3 sync public/areas/geom/ s3://trekdex-areas/ \
+            --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+            --content-type "application/json" \
+            --cache-control "public, max-age=86400" \
+            --no-progress \
+            --size-only
+          echo "Sync complete."

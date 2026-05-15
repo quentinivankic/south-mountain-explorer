@@ -44,13 +44,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Rebuild trail index from cache and copy into bundle
-        # Same as ios-testflight.yml — Resources/ inputs need to be
-        # present before `xcodegen generate` runs the build target.
-        # `--cache-only` skips all network traffic so this step
-        # finishes in under a second.
+      - name: Copy committed trail index into iOS bundle
+        # See ios-testflight.yml for the rationale — TL;DR: don't
+        # regenerate index.json from cache here, just copy the
+        # committed one. Regenerating would overwrite it with a
+        # near-empty result because counts-cache.json no longer
+        # lives in git (it's persisted via Actions cache on
+        # build-trail-index per PR #93). That bug shipped to
+        # builds 121-122 and emptied the Explore tab.
         run: |
-          python3 scripts/build-trail-counts.py --cache-only
           cp public/areas/index.json ios/SouthMountainExplorer/Resources/areas-index.json
 
       - name: Generate Xcode project

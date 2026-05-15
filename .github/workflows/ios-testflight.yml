@@ -30,9 +30,21 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Rebuild trail index from cache and copy into bundle
+      - name: Copy committed trail index into iOS bundle
+        # `public/areas/index.json` is committed to main by
+        # `build-trail-index` whenever the upstream OSM data is
+        # rebuilt. The iOS bundle just needs a copy in
+        # Resources/ before xcodegen runs. We do NOT regenerate
+        # the index here — running
+        # `build-trail-counts.py --cache-only` would read
+        # `public/areas/counts-cache.json`, which no longer
+        # lives in git (it's persisted via Actions cache on the
+        # build-trail-index workflow per PR #93). With the cache
+        # file missing, the script overwrites index.json with a
+        # near-empty result, which is exactly the bug that broke
+        # builds 121-122 (Explore / Favorite / Browse tabs
+        # empty). Just copy what's already in main.
         run: |
-          python3 scripts/build-trail-counts.py --cache-only
           cp public/areas/index.json ios/SouthMountainExplorer/Resources/areas-index.json
 
       - name: Import distribution certificate

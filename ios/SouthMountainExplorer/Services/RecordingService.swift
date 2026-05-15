@@ -606,16 +606,28 @@ final class RecordingService {
             merged[tid] = m
             let priorComplete = (prior[tid] ?? 0) >= completeThreshold
             // Both gates required: enough of the trail covered AND
-            // the hiker actually reached both endpoints in this
-            // session. The endpoint gate is what stops "I walked 90%
-            // of a linear trail but turned around before the end"
-            // from firing the celebration.
+            // the hiker actually reached both endpoints. Since
+            // `sessionCoverage` is the UNION of every prior hike's
+            // path plus today's, this gate fires on the hike whose
+            // GPS finally pushed a multi-day coverage over the
+            // 0.95 threshold — the "tipping hike" for first-time
+            // completion.
             let sessionComplete = score.fraction >= completeThreshold && score.endpointsVisited
             if sessionComplete && !priorComplete {
                 newlyCompleted.append(tid)
-            } else if sessionComplete && priorComplete {
-                revisited.append(tid)
             }
+            // Intentionally NOT classifying `sessionComplete &&
+            // priorComplete` as a revisit here. `sessionCoverage`
+            // is the all-time union; for any already-complete trail
+            // it still trivially passes the gate, so this branch
+            // would mark EVERY previously-complete trail as
+            // "revisited" on every hike — regardless of whether
+            // the user actually walked it today. Revisit detection
+            // lives in `computeRevisits` (called after this
+            // function returns) which uses post-anchor union math
+            // — the path slice since the trail was last credited
+            // — and only fires when the user genuinely re-walked
+            // the trail.
         }
 
         await coverageService.mergeCoverage(areaId: areaId, delta: merged)

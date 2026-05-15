@@ -455,7 +455,30 @@ final class RecordingService {
         let nowComplete = aggregate.compactMap { (tid, v) in
             v >= completeThreshold && (endpointsHit[tid] ?? false) ? tid : nil
         }
+        // Diagnostic log for trails this rebuild is marking complete
+        // that weren't already in ProgressService. Captures the same
+        // shape as the live `trailComplete` log so we can tell
+        // "trail X was credited by the union of every hike in this
+        // area, with fraction F and endpoints at distances D1/D2"
+        // — separates legitimate multi-day completions from dense-
+        // network over-crediting in the diag bundle. Only fires for
+        // trails newly added by this rebuild to avoid spamming the
+        // log every cold launch with already-complete trails.
+        let priorComplete = Set(ProgressService.shared.completedTrails(in: areaId).keys)
         ProgressService.shared.bulkMarkComplete(areaId: areaId, trailIds: Set(nowComplete))
+        for tid in nowComplete where !priorComplete.contains(tid) {
+            let trail = trails.first { $0.id == tid }
+            let frac = aggregate[tid] ?? 0
+            let startDist = trail.flatMap { t -> Double? in
+                guard let p = t.segments.first?.first, p.count >= 2 else { return nil }
+                return closestPathDistanceMeters(path: combined, lat: p[0], lon: p[1])
+            } ?? -1
+            let endDist = trail.flatMap { t -> Double? in
+                guard let p = t.segments.last?.last, p.count >= 2 else { return nil }
+                return closestPathDistanceMeters(path: combined, lat: p[0], lon: p[1])
+            } ?? -1
+            log.notice("trailRetroComplete tid=\(tid, privacy: .public) fraction=\(frac) startDist=\(startDist)m endDist=\(endDist)m unionPathPoints=\(combined.count)")
+        }
 
         // Retro-credit the historical hike that tipped each
         // multi-hike completion. Without this, the History tab's
@@ -814,6 +837,24 @@ final class RecordingService {
             let scores = measureCoverage(path: postAnchor, trails: trails, bufferMeters: bufferMeters)
             if let s = scores[tid], s.fraction >= completeThreshold, s.endpointsVisited {
                 out.append(tid)
+                // Match the trailComplete diag log shape so a Send
+                // Diagnostics bundle reveals exactly why a revisit
+                // fired — the post-anchor path point count, the union
+                // fraction it produced, and how close the user got
+                // to each polyline endpoint. Without this, "previously
+                // completed going crazy" reports have no way to
+                // distinguish dense-network over-crediting from a
+                // legitimate revisit.
+                let trail = trails.first { $0.id == tid }
+                let startDist = trail.flatMap { t -> Double? in
+                    guard let p = t.segments.first?.first, p.count >= 2 else { return nil }
+                    return closestPathDistanceMeters(path: postAnchor, lat: p[0], lon: p[1])
+                } ?? -1
+                let endDist = trail.flatMap { t -> Double? in
+                    guard let p = t.segments.last?.last, p.count >= 2 else { return nil }
+                    return closestPathDistanceMeters(path: postAnchor, lat: p[0], lon: p[1])
+                } ?? -1
+                log.notice("trailRevisit tid=\(tid, privacy: .public) fraction=\(s.fraction) startDist=\(startDist)m endDist=\(endDist)m postAnchorPoints=\(postAnchor.count) anchor=\(anchor.timeIntervalSince1970)")
             }
         }
         return out

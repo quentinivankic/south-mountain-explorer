@@ -106,6 +106,16 @@ struct TrailMapView: View {
     /// finishes. Passed straight through to `MapKitMapView`, which
     /// renders each segment as an `MKPolyline` overlay.
     @State private var cachedHaloSegments: [[[CLLocationCoordinate2D]]] = []
+    /// On-trail-filtered segments of the **live** recording's GPS
+    /// path. Recomputed at most once per second from
+    /// `activeRecording.path` while a recording is active so the
+    /// user can see which segments of their in-progress walk are
+    /// counting toward coverage. Empty when no recording is
+    /// active. Same filter shape as `cachedHaloSegments` — the
+    /// spatial grid + 30 m buffer — so live and past coverage use
+    /// identical "on-trail" semantics.
+    @State private var liveHaloSegments: [[CLLocationCoordinate2D]] = []
+    @State private var lastLiveHaloRecomputeAt: TimeInterval = 0
 
     /// Where the camera should be. Applied by `MapKitMapView`
     /// whenever `cameraTick` changes — the tick is the "go!" signal,
@@ -162,6 +172,7 @@ struct TrailMapView: View {
                 area: area,
                 activeRecording: activeRecording,
                 haloSegments: cachedHaloSegments,
+                liveHaloSegments: liveHaloSegments,
                 selectedTrailId: $selectedTrailId,
                 visibleTrailIds: visibleTrailIds,
                 completedTrailIds: completedTrailIdsForArea,
@@ -215,6 +226,15 @@ struct TrailMapView: View {
             }
             cachedTrailGrid = grid
             cachedHaloSegments = pastPaths.map { onTrailSegments($0, grid: grid) }
+            // If the view was re-entered with a recording already in
+            // progress (e.g. app foregrounded after backgrounding
+            // mid-hike), populate the live halo immediately so the
+            // first frame shows it instead of waiting for the next
+            // GPS sample to fire `.onChange(of: liveLocation)`.
+            if let path = activeRecording?.path, path.count >= 2 {
+                liveHaloSegments = onTrailSegments(path, grid: grid)
+                lastLiveHaloRecomputeAt = Date().timeIntervalSince1970
+            }
             centerOnArea()
         }
         .onChange(of: pastPaths.count) { _, _ in
@@ -261,6 +281,26 @@ struct TrailMapView: View {
         // MapKit's built-in .userLocation camera does.
         .onChange(of: location.liveLocation) { _, _ in
             if trackingMode != .free { updateTrackedPosition() }
+            recomputeLiveHaloIfNeeded()
+        }
+        .onChange(of: activeRecording?.path.count ?? 0) { _, _ in
+            // Backup trigger — `location.liveLocation` updates the
+            // path indirectly via RecordingService's polling loop,
+            // but if SwiftUI coalesces the location change with the
+            // path-append (same render pass) we'd otherwise miss
+            // the new sample. Path-count change guarantees a recompute
+            // whenever a fresh sample lands.
+            recomputeLiveHaloIfNeeded()
+        }
+        .onChange(of: activeRecording == nil) { _, ended in
+            // Clear the live halo when recording stops. The just-
+            // finished hike's segments will land in `cachedHaloSegments`
+            // on the next `pastPaths.count` change and render in the
+            // standard cyan past-hike style.
+            if ended {
+                liveHaloSegments = []
+                lastLiveHaloRecomputeAt = 0
+            }
         }
         .onChange(of: location.liveHeading) { _, _ in
             if trackingMode == .followHeading { updateTrackedPosition() }
@@ -445,6 +485,21 @@ struct TrailMapView: View {
     private func setCameraTarget(_ target: MapTarget) {
         cameraTarget = target
         cameraTick &+= 1
+    }
+
+    // MARK: - Live halo recompute
+
+    /// Throttled rebuild of `liveHaloSegments` from the active
+    /// recording's current path. Capped at one recompute per second
+    /// so a 1 Hz GPS sample rate does at most one O(N · grid-lookup)
+    /// pass per second — N typically <1000 points for the first 30
+    /// minutes of a hike. No-op when no recording is active.
+    private func recomputeLiveHaloIfNeeded() {
+        guard let path = activeRecording?.path, path.count >= 2 else { return }
+        let now = Date().timeIntervalSince1970
+        guard now - lastLiveHaloRecomputeAt >= 1.0 else { return }
+        lastLiveHaloRecomputeAt = now
+        liveHaloSegments = onTrailSegments(path)
     }
 
     // MARK: - Halo segment filter

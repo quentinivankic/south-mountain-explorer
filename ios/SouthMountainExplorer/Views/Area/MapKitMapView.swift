@@ -42,6 +42,14 @@ struct MapKitMapView: UIViewRepresentable {
     /// coordinate-grid logic stays alongside the other geometry
     /// caches it manages).
     let haloSegments: [[[CLLocationCoordinate2D]]]
+    /// On-trail-filtered segments of the **live** recording's GPS
+    /// path. While a recording is active, TrailMapView rebuilds
+    /// this at ~1 Hz against the same spatial grid the past-hike
+    /// halo uses; we render the segments in a brighter style so
+    /// the user can see which parts of their live walk are
+    /// counting toward coverage. Empty when no recording is
+    /// active.
+    let liveHaloSegments: [[CLLocationCoordinate2D]]
     @Binding var selectedTrailId: String?
     /// nil = render every trail. Non-nil = only render trails whose
     /// id is in this set, plus the recording trail and the selected
@@ -97,6 +105,7 @@ struct MapKitMapView: UIViewRepresentable {
         // beneath the colored trail outlines.
         context.coordinator.rebuildHaloOverlays(on: mv, segments: haloSegments)
         context.coordinator.rebuildTrailOverlays(on: mv, from: area)
+        context.coordinator.rebuildLiveHaloOverlays(on: mv, segments: liveHaloSegments)
         if let rec = activeRecording, rec.path.count > 1 {
             context.coordinator.updateRecordingOverlay(on: mv, path: rec.path)
         }
@@ -107,6 +116,7 @@ struct MapKitMapView: UIViewRepresentable {
         context.coordinator.lastVisibleTrailIds = visibleTrailIds
         context.coordinator.lastCompletedTrailIds = completedTrailIds
         context.coordinator.lastHaloHashes = Self.haloHashes(haloSegments)
+        context.coordinator.lastLiveHaloHash = Self.liveHaloHash(liveHaloSegments)
 
         // Tap-to-select. Uses a UIGestureRecognizerDelegate that
         // returns false from shouldRecognizeSimultaneouslyWithGestureRecognizer
@@ -155,7 +165,18 @@ struct MapKitMapView: UIViewRepresentable {
             coord.lastHaloHashes = newHaloHashes
         }
 
-        // 3) Recording overlay — live updates whenever the path grows.
+        // 3) Live halo — rebuild when the per-segment hash changes.
+        // TrailMapView throttles recompute to ~1 Hz so this rebuild
+        // is at most 1×/second during recording, free otherwise.
+        let newLiveHaloHash = Self.liveHaloHash(liveHaloSegments)
+        if newLiveHaloHash != coord.lastLiveHaloHash {
+            coord.rebuildLiveHaloOverlays(on: mapView, segments: liveHaloSegments)
+            coord.lastLiveHaloHash = newLiveHaloHash
+        }
+
+        // 4) Recording overlay — live updates whenever the path grows.
+        // Re-added every tick so it sits on top of the live halo
+        // (both at .aboveLabels; insertion order = z-order).
         if let rec = activeRecording, rec.path.count > 1 {
             coord.updateRecordingOverlay(on: mapView, path: rec.path)
         } else if coord.recordingOverlay != nil {
@@ -265,6 +286,24 @@ struct MapKitMapView: UIViewRepresentable {
         }
     }
 
+    /// Same shape as `haloHashes` but flat — live halo is the
+    /// segments from the single in-progress recording, not a
+    /// per-hike outer list.
+    static func liveHaloHash(_ segments: [[CLLocationCoordinate2D]]) -> Int {
+        var h = Hasher()
+        h.combine(segments.count)
+        for seg in segments {
+            h.combine(seg.count)
+            if let first = seg.first {
+                h.combine(first.latitude); h.combine(first.longitude)
+            }
+            if let last = seg.last {
+                h.combine(last.latitude); h.combine(last.longitude)
+            }
+        }
+        return h.finalize()
+    }
+
     // MARK: - Coordinator
 
     /// MKMapView calls all delegate / target-action methods on the
@@ -288,6 +327,16 @@ struct MapKitMapView: UIViewRepresentable {
         var hiddenTrailIds: Set<String> = []
 
         var haloOverlays: [MKPolyline] = []
+        /// On-trail segments from the live recording. Tracked
+        /// separately from `haloOverlays` because the renderer
+        /// styles them brighter and at a different width to
+        /// communicate "this is happening NOW."
+        var liveHaloOverlays: [MKPolyline] = []
+        /// `ObjectIdentifier`s of overlays in `liveHaloOverlays`,
+        /// for O(1) lookup in `rendererFor` (the renderer callback
+        /// fires per overlay and doesn't know which collection an
+        /// MKPolyline came from).
+        var liveHaloIds: Set<ObjectIdentifier> = []
         var recordingOverlay: MKPolyline?
 
         // Diff snapshots — set in makeUIView and updated in
@@ -299,6 +348,7 @@ struct MapKitMapView: UIViewRepresentable {
         var lastCompletedTrailIds: Set<String> = []
         var lastCameraTick: Int = -1
         var lastHaloHashes: [Int] = []
+        var lastLiveHaloHash: Int = 0
 
         init(parent: MapKitMapView) {
             self.parent = parent
@@ -454,6 +504,27 @@ struct MapKitMapView: UIViewRepresentable {
             }
         }
 
+        // MARK: Live halo overlays
+
+        func rebuildLiveHaloOverlays(on mapView: MKMapView, segments: [[CLLocationCoordinate2D]]) {
+            if !liveHaloOverlays.isEmpty {
+                mapView.removeOverlays(liveHaloOverlays as [MKOverlay])
+                liveHaloOverlays.removeAll(keepingCapacity: true)
+                liveHaloIds.removeAll(keepingCapacity: true)
+            }
+            for seg in segments where seg.count >= 2 {
+                let pl = MKPolyline(coordinates: seg, count: seg.count)
+                liveHaloOverlays.append(pl)
+                liveHaloIds.insert(ObjectIdentifier(pl))
+                // .aboveLabels so the live halo sits on top of trail
+                // polylines (which live in .aboveRoads). The recording
+                // polyline is also at .aboveLabels and re-added every
+                // tick after this rebuild, so it stays on top of the
+                // halo it's tracing.
+                mapView.addOverlay(pl, level: .aboveLabels)
+            }
+        }
+
         // MARK: Recording overlay
 
         func updateRecordingOverlay(on mapView: MKMapView, path: [GpsPoint]) {
@@ -495,9 +566,19 @@ struct MapKitMapView: UIViewRepresentable {
                 if pl === recordingOverlay {
                     r.strokeColor = .systemBlue
                     r.lineWidth = 4
+                } else if liveHaloIds.contains(ObjectIdentifier(pl)) {
+                    // Live counted-segments. Bright yellow at high
+                    // alpha + slightly narrower than the past-hike
+                    // halo so the two read as visually distinct:
+                    // past = pale cyan glow, live = vivid yellow.
+                    // Sits above trail polylines, below the
+                    // recording polyline.
+                    r.strokeColor = UIColor.systemYellow.withAlphaComponent(0.9)
+                    r.lineWidth = 6
                 } else {
-                    // Halo. Cyan with 0.55 alpha, 7pt — matches the
-                    // SwiftUI MapPolyline halo style from build 8.
+                    // Past-hike halo. Cyan with 0.55 alpha, 7pt —
+                    // matches the SwiftUI MapPolyline halo style
+                    // from build 8.
                     r.strokeColor = UIColor.cyan.withAlphaComponent(0.55)
                     r.lineWidth = 7
                 }

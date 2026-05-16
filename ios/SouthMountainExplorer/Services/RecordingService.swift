@@ -780,17 +780,40 @@ final class RecordingService {
                 let alreadyEligible: Bool = withoutScore.map {
                     $0.fraction >= completeThreshold && $0.endpointsVisited
                 } ?? false
-                if alreadyEligible {
+                // Symmetric check: does post-anchor WITH this hike's
+                // path actually cross the gate? If not, this hike
+                // didn't earn the credit under tipping semantics —
+                // the only reason it has the credit at all is because
+                // yesterday's pre-PR-#104 stopRecording used a looser
+                // anchor (anchor walked all the way back to an
+                // earlier hike that hadn't itself credited the trail,
+                // making post-anchor huge). Cleanup needs to apply
+                // the FULL tipping check, not just "was it already
+                // eligible." Otherwise hikes whose contribution
+                // doesn't push cumulative past the gate keep wrong
+                // credits.
+                var postAnchorWithH = postAnchorWithoutH
+                postAnchorWithH.append(contentsOf: hike.path)
+                let withScore = measureCoverage(
+                    path: postAnchorWithH,
+                    trails: [trail],
+                    bufferMeters: bufferMeters
+                )[tid]
+                let crossesWithH: Bool = withScore.map {
+                    $0.fraction >= completeThreshold && $0.endpointsVisited
+                } ?? false
+                if alreadyEligible || !crossesWithH {
                     suppressedHere.insert(tid)
+                    let reason = alreadyEligible ? "alreadyTippedBeforeHike" : "doesNotTipWithHike"
+                    let withoutFrac = withoutScore?.fraction ?? -1
+                    let withFrac = withScore?.fraction ?? -1
+                    log.notice("revisitSuppressed hikeId=\(hike.id, privacy: .public) tid=\(tid, privacy: .public) reason=\(reason, privacy: .public) fracWithoutHike=\(withoutFrac) fracWithHike=\(withFrac)")
                 } else {
                     keptRevisited.insert(tid)
                 }
             }
             if !suppressedHere.isEmpty {
                 suppressByHikeId[hike.id] = suppressedHere
-                for tid in suppressedHere {
-                    log.notice("revisitSuppressed hikeId=\(hike.id, privacy: .public) tid=\(tid, privacy: .public) reason=alreadyTippedBeforeHike")
-                }
             }
             simulated.append(SavedRecording(
                 id: hike.id,

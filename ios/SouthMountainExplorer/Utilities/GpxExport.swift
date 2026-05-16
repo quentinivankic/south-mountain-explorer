@@ -26,8 +26,15 @@ enum GpxExport {
             let tsMs = p[2]
             let date = Date(timeIntervalSince1970: tsMs / 1000)
             s += "      <trkpt lat=\"\(formatCoord(lat))\" lon=\"\(formatCoord(lon))\">\n"
-            if let altitude = p.altitudeMeters {
-                s += "        <ele>\(formatElevation(altitude))</ele>\n"
+            // GpsPoint is 3-element [lat, lon, ts] for pre-elevation
+            // recordings, 4-element [lat, lon, ts, altitudeMeters]
+            // after build-17 PR A. PR A's `Array.altitudeMeters`
+            // extension would be the natural reader, but this PR
+            // branched off main before that extension landed —
+            // inline the check directly so the two PRs don't depend
+            // on each other's merge order.
+            if p.count >= 4 {
+                s += "        <ele>\(formatElevation(p[3]))</ele>\n"
             }
             s += "        <time>\(iso8601(date))</time>\n"
             s += "      </trkpt>\n"

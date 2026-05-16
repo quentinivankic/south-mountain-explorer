@@ -99,6 +99,10 @@ struct AreaView: View {
     @State private var difficultyFilter: TrailDifficultyFilter = .all
     @State private var lengthFilter: TrailLengthFilter = .all
     @State private var routeFilter: TrailRouteFilter = .all
+    /// Free-text search over trail names. Lives alongside the
+    /// existing filter state so the filtered-trails computed
+    /// property can fold it into a single pass.
+    @State private var trailSearchQuery: String = ""
 
     private let defaultListHeight: CGFloat = 340
 
@@ -120,6 +124,10 @@ struct AreaView: View {
             if !difficultyFilter.matches(trail.difficulty) { return false }
             if !lengthFilter.matches(trail.distanceMi) { return false }
             if !routeFilter.matches(trail.routeType) { return false }
+            let q = trailSearchQuery.trimmingCharacters(in: .whitespaces)
+            if !q.isEmpty && !trail.name.localizedCaseInsensitiveContains(q) {
+                return false
+            }
             return true
         }
     }
@@ -128,7 +136,11 @@ struct AreaView: View {
     /// `nil` to TrailMapView so it skips the per-trail filter check
     /// entirely, since the unfiltered render is the common case.
     private var hasActiveFilter: Bool {
-        statusFilter != .all || difficultyFilter != .all || lengthFilter != .all || routeFilter != .all
+        statusFilter != .all
+            || difficultyFilter != .all
+            || lengthFilter != .all
+            || routeFilter != .all
+            || !trailSearchQuery.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     var body: some View {
@@ -693,6 +705,7 @@ struct AreaView: View {
                     difficultyFilter: $difficultyFilter,
                     lengthFilter: $lengthFilter,
                     routeFilter: $routeFilter,
+                    searchQuery: $trailSearchQuery,
                     filteredTrails: filtered,
                     onRecordTrail: { trail in tryStartRecording(trailId: trail.id) }
                 )

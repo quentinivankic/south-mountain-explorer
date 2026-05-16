@@ -176,6 +176,7 @@ struct RecordingSummarySheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ProgressService.self) private var progress
+    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     private func trailName(for id: String) -> String {
         trails.first { $0.id == id }?.name ?? id

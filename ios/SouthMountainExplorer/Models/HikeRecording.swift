@@ -1,7 +1,20 @@
 import Foundation
 
-// [lat, lon, timestamp(ms)]
+// [lat, lon, timestamp(ms)] or [lat, lon, timestamp(ms), altitudeMeters]
+// when the recorder had a vertical-accuracy-valid altitude from the
+// GPS at sample time. Existing pre-elevation-feature records persist
+// as the 3-element form and decode/serialize transparently; the
+// optional 4th element is read via `point.altitudeMeters` below.
 typealias GpsPoint = [Double]
+
+extension Array where Element == Double {
+    /// Altitude in meters at this GPS sample, when available. Records
+    /// older than the elevation-capture feature were saved as 3-element
+    /// `[lat, lon, ts]`; they return `nil`. New records are 4-element
+    /// `[lat, lon, ts, altitudeMeters]`. Read sites that need
+    /// elevation should gracefully skip nil samples.
+    var altitudeMeters: Double? { count >= 4 ? self[3] : nil }
+}
 
 enum RecordingMode: String, Codable, Sendable {
     case roam

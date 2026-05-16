@@ -955,15 +955,19 @@ final class RecordingService {
         locationObserver?.cancel()
         locationObserver = Task { [weak self] in
             while !Task.isCancelled {
-                if let coord = await MainActor.run(body: { self?.locationService.liveLocation }) {
-                    await MainActor.run { self?.appendPoint(coord) }
+                let sample = await MainActor.run { () -> (CLLocationCoordinate2D, Double?)? in
+                    guard let coord = self?.locationService.liveLocation else { return nil }
+                    return (coord, self?.locationService.liveAltitude)
+                }
+                if let (coord, altitude) = sample {
+                    await MainActor.run { self?.appendPoint(coord, altitude: altitude) }
                 }
                 try? await Task.sleep(for: gpsPollingInterval)
             }
         }
     }
 
-    private func appendPoint(_ coord: CLLocationCoordinate2D) {
+    private func appendPoint(_ coord: CLLocationCoordinate2D, altitude: Double? = nil) {
         guard var rec = activeRecording else { return }
         let lat = Double(String(format: "%.6f", coord.latitude))!
         let lon = Double(String(format: "%.6f", coord.longitude))!
@@ -977,7 +981,15 @@ final class RecordingService {
             rec.distanceMi += d / 1609.344
         }
 
-        rec.path.append([lat, lon, ts])
+        // 4-element point when altitude was available, else 3-element
+        // for back-compat. Mixed-format paths are handled by every
+        // downstream consumer via `point.altitudeMeters` (returns nil
+        // for 3-element samples).
+        if let altitude {
+            rec.path.append([lat, lon, ts, altitude])
+        } else {
+            rec.path.append([lat, lon, ts])
+        }
         activeRecording = rec
         persist()
     }

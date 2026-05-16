@@ -659,6 +659,13 @@ final class RecordingService {
         let latestCov30 = measureCoverage(path: mostRecentHikePath, trails: trails, bufferMeters: 30.0)
         let latestCov15 = measureCoverage(path: mostRecentHikePath, trails: trails, bufferMeters: 15.0)
         let latestCov10 = measureCoverage(path: mostRecentHikePath, trails: trails, bufferMeters: 10.0)
+        // Per-hike 10m coverage precomputed once per past hike so the
+        // trailHikeContribution log below is O(hikes × completedTrails)
+        // lookups, not O(hikes × completedTrails) measureCoverage calls.
+        let sortedHikes = areaHistory.sorted { $0.startedAt < $1.startedAt }
+        let perHikeCov10: [(SavedRecording, [String: CoverageScore])] = sortedHikes.map {
+            ($0, measureCoverage(path: $0.path, trails: trails, bufferMeters: 10.0))
+        }
         for (tid, progressStamp) in completionDates {
             let score = cov[tid]
             let frac30 = score?.fraction ?? -1
@@ -712,6 +719,17 @@ final class RecordingService {
             }
 
             log.notice("trailCompletionState tid=\(tid, privacy: .public) frac30=\(frac30) frac15=\(frac15) frac10=\(frac10) latestHikeFrac30=\(latestFrac30) latestHikeFrac15=\(latestFrac15) latestHikeFrac10=\(latestFrac10) startDist=\(startDist)m endDist=\(endDist)m endpointsHit=\(endpointsHit) mostRecentHikeId=\(mostRecentHikeId, privacy: .public) earliestAnchor=\(earliestSource, privacy: .public)/\(earliestHikeId, privacy: .public)@\(earliestAt) latestAnchor=\(latestSource, privacy: .public)/\(latestHikeId, privacy: .public)@\(latestAt)")
+
+            // Per-hike contribution at the 10m buffer. Lets us tell
+            // whether the all-time union coverage came from one or
+            // two hikes that genuinely walked the trail, or from
+            // many hikes each accidentally contributing a few percent
+            // via parallel walking / OSM polyline overlap. One log
+            // line per (trail, hike) pair, ordered chronologically.
+            for (hike, hikeCov) in perHikeCov10 {
+                let perHikeFrac = hikeCov[tid]?.fraction ?? -1
+                log.notice("trailHikeContribution tid=\(tid, privacy: .public) hikeId=\(hike.id, privacy: .public) startedAt=\(hike.startedAt.timeIntervalSince1970) frac10=\(perHikeFrac)")
+            }
         }
 
         if creditedByHikeId.isEmpty && revisitCreditByHikeId.isEmpty { return }
@@ -944,25 +962,48 @@ final class RecordingService {
             // past hike whose recording started after the anchor,
             // plus this hike's path. Anything earlier already
             // contributed to the previous completion.
-            var postAnchor: [GpsPoint] = currentPath
+            var postAnchorWithoutCurrent: [GpsPoint] = []
             for hike in history where hike.startedAt > anchor {
-                postAnchor.append(contentsOf: hike.path)
+                postAnchorWithoutCurrent.append(contentsOf: hike.path)
             }
+            var postAnchor: [GpsPoint] = postAnchorWithoutCurrent
+            postAnchor.append(contentsOf: currentPath)
 
             let scores = measureCoverage(path: postAnchor, trails: trails, bufferMeters: bufferMeters)
-            if let s = scores[tid], s.fraction >= completeThreshold, s.endpointsVisited {
-                out.append(tid)
-                // Match the trailComplete diag log shape so a Send
-                // Diagnostics bundle reveals exactly why a revisit
-                // fired — the post-anchor path point count, the union
-                // fraction it produced, and how close the user got
-                // to each polyline endpoint. Without this, "previously
-                // completed going crazy" reports have no way to
-                // distinguish dense-network over-crediting from a
-                // legitimate revisit.
-                let (startDist, endDist) = trailEndpointDistances(trailId: tid, trails: trails, path: postAnchor)
-                log.notice("trailRevisit tid=\(tid, privacy: .public) fraction=\(s.fraction) startDist=\(startDist)m endDist=\(endDist)m postAnchorPoints=\(postAnchor.count) anchor=\(anchor.timeIntervalSince1970)")
+            guard let s = scores[tid], s.fraction >= completeThreshold, s.endpointsVisited else {
+                continue
             }
+
+            // Tipping check: only credit THIS hike with the revisit
+            // if the cumulative WITHOUT this hike was below the gate.
+            // Otherwise the trail was already revisit-eligible at the
+            // start of this hike and crediting it now would falsely
+            // attribute the walk to a hike that didn't physically
+            // traverse much of the trail. Matches the user's intuition
+            // that the credited hike is the one that "tipped" the
+            // coverage past the threshold. Trails whose cumulative
+            // crossed the gate via accumulated drift (no single
+            // tipping hike) stay marked complete in ProgressService
+            // — they just don't appear in any hike's revisit list,
+            // which is the honest record.
+            let withoutScores = measureCoverage(path: postAnchorWithoutCurrent, trails: trails, bufferMeters: bufferMeters)
+            let wasAlreadyEligible: Bool = withoutScores[tid].map {
+                $0.fraction >= completeThreshold && $0.endpointsVisited
+            } ?? false
+            if wasAlreadyEligible {
+                let priorFrac = withoutScores[tid]?.fraction ?? -1
+                log.notice("trailRevisitSuppressed tid=\(tid, privacy: .public) reason=alreadyTippedBeforeHike priorFraction=\(priorFrac) postFraction=\(s.fraction) currentPathPoints=\(currentPath.count) historyPathsSinceAnchor=\(postAnchorWithoutCurrent.count)")
+                continue
+            }
+
+            out.append(tid)
+            // Match the trailComplete diag log shape so a Send
+            // Diagnostics bundle reveals exactly why a revisit
+            // fired — the post-anchor path point count, the union
+            // fraction it produced, and how close the user got
+            // to each polyline endpoint.
+            let (startDist, endDist) = trailEndpointDistances(trailId: tid, trails: trails, path: postAnchor)
+            log.notice("trailRevisit tid=\(tid, privacy: .public) fraction=\(s.fraction) startDist=\(startDist)m endDist=\(endDist)m postAnchorPoints=\(postAnchor.count) anchor=\(anchor.timeIntervalSince1970)")
         }
         return out
     }

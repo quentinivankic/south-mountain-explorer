@@ -732,7 +732,85 @@ final class RecordingService {
             }
         }
 
-        if creditedByHikeId.isEmpty && revisitCreditByHikeId.isEmpty { return }
+        // Retro-suppress wrongly-credited revisits. Walks history
+        // chronologically and applies the same tipping check used by
+        // the live computeRevisits gate (PR #104): for each hike's
+        // revisitedTrailIds, suppress trails whose cumulative
+        // post-anchor union WITHOUT this hike was already past the
+        // gate. Cleans up false revisit credits accumulated under
+        // pre-tipping logic — the "today's hike got credit for trails
+        // I didn't walk today" symptom. Forward propagation: each
+        // hike's anchor is computed against the cleaned simulated
+        // history, so suppressing hike B's wrong credit correctly
+        // moves the anchor back for hike C's evaluation. Idempotent.
+        var suppressByHikeId: [String: Set<String>] = [:]
+        var simulated: [SavedRecording] = []
+        let trailsById = Dictionary(uniqueKeysWithValues: trails.map { ($0.id, $0) })
+        for hike in areaHistory.sorted(by: { $0.startedAt < $1.startedAt }) {
+            // Fold in any credits this rebuild just added so the
+            // simulated history reflects the post-rebuild state, not
+            // the pre-rebuild one.
+            var hikeCompleted = Set(hike.completedTrailIds)
+            if let extras = creditedByHikeId[hike.id] { hikeCompleted.formUnion(extras) }
+            var hikeRevisited = Set(hike.revisitedTrailIds)
+            if let extras = revisitCreditByHikeId[hike.id] { hikeRevisited.formUnion(extras) }
+
+            var keptRevisited: Set<String> = []
+            var suppressedHere: Set<String> = []
+            for tid in hikeRevisited {
+                guard let trail = trailsById[tid] else {
+                    keptRevisited.insert(tid)
+                    continue
+                }
+                var anchorDate: Date = .distantPast
+                for prior in simulated where prior.completedTrailIds.contains(tid)
+                    || prior.revisitedTrailIds.contains(tid)
+                {
+                    if prior.endedAt > anchorDate { anchorDate = prior.endedAt }
+                }
+                var postAnchorWithoutH: [GpsPoint] = []
+                for prior in simulated where prior.startedAt > anchorDate {
+                    postAnchorWithoutH.append(contentsOf: prior.path)
+                }
+                let withoutScore = measureCoverage(
+                    path: postAnchorWithoutH,
+                    trails: [trail],
+                    bufferMeters: bufferMeters
+                )[tid]
+                let alreadyEligible: Bool = withoutScore.map {
+                    $0.fraction >= completeThreshold && $0.endpointsVisited
+                } ?? false
+                if alreadyEligible {
+                    suppressedHere.insert(tid)
+                } else {
+                    keptRevisited.insert(tid)
+                }
+            }
+            if !suppressedHere.isEmpty {
+                suppressByHikeId[hike.id] = suppressedHere
+                for tid in suppressedHere {
+                    log.notice("revisitSuppressed hikeId=\(hike.id, privacy: .public) tid=\(tid, privacy: .public) reason=alreadyTippedBeforeHike")
+                }
+            }
+            simulated.append(SavedRecording(
+                id: hike.id,
+                areaId: hike.areaId,
+                startedAt: hike.startedAt,
+                endedAt: hike.endedAt,
+                distanceMi: hike.distanceMi,
+                durationSeconds: hike.durationSeconds,
+                completedTrailIds: Array(hikeCompleted),
+                path: hike.path,
+                trailId: hike.trailId,
+                revisitedTrailIds: Array(keptRevisited)
+            ))
+        }
+        let totalSuppressed = suppressByHikeId.values.map(\.count).reduce(0, +)
+        if totalSuppressed > 0 {
+            log.notice("revisitCleanup area=\(areaId, privacy: .public) suppressed=\(totalSuppressed) hikesAffected=\(suppressByHikeId.count)")
+        }
+
+        if creditedByHikeId.isEmpty && revisitCreditByHikeId.isEmpty && suppressByHikeId.isEmpty { return }
 
         // Persist: rewrite the full history file with the credited
         // entries patched in. Re-load to avoid clobbering hikes from
@@ -742,13 +820,15 @@ final class RecordingService {
         for i in allHistory.indices {
             let newCompletions = creditedByHikeId[allHistory[i].id]
             let newRevisits = revisitCreditByHikeId[allHistory[i].id]
-            if newCompletions == nil, newRevisits == nil { continue }
+            let suppressedRevisits = suppressByHikeId[allHistory[i].id]
+            if newCompletions == nil, newRevisits == nil, suppressedRevisits == nil { continue }
             let mergedCompleted = newCompletions.map { extras in
                 Array(Set(allHistory[i].completedTrailIds).union(extras))
             } ?? allHistory[i].completedTrailIds
-            let mergedRevisited = newRevisits.map { extras in
-                Array(Set(allHistory[i].revisitedTrailIds).union(extras))
-            } ?? allHistory[i].revisitedTrailIds
+            var mergedRevisitedSet = Set(allHistory[i].revisitedTrailIds)
+            if let extras = newRevisits { mergedRevisitedSet.formUnion(extras) }
+            if let suppress = suppressedRevisits { mergedRevisitedSet.subtract(suppress) }
+            let mergedRevisited = Array(mergedRevisitedSet)
             let old = allHistory[i]
             allHistory[i] = SavedRecording(
                 id: old.id,

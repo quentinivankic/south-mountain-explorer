@@ -1,45 +1,40 @@
 import Foundation
 
-/// Build a GPX 1.1 document for a single saved hike. Imports
-/// cleanly into Garmin Connect (as a Course), gpx.studio,
-/// Strava, Komoot, AllTrails, etc.
+/// Build a GPX 1.1 document for a single trail. Output is meant
+/// as a *planning* artifact — load into Garmin Connect as a
+/// Course, follow on the watch, get turn-by-turn cues + ETA.
 ///
-/// Track points include `<ele>` when the GPS sample had altitude
-/// (build-17 PR A onwards), `<time>` from the sample's epoch-ms
-/// timestamp, and the lat/lon at the precision the recorder
-/// stored them. Pre-elevation hikes simply omit `<ele>`.
+/// Track points are just lat/lon (no `<time>`, no `<ele>`) —
+/// the source is the trail's OSM polyline, not a recording, so
+/// a static route is the right shape. Garmin Connect imports
+/// this as a Course cleanly; gpx.studio / Komoot / AllTrails
+/// likewise.
+///
+/// A single trail can have multiple disconnected segments (OSM
+/// often splits a long trail at intersections); each becomes its
+/// own `<trkseg>` under one `<trk>`. Consumers treat segments as
+/// connected waypoints in sequence, which is the correct
+/// interpretation for following the trail end-to-end.
 enum GpxExport {
-    static func gpxString(hike: SavedRecording, areaName: String?) -> String {
+    static func gpxString(trail: Trail, areaName: String?) -> String {
         var s = ""
         s += #"<?xml version="1.0" encoding="UTF-8"?>"# + "\n"
         s += #"<gpx version="1.1" creator="TrekDex iOS" xmlns="http://www.topografix.com/GPX/1/1">"# + "\n"
         s += "  <metadata>\n"
-        s += "    <name>\(xmlEscape(trackName(hike: hike, areaName: areaName)))</name>\n"
-        s += "    <time>\(iso8601(hike.startedAt))</time>\n"
+        s += "    <name>\(xmlEscape(trackName(trail: trail)))</name>\n"
         s += "  </metadata>\n"
         s += "  <trk>\n"
-        s += "    <name>\(xmlEscape(trackName(hike: hike, areaName: areaName)))</name>\n"
-        s += "    <trkseg>\n"
-        for p in hike.path where p.count >= 3 {
-            let lat = p[0]
-            let lon = p[1]
-            let tsMs = p[2]
-            let date = Date(timeIntervalSince1970: tsMs / 1000)
-            s += "      <trkpt lat=\"\(formatCoord(lat))\" lon=\"\(formatCoord(lon))\">\n"
-            // GpsPoint is 3-element [lat, lon, ts] for pre-elevation
-            // recordings, 4-element [lat, lon, ts, altitudeMeters]
-            // after build-17 PR A. PR A's `Array.altitudeMeters`
-            // extension would be the natural reader, but this PR
-            // branched off main before that extension landed —
-            // inline the check directly so the two PRs don't depend
-            // on each other's merge order.
-            if p.count >= 4 {
-                s += "        <ele>\(formatElevation(p[3]))</ele>\n"
-            }
-            s += "        <time>\(iso8601(date))</time>\n"
-            s += "      </trkpt>\n"
+        s += "    <name>\(xmlEscape(trackName(trail: trail)))</name>\n"
+        if let areaName, !areaName.isEmpty {
+            s += "    <desc>\(xmlEscape(areaName))</desc>\n"
         }
-        s += "    </trkseg>\n"
+        for segment in trail.segments where !segment.isEmpty {
+            s += "    <trkseg>\n"
+            for node in segment where node.count >= 2 {
+                s += "      <trkpt lat=\"\(formatCoord(node[0]))\" lon=\"\(formatCoord(node[1]))\"/>\n"
+            }
+            s += "    </trkseg>\n"
+        }
         s += "  </trk>\n"
         s += "</gpx>\n"
         return s
@@ -49,69 +44,60 @@ enum GpxExport {
     /// and return its URL. Caller uses the URL with `ShareLink` /
     /// `ShareSheet` to surface the iOS share sheet. Files in temp
     /// are auto-pruned by the OS — no manual cleanup needed.
-    static func temporaryFile(hike: SavedRecording, areaName: String?) throws -> URL {
-        let body = gpxString(hike: hike, areaName: areaName)
+    static func temporaryFile(trail: Trail, areaName: String?) throws -> URL {
+        let body = gpxString(trail: trail, areaName: areaName)
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("\(filename(hike: hike, areaName: areaName)).gpx")
+            .appendingPathComponent("\(filename(trail: trail, areaName: areaName)).gpx")
         try body.write(to: url, atomically: true, encoding: .utf8)
         return url
     }
 
-    /// Human-friendly trail name embedded in the `<name>` tags.
-    /// "Pima Wash Trail — May 15, 2026" when a trail name is
-    /// available, else "South Mountain — May 15, 2026". Spaces +
-    /// punctuation are XML-escaped by the caller.
-    static func trackName(hike: SavedRecording, areaName: String?) -> String {
-        let date = DateFormatter()
-        date.dateStyle = .medium
-        date.timeStyle = .none
-        let area = areaName ?? "Hike"
-        return "\(area) — \(date.string(from: hike.startedAt))"
+    /// Human-friendly name embedded in the `<name>` tags. Just the
+    /// trail name — area context goes in `<desc>` instead so
+    /// Garmin Connect's course list reads cleanly ("Pima Wash
+    /// Trail" rather than "South Mountain Park — Pima Wash Trail").
+    static func trackName(trail: Trail) -> String {
+        trail.name.isEmpty ? "Trail" : trail.name
     }
 
-    /// Filename-safe form (no spaces, no punctuation that confuses
-    /// share-sheet handlers). Length-capped so the resulting URL
-    /// isn't unwieldy on devices with long area names.
-    static func filename(hike: SavedRecording, areaName: String?) -> String {
-        let raw = (areaName ?? "Hike")
-            .lowercased()
-            .replacingOccurrences(of: " ", with: "-")
-            .components(separatedBy: CharacterSet.alphanumerics.union(.init(charactersIn: "-")).inverted)
-            .joined()
-        let safe = String(raw.prefix(40))
-        let stamp = ISO8601DateFormatter().string(from: hike.startedAt).prefix(10) // YYYY-MM-DD
-        return "trekdex-\(safe)-\(stamp)"
+    /// Filename-safe form: lowercased, hyphenated, alphanumerics
+    /// + dash only, length-capped. Area slug suffixed when
+    /// available to disambiguate trails with common names (lots
+    /// of areas have an "Outer Loop").
+    static func filename(trail: Trail, areaName: String?) -> String {
+        let trailSlug = slugify(trail.name.isEmpty ? "trail" : trail.name)
+        if let areaName, !areaName.isEmpty {
+            return "trekdex-\(slugify(areaName))-\(trailSlug)"
+        }
+        return "trekdex-\(trailSlug)"
     }
 
     // MARK: - Internal helpers
 
-    /// 6 decimals of lat/lon is the precision the recorder
-    /// already rounds to (`appendPoint` formats via `%.6f`).
-    /// Matching it here avoids the GPX output looking spuriously
-    /// more precise than the source data.
+    /// 6 decimals of lat/lon matches the precision OSM nodes
+    /// arrive at. More would be spurious; less degrades the
+    /// polyline visibly on a watch face.
     private static func formatCoord(_ d: Double) -> String {
         String(format: "%.6f", d)
     }
 
-    /// Elevation precision: one decimal place. GPS altitude
-    /// rarely justifies more.
-    private static func formatElevation(_ d: Double) -> String {
-        String(format: "%.1f", d)
-    }
-
-    /// ISO8601DateFormatter isn't Sendable, so we can't park one
-    /// in a static `let` under Swift 6 strict concurrency. Construct
-    /// on each call — cheap enough at this call rate (a few dozen
-    /// invocations per export, well off any hot path).
-    private static func iso8601(_ date: Date) -> String {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime]
-        return f.string(from: date)
+    private static func slugify(_ s: String) -> String {
+        // Replace every non-alphanumeric run with a single dash so
+        // names like "Pima Wash / Trail" become `pima-wash-trail`
+        // rather than `pima-wash--trail`. Trim any leading/trailing
+        // dash, then length-cap.
+        let lowered = s.lowercased()
+        let safeSet = CharacterSet.alphanumerics
+        let pieces = lowered.unicodeScalars
+            .split(whereSeparator: { !safeSet.contains($0) })
+            .map(String.init)
+        let joined = pieces.joined(separator: "-")
+        return String(joined.prefix(50))
     }
 
     /// XML-escape the five characters that require it in element
-    /// text + attribute values. GPX consumers are strict — Garmin
-    /// rejects malformed XML outright.
+    /// text. GPX consumers are strict — Garmin rejects malformed
+    /// XML outright.
     private static func xmlEscape(_ s: String) -> String {
         var out = s
         out = out.replacingOccurrences(of: "&", with: "&amp;")

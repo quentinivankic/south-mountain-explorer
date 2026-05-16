@@ -93,6 +93,11 @@ struct TrailListView: View {
     @Environment(RecordingService.self) private var recording
 
     @FocusState private var searchFocused: Bool
+    /// Trail whose detail half-sheet is currently presented (or
+    /// nil). Driven by `TrailRow.onTapGesture` so tap = "show me
+    /// this trail" — selectedTrailId still updates in parallel to
+    /// highlight the polyline on the map underneath.
+    @State private var detailTrail: Trail? = nil
 
     private var trimmedQuery: String {
         searchQuery.trimmingCharacters(in: .whitespaces)
@@ -246,7 +251,7 @@ struct TrailListView: View {
                                 trail: trail,
                                 areaId: area.id,
                                 selectedTrailId: $selectedTrailId,
-                                onRecordTrail: onRecordTrail
+                                onOpenDetail: { detailTrail = $0 }
                             )
                             // Tag each row with the trail id so
                             // ScrollViewReader can target it via
@@ -273,6 +278,14 @@ struct TrailListView: View {
                 }
             }
             }
+        }
+        .sheet(item: $detailTrail) { trail in
+            TrailDetailSheet(
+                trail: trail,
+                areaId: area.id,
+                areaName: area.name,
+                onRecordTrail: onRecordTrail
+            )
         }
     }
 
@@ -354,7 +367,11 @@ struct TrailRow: View {
     let trail: Trail
     let areaId: String
     @Binding var selectedTrailId: String?
-    var onRecordTrail: ((Trail) -> Void)? = nil
+    /// Called when the row is tapped. Caller presents the
+    /// TrailDetailSheet for the supplied trail. The row also
+    /// updates `selectedTrailId` so the map polyline highlights
+    /// in parallel — sheet + highlight are one gesture.
+    var onOpenDetail: ((Trail) -> Void)? = nil
 
     @Environment(ProgressService.self) private var progress
     @Environment(CoverageService.self) private var coverage
@@ -428,21 +445,13 @@ struct TrailRow: View {
         .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
         .contentShape(Rectangle())
         .onTapGesture {
-            selectedTrailId = isSelected ? nil : trail.id
-        }
-        .contextMenu {
-            // "Record This Trail" appears only when no recording is in
-            // flight; AreaView's separate conflict guard handles the
-            // bottom-bar Record Hike button. Recording in trail mode
-            // labels the saved hike with this trail's name in History
-            // and lights it up on the map as a dashed cyan guide line.
-            if recording.activeRecording == nil, let onRecordTrail {
-                Button {
-                    onRecordTrail(trail)
-                } label: {
-                    Label("Record This Trail", systemImage: "record.circle")
-                }
-            }
+            // Tap highlights the polyline on the map AND opens the
+            // detail half-sheet. The sheet sits at .medium detent so
+            // the highlight is visible underneath — both surface the
+            // same trail at once. Re-tapping the same row leaves
+            // selection in place and re-opens the sheet (cheap).
+            selectedTrailId = trail.id
+            onOpenDetail?(trail)
         }
     }
 

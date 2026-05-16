@@ -80,6 +80,9 @@ struct TrailListView: View {
     @Binding var difficultyFilter: TrailDifficultyFilter
     @Binding var lengthFilter: TrailLengthFilter
     @Binding var routeFilter: TrailRouteFilter
+    /// Free-text trail-name search. Filtered in `AreaView.computeFilteredTrails`
+    /// alongside the other dimensions; this view owns the input UI.
+    @Binding var searchQuery: String
     /// Pre-filtered trail set computed in AreaView so the map view can see
     /// the same set without TrailListView having to fan it back out.
     let filteredTrails: [Trail]
@@ -89,12 +92,19 @@ struct TrailListView: View {
     @Environment(CoverageService.self) private var coverage
     @Environment(RecordingService.self) private var recording
 
+    @FocusState private var searchFocused: Bool
+
+    private var trimmedQuery: String {
+        searchQuery.trimmingCharacters(in: .whitespaces)
+    }
+
     private var activeFilterCount: Int {
         var n = 0
         if statusFilter != .all { n += 1 }
         if difficultyFilter != .all { n += 1 }
         if lengthFilter != .all { n += 1 }
         if routeFilter != .all { n += 1 }
+        if !trimmedQuery.isEmpty { n += 1 }
         return n
     }
 
@@ -139,6 +149,38 @@ struct TrailListView: View {
             .padding(.horizontal)
             .padding(.vertical, 12)
 
+            // Trail-name search. Lives below the header + filter
+            // menu so the filter UI stays compact when the user
+            // isn't searching. Plain TextField + clear button
+            // because this view isn't inside a NavigationStack —
+            // `.searchable` only works in that container.
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField("Search trails", text: $searchQuery)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .focused($searchFocused)
+                    .submitLabel(.search)
+                if !searchQuery.isEmpty {
+                    Button {
+                        searchQuery = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(.quaternary.opacity(0.5))
+            )
+            .padding(.horizontal)
+            .padding(.bottom, 10)
+
             Divider()
 
             // ScrollViewReader so we can scroll the just-selected
@@ -157,14 +199,26 @@ struct TrailListView: View {
                                 .font(.title2)
                                 .foregroundStyle(.tertiary)
                             if activeFilterCount > 0 {
-                                Text("No trails match these filters.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                if !trimmedQuery.isEmpty && activeFilterCount == 1 {
+                                    // Pure-search miss: spell out the
+                                    // query so the user immediately
+                                    // sees what they typed.
+                                    Text("No trails named \u{201C}\(trimmedQuery)\u{201D}.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal, 24)
+                                } else {
+                                    Text("No trails match these filters.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
                                 Button("Clear filters") {
                                     statusFilter = .all
                                     difficultyFilter = .all
                                     lengthFilter = .all
                                     routeFilter = .all
+                                    searchQuery = ""
                                 }
                                 .font(.caption)
                             } else {

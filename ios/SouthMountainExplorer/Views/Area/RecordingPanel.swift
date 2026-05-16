@@ -178,6 +178,8 @@ struct RecordingSummarySheet: View {
     @Environment(ProgressService.self) private var progress
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
+    @State private var gpxShareURL: IdentifiedURL? = nil
+
     private func trailName(for id: String) -> String {
         trails.first { $0.id == id }?.name ?? id
     }
@@ -261,13 +263,9 @@ struct RecordingSummarySheet: View {
                                 .padding(.horizontal)
 
                             ForEach(finished.newlyCompletedTrailIds, id: \.self) { trailId in
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.green)
-                                    Text(trailName(for: trailId))
-                                        .font(.body)
-                                }
-                                .padding(.horizontal)
+                                completedTrailRow(trailId: trailId,
+                                                  icon: "checkmark.circle.fill",
+                                                  tint: .green)
                             }
                         }
                     }
@@ -280,13 +278,9 @@ struct RecordingSummarySheet: View {
                                 .padding(.horizontal)
 
                             ForEach(finished.revisitedTrailIds, id: \.self) { trailId in
-                                HStack {
-                                    Image(systemName: "arrow.clockwise.circle.fill")
-                                        .foregroundStyle(.cyan)
-                                    Text(trailName(for: trailId))
-                                        .font(.body)
-                                }
-                                .padding(.horizontal)
+                                completedTrailRow(trailId: trailId,
+                                                  icon: "arrow.clockwise.circle.fill",
+                                                  tint: .cyan)
                             }
                         }
                     }
@@ -335,6 +329,48 @@ struct RecordingSummarySheet: View {
                     Button("Done") { dismiss() }
                 }
             }
+        }
+        .sheet(item: $gpxShareURL) { wrapped in
+            ShareSheet(items: [wrapped.url])
+        }
+    }
+
+    /// Single completed-trail row, used for both "New Completions"
+    /// and "Previously Completed" sections. Right-side share button
+    /// builds a GPX of the official trail polyline and surfaces the
+    /// iOS share sheet — useful for sending the route to a friend
+    /// or saving as a Garmin Course right after finishing the hike.
+    /// Hidden when the trail id doesn't resolve to a Trail (rare —
+    /// would mean we somehow completed a trail not in `trails`).
+    @ViewBuilder
+    private func completedTrailRow(trailId: String, icon: String, tint: Color) -> some View {
+        let trail = trails.first { $0.id == trailId }
+        HStack {
+            Image(systemName: icon)
+                .foregroundStyle(tint)
+            Text(trail?.name ?? trailId)
+                .font(.body)
+            Spacer()
+            if let trail {
+                Button {
+                    exportTrailGpx(trail)
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Export \(trail.name) as GPX")
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    private func exportTrailGpx(_ trail: Trail) {
+        do {
+            let url = try GpxExport.temporaryFile(trail: trail, areaName: areaName)
+            gpxShareURL = IdentifiedURL(url: url)
+        } catch {
+            // Silent — share sheet won't appear; user can retry.
         }
     }
 

@@ -176,13 +176,17 @@ struct HikeDetailView: View {
                     ElevationProfileView(stats: stats)
 
                     HStack(spacing: 0) {
-                        stat(value: feet(stats.totalAscentMeters), unit: "ft", label: "Ascent")
+                        stat(value: UnitFormatter.elevationValue(meters: stats.totalAscentMeters, units: units),
+                             unit: UnitFormatter.elevationSuffix(units: units), label: "Ascent")
                         Divider().frame(height: 36)
-                        stat(value: feet(stats.totalDescentMeters), unit: "ft", label: "Descent")
+                        stat(value: UnitFormatter.elevationValue(meters: stats.totalDescentMeters, units: units),
+                             unit: UnitFormatter.elevationSuffix(units: units), label: "Descent")
                         Divider().frame(height: 36)
-                        stat(value: feet(stats.maxAltitudeMeters), unit: "ft", label: "High")
+                        stat(value: UnitFormatter.elevationValue(meters: stats.maxAltitudeMeters, units: units),
+                             unit: UnitFormatter.elevationSuffix(units: units), label: "High")
                         Divider().frame(height: 36)
-                        stat(value: feet(stats.minAltitudeMeters), unit: "ft", label: "Low")
+                        stat(value: UnitFormatter.elevationValue(meters: stats.minAltitudeMeters, units: units),
+                             unit: UnitFormatter.elevationSuffix(units: units), label: "Low")
                     }
                 }
                 .padding(14)
@@ -203,12 +207,6 @@ struct HikeDetailView: View {
             }
             .padding(.horizontal, 4)
         }
-    }
-
-    /// Rounded foot integer for the elevation stat grid. PR C will
-    /// route this through the unit toggle and add the metric path.
-    private func feet(_ meters: Double) -> String {
-        "\(Int((meters * 3.28084).rounded()))"
     }
 
     private var completedTrailsSection: some View {

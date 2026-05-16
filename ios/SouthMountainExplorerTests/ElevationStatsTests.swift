@@ -40,18 +40,19 @@ struct ElevationStatsTests {
     }
 
     @Test func steadyClimbAccumulatesAscent() throws {
-        // 21 points climbing 5m per sample = 100m total gain.
+        // 21 points climbing 5m per sample = 100m raw gain. The
+        // 5-sample centered moving average shrinks to 3 samples at
+        // each endpoint, so the smoothed first sample is avg(0,5,10)=5
+        // and the smoothed last is avg(90,95,100)=95. Total smoothed
+        // ascent = 95 - 5 = 90m on the nose, max=95, min=5.
         let p = path(altitudes: wrap((0..<21).map { Double($0) * 5 }))
         let stats = try #require(elevationStats(path: p))
-        // After smoothing the endpoints lose a touch — accept within
-        // 5m of the ideal 100m. Smoothing of a strict linear ramp
-        // preserves the trend almost exactly.
-        #expect(stats.totalAscentMeters > 95 && stats.totalAscentMeters <= 105,
-                "ascent ~100m, got \(stats.totalAscentMeters)")
+        #expect(abs(stats.totalAscentMeters - 90) < 1,
+                "smoothed ascent ~90m, got \(stats.totalAscentMeters)")
         #expect(stats.totalDescentMeters < 1,
                 "no descent on a pure climb, got \(stats.totalDescentMeters)")
-        #expect(abs(stats.maxAltitudeMeters - 100) < 5)
-        #expect(abs(stats.minAltitudeMeters - 0) < 5)
+        #expect(abs(stats.maxAltitudeMeters - 95) < 1)
+        #expect(abs(stats.minAltitudeMeters - 5) < 1)
         #expect(stats.samples.count == 21)
     }
 

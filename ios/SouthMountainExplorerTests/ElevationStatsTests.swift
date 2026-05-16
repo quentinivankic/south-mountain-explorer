@@ -33,7 +33,8 @@ struct ElevationStatsTests {
 
     @Test func steadyClimbAccumulatesAscent() throws {
         // 21 points climbing 5m per sample = 100m total gain.
-        let p = path(altitudes: (0..<21).map { Double($0) * 5 })
+        let altitudes: [Double?] = (0..<21).map { Double($0) * 5 }
+        let p = path(altitudes: altitudes)
         let stats = try #require(elevationStats(path: p))
         // After smoothing the endpoints lose a touch — accept within
         // 5m of the ideal 100m. Smoothing of a strict linear ramp
@@ -51,7 +52,8 @@ struct ElevationStatsTests {
         // Stationary altitude ±2m noise alternating. Without
         // smoothing this yields ~40m of "ascent" across 21 samples;
         // smoothing should collapse that to near zero.
-        let p = path(altitudes: (0..<21).map { $0 % 2 == 0 ? 100.0 : 102.0 })
+        let altitudes: [Double?] = (0..<21).map { $0 % 2 == 0 ? 100.0 : 102.0 }
+        let p = path(altitudes: altitudes)
         let stats = try #require(elevationStats(path: p))
         #expect(stats.totalAscentMeters < 5,
                 "smoothed ±2m noise should be near zero, got \(stats.totalAscentMeters)")
@@ -63,9 +65,9 @@ struct ElevationStatsTests {
         // gap-bearing points are skipped from the elevation sequence;
         // distance still accumulates so the resulting samples span
         // the full hike (gap-only segment shows a x-axis jump).
-        var altitudes: [Double?] = (0..<10).map { Double($0) }
-        altitudes.append(contentsOf: Array(repeating: nil, count: 10))
-        altitudes.append(contentsOf: (0..<10).map { 100.0 + Double($0) })
+        var altitudes: [Double?] = (0..<10).map { Double?($0) }
+        altitudes.append(contentsOf: Array(repeating: Double?.none, count: 10))
+        altitudes.append(contentsOf: (0..<10).map { Double?(100.0 + Double($0)) })
         let p = path(altitudes: altitudes)
         let stats = try #require(elevationStats(path: p))
         // Only 20 of the 30 points contributed altitude samples.

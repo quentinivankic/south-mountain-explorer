@@ -6,8 +6,10 @@ struct HikeDetailView: View {
     let areaName: String
 
     @Environment(AreaDataService.self) private var areas
+    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
     @State private var area: Area? = nil
     @State private var shareImage: Image? = nil
+    @State private var gpxShareURL: IdentifiedURL? = nil
 
     var body: some View {
         ScrollView {
@@ -38,15 +40,42 @@ struct HikeDetailView: View {
         .task { await prepareShareImage() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if let img = shareImage {
-                    ShareLink(
-                        item: img,
-                        preview: SharePreview("Hike at \(areaName)", image: img)
-                    ) {
-                        Image(systemName: "square.and.arrow.up")
+                Menu {
+                    if let img = shareImage {
+                        ShareLink(
+                            item: img,
+                            preview: SharePreview("Hike at \(areaName)", image: img)
+                        ) {
+                            Label("Share Image", systemImage: "photo")
+                        }
                     }
+                    Button {
+                        prepareGpxShare()
+                    } label: {
+                        Label("Export as GPX", systemImage: "doc.text")
+                    }
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
                 }
             }
+        }
+        .sheet(item: $gpxShareURL) { wrapped in
+            ShareSheet(items: [wrapped.url])
+        }
+    }
+
+    /// Build a GPX file on disk and trigger the share sheet via the
+    /// existing `ShareSheet` wrapper. Files in the system temp dir
+    /// are auto-pruned by the OS, so no cleanup is needed after the
+    /// share completes.
+    private func prepareGpxShare() {
+        do {
+            let url = try GpxExport.temporaryFile(hike: hike, areaName: areaName)
+            gpxShareURL = IdentifiedURL(url: url)
+        } catch {
+            // Silent failure is fine — the share sheet just doesn't
+            // appear and the user can try again. Hard failure modes
+            // (no disk space, etc.) aren't worth a UI for.
         }
     }
 
@@ -94,7 +123,11 @@ struct HikeDetailView: View {
 
     private var statsCard: some View {
         HStack(spacing: 0) {
-            stat(value: String(format: "%.2f", hike.distanceMi), unit: "mi", label: "Distance")
+            stat(
+                value: UnitFormatter.distanceValue(miles: hike.distanceMi, units: units),
+                unit: UnitFormatter.distanceSuffix(units: units),
+                label: "Distance"
+            )
             Divider().frame(height: 36)
             stat(value: durationString, unit: "", label: "Duration")
             Divider().frame(height: 36)

@@ -156,6 +156,7 @@ struct BrowseRow: View {
     @Environment(FavoritesService.self) private var favorites
     @Environment(ProgressService.self) private var progress
     @Environment(LocationService.self) private var location
+    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     private var distanceMi: Double? {
         guard let loc = location.userLocation else { return nil }
@@ -188,11 +189,11 @@ struct BrowseRow: View {
                     Text(area.subtitle)
                     if let count = area.trailCount, let mi = area.totalMi {
                         Text("·")
-                        Text("\(count) trails · \(String(format: "%.1f", mi)) mi")
+                        Text("\(count) trails · \(UnitFormatter.distance(miles: mi, units: units)) total")
                     }
                     if let d = distanceMi {
                         Text("·")
-                        Text("\(formatDistance(d)) away")
+                        Text("\(UnitFormatter.distance(miles: d, units: units)) away")
                     }
                 }
                 .font(.caption)
@@ -212,11 +213,6 @@ struct BrowseRow: View {
                 .font(.caption)
         }
         .contentShape(Rectangle())
-    }
-
-    private func formatDistance(_ mi: Double) -> String {
-        if mi < 10 { return String(format: "%.1f mi", mi) }
-        return "\(Int(mi.rounded())) mi"
     }
 
     private var cardColors: [Color] {

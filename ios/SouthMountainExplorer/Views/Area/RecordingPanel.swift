@@ -6,6 +6,7 @@ struct RecordingPanel: View {
 
     @Environment(RecordingService.self) private var recording
     @Environment(LocationService.self) private var location
+    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     @State private var elapsed: TimeInterval = 0
     @State private var timer: Timer? = nil
@@ -50,7 +51,7 @@ struct RecordingPanel: View {
             Divider().frame(height: 40)
 
             // Stats
-            statColumn(label: "Distance", value: String(format: "%.2f mi", rec?.distanceMi ?? 0))
+            statColumn(label: "Distance", value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units))
             statColumn(label: "Duration", value: formattedElapsed)
             // ETA only renders when the recording is bound to a
             // trail AND the math has enough signal (see TrailETA's
@@ -108,7 +109,7 @@ struct RecordingPanel: View {
     }
 
     private var stopMessage: String {
-        let dist = String(format: "%.2f mi", rec?.distanceMi ?? 0)
+        let dist = UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units)
         return "\(dist) recorded so far. Save adds it to history and updates your trail coverage. Discard throws it away."
     }
 
@@ -221,7 +222,7 @@ struct RecordingSummarySheet: View {
 
                     // Stats grid
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                        statCard(title: "Distance", value: String(format: "%.2f", finished.distanceMi), unit: "mi")
+                        statCard(title: "Distance", value: UnitFormatter.distanceValue(miles: finished.distanceMi, units: units), unit: UnitFormatter.distanceSuffix(units: units))
                         statCard(title: "Duration", value: formattedDuration, unit: "")
                     }
                     .padding(.horizontal)

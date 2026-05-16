@@ -305,6 +305,7 @@ struct TrailRow: View {
     @Environment(ProgressService.self) private var progress
     @Environment(CoverageService.self) private var coverage
     @Environment(RecordingService.self) private var recording
+    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     private var isComplete: Bool { progress.isComplete(areaId: areaId, trailId: trail.id) }
     private var coveragePct: Double { coverage.trailCoverage(areaId: areaId, trailId: trail.id) }
@@ -336,7 +337,7 @@ struct TrailRow: View {
                 }
 
                 HStack(spacing: 8) {
-                    Label(String(format: "%.1f mi", trail.distanceMi), systemImage: "figure.walk")
+                    Label(UnitFormatter.distance(miles: trail.distanceMi, units: units), systemImage: "figure.walk")
                     Text("·")
                     Text(trail.difficulty.rawValue)
                         .foregroundStyle(difficultyColor)

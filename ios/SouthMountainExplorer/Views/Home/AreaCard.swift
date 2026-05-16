@@ -8,6 +8,7 @@ struct AreaCard: View {
     @Environment(AreaDataService.self) private var areas
     @Environment(AreaSilhouetteService.self) private var silhouettes
     @Environment(LocationService.self) private var location
+    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     private var cachedArea: Area? { areas.cachedArea(id: area.id) }
 
@@ -114,7 +115,7 @@ struct AreaCard: View {
                 }
 
                 if let d = distanceMi {
-                    Text("\(formatDistance(d)) away")
+                    Text("\(UnitFormatter.distance(miles: d, units: units)) away")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -176,11 +177,6 @@ struct AreaCard: View {
         .task(id: area.id) {
             await silhouettes.silhouette(for: area.id)
         }
-    }
-
-    private func formatDistance(_ mi: Double) -> String {
-        if mi < 10 { return String(format: "%.1f mi", mi) }
-        return "\(Int(mi.rounded())) mi"
     }
 
     private var gradientColors: [Color] {

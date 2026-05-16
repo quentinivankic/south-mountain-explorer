@@ -14,11 +14,12 @@ private struct UserStats: Equatable {
 /// submission.
 private let privacyPolicyURL: URL? = URL(string: "https://flint-tent-6ef.notion.site/TrekDex-Privacy-Policy-36061eb3c1d28043b1d4e58f3de860e6")
 
-/// Small `Identifiable` wrapper around a `URL` so we can drive a
-/// `.sheet(item:)` from the diagnostics-export flow. `URL` itself
-/// doesn't conform to `Identifiable`, and `sheet(item:)` needs an
-/// identity to know when to re-present.
-private struct IdentifiedURL: Identifiable {
+/// Small `Identifiable` wrapper around a `URL` so SwiftUI views
+/// can drive a `.sheet(item:)` off file URLs. `URL` itself doesn't
+/// conform to `Identifiable`, and `sheet(item:)` needs an identity
+/// to know when to re-present. Shared by Settings' diagnostics
+/// export and HikeDetail's GPX export.
+struct IdentifiedURL: Identifiable {
     let url: URL
     var id: String { url.absoluteString }
 }
@@ -43,6 +44,8 @@ struct SettingsView: View {
 
     @AppStorage(StorageKeys.theme) private var theme: AppTheme = .system
     @AppStorage(StorageKeys.debugHUD) private var showDebugHUD: Bool = false
+    @AppStorage(StorageKeys.mapStyle) private var mapStyle: MapStylePreference = .standard
+    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     /// URL of the most recent diagnostics bundle. Non-nil while
     /// the share sheet is presented; cleared when it dismisses
@@ -128,6 +131,19 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                }
+
+                Section("Display") {
+                    Picker("Map Style", selection: $mapStyle) {
+                        ForEach(MapStylePreference.allCases) { style in
+                            Text(style.label).tag(style)
+                        }
+                    }
+                    Picker("Units", selection: $units) {
+                        ForEach(UnitsPreference.allCases) { unit in
+                            Text(unit.label).tag(unit)
+                        }
+                    }
                 }
 
                 Section("Trail Data") {

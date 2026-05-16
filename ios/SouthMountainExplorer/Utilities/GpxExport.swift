@@ -82,10 +82,17 @@ enum GpxExport {
     }
 
     private static func slugify(_ s: String) -> String {
-        let lowered = s.lowercased().replacingOccurrences(of: " ", with: "-")
-        let safeSet = CharacterSet.alphanumerics.union(.init(charactersIn: "-"))
-        let cleaned = lowered.components(separatedBy: safeSet.inverted).joined()
-        return String(cleaned.prefix(50))
+        // Replace every non-alphanumeric run with a single dash so
+        // names like "Pima Wash / Trail" become `pima-wash-trail`
+        // rather than `pima-wash--trail`. Trim any leading/trailing
+        // dash, then length-cap.
+        let lowered = s.lowercased()
+        let safeSet = CharacterSet.alphanumerics
+        let pieces = lowered.unicodeScalars
+            .split(whereSeparator: { !safeSet.contains($0) })
+            .map(String.init)
+        let joined = pieces.joined(separator: "-")
+        return String(joined.prefix(50))
     }
 
     /// XML-escape the five characters that require it in element

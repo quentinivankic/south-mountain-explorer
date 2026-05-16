@@ -19,6 +19,14 @@ struct ElevationStatsTests {
         }
     }
 
+    /// Wrap an `[Double]` into the optional-element shape `path`
+    /// wants. Swift 6 strict mode doesn't auto-promote
+    /// `[Double] → [Double?]` so callers go through this helper
+    /// instead of relying on implicit conversion.
+    private func wrap(_ values: [Double]) -> [Double?] {
+        values.map { Optional($0) }
+    }
+
     @Test func emptyPathReturnsNil() {
         #expect(elevationStats(path: []) == nil)
     }
@@ -33,8 +41,7 @@ struct ElevationStatsTests {
 
     @Test func steadyClimbAccumulatesAscent() throws {
         // 21 points climbing 5m per sample = 100m total gain.
-        let altitudes: [Double?] = (0..<21).map { Double($0) * 5 }
-        let p = path(altitudes: altitudes)
+        let p = path(altitudes: wrap((0..<21).map { Double($0) * 5 }))
         let stats = try #require(elevationStats(path: p))
         // After smoothing the endpoints lose a touch — accept within
         // 5m of the ideal 100m. Smoothing of a strict linear ramp
@@ -52,8 +59,7 @@ struct ElevationStatsTests {
         // Stationary altitude ±2m noise alternating. Without
         // smoothing this yields ~40m of "ascent" across 21 samples;
         // smoothing should collapse that to near zero.
-        let altitudes: [Double?] = (0..<21).map { $0 % 2 == 0 ? 100.0 : 102.0 }
-        let p = path(altitudes: altitudes)
+        let p = path(altitudes: wrap((0..<21).map { $0 % 2 == 0 ? 100.0 : 102.0 }))
         let stats = try #require(elevationStats(path: p))
         #expect(stats.totalAscentMeters < 5,
                 "smoothed ±2m noise should be near zero, got \(stats.totalAscentMeters)")
@@ -64,10 +70,10 @@ struct ElevationStatsTests {
         // 10 points with altitude, 10 without, 10 more with. The
         // gap-bearing points are skipped from the elevation sequence;
         // distance still accumulates so the resulting samples span
-        // the full hike (gap-only segment shows a x-axis jump).
-        var altitudes: [Double?] = (0..<10).map { Double?($0) }
-        altitudes.append(contentsOf: Array(repeating: Double?.none, count: 10))
-        altitudes.append(contentsOf: (0..<10).map { Double?(100.0 + Double($0)) })
+        // the full hike (gap-only segment shows an x-axis jump).
+        var altitudes: [Double?] = wrap((0..<10).map { Double($0) })
+        altitudes.append(contentsOf: Array<Double?>(repeating: nil, count: 10))
+        altitudes.append(contentsOf: wrap((0..<10).map { 100.0 + Double($0) }))
         let p = path(altitudes: altitudes)
         let stats = try #require(elevationStats(path: p))
         // Only 20 of the 30 points contributed altitude samples.

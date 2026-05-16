@@ -639,11 +639,34 @@ final class RecordingService {
         // geometry.
         let cov15 = measureCoverage(path: combined, trails: trails, bufferMeters: 15.0)
         let cov10 = measureCoverage(path: combined, trails: trails, bufferMeters: 10.0)
+        // Coverage measured against the LATEST hike's path alone (not
+        // the all-time union). Lets us tell whether the most recent
+        // hike's GPS path *by itself* covered each trail — vs the
+        // union math crediting it via cumulative post-anchor history.
+        // If `latestFrac10` for a trail is high → the latest hike
+        // physically traversed the trail. If low → the latest hike
+        // didn't, but cumulative history did, which is how older-
+        // anchor / multi-hike-cumulative revisit credits surface.
+        // `mostRecentHike` = chronologically newest hike in this area
+        // (by startedAt), which differs from `latestAnchor` below: the
+        // anchor only counts hikes that *claim* the trail, while this
+        // is just "the last hike you logged here." For the user's
+        // open question — "did today's hike's path alone cover that
+        // trail?" — this is the path we want.
+        let mostRecentHike = areaHistory.max(by: { $0.startedAt < $1.startedAt })
+        let mostRecentHikePath = mostRecentHike?.path ?? []
+        let mostRecentHikeId = mostRecentHike?.id ?? "none"
+        let latestCov30 = measureCoverage(path: mostRecentHikePath, trails: trails, bufferMeters: 30.0)
+        let latestCov15 = measureCoverage(path: mostRecentHikePath, trails: trails, bufferMeters: 15.0)
+        let latestCov10 = measureCoverage(path: mostRecentHikePath, trails: trails, bufferMeters: 10.0)
         for (tid, progressStamp) in completionDates {
             let score = cov[tid]
             let frac30 = score?.fraction ?? -1
             let frac15 = cov15[tid]?.fraction ?? -1
             let frac10 = cov10[tid]?.fraction ?? -1
+            let latestFrac30 = latestCov30[tid]?.fraction ?? -1
+            let latestFrac15 = latestCov15[tid]?.fraction ?? -1
+            let latestFrac10 = latestCov10[tid]?.fraction ?? -1
             let endpointsHit = score?.endpointsVisited ?? false
             let (startDist, endDist) = trailEndpointDistances(trailId: tid, trails: trails, path: combined)
 
@@ -688,7 +711,7 @@ final class RecordingService {
                 latestSource = "hike"
             }
 
-            log.notice("trailCompletionState tid=\(tid, privacy: .public) frac30=\(frac30) frac15=\(frac15) frac10=\(frac10) startDist=\(startDist)m endDist=\(endDist)m endpointsHit=\(endpointsHit) earliestAnchor=\(earliestSource, privacy: .public)/\(earliestHikeId, privacy: .public)@\(earliestAt) latestAnchor=\(latestSource, privacy: .public)/\(latestHikeId, privacy: .public)@\(latestAt)")
+            log.notice("trailCompletionState tid=\(tid, privacy: .public) frac30=\(frac30) frac15=\(frac15) frac10=\(frac10) latestHikeFrac30=\(latestFrac30) latestHikeFrac15=\(latestFrac15) latestHikeFrac10=\(latestFrac10) startDist=\(startDist)m endDist=\(endDist)m endpointsHit=\(endpointsHit) mostRecentHikeId=\(mostRecentHikeId, privacy: .public) earliestAnchor=\(earliestSource, privacy: .public)/\(earliestHikeId, privacy: .public)@\(earliestAt) latestAnchor=\(latestSource, privacy: .public)/\(latestHikeId, privacy: .public)@\(latestAt)")
         }
 
         if creditedByHikeId.isEmpty && revisitCreditByHikeId.isEmpty { return }

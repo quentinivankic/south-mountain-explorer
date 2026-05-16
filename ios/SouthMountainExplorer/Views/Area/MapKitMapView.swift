@@ -73,6 +73,11 @@ struct MapKitMapView: UIViewRepresentable {
     /// is applied via cameraTarget when the mode flips.
     let userTrackingMode: MKUserTrackingMode
 
+    /// User-selected map style from Settings → Display. Re-applied
+    /// in `updateUIView` so flipping the picker propagates to the
+    /// open map without re-creating the view.
+    @AppStorage(StorageKeys.mapStyle) private var mapStyle: MapStylePreference = .standard
+
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
     }
@@ -81,7 +86,7 @@ struct MapKitMapView: UIViewRepresentable {
         let mv = MKMapView()
         mv.delegate = context.coordinator
         mv.pointOfInterestFilter = .excludingAll
-        mv.mapType = .standard
+        mv.mapType = mapStyle.mkMapType
         mv.isPitchEnabled = false
         mv.isRotateEnabled = true
         mv.showsCompass = true
@@ -232,6 +237,10 @@ struct MapKitMapView: UIViewRepresentable {
         }
 
         // 7) User-location + tracking mode.
+        let targetMapType = mapStyle.mkMapType
+        if mapView.mapType != targetMapType {
+            mapView.mapType = targetMapType
+        }
         if mapView.showsUserLocation != showsUserLocation {
             mapView.showsUserLocation = showsUserLocation
         }

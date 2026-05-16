@@ -87,6 +87,8 @@ struct HikeRow: View {
     let areaName: String
     let trailName: String?
 
+    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
+
     private var dateString: String {
         let f = DateFormatter()
         f.dateStyle = .medium
@@ -126,7 +128,7 @@ struct HikeRow: View {
             }
 
             HStack(spacing: 20) {
-                Label(String(format: "%.2f mi", hike.distanceMi), systemImage: "figure.walk")
+                Label(UnitFormatter.distance(miles: hike.distanceMi, units: units), systemImage: "figure.walk")
                 Label(durationString, systemImage: "clock")
             }
             .font(.subheadline)

@@ -15,6 +15,17 @@ enum StorageKeys {
     /// Off by default; flipped from Settings → Developer.
     static let debugHUD = "summit:debug-hud"
 
+    /// Map style for `MapKitMapView`. Raw value matches
+    /// `MapStylePreference` enum (`standard` / `satellite` / `hybrid`).
+    /// Default `standard` — same as the prior hardcoded `mv.mapType`.
+    static let mapStyle = "summit:map-style"
+
+    /// Distance + elevation unit preference. Raw value matches
+    /// `UnitsPreference` (`imperial` / `metric`). Default `imperial`
+    /// (Arizona dev). Affects every distance / elevation display
+    /// site via `UnitFormatter`.
+    static let units = "summit:units"
+
     // MARK: - User progress (cleared by Reset All Progress)
 
     static let completedTrails = "summit:completed"

@@ -16,6 +16,7 @@ struct ActiveRecordingBanner: View {
     let onTap: () -> Void
     let onStop: () -> Void
 
+    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
     @State private var elapsed: TimeInterval = 0
     @State private var timer: Timer? = nil
 
@@ -70,7 +71,7 @@ struct ActiveRecordingBanner: View {
     /// "South Mountain Park · 1.23 mi · 14:32" when in trail mode,
     /// "1.23 mi · 14:32" when in roam mode (area is already the title).
     private var subtitleLine: String {
-        let stats = "\(String(format: "%.2f", distanceMi)) mi · \(formattedElapsed)"
+        let stats = "\(UnitFormatter.distance(miles: distanceMi, units: units)) · \(formattedElapsed)"
         if trailName != nil {
             return "\(areaName) · \(stats)"
         }

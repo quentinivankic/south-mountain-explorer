@@ -9,6 +9,12 @@ final class LocationService: NSObject {
     private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
     private(set) var userLocation: CLLocationCoordinate2D? = nil
     private(set) var liveLocation: CLLocationCoordinate2D? = nil
+    /// Altitude in meters at the latest GPS fix, when the fix had a
+    /// non-negative `verticalAccuracy`. `nil` when the device isn't
+    /// confident enough in altitude (cold start, indoor, dense canopy).
+    /// Sampled alongside `liveLocation` by `RecordingService.appendPoint`
+    /// so each saved GPS point can carry elevation.
+    private(set) var liveAltitude: Double? = nil
     /// Compass heading in degrees clockwise from true north (or magnetic
     /// north if true north isn't available). Populated when
     /// `startHeadingUpdates()` is active. Used by the map's
@@ -96,8 +102,13 @@ extension LocationService: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let loc = locations.last else { return }
         let coord = loc.coordinate
+        // Negative `verticalAccuracy` is CoreLocation's sentinel for
+        // "we don't have a valid altitude" — typically early in a
+        // session before the GPS gets a vertical lock. Skip those.
+        let altitude: Double? = loc.verticalAccuracy >= 0 ? loc.altitude : nil
         Task { @MainActor in
             self.liveLocation = coord
+            self.liveAltitude = altitude
             self.userLocation = coord
             UserDefaults.standard.set(coord.latitude, forKey: StorageKeys.userLocationLat)
             UserDefaults.standard.set(coord.longitude, forKey: StorageKeys.userLocationLon)

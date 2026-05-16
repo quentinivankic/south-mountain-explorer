@@ -223,6 +223,10 @@ struct RecordingSummarySheet: View {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
                         statCard(title: "Distance", value: String(format: "%.2f", finished.distanceMi), unit: "mi")
                         statCard(title: "Duration", value: formattedDuration, unit: "")
+                        if let stats = elevationStats(path: finished.path) {
+                            statCard(title: "Ascent", value: "\(Int((stats.totalAscentMeters * 3.28084).rounded()))", unit: "ft")
+                            statCard(title: "Descent", value: "\(Int((stats.totalDescentMeters * 3.28084).rounded()))", unit: "ft")
+                        }
                     }
                     .padding(.horizontal)
 

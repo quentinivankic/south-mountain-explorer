@@ -99,14 +99,14 @@ enum GpxExport {
         String(format: "%.1f", d)
     }
 
-    private static let iso8601Formatter: ISO8601DateFormatter = {
+    /// ISO8601DateFormatter isn't Sendable, so we can't park one
+    /// in a static `let` under Swift 6 strict concurrency. Construct
+    /// on each call — cheap enough at this call rate (a few dozen
+    /// invocations per export, well off any hot path).
+    private static func iso8601(_ date: Date) -> String {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime]
-        return f
-    }()
-
-    private static func iso8601(_ date: Date) -> String {
-        iso8601Formatter.string(from: date)
+        return f.string(from: date)
     }
 
     /// XML-escape the five characters that require it in element

@@ -60,16 +60,21 @@ jobs:
       # The cache key is intentionally constant (`counts-cache-v1`)
       # so every run uses the same slot; `restore-keys` falls back
       # gracefully when no cache exists yet (first run after this
-      # change). `save: always` (post step) writes whatever's at
+      # change). `save-always: true` writes whatever's at
       # `public/areas/counts-cache.json` when the workflow finishes,
-      # regardless of step failures, so partial progress survives
-      # timeouts.
+      # **including on hard timeout / cancellation** — without it,
+      # the default post-step save only runs on clean completion,
+      # which is exactly the case we DON'T need it (long full-US
+      # runs that hit the 6h timeout are the whole reason this
+      # cache exists). The artifact upload below is a redundant
+      # safety net for the runner-killed-mid-save case.
       - name: Restore counts-cache from Actions cache
         id: cache-restore
         uses: actions/cache@v4
         with:
           path: public/areas/counts-cache.json
           key: counts-cache-v1
+          save-always: true
           # No restore-keys — we want exact-match-or-cold-start
           # semantics. A stale partial cache from a much older
           # build would only confuse the diff logic.

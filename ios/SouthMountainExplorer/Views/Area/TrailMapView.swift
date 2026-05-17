@@ -112,12 +112,16 @@ struct TrailMapView: View {
     @State private var cachedHaloSegments: [[[CLLocationCoordinate2D]]] = []
     /// On-trail-filtered segments of the **live** recording's GPS
     /// path. Recomputed at most once per second from
-    /// `activeRecording.path` while a recording is active so the
-    /// user can see which segments of their in-progress walk are
-    /// counting toward coverage. Empty when no recording is
-    /// active. Same filter shape as `cachedHaloSegments` — the
-    /// spatial grid + 30 m buffer — so live and past coverage use
-    /// identical "on-trail" semantics.
+    /// Trail-polyline-snapped runs covered by the in-progress
+    /// recording. Each element is a polyline ALONG a trail (not
+    /// along the GPS scatter) — same "run of ≥ 2 consecutive
+    /// covered nodes at 10m" rule used by the post-completion
+    /// orange overlay. Rendered in purple over the trail
+    /// polyline so the user sees segments snap to the trail as
+    /// they walk them, instead of a jittery line drawn along the
+    /// raw GPS path. The raw GPS path is still drawn (also in
+    /// purple, slimmer) so off-trail portions remain visible.
+    /// Empty when no recording is active.
     @State private var liveHaloSegments: [[CLLocationCoordinate2D]] = []
     @State private var lastLiveHaloRecomputeAt: TimeInterval = 0
     /// Segments of the selected trail's polyline that the user has
@@ -246,7 +250,7 @@ struct TrailMapView: View {
             // first frame shows it instead of waiting for the next
             // GPS sample to fire `.onChange(of: liveLocation)`.
             if let path = activeRecording?.path, path.count >= 2 {
-                liveHaloSegments = onTrailSegments(path, grid: grid)
+                liveHaloSegments = liveTrailSnappedRuns(path: path)
                 lastLiveHaloRecomputeAt = Date().timeIntervalSince1970
             }
             centerOnArea()
@@ -358,11 +362,11 @@ struct TrailMapView: View {
             // isn't needed for plain follow.
             location.startLiveTracking()
             location.stopHeadingUpdates()
-            updateTrackedPosition()
+            updateTrackedPosition(resetZoom: true)
         case .followHeading:
             location.startLiveTracking()
             location.startHeadingUpdates()
-            updateTrackedPosition()
+            updateTrackedPosition(resetZoom: true)
         }
     }
 
@@ -372,7 +376,15 @@ struct TrailMapView: View {
     /// "above the panel" stays above the panel after rotation, and
     /// the target uses MKMapCamera with heading rather than a region
     /// (regions can't carry a heading).
-    private func updateTrackedPosition() {
+    ///
+    /// `resetZoom`: pass `true` on the initial mode entry to apply the
+    /// default 1500m / 6000m framing; pass `false` (default) for the
+    /// continuous live-tracking pans triggered by GPS / heading
+    /// updates. Live-tracking pans use `.followCenter` which preserves
+    /// the user's current pinch-zoom — without that, every GPS sample
+    /// would re-apply the default zoom and undo any pinch the user
+    /// just performed.
+    private func updateTrackedPosition(resetZoom: Bool = false) {
         guard let coord = location.liveLocation ?? location.userLocation else { return }
         let heading: CLLocationDirection = trackingMode == .followHeading
             ? (location.liveHeading ?? 0)
@@ -395,25 +407,34 @@ struct TrailMapView: View {
             longitude: coord.longitude + dLon
         )
 
-        if trackingMode == .followHeading {
-            // distance ~6000 m roughly matches the vertical span of
-            // MKCoordinateRegion(latitudinalMeters: 1500) in portrait
-            // (region fits the SHORTER axis = width, so vertical span
-            // is ~3.3 km on a typical phone).
-            setCameraTarget(.camera(
-                centerLat: shifted.latitude,
-                centerLon: shifted.longitude,
-                distance: 6000,
-                heading: heading
-            ))
+        if resetZoom {
+            if trackingMode == .followHeading {
+                // distance ~6000 m roughly matches the vertical span of
+                // MKCoordinateRegion(latitudinalMeters: 1500) in portrait
+                // (region fits the SHORTER axis = width, so vertical span
+                // is ~3.3 km on a typical phone).
+                setCameraTarget(.camera(
+                    centerLat: shifted.latitude,
+                    centerLon: shifted.longitude,
+                    distance: 6000,
+                    heading: heading
+                ))
+            } else {
+                let latDelta = latMeters / 111_000.0
+                let lonDelta = latMeters / (111_000.0 * cosLat)
+                setCameraTarget(.region(
+                    centerLat: shifted.latitude,
+                    centerLon: shifted.longitude,
+                    latDelta: latDelta,
+                    lonDelta: lonDelta
+                ))
+            }
         } else {
-            let latDelta = latMeters / 111_000.0
-            let lonDelta = latMeters / (111_000.0 * cosLat)
-            setCameraTarget(.region(
+            // Continuous live-tracking pan — preserve user's zoom.
+            setCameraTarget(.followCenter(
                 centerLat: shifted.latitude,
                 centerLon: shifted.longitude,
-                latDelta: latDelta,
-                lonDelta: lonDelta
+                heading: trackingMode == .followHeading ? heading : nil
             ))
         }
     }
@@ -520,7 +541,27 @@ struct TrailMapView: View {
         let now = Date().timeIntervalSince1970
         guard now - lastLiveHaloRecomputeAt >= 1.0 else { return }
         lastLiveHaloRecomputeAt = now
-        liveHaloSegments = onTrailSegments(path)
+        liveHaloSegments = liveTrailSnappedRuns(path: path)
+    }
+
+    /// Compute trail-polyline-snapped runs covered by the in-progress
+    /// recording's GPS path. Runs `trailNodeRuns` (10m buffer, runs of
+    /// ≥ 2 consecutive covered nodes) over every trail in the area and
+    /// concatenates the results. Returns polylines that follow the
+    /// trail geometry precisely, not the GPS scatter — used for the
+    /// purple "you're walking this segment" rendering during a
+    /// recording.
+    private func liveTrailSnappedRuns(path: [GpsPoint]) -> [[CLLocationCoordinate2D]] {
+        var gpsGrid = SpatialGrid()
+        for p in path where p.count >= 2 {
+            gpsGrid.insert(p)
+        }
+        let sourceTrails = area.rawTrails ?? area.trails
+        var all: [[CLLocationCoordinate2D]] = []
+        for trail in sourceTrails {
+            all.append(contentsOf: trailNodeRuns(coveredBy: gpsGrid, in: trail))
+        }
+        return all
     }
 
     // MARK: - Walked-since-completion overlay

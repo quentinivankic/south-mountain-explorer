@@ -91,6 +91,9 @@ struct AreaView: View {
     /// Name of the trail to celebrate over the map. Auto-clears after a
     /// short delay so the overlay doesn't sit forever.
     @State private var celebrationTrailName: String? = nil
+    /// Half-sheet that presents the area-wide multi-track GPX
+    /// share. Wraps URL because URL itself isn't Identifiable.
+    @State private var areaGpxShareURL: IdentifiedURL? = nil
 
     // Trail-list filters live up here so the map and the list share the
     // same source of truth — flipping a filter hides the corresponding
@@ -300,6 +303,23 @@ struct AreaView: View {
                         .glassEffect(in: .circle)
                 }
                 Spacer()
+                // Area-level overflow menu. Currently hosts only
+                // "Export All Trails as GPX" but the chrome is
+                // sized to grow as more area-wide actions land
+                // (Stats / heatmap export, area download, etc.).
+                Menu {
+                    Button {
+                        exportAreaGpx()
+                    } label: {
+                        Label("Export All Trails as GPX", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(area == nil)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 36, height: 36)
+                        .glassEffect(in: .circle)
+                }
                 Button {
                     Task { await favorites.toggle(areaId: areaId) }
                 } label: {
@@ -313,6 +333,9 @@ struct AreaView: View {
             .padding(.horizontal, 20)
             .padding(.top, 8)
             .safeAreaPadding(.top)
+        }
+        .sheet(item: $areaGpxShareURL) { wrapped in
+            ShareSheet(items: [wrapped.url])
         }
         .task {
             // Telemetry: log "user opened this area" so we can later
@@ -598,6 +621,21 @@ struct AreaView: View {
     /// starts immediately or surfaces the appropriate confirmation.
     /// Pass a trailId to start in `.trail` mode (history will label the
     /// hike with that trail's name and TrailMapView lights it up as a
+    /// Build a single multi-track GPX of every trail in the area
+    /// and present the share sheet. Loaded into Garmin Connect
+    /// the file produces one course per trail — useful for
+    /// planning a multi-trail visit. No-op when the area hasn't
+    /// finished loading.
+    private func exportAreaGpx() {
+        guard let area else { return }
+        do {
+            let url = try GpxExport.temporaryFile(area: area)
+            areaGpxShareURL = IdentifiedURL(url: url)
+        } catch {
+            // Silent — share sheet won't appear; user can retry.
+        }
+    }
+
     /// purple stroke). The trailId is preserved through the conflict /
     /// far-warning dialogs via `pendingRecordTrailId`.
     private func tryStartRecording(trailId: String? = nil) {

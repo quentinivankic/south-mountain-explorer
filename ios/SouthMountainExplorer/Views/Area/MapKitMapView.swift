@@ -295,12 +295,16 @@ struct MapKitMapView: UIViewRepresentable {
             mapView.setCamera(cam, animated: animated)
         case .followCenter(let lat, let lon, let heading):
             // Preserve user's current zoom. For follow (heading nil),
-            // just pan; for followHeading, copy the current camera so
-            // we keep its distance and only update center + heading.
+            // just pan; for followHeading, build a fresh camera that
+            // carries over altitude + pitch from the live one so only
+            // center + heading change.
             let center = CLLocationCoordinate2D(latitude: lat, longitude: lon)
             if let heading {
-                let cam = mapView.camera.copy() as! MKMapCamera
+                let current = mapView.camera
+                let cam = MKMapCamera()
                 cam.centerCoordinate = center
+                cam.altitude = current.altitude
+                cam.pitch = current.pitch
                 cam.heading = heading
                 mapView.setCamera(cam, animated: animated)
             } else {

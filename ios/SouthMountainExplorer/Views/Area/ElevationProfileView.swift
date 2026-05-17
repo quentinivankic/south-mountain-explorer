@@ -90,7 +90,7 @@ struct ElevationProfileView: View {
             let step = 10.0
             let ticksFt = [centerFt - step, centerFt, centerFt + step]
             let ticksM = ticksFt.map { $0 / 3.28084 }
-            return (ticksM.first!...ticksM.last!, ticksM)
+            return (domain: ticksM.first!...ticksM.last!, ticks: ticksM)
         }
 
         let candidates: [Double] = [5, 10, 25, 50, 100, 250, 500, 1000]

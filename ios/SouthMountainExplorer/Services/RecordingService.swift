@@ -548,26 +548,17 @@ final class RecordingService {
                 log.notice("sinceCompletionComputed tid=\(tid, privacy: .public) completionDate=nil postCompletionHikes=\(areaHistory.count) value=\(value)")
                 continue
             }
-            // Date filter only: `hike.startedAt > completionDate`.
-            // We use `startedAt`, NOT `endedAt`, because the hike
-            // that CAUSED the completion has `startedAt <
-            // completionDate < endedAt` (live recording stamps
-            // completionDate mid-hike, then the hike continues).
-            // Gating on `endedAt` would include the completing
-            // hike itself and inflate sinceCompletion to ~1.0 —
-            // the bug from PRs #120/#121.
-            //
-            // We deliberately do NOT also filter by "did this
-            // hike target / re-complete this trail" — that filter
-            // (PR #122) zeroed out *every* completed trail because
-            // a post-completion hike on an adjacent trail still
-            // legitimately drifts across the completed one, and
-            // the user wants to see that drift as a thin orange
-            // trace. The 10m `sinceCompletionBufferMeters` does
-            // the discrimination instead: incidental network
-            // crossings have to actually fall within 10m of a
-            // trail node to count (vs. 30m for lifetime), which
-            // matches the completion gate's precision.
+            // Filter on `startedAt > completionDate` (NOT `endedAt`):
+            // the hike that CAUSED the completion has startedAt <
+            // completionDate < endedAt because live recording stamps
+            // completionDate mid-hike, then the hike continues. Gating
+            // on `endedAt` would include that hike and inflate
+            // sinceCompletion to ~1.0. The 10m
+            // `sinceCompletionBufferMeters` below (vs. 30m lifetime)
+            // does the "actually walked vs. drifted past"
+            // discrimination — no per-hike deliberate-touch filter
+            // needed, so incidental drift across an adjacent trail
+            // shows as a thin orange trace.
             let postCompletionHikes = areaHistory.filter { $0.startedAt > completionDate }
             if postCompletionHikes.isEmpty {
                 sinceCompletionAuthoritative[tid] = 0

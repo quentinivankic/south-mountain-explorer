@@ -82,14 +82,35 @@ jobs:
       # Optional: re-seed the index from OSM. Skipped when seed_states is
       # blank so the default workflow (rehydrate existing curated index) is
       # unchanged.
+      #
+      # Resilience: at full-US scale the loop hits Overpass ~50 times
+      # over ~75 minutes. A single 504 mid-loop is common, so we wrap
+      # the script in a 3-retry shell loop with exponential backoff
+      # (60s / 240s / 540s). `--resume` makes the script skip states
+      # that already landed in index.json from a prior attempt, so
+      # re-runs are idempotent and only re-fetch what failed.
+      # Combined with the script's own per-state 3-retry, every state
+      # has up to 9 attempts before the workflow gives up.
       - name: Seed area index from OSM
         if: ${{ github.event.inputs.seed_states != '' }}
         run: |
-          ARGS=""
+          ARGS="--resume"
           if [ "${{ github.event.inputs.seed_merge }}" = "true" ]; then
             ARGS="$ARGS --merge"
           fi
-          python3 scripts/seed-areas.py $ARGS ${{ github.event.inputs.seed_states }}
+          for attempt in 1 2 3; do
+            if python3 scripts/seed-areas.py $ARGS ${{ github.event.inputs.seed_states }}; then
+              echo "Seed step succeeded on attempt $attempt."
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::Seed step failed after 3 workflow attempts; bailing."
+              exit 1
+            fi
+            SLEEP=$((60 * attempt * attempt))
+            echo "::warning::Seed step failed (attempt $attempt). Sleeping ${SLEEP}s before retry."
+            sleep "$SLEEP"
+          done
 
       - name: Run trail count builder
         run: |

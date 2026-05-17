@@ -580,7 +580,7 @@ struct AreaView: View {
                 if let tid = hike.trailId { touched.insert(tid) }
                 touched.formUnion(hike.completedTrailIds)
                 touched.formUnion(hike.revisitedTrailIds)
-                return PastHike(path: hike.path, endedAt: hike.endedAt, touchedTrailIds: touched)
+                return PastHike(path: hike.path, startedAt: hike.startedAt, touchedTrailIds: touched)
             }
     }
 
@@ -652,7 +652,7 @@ struct AreaView: View {
             if let tid = hike.trailId { touched.insert(tid) }
             touched.formUnion(hike.completedTrailIds)
             touched.formUnion(hike.revisitedTrailIds)
-            return PastHike(path: hike.path, endedAt: hike.endedAt, touchedTrailIds: touched)
+            return PastHike(path: hike.path, startedAt: hike.startedAt, touchedTrailIds: touched)
         }
         // Carry forward any completedTrailIds whose ids still match — cheap
         // path that doesn't need to walk the GPS grid. The path-replay below

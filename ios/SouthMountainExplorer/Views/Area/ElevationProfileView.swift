@@ -15,9 +15,17 @@ struct ElevationProfileView: View {
 
     var body: some View {
         Chart(stats.samples, id: \.distanceMeters) { sample in
+            // Bound the area fill explicitly between the chart's
+            // lower y-tick and the sample altitude. AreaMark with
+            // just `y:` defaults the floor to y=0, which is far
+            // below the visible domain — the chart usually clips
+            // this, but on some renders the fill leaks past the
+            // bottom of the plot frame. Using `yStart` / `yEnd` =
+            // the displayed domain bounds keeps the green inside.
             AreaMark(
                 x: .value("Distance", sample.distanceMeters),
-                y: .value("Altitude", sample.altitudeMeters)
+                yStart: .value("Floor", yAxis.domain.lowerBound),
+                yEnd: .value("Altitude", sample.altitudeMeters)
             )
             .foregroundStyle(
                 LinearGradient(

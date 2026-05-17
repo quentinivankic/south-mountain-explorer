@@ -302,6 +302,13 @@ struct AreaView: View {
                         : 0)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
+                // Match the trail-list panel: ignore the home-indicator
+                // inset only, not the keyboard. Without this, when the
+                // search field in the trail list gains focus, the panel
+                // slides up but these bottom controls (recenter, record,
+                // map style buttons + RecordingPanel) stay anchored at
+                // the bottom and end up hidden behind the keyboard.
+                .ignoresSafeArea(.container, edges: .bottom)
                 .allowsHitTesting(true)
 
             } else if isLoading || (area != nil && !minLoadingTimeElapsed) {

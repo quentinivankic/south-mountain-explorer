@@ -925,6 +925,12 @@ final class RecordingService {
             ?? "this area"
         for tid in newlyCompleted {
             await progressService.markComplete(areaId: areaId, trailId: tid)
+            // The completion event resets this trail's
+            // since-completion coverage bucket. From the user's
+            // POV the next time they look at the trail it shows
+            // "0% walked toward the next completion" — fresh for
+            // the revisit cycle. Lifetime coverage stays put.
+            await coverageService.resetSinceCompletion(areaId: areaId, trailId: tid)
             // Local push notification for the trail completion. Fires
             // whether the app is foreground or background, so a user with
             // the phone in their pocket on the trail still gets the beat.

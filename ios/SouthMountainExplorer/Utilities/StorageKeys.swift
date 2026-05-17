@@ -30,6 +30,14 @@ enum StorageKeys {
 
     static let completedTrails = "summit:completed"
     static let coverage = "summit:coverage"
+    /// Per-trail coverage *since the last completion* — resets to 0
+    /// when a trail completes, then climbs as the user re-walks it.
+    /// Drives the "X% remaining" copy and the map's walked-since-
+    /// completion overlay. Parallel to `coverage` (lifetime); both
+    /// are needed because lifetime stays pinned near 1.0 after a
+    /// completion and can't represent "how much you've walked of
+    /// the upcoming completion cycle."
+    static let coverageSinceCompletion = "summit:coverage-since-completion"
     static let favorites = "summit:favorites"
     static let activeRecording = "summit:active-recording"
     static let userLocationLat = "location.lat"
@@ -60,6 +68,7 @@ enum StorageKeys {
     static let resetAllKeys: [String] = [
         completedTrails,
         coverage,
+        coverageSinceCompletion,
         favorites,
         activeRecording,
         userLocationLat,

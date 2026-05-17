@@ -530,14 +530,17 @@ struct TrailMapView: View {
     ///
     /// "Since last completion" means: filter `pastHikes` to those
     /// ending after the trail's last completion timestamp (or all
-    /// hikes when never completed). Build a single-trail
-    /// `SpatialGrid` from this trail's nodes so `onTrailSegments`
-    /// returns segments on THIS trail rather than any trail.
-    /// Combine the filtered hikes' paths, run them through the
-    /// grid, hand the result to MapKitMapView for orange rendering.
+    /// hikes when never completed). Then walk THIS trail's
+    /// polyline node-by-node, marking runs of consecutive nodes
+    /// within 30 m of any post-completion GPS point. Render those
+    /// trail-polyline runs in orange.
     ///
-    /// Cheap because we only do this for ONE selected trail at a
-    /// time. For unselected trails the orange overlay is empty.
+    /// Note the inversion: we iterate the trail polyline (not the
+    /// GPS path), so the orange line traces the trail exactly
+    /// rather than wandering with the user's imperfect walking
+    /// path. Single-trail scope keeps the cost down — one walk
+    /// over the trail's ~100 nodes against a grid built from
+    /// post-completion GPS samples.
     private func recomputeWalkedSinceCompletion() {
         guard let selectedTrailId,
               let trail = area.trails.first(where: { $0.id == selectedTrailId }) else {
@@ -551,18 +554,48 @@ struct TrailMapView: View {
                 return hike.endedAt > lastCompletion
             }
             .flatMap(\.path)
-        // Build a one-trail spatial grid so `onTrailSegments`
-        // returns segments that landed on THIS trail specifically
-        // (not any trail in the area).
+        if relevantPaths.isEmpty {
+            selectedTrailWalkedSegments = []
+            return
+        }
+        // Build a GPS-points grid (NOT a trail-nodes grid). The
+        // iteration below walks the TRAIL polyline and asks
+        // "any GPS point near this node?" — which gives us runs
+        // along the trail itself, not segments of the GPS path.
+        var gpsGrid = SpatialGrid()
+        for p in relevantPaths where p.count >= 2 {
+            gpsGrid.insert(p)
+        }
+        // Walk the trail polyline (use raw geometry when available
+        // for the dense node set) and emit on-trail runs.
         let sourceTrails = area.rawTrails ?? area.trails
         let geomTrail = sourceTrails.first(where: { $0.id == trail.id }) ?? trail
-        var trailGrid = SpatialGrid()
-        for seg in geomTrail.segments {
+        selectedTrailWalkedSegments = trailNodeRuns(coveredBy: gpsGrid, in: geomTrail)
+    }
+
+    /// Walk each segment of `trail.segments` node-by-node, emit
+    /// runs of consecutive trail nodes that are within 30 m of any
+    /// point in `gpsGrid`. The returned polylines are sequences of
+    /// TRAIL nodes — so rendering them produces lines that follow
+    /// the trail polyline precisely, not the user's GPS scatter.
+    private func trailNodeRuns(coveredBy gpsGrid: SpatialGrid, in trail: Trail) -> [[CLLocationCoordinate2D]] {
+        let bufferM = 30.0
+        var runs: [[CLLocationCoordinate2D]] = []
+        for seg in trail.segments {
+            var current: [CLLocationCoordinate2D] = []
             for node in seg where node.count >= 2 {
-                trailGrid.insert(node)
+                let lat = node[0]
+                let lon = node[1]
+                if gpsGrid.hasNeighbor(lat: lat, lon: lon, withinMeters: bufferM) {
+                    current.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
+                } else if !current.isEmpty {
+                    if current.count >= 2 { runs.append(current) }
+                    current.removeAll(keepingCapacity: true)
+                }
             }
+            if current.count >= 2 { runs.append(current) }
         }
-        selectedTrailWalkedSegments = onTrailSegments(relevantPaths, grid: trailGrid)
+        return runs
     }
 
     // MARK: - Halo segment filter

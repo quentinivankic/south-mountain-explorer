@@ -450,6 +450,11 @@ struct TrailRow: View {
             // the highlight is visible underneath — both surface the
             // same trail at once. Re-tapping the same row leaves
             // selection in place and re-opens the sheet (cheap).
+            ActivityLogService.shared.log(
+                category: "trail",
+                action: "tap",
+                context: ["areaId": areaId, "trailId": trail.id]
+            )
             selectedTrailId = trail.id
             onOpenDetail?(trail)
         }

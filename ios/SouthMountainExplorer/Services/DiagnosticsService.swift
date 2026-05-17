@@ -29,6 +29,12 @@ enum DiagnosticsService {
         /// composed message, joined into one string per line so the
         /// JSON stays grep-friendly when opened in a plain editor.
         let logs: [String]
+        /// Append-only meaningful-action log from `ActivityLogService`.
+        /// Captures user-initiated actions (tap area, change setting,
+        /// start recording, etc.) with structured context so a
+        /// session can be replayed faithfully when paired with the
+        /// user's oral feedback. Chronological order.
+        let activityLog: [ActivityLogService.Entry]
     }
 
     /// Build a diagnostics bundle and write it to a temporary file.
@@ -37,16 +43,22 @@ enum DiagnosticsService {
     @MainActor
     static func exportBundle() async throws -> URL {
         let logs = collectLogs()
+        // Flush pending writes so the just-tapped "Send Diagnostics"
+        // action itself lands in the activity log slice we bundle.
+        ActivityLogService.shared.flush()
+        let activityLog = ActivityLogService.shared.recentEntries()
         let bundle = Bundle(
             appVersion: appVersion,
             buildNumber: buildNumber,
             osVersion: UIDevice.current.systemVersion,
             device: deviceModel(),
             collectedAt: ISO8601DateFormatter().string(from: Date()),
-            logs: logs
+            logs: logs,
+            activityLog: activityLog
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(bundle)
         let filename = "trekdex-diagnostics-\(Int(Date().timeIntervalSince1970)).json"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)

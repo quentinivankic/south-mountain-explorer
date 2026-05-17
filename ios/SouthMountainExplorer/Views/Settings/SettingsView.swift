@@ -130,6 +130,12 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .onChange(of: theme) { _, newValue in
+                        ActivityLogService.shared.log(
+                            category: "settings", action: "theme",
+                            context: ["value": newValue.rawValue]
+                        )
+                    }
                 }
 
                 Section("Display") {
@@ -137,6 +143,12 @@ struct SettingsView: View {
                         ForEach(UnitsPreference.allCases) { unit in
                             Text(unit.label).tag(unit)
                         }
+                    }
+                    .onChange(of: units) { _, newValue in
+                        ActivityLogService.shared.log(
+                            category: "settings", action: "units",
+                            context: ["value": newValue.rawValue]
+                        )
                     }
                 }
 
@@ -156,6 +168,7 @@ struct SettingsView: View {
                         titleVisibility: .visible
                     ) {
                         Button("Clear & Refresh") {
+                            ActivityLogService.shared.log(category: "settings", action: "refreshTrails")
                             AreaDataService.shared.clearAreaCache()
                             trailDataRefreshed = true
                             // Re-enable the button after a brief
@@ -297,7 +310,14 @@ struct SettingsView: View {
                     Toggle(isOn: $showDebugHUD) {
                         Label("Show Debug HUD", systemImage: "speedometer")
                     }
+                    .onChange(of: showDebugHUD) { _, newValue in
+                        ActivityLogService.shared.log(
+                            category: "settings", action: "debugHUD",
+                            context: ["value": String(newValue)]
+                        )
+                    }
                     Button {
+                        ActivityLogService.shared.log(category: "diag", action: "send")
                         runDiagnosticsExport()
                     } label: {
                         HStack {
@@ -435,7 +455,11 @@ struct SettingsView: View {
     }
 
     private func resetAll() async {
+        ActivityLogService.shared.log(category: "settings", action: "resetAll")
         for key in StorageKeys.resetAllKeys { UserDefaults.standard.removeObject(forKey: key) }
+        // Wipe the activity log too — fresh-device state should look
+        // like a brand-new install. clear() removes the file outright.
+        ActivityLogService.shared.clear()
         if let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
             try? FileManager.default.removeItem(at: caches.appendingPathComponent("areas"))
         }

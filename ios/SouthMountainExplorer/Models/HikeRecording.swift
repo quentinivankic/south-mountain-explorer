@@ -17,14 +17,23 @@ extension Array where Element == Double {
 }
 
 /// In-memory view-layer pairing of a recorded hike's path with its
-/// end timestamp. `AreaView` holds an array of these and threads
-/// them through to `TrailMapView`, which uses them for both the
-/// cyan past-hike halo (path only) and the orange
-/// walked-since-completion overlay (path + timestamp, filtered
-/// against `ProgressService.completionDate`).
+/// end timestamp + the trails it "deliberately touched" (recorded
+/// against, or completed/revisited on stop). `AreaView` holds an
+/// array of these and threads them through to `TrailMapView`,
+/// which uses them for the cyan past-hike halo (path only) and
+/// the orange walked-since-completion overlay (path + timestamp
+/// + touched-trails filter, scoped to deliberate interactions so
+/// incidental trail crossings don't inflate the overlay).
 struct PastHike: Equatable, Sendable {
     let path: [GpsPoint]
     let endedAt: Date
+    /// Trails this hike actually targeted or completed —
+    /// `trailId` (if set) plus everything in `completedTrailIds`
+    /// and `revisitedTrailIds`. The orange overlay filters by
+    /// "did this hike deliberately touch the selected trail" so
+    /// a recording on a different trail that happened to cross
+    /// the selected one doesn't get counted as a re-walk.
+    let touchedTrailIds: Set<String>
 }
 
 enum RecordingMode: String, Codable, Sendable {

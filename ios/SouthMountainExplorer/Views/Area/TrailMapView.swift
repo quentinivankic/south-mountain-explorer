@@ -550,8 +550,18 @@ struct TrailMapView: View {
         let lastCompletion = progress.completionDate(areaId: area.id, trailId: selectedTrailId)
         let relevantPaths: [GpsPoint] = pastHikes
             .filter { hike in
-                guard let lastCompletion else { return true }
-                return hike.endedAt > lastCompletion
+                if let lastCompletion {
+                    // Completed trail — post-completion deliberate
+                    // touches only. Incidental crossings excluded
+                    // (same filter the rebuildCoverageFromHistory
+                    // pass uses for the sinceCompletion fraction
+                    // so the bar and the overlay agree).
+                    guard hike.endedAt > lastCompletion else { return false }
+                    return hike.touchedTrailIds.contains(selectedTrailId)
+                }
+                // Never completed — all hikes count toward
+                // first-completion progress.
+                return true
             }
             .flatMap(\.path)
         if relevantPaths.isEmpty {

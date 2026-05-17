@@ -52,6 +52,46 @@ enum GpxExport {
         return url
     }
 
+    /// Build a single GPX document containing every trail in
+    /// `area` as its own `<trk>`. Garmin Connect imports each
+    /// `<trk>` as a separate course, so one file → many courses
+    /// after upload — useful for "planning a trip to South
+    /// Mountain" where you want every trail loaded on the watch.
+    /// `<name>` per track is the trail name; area name lands in
+    /// the per-track `<desc>` so the courses are grouped visibly
+    /// in Garmin's list.
+    static func gpxString(area: Area) -> String {
+        var s = ""
+        s += #"<?xml version="1.0" encoding="UTF-8"?>"# + "\n"
+        s += #"<gpx version="1.1" creator="TrekDex iOS" xmlns="http://www.topografix.com/GPX/1/1">"# + "\n"
+        s += "  <metadata>\n"
+        s += "    <name>\(xmlEscape(area.name))</name>\n"
+        s += "  </metadata>\n"
+        for trail in area.trails {
+            s += "  <trk>\n"
+            s += "    <name>\(xmlEscape(trackName(trail: trail)))</name>\n"
+            s += "    <desc>\(xmlEscape(area.name))</desc>\n"
+            for segment in trail.segments where !segment.isEmpty {
+                s += "    <trkseg>\n"
+                for node in segment where node.count >= 2 {
+                    s += "      <trkpt lat=\"\(formatCoord(node[0]))\" lon=\"\(formatCoord(node[1]))\"/>\n"
+                }
+                s += "    </trkseg>\n"
+            }
+            s += "  </trk>\n"
+        }
+        s += "</gpx>\n"
+        return s
+    }
+
+    static func temporaryFile(area: Area) throws -> URL {
+        let body = gpxString(area: area)
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("trekdex-\(slugify(area.name))-all-trails.gpx")
+        try body.write(to: url, atomically: true, encoding: .utf8)
+        return url
+    }
+
     /// Human-friendly name embedded in the `<name>` tags. Just the
     /// trail name — area context goes in `<desc>` instead so
     /// Garmin Connect's course list reads cleanly ("Pima Wash

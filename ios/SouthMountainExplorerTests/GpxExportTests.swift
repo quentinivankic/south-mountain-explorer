@@ -115,4 +115,75 @@ struct GpxExportTests {
         #expect(name.contains("south-mountain-park"))
         #expect(name.contains("pima-wash-trail"))
     }
+
+    // MARK: - Area-wide export
+
+    private func makeArea(trails: [Trail]) -> Area {
+        Area(
+            id: "south-mountain-park-and-preserve-az",
+            name: "South Mountain Park",
+            subtitle: "Arizona",
+            centerLat: 33.3,
+            centerLon: -112.0,
+            zoom: 12,
+            bbox: nil,
+            trails: trails,
+            trailCount: trails.count,
+            totalMi: nil,
+            cachedAt: nil
+        )
+    }
+
+    @Test func areaGpxOneTrkPerTrail() {
+        let area = makeArea(trails: [
+            makeTrail(id: "a", name: "A", segments: [[[33.30, -112.00], [33.31, -112.00]]]),
+            makeTrail(id: "b", name: "B", segments: [[[33.32, -112.00], [33.33, -112.00]]]),
+            makeTrail(id: "c", name: "C", segments: [[[33.34, -112.00], [33.35, -112.00]]])
+        ])
+        let gpx = GpxExport.gpxString(area: area)
+        let trks = gpx.components(separatedBy: "<trk>").count - 1
+        #expect(trks == 3, "expected 3 <trk> entries, got \(trks)")
+        // Each trail's name lands inside its own <trk>.
+        #expect(gpx.contains("<name>A</name>"))
+        #expect(gpx.contains("<name>B</name>"))
+        #expect(gpx.contains("<name>C</name>"))
+    }
+
+    @Test func areaGpxIsWellFormedXml() {
+        let area = makeArea(trails: [
+            makeTrail(name: "Pima Wash", segments: [[[33.30, -112.00], [33.31, -112.00]]]),
+            makeTrail(id: "loop", name: "Pima Loop", segments: [
+                [[33.32, -112.00], [33.33, -112.00]],
+                [[33.34, -112.00], [33.35, -112.00]]
+            ])
+        ])
+        let gpx = GpxExport.gpxString(area: area)
+        let parser = XMLParser(data: Data(gpx.utf8))
+        #expect(parser.parse(), "area GPX should be well-formed XML")
+    }
+
+    @Test func areaGpxEmptyTrailsListProducesEmptyGpx() {
+        // No trails → valid GPX 1.1 with just a <metadata>. Garmin
+        // Connect handles an empty-track file gracefully ("no
+        // courses imported") rather than crashing on parse.
+        let area = makeArea(trails: [])
+        let gpx = GpxExport.gpxString(area: area)
+        #expect(XMLParser(data: Data(gpx.utf8)).parse())
+        #expect(!gpx.contains("<trk>"))
+        #expect(gpx.contains("<name>South Mountain Park</name>"))
+    }
+
+    @Test func areaGpxEscapesNamesAndDesc() {
+        let area = Area(
+            id: "a", name: "A & B", subtitle: "AZ",
+            centerLat: 0, centerLon: 0, zoom: 12, bbox: nil,
+            trails: [makeTrail(name: "X <Y>", segments: [[[33.30, -112.00], [33.31, -112.00]]])],
+            trailCount: 1, totalMi: nil, cachedAt: nil
+        )
+        let gpx = GpxExport.gpxString(area: area)
+        #expect(!gpx.contains("A & B"))
+        #expect(!gpx.contains("X <Y>"))
+        #expect(gpx.contains("A &amp; B"))
+        #expect(gpx.contains("X &lt;Y&gt;"))
+    }
 }

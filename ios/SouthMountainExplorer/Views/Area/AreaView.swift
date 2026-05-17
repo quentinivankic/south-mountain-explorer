@@ -28,6 +28,11 @@ struct AreaView: View {
     @Environment(CoverageService.self) private var coverage
     @Environment(ActivityService.self) private var activity
     @Environment(\.dismiss) private var dismiss
+    /// Map style binding lives on AreaView so the user can flip
+    /// it from the per-map "•••" menu rather than digging into
+    /// Settings. Same `@AppStorage` key MapKitMapView reads, so
+    /// changes propagate immediately to the open map.
+    @AppStorage(StorageKeys.mapStyle) private var mapStyle: MapStylePreference = .standard
 
     @State private var area: Area? = nil
     @State private var isLoading = true
@@ -312,6 +317,12 @@ struct AreaView: View {
                 // sized to grow as more area-wide actions land
                 // (Stats / heatmap export, area download, etc.).
                 Menu {
+                    Picker("Map Style", selection: $mapStyle) {
+                        ForEach(MapStylePreference.allCases) { style in
+                            Text(style.label).tag(style)
+                        }
+                    }
+                    Divider()
                     Button {
                         exportAreaGpx()
                     } label: {

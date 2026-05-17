@@ -44,7 +44,6 @@ struct SettingsView: View {
 
     @AppStorage(StorageKeys.theme) private var theme: AppTheme = .system
     @AppStorage(StorageKeys.debugHUD) private var showDebugHUD: Bool = false
-    @AppStorage(StorageKeys.mapStyle) private var mapStyle: MapStylePreference = .standard
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     /// URL of the most recent diagnostics bundle. Non-nil while
@@ -134,11 +133,6 @@ struct SettingsView: View {
                 }
 
                 Section("Display") {
-                    Picker("Map Style", selection: $mapStyle) {
-                        ForEach(MapStylePreference.allCases) { style in
-                            Text(style.label).tag(style)
-                        }
-                    }
                     Picker("Units", selection: $units) {
                         ForEach(UnitsPreference.allCases) { unit in
                             Text(unit.label).tag(unit)

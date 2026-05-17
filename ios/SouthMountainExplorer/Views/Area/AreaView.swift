@@ -53,7 +53,11 @@ struct AreaView: View {
     @State private var finishedRecording: FinishedRecording? = nil
     @State private var showSummary = false
     @State private var showAreaComplete = false
-    @State private var pastPaths: [[GpsPoint]] = []
+    /// Past hikes in this area, with timestamps so TrailMapView can
+    /// filter "walked since last completion" for the orange overlay.
+    /// Previously this was just `pastPaths: [[GpsPoint]]`; the
+    /// halo render only needs paths but the overlay needs dates.
+    @State private var pastHikes: [PastHike] = []
     @State private var recenterTick: Int = 0
     /// Bumped when the user taps Switch on the retarget or
     /// suggestion banner. Tells `TrailMapView` to re-fit the camera
@@ -156,7 +160,7 @@ struct AreaView: View {
                 TrailMapView(
                     area: area,
                     activeRecording: isRecording ? recording.activeRecording : nil,
-                    pastPaths: pastPaths,
+                    pastHikes: pastHikes,
                     recenterTick: recenterTick,
                     centerOnSwitchedTrailTick: centerOnSwitchedTrailTick,
                     selectedTrailId: $selectedTrailId,
@@ -536,9 +540,9 @@ struct AreaView: View {
 
     private func loadPastPaths() async {
         let history = await recording.loadHistory()
-        pastPaths = history
+        pastHikes = history
             .filter { $0.areaId == areaId }
-            .map { $0.path }
+            .map { PastHike(path: $0.path, endedAt: $0.endedAt) }
     }
 
     /// Trail the retarget banner should offer to switch to, or nil
@@ -593,7 +597,7 @@ struct AreaView: View {
     }
 
     /// Pull recorded hike history once and use it for both:
-    ///   - the cyan coverage halo (`pastPaths`)
+    ///   - the cyan coverage halo (`pastHikes` → path slice)
     ///   - canonical completions, replayed from saved GPS paths against the
     ///     current trails. This self-heals after a re-fetch that changed
     ///     trail IDs: even if `completedTrailIds` in history points at a
@@ -604,7 +608,7 @@ struct AreaView: View {
     private func loadHistoryDerivedState() async {
         let history = await recording.loadHistory()
         let local = history.filter { $0.areaId == areaId }
-        pastPaths = local.map { $0.path }
+        pastHikes = local.map { PastHike(path: $0.path, endedAt: $0.endedAt) }
         // Carry forward any completedTrailIds whose ids still match — cheap
         // path that doesn't need to walk the GPS grid. The path-replay below
         // covers the case where ids changed.

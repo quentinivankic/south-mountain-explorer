@@ -1,11 +1,11 @@
 import SwiftUI
 
 /// Half-sheet that appears when the user taps a trail in the
-/// list. Shows the trail's stats + coverage and exposes the two
-/// primary trail actions: record it, export a GPX of the
-/// official polyline. Lives at `.medium` detent so the map
-/// underneath stays visible — the trail highlight engaged by the
-/// same tap is the whole point of the layout.
+/// list. Shows progress + personal hike history + the two primary
+/// trail actions: record it, export a GPX of the official
+/// polyline. Lives at `.height(320)` detent so the map underneath
+/// stays visible — the trail highlight engaged by the same tap
+/// is the whole point of the layout.
 struct TrailDetailSheet: View {
     let trail: Trail
     let areaId: String
@@ -22,6 +22,11 @@ struct TrailDetailSheet: View {
     @Environment(RecordingService.self) private var recording
 
     @State private var gpxShareURL: IdentifiedURL? = nil
+    /// Hike history filtered to those that touched this trail.
+    /// Loaded asynchronously by `.task(id: trail.id)` — empty
+    /// until the load lands. Re-filters when the sheet re-targets
+    /// a different trail without dismissing.
+    @State private var trailHikes: [SavedRecording] = []
 
     /// Fraction of the trail's nodes covered *since the last
     /// completion*. For never-completed trails this equals lifetime
@@ -43,20 +48,19 @@ struct TrailDetailSheet: View {
         VStack(alignment: .leading, spacing: 16) {
             Text(trail.name)
                 .font(.title3.bold())
-                .padding(.top, 4)
+                .padding(.top, 16)
 
-            // Three states: never walked (no line — keep the sheet
-            // quiet); partially walked since last completion (% with
-            // a draining bar); freshly completed (green seal).
-            // `isComplete` is the lifetime flag, so a brand-new
-            // re-walked trail still reads as Completed until the
-            // user crosses the threshold again — which is exactly
-            // the cycle the user described.
+            // Two states only now — the third (never-walked +
+            // never-completed) used to render nothing, leaving a
+            // confusing void. We render the bar at 100% remaining
+            // for fresh trails so the user sees the natural "all
+            // ahead of you" state. Completed-and-not-yet-rewalked
+            // wins over the bar.
             if isComplete && coverageFraction < 0.01 {
                 Label("Completed", systemImage: "checkmark.seal.fill")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.green)
-            } else if coverageFraction > 0.01 {
+            } else {
                 HStack {
                     Text("\(Int((remainingFraction * 100).rounded()))% remaining")
                         .font(.subheadline)
@@ -68,6 +72,8 @@ struct TrailDetailSheet: View {
                     .tint(.cyan)
             }
 
+            hikeHistoryLine
+
             actionButtons
                 .padding(.top, 4)
 
@@ -76,10 +82,34 @@ struct TrailDetailSheet: View {
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .presentationDetents([.height(260)])
+        .presentationDetents([.height(320)])
         .presentationDragIndicator(.visible)
+        .task(id: trail.id) {
+            await loadHikeHistory()
+        }
         .sheet(item: $gpxShareURL) { wrapped in
             ShareSheet(items: [wrapped.url])
+        }
+    }
+
+    /// One-line summary of how often + how recently the user
+    /// has walked this trail. Renders nothing when the load
+    /// hasn't returned yet or when there are zero matching
+    /// hikes — keeps the sheet quiet for fresh trails.
+    @ViewBuilder
+    private var hikeHistoryLine: some View {
+        if !trailHikes.isEmpty, let mostRecent = trailHikes.first {
+            HStack(spacing: 4) {
+                Image(systemName: "figure.hiking")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+                Text(walkCountLabel(trailHikes.count))
+                Text("·")
+                    .foregroundStyle(.tertiary)
+                Text("Last \(relativeDateString(mostRecent.startedAt))")
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
         }
     }
 
@@ -121,5 +151,41 @@ struct TrailDetailSheet: View {
         } catch {
             // Silent — share sheet won't appear; user can retry.
         }
+    }
+
+    /// Load full hike history, filter to hikes in this area that
+    /// touched this specific trail, then sort newest-first.
+    /// "Touched" = the recording targeted this trail, or this
+    /// trail showed up in newly-completed / revisited at stop time.
+    /// Cheap heuristic — no per-hike coverage recomputation.
+    private func loadHikeHistory() async {
+        let all = await recording.loadHistory()
+        trailHikes = all
+            .filter { hike in
+                guard hike.areaId == areaId else { return false }
+                if hike.trailId == trail.id { return true }
+                if hike.completedTrailIds.contains(trail.id) { return true }
+                if hike.revisitedTrailIds.contains(trail.id) { return true }
+                return false
+            }
+            .sorted { $0.startedAt > $1.startedAt }
+    }
+
+    private func walkCountLabel(_ n: Int) -> String {
+        switch n {
+        case 1: return "Walked once"
+        case 2: return "Walked twice"
+        default: return "Walked \(n) times"
+        }
+    }
+
+    /// `RelativeDateTimeFormatter` isn't Sendable, so we can't park
+    /// one in a `static let` under Swift 6 strict concurrency.
+    /// Construct on each call — cheap at sheet-open rate.
+    private func relativeDateString(_ date: Date) -> String {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .full
+        f.dateTimeStyle = .named
+        return f.localizedString(for: date, relativeTo: Date())
     }
 }

@@ -83,3 +83,53 @@ func measureCoverage(
     }
     return result
 }
+
+/// Length-based coverage fraction per trail: sum of polyline-edge
+/// lengths where BOTH endpoints fall within `bufferMeters` of a GPS
+/// sample, divided by the trail's total polyline length. Mirrors the
+/// "run of ≥ 2 consecutive covered nodes" rule used by
+/// `TrailMapView.trailNodeRuns` for the orange post-completion
+/// overlay — an edge contributes iff both of its nodes would belong
+/// to the same rendered run.
+///
+/// Used for the displayed "% remaining" in `TrailDetailSheet`. The
+/// node-count `measureCoverage` above still drives the completion
+/// gate (intentionally looser at 30m so completion is reachable
+/// despite GPS scatter); this function is purely for display so the
+/// bar literally describes the length of orange drawn on the map.
+///
+/// Returns 0 for trails with no covered edges; omits trails with
+/// zero total length (defensive — shouldn't happen for real OSM
+/// polylines).
+func measureCoverageByLength(
+    path: [GpsPoint],
+    trails: [Trail],
+    bufferMeters: Double = 10.0
+) -> [String: Double] {
+    guard path.count >= 3 else { return [:] }
+
+    var grid = SpatialGrid()
+    for p in path { grid.insert(p) }
+
+    var result: [String: Double] = [:]
+    for trail in trails {
+        var totalLen = 0.0
+        var coveredLen = 0.0
+        for seg in trail.segments {
+            guard seg.count >= 2 else { continue }
+            for i in 0..<(seg.count - 1) {
+                let a = seg[i]
+                let b = seg[i + 1]
+                guard a.count >= 2, b.count >= 2 else { continue }
+                let len = haversineDistanceM(lat1: a[0], lon1: a[1], lat2: b[0], lon2: b[1])
+                totalLen += len
+                let aHit = grid.hasNeighbor(lat: a[0], lon: a[1], withinMeters: bufferMeters)
+                let bHit = grid.hasNeighbor(lat: b[0], lon: b[1], withinMeters: bufferMeters)
+                if aHit && bHit { coveredLen += len }
+            }
+        }
+        guard totalLen > 0 else { continue }
+        result[trail.id] = min(1.0, coveredLen / totalLen)
+    }
+    return result
+}

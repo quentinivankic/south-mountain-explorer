@@ -203,4 +203,72 @@ struct TrailCoverageTests {
                 "union of disjoint halves should cover the whole trail, got \(union.fraction)")
         #expect(union.endpointsVisited == true)
     }
+
+    // MARK: - measureCoverageByLength
+
+    /// Length-based coverage must match node-count for a uniformly-
+    /// spaced trail walked end to end — 100% length, 100% nodes.
+    @Test func lengthCoverageFullWalkScoresOne() throws {
+        let trail = linearTrail(count: 100, deltaLat: 0.001)
+        let path = walkingPath(for: trail)
+        let frac = try #require(
+            measureCoverageByLength(path: path, trails: [trail])[trail.id]
+        )
+        #expect(frac > 0.99, "full walk should read ~1.0, got \(frac)")
+    }
+
+    /// The bug that prompted the function: an isolated cluster of GPS
+    /// samples near a few dense trail nodes inflates the node-count
+    /// fraction (count of near-nodes / total) above the actual length
+    /// share — the orange overlay renders only ~30 m but the bar
+    /// reads ~10%. Length-based math grounds the bar to physical
+    /// distance and matches what's drawn.
+    ///
+    /// Trail = 100 nodes, 1.1 m apart → ~110 m long. GPS = a tight
+    /// cluster covering nodes 40..50 (10 nodes, ~11 m of trail). Node-
+    /// count says ~10/100 = 10%; length says ~11/110 ≈ 10%. The
+    /// real-world wedge appears when node spacing is NON-uniform
+    /// (junctions and curves cluster nodes), which is why we switched.
+    /// This test pins the simpler same-spacing case so the math stays
+    /// honest there too.
+    @Test func lengthCoverageMatchesLengthShareOnUniformSpacing() throws {
+        let trail = linearTrail(count: 100, deltaLat: 0.0001)
+        // Pick out nodes 40..49 and walk just those, so we have ~10
+        // covered nodes flanked by uncovered ones on both sides.
+        let nodes = trail.segments.flatMap { $0 }
+        let covered = Array(nodes[40..<50])
+        let path: [GpsPoint] = covered.enumerated().map { i, n in
+            [n[0], n[1], 1_710_000_000 + Double(i)]
+        }
+        let frac = try #require(
+            measureCoverageByLength(path: path, trails: [trail])[trail.id]
+        )
+        // 10 covered nodes → 9 edges fully covered out of 99 total
+        // edges ≈ 9.1%. Allow a small ± for the spatial-grid
+        // 10m-buffer fuzz at the run boundaries.
+        #expect(frac > 0.07 && frac < 0.15,
+                "isolated ~10-node cluster should read ~9% length, got \(frac)")
+    }
+
+    /// Edges where only ONE endpoint is within the buffer must NOT
+    /// contribute — matches `TrailMapView.trailNodeRuns`' rule that
+    /// only runs of ≥ 2 consecutive covered nodes render as orange.
+    /// Without this, the bar would read non-zero for trails where the
+    /// GPS path glanced past a single node mid-segment.
+    @Test func lengthCoverageRequiresBothEndpointsCovered() throws {
+        let trail = linearTrail(count: 100, deltaLat: 0.001)
+        // Walk only a single node mid-trail (node 50). That node
+        // gets `hasNeighbor` = true; its neighbors (49 and 51) do
+        // NOT (they're 111 m away, far beyond the 10m buffer). So
+        // both edges 49-50 and 50-51 fail the both-covered check.
+        let nodes = trail.segments.flatMap { $0 }
+        let mid = nodes[50]
+        let path: [GpsPoint] = [
+            [mid[0], mid[1], 1_710_000_000],
+            [mid[0], mid[1], 1_710_000_001],
+            [mid[0], mid[1], 1_710_000_002]
+        ]
+        let frac = measureCoverageByLength(path: path, trails: [trail])[trail.id] ?? 0
+        #expect(frac == 0, "single-node hit should not contribute, got \(frac)")
+    }
 }

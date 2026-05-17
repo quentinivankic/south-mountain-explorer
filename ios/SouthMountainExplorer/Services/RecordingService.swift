@@ -529,49 +529,57 @@ final class RecordingService {
         // even when the user has walked nothing since the
         // completion event.
         //
-        // Recompute sinceCompletion per-trail with the completion-
-        // date filter: for completed trails, measure coverage of
-        // only the hikes ending AFTER the completion timestamp
-        // (often empty → 0 → "100% remaining"). For never-completed
-        // trails, sinceCompletion equals lifetime (same value the
-        // merge already wrote, but we set it explicitly so the
-        // overwrite is total — no stale entries from prior
-        // mergeCoverage paths linger).
+        // Recompute sinceCompletion per-trail using LENGTH-based
+        // coverage at the tight 10m buffer (`measureCoverageByLength`)
+        // so the bar's "% remaining" literally describes the length
+        // of orange drawn by the post-completion overlay — same
+        // run-of-2+-covered-nodes rule, summed as polyline distance.
+        // The node-count `aggregate` above still drives the
+        // completion gate (looser 30m so completion stays
+        // reachable through GPS scatter); this pass is display-only.
+        //
+        // Two cases:
+        //
+        //   • Never completed → measure the area's entire history
+        //     against the trail at 10m. Replaces the previous
+        //     "lifetime IS since-completion at 30m node-count"
+        //     pass, which over-credited dense junctions (Pima
+        //     Canyon Loop showed 25% from incidental crossings of
+        //     parallel trails at the trailhead).
+        //
+        //   • Completed → measure only hikes with
+        //     `startedAt > completionDate`. `startedAt` (not
+        //     `endedAt`) so the completing hike — which has
+        //     startedAt before and endedAt after the completion
+        //     stamp — is excluded.
+        let lifetimeLengthCov = measureCoverageByLength(
+            path: combined,
+            trails: trails,
+            bufferMeters: sinceCompletionBufferMeters
+        )
         var sinceCompletionAuthoritative: [String: Double] = [:]
         for trail in trails {
             let tid = trail.id
             let completionDate = ProgressService.shared.completionDate(areaId: areaId, trailId: tid)
             guard let completionDate else {
-                // Never completed — lifetime IS since-completion.
-                let value = aggregate[tid] ?? 0
+                let value = lifetimeLengthCov[tid] ?? 0
                 sinceCompletionAuthoritative[tid] = value
                 log.notice("sinceCompletionComputed tid=\(tid, privacy: .public) completionDate=nil postCompletionHikes=\(areaHistory.count) value=\(value)")
                 continue
             }
-            // Filter on `startedAt > completionDate` (NOT `endedAt`):
-            // the hike that CAUSED the completion has startedAt <
-            // completionDate < endedAt because live recording stamps
-            // completionDate mid-hike, then the hike continues. Gating
-            // on `endedAt` would include that hike and inflate
-            // sinceCompletion to ~1.0. The 10m
-            // `sinceCompletionBufferMeters` below (vs. 30m lifetime)
-            // does the "actually walked vs. drifted past"
-            // discrimination — no per-hike deliberate-touch filter
-            // needed, so incidental drift across an adjacent trail
-            // shows as a thin orange trace.
             let postCompletionHikes = areaHistory.filter { $0.startedAt > completionDate }
             if postCompletionHikes.isEmpty {
                 sinceCompletionAuthoritative[tid] = 0
                 log.notice("sinceCompletionComputed tid=\(tid, privacy: .public) completionDate=\(completionDate.timeIntervalSince1970) postCompletionHikes=0 value=0")
                 continue
             }
-            let combined = postCompletionHikes.flatMap(\.path)
-            let perTrailCov = measureCoverage(
-                path: combined,
+            let postPath = postCompletionHikes.flatMap(\.path)
+            let perTrailCov = measureCoverageByLength(
+                path: postPath,
                 trails: [trail],
                 bufferMeters: sinceCompletionBufferMeters
             )
-            let value = perTrailCov[tid]?.fraction ?? 0
+            let value = perTrailCov[tid] ?? 0
             sinceCompletionAuthoritative[tid] = value
             log.notice("sinceCompletionComputed tid=\(tid, privacy: .public) completionDate=\(completionDate.timeIntervalSince1970) postCompletionHikes=\(postCompletionHikes.count) value=\(value)")
         }

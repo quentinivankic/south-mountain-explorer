@@ -17,16 +17,22 @@ extension Array where Element == Double {
 }
 
 /// In-memory view-layer pairing of a recorded hike's path with its
-/// end timestamp + the trails it "deliberately touched" (recorded
-/// against, or completed/revisited on stop). `AreaView` holds an
-/// array of these and threads them through to `TrailMapView`,
-/// which uses them for the cyan past-hike halo (path only) and
-/// the orange walked-since-completion overlay (path + timestamp
-/// + touched-trails filter, scoped to deliberate interactions so
-/// incidental trail crossings don't inflate the overlay).
+/// **start** timestamp + the trails it "deliberately touched"
+/// (recorded against, or completed/revisited on stop). `AreaView`
+/// holds an array of these and threads them through to
+/// `TrailMapView`, which uses them for the cyan past-hike halo
+/// (path only) and the orange walked-since-completion overlay
+/// (path + startedAt + touched-trails filter).
+///
+/// `startedAt` rather than `endedAt` because the post-completion
+/// filter (`hike.startedAt > completionDate`) needs to **exclude
+/// the hike that itself caused the completion** — a single-session
+/// completion lives at `startedAt < completionDate < endedAt`, so
+/// gating on `startedAt` correctly drops the completion hike and
+/// includes only legitimate later re-walks.
 struct PastHike: Equatable, Sendable {
     let path: [GpsPoint]
-    let endedAt: Date
+    let startedAt: Date
     /// Trails this hike actually targeted or completed —
     /// `trailId` (if set) plus everything in `completedTrailIds`
     /// and `revisitedTrailIds`. The orange overlay filters by

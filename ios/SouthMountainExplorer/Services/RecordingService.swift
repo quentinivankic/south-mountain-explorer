@@ -532,22 +532,29 @@ final class RecordingService {
             let completionDate = ProgressService.shared.completionDate(areaId: areaId, trailId: tid)
             guard let completionDate else {
                 // Never completed — lifetime IS since-completion.
-                sinceCompletionAuthoritative[tid] = aggregate[tid] ?? 0
+                let value = aggregate[tid] ?? 0
+                sinceCompletionAuthoritative[tid] = value
+                log.notice("sinceCompletionComputed tid=\(tid, privacy: .public) completionDate=nil dateCandidates=\(areaHistory.count) deliberateHikes=\(areaHistory.count) value=\(value)")
                 continue
             }
-            // Two filters: (1) date — hikes ending after the
-            // completion event are post-completion candidates;
-            // (2) deliberate-touch — only count hikes that
-            // meaningfully interacted with this trail. Without
-            // (2), incidental crossings (e.g. another trail's
-            // hike whose GPS path happens to overlap this trail's
-            // nodes within the 30m coverage buffer at an
-            // intersection) inflate the post-completion fraction
-            // back to near-1.0, and the user sees "0% remaining"
-            // + orange on a trail they consider untouched since
-            // the completion event.
-            let postCompletionDeliberateHikes = areaHistory.filter { hike in
-                guard hike.endedAt > completionDate else { return false }
+            // Two filters:
+            //
+            // (1) Date: `hike.startedAt > completionDate`. We use
+            // `startedAt`, NOT `endedAt`, because the hike that
+            // CAUSED the completion has `startedAt < completionDate
+            // < endedAt` (live recording stamps completionDate
+            // mid-hike, then the hike continues). Gating on
+            // `endedAt` would include the completing hike itself
+            // and inflate sinceCompletion to ~1.0 (the full walk
+            // of the trail) — the bug from PRs #120/#121.
+            //
+            // (2) Deliberate-touch: only hikes that meaningfully
+            // interacted with this trail. Incidental crossings
+            // (another trail's hike whose GPS path happens to
+            // overlap this trail's nodes within the 30m coverage
+            // buffer at an intersection) get excluded.
+            let dateCandidates = areaHistory.filter { $0.startedAt > completionDate }
+            let postCompletionDeliberateHikes = dateCandidates.filter { hike in
                 if hike.trailId == tid { return true }
                 if hike.completedTrailIds.contains(tid) { return true }
                 if hike.revisitedTrailIds.contains(tid) { return true }
@@ -555,6 +562,7 @@ final class RecordingService {
             }
             if postCompletionDeliberateHikes.isEmpty {
                 sinceCompletionAuthoritative[tid] = 0
+                log.notice("sinceCompletionComputed tid=\(tid, privacy: .public) completionDate=\(completionDate.timeIntervalSince1970) dateCandidates=\(dateCandidates.count) deliberateHikes=0 value=0")
                 continue
             }
             let combined = postCompletionDeliberateHikes.flatMap(\.path)
@@ -563,7 +571,9 @@ final class RecordingService {
                 trails: [trail],
                 bufferMeters: bufferMeters
             )
-            sinceCompletionAuthoritative[tid] = perTrailCov[tid]?.fraction ?? 0
+            let value = perTrailCov[tid]?.fraction ?? 0
+            sinceCompletionAuthoritative[tid] = value
+            log.notice("sinceCompletionComputed tid=\(tid, privacy: .public) completionDate=\(completionDate.timeIntervalSince1970) dateCandidates=\(dateCandidates.count) deliberateHikes=\(postCompletionDeliberateHikes.count) value=\(value)")
         }
         await CoverageService.shared.setSinceCompletion(
             areaId: areaId,

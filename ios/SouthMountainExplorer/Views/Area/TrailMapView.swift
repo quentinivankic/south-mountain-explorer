@@ -552,11 +552,18 @@ struct TrailMapView: View {
             .filter { hike in
                 if let lastCompletion {
                     // Completed trail — post-completion deliberate
-                    // touches only. Incidental crossings excluded
-                    // (same filter the rebuildCoverageFromHistory
+                    // touches only. Filter on `startedAt` rather
+                    // than `endedAt` so the hike that *caused* the
+                    // completion (which has startedAt before, and
+                    // endedAt after, the completion stamp) is
+                    // excluded. Otherwise its full coverage of the
+                    // trail would inflate sinceCompletion to ~1.0
+                    // and the user would see "0% remaining" +
+                    // orange on a trail they just completed.
+                    // Same filter the rebuildCoverageFromHistory
                     // pass uses for the sinceCompletion fraction
-                    // so the bar and the overlay agree).
-                    guard hike.endedAt > lastCompletion else { return false }
+                    // so the bar and the overlay agree.
+                    guard hike.startedAt > lastCompletion else { return false }
                     return hike.touchedTrailIds.contains(selectedTrailId)
                 }
                 // Never completed — all hikes count toward

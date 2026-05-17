@@ -23,8 +23,16 @@ struct TrailDetailSheet: View {
 
     @State private var gpxShareURL: IdentifiedURL? = nil
 
+    /// Fraction of the trail's nodes covered *since the last
+    /// completion*. For never-completed trails this equals lifetime
+    /// coverage; after a completion event it resets to 0 and grows
+    /// from there. Drives the "X% remaining" copy below.
     private var coverageFraction: Double {
-        coverage.coverage(for: areaId)[trail.id] ?? 0
+        coverage.coverageSinceCompletion(for: areaId)[trail.id] ?? 0
+    }
+
+    private var remainingFraction: Double {
+        max(0, min(1, 1 - coverageFraction))
     }
 
     private var isComplete: Bool {
@@ -37,19 +45,26 @@ struct TrailDetailSheet: View {
                 .font(.title3.bold())
                 .padding(.top, 4)
 
-            if isComplete {
+            // Three states: never walked (no line — keep the sheet
+            // quiet); partially walked since last completion (% with
+            // a draining bar); freshly completed (green seal).
+            // `isComplete` is the lifetime flag, so a brand-new
+            // re-walked trail still reads as Completed until the
+            // user crosses the threshold again — which is exactly
+            // the cycle the user described.
+            if isComplete && coverageFraction < 0.01 {
                 Label("Completed", systemImage: "checkmark.seal.fill")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.green)
             } else if coverageFraction > 0.01 {
                 HStack {
-                    Text("\(Int((coverageFraction * 100).rounded()))% covered")
+                    Text("\(Int((remainingFraction * 100).rounded()))% remaining")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                     Spacer()
                 }
-                ProgressView(value: coverageFraction)
+                ProgressView(value: remainingFraction)
                     .tint(.cyan)
             }
 

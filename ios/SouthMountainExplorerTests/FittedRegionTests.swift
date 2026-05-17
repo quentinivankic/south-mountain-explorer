@@ -35,6 +35,8 @@ struct FittedRegionTests {
             #expect(lonDelta == 0.025)
         case .camera:
             Issue.record("Expected .region, got .camera")
+        case .followCenter:
+            Issue.record("Expected .region, got .followCenter")
         }
     }
 

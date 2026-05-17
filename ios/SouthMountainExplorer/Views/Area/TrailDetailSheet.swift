@@ -20,7 +20,6 @@ struct TrailDetailSheet: View {
     @Environment(ProgressService.self) private var progress
     @Environment(CoverageService.self) private var coverage
     @Environment(RecordingService.self) private var recording
-    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     @State private var gpxShareURL: IdentifiedURL? = nil
 
@@ -33,98 +32,40 @@ struct TrailDetailSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    statRow
+        VStack(alignment: .leading, spacing: 16) {
+            Text(trail.name)
+                .font(.title3.bold())
+                .padding(.top, 4)
 
-                    if !isComplete && coverageFraction > 0.01 {
-                        coverageBar
-                    } else if isComplete {
-                        completedBanner
-                    }
+            if isComplete {
+                Label("Completed", systemImage: "checkmark.seal.fill")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.green)
+            } else if coverageFraction > 0.01 {
+                HStack {
+                    Text("\(Int((coverageFraction * 100).rounded()))% covered")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                    Spacer()
+                }
+                ProgressView(value: coverageFraction)
+                    .tint(.cyan)
+            }
 
-                    actionButtons
-                }
-                .padding(20)
-            }
-            .navigationTitle(trail.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
-            }
+            actionButtons
+                .padding(.top, 4)
+
+            Spacer(minLength: 0)
         }
-        .presentationDetents([.medium, .large])
+        .padding(.horizontal, 20)
+        .padding(.bottom, 20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .presentationDetents([.height(260)])
         .presentationDragIndicator(.visible)
         .sheet(item: $gpxShareURL) { wrapped in
             ShareSheet(items: [wrapped.url])
         }
-    }
-
-    private var statRow: some View {
-        HStack(spacing: 0) {
-            stat(value: UnitFormatter.distanceValue(miles: trail.distanceMi, units: units),
-                 unit: UnitFormatter.distanceSuffix(units: units),
-                 label: "Length")
-            Divider().frame(height: 36)
-            stat(value: difficultyLabel, unit: "", label: "Difficulty")
-            Divider().frame(height: 36)
-            stat(value: routeLabel, unit: "", label: "Route")
-        }
-        .padding(.vertical, 14)
-        .frame(maxWidth: .infinity)
-        .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
-    private func stat(value: String, unit: String, label: String) -> some View {
-        VStack(spacing: 4) {
-            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(.title3.bold().monospacedDigit())
-                if !unit.isEmpty {
-                    Text(unit)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var coverageBar: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("Progress")
-                    .font(.subheadline.weight(.medium))
-                Spacer()
-                Text("\(Int((coverageFraction * 100).rounded()))%")
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-            ProgressView(value: coverageFraction)
-                .tint(.cyan)
-        }
-        .padding(14)
-        .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
-    private var completedBanner: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "checkmark.seal.fill")
-                .foregroundStyle(.green)
-                .font(.title3)
-            Text("You've completed this trail")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.green)
-            Spacer()
-        }
-        .padding(14)
-        .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private var actionButtons: some View {
@@ -164,21 +105,6 @@ struct TrailDetailSheet: View {
             gpxShareURL = IdentifiedURL(url: url)
         } catch {
             // Silent — share sheet won't appear; user can retry.
-        }
-    }
-
-    private var difficultyLabel: String {
-        switch trail.difficulty {
-        case .easy: return "Easy"
-        case .moderate: return "Moderate"
-        case .hard: return "Hard"
-        }
-    }
-
-    private var routeLabel: String {
-        switch trail.routeType {
-        case .loop: return "Loop"
-        case .linear: return "Linear"
         }
     }
 }

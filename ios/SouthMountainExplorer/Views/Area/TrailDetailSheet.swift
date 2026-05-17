@@ -56,7 +56,7 @@ struct TrailDetailSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.height(340), .large])
         .presentationDragIndicator(.visible)
         .sheet(item: $gpxShareURL) { wrapped in
             ShareSheet(items: [wrapped.url])

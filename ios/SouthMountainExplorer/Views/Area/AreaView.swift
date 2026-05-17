@@ -297,17 +297,22 @@ struct AreaView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .padding(.bottom, showTrailList
-                        ? max(0, currentListHeight - proxy.safeAreaInsets.bottom)
-                        : 0)
+                    .padding(.bottom, showTrailList ? currentListHeight : 0)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
                 // Match the trail-list panel: ignore the home-indicator
-                // inset only, not the keyboard. Without this, when the
-                // search field in the trail list gains focus, the panel
-                // slides up but these bottom controls (recenter, record,
-                // map style buttons + RecordingPanel) stay anchored at
-                // the bottom and end up hidden behind the keyboard.
+                // inset only, not the keyboard. With that modifier the
+                // GeometryReader's proxy spans the same extended bounds
+                // as the panel (into the home indicator below, but
+                // bounded above the keyboard), so `currentListHeight`
+                // alone is the right padding — both controls and panel
+                // share the same coordinate origin. The old formula
+                // `currentListHeight - proxy.safeAreaInsets.bottom`
+                // assumed the GeometryReader respected the home
+                // indicator (so safeAreaInsets.bottom was ~34); now
+                // that inset is zero (or keyboard-height when up),
+                // making the subtraction shrink the padding into the
+                // panel area.
                 .ignoresSafeArea(.container, edges: .bottom)
                 .allowsHitTesting(true)
 

@@ -138,6 +138,15 @@ struct BrowseView: View {
                 AreaView(areaId: area.id, areaName: area.name)
             }
         }
+        .onChange(of: selectedArea?.id) { _, newId in
+            if let id = newId {
+                ActivityLogService.shared.log(
+                    category: "area",
+                    action: "openFromBrowse",
+                    context: ["areaId": id]
+                )
+            }
+        }
     }
 
     private func haversine(_ a: AreaSummary, _ loc: CLLocationCoordinate2D) -> Double {

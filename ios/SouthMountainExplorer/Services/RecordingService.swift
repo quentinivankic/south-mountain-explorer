@@ -197,6 +197,15 @@ final class RecordingService {
         errorMessage = nil
         persist()
         log.notice("startRecording mode=\(mode.rawValue, privacy: .public) areaId=\(areaId, privacy: .public) trailId=\(trailId ?? "nil", privacy: .public) priorComplete=\(priorComplete.count)")
+        ActivityLogService.shared.log(
+            category: "recording",
+            action: "start",
+            context: [
+                "areaId": areaId,
+                "trailId": trailId ?? "nil",
+                "mode": mode.rawValue,
+            ]
+        )
         locationService.startBackgroundTracking()
         beginObservingLocation()
         // Lazy-prompt for notifications now that the user has actually
@@ -214,6 +223,14 @@ final class RecordingService {
         errorMessage = nil
         UserDefaults.standard.removeObject(forKey: persistKey)
         log.notice("discardRecording areaId=\(prev?.areaId ?? "nil", privacy: .public) duration=\(prev.map { Date().timeIntervalSince($0.startedAt) } ?? 0)s pathPoints=\(prev?.path.count ?? 0)")
+        ActivityLogService.shared.log(
+            category: "recording",
+            action: "discard",
+            context: [
+                "areaId": prev?.areaId ?? "nil",
+                "pathPoints": String(prev?.path.count ?? 0),
+            ]
+        )
     }
 
     /// Switch which trail the active recording is targeted at,
@@ -369,6 +386,19 @@ final class RecordingService {
 
         saveToHistory(finished)
         log.notice("stopRecording areaId=\(rec.areaId, privacy: .public) trailId=\(rec.trailId ?? "nil", privacy: .public) duration=\(finished.durationSeconds)s distanceMi=\(rec.distanceMi) newlyCompleted=\(newlyCompleted.count) revisited=\(revisited.count)")
+        ActivityLogService.shared.log(
+            category: "recording",
+            action: "stop",
+            context: [
+                "areaId": rec.areaId,
+                "trailId": rec.trailId ?? "nil",
+                "mode": rec.mode.rawValue,
+                "distanceMi": String(format: "%.2f", rec.distanceMi),
+                "durationSeconds": String(finished.durationSeconds),
+                "newlyCompleted": String(newlyCompleted.count),
+                "revisited": String(revisited.count),
+            ]
+        )
 
         activeRecording = nil
         UserDefaults.standard.removeObject(forKey: persistKey)

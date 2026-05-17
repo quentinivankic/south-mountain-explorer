@@ -123,12 +123,18 @@ struct ContentView: View {
             switch newPhase {
             case .active:
                 activity.startSession()
+                ActivityLogService.shared.log(category: "app", action: "foreground")
                 // Re-evaluate the nearby prefetch on every foreground
                 // entry — covers the "user moved 30+ mi between
                 // sessions" case. The orchestrator's movement check
                 // makes this a cheap no-op when the user hasn't moved.
                 Task { await areas.runNearbyPrefetchIfAppropriate() }
-            case .inactive, .background: activity.endSession()
+            case .inactive, .background:
+                activity.endSession()
+                ActivityLogService.shared.log(category: "app", action: "background")
+                // Flush pending log writes so foregrounded entries
+                // don't get lost if the app is later killed.
+                ActivityLogService.shared.flush()
             @unknown default: break
             }
         }

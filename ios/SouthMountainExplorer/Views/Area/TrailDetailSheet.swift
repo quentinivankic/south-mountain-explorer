@@ -121,6 +121,11 @@ struct TrailDetailSheet: View {
             // affordance instead.
             if recording.activeRecording == nil, let onRecordTrail {
                 Button {
+                    ActivityLogService.shared.log(
+                        category: "trail",
+                        action: "recordTap",
+                        context: ["areaId": areaId, "trailId": trail.id]
+                    )
                     dismiss()
                     onRecordTrail(trail)
                 } label: {
@@ -145,6 +150,11 @@ struct TrailDetailSheet: View {
     }
 
     private func exportGpx() {
+        ActivityLogService.shared.log(
+            category: "trail",
+            action: "exportGpx",
+            context: ["areaId": areaId, "trailId": trail.id]
+        )
         do {
             let url = try GpxExport.temporaryFile(trail: trail, areaName: areaName)
             gpxShareURL = IdentifiedURL(url: url)

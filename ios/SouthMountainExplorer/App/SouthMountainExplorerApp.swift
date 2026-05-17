@@ -12,6 +12,11 @@ struct SouthMountainExplorerApp: App {
     private let coverage = CoverageService.shared
     private let favorites = FavoritesService.shared
     private let activity = ActivityService.shared
+    private let activityLog = ActivityLogService.shared
+
+    init() {
+        ActivityLogService.shared.log(category: "app", action: "launch")
+    }
     // Force the singleton init to register the UNUserNotificationCenter
     // delegate before any notification can be tapped — without this the
     // delegate is set lazily on first ensurePermission() call, which

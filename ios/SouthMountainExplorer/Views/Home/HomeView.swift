@@ -168,6 +168,21 @@ struct HomeView: View {
         .sheet(item: $selectedArea) { area in
             AreaView(areaId: area.id, areaName: area.name)
         }
+        .onChange(of: selectedArea?.id) { _, newId in
+            // One log site for every path that sets selectedArea —
+            // visible cards, continue card, recommendations.
+            // AreaView's .task fires its own area/opened entry on
+            // mount, but this one captures the tab + source row at
+            // tap time, before any async load. Keyed on .id so we
+            // don't need AreaSummary to conform to Equatable.
+            if let id = newId {
+                ActivityLogService.shared.log(
+                    category: "area",
+                    action: "openFromHome",
+                    context: ["areaId": id]
+                )
+            }
+        }
     }
 
     private func areaSection(title: String, items: [AreaSummary]) -> some View {

@@ -223,6 +223,11 @@ struct AreaView: View {
                                 RetargetTrailBanner(
                                     selectedTrail: retargetTrail,
                                     onSwitch: {
+                                        ActivityLogService.shared.log(
+                                            category: "recording",
+                                            action: "retarget",
+                                            context: ["source": "retargetBanner", "trailId": retargetTrail.id]
+                                        )
                                         recording.retargetTrail(retargetTrail.id)
                                         // selectedTrailId is already pointing
                                         // at retargetTrail.id (the banner
@@ -245,6 +250,11 @@ struct AreaView: View {
                                 SuggestionBanner(
                                     suggestion: suggestion,
                                     onSwitch: {
+                                        ActivityLogService.shared.log(
+                                            category: "recording",
+                                            action: "retarget",
+                                            context: ["source": "suggestionBanner", "trailId": suggestion.trail.id]
+                                        )
                                         recording.retargetTrail(suggestion.trail.id)
                                         // Same shape as the retarget banner
                                         // above: assign selectedTrailId for
@@ -305,7 +315,14 @@ struct AreaView: View {
         .navigationBarHidden(true)
         .overlay(alignment: .top) {
             HStack {
-                Button { dismiss() } label: {
+                Button {
+                    ActivityLogService.shared.log(
+                        category: "area",
+                        action: "closed",
+                        context: ["areaId": areaId]
+                    )
+                    dismiss()
+                } label: {
                     Image(systemName: "xmark")
                         .font(.body.weight(.semibold))
                         .frame(width: 36, height: 36)
@@ -356,6 +373,11 @@ struct AreaView: View {
             // Telemetry: log "user opened this area" so we can later
             // surface "you haven't visited X in a while" reminders.
             activity.recordAreaOpened(areaId)
+            ActivityLogService.shared.log(
+                category: "area",
+                action: "opened",
+                context: ["areaId": areaId]
+            )
             let result = await areas.areaWithError(id: areaId)
             area = result.area
             loadError = result.error
@@ -643,6 +665,11 @@ struct AreaView: View {
     /// finished loading.
     private func exportAreaGpx() {
         guard let area else { return }
+        ActivityLogService.shared.log(
+            category: "trail",
+            action: "exportAreaGpx",
+            context: ["areaId": areaId]
+        )
         do {
             let url = try GpxExport.temporaryFile(area: area)
             areaGpxShareURL = IdentifiedURL(url: url)

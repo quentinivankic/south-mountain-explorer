@@ -535,17 +535,31 @@ final class RecordingService {
                 sinceCompletionAuthoritative[tid] = aggregate[tid] ?? 0
                 continue
             }
-            let postCompletionPath = areaHistory
-                .filter { $0.endedAt > completionDate }
-                .flatMap(\.path)
-            if postCompletionPath.isEmpty {
+            // Two filters: (1) date — hikes ending after the
+            // completion event are post-completion candidates;
+            // (2) deliberate-touch — only count hikes that
+            // meaningfully interacted with this trail. Without
+            // (2), incidental crossings (e.g. another trail's
+            // hike whose GPS path happens to overlap this trail's
+            // nodes within the 30m coverage buffer at an
+            // intersection) inflate the post-completion fraction
+            // back to near-1.0, and the user sees "0% remaining"
+            // + orange on a trail they consider untouched since
+            // the completion event.
+            let postCompletionDeliberateHikes = areaHistory.filter { hike in
+                guard hike.endedAt > completionDate else { return false }
+                if hike.trailId == tid { return true }
+                if hike.completedTrailIds.contains(tid) { return true }
+                if hike.revisitedTrailIds.contains(tid) { return true }
+                return false
+            }
+            if postCompletionDeliberateHikes.isEmpty {
                 sinceCompletionAuthoritative[tid] = 0
                 continue
             }
-            // Single-trail coverage measurement — cheap, scoped to
-            // this trail's polyline only.
+            let combined = postCompletionDeliberateHikes.flatMap(\.path)
             let perTrailCov = measureCoverage(
-                path: postCompletionPath,
+                path: combined,
                 trails: [trail],
                 bufferMeters: bufferMeters
             )

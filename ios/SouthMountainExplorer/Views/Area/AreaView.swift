@@ -575,13 +575,7 @@ struct AreaView: View {
         let history = await recording.loadHistory()
         pastHikes = history
             .filter { $0.areaId == areaId }
-            .map { hike in
-                var touched = Set<String>()
-                if let tid = hike.trailId { touched.insert(tid) }
-                touched.formUnion(hike.completedTrailIds)
-                touched.formUnion(hike.revisitedTrailIds)
-                return PastHike(path: hike.path, startedAt: hike.startedAt, touchedTrailIds: touched)
-            }
+            .map { PastHike(path: $0.path, startedAt: $0.startedAt) }
     }
 
     /// Trail the retarget banner should offer to switch to, or nil
@@ -647,13 +641,7 @@ struct AreaView: View {
     private func loadHistoryDerivedState() async {
         let history = await recording.loadHistory()
         let local = history.filter { $0.areaId == areaId }
-        pastHikes = local.map { hike in
-            var touched = Set<String>()
-            if let tid = hike.trailId { touched.insert(tid) }
-            touched.formUnion(hike.completedTrailIds)
-            touched.formUnion(hike.revisitedTrailIds)
-            return PastHike(path: hike.path, startedAt: hike.startedAt, touchedTrailIds: touched)
-        }
+        pastHikes = local.map { PastHike(path: $0.path, startedAt: $0.startedAt) }
         // Carry forward any completedTrailIds whose ids still match — cheap
         // path that doesn't need to walk the GPS grid. The path-replay below
         // covers the case where ids changed.

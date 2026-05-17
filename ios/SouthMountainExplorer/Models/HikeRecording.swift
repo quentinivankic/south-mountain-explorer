@@ -28,7 +28,7 @@ extension Array where Element == Double {
 /// completion lives at `startedAt < completionDate < endedAt`, so
 /// gating on `startedAt` correctly drops the completion hike and
 /// includes only legitimate later re-walks.
-struct PastHike: Equatable, Sendable {
+struct PastHike: Sendable {
     let path: [GpsPoint]
     let startedAt: Date
 }

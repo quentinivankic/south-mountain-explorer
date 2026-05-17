@@ -573,7 +573,15 @@ struct AreaView: View {
 
     private func loadPastPaths() async {
         let history = await recording.loadHistory()
-        pastHikes = history
+        pastHikes = makePastHikes(from: history)
+    }
+
+    /// Build the in-memory `PastHike` list from on-disk recordings,
+    /// scoped to this area. Shared by `loadPastPaths` (halo-only
+    /// refresh after a recording finishes) and
+    /// `loadHistoryDerivedState` (full coverage replay on area open).
+    private func makePastHikes(from history: [SavedRecording]) -> [PastHike] {
+        history
             .filter { $0.areaId == areaId }
             .map { PastHike(path: $0.path, startedAt: $0.startedAt) }
     }
@@ -641,7 +649,7 @@ struct AreaView: View {
     private func loadHistoryDerivedState() async {
         let history = await recording.loadHistory()
         let local = history.filter { $0.areaId == areaId }
-        pastHikes = local.map { PastHike(path: $0.path, startedAt: $0.startedAt) }
+        pastHikes = makePastHikes(from: history)
         // Carry forward any completedTrailIds whose ids still match — cheap
         // path that doesn't need to walk the GPS grid. The path-replay below
         // covers the case where ids changed.

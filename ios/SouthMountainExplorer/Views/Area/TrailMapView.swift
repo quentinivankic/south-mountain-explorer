@@ -65,7 +65,11 @@ enum MapTrackingMode: Int, CaseIterable {
 struct TrailMapView: View {
     let area: Area
     let activeRecording: ActiveRecording?
-    let pastPaths: [[GpsPoint]]
+    /// Past hikes in this area with timestamps. Cyan halo uses
+    /// just the paths; the orange walked-since-completion overlay
+    /// (computed for whichever trail is currently selected) needs
+    /// the timestamps to filter against `ProgressService.completionDate`.
+    let pastHikes: [PastHike]
     let recenterTick: Int
     /// Bump from `AreaView` when the user taps Switch on the retarget
     /// or suggestion banner. Forces a re-fit of the camera around
@@ -116,6 +120,15 @@ struct TrailMapView: View {
     /// identical "on-trail" semantics.
     @State private var liveHaloSegments: [[CLLocationCoordinate2D]] = []
     @State private var lastLiveHaloRecomputeAt: TimeInterval = 0
+    /// Segments of the selected trail's polyline that the user has
+    /// walked *since the last completion of that trail*. Rendered
+    /// in orange overlaid on the existing blue trail highlight —
+    /// blue = "still to do for the next completion," orange =
+    /// "already covered this cycle." Recomputed on selection or
+    /// when pastHikes changes. Empty when no trail is selected
+    /// or when the post-completion path slice doesn't touch the
+    /// trail.
+    @State private var selectedTrailWalkedSegments: [[CLLocationCoordinate2D]] = []
 
     /// Where the camera should be. Applied by `MapKitMapView`
     /// whenever `cameraTick` changes — the tick is the "go!" signal,
@@ -127,7 +140,7 @@ struct TrailMapView: View {
     init(
         area: Area,
         activeRecording: ActiveRecording?,
-        pastPaths: [[GpsPoint]],
+        pastHikes: [PastHike],
         recenterTick: Int,
         centerOnSwitchedTrailTick: Int,
         selectedTrailId: Binding<String?>,
@@ -137,7 +150,7 @@ struct TrailMapView: View {
     ) {
         self.area = area
         self.activeRecording = activeRecording
-        self.pastPaths = pastPaths
+        self.pastHikes = pastHikes
         self.recenterTick = recenterTick
         self.centerOnSwitchedTrailTick = centerOnSwitchedTrailTick
         self._selectedTrailId = selectedTrailId
@@ -173,6 +186,7 @@ struct TrailMapView: View {
                 activeRecording: activeRecording,
                 haloSegments: cachedHaloSegments,
                 liveHaloSegments: liveHaloSegments,
+                selectedTrailWalkedSegments: selectedTrailWalkedSegments,
                 selectedTrailId: $selectedTrailId,
                 visibleTrailIds: visibleTrailIds,
                 completedTrailIds: completedTrailIdsForArea,
@@ -225,7 +239,7 @@ struct TrailMapView: View {
                 }
             }
             cachedTrailGrid = grid
-            cachedHaloSegments = pastPaths.map { onTrailSegments($0, grid: grid) }
+            cachedHaloSegments = pastHikes.map { onTrailSegments($0.path, grid: grid) }
             // If the view was re-entered with a recording already in
             // progress (e.g. app foregrounded after backgrounding
             // mid-hike), populate the live halo immediately so the
@@ -237,12 +251,19 @@ struct TrailMapView: View {
             }
             centerOnArea()
         }
-        .onChange(of: pastPaths.count) { _, _ in
-            // New hike finished and AreaView reloaded pastPaths.
+        .onChange(of: pastHikes.count) { _, _ in
+            // New hike finished and AreaView reloaded pastHikes.
             // Refresh the halo cache against the existing grid.
-            cachedHaloSegments = pastPaths.map { onTrailSegments($0) }
+            cachedHaloSegments = pastHikes.map { onTrailSegments($0.path) }
+            // Same trigger — refresh the walked-since-completion
+            // overlay so the just-finished hike contributes.
+            recomputeWalkedSinceCompletion()
         }
         .onChange(of: selectedTrailId) { _, newId in
+            // Recompute the orange walked-since-completion overlay
+            // for the newly-selected trail. Cheap — one trail at a
+            // time. Clears to empty when nothing's selected.
+            recomputeWalkedSinceCompletion()
             guard let id = newId,
                   let trail = area.trails.first(where: { $0.id == id }) else {
                 centerOnArea()
@@ -500,6 +521,48 @@ struct TrailMapView: View {
         guard now - lastLiveHaloRecomputeAt >= 1.0 else { return }
         lastLiveHaloRecomputeAt = now
         liveHaloSegments = onTrailSegments(path)
+    }
+
+    // MARK: - Walked-since-completion overlay
+
+    /// Recompute the orange walked-since-completion segments for
+    /// the currently-selected trail.
+    ///
+    /// "Since last completion" means: filter `pastHikes` to those
+    /// ending after the trail's last completion timestamp (or all
+    /// hikes when never completed). Build a single-trail
+    /// `SpatialGrid` from this trail's nodes so `onTrailSegments`
+    /// returns segments on THIS trail rather than any trail.
+    /// Combine the filtered hikes' paths, run them through the
+    /// grid, hand the result to MapKitMapView for orange rendering.
+    ///
+    /// Cheap because we only do this for ONE selected trail at a
+    /// time. For unselected trails the orange overlay is empty.
+    private func recomputeWalkedSinceCompletion() {
+        guard let selectedTrailId,
+              let trail = area.trails.first(where: { $0.id == selectedTrailId }) else {
+            selectedTrailWalkedSegments = []
+            return
+        }
+        let lastCompletion = progress.completionDate(areaId: area.id, trailId: selectedTrailId)
+        let relevantPaths: [GpsPoint] = pastHikes
+            .filter { hike in
+                guard let lastCompletion else { return true }
+                return hike.endedAt > lastCompletion
+            }
+            .flatMap(\.path)
+        // Build a one-trail spatial grid so `onTrailSegments`
+        // returns segments that landed on THIS trail specifically
+        // (not any trail in the area).
+        let sourceTrails = area.rawTrails ?? area.trails
+        let geomTrail = sourceTrails.first(where: { $0.id == trail.id }) ?? trail
+        var trailGrid = SpatialGrid()
+        for seg in geomTrail.segments {
+            for node in seg where node.count >= 2 {
+                trailGrid.insert(node)
+            }
+        }
+        selectedTrailWalkedSegments = onTrailSegments(relevantPaths, grid: trailGrid)
     }
 
     // MARK: - Halo segment filter

@@ -21,6 +21,19 @@ final class ProgressService {
         completions[areaId]?[trailId] != nil
     }
 
+    /// Parsed completion timestamp for the trail, or nil if never
+    /// completed. Drives the map's walked-since-completion overlay
+    /// — that filter wants to know which hikes happened *after*
+    /// the last completion event.
+    /// ISO8601DateFormatter isn't Sendable so we build one per call;
+    /// at sheet-open / selection-change rate that's free.
+    func completionDate(areaId: String, trailId: String) -> Date? {
+        guard let iso = completions[areaId]?[trailId] else { return nil }
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f.date(from: iso)
+    }
+
     func completedTrails(in areaId: String) -> [String: String] {
         completions[areaId] ?? [:]
     }

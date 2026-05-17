@@ -16,6 +16,17 @@ extension Array where Element == Double {
     var altitudeMeters: Double? { count >= 4 ? self[3] : nil }
 }
 
+/// In-memory view-layer pairing of a recorded hike's path with its
+/// end timestamp. `AreaView` holds an array of these and threads
+/// them through to `TrailMapView`, which uses them for both the
+/// cyan past-hike halo (path only) and the orange
+/// walked-since-completion overlay (path + timestamp, filtered
+/// against `ProgressService.completionDate`).
+struct PastHike: Equatable, Sendable {
+    let path: [GpsPoint]
+    let endedAt: Date
+}
+
 enum RecordingMode: String, Codable, Sendable {
     case roam
     case trail

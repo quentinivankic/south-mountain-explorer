@@ -50,6 +50,14 @@ struct MapKitMapView: UIViewRepresentable {
     /// counting toward coverage. Empty when no recording is
     /// active.
     let liveHaloSegments: [[CLLocationCoordinate2D]]
+    /// Segments of the *selected* trail that the user has walked
+    /// since the last completion of that trail. Rendered in
+    /// orange on top of the blue trail-highlight so the user sees
+    /// "blue = still to walk for the next completion, orange =
+    /// already covered this cycle." Empty when nothing's selected
+    /// (or when the user has walked nothing of the selected trail
+    /// since its last completion).
+    let selectedTrailWalkedSegments: [[CLLocationCoordinate2D]]
     @Binding var selectedTrailId: String?
     /// nil = render every trail. Non-nil = only render trails whose
     /// id is in this set, plus the recording trail and the selected
@@ -110,6 +118,7 @@ struct MapKitMapView: UIViewRepresentable {
         // beneath the colored trail outlines.
         context.coordinator.rebuildHaloOverlays(on: mv, segments: haloSegments)
         context.coordinator.rebuildTrailOverlays(on: mv, from: area)
+        context.coordinator.rebuildSelectedTrailWalkedOverlays(on: mv, segments: selectedTrailWalkedSegments)
         context.coordinator.rebuildLiveHaloOverlays(on: mv, segments: liveHaloSegments)
         if let rec = activeRecording, rec.path.count > 1 {
             context.coordinator.updateRecordingOverlay(on: mv, path: rec.path)
@@ -122,6 +131,7 @@ struct MapKitMapView: UIViewRepresentable {
         context.coordinator.lastCompletedTrailIds = completedTrailIds
         context.coordinator.lastHaloHashes = Self.haloHashes(haloSegments)
         context.coordinator.lastLiveHaloHash = Self.liveHaloHash(liveHaloSegments)
+        context.coordinator.lastSelectedTrailWalkedHash = Self.liveHaloHash(selectedTrailWalkedSegments)
 
         // Tap-to-select. Uses a UIGestureRecognizerDelegate that
         // returns false from shouldRecognizeSimultaneouslyWithGestureRecognizer
@@ -177,6 +187,15 @@ struct MapKitMapView: UIViewRepresentable {
         if newLiveHaloHash != coord.lastLiveHaloHash {
             coord.rebuildLiveHaloOverlays(on: mapView, segments: liveHaloSegments)
             coord.lastLiveHaloHash = newLiveHaloHash
+        }
+
+        // 3b) Walked-since-completion overlay for the selected
+        // trail — rebuild when the per-segment hash changes.
+        // Updates on selection change or when pastHikes grows.
+        let newSelectedWalkedHash = Self.liveHaloHash(selectedTrailWalkedSegments)
+        if newSelectedWalkedHash != coord.lastSelectedTrailWalkedHash {
+            coord.rebuildSelectedTrailWalkedOverlays(on: mapView, segments: selectedTrailWalkedSegments)
+            coord.lastSelectedTrailWalkedHash = newSelectedWalkedHash
         }
 
         // 4) Recording overlay — live updates whenever the path grows.
@@ -346,6 +365,13 @@ struct MapKitMapView: UIViewRepresentable {
         /// fires per overlay and doesn't know which collection an
         /// MKPolyline came from).
         var liveHaloIds: Set<ObjectIdentifier> = []
+        /// Walked-since-last-completion segments for the currently
+        /// selected trail. Rendered in systemOrange on top of the
+        /// trail's blue highlight. Tracked separately from the
+        /// halos so the renderer can identify and style them
+        /// (per-overlay closure doesn't carry context).
+        var selectedTrailWalkedOverlays: [MKPolyline] = []
+        var selectedTrailWalkedIds: Set<ObjectIdentifier> = []
         var recordingOverlay: MKPolyline?
 
         // Diff snapshots — set in makeUIView and updated in
@@ -358,6 +384,7 @@ struct MapKitMapView: UIViewRepresentable {
         var lastCameraTick: Int = -1
         var lastHaloHashes: [Int] = []
         var lastLiveHaloHash: Int = 0
+        var lastSelectedTrailWalkedHash: Int = 0
 
         init(parent: MapKitMapView) {
             self.parent = parent
@@ -534,6 +561,27 @@ struct MapKitMapView: UIViewRepresentable {
             }
         }
 
+        /// Rebuild the orange walked-since-completion overlay for
+        /// the selected trail. Same shape as `rebuildLiveHaloOverlays`
+        /// but with its own bucket — the renderer styles these in
+        /// systemOrange (vs the live halo's mint) so a recording-in-
+        /// progress overlay and a selection overlay can coexist.
+        func rebuildSelectedTrailWalkedOverlays(on mapView: MKMapView, segments: [[CLLocationCoordinate2D]]) {
+            if !selectedTrailWalkedOverlays.isEmpty {
+                mapView.removeOverlays(selectedTrailWalkedOverlays as [MKOverlay])
+                selectedTrailWalkedOverlays.removeAll(keepingCapacity: true)
+                selectedTrailWalkedIds.removeAll(keepingCapacity: true)
+            }
+            for seg in segments where seg.count >= 2 {
+                let pl = MKPolyline(coordinates: seg, count: seg.count)
+                selectedTrailWalkedOverlays.append(pl)
+                selectedTrailWalkedIds.insert(ObjectIdentifier(pl))
+                // .aboveLabels so the orange sits above the trail
+                // polyline (which sits at .aboveRoads).
+                mapView.addOverlay(pl, level: .aboveLabels)
+            }
+        }
+
         // MARK: Recording overlay
 
         func updateRecordingOverlay(on mapView: MKMapView, path: [GpsPoint]) {
@@ -584,6 +632,14 @@ struct MapKitMapView: UIViewRepresentable {
                     // recording polyline.
                     r.strokeColor = UIColor.systemYellow.withAlphaComponent(0.9)
                     r.lineWidth = 6
+                } else if selectedTrailWalkedIds.contains(ObjectIdentifier(pl)) {
+                    // Walked-since-completion on the selected trail.
+                    // System orange, opaque, narrower than the
+                    // trail's blue highlight so the blue stays
+                    // visible underneath — "blue = still to walk,
+                    // orange = already covered this cycle."
+                    r.strokeColor = UIColor.systemOrange.withAlphaComponent(0.95)
+                    r.lineWidth = 5
                 } else {
                     // Past-hike halo. Cyan with 0.55 alpha, 7pt —
                     // matches the SwiftUI MapPolyline halo style

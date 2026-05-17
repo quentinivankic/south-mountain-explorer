@@ -813,7 +813,11 @@ struct AreaView: View {
             .geometryGroup()
             .animation(nil, value: trailListHeight)
         }
-        .ignoresSafeArea(edges: .bottom)
+        // `.container` ignores the home-indicator inset (so the panel
+        // sits flush with the bottom edge) but NOT the keyboard inset
+        // — so focusing the trail-search field pushes the panel up
+        // instead of leaving the field hidden behind the keyboard.
+        .ignoresSafeArea(.container, edges: .bottom)
     }
 
     private func dragGesture(tallHeight: CGFloat) -> some Gesture {

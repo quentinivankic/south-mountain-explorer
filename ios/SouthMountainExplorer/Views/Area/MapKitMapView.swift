@@ -27,10 +27,15 @@ import UIKit
 /// Discriminated camera move. `region` for normal framings (centered
 /// on an area / trail / user), `camera` for the followHeading mode
 /// (which needs a rotated heading and is set via MKMapCamera since
-/// MKCoordinateRegion has no heading concept).
+/// MKCoordinateRegion has no heading concept), `followCenter` for
+/// continuous live-tracking pans that must PRESERVE the user's
+/// current pinch-zoom — without this case, every GPS update during
+/// follow lock would re-apply a fixed zoom and undo any zoom the
+/// user just performed.
 enum MapTarget: Equatable {
     case region(centerLat: Double, centerLon: Double, latDelta: Double, lonDelta: Double)
     case camera(centerLat: Double, centerLon: Double, distance: Double, heading: Double)
+    case followCenter(centerLat: Double, centerLon: Double, heading: Double?)
 }
 
 struct MapKitMapView: UIViewRepresentable {
@@ -288,6 +293,23 @@ struct MapKitMapView: UIViewRepresentable {
                 heading: heading
             )
             mapView.setCamera(cam, animated: animated)
+        case .followCenter(let lat, let lon, let heading):
+            // Preserve user's current zoom. For follow (heading nil),
+            // just pan; for followHeading, build a fresh camera that
+            // carries over altitude + pitch from the live one so only
+            // center + heading change.
+            let center = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+            if let heading {
+                let current = mapView.camera
+                let cam = MKMapCamera()
+                cam.centerCoordinate = center
+                cam.altitude = current.altitude
+                cam.pitch = current.pitch
+                cam.heading = heading
+                mapView.setCamera(cam, animated: animated)
+            } else {
+                mapView.setCenter(center, animated: animated)
+            }
         }
     }
 
@@ -595,7 +617,12 @@ struct MapKitMapView: UIViewRepresentable {
             }
             let pl = MKPolyline(coordinates: coords, count: coords.count)
             recordingOverlay = pl
-            mapView.addOverlay(pl, level: .aboveLabels)
+            // .aboveRoads so the (slim, semi-transparent) raw-GPS
+            // stroke sits BELOW the snapped purple live-halo at
+            // .aboveLabels — on-trail portions read as a single
+            // bold snapped stroke; off-trail portions show only
+            // the slimmer raw GPS line.
+            mapView.addOverlay(pl, level: .aboveRoads)
         }
 
         func removeRecordingOverlay(from mapView: MKMapView) {
@@ -621,16 +648,24 @@ struct MapKitMapView: UIViewRepresentable {
                 r.lineCap = .round
                 r.lineJoin = .round
                 if pl === recordingOverlay {
-                    r.strokeColor = .systemBlue
-                    r.lineWidth = 4
+                    // Raw GPS path during recording. Purple at
+                    // reduced alpha + slimmer than the on-trail
+                    // snapped overlay below so it shows through
+                    // for off-trail portions (parking, road walk,
+                    // scrambles) but doesn't compete with the
+                    // snapped purple stroke that sits on the
+                    // trail polyline itself for counted segments.
+                    r.strokeColor = UIColor.systemPurple.withAlphaComponent(0.55)
+                    r.lineWidth = 2
                 } else if liveHaloIds.contains(ObjectIdentifier(pl)) {
-                    // Live counted-segments. Bright yellow at high
-                    // alpha + slightly narrower than the past-hike
-                    // halo so the two read as visually distinct:
-                    // past = pale cyan glow, live = vivid yellow.
-                    // Sits above trail polylines, below the
-                    // recording polyline.
-                    r.strokeColor = UIColor.systemYellow.withAlphaComponent(0.9)
+                    // Live counted-segments — TRAIL-POLYLINE-
+                    // SNAPPED runs (same 10m / ≥2-consecutive-
+                    // covered-nodes rule as the post-completion
+                    // orange overlay). Purple at high alpha so it
+                    // dominates the raw GPS stroke on portions
+                    // the user is actually walking on a trail.
+                    // Sits above trail polylines.
+                    r.strokeColor = UIColor.systemPurple.withAlphaComponent(0.95)
                     r.lineWidth = 6
                 } else if selectedTrailWalkedIds.contains(ObjectIdentifier(pl)) {
                     // Walked-since-completion on the selected trail.

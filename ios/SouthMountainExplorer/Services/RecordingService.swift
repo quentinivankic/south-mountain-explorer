@@ -323,7 +323,20 @@ final class RecordingService {
         // from this hike" summary in `RecordingPanel`.
         let combinedPath = combinedPathForArea(rec.areaId, currentPath: rec.path)
         let sessionCoverage = measureCoverage(path: combinedPath, trails: trails, bufferMeters: bufferMeters)
-        let perHikeDelta = measureCoverage(path: rec.path, trails: trails, bufferMeters: bufferMeters)
+        // `perHikeDelta` feeds the Stop & Save summary's "Made
+        // Progress" list. Use length-based at 10m (same math as the
+        // post-completion overlay since PR #125) so the percentage
+        // shown for each trail matches the user's intuition of "how
+        // much of this trail did I actually walk." The looser 30m
+        // node-count via `measureCoverage` inflates the number with
+        // drift / proximity credits (e.g. "53% of Beacon Hill" from
+        // a hike that never touched it, just paralleled it within
+        // 30m at a junction).
+        let perHikeDelta = measureCoverageByLength(
+            path: rec.path,
+            trails: trails,
+            bufferMeters: sinceCompletionBufferMeters
+        )
         let (mergeNew, mergeRevisited, _) = await mergeCoverage(
             areaId: rec.areaId,
             sessionCoverage: sessionCoverage,
@@ -392,7 +405,7 @@ final class RecordingService {
             distanceMi: rec.distanceMi,
             newlyCompletedTrailIds: newlyCompleted,
             revisitedTrailIds: revisited,
-            coverageDelta: perHikeDelta.mapValues(\.fraction)
+            coverageDelta: perHikeDelta
         )
 
         saveToHistory(finished)

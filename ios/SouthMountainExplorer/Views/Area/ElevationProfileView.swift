@@ -36,7 +36,7 @@ struct ElevationProfileView: View {
             .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
             .interpolationMethod(.monotone)
         }
-        .chartYScale(domain: yDomain)
+        .chartYScale(domain: yAxis.domain)
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 4)) { value in
                 AxisGridLine().foregroundStyle(.secondary.opacity(0.2))
@@ -53,7 +53,7 @@ struct ElevationProfileView: View {
             }
         }
         .chartYAxis {
-            AxisMarks(values: .automatic(desiredCount: 4)) { value in
+            AxisMarks(values: yAxis.ticks) { value in
                 AxisGridLine().foregroundStyle(.secondary.opacity(0.2))
                 AxisValueLabel {
                     if let meters = value.as(Double.self) {
@@ -69,17 +69,42 @@ struct ElevationProfileView: View {
         .frame(height: 160)
     }
 
-    /// Tight Y range plus 5% headroom on each side so the line never
-    /// kisses the top or bottom of the plot area. Falls back to a
-    /// fixed ±10 m window when the hike was perfectly flat (rare —
-    /// even GPS noise produces a few meters of spread).
-    private var yDomain: ClosedRange<Double> {
-        let span = stats.maxAltitudeMeters - stats.minAltitudeMeters
+    /// Computed Y-axis ticks + domain. Picks a "nice" step in the
+    /// display unit (feet) that yields ~4 ticks across the data
+    /// range, then rounds the bounds OUTWARD to the nearest step
+    /// multiple. The domain is the resulting tick range — guarantees
+    /// every tick label sits inside the visible plot and the line
+    /// never extends past a labeled tick. Replaces `AxisMarks(.
+    /// automatic)` which silently picked ticks INSIDE the data range
+    /// (e.g. ticks 1377/1410/1443 ft for a 1357–1466 ft hike, so the
+    /// chart line legitimately drew above the top label).
+    private var yAxis: (domain: ClosedRange<Double>, ticks: [Double]) {
+        let minFt = stats.minAltitudeMeters * 3.28084
+        let maxFt = stats.maxAltitudeMeters * 3.28084
+        let span = maxFt - minFt
+
+        // Flat hike fallback — center ± a couple of steps so the
+        // line doesn't render as a single pixel at one tick.
         if span < 1 {
-            let center = stats.minAltitudeMeters
-            return (center - 10)...(center + 10)
+            let centerFt = minFt
+            let step = 10.0
+            let ticksFt = [centerFt - step, centerFt, centerFt + step]
+            let ticksM = ticksFt.map { $0 / 3.28084 }
+            return (domain: ticksM.first!...ticksM.last!, ticks: ticksM)
         }
-        let pad = span * 0.05
-        return (stats.minAltitudeMeters - pad)...(stats.maxAltitudeMeters + pad)
+
+        let candidates: [Double] = [5, 10, 25, 50, 100, 250, 500, 1000]
+        let targetTicks = 4.0
+        let step = candidates.first(where: { span / $0 <= targetTicks + 1 }) ?? 1000.0
+        let minTickFt = (minFt / step).rounded(.down) * step
+        let maxTickFt = (maxFt / step).rounded(.up) * step
+        var ticksFt: [Double] = []
+        var t = minTickFt
+        while t <= maxTickFt + 0.001 {
+            ticksFt.append(t)
+            t += step
+        }
+        let ticksM = ticksFt.map { $0 / 3.28084 }
+        return (ticksM.first!...ticksM.last!, ticksM)
     }
 }

@@ -14,6 +14,11 @@ struct ContentView: View {
     @State private var showStopConfirm = false
     @State private var showDiscardConfirm = false
     @State private var jumpToAreaId: String? = nil
+    /// Last activity-log state we emitted for the app — "active"
+    /// or "background". Used to de-dupe scene-phase transitions
+    /// (.inactive AND .background both map to background, and the
+    /// system can fire several of them per share-sheet present).
+    @State private var lastLoggedAppState: String? = nil
     /// Set when the user taps a trail-completion push notification. The
     /// AreaView opened by `jumpToAreaId` reads this to play a one-shot
     /// celebration overlay, then clears itself.
@@ -120,10 +125,25 @@ struct ContentView: View {
         // / .background fires when the app loses foreground (incl. when
         // killed). endSession is a no-op if no start has been recorded.
         .onChange(of: scenePhase, initial: true) { _, newPhase in
+            // Activity-log de-dupe: only log on real transitions
+            // (active ↔ background). `initial: true` fires on
+            // cold launch with whatever scene phase we land in,
+            // and share-sheet presents bounce through .inactive +
+            // .background several times — each transition would
+            // otherwise log a redundant entry.
+            let nextState: String?
+            switch newPhase {
+            case .active: nextState = "active"
+            case .inactive, .background: nextState = "background"
+            @unknown default: nextState = nil
+            }
             switch newPhase {
             case .active:
                 activity.startSession()
-                ActivityLogService.shared.log(category: "app", action: "foreground")
+                if nextState != lastLoggedAppState {
+                    ActivityLogService.shared.log(category: "app", action: "foreground")
+                    lastLoggedAppState = nextState
+                }
                 // Re-evaluate the nearby prefetch on every foreground
                 // entry — covers the "user moved 30+ mi between
                 // sessions" case. The orchestrator's movement check
@@ -131,7 +151,10 @@ struct ContentView: View {
                 Task { await areas.runNearbyPrefetchIfAppropriate() }
             case .inactive, .background:
                 activity.endSession()
-                ActivityLogService.shared.log(category: "app", action: "background")
+                if nextState != lastLoggedAppState {
+                    ActivityLogService.shared.log(category: "app", action: "background")
+                    lastLoggedAppState = nextState
+                }
                 // Flush pending log writes so foregrounded entries
                 // don't get lost if the app is later killed.
                 ActivityLogService.shared.flush()

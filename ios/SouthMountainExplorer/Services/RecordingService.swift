@@ -509,6 +509,53 @@ final class RecordingService {
         }
 
         await CoverageService.shared.mergeCoverage(areaId: areaId, delta: aggregate)
+
+        // mergeCoverage above max-merges `aggregate` into BOTH the
+        // lifetime `state` AND `sinceCompletion` buckets, which
+        // would clobber the sinceCompletion-for-completed-trails
+        // semantic — a trail completed yesterday would re-inherit
+        // its lifetime ~0.94 coverage and appear "6% remaining"
+        // even when the user has walked nothing since the
+        // completion event.
+        //
+        // Recompute sinceCompletion per-trail with the completion-
+        // date filter: for completed trails, measure coverage of
+        // only the hikes ending AFTER the completion timestamp
+        // (often empty → 0 → "100% remaining"). For never-completed
+        // trails, sinceCompletion equals lifetime (same value the
+        // merge already wrote, but we set it explicitly so the
+        // overwrite is total — no stale entries from prior
+        // mergeCoverage paths linger).
+        var sinceCompletionAuthoritative: [String: Double] = [:]
+        for trail in trails {
+            let tid = trail.id
+            let completionDate = ProgressService.shared.completionDate(areaId: areaId, trailId: tid)
+            guard let completionDate else {
+                // Never completed — lifetime IS since-completion.
+                sinceCompletionAuthoritative[tid] = aggregate[tid] ?? 0
+                continue
+            }
+            let postCompletionPath = areaHistory
+                .filter { $0.endedAt > completionDate }
+                .flatMap(\.path)
+            if postCompletionPath.isEmpty {
+                sinceCompletionAuthoritative[tid] = 0
+                continue
+            }
+            // Single-trail coverage measurement — cheap, scoped to
+            // this trail's polyline only.
+            let perTrailCov = measureCoverage(
+                path: postCompletionPath,
+                trails: [trail],
+                bufferMeters: bufferMeters
+            )
+            sinceCompletionAuthoritative[tid] = perTrailCov[tid]?.fraction ?? 0
+        }
+        await CoverageService.shared.setSinceCompletion(
+            areaId: areaId,
+            values: sinceCompletionAuthoritative
+        )
+
         let nowComplete = aggregate.compactMap { (tid, v) in
             v >= completeThreshold && (endpointsHit[tid] ?? false) ? tid : nil
         }

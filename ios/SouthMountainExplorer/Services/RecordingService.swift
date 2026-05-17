@@ -19,6 +19,17 @@ private let log = Logger(subsystem: "com.trekdex.app", category: "recording")
 /// frustrating.
 private let completeThreshold = 0.95
 private let bufferMeters = 30.0
+/// Tighter buffer used by the `sinceCompletion` measurement and
+/// the matching orange overlay on the map. Lifetime coverage
+/// (and the area-level completion fraction) use the looser
+/// `bufferMeters = 30` so a "near a trail" GPS sample still
+/// credits the trail node. The post-completion measurement needs
+/// to distinguish "actually walked here" from "passed near while
+/// on a different trail" — a 10m buffer matches the completion
+/// gate's precision and gives the orange overlay realistic
+/// "I drifted across this trail" semantics rather than "this
+/// trail crossed mine, count it all."
+private let sinceCompletionBufferMeters = 10.0
 private let jitterMeters = 3.0
 private let badFixMeters = 200.0
 
@@ -534,46 +545,44 @@ final class RecordingService {
                 // Never completed — lifetime IS since-completion.
                 let value = aggregate[tid] ?? 0
                 sinceCompletionAuthoritative[tid] = value
-                log.notice("sinceCompletionComputed tid=\(tid, privacy: .public) completionDate=nil dateCandidates=\(areaHistory.count) deliberateHikes=\(areaHistory.count) value=\(value)")
+                log.notice("sinceCompletionComputed tid=\(tid, privacy: .public) completionDate=nil postCompletionHikes=\(areaHistory.count) value=\(value)")
                 continue
             }
-            // Two filters:
+            // Date filter only: `hike.startedAt > completionDate`.
+            // We use `startedAt`, NOT `endedAt`, because the hike
+            // that CAUSED the completion has `startedAt <
+            // completionDate < endedAt` (live recording stamps
+            // completionDate mid-hike, then the hike continues).
+            // Gating on `endedAt` would include the completing
+            // hike itself and inflate sinceCompletion to ~1.0 —
+            // the bug from PRs #120/#121.
             //
-            // (1) Date: `hike.startedAt > completionDate`. We use
-            // `startedAt`, NOT `endedAt`, because the hike that
-            // CAUSED the completion has `startedAt < completionDate
-            // < endedAt` (live recording stamps completionDate
-            // mid-hike, then the hike continues). Gating on
-            // `endedAt` would include the completing hike itself
-            // and inflate sinceCompletion to ~1.0 (the full walk
-            // of the trail) — the bug from PRs #120/#121.
-            //
-            // (2) Deliberate-touch: only hikes that meaningfully
-            // interacted with this trail. Incidental crossings
-            // (another trail's hike whose GPS path happens to
-            // overlap this trail's nodes within the 30m coverage
-            // buffer at an intersection) get excluded.
-            let dateCandidates = areaHistory.filter { $0.startedAt > completionDate }
-            let postCompletionDeliberateHikes = dateCandidates.filter { hike in
-                if hike.trailId == tid { return true }
-                if hike.completedTrailIds.contains(tid) { return true }
-                if hike.revisitedTrailIds.contains(tid) { return true }
-                return false
-            }
-            if postCompletionDeliberateHikes.isEmpty {
+            // We deliberately do NOT also filter by "did this
+            // hike target / re-complete this trail" — that filter
+            // (PR #122) zeroed out *every* completed trail because
+            // a post-completion hike on an adjacent trail still
+            // legitimately drifts across the completed one, and
+            // the user wants to see that drift as a thin orange
+            // trace. The 10m `sinceCompletionBufferMeters` does
+            // the discrimination instead: incidental network
+            // crossings have to actually fall within 10m of a
+            // trail node to count (vs. 30m for lifetime), which
+            // matches the completion gate's precision.
+            let postCompletionHikes = areaHistory.filter { $0.startedAt > completionDate }
+            if postCompletionHikes.isEmpty {
                 sinceCompletionAuthoritative[tid] = 0
-                log.notice("sinceCompletionComputed tid=\(tid, privacy: .public) completionDate=\(completionDate.timeIntervalSince1970) dateCandidates=\(dateCandidates.count) deliberateHikes=0 value=0")
+                log.notice("sinceCompletionComputed tid=\(tid, privacy: .public) completionDate=\(completionDate.timeIntervalSince1970) postCompletionHikes=0 value=0")
                 continue
             }
-            let combined = postCompletionDeliberateHikes.flatMap(\.path)
+            let combined = postCompletionHikes.flatMap(\.path)
             let perTrailCov = measureCoverage(
                 path: combined,
                 trails: [trail],
-                bufferMeters: bufferMeters
+                bufferMeters: sinceCompletionBufferMeters
             )
             let value = perTrailCov[tid]?.fraction ?? 0
             sinceCompletionAuthoritative[tid] = value
-            log.notice("sinceCompletionComputed tid=\(tid, privacy: .public) completionDate=\(completionDate.timeIntervalSince1970) dateCandidates=\(dateCandidates.count) deliberateHikes=\(postCompletionDeliberateHikes.count) value=\(value)")
+            log.notice("sinceCompletionComputed tid=\(tid, privacy: .public) completionDate=\(completionDate.timeIntervalSince1970) postCompletionHikes=\(postCompletionHikes.count) value=\(value)")
         }
         await CoverageService.shared.setSinceCompletion(
             areaId: areaId,

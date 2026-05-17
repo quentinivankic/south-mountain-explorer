@@ -551,20 +551,19 @@ struct TrailMapView: View {
         let relevantPaths: [GpsPoint] = pastHikes
             .filter { hike in
                 if let lastCompletion {
-                    // Completed trail — post-completion deliberate
-                    // touches only. Filter on `startedAt` rather
-                    // than `endedAt` so the hike that *caused* the
-                    // completion (which has startedAt before, and
-                    // endedAt after, the completion stamp) is
-                    // excluded. Otherwise its full coverage of the
-                    // trail would inflate sinceCompletion to ~1.0
-                    // and the user would see "0% remaining" +
-                    // orange on a trail they just completed.
-                    // Same filter the rebuildCoverageFromHistory
-                    // pass uses for the sinceCompletion fraction
-                    // so the bar and the overlay agree.
-                    guard hike.startedAt > lastCompletion else { return false }
-                    return hike.touchedTrailIds.contains(selectedTrailId)
+                    // Completed trail — every hike that started
+                    // AFTER the completion stamp counts toward
+                    // the post-completion overlay, regardless of
+                    // whether it deliberately targeted this
+                    // trail. Tight 10m buffer in `trailNodeRuns`
+                    // does the discrimination: drift across the
+                    // trail (within 10m of a node) shows orange;
+                    // a hike on a far-away trail contributes
+                    // nothing. Filter on `startedAt` (not
+                    // `endedAt`) so the completing hike — which
+                    // has startedAt before and endedAt after the
+                    // completion stamp — is excluded.
+                    return hike.startedAt > lastCompletion
                 }
                 // Never completed — all hikes count toward
                 // first-completion progress.
@@ -591,12 +590,17 @@ struct TrailMapView: View {
     }
 
     /// Walk each segment of `trail.segments` node-by-node, emit
-    /// runs of consecutive trail nodes that are within 30 m of any
+    /// runs of consecutive trail nodes that are within 10 m of any
     /// point in `gpsGrid`. The returned polylines are sequences of
     /// TRAIL nodes — so rendering them produces lines that follow
     /// the trail polyline precisely, not the user's GPS scatter.
+    /// 10m (tighter than the 30m lifetime buffer) matches the
+    /// `sinceCompletionBufferMeters` used by
+    /// `rebuildCoverageFromHistory`, so the bar's "% remaining"
+    /// and the orange overlay agree on what counts as "drifted
+    /// across this trail" post-completion.
     private func trailNodeRuns(coveredBy gpsGrid: SpatialGrid, in trail: Trail) -> [[CLLocationCoordinate2D]] {
-        let bufferM = 30.0
+        let bufferM = 10.0
         var runs: [[CLLocationCoordinate2D]] = []
         for seg in trail.segments {
             var current: [CLLocationCoordinate2D] = []

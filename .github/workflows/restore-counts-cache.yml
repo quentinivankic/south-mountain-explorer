@@ -1,0 +1,63 @@
+name: Restore counts-cache from release asset
+
+# One-shot recovery workflow. Use this when a Build Trail Index run
+# died after `build-trail-counts.py` did real work but before the
+# commit step could push (e.g. a merge collision on main). The
+# `counts-cache.json` artifact uploaded by `if: always()` survives,
+# but the Actions cache slot might not — without `save-always: true`,
+# the post-step cache save is skipped on certain failure paths.
+#
+# Manual recovery flow:
+#   1. Download `counts-cache.json` from the failed run's artifacts.
+#   2. Unzip locally to get the raw `counts-cache.json` file.
+#   3. Create a published GitHub release with that file attached.
+#   4. Dispatch this workflow with the release tag.
+#   5. It downloads the asset, places it at the expected path, and
+#      saves it to the `counts-cache-v1` cache slot.
+#   6. Re-dispatch `Build Trail Index` — the trail-counts step now
+#      sees every area cached → fast finish.
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "GitHub release tag holding the counts-cache.json asset (e.g. counts-cache-restore)"
+        required: true
+        default: "counts-cache-restore"
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download counts-cache asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p public/areas
+          cd public/areas
+          # Tolerates both bare counts-cache.json and a zipped version
+          # (the failed-run artifact downloads as counts-cache.zip).
+          gh release download "${{ github.event.inputs.release_tag }}" \
+            --repo "${{ github.repository }}"
+          if compgen -G "*.zip" > /dev/null; then
+            echo "Found zip — extracting"
+            unzip -o *.zip
+            rm -f *.zip
+          fi
+          if [ ! -f counts-cache.json ]; then
+            echo "::error::counts-cache.json not found after download/extract."
+            ls -la
+            exit 1
+          fi
+          ls -lh counts-cache.json
+
+      - name: Save to Actions cache (counts-cache-v1)
+        uses: actions/cache/save@v4
+        with:
+          path: public/areas/counts-cache.json
+          key: counts-cache-v1

@@ -82,16 +82,23 @@ ALLOWED_PROTECT_CLASSES = {
 # Catches state parks, national forests, regional/county parks, etc. that
 # don't tag protect_class (common in OSM US data).
 NAME_KEYWORD_RE = re.compile(
-    # English keywords (require left word boundary so "spark" doesn't
-    # match "park", etc.).
+    # English + French keywords (require word boundaries on both
+    # sides since both languages use whitespace between words for
+    # these terms).
     r"\b(park|preserve|wilderness|forest|monument|recreation area|"
     r"recreation site|refuge|sanctuary|reserve|open space|"
-    r"conservation|wildlife|trailhead|trail system|nra|sra)\b"
+    r"conservation|wildlife|trailhead|trail system|nra|sra"
+    # French (Quebec / other French-speaking jurisdictions).
+    # Quebec parks: "Parc national", "Réserve faunique",
+    # "Réserve écologique", "Aire faunique", "Refuge faunique",
+    # "Sanctuaire", "Forêt récréative". Add language families
+    # incrementally as countries come online.
+    r"|parc|réserve|aire|faunique|écologique|sauvage|naturelle"
+    r"|sanctuaire|forêt)\b"
     # Danish keywords. NO left word boundary because Danish compounds
     # words: "Naturpark", "Naturreservat", "Mols-Bjerge-fredning" should
     # all match. Right boundary still required so "naturparken" matches
-    # the inflected form via its base. Add additional Nordic / European
-    # keywords here as countries come online.
+    # the inflected form via its base.
     r"|(naturpark|nationalpark|naturreservat|vildtreservat|"
     r"fredning|naturskov|vådområde)",
     re.IGNORECASE,
@@ -157,6 +164,25 @@ STATE_NAMES = {
     # Overpass query rather than the US-state subdivision query.
     # Add more here as international coverage expands.
     "DK": "Denmark",
+
+    # Canadian provinces / territories (ISO3166-2). Each is its own
+    # Overpass query — Canada is too large for a single country-wide
+    # query to complete inside Overpass's 300s timeout, and the bare
+    # "CA" code would collide with California anyway. The hyphen form
+    # routes through the explicit ISO3166-2 path in `overpass_query`.
+    "CA-AB": "Alberta",
+    "CA-BC": "British Columbia",
+    "CA-MB": "Manitoba",
+    "CA-NB": "New Brunswick",
+    "CA-NL": "Newfoundland and Labrador",
+    "CA-NS": "Nova Scotia",
+    "CA-NT": "Northwest Territories",
+    "CA-NU": "Nunavut",
+    "CA-ON": "Ontario",
+    "CA-PE": "Prince Edward Island",
+    "CA-QC": "Quebec",
+    "CA-SK": "Saskatchewan",
+    "CA-YT": "Yukon",
 }
 
 # Subset of STATE_NAMES that are country-level (ISO3166-1) rather than

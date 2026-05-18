@@ -21,10 +21,10 @@ on:
         default: "50"
       delay:
         description: "Seconds between Overpass requests, per worker"
-        default: "1.5"
+        default: "1.0"
       concurrency:
-        description: "Parallel worker count (default 3 = ~2 rps to Overpass at default delay; 1 = serial)"
-        default: "3"
+        description: "Parallel worker count (default 6 = ~6 rps to Overpass at default delay, split across two mirrors; 1 = serial)"
+        default: "6"
       limit:
         description: "Max areas to process (blank = all)"
         default: ""

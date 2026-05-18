@@ -32,6 +32,9 @@ on:
         description: "Re-fetch every area even if it's already cached (use after build-script logic changes, e.g. trail-filter tweaks)"
         type: boolean
         default: false
+      state_filter:
+        description: "Comma-separated state names to LIMIT trail-counts processing to (e.g. 'Denmark,Alberta'). Blank = process every area in the index. Pairs with seed_states for fast per-state seed runs — avoids the ~50min full-index iteration when only N new areas need processing."
+        default: ""
       trigger_testflight:
         description: "Also trigger an iOS TestFlight build after the index commits (costs macOS runner minutes — leave off for data-only rebuilds)"
         type: boolean
@@ -60,16 +63,25 @@ jobs:
       # The cache key is intentionally constant (`counts-cache-v1`)
       # so every run uses the same slot; `restore-keys` falls back
       # gracefully when no cache exists yet (first run after this
-      # change). `save: always` (post step) writes whatever's at
+      # change). `save-always: true` writes whatever's at
       # `public/areas/counts-cache.json` when the workflow finishes,
-      # regardless of step failures, so partial progress survives
-      # timeouts.
+      # INCLUDING on partial step failures (e.g. a transient warning
+      # in the R2 sync dispatch, or a git push race that took the
+      # commit step down). Without this, the post-step cache save
+      # only fires on a perfectly clean run — and a single hiccup
+      # silently drops a 4-hour cache rebuild. Observed in practice:
+      # the full-US run completed and committed to main, but the
+      # cache restored on the very next dispatch was still ~16MB
+      # (pre-silhouette) instead of ~300MB (post-silhouette), so
+      # every subsequent dispatch re-processed all ~3000 areas
+      # from scratch.
       - name: Restore counts-cache from Actions cache
         id: cache-restore
         uses: actions/cache@v4
         with:
           path: public/areas/counts-cache.json
           key: counts-cache-v1
+          save-always: true
           # No restore-keys — we want exact-match-or-cold-start
           # semantics. A stale partial cache from a much older
           # build would only confuse the diff logic.
@@ -113,16 +125,45 @@ jobs:
           done
 
       - name: Run trail count builder
+        env:
+          # Pipe inputs through env vars to dodge shell-injection risk and
+          # to preserve whitespace in state names like "British Columbia".
+          BATCH_SIZE: ${{ github.event.inputs.batch_size }}
+          DELAY: ${{ github.event.inputs.delay }}
+          CONCURRENCY: ${{ github.event.inputs.concurrency }}
+          LIMIT: ${{ github.event.inputs.limit }}
+          MIN_TRAILS: ${{ github.event.inputs.min_trails }}
+          MIN_MILES: ${{ github.event.inputs.min_miles }}
+          FORCE: ${{ github.event.inputs.force }}
+          STATE_FILTER: ${{ github.event.inputs.state_filter }}
         run: |
-          ARGS="--batch-size ${{ github.event.inputs.batch_size }} --delay ${{ github.event.inputs.delay }} --concurrency ${{ github.event.inputs.concurrency }}"
-          if [ -n "${{ github.event.inputs.limit }}" ]; then
-            ARGS="$ARGS --limit ${{ github.event.inputs.limit }}"
+          ARGS=(
+            --batch-size "$BATCH_SIZE"
+            --delay "$DELAY"
+            --concurrency "$CONCURRENCY"
+            --min-trails "$MIN_TRAILS"
+            --min-miles "$MIN_MILES"
+          )
+          if [ -n "$LIMIT" ]; then
+            ARGS+=(--limit "$LIMIT")
           fi
-          ARGS="$ARGS --min-trails ${{ github.event.inputs.min_trails }} --min-miles ${{ github.event.inputs.min_miles }}"
-          if [ "${{ github.event.inputs.force }}" = "true" ]; then
-            ARGS="$ARGS --force"
+          if [ "$FORCE" = "true" ]; then
+            ARGS+=(--force)
           fi
-          python3 scripts/build-trail-counts.py $ARGS
+          # Comma-separated state names with optional surrounding
+          # whitespace. Multiple --state-filter args build up via
+          # action='append' on the script side.
+          if [ -n "$STATE_FILTER" ]; then
+            IFS=',' read -ra FILTERS <<< "$STATE_FILTER"
+            for f in "${FILTERS[@]}"; do
+              # Trim leading + trailing whitespace.
+              f="$(echo "$f" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+              if [ -n "$f" ]; then
+                ARGS+=(--state-filter "$f")
+              fi
+            done
+          fi
+          python3 scripts/build-trail-counts.py "${ARGS[@]}"
 
       - name: Commit updated index
         id: commit

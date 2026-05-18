@@ -138,15 +138,11 @@ struct TrailListView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    // Discoverability nudge for the long-press → "Record
-                    // This Trail" context menu. Hidden mid-recording since
-                    // the action wouldn't be available anyway.
-                    if recording.activeRecording == nil {
-                        Label("Tap to highlight on the map · long-press to record just that trail", systemImage: "hand.tap")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .padding(.top, 2)
-                    }
+                    // (Removed the "long-press to record just that trail"
+                    // hint — the gesture was lost in a refactor and the
+                    // hint advertised functionality that no longer
+                    // existed. Record-from-row now lives in the trail's
+                    // detail sheet that opens on tap.)
                 }
                 Spacer()
                 filterMenu

@@ -86,6 +86,15 @@ struct MapKitMapView: UIViewRepresentable {
     /// is applied via cameraTarget when the mode flips.
     let userTrackingMode: MKUserTrackingMode
 
+    /// Fires when a user gesture (pinch / pan / double-tap) changes
+    /// the visible region. TrailMapView uses this to re-snap the
+    /// camera to the user in follow modes — without this hook, a
+    /// stationary user who pinches to zoom would see the dot drift
+    /// off-center (because pinch holds its midpoint, not the user
+    /// dot) and stay there until the next GPS update, which never
+    /// comes if they're not moving.
+    let onUserGestureRegionChange: (() -> Void)?
+
     /// User-selected map style from Settings → Display. Re-applied
     /// in `updateUIView` so flipping the picker propagates to the
     /// open map without re-creating the view.
@@ -254,8 +263,11 @@ struct MapKitMapView: UIViewRepresentable {
 
         // 6) Camera moves. Only animate when the caller bumps the
         // tick — we don't want stale view-state updates to re-frame
-        // the map.
+        // the map. Bump the pending-programmatic counter so the
+        // post-animation `regionDidChangeAnimated` knows this change
+        // was ours, not a user gesture.
         if coord.lastCameraTick != cameraTick {
+            coord.pendingProgrammaticRegionChanges += 1
             Self.applyCameraTarget(cameraTarget, to: mapView, animated: true)
             coord.lastCameraTick = cameraTick
         }
@@ -632,7 +644,30 @@ struct MapKitMapView: UIViewRepresentable {
             }
         }
 
+        /// Counter for in-flight programmatic region changes initiated
+        /// by `applyCameraTarget`. `mapView(_:regionDidChangeAnimated:)`
+        /// uses it to distinguish our own setCamera/setRegion/setCenter
+        /// calls from user-driven gestures (pinch / pan). Without this
+        /// the snap-back-to-user logic would treat our OWN snap as a
+        /// new user gesture and re-fire, blocking the camera from ever
+        /// settling.
+        var pendingProgrammaticRegionChanges = 0
+
         // MARK: MKMapViewDelegate
+
+        /// Fires at the END of every region change — both ours and the
+        /// user's. We decrement the pending-programmatic counter for
+        /// our own calls; anything left is user-driven (pinch / pan /
+        /// double-tap), in which case we notify the parent so it can
+        /// re-snap to the user dot (preserving the user's pinched zoom
+        /// — see TrailMapView.updateTrackedPosition).
+        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            if pendingProgrammaticRegionChanges > 0 {
+                pendingProgrammaticRegionChanges -= 1
+                return
+            }
+            parent.onUserGestureRegionChange?()
+        }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let multi = overlay as? MKMultiPolyline {

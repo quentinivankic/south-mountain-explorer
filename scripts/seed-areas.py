@@ -190,6 +190,53 @@ STATE_NAMES = {
 # `overpass_query` below.
 COUNTRY_CODES: set[str] = {"DK"}
 
+# Display-name override for `row[2]`, the user-facing state/country
+# label the iOS Browse list shows under each area card. STATE_NAMES
+# keeps the canonical per-province / per-state name for internal
+# tracking (skip-check, dedup, etc.); this override controls only
+# the UI label.
+#
+# Why we override: for the US, state-level granularity ("Arizona",
+# "California") matches the user's mental model — "what state is
+# this in?" For Canada (and other countries in the future), the
+# user thinks of areas as "in Canada" rather than "in Alberta," at
+# least at this scale. Promoting the label to country-level keeps
+# the Browse list scannable: 13 separate Canadian groupings would
+# splinter content from a user's perspective.
+#
+# When this dict has an entry for the code, `row[2]` uses that
+# value. The `--resume` skip-check no longer relies on `row[2]`
+# (it would collapse all Canadian provinces into one) — see the
+# slug-suffix detection in `main()`.
+DISPLAY_STATE_OVERRIDES: dict[str, str] = {
+    "CA-AB": "Canada", "CA-BC": "Canada", "CA-MB": "Canada",
+    "CA-NB": "Canada", "CA-NL": "Canada", "CA-NS": "Canada",
+    "CA-NT": "Canada", "CA-NU": "Canada", "CA-ON": "Canada",
+    "CA-PE": "Canada", "CA-QC": "Canada", "CA-SK": "Canada",
+    "CA-YT": "Canada",
+}
+
+
+def display_state(code: str) -> str:
+    """Returns the user-facing state/country label for a code.
+    Override if set; otherwise the canonical STATE_NAMES entry;
+    otherwise the code itself."""
+    return DISPLAY_STATE_OVERRIDES.get(code) or STATE_NAMES.get(code, code)
+
+
+def code_from_slug(slug: str) -> str | None:
+    """Extract the ISO code suffix from a slug. Returns the code in
+    its original case from STATE_NAMES (e.g. 'CA-PE', 'DK', 'AZ')
+    or None if the slug doesn't end with any known code. Used by
+    the `--resume` skip-check, which needs per-province granularity
+    even when `row[2]` collapses to a country label."""
+    slug_lower = slug.lower()
+    # Longest first so 'CA-PE' beats a hypothetical 'PE' bare code.
+    for code in sorted(STATE_NAMES.keys(), key=len, reverse=True):
+        if slug_lower.endswith(f"-{code.lower()}"):
+            return code
+    return None
+
 
 def overpass_query(code: str) -> str:
     """Build an Overpass query for `code`. Accepts three shapes:
@@ -353,7 +400,7 @@ def fetch_state(state_code: str) -> list[tuple[list, int]]:
         if osm_id is None:
             continue
         name = tags["name"].strip()
-        state_name = STATE_NAMES.get(state_code, state_code)
+        state_name = display_state(state_code)
         row = [
             slugify(name, state_code),
             name,
@@ -466,16 +513,24 @@ def main() -> None:
     excludes = load_overrides(SEED_EXCLUDE)
     includes = load_overrides(SEED_INCLUDE)
 
-    # Resume mode: skip any state whose full name is already represented
-    # in the existing index. Idempotent across workflow restarts.
+    # Resume mode: skip any code whose ISO suffix already appears in
+    # a slug in the existing index. Idempotent across workflow
+    # restarts.
+    #
+    # We derive codes from slug suffixes rather than `row[2]` because
+    # `DISPLAY_STATE_OVERRIDES` can collapse multiple codes under a
+    # single display label (e.g. all CA-* → "Canada"). The slug
+    # suffix is always per-province and uniquely identifies the
+    # original code.
     already_seeded: set[str] = set()
     if args.resume and INDEX_PATH.exists():
         existing = json.loads(INDEX_PATH.read_text())
-        already_seeded = {row[2] for row in existing}
-        skipped = [
-            s for s in args.states
-            if STATE_NAMES.get(s, s) in already_seeded
-        ]
+        for row in existing:
+            if len(row) >= 1:
+                c = code_from_slug(row[0])
+                if c is not None:
+                    already_seeded.add(c)
+        skipped = [s for s in args.states if s in already_seeded]
         if skipped:
             print(
                 f"--resume: skipping {len(skipped)} states already in "
@@ -497,7 +552,7 @@ def main() -> None:
         seen_ids: set[str] = set()
         candidates: list[list] = []
         for state in args.states:
-            if STATE_NAMES.get(state, state) in already_seeded:
+            if state in already_seeded:
                 continue
             for row, _ in fetch_state(state):
                 if row[1].lower() in excludes:
@@ -517,7 +572,7 @@ def main() -> None:
     total_rows_written = 0
     total_osm_ids_written = 0
     for state in args.states:
-        if STATE_NAMES.get(state, state) in already_seeded:
+        if state in already_seeded:
             continue
         new_rows: list[list] = []
         new_osm_ids: dict[str, int] = {}

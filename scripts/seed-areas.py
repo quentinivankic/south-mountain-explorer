@@ -1,263 +1,78 @@
 #!/usr/bin/env python3
-"""Seed candidate hiking areas from OpenStreetMap for given US states.
+"""Seed candidate hiking areas from OpenStreetMap for given regions.
 
-Pulls protected_area / nature_reserve / national_park relations bounded
-by each state, applies a tag-quality filter, dedupes, and writes a
-candidate index.json that build-trail-counts.py can then hydrate with
+Pulls protected_area / nature_reserve / national_park relations
+bounded by each region, applies a tag-quality filter, and writes a
+candidate index.json that build-trail-counts.py then hydrates with
 trail counts and silhouettes.
 
-Tag filter heuristics:
-  * Drop access=private
-  * Drop unnamed
-  * Keep when protect_class is in the curated set
-  * Otherwise require a recognizable keyword in the name
-    (Park, Preserve, Wilderness, Forest, Monument, Recreation Area,
-    Refuge, Sanctuary, Reserve, Open Space, Conservation, Wildlife)
+Constants (state lists, name regex, protect-class whitelist, slug
+math, …) live in `_seed_constants.py` so the new PBF pipeline
+(`build-index-from-pbf.py`) can't drift from this one.
 
-Manual overrides:
-  * scripts/seeds-include.txt — names to always include
-  * scripts/seeds-exclude.txt — names or relation IDs to always drop
+Manual overrides: `scripts/seeds-include.txt` (always include),
+`scripts/seeds-exclude.txt` (always drop).
 
-Resilience: each state writes incrementally to index.json + counts-cache.json
-on success, so a mid-loop Overpass 504 doesn't lose prior states' work.
-`fetch_state` retries 3× with 60s / 180s / 600s backoff before raising
-to the caller. The companion build-trail-index workflow wraps the
-script in an outer 3× retry, and `--resume` makes the script skip
-states already present in the index — together that's 9 attempts per
-state, idempotent across workflow runs.
+Resilience: each region writes incrementally on success, so a
+mid-loop Overpass 504 doesn't lose prior states' work. Per-region
+retry is 3× with 60s / 180s / 600s backoff. The companion workflow
+wraps the script in an outer 3× retry, and `--resume` makes the
+script skip regions already present in the index — 9 attempts per
+region, idempotent across workflow runs.
 
 Usage:
-    python3 scripts/seed-areas.py AZ                    # write index for AZ
-    python3 scripts/seed-areas.py AZ CA                 # AZ + CA
-    python3 scripts/seed-areas.py --dry-run AZ          # just print
-    python3 scripts/seed-areas.py --merge AZ            # add to existing
-    python3 scripts/seed-areas.py --resume AZ CA ...    # skip states
-                                                         # already in
-                                                         # index (implies
-                                                         # --merge)
+    python3 scripts/seed-areas.py AZ
+    python3 scripts/seed-areas.py AZ CA
+    python3 scripts/seed-areas.py --dry-run AZ
+    python3 scripts/seed-areas.py --merge AZ
+    python3 scripts/seed-areas.py --resume AZ CA ...
 """
 from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 import time
 import urllib.parse
 import urllib.request
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-INDEX_PATH = ROOT / "public" / "areas" / "index.json"
-CACHE_PATH = ROOT / "public" / "areas" / "counts-cache.json"
-SCRIPTS_DIR = Path(__file__).resolve().parent
-SEED_INCLUDE = SCRIPTS_DIR / "seeds-include.txt"
-SEED_EXCLUDE = SCRIPTS_DIR / "seeds-exclude.txt"
+# Allow `from _seed_constants import ...` when invoked as
+# `python3 scripts/seed-areas.py` from the repo root.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _seed_constants import (  # noqa: E402
+    CACHE_PATH,
+    COUNTRY_CODES,
+    INDEX_PATH,
+    SEED_EXCLUDE,
+    SEED_INCLUDE,
+    STATE_NAMES,
+    atomic_write,
+    code_from_slug,
+    display_state,
+    is_quality,
+    load_overrides,
+    slugify,
+)
 
 OVERPASS_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
 ]
 
-# protect_class numeric values that map to "real outdoor destinations"
-# per OSM wiki. Loosely: anything that's a recognized reserve / park /
-# wilderness. Keeps the door open for a wide net while filtering out
-# heritage sites, botanical gardens, etc.
-ALLOWED_PROTECT_CLASSES = {
-    "1",   # Strict nature reserve
-    "1a", "1b",
-    "2",   # National park
-    "3",   # Natural monument
-    "4",   # Habitat / species management
-    "5",   # Protected landscape
-    "6",   # Resource / managed
-    "11",  # Wilderness area (US-specific)
-    "12",  # Wilderness
-    "21",  # Locally protected
-    "22",  # Animal sanctuary
-    "97", "98", "99",  # Other / unspecified
-}
-
-# When protect_class is missing, fall back to a name-keyword whitelist.
-# Catches state parks, national forests, regional/county parks, etc. that
-# don't tag protect_class (common in OSM US data).
-NAME_KEYWORD_RE = re.compile(
-    # English + French keywords (require word boundaries on both
-    # sides since both languages use whitespace between words for
-    # these terms).
-    r"\b(park|preserve|wilderness|forest|monument|recreation area|"
-    r"recreation site|refuge|sanctuary|reserve|open space|"
-    r"conservation|wildlife|trailhead|trail system|nra|sra"
-    # French (Quebec / other French-speaking jurisdictions).
-    # Quebec parks: "Parc national", "Réserve faunique",
-    # "Réserve écologique", "Aire faunique", "Refuge faunique",
-    # "Sanctuaire", "Forêt récréative". Add language families
-    # incrementally as countries come online.
-    r"|parc|réserve|aire|faunique|écologique|sauvage|naturelle"
-    r"|sanctuaire|forêt)\b"
-    # Danish keywords. NO left word boundary because Danish compounds
-    # words: "Naturpark", "Naturreservat", "Mols-Bjerge-fredning" should
-    # all match. Right boundary still required so "naturparken" matches
-    # the inflected form via its base.
-    r"|(naturpark|nationalpark|naturreservat|vildtreservat|"
-    r"fredning|naturskov|vådområde)",
-    re.IGNORECASE,
-)
-
-STATE_NAMES = {
-    # US states (ISO3166-2 alpha-2 subdivision codes, without the
-    # "US-" prefix). The script auto-prefixes when building the
-    # Overpass query — see `overpass_query`.
-    "AL": "Alabama",
-    "AK": "Alaska",
-    "AZ": "Arizona",
-    "AR": "Arkansas",
-    "CA": "California",
-    "CO": "Colorado",
-    "CT": "Connecticut",
-    "DE": "Delaware",
-    "DC": "District of Columbia",
-    "FL": "Florida",
-    "GA": "Georgia",
-    "HI": "Hawaii",
-    "ID": "Idaho",
-    "IL": "Illinois",
-    "IN": "Indiana",
-    "IA": "Iowa",
-    "KS": "Kansas",
-    "KY": "Kentucky",
-    "LA": "Louisiana",
-    "ME": "Maine",
-    "MD": "Maryland",
-    "MA": "Massachusetts",
-    "MI": "Michigan",
-    "MN": "Minnesota",
-    "MS": "Mississippi",
-    "MO": "Missouri",
-    "MT": "Montana",
-    "NE": "Nebraska",
-    "NV": "Nevada",
-    "NH": "New Hampshire",
-    "NJ": "New Jersey",
-    "NM": "New Mexico",
-    "NY": "New York",
-    "NC": "North Carolina",
-    "ND": "North Dakota",
-    "OH": "Ohio",
-    "OK": "Oklahoma",
-    "OR": "Oregon",
-    "PA": "Pennsylvania",
-    "RI": "Rhode Island",
-    "SC": "South Carolina",
-    "SD": "South Dakota",
-    "TN": "Tennessee",
-    "TX": "Texas",
-    "UT": "Utah",
-    "VT": "Vermont",
-    "VA": "Virginia",
-    "WA": "Washington",
-    "WV": "West Virginia",
-    "WI": "Wisconsin",
-    "WY": "Wyoming",
-
-    # Countries (ISO3166-1 alpha-2). Triggers a country-wide
-    # Overpass query rather than the US-state subdivision query.
-    # Add more here as international coverage expands.
-    "DK": "Denmark",
-
-    # Canadian provinces / territories (ISO3166-2). Each is its own
-    # Overpass query — Canada is too large for a single country-wide
-    # query to complete inside Overpass's 300s timeout, and the bare
-    # "CA" code would collide with California anyway. The hyphen form
-    # routes through the explicit ISO3166-2 path in `overpass_query`.
-    "CA-AB": "Alberta",
-    "CA-BC": "British Columbia",
-    "CA-MB": "Manitoba",
-    "CA-NB": "New Brunswick",
-    "CA-NL": "Newfoundland and Labrador",
-    "CA-NS": "Nova Scotia",
-    "CA-NT": "Northwest Territories",
-    "CA-NU": "Nunavut",
-    "CA-ON": "Ontario",
-    "CA-PE": "Prince Edward Island",
-    "CA-QC": "Quebec",
-    "CA-SK": "Saskatchewan",
-    "CA-YT": "Yukon",
-}
-
-# Subset of STATE_NAMES that are country-level (ISO3166-1) rather than
-# US-state subdivisions. The Overpass query path differs — see
-# `overpass_query` below.
-COUNTRY_CODES: set[str] = {"DK"}
-
-# Display-name override for `row[2]`, the user-facing state/country
-# label the iOS Browse list shows under each area card. STATE_NAMES
-# keeps the canonical per-province / per-state name for internal
-# tracking (skip-check, dedup, etc.); this override controls only
-# the UI label.
-#
-# Why we override: for the US, state-level granularity ("Arizona",
-# "California") matches the user's mental model — "what state is
-# this in?" For Canada (and other countries in the future), the
-# user thinks of areas as "in Canada" rather than "in Alberta," at
-# least at this scale. Promoting the label to country-level keeps
-# the Browse list scannable: 13 separate Canadian groupings would
-# splinter content from a user's perspective.
-#
-# When this dict has an entry for the code, `row[2]` uses that
-# value. The `--resume` skip-check no longer relies on `row[2]`
-# (it would collapse all Canadian provinces into one) — see the
-# slug-suffix detection in `main()`.
-DISPLAY_STATE_OVERRIDES: dict[str, str] = {
-    "CA-AB": "Canada", "CA-BC": "Canada", "CA-MB": "Canada",
-    "CA-NB": "Canada", "CA-NL": "Canada", "CA-NS": "Canada",
-    "CA-NT": "Canada", "CA-NU": "Canada", "CA-ON": "Canada",
-    "CA-PE": "Canada", "CA-QC": "Canada", "CA-SK": "Canada",
-    "CA-YT": "Canada",
-}
-
-
-def display_state(code: str) -> str:
-    """Returns the user-facing state/country label for a code.
-    Override if set; otherwise the canonical STATE_NAMES entry;
-    otherwise the code itself."""
-    return DISPLAY_STATE_OVERRIDES.get(code) or STATE_NAMES.get(code, code)
-
-
-def code_from_slug(slug: str) -> str | None:
-    """Extract the ISO code suffix from a slug. Returns the code in
-    its original case from STATE_NAMES (e.g. 'CA-PE', 'DK', 'AZ')
-    or None if the slug doesn't end with any known code. Used by
-    the `--resume` skip-check, which needs per-province granularity
-    even when `row[2]` collapses to a country label."""
-    slug_lower = slug.lower()
-    # Longest first so 'CA-PE' beats a hypothetical 'PE' bare code.
-    for code in sorted(STATE_NAMES.keys(), key=len, reverse=True):
-        if slug_lower.endswith(f"-{code.lower()}"):
-            return code
-    return None
-
 
 def overpass_query(code: str) -> str:
-    """Build an Overpass query for `code`. Accepts three shapes:
-
-    - 2-letter US state ("AZ", "CA"): legacy default, queries
-      `ISO3166-2 = "US-{code}"`.
-    - 2-letter country ("DK"): queries `ISO3166-1 = "{code}"`.
-      Add the code to `COUNTRY_CODES` to opt in.
-    - Explicit ISO3166-2 with a hyphen ("DK-84", "ES-MD"): queries
-      `ISO3166-2 = "{code}"` directly. Lets callers seed individual
-      subdivisions of non-US countries without expanding
-      STATE_NAMES.
+    """Build an Overpass query for `code`. Three shapes:
+      - 2-letter US state ("AZ"): ISO3166-2 = "US-AZ"
+      - 2-letter country in COUNTRY_CODES ("DK"): ISO3166-1 = "DK"
+      - Explicit ISO3166-2 with hyphen ("CA-AB"): ISO3166-2 = "CA-AB"
     """
     if "-" in code:
-        # Explicit ISO3166-2 subdivision (international).
         bbox = f'area["ISO3166-2"="{code}"]->.region;'
     elif code in COUNTRY_CODES:
-        # Country-wide (ISO3166-1 alpha-2).
         bbox = f'area["ISO3166-1"="{code}"]->.region;'
     else:
-        # Legacy default: 2-letter US state code → ISO3166-2 US-XX.
         bbox = f'area["ISO3166-2"="US-{code}"]->.region;'
     return f"""
 [out:json][timeout:300];
@@ -292,73 +107,17 @@ def fetch_overpass(query: str) -> dict:
     raise RuntimeError(f"All Overpass endpoints failed: {last_err}")
 
 
-def is_quality(tags: dict) -> bool:
-    if tags.get("access") == "private":
-        return False
-    name = (tags.get("name") or "").strip()
-    if not name:
-        return False
-    pc = (tags.get("protect_class") or "").strip().lower()
-    if pc and pc in ALLOWED_PROTECT_CLASSES:
-        return True
-    # No protect_class — name keyword whitelist as fallback
-    return bool(NAME_KEYWORD_RE.search(name))
-
-
-# Common non-ASCII letter → ASCII transliterations. Danish ø/æ/å must
-# fold to ASCII for the slug to work as both a file path (R2 / iOS
-# bundle) and a stable id (the slug doubles as the area_id). Python's
-# `\w` is Unicode by default in re mode, so without this fold a name
-# like "Nationalpark Mols Bjerge med Naturskov" would slug fine but
-# "Vådområde X" would land "vådområde-x-dk" — fine on disk, but
-# brittle across systems and tooling. The ASCII fold is the safest
-# baseline; extend with more languages as countries come online.
-ASCII_TRANSLIT: dict[str, str] = {
-    "ø": "o", "Ø": "O",
-    "æ": "ae", "Æ": "Ae",
-    "å": "a", "Å": "A",
-    "ö": "o", "Ö": "O",
-    "ä": "a", "Ä": "A",
-    "ü": "u", "Ü": "U",
-    "ß": "ss",
-    "ñ": "n", "Ñ": "N",
-    "é": "e", "É": "E",
-    "è": "e", "È": "E",
-    "ê": "e", "Ê": "E",
-    "ó": "o", "Ó": "O",
-    "í": "i", "Í": "I",
-    "á": "a", "Á": "A",
-    "ú": "u", "Ú": "U",
-    "ç": "c", "Ç": "C",
-}
-
-
-def slugify(name: str, state_code: str) -> str:
-    s = name
-    for src, dst in ASCII_TRANSLIT.items():
-        s = s.replace(src, dst)
-    s = s.lower()
-    # Strip anything that isn't ASCII alphanumeric, whitespace, or hyphen.
-    # `re.ASCII` forces \w to match [a-zA-Z0-9_] (no Unicode letters).
-    s = re.sub(r"[^\w\s-]", "", s, flags=re.ASCII)
-    s = re.sub(r"[-\s]+", "-", s).strip("-")
-    return f"{s[:60]}-{state_code.lower()}"
-
-
 # Outer per-state retry. `fetch_overpass` already cycles two Overpass
 # mirrors with a short 3s sleep, but when BOTH endpoints return 504
-# (rate-limit / overload) we want a longer cool-off before trying
-# again rather than failing the whole loop. 60s / 180s / 600s
-# matches Overpass's typical recovery window for transient overload.
+# we want a longer cool-off. 60s / 180s / 600s matches Overpass's
+# typical recovery window for transient overload.
 STATE_RETRY_BACKOFFS_SECONDS = [60, 180, 600]
 
 
 def fetch_state(state_code: str) -> list[tuple[list, int]]:
-    """Returns (index_row, osm_relation_id) pairs. The osm_id is what
-    we'll pin into counts-cache so both build-trail-counts.py and the
-    iOS app query Overpass with the same polygon — Nominatim's
-    `featuretype=relation` lookup is unstable for ambiguous names
-    and was causing 48 vs 56 trail-count mismatches."""
+    """Returns (index_row, osm_relation_id) pairs. The osm_id pins
+    the same polygon Python and iOS both query — Nominatim's
+    `featuretype=relation` was unstable for ambiguous names."""
     print(f"Querying Overpass for {state_code}...", file=sys.stderr, flush=True)
     data: dict | None = None
     last_err: Exception | None = None
@@ -382,7 +141,9 @@ def fetch_state(state_code: str) -> list[tuple[list, int]]:
                 flush=True,
             )
             time.sleep(backoff)
-    assert data is not None, f"unreachable: fetch_overpass succeeded but data is None ({last_err})"
+    assert data is not None, (
+        f"unreachable: fetch_overpass succeeded but data is None ({last_err})"
+    )
     out: list[tuple[list, int]] = []
     raw = 0
     for el in data.get("elements", []):
@@ -417,44 +178,14 @@ def fetch_state(state_code: str) -> list[tuple[list, int]]:
     return out
 
 
-def load_overrides(path: Path) -> set[str]:
-    if not path.exists():
-        return set()
-    return {
-        line.strip().lower()
-        for line in path.read_text().splitlines()
-        if line.strip() and not line.startswith("#")
-    }
-
-
-def atomic_write(path: Path, payload: str) -> None:
-    """Write `payload` to `path` atomically — write to a sibling .tmp
-    file, then rename. Guards against half-written JSON if the process
-    is killed mid-write (relevant during long-running multi-state seeds
-    that flush per state)."""
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(payload)
-    tmp.replace(path)
-
-
 def flush_state(
     new_rows: list[list],
     new_osm_ids: dict[str, int],
     current_state_name: str,
     args: argparse.Namespace,
 ) -> int:
-    """Merge `new_rows` into INDEX_PATH and `new_osm_ids` into CACHE_PATH,
-    writing both atomically. Called after each state's fetch so a
-    mid-loop Overpass failure preserves prior states' work. Returns
-    the total number of rows now in the index.
-
-    Merge semantics:
-    - `--merge` or `--resume`: append rows whose slug isn't already in
-      the index. Hand-curated entries and prior seeds untouched.
-    - replace (neither flag): drop existing entries whose state is
-      `current_state_name`, then append. Only this one state's entries
-      get cleared — entries from earlier states in the same loop (or
-      any other state not in args.states) are preserved.
+    """Merge `new_rows` into INDEX_PATH and `new_osm_ids` into
+    CACHE_PATH, writing both atomically. Returns total rows after merge.
     """
     existing: list[list] = (
         json.loads(INDEX_PATH.read_text()) if INDEX_PATH.exists() else []
@@ -479,7 +210,9 @@ def flush_state(
     merged.sort(key=lambda x: (x[2], x[1]))
     atomic_write(INDEX_PATH, json.dumps(merged, separators=(",", ":")))
 
-    cache: dict = json.loads(CACHE_PATH.read_text()) if CACHE_PATH.exists() else {}
+    cache: dict = (
+        json.loads(CACHE_PATH.read_text()) if CACHE_PATH.exists() else {}
+    )
     for area_id, osm_id in new_osm_ids.items():
         entry = cache.get(area_id) or {}
         entry["osm_id"] = osm_id
@@ -490,38 +223,23 @@ def flush_state(
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("states", nargs="+", help="State codes, e.g. AZ CA")
-    ap.add_argument("--dry-run", action="store_true",
-                    help="Print candidates to stdout without writing index.json")
-    ap.add_argument(
-        "--merge",
-        action="store_true",
-        help="Merge with existing index.json instead of replacing (keeps "
-        "any hand-curated entries)",
+    ap = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    ap.add_argument("states", nargs="+", help="State codes, e.g. AZ CA")
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--merge", action="store_true")
     ap.add_argument(
         "--resume",
         action="store_true",
-        help="Skip states that already appear in index.json (implies "
-        "--merge). Used by the build-trail-index workflow to retry the "
-        "seed step after a transient Overpass failure without "
-        "re-fetching everything that already succeeded.",
+        help="Skip states already in index.json (implies --merge).",
     )
     args = ap.parse_args()
 
     excludes = load_overrides(SEED_EXCLUDE)
     includes = load_overrides(SEED_INCLUDE)
 
-    # Resume mode: skip any code whose ISO suffix already appears in
-    # a slug in the existing index. Idempotent across workflow
-    # restarts.
-    #
-    # We derive codes from slug suffixes rather than `row[2]` because
-    # `DISPLAY_STATE_OVERRIDES` can collapse multiple codes under a
-    # single display label (e.g. all CA-* → "Canada"). The slug
-    # suffix is always per-province and uniquely identifies the
-    # original code.
     already_seeded: set[str] = set()
     if args.resume and INDEX_PATH.exists():
         existing = json.loads(INDEX_PATH.read_text())
@@ -541,14 +259,11 @@ def main() -> None:
 
     if includes:
         print(
-            f"  applied {len(includes)} entries from seeds-include.txt "
-            "(matched by name)",
+            f"  applied {len(includes)} entries from seeds-include.txt",
             file=sys.stderr,
         )
 
     if args.dry_run:
-        # Dry-run still does a full fetch (good for spot-checking the
-        # filter) but never writes. Doesn't flush per-state.
         seen_ids: set[str] = set()
         candidates: list[list] = []
         for state in args.states:
@@ -566,9 +281,6 @@ def main() -> None:
             print(f"  {c[1]:60s}  {c[2]:12s}  {c[3]:>8.3f}, {c[4]:>9.3f}")
         return
 
-    # Per-state flush: write to disk after each successful fetch so a
-    # mid-loop Overpass 504 preserves prior states' work for the next
-    # workflow retry (which uses --resume to skip them).
     total_rows_written = 0
     total_osm_ids_written = 0
     for state in args.states:
@@ -603,12 +315,6 @@ def main() -> None:
     )
     print(
         f"Cached {total_osm_ids_written} OSM relation IDs in {CACHE_PATH}",
-        file=sys.stderr,
-    )
-    print(
-        "Next: run `python3 scripts/build-trail-counts.py "
-        "--min-trails 3 --min-miles 2` to fetch trail counts and apply "
-        "the post-build threshold.",
         file=sys.stderr,
     )
 

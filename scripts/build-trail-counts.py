@@ -662,6 +662,17 @@ def main():
         help="After fetching, drop areas with less than N total trail miles. "
         "Pairs with --min-trails. 0 = keep everything (default).",
     )
+    parser.add_argument(
+        "--state-filter", action="append", default=None,
+        help="Process only areas whose state name (row[2]) is in this list. "
+        "Repeatable for multiple states: --state-filter 'Alberta' "
+        "--state-filter 'British Columbia'. Areas NOT matching are silently "
+        "skipped from the fetch loop — their existing cached data (counts, "
+        "silhouettes, geom) is preserved in the rebuild step. Pairs with "
+        "`seed_states` for fast per-country / per-state seed runs: a typical "
+        "DK or CA-PE seed only needs to fetch ~10-20 new areas, not iterate "
+        "all ~3000.",
+    )
     args = parser.parse_args()
 
     index = json.loads(INDEX_PATH.read_text())
@@ -689,6 +700,14 @@ def main():
         return
 
     targets = index if args.limit is None else index[: args.limit]
+    if args.state_filter:
+        filters = set(args.state_filter)
+        before = len(targets)
+        targets = [a for a in targets if len(a) >= 3 and a[2] in filters]
+        print(
+            f"--state-filter {sorted(filters)} → {len(targets)}/{before} targets",
+            file=sys.stderr,
+        )
     total = len(targets)
 
     print(f"Index has {len(index)} areas. Processing {total} (concurrency={args.concurrency}).")

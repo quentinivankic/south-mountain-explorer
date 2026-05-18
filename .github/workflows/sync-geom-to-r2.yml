@@ -37,6 +37,7 @@ on:
     paths:
       - 'public/areas/geom/**'
       - 'public/areas/silhouettes/**'
+      - 'public/areas/index.json'
 
 concurrency:
   group: sync-geom-to-r2
@@ -78,5 +79,20 @@ jobs:
             --cache-control "public, max-age=86400" \
             --no-progress \
             --size-only
+
+          # Index.json gets a much shorter cache TTL (300s vs 86400s)
+          # because it's the master list — when a new region seeds
+          # we want existing TestFlight users to pick up the change
+          # on their next foreground, not in 24h. The app also uses
+          # ETag/If-None-Match so subsequent fetches are 304s anyway;
+          # the short max-age just guards against very stale edge
+          # cache when the ETag check happens at a Cloudflare PoP
+          # that lagged the origin write by a few minutes.
+          echo "Syncing index..."
+          aws s3 cp public/areas/index.json s3://trekdex-areas/index.json \
+            --endpoint-url "$ENDPOINT" \
+            --content-type "application/json" \
+            --cache-control "public, max-age=300" \
+            --no-progress
 
           echo "Sync complete."

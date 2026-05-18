@@ -56,34 +56,45 @@ final class AreaDataService {
         isLoadingIndex = true
         defer { isLoadingIndex = false }
 
-        // Bundle is the source of truth (no remote backend). Prefer it over any
-        // legacy disk cache, which can be stale if the bundle has changed (e.g.
-        // areas removed by deduplication).
-        if let bundled = loadIndexFromBundle() {
-            summaries = bundled
+        // 1. AreaIndexService.currentIndexData() returns the freshest
+        //    copy we have on disk — R2-cached if a prior session
+        //    landed one, otherwise the bundled snapshot. Both decode
+        //    through the same tuple shape, so the rest of the app
+        //    doesn't care which source we end up using.
+        if let data = AreaIndexService.shared.currentIndexData(),
+           let parsed = decodeIndex(from: data) {
+            summaries = parsed
             clearLegacyIndexCache()
-            return
+        } else if let cached = loadSummariesFromDisk() {
+            summaries = cached
+        } else if let cached = loadIndexFromDisk() {
+            summaries = cached
         }
 
-        if let cached = loadSummariesFromDisk() {
-            summaries = cached
-            return
-        }
-
-        if let cached = loadIndexFromDisk() {
-            summaries = cached
-            return
+        // 2. Background revalidation against R2. The R2 copy is
+        //    updated by `sync-geom-to-r2.yml` on every commit that
+        //    touches `public/areas/index.json`. ETag/If-None-Match
+        //    makes this a 304 in the steady state. When the body
+        //    changes, swap in the new summaries — the rest of the
+        //    app re-renders automatically via @Observable.
+        //
+        //    Fire-and-forget. The bundle/cache copy above already
+        //    populated `summaries`, so the user sees the Browse
+        //    list immediately and only gets a refresh if R2 had
+        //    something newer.
+        Task { [weak self] in
+            let updated = await AreaIndexService.shared.revalidate()
+            guard updated, let self else { return }
+            if let data = AreaIndexService.shared.currentIndexData(),
+               let parsed = self.decodeIndex(from: data) {
+                self.summaries = parsed
+            }
         }
     }
 
     private func clearLegacyIndexCache() {
         try? FileManager.default.removeItem(at: indexDiskURL)
         try? FileManager.default.removeItem(at: summariesDiskURL)
-    }
-
-    private func loadIndexFromBundle() -> [AreaSummary]? {
-        guard let url = Bundle.main.url(forResource: "areas-index", withExtension: "json") else { return nil }
-        return decodeIndex(from: url)
     }
 
     private var indexDiskURL: URL { cacheDir.appendingPathComponent("index-v2.json") }
@@ -97,9 +108,14 @@ final class AreaDataService {
     }
 
     private func decodeIndex(from url: URL) -> [AreaSummary]? {
-        guard let data = try? Data(contentsOf: url),
-              let tuples = try? JSONDecoder().decode([[JSONValue]].self, from: data)
-        else { return nil }
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return decodeIndex(from: data)
+    }
+
+    private func decodeIndex(from data: Data) -> [AreaSummary]? {
+        guard let tuples = try? JSONDecoder().decode([[JSONValue]].self, from: data) else {
+            return nil
+        }
         // Hide areas with no trail data — they show as broken "0/0 trails"
         // cards with no silhouette. They re-appear automatically once a
         // future Build Trail Index run finds trails for them.

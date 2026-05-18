@@ -100,11 +100,59 @@ final class RecordingService {
 
     private init() {
         migrateHistoryClassificationIfNeeded()
-        if let data = UserDefaults.standard.data(forKey: persistKey),
-           let restored = try? JSONDecoder().decode(ActiveRecording.self, from: data) {
-            activeRecording = restored
-            beginObservingLocation()
+        restoreActiveRecording()
+    }
+
+    /// Restore an in-progress recording from UserDefaults on launch.
+    /// Public TestFlight users will occasionally have iOS kill the
+    /// app mid-hike (memory pressure, force-quit, watchdog) — without
+    /// this restore path they lose every GPS sample since the start
+    /// of the hike.
+    ///
+    /// Drops the persisted recording silently if:
+    ///   - decode fails (corrupted file) — bail clean, start fresh.
+    ///   - `startedAt` is more than `maxResumeAge` ago — the user
+    ///     forgot they had a recording running and wouldn't expect
+    ///     it to come back to life. 12h covers a full hiking day +
+    ///     overnight; longer than that is almost certainly stale.
+    ///
+    /// On a clean restore, ALSO restarts background location updates
+    /// (`startBackgroundTracking`) — without this the activeRecording
+    /// is back in memory but no new GPS samples flow into it.
+    private func restoreActiveRecording() {
+        guard let data = UserDefaults.standard.data(forKey: persistKey) else { return }
+        guard let restored = try? JSONDecoder().decode(ActiveRecording.self, from: data) else {
+            // Decode failure — leave a breadcrumb and clear the bad
+            // blob so we don't try again on every cold launch.
+            log.error("restoreActiveRecording: decode failed, dropping persisted state")
+            UserDefaults.standard.removeObject(forKey: persistKey)
+            return
         }
+        let age = Date().timeIntervalSince(restored.startedAt)
+        let maxResumeAge: TimeInterval = 12 * 60 * 60
+        guard age < maxResumeAge else {
+            log.notice("restoreActiveRecording: skipping stale recording age=\(Int(age))s areaId=\(restored.areaId, privacy: .public)")
+            UserDefaults.standard.removeObject(forKey: persistKey)
+            return
+        }
+        activeRecording = restored
+        log.notice("restoreActiveRecording: resumed areaId=\(restored.areaId, privacy: .public) trailId=\(restored.trailId ?? "nil", privacy: .public) pathPoints=\(restored.path.count) age=\(Int(age))s")
+        ActivityLogService.shared.log(
+            category: "recording",
+            action: "resume",
+            context: [
+                "areaId": restored.areaId,
+                "trailId": restored.trailId ?? "nil",
+                "pathPoints": String(restored.path.count),
+                "ageSeconds": String(Int(age)),
+            ]
+        )
+        // Re-arm background GPS so new samples actually flow into the
+        // restored path. Without this call the recording sits in
+        // memory but goes nowhere — the user would tap Stop and save
+        // a hike that ended at the moment of the app kill.
+        locationService.startBackgroundTracking()
+        beginObservingLocation()
     }
 
     // MARK: - History migrations

@@ -82,13 +82,25 @@ ALLOWED_PROTECT_CLASSES = {
 # Catches state parks, national forests, regional/county parks, etc. that
 # don't tag protect_class (common in OSM US data).
 NAME_KEYWORD_RE = re.compile(
+    # English keywords (require left word boundary so "spark" doesn't
+    # match "park", etc.).
     r"\b(park|preserve|wilderness|forest|monument|recreation area|"
     r"recreation site|refuge|sanctuary|reserve|open space|"
-    r"conservation|wildlife|trailhead|trail system|nra|sra)\b",
+    r"conservation|wildlife|trailhead|trail system|nra|sra)\b"
+    # Danish keywords. NO left word boundary because Danish compounds
+    # words: "Naturpark", "Naturreservat", "Mols-Bjerge-fredning" should
+    # all match. Right boundary still required so "naturparken" matches
+    # the inflected form via its base. Add additional Nordic / European
+    # keywords here as countries come online.
+    r"|(naturpark|nationalpark|naturreservat|vildtreservat|"
+    r"fredning|naturskov|vådområde)",
     re.IGNORECASE,
 )
 
 STATE_NAMES = {
+    # US states (ISO3166-2 alpha-2 subdivision codes, without the
+    # "US-" prefix). The script auto-prefixes when building the
+    # Overpass query — see `overpass_query`.
     "AL": "Alabama",
     "AK": "Alaska",
     "AZ": "Arizona",
@@ -140,16 +152,46 @@ STATE_NAMES = {
     "WV": "West Virginia",
     "WI": "Wisconsin",
     "WY": "Wyoming",
+
+    # Countries (ISO3166-1 alpha-2). Triggers a country-wide
+    # Overpass query rather than the US-state subdivision query.
+    # Add more here as international coverage expands.
+    "DK": "Denmark",
 }
 
+# Subset of STATE_NAMES that are country-level (ISO3166-1) rather than
+# US-state subdivisions. The Overpass query path differs — see
+# `overpass_query` below.
+COUNTRY_CODES: set[str] = {"DK"}
 
-def overpass_query(state_code: str) -> str:
+
+def overpass_query(code: str) -> str:
+    """Build an Overpass query for `code`. Accepts three shapes:
+
+    - 2-letter US state ("AZ", "CA"): legacy default, queries
+      `ISO3166-2 = "US-{code}"`.
+    - 2-letter country ("DK"): queries `ISO3166-1 = "{code}"`.
+      Add the code to `COUNTRY_CODES` to opt in.
+    - Explicit ISO3166-2 with a hyphen ("DK-84", "ES-MD"): queries
+      `ISO3166-2 = "{code}"` directly. Lets callers seed individual
+      subdivisions of non-US countries without expanding
+      STATE_NAMES.
+    """
+    if "-" in code:
+        # Explicit ISO3166-2 subdivision (international).
+        bbox = f'area["ISO3166-2"="{code}"]->.region;'
+    elif code in COUNTRY_CODES:
+        # Country-wide (ISO3166-1 alpha-2).
+        bbox = f'area["ISO3166-1"="{code}"]->.region;'
+    else:
+        # Legacy default: 2-letter US state code → ISO3166-2 US-XX.
+        bbox = f'area["ISO3166-2"="US-{code}"]->.region;'
     return f"""
 [out:json][timeout:300];
-area["ISO3166-2"="US-{state_code}"]->.state;
+{bbox}
 (
-  relation["boundary"~"^(protected_area|national_park)$"]["name"](area.state);
-  relation["leisure"="nature_reserve"]["name"](area.state);
+  relation["boundary"~"^(protected_area|national_park)$"]["name"](area.region);
+  relation["leisure"="nature_reserve"]["name"](area.region);
 );
 out tags center;
 """.strip()
@@ -190,8 +232,42 @@ def is_quality(tags: dict) -> bool:
     return bool(NAME_KEYWORD_RE.search(name))
 
 
+# Common non-ASCII letter → ASCII transliterations. Danish ø/æ/å must
+# fold to ASCII for the slug to work as both a file path (R2 / iOS
+# bundle) and a stable id (the slug doubles as the area_id). Python's
+# `\w` is Unicode by default in re mode, so without this fold a name
+# like "Nationalpark Mols Bjerge med Naturskov" would slug fine but
+# "Vådområde X" would land "vådområde-x-dk" — fine on disk, but
+# brittle across systems and tooling. The ASCII fold is the safest
+# baseline; extend with more languages as countries come online.
+ASCII_TRANSLIT: dict[str, str] = {
+    "ø": "o", "Ø": "O",
+    "æ": "ae", "Æ": "Ae",
+    "å": "a", "Å": "A",
+    "ö": "o", "Ö": "O",
+    "ä": "a", "Ä": "A",
+    "ü": "u", "Ü": "U",
+    "ß": "ss",
+    "ñ": "n", "Ñ": "N",
+    "é": "e", "É": "E",
+    "è": "e", "È": "E",
+    "ê": "e", "Ê": "E",
+    "ó": "o", "Ó": "O",
+    "í": "i", "Í": "I",
+    "á": "a", "Á": "A",
+    "ú": "u", "Ú": "U",
+    "ç": "c", "Ç": "C",
+}
+
+
 def slugify(name: str, state_code: str) -> str:
-    s = re.sub(r"[^\w\s-]", "", name.lower())
+    s = name
+    for src, dst in ASCII_TRANSLIT.items():
+        s = s.replace(src, dst)
+    s = s.lower()
+    # Strip anything that isn't ASCII alphanumeric, whitespace, or hyphen.
+    # `re.ASCII` forces \w to match [a-zA-Z0-9_] (no Unicode letters).
+    s = re.sub(r"[^\w\s-]", "", s, flags=re.ASCII)
     s = re.sub(r"[-\s]+", "-", s).strip("-")
     return f"{s[:60]}-{state_code.lower()}"
 

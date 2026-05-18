@@ -160,7 +160,6 @@ enum PolylineMath {
         }
         return out
     }
-}
 
     /// Distance in meters from `currentPoint`'s projection onto
     /// `coords` to the next significant turn — the first vertex

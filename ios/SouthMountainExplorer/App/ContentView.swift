@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 struct ContentView: View {
     @Environment(AuthService.self) private var auth
@@ -49,6 +50,7 @@ struct ContentView: View {
                     trailName: trailName(forAreaId: rec.areaId, trailId: rec.trailId),
                     distanceMi: rec.distanceMi,
                     startedAt: rec.startedAt,
+                    distanceToNextTurnMeters: distanceToNextTurnMeters(for: rec),
                     onTap: { jumpToAreaId = rec.areaId },
                     onStop: { showStopConfirm = true }
                 )
@@ -204,6 +206,31 @@ struct ContentView: View {
     private func trailName(forAreaId areaId: String, trailId: String?) -> String? {
         guard let trailId else { return nil }
         return areas.cachedArea(id: areaId)?.trails.first { $0.id == trailId }?.name
+    }
+
+    /// Meters to the next significant turn on the active trail, or
+    /// `nil` for roam-mode recordings / when the area trails aren't
+    /// cached / when direction-of-travel can't be inferred yet. The
+    /// banner shows this as "→ X ft to next turn" on a third line.
+    /// Recomputed every banner refresh — cheap (O(trail vertex count)
+    /// per call, single-area scale).
+    private func distanceToNextTurnMeters(for rec: ActiveRecording) -> Double? {
+        guard let trailId = rec.trailId else { return nil }
+        guard let trail = areas.cachedArea(id: rec.areaId)?
+            .trails.first(where: { $0.id == trailId }) else { return nil }
+        guard rec.path.count >= 2 else { return nil }
+        let last = rec.path.last!
+        // A "prior point" a handful of samples back gives a more
+        // stable bearing estimate than `path[count-2]` (which can be
+        // 1 second of GPS jitter away).
+        let priorIdx = max(0, rec.path.count - 6)
+        let prior = rec.path[priorIdx]
+        let coords = trail.flattenedCoords
+        return PolylineMath.distanceToNextTurn(
+            currentPoint: CLLocationCoordinate2D(latitude: last[0], longitude: last[1]),
+            priorPoint: CLLocationCoordinate2D(latitude: prior[0], longitude: prior[1]),
+            coords: coords
+        )
     }
 
     private func stopActiveRecording() async {

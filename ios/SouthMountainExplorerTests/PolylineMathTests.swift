@@ -177,4 +177,78 @@ struct PolylineMathTests {
         let flat = trail.flattenedCoords
         #expect(flat.count == 1)
     }
+
+    // MARK: - distanceToNextTurn
+
+    /// Polyline shaped like an "L": ~104 m east, then sharp 90° turn
+    /// south. The user is walking east; the turn is the corner.
+    @Test func distanceToNextTurn_straightSegmentThenSharpRight() {
+        let coords = [
+            CLLocationCoordinate2D(latitude: 33.3, longitude: -112.0),
+            CLLocationCoordinate2D(latitude: 33.3, longitude: -111.99888),
+            CLLocationCoordinate2D(latitude: 33.29900, longitude: -111.99888),
+        ]
+        let current = CLLocationCoordinate2D(latitude: 33.3, longitude: -111.99946)
+        let prior   = CLLocationCoordinate2D(latitude: 33.3, longitude: -111.99970)
+        let d = PolylineMath.distanceToNextTurn(
+            currentPoint: current, priorPoint: prior, coords: coords
+        )
+        #expect(d != nil)
+        if let d { #expect(abs(d - 50) < 15, "Got \(d), expected ~50") }
+    }
+
+    @Test func distanceToNextTurn_returnsNilOnLineWithNoTurn() {
+        let coords = [
+            CLLocationCoordinate2D(latitude: 33.3,    longitude: -112.0),
+            CLLocationCoordinate2D(latitude: 33.301,  longitude: -112.0),
+            CLLocationCoordinate2D(latitude: 33.302,  longitude: -112.0),
+            CLLocationCoordinate2D(latitude: 33.303,  longitude: -112.0),
+        ]
+        let current = CLLocationCoordinate2D(latitude: 33.3015, longitude: -112.0)
+        let prior   = CLLocationCoordinate2D(latitude: 33.3010, longitude: -112.0)
+        #expect(PolylineMath.distanceToNextTurn(
+            currentPoint: current, priorPoint: prior, coords: coords
+        ) == nil)
+    }
+
+    @Test func distanceToNextTurn_returnsNilWhenStationary() {
+        let coords = [
+            CLLocationCoordinate2D(latitude: 33.3, longitude: -112.0),
+            CLLocationCoordinate2D(latitude: 33.3, longitude: -111.99888),
+            CLLocationCoordinate2D(latitude: 33.29900, longitude: -111.99888),
+        ]
+        let pt = CLLocationCoordinate2D(latitude: 33.3, longitude: -111.99946)
+        #expect(PolylineMath.distanceToNextTurn(
+            currentPoint: pt, priorPoint: pt, coords: coords
+        ) == nil)
+    }
+
+    @Test func distanceToNextTurn_returnsNilOffTrail() {
+        let coords = [
+            CLLocationCoordinate2D(latitude: 33.3, longitude: -112.0),
+            CLLocationCoordinate2D(latitude: 33.3, longitude: -111.99888),
+            CLLocationCoordinate2D(latitude: 33.29900, longitude: -111.99888),
+        ]
+        let current = CLLocationCoordinate2D(latitude: 33.302, longitude: -111.99946)
+        let prior   = CLLocationCoordinate2D(latitude: 33.302, longitude: -111.99970)
+        #expect(PolylineMath.distanceToNextTurn(
+            currentPoint: current, priorPoint: prior, coords: coords
+        ) == nil)
+    }
+
+    @Test func distanceToNextTurn_walkingBackwardFindsTurnBehind() {
+        let coords = [
+            CLLocationCoordinate2D(latitude: 33.3, longitude: -112.0),
+            CLLocationCoordinate2D(latitude: 33.3, longitude: -111.99888),
+            CLLocationCoordinate2D(latitude: 33.29900, longitude: -111.99888),
+        ]
+        // User is ~50 m south of the corner, walking north toward it.
+        let current = CLLocationCoordinate2D(latitude: 33.29955, longitude: -111.99888)
+        let prior   = CLLocationCoordinate2D(latitude: 33.29930, longitude: -111.99888)
+        let d = PolylineMath.distanceToNextTurn(
+            currentPoint: current, priorPoint: prior, coords: coords
+        )
+        #expect(d != nil)
+        if let d { #expect(abs(d - 50) < 15, "Got \(d), expected ~50") }
+    }
 }

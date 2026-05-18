@@ -13,6 +13,12 @@ struct ActiveRecordingBanner: View {
     let trailName: String?
     let distanceMi: Double
     let startedAt: Date
+    /// Meters to the next significant turn on the active trail. `nil`
+    /// for roam-mode recordings, when the user isn't on the trail
+    /// (off-route), or when direction-of-travel can't be inferred
+    /// yet. When set, the banner renders a third line "→ X ft to
+    /// next turn".
+    var distanceToNextTurnMeters: Double? = nil
     let onTap: () -> Void
     let onStop: () -> Void
 
@@ -43,6 +49,12 @@ struct ActiveRecordingBanner: View {
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                        if let turnLine = nextTurnLine {
+                            Text(turnLine)
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
                     }
 
                     Spacer(minLength: 8)
@@ -76,6 +88,25 @@ struct ActiveRecordingBanner: View {
             return "\(areaName) · \(stats)"
         }
         return stats
+    }
+
+    /// "→ 420 ft to next turn" / "→ 130 m to next turn". Nil when
+    /// no turn estimate is available (roam mode, off-trail, stationary).
+    /// Short-form ft / m formatting (not the standard mi / km
+    /// formatter) because at trail-turn scale "0.08 mi" reads worse
+    /// than "420 ft."
+    private var nextTurnLine: String? {
+        guard let meters = distanceToNextTurnMeters, meters >= 1 else { return nil }
+        let text: String
+        switch units {
+        case .imperial:
+            let ft = Int((meters * 3.28084).rounded())
+            text = "\(ft) ft"
+        case .metric:
+            let m = Int(meters.rounded())
+            text = "\(m) m"
+        }
+        return "→ \(text) to next turn"
     }
 
     private var formattedElapsed: String {

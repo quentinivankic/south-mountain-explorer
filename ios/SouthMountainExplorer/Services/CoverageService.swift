@@ -81,19 +81,19 @@ final class CoverageService {
         sinceCompletion[areaId]?[trailId] ?? 0
     }
 
+    /// Merges per-trail coverage deltas into the lifetime bucket only.
+    /// The since-completion bucket is authoritative via
+    /// `setSinceCompletion` (rebuilt from history with the length-based
+    /// 10m precision in PR #125) and `resetSinceCompletion` (the
+    /// completion event itself) — writing live deltas here would clobber
+    /// that precision with mid-hike GPS-snapped values. The TrailDetailSheet
+    /// bar settles to the correct value on next AreaView reopen.
     func mergeCoverage(areaId: String, delta: [String: Double]) async {
         var area = state[areaId] ?? [:]
-        var since = sinceCompletion[areaId] ?? [:]
         for (tid, v) in delta {
             area[tid] = min(1.0, max(area[tid] ?? 0, v))
-            // The since-completion bucket follows the same monotonic
-            // max-merge — it only resets via `resetSinceCompletion`,
-            // called by RecordingService when the trail flips to
-            // complete on this hike.
-            since[tid] = min(1.0, max(since[tid] ?? 0, v))
         }
         state[areaId] = area
-        sinceCompletion[areaId] = since
         saveLocal()
     }
 

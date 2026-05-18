@@ -204,7 +204,21 @@ struct TrailMapView: View {
                 // recording panel / trail list sheet). The `.onChange`
                 // handlers below imperatively re-frame on each location
                 // / heading update.
-                userTrackingMode: .none
+                userTrackingMode: .none,
+                onUserGestureRegionChange: {
+                    // User gesture-driven region change (pinch / pan).
+                    // In follow modes, snap the camera back to the
+                    // user immediately so the dot doesn't drift
+                    // off-center waiting for the next GPS update
+                    // (which never comes if the user is stationary).
+                    // `updateTrackedPosition()` uses .followCenter
+                    // which preserves whatever zoom the user just
+                    // pinched to. In .free mode, do nothing — the
+                    // user's pan / pinch is the new camera state.
+                    if trackingMode != .free {
+                        updateTrackedPosition()
+                    }
+                }
             )
 
             if showDebugHUD {

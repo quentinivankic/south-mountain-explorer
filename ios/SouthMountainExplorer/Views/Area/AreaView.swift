@@ -196,7 +196,11 @@ struct AreaView: View {
                 // padding here — otherwise the REC bar would still float
                 // ~34pt above the visible top of the trail list panel.
                 GeometryReader { proxy in
-                    VStack(spacing: 4) {
+                    // Spacing 0 lets each child own its vertical
+                    // breathing room — closes the visible gap between
+                    // controlBar and RecordingPanel that lingered after
+                    // earlier spacing-tighten passes.
+                    VStack(spacing: 0) {
                         if let toast = trackingModeToast {
                             Text(toast)
                                 .font(.caption)
@@ -297,7 +301,14 @@ struct AreaView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .padding(.bottom, showTrailList ? currentListHeight : 0)
+                    // `.offset` instead of `.padding(.bottom:)` so the
+                    // per-drag-tick height changes don't invalidate
+                    // layout on this VStack (or anything above it). A
+                    // padding change forces a layout pass; an offset is
+                    // a GPU transform — much cheaper, and removes the
+                    // residual stutter that lingered after the
+                    // .geometryGroup() pass on the panel itself.
+                    .offset(y: showTrailList ? -currentListHeight : 0)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
                 // Match the trail-list panel: ignore the home-indicator

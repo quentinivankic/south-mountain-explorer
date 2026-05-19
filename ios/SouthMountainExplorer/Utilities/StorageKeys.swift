@@ -4,7 +4,9 @@ import Foundation
 /// place so the strings don't drift across services and the Reset
 /// All Progress action can't quietly leave anything behind.
 enum StorageKeys {
-    // MARK: - App preferences (never cleared)
+    // MARK: - App preferences (theme/units/debugHUD never cleared;
+    //         onboarded IS cleared by Reset All Progress so the
+    //         new-user-experience test cycle works)
 
     static let onboarded = "summit:onboarded"
     static let theme = "summit:theme"
@@ -63,9 +65,13 @@ enum StorageKeys {
     static let hikeHistoryMigrationVersion = "summit:history-migration-version"
 
     /// Keys wiped by the "Reset All Progress" action in Settings.
-    /// Onboarding, theme, telemetry, and prefetch cooldowns stay
-    /// untouched — see comments above.
+    /// Theme, units, telemetry, and prefetch cooldowns stay
+    /// untouched — see comments above. Onboarding IS cleared so the
+    /// new-user-experience test cycle (Export → Reset → poke around
+    /// fresh state → Import) actually exercises the onboarding flow
+    /// — otherwise the post-reset app skips straight past it.
     static let resetAllKeys: [String] = [
+        onboarded,
         completedTrails,
         coverage,
         coverageSinceCompletion,

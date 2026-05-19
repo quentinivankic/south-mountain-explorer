@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 private struct UserStats: Equatable {
     var hikeCount: Int
@@ -60,6 +61,19 @@ struct SettingsView: View {
     @State private var showSignIn = false
     @State private var showResetConfirm = false
     @State private var showSignOutConfirm = false
+
+    /// Backup export — non-nil while the share sheet is presented with
+    /// the exported JSON file URL. Cleared on dismiss.
+    @State private var exportShareURL: IdentifiedURL? = nil
+    @State private var exportError: String? = nil
+    /// Import — fileImporter is shown when this is true; user-picked
+    /// file lands in `importPendingURL` for the confirmation dialog;
+    /// `importSuccess` flips true after a successful import so the
+    /// "relaunch the app" alert can present.
+    @State private var showDataImporter = false
+    @State private var importPendingURL: URL? = nil
+    @State private var importError: String? = nil
+    @State private var importSuccess = false
     @State private var showRefreshConfirm = false
     @State private var trailDataRefreshed = false
     @State private var stats: UserStats? = nil
@@ -264,6 +278,28 @@ struct SettingsView: View {
                 }
 
                 Section("Data") {
+                    Button {
+                        runDataExport()
+                    } label: {
+                        Label("Export All Data…", systemImage: "square.and.arrow.up")
+                    }
+                    if let err = exportError {
+                        Text(err)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+
+                    Button {
+                        showDataImporter = true
+                    } label: {
+                        Label("Import Data…", systemImage: "square.and.arrow.down")
+                    }
+                    if let err = importError {
+                        Text(err)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+
                     Button(role: .destructive) {
                         showResetConfirm = true
                     } label: {
@@ -353,6 +389,44 @@ struct SettingsView: View {
         }
         .sheet(item: $diagnosticsShareURL) { wrapped in
             ShareSheet(items: [wrapped.url])
+        }
+        .sheet(item: $exportShareURL) { wrapped in
+            ShareSheet(items: [wrapped.url])
+        }
+        .fileImporter(
+            isPresented: $showDataImporter,
+            allowedContentTypes: [.json],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                if let url = urls.first { importPendingURL = url }
+            case .failure(let error):
+                importError = "Couldn't open file: \(error.localizedDescription)"
+            }
+        }
+        .confirmationDialog(
+            "Replace all current data with this backup?",
+            isPresented: Binding(
+                get: { importPendingURL != nil },
+                set: { if !$0 { importPendingURL = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: importPendingURL
+        ) { url in
+            Button("Replace", role: .destructive) {
+                runDataImport(from: url)
+            }
+            Button("Cancel", role: .cancel) {
+                importPendingURL = nil
+            }
+        } message: { _ in
+            Text("Every completion, coverage value, hike, and favourite on this device will be replaced by the contents of the backup file. Cannot be undone.")
+        }
+        .alert("Import complete", isPresented: $importSuccess) {
+            Button("OK") {}
+        } message: {
+            Text("Quit and relaunch the app to see the restored data — the app caches some state in memory at launch.")
         }
         // Re-run when the recording state flips (recording starts or stops)
         // so completing a hike then opening Settings shows fresh numbers
@@ -452,6 +526,50 @@ struct SettingsView: View {
             trailsCompleted: completedPairs.count,
             areasExplored: areas.count
         )
+    }
+
+    /// Build the export blob, write it to a temp file, and present
+    /// the share sheet pointing at that file. Errors surface inline
+    /// under the Export button so the user keeps Settings context.
+    private func runDataExport() {
+        exportError = nil
+        do {
+            let data = try DataBackupManager.collectExport()
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent(DataBackupManager.suggestedFilename())
+            try data.write(to: url, options: .atomic)
+            exportShareURL = IdentifiedURL(url: url)
+            ActivityLogService.shared.log(
+                category: "settings", action: "exportData",
+                context: ["bytes": "\(data.count)"]
+            )
+        } catch {
+            exportError = "Export failed: \(error.localizedDescription)"
+        }
+    }
+
+    /// Read the picked file and replace the entire app state with its
+    /// contents. UI surfaces the "please relaunch" alert on success
+    /// since the @MainActor singletons cache state in memory at init.
+    private func runDataImport(from url: URL) {
+        importError = nil
+        importPendingURL = nil
+        // Picked files are sandboxed — must startAccessingSecurityScoped
+        // before reading or the read returns "permission denied" even
+        // though Files chose it.
+        let didStart = url.startAccessingSecurityScopedResource()
+        defer { if didStart { url.stopAccessingSecurityScopedResource() } }
+        do {
+            let data = try Data(contentsOf: url)
+            try DataBackupManager.performImport(from: data)
+            ActivityLogService.shared.log(
+                category: "settings", action: "importData",
+                context: ["bytes": "\(data.count)"]
+            )
+            importSuccess = true
+        } catch {
+            importError = error.localizedDescription
+        }
     }
 
     private func resetAll() async {

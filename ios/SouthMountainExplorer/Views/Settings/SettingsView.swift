@@ -574,6 +574,20 @@ struct SettingsView: View {
 
     private func resetAll() async {
         ActivityLogService.shared.log(category: "settings", action: "resetAll")
+        // Reset every @Observable singleton that holds user progress
+        // in memory. Without these calls the UI keeps showing the old
+        // state — checkmarks, coverage bars, favorites — because each
+        // service loads its dictionary at init and never reloads from
+        // UserDefaults again. Each service's resetAll() both zeros
+        // the in-memory copy AND clears its UserDefaults entry, so
+        // SwiftUI views observing them refresh immediately.
+        ProgressService.shared.resetAll()
+        CoverageService.shared.resetAll()
+        FavoritesService.shared.resetAll()
+        RecordingService.shared.resetAll()
+        // Sweep any remaining keys that aren't owned by a service
+        // (e.g. the cached last-known user location). removeObject is
+        // idempotent so the overlap with the service resets is fine.
         for key in StorageKeys.resetAllKeys { UserDefaults.standard.removeObject(forKey: key) }
         // Wipe the activity log too — fresh-device state should look
         // like a brand-new install. clear() removes the file outright.

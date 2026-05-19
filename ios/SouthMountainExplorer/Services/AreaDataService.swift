@@ -100,12 +100,19 @@ final class AreaDataService {
         guard let data = try? Data(contentsOf: url),
               let tuples = try? JSONDecoder().decode([[JSONValue]].self, from: data)
         else { return nil }
-        // Hide areas with no trail data — they show as broken "0/0 trails"
-        // cards with no silhouette. They re-appear automatically once a
-        // future Build Trail Index run finds trails for them.
+        // Hide ONLY areas explicitly known to have zero trails (=0).
+        // Areas that haven't been hydrated yet (trailCount == nil,
+        // 5-tuple seed-only rows) stay visible: they render as cards
+        // with no trail-count badge but are tappable, and tapping
+        // loads geom via the live-Overpass fallback path. Previously
+        // we filtered out nil too, which made every 5-tuple silently
+        // vanish — so a half-finished Build Trail Index run (e.g.
+        // seeded but not yet hydrated) made entire states disappear
+        // from the app. Showing them as "loading-but-tappable" is
+        // strictly better than hiding them.
         return tuples
             .compactMap { AreaSummary(tuple: $0) }
-            .filter { ($0.trailCount ?? 0) > 0 }
+            .filter { $0.trailCount != 0 }
     }
 
     func search(_ query: String) -> [AreaSummary] {

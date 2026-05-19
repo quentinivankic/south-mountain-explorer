@@ -127,28 +127,6 @@ final class CoverageService {
         saveLocal()
     }
 
-    /// Wipe every coverage entry (lifetime + since-completion) and
-    /// drop both UserDefaults keys. Called by Settings → Reset All
-    /// Progress. Mutates the `@Observable` dictionaries so any open
-    /// AreaView or TrailDetailSheet refreshes immediately instead
-    /// of holding stale percentages until next launch.
-    func resetAll() {
-        state = [:]
-        sinceCompletion = [:]
-        UserDefaults.standard.removeObject(forKey: storageKey)
-        UserDefaults.standard.removeObject(forKey: sinceCompletionStorageKey)
-    }
-
-    /// Re-read both coverage dictionaries from UserDefaults. Called
-    /// after Settings → Import overwrites the underlying entries —
-    /// the in-memory `@Observable` copies were loaded at init and
-    /// would otherwise keep showing pre-import percentages until
-    /// next launch.
-    func reload() {
-        state = readLocal(key: storageKey)
-        sinceCompletion = readLocal(key: sinceCompletionStorageKey)
-    }
-
     /// Rewrite every trail-id key through `transform`. Used by the
     /// build-8 migration to canonicalize legacy ids (stripping the
     /// position-counter suffix) so old recorded coverage lines up

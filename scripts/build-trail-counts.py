@@ -147,7 +147,7 @@ def overpass_query(lat: float, lon: float, nominatim: dict | None = None) -> str
         osm_id = int(nominatim["osm_id"])
         area_id = osm_id + 3_600_000_000
         return (
-            f'[out:json][timeout:90];'
+            f'[out:json][timeout:25];'
             f'area({area_id})->.a;'
             f'(way{HIGHWAY_FILTER}(area.a););'
             f'out tags geom;'
@@ -161,7 +161,7 @@ def overpass_query(lat: float, lon: float, nominatim: dict | None = None) -> str
         d = 0.10
         s, w, n, e = lat - d, lon - d, lat + d, lon + d
     return (
-        f'[out:json][timeout:90];'
+        f'[out:json][timeout:25];'
         f'(way{HIGHWAY_FILTER}({s},{w},{n},{e}););'
         f'out tags geom;'
     )
@@ -185,7 +185,11 @@ def fetch_overpass(lat, lon, nominatim=None):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=110) as resp:
+            # 30-sec socket timeout — bails fast on 504/hung connections so
+            # one slow area doesn't tie up a worker for 2 min. Failed
+            # areas stay un-hydrated, the next dispatch retries them with
+            # a warm cache (so the cost amortizes).
+            with urllib.request.urlopen(req, timeout=30) as resp:
                 return resp.read()
         except Exception as e:
             last_err = e

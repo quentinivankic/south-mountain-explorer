@@ -328,7 +328,11 @@ def main() -> None:
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    ap.add_argument("states", nargs="+", help="State codes, e.g. AZ CA")
+    ap.add_argument(
+        "states",
+        nargs="*",
+        help="State codes, e.g. AZ CA. Required unless --all is set.",
+    )
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--merge", action="store_true")
     ap.add_argument(
@@ -336,7 +340,25 @@ def main() -> None:
         action="store_true",
         help="Skip states already in index.json (implies --merge).",
     )
+    ap.add_argument(
+        "--all",
+        action="store_true",
+        help="Seed every region in STATE_NAMES. Use to refresh the "
+        "osm_id cache for all regions in one go — combined with "
+        "--merge (no --resume) this re-runs the per-region Overpass "
+        "query for everything and updates counts-cache.json with "
+        "fresh osm_ids, which lets build-trail-counts skip Nominatim "
+        "lookups for un-cached areas. Cannot be combined with "
+        "positional state codes.",
+    )
     args = ap.parse_args()
+
+    if args.all:
+        if args.states:
+            ap.error("--all is mutually exclusive with positional state codes")
+        args.states = sorted(STATE_NAMES.keys())
+    elif not args.states:
+        ap.error("at least one state code is required (or pass --all)")
 
     excludes = load_overrides(SEED_EXCLUDE)
     includes = load_overrides(SEED_INCLUDE)

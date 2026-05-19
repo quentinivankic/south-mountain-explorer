@@ -85,20 +85,77 @@ jobs:
         with:
           python-version: "3.12"
 
-      # Seed step: optional, only runs when seed_regions is non-blank.
-      # Wrapped in a 3-retry shell loop with exponential backoff so a
-      # transient Overpass 504 doesn't bail the whole workflow.
-      # `--resume` makes the script skip regions already in index.json
-      # — combined with the script's own per-region 3-retry, every
-      # region has 9 attempts before the workflow gives up.
+      # Cache-freshness check. The build step skips areas whose cache
+      # entry includes an `osm_id` (so it can use Overpass area-relation
+      # queries directly). Areas without a cached `osm_id` fall through
+      # to Nominatim (1 req/sec hard limit, serializes the whole build)
+      # and then to bbox-radius fallback. So a cache that's missing
+      # osm_ids for most areas turns the build step into hours of
+      # Nominatim-bound work.
+      #
+      # If coverage is low (<80% of index rows have a cached osm_id),
+      # we run a `seed-areas.py --all --merge` pre-pass first to
+      # refresh osm_ids via per-region Overpass queries. That's ~30 sec
+      # × number of regions in STATE_NAMES — much cheaper than letting
+      # the build step grind through Nominatim for the same data.
+      #
+      # In steady state (warm cache, no new regions) coverage is ~100%
+      # and the pre-pass is skipped. The flag also auto-triggers when
+      # `seed_regions` is explicitly non-empty (the user is adding new
+      # regions and wants them seeded).
+      - name: Check cache freshness
+        id: cache_check
+        env:
+          SEED_REGIONS: ${{ github.event.inputs.seed_regions }}
+        run: |
+          python3 <<'EOF' >> "$GITHUB_OUTPUT"
+          import json, os, sys
+          idx_path = 'public/areas/index.json'
+          cache_path = 'public/areas/counts-cache.json'
+          if not os.path.exists(idx_path):
+              print("needs_seed_pass=false")
+              sys.exit(0)
+          idx = json.load(open(idx_path))
+          cache = {}
+          if os.path.exists(cache_path):
+              cache = json.load(open(cache_path))
+          total = len(idx)
+          with_osm = sum(
+              1 for r in idx if cache.get(r[0], {}).get("osm_id") is not None
+          )
+          pct = (with_osm / total) if total else 1
+          needs = pct < 0.8
+          print(f"needs_seed_pass={'true' if needs else 'false'}")
+          print(
+              f"::notice::counts-cache.json osm_id coverage: "
+              f"{with_osm}/{total} ({int(pct*100)}%) — "
+              f"{'running pre-pass' if needs else 'pre-pass skipped'}",
+              file=sys.stderr,
+          )
+          EOF
+
+      # Seed step: runs when either (a) the user explicitly named
+      # `seed_regions`, OR (b) cache coverage is low. In case (b) we
+      # seed `--all` to refresh osm_ids for every region in
+      # STATE_NAMES; in case (a) we seed just the named regions
+      # (the user wants those specifically). Wrapped in a 3-retry
+      # shell loop so a transient Overpass 504 doesn't bail the
+      # workflow.
       - name: Seed area index from OSM
-        if: ${{ github.event.inputs.seed_regions != '' }}
+        if: ${{ github.event.inputs.seed_regions != '' || steps.cache_check.outputs.needs_seed_pass == 'true' }}
         env:
           SEED_REGIONS: ${{ github.event.inputs.seed_regions }}
         run: |
           set -euo pipefail
+          if [ -n "$SEED_REGIONS" ]; then
+            SEED_ARGS=(--merge $SEED_REGIONS)
+            echo "Seeding explicit regions: $SEED_REGIONS"
+          else
+            SEED_ARGS=(--merge --all)
+            echo "Cache osm_id coverage low — refreshing every region in STATE_NAMES."
+          fi
           for attempt in 1 2 3; do
-            if python3 scripts/seed-areas.py --resume --merge $SEED_REGIONS; then
+            if python3 scripts/seed-areas.py "${SEED_ARGS[@]}"; then
               echo "Seed step succeeded on attempt $attempt."
               break
             fi
@@ -117,20 +174,17 @@ jobs:
       # only ever for 5-tuple seed-only rows + any areas the
       # `force_rehydrate` flag is forcing back through.
       #
-      # This is the safety guarantee: no dispatch can ever LEAVE
-      # un-hydrated areas in the index. Past workflows had a
-      # `state_filter` input that scoped this step to a subset of
-      # states — which is exactly how we ended up with most of the
-      # index as 5-tuples earlier today. Dropped that input on
-      # purpose.
+      # Concurrency tuned to 6 workers / 1.0 sec delay = ~6 req/s
+      # aggregate across the two Overpass mirrors (~3 req/s each).
+      # The existing retry layer absorbs occasional 429s.
       - name: Run trail count builder (full index)
         env:
           FORCE: ${{ github.event.inputs.force_rehydrate }}
         run: |
           ARGS=(
             --batch-size 50
-            --delay 1.5
-            --concurrency 3
+            --delay 1.0
+            --concurrency 6
             --min-trails 3
             --min-miles 2
           )

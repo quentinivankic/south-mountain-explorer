@@ -114,24 +114,6 @@ final class ProgressService {
         saveLocal()
     }
 
-    /// Wipe every completion across every area and clear the
-    /// underlying UserDefaults entry. Called by Settings → Reset All
-    /// Progress. Mutates the `@Observable` `completions` dictionary
-    /// so SwiftUI views holding it refresh immediately — without
-    /// this the UI keeps showing checkmarks until next launch.
-    func resetAll() {
-        completions = [:]
-        UserDefaults.standard.removeObject(forKey: storageKey)
-    }
-
-    /// Re-read the completions dictionary from UserDefaults. Called
-    /// after Settings → Import overwrites the underlying entry — the
-    /// in-memory `@Observable` copy was loaded at init and would
-    /// otherwise keep showing pre-import state until next launch.
-    func reload() {
-        completions = readLocal()
-    }
-
     /// Rewrite every trail-id key through `transform`. Used by the
     /// build-8 migration to canonicalize legacy ids so old marked
     /// completions line up with stable post-fix ids. On collision

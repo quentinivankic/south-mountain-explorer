@@ -273,30 +273,6 @@ final class RecordingService {
         Task { await NotificationService.shared.ensurePermission() }
     }
 
-    /// Discard the in-progress recording AND every saved hike. Called
-    /// by Settings → Reset All Progress. Goes further than
-    /// `discardRecording` by also deleting `hike-history.json` from
-    /// Documents/ — without this delete, History would repopulate
-    /// from disk on the next `loadHistory()` call and the rebuild-
-    /// from-history path would re-credit all the trail completions
-    /// we just wiped in ProgressService.
-    func resetAll() {
-        discardRecording()
-        try? FileManager.default.removeItem(at: Self.historyFileURL)
-        log.notice("resetAll: cleared activeRecording and removed hike-history.json")
-    }
-
-    /// Re-read the persisted active recording from UserDefaults.
-    /// Called after Settings → Import — the import may have restored
-    /// an in-progress recording from the backup, and without this
-    /// call the banner wouldn't reappear until next launch. Saved
-    /// hike history doesn't need an explicit reload because
-    /// `loadHistory()` reads from disk every call (no in-memory
-    /// cache to invalidate).
-    func reload() {
-        restoreActiveRecording()
-    }
-
     func discardRecording() {
         let prev = activeRecording
         locationObserver?.cancel()

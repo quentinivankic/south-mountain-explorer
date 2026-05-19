@@ -67,7 +67,7 @@ struct ContinueCard: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassEffect(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .compatibleGlass(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .padding(8)
         }
     }

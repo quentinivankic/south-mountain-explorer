@@ -81,7 +81,7 @@ struct RecordingPanel: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-        .glassEffect(in: .rect(cornerRadius: 24))
+        .compatibleGlass(in: .rect(cornerRadius: 24))
         .padding(.horizontal, 16)
         .onAppear { startTimer() }
         .onDisappear { timer?.invalidate() }
@@ -251,7 +251,7 @@ struct RecordingSummarySheet: View {
                         }
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .padding(.horizontal)
                     }
 
@@ -311,7 +311,7 @@ struct RecordingSummarySheet: View {
                             }
                             .padding(14)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .padding(.horizontal)
                         }
                     }
@@ -391,7 +391,7 @@ struct RecordingSummarySheet: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .glassEffect(in: .rect(cornerRadius: 16))
+        .compatibleGlass(in: .rect(cornerRadius: 16))
     }
 
     private var formattedDuration: String {

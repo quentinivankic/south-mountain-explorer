@@ -58,7 +58,7 @@ struct SuggestionBanner: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .glassEffect(in: .rect(cornerRadius: 20))
+        .compatibleGlass(in: .rect(cornerRadius: 20))
         .padding(.horizontal, 16)
     }
 

@@ -55,7 +55,7 @@ struct AreaCompletionView: View {
             }
             .padding(.vertical, 16)
             .frame(maxWidth: .infinity)
-            .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .padding(.horizontal, 32)
 
             Spacer()

@@ -134,7 +134,7 @@ struct AreaCard: View {
             }
             .padding(14)
             .frame(width: 220, alignment: .leading)
-            .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .padding(6)
         }
         .overlay(alignment: .topTrailing) {
@@ -144,7 +144,7 @@ struct AreaCard: View {
                 Image(systemName: favorites.isFavorite(area.id) ? "heart.fill" : "heart")
                     .foregroundStyle(favorites.isFavorite(area.id) ? .red : .primary)
                     .padding(10)
-                    .glassEffect(in: .circle)
+                    .compatibleGlass(in: .circle)
             }
             // Sit closer to the top edge but pulled in further from the
             // right so the heart isn't touching the artwork's rounded

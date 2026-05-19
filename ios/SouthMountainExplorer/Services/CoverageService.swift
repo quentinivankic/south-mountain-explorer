@@ -127,6 +127,18 @@ final class CoverageService {
         saveLocal()
     }
 
+    /// Wipe every coverage entry (lifetime + since-completion) and
+    /// drop both UserDefaults keys. Called by Settings → Reset All
+    /// Progress. Mutates the `@Observable` dictionaries so any open
+    /// AreaView or TrailDetailSheet refreshes immediately instead
+    /// of holding stale percentages until next launch.
+    func resetAll() {
+        state = [:]
+        sinceCompletion = [:]
+        UserDefaults.standard.removeObject(forKey: storageKey)
+        UserDefaults.standard.removeObject(forKey: sinceCompletionStorageKey)
+    }
+
     /// Rewrite every trail-id key through `transform`. Used by the
     /// build-8 migration to canonicalize legacy ids (stripping the
     /// position-counter suffix) so old recorded coverage lines up

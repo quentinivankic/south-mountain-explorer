@@ -18,6 +18,15 @@ final class FavoritesService {
         favoriteIds.contains(areaId)
     }
 
+    /// Wipe every favorite and drop the UserDefaults entry. Called
+    /// by Settings → Reset All Progress. Mutates the `@Observable`
+    /// `favoriteIds` set so the Browse "Favorites" section refreshes
+    /// immediately instead of holding stale entries until next launch.
+    func resetAll() {
+        favoriteIds = []
+        UserDefaults.standard.removeObject(forKey: storageKey)
+    }
+
     func toggle(areaId: String) async {
         if favoriteIds.contains(areaId) {
             favoriteIds.remove(areaId)

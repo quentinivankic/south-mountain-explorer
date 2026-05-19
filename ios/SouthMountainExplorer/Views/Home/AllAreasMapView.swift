@@ -19,17 +19,24 @@ struct AllAreasMapView: View {
     @State private var position: MapCameraPosition = .automatic
     @State private var selectedArea: AreaSummary? = nil
     @State private var currentRegion: MKCoordinateRegion? = nil
+    /// Cached bucketing of the area set into screen-space clusters.
+    /// Cached (not computed) because at full-US scale we have 3000+
+    /// areas, and recomputing the O(N) bucket pass on every
+    /// camera-change frame caused multi-second lag during pan/zoom.
+    /// Updated only when the camera STOPS moving — see
+    /// `onMapCameraChange(frequency: .onEnd)`.
+    @State private var clusters: [AreaCluster] = []
 
-    /// Areas grouped into screen-space buckets. Bucket size is derived
-    /// from the current camera span so a low-zoom view collapses
-    /// neighbouring areas into one cluster pin, and a high-zoom view
-    /// renders every area individually. Without this, 100+ areas at
-    /// the AZ-state zoom level all overlap into a brown smear.
-    private var clusters: [AreaCluster] {
-        let span = currentRegion?.span ?? MKCoordinateSpan(latitudeDelta: 5, longitudeDelta: 5)
-        // Aim for ~12 buckets across the visible span. Larger spans →
-        // bigger buckets (more clustering); smaller spans → smaller
-        // buckets (fewer clusters, eventually one per area).
+    /// Compute screen-space clusters from `areas.summaries` at the
+    /// current camera span. Aim for ~12 buckets across the visible
+    /// span so a low-zoom view collapses neighbouring areas into one
+    /// pin and a high-zoom view renders every area individually.
+    /// Without clustering, 100+ areas at the AZ-state zoom all overlap
+    /// into a brown smear.
+    private func rebuildClusters() {
+        let span = currentRegion?.span ?? MKCoordinateSpan(
+            latitudeDelta: 5, longitudeDelta: 5
+        )
         let bucketLat = max(span.latitudeDelta / 12, 0.005)
         let bucketLon = max(span.longitudeDelta / 12, 0.005)
 
@@ -39,13 +46,9 @@ struct AllAreasMapView: View {
             let col = Int((area.centerLon / bucketLon).rounded())
             byKey["\(row):\(col)", default: []].append(area)
         }
-        return byKey.map { key, group in
-            // Centroid of the bucket so the cluster pin sits at the
-            // visual centre of the areas it represents.
+        clusters = byKey.map { key, group in
             let lat = group.map(\.centerLat).reduce(0, +) / Double(group.count)
             let lon = group.map(\.centerLon).reduce(0, +) / Double(group.count)
-            // Tighter span if the bucket has only one area so tapping it
-            // doesn't over-zoom out from a wilderness's actual extent.
             let lats = group.map(\.centerLat)
             let lons = group.map(\.centerLon)
             let extentLat = (lats.max() ?? lat) - (lats.min() ?? lat)
@@ -108,8 +111,18 @@ struct AllAreasMapView: View {
                 }
             }
             .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .excludingAll))
-            .onMapCameraChange(frequency: .continuous) { context in
+            // `.onEnd` (not `.continuous`) — only re-bucket when the
+            // camera stops moving. With `.continuous` and 3000+ areas
+            // this fired ~60×/sec during pan/zoom and each fire ran
+            // the full O(N) bucket pass, which made the map crash-
+            // adjacent laggy at full-US scale. Annotations stay at
+            // their pre-pan positions during the gesture; that's
+            // visually fine because the pins are pinned to lat/lon
+            // anyway, and the cluster identity only needs to refresh
+            // when the zoom level changes (which `.onEnd` captures).
+            .onMapCameraChange(frequency: .onEnd) { context in
                 currentRegion = context.region
+                rebuildClusters()
             }
             .navigationTitle("All Areas")
             .navigationBarTitleDisplayMode(.inline)
@@ -118,7 +131,10 @@ struct AllAreasMapView: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .onAppear { fitToAllAreas() }
+            .onAppear {
+                fitToAllAreas()
+                rebuildClusters()
+            }
         }
         .sheet(item: $selectedArea) { area in
             AreaView(areaId: area.id, areaName: area.name)

@@ -50,17 +50,35 @@ jobs:
       # builder writes to between batches so subsequent runs can skip
       # already-fetched areas. At full-US+CA scale it grows past 250 MB
       # — well over GitHub's 100 MB single-file push limit — so we keep
-      # it OUT of git and persist via Actions cache across runs. The
-      # `save-always: true` flag is the safety net that fires even on
-      # partial step failures, without it a single hiccup silently drops
-      # a multi-hour cache rebuild.
+      # it OUT of git and persist via Actions cache across runs.
+      #
+      # CRITICAL: must use the restore/save SPLIT (not the combined
+      # `actions/cache@v4` action with `save-always`). The combined
+      # action refuses to overwrite an existing key, so a constant
+      # key like `counts-cache-v1` silently locks the cache to the
+      # state of the FIRST run that wrote it — every subsequent run
+      # restores that same 16 MB snapshot, paying full Overpass cost,
+      # and throws away its newly-populated cache at the end. The
+      # `save-always: true` flag is deprecated and ignored.
+      #
+      # Pattern instead:
+      #   - restore with a unique-per-run key (forces a fresh slot
+      #     on save) but use restore-keys partial match to find the
+      #     most recent prior save
+      #   - save explicitly at the end of the workflow with the
+      #     same unique key
+      #
+      # Key version bumped v1 → v2 so we don't try to restore the
+      # broken legacy cache (which is only ever 16 MB and would
+      # waste an Overpass roundtrip on each "uncached" area).
       - name: Restore counts-cache from Actions cache
         id: cache-restore
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: public/areas/counts-cache.json
-          key: counts-cache-v1
-          save-always: true
+          key: counts-cache-v2-${{ github.run_id }}
+          restore-keys: |
+            counts-cache-v2-
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -218,6 +236,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run sync-geom-to-r2.yml --ref ${{ github.ref_name }}
+
+      # Persist counts-cache.json to Actions cache for the next
+      # dispatch. Uses the unique-per-run key from the restore step,
+      # so each run writes a fresh cache slot (works around the
+      # actions/cache "no overwrite" limitation). `if: always()`
+      # so partial-failure runs still save their work — losing a
+      # multi-hour rebuild because of a transient network blip in
+      # the final R2-sync step would be a disaster.
+      - name: Save counts-cache to Actions cache
+        if: always() && hashFiles('public/areas/counts-cache.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: public/areas/counts-cache.json
+          key: counts-cache-v2-${{ github.run_id }}
 
       - name: Upload counts-cache.json as artifact
         if: always() && hashFiles('public/areas/counts-cache.json') != ''

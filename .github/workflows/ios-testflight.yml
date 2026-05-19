@@ -1,15 +1,11 @@
 name: iOS – Build & Upload to TestFlight
 
 on:
-  push:
-    branches: [main]
-    # Exclude the test target — tests changes shouldn't trigger a
-    # TestFlight upload. App source, project config, and the bundled
-    # trail data all still do.
-    paths:
-      - "ios/**"
-      - "!ios/SouthMountainExplorerTests/**"
-      - "public/areas/index.json"
+  # Manual-only. Was previously auto-triggered on every push to main
+  # that touched `ios/**` or the bundled trail index, but that burned
+  # TestFlight upload slots on intermediate merges and made it too
+  # easy to ship before PR CI had even reported. Dispatch from the
+  # Actions tab when you're ready to cut a build.
   workflow_dispatch:
 
 # Coalesce back-to-back merges into a single TestFlight upload.

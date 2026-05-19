@@ -1,44 +1,37 @@
 name: Build Trail Index
 
+# Two inputs, two paths through the workflow:
+#
+#   1. `seed_regions` blank, `force_rehydrate` false (the common case):
+#      hydrate every area in the index that's still a 5-tuple seed-only
+#      row. Cached areas skip in <1 ms each, so the wall-clock cost
+#      scales with how many areas are NOT yet hydrated — fast steady-
+#      state, slow only after a fresh region was seeded.
+#
+#   2. `seed_regions` non-blank: first seed each region (Overpass
+#      lookup, ~1-2 min per region with retries), then ALWAYS run the
+#      full hydration step — so a region can never land in the index
+#      as 5-tuples-only. The post-build hydration guard verifies this.
+#
+# Tuning knobs (concurrency, delay, batch size, min trail thresholds)
+# are baked in here rather than exposed — six months of dispatches
+# have settled on these values and turning them into UI inputs
+# created more footguns than flexibility.
+
 on:
   workflow_dispatch:
     inputs:
-      seed_states:
-        description: "Seed index from OSM for these state codes (space-separated, e.g. AZ CA). Leave blank to skip seeding and just rehydrate the existing index."
+      seed_regions:
+        description: "Space-separated ISO region codes to seed (e.g. 'AZ', 'CA-AB', 'DK'). Blank = no new seeds, just hydrate everything that's missing trail counts."
         default: ""
-      seed_merge:
-        description: "Merge seeded results with existing index instead of replacing"
+      force_rehydrate:
+        description: "Re-fetch every cached area, even ones that already have trail counts. Use after build-script logic changes that affect counts (filter tweaks, etc.)."
+        type: boolean
+        default: false
+      trigger_testflight:
+        description: "Trigger an iOS TestFlight build after the index commits. Defaults true — the bundled areas-index.json is the only path that delivers new data to users, so a new TestFlight build is the natural follow-up to every successful run."
         type: boolean
         default: true
-      min_trails:
-        description: "Drop areas with fewer than N qualifying trails (0 = keep all)"
-        default: "3"
-      min_miles:
-        description: "Drop areas with less than N total trail miles (0 = keep all)"
-        default: "2"
-      batch_size:
-        description: "Areas per save batch"
-        default: "50"
-      delay:
-        description: "Seconds between Overpass requests, per worker"
-        default: "1.5"
-      concurrency:
-        description: "Parallel worker count (default 3 = ~2 rps to Overpass at default delay; 1 = serial)"
-        default: "3"
-      limit:
-        description: "Max areas to process (blank = all)"
-        default: ""
-      force:
-        description: "Re-fetch every area even if it's already cached (use after build-script logic changes, e.g. trail-filter tweaks)"
-        type: boolean
-        default: false
-      state_filter:
-        description: "Comma-separated state names to LIMIT trail-counts processing to (e.g. 'Denmark,Alberta'). Blank = process every area in the index. Pairs with seed_states for fast per-state seed runs — avoids the ~50min full-index iteration when only N new areas need processing."
-        default: ""
-      trigger_testflight:
-        description: "Also trigger an iOS TestFlight build after the index commits (costs macOS runner minutes — leave off for data-only rebuilds)"
-        type: boolean
-        default: false
 
 jobs:
   build:
@@ -53,28 +46,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # `counts-cache.json` is the per-area Overpass response cache
-      # the builder writes to between batches so subsequent runs can
-      # skip already-fetched areas. At full-US scale it grows past
-      # 250 MB — well over GitHub's 100 MB single-file push limit —
-      # so we deliberately keep it OUT of git and instead persist
-      # it via Actions cache across workflow runs.
-      #
-      # The cache key is intentionally constant (`counts-cache-v1`)
-      # so every run uses the same slot; `restore-keys` falls back
-      # gracefully when no cache exists yet (first run after this
-      # change). `save-always: true` writes whatever's at
-      # `public/areas/counts-cache.json` when the workflow finishes,
-      # INCLUDING on partial step failures (e.g. a transient warning
-      # in the R2 sync dispatch, or a git push race that took the
-      # commit step down). Without this, the post-step cache save
-      # only fires on a perfectly clean run — and a single hiccup
-      # silently drops a 4-hour cache rebuild. Observed in practice:
-      # the full-US run completed and committed to main, but the
-      # cache restored on the very next dispatch was still ~16MB
-      # (pre-silhouette) instead of ~300MB (post-silhouette), so
-      # every subsequent dispatch re-processed all ~3000 areas
-      # from scratch.
+      # `counts-cache.json` is the per-area Overpass response cache the
+      # builder writes to between batches so subsequent runs can skip
+      # already-fetched areas. At full-US+CA scale it grows past 250 MB
+      # — well over GitHub's 100 MB single-file push limit — so we keep
+      # it OUT of git and persist via Actions cache across runs. The
+      # `save-always: true` flag is the safety net that fires even on
+      # partial step failures, without it a single hiccup silently drops
+      # a multi-hour cache rebuild.
       - name: Restore counts-cache from Actions cache
         id: cache-restore
         uses: actions/cache@v4
@@ -82,36 +61,26 @@ jobs:
           path: public/areas/counts-cache.json
           key: counts-cache-v1
           save-always: true
-          # No restore-keys — we want exact-match-or-cold-start
-          # semantics. A stale partial cache from a much older
-          # build would only confuse the diff logic.
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      # Optional: re-seed the index from OSM. Skipped when seed_states is
-      # blank so the default workflow (rehydrate existing curated index) is
-      # unchanged.
-      #
-      # Resilience: at full-US scale the loop hits Overpass ~50 times
-      # over ~75 minutes. A single 504 mid-loop is common, so we wrap
-      # the script in a 3-retry shell loop with exponential backoff
-      # (60s / 240s / 540s). `--resume` makes the script skip states
-      # that already landed in index.json from a prior attempt, so
-      # re-runs are idempotent and only re-fetch what failed.
-      # Combined with the script's own per-state 3-retry, every state
-      # has up to 9 attempts before the workflow gives up.
+      # Seed step: optional, only runs when seed_regions is non-blank.
+      # Wrapped in a 3-retry shell loop with exponential backoff so a
+      # transient Overpass 504 doesn't bail the whole workflow.
+      # `--resume` makes the script skip regions already in index.json
+      # — combined with the script's own per-region 3-retry, every
+      # region has 9 attempts before the workflow gives up.
       - name: Seed area index from OSM
-        if: ${{ github.event.inputs.seed_states != '' }}
+        if: ${{ github.event.inputs.seed_regions != '' }}
+        env:
+          SEED_REGIONS: ${{ github.event.inputs.seed_regions }}
         run: |
-          ARGS="--resume"
-          if [ "${{ github.event.inputs.seed_merge }}" = "true" ]; then
-            ARGS="$ARGS --merge"
-          fi
+          set -euo pipefail
           for attempt in 1 2 3; do
-            if python3 scripts/seed-areas.py $ARGS ${{ github.event.inputs.seed_states }}; then
+            if python3 scripts/seed-areas.py --resume --merge $SEED_REGIONS; then
               echo "Seed step succeeded on attempt $attempt."
               break
             fi
@@ -124,61 +93,93 @@ jobs:
             sleep "$SLEEP"
           done
 
-      - name: Run trail count builder
+      # Build step: ALWAYS runs, ALWAYS on the full index. Cached
+      # areas skip in <1 ms each so this is essentially free for
+      # everything that's already hydrated; the wall-clock cost is
+      # only ever for 5-tuple seed-only rows + any areas the
+      # `force_rehydrate` flag is forcing back through.
+      #
+      # This is the safety guarantee: no dispatch can ever LEAVE
+      # un-hydrated areas in the index. Past workflows had a
+      # `state_filter` input that scoped this step to a subset of
+      # states — which is exactly how we ended up with most of the
+      # index as 5-tuples earlier today. Dropped that input on
+      # purpose.
+      - name: Run trail count builder (full index)
         env:
-          # Pipe inputs through env vars to dodge shell-injection risk and
-          # to preserve whitespace in state names like "British Columbia".
-          BATCH_SIZE: ${{ github.event.inputs.batch_size }}
-          DELAY: ${{ github.event.inputs.delay }}
-          CONCURRENCY: ${{ github.event.inputs.concurrency }}
-          LIMIT: ${{ github.event.inputs.limit }}
-          MIN_TRAILS: ${{ github.event.inputs.min_trails }}
-          MIN_MILES: ${{ github.event.inputs.min_miles }}
-          FORCE: ${{ github.event.inputs.force }}
-          STATE_FILTER: ${{ github.event.inputs.state_filter }}
+          FORCE: ${{ github.event.inputs.force_rehydrate }}
         run: |
           ARGS=(
-            --batch-size "$BATCH_SIZE"
-            --delay "$DELAY"
-            --concurrency "$CONCURRENCY"
-            --min-trails "$MIN_TRAILS"
-            --min-miles "$MIN_MILES"
+            --batch-size 50
+            --delay 1.5
+            --concurrency 3
+            --min-trails 3
+            --min-miles 2
           )
-          if [ -n "$LIMIT" ]; then
-            ARGS+=(--limit "$LIMIT")
-          fi
           if [ "$FORCE" = "true" ]; then
             ARGS+=(--force)
           fi
-          # Comma-separated state names with optional surrounding
-          # whitespace. Multiple --state-filter args build up via
-          # action='append' on the script side.
-          if [ -n "$STATE_FILTER" ]; then
-            IFS=',' read -ra FILTERS <<< "$STATE_FILTER"
-            for f in "${FILTERS[@]}"; do
-              # Trim leading + trailing whitespace.
-              f="$(echo "$f" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
-              if [ -n "$f" ]; then
-                ARGS+=(--state-filter "$f")
-              fi
-            done
-          fi
           python3 scripts/build-trail-counts.py "${ARGS[@]}"
+
+      # Hydration guard. After the build step, every row in
+      # index.json should be a 7-tuple (with trail_count, total_mi).
+      # If any 5-tuples remain that means Overpass failed for those
+      # areas — log them loudly so the user can see, but DON'T fail
+      # the workflow (a single flaky Overpass response shouldn't
+      # require a manual re-dispatch; the next scheduled run will
+      # retry the un-hydrated ones automatically). The warning lands
+      # in the Actions log AND as a job summary so it's hard to miss.
+      - name: Hydration guard
+        run: |
+          python3 <<'EOF'
+          import json, os, sys
+          idx = json.load(open('public/areas/index.json'))
+          total = len(idx)
+          hydrated = sum(1 for a in idx if len(a) >= 7)
+          unhydrated = total - hydrated
+          summary_lines = [
+              "## Hydration report\n",
+              f"- **Total areas**: {total}",
+              f"- **Hydrated**: {hydrated}",
+              f"- **Un-hydrated (5-tuple)**: {unhydrated}",
+          ]
+          if unhydrated == 0:
+              summary_lines.append("\nEvery area has trail counts.")
+          else:
+              summary_lines.append(
+                  f"\n{unhydrated} area(s) are still 5-tuple rows. "
+                  "These will be retried on the next dispatch."
+              )
+              summary_lines.append("\nFirst 20 un-hydrated:")
+              for a in [r for r in idx if len(r) < 7][:20]:
+                  summary_lines.append(f"  - {a[0]} ({a[2]})")
+              # GitHub Actions warning annotation — surfaces in the
+              # run summary and on the PR (if any) — printed to stdout
+              # so the Actions runner picks it up.
+              print(
+                  f"::warning::Build left {unhydrated} un-hydrated "
+                  "area(s) in the index — see job summary."
+              )
+
+          summary = "\n".join(summary_lines) + "\n"
+          # Write to the job-summary file so the report shows on the
+          # workflow run page.
+          path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if path:
+              with open(path, "a") as f:
+                  f.write(summary)
+          # Also print for the live log.
+          sys.stdout.write(summary)
+          EOF
 
       - name: Commit updated index
         id: commit
+        env:
+          SEED_REGIONS: ${{ github.event.inputs.seed_regions }}
         run: |
           cp public/areas/index.json ios/SouthMountainExplorer/Resources/areas-index.json
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Silhouettes are now per-area files under public/areas/silhouettes/,
-          # not a single bundled JSON. The iOS app fetches them from R2 at
-          # runtime via AreaSilhouetteService, mirroring the geom flow.
-          #
-          # `counts-cache.json` is intentionally NOT staged — at full-US
-          # scale it crosses 250 MB, well past GitHub's 100 MB per-file
-          # push limit. It lives in Actions cache instead (see the cache
-          # restore step above) and as a workflow artifact below.
           git add public/areas/index.json public/areas/silhouettes public/areas/geom ios/SouthMountainExplorer/Resources/areas-index.json
           if git diff --cached --quiet; then
             echo "No changes to commit."
@@ -191,49 +192,33 @@ jobs:
           print(f'{n}/{len(idx)} areas have trail counts')
           ")
             SEED_NOTE=""
-            if [ -n "${{ github.event.inputs.seed_states }}" ]; then
-              SEED_NOTE=" (seeded from ${{ github.event.inputs.seed_states }})"
+            if [ -n "$SEED_REGIONS" ]; then
+              SEED_NOTE=" (seeded $SEED_REGIONS)"
             fi
             git commit -m "chore: rebuild trail index — $SUMMARY$SEED_NOTE"
             git push
             echo "committed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # Pushes authored by GITHUB_TOKEN don't trigger downstream workflows, so
-      # we explicitly dispatch the iOS TestFlight build — but only when the
-      # caller asked for it. macOS runner minutes bill at ~10x Linux, so we
-      # don't want every data-only rebuild to spend minutes building an .ipa
-      # nobody asked for.
+      # Pushes by GITHUB_TOKEN don't trigger downstream workflows, so
+      # dispatch explicitly. TestFlight is now opt-OUT (default true)
+      # because the bundled areas-index.json is the only path that
+      # delivers new data to users — every successful data refresh
+      # should ship to TestFlight unless the user explicitly turns it
+      # off (e.g. during back-to-back iteration where they don't want
+      # the macOS minutes spent per attempt).
       - name: Trigger iOS TestFlight build
         if: steps.commit.outputs.committed == 'true' && github.event.inputs.trigger_testflight == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run ios-testflight.yml --ref ${{ github.ref_name }}
 
-      # Same GITHUB_TOKEN gotcha — `sync-geom-to-r2.yml`'s
-      # path-filter on `public/areas/geom/**` would normally fire
-      # automatically when the commit step above pushes new geom
-      # files, but bot-authored pushes don't trigger downstream
-      # workflows. Dispatch explicitly so R2 stays in sync with
-      # the committed geom data without any manual click.
-      #
-      # Unlike the TestFlight build above, this one runs
-      # unconditionally on every successful commit — sync is
-      # cheap (Linux runner, ~1 min total), and the whole point
-      # of moving the CDN to R2 was to make this transparent.
       - name: Sync geom files to R2
         if: steps.commit.outputs.committed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run sync-geom-to-r2.yml --ref ${{ github.ref_name }}
 
-      # Side-channel safety net: upload counts-cache.json as a
-      # workflow artifact so it's downloadable from the run page
-      # even if the Actions cache step fails (e.g. cache eviction
-      # under storage pressure). 90-day retention is the default
-      # and fine for our purposes — we'd notice a stale cache
-      # well before then. `if: always()` so the artifact lands
-      # even when the workflow times out partway through.
       - name: Upload counts-cache.json as artifact
         if: always() && hashFiles('public/areas/counts-cache.json') != ''
         uses: actions/upload-artifact@v4

@@ -104,6 +104,19 @@ final class ActivityLogService {
         try? FileManager.default.removeItem(at: Self.logFileURL)
     }
 
+    /// Drop the in-memory cache and re-arm the lazy loader. Called
+    /// after Settings → Import overwrites the underlying file — the
+    /// next `recentEntries` / `log` call will re-read from disk and
+    /// pick up the restored log. Any pending debounced write is
+    /// cancelled so it can't clobber the new file.
+    func reload() {
+        entries.removeAll()
+        dirty = false
+        debounceTask?.cancel()
+        debounceTask = nil
+        didLoad = false
+    }
+
     // MARK: - Persistence
 
     /// Lazy-load the persisted log on first access. Bad / missing

@@ -75,7 +75,12 @@ Progress so the post-reset cycle re-presents it.
 - `docs/privacy.md` GitHub Pages (privacy policy is hosted on Notion;
   URL hardcoded in `SettingsView.swift:16`)
 
-**iOS deployment target:** 26.0 (will be dropped soon — see goals).
+**iOS deployment target:** 18.0. Liquid Glass (`.glassEffect`)
+call sites all route through `Utilities/GlassCompat.swift`, which
+branches on `#available(iOS 26.0, *)` — iOS 26 renders real glass,
+iOS 18 falls back to `.regularMaterial`. New glass surfaces must
+use the `.compatibleGlass*` helpers, not `.glassEffect` directly,
+or compilation breaks on iOS 18.
 
 ## Build / release state
 
@@ -108,24 +113,22 @@ Cloudflare R2 bucket `trekdex-areas`. Already covers geom +
 silhouettes. Does NOT yet cover `index.json`.
 
 **Recent main HEAD (as of 2026-05-19):**
+- `f899bdac` — feat: drop minimum iOS target 26 → 18 with Liquid Glass fallback (#165)
+- `914dba23` — docs: add CLAUDE.md primer for fresh sessions (#164)
 - `fd041e99` — fix: Reset All Progress re-presents onboarding (#163)
 - `7422232e` — fix: Reset and Import refresh in-memory state (#162)
 - `b1993868` — Revert: data-export-import + Reset (#161)
-- `94ccf4b7` — ci: make TestFlight manual-only (#160)
-- `6a39642b` — feat: Settings → Export / Import all user data (#159)
 
 ## Current goals
 
-1. **PR K — drop minimum iOS target** from 26.0 to 18 (recommended)
-   or 17 (~1 day). Widens reach for public TF testers stuck on older
-   iOS. Touches `ios/project.yml` deploymentTarget + audits of any
-   iOS 26-only APIs in use (some tab styling, possibly `Tab(...) { }`
-   call sites for iOS 17 specifically).
-2. **Coverage expansion** — more regions in the trail index. Dispatch
+1. **Coverage expansion** — more regions in the trail index. Dispatch
    `build-trail-index.yml` with new region inputs as the user
    identifies them.
 
-Everything else is opportunistic.
+Everything else is opportunistic. PR K (drop iOS minimum to 18) shipped
+as #165; the Material fallback for `.glassEffect` lives in
+`Utilities/GlassCompat.swift` and needs visual confirmation on an
+actual iOS 18 simulator/device when you cut the next TF build.
 
 ## Non-goals (don't surface these)
 

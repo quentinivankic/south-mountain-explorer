@@ -702,11 +702,16 @@ struct MapKitMapView: UIViewRepresentable {
                     // Live counted-segments — TRAIL-POLYLINE-
                     // SNAPPED runs (same 10m / ≥2-consecutive-
                     // covered-nodes rule as the post-completion
-                    // orange overlay). Purple at high alpha so it
-                    // dominates the raw GPS stroke on portions
-                    // the user is actually walking on a trail.
-                    // Sits above trail polylines.
-                    r.strokeColor = UIColor.systemPurple.withAlphaComponent(0.95)
+                    // orange overlay). systemPink at high alpha
+                    // so it visibly stacks above the systemPurple
+                    // trail base — earlier we used systemPurple
+                    // here too, which made "the trail you're
+                    // recording on" (purple base) and "the
+                    // portion you've actually walked" (this
+                    // overlay) read as a single purple smear.
+                    // Pink stays in the warm/highlight family but
+                    // is clearly distinct from the base hue.
+                    r.strokeColor = UIColor.systemPink.withAlphaComponent(0.95)
                     r.lineWidth = 6
                 } else if selectedTrailWalkedIds.contains(ObjectIdentifier(pl)) {
                     // Walked-since-completion on the selected trail.

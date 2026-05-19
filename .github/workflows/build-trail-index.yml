@@ -3,13 +3,24 @@ name: Build Trail Index
 on:
   workflow_dispatch:
     inputs:
+      pipeline:
+        description: "Which builder to run. 'overpass' = legacy (slow, network-bound). 'pbf' = new Geofabrik+osmium path (fast, requires no Overpass)."
+        type: choice
+        options: ["overpass", "pbf"]
+        default: "overpass"
       seed_states:
-        description: "Seed index from OSM for these state codes (space-separated, e.g. AZ CA). Leave blank to skip seeding and just rehydrate the existing index."
+        description: "[overpass] Seed index from OSM for these state codes (space-separated, e.g. AZ CA). Leave blank to skip seeding."
         default: ""
       seed_merge:
-        description: "Merge seeded results with existing index instead of replacing"
+        description: "[overpass] Merge seeded results with existing index instead of replacing"
         type: boolean
         default: true
+      regions:
+        description: "[pbf] ISO region codes to rebuild (space-separated, e.g. 'DK US-AZ CA-AB'). Blank = every region in STATE_NAMES."
+        default: ""
+      continents:
+        description: "[pbf] Geofabrik continent PBFs to download (comma-separated). Auto-derived from regions when blank; explicit value overrides. Valid: north-america, europe."
+        default: ""
       min_trails:
         description: "Drop areas with fewer than N qualifying trails (0 = keep all)"
         default: "3"
@@ -17,23 +28,23 @@ on:
         description: "Drop areas with less than N total trail miles (0 = keep all)"
         default: "2"
       batch_size:
-        description: "Areas per save batch"
+        description: "[overpass] Areas per save batch"
         default: "50"
       delay:
-        description: "Seconds between Overpass requests, per worker"
+        description: "[overpass] Seconds between Overpass requests, per worker"
         default: "1.5"
       concurrency:
-        description: "Parallel worker count (default 3 = ~2 rps to Overpass at default delay; 1 = serial)"
+        description: "[overpass] Parallel worker count (3 = ~2 rps to Overpass at default delay; 1 = serial)"
         default: "3"
       limit:
         description: "Max areas to process (blank = all)"
         default: ""
       force:
-        description: "Re-fetch every area even if it's already cached (use after build-script logic changes, e.g. trail-filter tweaks)"
+        description: "[overpass] Re-fetch every area even if it's already cached"
         type: boolean
         default: false
       state_filter:
-        description: "Comma-separated state names to LIMIT trail-counts processing to (e.g. 'Denmark,Alberta'). Blank = process every area in the index. Pairs with seed_states for fast per-state seed runs — avoids the ~50min full-index iteration when only N new areas need processing."
+        description: "[overpass] Comma-separated state names to LIMIT trail-counts processing to (e.g. 'Denmark,Alberta'). Blank = process every area."
         default: ""
       trigger_testflight:
         description: "Also trigger an iOS TestFlight build after the index commits (costs macOS runner minutes — leave off for data-only rebuilds)"
@@ -76,6 +87,7 @@ jobs:
       # every subsequent dispatch re-processed all ~3000 areas
       # from scratch.
       - name: Restore counts-cache from Actions cache
+        if: ${{ github.event.inputs.pipeline != 'pbf' }}
         id: cache-restore
         uses: actions/cache@v4
         with:
@@ -104,7 +116,7 @@ jobs:
       # Combined with the script's own per-state 3-retry, every state
       # has up to 9 attempts before the workflow gives up.
       - name: Seed area index from OSM
-        if: ${{ github.event.inputs.seed_states != '' }}
+        if: ${{ github.event.inputs.pipeline != 'pbf' && github.event.inputs.seed_states != '' }}
         run: |
           ARGS="--resume"
           if [ "${{ github.event.inputs.seed_merge }}" = "true" ]; then
@@ -125,6 +137,7 @@ jobs:
           done
 
       - name: Run trail count builder
+        if: ${{ github.event.inputs.pipeline != 'pbf' }}
         env:
           # Pipe inputs through env vars to dodge shell-injection risk and
           # to preserve whitespace in state names like "British Columbia".
@@ -165,6 +178,134 @@ jobs:
           fi
           python3 scripts/build-trail-counts.py "${ARGS[@]}"
 
+      # --- PBF pipeline branch (PR J.2 — opt-in via pipeline=pbf) ---
+      #
+      # Replaces the Overpass seed + trail-count steps above with a
+      # local osmium pass over Geofabrik continent extracts. No
+      # network calls during the build; full rebuilds in ~30 min
+      # wall-clock vs. the 2-4 h Overpass baseline.
+      #
+      # The four steps below are equivalent to "everything above
+      # under pipeline=overpass" — they produce the same on-disk
+      # artifacts (public/areas/index.json + silhouettes/ + geom/),
+      # so the commit / R2-sync / TestFlight tail of the workflow
+      # is identical for both paths.
+
+      - name: Install osmium-tool
+        if: ${{ github.event.inputs.pipeline == 'pbf' }}
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends osmium-tool
+
+      - name: Install Python deps (osmium, shapely)
+        if: ${{ github.event.inputs.pipeline == 'pbf' }}
+        run: pip install --no-cache-dir 'osmium>=3.7' 'shapely>=2.0'
+
+      # Auto-derive which continent PBFs to download from the
+      # requested regions. DK → europe, US-* / CA-* / bare US state
+      # codes → north-america. Empty `regions` means "everything"
+      # so both continents download. An explicit `continents` input
+      # overrides the auto-derivation (useful for testing one
+      # continent at a time).
+      - name: Resolve continent set
+        if: ${{ github.event.inputs.pipeline == 'pbf' }}
+        id: continents
+        env:
+          REGIONS: ${{ github.event.inputs.regions }}
+          CONTINENTS_OVERRIDE: ${{ github.event.inputs.continents }}
+        run: |
+          if [ -n "$CONTINENTS_OVERRIDE" ]; then
+            echo "list=$CONTINENTS_OVERRIDE" >> "$GITHUB_OUTPUT"
+            echo "Using explicit continents: $CONTINENTS_OVERRIDE"
+            exit 0
+          fi
+          if [ -z "$REGIONS" ]; then
+            echo "list=north-america,europe" >> "$GITHUB_OUTPUT"
+            echo "Empty regions → downloading both continents."
+            exit 0
+          fi
+          need_na=0
+          need_eu=0
+          for r in $REGIONS; do
+            case "$r" in
+              DK) need_eu=1 ;;
+              CA-*|US-*) need_na=1 ;;
+              *) need_na=1 ;;  # bare 2-letter US state codes
+            esac
+          done
+          out=""
+          if [ "$need_na" = "1" ]; then out="north-america"; fi
+          if [ "$need_eu" = "1" ]; then out="${out:+$out,}europe"; fi
+          echo "list=$out" >> "$GITHUB_OUTPUT"
+          echo "Resolved continents for regions [$REGIONS]: $out"
+
+      # Serial-by-continent: download a continent PBF, prefilter it
+      # to a few GB of relevant tags, delete the raw to free /mnt
+      # disk, then move to the next continent. This caps peak disk
+      # usage at ~30 GB (NA raw 17.7 + filtered ~1) instead of
+      # ~48 GB if both raw PBFs lived on disk simultaneously.
+      #
+      # Filtered output preserves the topology osmium needs for the
+      # Area handler (-R would strip member ways/nodes). Default
+      # behavior keeps referential completeness.
+      - name: Download + prefilter Geofabrik PBFs
+        if: ${{ github.event.inputs.pipeline == 'pbf' }}
+        env:
+          CONTINENTS: ${{ steps.continents.outputs.list }}
+        run: |
+          set -euo pipefail
+          IFS=',' read -ra ARR <<< "$CONTINENTS"
+          for region in "${ARR[@]}"; do
+            region="$(echo "$region" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+            [ -z "$region" ] && continue
+            RAW="$RUNNER_TEMP/${region}-latest.osm.pbf"
+            FILTERED="$RUNNER_TEMP/${region}-filtered.osm.pbf"
+            URL="https://download.geofabrik.de/${region}-latest.osm.pbf"
+            echo "::group::Download $region"
+            curl --retry 5 --retry-delay 30 --fail --silent --show-error \
+              --location -o "$RAW" "$URL"
+            ls -lh "$RAW"
+            df -h "$RUNNER_TEMP"
+            echo "::endgroup::"
+            echo "::group::Prefilter $region (osmium tags-filter)"
+            osmium tags-filter "$RAW" \
+              r/boundary=protected_area,national_park \
+              r/leisure=nature_reserve \
+              r/admin_level=2,4 \
+              w/highway=path,footway,track,bridleway \
+              -o "$FILTERED" \
+              --overwrite
+            rm "$RAW"
+            ls -lh "$FILTERED"
+            df -h "$RUNNER_TEMP"
+            echo "::endgroup::"
+          done
+
+      - name: Build trail index from PBFs
+        if: ${{ github.event.inputs.pipeline == 'pbf' }}
+        env:
+          CONTINENTS: ${{ steps.continents.outputs.list }}
+          REGIONS: ${{ github.event.inputs.regions }}
+          MIN_TRAILS: ${{ github.event.inputs.min_trails }}
+          MIN_MILES: ${{ github.event.inputs.min_miles }}
+          LIMIT: ${{ github.event.inputs.limit }}
+        run: |
+          set -euo pipefail
+          PBFS=()
+          IFS=',' read -ra ARR <<< "$CONTINENTS"
+          for region in "${ARR[@]}"; do
+            region="$(echo "$region" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+            [ -z "$region" ] && continue
+            PBFS+=("$RUNNER_TEMP/${region}-filtered.osm.pbf")
+          done
+          ARGS=(--pbf "${PBFS[@]}" --min-trails "$MIN_TRAILS" --min-miles "$MIN_MILES")
+          if [ -n "$REGIONS" ]; then
+            # shellcheck disable=SC2086  # word-splitting intended
+            ARGS+=(--regions $REGIONS)
+          fi
+          if [ -n "$LIMIT" ]; then
+            ARGS+=(--limit "$LIMIT")
+          fi
+          python3 scripts/build-index-from-pbf.py "${ARGS[@]}"
+
       - name: Commit updated index
         id: commit
         run: |
@@ -179,7 +320,13 @@ jobs:
           # scale it crosses 250 MB, well past GitHub's 100 MB per-file
           # push limit. It lives in Actions cache instead (see the cache
           # restore step above) and as a workflow artifact below.
+          # osm-id-map.json is produced only by the PBF pipeline; -- it's
+          # ~1 MB and committed for slug-stability tracking. The legacy
+          # Overpass path never writes it, so the add is a no-op there.
           git add public/areas/index.json public/areas/silhouettes public/areas/geom ios/SouthMountainExplorer/Resources/areas-index.json
+          if [ -f public/areas/osm-id-map.json ]; then
+            git add public/areas/osm-id-map.json
+          fi
           if git diff --cached --quiet; then
             echo "No changes to commit."
             echo "committed=false" >> "$GITHUB_OUTPUT"
@@ -235,7 +382,7 @@ jobs:
       # well before then. `if: always()` so the artifact lands
       # even when the workflow times out partway through.
       - name: Upload counts-cache.json as artifact
-        if: always() && hashFiles('public/areas/counts-cache.json') != ''
+        if: ${{ github.event.inputs.pipeline != 'pbf' && always() && hashFiles('public/areas/counts-cache.json') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: counts-cache

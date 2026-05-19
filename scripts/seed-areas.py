@@ -114,6 +114,80 @@ def fetch_overpass(query: str) -> dict:
 STATE_RETRY_BACKOFFS_SECONDS = [60, 180, 600]
 
 
+def region_bbox_query(code: str) -> str:
+    """Build an Overpass query for the requested region's
+    administrative boundary bbox. Used as a centroid post-filter to
+    drop candidate areas whose `out center;` coordinate falls outside
+    the requested region — fixes mis-attribution of cross-border
+    relations (e.g. the trinational Wadden Sea relation was being
+    returned for DK and slugged `-dk` even though its center is in
+    Germany; Falsterbo Naturreservat is in Sweden but used to land
+    under DK via bbox overlap)."""
+    if "-" in code:
+        # ISO3166-2 subdivision: admin_level=4 in OSM.
+        return (
+            f'[out:json][timeout:60];'
+            f'relation["ISO3166-2"="{code}"]'
+            f'["boundary"="administrative"]["admin_level"="4"];'
+            f'out bb;'
+        )
+    if code in COUNTRY_CODES:
+        # Country: admin_level=2.
+        return (
+            f'[out:json][timeout:60];'
+            f'relation["ISO3166-1"="{code}"]'
+            f'["boundary"="administrative"]["admin_level"="2"];'
+            f'out bb;'
+        )
+    # US state, legacy default.
+    return (
+        f'[out:json][timeout:60];'
+        f'relation["ISO3166-2"="US-{code}"]'
+        f'["boundary"="administrative"]["admin_level"="4"];'
+        f'out bb;'
+    )
+
+
+def fetch_region_bbox(state_code: str) -> tuple[float, float, float, float] | None:
+    """Fetch the region's admin boundary bbox. Returns
+    (min_lat, min_lon, max_lat, max_lon) or None when the query
+    fails or returns nothing — in which case fetch_state falls back
+    to no centroid filter (parity with the prior behavior)."""
+    try:
+        data = fetch_overpass(region_bbox_query(state_code))
+    except RuntimeError as e:
+        print(
+            f"  {state_code}: bbox fetch failed ({e}); skipping centroid filter",
+            file=sys.stderr,
+            flush=True,
+        )
+        return None
+    # When multiple relations match (rare — usually only one
+    # admin_level=2/4 relation per ISO code), take the widest bbox:
+    # it's almost always the canonical national / state boundary,
+    # and "widest" beats "first" for a forgiving filter.
+    best: tuple[float, float, float, float] | None = None
+    best_area = -1.0
+    for el in data.get("elements", []):
+        if el.get("type") != "relation":
+            continue
+        b = el.get("bounds") or {}
+        if not all(k in b for k in ("minlat", "minlon", "maxlat", "maxlon")):
+            continue
+        area = (b["maxlat"] - b["minlat"]) * (b["maxlon"] - b["minlon"])
+        if area > best_area:
+            best = (b["minlat"], b["minlon"], b["maxlat"], b["maxlon"])
+            best_area = area
+    if best is None:
+        print(
+            f"  {state_code}: no admin boundary relation returned; "
+            "skipping centroid filter",
+            file=sys.stderr,
+            flush=True,
+        )
+    return best
+
+
 def fetch_state(state_code: str) -> list[tuple[list, int]]:
     """Returns (index_row, osm_relation_id) pairs. The osm_id pins
     the same polygon Python and iOS both query — Nominatim's
@@ -144,8 +218,16 @@ def fetch_state(state_code: str) -> list[tuple[list, int]]:
     assert data is not None, (
         f"unreachable: fetch_overpass succeeded but data is None ({last_err})"
     )
+
+    # Fetch the region's admin boundary bbox up-front. Used below to
+    # drop candidates whose `out center;` falls outside the region —
+    # see `fetch_region_bbox` for the why.
+    bbox = fetch_region_bbox(state_code)
+
+
     out: list[tuple[list, int]] = []
     raw = 0
+    out_of_bbox = 0
     for el in data.get("elements", []):
         if el.get("type") != "relation":
             continue
@@ -160,6 +242,24 @@ def fetch_state(state_code: str) -> list[tuple[list, int]]:
         osm_id = el.get("id")
         if osm_id is None:
             continue
+
+        # Centroid post-filter. Overpass's `(area.region)` returns
+        # relations that OVERLAP the region's bbox, not relations
+        # whose center is inside it — so cross-border relations
+        # like the Wadden Sea UNESCO area used to land under DK
+        # even though their centroid is in DE. Bbox containment
+        # isn't a perfect substitute for polygon containment (a
+        # candidate near a coast bulge might pass bbox while
+        # actually being offshore), but it catches the obvious
+        # cross-border bug at trivial cost. Falls back to no
+        # filter when the region's bbox couldn't be fetched.
+        if bbox is not None:
+            min_lat, min_lon, max_lat, max_lon = bbox
+            if not (min_lat <= lat <= max_lat
+                    and min_lon <= lon <= max_lon):
+                out_of_bbox += 1
+                continue
+
         name = tags["name"].strip()
         state_name = display_state(state_code)
         row = [
@@ -170,11 +270,12 @@ def fetch_state(state_code: str) -> list[tuple[list, int]]:
             round(float(lon), 4),
         ]
         out.append((row, int(osm_id)))
-    print(
-        f"  {state_code}: {raw} candidates, {len(out)} passed quality filter",
-        file=sys.stderr,
-        flush=True,
+    msg = (
+        f"  {state_code}: {raw} candidates, {len(out)} passed quality filter"
     )
+    if out_of_bbox:
+        msg += f" ({out_of_bbox} dropped — center outside region bbox)"
+    print(msg, file=sys.stderr, flush=True)
     return out
 
 

@@ -133,7 +133,7 @@ struct MapKitMapView: UIViewRepresentable {
         context.coordinator.rebuildHaloOverlays(on: mv, segments: haloSegments)
         context.coordinator.rebuildTrailOverlays(on: mv, from: area)
         context.coordinator.rebuildSelectedTrailWalkedOverlays(on: mv, segments: selectedTrailWalkedSegments)
-        context.coordinator.rebuildLiveHaloOverlays(on: mv, segments: liveHaloSegments)
+        context.coordinator.rebuildLiveTrailSnappedOverlays(on: mv, segments: liveHaloSegments)
         if let rec = activeRecording, rec.path.count > 1 {
             context.coordinator.updateRecordingOverlay(on: mv, path: rec.path)
         }
@@ -144,7 +144,7 @@ struct MapKitMapView: UIViewRepresentable {
         context.coordinator.lastVisibleTrailIds = visibleTrailIds
         context.coordinator.lastCompletedTrailIds = completedTrailIds
         context.coordinator.lastHaloHashes = Self.haloHashes(haloSegments)
-        context.coordinator.lastLiveHaloHash = Self.liveHaloHash(liveHaloSegments)
+        context.coordinator.lastLiveTrailSnappedHash = Self.liveHaloHash(liveHaloSegments)
         context.coordinator.lastSelectedTrailWalkedHash = Self.liveHaloHash(selectedTrailWalkedSegments)
 
         // Tap-to-select. Uses a UIGestureRecognizerDelegate that
@@ -198,9 +198,9 @@ struct MapKitMapView: UIViewRepresentable {
         // TrailMapView throttles recompute to ~1 Hz so this rebuild
         // is at most 1×/second during recording, free otherwise.
         let newLiveHaloHash = Self.liveHaloHash(liveHaloSegments)
-        if newLiveHaloHash != coord.lastLiveHaloHash {
-            coord.rebuildLiveHaloOverlays(on: mapView, segments: liveHaloSegments)
-            coord.lastLiveHaloHash = newLiveHaloHash
+        if newLiveHaloHash != coord.lastLiveTrailSnappedHash {
+            coord.rebuildLiveTrailSnappedOverlays(on: mapView, segments: liveHaloSegments)
+            coord.lastLiveTrailSnappedHash = newLiveHaloHash
         }
 
         // 3b) Walked-since-completion overlay for the selected
@@ -393,12 +393,12 @@ struct MapKitMapView: UIViewRepresentable {
         /// separately from `haloOverlays` because the renderer
         /// styles them brighter and at a different width to
         /// communicate "this is happening NOW."
-        var liveHaloOverlays: [MKPolyline] = []
-        /// `ObjectIdentifier`s of overlays in `liveHaloOverlays`,
+        var liveTrailSnappedOverlays: [MKPolyline] = []
+        /// `ObjectIdentifier`s of overlays in `liveTrailSnappedOverlays`,
         /// for O(1) lookup in `rendererFor` (the renderer callback
         /// fires per overlay and doesn't know which collection an
         /// MKPolyline came from).
-        var liveHaloIds: Set<ObjectIdentifier> = []
+        var liveTrailSnappedIds: Set<ObjectIdentifier> = []
         /// Walked-since-last-completion segments for the currently
         /// selected trail. Rendered in systemOrange on top of the
         /// trail's blue highlight. Tracked separately from the
@@ -417,7 +417,7 @@ struct MapKitMapView: UIViewRepresentable {
         var lastCompletedTrailIds: Set<String> = []
         var lastCameraTick: Int = -1
         var lastHaloHashes: [Int] = []
-        var lastLiveHaloHash: Int = 0
+        var lastLiveTrailSnappedHash: Int = 0
         var lastSelectedTrailWalkedHash: Int = 0
 
         init(parent: MapKitMapView) {
@@ -574,18 +574,24 @@ struct MapKitMapView: UIViewRepresentable {
             }
         }
 
-        // MARK: Live halo overlays
+        // MARK: Live trail-snapped overlays
 
-        func rebuildLiveHaloOverlays(on mapView: MKMapView, segments: [[CLLocationCoordinate2D]]) {
-            if !liveHaloOverlays.isEmpty {
-                mapView.removeOverlays(liveHaloOverlays as [MKOverlay])
-                liveHaloOverlays.removeAll(keepingCapacity: true)
-                liveHaloIds.removeAll(keepingCapacity: true)
+        /// Render the user's GPS path snapped to the trail polyline as
+        /// an overlay layer. The "halo" name dates to PR #125 when this
+        /// was rendered as a wide GPS-space halo around the raw path;
+        /// PR #126 switched to trail-polyline-snapping, so it's no
+        /// longer a "halo" in any visual sense — see the rename for
+        /// the rest of the symbols.
+        func rebuildLiveTrailSnappedOverlays(on mapView: MKMapView, segments: [[CLLocationCoordinate2D]]) {
+            if !liveTrailSnappedOverlays.isEmpty {
+                mapView.removeOverlays(liveTrailSnappedOverlays as [MKOverlay])
+                liveTrailSnappedOverlays.removeAll(keepingCapacity: true)
+                liveTrailSnappedIds.removeAll(keepingCapacity: true)
             }
             for seg in segments where seg.count >= 2 {
                 let pl = MKPolyline(coordinates: seg, count: seg.count)
-                liveHaloOverlays.append(pl)
-                liveHaloIds.insert(ObjectIdentifier(pl))
+                liveTrailSnappedOverlays.append(pl)
+                liveTrailSnappedIds.insert(ObjectIdentifier(pl))
                 // .aboveLabels so the live halo sits on top of trail
                 // polylines (which live in .aboveRoads). The recording
                 // polyline is also at .aboveLabels and re-added every
@@ -596,7 +602,7 @@ struct MapKitMapView: UIViewRepresentable {
         }
 
         /// Rebuild the orange walked-since-completion overlay for
-        /// the selected trail. Same shape as `rebuildLiveHaloOverlays`
+        /// the selected trail. Same shape as `rebuildLiveTrailSnappedOverlays`
         /// but with its own bucket — the renderer styles these in
         /// systemOrange (vs the live halo's mint) so a recording-in-
         /// progress overlay and a selection overlay can coexist.
@@ -692,7 +698,7 @@ struct MapKitMapView: UIViewRepresentable {
                     // trail polyline itself for counted segments.
                     r.strokeColor = UIColor.systemPurple.withAlphaComponent(0.55)
                     r.lineWidth = 2
-                } else if liveHaloIds.contains(ObjectIdentifier(pl)) {
+                } else if liveTrailSnappedIds.contains(ObjectIdentifier(pl)) {
                     // Live counted-segments — TRAIL-POLYLINE-
                     // SNAPPED runs (same 10m / ≥2-consecutive-
                     // covered-nodes rule as the post-completion

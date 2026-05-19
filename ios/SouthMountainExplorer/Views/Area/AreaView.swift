@@ -196,7 +196,14 @@ struct AreaView: View {
                 // padding here — otherwise the REC bar would still float
                 // ~34pt above the visible top of the trail list panel.
                 GeometryReader { proxy in
-                    VStack(spacing: 4) {
+                    // spacing: 0 — each child (toast capsule, controlBar
+                    // glass circles, banners, RecordingPanel glass card)
+                    // already carries its own padding for visual
+                    // separation. The VStack-level spacing was adding a
+                    // ~4pt gap on top of those, which read as residual
+                    // air between RecordingPanel and the trail-list
+                    // panel above it.
+                    VStack(spacing: 0) {
                         if let toast = trackingModeToast {
                             Text(toast)
                                 .font(.caption)

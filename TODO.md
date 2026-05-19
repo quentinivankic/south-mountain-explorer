@@ -10,25 +10,16 @@ TestFlight.
 
 ## Still open
 
-- [ ] **Trail-list filter menu has no visible section headers.**
-  Wrapping each Picker in `Section("Status") { Picker(...) }` didn't
-  render headers in iOS 26 — three "All" rows still stack with no
-  label. Try a different structure: explicit
-  `Text("Status").font(.caption).foregroundStyle(.secondary)` rows
-  between the pickers, or split the menu into nested submenus
-  (`Menu("Status") { Picker(...) }`).
-- [ ] **Bottom-stack gap.** Tightened from 20pt → 6pt during build 3
-  but visible space remains between RecordingPanel and the trail
-  list panel. Probably the VStack's intrinsic spacing(12) +
-  controlBar's vertical padding. Either drop the VStack spacing
-  or fold the RecordingPanel inline with the trail-list panel.
 - [ ] **Trail-list panel drag still glitchy.** Build 3 didn't
-  rewrite this. Options when picked up: (a) accept SwiftUI's limits
-  and rewrite as native sheet with
-  `.presentationDetents([.medium, .large])`; (b) move the
-  ScrollView contents into a separate view tree so layout
-  invalidation stays scoped; (c) precompute the panel's frame in
-  the parent and only animate `.offset(y:)` during drag.
+  rewrite this. Pass 5 added `.geometryGroup()` + `.interactiveSpring`
+  + `animation(nil, value: trailListHeight)` to scope layout
+  invalidation, which helped but didn't fully eliminate stutter.
+  Options when picked up: (a) accept SwiftUI's limits and rewrite
+  as native sheet with `.presentationDetents([.medium, .large])`;
+  (b) move the ScrollView contents into a separate view tree so
+  layout invalidation stays scoped; (c) precompute the panel's
+  frame in the parent and render it at full `tallHeight` always,
+  only animating `.offset(y:)` during drag so layout never changes.
 
 ## Backlog / ideas
 

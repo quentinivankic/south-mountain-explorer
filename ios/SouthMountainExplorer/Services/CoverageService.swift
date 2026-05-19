@@ -83,17 +83,20 @@ final class CoverageService {
 
     func mergeCoverage(areaId: String, delta: [String: Double]) async {
         var area = state[areaId] ?? [:]
-        var since = sinceCompletion[areaId] ?? [:]
         for (tid, v) in delta {
             area[tid] = min(1.0, max(area[tid] ?? 0, v))
-            // The since-completion bucket follows the same monotonic
-            // max-merge — it only resets via `resetSinceCompletion`,
-            // called by RecordingService when the trail flips to
-            // complete on this hike.
-            since[tid] = min(1.0, max(since[tid] ?? 0, v))
         }
         state[areaId] = area
-        sinceCompletion[areaId] = since
+        // The since-completion bucket is NOT mutated here. Its
+        // authority is `setSinceCompletion` (called from
+        // `rebuildCoverageFromHistory` with length-based 10 m math —
+        // PR #125) and `resetSinceCompletion` (the completion event
+        // itself). Mid-hike, the TrailDetailSheet bar no longer ticks
+        // up live for uncompleted trails (it was at the wrong
+        // precision anyway); it settles to correct on the next
+        // AreaView reopen via the rebuildCoverageFromHistory path.
+        // Completed trails still reset to 0% via the explicit
+        // `resetSinceCompletion` call from RecordingService.
         saveLocal()
     }
 

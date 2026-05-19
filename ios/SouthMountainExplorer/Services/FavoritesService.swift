@@ -27,6 +27,17 @@ final class FavoritesService {
         UserDefaults.standard.removeObject(forKey: storageKey)
     }
 
+    /// Re-read the favorites set from UserDefaults. Called after
+    /// Settings → Import overwrites the underlying entry — the
+    /// in-memory `@Observable` set was loaded at init and would
+    /// otherwise keep showing pre-import favorites until next launch.
+    /// Also re-downloads any newly-restored favorite areas so the
+    /// Browse section can render them offline.
+    func reload() {
+        favoriteIds = Set(readLocal())
+        Task { await downloadFavoriteAreas() }
+    }
+
     func toggle(areaId: String) async {
         if favoriteIds.contains(areaId) {
             favoriteIds.remove(areaId)

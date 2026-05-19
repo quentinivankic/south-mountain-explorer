@@ -224,5 +224,18 @@ enum DataBackupManager {
             let url = documentsDir.appendingPathComponent(filename)
             try? d.write(to: url, options: .atomic)
         }
+
+        // Re-hydrate every @Observable singleton from the freshly-
+        // restored UserDefaults + Documents files. Each service
+        // loaded its in-memory copy at init and would otherwise
+        // keep showing pre-import state — checkmarks, coverage
+        // bars, favorites, active recording banner — until next
+        // launch, which would feel just as broken as the pre-fix
+        // Reset All Progress bug.
+        ProgressService.shared.reload()
+        CoverageService.shared.reload()
+        FavoritesService.shared.reload()
+        RecordingService.shared.reload()
+        ActivityLogService.shared.reload()
     }
 }

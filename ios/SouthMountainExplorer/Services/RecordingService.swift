@@ -286,6 +286,17 @@ final class RecordingService {
         log.notice("resetAll: cleared activeRecording and removed hike-history.json")
     }
 
+    /// Re-read the persisted active recording from UserDefaults.
+    /// Called after Settings → Import — the import may have restored
+    /// an in-progress recording from the backup, and without this
+    /// call the banner wouldn't reappear until next launch. Saved
+    /// hike history doesn't need an explicit reload because
+    /// `loadHistory()` reads from disk every call (no in-memory
+    /// cache to invalidate).
+    func reload() {
+        restoreActiveRecording()
+    }
+
     func discardRecording() {
         let prev = activeRecording
         locationObserver?.cancel()

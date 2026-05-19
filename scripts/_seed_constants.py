@@ -99,8 +99,13 @@ STATE_NAMES = {
     "VA": "Virginia", "WA": "Washington", "WV": "West Virginia",
     "WI": "Wisconsin", "WY": "Wyoming",
 
-    # Countries (ISO3166-1).
+    # Countries (ISO3166-1). NOTE: 2-letter ISO country codes share
+    # the STATE_NAMES namespace with US state codes — adding "DE" for
+    # Germany would collide with Delaware, "GE" with Georgia, etc.
+    # Audit before adding more.
     "DK": "Denmark",
+    "IS": "Iceland",
+    "CH": "Switzerland",
 
     # Canadian provinces / territories (ISO3166-2). Each is its own
     # region — Canada is too large for a single country-wide Overpass
@@ -115,7 +120,7 @@ STATE_NAMES = {
 
 # Subset of STATE_NAMES that are country-level (ISO3166-1) rather
 # than US-state subdivisions.
-COUNTRY_CODES: set[str] = {"DK"}
+COUNTRY_CODES: set[str] = {"DK", "IS", "CH"}
 
 # Display-name override for `row[2]` (the user-facing state/country
 # label shown under each area card on iOS). STATE_NAMES keeps the
@@ -130,17 +135,25 @@ DISPLAY_STATE_OVERRIDES: dict[str, str] = {
     "CA-YT": "Canada",
 }
 
-# Common non-ASCII letter → ASCII transliterations. Danish ø/æ/å must
-# fold to ASCII for the slug to work as both a file path (R2 / iOS
-# bundle) and a stable id.
+# Common non-ASCII letter → ASCII transliterations. Slugs are used
+# as both file paths (R2 / iOS bundle) and stable ids, so every
+# letter in an area name must fold to ASCII. Adding a region with
+# new diacritics? Add them here BEFORE seeding, or those areas
+# silently lose characters via `re.sub([^\w\s-])`.
 ASCII_TRANSLIT: dict[str, str] = {
+    # Nordic (DK, IS, NO, SE, FI):
     "ø": "o", "Ø": "O",
     "æ": "ae", "Æ": "Ae",
     "å": "a", "Å": "A",
+    "þ": "th", "Þ": "Th",
+    "ð": "d", "Ð": "D",
+    "ý": "y", "Ý": "Y",
+    # German / Swiss German (CH, DE, AT):
     "ö": "o", "Ö": "O",
     "ä": "a", "Ä": "A",
     "ü": "u", "Ü": "U",
     "ß": "ss",
+    # Romance + Iberian (FR, IT, ES, PT):
     "ñ": "n", "Ñ": "N",
     "é": "e", "É": "E",
     "è": "e", "È": "E",

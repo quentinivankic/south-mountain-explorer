@@ -242,10 +242,7 @@ struct HomeView: View {
                                 .padding(.vertical, 6)
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(
-                            lengthFilter == filter ? .regular.tint(.accentColor).interactive() : .regular.interactive(),
-                            in: .capsule
-                        )
+                        .compatibleGlassTinted(isSelected: lengthFilter == filter, in: .capsule)
                         .foregroundStyle(lengthFilter == filter ? .white : .primary)
                     }
                 }

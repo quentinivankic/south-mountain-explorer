@@ -110,7 +110,7 @@ struct HikeDetailView: View {
         }
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity)
-        .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func stat(value: String, unit: String, label: String) -> some View {
@@ -159,7 +159,7 @@ struct HikeDetailView: View {
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
         } else if !hike.path.isEmpty {
             // Pre-feature hike with a path but no altitude. Tiny
@@ -203,7 +203,7 @@ struct HikeDetailView: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
 
@@ -227,7 +227,7 @@ struct HikeDetailView: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassEffect(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
 

@@ -345,7 +345,7 @@ struct AreaView: View {
                     Image(systemName: "xmark")
                         .font(.body.weight(.semibold))
                         .frame(width: 36, height: 36)
-                        .glassEffect(in: .circle)
+                        .compatibleGlass(in: .circle)
                 }
                 Spacer()
                 // Area-level overflow menu. Currently hosts only
@@ -369,7 +369,7 @@ struct AreaView: View {
                     Image(systemName: "ellipsis")
                         .font(.body.weight(.semibold))
                         .frame(width: 36, height: 36)
-                        .glassEffect(in: .circle)
+                        .compatibleGlass(in: .circle)
                 }
                 Button {
                     Task { await favorites.toggle(areaId: areaId) }
@@ -377,7 +377,7 @@ struct AreaView: View {
                     Image(systemName: favorites.isFavorite(areaId) ? "heart.fill" : "heart")
                         .font(.body.weight(.semibold))
                         .frame(width: 36, height: 36)
-                        .glassEffect(in: .circle)
+                        .compatibleGlass(in: .circle)
                         .foregroundStyle(favorites.isFavorite(areaId) ? .red : .primary)
                 }
             }
@@ -894,7 +894,7 @@ struct AreaView: View {
                 Image(systemName: showTrailList ? "map.fill" : "list.bullet")
                     .font(.body.weight(.semibold))
                     .frame(width: 44, height: 44)
-                    .glassEffect(in: .circle)
+                    .compatibleGlass(in: .circle)
             }
 
             // Camera tracking cycle — Apple Maps style. Cycles
@@ -910,7 +910,7 @@ struct AreaView: View {
                 Image(systemName: trackingMode.symbol)
                     .font(.body.weight(.semibold))
                     .frame(width: 44, height: 44)
-                    .glassEffect(in: .circle)
+                    .compatibleGlass(in: .circle)
             }
             .accessibilityLabel(trackingMode.accessibilityLabel)
 
@@ -925,7 +925,7 @@ struct AreaView: View {
                 Image(systemName: "location.fill.viewfinder")
                     .font(.body.weight(.semibold))
                     .frame(width: 44, height: 44)
-                    .glassEffect(in: .circle)
+                    .compatibleGlass(in: .circle)
             }
             .accessibilityLabel("Recenter on my location")
 
@@ -945,7 +945,7 @@ struct AreaView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
-                    .glassEffect(.regular.interactive(), in: .capsule)
+                    .compatibleGlassInteractive(in: .capsule)
                 }
             }
         }

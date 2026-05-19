@@ -2,14 +2,14 @@ name: SouthMountainExplorer
 options:
   bundleIdPrefix: com.southmountainexplorer
   deploymentTarget:
-    iOS: "26.0"
+    iOS: "18.0"
   xcodeVersion: "26.0"
 
 targets:
   SouthMountainExplorer:
     type: application
     platform: iOS
-    deploymentTarget: "26.0"
+    deploymentTarget: "18.0"
     sources:
       - path: SouthMountainExplorer
     resources:
@@ -55,7 +55,7 @@ targets:
   SouthMountainExplorerTests:
     type: bundle.unit-test
     platform: iOS
-    deploymentTarget: "26.0"
+    deploymentTarget: "18.0"
     sources:
       - path: SouthMountainExplorerTests
     dependencies:

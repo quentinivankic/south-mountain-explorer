@@ -63,12 +63,17 @@ OVERPASS_ENDPOINTS = [
 
 
 def overpass_query(code: str) -> str:
-    """Build an Overpass query for `code`. Three shapes:
+    """Build an Overpass query for `code`. Four shapes:
+      - EU- prefix country ("EU-DE", "EU-MT"): ISO3166-1 = "DE" / "MT".
+        Prefix dodges the US-state collision (DE↔Delaware, MT↔Montana).
       - 2-letter US state ("AZ"): ISO3166-2 = "US-AZ"
       - 2-letter country in COUNTRY_CODES ("DK"): ISO3166-1 = "DK"
       - Explicit ISO3166-2 with hyphen ("CA-AB"): ISO3166-2 = "CA-AB"
     """
-    if "-" in code:
+    if code.startswith("EU-") and code in COUNTRY_CODES:
+        iso = code.removeprefix("EU-")
+        bbox = f'area["ISO3166-1"="{iso}"]->.region;'
+    elif "-" in code:
         bbox = f'area["ISO3166-2"="{code}"]->.region;'
     elif code in COUNTRY_CODES:
         bbox = f'area["ISO3166-1"="{code}"]->.region;'
@@ -123,6 +128,17 @@ def region_bbox_query(code: str) -> str:
     returned for DK and slugged `-dk` even though its center is in
     Germany; Falsterbo Naturreservat is in Sweden but used to land
     under DK via bbox overlap)."""
+    if code.startswith("EU-") and code in COUNTRY_CODES:
+        # EU- prefix country (EU-DE / EU-MT). Strip the prefix for
+        # the ISO3166-1 query; the prefix exists only to dodge the
+        # US-state slug collision.
+        iso = code.removeprefix("EU-")
+        return (
+            f'[out:json][timeout:60];'
+            f'relation["ISO3166-1"="{iso}"]'
+            f'["boundary"="administrative"]["admin_level"="2"];'
+            f'out bb;'
+        )
     if "-" in code:
         # ISO3166-2 subdivision: admin_level=4 in OSM.
         return (

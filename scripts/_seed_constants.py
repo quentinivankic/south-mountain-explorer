@@ -123,9 +123,11 @@ STATE_NAMES = {
     "DK": "Denmark",
     "IS": "Iceland",
     "CH": "Switzerland",
-    # EU members (excluding collision pairs DE / MT — those are
-    # added as EU-DE / EU-MT in a follow-up so they can't shadow
-    # Delaware / Montana). DK is already above.
+    # EU members. DK is already above. DE and MT use the `EU-`
+    # prefix scheme to avoid colliding with Delaware / Montana —
+    # see EU-DE / EU-MT entries below. The seeder's query builder
+    # strips the prefix when constructing the Overpass ISO3166-1
+    # lookup so the actual country tag remains "DE" / "MT".
     "AT": "Austria", "BE": "Belgium", "BG": "Bulgaria",
     "HR": "Croatia", "CY": "Cyprus", "CZ": "Czechia",
     "EE": "Estonia", "FI": "Finland", "FR": "France",
@@ -134,6 +136,7 @@ STATE_NAMES = {
     "LU": "Luxembourg", "NL": "Netherlands", "PL": "Poland",
     "PT": "Portugal", "RO": "Romania", "SK": "Slovakia",
     "SI": "Slovenia", "ES": "Spain", "SE": "Sweden",
+    "EU-DE": "Germany", "EU-MT": "Malta",
 
     # Canadian provinces / territories (ISO3166-2). Each is its own
     # region — Canada is too large for a single country-wide Overpass
@@ -150,10 +153,13 @@ STATE_NAMES = {
 # than US-state subdivisions.
 COUNTRY_CODES: set[str] = {
     "DK", "IS", "CH",
-    # EU members (24 of 27; DE + MT pending the EU- prefix scheme).
+    # EU members. DE / MT use the EU- prefix scheme to dodge
+    # Delaware / Montana; the seeder strips "EU-" before the
+    # Overpass ISO3166-1 query.
     "AT", "BE", "BG", "HR", "CY", "CZ", "EE", "FI", "FR", "GR",
     "HU", "IE", "IT", "LV", "LT", "LU", "NL", "PL", "PT", "RO",
     "SK", "SI", "ES", "SE",
+    "EU-DE", "EU-MT",
 }
 
 # Display-name override for `row[2]` (the user-facing state/country

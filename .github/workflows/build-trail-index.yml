@@ -249,7 +249,12 @@ jobs:
         env:
           SEED_REGIONS: ${{ github.event.inputs.seed_regions }}
         run: |
-          cp public/areas/index.json ios/SouthMountainExplorer/Resources/areas-index.json
+          # Filter the master index.json down to the regions we
+          # actually bundle in the app (NA only today; see
+          # scripts/filter-ios-bundle.py). Replaces the plain `cp`
+          # so EU rows seeded into the master never leak into the
+          # iOS bundle.
+          python3 scripts/filter-ios-bundle.py
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/areas/index.json public/areas/silhouettes public/areas/geom ios/SouthMountainExplorer/Resources/areas-index.json

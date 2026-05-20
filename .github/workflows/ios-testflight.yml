@@ -54,7 +54,10 @@ jobs:
         # builds 121-122 (Explore / Favorite / Browse tabs
         # empty). Just copy what's already in main.
         run: |
-          cp public/areas/index.json ios/SouthMountainExplorer/Resources/areas-index.json
+          # Filter the master index.json down to the regions we
+          # actually bundle in the app (NA only today). See
+          # scripts/filter-ios-bundle.py for the allowlist.
+          python3 scripts/filter-ios-bundle.py
 
       - name: Import distribution certificate
         env:

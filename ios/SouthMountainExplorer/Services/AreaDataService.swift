@@ -56,34 +56,42 @@ final class AreaDataService {
         isLoadingIndex = true
         defer { isLoadingIndex = false }
 
-        // Bundle is the source of truth (no remote backend). Prefer it over any
-        // legacy disk cache, which can be stale if the bundle has changed (e.g.
-        // areas removed by deduplication).
-        if let bundled = loadIndexFromBundle() {
-            summaries = bundled
+        // 1. Read the freshest bytes we have on disk —
+        //    AreaIndexService prefers an R2-cached copy from a
+        //    prior session over the bundled snapshot. Both decode
+        //    through the same tuple shape, so callers downstream
+        //    don't care which source was used.
+        if let data = AreaIndexService.shared.currentIndexData(),
+           let parsed = decodeIndex(from: data) {
+            summaries = parsed
             clearLegacyIndexCache()
-            return
+        } else if let cached = loadSummariesFromDisk() {
+            summaries = cached
+        } else if let cached = loadIndexFromDisk() {
+            summaries = cached
         }
 
-        if let cached = loadSummariesFromDisk() {
-            summaries = cached
-            return
-        }
-
-        if let cached = loadIndexFromDisk() {
-            summaries = cached
-            return
+        // 2. Kick a background R2 revalidation. ETag / If-None-Match
+        //    makes this a 304 in steady state. When the body
+        //    changes, swap in the new summaries — the Browse list
+        //    re-renders automatically via @Observable.
+        //
+        //    Fire-and-forget: step 1 already populated `summaries`,
+        //    so the UI is responsive from launch; only a real
+        //    body change triggers a refresh.
+        Task { [weak self] in
+            let updated = await AreaIndexService.shared.revalidate()
+            guard updated, let self else { return }
+            if let data = AreaIndexService.shared.currentIndexData(),
+               let parsed = self.decodeIndex(from: data) {
+                self.summaries = parsed
+            }
         }
     }
 
     private func clearLegacyIndexCache() {
         try? FileManager.default.removeItem(at: indexDiskURL)
         try? FileManager.default.removeItem(at: summariesDiskURL)
-    }
-
-    private func loadIndexFromBundle() -> [AreaSummary]? {
-        guard let url = Bundle.main.url(forResource: "areas-index", withExtension: "json") else { return nil }
-        return decodeIndex(from: url)
     }
 
     private var indexDiskURL: URL { cacheDir.appendingPathComponent("index-v2.json") }
@@ -97,9 +105,14 @@ final class AreaDataService {
     }
 
     private func decodeIndex(from url: URL) -> [AreaSummary]? {
-        guard let data = try? Data(contentsOf: url),
-              let tuples = try? JSONDecoder().decode([[JSONValue]].self, from: data)
-        else { return nil }
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return decodeIndex(from: data)
+    }
+
+    private func decodeIndex(from data: Data) -> [AreaSummary]? {
+        guard let tuples = try? JSONDecoder().decode([[JSONValue]].self, from: data) else {
+            return nil
+        }
         // Hide ONLY areas explicitly known to have zero trails (=0).
         // Areas that haven't been hydrated yet (trailCount == nil,
         // 5-tuple seed-only rows) stay visible: they render as cards

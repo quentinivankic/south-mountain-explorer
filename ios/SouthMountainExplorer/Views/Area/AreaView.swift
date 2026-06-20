@@ -295,6 +295,16 @@ struct AreaView: View {
                     .presentationBackgroundInteraction(.enabled(upThrough: Self.mediumDetent))
                     .presentationContentInteraction(.scrolls)
                     .presentationCornerRadius(20)
+                    // Opaque system background at EVERY detent. By
+                    // default the sheet is translucent (glass) at the
+                    // small / medium detents and only goes opaque at
+                    // .large — which is why the controls read as
+                    // "glass on glass" until you expand it. Forcing
+                    // the solid background everywhere removes the
+                    // sheet's own glass layer entirely, so the inner
+                    // controls sit on a plain surface (the look the
+                    // user wanted at all heights, not just full-screen).
+                    .presentationBackground(Color(.systemBackground))
                     .interactiveDismissDisabled()
             }
         }
@@ -757,15 +767,13 @@ struct AreaView: View {
     @ViewBuilder
     private func sheetContent(area: Area) -> some View {
         VStack(spacing: 0) {
-            // Title block — left-aligned and prominent, the way a
-            // system place-sheet (Maps) leads. Sits just below the
-            // drag indicator. The trail-count / completion summary
-            // stays in TrailListView below; the name is the anchor
-            // here.
+            // Title block — centered under the drag indicator. The
+            // trail-count / completion summary stays in TrailListView
+            // below; the name is the anchor here.
             Text(areaName)
                 .font(.title3.weight(.semibold))
                 .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
                 .padding(.bottom, 12)

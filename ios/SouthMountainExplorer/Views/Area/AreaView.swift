@@ -304,7 +304,14 @@ struct AreaView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .padding(.bottom, showTrailList ? currentListHeight : 0)
+                    // `.offset` instead of `.padding(.bottom:)` so the
+                    // per-drag-tick height changes don't invalidate
+                    // layout on this VStack (or anything above it). A
+                    // padding change forces a layout pass; an offset is
+                    // a GPU transform — much cheaper, and removes the
+                    // residual stutter that lingered after the
+                    // .geometryGroup() pass on the panel itself.
+                    .offset(y: showTrailList ? -currentListHeight : 0)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
                 // Match the trail-list panel: ignore the home-indicator

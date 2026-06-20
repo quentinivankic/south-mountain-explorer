@@ -32,8 +32,8 @@ struct ContentView: View {
             Tab("Browse", systemImage: "magnifyingglass") {
                 BrowseView()
             }
-            Tab("History", systemImage: "clock.fill") {
-                HistoryView()
+            Tab("Stats", systemImage: "chart.line.uptrend.xyaxis") {
+                StatsView()
             }
             Tab("Settings", systemImage: "gearshape.fill") {
                 SettingsView()

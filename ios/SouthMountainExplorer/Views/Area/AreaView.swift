@@ -48,6 +48,15 @@ struct AreaView: View {
     // height instead of accumulating per-frame translations against a
     // moving target — the latter was the source of the drag jank.
     @State private var dragStartHeight: CGFloat? = nil
+
+    /// Snapshot of `currentListHeight` taken at drag start. While the
+    /// drag is active we pass THIS value (not the live one) to
+    /// TrailMapView's `bottomInset` so the map doesn't re-evaluate
+    /// `updateUIView` on every drag frame. The dot's visible-center
+    /// shift catches up in one transition when the drag ends, which
+    /// is much cheaper than recomputing camera math 60-120 ×/sec.
+    @State private var isDraggingPanel = false
+    @State private var dragSnapshotListHeight: CGFloat = 340
     @State private var selectedTrailId: String? = nil
     /// Per-recording-session set of trail ids the user has
     /// dismissed from the suggestion banner. Prevents the same
@@ -157,6 +166,14 @@ struct AreaView: View {
     @State private var filtered: [Trail] = []
     @State private var visibleTrailIds: Set<String>? = nil
 
+    /// Cached `Set` of valid trail IDs for the loaded area. Used by
+    /// `filteredCompletedCount`, which previously allocated this Set
+    /// inline every body eval — and was fed into a `.onChange` that
+    /// SwiftUI evaluates on every body pass, so it allocated 60-120 ×/sec
+    /// during the trail-list drag. Recomputed only when the area's
+    /// trail set actually changes (rare — only on initial load).
+    @State private var areaTrailIds: Set<String> = []
+
     /// Inputs that change `filtered`. Bundled into a single Equatable
     /// value so a single `.onChange` covers all of them. Per-area
     /// completion count is observed separately (it's an `Int` so the
@@ -190,10 +207,16 @@ struct AreaView: View {
         guard let area else {
             filtered = []
             visibleTrailIds = nil
+            areaTrailIds = []
             return
         }
         filtered = computeFilteredTrails(area)
         visibleTrailIds = hasActiveFilter ? Set(filtered.map(\.id)) : nil
+        // Same area? Skip the Set rebuild. Trail list within an area
+        // is stable for the area's lifetime.
+        if areaTrailIds.isEmpty || areaTrailIds.count != area.trails.count {
+            areaTrailIds = Set(area.trails.map(\.id))
+        }
     }
 
     /// Whether any non-default filter is active. When false we pass
@@ -225,8 +248,15 @@ struct AreaView: View {
                     // shift in TrailMapView.centerOnUser so the user
                     // dot lands in the visible middle, not behind the
                     // panel.
-                    bottomInset: (showTrailList ? currentListHeight : 0)
-                        + (isRecording ? 110 : 0),
+                    //
+                    // During a panel drag we pass a SNAPSHOT taken at
+                    // gesture start — see `dragSnapshotListHeight` —
+                    // so TrailMapView's body doesn't re-evaluate
+                    // (and its underlying MKMapView doesn't re-run
+                    // updateUIView with new args) on every drag frame.
+                    // The dot's visible-center shift catches up in
+                    // one transition when the drag ends.
+                    bottomInset: effectiveBottomInset,
                     trackingMode: $trackingMode
                 )
                 .ignoresSafeArea()
@@ -579,6 +609,17 @@ struct AreaView: View {
 
     private var currentListHeight: CGFloat { trailListHeight }
 
+    /// The `bottomInset` we pass to TrailMapView. During a drag we
+    /// hold this constant at `dragSnapshotListHeight` (captured at
+    /// gesture start) so map-side work doesn't fire every drag tick.
+    /// Outside of drag it tracks the live panel + recording chrome.
+    private var effectiveBottomInset: CGFloat {
+        let listPart = isDraggingPanel
+            ? dragSnapshotListHeight
+            : (showTrailList ? currentListHeight : 0)
+        return listPart + (isRecording ? 110 : 0)
+    }
+
     /// Loading state. Paints the bundled silhouette so the wait feels
     /// like the screen has already arrived. After the 2 s reveal
     /// completes, the trails wave gently in place until real area data
@@ -653,8 +694,10 @@ struct AreaView: View {
     /// completions (from before the trail-id determinism fix) don't inflate
     /// the celebration trigger or any header counters that reference it.
     private var filteredCompletedCount: Int {
-        guard let area else { return 0 }
-        return progress.completionCount(in: areaId, validTrailIds: Set(area.trails.map(\.id)))
+        guard area != nil else { return 0 }
+        // areaTrailIds is the cached Set from `recomputeFiltered()`;
+        // see `@State areaTrailIds` for why this isn't built inline.
+        return progress.completionCount(in: areaId, validTrailIds: areaTrailIds)
     }
 
     private func loadPastPaths() async {
@@ -910,10 +953,27 @@ struct AreaView: View {
         DragGesture()
             .onChanged { value in
                 let start = dragStartHeight ?? trailListHeight
-                if dragStartHeight == nil { dragStartHeight = trailListHeight }
+                if dragStartHeight == nil {
+                    dragStartHeight = trailListHeight
+                    // Lock the bottomInset we hand to TrailMapView for
+                    // the duration of the drag, so the map doesn't
+                    // re-run updateUIView on every frame. See
+                    // `effectiveBottomInset`.
+                    dragSnapshotListHeight = currentListHeight
+                    isDraggingPanel = true
+                }
                 // Translate UP (negative dy) → grow the panel.
                 let proposed = start - value.translation.height
-                trailListHeight = min(max(proposed, 180), tallHeight)
+                // Explicit transaction with animations disabled.
+                // .animation(nil, value: trailListHeight) on the panel
+                // catches SOME implicit animations but not all — being
+                // explicit here keeps high-frequency drag updates from
+                // ever spawning a parallel animation.
+                var t = Transaction()
+                t.disablesAnimations = true
+                withTransaction(t) {
+                    trailListHeight = min(max(proposed, 180), tallHeight)
+                }
             }
             .onEnded { _ in
                 let snapPoint = (defaultListHeight + tallHeight) / 2
@@ -926,6 +986,9 @@ struct AreaView: View {
                     trailListHeight = target
                 }
                 dragStartHeight = nil
+                // Resume live bottomInset → map's camera shift catches
+                // up to the new visible center in one transition.
+                isDraggingPanel = false
             }
     }
 

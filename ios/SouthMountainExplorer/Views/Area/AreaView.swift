@@ -1033,7 +1033,12 @@ struct AreaView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
-                    .compatibleGlassInteractive(in: .capsule)
+                    // Flat fill to match the tracking / recenter
+                    // control buttons — no glass. On the now-opaque
+                    // sheet, the glass capsule was the last lingering
+                    // glass-on-opaque element and read inconsistently
+                    // next to the flat icon buttons.
+                    .background(Color(.tertiarySystemFill), in: Capsule())
                 }
             }
         }

@@ -767,16 +767,37 @@ struct AreaView: View {
     @ViewBuilder
     private func sheetContent(area: Area) -> some View {
         VStack(spacing: 0) {
-            // Title block — centered under the drag indicator. The
-            // trail-count / completion summary stays in TrailListView
-            // below; the name is the anchor here.
-            Text(areaName)
-                .font(.title3.weight(.semibold))
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, 20)
-                .padding(.top, 10)
-                .padding(.bottom, 12)
+            // Title + summary block — centered under the drag
+            // indicator, reads as one header. The trail count /
+            // completion line used to live in TrailListView's own
+            // summary header; with the area name now sitting above
+            // it, the two read as redundant stacked headers — moved
+            // up here so the user gets the whole "where am I, what's
+            // here" pitch in one block.
+            VStack(spacing: 4) {
+                Text(areaName)
+                    .font(.title3.weight(.semibold))
+                    .lineLimit(1)
+
+                Text("\(area.resolvedTrailCount) trails · \(String(format: "%.1f", area.resolvedTotalMi)) mi total")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                if area.resolvedTrailCount > 0 {
+                    // `areaTrailIds` is the cached Set populated by
+                    // recomputeFiltered() — avoids the per-eval O(N)
+                    // Set construction the inline version would have
+                    // brought back.
+                    let completed = progress.completionCount(in: area.id, validTrailIds: areaTrailIds)
+                    Text("\(completed) of \(area.resolvedTrailCount) completed")
+                        .font(.caption)
+                        .foregroundStyle(completed == area.resolvedTrailCount ? .green : .secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            .padding(.bottom, 14)
 
             controlBar(area: area)
                 .padding(.bottom, 12)

@@ -115,72 +115,55 @@ struct TrailListView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Summary header
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(area.resolvedTrailCount) trails · \(String(format: "%.1f", area.resolvedTotalMi)) mi total")
-                        .font(.subheadline)
+            // Trail-name search + filter menu. The summary header
+            // (trail count, completion ratio) used to live above this
+            // row but moved to AreaView's sheet header so the area
+            // name + summary read as one block. The filter menu pairs
+            // naturally with the search field, the way iOS settings
+            // / mail toolbars do.
+            HStack(spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
                         .foregroundStyle(.secondary)
-
-                    // Filter to the area's current trail IDs so orphan
-                    // completions (from before the trail-id determinism fix)
-                    // don't double-count.
-                    let completed = progress.completionCount(in: area.id, validTrailIds: Set(area.trails.map(\.id)))
-                    if area.resolvedTrailCount > 0 {
-                        Text("\(completed) of \(area.resolvedTrailCount) completed")
-                            .font(.caption)
-                            .foregroundStyle(completed == area.resolvedTrailCount ? .green : .secondary)
+                    TextField("Search trails", text: $searchQuery)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .focused($searchFocused)
+                        .submitLabel(.search)
+                    if !searchQuery.isEmpty {
+                        Button {
+                            searchQuery = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
                     }
-
-                    if activeFilterCount > 0 {
-                        Text("Showing \(filteredTrails.count) of \(area.trails.count)")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    // (Removed the "long-press to record just that trail"
-                    // hint — the gesture was lost in a refactor and the
-                    // hint advertised functionality that no longer
-                    // existed. Record-from-row now lives in the trail's
-                    // detail sheet that opens on tap.)
                 }
-                Spacer()
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(.quaternary.opacity(0.5))
+                )
+
                 filterMenu
             }
             .padding(.horizontal)
-            .padding(.vertical, 12)
-
-            // Trail-name search. Lives below the header + filter
-            // menu so the filter UI stays compact when the user
-            // isn't searching. Plain TextField + clear button
-            // because this view isn't inside a NavigationStack —
-            // `.searchable` only works in that container.
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Search trails", text: $searchQuery)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .focused($searchFocused)
-                    .submitLabel(.search)
-                if !searchQuery.isEmpty {
-                    Button {
-                        searchQuery = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(.quaternary.opacity(0.5))
-            )
-            .padding(.horizontal)
+            .padding(.top, 8)
             .padding(.bottom, 10)
+
+            // "Showing X of Y" hint — only when a filter is active.
+            // Visible feedback that the list is narrowed; the rest of
+            // the summary info (trail count / completion) lives in
+            // the sheet header above.
+            if activeFilterCount > 0 {
+                Text("Showing \(filteredTrails.count) of \(area.trails.count)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+                    .padding(.bottom, 6)
+            }
 
             Divider()
 

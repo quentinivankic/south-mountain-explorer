@@ -228,8 +228,12 @@ struct RecordingSummarySheet: View {
                         statCard(title: "Distance", value: UnitFormatter.distanceValue(miles: finished.distanceMi, units: units), unit: UnitFormatter.distanceSuffix(units: units))
                         statCard(title: "Duration", value: formattedDuration, unit: "")
                         if let stats = elevationStats(path: finished.path) {
-                            statCard(title: "Ascent", value: "\(Int((stats.totalAscentMeters * 3.28084).rounded()))", unit: "ft")
-                            statCard(title: "Descent", value: "\(Int((stats.totalDescentMeters * 3.28084).rounded()))", unit: "ft")
+                            statCard(title: "Ascent",
+                                     value: UnitFormatter.elevationValue(meters: stats.totalAscentMeters, units: units),
+                                     unit: UnitFormatter.elevationSuffix(units: units))
+                            statCard(title: "Descent",
+                                     value: UnitFormatter.elevationValue(meters: stats.totalDescentMeters, units: units),
+                                     unit: UnitFormatter.elevationSuffix(units: units))
                         }
                     }
                     .padding(.horizontal)

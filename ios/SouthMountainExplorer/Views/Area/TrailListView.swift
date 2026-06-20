@@ -391,7 +391,7 @@ struct TrailRow: View {
                     .foregroundStyle(isComplete ? .white : difficultyColor)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 HStack {
                     Text(trail.name)
                         .font(.body)
@@ -437,7 +437,7 @@ struct TrailRow: View {
             .buttonStyle(.plain)
         }
         .padding(.horizontal)
-        .padding(.vertical, 12)
+        .padding(.vertical, 9)
         .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
         .contentShape(Rectangle())
         .onTapGesture {

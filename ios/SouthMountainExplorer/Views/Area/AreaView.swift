@@ -43,13 +43,21 @@ struct AreaView: View {
     /// `.task(id: areaId)` and ends 1.5 s later.
     @State private var minLoadingTimeElapsed = false
 
+    /// Trail-list sheet detents.
+    ///   - small: peek — drag indicator + title + control row, mostly
+    ///     map. Fixed point value (the header content is a fixed
+    ///     height regardless of device).
+    ///   - medium: default. A device-relative fraction so it shows a
+    ///     comparable number of trail rows on a small iPhone SE and a
+    ///     Pro Max, rather than a fixed 340pt that's "half the list"
+    ///     on one and "three rows" on the other.
+    ///   - large: system `.large` (~almost full screen).
+    static let smallDetent: PresentationDetent = .height(150)
+    static let mediumDetent: PresentationDetent = .fraction(0.5)
+
     /// Currently-active detent of the trail-list sheet. Drives
     /// `effectiveBottomInset` so the map's user-dot shift compensates
-    /// for whatever portion of the screen the sheet covers. Default
-    /// opens at the medium height so the user sees the area name +
-    /// control bar + a few trail rows immediately; they can drag to
-    /// `.height(120)` for a near-full-map view or `.large` for an
-    /// almost-full-screen trail list.
+    /// for whatever portion of the screen the sheet covers.
     ///
     /// Replaces the previous custom drag implementation (showTrailList
     /// + trailListHeight + DragGesture + per-frame height @State) that
@@ -57,7 +65,7 @@ struct AreaView: View {
     /// in UIKit, so SwiftUI's body never re-evaluates for the gesture
     /// itself — only when the detent SETTLES (at most once per
     /// release).
-    @State private var sheetDetent: PresentationDetent = .height(340)
+    @State private var sheetDetent: PresentationDetent = AreaView.mediumDetent
     @State private var selectedTrailId: String? = nil
     /// Per-recording-session set of trail ids the user has
     /// dismissed from the suggestion banner. Prevents the same
@@ -265,7 +273,7 @@ struct AreaView: View {
             // loading silhouette animation) and never dismissed
             // afterward — `interactiveDismissDisabled` blocks the
             // swipe-to-dismiss, so the user can't accidentally
-            // close it. They can drag down to `.height(120)` for a
+            // close it. They can drag down to the small peek detent for a
             // near-full-map view instead.
             //
             // This replaces the previous hand-rolled bottom panel
@@ -280,11 +288,11 @@ struct AreaView: View {
             if let area {
                 sheetContent(area: area)
                     .presentationDetents(
-                        [.height(120), .height(340), .large],
+                        [Self.smallDetent, Self.mediumDetent, .large],
                         selection: $sheetDetent
                     )
                     .presentationDragIndicator(.visible)
-                    .presentationBackgroundInteraction(.enabled(upThrough: .height(340)))
+                    .presentationBackgroundInteraction(.enabled(upThrough: Self.mediumDetent))
                     .presentationContentInteraction(.scrolls)
                     .presentationCornerRadius(20)
                     .interactiveDismissDisabled()
@@ -446,22 +454,20 @@ struct AreaView: View {
     /// transitions are coarse (one event per release), so this only
     /// changes a handful of times per session — no per-frame thrash.
     ///
-    /// `.large` resolves to ~90% of screen height; we use UIScreen
-    /// directly here rather than threading a GeometryReader value
-    /// up. iPad multitasking would skew this, but the app's iPhone-
-    /// only, so close enough.
+    /// Heights resolved against UIScreen rather than threading a
+    /// GeometryReader value up. iPad multitasking would skew this,
+    /// but the app's iPhone-only, so close enough.
     private var effectiveBottomInset: CGFloat {
+        let screenH = UIScreen.main.bounds.height
         let sheetHeight: CGFloat
         if sheetDetent == .large {
-            sheetHeight = UIScreen.main.bounds.height * 0.9
-        } else if sheetDetent == .height(120) {
-            sheetHeight = 120
+            sheetHeight = screenH * 0.9
+        } else if sheetDetent == Self.mediumDetent {
+            sheetHeight = screenH * 0.5  // mirrors .fraction(0.5)
         } else {
-            // Includes the default .height(340) and any custom detent
-            // we may add later — assume a "medium" inset.
-            sheetHeight = 340
+            sheetHeight = 150  // small / peek detent
         }
-        return sheetHeight + (isRecording ? 110 : 0)
+        return sheetHeight
     }
 
     /// Loading state. Paints the bundled silhouette so the wait feels
@@ -751,23 +757,37 @@ struct AreaView: View {
     @ViewBuilder
     private func sheetContent(area: Area) -> some View {
         VStack(spacing: 0) {
+            // Title block — left-aligned and prominent, the way a
+            // system place-sheet (Maps) leads. Sits just below the
+            // drag indicator. The trail-count / completion summary
+            // stays in TrailListView below; the name is the anchor
+            // here.
             Text(areaName)
-                .font(.headline)
-                .padding(.top, 12)
-                .padding(.bottom, 4)
-
-            if let toast = trackingModeToast {
-                Text(toast)
-                    .font(.caption)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(.regularMaterial, in: Capsule())
-                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                    .padding(.bottom, 4)
-            }
+                .font(.title3.weight(.semibold))
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+                .padding(.bottom, 12)
 
             controlBar(area: area)
-                .padding(.bottom, 6)
+                .padding(.bottom, 12)
+
+            // Tracking-mode toast. A subtle solid capsule, NOT glass —
+            // it floats inside the glass sheet, so a material backdrop
+            // would be the same glass-on-glass muddiness we removed
+            // from the icon buttons. Tinted with the accent so it
+            // reads as a transient status note.
+            if let toast = trackingModeToast {
+                Text(toast)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(Color.accentColor, in: Capsule())
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    .padding(.bottom, 10)
+            }
 
             if isRecording {
                 recordingBanners(area: area)
@@ -944,7 +964,7 @@ struct AreaView: View {
         HStack(spacing: 14) {
             // Note: the previous "map.fill / list.bullet" toggle was
             // removed when the trail list moved to a native sheet —
-            // dragging the sheet down to `.height(120)` now serves
+            // dragging the sheet down to the small peek detent now serves
             // the same "show me more map" affordance, matching how
             // Apple Maps and other system-sheet UIs handle it.
 

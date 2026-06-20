@@ -81,7 +81,11 @@ struct ElevationProfileView: View {
                 AxisValueLabel {
                     if let meters = value.as(Double.self) {
                         let display = units == .imperial ? meters * 3.28084 : meters
-                        Text("\(Int(display))")
+                        // .rounded() not Int() truncation: a tick is a
+                        // round display-unit value converted to meters
+                        // and back, so FP drift can land it at e.g.
+                        // 999.9999 — truncation would print "999".
+                        Text("\(Int(display.rounded()))")
                             .font(.caption2)
                     }
                 }
@@ -100,32 +104,43 @@ struct ElevationProfileView: View {
     /// (e.g. ticks 1377/1410/1443 ft for a 1357–1466 ft hike, so the
     /// chart line legitimately drew above the top label).
     private var yAxis: (domain: ClosedRange<Double>, ticks: [Double]) {
-        let minFt = stats.minAltitudeMeters * 3.28084
-        let maxFt = stats.maxAltitudeMeters * 3.28084
-        let span = maxFt - minFt
+        // Pick "nice" tick values in the DISPLAY unit so gridlines
+        // land on round numbers the user actually sees — 300 m, not
+        // 305 m (which is what you get rounding feet then converting).
+        // All math is done in display units, then the domain + ticks
+        // are converted back to meters for the chart (which always
+        // plots raw meters; the axis label closure re-applies the
+        // unit). `unitPerMeter` is the display-unit-per-meter factor.
+        let unitPerMeter = units == .imperial ? 3.28084 : 1.0
+        let minU = stats.minAltitudeMeters * unitPerMeter
+        let maxU = stats.maxAltitudeMeters * unitPerMeter
+        let span = maxU - minU
 
         // Flat hike fallback — center ± a couple of steps so the
         // line doesn't render as a single pixel at one tick.
         if span < 1 {
-            let centerFt = minFt
+            let centerU = minU
             let step = 10.0
-            let ticksFt = [centerFt - step, centerFt, centerFt + step]
-            let ticksM = ticksFt.map { $0 / 3.28084 }
+            let ticksU = [centerU - step, centerU, centerU + step]
+            let ticksM = ticksU.map { $0 / unitPerMeter }
             return (domain: ticksM.first!...ticksM.last!, ticks: ticksM)
         }
 
+        // Candidate steps in display units. Metric and imperial use
+        // the same round-number ladder — both ft and m read naturally
+        // at 5 / 10 / 25 / 50 / 100 / … increments.
         let candidates: [Double] = [5, 10, 25, 50, 100, 250, 500, 1000]
         let targetTicks = 4.0
         let step = candidates.first(where: { span / $0 <= targetTicks + 1 }) ?? 1000.0
-        let minTickFt = (minFt / step).rounded(.down) * step
-        let maxTickFt = (maxFt / step).rounded(.up) * step
-        var ticksFt: [Double] = []
-        var t = minTickFt
-        while t <= maxTickFt + 0.001 {
-            ticksFt.append(t)
+        let minTickU = (minU / step).rounded(.down) * step
+        let maxTickU = (maxU / step).rounded(.up) * step
+        var ticksU: [Double] = []
+        var t = minTickU
+        while t <= maxTickU + 0.001 {
+            ticksU.append(t)
             t += step
         }
-        let ticksM = ticksFt.map { $0 / 3.28084 }
+        let ticksM = ticksU.map { $0 / unitPerMeter }
         return (ticksM.first!...ticksM.last!, ticksM)
     }
 }

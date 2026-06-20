@@ -401,38 +401,6 @@ struct AreaView: View {
                 await recording.applyLiveCoverage(trails: area.rawTrails ?? area.trails)
             }
         }
-        .confirmationDialog(
-            "You're already recording at \(conflictAreaName)",
-            isPresented: $showConflictAlert,
-            titleVisibility: .visible
-        ) {
-            Button("Stop That Hike & Start Here", role: .destructive) {
-                let trailId = pendingRecordTrailId
-                pendingRecordTrailId = nil
-                Task { await stopOtherRecordingThenStart(trailId: trailId) }
-            }
-            Button("Cancel", role: .cancel) {
-                pendingRecordTrailId = nil
-            }
-        } message: {
-            Text("Starting a new hike here will save and end your hike at \(conflictAreaName).")
-        }
-        .confirmationDialog(
-            "You're \(String(format: "%.1f", farDistanceMi)) mi from \(areaName)",
-            isPresented: $showFarWarning,
-            titleVisibility: .visible
-        ) {
-            Button("Start Anyway", role: .destructive) {
-                let trailId = pendingRecordTrailId
-                pendingRecordTrailId = nil
-                startRecordingNow(trailId: trailId)
-            }
-            Button("Cancel", role: .cancel) {
-                pendingRecordTrailId = nil
-            }
-        } message: {
-            Text("Recording from this far away will track GPS but won't update trail coverage in this area.")
-        }
         .overlay {
             if let name = celebrationTrailName {
                 trailCompletionOverlay(name: name)
@@ -843,6 +811,48 @@ struct AreaView: View {
         .sheet(isPresented: $showAreaComplete) {
             AreaCompletionView(area: area)
                 .presentationDetents([.large])
+        }
+        // Confirmation dialogs ALSO nest inside the sheet — same
+        // one-presentation-per-ancestor rule that put the modal sheets
+        // here. With them attached to AreaView's body, tapping "Record
+        // Hike" set `showFarWarning = true`, SwiftUI tried to present
+        // the dialog from AreaView, found the trail-list sheet already
+        // owning that slot, and bounced — dismissing the sheet to
+        // present the dialog, then re-presenting the sheet (because
+        // its binding stays true), which clobbered the dialog. Net:
+        // dialog flashed for ~0.1s then vanished, and recording could
+        // never start.
+        .confirmationDialog(
+            "You're already recording at \(conflictAreaName)",
+            isPresented: $showConflictAlert,
+            titleVisibility: .visible
+        ) {
+            Button("Stop That Hike & Start Here", role: .destructive) {
+                let trailId = pendingRecordTrailId
+                pendingRecordTrailId = nil
+                Task { await stopOtherRecordingThenStart(trailId: trailId) }
+            }
+            Button("Cancel", role: .cancel) {
+                pendingRecordTrailId = nil
+            }
+        } message: {
+            Text("Starting a new hike here will save and end your hike at \(conflictAreaName).")
+        }
+        .confirmationDialog(
+            "You're \(String(format: "%.1f", farDistanceMi)) mi from \(areaName)",
+            isPresented: $showFarWarning,
+            titleVisibility: .visible
+        ) {
+            Button("Start Anyway", role: .destructive) {
+                let trailId = pendingRecordTrailId
+                pendingRecordTrailId = nil
+                startRecordingNow(trailId: trailId)
+            }
+            Button("Cancel", role: .cancel) {
+                pendingRecordTrailId = nil
+            }
+        } message: {
+            Text("Recording from this far away will track GPS but won't update trail coverage in this area.")
         }
     }
 

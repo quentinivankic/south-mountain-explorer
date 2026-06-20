@@ -1,0 +1,58 @@
+name: Cleanup R2 Orphans
+
+# One-shot, manual-dispatch cleanup of orphaned area objects in the
+# Cloudflare R2 bucket — geom / silhouette files whose area slug is no
+# longer in public/areas/index.json (e.g. after the European-data
+# removal). The regular sync-geom-to-r2 workflow can't do this with
+# `aws s3 sync --delete` because geom lives at the bucket root next to
+# index.json and the silhouettes/ prefix, so a blanket delete would
+# nuke those. scripts/cleanup-r2-orphans.py instead diffs bucket keys
+# against the current index and deletes only the orphans, never
+# index.json, never via suffix patterns (which would hit the CA-SK /
+# Slovakia style collisions).
+#
+# Defaults to a DRY RUN. Set the `apply` input to "true" to delete.
+#
+# Required secrets (same as sync-geom-to-r2):
+#   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Set to true to actually delete. Otherwise dry-run."
+        type: boolean
+        default: false
+
+concurrency:
+  group: r2-mutation
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Delete orphaned R2 objects
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        run: |
+          set -e
+          if [ -z "$R2_ACCOUNT_ID" ] || [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "Missing one of R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY repo secrets."
+            exit 1
+          fi
+          if [ "${{ inputs.apply }}" = "true" ]; then
+            python3 scripts/cleanup-r2-orphans.py --apply
+          else
+            python3 scripts/cleanup-r2-orphans.py
+          fi

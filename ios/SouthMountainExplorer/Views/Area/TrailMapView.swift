@@ -427,9 +427,15 @@ struct TrailMapView: View {
                 // MKCoordinateRegion(latitudinalMeters: 1500) in portrait
                 // (region fits the SHORTER axis = width, so vertical span
                 // is ~3.3 km on a typical phone).
+                //
+                // followHeading uses the UNSHIFTED user coord as the
+                // camera center so rotation pivots around the user
+                // — matches the steady-state .followCenter behavior
+                // below and avoids a one-frame jump when the user
+                // enters follow mode.
                 setCameraTarget(.camera(
-                    centerLat: shifted.latitude,
-                    centerLon: shifted.longitude,
+                    centerLat: coord.latitude,
+                    centerLon: coord.longitude,
                     distance: 6000,
                     heading: heading
                 ))

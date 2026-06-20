@@ -59,7 +59,7 @@ struct ElevationProfileView: View {
             }
         }
         .chartYAxis {
-            AxisMarks(values: yAxis.ticks) { value in
+            AxisMarks(position: .leading, values: yAxis.ticks) { value in
                 AxisGridLine().foregroundStyle(.secondary.opacity(0.2))
                 AxisValueLabel {
                     if let meters = value.as(Double.self) {

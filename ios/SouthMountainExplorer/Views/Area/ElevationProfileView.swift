@@ -4,14 +4,12 @@ import Charts
 /// Line chart of altitude vs cumulative distance, plus min/max
 /// annotations. Embedded in `HikeDetailView`'s elevation section.
 /// Heights and chart styling chosen to harmonize with the existing
-/// `statsCard` and trail-list sections nearby.
-///
-/// Display unit is meters for both axes — the parent caller is
-/// expected to format axis labels through `UnitFormatter` once the
-/// imperial / metric toggle (PR C) lands. For now we render raw
-/// numbers; the visual shape is what matters at this stage.
+/// `statsCard` and trail-list sections nearby. Both axes honor the
+/// units toggle in Settings: imperial renders mi / ft, metric km / m.
 struct ElevationProfileView: View {
     let stats: ElevationStats
+
+    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     var body: some View {
         Chart(stats.samples, id: \.distanceMeters) { sample in
@@ -50,11 +48,11 @@ struct ElevationProfileView: View {
                 AxisGridLine().foregroundStyle(.secondary.opacity(0.2))
                 AxisValueLabel {
                     if let meters = value.as(Double.self) {
-                        // Distance labels in miles (display unit will
-                        // become user-toggleable in PR C). Two decimals
-                        // for short hikes, zero for longer ones.
-                        let miles = meters / 1609.344
-                        Text(miles < 1 ? String(format: "%.2f", miles) : String(format: "%.1f", miles))
+                        // Two decimals for short hikes, one for longer
+                        // ones — mirrors UnitFormatter.distance rules
+                        // but on bare numbers so tick labels stay tight.
+                        let display = units == .imperial ? meters / 1609.344 : meters / 1000
+                        Text(display < 1 ? String(format: "%.2f", display) : String(format: "%.1f", display))
                             .font(.caption2)
                     }
                 }
@@ -65,10 +63,8 @@ struct ElevationProfileView: View {
                 AxisGridLine().foregroundStyle(.secondary.opacity(0.2))
                 AxisValueLabel {
                     if let meters = value.as(Double.self) {
-                        // Altitude labels in feet. PR C swaps for the
-                        // unit toggle.
-                        let feet = meters * 3.28084
-                        Text("\(Int(feet))")
+                        let display = units == .imperial ? meters * 3.28084 : meters
+                        Text("\(Int(display))")
                             .font(.caption2)
                     }
                 }

@@ -953,6 +953,15 @@ struct AreaView: View {
             // reflects the current mode. Toast under the controlBar
             // (rendered in body) names the new mode for ~2 s so users
             // learn the cycle without permanent on-screen labels.
+            //
+            // No glass on these in-sheet icon buttons: the sheet
+            // itself is the glass surface, and glass-on-glass reads
+            // muddy (Apple's HIG calls this out — Liquid Glass is a
+            // single layer between content and surface). A subtle
+            // adaptive fill gives a tappable affordance without
+            // competing with the sheet material. The record button
+            // below keeps its glass because it's the primary CTA and
+            // is meant to stand proud.
             Button {
                 if !location.isAuthorized { location.requestPermission(); return }
                 trackingMode = trackingMode.next
@@ -961,7 +970,7 @@ struct AreaView: View {
                 Image(systemName: trackingMode.symbol)
                     .font(.body.weight(.semibold))
                     .frame(width: 44, height: 44)
-                    .compatibleGlass(in: .circle)
+                    .background(Color(.tertiarySystemFill), in: Circle())
             }
             .accessibilityLabel(trackingMode.accessibilityLabel)
 
@@ -976,7 +985,7 @@ struct AreaView: View {
                 Image(systemName: "location.fill.viewfinder")
                     .font(.body.weight(.semibold))
                     .frame(width: 44, height: 44)
-                    .compatibleGlass(in: .circle)
+                    .background(Color(.tertiarySystemFill), in: Circle())
             }
             .accessibilityLabel("Recenter on my location")
 

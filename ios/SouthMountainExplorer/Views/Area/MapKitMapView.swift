@@ -32,10 +32,19 @@ import UIKit
 /// current pinch-zoom — without this case, every GPS update during
 /// follow lock would re-apply a fixed zoom and undo any zoom the
 /// user just performed.
+///
+/// `followCenter` takes the RAW user coord plus the bottom panel
+/// inset. The shift to keep the dot above the panel is computed by
+/// `applyCameraTarget` using `MKMapView.convert(_:toCoordinateFrom:)`,
+/// which respects the current zoom AND the current heading (for
+/// followHeading mode). Without this, a pre-computed shift assuming
+/// the default 1500m zoom drifts the dot off-screen at any other
+/// zoom level — observed after the pinch-zoom-while-locked feature
+/// landed.
 enum MapTarget: Equatable {
     case region(centerLat: Double, centerLon: Double, latDelta: Double, lonDelta: Double)
     case camera(centerLat: Double, centerLon: Double, distance: Double, heading: Double)
-    case followCenter(centerLat: Double, centerLon: Double, heading: Double?)
+    case followCenter(rawLat: Double, rawLon: Double, heading: Double?, bottomInset: CGFloat)
 }
 
 struct MapKitMapView: UIViewRepresentable {
@@ -305,22 +314,44 @@ struct MapKitMapView: UIViewRepresentable {
                 heading: heading
             )
             mapView.setCamera(cam, animated: animated)
-        case .followCenter(let lat, let lon, let heading):
-            // Preserve user's current zoom. For follow (heading nil),
-            // just pan; for followHeading, build a fresh camera that
-            // carries over altitude + pitch from the live one so only
-            // center + heading change.
-            let center = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        case .followCenter(let rawLat, let rawLon, let heading, let bottomInset):
+            // Compute the bottom-inset shift using MKMapView's own
+            // projection so it's automatically correct at any zoom
+            // AND at any heading. The pre-pinch implementation used
+            // a fixed 1500m assumption which drifted the dot off
+            // the visible center as soon as the user zoomed away
+            // from the default.
+            //
+            // Method: ask the map for the coord at its geometric
+            // center vs the coord at the "visible center" (geometric
+            // center minus bottomInset/2 in screen Y). The
+            // difference is exactly how far we need to OFFSET the
+            // camera target so the raw user coord ends up rendered
+            // at the visible center.
+            let bounds = mapView.bounds
+            let geomCenter = CGPoint(x: bounds.midX, y: bounds.midY)
+            let visibleCenter = CGPoint(x: bounds.midX, y: bounds.midY - bottomInset / 2)
+            let geomCoord = mapView.convert(geomCenter, toCoordinateFrom: mapView)
+            let visibleCoord = mapView.convert(visibleCenter, toCoordinateFrom: mapView)
+            let dLat = geomCoord.latitude - visibleCoord.latitude
+            let dLon = geomCoord.longitude - visibleCoord.longitude
+            let shifted = CLLocationCoordinate2D(
+                latitude: rawLat + dLat,
+                longitude: rawLon + dLon
+            )
             if let heading {
+                // followHeading: also rotate the camera. Preserve
+                // altitude + pitch from the live camera so only
+                // center + heading change.
                 let current = mapView.camera
                 let cam = MKMapCamera()
-                cam.centerCoordinate = center
+                cam.centerCoordinate = shifted
                 cam.altitude = current.altitude
                 cam.pitch = current.pitch
                 cam.heading = heading
                 mapView.setCamera(cam, animated: animated)
             } else {
-                mapView.setCenter(center, animated: animated)
+                mapView.setCenter(shifted, animated: animated)
             }
         }
     }

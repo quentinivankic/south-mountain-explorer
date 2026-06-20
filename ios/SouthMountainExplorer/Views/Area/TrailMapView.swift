@@ -445,10 +445,17 @@ struct TrailMapView: View {
             }
         } else {
             // Continuous live-tracking pan — preserve user's zoom.
+            // Pass the RAW user coord and let `applyCameraTarget`
+            // compute the bottom-inset shift using the live map
+            // view's projection. The pre-shifted `shifted` value
+            // above assumes the default 1500m zoom; reusing it here
+            // mis-positions the dot once the user has pinched to
+            // a different zoom.
             setCameraTarget(.followCenter(
-                centerLat: shifted.latitude,
-                centerLon: shifted.longitude,
-                heading: trackingMode == .followHeading ? heading : nil
+                rawLat: coord.latitude,
+                rawLon: coord.longitude,
+                heading: trackingMode == .followHeading ? heading : nil,
+                bottomInset: bottomInset
             ))
         }
     }

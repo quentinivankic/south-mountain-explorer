@@ -315,41 +315,59 @@ struct MapKitMapView: UIViewRepresentable {
             )
             mapView.setCamera(cam, animated: animated)
         case .followCenter(let rawLat, let rawLon, let heading, let bottomInset):
+            // Shift the camera center so the user dot lands at the
+            // VISIBLE center (above the trail-list panel) regardless
+            // of zoom AND of heading. Two parts to get right:
+            //
+            //   1. Scale — meters per screen point. Derived from a
+            //      pair of MKMapView.convert() calls 100 points apart
+            //      on the live map. This is heading-invariant (we
+            //      measure the geodesic distance between two screen
+            //      points), so the heading we're about to APPLY can't
+            //      contaminate the scale.
+            //   2. Direction — bearing trig with the NEW heading we're
+            //      about to set, not the map's current heading. If we
+            //      use convert() directly to compute the shift vector
+            //      (as #174 did), the projection uses the live map's
+            //      OLD heading and the dot drifts off the visible
+            //      center each frame; for followHeading that drift
+            //      accumulates into "keep having to snap back."
+            //
+            // For followHeading mode, MKMapView rotates around the
+            // shifted centerCoordinate, so the dot's screen position
+            // stays at the visible center frame-to-frame.
+            let bounds = mapView.bounds
+            let p0 = CGPoint(x: bounds.midX, y: bounds.midY)
+            let p1 = CGPoint(x: bounds.midX, y: bounds.midY + 100)
+            let c0 = mapView.convert(p0, toCoordinateFrom: mapView)
+            let c1 = mapView.convert(p1, toCoordinateFrom: mapView)
+            let cosLat = max(0.0001, cos(rawLat * .pi / 180))
+            let dLat100 = (c1.latitude - c0.latitude) * 111_000
+            let dLon100 = (c1.longitude - c0.longitude) * 111_000 * cosLat
+            let metersPer100Points = sqrt(dLat100 * dLat100 + dLon100 * dLon100)
+            let metersPerPoint = max(0.0001, metersPer100Points / 100)
+            let shiftMeters = (bottomInset / 2) * metersPerPoint
+            // Apply shift in NEW heading's screen-down direction.
+            // For heading=0 (north up) screen-down = south; for
+            // heading θ it's bearing (θ + 180°) measured from north.
+            let rad = (heading ?? 0) * .pi / 180
+            let dLat = -shiftMeters * cos(rad) / 111_000
+            let dLon = -shiftMeters * sin(rad) / (111_000 * cosLat)
+            let shifted = CLLocationCoordinate2D(
+                latitude: rawLat + dLat,
+                longitude: rawLon + dLon
+            )
             if let heading {
-                // followHeading: rotation must pivot around the user
-                // to feel natural — MKMapView rotates around the
-                // camera's centerCoordinate, so we put it AT the user.
-                // The dot lands at the geometric center of the map
-                // view (partly behind the trail-list panel when the
-                // panel is open) — accepted tradeoff vs the
-                // shifted-pivot wobble where the dot orbited an
-                // off-center point on every heading update.
-                //
-                // Preserve altitude + pitch from the live camera so
-                // only center + heading change.
+                // followHeading: also rotate. Preserve altitude + pitch
+                // from the live camera so only center + heading change.
                 let current = mapView.camera
                 let cam = MKMapCamera()
-                cam.centerCoordinate = CLLocationCoordinate2D(latitude: rawLat, longitude: rawLon)
+                cam.centerCoordinate = shifted
                 cam.altitude = current.altitude
                 cam.pitch = current.pitch
                 cam.heading = heading
                 mapView.setCamera(cam, animated: animated)
             } else {
-                // Plain follow (north up): shift the camera center so
-                // the user dot appears above the bottom-panel inset.
-                // Computed via MKMapView.convert so it stays correct
-                // at any zoom the user has pinched to.
-                let bounds = mapView.bounds
-                let geomCenter = CGPoint(x: bounds.midX, y: bounds.midY)
-                let visibleCenter = CGPoint(x: bounds.midX, y: bounds.midY - bottomInset / 2)
-                let geomCoord = mapView.convert(geomCenter, toCoordinateFrom: mapView)
-                let visibleCoord = mapView.convert(visibleCenter, toCoordinateFrom: mapView)
-                let dLat = geomCoord.latitude - visibleCoord.latitude
-                let dLon = geomCoord.longitude - visibleCoord.longitude
-                let shifted = CLLocationCoordinate2D(
-                    latitude: rawLat + dLat,
-                    longitude: rawLon + dLon
-                )
                 mapView.setCenter(shifted, animated: animated)
             }
         }

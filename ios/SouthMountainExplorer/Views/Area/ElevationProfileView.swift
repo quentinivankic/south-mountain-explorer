@@ -8,8 +8,24 @@ import Charts
 /// units toggle in Settings: imperial renders mi / ft, metric km / m.
 struct ElevationProfileView: View {
     let stats: ElevationStats
+    /// Hike's total distance in meters. Used to anchor the chart's
+    /// X axis to the FULL hike length rather than the last elevation
+    /// sample — without this the chart cuts off short when trailing
+    /// GPS points lacked altitude (common with low signal at the end
+    /// of a hike), so the visual line stops well before the right
+    /// edge despite the user having walked further.
+    let totalDistanceMeters: Double
 
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
+
+    /// X-axis domain pinned to the full hike length, with a fallback
+    /// to the last sample so a sample-only call (e.g. a Preview) still
+    /// renders something sensible.
+    private var xDomain: ClosedRange<Double> {
+        let maxSample = stats.samples.last?.distanceMeters ?? 0
+        let upper = max(totalDistanceMeters, maxSample, 1)
+        return 0...upper
+    }
 
     var body: some View {
         Chart(stats.samples, id: \.distanceMeters) { sample in
@@ -43,6 +59,7 @@ struct ElevationProfileView: View {
             .interpolationMethod(.monotone)
         }
         .chartYScale(domain: yAxis.domain)
+        .chartXScale(domain: xDomain)
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 4)) { value in
                 AxisGridLine().foregroundStyle(.secondary.opacity(0.2))

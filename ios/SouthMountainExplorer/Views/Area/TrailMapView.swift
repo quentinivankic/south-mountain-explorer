@@ -428,14 +428,12 @@ struct TrailMapView: View {
                 // (region fits the SHORTER axis = width, so vertical span
                 // is ~3.3 km on a typical phone).
                 //
-                // followHeading uses the UNSHIFTED user coord as the
-                // camera center so rotation pivots around the user
-                // — matches the steady-state .followCenter behavior
-                // below and avoids a one-frame jump when the user
-                // enters follow mode.
+                // Pass the bottom-inset-shifted center so the dot lands
+                // at the VISIBLE center (above the panel), matching the
+                // steady-state .followCenter behavior below.
                 setCameraTarget(.camera(
-                    centerLat: coord.latitude,
-                    centerLon: coord.longitude,
+                    centerLat: shifted.latitude,
+                    centerLon: shifted.longitude,
                     distance: 6000,
                     heading: heading
                 ))

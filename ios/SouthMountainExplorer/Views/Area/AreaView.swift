@@ -42,21 +42,22 @@ struct AreaView: View {
     /// half a second. Flipped by a task timer that starts on
     /// `.task(id: areaId)` and ends 1.5 s later.
     @State private var minLoadingTimeElapsed = false
-    @State private var showTrailList = true
-    @State private var trailListHeight: CGFloat = 340
-    // Captured at gesture start so onChanged can compute an absolute
-    // height instead of accumulating per-frame translations against a
-    // moving target — the latter was the source of the drag jank.
-    @State private var dragStartHeight: CGFloat? = nil
 
-    /// Snapshot of `currentListHeight` taken at drag start. While the
-    /// drag is active we pass THIS value (not the live one) to
-    /// TrailMapView's `bottomInset` so the map doesn't re-evaluate
-    /// `updateUIView` on every drag frame. The dot's visible-center
-    /// shift catches up in one transition when the drag ends, which
-    /// is much cheaper than recomputing camera math 60-120 ×/sec.
-    @State private var isDraggingPanel = false
-    @State private var dragSnapshotListHeight: CGFloat = 340
+    /// Currently-active detent of the trail-list sheet. Drives
+    /// `effectiveBottomInset` so the map's user-dot shift compensates
+    /// for whatever portion of the screen the sheet covers. Default
+    /// opens at the medium height so the user sees the area name +
+    /// control bar + a few trail rows immediately; they can drag to
+    /// `.height(120)` for a near-full-map view or `.large` for an
+    /// almost-full-screen trail list.
+    ///
+    /// Replaces the previous custom drag implementation (showTrailList
+    /// + trailListHeight + DragGesture + per-frame height @State) that
+    /// was burning frames on every drag tick. The native sheet drags
+    /// in UIKit, so SwiftUI's body never re-evaluates for the gesture
+    /// itself — only when the detent SETTLES (at most once per
+    /// release).
+    @State private var sheetDetent: PresentationDetent = .height(340)
     @State private var selectedTrailId: String? = nil
     /// Per-recording-session set of trail ids the user has
     /// dismissed from the suggestion banner. Prevents the same
@@ -124,8 +125,6 @@ struct AreaView: View {
     /// existing filter state so the filtered-trails computed
     /// property can fold it into a single pass.
     @State private var trailSearchQuery: String = ""
-
-    private let defaultListHeight: CGFloat = 340
 
     private var isRecording: Bool {
         recording.activeRecording?.areaId == areaId
@@ -233,7 +232,12 @@ struct AreaView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             if let area, minLoadingTimeElapsed {
-                // Full-screen map
+                // Full-screen map. The trail-list sheet (presented
+                // via .sheet below) covers the bottom portion and
+                // is system-native, so we hand TrailMapView the
+                // current sheet detent's height as `bottomInset` and
+                // it shifts the user dot upward to clear the visible
+                // sheet area.
                 TrailMapView(
                     area: area,
                     activeRecording: isRecording ? recording.activeRecording : nil,
@@ -242,172 +246,10 @@ struct AreaView: View {
                     centerOnSwitchedTrailTick: centerOnSwitchedTrailTick,
                     selectedTrailId: $selectedTrailId,
                     visibleTrailIds: visibleTrailIds,
-                    // Bottom chrome that occludes the map: trail list
-                    // sheet (when shown) plus the recording panel +
-                    // control bar (when recording). Drives the camera
-                    // shift in TrailMapView.centerOnUser so the user
-                    // dot lands in the visible middle, not behind the
-                    // panel.
-                    //
-                    // During a panel drag we pass a SNAPSHOT taken at
-                    // gesture start — see `dragSnapshotListHeight` —
-                    // so TrailMapView's body doesn't re-evaluate
-                    // (and its underlying MKMapView doesn't re-run
-                    // updateUIView with new args) on every drag frame.
-                    // The dot's visible-center shift catches up in
-                    // one transition when the drag ends.
                     bottomInset: effectiveBottomInset,
                     trackingMode: $trackingMode
                 )
                 .ignoresSafeArea()
-
-                // Trail list sheet
-                if showTrailList {
-                    trailListSheet(area: area, filtered: filtered)
-                }
-
-                // Bottom controls — controlBar (map toggle, recenter,
-                // record) sits above the RecordingPanel so the location/
-                // recenter buttons stay reachable above the recording bar
-                // instead of being buried under it. The trail-list panel
-                // ignores the bottom safe area to extend under the home
-                // indicator, so we have to subtract that inset from the
-                // padding here — otherwise the REC bar would still float
-                // ~34pt above the visible top of the trail list panel.
-                GeometryReader { proxy in
-                    // spacing: 0 — each child (toast capsule, controlBar
-                    // glass circles, banners, RecordingPanel glass card)
-                    // already carries its own padding for visual
-                    // separation. The VStack-level spacing was adding a
-                    // ~4pt gap on top of those, which read as residual
-                    // air between RecordingPanel and the trail-list
-                    // panel above it.
-                    VStack(spacing: 0) {
-                        if let toast = trackingModeToast {
-                            Text(toast)
-                                .font(.caption)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(.regularMaterial, in: Capsule())
-                                .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                        }
-                        controlBar(area: area)
-                        if isRecording {
-                            // Retarget banner: shown when the user has
-                            // manually tapped a trail different from the one
-                            // the recording is targeted at. Takes priority
-                            // over the suggestion banner — manual selection
-                            // is a stronger signal than a heuristic
-                            // suggestion.
-                            //
-                            // Otherwise: suggestion banner, shown when
-                            // `TrailSuggestionEngine` returns a nearby
-                            // incomplete trail the user could easily finish.
-                            // Both banners call the same
-                            // `recording.retargetTrail` to commit the switch.
-                            if let retargetTrail = retargetCandidate(area: area) {
-                                RetargetTrailBanner(
-                                    selectedTrail: retargetTrail,
-                                    onSwitch: {
-                                        ActivityLogService.shared.log(
-                                            category: "recording",
-                                            action: "retarget",
-                                            context: ["source": "retargetBanner", "trailId": retargetTrail.id]
-                                        )
-                                        recording.retargetTrail(retargetTrail.id)
-                                        // selectedTrailId is already pointing
-                                        // at retargetTrail.id (the banner
-                                        // only renders when the user has
-                                        // tapped a different trail, which
-                                        // set the binding). Re-assigning the
-                                        // same value is a no-op for SwiftUI,
-                                        // so `.onChange(of: selectedTrailId)`
-                                        // wouldn't fire. Bump a separate
-                                        // tick instead — TrailMapView's
-                                        // `.onChange(of: centerOnSwitched-
-                                        // TrailTick)` re-fits the camera
-                                        // around user + the new active trail.
-                                        selectedTrailId = retargetTrail.id
-                                        centerOnSwitchedTrailTick &+= 1
-                                    },
-                                    onDismiss: { selectedTrailId = nil }
-                                )
-                            } else if let suggestion = suggestionCandidate(area: area) {
-                                SuggestionBanner(
-                                    suggestion: suggestion,
-                                    onSwitch: {
-                                        ActivityLogService.shared.log(
-                                            category: "recording",
-                                            action: "retarget",
-                                            context: ["source": "suggestionBanner", "trailId": suggestion.trail.id]
-                                        )
-                                        recording.retargetTrail(suggestion.trail.id)
-                                        // Same shape as the retarget banner
-                                        // above: assign selectedTrailId for
-                                        // any downstream observers that
-                                        // diff on it, then bump the
-                                        // centerOnSwitchedTrailTick so the
-                                        // camera re-fits user + new trail
-                                        // even though the binding may
-                                        // already point at this trail.
-                                        selectedTrailId = suggestion.trail.id
-                                        centerOnSwitchedTrailTick &+= 1
-                                    },
-                                    onDismiss: {
-                                        log.notice("suggestion dismiss trail=\(suggestion.trail.name, privacy: .public)")
-                                        dismissedSuggestionIds.insert(suggestion.trail.id)
-                                    }
-                                )
-                                // Diagnostics: log when the banner mounts and
-                                // unmounts so a Send Diagnostics bundle can
-                                // explain why the user did or didn't see it
-                                // at a given moment. SwiftUI calls .onAppear
-                                // exactly once per identity, and the banner's
-                                // identity is the suggestion trail id (it
-                                // remounts when the candidate changes).
-                                .onAppear {
-                                    log.notice("suggestion mount trail=\(suggestion.trail.name, privacy: .public) detour=\(Int(suggestion.detourMeters))m remaining=\(Int(suggestion.remainingMeters))m extraSec=\(Int(suggestion.extraSeconds))")
-                                }
-                                .onDisappear {
-                                    log.notice("suggestion unmount trail=\(suggestion.trail.name, privacy: .public)")
-                                }
-                                .id(suggestion.trail.id)
-                            }
-                            RecordingPanel(area: area) { finished in
-                                finishedRecording = finished
-                                showSummary = finished != nil
-                                // Refresh the cyan coverage halo with the
-                                // just-finished hike's path.
-                                Task { await loadPastPaths() }
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    // `.offset` instead of `.padding(.bottom:)` so the
-                    // per-drag-tick height changes don't invalidate
-                    // layout on this VStack (or anything above it). A
-                    // padding change forces a layout pass; an offset is
-                    // a GPU transform — much cheaper, and removes the
-                    // residual stutter that lingered after the
-                    // .geometryGroup() pass on the panel itself.
-                    .offset(y: showTrailList ? -currentListHeight : 0)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                // Match the trail-list panel: ignore the home-indicator
-                // inset only, not the keyboard. With that modifier the
-                // GeometryReader's proxy spans the same extended bounds
-                // as the panel (into the home indicator below, but
-                // bounded above the keyboard), so `currentListHeight`
-                // alone is the right padding — both controls and panel
-                // share the same coordinate origin. The old formula
-                // `currentListHeight - proxy.safeAreaInsets.bottom`
-                // assumed the GeometryReader respected the home
-                // indicator (so safeAreaInsets.bottom was ~34); now
-                // that inset is zero (or keyboard-height when up),
-                // making the subtraction shrink the padding into the
-                // panel area.
-                .ignoresSafeArea(.container, edges: .bottom)
-                .allowsHitTesting(true)
 
             } else if isLoading || (area != nil && !minLoadingTimeElapsed) {
                 loadingState
@@ -415,6 +257,37 @@ struct AreaView: View {
                 ContentUnavailableView("Area Unavailable",
                     systemImage: "xmark.octagon",
                     description: Text(loadError ?? "Could not load trail data. Check your connection."))
+            }
+        }
+        .sheet(isPresented: trailSheetPresented) {
+            // Trail-list sheet. Presented as soon as the area has
+            // loaded (so we never flash an empty sheet during the
+            // loading silhouette animation) and never dismissed
+            // afterward — `interactiveDismissDisabled` blocks the
+            // swipe-to-dismiss, so the user can't accidentally
+            // close it. They can drag down to `.height(120)` for a
+            // near-full-map view instead.
+            //
+            // This replaces the previous hand-rolled bottom panel
+            // (DragGesture + per-frame @State + Material backdrop
+            // re-rendering at varying size) — that custom path was
+            // dropping frames every drag because the resize cascaded
+            // into AreaView.body re-evals, MapKitMapView.updateUIView
+            // calls, and Material blur rerenders. UISheetPresentation-
+            // Controller handles all of that natively in UIKit /
+            // Core Animation; SwiftUI only re-renders when the detent
+            // SETTLES (at most once per release), not per drag tick.
+            if let area {
+                sheetContent(area: area)
+                    .presentationDetents(
+                        [.height(120), .height(340), .large],
+                        selection: $sheetDetent
+                    )
+                    .presentationDragIndicator(.visible)
+                    .presentationBackgroundInteraction(.enabled(upThrough: .height(340)))
+                    .presentationContentInteraction(.scrolls)
+                    .presentationCornerRadius(20)
+                    .interactiveDismissDisabled()
             }
         }
         .navigationBarHidden(true)
@@ -471,9 +344,6 @@ struct AreaView: View {
             .padding(.top, 8)
             .safeAreaPadding(.top)
         }
-        .sheet(item: $areaGpxShareURL) { wrapped in
-            ShareSheet(items: [wrapped.url])
-        }
         .task {
             // Telemetry: log "user opened this area" so we can later
             // surface "you haven't visited X in a while" reminders.
@@ -529,21 +399,6 @@ struct AreaView: View {
                 // node-count denominator in the fraction calc and
                 // inflates coverage, so prefer rawTrails here.
                 await recording.applyLiveCoverage(trails: area.rawTrails ?? area.trails)
-            }
-        }
-        .sheet(isPresented: $showSummary) {
-            if let finished = finishedRecording {
-                RecordingSummarySheet(
-                    finished: finished,
-                    areaName: areaName,
-                    trails: area?.trails ?? []
-                )
-            }
-        }
-        .sheet(isPresented: $showAreaComplete) {
-            if let area {
-                AreaCompletionView(area: area)
-                    .presentationDetents([.large])
             }
         }
         .confirmationDialog(
@@ -607,17 +462,38 @@ struct AreaView: View {
         }
     }
 
-    private var currentListHeight: CGFloat { trailListHeight }
+    /// Binding that gates the trail-list sheet's presentation on the
+    /// area being loaded. Read-only — `interactiveDismissDisabled`
+    /// blocks user-initiated dismissal so the setter is a no-op.
+    private var trailSheetPresented: Binding<Bool> {
+        Binding(
+            get: { self.area != nil && self.minLoadingTimeElapsed },
+            set: { _ in }
+        )
+    }
 
-    /// The `bottomInset` we pass to TrailMapView. During a drag we
-    /// hold this constant at `dragSnapshotListHeight` (captured at
-    /// gesture start) so map-side work doesn't fire every drag tick.
-    /// Outside of drag it tracks the live panel + recording chrome.
+    /// The `bottomInset` we pass to TrailMapView. Computed from the
+    /// trail-list sheet's currently-settled detent, so the map's
+    /// user-dot shift always clears the visible sheet area. Detent
+    /// transitions are coarse (one event per release), so this only
+    /// changes a handful of times per session — no per-frame thrash.
+    ///
+    /// `.large` resolves to ~90% of screen height; we use UIScreen
+    /// directly here rather than threading a GeometryReader value
+    /// up. iPad multitasking would skew this, but the app's iPhone-
+    /// only, so close enough.
     private var effectiveBottomInset: CGFloat {
-        let listPart = isDraggingPanel
-            ? dragSnapshotListHeight
-            : (showTrailList ? currentListHeight : 0)
-        return listPart + (isRecording ? 110 : 0)
+        let sheetHeight: CGFloat
+        if sheetDetent == .large {
+            sheetHeight = UIScreen.main.bounds.height * 0.9
+        } else if sheetDetent == .height(120) {
+            sheetHeight = 120
+        } else {
+            // Includes the default .height(340) and any custom detent
+            // we may add later — assume a "medium" inset.
+            sheetHeight = 340
+        }
+        return sheetHeight + (isRecording ? 110 : 0)
     }
 
     /// Loading state. Paints the bundled silhouette so the wait feels
@@ -884,112 +760,153 @@ struct AreaView: View {
         startRecordingNow(trailId: trailId)
     }
 
-    private func trailListSheet(area: Area, filtered: [Trail]) -> some View {
-        // Pass 5 on the panel layout. Each previous attempt fixed one
-        // axis of the problem and broke another:
-        //   - .offset trick was smooth but ScrollView bounds wrong
-        //   - .frame trick had right bounds but glitchy drag
-        // This pass keeps the .frame approach but adds .geometryGroup()
-        // to isolate the panel's layout from the parent. Without it,
-        // every trailListHeight tick during a drag invalidates layout
-        // up the parent chain (TrailMapView, the bottom controls VStack,
-        // etc.) which is what was producing the visible stutter.
-        // Combined with .interactiveSpring (designed for direct
-        // manipulation) for the release snap.
-        GeometryReader { geo in
-            let tallHeight = max(geo.size.height - 100, defaultListHeight)
-            VStack(spacing: 0) {
-                // Drag handle — extended hit area for the gesture
-                VStack(spacing: 0) {
-                    Capsule()
-                        .fill(Color(.tertiaryLabel))
-                        .frame(width: 36, height: 4)
-                        .padding(.top, 10)
-                        .padding(.bottom, 6)
+    /// Content of the trail-list sheet (always-presented, native
+    /// `UISheetPresentationController` via `.sheet` / `.presentation
+    /// Detents`). Top-to-bottom:
+    ///
+    ///   1. (system drag indicator — rendered by SwiftUI at the top
+    ///      edge of the sheet via `.presentationDragIndicator(.visible)`)
+    ///   2. Area-name headline
+    ///   3. Tracking-mode toast capsule (transient)
+    ///   4. Control bar (map-style picker, recenter, tracking cycle)
+    ///   5. Retarget / suggestion banner (only while recording)
+    ///   6. RecordingPanel (only while recording)
+    ///   7. TrailListView (fills remaining; scrolls within at the
+    ///      `.large` detent)
+    ///
+    /// All nested modal flows (GPX share, recording summary, area-
+    /// completion celebration) live INSIDE this content so SwiftUI
+    /// can present them over the always-on trail-list sheet — you
+    /// can only have one `.sheet` modifier active per ancestor view,
+    /// so attaching them at AreaView's body would conflict with the
+    /// trail-list sheet itself.
+    @ViewBuilder
+    private func sheetContent(area: Area) -> some View {
+        VStack(spacing: 0) {
+            Text(areaName)
+                .font(.headline)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
 
-                    Text(areaName)
-                        .font(.headline)
-                        .padding(.bottom, 4)
+            if let toast = trackingModeToast {
+                Text(toast)
+                    .font(.caption)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.regularMaterial, in: Capsule())
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    .padding(.bottom, 4)
+            }
+
+            controlBar(area: area)
+                .padding(.bottom, 6)
+
+            if isRecording {
+                recordingBanners(area: area)
+                RecordingPanel(area: area) { finished in
+                    finishedRecording = finished
+                    showSummary = finished != nil
+                    // Refresh the cyan coverage halo with the
+                    // just-finished hike's path.
+                    Task { await loadPastPaths() }
                 }
-                .frame(maxWidth: .infinity)
-                .contentShape(Rectangle())
-                .gesture(dragGesture(tallHeight: tallHeight))
+                .padding(.bottom, 4)
+            }
 
-                TrailListView(
-                    area: area,
-                    selectedTrailId: $selectedTrailId,
-                    statusFilter: $statusFilter,
-                    difficultyFilter: $difficultyFilter,
-                    lengthFilter: $lengthFilter,
-                    routeFilter: $routeFilter,
-                    searchQuery: $trailSearchQuery,
-                    filteredTrails: filtered,
-                    onRecordTrail: { trail in tryStartRecording(trailId: trail.id) }
+            TrailListView(
+                area: area,
+                selectedTrailId: $selectedTrailId,
+                statusFilter: $statusFilter,
+                difficultyFilter: $difficultyFilter,
+                lengthFilter: $lengthFilter,
+                routeFilter: $routeFilter,
+                searchQuery: $trailSearchQuery,
+                filteredTrails: filtered,
+                onRecordTrail: { trail in tryStartRecording(trailId: trail.id) }
+            )
+        }
+        // Nested modal sheets — must live inside the always-on trail-
+        // list sheet so SwiftUI lets them present on top instead of
+        // conflicting with each other.
+        .sheet(item: $areaGpxShareURL) { wrapped in
+            ShareSheet(items: [wrapped.url])
+        }
+        .sheet(isPresented: $showSummary) {
+            if let finished = finishedRecording {
+                RecordingSummarySheet(
+                    finished: finished,
+                    areaName: areaName,
+                    trails: area.trails
                 )
             }
-            .frame(height: trailListHeight)
-            .background(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 20,
-                    bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 0,
-                    topTrailingRadius: 20,
-                    style: .continuous
-                )
-                .fill(.regularMaterial)
-            )
-            .frame(maxHeight: .infinity, alignment: .bottom)
-            .geometryGroup()
-            .animation(nil, value: trailListHeight)
         }
-        // `.container` ignores the home-indicator inset (so the panel
-        // sits flush with the bottom edge) but NOT the keyboard inset
-        // — so focusing the trail-search field pushes the panel up
-        // instead of leaving the field hidden behind the keyboard.
-        .ignoresSafeArea(.container, edges: .bottom)
+        .sheet(isPresented: $showAreaComplete) {
+            AreaCompletionView(area: area)
+                .presentationDetents([.large])
+        }
     }
 
-    private func dragGesture(tallHeight: CGFloat) -> some Gesture {
-        DragGesture()
-            .onChanged { value in
-                let start = dragStartHeight ?? trailListHeight
-                if dragStartHeight == nil {
-                    dragStartHeight = trailListHeight
-                    // Lock the bottomInset we hand to TrailMapView for
-                    // the duration of the drag, so the map doesn't
-                    // re-run updateUIView on every frame. See
-                    // `effectiveBottomInset`.
-                    dragSnapshotListHeight = currentListHeight
-                    isDraggingPanel = true
+    /// Retarget vs suggestion banner, only shown while a recording is
+    /// active. Extracted so `sheetContent` reads cleanly — the
+    /// inline form has ~70 lines of logging / dismiss closures that
+    /// dwarf the rest of the sheet layout.
+    @ViewBuilder
+    private func recordingBanners(area: Area) -> some View {
+        // Retarget banner takes priority: the user has manually
+        // tapped a trail different from the one the recording is
+        // targeted at, a stronger signal than a heuristic suggestion.
+        if let retargetTrail = retargetCandidate(area: area) {
+            RetargetTrailBanner(
+                selectedTrail: retargetTrail,
+                onSwitch: {
+                    ActivityLogService.shared.log(
+                        category: "recording",
+                        action: "retarget",
+                        context: ["source": "retargetBanner", "trailId": retargetTrail.id]
+                    )
+                    recording.retargetTrail(retargetTrail.id)
+                    // Re-assigning selectedTrailId to its current
+                    // value is a SwiftUI no-op, so bump
+                    // centerOnSwitchedTrailTick separately to force
+                    // TrailMapView to re-fit the camera around the
+                    // user + the new active trail.
+                    selectedTrailId = retargetTrail.id
+                    centerOnSwitchedTrailTick &+= 1
+                },
+                onDismiss: { selectedTrailId = nil }
+            )
+        } else if let suggestion = suggestionCandidate(area: area) {
+            SuggestionBanner(
+                suggestion: suggestion,
+                onSwitch: {
+                    ActivityLogService.shared.log(
+                        category: "recording",
+                        action: "retarget",
+                        context: ["source": "suggestionBanner", "trailId": suggestion.trail.id]
+                    )
+                    recording.retargetTrail(suggestion.trail.id)
+                    selectedTrailId = suggestion.trail.id
+                    centerOnSwitchedTrailTick &+= 1
+                },
+                onDismiss: {
+                    log.notice("suggestion dismiss trail=\(suggestion.trail.name, privacy: .public)")
+                    dismissedSuggestionIds.insert(suggestion.trail.id)
                 }
-                // Translate UP (negative dy) → grow the panel.
-                let proposed = start - value.translation.height
-                // Explicit transaction with animations disabled.
-                // .animation(nil, value: trailListHeight) on the panel
-                // catches SOME implicit animations but not all — being
-                // explicit here keeps high-frequency drag updates from
-                // ever spawning a parallel animation.
-                var t = Transaction()
-                t.disablesAnimations = true
-                withTransaction(t) {
-                    trailListHeight = min(max(proposed, 180), tallHeight)
-                }
+            )
+            // Diagnostics: log when the banner mounts and unmounts
+            // so a Send Diagnostics bundle can explain why the user
+            // did or didn't see it at a given moment. SwiftUI calls
+            // .onAppear exactly once per identity, and the banner's
+            // identity is the suggestion trail id (it remounts when
+            // the candidate changes).
+            .onAppear {
+                log.notice("suggestion mount trail=\(suggestion.trail.name, privacy: .public) detour=\(Int(suggestion.detourMeters))m remaining=\(Int(suggestion.remainingMeters))m extraSec=\(Int(suggestion.extraSeconds))")
             }
-            .onEnded { _ in
-                let snapPoint = (defaultListHeight + tallHeight) / 2
-                let target: CGFloat = trailListHeight > snapPoint ? tallHeight : defaultListHeight
-                // .interactiveSpring is tuned for drag-driven animations —
-                // shorter response, lower bounce than the regular spring,
-                // so the snap feels like a natural continuation of the
-                // user's gesture instead of a separate animation event.
-                withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.85)) {
-                    trailListHeight = target
-                }
-                dragStartHeight = nil
-                // Resume live bottomInset → map's camera shift catches
-                // up to the new visible center in one transition.
-                isDraggingPanel = false
+            .onDisappear {
+                log.notice("suggestion unmount trail=\(suggestion.trail.name, privacy: .public)")
             }
+            .id(suggestion.trail.id)
+        }
     }
 
     /// Show a brief "Following your direction" / similar pill above
@@ -1015,17 +932,11 @@ struct AreaView: View {
 
     private func controlBar(area: Area) -> some View {
         HStack(spacing: 14) {
-            // Map/List toggle — always visible so the user can show the
-            // trail list during a recording and tap a row to highlight
-            // the trail on the map.
-            Button {
-                withAnimation(.spring()) { showTrailList.toggle() }
-            } label: {
-                Image(systemName: showTrailList ? "map.fill" : "list.bullet")
-                    .font(.body.weight(.semibold))
-                    .frame(width: 44, height: 44)
-                    .compatibleGlass(in: .circle)
-            }
+            // Note: the previous "map.fill / list.bullet" toggle was
+            // removed when the trail list moved to a native sheet —
+            // dragging the sheet down to `.height(120)` now serves
+            // the same "show me more map" affordance, matching how
+            // Apple Maps and other system-sheet UIs handle it.
 
             // Camera tracking cycle — Apple Maps style. Cycles
             // free → follow → follow-with-heading → free. Icon

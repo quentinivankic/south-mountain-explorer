@@ -145,7 +145,10 @@ struct HikeDetailView: View {
                     .foregroundStyle(.green)
 
                 VStack(spacing: 14) {
-                    ElevationProfileView(stats: stats)
+                    ElevationProfileView(
+                        stats: stats,
+                        totalDistanceMeters: hike.distanceMi * 1609.344
+                    )
 
                     HStack(spacing: 0) {
                         stat(value: UnitFormatter.elevationValue(meters: stats.totalAscentMeters, units: units),

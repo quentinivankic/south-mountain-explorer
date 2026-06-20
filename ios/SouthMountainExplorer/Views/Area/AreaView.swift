@@ -144,6 +144,58 @@ struct AreaView: View {
         }
     }
 
+    /// Cached output of `computeFilteredTrails` so the trail-list
+    /// drag (which thrashes `trailListHeight` at the display's
+    /// frame rate and forces this body to re-evaluate) doesn't
+    /// re-run the O(N trails) filter on every frame. Recomputed
+    /// only on the actual inputs via `.onChange(of: filterKey)`
+    /// below. Same story for `visibleTrailIds`, which would also
+    /// allocate a fresh Set every body eval otherwise — and that
+    /// Set drives a `lastVisibleTrailIds != visibleTrailIds` check
+    /// inside MapKitMapView.updateUIView, so a fresh instance each
+    /// frame triggered repeated Set comparisons on the map side too.
+    @State private var filtered: [Trail] = []
+    @State private var visibleTrailIds: Set<String>? = nil
+
+    /// Inputs that change `filtered`. Bundled into a single Equatable
+    /// value so a single `.onChange` covers all of them. Per-area
+    /// completion count is observed separately (it's an `Int` so the
+    /// comparison stays O(1) per body eval, vs. comparing the full
+    /// completions dictionary which would be O(N)).
+    private struct FilterKey: Equatable {
+        let areaId: String
+        let statusFilter: TrailStatusFilter
+        let difficultyFilter: TrailDifficultyFilter
+        let lengthFilter: TrailLengthFilter
+        let routeFilter: TrailRouteFilter
+        let searchQuery: String
+    }
+
+    private var filterKey: FilterKey {
+        FilterKey(
+            areaId: area?.id ?? "",
+            statusFilter: statusFilter,
+            difficultyFilter: difficultyFilter,
+            lengthFilter: lengthFilter,
+            routeFilter: routeFilter,
+            searchQuery: trailSearchQuery
+        )
+    }
+
+    private var areaCompletionsCount: Int {
+        progress.completions[areaId]?.count ?? 0
+    }
+
+    private func recomputeFiltered() {
+        guard let area else {
+            filtered = []
+            visibleTrailIds = nil
+            return
+        }
+        filtered = computeFilteredTrails(area)
+        visibleTrailIds = hasActiveFilter ? Set(filtered.map(\.id)) : nil
+    }
+
     /// Whether any non-default filter is active. When false we pass
     /// `nil` to TrailMapView so it skips the per-trail filter check
     /// entirely, since the unfiltered render is the common case.
@@ -158,9 +210,6 @@ struct AreaView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             if let area, minLoadingTimeElapsed {
-                let filtered = computeFilteredTrails(area)
-                let visibleTrailIds: Set<String>? = hasActiveFilter
-                    ? Set(filtered.map(\.id)) : nil
                 // Full-screen map
                 TrailMapView(
                     area: area,
@@ -504,6 +553,17 @@ struct AreaView: View {
                 trailCompletionOverlay(name: name)
                     .transition(.scale(scale: 0.8).combined(with: .opacity))
             }
+        }
+        .onChange(of: filterKey, initial: true) { _, _ in
+            // filterKey embeds `area?.id`, so a nil→loaded area
+            // transition recomputes too — no separate onChange needed
+            // for the load.
+            recomputeFiltered()
+        }
+        .onChange(of: areaCompletionsCount) { _, _ in
+            // Status filter depends on per-trail completion; refresh
+            // when the user completes a trail in this area.
+            recomputeFiltered()
         }
         .onChange(of: filteredCompletedCount) { old, new in
             // Trigger the celebration when the area transitions into 100%.

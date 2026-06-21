@@ -84,11 +84,6 @@ TF builds.
   tiles (MKMapView/MapKit overlay caching) is the missing piece.
 - [ ] **Weather for an area.** Current conditions + forecast in the
   area sheet. WeatherKit is free for Apple devs; minimal new infra.
-- [ ] **Live elevation profile during recording.** Elevation is
-  computed post-hike; show it live in the recording panel so the user
-  sees climbing in progress.
-- [ ] **Pace / speed stats.** Distance + time are tracked; pace is
-  not. Cheap addition on hike detail + Stats.
 - [ ] **Home-screen widget.** Simpler than Live Activity (no
   per-update provisioning drama). Surfaces things like "trails
   completed this month" or "nearest area." Reuses the Live-Activity
@@ -108,8 +103,6 @@ TF builds.
   animation; this is the moment of payoff.
 - [ ] **Trailheads & parking pins** on the map. Where to actually
   start a hike.
-- [ ] **Onboarding refresh.** Single fullScreenCover today; showcase
-  the new Stats dashboard + native sheet now that they exist.
 - [ ] **Share card expansion.** `ShareableHikeCard` exists; grow it
   into a proper "I completed X" share-out (especially good with the
   Dex once that lands).
@@ -162,3 +155,15 @@ Notable rollups for the current TestFlight cycle:
 - **European data fully removed.** Repo (#186), R2 bucket (one-shot
   via the `cleanup-r2-orphans` workflow, 540 objects). App is NA-only
   end-to-end.
+- **Pace / speed stats.** #191. Overall pace on hike detail + "Avg
+  Pace" on the Stats summary card + a live pace column in the
+  recording panel. `UnitFormatter.pace` honors the units toggle
+  (/mi · /km); retroactive over existing history (distance + time
+  already persisted).
+- **Onboarding refresh.** #193. Replaced the single fullScreenCover
+  with a swipeable 4-page walkthrough (Welcome · Discover · Record ·
+  Complete) that showcases the Stats tab + live recording features.
+- **Live elevation profile during recording.** #192. Elevation
+  profile chart now renders live in the recording panel (reusing
+  `ElevationProfileView` + `elevationStats`), so the user sees
+  climbing in progress instead of only post-hike.

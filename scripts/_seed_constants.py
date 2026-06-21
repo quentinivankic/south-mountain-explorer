@@ -115,26 +115,6 @@ STATE_NAMES = {
     "VA": "Virginia", "WA": "Washington", "WV": "West Virginia",
     "WI": "Wisconsin", "WY": "Wyoming",
 
-    # Countries (ISO3166-1). NOTE: 2-letter ISO country codes share
-    # the STATE_NAMES namespace with US state codes — adding "DE" for
-    # Germany would collide with Delaware, "MT" with Montana. Those
-    # two use an `EU-` prefix scheme (see below) and live in
-    # seed-areas.py's query builder. Audit before adding more.
-    "DK": "Denmark",
-    "IS": "Iceland",
-    "CH": "Switzerland",
-    # EU members (excluding collision pairs DE / MT — those are
-    # added as EU-DE / EU-MT in a follow-up so they can't shadow
-    # Delaware / Montana). DK is already above.
-    "AT": "Austria", "BE": "Belgium", "BG": "Bulgaria",
-    "HR": "Croatia", "CY": "Cyprus", "CZ": "Czechia",
-    "EE": "Estonia", "FI": "Finland", "FR": "France",
-    "GR": "Greece", "HU": "Hungary", "IE": "Ireland",
-    "IT": "Italy", "LV": "Latvia", "LT": "Lithuania",
-    "LU": "Luxembourg", "NL": "Netherlands", "PL": "Poland",
-    "PT": "Portugal", "RO": "Romania", "SK": "Slovakia",
-    "SI": "Slovenia", "ES": "Spain", "SE": "Sweden",
-
     # Canadian provinces / territories (ISO3166-2). Each is its own
     # region — Canada is too large for a single country-wide Overpass
     # query, and the bare "CA" would collide with California.
@@ -148,13 +128,16 @@ STATE_NAMES = {
 
 # Subset of STATE_NAMES that are country-level (ISO3166-1) rather
 # than US-state subdivisions.
-COUNTRY_CODES: set[str] = {
-    "DK", "IS", "CH",
-    # EU members (24 of 27; DE + MT pending the EU- prefix scheme).
-    "AT", "BE", "BG", "HR", "CY", "CZ", "EE", "FI", "FR", "GR",
-    "HU", "IE", "IT", "LV", "LT", "LU", "NL", "PL", "PT", "RO",
-    "SK", "SI", "ES", "SE",
-}
+#
+# Intentionally EMPTY: the app is North America only. Denmark /
+# Iceland / Switzerland and the 24-country EU batch were seeded
+# during an expansion experiment, but the OSM tagging produced too
+# much low-signal noise (tiny nature_reserve fragments with no real
+# trail coverage) to ship, so all non-NA data was removed and the
+# seeder restricted back to US states + Canadian provinces. To
+# re-introduce a country, add its ISO3166-1 code here and its display
+# name to STATE_NAMES, then dispatch build-trail-index for it.
+COUNTRY_CODES: set[str] = set()
 
 # Display-name override for `row[2]` (the user-facing state/country
 # label shown under each area card on iOS). STATE_NAMES keeps the

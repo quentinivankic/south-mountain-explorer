@@ -214,6 +214,14 @@ private struct StatsSummaryCard: View {
 
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
+    /// Avg pace across all hikes — total distance over total time.
+    /// Zero-guards so an empty-history or zero-duration aggregate
+    /// renders the "—" sentinel rather than crashing.
+    private var avgPaceMps: Double {
+        guard summary.totalSeconds > 0 else { return 0 }
+        return summary.totalMiles * 1609.344 / Double(summary.totalSeconds)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 14) {
@@ -227,6 +235,11 @@ private struct StatsSummaryCard: View {
                      value: UnitFormatter.elevationValue(meters: summary.totalAscentMeters, units: units),
                      unit: UnitFormatter.elevationSuffix(units: units))
                 stat(label: "Time", value: hoursMinutes(seconds: summary.totalSeconds))
+            }
+            HStack(spacing: 14) {
+                stat(label: "Avg Pace",
+                     value: UnitFormatter.paceValue(metersPerSecond: avgPaceMps, units: units),
+                     unit: UnitFormatter.paceSuffix(units: units))
             }
             if summary.areasWithCompletion > 0 {
                 Text("^[\(summary.areasWithCompletion) area](inflect: true) with completed trails")

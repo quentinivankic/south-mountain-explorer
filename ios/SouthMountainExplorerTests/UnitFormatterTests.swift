@@ -60,4 +60,37 @@ struct UnitFormatterTests {
         #expect(UnitFormatter.elevationValue(meters: 100, units: .imperial) == "328")
         #expect(UnitFormatter.elevationValue(meters: 100, units: .metric) == "100")
     }
+
+    // MARK: - Pace
+
+    @Test func paceImperialFormatsMinutesPerMile() {
+        // 3 mph = ~1.341 m/s, expect a 20:00 /mi pace.
+        let mps = 3.0 * 1609.344 / 3600
+        #expect(UnitFormatter.paceValue(metersPerSecond: mps, units: .imperial) == "20:00")
+        #expect(UnitFormatter.pace(metersPerSecond: mps, units: .imperial) == "20:00 /mi")
+    }
+
+    @Test func paceMetricFormatsMinutesPerKilometer() {
+        // 6 km/h = 1.667 m/s, expect a 10:00 /km pace.
+        let mps = 6.0 * 1000 / 3600
+        #expect(UnitFormatter.paceValue(metersPerSecond: mps, units: .metric) == "10:00")
+        #expect(UnitFormatter.pace(metersPerSecond: mps, units: .metric) == "10:00 /km")
+    }
+
+    @Test func paceZeroOrNegativeRendersDash() {
+        #expect(UnitFormatter.paceValue(metersPerSecond: 0, units: .imperial) == "—")
+        #expect(UnitFormatter.paceValue(metersPerSecond: -1, units: .metric) == "—")
+    }
+
+    @Test func paceVerySlowCapsAtNinetyNineFifty9() {
+        // A glacially slow 1 m/h would otherwise overflow the column.
+        // Cap should land at 99:59.
+        let mps = 0.0001
+        #expect(UnitFormatter.paceValue(metersPerSecond: mps, units: .imperial) == "99:59")
+    }
+
+    @Test func paceSuffixesMatchUnit() {
+        #expect(UnitFormatter.paceSuffix(units: .imperial) == "/mi")
+        #expect(UnitFormatter.paceSuffix(units: .metric) == "/km")
+    }
 }

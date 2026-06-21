@@ -106,11 +106,29 @@ struct HikeDetailView: View {
             Divider().frame(height: 36)
             stat(value: durationString, unit: "", label: "Duration")
             Divider().frame(height: 36)
+            // Overall pace from the persisted aggregates — distance
+            // and duration are on every SavedRecording so this is
+            // retroactive on existing history with no migration.
+            stat(
+                value: UnitFormatter.paceValue(metersPerSecond: overallPaceMps, units: units),
+                unit: UnitFormatter.paceSuffix(units: units),
+                label: "Pace"
+            )
+            Divider().frame(height: 36)
             stat(value: dateString, unit: "", label: "Date")
         }
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity)
         .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    /// Overall pace in m/s for this hike. Zero-guards on duration
+    /// so a degenerate (corrupted / zero-second) record renders
+    /// "—" rather than crashing on divide-by-zero.
+    private var overallPaceMps: Double {
+        guard hike.durationSeconds > 0 else { return 0 }
+        let meters = hike.distanceMi * 1609.344
+        return meters / Double(hike.durationSeconds)
     }
 
     private func stat(value: String, unit: String, label: String) -> some View {

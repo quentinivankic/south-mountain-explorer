@@ -53,6 +53,13 @@ struct RecordingPanel: View {
             // Stats
             statColumn(label: "Distance", value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units))
             statColumn(label: "Duration", value: formattedElapsed)
+            // Live pace from the 60-second smoothed window. Renders
+            // "—" until the recording has enough samples (handled
+            // inside UnitFormatter.pace), so the column is stable
+            // from the first frame instead of popping in.
+            statColumn(label: "Pace",
+                       value: UnitFormatter.pace(metersPerSecond: recording.smoothedPaceMetersPerSec() ?? 0,
+                                                 units: units))
             // ETA only renders when the recording is bound to a
             // trail AND the math has enough signal (see TrailETA's
             // gating). For area-mode recordings (no trailId) or

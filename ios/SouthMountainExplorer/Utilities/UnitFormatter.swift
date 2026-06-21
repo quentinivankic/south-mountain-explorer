@@ -98,4 +98,36 @@ enum UnitFormatter {
             return "\(Int(meters.rounded()))"
         }
     }
+
+    /// Pace formatting — minutes per unit distance, the convention
+    /// hiking + running apps use. `metersPerSecond` <= 0 (no movement
+    /// yet, or insufficient data window) renders as "—" so callers
+    /// can show the column without flicker before the smoothed pace
+    /// has enough samples.
+    ///
+    /// imperial → "MM:SS /mi", metric → "MM:SS /km".
+    static func pace(metersPerSecond: Double, units: UnitsPreference) -> String {
+        let value = paceValue(metersPerSecond: metersPerSecond, units: units)
+        return "\(value) \(paceSuffix(units: units))"
+    }
+
+    /// Just the "MM:SS" part — used by stat-grid surfaces that render
+    /// the suffix as a separate text node.
+    static func paceValue(metersPerSecond: Double, units: UnitsPreference) -> String {
+        guard metersPerSecond > 0 else { return "—" }
+        let secondsPerUnit: Double = (units == .imperial)
+            ? 1609.344 / metersPerSecond
+            : 1000.0 / metersPerSecond
+        // Cap at 99:59 — anything slower than that is essentially
+        // "stopped" and a 3-digit minute count would overflow the
+        // stat-column width.
+        let total = min(Int(secondsPerUnit.rounded()), 99 * 60 + 59)
+        let m = total / 60
+        let s = total % 60
+        return String(format: "%d:%02d", m, s)
+    }
+
+    static func paceSuffix(units: UnitsPreference) -> String {
+        units == .imperial ? "/mi" : "/km"
+    }
 }

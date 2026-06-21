@@ -60,7 +60,7 @@ TF builds.
   flow + account deletion.
 - [ ] **Stability / crash pass** — Broad device QA before submit.
   Drag jank is fixed, but App Review rejects crashy apps; do a sweep
-  across a phone + an iPad + an older model if possible.
+  across a current iPhone + an older model if possible.
 
 ## Backlog — features
 
@@ -113,7 +113,6 @@ TF builds.
 - [ ] **Share card expansion.** `ShareableHikeCard` exists; grow it
   into a proper "I completed X" share-out (especially good with the
   Dex once that lands).
-- [ ] iPad layout sanity-check.
 - [ ] Featured area of the week (auto-rotate by ISO week).
 
 ## Backlog — tech debt / ops

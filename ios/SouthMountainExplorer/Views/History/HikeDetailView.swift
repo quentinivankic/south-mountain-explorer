@@ -167,6 +167,7 @@ struct HikeDetailView: View {
                         stats: stats,
                         totalDistanceMeters: hike.distanceMi * 1609.344
                     )
+                    .frame(height: 160)
 
                     HStack(spacing: 0) {
                         stat(value: UnitFormatter.elevationValue(meters: stats.totalAscentMeters, units: units),

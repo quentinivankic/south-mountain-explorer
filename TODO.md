@@ -4,9 +4,63 @@ Long-running tracker of shipped work + open items. Live "what's in the
 current build" planning lives in `~/.claude/plans/binary-hatching-
 toucan.md`; this file is the historical record.
 
-App Store submission tasks (privacy policy, store metadata, etc.) are
-intentionally not listed yet — capture those when shipping outside
-TestFlight.
+## App Store release gate
+
+Items required (or strongly advised) before submitting to the App Store
+beyond TestFlight. Public TestFlight is currently live without any of
+these; they ONLY matter when you want to ship to the store. None block
+TF builds.
+
+### Hard blockers (App Review will reject)
+
+- [ ] **In-app account deletion** — Apple Guideline 5.1.1(v): any app
+  offering account creation must provide an in-app delete path. Sign
+  in with Apple counts as account creation. If SiwA is purely local
+  (no server-side account record), document that and the delete-all-
+  local-state flow IS the delete; if anything is server-side, build
+  the deletion call. Extremely common rejection reason.
+- [ ] **OpenStreetMap attribution** — Trail geometry + silhouettes are
+  OSM-derived (ODbL license), which legally requires a visible
+  "© OpenStreetMap contributors" credit. Missing it is both an ODbL
+  violation AND an App Review 5.2 IP risk. Add an attribution line
+  somewhere in Settings → About, ideally also a small credit on the
+  map view.
+- [ ] **Privacy manifest (`PrivacyInfo.xcprivacy`)** — Required since
+  May 2024 for apps using required-reason APIs (UserDefaults, file
+  timestamps, boot time, disk space) and apps that collect precise
+  location. Draft existed in the closed PR #141.
+- [ ] **Privacy policy URL** — App Store Connect requires a reachable
+  hosted privacy policy for any data collection. The Notion page
+  linked from Settings → About probably qualifies; verify it actually
+  reads as a real privacy policy (collection categories, retention,
+  contact, etc.).
+- [ ] **App Privacy "nutrition label"** — Declare in App Store
+  Connect: precise location (yes), linked to identity (no), used for
+  tracking (no), purpose (app functionality only).
+- [ ] **App Store metadata package** — Screenshots (multiple device
+  sizes), app description, keywords, category, support URL, marketing
+  URL (optional), age rating questionnaire.
+
+### Strongly advised (rejection-likely or bad first impression)
+
+- [ ] **"Always" location audit** — Currently requesting
+  `NSLocationAlwaysAndWhenInUse`. "Always" is Apple's highest-
+  scrutiny permission. For an explicit user-started hike recording,
+  `When In Use` + `UIBackgroundModes: [location]` works (Apple grants
+  background tracking for the duration of a user-started session).
+  Confirm whether the app genuinely needs Always for any flow (e.g.
+  auto-resume of an interrupted recording across reboots); if not,
+  downgrade. Removes both a rejection vector and a scarier user
+  prompt at first launch.
+- [ ] **App Review reviewer notes** — App Store Connect → Build →
+  Notes. Reviewers test indoors with no real GPS; without
+  instructions they'll mark recording as "non-functional" and reject.
+  Include: how to simulate a hike (e.g. Xcode location simulation
+  routes), what to expect in roam vs trail mode, how to test the SiwA
+  flow + account deletion.
+- [ ] **Stability / crash pass** — Broad device QA before submit.
+  Drag jank is fixed, but App Review rejects crashy apps; do a sweep
+  across a phone + an iPad + an older model if possible.
 
 ## Backlog — features
 

@@ -1,70 +1,50 @@
 import SwiftUI
 
+/// First-launch onboarding. A swipeable page-style walkthrough — four
+/// pages, each focused on one capability the user just got. The Stats
+/// dashboard and live recording features (elevation strip, pace stats)
+/// landed after the previous single-screen onboarding was written, so
+/// they get explicit shout-outs here so the user knows what's available.
+///
+/// CTA at the bottom is persistent: "Continue" on every page except
+/// the last, "Get Started" at the end. Tapping advances + animates;
+/// the page indicator is visible throughout so the user knows how far
+/// they have to go. Re-presented after Reset All Progress (the
+/// `onboarded` AppStorage flag is cleared in DataBackupManager).
 struct OnboardingView: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedPage = 0
+
+    private static let pageCount = 4
 
     var body: some View {
         VStack(spacing: 0) {
-            Spacer()
-
-            VStack(spacing: 14) {
-                Image(systemName: "mountain.2.fill")
-                    .font(.system(size: 72))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.cyan, .blue, .indigo],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .symbolEffect(.bounce, value: true)
-
-                Text("TrekDex")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .multilineTextAlignment(.center)
-
-                Text("Find every trail in your favorite parks.")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+            TabView(selection: $selectedPage) {
+                welcomePage.tag(0)
+                page(icon: "map.fill",
+                     title: "Discover",
+                     body: "Browse hiking areas with map previews, search, and trail counts. The Stats tab tracks your overall progress as you build out a hiking history.")
+                    .tag(1)
+                page(icon: "record.circle.fill",
+                     title: "Record",
+                     body: "GPS-track your hikes — works in the background while your phone's in your pocket. Live elevation and pace update as you climb.")
+                    .tag(2)
+                page(icon: "checkmark.seal.fill",
+                     title: "Complete",
+                     body: "Trails you finish turn cyan on the map. Watch your progress fill in over time, area by area.")
+                    .tag(3)
             }
-            .padding(.horizontal, 32)
-
-            Spacer()
-
-            VStack(alignment: .leading, spacing: 24) {
-                bullet(
-                    icon: "map.fill",
-                    title: "Discover",
-                    body: "Browse hiking areas near you with map views, search, and trail counts."
-                )
-                bullet(
-                    icon: "record.circle.fill",
-                    title: "Record",
-                    body: "GPS-track your hikes — works in the background while your phone's in your pocket."
-                )
-                bullet(
-                    icon: "checkmark.seal.fill",
-                    title: "Complete",
-                    body: "Trails you finish turn cyan on the map. Watch your progress fill in over time."
-                )
-            }
-            .padding(.horizontal, 32)
-
-            Spacer()
-
-            Text("Tip: enable iCloud Backup in iOS Settings to keep your hikes safe across reinstalls.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-                .padding(.bottom, 12)
+            .tabViewStyle(.page(indexDisplayMode: .always))
+            .indexViewStyle(.page(backgroundDisplayMode: .always))
 
             Button {
-                dismiss()
+                if selectedPage < Self.pageCount - 1 {
+                    withAnimation { selectedPage += 1 }
+                } else {
+                    dismiss()
+                }
             } label: {
-                Text("Get Started")
+                Text(selectedPage < Self.pageCount - 1 ? "Continue" : "Get Started")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -77,19 +57,54 @@ struct OnboardingView: View {
         .interactiveDismissDisabled()
     }
 
-    private func bullet(icon: String, title: String, body: String) -> some View {
-        HStack(alignment: .top, spacing: 16) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(.cyan)
-                .frame(width: 36, height: 36)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.headline)
-                Text(body)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+    // MARK: - Pages
+
+    private var welcomePage: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "mountain.2.fill")
+                .font(.system(size: 110))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.cyan, .blue, .indigo],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .symbolEffect(.bounce, value: selectedPage)
+
+            Text("TrekDex")
+                .font(.largeTitle.weight(.bold))
+
+            Text("Find every trail in your favorite parks.")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
         }
+        .padding(.horizontal, 24)
+    }
+
+    /// Shared layout for the three feature pages. `selectedPage` drives
+    /// the symbol effect's trigger so the icon bounces every time the
+    /// user swipes to a new page (any tag changes the value SwiftUI
+    /// sees), giving a small visual reward for progressing.
+    private func page(icon: String, title: String, body: String) -> some View {
+        VStack(spacing: 20) {
+            Image(systemName: icon)
+                .font(.system(size: 96))
+                .foregroundStyle(.cyan)
+                .symbolEffect(.bounce, value: selectedPage)
+
+            Text(title)
+                .font(.largeTitle.weight(.bold))
+
+            Text(body)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+                .frame(maxWidth: 480)
+        }
+        .padding(.horizontal, 24)
     }
 }

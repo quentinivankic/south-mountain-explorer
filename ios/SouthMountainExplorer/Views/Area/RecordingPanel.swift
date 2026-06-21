@@ -36,55 +36,72 @@ struct RecordingPanel: View {
     }
 
     var body: some View {
-        HStack(spacing: 20) {
-            // Recording indicator
-            VStack(spacing: 2) {
-                Image(systemName: "record.circle.fill")
-                    .foregroundStyle(.red)
-                    .font(.title2)
-                    .symbolEffect(.pulse)
-                Text("REC")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.red)
+        VStack(spacing: 12) {
+            // Live elevation strip. Only renders once `elevationStats`
+            // has enough altitude samples to be meaningful (returns
+            // nil otherwise, e.g. the first 30s of a recording or any
+            // hike taken on a device whose GPS isn't returning
+            // altitude). Compact 70pt height — full chart treatment
+            // lives in HikeDetailView post-hike.
+            if let rec, let stats = elevationStats(path: rec.path) {
+                ElevationProfileView(
+                    stats: stats,
+                    totalDistanceMeters: rec.distanceMi * 1609.344
+                )
+                .frame(height: 70)
+                .transition(.opacity)
             }
 
-            Divider().frame(height: 40)
-
-            // Stats
-            statColumn(label: "Distance", value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units))
-            statColumn(label: "Duration", value: formattedElapsed)
-            // Live pace from the 60-second smoothed window. Renders
-            // "—" until the recording has enough samples (handled
-            // inside UnitFormatter.pace), so the column is stable
-            // from the first frame instead of popping in.
-            statColumn(label: "Pace",
-                       value: UnitFormatter.pace(metersPerSecond: recording.smoothedPaceMetersPerSec() ?? 0,
-                                                 units: units))
-            // ETA only renders when the recording is bound to a
-            // trail AND the math has enough signal (see TrailETA's
-            // gating). For area-mode recordings (no trailId) or
-            // loop trails the column simply doesn't appear — better
-            // than a permanent "—" that just takes space.
-            if let etaLabel {
-                statColumn(label: "ETA", value: etaLabel)
-            }
-
-            Spacer()
-
-            // Stop button
-            Button {
-                showStopConfirm = true
-            } label: {
-                if isStopping {
-                    ProgressView()
-                        .frame(width: 56, height: 56)
-                } else {
-                    Image(systemName: "stop.circle.fill")
-                        .font(.system(size: 44))
+            HStack(spacing: 20) {
+                // Recording indicator
+                VStack(spacing: 2) {
+                    Image(systemName: "record.circle.fill")
+                        .foregroundStyle(.red)
+                        .font(.title2)
+                        .symbolEffect(.pulse)
+                    Text("REC")
+                        .font(.caption2.weight(.bold))
                         .foregroundStyle(.red)
                 }
+
+                Divider().frame(height: 40)
+
+                // Stats
+                statColumn(label: "Distance", value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units))
+                statColumn(label: "Duration", value: formattedElapsed)
+                // Live pace from the 60-second smoothed window. Renders
+                // "—" until the recording has enough samples (handled
+                // inside UnitFormatter.pace), so the column is stable
+                // from the first frame instead of popping in.
+                statColumn(label: "Pace",
+                           value: UnitFormatter.pace(metersPerSecond: recording.smoothedPaceMetersPerSec() ?? 0,
+                                                     units: units))
+                // ETA only renders when the recording is bound to a
+                // trail AND the math has enough signal (see TrailETA's
+                // gating). For area-mode recordings (no trailId) or
+                // loop trails the column simply doesn't appear — better
+                // than a permanent "—" that just takes space.
+                if let etaLabel {
+                    statColumn(label: "ETA", value: etaLabel)
+                }
+
+                Spacer()
+
+                // Stop button
+                Button {
+                    showStopConfirm = true
+                } label: {
+                    if isStopping {
+                        ProgressView()
+                            .frame(width: 56, height: 56)
+                    } else {
+                        Image(systemName: "stop.circle.fill")
+                            .font(.system(size: 44))
+                            .foregroundStyle(.red)
+                    }
+                }
+                .disabled(isStopping)
             }
-            .disabled(isStopping)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)

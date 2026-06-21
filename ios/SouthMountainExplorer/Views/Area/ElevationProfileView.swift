@@ -91,7 +91,9 @@ struct ElevationProfileView: View {
                 }
             }
         }
-        .frame(height: 160)
+        // No baked-in height — callers size it. HikeDetailView uses
+        // 160 for the full post-hike chart; the live recording strip
+        // uses ~80 to fit alongside the stats row.
     }
 
     /// Computed Y-axis ticks + domain. Picks a "nice" step in the

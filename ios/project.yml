@@ -12,9 +12,12 @@ targets:
     deploymentTarget: "18.0"
     sources:
       - path: SouthMountainExplorer
+      - path: Shared
     resources:
       - path: SouthMountainExplorer/Resources
       - path: SouthMountainExplorer/Assets.xcassets
+    dependencies:
+      - target: SouthMountainExplorerWidgets
     info:
       path: SouthMountainExplorer/Info.plist
       properties:
@@ -35,6 +38,7 @@ targets:
         UIBackgroundModes:
           - location
         ITSAppUsesNonExemptEncryption: false
+        NSSupportsLiveActivities: true
     entitlements:
       path: SouthMountainExplorer/SouthMountainExplorer.entitlements
       properties:
@@ -51,6 +55,31 @@ targets:
           CODE_SIGN_STYLE: Manual
           CODE_SIGN_IDENTITY: "Apple Distribution"
           PROVISIONING_PROFILE_SPECIFIER: PROFILE_UUID_PLACEHOLDER
+
+  SouthMountainExplorerWidgets:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: SouthMountainExplorerWidgets
+      - path: Shared
+    info:
+      path: SouthMountainExplorerWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: TrekDex Widgets
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        PRODUCT_BUNDLE_IDENTIFIER: com.southmountainexplorer.app.widgets
+        SWIFT_STRICT_CONCURRENCY: complete
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "Apple Distribution"
+          PROVISIONING_PROFILE_SPECIFIER: WIDGETS_PROFILE_UUID_PLACEHOLDER
 
   SouthMountainExplorerTests:
     type: bundle.unit-test

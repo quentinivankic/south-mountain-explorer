@@ -153,6 +153,12 @@ final class RecordingService {
         // a hike that ended at the moment of the app kill.
         locationService.startBackgroundTracking()
         beginObservingLocation()
+        // ActivityKit retains Live Activities across app kills, but
+        // a recording that started before this build (i.e. before
+        // LiveActivityService shipped) won't have one. Best-effort
+        // start; LiveActivityService.start is a no-op if an
+        // activity is already running.
+        startLiveActivity(areaId: restored.areaId, trailId: restored.trailId, mode: restored.mode)
     }
 
     // MARK: - History migrations
@@ -271,6 +277,12 @@ final class RecordingService {
         // started a hike. The OS only asks once per install, so the
         // request is a no-op on subsequent calls.
         Task { await NotificationService.shared.ensurePermission() }
+        // Live Activity (lock screen + Dynamic Island). No-ops if the
+        // user has Live Activities disabled or the system declines
+        // the request. Name/subtitle resolution happens here at
+        // start time — area/trail lookups in the recording
+        // pipeline use cached data and don't need a fresh fetch.
+        startLiveActivity(areaId: areaId, trailId: trailId, mode: mode)
     }
 
     /// Discard the in-progress recording AND every saved hike. Called
@@ -305,6 +317,7 @@ final class RecordingService {
         activeRecording = nil
         errorMessage = nil
         UserDefaults.standard.removeObject(forKey: persistKey)
+        LiveActivityService.shared.end()
         log.notice("discardRecording areaId=\(prev?.areaId ?? "nil", privacy: .public) duration=\(prev.map { Date().timeIntervalSince($0.startedAt) } ?? 0)s pathPoints=\(prev?.path.count ?? 0)")
         ActivityLogService.shared.log(
             category: "recording",
@@ -498,6 +511,7 @@ final class RecordingService {
 
         activeRecording = nil
         UserDefaults.standard.removeObject(forKey: persistKey)
+        LiveActivityService.shared.end()
         return finished
     }
 
@@ -1192,6 +1206,7 @@ final class RecordingService {
         }
         activeRecording = rec
         persist()
+        pushLiveActivityUpdate()
     }
 
     // MARK: - Local history persistence
@@ -1371,5 +1386,46 @@ final class RecordingService {
         guard let rec = activeRecording,
               let data = try? JSONEncoder().encode(rec) else { return }
         UserDefaults.standard.set(data, forKey: persistKey)
+    }
+
+    // MARK: - Live Activity
+
+    /// Look up the freshest area/trail names from AreaDataService's
+    /// cache and start the lock-screen + Dynamic Island activity.
+    /// Trail name leads when in trail mode; otherwise the area
+    /// leads. Subtitle carries the area name in trail mode so the
+    /// lock screen still shows geographic context.
+    private func startLiveActivity(areaId: String, trailId: String?, mode: RecordingMode) {
+        let areaName = AreaDataService.shared.summaries
+            .first { $0.id == areaId }?.name ?? "Hiking"
+        var name = areaName
+        var subtitle: String? = nil
+        if mode == .trail, let trailId,
+           let trail = AreaDataService.shared.cachedArea(id: areaId)?
+            .trails.first(where: { $0.id == trailId }) {
+            name = trail.name
+            subtitle = areaName
+        }
+        let initial = RecordingActivityAttributes.ContentState(
+            distanceMeters: 0,
+            elapsedSeconds: 0,
+            ascentMeters: 0,
+            nextTurnMeters: nil
+        )
+        LiveActivityService.shared.start(name: name, subtitle: subtitle, initialState: initial)
+    }
+
+    /// Push the current recording state to the Live Activity.
+    /// ActivityKit throttles to ~1 Hz; LiveActivityService also
+    /// drops anything inside its 1-second throttle window.
+    private func pushLiveActivityUpdate() {
+        guard let rec = activeRecording else { return }
+        let state = RecordingActivityAttributes.ContentState(
+            distanceMeters: rec.distanceMi * 1609.344,
+            elapsedSeconds: Int(Date().timeIntervalSince(rec.startedAt)),
+            ascentMeters: 0,
+            nextTurnMeters: nil
+        )
+        LiveActivityService.shared.update(state)
     }
 }

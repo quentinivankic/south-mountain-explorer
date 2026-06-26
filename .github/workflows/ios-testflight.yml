@@ -31,6 +31,21 @@ jobs:
       - name: Select Xcode 26
         run: sudo xcode-select -s /Applications/Xcode_26.0.app/Contents/Developer
 
+      - name: Install matching iOS simulator runtime
+        # GitHub's macos-latest image rolls — when Apple drops a point
+        # release and GitHub bumps the image's installed simulator
+        # runtimes, the active Xcode's iPhoneSimulator SDK can end up
+        # without a matching runtime on disk. Asset thinning during
+        # `xcodebuild archive` (CompileAssetCatalogVariant thinned)
+        # consults the simulator runtime even for a device archive and
+        # fails with "No simulator runtime version from [...] available
+        # to use with iphonesimulator SDK version <X>". Downloading the
+        # matching iOS platform pulls in a runtime that lines up with
+        # the active SDK, making the build deterministic across runner-
+        # image rolls. Adds ~3-5 min when the runtime needs to be
+        # fetched, ~0 when it's already there.
+        run: xcodebuild -downloadPlatform iOS
+
       - name: Install XcodeGen
         run: brew install xcodegen
 

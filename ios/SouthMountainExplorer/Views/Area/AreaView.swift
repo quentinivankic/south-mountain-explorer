@@ -10,6 +10,13 @@ private let log = Logger(subsystem: "com.trekdex.app", category: "area")
 
 private let farFromAreaThresholdMi = 5.0
 
+/// Segments of the area sheet. `trails` is the original trail
+/// list + map controls; `dex` is the achievements grid.
+private enum AreaSheetTab: Hashable {
+    case trails
+    case dex
+}
+
 struct AreaView: View {
     let areaId: String
     let areaName: String
@@ -66,6 +73,8 @@ struct AreaView: View {
     /// itself — only when the detent SETTLES (at most once per
     /// release).
     @State private var sheetDetent: PresentationDetent = AreaView.mediumDetent
+    /// Which segment of the area sheet is showing — trail list or Dex.
+    @State private var sheetTab: AreaSheetTab = .trails
     @State private var selectedTrailId: String? = nil
     /// Per-recording-session set of trail ids the user has
     /// dismissed from the suggestion banner. Prevents the same
@@ -797,50 +806,67 @@ struct AreaView: View {
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 20)
             .padding(.top, 10)
-            .padding(.bottom, 14)
+            .padding(.bottom, 12)
 
-            controlBar(area: area)
-                .padding(.bottom, 12)
-
-            // Tracking-mode toast. A subtle solid capsule, NOT glass —
-            // it floats inside the glass sheet, so a material backdrop
-            // would be the same glass-on-glass muddiness we removed
-            // from the icon buttons. Tinted with the accent so it
-            // reads as a transient status note.
-            if let toast = trackingModeToast {
-                Text(toast)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(Color.accentColor, in: Capsule())
-                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                    .padding(.bottom, 10)
+            // Trails | Dex segment selector. Always visible so the
+            // user can flip between the trail list and the achievements
+            // grid regardless of which is showing.
+            Picker("View", selection: $sheetTab) {
+                Text("Trails").tag(AreaSheetTab.trails)
+                Text("Dex").tag(AreaSheetTab.dex)
             }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
 
-            if isRecording {
-                recordingBanners(area: area)
-                RecordingPanel(area: area) { finished in
-                    finishedRecording = finished
-                    showSummary = finished != nil
-                    // Refresh the cyan coverage halo with the
-                    // just-finished hike's path.
-                    Task { await loadPastPaths() }
+            switch sheetTab {
+            case .trails:
+                controlBar(area: area)
+                    .padding(.bottom, 12)
+
+                // Tracking-mode toast. A subtle solid capsule, NOT glass —
+                // it floats inside the glass sheet, so a material backdrop
+                // would be the same glass-on-glass muddiness we removed
+                // from the icon buttons. Tinted with the accent so it
+                // reads as a transient status note.
+                if let toast = trackingModeToast {
+                    Text(toast)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Color.accentColor, in: Capsule())
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                        .padding(.bottom, 10)
                 }
-                .padding(.bottom, 4)
-            }
 
-            TrailListView(
-                area: area,
-                selectedTrailId: $selectedTrailId,
-                statusFilter: $statusFilter,
-                difficultyFilter: $difficultyFilter,
-                lengthFilter: $lengthFilter,
-                routeFilter: $routeFilter,
-                searchQuery: $trailSearchQuery,
-                filteredTrails: filtered,
-                onRecordTrail: { trail in tryStartRecording(trailId: trail.id) }
-            )
+                if isRecording {
+                    recordingBanners(area: area)
+                    RecordingPanel(area: area) { finished in
+                        finishedRecording = finished
+                        showSummary = finished != nil
+                        // Refresh the cyan coverage halo with the
+                        // just-finished hike's path.
+                        Task { await loadPastPaths() }
+                    }
+                    .padding(.bottom, 4)
+                }
+
+                TrailListView(
+                    area: area,
+                    selectedTrailId: $selectedTrailId,
+                    statusFilter: $statusFilter,
+                    difficultyFilter: $difficultyFilter,
+                    lengthFilter: $lengthFilter,
+                    routeFilter: $routeFilter,
+                    searchQuery: $trailSearchQuery,
+                    filteredTrails: filtered,
+                    onRecordTrail: { trail in tryStartRecording(trailId: trail.id) }
+                )
+
+            case .dex:
+                DexView(area: area)
+            }
         }
         // Nested modal sheets — must live inside the always-on trail-
         // list sheet so SwiftUI lets them present on top instead of

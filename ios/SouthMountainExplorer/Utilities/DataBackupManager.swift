@@ -62,6 +62,20 @@ enum DataBackupManager {
 
     // MARK: - Export
 
+    enum ExportError: LocalizedError {
+        /// A backup file exists on disk but couldn't be read. Surfaced
+        /// instead of silently dropping the file so the user never
+        /// "backs up" an export that's secretly missing their hikes.
+        case fileUnreadable(filename: String, underlying: String)
+
+        var errorDescription: String? {
+            switch self {
+            case .fileUnreadable(let filename, let underlying):
+                return "Couldn't read \(filename) for backup (\(underlying)). Nothing was exported — do NOT reset, because \(filename) can't be regenerated. Try again, or relaunch the app first."
+            }
+        }
+    }
+
     struct Export: Codable {
         let version: Int
         let exportedAt: String
@@ -94,8 +108,22 @@ enum DataBackupManager {
         var files: [String: String] = [:]
         for filename in documentFilenames {
             let url = documentsDir.appendingPathComponent(filename)
-            if let data = try? Data(contentsOf: url) {
+            // A MISSING file is a legitimate empty state — a user who
+            // has never recorded a hike simply has no hike-history.json,
+            // and that should export cleanly. But a file that EXISTS and
+            // can't be read is a silent-data-loss trap: the old `try?`
+            // dropped it from the export with no signal, so a user could
+            // "back up", reset, and only then discover the recordings
+            // were never in the file. Distinguish the two and fail loud
+            // on the dangerous one.
+            guard FileManager.default.fileExists(atPath: url.path) else { continue }
+            do {
+                let data = try Data(contentsOf: url)
                 files[filename] = data.base64EncodedString()
+            } catch {
+                throw ExportError.fileUnreadable(
+                    filename: filename,
+                    underlying: error.localizedDescription)
             }
         }
 

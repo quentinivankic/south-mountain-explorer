@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The app does not track users (no cross-app/website tracking,
+	     no data shared with data brokers). -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<!-- No data is "collected" in Apple's sense: nothing is transmitted
+	     off the device for the developer to access. Hikes, location, and
+	     the Sign in with Apple credential all stay on-device (there is
+	     no backend). Network calls are read-only area-data fetches
+	     (cdn.trekdex.app) and geographic trail queries (Overpass /
+	     Nominatim) that carry map coordinates, not personal data.
+	     "Send Diagnostics" is a user-initiated share sheet, not an
+	     automatic upload. -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+
+	<!-- Required-reason API declarations. Only UserDefaults is used;
+	     the app does not touch file-timestamp, system-boot-time, or
+	     disk-space APIs (verified by source audit). -->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- CA92.1: access info stored in UserDefaults by the
+				     app itself, only accessible to the app / its
+				     app group. Matches how the app stores its own
+				     preferences + progress. -->
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

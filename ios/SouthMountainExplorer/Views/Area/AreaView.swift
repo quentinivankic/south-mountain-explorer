@@ -40,6 +40,9 @@ struct AreaView: View {
     /// Settings. Same `@AppStorage` key MapKitMapView reads, so
     /// changes propagate immediately to the open map.
     @AppStorage(StorageKeys.mapStyle) private var mapStyle: MapStylePreference = .standard
+    /// Units preference so the header's area total renders in mi/km and
+    /// reacts to the Settings toggle. Was previously hardcoded to miles.
+    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     @State private var area: Area? = nil
     @State private var isLoading = true
@@ -774,6 +777,19 @@ struct AreaView: View {
     /// can only have one `.sheet` modifier active per ancestor view,
     /// so attaching them at AreaView's body would conflict with the
     /// trail-list sheet itself.
+    /// One-line area summary for the sheet header: trails · total
+    /// distance (honors the units toggle via UnitFormatter) · completion.
+    private func areaSummaryLine(area: Area, completed: Int) -> String {
+        var parts = [
+            "\(area.resolvedTrailCount) trails",
+            UnitFormatter.distance(miles: area.resolvedTotalMi, units: units),
+        ]
+        if area.resolvedTrailCount > 0 {
+            parts.append("\(completed) of \(area.resolvedTrailCount) completed")
+        }
+        return parts.joined(separator: " · ")
+    }
+
     @ViewBuilder
     private func sheetContent(area: Area) -> some View {
         VStack(spacing: 0) {
@@ -789,29 +805,22 @@ struct AreaView: View {
                     .font(.title3.weight(.semibold))
                     .lineLimit(1)
 
-                Text("\(area.resolvedTrailCount) trails · \(String(format: "%.1f", area.resolvedTotalMi)) mi total")
+                // Single summary line: trails · total distance (unit-aware)
+                // · completion. `areaTrailIds` is the cached Set from
+                // recomputeFiltered() — avoids a per-eval O(N) rebuild.
+                // Whole line turns green at 100% as an area-complete cue.
+                let completed = progress.completionCount(in: area.id, validTrailIds: areaTrailIds)
+                let areaComplete = area.resolvedTrailCount > 0 && completed >= area.resolvedTrailCount
+                Text(areaSummaryLine(area: area, completed: completed))
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(areaComplete ? .green : .secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
-                if area.resolvedTrailCount > 0 {
-                    // `areaTrailIds` is the cached Set populated by
-                    // recomputeFiltered() — avoids the per-eval O(N)
-                    // Set construction the inline version would have
-                    // brought back.
-                    let completed = progress.completionCount(in: area.id, validTrailIds: areaTrailIds)
-                    Text("\(completed) of \(area.resolvedTrailCount) completed")
-                        .font(.caption)
-                        .foregroundStyle(completed == area.resolvedTrailCount ? .green : .secondary)
-                }
-
-                // ODbL attribution shown alongside the OSM-derived trail
-                // data itself (the trails listed/mapped in this sheet).
-                // Complements the linked credit in Settings → About;
-                // keeps the required "© OpenStreetMap contributors"
-                // visible in the context where the data is used.
-                Text("Trail data © OpenStreetMap contributors")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                // OSM attribution is NOT repeated here — the required
+                // "© OpenStreetMap contributors" credit lives in
+                // Settings → About (with the licence link), which
+                // satisfies the ODbL. Keeping the header uncluttered.
             }
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 20)
@@ -929,7 +938,7 @@ struct AreaView: View {
             Text("Starting a new hike here will save and end your hike at \(conflictAreaName).")
         }
         .confirmationDialog(
-            "You're \(String(format: "%.1f", farDistanceMi)) mi from \(areaName)",
+            "You're \(UnitFormatter.distance(miles: farDistanceMi, units: units)) from \(areaName)",
             isPresented: $showFarWarning,
             titleVisibility: .visible
         ) {

@@ -11,6 +11,11 @@ struct ShareableHikeCard: View {
     let hike: SavedRecording
     let areaName: String
     let mapImage: UIImage?
+    /// Passed in (not @AppStorage) because this view is rendered off the
+    /// view tree by ImageRenderer, where environment/AppStorage doesn't
+    /// reliably resolve. Keeps the shared card's distance in the user's
+    /// chosen units.
+    let units: UnitsPreference
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -73,7 +78,8 @@ struct ShareableHikeCard: View {
                 .lineLimit(2)
 
             HStack(spacing: 28) {
-                stat(value: String(format: "%.2f", hike.distanceMi), unit: "mi", label: "Distance")
+                stat(value: UnitFormatter.distanceValue(miles: hike.distanceMi, units: units),
+                     unit: UnitFormatter.distanceSuffix(units: units), label: "Distance")
                 stat(value: durationValue, unit: durationUnit, label: "Duration")
                 if !hike.completedTrailIds.isEmpty {
                     stat(value: "\(hike.completedTrailIds.count)",

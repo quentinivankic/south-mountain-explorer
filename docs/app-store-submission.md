@@ -1,0 +1,204 @@
+# App Store Submission — TrekDex
+
+Paste-ready drafts for the App Store Connect listing + review. Everything
+here is editable copy, not code. Fill the ASC fields from this once org
+enrollment (DUNS) clears. Character limits noted are Apple's.
+
+> Keep this in sync with reality. Two backlog features would change the
+> **App Privacy** section below if they land: the out-of-region waitlist
+> (collects email) and analytics/crash reporting (collects usage/crash
+> data). Today the app collects nothing off-device, so the answers below
+> say "Data Not Collected." Revisit if either ships.
+
+---
+
+## Name & subtitle
+
+- **App Name** (30 char max): `TrekDex`
+- **Subtitle** (30 char max): `Hike & complete every trail`
+  - Alternates: `Track hikes, collect trails` · `Your trail completion dex`
+
+## Promotional text (170 char max — editable without a new build)
+
+> Record GPS-tracked hikes, watch every trail in a park turn complete,
+> and earn badges for your area. Live pace and elevation while you climb.
+
+## Description (4000 char max)
+
+```
+TrekDex turns hiking a park into a collection you can finish.
+
+Browse parks and preserves across the US and Canada, record your hikes
+with GPS, and track your progress toward completing every trail in an
+area — one trail at a time until the whole map is yours.
+
+RECORD YOUR HIKES
+• GPS-tracked recording that keeps running in the background while your
+  phone's in your pocket.
+• Live stats as you go: distance, duration, pace, and a live elevation
+  profile so you can watch the climb happen.
+• Trail mode locks onto a specific trail; roam mode just records wherever
+  you wander.
+
+COMPLETE THE MAP
+• Every trail you finish turns cyan on the map. Watch a park fill in over
+  time.
+• Coverage tracking knows how much of each trail you've actually walked.
+• A completion celebration when you finish a trail — and when you finish
+  an entire area.
+
+YOUR DEX
+• A Pokédex-style achievements page for every area: first hike, first
+  easy/moderate/hard trail, the every-trail crown, four seasons, distance
+  milestones, and more — all earned from hikes you've already recorded.
+
+SEE YOUR PROGRESS
+• A Stats tab with lifetime totals, a hikes-per-month chart, per-area
+  completion, and your full hike history.
+• Every hike gets a detail page with a map of your route and an elevation
+  profile.
+
+MADE FOR REAL HIKES
+• Works offline once an area is downloaded — trail data caches on device.
+• Imperial or metric, your choice, everywhere.
+• Export your data anytime; it's yours.
+
+Trail data © OpenStreetMap contributors.
+```
+
+## Keywords (100 char max, comma-separated, no spaces after commas)
+
+```
+hiking,trail,hike tracker,gps,trails,national park,walk,outdoors,map,completion,elevation,pace
+```
+(93 chars. Don't repeat words already in the app name/subtitle — Apple
+indexes those separately.)
+
+## Category
+
+- **Primary:** Health & Fitness (best fit for a GPS activity tracker;
+  strong for search)
+- **Secondary:** Navigation
+  - Alternate primary if you'd rather lean discovery over fitness: Travel.
+
+## Support & marketing URLs
+
+- **Support URL** (required): `https://trekdex.app` (or a `/support`
+  page if you add one — must be reachable and mention how to get help)
+- **Marketing URL** (optional): `https://trekdex.app`
+- **Privacy Policy URL** (required): `https://trekdex.app/privacy-policy`
+  — MUST match the in-app link.
+
+## What's New (version release notes, first public version)
+
+```
+First public release of TrekDex. Record GPS hikes, complete every trail
+in a park, earn area badges in your Dex, and track it all in Stats.
+```
+
+---
+
+## App Privacy ("nutrition label" — App Store Connect → App Privacy)
+
+The app has no backend. Location, hikes, and the Sign in with Apple
+credential all stay on the device; nothing is transmitted to us. Under
+Apple's definition ("collect" = transmit off-device for the developer to
+access), that is **Data Not Collected**.
+
+- **Data Collection:** *Do you or your third-party partners collect data
+  from this app?* → **No** ("Data Not Collected").
+  - Matches `PrivacyInfo.xcprivacy` (`NSPrivacyCollectedDataTypes` empty,
+    `NSPrivacyTracking` false).
+
+Notes if Apple's questionnaire probes specific types:
+- **Location (precise):** used by the app on-device for recording and
+  showing position — not collected/transmitted, so not declared.
+- **Sign in with Apple:** the user identifier is stored in the device
+  Keychain only; not sent anywhere.
+
+> ⚠️ If the waitlist (email) or analytics/crash reporting ships, flip
+> this to "Yes" and declare Contact Info / Usage Data / Diagnostics
+> accordingly, and update the privacy manifest + policy to match.
+
+---
+
+## Age rating questionnaire
+
+All content questions → **None**. No objectionable content, no user-
+generated content, no web access to arbitrary content, no gambling.
+Expected result: **4+**.
+
+---
+
+## App Review — Reviewer Notes (App Store Connect → Version → Notes)
+
+Paste this so reviewers, who test indoors with no real GPS, don't mark
+recording as "non-functional":
+
+```
+TESTING GPS RECORDING WITHOUT WALKING OUTSIDE
+
+TrekDex records hikes using GPS. Reviewers testing on a device indoors
+(or in the simulator) won't move, so here's how to see recording work:
+
+1. Simulate a route in Xcode: with the app running, Xcode > Debug >
+   Simulate Location > (pick a City Run / Freeway Drive), or Simulator >
+   Features > Location > City Run. The blue dot will move and the
+   recording will accumulate distance, pace, and a path.
+2. In the app: open any area (e.g. from the Explore or Browse tab), tap
+   "Record Hike" to start a roam-mode recording, or tap a trail row's
+   record action to start trail mode. Grant location permission
+   ("While Using the App") when prompted.
+3. Let it run ~30–60s with a simulated route so distance/pace/elevation
+   populate. Tap Stop, then Stop & Save. The hike appears in the History
+   list inside Stats, with a route map and elevation profile.
+
+SIGN IN WITH APPLE + ACCOUNT DELETION
+- Sign in is optional and entirely on-device (no server account).
+- To delete the account: Settings > Account > Delete Account. This
+  removes the local Sign in with Apple credential. Hikes/progress are
+  local and can be wiped separately via Settings > Data > Reset All
+  Progress.
+
+Background location is used only during an explicit, user-started
+recording session (When In Use authorization + background location) to
+keep the GPS track continuous when the screen locks.
+```
+
+Optionally add a demo-account note: *"No account required — all features
+are available without signing in."*
+
+---
+
+## Screenshots (you provide — device required)
+
+Apple needs 6.9" (iPhone 17 Pro Max class) and 6.5"/6.7" sets at minimum
+(App Store Connect will auto-scale down for smaller devices in most
+cases; verify current requirements at upload time).
+
+Suggested shots, in order (first 2–3 matter most — they show in search):
+1. A park map with several completed (cyan) trails + the trail-list sheet.
+2. Active recording: the panel showing live pace + the live elevation
+   strip.
+3. The Dex: a grid of earned badges for an area.
+4. Stats tab: totals + the hikes-per-month chart.
+5. Hike detail: route map + elevation profile.
+
+Tip: capture on an iOS 26 simulator with a seeded set of hikes so the
+Dex and Stats look populated, not empty.
+
+---
+
+## Pre-submit checklist (code side — status)
+
+- [x] In-app account deletion (#198)
+- [x] OpenStreetMap attribution (#199)
+- [x] PrivacyInfo.xcprivacy (#200)
+- [x] Privacy Policy + Terms links point at trekdex.app (#205)
+- [ ] Location When-In-Use only (#202 — merge after an on-device
+      backgrounded-hike confirms recording still works)
+- [ ] Privacy policy URL reachable and reads as a real policy (you: done,
+      trekdex.app/privacy-policy)
+- [ ] Crash/stability sweep on device
+- [ ] Screenshots captured
+- [ ] DUNS / org enrollment complete (blocks submission)

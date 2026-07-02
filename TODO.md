@@ -41,6 +41,15 @@ TF builds.
   sizes), app description, keywords, category, support URL, marketing
   URL (optional), age rating questionnaire.
 
+> ⚠️ The privacy manifest / nutrition-label / policy items above are
+> written against today's reality: **nothing is collected off-device**
+> (no backend, no analytics). Two planned features would change that
+> and force all three to be revised — the **out-of-region waitlist**
+> (collects email → Contact Info) and **analytics + crash reporting**
+> (Crash/Usage data). If either lands before or after store submission,
+> update the manifest, the ASC nutrition label, and the privacy policy
+> together. See the Backlog entries for both.
+
 ### Strongly advised (rejection-likely or bad first impression)
 
 - [ ] **"Always" location audit** — Currently requesting
@@ -95,6 +104,22 @@ TF builds.
   provisioning profile, add as `APPLE_WIDGETS_PROVISIONING_PROFILE_BASE64`
   GitHub secret. Then the widget target can sign and the workflow can
   ship it.
+- [ ] **Out-of-region waitlist + notify-me.** Coverage is US + Canada
+  only. For users outside NA, show a waitlist prompt instead of an
+  empty Explore/Browse: detect region (start with `Locale.current.
+  region` — cheap, no permission; optionally refine with the user's
+  coarse location if already granted), and if it's not US/CA, offer
+  "We're not in <country/continent> yet — get an email when we are."
+  Capture their email + region.
+  Needs infra the app doesn't have yet: TrekDex is currently 100%
+  backend-less (SiwA is local, all data on-device), so storing emails
+  + sending "your region is live" notifications requires a real
+  service (a hosted list / DB + a send path). Scope that first.
+  **Privacy coupling:** collecting an email address IS data
+  collection of Contact Info tied to identity — updates the privacy
+  manifest (`NSPrivacyCollectedDataTypes`), the App Store nutrition
+  label, and the privacy policy (all currently say "nothing
+  collected"). See the App Store gate section.
 
 ## Backlog — UX / polish
 
@@ -110,6 +135,30 @@ TF builds.
 
 ## Backlog — tech debt / ops
 
+- [ ] **Analytics + crash reporting.** No analytics or crash capture
+  today. Want both: usage analytics (screen/feature engagement,
+  funnels) and crash/exception logs to catch field crashes before
+  they become reviews.
+  Options, cheapest-privacy-impact first:
+    - Crashes: **MetricKit** (`MXMetricManager`) is Apple-first-party,
+      on-device, no third-party SDK — lowest privacy footprint but
+      delayed/aggregated reports, no live dashboard.
+    - Crashes + analytics with a dashboard: a third-party SDK
+      (TelemetryDeck is privacy-forward and IDFA-free; Firebase
+      Crashlytics / Sentry are richer but collect more).
+  **Privacy coupling (important — do NOT ship blind):** any
+  off-device analytics/crash SDK changes the privacy story that the
+  in-flight App Store work just set to "nothing collected":
+    - `PrivacyInfo.xcprivacy` — add the collected data types
+      (Crash Data, Usage/Product Interaction, maybe Performance) and,
+      for some SDKs, `NSPrivacyTracking`/tracking domains + their own
+      bundled privacy manifests.
+    - App Store Connect App Privacy nutrition label — declare the
+      new collection.
+    - Privacy policy — describe what's collected, why, retention,
+      and the processor.
+  Pick the SDK with the privacy budget in mind; MetricKit-only keeps
+  the manifest nearly as clean as it is now.
 - [ ] **Area quality cull.** Drop areas below a trail-count /
   mileage floor with a name-token whitelist for NPS-style units.
   Originally raised this session before pivoting to NA-only; still a

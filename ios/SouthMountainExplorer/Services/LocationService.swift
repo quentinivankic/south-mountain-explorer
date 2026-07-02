@@ -47,11 +47,14 @@ final class LocationService: NSObject {
     }
 
     func requestPermission() {
+        // When-In-Use only. Background hike recording works under this
+        // authorization because it happens during an explicit,
+        // user-started session with `UIBackgroundModes: [location]` +
+        // `allowsBackgroundLocationUpdates` (see startBackgroundTracking).
+        // The app has no geofencing or significant-location-change
+        // relaunch, so "Always" would add nothing but a scarier prompt
+        // and an App Review scrutiny vector — deliberately not requested.
         manager.requestWhenInUseAuthorization()
-    }
-
-    func requestAlwaysPermission() {
-        manager.requestAlwaysAuthorization()
     }
 
     func startLiveTracking() {
@@ -91,10 +94,6 @@ final class LocationService: NSObject {
 
     var isAuthorized: Bool {
         authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways
-    }
-
-    var hasAlwaysAuthorization: Bool {
-        authorizationStatus == .authorizedAlways
     }
 }
 

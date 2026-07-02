@@ -38,8 +38,7 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        NSLocationWhenInUseUsageDescription: "TrekDex uses your location to find nearby trails and show your position on the map."
-        NSLocationAlwaysAndWhenInUseUsageDescription: "TrekDex uses your location in the background to record your hike even when the app is minimised."
+        NSLocationWhenInUseUsageDescription: "TrekDex uses your location to find nearby trails, show your position on the map, and record your hike — including in the background while recording."
         UIBackgroundModes:
           - location
         ITSAppUsesNonExemptEncryption: false

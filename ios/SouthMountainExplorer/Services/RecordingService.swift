@@ -549,19 +549,33 @@ final class RecordingService {
     /// hiker (which is what this app is for) — a runner would want
     /// a longer window.
     func smoothedPaceMetersPerSec(windowSeconds: TimeInterval = 60) -> Double? {
-        guard let path = activeRecording?.path, path.count >= 5 else { return nil }
-        let lastTs = path.last![2]
-        let cutoff = lastTs - windowSeconds
-        // Collect tail samples within the time window.
+        guard let path = activeRecording?.path else { return nil }
+        return Self.paceMetersPerSec(path: path, windowSeconds: windowSeconds)
+    }
+
+    /// Pure pace computation, extracted so it's unit-testable without the
+    /// @Observable service + a live recording.
+    ///
+    /// CRITICAL: path timestamps (`point[2]`) are epoch **milliseconds**
+    /// (see `appendPoint`). This function was previously inline and read
+    /// them as seconds — so the 60 s window was really 60 ms and, with
+    /// GPS samples ~2 s apart, it never caught a second sample in-window
+    /// and returned nil every time (pace + ETA + suggestion timing all
+    /// silently dead). All time math below converts ms → s explicitly.
+    nonisolated static func paceMetersPerSec(path: [GpsPoint],
+                                             windowSeconds: TimeInterval) -> Double? {
+        guard path.count >= 5, let lastTs = path.last?[2] else { return nil }
+        let cutoffMs = lastTs - windowSeconds * 1000
+        // Collect tail samples within the time window (timestamps in ms).
         var tail: [GpsPoint] = []
         for p in path.reversed() {
             guard p.count >= 3 else { continue }
-            if p[2] < cutoff { break }
+            if p[2] < cutoffMs { break }
             tail.append(p)
         }
         let recent = Array(tail.reversed())
         guard recent.count >= 2 else { return nil }
-        let elapsed = recent.last![2] - recent.first![2]
+        let elapsed = (recent.last![2] - recent.first![2]) / 1000   // ms → s
         guard elapsed >= 30 else { return nil }
         var meters = 0.0
         for i in 1..<recent.count {

@@ -521,7 +521,8 @@ struct SettingsView: View {
         HStack {
             statColumn(value: "\(s.hikeCount)", label: s.hikeCount == 1 ? "hike" : "hikes")
             Divider().frame(height: 36)
-            statColumn(value: String(format: "%.1f", s.totalMi), label: "miles")
+            statColumn(value: UnitFormatter.distanceValue(miles: s.totalMi, units: units),
+                       label: units == .imperial ? "miles" : "km")
             Divider().frame(height: 36)
             statColumn(value: "\(s.trailsCompleted)", label: s.trailsCompleted == 1 ? "trail" : "trails")
             Divider().frame(height: 36)

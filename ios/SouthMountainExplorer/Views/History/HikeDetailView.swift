@@ -58,7 +58,7 @@ struct HikeDetailView: View {
     /// build the SwiftUI share card on top of it via ImageRenderer.
     private func prepareShareImage() async {
         let mapImage = await HikeMapSnapshot.render(path: hike.path)
-        let card = ShareableHikeCard(hike: hike, areaName: areaName, mapImage: mapImage)
+        let card = ShareableHikeCard(hike: hike, areaName: areaName, mapImage: mapImage, units: units)
         let renderer = ImageRenderer(content: card)
         renderer.scale = 1
         if let ui = renderer.uiImage {

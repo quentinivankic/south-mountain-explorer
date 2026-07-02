@@ -23,7 +23,7 @@ struct AnalyticsEventTests {
         #expect(AnalyticsEvent.themeChanged(value: "dark").name == "theme_changed")
         #expect(AnalyticsEvent.dataExported().name == "data_exported")
         #expect(AnalyticsEvent.dataImported().name == "data_imported")
-        #expect(AnalyticsEvent.feedbackSubmitted(category: "bug", hasEmail: true).name == "feedback_submitted")
+        #expect(AnalyticsEvent.feedbackSubmitted(category: "bug", message: "x", email: nil).name == "feedback_submitted")
     }
 
     @Test func hikeSavedCarriesBucketsAndMode() {
@@ -35,11 +35,24 @@ struct AnalyticsEventTests {
         #expect(e.properties["mode"] == "trail")
     }
 
-    @Test func feedbackHasEmailFlagIsStringBool() {
-        #expect(AnalyticsEvent.feedbackSubmitted(category: "idea", hasEmail: true)
-            .properties["has_email"] == "true")
-        #expect(AnalyticsEvent.feedbackSubmitted(category: "idea", hasEmail: false)
-            .properties["has_email"] == "false")
+    @Test func feedbackCarriesMessageAndEmailFlag() {
+        let withEmail = AnalyticsEvent.feedbackSubmitted(
+            category: "idea", message: "great app", email: "a@b.com")
+        #expect(withEmail.properties["category"] == "idea")
+        #expect(withEmail.properties["message"] == "great app")
+        #expect(withEmail.properties["has_email"] == "true")
+        #expect(withEmail.properties["email"] == "a@b.com")
+
+        let noEmail = AnalyticsEvent.feedbackSubmitted(
+            category: "idea", message: "great app", email: nil)
+        #expect(noEmail.properties["has_email"] == "false")
+        #expect(noEmail.properties["email"] == nil)
+
+        // Empty string counts as no email — no stray "email": "" key.
+        let blankEmail = AnalyticsEvent.feedbackSubmitted(
+            category: "bug", message: "x", email: "")
+        #expect(blankEmail.properties["has_email"] == "false")
+        #expect(blankEmail.properties["email"] == nil)
     }
 
     // MARK: - Privacy: no coordinates or raw continuous values leak

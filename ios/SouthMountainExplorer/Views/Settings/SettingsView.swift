@@ -349,13 +349,11 @@ struct SettingsView: View {
                 }
 
                 Section("Feedback") {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label("Share Beta Feedback", systemImage: "envelope")
-                        Text("In the TestFlight app, take a screenshot inside the app and tap Share to send a comment with your screenshot attached.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    NavigationLink {
+                        FeedbackView()
+                    } label: {
+                        Label("Send Feedback", systemImage: "envelope")
                     }
-                    .padding(.vertical, 2)
                 }
 
                 Section {

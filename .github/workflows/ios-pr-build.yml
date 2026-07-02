@@ -95,6 +95,30 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
+      - name: Pick an available iPhone simulator
+        # Resolve a concrete simulator UDID at runtime instead of
+        # pinning a model name. The macos-latest image's simulator
+        # lineup changes as it rolls — the previously-pinned
+        # "iPhone 16" disappeared when the image moved to the
+        # iPhone 17 family, so `-destination name=iPhone 16` stopped
+        # resolving and the test step failed with exit 70. Picking
+        # whatever iPhone the runtime actually ships keeps this
+        # robust across future image rolls.
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          iphones = [d for devs in data['devices'].values() for d in devs if 'iPhone' in d['name']]
+          print(iphones[0]['udid'] if iphones else '')
+          ")
+          if [ -z "$UDID" ]; then
+            echo "No available iPhone simulator found" >&2
+            xcrun simctl list devices available >&2
+            exit 1
+          fi
+          echo "Using simulator $UDID"
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+
       - name: Run unit tests (iOS Simulator)
         working-directory: ios
         # `test` reuses the build products from the previous step
@@ -107,12 +131,15 @@ jobs:
         # without rerunning locally. The build step above stays
         # quiet because its only useful output is errors/warnings,
         # which xcodebuild emits even with `-quiet`.
+        #
+        # Destination is a concrete UDID resolved in the previous
+        # step (see there for why we don't pin a device name).
         run: |
           xcodebuild test \
             -project SouthMountainExplorer.xcodeproj \
             -scheme SouthMountainExplorer \
             -configuration Debug \
-            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" \
+            -destination "id=$SIM_UDID" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO

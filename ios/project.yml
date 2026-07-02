@@ -5,6 +5,11 @@ options:
     iOS: "18.0"
   xcodeVersion: "26.0"
 
+packages:
+  PostHog:
+    url: https://github.com/PostHog/posthog-ios
+    from: "3.0.0"
+
 targets:
   SouthMountainExplorer:
     type: application
@@ -12,6 +17,9 @@ targets:
     deploymentTarget: "18.0"
     sources:
       - path: SouthMountainExplorer
+    dependencies:
+      - package: PostHog
+        product: PostHog
     resources:
       - path: SouthMountainExplorer/Resources
       - path: SouthMountainExplorer/Assets.xcassets
@@ -35,6 +43,12 @@ targets:
         UIBackgroundModes:
           - location
         ITSAppUsesNonExemptEncryption: false
+        # PostHog config, read at runtime by PostHogBackend. The
+        # project API key is a CLIENT-side key (safe to ship in the
+        # binary); keeping it here centralizes it instead of hardcoding
+        # in Swift, and swapping projects/regions is a one-line change.
+        PostHogAPIKey: phc_nMKfJcA9euYLgb7jjFJMryhzCbLUeY9fDuejH35BpQQP
+        PostHogHost: https://us.i.posthog.com
     entitlements:
       path: SouthMountainExplorer/SouthMountainExplorer.entitlements
       properties:

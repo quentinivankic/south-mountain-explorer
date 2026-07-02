@@ -100,25 +100,34 @@ in a park, earn area badges in your Dex, and track it all in Stats.
 
 ## App Privacy ("nutrition label" — App Store Connect → App Privacy)
 
-The app has no backend. Location, hikes, and the Sign in with Apple
-credential all stay on the device; nothing is transmitted to us. Under
-Apple's definition ("collect" = transmit off-device for the developer to
-access), that is **Data Not Collected**.
+**Updated for PostHog analytics + in-app feedback** (both now shipping).
+Hikes, GPS location, and the Sign in with Apple credential still never
+leave the device. What IS collected now goes through PostHog + the
+feedback form — declare **Data Collection: Yes**, then:
 
-- **Data Collection:** *Do you or your third-party partners collect data
-  from this app?* → **No** ("Data Not Collected").
-  - Matches `PrivacyInfo.xcprivacy` (`NSPrivacyCollectedDataTypes` empty,
-    `NSPrivacyTracking` false).
+| Data type | Linked to identity | Used for tracking | Purpose |
+|---|---|---|---|
+| **Product Interaction** (usage events) | No | No | Analytics |
+| **Other User Content** (feedback message) | No | No | App Functionality |
+| **Email Address** (only if added to feedback) | No | No | App Functionality / Customer Support |
+| **Crash Data** (once MetricKit lands, Phase 3b) | No | No | App Functionality |
 
-Notes if Apple's questionnaire probes specific types:
-- **Location (precise):** used by the app on-device for recording and
-  showing position — not collected/transmitted, so not declared.
-- **Sign in with Apple:** the user identifier is stored in the device
-  Keychain only; not sent anywhere.
+- **Tracking:** No — no IDFA, no cross-app tracking, no data brokers.
+  PostHog runs anonymous (we never call `identify`).
+- Matches `PrivacyInfo.xcprivacy` (Product Interaction / Other User
+  Content / Email declared; `NSPrivacyTracking` false). PostHog's SDK
+  ships its own manifest for the identifiers/diagnostics it adds.
 
-> ⚠️ If the waitlist (email) or analytics/crash reporting ships, flip
-> this to "Yes" and declare Contact Info / Usage Data / Diagnostics
-> accordingly, and update the privacy manifest + policy to match.
+Still NOT collected (leave undeclared):
+- **Location (precise):** used on-device only for recording/showing
+  position — never transmitted.
+- **Sign in with Apple:** the user id is stored in the device Keychain
+  only; not sent anywhere.
+
+Also update the **privacy policy** at trekdex.app: name PostHog as the
+analytics processor, the **US** data region, what's collected (usage
+events, feedback + optional email), and why. This is required now that
+data leaves the device.
 
 ---
 

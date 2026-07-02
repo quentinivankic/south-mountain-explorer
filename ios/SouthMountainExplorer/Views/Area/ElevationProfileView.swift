@@ -125,7 +125,7 @@ struct ElevationProfileView: View {
             let step = 10.0
             let ticksU = [centerU - step, centerU, centerU + step]
             let ticksM = ticksU.map { $0 / unitPerMeter }
-            return (domain: ticksM.first!...ticksM.last!, ticks: ticksM)
+            return elevationAxisDomain(ticks: ticksM, fallbackBase: stats.minAltitudeMeters)
         }
 
         // Candidate steps in display units. Metric and imperial use
@@ -143,6 +143,6 @@ struct ElevationProfileView: View {
             t += step
         }
         let ticksM = ticksU.map { $0 / unitPerMeter }
-        return (ticksM.first!...ticksM.last!, ticksM)
+        return elevationAxisDomain(ticks: ticksM, fallbackBase: stats.minAltitudeMeters)
     }
 }

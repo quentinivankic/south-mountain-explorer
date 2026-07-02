@@ -86,3 +86,30 @@ struct ElevationStatsTests {
                 "expected ~110m+ across gap, got \(stats.totalAscentMeters)")
     }
 }
+
+/// Guards the elevation Y-axis force-unwrap fix — degenerate tick inputs
+/// must fall back to a valid domain instead of crashing.
+struct ElevationAxisDomainTests {
+    @Test func normalTicksPassThrough() {
+        let r = elevationAxisDomain(ticks: [100, 200, 300], fallbackBase: 100)
+        #expect(r.domain == 100...300)
+        #expect(r.ticks == [100, 200, 300])
+    }
+
+    @Test func emptyTicksFallBackToTinyDomain() {
+        let r = elevationAxisDomain(ticks: [], fallbackBase: 42)
+        #expect(r.domain == 42...43)
+        #expect(r.ticks.isEmpty)
+    }
+
+    @Test func nanTicksFallBack() {
+        let r = elevationAxisDomain(ticks: [.nan, .nan], fallbackBase: 10)
+        #expect(r.domain == 10...11)
+        #expect(r.ticks.isEmpty)
+    }
+
+    @Test func nanFallbackBaseBecomesZero() {
+        let r = elevationAxisDomain(ticks: [], fallbackBase: .nan)
+        #expect(r.domain == 0...1)
+    }
+}

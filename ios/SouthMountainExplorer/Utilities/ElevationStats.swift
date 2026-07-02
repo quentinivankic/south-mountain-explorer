@@ -96,3 +96,19 @@ func elevationStats(path: [GpsPoint]) -> ElevationStats? {
         samples: samples
     )
 }
+
+/// Safe `(domain, ticks)` for the elevation chart's Y axis. Guards the
+/// empty / non-finite case so `ElevationProfileView` can't crash
+/// force-unwrapping `ticks.first!` / `.last!` on degenerate altitude
+/// data (e.g. a hike whose GPS reported NaN altitudes — the tick loop
+/// would then produce an empty array). Falls back to a tiny valid
+/// domain so the chart renders flat instead of trapping.
+func elevationAxisDomain(ticks: [Double],
+                         fallbackBase: Double) -> (domain: ClosedRange<Double>, ticks: [Double]) {
+    guard let lo = ticks.first, let hi = ticks.last,
+          lo.isFinite, hi.isFinite, lo <= hi else {
+        let base = fallbackBase.isFinite ? fallbackBase : 0
+        return (base...(base + 1), [])
+    }
+    return (lo...hi, ticks)
+}

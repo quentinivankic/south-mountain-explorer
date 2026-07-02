@@ -49,6 +49,27 @@ final class AuthService: NSObject {
         userId = nil
     }
 
+    /// Delete the account, satisfying App Store Guideline 5.1.1(v)
+    /// (any app offering account creation must offer in-app deletion).
+    ///
+    /// Sign in with Apple here is entirely LOCAL — there is no backend
+    /// and no server-side account record; the only artifact of "having
+    /// an account" is the Apple user id stored in the Keychain. So
+    /// deleting the account is deleting that credential. There's
+    /// deliberately no Sign in with Apple REST *token revocation* call:
+    /// that endpoint requires a server holding the client-secret JWT,
+    /// which this app doesn't have. Removing the local credential is
+    /// the complete and only account state that exists.
+    ///
+    /// Hike history, completions, and Dex progress are intentionally
+    /// left untouched — they live on-device and aren't tied to the
+    /// Apple id. Wiping data is the separate "Reset All Progress" flow.
+    func deleteAccount() {
+        Keychain.delete(key: "appleUserId")
+        userId = nil
+        errorMessage = nil
+    }
+
     var isSignedIn: Bool { userId != nil }
 
     // MARK: - Apple auth presentation

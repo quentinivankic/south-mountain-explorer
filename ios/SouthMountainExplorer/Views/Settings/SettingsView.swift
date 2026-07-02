@@ -61,6 +61,7 @@ struct SettingsView: View {
     @State private var showSignIn = false
     @State private var showResetConfirm = false
     @State private var showSignOutConfirm = false
+    @State private var showDeleteAccountConfirm = false
 
     /// Backup export — non-nil while the share sheet is presented with
     /// the exported JSON file URL. Cleared on dismiss.
@@ -114,6 +115,29 @@ struct SettingsView: View {
                             Button("Sign Out", role: .destructive) {
                                 auth.signOut()
                             }
+                        }
+                        // Required by App Store Guideline 5.1.1(v): any
+                        // app offering account creation (Sign in with
+                        // Apple counts) must offer in-app deletion. The
+                        // account is local-only, so this removes the
+                        // Apple credential and leaves hikes/progress in
+                        // place — data wiping is Reset All Progress.
+                        Button(role: .destructive) {
+                            showDeleteAccountConfirm = true
+                        } label: {
+                            Label("Delete Account", systemImage: "person.crop.circle.badge.xmark")
+                        }
+                        .confirmationDialog(
+                            "Delete your account?",
+                            isPresented: $showDeleteAccountConfirm,
+                            titleVisibility: .visible
+                        ) {
+                            Button("Delete Account", role: .destructive) {
+                                auth.deleteAccount()
+                            }
+                            Button("Cancel", role: .cancel) { }
+                        } message: {
+                            Text("This removes Sign in with Apple from TrekDex. Your hikes, trail progress, and badges stay on this device — to erase those too, use Reset All Progress under Data.")
                         }
                     } else {
                         Button {

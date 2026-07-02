@@ -16,7 +16,12 @@ import MetricKit
 /// delivered on a background queue, so the subscriber must be
 /// nonisolated. We hop to the main actor only to hand the count to
 /// `AnalyticsService`.
-final class CrashReporter: NSObject, MXMetricManagerSubscriber {
+///
+/// `@unchecked Sendable` is truthful here: the class holds NO stored
+/// mutable state (no properties at all), so the `static let shared`
+/// singleton is safe to touch from any thread. Without this, Swift 6
+/// strict concurrency rejects the static let as non-concurrency-safe.
+final class CrashReporter: NSObject, MXMetricManagerSubscriber, @unchecked Sendable {
     static let shared = CrashReporter()
 
     /// Register with MetricKit. Call once at launch.

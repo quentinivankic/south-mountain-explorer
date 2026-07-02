@@ -8,12 +8,15 @@ private struct UserStats: Equatable {
     var areasExplored: Int
 }
 
-/// Privacy policy hosted on Notion. Pinned here so the Privacy
-/// Policy row in Settings → About renders and links to the
-/// authoritative copy of the policy. Same URL goes into App Store
-/// Connect's Privacy Policy URL field before External Beta
-/// submission.
-private let privacyPolicyURL: URL? = URL(string: "https://flint-tent-6ef.notion.site/TrekDex-Privacy-Policy-36061eb3c1d28043b1d4e58f3de860e6")
+/// Privacy policy, hosted at trekdex.app. Pinned here so the Privacy
+/// Policy row in Settings → About links to the authoritative copy.
+/// The SAME URL must go into App Store Connect's Privacy Policy URL
+/// field at submission — keep them in sync.
+private let privacyPolicyURL: URL? = URL(string: "https://trekdex.app/privacy-policy")
+
+/// Terms of Service, hosted at trekdex.app. Surfaced in Settings →
+/// About next to the privacy policy.
+private let termsOfServiceURL: URL? = URL(string: "https://trekdex.app/terms-of-service")
 
 /// OpenStreetMap copyright / licence page. The ODbL requires the
 /// "© OpenStreetMap contributors" credit to link here. Force-unwrapped
@@ -407,6 +410,11 @@ struct SettingsView: View {
                     if let url = privacyPolicyURL {
                         Link(destination: url) {
                             Label("Privacy Policy", systemImage: "hand.raised")
+                        }
+                    }
+                    if let url = termsOfServiceURL {
+                        Link(destination: url) {
+                            Label("Terms of Service", systemImage: "doc.plaintext")
                         }
                     }
                     // Required attribution: trail geometry + silhouettes

@@ -16,6 +16,8 @@ struct SouthMountainExplorerApp: App {
 
     init() {
         ActivityLogService.shared.log(category: "app", action: "launch")
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        AnalyticsService.shared.capture(.appLaunched(build: build))
     }
     // Force the singleton init to register the UNUserNotificationCenter
     // delegate before any notification can be tapped — without this the

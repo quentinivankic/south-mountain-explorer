@@ -181,6 +181,7 @@ struct SettingsView: View {
                             category: "settings", action: "theme",
                             context: ["value": newValue.rawValue]
                         )
+                        AnalyticsService.shared.capture(.themeChanged(value: newValue.rawValue))
                     }
                 }
 
@@ -195,6 +196,7 @@ struct SettingsView: View {
                             category: "settings", action: "units",
                             context: ["value": newValue.rawValue]
                         )
+                        AnalyticsService.shared.capture(.unitsChanged(value: newValue.rawValue))
                     }
                 }
 
@@ -589,6 +591,7 @@ struct SettingsView: View {
                 category: "settings", action: "exportData",
                 context: ["bytes": "\(data.count)"]
             )
+            AnalyticsService.shared.capture(.dataExported())
         } catch {
             exportError = "Export failed: \(error.localizedDescription)"
         }
@@ -612,6 +615,7 @@ struct SettingsView: View {
                 category: "settings", action: "importData",
                 context: ["bytes": "\(data.count)"]
             )
+            AnalyticsService.shared.capture(.dataImported())
             importSuccess = true
         } catch {
             importError = error.localizedDescription

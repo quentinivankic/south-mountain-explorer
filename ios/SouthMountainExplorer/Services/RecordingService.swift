@@ -265,6 +265,7 @@ final class RecordingService {
                 "mode": mode.rawValue,
             ]
         )
+        AnalyticsService.shared.capture(.hikeStarted(areaId: areaId, mode: mode.rawValue))
         locationService.startBackgroundTracking()
         beginObservingLocation()
         // Lazy-prompt for notifications now that the user has actually
@@ -314,6 +315,7 @@ final class RecordingService {
                 "pathPoints": String(prev?.path.count ?? 0),
             ]
         )
+        AnalyticsService.shared.capture(.hikeDiscarded(areaId: prev?.areaId ?? "unknown"))
     }
 
     /// Switch which trail the active recording is targeted at,
@@ -495,6 +497,11 @@ final class RecordingService {
                 "revisited": String(revisited.count),
             ]
         )
+        AnalyticsService.shared.capture(.hikeSaved(
+            areaId: rec.areaId,
+            distanceMi: rec.distanceMi,
+            durationSeconds: finished.durationSeconds,
+            mode: rec.mode.rawValue))
 
         activeRecording = nil
         UserDefaults.standard.removeObject(forKey: persistKey)

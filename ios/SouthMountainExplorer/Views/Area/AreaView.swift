@@ -380,6 +380,7 @@ struct AreaView: View {
                 action: "opened",
                 context: ["areaId": areaId]
             )
+            AnalyticsService.shared.capture(.areaOpened(areaId: areaId))
             let result = await areas.areaWithError(id: areaId)
             area = result.area
             loadError = result.error
@@ -827,6 +828,11 @@ struct AreaView: View {
             .pickerStyle(.segmented)
             .padding(.horizontal, 20)
             .padding(.bottom, 12)
+            .onChange(of: sheetTab) { _, tab in
+                if tab == .dex {
+                    AnalyticsService.shared.capture(.dexOpened(areaId: area.id))
+                }
+            }
 
             switch sheetTab {
             case .trails:

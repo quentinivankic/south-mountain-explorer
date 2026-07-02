@@ -16,12 +16,18 @@ struct SouthMountainExplorerApp: App {
 
     init() {
         ActivityLogService.shared.log(category: "app", action: "launch")
-        // Install the PostHog backend before the first capture so the
-        // launch event isn't dropped by the no-op default. No-ops (stays
-        // on the no-op backend) if the Info.plist key is absent.
+        // Install the PostHog backend ONLY in Release builds. Debug
+        // builds — local dev + the CI test suite launching in a
+        // throwaway simulator — would otherwise flood the production
+        // PostHog project with junk app_launched events (a fresh
+        // anonymous person per run, on the placeholder build "1").
+        // Release = TestFlight / App Store = real users. Left on the
+        // no-op backend in Debug, so events are captured but dropped.
+        #if !DEBUG
         if let backend = PostHogBackend.fromInfoPlist() {
             AnalyticsService.shared.configure(backend: backend)
         }
+        #endif
         // Subscribe to MetricKit so field crash/hang counts get
         // forwarded to analytics (delivered aggregated on a later launch).
         CrashReporter.shared.start()

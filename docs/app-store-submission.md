@@ -187,20 +187,47 @@ No account is required — all features work without signing in.
 
 ## Screenshots (you provide — device required)
 
-Apple needs 6.9" (iPhone 17 Pro Max class) and 6.5"/6.7" sets at minimum
-(App Store Connect will auto-scale down for smaller devices in most
-cases; verify current requirements at upload time).
+Sizes: App Store Connect needs a **6.9"** set (iPhone 16/17 Pro Max,
+**1320 × 2868** portrait) and it auto-scales down for smaller devices.
+Verify current size requirements at upload. Capture on an **iOS 26
+simulator seeded with real hikes** so the Dex / Stats / completion map
+look populated, not empty — this is the single biggest lever.
 
-Suggested shots, in order (first 2–3 matter most — they show in search):
-1. A park map with several completed (cyan) trails + the trail-list sheet.
-2. Active recording: the panel showing live pace + the live elevation
-   strip.
-3. The Dex: a grid of earned badges for an area.
-4. Stats tab: totals + the hikes-per-month chart.
-5. Hike detail: route map + elevation profile.
+**The story to sell:** browse a park → complete every trail → earn
+badges → track it live. Order the shots that way; the **first 2–3 show
+in search results**, so they carry the most weight.
 
-Tip: capture on an iOS 26 simulator with a seeded set of hikes so the
-Dex and Stats look populated, not empty.
+The 5 shots, in order, with caption-bar headlines:
+
+1. **Park map + completed trails + trail-list sheet.** 🥇 A dense,
+   colorful area (South Mountain, 48 trails) with several trails
+   **completed (cyan)** and the trail-list sheet up. The whole hook.
+   → *"Finish every trail in a park."*
+2. **The Dex — badge grid.** 🥈 An area's Dex with a mix of earned
+   (purple) + locked badges. The differentiator — nothing else looks
+   like it.
+   → *"Collect badges for every milestone."*
+3. **Active recording — live pace + elevation.** 🥉 Mid-hike panel
+   showing live Pace, the elevation strip, distance. Proves it's a real
+   GPS tracker.
+   → *"Track your hike, live."*
+4. **Stats tab — totals + hikes-per-month chart.** The payoff over time.
+   → *"Watch your progress add up."*
+5. **Hike detail — route map + elevation profile.** A finished hike,
+   mapped.
+   → *"Relive every route."*
+
+Notes:
+- **Seed data first** — an empty Dex (shot 2) or empty Stats (shot 4)
+  kills those frames. Record/import several hikes on the simulator
+  before capturing.
+- **Pick a photogenic area** for the map shots — dense + multi-colored
+  beats a sparse 3-trail one.
+- **Portrait, dark theme** throughout (consistent with the icon).
+- **Caption bars are optional but recommended** — a headline line above
+  each screenshot measurably lifts installs; the five above are ready
+  to use. Tools: Figma/Sketch, or a screenshot framer (Fastlane
+  frameit, Screenshots.pro, Rotato).
 
 ---
 

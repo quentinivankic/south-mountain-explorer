@@ -52,7 +52,7 @@ struct RecordingPanel: View {
                 .transition(.opacity)
             }
 
-            HStack(spacing: 20) {
+            HStack(spacing: 12) {
                 // Recording indicator
                 VStack(spacing: 2) {
                     Image(systemName: "record.circle.fill")
@@ -66,7 +66,11 @@ struct RecordingPanel: View {
 
                 Divider().frame(height: 40)
 
-                // Stats
+                // Stats. Each column takes an equal share of the middle
+                // (statColumn is maxWidth: .infinity) and values shrink to
+                // fit rather than truncate — three columns (Distance /
+                // Duration / Pace, + ETA in trail mode) were clipping to
+                // "0.05…" / "25:4…" at fixed width.
                 statColumn(label: "Distance", value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units))
                 statColumn(label: "Duration", value: formattedElapsed)
                 // Live pace from the 60-second smoothed window. Renders
@@ -84,8 +88,6 @@ struct RecordingPanel: View {
                 if let etaLabel {
                     statColumn(label: "ETA", value: etaLabel)
                 }
-
-                Spacer()
 
                 // Stop button
                 Button {
@@ -141,10 +143,16 @@ struct RecordingPanel: View {
         VStack(spacing: 2) {
             Text(value)
                 .font(.headline.monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)   // shrink to fit, never clip to "…"
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
+        // Equal share of the row's middle so 3-4 columns distribute
+        // instead of getting squeezed until values truncate.
+        .frame(maxWidth: .infinity)
     }
 
     private var formattedElapsed: String {

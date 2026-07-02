@@ -44,7 +44,23 @@ jobs:
         # the active SDK, making the build deterministic across runner-
         # image rolls. Adds ~3-5 min when the runtime needs to be
         # fetched, ~0 when it's already there.
-        run: xcodebuild -downloadPlatform iOS
+        #
+        # Wrapped in a 3× retry: this step intermittently fails with
+        # "Unable to connect to simulator" (exit 70) — a transient
+        # CoreSimulator hiccup, not a real error — which would abort the
+        # whole TestFlight build. Same retry the PR-build workflow got
+        # in #204.
+        run: |
+          for attempt in 1 2 3; do
+            if xcodebuild -downloadPlatform iOS; then
+              echo "iOS platform ready (attempt $attempt)"
+              exit 0
+            fi
+            echo "downloadPlatform attempt $attempt failed; retrying in 15s" >&2
+            sleep 15
+          done
+          echo "downloadPlatform failed after 3 attempts" >&2
+          exit 1
 
       - name: Install XcodeGen
         run: brew install xcodegen

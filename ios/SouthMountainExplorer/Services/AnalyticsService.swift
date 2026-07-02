@@ -125,11 +125,22 @@ extension AnalyticsEvent {
         AnalyticsEvent("data_imported")
     }
 
-    static func feedbackSubmitted(category: String, hasEmail: Bool) -> AnalyticsEvent {
-        AnalyticsEvent("feedback_submitted", [
+    /// Feedback is the one event that intentionally carries free-form
+    /// user content — the message (and optional email) IS the payload
+    /// the developer reads in PostHog. Unlike the passive telemetry
+    /// events, this content is explicitly user-authored and submitted,
+    /// so it's fair game; `has_email` stays as a cheap filterable flag
+    /// alongside the raw email.
+    static func feedbackSubmitted(category: String, message: String, email: String?) -> AnalyticsEvent {
+        var properties: [String: String] = [
             "category": category,
-            "has_email": hasEmail ? "true" : "false",
-        ])
+            "message": message,
+            "has_email": (email?.isEmpty == false) ? "true" : "false",
+        ]
+        if let email, !email.isEmpty {
+            properties["email"] = email
+        }
+        return AnalyticsEvent("feedback_submitted", properties)
     }
 
     // MARK: Bucketing (keeps continuous values coarse / non-identifying)

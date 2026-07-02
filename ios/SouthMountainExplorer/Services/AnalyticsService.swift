@@ -131,6 +131,17 @@ extension AnalyticsEvent {
     /// events, this content is explicitly user-authored and submitted,
     /// so it's fair game; `has_email` stays as a cheap filterable flag
     /// alongside the raw email.
+    /// Out-of-region waitlist signup. Like feedback, this intentionally
+    /// carries user-authored contact info (the email IS the point — it's
+    /// how the user gets notified when their region launches). `country`
+    /// is the device region code, the key you filter/export on later.
+    static func waitlistJoined(country: String, email: String) -> AnalyticsEvent {
+        AnalyticsEvent("waitlist_joined", [
+            "country": country,
+            "email": email,
+        ])
+    }
+
     static func feedbackSubmitted(category: String, message: String, email: String?) -> AnalyticsEvent {
         var properties: [String: String] = [
             "category": category,

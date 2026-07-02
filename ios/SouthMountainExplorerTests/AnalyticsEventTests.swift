@@ -26,6 +26,13 @@ struct AnalyticsEventTests {
         #expect(AnalyticsEvent.feedbackSubmitted(category: "bug", message: "x", email: nil).name == "feedback_submitted")
         #expect(AnalyticsEvent.crashDetected(count: 1).name == "crash_detected")
         #expect(AnalyticsEvent.hangDetected(count: 1).name == "hang_detected")
+        #expect(AnalyticsEvent.waitlistJoined(country: "FR", email: "a@b.com").name == "waitlist_joined")
+    }
+
+    @Test func waitlistCarriesCountryAndEmail() {
+        let e = AnalyticsEvent.waitlistJoined(country: "FR", email: "hiker@example.com")
+        #expect(e.properties["country"] == "FR")
+        #expect(e.properties["email"] == "hiker@example.com")
     }
 
     @Test func diagnosticEventsCarryCount() {

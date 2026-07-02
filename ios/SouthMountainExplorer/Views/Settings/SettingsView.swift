@@ -15,6 +15,11 @@ private struct UserStats: Equatable {
 /// submission.
 private let privacyPolicyURL: URL? = URL(string: "https://flint-tent-6ef.notion.site/TrekDex-Privacy-Policy-36061eb3c1d28043b1d4e58f3de860e6")
 
+/// OpenStreetMap copyright / licence page. The ODbL requires the
+/// "© OpenStreetMap contributors" credit to link here. Force-unwrapped
+/// — it's a compile-time constant literal that always parses.
+private let osmCopyrightURL = URL(string: "https://www.openstreetmap.org/copyright")!
+
 /// Small `Identifiable` wrapper around a `URL` so SwiftUI views
 /// can drive a `.sheet(item:)` off file URLs. `URL` itself doesn't
 /// conform to `Identifiable`, and `sheet(item:)` needs an identity
@@ -403,6 +408,15 @@ struct SettingsView: View {
                         Link(destination: url) {
                             Label("Privacy Policy", systemImage: "hand.raised")
                         }
+                    }
+                    // Required attribution: trail geometry + silhouettes
+                    // are derived from OpenStreetMap data, licensed under
+                    // the ODbL, which requires a visible "© OpenStreetMap
+                    // contributors" credit linking to the licence. Also
+                    // covers App Review guideline 5.2 (third-party IP).
+                    // Do not remove.
+                    Link(destination: osmCopyrightURL) {
+                        Label("Map data © OpenStreetMap contributors", systemImage: "map")
                     }
                 }
             }

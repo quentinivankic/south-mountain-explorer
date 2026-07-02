@@ -802,6 +802,15 @@ struct AreaView: View {
                         .font(.caption)
                         .foregroundStyle(completed == area.resolvedTrailCount ? .green : .secondary)
                 }
+
+                // ODbL attribution shown alongside the OSM-derived trail
+                // data itself (the trails listed/mapped in this sheet).
+                // Complements the linked credit in Settings → About;
+                // keeps the required "© OpenStreetMap contributors"
+                // visible in the context where the data is used.
+                Text("Trail data © OpenStreetMap contributors")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 20)

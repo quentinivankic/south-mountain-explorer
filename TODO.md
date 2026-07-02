@@ -18,16 +18,21 @@ TF builds.
   Delete Account removes the local Keychain credential; hikes/progress
   stay (Reset All Progress wipes those).
 - [x] **OpenStreetMap attribution** — Done in #199. "© OpenStreetMap
-  contributors" in Settings → About (links to the ODbL page) + a
-  caption in the area sheet where the trails render.
-- [x] **Privacy manifest (`PrivacyInfo.xcprivacy`)** — Done in #200.
-  Declares UserDefaults (CA92.1) only; `NSPrivacyTracking` false,
-  `NSPrivacyCollectedDataTypes` empty (nothing leaves the device).
+  contributors" in Settings → About (links to the ODbL page). (The
+  extra area-header caption was removed in #213 — the About credit
+  alone satisfies the ODbL.)
+- [x] **Privacy manifest (`PrivacyInfo.xcprivacy`)** — Done in #200,
+  expanded in #211/#212 when PostHog + feedback + MetricKit shipped.
+  Now declares Product Interaction, Other User Content, Email, and
+  Crash Data (all not-linked, not-tracking); `NSPrivacyTracking` still
+  false.
 - [x] **Privacy policy URL** — Hosted at trekdex.app/privacy-policy;
   in-app link updated + Terms of Service added in #205.
-- [ ] **App Privacy "nutrition label"** — Drafted in
-  `docs/app-store-submission.md` ("Data Not Collected", matching the
-  manifest). Still needs to be ENTERED in App Store Connect (you).
+- [ ] **App Privacy "nutrition label"** — Draft in
+  `docs/app-store-submission.md`. Now that PostHog analytics + feedback
+  ship, this is **Data Collection: Yes** — Product Interaction, Other
+  User Content, Email, Crash Data (not linked, not tracking). Still
+  needs to be ENTERED in App Store Connect (you).
 - [ ] **App Store metadata package** — Text (description, subtitle,
   keywords, category, URLs, age rating) drafted in
   `docs/app-store-submission.md`. Still TODO: **screenshots** (device),
@@ -35,24 +40,21 @@ TF builds.
 - [ ] **DUNS / organization enrollment** — Gates submission itself.
   In progress (waiting on the DUNS number).
 
-> ⚠️ The privacy manifest / nutrition-label / policy items above are
-> written against today's reality: **nothing is collected off-device**
-> (no backend, no analytics). Two planned features would change that
-> and force all three to be revised — the **out-of-region waitlist**
-> (collects email → Contact Info) and **analytics + crash reporting**
-> (Crash/Usage data). If either lands before or after store submission,
-> update the manifest, the ASC nutrition label, and the privacy policy
-> together. See the Backlog entries for both.
+> ⚠️ **Analytics + feedback now collect off-device** (PostHog, US
+> region — shipped #208–#212). The manifest already reflects this; make
+> sure the **ASC nutrition label** and the **trekdex.app privacy
+> policy** name PostHog + the US region and list the collected types.
+> The out-of-region **waitlist** (would collect email → Contact Info)
+> is still unbuilt; if it lands, revisit all three again.
 
 ### Strongly advised (rejection-likely or bad first impression)
 
-- [~] **"Always" location audit** — Code done in **PR #202 (open)**:
-  confirmed the app never actually needed Always (no geofencing /
-  significant-change relaunch; `requestAlwaysAuthorization` was
-  defined-but-unused), dropped the Always usage string, When-In-Use +
-  `UIBackgroundModes: [location]` covers background recording. HELD
-  from merge until an on-device backgrounded hike confirms the GPS
-  track stays continuous. Merge #202 after that.
+- [x] **"Always" location audit** — Done in #202. The app never
+  actually needed Always (no geofencing / significant-change relaunch;
+  `requestAlwaysAuthorization` was defined-but-unused). Dropped the
+  Always usage string + dead methods; When-In-Use +
+  `UIBackgroundModes: [location]` covers background recording,
+  confirmed on-device with a screen-locked hike (continuous track).
 - [x] **App Review reviewer notes** — Drafted in
   `docs/app-store-submission.md` (how to simulate a GPS hike via Xcode
   Simulate Location, roam vs trail, SiwA + account-deletion path).
@@ -117,30 +119,6 @@ TF builds.
 
 ## Backlog — tech debt / ops
 
-- [ ] **Analytics + crash reporting.** No analytics or crash capture
-  today. Want both: usage analytics (screen/feature engagement,
-  funnels) and crash/exception logs to catch field crashes before
-  they become reviews.
-  Options, cheapest-privacy-impact first:
-    - Crashes: **MetricKit** (`MXMetricManager`) is Apple-first-party,
-      on-device, no third-party SDK — lowest privacy footprint but
-      delayed/aggregated reports, no live dashboard.
-    - Crashes + analytics with a dashboard: a third-party SDK
-      (TelemetryDeck is privacy-forward and IDFA-free; Firebase
-      Crashlytics / Sentry are richer but collect more).
-  **Privacy coupling (important — do NOT ship blind):** any
-  off-device analytics/crash SDK changes the privacy story that the
-  in-flight App Store work just set to "nothing collected":
-    - `PrivacyInfo.xcprivacy` — add the collected data types
-      (Crash Data, Usage/Product Interaction, maybe Performance) and,
-      for some SDKs, `NSPrivacyTracking`/tracking domains + their own
-      bundled privacy manifests.
-    - App Store Connect App Privacy nutrition label — declare the
-      new collection.
-    - Privacy policy — describe what's collected, why, retention,
-      and the processor.
-  Pick the SDK with the privacy budget in mind; MetricKit-only keeps
-  the manifest nearly as clean as it is now.
 - [ ] **Area quality cull.** Drop areas below a trail-count /
   mileage floor with a name-token whitelist for NPS-style units.
   Originally raised this session before pivoting to NA-only; still a
@@ -172,11 +150,13 @@ TF builds.
 Everything below is external / on-device and can't be finished in the
 repo:
 
-- [ ] Enter the App Privacy nutrition label in App Store Connect (draft
-  in `docs/app-store-submission.md`).
+- [ ] Enter the App Privacy nutrition label in App Store Connect —
+  now **Data Collection: Yes** (PostHog): Product Interaction, Other
+  User Content, Email, Crash Data. Draft in `docs/app-store-submission.md`.
+- [ ] Update the trekdex.app **privacy policy** to name PostHog as the
+  analytics processor + the **US** data region + the collected types.
 - [ ] Capture App Store screenshots on a device/simulator (plan in the
   same doc).
-- [ ] Merge PR #202 after an on-device backgrounded-hike test.
 - [ ] Crash/stability pass on device.
 - [ ] Finish DUNS / org enrollment.
 
@@ -218,12 +198,27 @@ Notable rollups for the current TestFlight cycle:
 - **Export fail-loud.** #197. `collectExport()` now throws instead of
   silently dropping an unreadable `hike-history.json`, so a backup
   can't quietly omit the irreplaceable GPS recordings.
-- **App Store submission prep.** Account deletion (#198), OSM
-  attribution (#199), privacy manifest (#200), trekdex.app legal
-  links + Terms (#205), and the `docs/app-store-submission.md`
-  metadata/reviewer-notes package (#206). Location When-In-Use
-  downgrade is staged in #202 (see the gate section). See "Waiting on
-  you" for the remaining external steps.
+- **App Store submission prep.** All four code blockers done: account
+  deletion (#198), OSM attribution (#199), privacy manifest (#200),
+  location When-In-Use (#202). Plus trekdex.app legal links + Terms
+  (#205) and the `docs/app-store-submission.md` metadata/reviewer-notes
+  package (#206). Remaining is external — see "Waiting on you".
+- **Analytics + feedback pipelines (PostHog).** #208–#212. Swappable
+  `AnalyticsService` facade (no-op default), instrumented events, an
+  in-app Send Feedback form, the PostHog backend wired to the US
+  project (key in Info.plist, anonymous, no autocapture), and MetricKit
+  crash/hang capture. One SDK covers analytics + feedback; privacy
+  manifest updated to match.
+- **Units consistency + area header.** #213. Routed the last hardcoded-
+  miles sites through `UnitFormatter` (area total, Settings → Your
+  Activity, share card, far-warning). Collapsed the area sheet header
+  to one line (trails · distance · completion, green at 100%) and
+  dropped the redundant OSM caption there.
+- **Live pace / ETA fix.** #214. Path timestamps are epoch
+  milliseconds but `smoothedPaceMetersPerSec` read them as seconds, so
+  the 60 s window was really 60 ms — live pace, ETA, and suggestion
+  timing all silently returned nil. Fixed the ms→s math; extracted a
+  pure, tested `paceMetersPerSec`.
 - **CI infra hardening.** Fixed the macos-latest runner rolls:
   download the iOS platform before build un-sudo'd with retry (#197,
   #204), and resolve the test simulator UDID dynamically instead of

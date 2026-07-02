@@ -24,6 +24,13 @@ struct AnalyticsEventTests {
         #expect(AnalyticsEvent.dataExported().name == "data_exported")
         #expect(AnalyticsEvent.dataImported().name == "data_imported")
         #expect(AnalyticsEvent.feedbackSubmitted(category: "bug", message: "x", email: nil).name == "feedback_submitted")
+        #expect(AnalyticsEvent.crashDetected(count: 1).name == "crash_detected")
+        #expect(AnalyticsEvent.hangDetected(count: 1).name == "hang_detected")
+    }
+
+    @Test func diagnosticEventsCarryCount() {
+        #expect(AnalyticsEvent.crashDetected(count: 3).properties["count"] == "3")
+        #expect(AnalyticsEvent.hangDetected(count: 2).properties["count"] == "2")
     }
 
     @Test func hikeSavedCarriesBucketsAndMode() {

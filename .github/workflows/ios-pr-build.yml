@@ -42,13 +42,28 @@ jobs:
         # preinstalled at all — xcodebuild's destination resolver
         # fails with "iOS 26.0 is not installed", so even a
         # `generic/platform=iOS Simulator` BUILD can't resolve a
-        # destination (it used to, back when only the per-device
-        # simulator *runtime* was missing but the platform/SDK was
-        # present). Downloading the iOS platform here makes both the
-        # build's generic destination and the test's named iPhone 16
+        # destination. Downloading the iOS platform here makes both the
+        # build's generic destination and the test's simulator
         # destination resolvable. ~3-5 min on a cold runner, ~0 when
-        # already cached. Mirrors the same fix in ios-testflight.yml.
-        run: sudo xcodebuild -downloadPlatform iOS
+        # already cached.
+        #
+        # NO sudo: running xcodebuild as root can't reach the
+        # user-session CoreSimulator service, which made this step fail
+        # intermittently with "Unable to connect to simulator" (exit
+        # 70). The reliable ios-testflight.yml runs it un-sudo'd too.
+        # Wrapped in a retry because the download itself occasionally
+        # hits a transient network/service hiccup on a cold runner.
+        run: |
+          for attempt in 1 2 3; do
+            if xcodebuild -downloadPlatform iOS; then
+              echo "iOS platform ready (attempt $attempt)"
+              exit 0
+            fi
+            echo "downloadPlatform attempt $attempt failed; retrying in 15s" >&2
+            sleep 15
+          done
+          echo "downloadPlatform failed after 3 attempts" >&2
+          exit 1
 
       - name: Install XcodeGen
         run: brew install xcodegen

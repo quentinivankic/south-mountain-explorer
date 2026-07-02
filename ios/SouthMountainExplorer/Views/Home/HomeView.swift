@@ -89,6 +89,13 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
+                    // Out-of-region users: a waitlist prompt above the
+                    // normal content (which still lists US/CA parks, so
+                    // they can browse/plan). See RegionSupport.
+                    if !RegionSupport.isSupported {
+                        WaitlistCard(countryName: RegionSupport.currentCountryName,
+                                     regionCode: RegionSupport.currentRegionCode)
+                    }
                     if let pickup = continueArea {
                         continueSection(area: pickup)
                     }

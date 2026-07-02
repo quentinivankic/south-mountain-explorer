@@ -4,10 +4,11 @@ Paste-ready drafts for the App Store Connect listing + review. Everything
 here is editable copy, not code. Fill the ASC fields from this once org
 enrollment (DUNS) clears. Character limits noted are Apple's.
 
-> Status: analytics + feedback + crash capture (PostHog + MetricKit)
-> **shipped**, so the App Privacy section is **Data Collection: Yes**.
-> The out-of-region **waitlist** is still unbuilt — if it lands it adds
-> Contact Info collection and this all gets revisited.
+> Status: analytics + feedback + crash capture (PostHog + MetricKit) and
+> the out-of-region **waitlist** all **shipped**, so the App Privacy
+> section is **Data Collection: Yes**. The waitlist email is the same
+> Email Address type already declared (App Functionality), so no new
+> manifest category — it just adds a second source of that data.
 
 ---
 
@@ -108,7 +109,7 @@ feedback form — declare **Data Collection: Yes**, then:
 |---|---|---|---|
 | **Product Interaction** (usage events) | No | No | Analytics |
 | **Other User Content** (feedback message) | No | No | App Functionality |
-| **Email Address** (only if added to feedback) | No | No | App Functionality / Customer Support |
+| **Email Address** (feedback reply, or waitlist signup) | No | No | App Functionality / Customer Support |
 | **Crash Data** (MetricKit) | No | No | App Functionality |
 
 - **Tracking:** No — no IDFA, no cross-app tracking, no data brokers.

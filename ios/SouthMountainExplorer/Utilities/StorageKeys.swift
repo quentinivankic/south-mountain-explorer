@@ -50,6 +50,11 @@ enum StorageKeys {
     static let areaOpenedAt = "summit:area-opened-at"
     static let appSessions = "summit:app-sessions"
 
+    /// Set once the user joins the out-of-region waitlist, so the
+    /// Explore prompt flips to a compact "you're on the list" state
+    /// instead of asking again. Not progress → not cleared by Reset.
+    static let waitlistJoined = "summit:waitlist-joined"
+
     // MARK: - Internal caches (cleared by their own paths,
     //         e.g. Clear All Downloads also clears the prefetch cooldown)
 

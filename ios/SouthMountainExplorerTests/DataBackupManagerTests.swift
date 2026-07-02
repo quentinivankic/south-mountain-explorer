@@ -6,6 +6,16 @@ import Testing
 /// guarded against: an export that silently omits the user's
 /// irreplaceable `hike-history.json`, letting them "back up", reset,
 /// and only then discover the recordings were never in the file.
+///
+/// `.serialized`: both tests mutate the SAME real file path
+/// (Documents/hike-history.json) — one plants a directory there, the
+/// other removes it. Swift Testing runs a suite's tests in parallel by
+/// default, so without serialization they race on that shared
+/// filesystem state and one intermittently fails (the export sees the
+/// other test's mid-flight setup/teardown). Serializing makes them run
+/// one at a time. No other suite touches this path, so intra-suite
+/// serialization is sufficient.
+@Suite(.serialized)
 struct DataBackupManagerTests {
 
     private var documentsDir: URL {

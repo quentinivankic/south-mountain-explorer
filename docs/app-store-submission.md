@@ -4,11 +4,10 @@ Paste-ready drafts for the App Store Connect listing + review. Everything
 here is editable copy, not code. Fill the ASC fields from this once org
 enrollment (DUNS) clears. Character limits noted are Apple's.
 
-> Keep this in sync with reality. Two backlog features would change the
-> **App Privacy** section below if they land: the out-of-region waitlist
-> (collects email) and analytics/crash reporting (collects usage/crash
-> data). Today the app collects nothing off-device, so the answers below
-> say "Data Not Collected." Revisit if either ships.
+> Status: analytics + feedback + crash capture (PostHog + MetricKit)
+> **shipped**, so the App Privacy section is **Data Collection: Yes**.
+> The out-of-region **waitlist** is still unbuilt — if it lands it adds
+> Contact Info collection and this all gets revisited.
 
 ---
 
@@ -110,13 +109,14 @@ feedback form — declare **Data Collection: Yes**, then:
 | **Product Interaction** (usage events) | No | No | Analytics |
 | **Other User Content** (feedback message) | No | No | App Functionality |
 | **Email Address** (only if added to feedback) | No | No | App Functionality / Customer Support |
-| **Crash Data** (once MetricKit lands, Phase 3b) | No | No | App Functionality |
+| **Crash Data** (MetricKit) | No | No | App Functionality |
 
 - **Tracking:** No — no IDFA, no cross-app tracking, no data brokers.
   PostHog runs anonymous (we never call `identify`).
 - Matches `PrivacyInfo.xcprivacy` (Product Interaction / Other User
-  Content / Email declared; `NSPrivacyTracking` false). PostHog's SDK
-  ships its own manifest for the identifiers/diagnostics it adds.
+  Content / Email / Crash Data declared; `NSPrivacyTracking` false).
+  PostHog's SDK ships its own manifest for the identifiers/diagnostics
+  it adds.
 
 Still NOT collected (leave undeclared):
 - **Location (precise):** used on-device only for recording/showing
@@ -172,10 +172,15 @@ SIGN IN WITH APPLE + ACCOUNT DELETION
 Background location is used only during an explicit, user-started
 recording session (When In Use authorization + background location) to
 keep the GPS track continuous when the screen locks.
-```
 
-Optionally add a demo-account note: *"No account required — all features
-are available without signing in."*
+COVERAGE IS US + CANADA ONLY
+Trail data currently covers the United States and Canada. If you review
+from outside North America, the "nearby" lists may look empty — that's
+expected, not a bug. To see full content, use Search and enter a US
+park, e.g. "South Mountain, Phoenix" or "Camelback Mountain".
+
+No account is required — all features work without signing in.
+```
 
 ---
 
@@ -198,16 +203,28 @@ Dex and Stats look populated, not empty.
 
 ---
 
-## Pre-submit checklist (code side — status)
+## Export compliance
 
+`ITSAppUsesNonExemptEncryption: false` is already set in `project.yml`'s
+Info.plist — the app only uses standard HTTPS/TLS, which is exempt. So
+ASC won't prompt for export-compliance docs at each upload. Nothing to do.
+
+## Pre-submit checklist
+
+Code side — all done:
 - [x] In-app account deletion (#198)
 - [x] OpenStreetMap attribution (#199)
-- [x] PrivacyInfo.xcprivacy (#200)
-- [x] Privacy Policy + Terms links point at trekdex.app (#205)
-- [ ] Location When-In-Use only (#202 — merge after an on-device
-      backgrounded-hike confirms recording still works)
-- [ ] Privacy policy URL reachable and reads as a real policy (you: done,
-      trekdex.app/privacy-policy)
+- [x] PrivacyInfo.xcprivacy — incl. PostHog/feedback/crash types (#200, #211, #212)
+- [x] Privacy Policy + Terms links → trekdex.app (#205)
+- [x] Location When-In-Use only (#202) — confirmed on-device (screen-locked hike)
+- [x] Export compliance key set (see above)
+
+On you / Apple — remaining:
+- [x] Privacy policy hosted + reachable (trekdex.app/privacy-policy)
+- [ ] **Update privacy policy** to name PostHog + US region + collected types
+- [ ] **App Privacy nutrition label** entered in ASC (table above)
+- [ ] **Screenshots** captured (plan above) — often the long pole; can do pre-DUNS
+- [ ] Metadata pasted into ASC (name/subtitle/desc/keywords/category/URLs)
+- [ ] Reviewer notes pasted into ASC
 - [ ] Crash/stability sweep on device
-- [ ] Screenshots captured
-- [ ] DUNS / org enrollment complete (blocks submission)
+- [ ] **DUNS / org enrollment** — approved, ~24–48 h out (gates submission)

@@ -9,16 +9,59 @@
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
 
-	<!-- No data is "collected" in Apple's sense: nothing is transmitted
-	     off the device for the developer to access. Hikes, location, and
-	     the Sign in with Apple credential all stay on-device (there is
-	     no backend). Network calls are read-only area-data fetches
-	     (cdn.trekdex.app) and geographic trail queries (Overpass /
-	     Nominatim) that carry map coordinates, not personal data.
-	     "Send Diagnostics" is a user-initiated share sheet, not an
-	     automatic upload. -->
+	<!-- Data collected via PostHog analytics + the in-app feedback form.
+	     Hikes, GPS location, and the Sign in with Apple credential still
+	     never leave the device; area fetches (cdn.trekdex.app) and trail
+	     queries (Overpass / Nominatim) carry map coordinates, not
+	     personal data. What IS collected:
+	       - Product Interaction: the app's own explicit, bucketed usage
+	         events (analytics). Not linked to identity, not for tracking.
+	       - Other User Content: the message a user types into "Send
+	         Feedback" (app functionality — reading/acting on feedback).
+	       - Email Address: only if a user chooses to add one to their
+	         feedback for a reply (app functionality).
+	     The PostHog SDK ships its own privacy manifest declaring the
+	     identifiers/diagnostics it adds. Nothing is used for tracking
+	     (no IDFA, no cross-app tracking, no data brokers). -->
 	<key>NSPrivacyCollectedDataTypes</key>
-	<array/>
+	<array>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeEmailAddress</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
 
 	<!-- Required-reason API declarations. Only UserDefaults is used;
 	     the app does not touch file-timestamp, system-boot-time, or

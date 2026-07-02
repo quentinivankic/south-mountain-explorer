@@ -16,6 +16,12 @@ struct SouthMountainExplorerApp: App {
 
     init() {
         ActivityLogService.shared.log(category: "app", action: "launch")
+        // Install the PostHog backend before the first capture so the
+        // launch event isn't dropped by the no-op default. No-ops (stays
+        // on the no-op backend) if the Info.plist key is absent.
+        if let backend = PostHogBackend.fromInfoPlist() {
+            AnalyticsService.shared.configure(backend: backend)
+        }
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
         AnalyticsService.shared.capture(.appLaunched(build: build))
     }

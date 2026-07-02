@@ -88,22 +88,19 @@ TF builds.
   provisioning profile, add as `APPLE_WIDGETS_PROVISIONING_PROFILE_BASE64`
   GitHub secret. Then the widget target can sign and the workflow can
   ship it.
-- [ ] **Out-of-region waitlist + notify-me.** Coverage is US + Canada
-  only. For users outside NA, show a waitlist prompt instead of an
-  empty Explore/Browse: detect region (start with `Locale.current.
-  region` — cheap, no permission; optionally refine with the user's
-  coarse location if already granted), and if it's not US/CA, offer
-  "We're not in <country/continent> yet — get an email when we are."
-  Capture their email + region.
-  Needs infra the app doesn't have yet: TrekDex is currently 100%
-  backend-less (SiwA is local, all data on-device), so storing emails
-  + sending "your region is live" notifications requires a real
-  service (a hosted list / DB + a send path). Scope that first.
-  **Privacy coupling:** collecting an email address IS data
-  collection of Contact Info tied to identity — updates the privacy
-  manifest (`NSPrivacyCollectedDataTypes`), the App Store nutrition
-  label, and the privacy policy (all currently say "nothing
-  collected"). See the App Store gate section.
+- [ ] **Smarter mid-hike recommendations.** The suggestion banner
+  exists (`TrailSuggestionEngine` + `SuggestionBanner`), but two things:
+  (1) **Verify it even fires now.** The engine bails when pace is nil
+  (`guard let pace = …, pace > 0.1`), and `smoothedPaceMetersPerSec`
+  returned nil on every hike until the ms→s fix (#214) — so the banner
+  was silently dead on builds ≤197. Re-test on a #214+ build before
+  assuming it's broken.
+  (2) **Make it richer.** Today it's proximity + detour-time +
+  completion only ("0.2 mi detour, adds ~4 min"). Wanted: framing like
+  "the fork coming up gets you more completion and it's an easy, flat
+  path" — i.e. difficulty/terrain-aware (`Trail.difficulty`, elevation
+  from the geom) and phrased around an *upcoming* turn/fork on the
+  user's current heading, not just any nearby incomplete trail.
 
 ## Backlog — UX / polish
 
@@ -115,7 +112,6 @@ TF builds.
 - [ ] **Share card expansion.** `ShareableHikeCard` exists; grow it
   into a proper "I completed X" share-out (especially good with the
   Dex once that lands).
-- [ ] Featured area of the week (auto-rotate by ISO week).
 
 ## Backlog — tech debt / ops
 
@@ -218,7 +214,15 @@ Notable rollups for the current TestFlight cycle:
   milliseconds but `smoothedPaceMetersPerSec` read them as seconds, so
   the 60 s window was really 60 ms — live pace, ETA, and suggestion
   timing all silently returned nil. Fixed the ms→s math; extracted a
-  pure, tested `paceMetersPerSec`.
+  pure, tested `paceMetersPerSec`. (Recording-panel stat truncation
+  from the added Pace column fixed in #217.)
+- **Out-of-region waitlist.** #219. Device Region ∉ US/CA (via
+  `Locale`, no permission) → a waitlist card atop Explore ("Not in
+  <Country> yet" + email → Join), remembered across launches. Soft
+  prompt — US/CA parks still browsable. Signups ride PostHog as a
+  `waitlist_joined` event (country + email); no new backend. Collection
+  now; the launch-email *send* is a separate future step (export by
+  country from PostHog).
 - **CI infra hardening.** Fixed the macos-latest runner rolls:
   download the iOS platform before build un-sudo'd with retry (#197,
   #204), and resolve the test simulator UDID dynamically instead of

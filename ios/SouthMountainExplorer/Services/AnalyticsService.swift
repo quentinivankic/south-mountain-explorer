@@ -143,6 +143,17 @@ extension AnalyticsEvent {
         return AnalyticsEvent("feedback_submitted", properties)
     }
 
+    /// MetricKit-derived diagnostics. Only a count leaves the device
+    /// (never the crash payload), delivered aggregated by MetricKit on a
+    /// later launch. See CrashReporter.
+    static func crashDetected(count: Int) -> AnalyticsEvent {
+        AnalyticsEvent("crash_detected", ["count": String(count)])
+    }
+
+    static func hangDetected(count: Int) -> AnalyticsEvent {
+        AnalyticsEvent("hang_detected", ["count": String(count)])
+    }
+
     // MARK: Bucketing (keeps continuous values coarse / non-identifying)
 
     /// Coarse distance bucket. Negative/zero fold into the lowest band.

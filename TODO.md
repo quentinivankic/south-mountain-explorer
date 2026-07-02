@@ -13,33 +13,27 @@ TF builds.
 
 ### Hard blockers (App Review will reject)
 
-- [ ] **In-app account deletion** — Apple Guideline 5.1.1(v): any app
-  offering account creation must provide an in-app delete path. Sign
-  in with Apple counts as account creation. If SiwA is purely local
-  (no server-side account record), document that and the delete-all-
-  local-state flow IS the delete; if anything is server-side, build
-  the deletion call. Extremely common rejection reason.
-- [ ] **OpenStreetMap attribution** — Trail geometry + silhouettes are
-  OSM-derived (ODbL license), which legally requires a visible
-  "© OpenStreetMap contributors" credit. Missing it is both an ODbL
-  violation AND an App Review 5.2 IP risk. Add an attribution line
-  somewhere in Settings → About, ideally also a small credit on the
-  map view.
-- [ ] **Privacy manifest (`PrivacyInfo.xcprivacy`)** — Required since
-  May 2024 for apps using required-reason APIs (UserDefaults, file
-  timestamps, boot time, disk space) and apps that collect precise
-  location. Draft existed in the closed PR #141.
-- [ ] **Privacy policy URL** — App Store Connect requires a reachable
-  hosted privacy policy for any data collection. The Notion page
-  linked from Settings → About probably qualifies; verify it actually
-  reads as a real privacy policy (collection categories, retention,
-  contact, etc.).
-- [ ] **App Privacy "nutrition label"** — Declare in App Store
-  Connect: precise location (yes), linked to identity (no), used for
-  tracking (no), purpose (app functionality only).
-- [ ] **App Store metadata package** — Screenshots (multiple device
-  sizes), app description, keywords, category, support URL, marketing
-  URL (optional), age rating questionnaire.
+- [x] **In-app account deletion** — Guideline 5.1.1(v). Done in #198.
+  SiwA is purely local (no server account), so Settings → Account →
+  Delete Account removes the local Keychain credential; hikes/progress
+  stay (Reset All Progress wipes those).
+- [x] **OpenStreetMap attribution** — Done in #199. "© OpenStreetMap
+  contributors" in Settings → About (links to the ODbL page) + a
+  caption in the area sheet where the trails render.
+- [x] **Privacy manifest (`PrivacyInfo.xcprivacy`)** — Done in #200.
+  Declares UserDefaults (CA92.1) only; `NSPrivacyTracking` false,
+  `NSPrivacyCollectedDataTypes` empty (nothing leaves the device).
+- [x] **Privacy policy URL** — Hosted at trekdex.app/privacy-policy;
+  in-app link updated + Terms of Service added in #205.
+- [ ] **App Privacy "nutrition label"** — Drafted in
+  `docs/app-store-submission.md` ("Data Not Collected", matching the
+  manifest). Still needs to be ENTERED in App Store Connect (you).
+- [ ] **App Store metadata package** — Text (description, subtitle,
+  keywords, category, URLs, age rating) drafted in
+  `docs/app-store-submission.md`. Still TODO: **screenshots** (device),
+  and pasting it all into ASC.
+- [ ] **DUNS / organization enrollment** — Gates submission itself.
+  In progress (waiting on the DUNS number).
 
 > ⚠️ The privacy manifest / nutrition-label / policy items above are
 > written against today's reality: **nothing is collected off-device**
@@ -52,35 +46,23 @@ TF builds.
 
 ### Strongly advised (rejection-likely or bad first impression)
 
-- [ ] **"Always" location audit** — Currently requesting
-  `NSLocationAlwaysAndWhenInUse`. "Always" is Apple's highest-
-  scrutiny permission. For an explicit user-started hike recording,
-  `When In Use` + `UIBackgroundModes: [location]` works (Apple grants
-  background tracking for the duration of a user-started session).
-  Confirm whether the app genuinely needs Always for any flow (e.g.
-  auto-resume of an interrupted recording across reboots); if not,
-  downgrade. Removes both a rejection vector and a scarier user
-  prompt at first launch.
-- [ ] **App Review reviewer notes** — App Store Connect → Build →
-  Notes. Reviewers test indoors with no real GPS; without
-  instructions they'll mark recording as "non-functional" and reject.
-  Include: how to simulate a hike (e.g. Xcode location simulation
-  routes), what to expect in roam vs trail mode, how to test the SiwA
-  flow + account deletion.
+- [~] **"Always" location audit** — Code done in **PR #202 (open)**:
+  confirmed the app never actually needed Always (no geofencing /
+  significant-change relaunch; `requestAlwaysAuthorization` was
+  defined-but-unused), dropped the Always usage string, When-In-Use +
+  `UIBackgroundModes: [location]` covers background recording. HELD
+  from merge until an on-device backgrounded hike confirms the GPS
+  track stays continuous. Merge #202 after that.
+- [x] **App Review reviewer notes** — Drafted in
+  `docs/app-store-submission.md` (how to simulate a GPS hike via Xcode
+  Simulate Location, roam vs trail, SiwA + account-deletion path).
+  Paste into ASC at submission.
 - [ ] **Stability / crash pass** — Broad device QA before submit.
   Drag jank is fixed, but App Review rejects crashy apps; do a sweep
   across a current iPhone + an older model if possible.
 
 ## Backlog — features
 
-- [ ] **Dex / achievements per area.** Pokédex-style page showing
-  milestones + badges for a given area: first hike here, first
-  easy/medium/hard trail completed, every-trail crown, four-seasons,
-  total miles in this area, etc. Entirely derivable from existing
-  data (`RecordingService.loadHistory()`, `ProgressService.completions`
-  date-stamped per-trail, `CoverageService`, Trail.difficulty) so it
-  populates retroactively. Likely a second segmented tab inside the
-  area sheet (Trails | Dex).
 - [ ] **Distance-to-next-turn banner (#144).** Third line in the
   recording banner during trail-mode: "→ 420 ft to next turn". Already
   scoped in a stale PR; pure logic + one UI line. No provisioning
@@ -185,6 +167,19 @@ TF builds.
   Canadian provinces are seeded vs partially covered, fill gaps via
   `build-trail-index` dispatches.
 
+## Waiting on you (not code)
+
+Everything below is external / on-device and can't be finished in the
+repo:
+
+- [ ] Enter the App Privacy nutrition label in App Store Connect (draft
+  in `docs/app-store-submission.md`).
+- [ ] Capture App Store screenshots on a device/simulator (plan in the
+  same doc).
+- [ ] Merge PR #202 after an on-device backgrounded-hike test.
+- [ ] Crash/stability pass on device.
+- [ ] Finish DUNS / org enrollment.
+
 ## Shipped
 
 Builds 1 through 19 — see `git log` for the full record. PRs are the
@@ -216,3 +211,21 @@ Notable rollups for the current TestFlight cycle:
   profile chart now renders live in the recording panel (reusing
   `ElevationProfileView` + `elevationStats`), so the user sees
   climbing in progress instead of only post-hike.
+- **Dex / achievements per area.** #195 (page) + #196 (tap-a-badge
+  detail). Pokédex-style grid as a second segment of the area sheet
+  (Trails | Dex): milestones, difficulty firsts, distance tiers, and
+  dedication badges, all derived retroactively by `AchievementEngine`.
+- **Export fail-loud.** #197. `collectExport()` now throws instead of
+  silently dropping an unreadable `hike-history.json`, so a backup
+  can't quietly omit the irreplaceable GPS recordings.
+- **App Store submission prep.** Account deletion (#198), OSM
+  attribution (#199), privacy manifest (#200), trekdex.app legal
+  links + Terms (#205), and the `docs/app-store-submission.md`
+  metadata/reviewer-notes package (#206). Location When-In-Use
+  downgrade is staged in #202 (see the gate section). See "Waiting on
+  you" for the remaining external steps.
+- **CI infra hardening.** Fixed the macos-latest runner rolls:
+  download the iOS platform before build un-sudo'd with retry (#197,
+  #204), and resolve the test simulator UDID dynamically instead of
+  pinning a device name (#201). Serialized `DataBackupManagerTests`
+  to kill a filesystem race (#204).

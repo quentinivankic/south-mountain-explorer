@@ -88,19 +88,31 @@ TF builds.
   provisioning profile, add as `APPLE_WIDGETS_PROVISIONING_PROFILE_BASE64`
   GitHub secret. Then the widget target can sign and the workflow can
   ship it.
-- [ ] **Smarter mid-hike recommendations.** The suggestion banner
-  exists (`TrailSuggestionEngine` + `SuggestionBanner`), but two things:
-  (1) **Verify it even fires now.** The engine bails when pace is nil
-  (`guard let pace = …, pace > 0.1`), and `smoothedPaceMetersPerSec`
-  returned nil on every hike until the ms→s fix (#214) — so the banner
-  was silently dead on builds ≤197. Re-test on a #214+ build before
-  assuming it's broken.
-  (2) **Make it richer.** Today it's proximity + detour-time +
-  completion only ("0.2 mi detour, adds ~4 min"). Wanted: framing like
-  "the fork coming up gets you more completion and it's an easy, flat
-  path" — i.e. difficulty/terrain-aware (`Trail.difficulty`, elevation
-  from the geom) and phrased around an *upcoming* turn/fork on the
-  user's current heading, not just any nearby incomplete trail.
+- [ ] **Smarter mid-hike recommendations.** Full analysis in
+  `docs/recommendations-notes.md`. TL;DR:
+  (1) **Verify it even fires now.** The `SuggestionBanner` bails when
+  pace is nil, and pace returned nil on every hike until the ms→s fix
+  (#214) — so the banner was silently dead on builds ≤197. Re-test on a
+  #214+ build before assuming it's broken.
+  (2) **Frequency vs relevance.** The 300 m-detour + 1.5 mi-remaining
+  caps make it fire in a narrow "trivial add" window. Loosening the
+  caps is the wrong lever (the engine is heading-blind, so more firing =
+  more *irrelevant* pops). The right fix is anchoring to the fork you're
+  approaching.
+  (3) **Make it richer.** Today it's proximity + detour-time +
+  completion only. Wanted: "the fork coming up gets you more completion,
+  and it's an easy, flat path" — difficulty/terrain-aware
+  (`Trail.difficulty`, elevation) + heading/junction-aware + ranked by
+  completion-gained-per-minute. See the notes doc for the redesign.
+- [ ] **"Suggest a hike" (coverage-optimized route).** A *proactive
+  planned route* built to maximize area coverage/completion — not
+  individual-trail nudges — e.g. "This 4.2 mi loop hits 3 uncompleted
+  trails and takes you from 5/48 → 8/48." Needs a trail-graph + route
+  search over uncompleted segments (coverage-weighted routing) and a way
+  to present/start it. Bigger than the banner, and shares the
+  junction/graph groundwork the fork-anchored mid-hike redesign needs —
+  worth building that graph layer once for both. See
+  `docs/recommendations-notes.md`.
 
 ## Backlog — UX / polish
 

@@ -286,6 +286,7 @@ struct HomeView: View {
 
             ContinueCard(area: area)
                 .onTapGesture { selectedArea = area }
+                .accessibilityIdentifier("continue-card")
         }
     }
 

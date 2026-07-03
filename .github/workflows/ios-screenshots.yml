@@ -32,16 +32,21 @@ jobs:
         # Same rationale as ios-pr-build.yml: the iOS platform isn't
         # preinstalled on the rolled macos-latest image, so a build/test
         # destination can't resolve without this. Un-sudo'd + retried.
+        # Between retries, bounce CoreSimulatorService: some runners come
+        # up with the daemon wedged ("Unable to connect to simulator"
+        # from the very first call) and it never recovers on its own —
+        # killing it forces a clean relaunch on the next attempt.
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             if xcodebuild -downloadPlatform iOS; then
               echo "iOS platform ready (attempt $attempt)"
               exit 0
             fi
-            echo "downloadPlatform attempt $attempt failed; retrying in 15s" >&2
-            sleep 15
+            echo "downloadPlatform attempt $attempt failed; bouncing CoreSimulator, retrying in 30s" >&2
+            sudo killall -9 com.apple.CoreSimulator.CoreSimulatorService 2>/dev/null || true
+            sleep 30
           done
-          echo "downloadPlatform failed after 3 attempts" >&2
+          echo "downloadPlatform failed after 4 attempts" >&2
           exit 1
 
       - name: Install XcodeGen + xcparse
@@ -115,6 +120,14 @@ jobs:
         if: always()
         working-directory: ios
         run: |
+          # When the job dies before the capture step (e.g. platform
+          # install failed), there's no result bundle and xcparse may not
+          # even be installed — skip cleanly instead of stacking a second,
+          # misleading error on top of the real one.
+          if [ ! -d ScreenshotResults.xcresult ]; then
+            echo "No ScreenshotResults.xcresult — capture step never ran; skipping extraction"
+            exit 0
+          fi
           mkdir -p screenshots
           xcparse screenshots ScreenshotResults.xcresult screenshots/
           echo "---- captured files ----"

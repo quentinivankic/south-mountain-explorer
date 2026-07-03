@@ -8,11 +8,24 @@ import XCTest
 /// The CI workflow (`ios-screenshots.yml`) runs only this target, then
 /// extracts the attachments from the `.xcresult` with `xcparse`.
 ///
-/// Ordering matches the App Store submission plan
-/// (docs/app-store-submission.md): completion map → Dex → live
-/// recording → Stats → hike detail. Files are numbered so they upload
-/// in that order.
+/// NAVIGATION STRATEGY: every screen is reached via TabView switches and
+/// NavigationStack pushes — the two navigation styles that have proven
+/// reliable under XCUITest on the CI simulator. Modal presentation
+/// (HomeView's `.sheet(item:)`, ContentView's `fullScreenCover`) never
+/// presented in four consecutive CI runs regardless of trigger (launch
+/// deep-link, card tap, banner tap), so the area is opened by PUSHING
+/// AreaView from the Stats tab's "Area Progress" row instead. AreaView's
+/// own inner trail-list sheet is the one modal we still depend on; every
+/// wait failure dumps the accessibility tree to stdout so a CI log can
+/// diagnose exactly what was on screen.
+///
+/// Screenshot files are numbered to match the App Store submission plan
+/// (docs/app-store-submission.md) so they upload in order:
+/// 01 completion map · 02 Dex · 03 recording · 04 Stats · 05 hike detail.
+/// (Capture order differs — attachments are named, so order is free.)
 final class ScreenshotTests: XCTestCase {
+
+    private let areaRowId = "area-progress-south-mountain-park-and-preserve-az"
 
     override func setUp() {
         super.setUp()
@@ -24,83 +37,117 @@ final class ScreenshotTests: XCTestCase {
     func testCaptureAppStoreScreenshots() {
         let app = XCUIApplication()
 
-        // ---- Launch A: seeded history; open South Mountain via the UI ----
-        // A launch-time deep-link can't reliably present the area
-        // fullScreenCover, so drive it like a user: tap the "Pick Up
-        // Where You Left Off" card on Explore (always present because we
-        // seed recent hikes), which opens the area via HomeView's sheet.
+        // ---- Launch A: seeded history ----
         app.launchArguments = ["--uitest-seed"]
         app.launch()
 
-        let continueCard = app.buttons["continue-card"]
-        XCTAssertTrue(continueCard.waitForExistence(timeout: 45), "Continue card never appeared")
-        // Tap by coordinate if the element reports non-hittable (a plain
-        // Button label can occasionally hit-test oddly) so a failed .tap()
-        // can't hard-abort the whole capture run.
-        if continueCard.isHittable {
-            continueCard.tap()
-        } else {
-            continueCard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        }
-
-        // Shot 1 — park map + completed (mint) trails + trail-list sheet.
-        // Wait for the area sheet's Trails/Dex selector, then let MapKit +
-        // the R2 trail geometry finish drawing the polylines.
-        let picker = app.segmentedControls["area-view-picker"]
-        XCTAssertTrue(picker.waitForExistence(timeout: 60), "Area sheet never appeared")
-        settle(8)
-        capture(app, "01-completion-map")
-
-        // Shot 2 — the Dex badge grid.
-        tapSegment(app, "Dex")
-        settle(3)
-        capture(app, "02-dex")
-
-        // Back to trails, then close the area to reach the tab bar.
-        tapSegment(app, "Trails")
-        let close = app.buttons["area-close-button"]
-        if close.waitForExistence(timeout: 5) { close.tap() }
-        settle(2)
-
         // Shot 4 — the Stats tab (totals + hikes-per-month chart).
-        if app.tabBars.buttons["Stats"].waitForExistence(timeout: 10) {
-            app.tabBars.buttons["Stats"].tap()
+        openStatsTab(app)
+        if !app.staticTexts["Recent Hikes"].waitForExistence(timeout: 30) {
+            dumpTree(app, "stats-tab-missing-recent-hikes")
         }
-        _ = app.staticTexts["Recent Hikes"].waitForExistence(timeout: 20)
         settle(3)
         capture(app, "04-stats")
 
-        // Shot 5 — a finished hike's detail (route map + elevation).
-        let featuredRow = app.descendants(matching: .any)["hike-row-demo-national-trail-2"]
+        // Shot 5 — a finished hike's detail (route map + elevation),
+        // pushed from the Recent Hikes list.
+        let featuredRow = app.descendants(matching: .any)["hike-row-demo-national-trail-2"].firstMatch
         if featuredRow.waitForExistence(timeout: 10) {
-            featuredRow.tap()
+            tapElement(featuredRow)
             settle(5)
             capture(app, "05-hike-detail")
+            goBack(app)
         } else {
+            dumpTree(app, "hike-row-missing")
             XCTFail("Featured hike row not found for hike-detail shot")
         }
 
+        // Shots 1 + 2 — push AreaView from the Area Progress row, then
+        // wait for the trail-list sheet's Trails/Dex selector.
+        if openAreaFromStats(app) {
+            settle(8)   // let MapKit tiles + R2 polylines render
+            capture(app, "01-completion-map")
+
+            // Shot 2 — the Dex badge grid.
+            tapSegment(app, "Dex")
+            settle(3)
+            capture(app, "02-dex")
+        } else {
+            // Capture anyway — even a partial render (fullscreen map,
+            // no sheet) is diagnostic and possibly usable.
+            settle(5)
+            capture(app, "01-completion-map")
+            capture(app, "02-dex")
+            XCTFail("Area sheet never appeared (launch A)")
+        }
+
         // ---- Launch B: same seed + a live active recording ----
-        // No deep-link here: launch to the tab UI with the recording
-        // active, then tap the app-wide recording banner to open the
-        // area — its Trails segment shows the live RecordingPanel. (The
-        // recording is injected in-memory without starting GPS, so no
-        // location-permission alert appears to block the test.)
+        // The recording is injected in-memory without starting GPS, so no
+        // location-permission alert can appear. Reach the area the same
+        // proven way: Stats tab → Area Progress row push. The Trails
+        // segment shows the live RecordingPanel because
+        // recording.activeRecording.areaId matches the pushed area.
         app.terminate()
         app.launchArguments = ["--uitest-seed", "--uitest-recording"]
         app.launch()
 
+        openStatsTab(app)
+        _ = app.staticTexts["Recent Hikes"].waitForExistence(timeout: 30)
+
         // Shot 3 — the active recording panel (live pace + elevation).
-        let banner = app.buttons["active-recording-banner"]
-        XCTAssertTrue(banner.waitForExistence(timeout: 45), "Recording banner never appeared")
-        banner.tap()
-        let picker2 = app.segmentedControls["area-view-picker"]
-        XCTAssertTrue(picker2.waitForExistence(timeout: 60), "Area sheet never appeared (recording launch)")
-        settle(6)
-        capture(app, "03-recording")
+        if openAreaFromStats(app) {
+            settle(6)
+            capture(app, "03-recording")
+        } else {
+            settle(5)
+            capture(app, "03-recording")
+            XCTFail("Area sheet never appeared (recording launch)")
+        }
     }
 
-    // MARK: - Helpers
+    // MARK: - Navigation helpers
+
+    private func openStatsTab(_ app: XCUIApplication) {
+        let statsTab = app.tabBars.buttons["Stats"]
+        if statsTab.waitForExistence(timeout: 20) {
+            statsTab.tap()
+        } else {
+            dumpTree(app, "tab-bar-missing")
+        }
+    }
+
+    /// Push AreaView via the Stats tab's "Area Progress" row and wait
+    /// for the trail sheet's Trails/Dex picker. Returns true when the
+    /// picker is on screen. Dumps the accessibility tree on any wait
+    /// failure so the CI log shows exactly what rendered instead.
+    private func openAreaFromStats(_ app: XCUIApplication) -> Bool {
+        let row = app.descendants(matching: .any)[areaRowId].firstMatch
+        guard row.waitForExistence(timeout: 20) else {
+            dumpTree(app, "area-progress-row-missing")
+            XCTFail("Area Progress row not found")
+            return false
+        }
+        tapElement(row)
+
+        let picker = app.segmentedControls["area-view-picker"]
+        if picker.waitForExistence(timeout: 60) { return true }
+        dumpTree(app, "picker-missing-after-area-push")
+        return false
+    }
+
+    /// Pop the current NavigationStack view via the nav-bar back button,
+    /// falling back to an edge swipe if the bar isn't exposed.
+    private func goBack(_ app: XCUIApplication) {
+        let back = app.navigationBars.buttons.element(boundBy: 0)
+        if back.waitForExistence(timeout: 5), back.isHittable {
+            back.tap()
+        } else {
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.5))
+            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5))
+            start.press(forDuration: 0.05, thenDragTo: end)
+        }
+        settle(2)
+    }
 
     /// Tap a segment of the Trails/Dex segmented control. Segments render
     /// as buttons; try the control's child first, then a bare button
@@ -108,12 +155,25 @@ final class ScreenshotTests: XCTestCase {
     private func tapSegment(_ app: XCUIApplication, _ label: String) {
         let inControl = app.segmentedControls["area-view-picker"].buttons[label]
         if inControl.waitForExistence(timeout: 5) {
-            inControl.tap()
+            tapElement(inControl)
             return
         }
         let bare = app.buttons[label]
-        if bare.waitForExistence(timeout: 5) { bare.tap() }
+        if bare.waitForExistence(timeout: 5) { tapElement(bare) }
     }
+
+    /// Tap with a coordinate fallback so a hit-test quirk can't
+    /// hard-abort the run (a failed XCUIElement.tap() is fatal even
+    /// with continueAfterFailure).
+    private func tapElement(_ element: XCUIElement) {
+        if element.isHittable {
+            element.tap()
+        } else {
+            element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        }
+    }
+
+    // MARK: - Capture + diagnostics
 
     /// Fixed dwell so animations / map tiles / async loads settle before
     /// the frame is grabbed. UI-test `sleep` is the pragmatic tool here —
@@ -128,5 +188,15 @@ final class ScreenshotTests: XCTestCase {
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+
+    /// Print the full accessibility tree to stdout — it lands in the
+    /// xcodebuild output inside the CI step log, so a failed wait can be
+    /// diagnosed from the logs alone (the simulator isn't inspectable
+    /// after the run).
+    private func dumpTree(_ app: XCUIApplication, _ tag: String) {
+        print("===== UI TREE [\(tag)] =====")
+        print(app.debugDescription)
+        print("===== END UI TREE [\(tag)] =====")
     }
 }

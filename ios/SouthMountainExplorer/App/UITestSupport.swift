@@ -12,7 +12,6 @@ import Foundation
 /// Activated by launch arguments (set by `ScreenshotTests`):
 ///   `--uitest-seed`       seed historical hikes + completions + coverage
 ///   `--uitest-recording`  additionally inject a live active recording
-///   `--uitest-open-area`  deep-link straight into the South Mountain area
 ///
 /// All seeding writes the same UserDefaults keys / `hike-history.json`
 /// a real Import would, then re-hydrates the `@Observable` singletons
@@ -26,7 +25,6 @@ enum UITestSupport {
     private static var args: [String] { ProcessInfo.processInfo.arguments }
     static var isSeedRequested: Bool { args.contains("--uitest-seed") }
     static var isRecordingRequested: Bool { args.contains("--uitest-recording") }
-    static var openAreaId: String? { args.contains("--uitest-open-area") ? areaId : nil }
 
     /// Called once from `SouthMountainExplorerApp.init()`. No-op unless
     /// `--uitest-seed` is present, so normal Debug launches are untouched.

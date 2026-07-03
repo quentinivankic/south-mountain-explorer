@@ -67,6 +67,7 @@ struct StatsView: View {
                 Section("Area Progress") {
                     ForEach(rows) { row in
                         AreaCompletionRow(row: row)
+                            .accessibilityIdentifier("area-progress-\(row.id)")
                     }
                 }
             }

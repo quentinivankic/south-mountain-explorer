@@ -66,13 +66,21 @@ final class ScreenshotTests: XCTestCase {
         }
 
         // ---- Launch B: same seed + a live active recording ----
+        // No deep-link here: launch to the tab UI with the recording
+        // active, then tap the app-wide recording banner to open the
+        // area — its Trails segment shows the live RecordingPanel. (The
+        // recording is injected in-memory without starting GPS, so no
+        // location-permission alert appears to block the test.)
         app.terminate()
-        app.launchArguments = ["--uitest-seed", "--uitest-recording", "--uitest-open-area"]
+        app.launchArguments = ["--uitest-seed", "--uitest-recording"]
         app.launch()
 
         // Shot 3 — the active recording panel (live pace + elevation).
+        let banner = app.buttons["active-recording-banner"]
+        XCTAssertTrue(banner.waitForExistence(timeout: 45), "Recording banner never appeared")
+        banner.tap()
         let picker2 = app.segmentedControls["area-view-picker"]
-        XCTAssertTrue(picker2.waitForExistence(timeout: 90), "Area sheet never appeared (recording launch)")
+        XCTAssertTrue(picker2.waitForExistence(timeout: 60), "Area sheet never appeared (recording launch)")
         settle(6)
         capture(app, "03-recording")
     }

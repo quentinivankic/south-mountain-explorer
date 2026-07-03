@@ -298,6 +298,18 @@ final class RecordingService {
         restoreActiveRecording()
     }
 
+    #if DEBUG
+    /// Set an active recording directly for App Store screenshot UI
+    /// tests, WITHOUT starting background location tracking. The normal
+    /// restore path calls `startBackgroundTracking()`, which triggers a
+    /// location-permission system alert that freezes the UI test. This
+    /// demo path is in-memory only (no persistence, no GPS) — the seeded
+    /// path already carries the samples the recording panel renders.
+    func injectDemoActiveRecording(_ recording: ActiveRecording) {
+        activeRecording = recording
+    }
+    #endif
+
     func discardRecording() {
         let prev = activeRecording
         locationObserver?.cancel()

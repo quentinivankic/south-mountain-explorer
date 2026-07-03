@@ -50,6 +50,7 @@ struct ActiveRecordingBanner: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("active-recording-banner")
 
             Button(action: onStop) {
                 Text("Stop")

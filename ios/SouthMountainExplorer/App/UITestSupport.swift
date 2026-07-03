@@ -36,7 +36,6 @@ enum UITestSupport {
     static func handleLaunch() {
         guard isSeedRequested else { return }
         seedHistoricalState()
-        if isRecordingRequested { seedActiveRecording() }
         // Re-read every service's in-memory copy from what we just wrote.
         // Mirrors DataBackupManager.performImport's reload block — the
         // singletons were already constructed (as stored properties of
@@ -45,6 +44,12 @@ enum UITestSupport {
         CoverageService.shared.reload()
         FavoritesService.shared.reload()
         RecordingService.shared.reload()
+        // Inject the live recording AFTER reload, and in-memory only, so
+        // the restore path (which starts background location tracking →
+        // a permission alert that freezes the UI test) never runs.
+        if isRecordingRequested {
+            RecordingService.shared.injectDemoActiveRecording(makeDemoActiveRecording())
+        }
     }
 
     // MARK: - Historical state
@@ -107,12 +112,12 @@ enum UITestSupport {
 
     // MARK: - Active recording (live panel shot)
 
-    /// Inject a plausible in-progress recording anchored to *now*, so the
+    /// Build a plausible in-progress recording anchored to *now*, so the
     /// recording panel shows a live pace + elevation strip. Pace needs a
     /// tail of samples within the 60 s window spanning ≥30 s at a walking
     /// speed, so we synthesize a short realistic segment (≈1.3 m/s) whose
     /// last timestamp is the launch instant.
-    private static func seedActiveRecording() {
+    private static func makeDemoActiveRecording() -> ActiveRecording {
         let now = Date()
         let nowMs = now.timeIntervalSince1970 * 1000
         let origin = trailCoords["national-trail"]?.first ?? [33.342839, -112.044092]
@@ -133,7 +138,7 @@ enum UITestSupport {
             ])
         }
 
-        let rec = ActiveRecording(
+        return ActiveRecording(
             areaId: areaId,
             mode: .trail,
             trailId: "national-trail",
@@ -142,9 +147,6 @@ enum UITestSupport {
             distanceMi: 1.24,
             priorCompleteTrailIds: []
         )
-        if let data = try? JSONEncoder().encode(rec) {
-            UserDefaults.standard.set(data, forKey: StorageKeys.activeRecording)
-        }
     }
 
     // MARK: - Demo hikes

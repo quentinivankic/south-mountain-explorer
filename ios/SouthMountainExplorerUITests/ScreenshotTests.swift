@@ -32,9 +32,16 @@ final class ScreenshotTests: XCTestCase {
         app.launchArguments = ["--uitest-seed"]
         app.launch()
 
-        let continueCard = app.descendants(matching: .any)["continue-card"].firstMatch
+        let continueCard = app.buttons["continue-card"]
         XCTAssertTrue(continueCard.waitForExistence(timeout: 45), "Continue card never appeared")
-        continueCard.tap()
+        // Tap by coordinate if the element reports non-hittable (a plain
+        // Button label can occasionally hit-test oddly) so a failed .tap()
+        // can't hard-abort the whole capture run.
+        if continueCard.isHittable {
+            continueCard.tap()
+        } else {
+            continueCard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        }
 
         // Shot 1 — park map + completed (mint) trails + trail-list sheet.
         // Wait for the area sheet's Trails/Dex selector, then let MapKit +

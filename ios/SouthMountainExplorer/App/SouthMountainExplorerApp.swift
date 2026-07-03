@@ -15,6 +15,12 @@ struct SouthMountainExplorerApp: App {
     private let activityLog = ActivityLogService.shared
 
     init() {
+        // DEBUG-only: seed a deterministic demo state for the App Store
+        // screenshot UI test before anything reads persisted state.
+        // Compiled out of Release/TestFlight — see UITestSupport.
+        #if DEBUG
+        UITestSupport.handleLaunch()
+        #endif
         ActivityLogService.shared.log(category: "app", action: "launch")
         // Install the PostHog backend ONLY in Release builds. Debug
         // builds — local dev + the CI test suite launching in a

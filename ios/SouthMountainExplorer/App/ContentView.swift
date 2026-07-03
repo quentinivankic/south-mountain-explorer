@@ -23,6 +23,9 @@ struct ContentView: View {
     /// AreaView opened by `jumpToAreaId` reads this to play a one-shot
     /// celebration overlay, then clears itself.
     @State private var celebrationTrailName: String? = nil
+    /// DEBUG screenshot support: ensures the `--uitest-open-area`
+    /// deep-link fires exactly once.
+    @State private var didHandleUITestDeepLink = false
 
     var body: some View {
         TabView {
@@ -103,6 +106,12 @@ struct ContentView: View {
             OnboardingView()
         }
         .task {
+            #if DEBUG
+            if !didHandleUITestDeepLink, let id = UITestSupport.openAreaId {
+                didHandleUITestDeepLink = true
+                jumpToAreaId = id
+            }
+            #endif
             await rebuildCompletionsFromHistory()
             // Background prefetch of favorites + recent areas so the
             // user's saved spots are usable offline. Fire-and-forget —

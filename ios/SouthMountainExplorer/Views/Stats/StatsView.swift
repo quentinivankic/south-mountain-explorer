@@ -82,6 +82,7 @@ struct StatsView: View {
                             trailName: trailName(for: hike)
                         )
                     }
+                    .accessibilityIdentifier("hike-row-\(hike.id)")
                 }
                 .onDelete { indexSet in
                     Task { await deleteHikes(at: indexSet) }

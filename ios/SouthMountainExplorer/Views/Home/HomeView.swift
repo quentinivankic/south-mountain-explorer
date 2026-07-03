@@ -284,9 +284,13 @@ struct HomeView: View {
                 .fontWeight(.bold)
                 .padding(.horizontal, 4)
 
-            ContinueCard(area: area)
-                .onTapGesture { selectedArea = area }
-                .accessibilityIdentifier("continue-card")
+            Button {
+                selectedArea = area
+            } label: {
+                ContinueCard(area: area)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("continue-card")
         }
     }
 

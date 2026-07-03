@@ -79,3 +79,48 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.southmountainexplorer.app.tests
         SWIFT_STRICT_CONCURRENCY: complete
         GENERATE_INFOPLIST_FILE: YES
+
+  # UI-test bundle that captures the App Store screenshots. Deliberately
+  # NOT in the SouthMountainExplorer scheme's Test action (see schemes
+  # below) so the PR gate never runs this slow, network-dependent test —
+  # it runs only via the dispatch-only ios-screenshots.yml workflow on
+  # its own scheme.
+  SouthMountainExplorerUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: SouthMountainExplorerUITests
+    dependencies:
+      - target: SouthMountainExplorer
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        PRODUCT_BUNDLE_IDENTIFIER: com.southmountainexplorer.app.uitests
+        SWIFT_STRICT_CONCURRENCY: complete
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: SouthMountainExplorer
+
+# Explicit schemes so the unit-test gate and the screenshot capture stay
+# separate. Without this, XcodeGen auto-attaches every app-dependent test
+# target (including the UI tests) to the app scheme, and the PR build
+# workflow — `xcodebuild test -scheme SouthMountainExplorer` — would run
+# the screenshot UI test on every PR.
+schemes:
+  # PR gate + local dev: builds the app, tests ONLY the unit bundle.
+  SouthMountainExplorer:
+    build:
+      targets:
+        SouthMountainExplorer: all
+    test:
+      targets:
+        - SouthMountainExplorerTests
+  # Screenshot capture: builds the app, runs ONLY the UI-test bundle.
+  SouthMountainExplorerUITests:
+    build:
+      targets:
+        SouthMountainExplorer: all
+        SouthMountainExplorerUITests: all
+    test:
+      targets:
+        - SouthMountainExplorerUITests

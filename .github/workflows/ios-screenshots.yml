@@ -1,0 +1,137 @@
+name: iOS – App Store screenshots
+
+# Dispatch-only. Boots a 6.9" iPhone simulator (iPhone Pro Max class,
+# 1320 × 2868 — the App Store Connect "6.9-inch" required set), seeds a
+# deterministic South Mountain demo state via the DEBUG-only
+# UITestSupport hooks, drives the app through the five App Store screens
+# with the SouthMountainExplorerUITests bundle, and uploads the captured
+# PNGs as a downloadable artifact.
+#
+# Deliberately separate from ios-pr-build.yml: this is slow, depends on
+# outbound network to cdn.trekdex.app (the area's trail geometry is fetched
+# from R2 at runtime to draw the map), and should never gate a PR. Run it
+# from the Actions tab whenever you want a fresh screenshot set, then grab
+# the "appstore-screenshots" artifact and frame them (see
+# docs/app-store-submission.md).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  screenshots:
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: sudo xcode-select -s /Applications/Xcode_26.0.app/Contents/Developer
+
+      - name: Install iOS platform + Simulator runtime
+        # Same rationale as ios-pr-build.yml: the iOS platform isn't
+        # preinstalled on the rolled macos-latest image, so a build/test
+        # destination can't resolve without this. Un-sudo'd + retried.
+        run: |
+          for attempt in 1 2 3; do
+            if xcodebuild -downloadPlatform iOS; then
+              echo "iOS platform ready (attempt $attempt)"
+              exit 0
+            fi
+            echo "downloadPlatform attempt $attempt failed; retrying in 15s" >&2
+            sleep 15
+          done
+          echo "downloadPlatform failed after 3 attempts" >&2
+          exit 1
+
+      - name: Install XcodeGen + xcparse
+        run: |
+          brew install xcodegen
+          brew install chargepoint/xcparse/xcparse
+
+      - name: Copy committed trail index into iOS bundle
+        run: cp public/areas/index.json ios/SouthMountainExplorer/Resources/areas-index.json
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Pick a 6.9" iPhone simulator
+        # Prefer a Pro Max (6.9" → 1320 × 2868, the App Store required
+        # set); fall back to Plus, then any iPhone, so the run still
+        # produces frames even if the image's lineup shifts. Model name is
+        # logged so the captured resolution is verifiable.
+        run: |
+          read -r UDID NAME < <(xcrun simctl list devices available -j | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          devs = [d for v in data['devices'].values() for d in v]
+          def rank(n):
+              if 'Pro Max' in n: return 0
+              if 'Plus' in n: return 1
+              if 'iPhone' in n: return 2
+              return 9
+          iphones = sorted([d for d in devs if 'iPhone' in d['name']], key=lambda d: rank(d['name']))
+          if iphones:
+              print(iphones[0]['udid'], iphones[0]['name'])
+          ")
+          if [ -z "$UDID" ]; then
+            echo "No available iPhone simulator found" >&2
+            xcrun simctl list devices available >&2
+            exit 1
+          fi
+          echo "Using simulator: $NAME ($UDID)"
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+
+      - name: Boot + configure simulator
+        # Dark appearance (app theme defaults to .system → follows the OS)
+        # and a clean 9:41 status bar for App-Store-grade frames.
+        run: |
+          xcrun simctl boot "$SIM_UDID" || true
+          xcrun simctl bootstatus "$SIM_UDID" || true
+          xcrun simctl ui "$SIM_UDID" appearance dark || true
+          xcrun simctl status_bar "$SIM_UDID" override \
+            --time "9:41" \
+            --batteryState charged --batteryLevel 100 \
+            --cellularBars 4 \
+            --wifiBars 3 \
+            --dataNetwork wifi || true
+
+      - name: Capture screenshots (UI test)
+        working-directory: ios
+        run: |
+          rm -rf ScreenshotResults.xcresult
+          xcodebuild test \
+            -project SouthMountainExplorer.xcodeproj \
+            -scheme SouthMountainExplorerUITests \
+            -configuration Debug \
+            -destination "id=$SIM_UDID" \
+            -resultBundlePath "$PWD/ScreenshotResults.xcresult" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Extract screenshots from result bundle
+        if: always()
+        working-directory: ios
+        run: |
+          mkdir -p screenshots
+          xcparse screenshots ScreenshotResults.xcresult screenshots/
+          echo "---- captured files ----"
+          ls -R screenshots
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appstore-screenshots
+          path: ios/screenshots/**
+          if-no-files-found: warn
+
+      - name: Upload result bundle (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-xcresult
+          path: ios/ScreenshotResults.xcresult
+          if-no-files-found: ignore

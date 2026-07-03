@@ -336,6 +336,7 @@ struct AreaView: View {
                         .frame(width: 36, height: 36)
                         .compatibleGlass(in: .circle)
                 }
+                .accessibilityIdentifier("area-close-button")
                 Spacer()
                 // Area-level overflow menu. Currently hosts only
                 // "Export All Trails as GPX" but the chrome is
@@ -835,6 +836,7 @@ struct AreaView: View {
                 Text("Dex").tag(AreaSheetTab.dex)
             }
             .pickerStyle(.segmented)
+            .accessibilityIdentifier("area-view-picker")
             .padding(.horizontal, 20)
             .padding(.bottom, 12)
             .onChange(of: sheetTab) { _, tab in

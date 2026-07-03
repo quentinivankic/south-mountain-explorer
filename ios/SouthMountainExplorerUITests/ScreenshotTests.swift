@@ -24,15 +24,23 @@ final class ScreenshotTests: XCTestCase {
     func testCaptureAppStoreScreenshots() {
         let app = XCUIApplication()
 
-        // ---- Launch A: seeded history, deep-link into South Mountain ----
-        app.launchArguments = ["--uitest-seed", "--uitest-open-area"]
+        // ---- Launch A: seeded history; open South Mountain via the UI ----
+        // A launch-time deep-link can't reliably present the area
+        // fullScreenCover, so drive it like a user: tap the "Pick Up
+        // Where You Left Off" card on Explore (always present because we
+        // seed recent hikes), which opens the area via HomeView's sheet.
+        app.launchArguments = ["--uitest-seed"]
         app.launch()
+
+        let continueCard = app.descendants(matching: .any)["continue-card"].firstMatch
+        XCTAssertTrue(continueCard.waitForExistence(timeout: 45), "Continue card never appeared")
+        continueCard.tap()
 
         // Shot 1 — park map + completed (mint) trails + trail-list sheet.
         // Wait for the area sheet's Trails/Dex selector, then let MapKit +
         // the R2 trail geometry finish drawing the polylines.
         let picker = app.segmentedControls["area-view-picker"]
-        XCTAssertTrue(picker.waitForExistence(timeout: 90), "Area sheet never appeared")
+        XCTAssertTrue(picker.waitForExistence(timeout: 60), "Area sheet never appeared")
         settle(8)
         capture(app, "01-completion-map")
 

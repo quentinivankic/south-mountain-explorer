@@ -41,9 +41,19 @@ final class ScreenshotTests: XCTestCase {
         app.launchArguments = ["--uitest-seed"]
         app.launch()
 
+        // Let the launch burst finish BEFORE the first query. Right after
+        // launch the app fetches silhouettes for every Explore card,
+        // prefetches favorited areas from R2, and rebuilds completions
+        // from history — the main thread is busy enough that an early
+        // accessibility snapshot can time out ("Failed to get matching
+        // snapshots"), which aborts the whole test uncatchably. Every run
+        // that visited Stats late succeeded; the one that went at t≈20s
+        // died here. Sleeping is immune to snapshot timeouts.
+        settle(25)
+
         // Shot 4 — the Stats tab (totals + hikes-per-month chart).
         openStatsTab(app)
-        if !app.staticTexts["Recent Hikes"].waitForExistence(timeout: 30) {
+        if !app.staticTexts["Recent Hikes"].firstMatch.waitForExistence(timeout: 60) {
             dumpTree(app, "stats-tab-missing-recent-hikes")
         }
         settle(3)
@@ -91,8 +101,11 @@ final class ScreenshotTests: XCTestCase {
         app.launchArguments = ["--uitest-seed", "--uitest-recording"]
         app.launch()
 
+        // Same launch-burst dwell as launch A (see comment there).
+        settle(25)
+
         openStatsTab(app)
-        _ = app.staticTexts["Recent Hikes"].waitForExistence(timeout: 30)
+        _ = app.staticTexts["Recent Hikes"].firstMatch.waitForExistence(timeout: 60)
 
         // Shot 3 — the active recording panel (live pace + elevation).
         if openAreaFromStats(app) {
@@ -109,8 +122,12 @@ final class ScreenshotTests: XCTestCase {
 
     private func openStatsTab(_ app: XCUIApplication) {
         let statsTab = app.tabBars.buttons["Stats"]
-        if statsTab.waitForExistence(timeout: 20) {
+        if statsTab.waitForExistence(timeout: 30) {
             statsTab.tap()
+            // Give the tab switch + StatsView's history load a moment
+            // before the caller starts polling for content — polling an
+            // app that's mid-churn is what risks snapshot timeouts.
+            settle(5)
         } else {
             dumpTree(app, "tab-bar-missing")
         }

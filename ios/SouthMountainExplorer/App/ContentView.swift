@@ -1,5 +1,12 @@
 import SwiftUI
 
+/// Tab identity for the root TabView's selection binding. Exists so
+/// ContentView can observe tab taps — the Browse tab focuses its search
+/// field on every tap of the tab-bar icon (see the selection Binding).
+enum AppTab: Hashable {
+    case explore, browse, stats, settings
+}
+
 struct ContentView: View {
     @Environment(AuthService.self) private var auth
     @Environment(RecordingService.self) private var recording
@@ -23,19 +30,32 @@ struct ContentView: View {
     /// AreaView opened by `jumpToAreaId` reads this to play a one-shot
     /// celebration overlay, then clears itself.
     @State private var celebrationTrailName: String? = nil
+    @State private var selectedTab: AppTab = .explore
 
     var body: some View {
-        TabView {
-            Tab("Explore", systemImage: "mountain.2.fill") {
+        // Custom selection binding so we see EVERY tap on a tab icon —
+        // including re-taps of the already-selected tab, which write the
+        // same value through the setter. Tapping the Browse (search) icon
+        // should always pop the keyboard, whether it switches tabs or not.
+        TabView(selection: Binding(
+            get: { selectedTab },
+            set: { tab in
+                if tab == .browse {
+                    NotificationCenter.default.post(name: .browseSearchTabTapped, object: nil)
+                }
+                selectedTab = tab
+            }
+        )) {
+            Tab("Explore", systemImage: "mountain.2.fill", value: AppTab.explore) {
                 HomeView()
             }
-            Tab("Browse", systemImage: "magnifyingglass") {
+            Tab("Browse", systemImage: "magnifyingglass", value: AppTab.browse) {
                 BrowseView()
             }
-            Tab("Stats", systemImage: "chart.line.uptrend.xyaxis") {
+            Tab("Stats", systemImage: "chart.line.uptrend.xyaxis", value: AppTab.stats) {
                 StatsView()
             }
-            Tab("Settings", systemImage: "gearshape.fill") {
+            Tab("Settings", systemImage: "gearshape.fill", value: AppTab.settings) {
                 SettingsView()
             }
         }

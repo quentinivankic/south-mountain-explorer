@@ -1,6 +1,14 @@
 import SwiftUI
 import CoreLocation
 
+extension Notification.Name {
+    /// Posted by ContentView every time the user taps the Browse tab's
+    /// tab-bar icon — including re-taps while the tab is already
+    /// selected. BrowseView responds by focusing the search field so
+    /// the keyboard opens immediately.
+    static let browseSearchTabTapped = Notification.Name("summit.browseSearchTabTapped")
+}
+
 private enum BrowseSort: String, CaseIterable, Identifiable {
     case alphabetic, nearest, mostTrails, longest
 
@@ -59,6 +67,7 @@ struct BrowseView: View {
     @State private var selectedArea: AreaSummary? = nil
     @State private var sort: BrowseSort = .alphabetic
     @State private var driveTime: BrowseDriveTime = .any
+    @FocusState private var searchFocused: Bool
 
     /// Sort + filter pipeline. Search happens first (cheap string match), then
     /// drive-time cap (silently skipped when we don't have a user location —
@@ -104,6 +113,7 @@ struct BrowseView: View {
                     }
                     .listStyle(.plain)
                     .searchable(text: $query, prompt: "Search trails and parks")
+                    .searchFocused($searchFocused)
                 }
             }
             .navigationTitle("Browse")
@@ -145,6 +155,15 @@ struct BrowseView: View {
                     action: "openFromBrowse",
                     context: ["areaId": id]
                 )
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .browseSearchTabTapped)) { _ in
+            Task { @MainActor in
+                // Let the tab-switch transition settle first — grabbing
+                // focus mid-transition gets dropped by the system, which
+                // would make the first tap into the tab do nothing.
+                try? await Task.sleep(for: .milliseconds(350))
+                searchFocused = true
             }
         }
     }

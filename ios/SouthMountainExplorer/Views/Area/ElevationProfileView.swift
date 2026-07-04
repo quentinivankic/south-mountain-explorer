@@ -28,7 +28,13 @@ struct ElevationProfileView: View {
     }
 
     var body: some View {
-        Chart(stats.samples, id: \.distanceMeters) { sample in
+        // Positional identity, NOT `id: \.distanceMeters` — two samples
+        // at the same cumulative distance (GPS fixes while standing
+        // still; the recorder's jitter filter is bypassed for the first
+        // few points) collide under a distance-keyed id, and Swift
+        // Charts then draws stray straight segments across the profile.
+        Chart(Array(stats.samples.enumerated()), id: \.offset) { item in
+            let sample = item.element
             // Bound the area fill explicitly between the chart's
             // lower y-tick and the sample altitude. AreaMark with
             // just `y:` defaults the floor to y=0, which is far

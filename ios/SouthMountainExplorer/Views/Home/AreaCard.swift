@@ -150,14 +150,23 @@ struct AreaCard: View {
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            // 208, NOT the artwork's 220: the .padding(6) below insets
-            // the box 6pt from every card edge, so a 220-wide box had a
+            // Asymmetric: slimmer on top so the box's TOP EDGE sits
+            // lower (more artwork visible), fuller on the bottom so the
+            // progress bar doesn't crowd the glass edge.
+            .padding(.top, 7)
+            .padding(.bottom, 10)
+            // 208, NOT the artwork's 220: the inset paddings below place
+            // the box 6pt inside each side edge, so a 220-wide box had a
             // 232-wide footprint and its right edge stuck out 6pt past
             // the artwork. 208 + 6pt margins = exactly the 220 card.
             .frame(width: 208, alignment: .leading)
             .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .padding(6)
+            .padding(.horizontal, 6)
+            .padding(.top, 6)
+            // 4 (not 6): hugging the card's bottom edge shifts the whole
+            // box down, which is where it should sit — the artwork above
+            // is the star.
+            .padding(.bottom, 4)
         }
         // The artwork is a fixed 220×176 — larger text sizes grow the
         // info box up into the heart button and out of the card. Cap

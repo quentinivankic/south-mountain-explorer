@@ -101,6 +101,17 @@ jobs:
             --cellularBars 4 \
             --wifiBars 3 \
             --dataNetwork wifi || true
+          # Location: pre-grant the app permission and feed a simulated
+          # fix near South Mountain (Phoenix). Without permission the
+          # app presents its location-prompt sheet over Explore at
+          # launch, which covers the tab bar (swallowing the UI test's
+          # tab taps) and blocks every other sheet from presenting. The
+          # simulated fix also populates "X mi away" captions and the
+          # Near You section, which makes the captured frames richer.
+          # (The app-side seed suppresses the prompt too, so a failure
+          # of either half is non-fatal — hence the `|| true`.)
+          xcrun simctl privacy "$SIM_UDID" grant location com.southmountainexplorer.app || true
+          xcrun simctl location "$SIM_UDID" set 33.3528,-112.0658 || true
 
       - name: Capture screenshots (UI test)
         working-directory: ios

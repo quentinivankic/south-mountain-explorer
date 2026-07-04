@@ -156,9 +156,19 @@ struct HomeView: View {
             }
         }
         .onAppear {
-            if !location.isAuthorized {
+            // In UI-test seed mode, never present the location prompt.
+            // The CI simulator has no location permission, so this sheet
+            // came up on every screenshot run — and it silently hijacked
+            // the whole test: it floats over the tab bar (swallowing the
+            // test's tab taps) and, as HomeView's presented sheet, blocks
+            // every other sheet/cover in the app from presenting.
+            var promptForLocation = !location.isAuthorized
+            #if DEBUG
+            if UITestSupport.isSeedRequested { promptForLocation = false }
+            #endif
+            if promptForLocation {
                 showLocationPrompt = true
-            } else {
+            } else if location.isAuthorized {
                 location.startLiveTracking()
             }
             Task { history = await recording.loadHistory() }

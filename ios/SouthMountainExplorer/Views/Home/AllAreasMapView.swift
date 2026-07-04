@@ -49,7 +49,7 @@ struct AllAreasMapView: View {
             let col = Int((area.centerLon / bucketLon).rounded())
             byKey["\(row):\(col)", default: []].append(area)
         }
-        clusters = byKey.map { key, group in
+        var built = byKey.map { key, group in
             let lat = group.map(\.centerLat).reduce(0, +) / Double(group.count)
             let lon = group.map(\.centerLon).reduce(0, +) / Double(group.count)
             let lats = group.map(\.centerLat)
@@ -66,6 +66,26 @@ struct AllAreasMapView: View {
                 )
             )
         }
+
+        // Cull to (a margin around) the visible region. The bucket size
+        // scales with zoom but the bucketing runs over ALL areas
+        // nationwide, so a zoomed-in camera used to produce one cluster
+        // per area — 3000+ Markers in the map even though nearly all
+        // were offscreen, which kept the map laggy after the native-
+        // Marker/flat-elevation fixes. The 0.8-span margin keeps pins
+        // just past the edges alive so a short pan doesn't show blank
+        // map before the .onEnd rebuild catches up. No region yet
+        // (first onAppear) means the full-US view, whose ~12×12
+        // bucketing is already small — no cull needed.
+        if let region = currentRegion {
+            let latMargin = region.span.latitudeDelta * 0.8
+            let lonMargin = region.span.longitudeDelta * 0.8
+            built = built.filter {
+                abs($0.coord.latitude - region.center.latitude) <= latMargin &&
+                abs($0.coord.longitude - region.center.longitude) <= lonMargin
+            }
+        }
+        clusters = built
     }
 
     var body: some View {

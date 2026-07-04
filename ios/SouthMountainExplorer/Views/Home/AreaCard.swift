@@ -169,12 +169,13 @@ struct AreaCard: View {
                     .padding(10)
                     .compatibleGlass(in: .circle)
             }
-            // Sit closer to the top edge but pulled in further from the
-            // right so the heart isn't touching the artwork's rounded
-            // corner. Equal padding read as "vertically too far down"
-            // because the small card is wider than tall.
-            .padding(.top, 10)
-            .padding(.trailing, 18)
+            // Equal insets so the heart sits symmetrically in the
+            // corner. (An earlier top-biased 10/18 split read as
+            // "closer to the top than the right" on device; the taller
+            // 176pt card no longer needs the upward bias it was
+            // compensating for.)
+            .padding(.top, 12)
+            .padding(.trailing, 12)
         }
     }
 

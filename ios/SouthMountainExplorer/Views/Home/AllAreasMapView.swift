@@ -19,6 +19,9 @@ struct AllAreasMapView: View {
     @State private var position: MapCameraPosition = .automatic
     @State private var selectedArea: AreaSummary? = nil
     @State private var currentRegion: MKCoordinateRegion? = nil
+    /// Map(selection:) tag of the tapped marker — "area:<id>" or
+    /// "cluster:<key>". Consumed (and reset) by the onChange below.
+    @State private var selectedMarkerTag: String? = nil
     /// Cached bucketing of the area set into screen-space clusters.
     /// Cached (not computed) because at full-US scale we have 3000+
     /// areas, and recomputing the O(N) bucket pass on every
@@ -67,50 +70,57 @@ struct AllAreasMapView: View {
 
     var body: some View {
         NavigationStack {
-            Map(position: $position) {
+            // Native `Marker`s instead of custom SwiftUI `Annotation`
+            // views. The old Buttons (each with padding, background
+            // shape, and a `.shadow` — an offscreen render pass per
+            // pin) made pan/zoom unusably laggy with a hundred-plus
+            // annotations on screen. Markers are rendered by MapKit
+            // itself, so the map stays at native scroll performance
+            // regardless of pin count. Taps come back through
+            // `Map(selection:)` + per-marker `.tag`.
+            Map(position: $position, selection: $selectedMarkerTag) {
                 ForEach(clusters) { cluster in
                     if cluster.areas.count == 1, let area = cluster.areas.first {
-                        Annotation(
+                        Marker(
                             area.name,
+                            systemImage: "mountain.2.fill",
                             coordinate: CLLocationCoordinate2D(
                                 latitude: area.centerLat, longitude: area.centerLon
                             )
-                        ) {
-                            Button {
-                                selectedArea = area
-                            } label: {
-                                Image(systemName: "mountain.2.fill")
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(.white)
-                                    .padding(8)
-                                    .background(tint(for: area), in: Circle())
-                                    .shadow(radius: 2, y: 1)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                        )
+                        .tint(tint(for: area))
+                        .tag("area:\(area.id)")
                     } else {
-                        Annotation(
+                        Marker(
                             "\(cluster.areas.count) areas",
+                            monogram: Text("\(cluster.areas.count)"),
                             coordinate: cluster.coord
-                        ) {
-                            Button {
-                                zoom(to: cluster)
-                            } label: {
-                                Text("\(cluster.areas.count)")
-                                    .font(.callout.weight(.bold))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(.orange, in: Capsule())
-                                    .overlay(Capsule().stroke(.white, lineWidth: 2))
-                                    .shadow(radius: 3, y: 1)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                        )
+                        .tint(.orange)
+                        .tag("cluster:\(cluster.id)")
                     }
                 }
             }
-            .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .excludingAll))
+            // Flat elevation — `.realistic` renders 3D terrain for the
+            // whole continent on this view and was the other half of
+            // the lag. Nothing on this screen needs terrain relief.
+            .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
+            .onChange(of: selectedMarkerTag) { _, tag in
+                guard let tag else { return }
+                // Reset immediately so the same marker can be tapped
+                // again after the sheet dismisses (selection only fires
+                // onChange when the value actually changes).
+                selectedMarkerTag = nil
+                if tag.hasPrefix("area:") {
+                    let id = String(tag.dropFirst("area:".count))
+                    selectedArea = areas.summaries.first { $0.id == id }
+                } else if tag.hasPrefix("cluster:") {
+                    let key = String(tag.dropFirst("cluster:".count))
+                    if let cluster = clusters.first(where: { $0.id == key }) {
+                        zoom(to: cluster)
+                    }
+                }
+            }
             // `.onEnd` (not `.continuous`) — only re-bucket when the
             // camera stops moving. With `.continuous` and 3000+ areas
             // this fired ~60×/sec during pan/zoom and each fire ran

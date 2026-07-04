@@ -90,8 +90,12 @@ struct AreaCard: View {
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
+            // 176 (not 160) so the heart button and the info box can't
+            // collide: the box grows upward from the bottom and its top
+            // reaches ~y63 with every row present; the heart occupies
+            // y10–50. At 160 they overlapped in the top-right corner.
             artwork
-                .frame(width: 220, height: 160)
+                .frame(width: 220, height: 176)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
@@ -114,17 +118,27 @@ struct AreaCard: View {
                     }
                 }
 
-                if let d = distanceMi {
-                    Text("\(UnitFormatter.distance(miles: d, units: units)) away")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+                // The distance line and difficulty bar load ASYNC (user
+                // location / R2 silhouette). Always render their slots —
+                // with placeholders while empty — so the glass box's
+                // height never changes after first layout. On iOS 26 the
+                // Liquid Glass shape doesn't reliably re-invalidate when
+                // its content grows, so a box that gained rows mid-life
+                // left the last row (the progress bar) hanging outside
+                // the glass edge.
+                Text(distanceMi.map { "\(UnitFormatter.distance(miles: $0, units: units)) away" } ?? " ")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
 
-                if let mix = difficultyMix {
-                    DifficultyMixBar(mix: mix)
-                        .frame(height: 3)
-                        .padding(.top, 2)
+                Group {
+                    if let mix = difficultyMix {
+                        DifficultyMixBar(mix: mix)
+                    } else {
+                        Color.clear
+                    }
                 }
+                .frame(height: 3)
+                .padding(.top, 2)
 
                 if totalTrails > 0 {
                     ProgressView(value: progressFraction)
@@ -133,10 +147,19 @@ struct AreaCard: View {
                 }
             }
             .padding(14)
-            .frame(width: 220, alignment: .leading)
+            // 208, NOT the artwork's 220: the .padding(6) below insets
+            // the box 6pt from every card edge, so a 220-wide box had a
+            // 232-wide footprint and its right edge stuck out 6pt past
+            // the artwork. 208 + 6pt margins = exactly the 220 card.
+            .frame(width: 208, alignment: .leading)
             .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .padding(6)
         }
+        // The artwork is a fixed 220×176 — larger text sizes grow the
+        // info box up into the heart button and out of the card. Cap
+        // type inside the card only (at the default size, so card text
+        // simply doesn't scale); the surrounding screen scales freely.
+        .dynamicTypeSize(...DynamicTypeSize.large)
         .overlay(alignment: .topTrailing) {
             Button {
                 Task { await favorites.toggle(areaId: area.id) }

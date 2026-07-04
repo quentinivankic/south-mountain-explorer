@@ -134,6 +134,77 @@ final class AreaDataService {
         return summaries.filter { $0.search.contains(q) }
     }
 
+    // MARK: - Trail search
+
+    /// A (trail, area) pair for Browse's trail search results.
+    struct TrailSearchHit: Identifiable, Sendable {
+        var id: String { "\(areaId)/\(trailId)" }
+        let trailId: String
+        let trailName: String
+        /// Pre-lowercased name so per-keystroke filtering doesn't
+        /// re-lowercase a few thousand strings.
+        let searchKey: String
+        let difficulty: Difficulty
+        let distanceMi: Double
+        let areaId: String
+        let areaName: String
+    }
+
+    /// Cached trail index for Browse search — see `trailSearchHits()`.
+    private var trailHitsCache: [TrailSearchHit] = []
+    private var trailHitsCacheKey: Int = -1
+
+    /// All trails from every area available locally (in-memory or on
+    /// disk). Trail names only exist in full area payloads — the index
+    /// carries area names alone — so trail search covers the areas the
+    /// app has already fetched: favorites, prefetched nearby areas, and
+    /// anything previously opened. Built lazily and cached; rebuilt
+    /// only when the set of locally-available areas grows (new fetch).
+    func trailSearchHits() -> [TrailSearchHit] {
+        let ids = locallyAvailableAreaIds()
+        let key = ids.count
+        if key == trailHitsCacheKey { return trailHitsCache }
+
+        let names = Dictionary(uniqueKeysWithValues: summaries.map { ($0.id, $0.name) })
+        var hits: [TrailSearchHit] = []
+        for areaId in ids {
+            guard let areaName = names[areaId],
+                  let area = cachedArea(id: areaId) else { continue }
+            for trail in area.trails {
+                hits.append(TrailSearchHit(
+                    trailId: trail.id,
+                    trailName: trail.name,
+                    searchKey: trail.name.lowercased(),
+                    difficulty: trail.difficulty,
+                    distanceMi: trail.distanceMi,
+                    areaId: areaId,
+                    areaName: areaName
+                ))
+            }
+        }
+        trailHitsCache = hits
+        trailHitsCacheKey = key
+        return hits
+    }
+
+    /// Area ids with a full payload available locally: the in-memory
+    /// cache plus per-area files in the cache directory. Filtered
+    /// against the index so non-area cache files (index-v2.json,
+    /// summaries-v2.json) never masquerade as areas.
+    private func locallyAvailableAreaIds() -> [String] {
+        var ids = Set(areaCache.keys)
+        let valid = Set(summaries.map(\.id))
+        if let files = try? FileManager.default.contentsOfDirectory(
+            at: cacheDir, includingPropertiesForKeys: nil
+        ) {
+            for url in files where url.pathExtension == "json" {
+                let id = url.deletingPathExtension().lastPathComponent
+                if valid.contains(id) { ids.insert(id) }
+            }
+        }
+        return Array(ids)
+    }
+
     func nearby(lat: Double, lon: Double, limit: Int = 20) -> [AreaSummary] {
         summaries
             .sorted { a, b in

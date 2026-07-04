@@ -53,16 +53,21 @@ jobs:
         # 70). The reliable ios-testflight.yml runs it un-sudo'd too.
         # Wrapped in a retry because the download itself occasionally
         # hits a transient network/service hiccup on a cold runner.
+        # Between retries, bounce CoreSimulatorService: some runners come
+        # up with the daemon wedged ("Unable to connect to simulator" from
+        # the very first call) and it never recovers on its own — killing
+        # it forces a clean relaunch on the next attempt.
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             if xcodebuild -downloadPlatform iOS; then
               echo "iOS platform ready (attempt $attempt)"
               exit 0
             fi
-            echo "downloadPlatform attempt $attempt failed; retrying in 15s" >&2
-            sleep 15
+            echo "downloadPlatform attempt $attempt failed; bouncing CoreSimulator, retrying in 30s" >&2
+            sudo killall -9 com.apple.CoreSimulator.CoreSimulatorService 2>/dev/null || true
+            sleep 30
           done
-          echo "downloadPlatform failed after 3 attempts" >&2
+          echo "downloadPlatform failed after 4 attempts" >&2
           exit 1
 
       - name: Install XcodeGen

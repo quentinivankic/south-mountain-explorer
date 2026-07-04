@@ -70,6 +70,9 @@ struct ContinueCard: View {
             .compatibleGlass(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .padding(8)
         }
+        // Same cap as AreaCard: the artwork height is fixed (200), so
+        // accessibility text sizes overflow the glass box otherwise.
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
     }
 
     @ViewBuilder

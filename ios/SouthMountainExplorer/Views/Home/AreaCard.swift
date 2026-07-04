@@ -114,17 +114,27 @@ struct AreaCard: View {
                     }
                 }
 
-                if let d = distanceMi {
-                    Text("\(UnitFormatter.distance(miles: d, units: units)) away")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+                // The distance line and difficulty bar load ASYNC (user
+                // location / R2 silhouette). Always render their slots —
+                // with placeholders while empty — so the glass box's
+                // height never changes after first layout. On iOS 26 the
+                // Liquid Glass shape doesn't reliably re-invalidate when
+                // its content grows, so a box that gained rows mid-life
+                // left the last row (the progress bar) hanging outside
+                // the glass edge.
+                Text(distanceMi.map { "\(UnitFormatter.distance(miles: $0, units: units)) away" } ?? " ")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
 
-                if let mix = difficultyMix {
-                    DifficultyMixBar(mix: mix)
-                        .frame(height: 3)
-                        .padding(.top, 2)
+                Group {
+                    if let mix = difficultyMix {
+                        DifficultyMixBar(mix: mix)
+                    } else {
+                        Color.clear
+                    }
                 }
+                .frame(height: 3)
+                .padding(.top, 2)
 
                 if totalTrails > 0 {
                     ProgressView(value: progressFraction)
@@ -137,6 +147,10 @@ struct AreaCard: View {
             .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .padding(6)
         }
+        // The artwork is a fixed 220×160 — accessibility text sizes blow
+        // the info box past it and out of the glass. Cap type inside the
+        // card only; the surrounding screen still scales freely.
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
         .overlay(alignment: .topTrailing) {
             Button {
                 Task { await favorites.toggle(areaId: area.id) }

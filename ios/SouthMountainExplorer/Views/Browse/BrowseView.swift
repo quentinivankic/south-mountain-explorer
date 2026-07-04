@@ -265,6 +265,10 @@ struct BrowseRow: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                // Without a line limit the HStack resolves a too-wide
+                // caption by WRAPPING one of its Texts mid-row ("88.6
+                // / mi total" on two lines) instead of truncating.
+                .lineLimit(1)
             }
 
             Spacer()
@@ -337,26 +341,19 @@ private struct SilhouetteThumb: View {
     @Environment(AreaSilhouetteService.self) private var silhouettes
 
     var body: some View {
+        // Bare linework — no backing box or border. The lines ARE the
+        // icon; a container plate around them just read as clutter.
         Group {
             if let silhouette = silhouettes.cachedSilhouette(for: areaId) {
                 ThumbCanvas(silhouette: silhouette)
-                    .background(Color(.secondarySystemBackground))
             } else {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color(.secondarySystemBackground))
-                    .overlay {
-                        Image(systemName: "mountain.2.fill")
-                            .foregroundStyle(.tertiary)
-                            .font(.subheadline)
-                    }
+                Image(systemName: "mountain.2.fill")
+                    .foregroundStyle(.tertiary)
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .frame(width: 44, height: 44)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color(.separator), lineWidth: 0.5)
-        )
         .task(id: areaId) {
             await silhouettes.silhouette(for: areaId)
         }

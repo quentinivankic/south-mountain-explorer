@@ -90,8 +90,12 @@ struct AreaCard: View {
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
+            // 176 (not 160) so the heart button and the info box can't
+            // collide: the box grows upward from the bottom and its top
+            // reaches ~y63 with every row present; the heart occupies
+            // y10–50. At 160 they overlapped in the top-right corner.
             artwork
-                .frame(width: 220, height: 160)
+                .frame(width: 220, height: 176)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
@@ -143,14 +147,19 @@ struct AreaCard: View {
                 }
             }
             .padding(14)
-            .frame(width: 220, alignment: .leading)
+            // 208, NOT the artwork's 220: the .padding(6) below insets
+            // the box 6pt from every card edge, so a 220-wide box had a
+            // 232-wide footprint and its right edge stuck out 6pt past
+            // the artwork. 208 + 6pt margins = exactly the 220 card.
+            .frame(width: 208, alignment: .leading)
             .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .padding(6)
         }
-        // The artwork is a fixed 220×160 — accessibility text sizes blow
-        // the info box past it and out of the glass. Cap type inside the
-        // card only; the surrounding screen still scales freely.
-        .dynamicTypeSize(...DynamicTypeSize.xLarge)
+        // The artwork is a fixed 220×176 — larger text sizes grow the
+        // info box up into the heart button and out of the card. Cap
+        // type inside the card only (at the default size, so card text
+        // simply doesn't scale); the surrounding screen scales freely.
+        .dynamicTypeSize(...DynamicTypeSize.large)
         .overlay(alignment: .topTrailing) {
             Button {
                 Task { await favorites.toggle(areaId: area.id) }

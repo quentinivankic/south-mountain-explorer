@@ -57,6 +57,16 @@ func elevationStats(path: [GpsPoint]) -> ElevationStats? {
             }
         }
         if let altitude = p.altitudeMeters {
+            // Only keep samples that actually advance along the hike.
+            // The recorder's jitter filter is bypassed for the first
+            // few fixes (see appendPoint), so standing at the trailhead
+            // yields several points at the same spot — equal cumulative
+            // distances. Equal-x samples used to reach the chart, where
+            // they broke mark identity (`id: \.distanceMeters`) and
+            // drew stray straight segments across the profile.
+            if let last = raw.last, cumulativeDistance - last.distance < 0.5 {
+                continue
+            }
             raw.append((cumulativeDistance, altitude))
         }
     }

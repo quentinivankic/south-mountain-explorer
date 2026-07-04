@@ -98,7 +98,10 @@ struct AreaCard: View {
                 .frame(width: 220, height: 176)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 4) {
+            // spacing 2 + 10pt vertical padding (was 4 + 14): the info
+            // box should crowd its rows together and stay SHORT — every
+            // point of box height hides a point of trail-line artwork.
+            VStack(alignment: .leading, spacing: 2) {
                 Text(area.name)
                     .font(.headline)
                     .foregroundStyle(.primary)
@@ -138,15 +141,16 @@ struct AreaCard: View {
                     }
                 }
                 .frame(height: 3)
-                .padding(.top, 2)
+                .padding(.top, 1)
 
                 if totalTrails > 0 {
                     ProgressView(value: progressFraction)
                         .tint(.accentColor)
-                        .padding(.top, 2)
+                        .padding(.top, 1)
                 }
             }
-            .padding(14)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
             // 208, NOT the artwork's 220: the .padding(6) below insets
             // the box 6pt from every card edge, so a 220-wide box had a
             // 232-wide footprint and its right edge stuck out 6pt past

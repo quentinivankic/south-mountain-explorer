@@ -25,6 +25,10 @@ struct AreaView: View {
     /// deep-link from ContentView so a user opening the "Trail Complete!"
     /// notification gets a celebratory beat instead of a silent jump in.
     var initialCelebrationTrailName: String? = nil
+    /// Set when the view is opened from a trail search result — the
+    /// trail is pre-selected once the area loads, so the map highlights
+    /// it and the trail list scrolls it into view.
+    var initialSelectedTrailId: String? = nil
 
     @Environment(AreaDataService.self) private var areas
     @Environment(AreaSilhouetteService.self) private var silhouettes
@@ -400,6 +404,13 @@ struct AreaView: View {
             // so the overlay sits over the map, not a spinner.
             if let name = initialCelebrationTrailName {
                 showCelebration(name: name)
+            }
+            // Trail-search deep link: highlight the searched trail once
+            // the trail data is in. Only on first load (selection nil)
+            // so a user's own subsequent selection isn't overridden.
+            if let tid = initialSelectedTrailId, selectedTrailId == nil,
+               result.area?.trails.contains(where: { $0.id == tid }) == true {
+                selectedTrailId = tid
             }
         }
         .task(id: areaId) {

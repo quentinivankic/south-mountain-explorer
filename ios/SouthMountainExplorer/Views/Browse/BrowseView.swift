@@ -65,9 +65,24 @@ struct BrowseView: View {
 
     @State private var query = ""
     @State private var selectedArea: AreaSummary? = nil
+    /// Trail id to pre-select in the area sheet — set when the sheet is
+    /// opened from a trail search result, nil when opened from an area
+    /// row. Cleared on sheet dismiss.
+    @State private var pendingTrailId: String? = nil
     @State private var sort: BrowseSort = .alphabetic
     @State private var driveTime: BrowseDriveTime = .any
     @FocusState private var searchFocused: Bool
+
+    /// Trail-name matches for the current query, across every area with
+    /// a full payload available locally (favorites, prefetched nearby,
+    /// previously opened — trail names don't exist in the lightweight
+    /// index). Capped so a one-letter query doesn't dump thousands of
+    /// rows above the area results.
+    private var trailResults: [AreaDataService.TrailSearchHit] {
+        guard !query.isEmpty else { return [] }
+        let q = query.lowercased()
+        return Array(areas.trailSearchHits().filter { $0.searchKey.contains(q) }.prefix(25))
+    }
 
     /// Sort + filter pipeline. Search happens first (cheap string match), then
     /// drive-time cap (silently skipped when we don't have a user location —
@@ -103,13 +118,39 @@ struct BrowseView: View {
                     ProgressView("Loading areas...")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    List(results) { area in
-                        Button {
-                            selectedArea = area
-                        } label: {
-                            BrowseRow(area: area)
+                    List {
+                        let trailHits = trailResults
+                        if !trailHits.isEmpty {
+                            Section("Trails") {
+                                ForEach(trailHits) { hit in
+                                    Button {
+                                        pendingTrailId = hit.trailId
+                                        selectedArea = areas.summaries.first { $0.id == hit.areaId }
+                                    } label: {
+                                        TrailHitRow(hit: hit)
+                                    }
+                                    .listRowBackground(Color.clear)
+                                }
+                            }
                         }
-                        .listRowBackground(Color.clear)
+                        Section {
+                            ForEach(results) { area in
+                                Button {
+                                    pendingTrailId = nil
+                                    selectedArea = area
+                                } label: {
+                                    BrowseRow(area: area)
+                                }
+                                .listRowBackground(Color.clear)
+                            }
+                        } header: {
+                            // Only label the section when a Trails
+                            // section sits above it — an unqualified
+                            // list doesn't need a header.
+                            if !trailHits.isEmpty {
+                                Text("Areas")
+                            }
+                        }
                     }
                     .listStyle(.plain)
                     .searchable(text: $query, prompt: "Search trails and parks")
@@ -145,7 +186,11 @@ struct BrowseView: View {
         }
         .sheet(item: $selectedArea) { area in
             NavigationStack {
-                AreaView(areaId: area.id, areaName: area.name)
+                AreaView(
+                    areaId: area.id,
+                    areaName: area.name,
+                    initialSelectedTrailId: pendingTrailId
+                )
             }
         }
         .onChange(of: selectedArea?.id) { _, newId in
@@ -153,8 +198,10 @@ struct BrowseView: View {
                 ActivityLogService.shared.log(
                     category: "area",
                     action: "openFromBrowse",
-                    context: ["areaId": id]
+                    context: ["areaId": id, "trailId": pendingTrailId ?? "nil"]
                 )
+            } else {
+                pendingTrailId = nil
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .browseSearchTabTapped)) { _ in
@@ -199,15 +246,7 @@ struct BrowseRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            // Color swatch
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(LinearGradient(colors: cardColors, startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(width: 44, height: 44)
-                .overlay {
-                    Image(systemName: "mountain.2.fill")
-                        .foregroundStyle(.white.opacity(0.9))
-                        .font(.headline)
-                }
+            SilhouetteThumb(areaId: area.id)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(area.name)
@@ -242,12 +281,134 @@ struct BrowseRow: View {
         }
         .contentShape(Rectangle())
     }
+}
 
-    private var cardColors: [Color] {
-        let palette: [[Color]] = [
-            [.green, .teal], [.blue, .indigo], [.orange, .red],
-            [.purple, .blue], [.teal, .green], [.pink, .purple],
-        ]
-        return palette[abs(area.id.hashValue) % palette.count]
+/// A trail search result: the trail's name over its area, length, and
+/// difficulty, fronted by the area's silhouette thumbnail.
+private struct TrailHitRow: View {
+    let hit: AreaDataService.TrailSearchHit
+    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
+
+    var body: some View {
+        HStack(spacing: 14) {
+            SilhouetteThumb(areaId: hit.areaId)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(hit.trailName)
+                    .font(.body)
+                    .foregroundStyle(.primary)
+                HStack(spacing: 4) {
+                    Text(hit.areaName)
+                    Text("·")
+                    Text(UnitFormatter.distance(miles: hit.distanceMi, units: units))
+                    Text("·")
+                    Text(hit.difficulty.rawValue)
+                        .foregroundStyle(difficultyColor)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .foregroundStyle(.tertiary)
+                .font(.caption)
+        }
+        .contentShape(Rectangle())
+    }
+
+    private var difficultyColor: Color {
+        switch hit.difficulty {
+        case .easy: return .green
+        case .moderate: return .orange
+        case .hard: return .red
+        }
+    }
+}
+
+/// 44×44 thumbnail of an area's trail-line silhouette — the same neon
+/// linework as the Explore cards, shrunk to a list swatch. Falls back
+/// to a neutral placeholder while the silhouette loads; the `.task`
+/// kicks the R2 fetch (deduped by the service) for rows as they appear.
+private struct SilhouetteThumb: View {
+    let areaId: String
+    @Environment(AreaSilhouetteService.self) private var silhouettes
+
+    var body: some View {
+        Group {
+            if let silhouette = silhouettes.cachedSilhouette(for: areaId) {
+                ThumbCanvas(silhouette: silhouette)
+                    .background(Color(.secondarySystemBackground))
+            } else {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color(.secondarySystemBackground))
+                    .overlay {
+                        Image(systemName: "mountain.2.fill")
+                            .foregroundStyle(.tertiary)
+                            .font(.subheadline)
+                    }
+            }
+        }
+        .frame(width: 44, height: 44)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Color(.separator), lineWidth: 0.5)
+        )
+        .task(id: areaId) {
+            await silhouettes.silhouette(for: areaId)
+        }
+    }
+}
+
+/// Minimal silhouette painter for the 44pt thumbnails — the same
+/// equirectangular projection as the card artwork, single stroke pass,
+/// no glow (it wouldn't read at this size).
+private struct ThumbCanvas: View {
+    let silhouette: AreaSilhouette
+
+    var body: some View {
+        Canvas { context, size in
+            guard let bbox = silhouette.bbox else { return }
+            let pad: CGFloat = 5
+            let drawW = size.width - 2 * pad
+            let drawH = size.height - 2 * pad
+            guard drawW > 0, drawH > 0 else { return }
+            let centerLat = (bbox.s + bbox.n) / 2
+            let lonScale = cos(centerLat * .pi / 180)
+            let xRange = max((bbox.e - bbox.w) * lonScale, .leastNonzeroMagnitude)
+            let yRange = max(bbox.n - bbox.s, .leastNonzeroMagnitude)
+            let scale = min(drawW / xRange, drawH / yRange)
+            let canvasW = xRange * scale
+            let canvasH = yRange * scale
+            let xOffset = pad + (drawW - canvasW) / 2
+            let yOffset = pad + (drawH - canvasH) / 2
+
+            for line in silhouette.l {
+                guard line.p.count >= 2 else { continue }
+                var path = Path()
+                for (i, pt) in line.p.enumerated() {
+                    guard pt.count >= 2 else { continue }
+                    let x = xOffset + (pt[1] - bbox.w) * lonScale * scale
+                    let y = yOffset + canvasH - (pt[0] - bbox.s) * scale
+                    let p = CGPoint(x: x, y: y)
+                    if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
+                }
+                let color: Color
+                switch line.d {
+                case "e": color = .green
+                case "m": color = .orange
+                case "h": color = .red
+                default:  color = .gray
+                }
+                context.stroke(
+                    path,
+                    with: .color(color),
+                    style: StrokeStyle(lineWidth: 1.1, lineCap: .round, lineJoin: .round)
+                )
+            }
+        }
     }
 }

@@ -62,39 +62,41 @@ enum UITestSupport {
         // RecordingService.init doesn't rewrite our hand-authored file.
         ud.set(2, forKey: StorageKeys.hikeHistoryMigrationVersion)
 
-        // Completions drive the mint map color, the "N of 48" count, and
-        // the completion/difficulty Dex badges. Complete 44 of 48 —
-        // leaving four obscure trails undone so the "Completionist" crown
-        // stays a believable locked badge (nice earned-vs-locked contrast
-        // in the Dex shot).
-        let completed = completedTrailIds()
+        // The recorded hikes come first — everything else derives from
+        // them. Powers Stats totals, the hikes-per-month chart, the
+        // distance/dedication Dex badges, and the hike-detail route +
+        // elevation profile.
+        let hikes = demoHikes()
+        if let data = try? JSONEncoder().encode(hikes) {
+            try? data.write(to: historyFileURL, options: .atomic)
+        }
+
+        // Completions = exactly the trails the seeded hikes completed
+        // (12 of 48 ≈ 25%), stamped with the completing hike's end date
+        // so the Dex earn dates line up with the history. A quarter done
+        // is the sweet spot for the map shot: a satisfying cyan subset
+        // against plenty of not-yet-hiked green/orange/red trails —
+        // including uncompleted moderates and hards for color variety —
+        // instead of a wall of cyan. The "Completionist" crown stays a
+        // believable locked badge either way.
         let iso = ISO8601DateFormatter()
         var completions: [String: String] = [:]
-        for (i, tid) in completed.enumerated() {
-            // Spread earn dates across the past ~10 months for realism.
-            let daysAgo = Double(15 + i * 6)
-            let date = Date().addingTimeInterval(-daysAgo * 86_400)
-            completions[tid] = iso.string(from: date)
+        for hike in hikes.sorted(by: { $0.startedAt < $1.startedAt }) {
+            for tid in hike.completedTrailIds where completions[tid] == nil {
+                completions[tid] = iso.string(from: hike.endedAt)
+            }
         }
         writeJSON([areaId: completions], forKey: StorageKeys.completedTrails)
 
         // Cosmetic: make the trail-detail "% remaining" bars read 100% /
         // 0%-remaining on completed trails.
-        let lifetime = Dictionary(uniqueKeysWithValues: completed.map { ($0, 1.0) })
-        let since = Dictionary(uniqueKeysWithValues: completed.map { ($0, 0.0) })
+        let lifetime = Dictionary(uniqueKeysWithValues: completions.keys.map { ($0, 1.0) })
+        let since = Dictionary(uniqueKeysWithValues: completions.keys.map { ($0, 0.0) })
         writeJSON([areaId: lifetime], forKey: StorageKeys.coverage)
         writeJSON([areaId: since], forKey: StorageKeys.coverageSinceCompletion)
 
         // Favorite the area so it's pinned on Explore.
         writeJSON([areaId], forKey: StorageKeys.favorites)
-
-        // The recorded hikes themselves — powers Stats totals, the
-        // hikes-per-month chart, the distance/dedication Dex badges, and
-        // the hike-detail route + elevation profile.
-        let hikes = demoHikes()
-        if let data = try? JSONEncoder().encode(hikes) {
-            try? data.write(to: historyFileURL, options: .atomic)
-        }
     }
 
     private static func writeJSON<T: Encodable>(_ value: T, forKey key: String) {
@@ -156,6 +158,12 @@ enum UITestSupport {
         let startHour: Int
         let durationMin: Int
         let withPath: Bool
+        /// Whether the hike completed its trail. A few hikes are seeded
+        /// as non-completing visits so the completion set stays at ~25%
+        /// of the area (12 of 48) with uncompleted moderates + hards
+        /// left over — the map shot needs orange/red trails alongside
+        /// the cyan ones, and "Completionist" should read as far off.
+        var completes: Bool = true
     }
 
     /// ~21 hikes across 13 months. Designed to unlock every history-based
@@ -172,7 +180,7 @@ enum UITestSupport {
         HikeSpec(trailId: "desert-classic",  distanceMi: 3.88,  daysAgo: 13,  startHour: 9,  durationMin: 120, withPath: true),
         // Recent, real paths (halos), shorter.
         HikeSpec(trailId: "hau-pal-loop-trail",     distanceMi: 2.72, daysAgo: 20, startHour: 7,  durationMin: 88,  withPath: true),
-        HikeSpec(trailId: "javelina-canyon-trail",  distanceMi: 2.94, daysAgo: 27, startHour: 8,  durationMin: 96,  withPath: true),
+        HikeSpec(trailId: "javelina-canyon-trail",  distanceMi: 2.94, daysAgo: 27, startHour: 8,  durationMin: 96,  withPath: true, completes: false),
         HikeSpec(trailId: "mormon-trail",           distanceMi: 1.36, daysAgo: 34, startHour: 7,  durationMin: 52,  withPath: true),
         HikeSpec(trailId: "kiwanis-trail",          distanceMi: 1.05, daysAgo: 41, startHour: 9,  durationMin: 40,  withPath: true),
         HikeSpec(trailId: "telegraph-pass-trail",   distanceMi: 0.72, daysAgo: 48, startHour: 8,  durationMin: 28,  withPath: true),
@@ -183,37 +191,91 @@ enum UITestSupport {
         HikeSpec(trailId: "ma-ha-tuak-perimeter-trail", distanceMi: 7.13,  daysAgo: 145, startHour: 7,  durationMin: 230, withPath: false),
         HikeSpec(trailId: "desert-classic-trail",       distanceMi: 4.73,  daysAgo: 170, startHour: 8,  durationMin: 150, withPath: false),
         HikeSpec(trailId: "bursera-trail",              distanceMi: 3.32,  daysAgo: 195, startHour: 9,  durationMin: 110, withPath: false),
-        HikeSpec(trailId: "guadalupe-perimeter-trail",  distanceMi: 2.75,  daysAgo: 220, startHour: 8,  durationMin: 92,  withPath: false),
+        HikeSpec(trailId: "guadalupe-perimeter-trail",  distanceMi: 2.75,  daysAgo: 220, startHour: 8,  durationMin: 92,  withPath: false, completes: false),
         HikeSpec(trailId: "las-lomitas-trail",          distanceMi: 2.79,  daysAgo: 250, startHour: 7,  durationMin: 94,  withPath: false),
-        HikeSpec(trailId: "thondum-wihom-trail",        distanceMi: 2.40,  daysAgo: 280, startHour: 9,  durationMin: 82,  withPath: false),
+        HikeSpec(trailId: "thondum-wihom-trail",        distanceMi: 2.40,  daysAgo: 280, startHour: 9,  durationMin: 82,  withPath: false, completes: false),
         HikeSpec(trailId: "national-trail",             distanceMi: 15.17, daysAgo: 310, startHour: 6,  durationMin: 300, withPath: false),
-        HikeSpec(trailId: "javelina-canyon-trail",      distanceMi: 2.94,  daysAgo: 340, startHour: 8,  durationMin: 96,  withPath: false),
+        HikeSpec(trailId: "javelina-canyon-trail",      distanceMi: 2.94,  daysAgo: 340, startHour: 8,  durationMin: 96,  withPath: false, completes: false),
         HikeSpec(trailId: "hau-pal-loop-trail",         distanceMi: 2.72,  daysAgo: 360, startHour: 7,  durationMin: 88,  withPath: false),
     ]
 
     private static func demoHikes() -> [SavedRecording] {
         let cal = Calendar.current
         let now = Date()
-        return hikeSpecs.map { spec in
+        var hikes: [SavedRecording] = hikeSpecs.map { spec in
             let day = cal.date(byAdding: .day, value: -spec.daysAgo, to: now) ?? now
             let start = cal.date(bySettingHour: spec.startHour, minute: 0, second: 0, of: day) ?? day
-            let end = start.addingTimeInterval(Double(spec.durationMin) * 60)
             let path = spec.withPath
                 ? densifiedPath(coords: trailCoords[spec.trailId] ?? [], startMs: start.timeIntervalSince1970 * 1000)
                 : []
+            // Pathed hikes claim the HONEST length of their GPS path,
+            // not the trail's official mileage. The hike-detail
+            // elevation chart pins its X axis to the hike's distance
+            // and plots samples at their path-derived positions — an
+            // official 15.17 mi on a ~3 mi path squashed the profile
+            // into the first tenth of the chart with dead air after.
+            // Duration follows at a believable ~2.6 mph.
+            let distanceMi: Double
+            let durationSeconds: Int
+            if spec.withPath {
+                distanceMi = (pathLengthMi(path) * 100).rounded() / 100
+                durationSeconds = Int(distanceMi / 2.6 * 3600)
+            } else {
+                distanceMi = spec.distanceMi
+                durationSeconds = spec.durationMin * 60
+            }
             return SavedRecording(
                 id: "demo-\(spec.trailId)-\(spec.daysAgo)",
                 areaId: areaId,
                 startedAt: start,
-                endedAt: end,
-                distanceMi: spec.distanceMi,
-                durationSeconds: spec.durationMin * 60,
-                completedTrailIds: [spec.trailId],
+                endedAt: start.addingTimeInterval(Double(durationSeconds)),
+                distanceMi: distanceMi,
+                durationSeconds: durationSeconds,
+                completedTrailIds: spec.completes ? [spec.trailId] : [],
                 path: path,
                 trailId: spec.trailId,
                 revisitedTrailIds: []
             )
         }
+
+        // Honest path lengths shrink the pathed hikes well below their
+        // trails' official mileage, which can drop the lifetime total
+        // under the 100 mi Century Club badge. Top up with one long
+        // roam-mode day sized to the gap so the distance-tier badges
+        // stay earned no matter how the sampled paths measure.
+        let totalMi = hikes.map(\.distanceMi).reduce(0, +)
+        if totalMi < 101 {
+            let fillerMi = ((101 - totalMi) * 100).rounded() / 100
+            let day = cal.date(byAdding: .day, value: -87, to: now) ?? now
+            let start = cal.date(bySettingHour: 6, minute: 30, second: 0, of: day) ?? day
+            let durationSeconds = Int(fillerMi / 2.6 * 3600)
+            hikes.append(SavedRecording(
+                id: "demo-roam-filler",
+                areaId: areaId,
+                startedAt: start,
+                endedAt: start.addingTimeInterval(Double(durationSeconds)),
+                distanceMi: fillerMi,
+                durationSeconds: durationSeconds,
+                completedTrailIds: [],
+                path: [],
+                trailId: nil,
+                revisitedTrailIds: []
+            ))
+        }
+        return hikes
+    }
+
+    /// Cumulative haversine length of a GPS path, in miles.
+    private static func pathLengthMi(_ path: [GpsPoint]) -> Double {
+        guard path.count >= 2 else { return 0 }
+        var meters = 0.0
+        for i in 1..<path.count {
+            meters += MapMath.haversineMeters(
+                lat1: path[i - 1][0], lon1: path[i - 1][1],
+                lat2: path[i][0], lon2: path[i][1]
+            )
+        }
+        return meters / 1609.344
     }
 
     /// Interpolate sub-points between the sampled trail vertices and
@@ -253,34 +315,6 @@ enum UITestSupport {
         ])
         return pts
     }
-
-    /// The 44 South Mountain trails we mark complete — every trail except
-    /// four obscure/unnamed ones, so "Completionist" (all 48) stays locked.
-    private static func completedTrailIds() -> [String] {
-        let excluded: Set<String> = [
-            "unnamed-1474825928", "unnamed-494466239",
-            "unnamed-977459640", "thash-kavid-north-trail",
-        ]
-        return allTrailIds.filter { !excluded.contains($0) }
-    }
-
-    /// The full 48-trail roster (from the area's R2 geom). Ordering is
-    /// irrelevant — used only as the completion set.
-    private static let allTrailIds: [String] = [
-        "alta", "bajada-trail", "beacon-hill-trail", "beverly-pima-connector-trail",
-        "bursera-canyon", "bursera-trail", "cholla-flats-loop", "corona-de-loma-trail",
-        "crosscut-trail", "dc-ray-connector", "desert-classic", "desert-classic-trail",
-        "devestator-trail", "gila-trail", "guadalupe-perimeter", "guadalupe-perimeter-trail",
-        "hau-pal-loop-trail", "holbert-trail", "javelina-canyon-trail", "kiwanis-trail",
-        "las-lomitas-trail", "lost-ranch-trail", "lower-corona-de-loma-trail",
-        "ma-ha-tuak-perimeter-trail", "marcos-de-niza-trail", "max-delta-trail",
-        "midlife-crisis", "mormon-trail", "national-trail", "old-man-trail",
-        "pima-canyon-loop", "pima-canyon-loop-trail", "pima-wash-trail", "prospector-loop",
-        "ranger-trail", "ridgeline-trail", "shaughnessey-connector", "sidewinder",
-        "telegraph-pass-trail", "thash-kavid-north-trail", "thash-kavid-south-trail",
-        "thondum-wihom-trail", "unnamed-1474825928", "unnamed-494466239",
-        "unnamed-977459640", "upper-gila-trail", "west-alta", "young-man-trail",
-    ]
 
     /// Real sampled `[lat, lon]` vertices for the trails whose hikes get
     /// full paths. Pulled from the area's R2 geometry (coordinate order is

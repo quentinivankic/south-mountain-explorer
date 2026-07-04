@@ -145,20 +145,27 @@ struct StatsView: View {
         return buckets.values.sorted { $0.month < $1.month }
     }
 
-    /// Per-area engagement rows. Includes every area the user has
-    /// completed at least one trail in — areas they've recorded a
-    /// hike in but haven't completed anything in get excluded so the
-    /// list reflects progress, not just visits.
+    /// Per-area engagement rows: every area with at least one completed
+    /// trail OR at least one recorded hike. Hike-only areas show as
+    /// "0 / N" — a brand-new area should appear from the very first
+    /// hike (even a 1%-of-a-trail one), not stay invisible until a
+    /// completion finally lands.
     private func areaCompletionRows() -> [AreaCompletionRowModel] {
+        var areaIds = Set(progress.completions.filter { !$0.value.isEmpty }.keys)
+        areaIds.formUnion(hikes.map(\.areaId))
+
         var rows: [AreaCompletionRowModel] = []
-        for (areaId, trailCompletions) in progress.completions where !trailCompletions.isEmpty {
+        for areaId in areaIds {
             guard let summary = areas.summaries.first(where: { $0.id == areaId }) else { continue }
+            let trailCompletions = progress.completions[areaId] ?? [:]
             let total = summary.trailCount ?? 0
-            // Most recent completion in this area drives the sort —
-            // engagement-ordered, not alphabetical.
-            let mostRecent = trailCompletions.values
-                .compactMap(parseISODate)
-                .max() ?? .distantPast
+            // Most recent activity drives the sort — the latest
+            // completion, or for completion-less areas the latest hike.
+            // Engagement-ordered, not alphabetical.
+            let mostRecent = (
+                trailCompletions.values.compactMap(parseISODate)
+                + hikes.filter { $0.areaId == areaId }.map(\.startedAt)
+            ).max() ?? .distantPast
             rows.append(AreaCompletionRowModel(
                 id: areaId,
                 name: summary.name,

@@ -364,15 +364,14 @@ struct TrailRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            // Difficulty / completion indicator
-            ZStack {
-                Circle()
-                    .fill(isComplete ? Color.cyan : Color(.systemFill))
-                    .frame(width: 32, height: 32)
-                Image(systemName: isComplete ? "checkmark" : difficultyIcon)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(isComplete ? .white : difficultyColor)
-            }
+            // The trail's own shape, stroked in its difficulty color
+            // (cyan once completed — same color language as the map).
+            // Replaced the leaf/arrow/bolt difficulty glyphs; difficulty
+            // stays readable via the colored text in the caption row.
+            TrailShapeThumb(
+                trail: trail,
+                color: isComplete ? .cyan : difficultyColor
+            )
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
@@ -447,11 +446,72 @@ struct TrailRow: View {
         }
     }
 
-    private var difficultyIcon: String {
-        switch trail.difficulty {
-        case .easy: return "leaf"
-        case .moderate: return "arrow.up.right"
-        case .hard: return "bolt.fill"
+}
+
+/// Mini rendering of a single trail's geometry — the row's leading
+/// icon. Same equirectangular projection as the area silhouettes,
+/// decimated to keep list scrolling cheap on long trails (a few
+/// thousand points drawn per row would be wasted at 36 pt).
+private struct TrailShapeThumb: View {
+    let trail: Trail
+    let color: Color
+
+    var body: some View {
+        Canvas { context, size in
+            var minLat = Double.greatestFiniteMagnitude
+            var maxLat = -Double.greatestFiniteMagnitude
+            var minLon = Double.greatestFiniteMagnitude
+            var maxLon = -Double.greatestFiniteMagnitude
+            for segment in trail.segments {
+                for pt in segment where pt.count >= 2 {
+                    minLat = min(minLat, pt[0]); maxLat = max(maxLat, pt[0])
+                    minLon = min(minLon, pt[1]); maxLon = max(maxLon, pt[1])
+                }
+            }
+            guard minLat <= maxLat, minLon <= maxLon else { return }
+
+            let pad: CGFloat = 3
+            let drawW = size.width - 2 * pad
+            let drawH = size.height - 2 * pad
+            guard drawW > 0, drawH > 0 else { return }
+            let centerLat = (minLat + maxLat) / 2
+            let lonScale = cos(centerLat * .pi / 180)
+            let xRange = max((maxLon - minLon) * lonScale, .leastNonzeroMagnitude)
+            let yRange = max(maxLat - minLat, .leastNonzeroMagnitude)
+            let scale = min(drawW / xRange, drawH / yRange)
+            let canvasW = xRange * scale
+            let canvasH = yRange * scale
+            let xOffset = pad + (drawW - canvasW) / 2
+            let yOffset = pad + (drawH - canvasH) / 2
+
+            for segment in trail.segments {
+                guard segment.count >= 2 else { continue }
+                // ~60 points is plenty of shape at 36 pt.
+                let stride = max(1, segment.count / 60)
+                var path = Path()
+                var first = true
+                var i = 0
+                while i < segment.count {
+                    let pt = segment[i]
+                    if pt.count >= 2 {
+                        let x = xOffset + (pt[1] - minLon) * lonScale * scale
+                        let y = yOffset + canvasH - (pt[0] - minLat) * scale
+                        let p = CGPoint(x: x, y: y)
+                        if first { path.move(to: p); first = false } else { path.addLine(to: p) }
+                    }
+                    // Always include the last point so the line reaches
+                    // the trail's true end.
+                    i = (i + stride > segment.count - 1 && i < segment.count - 1)
+                        ? segment.count - 1
+                        : i + stride
+                }
+                context.stroke(
+                    path,
+                    with: .color(color),
+                    style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round)
+                )
+            }
         }
+        .frame(width: 36, height: 36)
     }
 }

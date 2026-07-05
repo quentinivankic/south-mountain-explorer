@@ -26,9 +26,34 @@ struct HikeRow: View {
         return areaName
     }
 
+    /// Walk-aware completion counts: a walk's per-area credits live in
+    /// the multi-area dicts (its flat arrays only mirror the primary
+    /// area), so sum across areas; regular hikes read the flat arrays.
+    private var completedCount: Int {
+        if let m = hike.multiAreaCompletions {
+            return m.values.map(\.count).reduce(0, +)
+        }
+        return hike.completedTrailIds.count
+    }
+
+    private var revisitedCount: Int {
+        if let r = hike.multiAreaRevisited {
+            return r.values.map(\.count).reduce(0, +)
+        }
+        return hike.revisitedTrailIds.count
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
+                if hike.isWalk {
+                    Text("Walk")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.accentColor, in: Capsule())
+                }
                 Text(titleText)
                     .font(.headline)
                 Spacer()
@@ -55,15 +80,15 @@ struct HikeRow: View {
             // Completion summary: separate "newly completed" from
             // "previously completed" (re-walked), so a second hike of the
             // same trail doesn't read as 0 trails done.
-            if !hike.completedTrailIds.isEmpty || !hike.revisitedTrailIds.isEmpty {
+            if completedCount > 0 || revisitedCount > 0 {
                 HStack(spacing: 14) {
-                    if !hike.completedTrailIds.isEmpty {
-                        Label("\(hike.completedTrailIds.count) newly completed",
+                    if completedCount > 0 {
+                        Label("\(completedCount) newly completed",
                               systemImage: "checkmark.seal.fill")
                             .foregroundStyle(.green)
                     }
-                    if !hike.revisitedTrailIds.isEmpty {
-                        Label("\(hike.revisitedTrailIds.count) revisited",
+                    if revisitedCount > 0 {
+                        Label("\(revisitedCount) revisited",
                               systemImage: "arrow.clockwise.circle.fill")
                             .foregroundStyle(.cyan)
                     }

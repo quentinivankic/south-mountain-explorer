@@ -214,7 +214,13 @@ final class RecordingService {
                     completedTrailIds: Array(newly),
                     path: hike.path,
                     trailId: hike.trailId,
-                    revisitedTrailIds: Array(revisited)
+                    revisitedTrailIds: Array(revisited),
+                    // Walk fields pass through untouched — walks can only
+                    // exist on builds that are already at migration v2+
+                    // (their ids are canonical from birth), but this
+                    // rebuild must never strip fields it doesn't know.
+                    multiAreaCompletions: hike.multiAreaCompletions,
+                    multiAreaRevisited: hike.multiAreaRevisited
                 ))
                 everComplete.formUnion(union)
             }
@@ -374,8 +380,13 @@ final class RecordingService {
     /// "you've been wandering, but you're 30 m from finishing
     /// Bajada, want to make this a Bajada recording?"
     nonisolated static func retargeted(_ rec: ActiveRecording, newTrailId: String) -> ActiveRecording? {
+        // Walks can't be retargeted at a trail: the suggestion banner
+        // and switch-trail flows are single-area concepts, and a
+        // walk-to-trail conversion would silently shrink the walk's
+        // multi-area credit scope at stop time.
+        if rec.mode == .walk { return nil }
         // Same-id retarget on a trail-mode recording is the only
-        // no-op case. Roam-mode recordings never have a matching
+        // other no-op case. Roam-mode recordings never have a matching
         // trailId (it's nil), so they always fall through to the
         // rebuild branch.
         if rec.mode == .trail, rec.trailId == newTrailId { return nil }
@@ -520,6 +531,165 @@ final class RecordingService {
         return finished
     }
 
+    // MARK: - Walk mode (area-less, multi-area)
+
+    /// Start an area-less WALK: records GPS anywhere and, at stop time,
+    /// credits trail coverage/completions to every nearby area the path
+    /// touched. `primaryAreaId` (the nearest area at start) is where the
+    /// walk files in history; `nearbyAreaIds` fixes the credit scope now
+    /// so stop-time classification is stable wherever the user roams.
+    /// Prior-complete snapshots are taken per area, for the same
+    /// mid-session-write race `startRecording`'s single-area snapshot
+    /// exists to defuse.
+    func startWalk(primaryAreaId: String, nearbyAreaIds: [String]) {
+        var priorByArea: [String: Set<String>] = [:]
+        for aid in nearbyAreaIds {
+            let prior = CoverageService.shared.coverage(for: aid)
+                .filter { $0.value >= completeThreshold }
+                .map(\.key)
+            priorByArea[aid] = Set(prior)
+        }
+        activeRecording = ActiveRecording(
+            areaId: primaryAreaId,
+            mode: .walk,
+            trailId: nil,
+            startedAt: Date(),
+            path: [],
+            distanceMi: 0,
+            priorCompleteTrailIds: priorByArea[primaryAreaId] ?? [],
+            nearbyAreaIds: nearbyAreaIds,
+            priorCompleteByArea: priorByArea
+        )
+        errorMessage = nil
+        persist()
+        log.notice("startWalk primaryAreaId=\(primaryAreaId, privacy: .public) nearbyAreas=\(nearbyAreaIds.count)")
+        ActivityLogService.shared.log(
+            category: "recording",
+            action: "start",
+            context: [
+                "areaId": primaryAreaId,
+                "trailId": "nil",
+                "mode": RecordingMode.walk.rawValue,
+                "nearbyAreas": String(nearbyAreaIds.count),
+            ]
+        )
+        AnalyticsService.shared.capture(.hikeStarted(areaId: primaryAreaId, mode: RecordingMode.walk.rawValue))
+        locationService.startBackgroundTracking()
+        beginObservingLocation()
+        Task { await NotificationService.shared.ensurePermission() }
+    }
+
+    /// Stop & save a WALK: the same measure → merge → classify → revisit
+    /// sequence as `stopRecording`, run once per nearby area, saving ONE
+    /// history record under the primary area with the per-area credits
+    /// in `multiAreaCompletions` / `multiAreaRevisited` (primary
+    /// included; the flat arrays mirror the primary's for legacy
+    /// consumers).
+    func stopWalk(trailsByArea: [String: [Trail]]) async -> FinishedRecording? {
+        guard let rec = activeRecording, rec.mode == .walk else { return nil }
+        locationObserver?.cancel()
+        locationObserver = nil
+        locationService.stopBackgroundTracking()
+        let endedAt = Date()
+
+        // Decode history once and share it across the per-area passes —
+        // combinedPathForArea/computeRevisits would otherwise re-decode
+        // the whole file roughly twice per area.
+        let history = loadHistorySync()
+        let priorByArea = rec.priorCompleteByArea ?? [:]
+        var multiCompleted: [String: [String]] = [:]
+        var multiRevisited: [String: [String]] = [:]
+        var primaryDelta: [String: Double] = [:]
+
+        for (areaId, trails) in trailsByArea {
+            guard !trails.isEmpty else { continue }
+            let combinedPath = combinedPathForArea(areaId, currentPath: rec.path, history: history)
+            let sessionCoverage = measureCoverage(path: combinedPath, trails: trails, bufferMeters: bufferMeters)
+            let (mergeNew, mergeRevisited, _) = await mergeCoverage(
+                areaId: areaId,
+                sessionCoverage: sessionCoverage,
+                trails: trails,
+                combinedPath: combinedPath
+            )
+            // Snapshot reclassification, per area — same rationale as
+            // stopRecording's (mergeCoverage's split is racy vs its own
+            // intra-session writes).
+            let priorSnapshot = priorByArea[areaId] ?? []
+            var newly: [String] = []
+            var revisited: [String] = []
+            for tid in Set(mergeNew + mergeRevisited) {
+                if priorSnapshot.contains(tid) {
+                    revisited.append(tid)
+                } else {
+                    newly.append(tid)
+                }
+            }
+            let pending = computeRevisits(
+                areaId: areaId,
+                currentPath: rec.path,
+                trails: trails,
+                alreadyClassified: Set(newly).union(revisited),
+                fullHistory: history
+            )
+            revisited.append(contentsOf: pending)
+            if !newly.isEmpty { multiCompleted[areaId] = newly }
+            if !revisited.isEmpty { multiRevisited[areaId] = revisited }
+            if areaId == rec.areaId {
+                primaryDelta = measureCoverageByLength(
+                    path: rec.path,
+                    trails: trails,
+                    bufferMeters: sinceCompletionBufferMeters
+                )
+            }
+        }
+        // The primary key must exist even when empty — a non-nil
+        // multiAreaCompletions is what marks the saved record as a walk.
+        if multiCompleted[rec.areaId] == nil { multiCompleted[rec.areaId] = [] }
+
+        let finished = FinishedRecording(
+            areaId: rec.areaId,
+            mode: .walk,
+            trailId: nil,
+            startedAt: rec.startedAt,
+            endedAt: endedAt,
+            durationSeconds: Int(endedAt.timeIntervalSince(rec.startedAt)),
+            path: rec.path,
+            distanceMi: rec.distanceMi,
+            newlyCompletedTrailIds: multiCompleted[rec.areaId] ?? [],
+            revisitedTrailIds: multiRevisited[rec.areaId] ?? [],
+            coverageDelta: primaryDelta,
+            multiAreaCompletions: multiCompleted,
+            multiAreaRevisited: multiRevisited
+        )
+
+        saveToHistory(finished)
+        let totalNew = multiCompleted.values.map(\.count).reduce(0, +)
+        let totalRev = multiRevisited.values.map(\.count).reduce(0, +)
+        log.notice("stopWalk primaryAreaId=\(rec.areaId, privacy: .public) areas=\(trailsByArea.count) duration=\(finished.durationSeconds)s distanceMi=\(rec.distanceMi) newlyCompleted=\(totalNew) revisited=\(totalRev)")
+        ActivityLogService.shared.log(
+            category: "recording",
+            action: "stop",
+            context: [
+                "areaId": rec.areaId,
+                "mode": RecordingMode.walk.rawValue,
+                "areas": String(trailsByArea.count),
+                "distanceMi": String(format: "%.2f", rec.distanceMi),
+                "durationSeconds": String(finished.durationSeconds),
+                "newlyCompleted": String(totalNew),
+                "revisited": String(totalRev),
+            ]
+        )
+        AnalyticsService.shared.capture(.hikeSaved(
+            areaId: rec.areaId,
+            distanceMi: rec.distanceMi,
+            durationSeconds: finished.durationSeconds,
+            mode: RecordingMode.walk.rawValue))
+
+        activeRecording = nil
+        UserDefaults.standard.removeObject(forKey: persistKey)
+        return finished
+    }
+
     /// Recompute coverage from the in-progress path and merge any deltas into
     /// CoverageService / ProgressService. Trails crossing the completion
     /// threshold get marked complete (with the standard haptic) live, mid-hike.
@@ -527,6 +697,12 @@ final class RecordingService {
     /// produces no new completions.
     func applyLiveCoverage(trails: [Trail]) async {
         guard let rec = activeRecording else { return }
+        // Walk mode defers ALL coverage/completion work to stopWalk.
+        // The live tick is fed one area's trails by whichever AreaView
+        // is open, but merges under rec.areaId — for a multi-area walk
+        // that mismatch could write one area's coverage under another's
+        // key. One-shot at stop is correct and cheap.
+        guard rec.mode != .walk else { return }
         // Same union-of-paths reasoning as `stopRecording` — combine the
         // in-progress recording's path with every prior hike's path in the
         // area so live completions fire even when this session is
@@ -613,8 +789,32 @@ final class RecordingService {
     /// re-toggle needed. Suppresses the "newly complete" haptic by going
     /// straight through CoverageService + ProgressService.bulkMarkComplete.
     func rebuildCoverageFromHistory(areaId: String, trails: [Trail]) async {
+        // touchedAreaIds: walks saved under another primary area still
+        // contribute their GPS paths + credits to THIS area's rebuild.
+        // Walks enter as in-memory PROJECTIONS — flat per-area views via
+        // the walk-aware accessors — so every classification/anchor/
+        // retro pass below reads the correct per-area credits without
+        // knowing about walks. Projections are never persisted: the
+        // patch loop at the bottom skips walk records entirely (their
+        // stop-time classification is already correct, and rewriting
+        // them from a projection would corrupt the multi-area dicts).
         let areaHistory = loadHistorySync()
-            .filter { $0.areaId == areaId }
+            .filter { $0.touchedAreaIds.contains(areaId) }
+            .map { hike -> SavedRecording in
+                guard hike.isWalk else { return hike }
+                return SavedRecording(
+                    id: hike.id,
+                    areaId: areaId,
+                    startedAt: hike.startedAt,
+                    endedAt: hike.endedAt,
+                    distanceMi: hike.distanceMi,
+                    durationSeconds: hike.durationSeconds,
+                    completedTrailIds: hike.completedTrailIds(in: areaId),
+                    path: hike.path,
+                    trailId: nil,
+                    revisitedTrailIds: hike.revisitedTrailIds(in: areaId)
+                )
+            }
             .sorted { $0.startedAt < $1.startedAt }   // oldest first, for the credit pass below
         guard !areaHistory.isEmpty, !trails.isEmpty else { return }
 
@@ -1068,6 +1268,14 @@ final class RecordingService {
         // load and now.
         var allHistory = loadHistorySync()
         for i in allHistory.indices {
+            // Never rewrite WALK records here: the credits/suppressions
+            // were computed against this area's projection of the walk,
+            // and merging them into the walk's flat arrays (which are
+            // primary-area-only) or reconstructing it field-by-field
+            // would corrupt the multi-area dicts. Walks' stop-time
+            // classification is already produced by the correct logic;
+            // retro passes are for healing legacy single-area records.
+            if allHistory[i].isWalk { continue }
             let newCompletions = creditedByHikeId[allHistory[i].id]
             let newRevisits = revisitCreditByHikeId[allHistory[i].id]
             let suppressedRevisits = suppressByHikeId[allHistory[i].id]
@@ -1241,7 +1449,9 @@ final class RecordingService {
             completedTrailIds: rec.newlyCompletedTrailIds,
             path: rec.path,
             trailId: rec.trailId,
-            revisitedTrailIds: rec.revisitedTrailIds
+            revisitedTrailIds: rec.revisitedTrailIds,
+            multiAreaCompletions: rec.multiAreaCompletions,
+            multiAreaRevisited: rec.multiAreaRevisited
         )
         history.insert(saved, at: 0)
         if let data = try? JSONEncoder().encode(history) {
@@ -1262,9 +1472,19 @@ final class RecordingService {
     /// the union of all visits, not the max of per-hike fractions — that
     /// max-merge would lose progress when two hikes cover different
     /// halves of the same trail.
-    private func combinedPathForArea(_ areaId: String, currentPath: [GpsPoint] = []) -> [GpsPoint] {
+    /// `history` lets multi-area callers (stopWalk) decode the history
+    /// file once and share it across per-area passes instead of paying
+    /// a full JSON decode per area.
+    private func combinedPathForArea(
+        _ areaId: String,
+        currentPath: [GpsPoint] = [],
+        history: [SavedRecording]? = nil
+    ) -> [GpsPoint] {
         var combined = currentPath
-        for hike in loadHistorySync() where hike.areaId == areaId {
+        // touchedAreaIds (not areaId ==): a WALK saved under a primary
+        // area still contributes its GPS path to every area it credited,
+        // so later hikes there build on the walk's coverage.
+        for hike in (history ?? loadHistorySync()) where hike.touchedAreaIds.contains(areaId) {
             combined.append(contentsOf: hike.path)
         }
         return combined
@@ -1292,9 +1512,12 @@ final class RecordingService {
         areaId: String,
         currentPath: [GpsPoint],
         trails: [Trail],
-        alreadyClassified: Set<String>
+        alreadyClassified: Set<String>,
+        fullHistory: [SavedRecording]? = nil
     ) -> [String] {
-        let history = loadHistorySync().filter { $0.areaId == areaId }
+        // touchedAreaIds so walks credited in this area anchor and
+        // contribute paths here, not just hikes saved under it.
+        let history = (fullHistory ?? loadHistorySync()).filter { $0.touchedAreaIds.contains(areaId) }
         let completionDates = ProgressService.shared.completedTrails(in: areaId)
         guard !completionDates.isEmpty else { return [] }
 
@@ -1302,6 +1525,7 @@ final class RecordingService {
         for (tid, completionStamp) in completionDates where !alreadyClassified.contains(tid) {
             guard let anchor = Self.latestCompletionAnchor(
                 trailId: tid,
+                areaId: areaId,
                 areaHistory: history,
                 progressStamp: completionStamp
             ) else { continue }
@@ -1369,12 +1593,17 @@ final class RecordingService {
     /// drifting apart and disagreeing on when a revisit should fire.
     nonisolated static func latestCompletionAnchor(
         trailId tid: String,
+        areaId: String,
         areaHistory: [SavedRecording],
         progressStamp: String
     ) -> Date? {
         var anchor: Date? = nil
         for hike in areaHistory {
-            if hike.completedTrailIds.contains(tid) || hike.revisitedTrailIds.contains(tid) {
+            // Walk-aware accessors: a walk's flat arrays are primary-
+            // area-only, so a walk that credited this trail in a
+            // secondary area anchors via its multi-area dict.
+            if hike.completedTrailIds(in: areaId).contains(tid)
+                || hike.revisitedTrailIds(in: areaId).contains(tid) {
                 if anchor == nil || hike.endedAt > anchor! {
                     anchor = hike.endedAt
                 }

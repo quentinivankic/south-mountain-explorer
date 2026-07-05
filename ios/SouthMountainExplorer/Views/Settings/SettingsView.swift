@@ -556,13 +556,16 @@ struct SettingsView: View {
             }
         }
         for hike in history {
-            for trailId in hike.completedTrailIds {
-                completedPairs.insert("\(hike.areaId):\(trailId)")
+            // Walk-aware: credit each touched area's own completions.
+            for areaId in hike.touchedAreaIds {
+                for trailId in hike.completedTrailIds(in: areaId) {
+                    completedPairs.insert("\(areaId):\(trailId)")
+                }
             }
         }
 
         var areas = Set<String>()
-        for hike in history { areas.insert(hike.areaId) }
+        for hike in history { areas.formUnion(hike.touchedAreaIds) }
         for (areaId, trails) in progress.completions where !trails.isEmpty {
             areas.insert(areaId)
         }

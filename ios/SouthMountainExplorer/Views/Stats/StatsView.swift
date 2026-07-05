@@ -151,8 +151,10 @@ struct StatsView: View {
     /// hike (even a 1%-of-a-trail one), not stay invisible until a
     /// completion finally lands.
     private func areaCompletionRows() -> [AreaCompletionRowModel] {
+        // touchedAreaIds so a WALK surfaces every area it credited, not
+        // just the primary it filed under.
         var areaIds = Set(progress.completions.filter { !$0.value.isEmpty }.keys)
-        areaIds.formUnion(hikes.map(\.areaId))
+        areaIds.formUnion(hikes.flatMap { $0.touchedAreaIds })
 
         var rows: [AreaCompletionRowModel] = []
         for areaId in areaIds {
@@ -164,7 +166,7 @@ struct StatsView: View {
             // Engagement-ordered, not alphabetical.
             let mostRecent = (
                 trailCompletions.values.compactMap(parseISODate)
-                + hikes.filter { $0.areaId == areaId }.map(\.startedAt)
+                + hikes.filter { $0.touchedAreaIds.contains(areaId) }.map(\.startedAt)
             ).max() ?? .distantPast
             rows.append(AreaCompletionRowModel(
                 id: areaId,

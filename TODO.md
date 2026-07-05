@@ -74,6 +74,28 @@ TF builds.
 
 ## Backlog — features
 
+- [ ] **Walk-mode follow-ups** (feature shipped in #248 — see Shipped):
+  - **Persist throttling for all-day walks.** The recorder re-encodes
+    the ENTIRE ActiveRecording to UserDefaults after every GPS point
+    (crash safety). Fine for 1-5 h hikes; a 12 h city walk grows the
+    path to 15-20k points and the per-point encode cost with it.
+    Throttle to every ~30 s / N points. Related: the crash-restore
+    window is 12 h from START — consider extending for walks.
+  - **Mid-walk trail feedback.** v1 computes all credit at Stop & Save,
+    so there's zero live signal that you're accumulating coverage. A
+    cheap proximity-only "on trail: <name>" line in the walk panel
+    would close the gap without running full coverage math live.
+  - **Walk completion celebration.** The per-area summary sheet is
+    understated next to the in-area confetti moment.
+  - **Dex semantics decision.** A walk currently counts as "a hike in"
+    EVERY credited area, full distance included — a 10 mi walk that
+    clips 3 parks adds 10 mi toward each park's distance badges.
+    Generous by design; revisit after real use.
+  - **Radius/cap tuning.** 20 mi to area CENTERS, nearest-12 cap,
+    frozen at walk start. A tighter radius + higher cap may match a
+    walking day better; re-evaluate after field use.
+  - **Marketing.** "Start a walk anywhere" is a differentiator — worth
+    a 6th App Store screenshot / description bullet later.
 - [ ] **Distance-to-next-turn banner (#144).** Third line in the
   recording banner during trail-mode: "→ 420 ft to next turn". Already
   scoped in a stale PR; pure logic + one UI line. No provisioning
@@ -96,7 +118,8 @@ TF builds.
   `com.southmountainexplorer.app.widgets`, create distribution
   provisioning profile, add as `APPLE_WIDGETS_PROVISIONING_PROFILE_BASE64`
   GitHub secret. Then the widget target can sign and the workflow can
-  ship it.
+  ship it. Walk mode (#248) is the killer use case — an all-day walk
+  living in the Dynamic Island.
 - [ ] **Smarter mid-hike recommendations.** Full analysis in
   `docs/recommendations-notes.md`. TL;DR:
   (1) **Verify it even fires now.** The `SuggestionBanner` bails when
@@ -274,4 +297,19 @@ Notable rollups for the current TestFlight cycle:
   lines from duplicate stand-still GPS distances (#240). Stats Area
   Progress shows hike-only areas at 0/N (#242). Browse: trail-name
   search with pre-selected trail deep-link + silhouette-linework
-  thumbnails (#243, un-boxed + one-line captions in #244).
+  thumbnails (#243, un-boxed + one-line captions in #244). Trail rows
+  render each trail's own linework as the icon (#247).
+- **Walk-anywhere (multi-area recording).** #248. Start a walk with no
+  area selection: Explore's figure-walk button opens a map of every
+  trail from the ~12 nearest areas (20 mi, center-distance, frozen at
+  start); at Stop & Save the walk credits coverage/completions to
+  EVERY area the GPS path touched, with a per-area summary sheet.
+  Walks persist as normal history records under a primary (nearest)
+  area plus a `multiAreaCompletions` dict — deliberately NOT a new
+  persisted mode enum, because an old build decoding an unknown enum
+  raw value would blank the whole `try?`-decoded history array and
+  truncate hike-history.json on its next save. All walk-aware
+  consumers updated (launch rebuild, area halos/history, revisit
+  anchors, Stats, Settings totals, Dex, trail walked-counts, HikeRow
+  Walk badge). Six new unit tests. Follow-ups tracked in Backlog —
+  features.

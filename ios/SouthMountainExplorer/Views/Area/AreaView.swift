@@ -774,7 +774,14 @@ struct AreaView: View {
         if active.mode == .walk {
             var trailsByArea: [String: [Trail]] = [:]
             for aid in active.nearbyAreaIds ?? [active.areaId] {
-                if let a = areas.cachedArea(id: aid) ?? (await areas.area(id: aid)) {
+                // if/else, not `??` — its autoclosure can't host an await.
+                let a: Area?
+                if let cached = areas.cachedArea(id: aid) {
+                    a = cached
+                } else {
+                    a = await areas.area(id: aid)
+                }
+                if let a {
                     trailsByArea[aid] = a.rawTrails ?? a.trails
                 }
             }

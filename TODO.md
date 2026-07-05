@@ -35,8 +35,14 @@ TF builds.
   needs to be ENTERED in App Store Connect (you).
 - [ ] **App Store metadata package** — Text (description, subtitle,
   keywords, category, URLs, age rating) drafted in
-  `docs/app-store-submission.md`. Still TODO: **screenshots** (device),
-  and pasting it all into ASC.
+  `docs/app-store-submission.md`. **Screenshots are automated**: the
+  dispatch-only `ios-screenshots` workflow (#226–#239) boots a 6.9"
+  simulator, seeds an art-directed South Mountain demo state, drives
+  the 5 planned shots via UI test, and uploads the PNGs as an
+  artifact. Still TODO: one dispatch to recapture with the final
+  #239 art direction (halo removal, jagged elevation, 43/48 recording
+  shot on Bajada), optional caption-bar framing, and pasting it all
+  into ASC.
 - [ ] **DUNS / organization enrollment** — Gates submission itself.
   In progress (waiting on the DUNS number).
 
@@ -59,9 +65,12 @@ TF builds.
   `docs/app-store-submission.md` (how to simulate a GPS hike via Xcode
   Simulate Location, roam vs trail, SiwA + account-deletion path).
   Paste into ASC at submission.
-- [ ] **Stability / crash pass** — Broad device QA before submit.
-  Drag jank is fixed, but App Review rejects crashy apps; do a sweep
-  across a current iPhone + an older model if possible.
+- [ ] **Stability / crash pass** — The in-repo half is done: static
+  crash-risk audit (#222, one real force-unwrap fixed) + Swift 6
+  concurrency audit (#223, clean) — see `docs/stability-audit.md`.
+  MetricKit crash capture (#212) is the field net. Remaining: broad
+  on-device QA sweep (largely happening via daily TF use; an older-
+  model iPhone pass would still be nice).
 
 ## Backlog — features
 
@@ -144,6 +153,10 @@ TF builds.
 - [ ] **NAME_KEYWORD_RE dead weight.** Still carries
   Danish/German/Icelandic/French/Italian keywords now that EU is
   gone. Tiny cleanup.
+- [ ] **Global trail-name search index.** Browse trail search (#243)
+  covers locally-available areas only (trail names live in full area
+  payloads, not the index). A pipeline-built (trail name → area id)
+  index served from R2 would make trail search nationwide.
 - [ ] Ad-Hoc + Diawi distribution pipeline (only if the TestFlight
   cycle becomes a real bottleneck).
 
@@ -163,8 +176,9 @@ repo:
   User Content, Email, Crash Data. Draft in `docs/app-store-submission.md`.
 - [ ] Update the trekdex.app **privacy policy** to name PostHog as the
   analytics processor + the **US** data region + the collected types.
-- [ ] Capture App Store screenshots on a device/simulator (plan in the
-  same doc).
+- [ ] Dispatch `ios-screenshots` (Actions tab) once more for the final
+  post-#239 capture set, then (optionally) frame with the caption
+  headlines from `docs/app-store-submission.md`.
 - [ ] Crash/stability pass on device.
 - [ ] Finish DUNS / org enrollment.
 
@@ -239,4 +253,25 @@ Notable rollups for the current TestFlight cycle:
   download the iOS platform before build un-sudo'd with retry (#197,
   #204), and resolve the test simulator UDID dynamically instead of
   pinning a device name (#201). Serialized `DataBackupManagerTests`
-  to kill a filesystem race (#204).
+  to kill a filesystem race (#204). Later: bounce a wedged
+  CoreSimulatorService between download retries (#231).
+- **App Store screenshot automation.** #226–#239. Dispatch-only
+  `ios-screenshots` workflow: 6.9" simulator, DEBUG-only
+  `UITestSupport` seeds an art-directed South Mountain demo state
+  (25% completion for the map shot, 43/48 + live Bajada recording for
+  the recording shot, honest path-length hikes for a full-width
+  jagged elevation profile), XCUITest drives the 5 planned screens
+  via Stats-push navigation, PNGs upload as an artifact. War-story
+  root cause of a week of failures: the location-permission sheet
+  presented over the tab bar on permissionless CI simulators,
+  swallowing taps and blocking every other modal (#236).
+- **Device-feedback polish sweep.** Browse tab icon opens the search
+  keyboard incl. re-taps (#233). All-areas map made actually usable:
+  native Markers + flat elevation (#234) + viewport cull of the
+  3,000-marker zoomed-in blowup (#237). AreaCard geometry + spacing
+  rounds — glass overflow, heart collision, box width/height, name-gap
+  collapse (#235, #237, #241, #244, #245). Elevation-chart ghost
+  lines from duplicate stand-still GPS distances (#240). Stats Area
+  Progress shows hike-only areas at 0/N (#242). Browse: trail-name
+  search with pre-selected trail deep-link + silhouette-linework
+  thumbnails (#243, un-boxed + one-line captions in #244).

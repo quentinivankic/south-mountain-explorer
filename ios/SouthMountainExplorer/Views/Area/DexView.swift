@@ -230,7 +230,11 @@ struct DexView: View {
 
     private func load() async {
         let history = await recording.loadHistory()
-        let areaHikes = history.filter { $0.areaId == area.id }
+        // touchedAreaIds: a walk that credited trails here counts as a
+        // hike in this area for the history-based badges (Trailblazer,
+        // seasons, distance tiers use per-hike distance — the walk's
+        // full distance counts, same as any multi-trail hike).
+        let areaHikes = history.filter { $0.touchedAreaIds.contains(area.id) }
         let completedMap = progress.completedTrails(in: area.id)
         let completedTrailIds = Set(completedMap.keys)
         var completionDates: [String: Date] = [:]

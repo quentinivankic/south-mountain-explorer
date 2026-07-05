@@ -31,6 +31,9 @@ struct ContentView: View {
     /// celebration overlay, then clears itself.
     @State private var celebrationTrailName: String? = nil
     @State private var selectedTab: AppTab = .explore
+    /// Banner-tap route for an in-progress walk (walks reopen WalkView,
+    /// not the primary area's AreaView).
+    @State private var showWalkCover = false
 
     var body: some View {
         // Custom selection binding so we see EVERY tap on a tab icon —
@@ -65,14 +68,28 @@ struct ContentView: View {
         .safeAreaInset(edge: .top, spacing: 0) {
             if let rec = recording.activeRecording {
                 ActiveRecordingBanner(
-                    areaName: areaName(for: rec.areaId),
+                    // Walks aren't "in" an area — title the banner Walk
+                    // and put the primary area in the subtitle slot.
+                    areaName: rec.mode == .walk ? "Walk" : areaName(for: rec.areaId),
                     trailName: trailName(forAreaId: rec.areaId, trailId: rec.trailId),
                     distanceMi: rec.distanceMi,
                     startedAt: rec.startedAt,
-                    onTap: { jumpToAreaId = rec.areaId },
+                    onTap: {
+                        if rec.mode == .walk {
+                            showWalkCover = true
+                        } else {
+                            jumpToAreaId = rec.areaId
+                        }
+                    },
                     onStop: { showStopConfirm = true }
                 )
             }
+        }
+        // Banner tap for an in-progress WALK reopens the walk screen
+        // (which restores from the recording's own nearby-area list)
+        // instead of the primary area's AreaView.
+        .fullScreenCover(isPresented: $showWalkCover) {
+            WalkView()
         }
         .fullScreenCover(isPresented: Binding(
             get: { jumpToAreaId != nil },
@@ -202,9 +219,21 @@ struct ContentView: View {
     /// is fine.
     private func rebuildCompletionsFromHistory() async {
         let history = await recording.loadHistory()
-        let byArea = Dictionary(grouping: history, by: { $0.areaId })
-        for (areaId, hikes) in byArea {
-            let trailIds = Set(hikes.flatMap { $0.completedTrailIds })
+        // Walk-aware: a walk's per-area credits live in
+        // multiAreaCompletions (its flat completedTrailIds only mirror
+        // the primary area), so accumulate per (record, touched area)
+        // via the walk-aware accessor. Regular hikes resolve to their
+        // single areaId exactly as before.
+        var byArea: [String: Set<String>] = [:]
+        for hike in history {
+            for areaId in hike.touchedAreaIds {
+                let ids = hike.completedTrailIds(in: areaId)
+                if !ids.isEmpty {
+                    byArea[areaId, default: []].formUnion(ids)
+                }
+            }
+        }
+        for (areaId, trailIds) in byArea {
             progress.bulkMarkComplete(areaId: areaId, trailIds: trailIds)
         }
     }
@@ -228,6 +257,25 @@ struct ContentView: View {
 
     private func stopActiveRecording() async {
         guard let rec = recording.activeRecording else { return }
+        // Walks stop through the multi-area path: gather every nearby
+        // area's dense geometry so each one gets its coverage credit.
+        if rec.mode == .walk {
+            var trailsByArea: [String: [Trail]] = [:]
+            for areaId in rec.nearbyAreaIds ?? [rec.areaId] {
+                // if/else, not `??` — its autoclosure can't host an await.
+                let area: Area?
+                if let cached = areas.cachedArea(id: areaId) {
+                    area = cached
+                } else {
+                    area = await areas.area(id: areaId)
+                }
+                if let area {
+                    trailsByArea[areaId] = area.rawTrails ?? area.trails
+                }
+            }
+            _ = await recording.stopWalk(trailsByArea: trailsByArea)
+            return
+        }
         // Pull trails from cache so coverage merges still work; fall back to
         // an async fetch if the area hasn't been opened this session.
         // (Split into an if/else because `??` takes an autoclosure that

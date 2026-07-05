@@ -40,6 +40,7 @@ struct HomeView: View {
     @State private var selectedArea: AreaSummary? = nil
     @State private var showLocationPrompt = false
     @State private var showAllAreasMap = false
+    @State private var showWalk = false
     @State private var history: [SavedRecording] = []
     @State private var lengthFilter: LengthFilter = .all
 
@@ -145,6 +146,18 @@ struct HomeView: View {
                     .accessibilityLabel("Surprise Me")
                     .disabled(areas.summaries.isEmpty)
                 }
+                ToolbarItem(placement: .topBarLeading) {
+                    // Area-less walk: no picking an area, no fumbling —
+                    // opens a map of every trail within 20 mi and one
+                    // Start button. See WalkView.
+                    Button {
+                        showWalk = true
+                    } label: {
+                        Image(systemName: "figure.walk")
+                    }
+                    .accessibilityLabel("Start a Walk")
+                    .disabled(areas.summaries.isEmpty)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     if !auth.isSignedIn {
                         NavigationLink(destination: AuthView()) {
@@ -181,6 +194,12 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showAllAreasMap) {
             AllAreasMapView()
+        }
+        // fullScreenCover, not a sheet: the walk is a map-first surface
+        // (sheets would also collide with HomeView's three existing
+        // sheet slots — one sheet per presenter).
+        .fullScreenCover(isPresented: $showWalk) {
+            WalkView()
         }
         .sheet(item: $selectedArea) { area in
             AreaView(areaId: area.id, areaName: area.name)

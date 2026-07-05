@@ -172,10 +172,11 @@ struct TrailDetailSheet: View {
         let all = await recording.loadHistory()
         trailHikes = all
             .filter { hike in
-                guard hike.areaId == areaId else { return false }
+                guard hike.touchedAreaIds.contains(areaId) else { return false }
                 if hike.trailId == trail.id { return true }
-                if hike.completedTrailIds.contains(trail.id) { return true }
-                if hike.revisitedTrailIds.contains(trail.id) { return true }
+                // Walk-aware accessors: walks credit trails per area.
+                if hike.completedTrailIds(in: areaId).contains(trail.id) { return true }
+                if hike.revisitedTrailIds(in: areaId).contains(trail.id) { return true }
                 return false
             }
             .sorted { $0.startedAt > $1.startedAt }

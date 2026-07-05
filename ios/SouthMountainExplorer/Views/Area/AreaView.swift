@@ -151,7 +151,12 @@ struct AreaView: View {
     @State private var trailSearchQuery: String = ""
 
     private var isRecording: Bool {
-        recording.activeRecording?.areaId == areaId
+        // Walks are excluded even when their primary area is this one:
+        // AreaView's RecordingPanel stops through the single-area path,
+        // which would save the walk as a plain hike and throw away its
+        // multi-area credits. Walks render their own panel in WalkView.
+        guard let rec = recording.activeRecording else { return false }
+        return rec.areaId == areaId && rec.mode != .walk
     }
 
     /// Trail set after applying the user's filters. Single source of
@@ -595,8 +600,10 @@ struct AreaView: View {
     /// refresh after a recording finishes) and
     /// `loadHistoryDerivedState` (full coverage replay on area open).
     private func makePastHikes(from history: [SavedRecording]) -> [PastHike] {
+        // touchedAreaIds: a walk that credited trails here renders its
+        // GPS track as a cyan halo just like a hike recorded in-area.
         history
-            .filter { $0.areaId == areaId }
+            .filter { $0.touchedAreaIds.contains(areaId) }
             .map { PastHike(path: $0.path, startedAt: $0.startedAt) }
     }
 
@@ -662,13 +669,15 @@ struct AreaView: View {
     /// and union with history-derived completions.
     private func loadHistoryDerivedState() async {
         let history = await recording.loadHistory()
-        let local = history.filter { $0.areaId == areaId }
+        // touchedAreaIds + the walk-aware accessor: walks credited in
+        // this area count exactly like local hikes.
+        let local = history.filter { $0.touchedAreaIds.contains(areaId) }
         pastHikes = makePastHikes(from: history)
         // Carry forward any completedTrailIds whose ids still match — cheap
         // path that doesn't need to walk the GPS grid. The path-replay below
         // covers the case where ids changed.
         let stillValid = Set(area?.trails.map(\.id) ?? [])
-        let completed = Set(local.flatMap { $0.completedTrailIds }).intersection(stillValid)
+        let completed = Set(local.flatMap { $0.completedTrailIds(in: areaId) }).intersection(stillValid)
         progress.bulkMarkComplete(areaId: areaId, trailIds: completed)
         if let trails = area?.trails {
             await recording.rebuildCoverageFromHistory(areaId: areaId, trails: trails)
@@ -709,12 +718,18 @@ struct AreaView: View {
             return
         }
 
-        // Item 1 — concurrent recording prevention.
-        if let active = recording.activeRecording, active.areaId != areaId {
+        // Item 1 — concurrent recording prevention. An active WALK
+        // always conflicts, even when its primary area happens to be
+        // this one: starting an area recording here would silently
+        // replace the walk and throw away its multi-area credit scope.
+        if let active = recording.activeRecording,
+           active.areaId != areaId || active.mode == .walk {
             pendingRecordTrailId = trailId
-            conflictAreaName = areas.cachedArea(id: active.areaId)?.name
-                ?? areas.summaries.first { $0.id == active.areaId }?.name
-                ?? "another area"
+            conflictAreaName = active.mode == .walk
+                ? "your walk"
+                : areas.cachedArea(id: active.areaId)?.name
+                    ?? areas.summaries.first { $0.id == active.areaId }?.name
+                    ?? "another area"
             showConflictAlert = true
             return
         }
@@ -754,6 +769,26 @@ struct AreaView: View {
 
     private func stopOtherRecordingThenStart(trailId: String?) async {
         guard let active = recording.activeRecording else { return }
+        // A walk stops through the multi-area path so every nearby area
+        // gets its coverage credit before this area's recording starts.
+        if active.mode == .walk {
+            var trailsByArea: [String: [Trail]] = [:]
+            for aid in active.nearbyAreaIds ?? [active.areaId] {
+                // if/else, not `??` — its autoclosure can't host an await.
+                let a: Area?
+                if let cached = areas.cachedArea(id: aid) {
+                    a = cached
+                } else {
+                    a = await areas.area(id: aid)
+                }
+                if let a {
+                    trailsByArea[aid] = a.rawTrails ?? a.trails
+                }
+            }
+            _ = await recording.stopWalk(trailsByArea: trailsByArea)
+            startRecordingNow(trailId: trailId)
+            return
+        }
         // Split out of `??` because `??` takes an autoclosure that can't
         // host an `await`.
         let trails: [Trail]

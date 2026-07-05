@@ -98,10 +98,13 @@ struct AreaCard: View {
                 .frame(width: 220, height: 176)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
-            // spacing 2 + 10pt vertical padding (was 4 + 14): the info
-            // box should crowd its rows together and stay SHORT — every
-            // point of box height hides a point of trail-line artwork.
-            VStack(alignment: .leading, spacing: 2) {
+            // Zero stack spacing: the rows should read as one tight
+            // block under the name. Even at spacing 2 the name-to-
+            // subtitle gap read as "too much space" on device — what
+            // remains is the fonts' own line padding, so the subtitle
+            // row pulls up an extra point into the headline's descender
+            // zone, and only the bars get explicit breathing room.
+            VStack(alignment: .leading, spacing: 0) {
                 Text(area.name)
                     .font(.headline)
                     .foregroundStyle(.primary)
@@ -120,6 +123,7 @@ struct AreaCard: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .padding(.top, -1)
 
                 // The distance line and difficulty bar load ASYNC (user
                 // location / R2 silhouette). Always render their slots —
@@ -141,12 +145,12 @@ struct AreaCard: View {
                     }
                 }
                 .frame(height: 3)
-                .padding(.top, 1)
+                .padding(.top, 3)
 
                 if totalTrails > 0 {
                     ProgressView(value: progressFraction)
                         .tint(.accentColor)
-                        .padding(.top, 1)
+                        .padding(.top, 3)
                 }
             }
             .padding(.horizontal, 14)

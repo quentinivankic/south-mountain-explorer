@@ -74,26 +74,33 @@ TF builds.
 
 ## Backlog — features
 
-- [ ] **Walk-mode follow-ups** (feature shipped in #248 — see Shipped):
+- [ ] **Walk-mode follow-ups** (feature shipped #248, bug fixes #250):
+  - _Field-test status (first SF walk, no trail completions yet):_
+    open speed, area load, pan/zoom, conflict warning, stop, force-quit
+    restore, live panel stats, backgrounding, Stats data, and the
+    Stop & Save summary sheet all ✅. Stale-location + swallowed-summary
+    bugs fixed in #250. STILL UNTESTED: a walk that actually finishes a
+    trail — unlocks summary-with-completions, per-park credit (mint +
+    cyan halo), Walk badge counts, hike detail, Dex credit, "Walked
+    once". Radius/cap (20 mi / nearest-12) confirmed fine on device.
   - **Persist throttling for all-day walks.** The recorder re-encodes
     the ENTIRE ActiveRecording to UserDefaults after every GPS point
     (crash safety). Fine for 1-5 h hikes; a 12 h city walk grows the
     path to 15-20k points and the per-point encode cost with it.
     Throttle to every ~30 s / N points. Related: the crash-restore
     window is 12 h from START — consider extending for walks.
+    (Battery/warmth held up on the first field walk; not yet urgent.)
   - **Mid-walk trail feedback.** v1 computes all credit at Stop & Save,
     so there's zero live signal that you're accumulating coverage. A
     cheap proximity-only "on trail: <name>" line in the walk panel
     would close the gap without running full coverage math live.
-  - **Walk completion celebration.** The per-area summary sheet is
-    understated next to the in-area confetti moment.
+  - **Walk completion celebration.** The per-area summary sheet
+    (confirmed good on device) is understated next to the in-area
+    confetti moment.
   - **Dex semantics decision.** A walk currently counts as "a hike in"
     EVERY credited area, full distance included — a 10 mi walk that
     clips 3 parks adds 10 mi toward each park's distance badges.
-    Generous by design; revisit after real use.
-  - **Radius/cap tuning.** 20 mi to area CENTERS, nearest-12 cap,
-    frozen at walk start. A tighter radius + higher cap may match a
-    walking day better; re-evaluate after field use.
+    Generous by design; revisit after a crediting walk.
   - **Marketing.** "Start a walk anywhere" is a differentiator — worth
     a 6th App Store screenshot / description bullet later.
 - [ ] **Distance-to-next-turn banner (#144).** Third line in the
@@ -312,4 +319,5 @@ Notable rollups for the current TestFlight cycle:
   consumers updated (launch rebuild, area halos/history, revisit
   anchors, Stats, Settings totals, Dex, trail walked-counts, HikeRow
   Walk badge). Six new unit tests. Follow-ups tracked in Backlog —
-  features.
+  features. Field-fixed after first walk: stale location on reopen +
+  swallowed Stop & Save summary sheet (#250).

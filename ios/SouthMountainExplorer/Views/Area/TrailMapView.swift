@@ -104,6 +104,14 @@ struct TrailMapView: View {
     /// by the halo's `onTrailSegments` filter. Built once on appear so
     /// new hikes don't rebuild a 5000-node grid.
     @State private var cachedTrailGrid = SpatialGrid()
+    /// Grid built from only the NOT-yet-completed trails. The cyan
+    /// past-hike halo is filtered through this, so it never draws over
+    /// an already-completed trail — where a translucent cyan trace on
+    /// top of the already-cyan completed line just smeared into a muddy
+    /// band. The full `cachedTrailGrid` still feeds the live-recording
+    /// halo and the walked-since-completion overlay (both of which
+    /// legitimately care about completed trails).
+    @State private var cachedHaloGrid = SpatialGrid()
     /// Per-past-hike pre-filtered halo segments (the on-trail subset
     /// of each recorded GPS path). Rebuilt on appear and whenever
     /// `pastPaths.count` changes — i.e. only when a new hike
@@ -257,7 +265,8 @@ struct TrailMapView: View {
                 }
             }
             cachedTrailGrid = grid
-            cachedHaloSegments = pastHikes.map { onTrailSegments($0.path, grid: grid) }
+            cachedHaloGrid = buildHaloGrid()
+            cachedHaloSegments = pastHikes.map { onTrailSegments($0.path, grid: cachedHaloGrid) }
             // If the view was re-entered with a recording already in
             // progress (e.g. app foregrounded after backgrounding
             // mid-hike), populate the live halo immediately so the
@@ -271,11 +280,18 @@ struct TrailMapView: View {
         }
         .onChange(of: pastHikes.count) { _, _ in
             // New hike finished and AreaView reloaded pastHikes.
-            // Refresh the halo cache against the existing grid.
-            cachedHaloSegments = pastHikes.map { onTrailSegments($0.path) }
+            // Refresh the halo cache against the completed-excluding grid.
+            cachedHaloSegments = pastHikes.map { onTrailSegments($0.path, grid: cachedHaloGrid) }
             // Same trigger — refresh the walked-since-completion
             // overlay so the just-finished hike contributes.
             recomputeWalkedSinceCompletion()
+        }
+        .onChange(of: completedTrailIdsForArea) { _, _ in
+            // A trail just completed (live, mid-hike, or on area open):
+            // rebuild the halo grid so its halo stops drawing, and
+            // refresh the cached segments against it.
+            cachedHaloGrid = buildHaloGrid()
+            cachedHaloSegments = pastHikes.map { onTrailSegments($0.path, grid: cachedHaloGrid) }
         }
         .onChange(of: selectedTrailId) { _, newId in
             // Recompute the orange walked-since-completion overlay
@@ -695,6 +711,22 @@ struct TrailMapView: View {
     /// the freshly-built grid explicitly because @State writes within
     /// the same closure aren't guaranteed to be visible to subsequent
     /// reads in that closure.
+    /// Spatial grid over only the trails that AREN'T complete yet — the
+    /// past-hike halo's on-trail filter, so it never smears over an
+    /// already-cyan completed trail. Built from the dense pre-decimation
+    /// nodes for the same reason the full grid is.
+    private func buildHaloGrid() -> SpatialGrid {
+        let completed = completedTrailIdsForArea
+        let trails = (area.rawTrails ?? area.trails).filter { !completed.contains($0.id) }
+        var grid = SpatialGrid()
+        for trail in trails {
+            for seg in trail.segments {
+                for node in seg where node.count >= 2 { grid.insert(node) }
+            }
+        }
+        return grid
+    }
+
     private func onTrailSegments(
         _ path: [GpsPoint],
         grid: SpatialGrid? = nil

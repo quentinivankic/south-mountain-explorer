@@ -93,7 +93,13 @@ struct HikeDetailView: View {
                             style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
             }
         }
-        .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .excludingAll))
+        // Satellite imagery, flat. `.standard(elevation: .realistic)`
+        // renders 3D vector + terrain tiles that are slow to load (they
+        // came up blank in the CI screenshot capture) and heavier than
+        // this view needs; imagery tiles load reliably and a blue GPS
+        // route reads clearly against the terrain photo — matching the
+        // area/recording maps, which already use satellite.
+        .mapStyle(.imagery(elevation: .flat))
     }
 
     private var statsCard: some View {

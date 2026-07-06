@@ -1135,6 +1135,7 @@ struct AreaView: View {
                     .background(Color(.tertiarySystemFill), in: Circle())
             }
             .accessibilityLabel("Recenter on my location")
+            .accessibilityIdentifier("area-recenter-button")
 
             Spacer()
 

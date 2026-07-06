@@ -76,15 +76,12 @@ final class ScreenshotTests: XCTestCase {
         // wait for the trail-list sheet's Trails/Dex selector.
         if openAreaFromStats(app) {
             settle(8)   // let MapKit tiles + R2 polylines render
-            // Shot 1 = a tight "you're here on the trail" view: tap
-            // recenter to zoom the map to the simulated user location
-            // (set near Holbert Trail in the workflow) instead of the
-            // whole-park overview.
-            let recenter = app.buttons["area-recenter-button"]
-            if recenter.waitForExistence(timeout: 5) {
-                tapElement(recenter)
-                settle(4)
-            }
+            // NOTE: do NOT tap recenter here. It calls
+            // requestPermission() when location isn't authorized, and
+            // the CI simctl grant doesn't reliably land as authorized
+            // before the app reads it — so tapping recenter popped the
+            // system location dialog on top of shot 1. The whole-park
+            // overview (now halo-free via #252) is the reliable shot.
             capture(app, "01-completion-map")
 
             // Shot 2 — the Dex badge grid.

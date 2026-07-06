@@ -21,6 +21,11 @@ final class LocationService: NSObject {
     /// follow-with-heading camera mode so the user's facing direction
     /// stays "up" on screen.
     private(set) var liveHeading: CLLocationDirection? = nil
+    /// Timestamp of the most recent GPS fix received THIS session (from
+    /// the live delegate — not the last-known location restored from
+    /// UserDefaults). Lets callers tell a genuinely fresh fix from the
+    /// stale restored one. `nil` until the first live fix arrives.
+    private(set) var lastFixDate: Date? = nil
 
     private let manager = CLLocationManager()
     private var liveWatching = false
@@ -61,6 +66,17 @@ final class LocationService: NSObject {
         guard !liveWatching else { return }
         liveWatching = true
         manager.startUpdatingLocation()
+    }
+
+    /// Force one fresh fix now, independent of whether continuous
+    /// tracking is running. Used by the walk screen so it centers on
+    /// where you ARE, not the last-known location restored from
+    /// UserDefaults (which, after moving far between opens, points at
+    /// where you last used the app). `requestLocation` delivers a
+    /// single fix through the same delegate, updating `lastFixDate`.
+    func requestFreshFix() {
+        guard isAuthorized else { return }
+        manager.requestLocation()
     }
 
     func stopLiveTracking() {
@@ -105,14 +121,21 @@ extension LocationService: CLLocationManagerDelegate {
         // "we don't have a valid altitude" — typically early in a
         // session before the GPS gets a vertical lock. Skip those.
         let altitude: Double? = loc.verticalAccuracy >= 0 ? loc.altitude : nil
+        let fixDate = loc.timestamp
         Task { @MainActor in
             self.liveLocation = coord
             self.liveAltitude = altitude
             self.userLocation = coord
+            self.lastFixDate = fixDate
             UserDefaults.standard.set(coord.latitude, forKey: StorageKeys.userLocationLat)
             UserDefaults.standard.set(coord.longitude, forKey: StorageKeys.userLocationLon)
         }
     }
+
+    /// `requestLocation()` requires a failure handler or it logs a
+    /// warning; a fix failure here is non-fatal (the walk screen falls
+    /// back to the last-known location), so just absorb it.
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) { }
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus

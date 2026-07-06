@@ -81,7 +81,17 @@ struct WalkView: View {
                     WalkRecordingPanel(walkAreas: loadedAreas) { finished in
                         finishedWalk = finished
                         if finished != nil {
-                            showSummary = true
+                            // Defer past the Stop-confirmation dialog's
+                            // dismissal — presenting a sheet into a
+                            // still-closing confirmationDialog gets
+                            // swallowed (the #180 presentation race). A
+                            // fast multi-area save can finish before the
+                            // dialog animates out, which is exactly the
+                            // "no summary on a zero-completion walk" bug.
+                            Task { @MainActor in
+                                try? await Task.sleep(for: .milliseconds(400))
+                                showSummary = true
+                            }
                         } else {
                             dismiss()
                         }
@@ -203,8 +213,15 @@ struct WalkView: View {
     }
 
     private func load() async {
+        // Ask for a genuinely fresh fix on open. The last-known
+        // location is restored from UserDefaults at launch, so without
+        // this the walk screen builds its area list around wherever you
+        // last used the app — the "moved far on a train, still shows the
+        // old trails until a full relaunch" bug.
+        let openedAt = Date()
         if location.isAuthorized {
             location.startLiveTracking()
+            location.requestFreshFix()
         }
 
         // Resuming an in-progress walk (banner tap / app relaunch):
@@ -215,16 +232,26 @@ struct WalkView: View {
             : nil
 
         var areaIds: [String] = resumeIds ?? []
-        var center: CLLocationCoordinate2D? = location.userLocation ?? location.liveLocation
+        var center: CLLocationCoordinate2D? = nil
 
         if areaIds.isEmpty {
-            // Give a cold GPS a few seconds to produce a fix.
+            // Wait (up to ~7s) for a fix that arrived AFTER we opened —
+            // `lastFixDate` distinguishes a live fix from the stale
+            // restored one. Only then read liveLocation.
             var attempts = 0
-            while center == nil, attempts < 10 {
-                try? await Task.sleep(for: .milliseconds(700))
-                center = location.userLocation ?? location.liveLocation
+            while attempts < 14 {
+                if let fixDate = location.lastFixDate,
+                   fixDate >= openedAt.addingTimeInterval(-2),
+                   let loc = location.liveLocation {
+                    center = loc
+                    break
+                }
+                try? await Task.sleep(for: .milliseconds(500))
                 attempts += 1
             }
+            // Fall back to any known location (offline / indoor / denied
+            // fresh fix) rather than blocking the screen entirely.
+            if center == nil { center = location.userLocation ?? location.liveLocation }
             guard let loc = center else {
                 loadState = .noLocation
                 return

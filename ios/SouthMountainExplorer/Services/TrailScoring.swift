@@ -82,24 +82,30 @@ struct ScoringWeights: Equatable, Sendable {
 
     func weight(_ s: ScoreSignal) -> Double { weights[s] ?? 0 }
 
+    /// Policy: "named OR officially recognized (DOC-matched / inside
+    /// conservation land) → keep (high); anonymous urban footways,
+    /// private, abandoned, informal → drop (low)". Tuned against the real
+    /// NZ pilot (~7% high, ~93% low). Base is LOW (30) so an unknown
+    /// trail isn't trusted by default. Mirrors weights.default.json;
+    /// TrailScoringTests pins these numbers.
     static let `default` = ScoringWeights(
-        base: 50,
+        base: 30,
         weights: [
-            .authoritativeMatch: 20,
+            .authoritativeMatch: 40,
             .hasKnownOperator: 20,
-            .hasName: 10,
-            .inOfficialWhitelist: 10,
-            .regionTrustHigh: 10,
-            .accessRestricted: -40,
-            .informal: -35,
-            .lifecycleAbandonedOrDisused: -50,
-            .trailVisibilityPoor: -25,
-            .sacScaleT4Plus: -20,
+            .hasName: 40,
+            .inOfficialWhitelist: 40,
+            .regionTrustHigh: 5,
+            .accessRestricted: -45,
+            .informal: -40,
+            .lifecycleAbandonedOrDisused: -60,
+            .trailVisibilityPoor: -20,
+            .sacScaleT4Plus: -10,
             .tigerUnreviewed: -15,
-            .recentlyEditedOrLowTrust: -15,
+            .recentlyEditedOrLowTrust: -10,
         ],
         bandHigh: 70,
-        bandMedium: 40
+        bandMedium: 45
     )
 }
 

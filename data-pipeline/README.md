@@ -66,11 +66,32 @@ extra deps. The geo-heavy steps shell out to external tools:
 | step        | tool                              |
 |-------------|-----------------------------------|
 | OSM extract | `osmium` + Geofabrik `.osm.pbf`   |
+| stage       | `build/stage_osm.py` (pure stdlib) — or `duckdb` at planet scale |
 | convert     | `ogr2ogr` (GDAL)                  |
-| normalize   | `duckdb` + spatial extension      |
 | conflate    | Python + `shapely` (+ spatial idx)|
 | tile        | `tippecanoe` (emits `.pmtiles`)   |
-| publish     | `wrangler` (Cloudflare R2)        |
+| publish     | `aws s3` → Cloudflare R2 (S3-compatible) |
+
+`build/stage_osm.py` turns an `osmium export` GeoJSON directly into the
+normalized trails/areas layers (Bucket A schema), so the pilot needs only
+`osmium` + `tippecanoe` as untested external deps — the staging + all
+policy logic is pure Python and unit-tested. `build/trails.sql` /
+`build/areas.sql` (DuckDB) remain the documented path for planet scale.
+
+## CI: one-click region build (dispatch-only)
+
+`.github/workflows/build-region-tiles.yml` runs the whole pipeline for a
+region in GitHub Actions and (optionally) publishes to R2. It is
+**dispatch-only** (never auto-triggers), mirroring `build-trail-index.yml`.
+
+- Inputs: `region` (default `new-zealand`), `publish` (default false),
+  `include_linz` (default false).
+- Always runs the fail-closed gate + the 58 unit tests first, then installs
+  the geo toolchain and runs download→stage→conflate→build→tile.
+- `publish=true` uploads `<region>.pmtiles` + `attributions.<region>.json`
+  to the `trekdex-areas-dev` bucket (needs the `R2_*` repo secrets the
+  `sync-geom-to-r2` workflow already uses). Build-only runs need no secrets
+  and leave the `.pmtiles` as a downloadable Actions artifact.
 
 `make doctor` reports what's installed. Each geo script fails loudly with
 an install hint rather than silently degrading.
@@ -143,18 +164,21 @@ access re-confirmed before its data ships. Licenses have changed before
 ## Status (pilot session)
 
 Done: repo scaffold + Makefile; `registry.json` + fail-closed validator;
-OSM/DOC/LINZ downloaders; DuckDB trail+area normalization SQL; conflation
+OSM/DOC/LINZ downloaders; pure-Python OSM stager + DuckDB SQL; conflation
 matcher + QA flag logic; thin Bucket-B `confidence.py` (flags only, no
 score); on-device scoring reference + default weights; attribution
 generator; post-build inclusion guard; tippecanoe→pmtiles tiling; R2
-Workers PMTiles handler; **48 passing unit tests** over the policy core;
-end-to-end spine demonstrated on a synthetic NZ sample.
+Workers PMTiles handler; **58 passing unit tests** over the policy core;
+end-to-end spine demonstrated on a synthetic NZ sample; **dispatch-only
+CI workflow** that runs the full pipeline + publishes to R2.
 
-Next (needs build-time network + geo tools + R2 creds): run the real NZ
-extract through stage→tile→publish; wire the authoring-build on-device
-scorer + weight sliders in the iOS app (port `scoring_reference.py`);
-validate on-device point-in-polygon area attribution against the shipped
-DOC/LINZ polygons; then generalize to the rest of Wave 1.
+Next: dispatch `build-region-tiles.yml` (region=new-zealand) — build-only
+first to confirm the geo steps, then `publish=true` once the `R2_*`
+secrets are set and the DOC/LINZ endpoints are VERIFY'd. Then wire the
+authoring-build on-device scorer + weight sliders in the iOS app (port
+`scoring_reference.py`), validate on-device point-in-polygon area
+attribution against the shipped DOC/LINZ polygons, and generalize to the
+rest of Wave 1.
 
 > Not legal advice — flag ODbL share-alike + per-country terms for real
 > legal review before any public release (spec §9).

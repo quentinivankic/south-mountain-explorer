@@ -1,0 +1,201 @@
+name: Build Region Tiles
+
+# Dispatch-only: builds one region's trail/area .pmtiles through the
+# data-pipeline (data-pipeline/, spec §10) and optionally publishes it to
+# the Cloudflare R2 dev bucket. Mirrors the manual-only cadence of
+# build-trail-index.yml — never auto-triggers, so it can't burn CI on
+# intermediate merges.
+#
+# Pipeline (spec §1): gate -> download -> stage -> conflate -> build ->
+# tile -> (publish). The FAIL-CLOSED licensing gate runs first and hard-
+# stops the job if any of the region's sources isn't legally shippable.
+#
+# Pilot region: new-zealand (§10) — OSM (Geofabrik) + DOC tracks/PCL,
+# LINZ optional. Everything is CC-BY-4.0 / ODbL, so the gate passes.
+#
+# Required repo secrets to PUBLISH (Settings → Secrets and variables →
+# Actions) — same trio the sync-geom-to-r2 workflow already uses:
+#   - R2_ACCOUNT_ID
+#   - R2_ACCESS_KEY_ID
+#   - R2_SECRET_ACCESS_KEY
+# Optional:
+#   - LINZ_API_KEY          (only if inputs.include_linz is true)
+# Build-only runs (publish=false) need no secrets.
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: 'Region id from data-pipeline/config/regions.json'
+        required: true
+        default: 'new-zealand'
+      publish:
+        description: 'Upload the .pmtiles + attributions to the R2 dev bucket'
+        type: boolean
+        default: false
+      include_linz:
+        description: 'Also fetch LINZ (needs LINZ_API_KEY secret)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: build-region-tiles-${{ github.event.inputs.region }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: data-pipeline
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # ---- policy core: gate + unit tests always run (no geo deps) ----
+      - name: Licensing gate (fail-closed) + unit tests
+        run: |
+          set -e
+          REGION='${{ github.event.inputs.region }}'
+          echo "== fail-closed licensing gate for $REGION =="
+          make gate REGION="$REGION"
+          echo "== policy-core unit tests =="
+          python3 -m unittest discover -s tests
+
+      # ---- geo toolchain ----
+      - name: Install geo tools (osmium, GDAL, tippecanoe) + shapely
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y osmium-tool gdal-bin build-essential \
+            libsqlite3-dev zlib1g-dev
+          python3 -m pip install --quiet 'shapely>=2.0'
+          # tippecanoe (>=2.x emits .pmtiles natively) — build from source.
+          git clone --depth 1 https://github.com/felt/tippecanoe /tmp/tippecanoe
+          make -C /tmp/tippecanoe -j"$(nproc)"
+          sudo make -C /tmp/tippecanoe install
+          osmium --version && ogr2ogr --version && tippecanoe --version
+
+      # ---- download raw sources (§3.3) ----
+      - name: Download OSM + DOC (+ LINZ if requested)
+        env:
+          LINZ_API_KEY: ${{ secrets.LINZ_API_KEY }}
+        run: |
+          set -e
+          cd sources/downloaders
+          python3 osm_nz.py
+          python3 nz_doc.py
+          if [ '${{ github.event.inputs.include_linz }}' = 'true' ]; then
+            if [ -z "$LINZ_API_KEY" ]; then
+              echo "include_linz=true but LINZ_API_KEY secret is unset"; exit 1
+            fi
+            python3 nz_linz.py
+          fi
+
+      # ---- stage: osmium export -> normalized trails/areas GeoJSON (§3) ----
+      - name: Stage OSM + reproject DOC to EPSG:4326
+        run: |
+          set -e
+          REGION='${{ github.event.inputs.region }}'
+          mkdir -p staging/osm staging/nz_doc staging/areas
+          echo "== osmium export trail+area geometry =="
+          osmium export raw/osm/new-zealand-latest.osm.pbf \
+            -f geojson --geometry-types=linestring,polygon \
+            -o staging/osm/nz_export.geojson --overwrite
+          python3 build/stage_osm.py --in staging/osm/nz_export.geojson \
+            --trails-out staging/osm/${REGION}_trails.geojson \
+            --areas-out  staging/areas/${REGION}_areas.geojson
+          echo "== normalize DOC tracks + PCL to WGS84 GeoJSON =="
+          ogr2ogr -f GeoJSON -t_srs EPSG:4326 \
+            staging/nz_doc/tracks.geojson raw/nz_doc/doc_tracks.geojson
+          ogr2ogr -f GeoJSON -t_srs EPSG:4326 \
+            staging/nz_doc/pcl.geojson raw/nz_doc/doc_pcl.geojson
+
+      # ---- conflate OSM <-> DOC (§5) ----
+      - name: Conflate OSM against DOC tracks + PCL boundaries
+        run: |
+          set -e
+          REGION='${{ github.event.inputs.region }}'
+          python3 conflation/match.py \
+            --osm staging/osm/${REGION}_trails.geojson \
+            --authoritative staging/nz_doc/tracks.geojson \
+            --boundaries staging/nz_doc/pcl.geojson \
+            --source-id doc --out staging/${REGION}_matches.json
+
+      # ---- build: Bucket B flags + inclusion guard (§4.2, §7.1) ----
+      - name: Attach Bucket B flags + inclusion guard
+        run: |
+          set -e
+          REGION='${{ github.event.inputs.region }}'
+          TRUST=$(python3 -c "import json;print(json.load(open('config/regions.json'))['regions']['$REGION']['region_trust'])")
+          python3 build/confidence.py \
+            --trails staging/osm/${REGION}_trails.geojson \
+            --matches staging/${REGION}_matches.json \
+            --region-trust "$TRUST" \
+            --out staging/${REGION}_trails_flagged.geojson
+          python3 qa/assert_inclusion.py --trails staging/${REGION}_trails_flagged.geojson
+
+      # ---- attributions (§2) ----
+      - name: Generate attributions.json
+        run: |
+          set -e
+          REGION='${{ github.event.inputs.region }}'
+          SRC=$(python3 -c "import json;print(' '.join(json.load(open('config/regions.json'))['regions']['$REGION']['sources']))")
+          CC=$(python3 -c "import json;print(' '.join(json.load(open('config/regions.json'))['regions']['$REGION']['countries']))")
+          mkdir -p dist
+          python3 build/attributions.py --region "$REGION" \
+            --sources $SRC --countries $CC \
+            --out dist/attributions.${REGION}.json
+          cat dist/attributions.${REGION}.json
+
+      # ---- tile to .pmtiles (§7) ----
+      - name: Tile to .pmtiles
+        run: |
+          set -e
+          REGION='${{ github.event.inputs.region }}'
+          mkdir -p dist/regions
+          bash build/tiles/build_tiles.sh "$REGION" \
+            staging/${REGION}_trails_flagged.geojson \
+            staging/areas/${REGION}_areas.geojson \
+            dist/regions/${REGION}.pmtiles
+
+      - name: Upload .pmtiles as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.inputs.region }}-pmtiles
+          path: |
+            data-pipeline/dist/regions/${{ github.event.inputs.region }}.pmtiles
+            data-pipeline/dist/attributions.${{ github.event.inputs.region }}.json
+          if-no-files-found: error
+
+      # ---- publish to R2 dev bucket (§7.4) ----
+      - name: Publish to R2 dev bucket
+        if: ${{ github.event.inputs.publish == 'true' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        run: |
+          set -e
+          REGION='${{ github.event.inputs.region }}'
+          if [ -z "$R2_ACCOUNT_ID" ] || [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "publish=true but R2_* secrets are unset."; exit 1
+          fi
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          # Dev bucket + regions/ prefix, matching the Worker's key scheme.
+          aws s3 cp dist/regions/${REGION}.pmtiles \
+            s3://trekdex-areas-dev/regions/${REGION}.pmtiles \
+            --endpoint-url "$ENDPOINT" \
+            --content-type "application/octet-stream" \
+            --cache-control "public, max-age=86400" --no-progress
+          aws s3 cp dist/attributions.${REGION}.json \
+            s3://trekdex-areas-dev/attributions.${REGION}.json \
+            --endpoint-url "$ENDPOINT" \
+            --content-type "application/json" \
+            --cache-control "public, max-age=300" --no-progress
+          echo "published ${REGION} to trekdex-areas-dev."

@@ -4,6 +4,54 @@ Long-running tracker of shipped work + open items. Live "what's in the
 current build" planning lives in `~/.claude/plans/binary-hatching-
 toucan.md`; this file is the historical record.
 
+## In flight (open PRs + awaiting action)
+
+Snapshot of the active threads this session — see the PRs for detail.
+
+- **Trail-data pipeline (Trekdex trail/area tiles).** Merged **#254** —
+  scaffolds `data-pipeline/` per `TRAIL_DATA_PIPELINE_SPEC.md` and starts
+  the §10 **New Zealand** pilot: fail-closed licensing gate + registry,
+  pure-Python OSM stager, shapely conflation, thin Bucket-B flag emitter
+  (no baked score), on-device scoring reference + weights, attribution
+  generator, post-build inclusion guard, tippecanoe→`.pmtiles`, a
+  Cloudflare Worker PMTiles range handler for R2, **58 unit tests**, and
+  the dispatch-only **`build-region-tiles`** workflow (now on `main`).
+  - NEXT (you): Actions → **Build Region Tiles** → `region=new-zealand`,
+    `publish=false` — proves the geo steps + drops the `.pmtiles` as an
+    artifact (no secrets). First run VERIFYs the DOC ArcGIS endpoints.
+  - THEN: add `R2_*` secrets → re-run `publish=true` to land NZ tiles on
+    the `trekdex-areas-dev` bucket. (I can't dispatch — `actions:write` 403.)
+  - LATER: port `build/scoring_reference.py` into a dev-only iOS
+    authoring build (weight sliders, live re-color), validate on-device
+    point-in-polygon area attribution against the DOC/LINZ polygons, then
+    generalize to the rest of Wave 1.
+- **Screenshot polish (PR #255, open).** Stats "Hikes per Month" now
+  varies 1–4/month (no empty months); shot 3 reframed zoomed on the live
+  recording with the blue user dot aligned to the recording position;
+  shot 5 satellite tile-band fixed (dwell 5s→15s). Plus a small prod
+  tweak: opening an area mid-hike zooms to your position
+  (`TrailMapView.centerOnActiveRecording`).
+  - NEXT: on `ios-pr-build` green, dispatch **`ios-screenshots` against
+    branch `claude/screenshot-polish-stats-shot3-shot5`** (the simulated-
+    location coord lives in that branch's workflow), verify the blue dot +
+    no empty month, then merge #255. Those PNGs are the App Store 6.9" set.
+- **App Store Connect / org enrollment.** Individual→Organization
+  membership conversion **submitted** (LLC + EIN + DUNS in hand; Apple
+  reviews within ~1 business day and may call the D&B-listed phone
+  number). Membership stays active meanwhile, so ASC listing prep can
+  proceed now.
+  - ⚠️ **Card expired** on the Apple account — update it (developer.apple.com
+    → Update card) or membership/apps can lapse.
+  - After approval: accept the **Paid Applications Agreement** + complete
+    tax/banking (EIN, business bank account, W-9) under ASC → Business,
+    if the app will be paid / have IAP.
+- **Stale branch cleanup.** ~182 old `claude/*` branches. Can't delete
+  from the agent environment (the git proxy silently drops ref deletions
+  and there's no delete-branch API tool). Prune locally — keep `main` +
+  the open-PR branches, `git push origin --delete` the rest — or turn on
+  Settings → General → **"Automatically delete head branches"** so future
+  branches self-clean on merge.
+
 ## App Store release gate
 
 Items required (or strongly advised) before submitting to the App Store
@@ -39,12 +87,14 @@ TF builds.
   dispatch-only `ios-screenshots` workflow (#226–#239) boots a 6.9"
   simulator, seeds an art-directed South Mountain demo state, drives
   the 5 planned shots via UI test, and uploads the PNGs as an
-  artifact. Still TODO: one dispatch to recapture with the final
-  #239 art direction (halo removal, jagged elevation, 43/48 recording
-  shot on Bajada), optional caption-bar framing, and pasting it all
-  into ASC.
+  artifact. Latest polish is **PR #255** (in flight — see "In flight"):
+  stats variation, shot-3 zoom + blue dot, shot-5 tiles. Once merged +
+  re-dispatched, paste the PNGs + text into ASC.
 - [ ] **DUNS / organization enrollment** — Gates submission itself.
-  In progress (waiting on the DUNS number).
+  **Individual→Organization conversion submitted** (LLC + EIN + DUNS);
+  Apple review ~1 business day. See "In flight" for the post-approval
+  steps (Paid Applications Agreement + tax/banking) and the ⚠️ expired-
+  card warning.
 
 > ⚠️ **Analytics + feedback now collect off-device** (PostHog, US
 > region — shipped #208–#212). The manifest already reflects this; make
@@ -206,11 +256,14 @@ repo:
   User Content, Email, Crash Data. Draft in `docs/app-store-submission.md`.
 - [ ] Update the trekdex.app **privacy policy** to name PostHog as the
   analytics processor + the **US** data region + the collected types.
-- [ ] Dispatch `ios-screenshots` (Actions tab) once more for the final
-  post-#239 capture set, then (optionally) frame with the caption
-  headlines from `docs/app-store-submission.md`.
+- [ ] Dispatch `ios-screenshots` against the **#255 branch** for the
+  final capture set (verifies shot-3 blue dot + no empty stats month),
+  then merge #255 and upload the PNGs to ASC.
 - [ ] Crash/stability pass on device.
-- [ ] Finish DUNS / org enrollment.
+- [ ] Finish the **Individual→Organization** conversion (submitted;
+  ~1 business day) + fix the ⚠️ expired card on the Apple account.
+- [ ] Dispatch **Build Region Tiles** (`region=new-zealand`) — build-only
+  first, then add `R2_*` secrets and re-run with `publish=true`.
 
 ## Shipped
 
@@ -321,3 +374,15 @@ Notable rollups for the current TestFlight cycle:
   Walk badge). Six new unit tests. Follow-ups tracked in Backlog —
   features. Field-fixed after first walk: stale location on reopen +
   swallowed Stop & Save summary sheet (#250).
+- **Trail-data pipeline scaffold + NZ §10 pilot.** #254. New
+  `data-pipeline/` tree implementing `TRAIL_DATA_PIPELINE_SPEC.md` — the
+  two-gates model (fail-closed licensing gate is the only thing that
+  removes a trail; confidence score is a dev/on-device authoring aid,
+  never baked into tiles). Registry + validator, OSM/DOC/LINZ
+  downloaders, pure-Python stager + DuckDB SQL, shapely conflation +
+  QA flags, thin Bucket-B `confidence.py`, on-device `scoring_reference.py`
+  + weights, attribution generator, inclusion guard, tippecanoe→pmtiles,
+  Cloudflare Worker PMTiles handler for R2, 58 unit tests, and the
+  dispatch-only `build-region-tiles` workflow. Details + next steps in
+  "In flight". (Rode in with a pre-existing R2 areas-index commit that
+  was on the branch.)

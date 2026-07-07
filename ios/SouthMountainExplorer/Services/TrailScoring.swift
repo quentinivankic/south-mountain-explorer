@@ -141,6 +141,12 @@ struct TrailScoringProps: Identifiable, Sendable {
     /// Days since the last OSM edit. `< 30` fires the recency signal;
     /// nil = old/unknown. Stand-in for the reference's timestamp math.
     var editedDaysAgo: Int? = nil
+
+    /// How many real trails in the region share this exact signal
+    /// signature. Set for the sampled NZ data so the lab can weight the
+    /// band tally by prevalence (one "unnamed footway" sample stands for
+    /// ~300k trails); nil for hand-authored fixtures.
+    var count: Int? = nil
 }
 
 enum TrailScoring {

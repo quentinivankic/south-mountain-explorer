@@ -108,10 +108,13 @@ def main() -> int:
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args()
     d = raw_dir("nz_doc")
-    fetch_arcgis_geojson(os.environ.get("DOC_TRACKS_URL", DEFAULT_TRACKS),
-                         d / "doc_tracks.geojson", force=args.force)
-    fetch_arcgis_geojson(os.environ.get("DOC_PCL_URL", DEFAULT_PCL),
-                         d / "doc_pcl.geojson", force=args.force)
+    # `or` (not get's default): the workflow passes DOC_TRACKS_URL="" when
+    # the override input is blank, and get() returns that empty string —
+    # which normalized to a hostless "/query". Empty must fall through.
+    tracks_url = os.environ.get("DOC_TRACKS_URL") or DEFAULT_TRACKS
+    pcl_url = os.environ.get("DOC_PCL_URL") or DEFAULT_PCL
+    fetch_arcgis_geojson(tracks_url, d / "doc_tracks.geojson", force=args.force)
+    fetch_arcgis_geojson(pcl_url, d / "doc_pcl.geojson", force=args.force)
     print(f"DOC data in {d}")
     return 0
 

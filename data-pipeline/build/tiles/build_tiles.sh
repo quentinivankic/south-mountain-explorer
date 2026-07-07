@@ -35,6 +35,7 @@ mkdir -p "$(dirname "$OUT")"
 tippecanoe \
   --output="$OUT" \
   --force \
+  --quiet \
   --name="trekdex-$REGION" \
   --attribution="© OpenStreetMap contributors" \
   --maximum-zoom=14 --minimum-zoom=5 \

@@ -30,10 +30,10 @@ from collections import Counter, defaultdict
 from typing import Any
 
 # Bucket A positive signal(s) where "any member fires" ⇒ the route fires.
-_OR_TRUE = ("has_known_operator",)
+_OR_TRUE = ("has_known_operator", "in_route_relation")
 # Fields combined by majority value across members.
 _MAJORITY = ("access", "informal", "lifecycle", "trail_visibility",
-             "sac_scale", "surface", "highway", "region_trust")
+             "sac_scale", "surface", "highway", "region_trust", "network")
 _COORD_PRECISION = 6  # stage_osm already rounds coords to 1e-6
 
 

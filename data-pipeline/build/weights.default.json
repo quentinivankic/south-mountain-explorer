@@ -1,8 +1,10 @@
 {
-  "_comment": "Spec §4.3 on-device / authoring confidence weights. Policy: 'named OR officially recognized (DOC-matched / inside conservation land) => keep (high); anonymous urban footways, private, abandoned, and informal paths => drop (low)'. Tuned against the real NZ pilot (354,985 trails): ~7% high, ~93% low, dominated by unnamed access=yes footways (sidewalks) that now score ~35. Base is deliberately LOW (30) so an unknown trail is not trusted by default; a name or official backing is what lifts it. Loaded by the authoring build (dev-only) and mirrored by ScoringWeights.default in TrailScoring.swift; the two test suites pin these exact numbers.",
+  "_comment": "Spec §4.3 on-device / authoring confidence weights. Policy: 'named OR officially recognized => keep (high); anonymous urban footways, private, abandoned, informal => drop (low)'. 'Officially recognized' is now GLOBAL: in_route_relation (member of an OSM hiking route relation) + network_national (iwn/nwn) give a country-agnostic 'real recognised trail' signal that needs NO per-country data source, alongside the optional per-country authoritative_match (DOC etc.). Tuned against the real NZ pilot: base is LOW (30) so an unknown trail is not trusted; a name OR route/network membership OR official backing is what lifts it. Loaded by the authoring build (dev-only) and mirrored by ScoringWeights.default in TrailScoring.swift; the two test suites pin these exact numbers.",
   "base": 30,
   "weights": {
     "authoritative_match": 40,
+    "in_route_relation": 40,
+    "network_national": 15,
     "has_known_operator": 20,
     "has_name": 40,
     "in_official_whitelist": 40,

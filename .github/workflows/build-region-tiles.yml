@@ -81,7 +81,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y osmium-tool gdal-bin build-essential \
             libsqlite3-dev zlib1g-dev
-          python3 -m pip install --quiet 'shapely>=2.0'
+          python3 -m pip install --quiet 'shapely>=2.0' 'osmium>=4.0'
           # tippecanoe (>=2.x emits .pmtiles natively) — build from source.
           git clone --depth 1 https://github.com/felt/tippecanoe /tmp/tippecanoe
           make -C /tmp/tippecanoe -j"$(nproc)"
@@ -129,22 +129,35 @@ jobs:
           # trail ways + the four area schemes. `wr/` keeps ways AND
           # relations (multipolygon areas); referenced members are kept by
           # default so export can assemble geometry.
-          echo "== osmium tags-filter (trails + area polygons) =="
+          echo "== osmium tags-filter (trails + area polygons + hiking routes) =="
           osmium tags-filter raw/osm/new-zealand-latest.osm.pbf \
             w/highway=path,footway,track,bridleway \
             "w/abandoned:highway" \
             wr/boundary=protected_area,national_park \
             wr/leisure=nature_reserve \
             wr/landuse=forest \
+            r/route=hiking,foot,walking,running \
             -o staging/osm/nz_filtered.osm.pbf --overwrite
           echo "== osmium export trail+area geometry =="
           osmium export staging/osm/nz_filtered.osm.pbf \
             -f geojson --geometry-types=linestring,polygon \
             --add-unique-id=type_id \
             -o staging/osm/nz_export.geojson --overwrite
+          # Global "official" signal: which ways belong to a hiking route
+          # relation (+ its network). Needs the route relations kept above.
+          # Non-fatal — a pyosmium hiccup just omits the route signals.
+          echo "== route-relation index =="
+          ROUTE_ARG=""
+          if python3 build/route_index.py \
+               --pbf staging/osm/nz_filtered.osm.pbf \
+               --out staging/osm/${REGION}_routes.json; then
+            ROUTE_ARG="--route-index staging/osm/${REGION}_routes.json"
+          else
+            echo "::warning::route index failed — continuing without route-relation signals"
+          fi
           python3 build/stage_osm.py --in staging/osm/nz_export.geojson \
             --trails-out staging/osm/${REGION}_raw_trails.geojson \
-            --areas-out  staging/areas/${REGION}_areas.geojson
+            --areas-out  staging/areas/${REGION}_areas.geojson $ROUTE_ARG
           # Collapse multi-segment named routes (Te Araroa etc.) into one
           # trail BEFORE conflation, so downstream sees whole routes.
           echo "== dedup multi-segment routes =="

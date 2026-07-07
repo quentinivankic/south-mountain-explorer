@@ -31,10 +31,10 @@ import scoring_reference as sr
 # reference keys + TrailScoringProps). Everything else on the feature is
 # irrelevant to the score and dropped from the sample.
 FIELDS = (
-    "name", "authoritative_match", "has_known_operator", "has_name",
-    "in_official_whitelist", "region_trust", "access", "informal",
-    "lifecycle", "trail_visibility", "sac_scale", "tiger_unreviewed",
-    "low_trust_editor", "osm_timestamp",
+    "name", "authoritative_match", "in_route_relation", "network",
+    "has_known_operator", "has_name", "in_official_whitelist", "region_trust",
+    "access", "informal", "lifecycle", "trail_visibility", "sac_scale",
+    "tiger_unreviewed", "low_trust_editor", "osm_timestamp",
 )
 
 

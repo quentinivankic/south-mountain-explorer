@@ -46,6 +46,7 @@ _SAC_RANK = {
 }
 _SAC_T4_PLUS_THRESHOLD = 3  # demanding_mountain_hiking or harder
 
+_NETWORK_NATIONAL = {"iwn", "nwn"}  # international / national walking network
 _ACCESS_RESTRICTED = {"no", "private", "discouraged"}
 _VISIBILITY_POOR = {"bad", "horrible", "no"}
 _LIFECYCLE_DEAD = {"abandoned", "disused"}
@@ -105,9 +106,16 @@ def active_signals(props: dict[str, Any], as_of: datetime | None = None) -> dict
     if ts is not None and as_of is not None:
         recent = (as_of - ts).days < _RECENT_EDIT_DAYS
 
+    network = str(props.get("network", "")).strip().lower()
+
     return {
         # positives (Bucket B unless noted)
         "authoritative_match": _truthy(props.get("authoritative_match")),
+        # GLOBAL "official" signal — hiking route-relation membership.
+        # Works in every country's OSM with no per-country data source.
+        "in_route_relation": _truthy(props.get("in_route_relation")),        # Bucket A
+        # International / national walking network — the marquee routes.
+        "network_national": network in _NETWORK_NATIONAL,
         "has_known_operator": _truthy(props.get("has_known_operator")),      # Bucket A
         "has_name": _truthy(props.get("has_name")),                          # Bucket A
         "in_official_whitelist": _truthy(props.get("in_official_whitelist")),

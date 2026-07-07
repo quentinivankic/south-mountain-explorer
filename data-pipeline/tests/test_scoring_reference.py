@@ -59,6 +59,22 @@ class Scoring(unittest.TestCase):
         self.assertEqual(s, 30.0)
         self.assertEqual(b, "low")
 
+    def test_route_relation_membership_is_high_even_unnamed(self):
+        # base 30 + in_route_relation 40 = 70 -> high. The global "official"
+        # signal: an UNNAMED way in a hiking route is kept, no name needed.
+        s, b = sr.score_and_band({"in_route_relation": True}, W, as_of=NOW)
+        self.assertEqual(s, 70.0)
+        self.assertEqual(b, "high")
+
+    def test_national_network_adds_boost(self):
+        # route member on a national network: 30 + 40 + 15 = 85 -> high.
+        s, _ = sr.score_and_band(
+            {"in_route_relation": True, "network": "nwn"}, W, as_of=NOW)
+        self.assertEqual(s, 85.0)
+        # regional/local networks don't trip network_national.
+        self.assertFalse(sr.active_signals({"network": "rwn"})["network_national"])
+        self.assertTrue(sr.active_signals({"network": "iwn"})["network_national"])
+
     def test_sac_scale_threshold_at_demanding_mountain_hiking(self):
         self.assertFalse(sr.active_signals({"sac_scale": "mountain_hiking"})["sac_scale_t4_plus"])
         self.assertTrue(

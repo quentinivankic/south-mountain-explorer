@@ -53,6 +53,25 @@ struct TrailScoringTests {
         #expect(r.band == .low)
     }
 
+    @Test func routeRelationMembershipIsHighEvenUnnamed() {
+        // 30 + in_route_relation 40 = 70 → high. Global "official" signal.
+        let p = TrailScoringProps(name: "x", inRouteRelation: true)
+        let r = TrailScoring.scoreAndBand(p, weights: w)
+        #expect(r.score == 70.0)
+        #expect(r.band == .high)
+    }
+
+    @Test func nationalNetworkAddsBoost() {
+        // route + national network: 30 + 40 + 15 = 85.
+        let p = TrailScoringProps(name: "x", inRouteRelation: true, network: "nwn")
+        #expect(TrailScoring.score(p, weights: w) == 85.0)
+        // regional/local networks don't trip networkNational.
+        #expect(!TrailScoring.firedSignals(TrailScoringProps(name: "x", network: "rwn"))
+            .contains(.networkNational))
+        #expect(TrailScoring.firedSignals(TrailScoringProps(name: "x", network: "IWN"))
+            .contains(.networkNational))
+    }
+
     @Test func sacScaleThresholdAtDemandingMountainHiking() {
         #expect(!TrailScoring.firedSignals(
             TrailScoringProps(name: "x", sacScale: "mountain_hiking"))

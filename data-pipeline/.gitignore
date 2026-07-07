@@ -1,0 +1,17 @@
+# Large / reproducible artifacts — never committed (spec §1).
+raw/
+staging/
+qa/reports/*
+!qa/reports/.gitkeep
+
+# Built tiles are published to R2, not git.
+dist/regions/*.pmtiles
+dist/attributions.*.json
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node (Worker)
+workers/pmtiles-handler/node_modules/

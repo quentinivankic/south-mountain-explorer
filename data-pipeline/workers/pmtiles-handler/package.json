@@ -1,0 +1,13 @@
+{
+  "name": "trekdex-pmtiles-handler",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker serving per-region .pmtiles from R2 via HTTP range requests (Trekdex trail-data pipeline §7)",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3"
+  }
+}

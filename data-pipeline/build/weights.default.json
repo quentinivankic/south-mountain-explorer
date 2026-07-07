@@ -1,0 +1,19 @@
+{
+  "_comment": "Spec §4.3 default weights for the ON-DEVICE / AUTHORING confidence score. These reproduce the original heuristic and are ILLUSTRATIVE STARTING VALUES, not empirically validated — tune against the NZ pilot. This config is loaded by the authoring build (dev-only) and re-colors the map live with no tile rebuild. The shipped build has NO confidence UI; it only reads the fixed curation config produced from this authoring loop.",
+  "base": 50,
+  "weights": {
+    "authoritative_match": 20,
+    "has_known_operator": 20,
+    "has_name": 10,
+    "in_official_whitelist": 10,
+    "region_trust_high": 10,
+    "access_restricted": -40,
+    "informal": -35,
+    "lifecycle_abandoned_or_disused": -50,
+    "trail_visibility_poor": -25,
+    "sac_scale_t4_plus": -20,
+    "tiger_unreviewed": -15,
+    "recently_edited_or_low_trust": -15
+  },
+  "bands": { "high": 70, "medium": 40 }
+}

@@ -1,0 +1,15 @@
+name = "trekdex-pmtiles"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# R2 bucket holding per-region .pmtiles + attributions.json.
+# Objects keyed regions/<region>.pmtiles (matches dist/regions/).
+[[r2_buckets]]
+binding = "TILES"
+bucket_name = "trekdex-areas"
+preview_bucket_name = "trekdex-areas-dev"
+
+# Publish test tiles to the dev bucket first (spec §10.5):
+#   wrangler r2 object put trekdex-areas-dev/regions/new-zealand.pmtiles \
+#     --file ../../dist/regions/new-zealand.pmtiles
+#   wrangler deploy

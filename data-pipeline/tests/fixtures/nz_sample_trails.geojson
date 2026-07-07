@@ -1,0 +1,38 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {"type": "LineString", "coordinates": [[168.10, -44.80], [168.12, -44.79]]},
+      "properties": {
+        "osm_id": "101", "name": "Kepler Track", "highway": "path",
+        "has_name": true, "has_known_operator": true, "operator": "DOC",
+        "informal": null, "access": null, "sac_scale": "mountain_hiking",
+        "trail_visibility": "excellent", "surface": "ground", "lifecycle": "active",
+        "osm_timestamp": "2025-11-01T00:00:00Z", "osm_version": 12
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {"type": "LineString", "coordinates": [[168.20, -44.70], [168.21, -44.69]]},
+      "properties": {
+        "osm_id": "102", "name": null, "highway": "path",
+        "has_name": false, "has_known_operator": false,
+        "informal": "yes", "access": null, "sac_scale": "demanding_mountain_hiking",
+        "trail_visibility": "bad", "lifecycle": "active",
+        "osm_timestamp": "2020-03-01T00:00:00Z", "osm_version": 2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {"type": "LineString", "coordinates": [[168.30, -44.60], [168.31, -44.59]]},
+      "properties": {
+        "osm_id": "103", "name": "Old Mill Track", "highway": "path",
+        "has_name": true, "has_known_operator": false,
+        "informal": null, "access": "private", "sac_scale": "hiking",
+        "trail_visibility": "intermediate", "lifecycle": "abandoned",
+        "osm_timestamp": "2019-06-01T00:00:00Z", "osm_version": 4
+      }
+    }
+  ]
+}

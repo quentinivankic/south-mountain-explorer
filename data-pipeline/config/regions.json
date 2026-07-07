@@ -1,0 +1,17 @@
+{
+  "_comment": "Region definitions for the build waves (spec §6). Each region maps to one dist/regions/<region>.pmtiles. `sources` must all pass the fail-closed licensing gate (sources/validate_registry.py --require ...). `curation_mode`: shipped_filter (B, default — tile ALL legally-shippable trails, app applies fixed curation config) | baked (A — apply curation threshold at build time once a region is locked). `region_trust` feeds §4.1's regional multiplier. `official_whitelist_sources` are the agencies that publish ONLY maintained trails, used to build the §5 whitelist + phantom flag.",
+  "regions": {
+    "new-zealand": {
+      "wave": 1,
+      "countries": ["NZ"],
+      "geofabrik_extract": "australia-oceania/new-zealand",
+      "bbox": [166.0, -47.5, 179.5, -34.0],
+      "sources": ["osm", "nz_doc", "nz_linz"],
+      "authoritative_trail_sources": ["nz_doc"],
+      "official_whitelist_sources": ["nz_doc"],
+      "curation_mode": "shipped_filter",
+      "region_trust": "high",
+      "notes": "§10 pilot. Best-provisioned country: DOC publishes tracks + PCL boundaries under CC-BY-4.0; LINZ boundaries CC-BY-4.0. Lean on authoritative directly, conflate OSM against DOC tracks."
+    }
+  }
+}

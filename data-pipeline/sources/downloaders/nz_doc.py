@@ -21,38 +21,75 @@ import argparse
 import json
 import os
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
 
 from common import raw_dir
 
-# Public DOC ArcGIS layers (VERIFY at build time — see registry note).
-DEFAULT_TRACKS = ("https://services1.arcgis.com/HAipYSwmVDgObQlm/arcgis/rest/services/"
-                  "DOC_Tracks/FeatureServer/0/query")
-DEFAULT_PCL = ("https://services1.arcgis.com/HAipYSwmVDgObQlm/arcgis/rest/services/"
-               "Public_Conservation_Land/FeatureServer/0/query")
+# Public DOC ArcGIS layers, verified against the DOC Open Spatial Data
+# hub (org 3JjYDyG3oajxU6HO). Tracks live on layer 1 of the Walking
+# Experiences service; PCL on layer 0 of its own. Override via
+# DOC_TRACKS_URL / DOC_PCL_URL if DOC's April-2026 platform migration
+# moves them.
+DEFAULT_TRACKS = ("https://services1.arcgis.com/3JjYDyG3oajxU6HO/arcgis/rest/services/"
+                  "DOC_Walking_Experiences/FeatureServer/1/query")
+DEFAULT_PCL = ("https://services1.arcgis.com/3JjYDyG3oajxU6HO/arcgis/rest/services/"
+               "DOC_Public_Conservation_Land/FeatureServer/0/query")
 PAGE = 2000
+
+
+def _normalize(base_url: str) -> str:
+    """Accept whatever you copy from the DOC hub's API panel: a bare
+    `.../FeatureServer/<n>` layer URL, a `.../query` endpoint, or either
+    with a `?outFields=…&where=…` query string already appended. We
+    always drive our own params, so strip any existing query string and
+    ensure the path ends in `/query`."""
+    u = base_url.split("?", 1)[0].rstrip("/")
+    return u if u.endswith("query") else u + "/query"
+
+
+# Hard cap on pages: if a server ignores `resultOffset` (no pagination
+# support) it returns a full page forever — bail instead of looping.
+MAX_PAGES = 500
 
 
 def fetch_arcgis_geojson(base_url: str, dest: Path, *, force: bool) -> Path:
     if dest.exists() and not force:
         print(f"  [skip] {dest.name} present ({dest.stat().st_size:,} bytes)")
         return dest
+    query_url = _normalize(base_url)
     features: list = []
     offset = 0
-    while True:
+    for _ in range(MAX_PAGES):
         params = {
             "where": "1=1", "outFields": "*", "outSR": "4326",
             "f": "geojson", "resultOffset": offset, "resultRecordCount": PAGE,
         }
-        url = base_url + "?" + urllib.parse.urlencode(params)
+        url = query_url + "?" + urllib.parse.urlencode(params)
         req = urllib.request.Request(url, headers={"User-Agent": "trekdex-pipeline/0.1"})
         try:
             with urllib.request.urlopen(req) as resp:
                 page = json.load(resp)
+        except urllib.error.HTTPError as exc:
+            # ArcGIS returns a JSON error body explaining WHY (bad layer,
+            # bad param, etc.) — surface it so a wrong URL is obvious.
+            body = ""
+            try:
+                body = exc.read().decode("utf-8", "replace")[:500]
+            except Exception:  # noqa: BLE001
+                pass
+            sys.stderr.write(
+                f"ERROR fetching DOC layer {query_url} @ offset {offset}: {exc}\n"
+                f"  server said: {body}\n")
+            raise SystemExit(4)
         except Exception as exc:  # noqa: BLE001
-            sys.stderr.write(f"ERROR fetching DOC layer {base_url} @ offset {offset}: {exc}\n")
+            sys.stderr.write(f"ERROR fetching DOC layer {query_url} @ offset {offset}: {exc}\n")
+            raise SystemExit(4)
+        # An ArcGIS error can arrive as HTTP 200 with an {"error": ...} body.
+        if isinstance(page, dict) and "error" in page:
+            sys.stderr.write(f"ERROR DOC layer {query_url}: {json.dumps(page['error'])[:500]}\n")
             raise SystemExit(4)
         batch = page.get("features", [])
         features.extend(batch)

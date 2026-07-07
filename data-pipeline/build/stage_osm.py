@@ -42,10 +42,18 @@ def is_trail(props: dict[str, Any]) -> bool:
             or props.get("abandoned:highway") in TRAIL_HIGHWAYS)
 
 
-def normalize_trail(props: dict[str, Any], osm_id: str) -> dict[str, Any]:
-    """OSM tags -> Bucket A raw signals (§4.1). Null-safe, lowercased."""
+def normalize_trail(props: dict[str, Any], osm_id: str,
+                    route: dict[str, Any] | None = None) -> dict[str, Any]:
+    """OSM tags -> Bucket A raw signals (§4.1). Null-safe, lowercased.
+
+    `route` is this way's entry from build/route_index.py (hiking
+    route-relation membership) if any — a GLOBAL "recognised trail" signal
+    that needs no per-country data source. A route's `operator` counts as
+    a maintaining body for `has_known_operator`.
+    """
+    route = route or {}
     name = props.get("name")
-    operator = props.get("operator")
+    operator = props.get("operator") or route.get("route_operator")
 
     ab = props.get("abandoned:highway")
     disused = _lower(props.get("disused"))
@@ -72,6 +80,9 @@ def normalize_trail(props: dict[str, Any], osm_id: str) -> dict[str, Any]:
         "surface": _lower(props.get("surface")),
         "lifecycle": lifecycle,
         "tiger_unreviewed": _lower(props.get("tiger:reviewed")) == "no",
+        # Global "official" signals (Bucket A-ish; from route relations).
+        "in_route_relation": bool(route.get("in_route")),
+        "network": _lower(route.get("network")) or "",
     }
 
 
@@ -106,7 +117,9 @@ def normalize_area(props: dict[str, Any], osm_id: str) -> dict[str, Any] | None:
     }
 
 
-def stage(fc: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+def stage(fc: dict[str, Any],
+          route_index: dict[str, Any] | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
+    route_index = route_index or {}
     trails, areas = [], []
     for i, f in enumerate(fc.get("features", [])):
         props = f.get("properties", {}) or {}
@@ -116,7 +129,8 @@ def stage(fc: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
 
         if gtype in LINE_GEOMS and is_trail(props):
             trails.append({"type": "Feature", "geometry": geom,
-                           "properties": normalize_trail(props, osm_id)})
+                           "properties": normalize_trail(props, osm_id,
+                                                          route_index.get(osm_id))})
         elif gtype in POLY_GEOMS:
             a = normalize_area(props, osm_id)
             if a is not None:
@@ -131,11 +145,16 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--in", dest="inp", required=True, help="osmium export GeoJSON")
     ap.add_argument("--trails-out", required=True)
     ap.add_argument("--areas-out", required=True)
+    ap.add_argument("--route-index", help="build/route_index.py JSON (optional)")
     args = ap.parse_args(argv)
 
     with open(args.inp, encoding="utf-8") as fh:
         fc = json.load(fh)
-    trails, areas = stage(fc)
+    route_index = {}
+    if args.route_index:
+        with open(args.route_index, encoding="utf-8") as fh:
+            route_index = json.load(fh)
+    trails, areas = stage(fc, route_index)
     with open(args.trails_out, "w", encoding="utf-8") as fh:
         json.dump(trails, fh)
     with open(args.areas_out, "w", encoding="utf-8") as fh:

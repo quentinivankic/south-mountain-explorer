@@ -26,6 +26,8 @@ import SwiftUI
 enum ScoreSignal: String, CaseIterable, Identifiable, Sendable {
     // positives
     case authoritativeMatch = "authoritative_match"
+    case inRouteRelation = "in_route_relation"
+    case networkNational = "network_national"
     case hasKnownOperator = "has_known_operator"
     case hasName = "has_name"
     case inOfficialWhitelist = "in_official_whitelist"
@@ -45,8 +47,8 @@ enum ScoreSignal: String, CaseIterable, Identifiable, Sendable {
     /// range + grouping in the authoring lab.
     var isPositive: Bool {
         switch self {
-        case .authoritativeMatch, .hasKnownOperator, .hasName,
-             .inOfficialWhitelist, .regionTrustHigh:
+        case .authoritativeMatch, .inRouteRelation, .networkNational,
+             .hasKnownOperator, .hasName, .inOfficialWhitelist, .regionTrustHigh:
             return true
         default:
             return false
@@ -56,6 +58,8 @@ enum ScoreSignal: String, CaseIterable, Identifiable, Sendable {
     var label: String {
         switch self {
         case .authoritativeMatch: return "Authoritative match"
+        case .inRouteRelation: return "In hiking route"
+        case .networkNational: return "National/intl network"
         case .hasKnownOperator: return "Known operator"
         case .hasName: return "Has name"
         case .inOfficialWhitelist: return "Official whitelist"
@@ -92,6 +96,8 @@ struct ScoringWeights: Equatable, Sendable {
         base: 30,
         weights: [
             .authoritativeMatch: 40,
+            .inRouteRelation: 40,
+            .networkNational: 15,
             .hasKnownOperator: 20,
             .hasName: 40,
             .inOfficialWhitelist: 40,
@@ -133,6 +139,8 @@ struct TrailScoringProps: Identifiable, Sendable {
     var name: String
 
     var authoritativeMatch = false
+    var inRouteRelation = false     // member of an OSM hiking route relation
+    var network = ""                // iwn / nwn / rwn / lwn (walking network)
     var hasKnownOperator = false
     var hasName = false
     var inOfficialWhitelist = false
@@ -174,6 +182,7 @@ enum TrailScoring {
     private static let accessRestricted: Set<String> = ["no", "private", "discouraged"]
     private static let visibilityPoor: Set<String> = ["bad", "horrible", "no"]
     private static let lifecycleDead: Set<String> = ["abandoned", "disused"]
+    private static let networkNational: Set<String> = ["iwn", "nwn"]
 
     private static func norm(_ s: String) -> String {
         s.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -196,6 +205,8 @@ enum TrailScoring {
         func set(_ s: ScoreSignal, _ cond: Bool) { if cond { fired.insert(s) } }
 
         set(.authoritativeMatch, p.authoritativeMatch)
+        set(.inRouteRelation, p.inRouteRelation)
+        set(.networkNational, networkNational.contains(norm(p.network)))
         set(.hasKnownOperator, p.hasKnownOperator)
         set(.hasName, p.hasName)
         set(.inOfficialWhitelist, p.inOfficialWhitelist)

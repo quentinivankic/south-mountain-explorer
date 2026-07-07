@@ -56,6 +56,23 @@ class TrailStaging(unittest.TestCase):
         for k in ("confidence", "score", "band"):
             self.assertNotIn(k, p)
 
+    def test_route_relation_signals_from_index(self):
+        route = {"in_route": True, "network": "NWN",
+                 "route_name": "Te Araroa", "route_operator": "Te Araroa Trust"}
+        p = st.normalize_trail({"highway": "path"}, "w1", route)
+        self.assertTrue(p["in_route_relation"])
+        self.assertEqual(p["network"], "nwn")           # lowercased
+        self.assertTrue(p["has_known_operator"])        # inherited from route
+        # no route -> signals off
+        q = st.normalize_trail({"highway": "path"}, "w2")
+        self.assertFalse(q["in_route_relation"])
+        self.assertEqual(q["network"], "")
+
+    def test_stage_joins_route_index_by_id(self):
+        fc = {"features": [line(highway="path", **{"@id": "w5"})]}
+        trails, _ = st.stage(fc, {"w5": {"in_route": True, "network": "iwn"}})
+        self.assertTrue(trails["features"][0]["properties"]["in_route_relation"])
+
 
 class AreaStaging(unittest.TestCase):
     def test_protected_area_highest_osm_rank(self):

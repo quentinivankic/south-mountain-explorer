@@ -123,9 +123,24 @@ jobs:
           set -e
           REGION='${{ github.event.inputs.region }}'
           mkdir -p staging/osm staging/nz_doc staging/areas
+          # Prefilter to just the tags we stage (§3) BEFORE export.
+          # Exporting the whole NZ PBF (every road/building/landuse
+          # polygon) to GeoJSON is many GB and minutes; this shrinks it to
+          # trail ways + the four area schemes. `wr/` keeps ways AND
+          # relations (multipolygon areas); referenced members are kept by
+          # default so export can assemble geometry.
+          echo "== osmium tags-filter (trails + area polygons) =="
+          osmium tags-filter raw/osm/new-zealand-latest.osm.pbf \
+            w/highway=path,footway,track,bridleway \
+            "w/abandoned:highway" \
+            wr/boundary=protected_area,national_park \
+            wr/leisure=nature_reserve \
+            wr/landuse=forest \
+            -o staging/osm/nz_filtered.osm.pbf --overwrite
           echo "== osmium export trail+area geometry =="
-          osmium export raw/osm/new-zealand-latest.osm.pbf \
+          osmium export staging/osm/nz_filtered.osm.pbf \
             -f geojson --geometry-types=linestring,polygon \
+            --add-unique-id=type_id \
             -o staging/osm/nz_export.geojson --overwrite
           python3 build/stage_osm.py --in staging/osm/nz_export.geojson \
             --trails-out staging/osm/${REGION}_trails.geojson \

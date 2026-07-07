@@ -143,8 +143,14 @@ jobs:
             --add-unique-id=type_id \
             -o staging/osm/nz_export.geojson --overwrite
           python3 build/stage_osm.py --in staging/osm/nz_export.geojson \
-            --trails-out staging/osm/${REGION}_trails.geojson \
+            --trails-out staging/osm/${REGION}_raw_trails.geojson \
             --areas-out  staging/areas/${REGION}_areas.geojson
+          # Collapse multi-segment named routes (Te Araroa etc.) into one
+          # trail BEFORE conflation, so downstream sees whole routes.
+          echo "== dedup multi-segment routes =="
+          python3 build/dedup_trails.py \
+            --in staging/osm/${REGION}_raw_trails.geojson \
+            --out staging/osm/${REGION}_trails.geojson
           if [ "${DOC_OK:-0}" = "1" ] && [ -f raw/nz_doc/doc_tracks.geojson ]; then
             echo "== normalize DOC tracks + PCL to WGS84 GeoJSON =="
             ogr2ogr -f GeoJSON -t_srs EPSG:4326 \

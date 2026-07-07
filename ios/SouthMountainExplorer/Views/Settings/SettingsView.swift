@@ -402,6 +402,15 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
+                    #if DEBUG
+                    // Dev-only trail-confidence authoring lab (spec §4.3).
+                    // Compiled out of Release — no confidence UI ships.
+                    NavigationLink {
+                        TrailConfidenceLabView()
+                    } label: {
+                        Label("Trail Confidence Lab", systemImage: "slider.horizontal.3")
+                    }
+                    #endif
                 }
 
                 Section("About") {

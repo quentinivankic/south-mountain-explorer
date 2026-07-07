@@ -21,10 +21,13 @@ Snapshot of the active threads this session — see the PRs for detail.
     artifact (no secrets). First run VERIFYs the DOC ArcGIS endpoints.
   - THEN: add `R2_*` secrets → re-run `publish=true` to land NZ tiles on
     the `trekdex-areas-dev` bucket. (I can't dispatch — `actions:write` 403.)
-  - LATER: port `build/scoring_reference.py` into a dev-only iOS
-    authoring build (weight sliders, live re-color), validate on-device
-    point-in-polygon area attribution against the DOC/LINZ polygons, then
-    generalize to the rest of Wave 1.
+  - IN PROGRESS: dev-only iOS **Trail Confidence Lab** built (Settings →
+    Developer, DEBUG-only) — `TrailScoring.swift` ports
+    `scoring_reference.py` (conformance-tested), with live weight/base/band
+    sliders re-scoring a sample trail set. Next: feed it real pmtiles
+    feature props once the NZ build lands (swap the sample set), then
+    validate on-device point-in-polygon area attribution against the
+    DOC/LINZ polygons, then generalize to the rest of Wave 1.
 - **Screenshot polish (PR #255, open).** Stats "Hikes per Month" now
   varies 1–4/month (no empty months); shot 3 reframed zoomed on the live
   recording with the blue user dot aligned to the recording position;

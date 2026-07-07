@@ -1,16 +1,15 @@
-#if DEBUG
 import SwiftUI
 
-/// DEBUG-only authoring lab for the on-device confidence score (spec §4.3
-/// / §8 "authoring build"). Drag the weight/base/band levers and watch a
-/// representative set of trails re-score and re-band in real time — the
-/// same live-recuration loop the spec calls for, with no tile rebuild.
+/// Authoring lab for the on-device confidence score (spec §4.3 / §8
+/// "authoring build"). Drag the weight/base/band levers and watch the
+/// real NZ trail patterns re-score and re-band in real time — the same
+/// live-recuration loop the spec calls for, with no tile rebuild.
 ///
-/// Compiled OUT of Release entirely (`#if DEBUG`), and reached only via
-/// Settings → Developer, so the shipped user build carries no confidence
-/// UI (spec §8 "shipped build"). Uses `TrailScoring`, the port of
-/// `scoring_reference.py`; the sample trails stand in for real pmtiles
-/// feature properties until the NZ pilot tiles land.
+/// This ships in Release (so it's reachable in TestFlight) but is hidden
+/// behind a 7-tap gesture on Settings → About → Build; ordinary testers
+/// never see it. Per §8 the shipped USER build carries no confidence UI,
+/// so re-gate this with `#if DEBUG` (or drop the reveal) before App Store
+/// submission. Uses `TrailScoring`, the port of `scoring_reference.py`.
 struct TrailConfidenceLabView: View {
     @State private var weights = ScoringWeights.default
 
@@ -246,4 +245,3 @@ extension TrailScoringProps {
         TrailScoringProps(name: "Walker Kauri Track", hasName: true, regionTrust: "high", access: "no", trailVisibility: "bad", sacScale: "hiking", count: 6),
     ]
 }
-#endif

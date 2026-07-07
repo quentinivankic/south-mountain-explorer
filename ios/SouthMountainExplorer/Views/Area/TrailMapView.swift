@@ -276,7 +276,16 @@ struct TrailMapView: View {
                 liveHaloSegments = liveTrailSnappedRuns(path: path)
                 lastLiveHaloRecomputeAt = Date().timeIntervalSince1970
             }
-            centerOnArea()
+            // Opening the area with a hike already in progress frames the
+            // camera zoomed on where you are on the trail — the same
+            // ~1500 m as the recenter button — rather than the whole-park
+            // overview. Uses the recording's own last GPS sample, so it
+            // works even before a fresh live fix lands.
+            if (activeRecording?.path.count ?? 0) >= 2 {
+                centerOnActiveRecording()
+            } else {
+                centerOnArea()
+            }
         }
         .onChange(of: pastHikes.count) { _, _ in
             // New hike finished and AreaView reloaded pastHikes.
@@ -503,6 +512,28 @@ struct TrailMapView: View {
     private func centerOnArea() {
         setCameraTarget(Self.regionCoveringArea(
             area: area,
+            bottomInset: bottomInset,
+            screenHeight: UIScreen.main.bounds.height
+        ))
+    }
+
+    /// Frame the camera on an in-progress recording's current position
+    /// (its last GPS sample), zoomed to the same ~1500 m as the recenter
+    /// button. Used on area-open when a hike is already running so you
+    /// land looking at where you are on the trail, not the whole park.
+    /// Falls back to the area overview if the path has no usable point.
+    private func centerOnActiveRecording() {
+        guard let last = activeRecording?.path.last(where: { $0.count >= 2 }) else {
+            centerOnArea()
+            return
+        }
+        let lat = last[0], lon = last[1]
+        let cosLat = max(0.0001, cos(lat * .pi / 180))
+        setCameraTarget(Self.fittedRegion(
+            centerLat: lat,
+            centerLon: lon,
+            latDelta: 1500.0 / 111_000.0,
+            lonDelta: 1500.0 / (111_000.0 * cosLat),
             bottomInset: bottomInset,
             screenHeight: UIScreen.main.bounds.height
         ))

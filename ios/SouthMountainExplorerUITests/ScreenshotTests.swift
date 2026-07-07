@@ -64,7 +64,11 @@ final class ScreenshotTests: XCTestCase {
         let featuredRow = app.descendants(matching: .any)["hike-row-demo-national-trail-2"].firstMatch
         if featuredRow.waitForExistence(timeout: 10) {
             tapElement(featuredRow)
-            settle(5)
+            // Long dwell: the hike-detail map is satellite imagery
+            // (`.imagery`). At 5 s the right edge of the map card was
+            // still a blank gray band where tiles hadn't downloaded —
+            // 15 s lets the whole frame's imagery land before capture.
+            settle(15)
             capture(app, "05-hike-detail")
             goBack(app)
         } else {
@@ -114,8 +118,13 @@ final class ScreenshotTests: XCTestCase {
         _ = app.staticTexts["Recent Hikes"].firstMatch.waitForExistence(timeout: 60)
 
         // Shot 3 — the active recording panel (live pace + elevation).
+        // The map now auto-frames zoomed on the recording's current
+        // position (TrailMapView.centerOnActiveRecording), so this reads
+        // as "mid-hike on the trail" rather than a whole-park overview —
+        // no recenter tap needed (which would risk the location prompt).
+        // Extra dwell lets the zoomed-in map tiles finish loading.
         if openAreaFromStats(app) {
-            settle(6)
+            settle(11)
             capture(app, "03-recording")
         } else {
             settle(5)

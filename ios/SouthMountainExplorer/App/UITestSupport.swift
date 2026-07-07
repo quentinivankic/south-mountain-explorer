@@ -195,11 +195,14 @@ enum UITestSupport {
         var completes: Bool = true
     }
 
-    /// ~21 hikes across 13 months. Designed to unlock every history-based
+    /// ~21 hikes across 13 months. `daysAgo` is spaced to give the
+    /// Stats "Hikes per Month" chart real month-to-month VARIATION
+    /// (buckets of 0–4/month, not a flat run of 1s) — a livelier chart
+    /// screenshots better. Still designed to unlock every history-based
     /// Dex badge: total > 100 mi (Century Club + tiers), a ≥5 mi hike
     /// (Long Hauler), a pre-7 am start (Early Bird), starts spanning all
     /// four meteorological seasons (Four Seasons), and > 10 distinct days
-    /// (Regular). The four most recent trace real trail geometry so the
+    /// (Regular). The most recent traces real trail geometry so the
     /// hike-detail route + elevation and the map's cyan halos look real.
     private static let hikeSpecs: [HikeSpec] = [
         // Featured hike — the ONLY one with a GPS path. The map draws a
@@ -210,26 +213,26 @@ enum UITestSupport {
         // map + elevation profile.
         HikeSpec(trailId: "national-trail",  distanceMi: 15.17, daysAgo: 2,   startHour: 6,  durationMin: 305, withPath: true),
         HikeSpec(trailId: "alta",            distanceMi: 4.60,  daysAgo: 5,   startHour: 8,  durationMin: 150, withPath: false),
-        HikeSpec(trailId: "holbert-trail",   distanceMi: 2.60,  daysAgo: 9,   startHour: 7,  durationMin: 95,  withPath: false),
-        HikeSpec(trailId: "desert-classic",  distanceMi: 3.88,  daysAgo: 13,  startHour: 9,  durationMin: 120, withPath: false),
-        HikeSpec(trailId: "hau-pal-loop-trail",     distanceMi: 2.72, daysAgo: 20, startHour: 7,  durationMin: 88,  withPath: false),
-        HikeSpec(trailId: "javelina-canyon-trail",  distanceMi: 2.94, daysAgo: 27, startHour: 8,  durationMin: 96,  withPath: false, completes: false),
-        HikeSpec(trailId: "mormon-trail",           distanceMi: 1.36, daysAgo: 34, startHour: 7,  durationMin: 52,  withPath: false),
-        HikeSpec(trailId: "kiwanis-trail",          distanceMi: 1.05, daysAgo: 41, startHour: 9,  durationMin: 40,  withPath: false),
-        HikeSpec(trailId: "telegraph-pass-trail",   distanceMi: 0.72, daysAgo: 48, startHour: 8,  durationMin: 28,  withPath: false),
+        HikeSpec(trailId: "holbert-trail",   distanceMi: 2.60,  daysAgo: 12,  startHour: 7,  durationMin: 95,  withPath: false),
+        HikeSpec(trailId: "desert-classic",  distanceMi: 3.88,  daysAgo: 22,  startHour: 9,  durationMin: 120, withPath: false),
+        HikeSpec(trailId: "hau-pal-loop-trail",     distanceMi: 2.72, daysAgo: 31, startHour: 7,  durationMin: 88,  withPath: false),
+        HikeSpec(trailId: "javelina-canyon-trail",  distanceMi: 2.94, daysAgo: 50, startHour: 8,  durationMin: 96,  withPath: false, completes: false),
+        HikeSpec(trailId: "mormon-trail",           distanceMi: 1.36, daysAgo: 72, startHour: 7,  durationMin: 52,  withPath: false),
+        HikeSpec(trailId: "kiwanis-trail",          distanceMi: 1.05, daysAgo: 82, startHour: 9,  durationMin: 40,  withPath: false),
+        HikeSpec(trailId: "telegraph-pass-trail",   distanceMi: 0.72, daysAgo: 92, startHour: 8,  durationMin: 28,  withPath: false),
         // Older, distance/date only (no path needed for badges + chart).
-        HikeSpec(trailId: "national-trail",             distanceMi: 15.17, daysAgo: 70,  startHour: 6,  durationMin: 300, withPath: false),
-        HikeSpec(trailId: "alta",                       distanceMi: 4.60,  daysAgo: 95,  startHour: 8,  durationMin: 150, withPath: false),
-        HikeSpec(trailId: "desert-classic",             distanceMi: 3.88,  daysAgo: 120, startHour: 9,  durationMin: 120, withPath: false),
-        HikeSpec(trailId: "ma-ha-tuak-perimeter-trail", distanceMi: 7.13,  daysAgo: 145, startHour: 7,  durationMin: 230, withPath: false),
-        HikeSpec(trailId: "desert-classic-trail",       distanceMi: 4.73,  daysAgo: 170, startHour: 8,  durationMin: 150, withPath: false),
-        HikeSpec(trailId: "bursera-trail",              distanceMi: 3.32,  daysAgo: 195, startHour: 9,  durationMin: 110, withPath: false),
-        HikeSpec(trailId: "guadalupe-perimeter-trail",  distanceMi: 2.75,  daysAgo: 220, startHour: 8,  durationMin: 92,  withPath: false, completes: false),
-        HikeSpec(trailId: "las-lomitas-trail",          distanceMi: 2.79,  daysAgo: 250, startHour: 7,  durationMin: 94,  withPath: false),
-        HikeSpec(trailId: "thondum-wihom-trail",        distanceMi: 2.40,  daysAgo: 280, startHour: 9,  durationMin: 82,  withPath: false, completes: false),
-        HikeSpec(trailId: "national-trail",             distanceMi: 15.17, daysAgo: 310, startHour: 6,  durationMin: 300, withPath: false),
-        HikeSpec(trailId: "javelina-canyon-trail",      distanceMi: 2.94,  daysAgo: 340, startHour: 8,  durationMin: 96,  withPath: false, completes: false),
-        HikeSpec(trailId: "hau-pal-loop-trail",         distanceMi: 2.72,  daysAgo: 360, startHour: 7,  durationMin: 88,  withPath: false),
+        HikeSpec(trailId: "national-trail",             distanceMi: 15.17, daysAgo: 110, startHour: 6,  durationMin: 300, withPath: false),
+        HikeSpec(trailId: "alta",                       distanceMi: 4.60,  daysAgo: 122, startHour: 8,  durationMin: 150, withPath: false),
+        HikeSpec(trailId: "desert-classic",             distanceMi: 3.88,  daysAgo: 165, startHour: 9,  durationMin: 120, withPath: false),
+        HikeSpec(trailId: "ma-ha-tuak-perimeter-trail", distanceMi: 7.13,  daysAgo: 180, startHour: 7,  durationMin: 230, withPath: false),
+        HikeSpec(trailId: "desert-classic-trail",       distanceMi: 4.73,  daysAgo: 200, startHour: 8,  durationMin: 150, withPath: false),
+        HikeSpec(trailId: "bursera-trail",              distanceMi: 3.32,  daysAgo: 225, startHour: 9,  durationMin: 110, withPath: false),
+        HikeSpec(trailId: "guadalupe-perimeter-trail",  distanceMi: 2.75,  daysAgo: 235, startHour: 8,  durationMin: 92,  withPath: false, completes: false),
+        HikeSpec(trailId: "las-lomitas-trail",          distanceMi: 2.79,  daysAgo: 245, startHour: 7,  durationMin: 94,  withPath: false),
+        HikeSpec(trailId: "thondum-wihom-trail",        distanceMi: 2.40,  daysAgo: 265, startHour: 9,  durationMin: 82,  withPath: false, completes: false),
+        HikeSpec(trailId: "national-trail",             distanceMi: 15.17, daysAgo: 290, startHour: 6,  durationMin: 300, withPath: false),
+        HikeSpec(trailId: "javelina-canyon-trail",      distanceMi: 2.94,  daysAgo: 300, startHour: 8,  durationMin: 96,  withPath: false, completes: false),
+        HikeSpec(trailId: "hau-pal-loop-trail",         distanceMi: 2.72,  daysAgo: 325, startHour: 7,  durationMin: 88,  withPath: false),
     ]
 
     private static func demoHikes() -> [SavedRecording] {

@@ -16,19 +16,32 @@ struct TrailConfidenceLabView: View {
 
     private let trails = TrailScoringProps.samples
 
-    /// Score every sample once, sorted high → low. Recomputed on each
-    /// slider change (SwiftUI re-renders on `weights` mutation).
+    /// Score every sample once, sorted by prevalence (real-trail count)
+    /// so the dominant patterns surface first. Recomputed on each slider
+    /// change (SwiftUI re-renders on `weights` mutation).
     private var scored: [(props: TrailScoringProps, score: Double, band: ScoreBand)] {
         trails
             .map { p in
                 let r = TrailScoring.scoreAndBand(p, weights: weights)
                 return (p, r.score, r.band)
             }
-            .sorted { $0.score > $1.score }
+            .sorted { ($0.props.count ?? 1, $0.score) > ($1.props.count ?? 1, $1.score) }
     }
 
-    private func count(_ band: ScoreBand) -> Int {
-        scored.filter { $0.band == band }.count
+    /// A sample stands for `count` real trails (or 1 for a fixture), so
+    /// the band tally is weighted by prevalence — otherwise the ~300k
+    /// "unnamed footway" pattern would read as a single row.
+    private func weight(_ p: TrailScoringProps) -> Int { p.count ?? 1 }
+
+    private var totalWeight: Int { scored.reduce(0) { $0 + weight($1.props) } }
+
+    private func bandWeight(_ band: ScoreBand) -> Int {
+        scored.filter { $0.band == band }.reduce(0) { $0 + weight($1.props) }
+    }
+
+    private func bandPercent(_ band: ScoreBand) -> Int {
+        let t = totalWeight
+        return t == 0 ? 0 : Int((Double(bandWeight(band)) / Double(t) * 100).rounded())
     }
 
     var body: some View {
@@ -43,8 +56,9 @@ struct TrailConfidenceLabView: View {
             } footer: {
                 Text("Dev-only. Mirrors data-pipeline/build/scoring_reference.py. "
                      + "The shipped build has no confidence UI — this only informs "
-                     + "which trails you curate into the tiles. Samples stand in for "
-                     + "real pmtiles until the NZ pilot lands.")
+                     + "which trails you curate into the tiles. Rows are the 40 most "
+                     + "common signal patterns from the real NZ build (354,985 trails); "
+                     + "the tally is weighted by how many trails share each pattern.")
             }
         }
         .navigationTitle("Trail Confidence Lab")
@@ -67,7 +81,7 @@ struct TrailConfidenceLabView: View {
             ForEach([ScoreBand.high, .medium, .low], id: \.self) { band in
                 HStack(spacing: 6) {
                     Circle().fill(band.color).frame(width: 10, height: 10)
-                    Text("\(band.label) \(count(band))")
+                    Text("\(band.label) \(bandPercent(band))%")
                         .font(.subheadline.weight(.semibold))
                         .monospacedDigit()
                 }
@@ -84,13 +98,13 @@ struct TrailConfidenceLabView: View {
     // MARK: - Trails preview
 
     private var trailsSection: some View {
-        Section("Trails (\(trails.count))") {
+        Section("NZ trails · \(totalWeight.formatted()) across \(trails.count) patterns") {
             ForEach(scored, id: \.props.id) { row in
                 HStack(spacing: 12) {
                     Circle().fill(row.band.color).frame(width: 12, height: 12)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(row.props.name)
-                        Text(firedSummary(row.props))
+                        Text(rowSubtitle(row.props))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -102,6 +116,14 @@ struct TrailConfidenceLabView: View {
                 .padding(.vertical, 2)
             }
         }
+    }
+
+    /// "306,840 trails · <fired signals>" — prevalence first so the real
+    /// distribution is visible per row.
+    private func rowSubtitle(_ p: TrailScoringProps) -> String {
+        let signals = firedSummary(p)
+        guard let c = p.count else { return signals }
+        return "\(c.formatted()) trails · \(signals)"
     }
 
     private func firedSummary(_ p: TrailScoringProps) -> String {
@@ -175,39 +197,53 @@ struct TrailConfidenceLabView: View {
 // MARK: - Sample trails
 
 extension TrailScoringProps {
-    /// A representative spread across the signal space so every lever
-    /// visibly moves at least one trail. Mix of the Python conformance
-    /// cases + plausible NZ/US trails. Scores with default weights noted.
-    // Default-weight scores noted per row (base 50). They shift live as
-    // you drag the levers — that's the point.
+    /// The 40 most common signal patterns from the real New Zealand
+    /// build (run #6, 354,985 trails). Each row carries `count` = how
+    /// many trails share that exact signature, so the lab reflects the
+    /// real distribution — e.g. 86% of NZ "trails" are unnamed
+    /// access=yes footways. Regenerate from a build via
+    /// `data-pipeline/build/sample_trails.py`.
     static let samples: [TrailScoringProps] = [
-        // 100 (clamped from 120): authoritative + operator + name + whitelist + high region
-        TrailScoringProps(name: "Kepler Track", authoritativeMatch: true,
-                          hasKnownOperator: true, hasName: true,
-                          inOfficialWhitelist: true, regionTrust: "high",
-                          sacScale: "hiking"),
-        // 90: authoritative (+20) + name (+10) + high region (+10)
-        TrailScoringProps(name: "Roys Peak Track", authoritativeMatch: true,
-                          hasName: true, regionTrust: "high", sacScale: "mountain_hiking"),
-        // 60 medium: bare named path (+10)
-        TrailScoringProps(name: "Ridgeline Path", hasName: true),
-        // 50 medium: unnamed, no signals
-        TrailScoringProps(name: "unnamed path"),
-        // 45 medium: named (+10) + recently edited (−15)
-        TrailScoringProps(name: "New Cutoff Trail", hasName: true, editedDaysAgo: 5),
-        // 40 medium (edge): named (+10) + SAC demanding (−20)
-        TrailScoringProps(name: "Alpine Route", hasName: true,
-                          sacScale: "demanding_mountain_hiking"),
-        // 45 medium: named (+10) + TIGER unreviewed (−15)
-        TrailScoringProps(name: "County Line Trail", hasName: true, tigerUnreviewed: true),
-        // 35 low: named (+10) + poor visibility (−25)
-        TrailScoringProps(name: "Faint Spur", hasName: true, trailVisibility: "bad"),
-        // 25 low: named (+10) + informal (−35)
-        TrailScoringProps(name: "Desire Line", hasName: true, informal: true),
-        // 10 low: access=private (−40)
-        TrailScoringProps(name: "Private Farm Track", access: "private", sacScale: "hiking"),
-        // 0 low (clamped from −35): informal (−35) + abandoned (−50)
-        TrailScoringProps(name: "Old Mine Trail", informal: true, lifecycle: "abandoned"),
+        TrailScoringProps(name: "unnamed footway (access=yes)", regionTrust: "high", access: "yes", count: 306840),
+        TrailScoringProps(name: "unnamed · access=no", regionTrust: "high", access: "no", count: 19283),
+        TrailScoringProps(name: "Te Araroa Trail", hasName: true, regionTrust: "high", count: 11874),
+        TrailScoringProps(name: "unnamed · in conservation land", inOfficialWhitelist: true, regionTrust: "high", count: 5736),
+        TrailScoringProps(name: "Smugglers Bay Track/ Te Araroa Trail", authoritativeMatch: true, hasName: true, inOfficialWhitelist: true, regionTrust: "high", count: 3057),
+        TrailScoringProps(name: "unnamed · DOC-matched", authoritativeMatch: true, inOfficialWhitelist: true, regionTrust: "high", count: 1959),
+        TrailScoringProps(name: "Scott's Track", hasName: true, inOfficialWhitelist: true, regionTrust: "high", count: 1812),
+        TrailScoringProps(name: "unnamed · informal", regionTrust: "high", informal: true, count: 1603),
+        TrailScoringProps(name: "Airport Perimeter Walkway", hasName: true, regionTrust: "high", access: "no", count: 990),
+        TrailScoringProps(name: "unnamed · informal", regionTrust: "high", informal: true, trailVisibility: "no", count: 314),
+        TrailScoringProps(name: "unnamed · in conservation land", inOfficialWhitelist: true, regionTrust: "high", access: "no", trailVisibility: "good", count: 312),
+        TrailScoringProps(name: "unnamed · visibility=horrible", regionTrust: "high", trailVisibility: "horrible", count: 173),
+        TrailScoringProps(name: "unnamed · access=no", regionTrust: "high", access: "no", informal: true, count: 124),
+        TrailScoringProps(name: "Hooker Valley Track", authoritativeMatch: true, hasName: true, inOfficialWhitelist: true, regionTrust: "high", access: "no", trailVisibility: "excellent", sacScale: "hiking", count: 110),
+        TrailScoringProps(name: "Franz Josef Glacier Walk - section closed", hasName: true, inOfficialWhitelist: true, regionTrust: "high", access: "no", count: 107),
+        TrailScoringProps(name: "unnamed · in conservation land", inOfficialWhitelist: true, regionTrust: "high", informal: true, trailVisibility: "excellent", sacScale: "hiking", count: 66),
+        TrailScoringProps(name: "Shortcut onto Taui St", hasName: true, regionTrust: "high", informal: true, count: 47),
+        TrailScoringProps(name: "unnamed · DOC-matched", authoritativeMatch: true, inOfficialWhitelist: true, regionTrust: "high", access: "no", count: 45),
+        TrailScoringProps(name: "Scott's Track", authoritativeMatch: true, hasName: true, inOfficialWhitelist: true, regionTrust: "high", sacScale: "demanding_mountain_hiking", count: 40),
+        TrailScoringProps(name: "Kellys Track", hasName: true, inOfficialWhitelist: true, regionTrust: "high", sacScale: "demanding_mountain_hiking", count: 37),
+        TrailScoringProps(name: "Ridge Track (unmarked)", hasName: true, inOfficialWhitelist: true, regionTrust: "high", trailVisibility: "bad", sacScale: "hiking", count: 34),
+        TrailScoringProps(name: "unnamed · alpine_hiking", regionTrust: "high", sacScale: "alpine_hiking", count: 30),
+        TrailScoringProps(name: "Kahui Farm Privat Bush Walk", hasName: true, regionTrust: "high", sacScale: "demanding_mountain_hiking", count: 29),
+        TrailScoringProps(name: "unnamed · in conservation land", inOfficialWhitelist: true, regionTrust: "high", trailVisibility: "bad", sacScale: "mountain_hiking", count: 26),
+        TrailScoringProps(name: "Newton Creek track", hasName: true, regionTrust: "high", trailVisibility: "bad", sacScale: "hiking", count: 25),
+        TrailScoringProps(name: "unnamed · in conservation land", inOfficialWhitelist: true, regionTrust: "high", lifecycle: "abandoned", count: 23),
+        TrailScoringProps(name: "unnamed · DOC-matched", authoritativeMatch: true, inOfficialWhitelist: true, regionTrust: "high", sacScale: "demanding_mountain_hiking", count: 21),
+        TrailScoringProps(name: "unnamed · DOC-matched", authoritativeMatch: true, hasKnownOperator: true, inOfficialWhitelist: true, regionTrust: "high", sacScale: "hiking", count: 21),
+        TrailScoringProps(name: "Dome Summit Track", hasName: true, inOfficialWhitelist: true, regionTrust: "high", trailVisibility: "horrible", sacScale: "demanding_mountain_hiking", count: 19),
+        TrailScoringProps(name: "unnamed · in conservation land", inOfficialWhitelist: true, regionTrust: "high", sacScale: "alpine_hiking", count: 19),
+        TrailScoringProps(name: "Old Satara Cres Walkway", hasName: true, regionTrust: "high", access: "no", informal: true, count: 18),
+        TrailScoringProps(name: "The Chasm Walkway", authoritativeMatch: true, hasKnownOperator: true, hasName: true, inOfficialWhitelist: true, regionTrust: "high", trailVisibility: "excellent", sacScale: "hiking", count: 17),
+        TrailScoringProps(name: "unnamed · DOC-matched", authoritativeMatch: true, inOfficialWhitelist: true, regionTrust: "high", informal: true, count: 17),
+        TrailScoringProps(name: "unnamed · access=private", regionTrust: "high", access: "private", trailVisibility: "horrible", count: 13),
+        TrailScoringProps(name: "unnamed · in conservation land", inOfficialWhitelist: true, regionTrust: "high", trailVisibility: "horrible", sacScale: "alpine_hiking", count: 13),
+        TrailScoringProps(name: "unnamed · in conservation land", inOfficialWhitelist: true, regionTrust: "high", informal: true, trailVisibility: "no", sacScale: "hiking", count: 11),
+        TrailScoringProps(name: "unnamed · disused", regionTrust: "high", lifecycle: "disused", count: 10),
+        TrailScoringProps(name: "Hobson Bay Walkway", hasName: true, regionTrust: "high", informal: true, trailVisibility: "no", count: 9),
+        TrailScoringProps(name: "Northern Summit Route", authoritativeMatch: true, hasName: true, inOfficialWhitelist: true, regionTrust: "high", trailVisibility: "bad", sacScale: "alpine_hiking", count: 8),
+        TrailScoringProps(name: "Walker Kauri Track", hasName: true, regionTrust: "high", access: "no", trailVisibility: "bad", sacScale: "hiking", count: 6),
     ]
 }
 #endif

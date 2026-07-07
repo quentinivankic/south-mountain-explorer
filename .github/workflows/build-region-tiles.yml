@@ -187,6 +187,21 @@ jobs:
             --out staging/${REGION}_trails_flagged.geojson
           python3 qa/assert_inclusion.py --trails staging/${REGION}_trails_flagged.geojson
 
+      # ---- sample real trails for the on-device Confidence Lab (dev aid) ----
+      # Prints a small, distribution-representative sample to the LOG so it
+      # can be read without downloading the 127 MB tiles, and saves it into
+      # the artifact. No effect on the shipped tiles.
+      - name: Sample trails for the Confidence Lab (printed to log)
+        run: |
+          set -e
+          REGION='${{ github.event.inputs.region }}'
+          mkdir -p dist
+          echo "===== TRAIL SAMPLE ($REGION) BEGIN ====="
+          python3 build/sample_trails.py \
+            --trails staging/${REGION}_trails_flagged.geojson \
+            --n 40 --out dist/${REGION}-trail-sample.json
+          echo "===== TRAIL SAMPLE END ====="
+
       # ---- attributions (§2) ----
       - name: Generate attributions.json
         run: |
@@ -218,6 +233,7 @@ jobs:
           path: |
             data-pipeline/dist/regions/${{ github.event.inputs.region }}.pmtiles
             data-pipeline/dist/attributions.${{ github.event.inputs.region }}.json
+            data-pipeline/dist/${{ github.event.inputs.region }}-trail-sample.json
           if-no-files-found: error
 
       # ---- publish to R2 dev bucket (§7.4) ----

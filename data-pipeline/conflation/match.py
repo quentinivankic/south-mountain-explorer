@@ -54,15 +54,31 @@ def _require_shapely():
         raise SystemExit(3)
 
 
-def _to_metric_len(geom, lat: float):
+def _to_metric_len(geom, lat: float) -> float:
     """Rough planar length in metres via local equirectangular scaling.
 
     Good enough for a 20 m buffer decision at trail scale; the tiling
     step does the accurate reprojection. Avoids a pyproj dependency here.
+
+    Handles ANY geometry: a buffer intersection is frequently a
+    MultiLineString (a trail overlaps an authoritative track in several
+    disjoint pieces) or a GeometryCollection, neither of which exposes
+    `.coords` — accessing it raises NotImplementedError. We recurse into
+    `.geoms` for multi-part inputs and sum only the linear parts.
     """
     import math
     m_per_deg_lat = 111_320.0
     m_per_deg_lon = 111_320.0 * math.cos(math.radians(lat))
+
+    if geom.is_empty:
+        return 0.0
+    # Multi-part / collection: sum the sub-geometries.
+    if hasattr(geom, "geoms"):
+        return sum(_to_metric_len(g, lat) for g in geom.geoms)
+    # Single geometry: only LineStrings carry linear length. Points and
+    # polygons contribute nothing to a trail-overlap measure.
+    if geom.geom_type != "LineString":
+        return 0.0
     total = 0.0
     coords = list(geom.coords)
     for (x0, y0), (x1, y1) in zip(coords, coords[1:]):
@@ -88,9 +104,16 @@ def match_region(
 
     deg_buffer = buffer_m / 111_320.0  # approx metres->degrees
 
-    auth_geoms = [shape(f["geometry"]) for f in auth_fc.get("features", [])]
     auth_props = [f.get("properties", {}) for f in auth_fc.get("features", [])]
-    auth_tree = STRtree(auth_geoms) if auth_geoms else None
+    # Pre-buffer the authoritative geometry ONCE and index the buffers.
+    # The old code buffered every OSM way (hundreds of thousands at
+    # country scale — the single most expensive shapely op) and re-
+    # buffered each auth candidate inside the inner loop. Buffering the
+    # (far fewer) auth geoms once and querying with the raw OSM geom is
+    # the same "within N metres" test, dramatically faster.
+    auth_buffered = [shape(f["geometry"]).buffer(deg_buffer)
+                     for f in auth_fc.get("features", [])]
+    auth_tree = STRtree(auth_buffered) if auth_buffered else None
 
     boundary_union = None
     if boundaries_fc and boundaries_fc.get("features"):
@@ -98,7 +121,7 @@ def match_region(
                                       for f in boundaries_fc["features"]])
 
     osm_index: dict[str, Any] = {}
-    auth_matched = [False] * len(auth_geoms)
+    auth_matched = [False] * len(auth_buffered)
 
     for f in osm_fc.get("features", []):
         props = f.get("properties", {})
@@ -111,14 +134,14 @@ def match_region(
         matched = False
         best_auth_props: dict[str, Any] = {}
         if auth_tree is not None:
-            buffered = geom.buffer(deg_buffer)
             own_len = _to_metric_len(geom, lat) or 1.0
-            for idx in auth_tree.query(buffered):
-                inter = geom.intersection(auth_geoms[idx].buffer(deg_buffer))
+            for idx in auth_tree.query(geom):
+                inter = geom.intersection(auth_buffered[idx])
                 if inter.is_empty:
                     continue
-                overlap = _to_metric_len(inter, lat) / own_len if hasattr(inter, "coords") \
-                    else inter.length / max(geom.length, 1e-12)
+                # Metric overlap fraction — _to_metric_len is multi-part
+                # safe, so a MultiLineString intersection is handled.
+                overlap = _to_metric_len(inter, lat) / own_len
                 if overlap >= min_overlap:
                     matched = True
                     auth_matched[idx] = True

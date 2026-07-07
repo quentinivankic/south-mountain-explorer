@@ -94,9 +94,16 @@ def fetch_arcgis_geojson(base_url: str, dest: Path, *, force: bool) -> Path:
         batch = page.get("features", [])
         features.extend(batch)
         print(f"  [page] +{len(batch)} (total {len(features)})")
-        if len(batch) < PAGE:
+        # Paginate on ArcGIS's `exceededTransferLimit`, not `len < PAGE`:
+        # the service caps a page at its own maxRecordCount (PCL returned
+        # exactly 1000 for a 2000 request), so a short page can still have
+        # more behind it. Advance by the ACTUAL returned count so a
+        # sub-PAGE cap doesn't skip records.
+        exceeded = page.get("exceededTransferLimit") \
+            or (page.get("properties") or {}).get("exceededTransferLimit")
+        if not batch or (not exceeded and len(batch) < PAGE):
             break
-        offset += PAGE
+        offset += len(batch)
     dest.write_text(json.dumps({"type": "FeatureCollection", "features": features}),
                     encoding="utf-8")
     print(f"  [ok  ] {dest.name} ({len(features)} features)")

@@ -144,7 +144,17 @@ enum UITestSupport {
         let now = Date()
         // Walk the first ~60% of Bajada — mid-hike, not nearly done.
         let coords = Array((trailCoords["bajada-trail"] ?? [[33.324312, -112.114956], [33.332971, -112.098175]]).prefix(8))
-        var path = densifiedPath(coords: coords, startMs: 0)
+        // Gentle profile: ~1,395 ft foothill base with ~230 ft gained so
+        // far — a believable grade for 0.77 mi of bajada, still climbing
+        // (no dome; the hike isn't done). The default 290 m dome put
+        // ~1,250 ft of range under a sub-mile chart.
+        var path = densifiedPath(
+            coords: coords,
+            startMs: 0,
+            baseAltitudeMeters: 425,
+            climbMeters: 70,
+            domeClimb: false
+        )
         // Re-stamp timestamps from CUMULATIVE DISTANCE at a steady
         // 1.3 m/s (~2.9 mph) hiking speed, ending exactly at launch
         // time. The densified points are ~20-30 m apart, so uniform 2 s
@@ -324,7 +334,21 @@ enum UITestSupport {
     /// completion math is unaffected. The altitude mixes a main climb
     /// with mid-frequency undulation + fine noise — a perfect sine dome
     /// read as obviously fake in the elevation chart.
-    private static func densifiedPath(coords: [[Double]], startMs: Double) -> [GpsPoint] {
+    /// `baseAltitudeMeters` / `climbMeters` / `domeClimb` shape the
+    /// synthetic profile per hike. The featured National Trail hike
+    /// keeps the defaults (a full ~290 m out-and-back dome). The LIVE
+    /// recording must NOT reuse them: Bajada's demo track is only
+    /// ~0.77 mi walked so far, and the dome profile crammed ~1,250 ft
+    /// of elevation range into it — a visibly absurd grade in the
+    /// recording panel's chart. It gets a gentle still-climbing ramp
+    /// (`domeClimb: false`) from a realistic foothill base instead.
+    private static func densifiedPath(
+        coords: [[Double]],
+        startMs: Double,
+        baseAltitudeMeters: Double = 410,
+        climbMeters: Double = 290,
+        domeClimb: Bool = true
+    ) -> [GpsPoint] {
         guard coords.count >= 2 else { return [] }
         let subdiv = 8
         let total = (coords.count - 1) * subdiv
@@ -333,11 +357,18 @@ enum UITestSupport {
         func wobble(_ i: Int, _ phase: Double) -> Double {
             0.000045 * sin(Double(i) * 0.9 + phase) + 0.000018 * sin(Double(i) * 2.3 + phase * 1.7)
         }
+        // Undulation scales with the main climb so a gentle profile
+        // doesn't inherit mountain-sized bumps (floored so even a flat
+        // walk still reads as terrain, not a synthetic line).
+        let u = max(0.15, climbMeters / 290.0)
         func altitude(_ frac: Double, _ i: Int) -> Double {
-            410.0
-                + 290.0 * sin(.pi * frac)                    // the day's main climb
-                + 28.0 * sin(5.3 * .pi * frac + 0.8)         // ridgeline undulation
-                + 13.0 * sin(11.7 * .pi * frac + 2.4)        // switchback bumps
+            let mainClimb = domeClimb
+                ? climbMeters * sin(.pi * frac)              // full-day out-and-back dome
+                : climbMeters * frac                          // mid-hike: still on the way up
+            return baseAltitudeMeters
+                + mainClimb
+                + 28.0 * u * sin(5.3 * .pi * frac + 0.8)     // ridgeline undulation
+                + 13.0 * u * sin(11.7 * .pi * frac + 2.4)    // switchback bumps
                 + 4.0 * sin(Double(i) * 1.31 + 0.5)          // fine sensor noise
         }
         var pts: [GpsPoint] = []

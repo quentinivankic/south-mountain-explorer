@@ -213,6 +213,7 @@ struct TrailMapView: View {
                 // handlers below imperatively re-frame on each location
                 // / heading update.
                 userTrackingMode: .none,
+                demoUserDot: demoUserDot,
                 onUserGestureRegionChange: {
                     // User gesture-driven region change (pinch / pan).
                     // In follow modes, snap the camera back to the
@@ -599,6 +600,24 @@ struct TrailMapView: View {
     private func setCameraTarget(_ target: MapTarget) {
         cameraTarget = target
         cameraTick &+= 1
+    }
+
+    /// Synthetic "you are here" dot for the App Store recording
+    /// screenshot, pinned to the demo recording's current position (the
+    /// same point `centerOnActiveRecording` frames). The CI simulator's
+    /// `simctl privacy grant` doesn't reliably land as authorized before
+    /// MKMapView asks CoreLocation for its built-in dot, so the shot
+    /// rendered dot-less — this renders one deterministically instead.
+    /// Always nil outside DEBUG + `--uitest-recording`, so no production
+    /// build can ever show a fake location.
+    private var demoUserDot: CLLocationCoordinate2D? {
+        #if DEBUG
+        guard UITestSupport.isRecordingRequested,
+              let last = activeRecording?.path.last(where: { $0.count >= 2 }) else { return nil }
+        return CLLocationCoordinate2D(latitude: last[0], longitude: last[1])
+        #else
+        return nil
+        #endif
     }
 
     // MARK: - Live halo recompute

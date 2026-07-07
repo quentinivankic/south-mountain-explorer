@@ -39,17 +39,25 @@ class Scoring(unittest.TestCase):
         self.assertEqual(b, "low")
 
     def test_access_restricted_penalty(self):
-        # base 50, access=private -40 = 10 -> low.
+        # base 30, access=private -45 = -15 -> clamp 0 -> low.
         props = {"access": "private", "highway": "footway"}
         s, b = sr.score_and_band(props, W, as_of=NOW)
-        self.assertEqual(s, 10.0)
+        self.assertEqual(s, 0.0)
         self.assertEqual(b, "low")
 
-    def test_bare_named_path_is_medium(self):
-        # base 50 + has_name 10 = 60 -> medium.
+    def test_bare_named_path_is_high(self):
+        # base 30 + has_name 40 = 70 -> high. A name alone clears the bar;
+        # anonymous paths sit at 30 (low) until a name or official backing
+        # lifts them ("named OR official" policy).
         s, b = sr.score_and_band({"has_name": True, "highway": "path"}, W, as_of=NOW)
-        self.assertEqual(s, 60.0)
-        self.assertEqual(b, "medium")
+        self.assertEqual(s, 70.0)
+        self.assertEqual(b, "high")
+
+    def test_anonymous_path_is_low(self):
+        # base 30, nothing fires -> 30 -> low. The 86%-of-NZ footway case.
+        s, b = sr.score_and_band({"highway": "footway"}, W, as_of=NOW)
+        self.assertEqual(s, 30.0)
+        self.assertEqual(b, "low")
 
     def test_sac_scale_threshold_at_demanding_mountain_hiking(self):
         self.assertFalse(sr.active_signals({"sac_scale": "mountain_hiking"})["sac_scale_t4_plus"])
@@ -83,8 +91,8 @@ class Scoring(unittest.TestCase):
     def test_band_cutoffs(self):
         self.assertEqual(sr.band(70, W), "high")
         self.assertEqual(sr.band(69.9, W), "medium")
-        self.assertEqual(sr.band(40, W), "medium")
-        self.assertEqual(sr.band(39.9, W), "low")
+        self.assertEqual(sr.band(45, W), "medium")
+        self.assertEqual(sr.band(44.9, W), "low")
 
 
 if __name__ == "__main__":

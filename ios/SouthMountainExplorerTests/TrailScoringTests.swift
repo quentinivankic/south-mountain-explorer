@@ -32,16 +32,25 @@ struct TrailScoringTests {
         // 50 -40 = 10 → low.
         let p = TrailScoringProps(name: "x", access: "private")
         let r = TrailScoring.scoreAndBand(p, weights: w)
-        #expect(r.score == 10.0)
+        // 30 − 45 = −15 → clamp 0 → low.
+        #expect(r.score == 0.0)
         #expect(r.band == .low)
     }
 
-    @Test func bareNamedPathIsMedium() {
-        // 50 + 10 = 60 → medium.
+    @Test func bareNamedPathIsHigh() {
+        // 30 + 40 = 70 → high. A name alone clears the bar.
         let p = TrailScoringProps(name: "x", hasName: true)
         let r = TrailScoring.scoreAndBand(p, weights: w)
-        #expect(r.score == 60.0)
-        #expect(r.band == .medium)
+        #expect(r.score == 70.0)
+        #expect(r.band == .high)
+    }
+
+    @Test func anonymousPathIsLow() {
+        // Base only = 30 → low. The 86%-of-NZ unnamed-footway case.
+        let p = TrailScoringProps(name: "x")
+        let r = TrailScoring.scoreAndBand(p, weights: w)
+        #expect(r.score == 30.0)
+        #expect(r.band == .low)
     }
 
     @Test func sacScaleThresholdAtDemandingMountainHiking() {
@@ -88,8 +97,8 @@ struct TrailScoringTests {
     @Test func bandCutoffs() {
         #expect(TrailScoring.band(70, weights: w) == .high)
         #expect(TrailScoring.band(69.9, weights: w) == .medium)
-        #expect(TrailScoring.band(40, weights: w) == .medium)
-        #expect(TrailScoring.band(39.9, weights: w) == .low)
+        #expect(TrailScoring.band(45, weights: w) == .medium)
+        #expect(TrailScoring.band(44.9, weights: w) == .low)
     }
 
     @Test func caseAndWhitespaceInsensitiveInputs() {

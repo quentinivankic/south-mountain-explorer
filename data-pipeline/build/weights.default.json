@@ -1,19 +1,19 @@
 {
-  "_comment": "Spec §4.3 default weights for the ON-DEVICE / AUTHORING confidence score. These reproduce the original heuristic and are ILLUSTRATIVE STARTING VALUES, not empirically validated — tune against the NZ pilot. This config is loaded by the authoring build (dev-only) and re-colors the map live with no tile rebuild. The shipped build has NO confidence UI; it only reads the fixed curation config produced from this authoring loop.",
-  "base": 50,
+  "_comment": "Spec §4.3 on-device / authoring confidence weights. Policy: 'named OR officially recognized (DOC-matched / inside conservation land) => keep (high); anonymous urban footways, private, abandoned, and informal paths => drop (low)'. Tuned against the real NZ pilot (354,985 trails): ~7% high, ~93% low, dominated by unnamed access=yes footways (sidewalks) that now score ~35. Base is deliberately LOW (30) so an unknown trail is not trusted by default; a name or official backing is what lifts it. Loaded by the authoring build (dev-only) and mirrored by ScoringWeights.default in TrailScoring.swift; the two test suites pin these exact numbers.",
+  "base": 30,
   "weights": {
-    "authoritative_match": 20,
+    "authoritative_match": 40,
     "has_known_operator": 20,
-    "has_name": 10,
-    "in_official_whitelist": 10,
-    "region_trust_high": 10,
-    "access_restricted": -40,
-    "informal": -35,
-    "lifecycle_abandoned_or_disused": -50,
-    "trail_visibility_poor": -25,
-    "sac_scale_t4_plus": -20,
+    "has_name": 40,
+    "in_official_whitelist": 40,
+    "region_trust_high": 5,
+    "access_restricted": -45,
+    "informal": -40,
+    "lifecycle_abandoned_or_disused": -60,
+    "trail_visibility_poor": -20,
+    "sac_scale_t4_plus": -10,
     "tiger_unreviewed": -15,
-    "recently_edited_or_low_trust": -15
+    "recently_edited_or_low_trust": -10
   },
-  "bands": { "high": 70, "medium": 40 }
+  "bands": { "high": 70, "medium": 45 }
 }

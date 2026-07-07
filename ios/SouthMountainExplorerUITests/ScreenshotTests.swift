@@ -137,15 +137,26 @@ final class ScreenshotTests: XCTestCase {
 
     private func openStatsTab(_ app: XCUIApplication) {
         let statsTab = app.tabBars.buttons["Stats"]
-        if statsTab.waitForExistence(timeout: 30) {
+        guard statsTab.waitForExistence(timeout: 30) else {
+            dumpTree(app, "tab-bar-missing")
+            return
+        }
+        // VERIFY the switch landed, and re-tap if not. A single tap
+        // during the post-launch churn can be silently swallowed — the
+        // app stays on Explore and every downstream wait then fails.
+        // Seen in CI (run 28885288724): all three tree dumps showed
+        // 'Explore, Selected' 60+ seconds after the Stats tap, which
+        // cascaded into the hike-row, area-row, and sheet failures.
+        for attempt in 1...4 {
             statsTab.tap()
             // Give the tab switch + StatsView's history load a moment
-            // before the caller starts polling for content — polling an
-            // app that's mid-churn is what risks snapshot timeouts.
+            // before checking / before the caller polls for content —
+            // polling an app mid-churn risks snapshot timeouts.
             settle(5)
-        } else {
-            dumpTree(app, "tab-bar-missing")
+            if statsTab.isSelected { return }
+            print("Stats tab tap #\(attempt) didn't land (still not selected); retrying")
         }
+        dumpTree(app, "stats-tab-never-selected")
     }
 
     /// Push AreaView via the Stats tab's "Area Progress" row and wait

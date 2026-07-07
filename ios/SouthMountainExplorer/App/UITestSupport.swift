@@ -197,8 +197,8 @@ enum UITestSupport {
 
     /// ~21 hikes across 13 months. `daysAgo` is spaced to give the
     /// Stats "Hikes per Month" chart real month-to-month VARIATION
-    /// (buckets of 0–4/month, not a flat run of 1s) — a livelier chart
-    /// screenshots better. Still designed to unlock every history-based
+    /// (every month 1–4, never empty, but not a flat run of 1s) — a
+    /// livelier chart screenshots better. Still designed to unlock every history-based
     /// Dex badge: total > 100 mi (Century Club + tiers), a ≥5 mi hike
     /// (Long Hauler), a pre-7 am start (Early Bird), starts spanning all
     /// four meteorological seasons (Four Seasons), and > 10 distinct days
@@ -224,7 +224,7 @@ enum UITestSupport {
         HikeSpec(trailId: "national-trail",             distanceMi: 15.17, daysAgo: 110, startHour: 6,  durationMin: 300, withPath: false),
         HikeSpec(trailId: "alta",                       distanceMi: 4.60,  daysAgo: 122, startHour: 8,  durationMin: 150, withPath: false),
         HikeSpec(trailId: "desert-classic",             distanceMi: 3.88,  daysAgo: 165, startHour: 9,  durationMin: 120, withPath: false),
-        HikeSpec(trailId: "ma-ha-tuak-perimeter-trail", distanceMi: 7.13,  daysAgo: 180, startHour: 7,  durationMin: 230, withPath: false),
+        HikeSpec(trailId: "ma-ha-tuak-perimeter-trail", distanceMi: 7.13,  daysAgo: 140, startHour: 7,  durationMin: 230, withPath: false),
         HikeSpec(trailId: "desert-classic-trail",       distanceMi: 4.73,  daysAgo: 200, startHour: 8,  durationMin: 150, withPath: false),
         HikeSpec(trailId: "bursera-trail",              distanceMi: 3.32,  daysAgo: 225, startHour: 9,  durationMin: 110, withPath: false),
         HikeSpec(trailId: "guadalupe-perimeter-trail",  distanceMi: 2.75,  daysAgo: 235, startHour: 8,  durationMin: 92,  withPath: false, completes: false),

@@ -102,16 +102,23 @@ jobs:
             --wifiBars 3 \
             --dataNetwork wifi || true
           # Location: pre-grant the app permission and feed a simulated
-          # fix near South Mountain (Phoenix). Without permission the
-          # app presents its location-prompt sheet over Explore at
-          # launch, which covers the tab bar (swallowing the UI test's
-          # tab taps) and blocks every other sheet from presenting. The
-          # simulated fix also populates "X mi away" captions and the
-          # Near You section, which makes the captured frames richer.
-          # (The app-side seed suppresses the prompt too, so a failure
-          # of either half is non-fatal — hence the `|| true`.)
+          # fix. Without permission the app presents its location-prompt
+          # sheet over Explore at launch, which covers the tab bar
+          # (swallowing the UI test's tab taps) and blocks every other
+          # sheet from presenting. The simulated fix also populates "X mi
+          # away" captions and the Near You section, which makes the
+          # captured frames richer. (The app-side seed suppresses the
+          # prompt too, so a failure of either half is non-fatal — hence
+          # the `|| true`.)
+          #
+          # The fix is set to the demo recording's CURRENT position (the
+          # last point of the seeded Bajada Trail track). The recording
+          # shot zooms to that point (TrailMapView.centerOnActiveRecording),
+          # so MKMapView's blue user-location dot lands at the visible
+          # centre — right at the head of the live magenta track. It's
+          # inside the park, so the whole-park shot 1 reads fine too.
           xcrun simctl privacy "$SIM_UDID" grant location com.southmountainexplorer.app || true
-          xcrun simctl location "$SIM_UDID" set 33.3528,-112.0658 || true
+          xcrun simctl location "$SIM_UDID" set 33.330353,-112.104609 || true
 
       - name: Capture screenshots (UI test)
         working-directory: ios

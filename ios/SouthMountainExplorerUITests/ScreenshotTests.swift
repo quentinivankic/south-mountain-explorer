@@ -64,7 +64,11 @@ final class ScreenshotTests: XCTestCase {
         let featuredRow = app.descendants(matching: .any)["hike-row-demo-national-trail-2"].firstMatch
         if featuredRow.waitForExistence(timeout: 10) {
             tapElement(featuredRow)
-            settle(5)
+            // Long dwell: the hike-detail map is satellite imagery
+            // (`.imagery`). At 5 s the right edge of the map card was
+            // still a blank gray band where tiles hadn't downloaded —
+            // 15 s lets the whole frame's imagery land before capture.
+            settle(15)
             capture(app, "05-hike-detail")
             goBack(app)
         } else {
@@ -114,8 +118,13 @@ final class ScreenshotTests: XCTestCase {
         _ = app.staticTexts["Recent Hikes"].firstMatch.waitForExistence(timeout: 60)
 
         // Shot 3 — the active recording panel (live pace + elevation).
+        // The map now auto-frames zoomed on the recording's current
+        // position (TrailMapView.centerOnActiveRecording), so this reads
+        // as "mid-hike on the trail" rather than a whole-park overview —
+        // no recenter tap needed (which would risk the location prompt).
+        // Extra dwell lets the zoomed-in map tiles finish loading.
         if openAreaFromStats(app) {
-            settle(6)
+            settle(11)
             capture(app, "03-recording")
         } else {
             settle(5)
@@ -128,15 +137,26 @@ final class ScreenshotTests: XCTestCase {
 
     private func openStatsTab(_ app: XCUIApplication) {
         let statsTab = app.tabBars.buttons["Stats"]
-        if statsTab.waitForExistence(timeout: 30) {
+        guard statsTab.waitForExistence(timeout: 30) else {
+            dumpTree(app, "tab-bar-missing")
+            return
+        }
+        // VERIFY the switch landed, and re-tap if not. A single tap
+        // during the post-launch churn can be silently swallowed — the
+        // app stays on Explore and every downstream wait then fails.
+        // Seen in CI (run 28885288724): all three tree dumps showed
+        // 'Explore, Selected' 60+ seconds after the Stats tap, which
+        // cascaded into the hike-row, area-row, and sheet failures.
+        for attempt in 1...4 {
             statsTab.tap()
             // Give the tab switch + StatsView's history load a moment
-            // before the caller starts polling for content — polling an
-            // app that's mid-churn is what risks snapshot timeouts.
+            // before checking / before the caller polls for content —
+            // polling an app mid-churn risks snapshot timeouts.
             settle(5)
-        } else {
-            dumpTree(app, "tab-bar-missing")
+            if statsTab.isSelected { return }
+            print("Stats tab tap #\(attempt) didn't land (still not selected); retrying")
         }
+        dumpTree(app, "stats-tab-never-selected")
     }
 
     /// Push AreaView via the Stats tab's "Area Progress" row and wait

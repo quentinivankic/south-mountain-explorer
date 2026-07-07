@@ -47,6 +47,13 @@ enum MapTarget: Equatable {
     case followCenter(rawLat: Double, rawLon: Double, heading: Double?, bottomInset: CGFloat)
 }
 
+/// Marker type for the screenshot-only synthetic user dot — see
+/// `MapKitMapView.demoUserDot`. A distinct class (rather than a bare
+/// MKPointAnnotation) lets the Coordinator's `viewFor` recognize it
+/// without affecting any other annotation MapKit manages (including
+/// the real MKUserLocation).
+final class DemoUserDotAnnotation: MKPointAnnotation {}
+
 struct MapKitMapView: UIViewRepresentable {
     let area: Area
     let activeRecording: ActiveRecording?
@@ -95,6 +102,16 @@ struct MapKitMapView: UIViewRepresentable {
     /// is applied via cameraTarget when the mode flips.
     let userTrackingMode: MKUserTrackingMode
 
+    /// Screenshot-only synthetic user dot. When non-nil, a system-look
+    /// blue location dot is pinned at this coordinate. Exists because
+    /// MKMapView's built-in dot (`showsUserLocation`) only renders once
+    /// CoreLocation authorization actually lands, and CI's
+    /// `simctl privacy grant` provably doesn't land in time on cold
+    /// simulators — the recording screenshot captured dot-less.
+    /// TrailMapView only ever passes non-nil under DEBUG +
+    /// `--uitest-recording`; every production path leaves it nil.
+    var demoUserDot: CLLocationCoordinate2D? = nil
+
     /// Fires when a user gesture (pinch / pan / double-tap) changes
     /// the visible region. TrailMapView uses this to re-snap the
     /// camera to the user in follow modes — without this hook, a
@@ -123,6 +140,14 @@ struct MapKitMapView: UIViewRepresentable {
         mv.showsCompass = true
         mv.showsScale = true
         mv.showsUserLocation = showsUserLocation
+        // Synthetic screenshot dot (see `demoUserDot` doc). Added once
+        // here — the demo recording is injected in-memory at launch and
+        // never moves, so there's nothing to update.
+        if let dot = demoUserDot {
+            let ann = DemoUserDotAnnotation()
+            ann.coordinate = dot
+            mv.addAnnotation(ann)
+        }
         // Push MKMapView's built-in compass (top-right) down below
         // AreaView's favorite-heart button. MKMapView positions the
         // compass with respect to its `layoutMargins.top` — a 60pt
@@ -722,6 +747,38 @@ struct MapKitMapView: UIViewRepresentable {
             }
             parent.onUserGestureRegionChange?()
         }
+
+        /// Renders the screenshot-only synthetic user dot (see
+        /// `demoUserDot`). Returns nil for every other annotation so
+        /// MapKit keeps its default views — including the real
+        /// MKUserLocation dot when authorization does land.
+        func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            guard annotation is DemoUserDotAnnotation else { return nil }
+            let id = "demo-user-dot"
+            let view = mapView.dequeueReusableAnnotationView(withIdentifier: id)
+                ?? MKAnnotationView(annotation: annotation, reuseIdentifier: id)
+            view.annotation = annotation
+            view.image = Self.demoUserDotImage
+            view.zPriority = .max
+            return view
+        }
+
+        /// System-look location dot: soft shadow, white ring,
+        /// systemBlue center. Drawn once — 26pt matches the visual
+        /// weight of MKMapView's real dot at screenshot zoom.
+        static let demoUserDotImage: UIImage = {
+            let size = CGSize(width: 26, height: 26)
+            return UIGraphicsImageRenderer(size: size).image { ctx in
+                let c = ctx.cgContext
+                c.setShadow(offset: .zero, blur: 4,
+                            color: UIColor.black.withAlphaComponent(0.35).cgColor)
+                UIColor.white.setFill()
+                c.fillEllipse(in: CGRect(origin: .zero, size: size).insetBy(dx: 2, dy: 2))
+                c.setShadow(offset: .zero, blur: 0, color: nil)
+                UIColor.systemBlue.setFill()
+                c.fillEllipse(in: CGRect(origin: .zero, size: size).insetBy(dx: 5, dy: 5))
+            }
+        }()
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let multi = overlay as? MKMultiPolyline {

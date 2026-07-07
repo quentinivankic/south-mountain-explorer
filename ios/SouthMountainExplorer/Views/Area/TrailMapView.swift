@@ -213,6 +213,7 @@ struct TrailMapView: View {
                 // handlers below imperatively re-frame on each location
                 // / heading update.
                 userTrackingMode: .none,
+                demoUserDot: demoUserDot,
                 onUserGestureRegionChange: {
                     // User gesture-driven region change (pinch / pan).
                     // In follow modes, snap the camera back to the
@@ -276,7 +277,16 @@ struct TrailMapView: View {
                 liveHaloSegments = liveTrailSnappedRuns(path: path)
                 lastLiveHaloRecomputeAt = Date().timeIntervalSince1970
             }
-            centerOnArea()
+            // Opening the area with a hike already in progress frames the
+            // camera zoomed on where you are on the trail — the same
+            // ~1500 m as the recenter button — rather than the whole-park
+            // overview. Uses the recording's own last GPS sample, so it
+            // works even before a fresh live fix lands.
+            if (activeRecording?.path.count ?? 0) >= 2 {
+                centerOnActiveRecording()
+            } else {
+                centerOnArea()
+            }
         }
         .onChange(of: pastHikes.count) { _, _ in
             // New hike finished and AreaView reloaded pastHikes.
@@ -508,6 +518,28 @@ struct TrailMapView: View {
         ))
     }
 
+    /// Frame the camera on an in-progress recording's current position
+    /// (its last GPS sample), zoomed to the same ~1500 m as the recenter
+    /// button. Used on area-open when a hike is already running so you
+    /// land looking at where you are on the trail, not the whole park.
+    /// Falls back to the area overview if the path has no usable point.
+    private func centerOnActiveRecording() {
+        guard let last = activeRecording?.path.last(where: { $0.count >= 2 }) else {
+            centerOnArea()
+            return
+        }
+        let lat = last[0], lon = last[1]
+        let cosLat = max(0.0001, cos(lat * .pi / 180))
+        setCameraTarget(Self.fittedRegion(
+            centerLat: lat,
+            centerLon: lon,
+            latDelta: 1500.0 / 111_000.0,
+            lonDelta: 1500.0 / (111_000.0 * cosLat),
+            bottomInset: bottomInset,
+            screenHeight: UIScreen.main.bounds.height
+        ))
+    }
+
     private func centerOn(trail: Trail) {
         let pts = trail.segments.flatMap { $0 }.compactMap { p -> (Double, Double)? in
             guard p.count >= 2 else { return nil }
@@ -568,6 +600,24 @@ struct TrailMapView: View {
     private func setCameraTarget(_ target: MapTarget) {
         cameraTarget = target
         cameraTick &+= 1
+    }
+
+    /// Synthetic "you are here" dot for the App Store recording
+    /// screenshot, pinned to the demo recording's current position (the
+    /// same point `centerOnActiveRecording` frames). The CI simulator's
+    /// `simctl privacy grant` doesn't reliably land as authorized before
+    /// MKMapView asks CoreLocation for its built-in dot, so the shot
+    /// rendered dot-less — this renders one deterministically instead.
+    /// Always nil outside DEBUG + `--uitest-recording`, so no production
+    /// build can ever show a fake location.
+    private var demoUserDot: CLLocationCoordinate2D? {
+        #if DEBUG
+        guard UITestSupport.isRecordingRequested,
+              let last = activeRecording?.path.last(where: { $0.count >= 2 }) else { return nil }
+        return CLLocationCoordinate2D(latitude: last[0], longitude: last[1])
+        #else
+        return nil
+        #endif
     }
 
     // MARK: - Live halo recompute

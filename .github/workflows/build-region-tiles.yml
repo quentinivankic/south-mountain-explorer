@@ -37,6 +37,14 @@ on:
         description: 'Also fetch LINZ (needs LINZ_API_KEY secret)'
         type: boolean
         default: false
+      doc_tracks_url:
+        description: 'Override DOC Tracks ArcGIS URL (FeatureServer/<n>, from the DOC hub). Blank = script default.'
+        required: false
+        default: ''
+      doc_pcl_url:
+        description: 'Override DOC Public Conservation Land ArcGIS URL. Blank = script default.'
+        required: false
+        default: ''
 
 concurrency:
   group: build-region-tiles-${{ github.event.inputs.region }}
@@ -81,14 +89,27 @@ jobs:
           osmium --version && ogr2ogr --version && tippecanoe --version
 
       # ---- download raw sources (§3.3) ----
+      # OSM is required (base trail set, always ships). DOC is OPTIONAL:
+      # it only ADDS the authoritative_match signal + PCL area boundaries.
+      # If its ArcGIS endpoints fail (e.g. the URLs drifted), the build
+      # continues OSM-only and records DOC_OK=0 so the stage/conflate
+      # steps skip DOC cleanly. Supply verified DOC URLs via the
+      # doc_tracks_url / doc_pcl_url inputs to enable the full signal set.
       - name: Download OSM + DOC (+ LINZ if requested)
         env:
           LINZ_API_KEY: ${{ secrets.LINZ_API_KEY }}
+          DOC_TRACKS_URL: ${{ github.event.inputs.doc_tracks_url }}
+          DOC_PCL_URL: ${{ github.event.inputs.doc_pcl_url }}
         run: |
           set -e
           cd sources/downloaders
           python3 osm_nz.py
-          python3 nz_doc.py
+          if python3 nz_doc.py; then
+            echo "DOC_OK=1" >> "$GITHUB_ENV"
+          else
+            echo "::warning::DOC fetch failed — continuing OSM-only (no authoritative_match / PCL). Set doc_tracks_url / doc_pcl_url to enable DOC."
+            echo "DOC_OK=0" >> "$GITHUB_ENV"
+          fi
           if [ '${{ github.event.inputs.include_linz }}' = 'true' ]; then
             if [ -z "$LINZ_API_KEY" ]; then
               echo "include_linz=true but LINZ_API_KEY secret is unset"; exit 1
@@ -109,22 +130,34 @@ jobs:
           python3 build/stage_osm.py --in staging/osm/nz_export.geojson \
             --trails-out staging/osm/${REGION}_trails.geojson \
             --areas-out  staging/areas/${REGION}_areas.geojson
-          echo "== normalize DOC tracks + PCL to WGS84 GeoJSON =="
-          ogr2ogr -f GeoJSON -t_srs EPSG:4326 \
-            staging/nz_doc/tracks.geojson raw/nz_doc/doc_tracks.geojson
-          ogr2ogr -f GeoJSON -t_srs EPSG:4326 \
-            staging/nz_doc/pcl.geojson raw/nz_doc/doc_pcl.geojson
+          if [ "${DOC_OK:-0}" = "1" ] && [ -f raw/nz_doc/doc_tracks.geojson ]; then
+            echo "== normalize DOC tracks + PCL to WGS84 GeoJSON =="
+            ogr2ogr -f GeoJSON -t_srs EPSG:4326 \
+              staging/nz_doc/tracks.geojson raw/nz_doc/doc_tracks.geojson
+            ogr2ogr -f GeoJSON -t_srs EPSG:4326 \
+              staging/nz_doc/pcl.geojson raw/nz_doc/doc_pcl.geojson
+          else
+            echo "== DOC absent — OSM-only, skipping DOC reprojection =="
+          fi
 
       # ---- conflate OSM <-> DOC (§5) ----
+      # DOC present → real conflation (authoritative_match fires). DOC
+      # absent → empty match map; confidence.py reads it as "no matches"
+      # so authoritative_match is simply False everywhere.
       - name: Conflate OSM against DOC tracks + PCL boundaries
         run: |
           set -e
           REGION='${{ github.event.inputs.region }}'
-          python3 conflation/match.py \
-            --osm staging/osm/${REGION}_trails.geojson \
-            --authoritative staging/nz_doc/tracks.geojson \
-            --boundaries staging/nz_doc/pcl.geojson \
-            --source-id doc --out staging/${REGION}_matches.json
+          if [ -f staging/nz_doc/tracks.geojson ]; then
+            python3 conflation/match.py \
+              --osm staging/osm/${REGION}_trails.geojson \
+              --authoritative staging/nz_doc/tracks.geojson \
+              --boundaries staging/nz_doc/pcl.geojson \
+              --source-id doc --out staging/${REGION}_matches.json
+          else
+            echo "no DOC tracks — writing empty match map (OSM-only)"
+            echo '{}' > staging/${REGION}_matches.json
+          fi
 
       # ---- build: Bucket B flags + inclusion guard (§4.2, §7.1) ----
       - name: Attach Bucket B flags + inclusion guard

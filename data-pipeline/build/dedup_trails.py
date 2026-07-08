@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from collections import Counter, defaultdict
 from typing import Any
 
@@ -35,6 +36,19 @@ _OR_TRUE = ("has_known_operator", "in_route_relation")
 _MAJORITY = ("access", "informal", "lifecycle", "trail_visibility",
              "sac_scale", "surface", "highway", "region_trust", "network")
 _COORD_PRECISION = 6  # stage_osm already rounds coords to 1e-6
+
+
+def _length_mi(geom: dict[str, Any]) -> float:
+    """Haversine length in miles over a (Multi)LineString's coords."""
+    total = 0.0
+    for line in _lines(geom):
+        for (x0, y0), (x1, y1) in zip(line, line[1:]):
+            dlat, dlon = math.radians(y1 - y0), math.radians(x1 - x0)
+            a = (math.sin(dlat / 2) ** 2
+                 + math.cos(math.radians(y0)) * math.cos(math.radians(y1))
+                 * math.sin(dlon / 2) ** 2)
+            total += 6371.0088 * 2 * math.asin(min(1, math.sqrt(a)))
+    return total / 1.609344
 
 
 def _lines(geom: dict[str, Any]) -> list[list[list[float]]]:
@@ -139,6 +153,13 @@ def dedup(fc: dict[str, Any]) -> tuple[dict[str, Any], dict[str, int]]:
             out.append(_merge(name, comp) if len(comp) > 1 else comp[0])
             if len(comp) > 1:
                 merged_routes += 1
+
+    # Stamp whole-trail length on every output feature (post-merge, so a
+    # route's length is the sum of its segments) — drives the min-length
+    # quality filter downstream. round to 3dp to keep tiles small.
+    for f in out:
+        p = f.setdefault("properties", {})
+        p["length_mi"] = round(_length_mi(f.get("geometry", {})), 3)
 
     stats = {
         "in": len(fc.get("features", [])),

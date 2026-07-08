@@ -1,5 +1,5 @@
 {
-  "_comment": "Spec §4.3 on-device / authoring confidence weights. Policy: 'named OR officially recognized => keep (high); anonymous urban footways, private, abandoned, informal => drop (low)'. 'Officially recognized' is now GLOBAL: in_route_relation (member of an OSM hiking route relation) + network_national (iwn/nwn) give a country-agnostic 'real recognised trail' signal that needs NO per-country data source, alongside the optional per-country authoritative_match (DOC etc.). Tuned against the real NZ pilot: base is LOW (30) so an unknown trail is not trusted; a name OR route/network membership OR official backing is what lifts it. Loaded by the authoring build (dev-only) and mirrored by ScoringWeights.default in TrailScoring.swift; the two test suites pin these exact numbers.",
+  "_comment": "Spec §4.3 on-device / authoring confidence weights. See UNIFIED_FILTER_SPEC.md. Policy: keep (high) a NAMED or OFFICIAL trail; drop (low) anonymous urban footways, private, abandoned, informal, roads-mistagged-as-tracks, and sub-threshold stubs. 'Official' is GLOBAL: in_route_relation (OSM hiking route member) + network_national (iwn/nwn), plus optional per-country authoritative_match. in_official_whitelist now means 'merely inside a protected-area polygon' and is a weak +10 ('inside a park != a trail'), while a real register match is authoritative_match +40. Loaded by the authoring build (dev-only) and mirrored by ScoringWeights.default in TrailScoring.swift; both test suites pin these numbers.",
   "base": 30,
   "weights": {
     "authoritative_match": 40,
@@ -7,13 +7,15 @@
     "network_national": 15,
     "has_known_operator": 20,
     "has_name": 40,
-    "in_official_whitelist": 40,
+    "in_official_whitelist": 10,
     "region_trust_high": 5,
+    "vehicle_or_utility_road": -50,
+    "too_short": -50,
     "access_restricted": -45,
     "informal": -40,
     "lifecycle_abandoned_or_disused": -60,
     "trail_visibility_poor": -20,
-    "sac_scale_t4_plus": -10,
+    "sac_scale_t4_plus": 0,
     "tiger_unreviewed": -15,
     "recently_edited_or_low_trust": -10
   },

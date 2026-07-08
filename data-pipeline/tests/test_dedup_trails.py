@@ -60,6 +60,11 @@ class Dedup(unittest.TestCase):
         self.assertNotIn("segment_count", out["features"][0]["properties"])
         self.assertEqual(stats["routes_merged"], 0)
 
+    def test_length_mi_stamped_on_every_trail(self):
+        # ~0 length (same point) → tiny; a 1° lat segment ≈ 69 mi.
+        out, _ = d.dedup(fc(seg(None, [[0, 0], [0, 1]], "w1")))
+        self.assertAlmostEqual(out["features"][0]["properties"]["length_mi"], 69.0, delta=1.0)
+
     def test_property_merge_operator_or_and_majority(self):
         out, _ = d.dedup(fc(
             seg("Kepler Track", [[0, 0], [1, 1]], "w1", access="no", informal="yes"),

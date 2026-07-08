@@ -29,6 +29,21 @@ TRAIL_HIGHWAYS = {"path", "footway", "track", "bridleway"}
 LINE_GEOMS = {"LineString", "MultiLineString"}
 POLY_GEOMS = {"Polygon", "MultiPolygon"}
 
+# A highway=track whose NAME reads like a road, or that allows motor
+# vehicles, is a forest/utility/farm road — not a hike. (From the
+# production seed pipeline's `_is_road_like`.)
+_ROAD_WORDS = ("road", "drive", "avenue", "canal", "drain", "ditch",
+               "boulevard", "highway", "freeway")
+
+
+def _vehicle_or_utility_road(props: dict[str, Any], name: str | None) -> bool:
+    if props.get("highway") != "track":
+        return False
+    lname = (name or "").lower()
+    if any(w in lname for w in _ROAD_WORDS):
+        return True
+    return _lower(props.get("motor_vehicle")) == "yes" or _lower(props.get("motorcar")) == "yes"
+
 
 def _lower(v: Any) -> str | None:
     if v is None:
@@ -80,6 +95,8 @@ def normalize_trail(props: dict[str, Any], osm_id: str,
         "surface": _lower(props.get("surface")),
         "lifecycle": lifecycle,
         "tiger_unreviewed": _lower(props.get("tiger:reviewed")) == "no",
+        # A track that's really a road/utility corridor (name or motor tags).
+        "vehicle_or_utility_road": _vehicle_or_utility_road(props, name),
         # Global "official" signals (Bucket A-ish; from route relations).
         "in_route_relation": bool(route.get("in_route")),
         "network": _lower(route.get("network")) or "",

@@ -34,7 +34,8 @@
     <span class="swatch" style="background:#e6521f"></span>Assembled trails (v3)</label>
   <label><input type="checkbox" id="toggle-golden" checked />
     <span class="swatch" style="background:#1a7f37"></span>Golden destinations</label>
-  <div style="margin-top:6px"><b>Golden trails</b> (click to fly)</div>
+  <div style="margin-top:6px"><b id="golden-title">Golden trails</b> (click to fly)</div>
+  <div id="golden-summary" style="font-weight:600"></div>
   <ul id="golden-list"></ul>
 </div>
 <script>
@@ -77,7 +78,11 @@ map.on("load", async () => {
   }
 
   // Layer 2: OUR assembled trails (one feature per trail object).
-  const trails = await maybeJSON(`../data/aoi/${AOI}.trails.geojson`);
+  // aoi=golden shows the merged suite output; otherwise the named AOI.
+  const trailsUrl = AOI === "golden"
+    ? `../data/golden.trails.geojson`
+    : `../data/aoi/${AOI}.trails.geojson`;
+  const trails = await maybeJSON(trailsUrl);
   if (trails) {
     map.addSource("trails", { type: "geojson", data: trails });
     map.addLayer({ id: "trail-lines", source: "trails", type: "line",
@@ -91,19 +96,36 @@ map.on("load", async () => {
     });
   }
 
-  // Layer 3: golden destinations + reach-tolerance rings.
-  const golden = await maybeJSON(`../golden/golden.json`);
+  // Layer 3: golden destinations, colored PASS/FAIL when results exist.
+  const golden = await maybeJSON(`../golden/golden.snapped.json`)
+              || await maybeJSON(`../golden/golden.json`);
+  const resDoc = await maybeJSON(`../data/golden.results.json`);
+  const byId = {};
+  if (resDoc) for (const r of resDoc.results) byId[r.id] = r;
   if (golden) {
     const feats = [];
     const list = document.getElementById("golden-list");
+    if (resDoc) {
+      const pass = resDoc.results.filter((r) => r.passed).length;
+      const sum = document.getElementById("golden-summary");
+      sum.textContent = `${pass}/${resDoc.results.length} passing`;
+      sum.style.color = pass === resDoc.results.length ? "#1a7f37" : "#b3261e";
+    }
     for (const t of golden.trails) {
       const pts = t.kind === "destination" ? [t.destination] : t.endpoints;
+      const r = byId[t.id];
+      const passed = r ? r.passed : null;
       for (const c of pts) {
-        feats.push({ type: "Feature", properties: { id: t.id, name: t.name, why: t.why },
-                     geometry: { type: "Point", coordinates: [c.lon, c.lat] } });
+        feats.push({ type: "Feature",
+          properties: { id: t.id, name: t.name, why: t.why,
+                        pass: passed === null ? "—" : passed ? "PASS" : "FAIL",
+                        detail: r ? (r.reasons || []).join("; ") || `reach ${r.reach_ft}ft` : "" },
+          geometry: { type: "Point", coordinates: [c.lon, c.lat] } });
       }
       const li = document.createElement("li");
-      li.textContent = `${t.name} (${t.country})`;
+      const badge = passed === null ? "" : passed ? "✅ " : "❌ ";
+      li.textContent = `${badge}${t.name} (${t.country})`;
+      if (r && !r.passed) li.title = (r.reasons || []).join("; ");
       const c0 = pts[0];
       li.onclick = () => map.flyTo({ center: [c0.lon, c0.lat], zoom: 14 });
       list.appendChild(li);
@@ -111,12 +133,15 @@ map.on("load", async () => {
     map.addSource("golden", { type: "geojson",
       data: { type: "FeatureCollection", features: feats } });
     map.addLayer({ id: "golden-pts", source: "golden", type: "circle",
-      paint: { "circle-color": "#1a7f37", "circle-radius": 7,
-               "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
+      paint: {
+        "circle-color": ["match", ["get", "pass"],
+          "PASS", "#1a7f37", "FAIL", "#b3261e", /* other */ "#888"],
+        "circle-radius": 7,
+        "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
     map.on("click", "golden-pts", (e) => {
       const p = e.features[0].properties;
       new maplibregl.Popup().setLngLat(e.lngLat)
-        .setHTML(`<b>${p.name}</b><br>${p.why}`).addTo(map);
+        .setHTML(`<b>${p.name}</b> — ${p.pass}<br>${p.detail || p.why}`).addTo(map);
     });
   }
 

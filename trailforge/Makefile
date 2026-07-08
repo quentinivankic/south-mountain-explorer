@@ -10,11 +10,12 @@ EXTRACT ?= north-america
 PLANET_URL  := https://planet.openstreetmap.org/pbf/planet-latest.osm.pbf
 EXTRACT_URL := https://download.geofabrik.de/$(EXTRACT)-latest.osm.pbf
 
-.PHONY: help setup download-extract download-planet prefilter aoi assemble golden verify-golden qa test
+.PHONY: help setup doctor download-extract download-planet prefilter aoi assemble golden verify-golden qa test
 
 help:
 	@echo "trailforge targets:"
 	@echo "  setup             install deps (osmium-tool, pyosmium; Debian/Ubuntu apt)"
+	@echo "  doctor            preflight: tools, disk, RAM (run before download-planet)"
 	@echo "  download-extract  fetch Geofabrik EXTRACT=$(EXTRACT) -> $(DATA)/raw/"
 	@echo "  download-planet   fetch the full planet (~80 GB) -> $(DATA)/raw/"
 	@echo "  prefilter         stream-filter raw PBF -> $(DATA)/hiking.osm.pbf (IN=<file>)"
@@ -29,6 +30,9 @@ setup:
 	sudo apt-get update && sudo apt-get install -y osmium-tool python3-pip
 	pip3 install --user osmium shapely
 	osmium --version
+
+doctor:
+	@bash tools/doctor.sh
 
 $(DATA)/raw:
 	mkdir -p $(DATA)/raw

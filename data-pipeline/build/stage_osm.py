@@ -117,6 +117,30 @@ def area_scheme_rank(props: dict[str, Any]) -> tuple[str, int] | None:
     return None
 
 
+def area_name(props: dict[str, Any]) -> str | None:
+    """Best available display name for an area.
+
+    OSM boundary relations often omit the plain `name` but still carry the
+    name in a localized (`name:no`, `name:de`, …) or `official_name` tag —
+    reading only `name`/`name:en` left big real areas UNNAMED in the index
+    (e.g. Oslomarka, the protected forest belt around Oslo). Try the common
+    keys, then ANY localized `name:<lang>`, before giving up. Never drops
+    the area — a genuinely nameless one just keeps name=None.
+    """
+    for k in ("name", "name:en"):
+        v = props.get(k)
+        if v:
+            return v
+    for k, v in props.items():                 # any localized name:<lang>
+        if k.startswith("name:") and v:
+            return v
+    for k in ("official_name", "alt_name", "loc_name", "short_name"):
+        v = props.get(k)
+        if v:
+            return v
+    return None
+
+
 def normalize_area(props: dict[str, Any], osm_id: str) -> dict[str, Any] | None:
     sr = area_scheme_rank(props)
     if sr is None:
@@ -124,7 +148,7 @@ def normalize_area(props: dict[str, Any], osm_id: str) -> dict[str, Any] | None:
     scheme, rank = sr
     return {
         "osm_id": osm_id,
-        "name": props.get("name") or props.get("name:en"),
+        "name": area_name(props),
         "scheme": scheme,
         "protect_class": props.get("protect_class"),
         "protection_title": props.get("protection_title"),

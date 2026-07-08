@@ -81,8 +81,9 @@ jobs:
       - name: Download OSM extract
         run: |
           set -e
+          REGION='${{ github.event.inputs.region }}'
           cd sources/downloaders
-          python3 osm_nz.py
+          python3 osm_region.py --region "$REGION"
 
       # ---- stage: osmium export -> normalized trails/areas GeoJSON (§3) ----
       - name: Stage OSM
@@ -91,38 +92,38 @@ jobs:
           REGION='${{ github.event.inputs.region }}'
           mkdir -p staging/osm staging/areas
           # Prefilter to just the tags we stage (§3) BEFORE export.
-          # Exporting the whole NZ PBF (every road/building/landuse
+          # Exporting a whole-country PBF (every road/building/landuse
           # polygon) to GeoJSON is many GB and minutes; this shrinks it to
           # trail ways + the four area schemes. `wr/` keeps ways AND
           # relations (multipolygon areas); referenced members are kept by
           # default so export can assemble geometry.
           echo "== osmium tags-filter (trails + area polygons + hiking routes) =="
-          osmium tags-filter raw/osm/new-zealand-latest.osm.pbf \
+          osmium tags-filter raw/osm/${REGION}.osm.pbf \
             w/highway=path,footway,track,bridleway \
             "w/abandoned:highway" \
             wr/boundary=protected_area,national_park \
             wr/leisure=nature_reserve \
             wr/landuse=forest \
             r/route=hiking,foot,walking,running \
-            -o staging/osm/nz_filtered.osm.pbf --overwrite
+            -o staging/osm/${REGION}_filtered.osm.pbf --overwrite
           echo "== osmium export trail+area geometry =="
-          osmium export staging/osm/nz_filtered.osm.pbf \
+          osmium export staging/osm/${REGION}_filtered.osm.pbf \
             -f geojson --geometry-types=linestring,polygon \
             --add-unique-id=type_id \
-            -o staging/osm/nz_export.geojson --overwrite
+            -o staging/osm/${REGION}_export.geojson --overwrite
           # Global "official" signal: which ways belong to a hiking route
           # relation (+ its network). Needs the route relations kept above.
           # Non-fatal — a pyosmium hiccup just omits the route signals.
           echo "== route-relation index =="
           ROUTE_ARG=""
           if python3 build/route_index.py \
-               --pbf staging/osm/nz_filtered.osm.pbf \
+               --pbf staging/osm/${REGION}_filtered.osm.pbf \
                --out staging/osm/${REGION}_routes.json; then
             ROUTE_ARG="--route-index staging/osm/${REGION}_routes.json"
           else
             echo "::warning::route index failed — continuing without route-relation signals"
           fi
-          python3 build/stage_osm.py --in staging/osm/nz_export.geojson \
+          python3 build/stage_osm.py --in staging/osm/${REGION}_export.geojson \
             --trails-out staging/osm/${REGION}_raw_trails.geojson \
             --areas-out  staging/areas/${REGION}_areas.geojson $ROUTE_ARG
           # Collapse multi-segment named routes (Te Araroa etc.) into one

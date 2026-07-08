@@ -10,7 +10,7 @@ EXTRACT ?= north-america
 PLANET_URL  := https://planet.openstreetmap.org/pbf/planet-latest.osm.pbf
 EXTRACT_URL := https://download.geofabrik.de/$(EXTRACT)-latest.osm.pbf
 
-.PHONY: help setup download-extract download-planet prefilter aoi verify-golden qa test
+.PHONY: help setup download-extract download-planet prefilter aoi assemble golden verify-golden qa test
 
 help:
 	@echo "trailforge targets:"
@@ -19,6 +19,8 @@ help:
 	@echo "  download-planet   fetch the full planet (~80 GB) -> $(DATA)/raw/"
 	@echo "  prefilter         stream-filter raw PBF -> $(DATA)/hiking.osm.pbf (IN=<file>)"
 	@echo "  aoi               cut+export an AOI (NAME=sedona BBOX=lon,lat,lon,lat)"
+	@echo "  assemble          assemble trail objects for an AOI (NAME=sedona)"
+	@echo "  golden            run the full golden-trail regression suite"
 	@echo "  verify-golden     validate golden.json (SNAP=1 on homelab to snap coords to OSM)"
 	@echo "  qa                serve the local viewer at http://localhost:8000"
 	@echo "  test              run unit tests"
@@ -46,6 +48,15 @@ prefilter:
 aoi:
 	bash extract/aoi.sh
 
+NAME ?= sedona
+assemble:
+	python3 assemble/assemble.py \
+	  --in $(DATA)/aoi/$(NAME).osm.pbf \
+	  --out $(DATA)/aoi/$(NAME).trails.geojson
+
+golden:
+	python3 tools/run_golden.py --hiking $(DATA)/hiking.osm.pbf
+
 verify-golden:
 ifdef SNAP
 	python3 tools/verify_golden.py --snap $(DATA)/hiking.osm.pbf
@@ -58,3 +69,4 @@ qa:
 
 test:
 	python3 -m unittest discover -s tools -p 'test_*.py'
+	python3 -m unittest discover -s assemble -p 'test_*.py'

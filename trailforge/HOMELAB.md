@@ -45,52 +45,65 @@ broken.** Your job: build the correct lens.
   only; System 1 (`trekdex-areas`) and System 2 (`trekdex-areas-dev`)
   data must not be touched.
 
-## What's already here
+## What's already here — the assembler is WRITTEN and unit-tested
 
-| Path | What |
-|---|---|
-| `SPEC.md` | Research-derived extraction+assembly spec (tag set, algorithm, tools) |
-| `golden/golden.json` | 20-trail regression suite: destination coords + reach tolerances, each encoding a failure mode (steps-finish, superrelation, non-Latin names, …) |
-| `tools/verify_golden.py` | Structural validation (works offline); `--snap` mode is **yours to implement** (Step 3) |
-| `extract/prefilter.sh` | Streaming tags-filter, v0 tag set **including steps/via_ferrata + destination POI nodes** |
-| `extract/aoi.sh` | Sedona-default bbox cutter + GeoJSON export — the fast iteration loop |
-| `assemble/README.md` | The assembly algorithm you will implement (relations-first → name-stitch → spur-attach) |
-| `viewer/` | MapLibre QA viewer: OSM raw layer vs assembled-trails layer vs golden markers |
-| `Makefile` | `setup · download-extract · prefilter · aoi · verify-golden · qa · test` |
+The cloud session built and tested the whole pipeline against synthetic
+fixtures (it just can't reach OSM's servers). **Your job is to RUN it on
+real data and iterate**, not to write it from scratch.
+
+| Path | What | State |
+|---|---|---|
+| `SPEC.md` | Extraction+assembly spec (tag set, algorithm, tools) | done |
+| `assemble/model.py` | The core algorithm: relations-first → name-stitch → spur-attach. Pure Python, **11 unit tests incl. a synthetic Devils Bridge that reaches the arch** | done, tested |
+| `assemble/assemble.py` | pyosmium reader: `.osm.pbf` → assembled trails GeoJSON. Smoke-tested on a synthetic Devils-Bridge `.osm` | done |
+| `tools/golden_eval.py` | Pure pass/fail scoring (reach / length / fragmentation), 6 unit tests | done, tested |
+| `tools/run_golden.py` | Orchestrates the suite: bbox-cut each golden trail → assemble → evaluate → table + merged GeoJSON for the viewer | done (runs on the box) |
+| `tools/verify_golden.py` | Structural validation + **`--snap`** (implemented: matches POIs in the subset to snap golden coords) | done |
+| `golden/golden.json` | 20-trail regression suite, each encoding a failure mode | done |
+| `extract/prefilter.sh` | Streaming tags-filter, tag set incl. steps/via_ferrata + POI nodes | done |
+| `extract/aoi.sh` | Sedona-default bbox cutter | done |
+| `viewer/` | MapLibre QA viewer: OSM raw vs assembled trails vs golden markers | done |
+| `Makefile` | `setup·download-extract·prefilter·aoi·assemble·golden·verify-golden·qa·test` | done |
+
+Everything above passes `make test` in the sandbox. What only the box can
+do: run against **real** OSM (the synthetic fixtures prove the logic; real
+data proves coverage + tuning).
 
 Also relevant, read-only: `data-pipeline/build/route_index.py` — a working
 two-pass pyosmium pattern that resolves route **superrelations**
 transitively (the Te Araroa fix). Reuse the approach in the assembler.
 
-## Your steps
+## Your steps (mostly RUN, then tune)
 
 1. **Bootstrap:** `make setup && make download-extract && make prefilter`
-   (north-america first — planet later once the loop works). Record subset
-   size + runtimes in this file.
-2. **AOI loop up:** `make aoi && make qa` → open
-   `http://localhost:8000/viewer/?aoi=sedona`. You should see raw OSM ways
-   incl. the steps near Devils Bridge, and the golden marker on the arch.
-3. **Implement `verify_golden.py --snap`:** for each golden entry, match
-   `osm_hint` against POIs in the subset near the seeded coordinate
-   (pyosmium pass; Nominatim as a fallback for misses) and write
-   `golden/golden.snapped.json`. Coordinates in golden.json are
-   knowledge-seeded approximations — snap before trusting reach tests.
-4. **Implement the assembler** (`assemble/assemble.py`) per `SPEC.md` and
-   `assemble/README.md`. Milestone: Devils Bridge assembles as ONE trail
-   reaching within its `reach_tolerance_ft`. Iterate in the viewer.
-5. **Golden harness:** `tools/run_golden.py` — cut an AOI around each
-   golden trail, assemble, assert reach/length/fragment-count; print a
-   pass/fail table. Wire a `make golden` target and surface results in
-   the viewer dashboard.
+   (north-america first — planet later once the loop works). **Record the
+   subset size + prefilter runtime in this file** — that validates the
+   ≤16 GB streaming thesis (SPEC.md §4/§7 Q1).
+2. **Prove Devils Bridge on real data:**
+   `make aoi && make assemble && make qa` → open
+   `http://localhost:8000/viewer/?aoi=sedona`. Check the assembled
+   "Devils Bridge Trail" (orange) now reaches the arch — the founding
+   fix, on real OSM this time.
+3. **Snap the golden coords:** `make verify-golden SNAP=1` → writes
+   `golden/golden.snapped.json` (seeded coords → real OSM POIs). Eyeball a
+   few snaps in the viewer.
+4. **Run the suite:** `make golden`. Read the pass/fail table. Devils
+   Bridge should PASS. For failures, open that trail in the viewer and use
+   the click-to-inspect welds to see what assembled vs what OSM has.
+5. **Tune** `assemble/model.py` against real failures — spur-attach
+   thresholds (`SPUR_MAX_MI`, `SPUR_POI_REACH_FT`), POI set, name
+   normalization. `make test` guards the synthetic cases; `make golden`
+   measures the real ones. Commit each improvement.
 6. **Scale:** continent → planet prefilter; measure; then incremental
-   updates via replication diffs (see SPEC.md tooling track).
+   updates via replication diffs (SPEC.md §4). Compare coverage vs
+   System 2 on a shared country (SPEC.md §7 Q4).
 
 ## Definition of done for the first milestone
 
-`make golden` shows **devils-bridge: PASS** — one trail object named
-"Devils Bridge Trail" whose geometry reaches within 150 ft of the arch,
-with the staircase included — plus no regressions in the rest of the
-suite that already passed.
+`make golden` shows **devils-bridge: PASS** on real OSM — one trail named
+"Devils Bridge Trail" reaching within 150 ft of the arch, staircase
+included — with the rest of the suite as a baseline to push up. (The
+synthetic version of this already passes in `make test`.)
 
 ## Working agreement
 

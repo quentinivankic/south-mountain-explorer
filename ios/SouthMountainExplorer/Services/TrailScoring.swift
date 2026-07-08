@@ -222,7 +222,11 @@ enum TrailScoring {
         set(.regionTrustHigh, norm(p.regionTrust) == "high")
 
         set(.vehicleOrUtilityRoad, p.vehicleOrUtilityRoad)
-        set(.tooShort, (p.lengthMi ?? .greatestFiniteMagnitude) < minTrailMi)
+        // Only an anonymous, non-route stub is junk. A real trail is often
+        // split into sub-minTrailMi ways, so a name or route membership
+        // exempts it (else Te Araroa's short segments all get dropped).
+        set(.tooShort, (p.lengthMi ?? .greatestFiniteMagnitude) < minTrailMi
+            && !p.hasName && !p.inRouteRelation)
         set(.accessRestricted, accessRestricted.contains(norm(p.access)))
         set(.informal, p.informal)
         set(.lifecycleAbandonedOrDisused, lifecycleDead.contains(norm(p.lifecycle)))

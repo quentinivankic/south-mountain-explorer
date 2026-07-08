@@ -74,11 +74,18 @@ class Scoring(unittest.TestCase):
         self.assertEqual(s, 20.0)
         self.assertEqual(b, "low")
 
-    def test_short_named_stub_is_low(self):
-        # 30 m named stub: 30 + 40 − 50 = 20 → low.
-        s, _ = sr.score_and_band({"has_name": True, "length_mi": 0.02}, W, as_of=NOW)
-        self.assertEqual(s, 20.0)
-        # a real-length named trail is not too_short.
+    def test_short_unnamed_stub_is_low(self):
+        # 30 m ANONYMOUS stub: 30 − 50 → clamp 0 → low.
+        s, b = sr.score_and_band({"length_mi": 0.02}, W, as_of=NOW)
+        self.assertEqual(s, 0.0)
+        self.assertEqual(b, "low")
+        # A NAMED short segment is exempt — real trails split into sub-0.59mi
+        # ways, so too_short must not fire when named (Te Araroa regression).
+        self.assertFalse(sr.active_signals({"has_name": True, "length_mi": 0.02})["too_short"])
+        # …nor for a route member, named or not.
+        self.assertFalse(
+            sr.active_signals({"in_route_relation": True, "length_mi": 0.02})["too_short"])
+        # a real-length anonymous trail is not too_short either.
         self.assertFalse(sr.active_signals({"length_mi": 2.0})["too_short"])
 
     def test_inside_park_only_is_demoted_to_medium(self):

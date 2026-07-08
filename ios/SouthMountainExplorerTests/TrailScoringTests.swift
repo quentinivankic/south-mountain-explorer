@@ -61,10 +61,16 @@ struct TrailScoringTests {
         #expect(r.band == .low)
     }
 
-    @Test func shortNamedStubIsLow() {
-        // 30 m stub: 30 + 40 − 50 = 20 → low; a real-length trail is fine.
+    @Test func shortUnnamedStubIsLow() {
+        // 30 m anonymous stub: 30 − 50 → clamp 0 → low.
         #expect(TrailScoring.score(
-            TrailScoringProps(name: "x", hasName: true, lengthMi: 0.02), weights: w) == 20.0)
+            TrailScoringProps(name: "x", lengthMi: 0.02), weights: w) == 0.0)
+        // Named + route segments are exempt — real trails split into short
+        // ways, so too_short must not fire when named / in a route.
+        #expect(!TrailScoring.firedSignals(
+            TrailScoringProps(name: "x", hasName: true, lengthMi: 0.02)).contains(.tooShort))
+        #expect(!TrailScoring.firedSignals(
+            TrailScoringProps(name: "x", inRouteRelation: true, lengthMi: 0.02)).contains(.tooShort))
         #expect(!TrailScoring.firedSignals(
             TrailScoringProps(name: "x", lengthMi: 2.0)).contains(.tooShort))
     }

@@ -125,7 +125,12 @@ def active_signals(props: dict[str, Any], as_of: datetime | None = None) -> dict
         # A track that's really a road/utility corridor — hard "not a hike".
         "vehicle_or_utility_road": _truthy(props.get("vehicle_or_utility_road")),
         # Sub-threshold stub (length computed post-dedup, whole-trail).
-        "too_short": float(props.get("length_mi") or 999) < _MIN_TRAIL_MI,
+        # Only an ANONYMOUS, non-route stub is junk: a real trail is often
+        # split into sub-0.59mi ways, so a name or route membership exempts
+        # it — otherwise Te Araroa's short segments all get dropped.
+        "too_short": (float(props.get("length_mi") or 999) < _MIN_TRAIL_MI
+                      and not _truthy(props.get("has_name"))
+                      and not _truthy(props.get("in_route_relation"))),
         "access_restricted": str(props.get("access", "")).strip().lower() in _ACCESS_RESTRICTED,
         "informal": _truthy(props.get("informal")),
         "lifecycle_abandoned_or_disused":

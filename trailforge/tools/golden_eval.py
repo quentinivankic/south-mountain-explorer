@@ -46,6 +46,15 @@ def _closest_ft(feat, coord) -> float:
 
 
 def evaluate(entry: dict, fc: dict, defaults: dict | None = None) -> dict:
+    """Score one golden trail, then attach OSM coverage + a diagnosis so a
+    FAIL says *why* — missing data vs assembly gap."""
+    res = _score(entry, fc, defaults)
+    res["coverage"] = fc.get("coverage")
+    res["diagnosis"] = diagnose(res)
+    return res
+
+
+def _score(entry: dict, fc: dict, defaults: dict | None = None) -> dict:
     d = defaults or {}
     reach_ft = entry.get("reach_tolerance_ft", d.get("reach_tolerance_ft", 200))
     ep_mi = entry.get("endpoint_tolerance_mi", d.get("endpoint_tolerance_mi", 1.0))
@@ -56,11 +65,12 @@ def evaluate(entry: dict, fc: dict, defaults: dict | None = None) -> dict:
 
     if entry["kind"] == "destination":
         dest = (entry["destination"]["lon"], entry["destination"]["lat"])
+        best = min((_closest_ft(f, dest) for f in feats), default=float("inf"))
+        res["closest_ft"] = round(best) if best != float("inf") else None
         reaching = [(f, _closest_ft(f, dest)) for f in feats]
         reaching = [(f, ft) for f, ft in reaching if ft <= reach_ft]
         res["fragments"] = len(reaching)
         if not reaching:
-            best = min((_closest_ft(f, dest) for f in feats), default=float("inf"))
             res["reasons"].append(f"no trail within {reach_ft:.0f} ft "
                                   f"(closest {best:.0f} ft)")
             return res
@@ -88,6 +98,30 @@ def evaluate(entry: dict, fc: dict, defaults: dict | None = None) -> dict:
     return res
 
 
+def diagnose(res: dict) -> str:
+    """Turn a fail into a cause. 'missing-*' = OSM data gap (edit OSM, not
+    code). 'assembly-gap' / 'no-route-relation' = our side to tune."""
+    if res.get("passed"):
+        return "ok"
+    cov = res.get("coverage") or {}
+    ways = cov.get("raw_trailish_ways")
+    rels = cov.get("hiking_route_relations", 0)
+    pois = cov.get("destination_pois")
+    if ways is not None and ways < 5:
+        return "missing-data: few/no trail ways mapped in this AOI (edit OSM)"
+    if res["kind"] == "through":
+        if rels == 0:
+            return "no-route-relation: the long route isn't tagged as a relation in OSM"
+        return "assembly-gap: route relation exists but didn't stitch end-to-end (tune assembler)"
+    # destination
+    if pois == 0:
+        return "missing-poi: destination POI not in OSM to anchor to (add it to OSM)"
+    cf = res.get("closest_ft")
+    if cf is not None and cf <= 1320:      # within 1/4 mi of the payoff
+        return "assembly-gap: a trail ends near the payoff but didn't reach it (tune weld thresholds)"
+    return "missing-data: nearest trail is far from the destination — likely unmapped here"
+
+
 def _length_check(feat, entry, len_pct, res) -> dict:
     exp = entry.get("expected_one_way_mi")
     got = feat["properties"].get("length_mi")
@@ -100,17 +134,24 @@ def _length_check(feat, entry, len_pct, res) -> dict:
 
 
 def summarize(results: list[dict]) -> str:
-    lines = ["", f"{'trail':32} {'kind':11} {'result':6} detail", "-" * 78]
+    lines = ["", f"{'trail':30} {'result':6} {'diagnosis':14} detail", "-" * 96]
     npass = 0
+    buckets: dict[str, int] = {}
     for r in results:
         ok = r["passed"]
         npass += ok
-        detail = (f"reach {r.get('reach_ft','?')}ft" if r["kind"] == "destination"
+        diag = (r.get("diagnosis") or "").split(":")[0]
+        buckets[diag if not ok else "ok"] = buckets.get(diag if not ok else "ok", 0) + 1
+        cov = r.get("coverage") or {}
+        detail = (f"reach {r.get('reach_ft','?')}ft" if ok and r["kind"] == "destination"
+                  else "; ".join(r["reasons"]) if r["reasons"]
                   else f"frags {r.get('fragments','?')}")
-        if r["reasons"]:
-            detail = "; ".join(r["reasons"])
-        lines.append(f"{r['name'][:32]:32} {r['kind']:11} "
-                     f"{'PASS' if ok else 'FAIL':6} {detail}")
-    lines.append("-" * 78)
-    lines.append(f"{npass}/{len(results)} passed")
+        if not ok and cov:
+            detail += f"  (ways={cov.get('raw_trailish_ways')}, " \
+                      f"routes={cov.get('hiking_route_relations')}, pois={cov.get('destination_pois')})"
+        lines.append(f"{r['name'][:30]:30} {'PASS' if ok else 'FAIL':6} "
+                     f"{diag:14} {detail}")
+    lines.append("-" * 96)
+    lines.append(f"{npass}/{len(results)} passed   " +
+                 "  ".join(f"{k}:{v}" for k, v in sorted(buckets.items())))
     return "\n".join(lines)

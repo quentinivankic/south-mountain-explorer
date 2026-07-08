@@ -90,11 +90,22 @@ transitively (the Te Araroa fix). Reuse the approach in the assembler.
    `golden/golden.snapped.json` (seeded coords → real OSM POIs). Eyeball a
    few snaps in the viewer.
 4. **Run the suite:** `make golden` → pass/fail table + `golden.results.json`
-   + merged geojson. Devils Bridge should PASS. Then
-   `make qa` and open `http://localhost:8000/viewer/?aoi=golden` for the
-   **visual dashboard**: green/red markers per golden trail, the N/20
-   passing count, and click-to-inspect welds (what assembled vs what OSM
-   has). Iterate against the reds.
+   + merged geojson. Devils Bridge should PASS. **The table now carries a
+   `diagnosis` column + raw OSM counts (`ways=`, `routes=`, `pois=`)** so
+   each FAIL tells you WHY:
+   - `missing-data` / `missing-poi` / `no-route-relation` → OSM data gap.
+     Not our code — either the trail isn't mapped, or it needs an OSM edit.
+   - `assembly-gap` → the pieces are in OSM but we didn't connect/weld
+     them. **This is the tunable bucket** (`SPUR_MAX_MI`,
+     `SPUR_POI_REACH_FT`, the POI set, name-stitch).
+   The footer buckets the run (e.g. `ok:14  assembly-gap:3  missing-data:3`)
+   — that split is the honest read on "is OSM good enough?": lots of
+   `missing-data` = a coverage problem; lots of `assembly-gap` = a
+   tune-the-code problem. Then `make qa` →
+   `http://localhost:8000/viewer/?aoi=golden` for the visual version
+   (markers colored by result; click one for its diagnosis + welds).
+   Iterate against the `assembly-gap` reds first; send me the table and I
+   hand you exact threshold edits.
 5. **Tune** `assemble/model.py` against real failures — spur-attach
    thresholds (`SPUR_MAX_MI`, `SPUR_POI_REACH_FT`), POI set, name
    normalization. `make test` guards the synthetic cases; `make golden`

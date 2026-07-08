@@ -438,3 +438,18 @@ def _first_named(way_ids: list[int], ways: dict) -> str | None:
         if nm:
             return nm
     return None
+
+
+def coverage_stats(ways: dict, relations: dict, pois: list[dict]) -> dict:
+    """What does OSM actually contain in this AOI? Diagnostic — lets the
+    golden runner tell 'missing data' (nothing we can fix in code) apart
+    from 'assembly gap' (our thresholds to tune) when a trail fails."""
+    return {
+        "raw_trailish_ways": sum(1 for w in ways.values() if _is_trailish(w["tags"])),
+        "named_trailish_ways": sum(1 for w in ways.values()
+                                   if _is_trailish(w["tags"]) and w["tags"].get("name")),
+        "hiking_route_relations": sum(1 for r in relations.values() if _is_route(r["tags"])),
+        "route_relations_total": sum(1 for r in relations.values()
+                                     if r["tags"].get("type") == "route"),
+        "destination_pois": len(pois),
+    }

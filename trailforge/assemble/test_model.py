@@ -124,6 +124,23 @@ class SpurAttach(unittest.TestCase):
         self.assertNotIn(2, t.member_ways)            # too long to be a payoff spur
 
 
+class Coverage(unittest.TestCase):
+    def test_coverage_stats_counts_by_kind(self):
+        ways = {1: W([1, 2], highway="path", name="A"),
+                2: W([2, 3], highway="steps"),
+                3: W([3, 4], highway="footway", footway="sidewalk"),  # excluded
+                4: W([4, 5], highway="residential")}                  # not trailish
+        rels = {10: {"tags": {"type": "route", "route": "hiking"}, "members": []},
+                11: {"tags": {"type": "route", "route": "bicycle"}, "members": []}}
+        pois = [{"id": 9, "coord": (0, 0), "tags": {"natural": "arch"}, "name": "X"}]
+        c = m.coverage_stats(ways, rels, pois)
+        self.assertEqual(c["raw_trailish_ways"], 2)       # path + steps
+        self.assertEqual(c["named_trailish_ways"], 1)     # only "A"
+        self.assertEqual(c["hiking_route_relations"], 1)  # bicycle excluded
+        self.assertEqual(c["route_relations_total"], 2)
+        self.assertEqual(c["destination_pois"], 1)
+
+
 class Classification(unittest.TestCase):
     def test_sidewalk_and_indoor_excluded(self):
         self.assertFalse(m._is_trailish({"highway": "footway", "footway": "sidewalk"}))

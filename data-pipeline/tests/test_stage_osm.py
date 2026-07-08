@@ -87,6 +87,20 @@ class TrailStaging(unittest.TestCase):
         trails, _ = st.stage(fc, {"w5": {"in_route": True, "network": "iwn"}})
         self.assertTrue(trails["features"][0]["properties"]["in_route_relation"])
 
+    def test_osm_id_read_from_feature_level_id(self):
+        # osmium export --add-unique-id=type_id writes the id on the FEATURE
+        # ("id": "w123"), NOT in properties. stage must read it there, or the
+        # route-relation join silently dies (network stays empty).
+        feat = {"type": "Feature", "id": "w123456789",
+                "geometry": {"type": "LineString", "coordinates": [[0, 0], [1, 1]]},
+                "properties": {"highway": "path"}}
+        trails, _ = st.stage({"features": [feat]},
+                             {"w123456789": {"in_route": True, "network": "nwn"}})
+        p = trails["features"][0]["properties"]
+        self.assertEqual(p["osm_id"], "w123456789")
+        self.assertTrue(p["in_route_relation"])
+        self.assertEqual(p["network"], "nwn")
+
 
 class AreaStaging(unittest.TestCase):
     def test_protected_area_highest_osm_rank(self):

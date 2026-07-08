@@ -142,7 +142,13 @@ def stage(fc: dict[str, Any],
         props = f.get("properties", {}) or {}
         geom = f.get("geometry") or {}
         gtype = geom.get("type")
-        osm_id = str(props.get("@id") or props.get("osm_id") or props.get("id") or i)
+        # osmium export --add-unique-id=type_id puts the id on the FEATURE
+        # ("id": "w123"), not in properties — so f.get("id") is the real
+        # source here; the props.* fallbacks are for hand-built fixtures.
+        # Missing this made osm_id fall to the enumerate index, which never
+        # matched route_index's "w<id>" keys → the route signal was dead.
+        osm_id = str(props.get("@id") or props.get("osm_id") or props.get("id")
+                     or f.get("id") or i)
 
         if gtype in LINE_GEOMS and is_trail(props):
             trails.append({"type": "Feature", "geometry": geom,

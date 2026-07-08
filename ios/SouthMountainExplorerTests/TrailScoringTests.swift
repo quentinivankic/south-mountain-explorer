@@ -53,6 +53,39 @@ struct TrailScoringTests {
         #expect(r.band == .low)
     }
 
+    @Test func vehicleOrUtilityRoadNamedTrackIsLow() {
+        // Named "Irrigation Canal" track: 30 + 40 − 50 = 20 → low.
+        let p = TrailScoringProps(name: "x", hasName: true, vehicleOrUtilityRoad: true)
+        let r = TrailScoring.scoreAndBand(p, weights: w)
+        #expect(r.score == 20.0)
+        #expect(r.band == .low)
+    }
+
+    @Test func shortNamedStubIsLow() {
+        // 30 m stub: 30 + 40 − 50 = 20 → low; a real-length trail is fine.
+        #expect(TrailScoring.score(
+            TrailScoringProps(name: "x", hasName: true, lengthMi: 0.02), weights: w) == 20.0)
+        #expect(!TrailScoring.firedSignals(
+            TrailScoringProps(name: "x", lengthMi: 2.0)).contains(.tooShort))
+    }
+
+    @Test func insideParkOnlyIsDemotedToMedium() {
+        // in_official_whitelist alone: 30 + 10 + region 5 = 45 → medium (was high).
+        let p = TrailScoringProps(name: "x", inOfficialWhitelist: true, regionTrust: "high")
+        let r = TrailScoring.scoreAndBand(p, weights: w)
+        #expect(r.score == 45.0)
+        #expect(r.band == .medium)
+    }
+
+    @Test func sacPenaltyRemoved() {
+        let base = TrailScoring.score(
+            TrailScoringProps(name: "x", authoritativeMatch: true, hasName: true), weights: w)
+        let withSac = TrailScoring.score(
+            TrailScoringProps(name: "x", authoritativeMatch: true, hasName: true,
+                              sacScale: "alpine_hiking"), weights: w)
+        #expect(base == withSac)
+    }
+
     @Test func routeRelationMembershipIsHighEvenUnnamed() {
         // 30 + in_route_relation 40 = 70 → high. Global "official" signal.
         let p = TrailScoringProps(name: "x", inRouteRelation: true)

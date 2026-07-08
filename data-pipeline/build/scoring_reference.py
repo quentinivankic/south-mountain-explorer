@@ -47,6 +47,7 @@ _SAC_RANK = {
 _SAC_T4_PLUS_THRESHOLD = 3  # demanding_mountain_hiking or harder
 
 _NETWORK_NATIONAL = {"iwn", "nwn"}  # international / national walking network
+_MIN_TRAIL_MI = 0.59                # shorter → `too_short` fires (matches seed pipeline)
 _ACCESS_RESTRICTED = {"no", "private", "discouraged"}
 _VISIBILITY_POOR = {"bad", "horrible", "no"}
 _LIFECYCLE_DEAD = {"abandoned", "disused"}
@@ -121,6 +122,10 @@ def active_signals(props: dict[str, Any], as_of: datetime | None = None) -> dict
         "in_official_whitelist": _truthy(props.get("in_official_whitelist")),
         "region_trust_high": region_trust == "high",
         # negatives
+        # A track that's really a road/utility corridor — hard "not a hike".
+        "vehicle_or_utility_road": _truthy(props.get("vehicle_or_utility_road")),
+        # Sub-threshold stub (length computed post-dedup, whole-trail).
+        "too_short": float(props.get("length_mi") or 999) < _MIN_TRAIL_MI,
         "access_restricted": str(props.get("access", "")).strip().lower() in _ACCESS_RESTRICTED,
         "informal": _truthy(props.get("informal")),
         "lifecycle_abandoned_or_disused":

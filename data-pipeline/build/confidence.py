@@ -62,7 +62,10 @@ def apply_bucket_b(
 
     props["authoritative_match"] = bool(m.get("matched", False))
     props["matched_source"] = m.get("source") if m.get("matched") else None
-    props["in_official_whitelist"] = bool(m.get("whitelist", False))
+    # `in_official_whitelist` now means "merely INSIDE a protected-area
+    # polygon" — a weak +10 signal ("inside a park != a trail"). A real
+    # track-register match is authoritative_match (+40), set above.
+    props["in_official_whitelist"] = bool(m.get("inside_official_boundary", False))
     props["low_trust_editor"] = bool(osm_id in (low_trust_osm_ids or set()))
     props["region_trust"] = region_trust
 

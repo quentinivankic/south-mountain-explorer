@@ -56,6 +56,20 @@ class TrailStaging(unittest.TestCase):
         for k in ("confidence", "score", "band"):
             self.assertNotIn(k, p)
 
+    def test_vehicle_or_utility_road_detection(self):
+        # named-like-a-road track
+        self.assertTrue(st.normalize_trail(
+            {"highway": "track", "name": "Irrigation Canal"}, "1")["vehicle_or_utility_road"])
+        # motor-access track
+        self.assertTrue(st.normalize_trail(
+            {"highway": "track", "motor_vehicle": "yes"}, "2")["vehicle_or_utility_road"])
+        # a plain footpath is not a road
+        self.assertFalse(st.normalize_trail(
+            {"highway": "path", "name": "Coastal Walk"}, "3")["vehicle_or_utility_road"])
+        # a plain named track is fine
+        self.assertFalse(st.normalize_trail(
+            {"highway": "track", "name": "Kepler Track"}, "4")["vehicle_or_utility_road"])
+
     def test_route_relation_signals_from_index(self):
         route = {"in_route": True, "network": "NWN",
                  "route_name": "Te Araroa", "route_operator": "Te Araroa Trust"}

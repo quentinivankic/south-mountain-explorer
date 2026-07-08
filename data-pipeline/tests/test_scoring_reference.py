@@ -66,6 +66,35 @@ class Scoring(unittest.TestCase):
         self.assertEqual(s, 70.0)
         self.assertEqual(b, "high")
 
+    def test_vehicle_or_utility_road_named_track_is_low(self):
+        # A named "Irrigation Canal" track was a false-keep (name +40 → 70).
+        # 30 + 40 − 50 = 20 → low.
+        s, b = sr.score_and_band(
+            {"has_name": True, "vehicle_or_utility_road": True}, W, as_of=NOW)
+        self.assertEqual(s, 20.0)
+        self.assertEqual(b, "low")
+
+    def test_short_named_stub_is_low(self):
+        # 30 m named stub: 30 + 40 − 50 = 20 → low.
+        s, _ = sr.score_and_band({"has_name": True, "length_mi": 0.02}, W, as_of=NOW)
+        self.assertEqual(s, 20.0)
+        # a real-length named trail is not too_short.
+        self.assertFalse(sr.active_signals({"length_mi": 2.0})["too_short"])
+
+    def test_inside_park_only_is_demoted_to_medium(self):
+        # in_official_whitelist alone was +40 (high); now +10 → medium.
+        s, b = sr.score_and_band(
+            {"in_official_whitelist": True, "region_trust": "high"}, W, as_of=NOW)
+        self.assertEqual(s, 45.0)
+        self.assertEqual(b, "medium")
+
+    def test_sac_penalty_removed(self):
+        # A demanding DOC track shouldn't be penalised for difficulty.
+        base = sr.score({"has_name": True, "authoritative_match": True}, W)
+        with_sac = sr.score({"has_name": True, "authoritative_match": True,
+                             "sac_scale": "alpine_hiking"}, W)
+        self.assertEqual(base, with_sac)
+
     def test_national_network_adds_boost(self):
         # route member on a national network: 30 + 40 + 15 = 85 -> high.
         s, _ = sr.score_and_band(

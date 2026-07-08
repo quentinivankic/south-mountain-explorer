@@ -33,6 +33,8 @@ enum ScoreSignal: String, CaseIterable, Identifiable, Sendable {
     case inOfficialWhitelist = "in_official_whitelist"
     case regionTrustHigh = "region_trust_high"
     // negatives
+    case vehicleOrUtilityRoad = "vehicle_or_utility_road"
+    case tooShort = "too_short"
     case accessRestricted = "access_restricted"
     case informal = "informal"
     case lifecycleAbandonedOrDisused = "lifecycle_abandoned_or_disused"
@@ -64,6 +66,8 @@ enum ScoreSignal: String, CaseIterable, Identifiable, Sendable {
         case .hasName: return "Has name"
         case .inOfficialWhitelist: return "Official whitelist"
         case .regionTrustHigh: return "High-trust region"
+        case .vehicleOrUtilityRoad: return "Road / utility track"
+        case .tooShort: return "Too short"
         case .accessRestricted: return "Access restricted"
         case .informal: return "Informal"
         case .lifecycleAbandonedOrDisused: return "Abandoned / disused"
@@ -100,13 +104,15 @@ struct ScoringWeights: Equatable, Sendable {
             .networkNational: 15,
             .hasKnownOperator: 20,
             .hasName: 40,
-            .inOfficialWhitelist: 40,
+            .inOfficialWhitelist: 10,
             .regionTrustHigh: 5,
+            .vehicleOrUtilityRoad: -50,
+            .tooShort: -50,
             .accessRestricted: -45,
             .informal: -40,
             .lifecycleAbandonedOrDisused: -60,
             .trailVisibilityPoor: -20,
-            .sacScaleT4Plus: -10,
+            .sacScaleT4Plus: 0,
             .tigerUnreviewed: -15,
             .recentlyEditedOrLowTrust: -10,
         ],
@@ -152,6 +158,8 @@ struct TrailScoringProps: Identifiable, Sendable {
     var sacScale = ""               // hiking … difficult_alpine_hiking, or "t3"
     var tigerUnreviewed = false
     var lowTrustEditor = false
+    var vehicleOrUtilityRoad = false // track that's really a road/utility corridor
+    var lengthMi: Double? = nil     // whole-trail length; < MIN_TRAIL_MI → too short
     /// Days since the last OSM edit. `< 30` fires the recency signal;
     /// nil = old/unknown. Stand-in for the reference's timestamp math.
     var editedDaysAgo: Int? = nil
@@ -165,6 +173,7 @@ struct TrailScoringProps: Identifiable, Sendable {
 
 enum TrailScoring {
     static let recentEditDays = 30
+    static let minTrailMi = 0.59
 
     private static let sacRank: [String: Int] = [
         "hiking": 1,
@@ -212,6 +221,8 @@ enum TrailScoring {
         set(.inOfficialWhitelist, p.inOfficialWhitelist)
         set(.regionTrustHigh, norm(p.regionTrust) == "high")
 
+        set(.vehicleOrUtilityRoad, p.vehicleOrUtilityRoad)
+        set(.tooShort, (p.lengthMi ?? .greatestFiniteMagnitude) < minTrailMi)
         set(.accessRestricted, accessRestricted.contains(norm(p.access)))
         set(.informal, p.informal)
         set(.lifecycleAbandonedOrDisused, lifecycleDead.contains(norm(p.lifecycle)))

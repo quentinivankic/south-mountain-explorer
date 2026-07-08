@@ -16,14 +16,28 @@ def feat(osm_id, **props):
 
 
 class BucketB(unittest.TestCase):
-    def test_matched_way_gets_source_and_whitelist(self):
+    def test_matched_way_gets_source(self):
         matches = {"1": {"matched": True, "source": "doc", "whitelist": True}}
         out = cf.apply_bucket_b(feat("1"), matches=matches, region_trust="high")
         p = out["properties"]
         self.assertTrue(p["authoritative_match"])
         self.assertEqual(p["matched_source"], "doc")
-        self.assertTrue(p["in_official_whitelist"])
         self.assertEqual(p["region_trust"], "high")
+
+    def test_in_official_whitelist_means_inside_boundary_not_match(self):
+        # New semantics: in_official_whitelist = "inside a protected-area
+        # polygon", independent of a track match (which is authoritative_match).
+        inside = cf.apply_bucket_b(
+            feat("1"), matches={"1": {"inside_official_boundary": True}},
+            region_trust="high")
+        self.assertTrue(inside["properties"]["in_official_whitelist"])
+        self.assertFalse(inside["properties"]["authoritative_match"])
+        # matched but NOT inside a boundary → not whitelisted.
+        matched = cf.apply_bucket_b(
+            feat("2"), matches={"2": {"matched": True, "source": "doc"}},
+            region_trust="high")
+        self.assertTrue(matched["properties"]["authoritative_match"])
+        self.assertFalse(matched["properties"]["in_official_whitelist"])
 
     def test_unmatched_way_has_null_source(self):
         out = cf.apply_bucket_b(feat("2"), matches={}, region_trust="medium")

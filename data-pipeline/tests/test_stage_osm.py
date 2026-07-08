@@ -116,6 +116,20 @@ class AreaStaging(unittest.TestCase):
         a = st.normalize_area({"landuse": "forest"}, "1")
         self.assertEqual(a["authority_rank"], 10)
 
+    def test_area_name_fallbacks(self):
+        self.assertEqual(st.area_name({"name": "A", "name:en": "B"}), "A")
+        self.assertEqual(st.area_name({"name:en": "B", "name:no": "C"}), "B")
+        # localized-only (the Oslomarka case): recover name:<lang>.
+        self.assertEqual(st.area_name({"name:no": "Oslomarka"}), "Oslomarka")
+        self.assertEqual(st.area_name({"official_name": "Off"}), "Off")
+        # genuinely nameless → None (never invents a name, never drops).
+        self.assertIsNone(st.area_name({"protect_class": "5"}))
+
+    def test_protected_area_name_from_localized_tag(self):
+        a = st.normalize_area({"boundary": "protected_area", "name:no": "Oslomarka"}, "r1")
+        self.assertEqual(a["name"], "Oslomarka")
+        self.assertEqual(a["authority_rank"], 35)
+
     def test_non_area_polygon_skipped(self):
         _, areas = st.stage({"features": [poly(building="yes")]})
         self.assertEqual(areas["features"], [])

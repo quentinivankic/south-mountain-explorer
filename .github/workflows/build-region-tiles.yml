@@ -216,7 +216,7 @@ jobs:
           REGION='${{ github.event.inputs.region }}'
           mkdir -p dist
           python3 build/assign_areas.py \
-            --trails staging/${REGION}_trails_final.geojson \
+            --trails staging/${REGION}_trails_flagged.geojson \
             --areas  staging/areas/${REGION}_areas.geojson \
             --trails-out staging/${REGION}_trails_final.geojson \
             --index-out  dist/${REGION}-areas-index.json

@@ -18,6 +18,15 @@ JSON map keyed by way id ("w<id>", matching osmium export's
                "route_name": "Te Araroa", "route_operator": "..."}, ... }
 
 stage_osm consumes it to set the in_route_relation / network signals.
+
+SUPER-RELATIONS: the marquee long trails (Te Araroa, the Appalachian
+Trail, the GR network …) are modelled as a route SUPER-RELATION whose
+members are per-section route relations — the actual ways hang off those
+child relations, not the parent. A single-pass "iterate this relation's
+way members" therefore misses ~all of Te Araroa's ways. So we collect
+every relation first, then walk each route relation transitively through
+its member RELATIONS, stamping every way reachable underneath it. A way
+that appears under several routes keeps the strongest network.
 """
 from __future__ import annotations
 
@@ -37,31 +46,64 @@ def _net_rank(n: str) -> int:
 def build_index(pbf_path: str) -> dict[str, dict]:
     import osmium
 
-    way_route: dict[str, dict] = {}
+    # Pass 1: record EVERY relation's route info (if it is a walking route)
+    # and its way + child-relation members. Member handles are only valid
+    # inside the callback, so we copy the refs out immediately.
+    relations: dict[int, dict] = {}
 
     class Handler(osmium.SimpleHandler):
         def relation(self, r):
             tags = r.tags
-            if tags.get("type") != "route":
-                return
-            if (tags.get("route") or "").strip().lower() not in _ROUTE_KINDS:
-                return
-            info = {
-                "in_route": True,
-                "network": (tags.get("network") or "").strip().lower(),
-                "route_name": tags.get("name") or "",
-                "route_operator": tags.get("operator") or "",
-            }
+            info = None
+            if (tags.get("type") == "route"
+                    and (tags.get("route") or "").strip().lower() in _ROUTE_KINDS):
+                info = {
+                    "in_route": True,
+                    "network": (tags.get("network") or "").strip().lower(),
+                    "route_name": tags.get("name") or "",
+                    "route_operator": tags.get("operator") or "",
+                }
+            ways, rels = [], []
             for m in r.members:
-                if m.type != "w":
-                    continue
-                wid = f"w{m.ref}"
-                prev = way_route.get(wid)
-                # Keep the strongest-network route when a way is shared.
-                if prev is None or _net_rank(info["network"]) > _net_rank(prev["network"]):
-                    way_route[wid] = info
+                if m.type == "w":
+                    ways.append(m.ref)
+                elif m.type == "r":
+                    rels.append(m.ref)
+            relations[r.id] = {"info": info, "ways": ways, "rels": rels}
 
     Handler().apply_file(pbf_path)
+
+    # Pass 2: from each route relation, walk transitively through member
+    # relations and stamp every way reached with that route's info. Both
+    # a super-relation and its children are route relations, so a way gets
+    # visited from several seeds — keep the strongest-network one.
+    way_route: dict[str, dict] = {}
+
+    def _assign(wid: str, info: dict) -> None:
+        prev = way_route.get(wid)
+        if prev is None or _net_rank(info["network"]) > _net_rank(prev["network"]):
+            way_route[wid] = info
+
+    for rid, node in relations.items():
+        info = node["info"]
+        if info is None:
+            continue
+        seen: set[int] = set()
+        stack = [rid]
+        while stack:
+            cur = stack.pop()
+            if cur in seen:
+                continue
+            seen.add(cur)
+            cnode = relations.get(cur)
+            if cnode is None:
+                continue
+            for wref in cnode["ways"]:
+                _assign(f"w{wref}", info)
+            for rref in cnode["rels"]:
+                if rref not in seen:
+                    stack.append(rref)
+
     return way_route
 
 

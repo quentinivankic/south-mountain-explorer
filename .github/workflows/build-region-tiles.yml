@@ -206,6 +206,23 @@ jobs:
             --out staging/${REGION}_trails_flagged.geojson
           python3 qa/assert_inclusion.py --trails staging/${REGION}_trails_flagged.geojson
 
+      # ---- trail↔area join: "areas WITH their trails" (global) ----
+      # Point-in-polygon of each trail against the OSM area polygons, so
+      # tiles carry area_ids and we emit an areas index (area -> trail
+      # count + miles) — the completion-app data model, done from OSM.
+      - name: Assign trails to areas
+        run: |
+          set -e
+          REGION='${{ github.event.inputs.region }}'
+          mkdir -p dist
+          python3 build/assign_areas.py \
+            --trails staging/${REGION}_trails_final.geojson \
+            --areas  staging/areas/${REGION}_areas.geojson \
+            --trails-out staging/${REGION}_trails_final.geojson \
+            --index-out  dist/${REGION}-areas-index.json
+          echo "== top areas by trail count =="
+          head -40 dist/${REGION}-areas-index.json
+
       # ---- sample real trails for the on-device Confidence Lab (dev aid) ----
       # Prints a small, distribution-representative sample to the LOG so it
       # can be read without downloading the 127 MB tiles, and saves it into
@@ -217,7 +234,7 @@ jobs:
           mkdir -p dist
           echo "===== TRAIL SAMPLE ($REGION) BEGIN ====="
           python3 build/sample_trails.py \
-            --trails staging/${REGION}_trails_flagged.geojson \
+            --trails staging/${REGION}_trails_final.geojson \
             --n 40 --out dist/${REGION}-trail-sample.json
           echo "===== TRAIL SAMPLE END ====="
 
@@ -241,7 +258,7 @@ jobs:
           REGION='${{ github.event.inputs.region }}'
           mkdir -p dist/regions
           bash build/tiles/build_tiles.sh "$REGION" \
-            staging/${REGION}_trails_flagged.geojson \
+            staging/${REGION}_trails_final.geojson \
             staging/areas/${REGION}_areas.geojson \
             dist/regions/${REGION}.pmtiles
 
@@ -253,6 +270,7 @@ jobs:
             data-pipeline/dist/regions/${{ github.event.inputs.region }}.pmtiles
             data-pipeline/dist/attributions.${{ github.event.inputs.region }}.json
             data-pipeline/dist/${{ github.event.inputs.region }}-trail-sample.json
+            data-pipeline/dist/${{ github.event.inputs.region }}-areas-index.json
           if-no-files-found: error
 
       # ---- publish to R2 dev bucket (§7.4) ----

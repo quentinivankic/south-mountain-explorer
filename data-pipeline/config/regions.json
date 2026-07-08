@@ -1,17 +1,126 @@
 {
-  "_comment": "Region definitions for the build waves (spec §6). Each region maps to one dist/regions/<region>.pmtiles. `sources` must all pass the fail-closed licensing gate (sources/validate_registry.py --require ...). `curation_mode`: shipped_filter (B, default — tile ALL legally-shippable trails, app applies fixed curation config) | baked (A — apply curation threshold at build time once a region is locked). `region_trust` feeds §4.1's regional multiplier. `official_whitelist_sources` are the agencies that publish ONLY maintained trails, used to build the §5 whitelist + phantom flag.",
+  "_comment": "Region definitions for the OSM-only build (spec §6). Each region maps to one dist/regions/<region>.pmtiles. Adding a country is a config row: `geofabrik_extract` is the Geofabrik path (no `-latest.osm.pbf` suffix — the downloader adds it), `region_trust` (high|medium) feeds §4.1's +5 region signal, `countries` are ISO codes for attribution. Everything is sourced from OpenStreetMap (ODbL) — trails, areas, the hiking-route official signal, and the inside-a-protected-area whitelist (from OSM area polygons) — so `sources` is [\"osm\"] and the fail-closed licensing gate always passes. `curation_mode`: baked (apply the high+medium threshold at build time) | shipped_filter (tile all, curate on-device). `region_trust` is a coarse OSM-maturity bucket.",
   "regions": {
     "new-zealand": {
       "wave": 1,
       "countries": ["NZ"],
       "geofabrik_extract": "australia-oceania/new-zealand",
-      "bbox": [166.0, -47.5, 179.5, -34.0],
       "sources": ["osm"],
       "authoritative_trail_sources": [],
       "official_whitelist_sources": [],
       "curation_mode": "baked",
       "region_trust": "high",
-      "notes": "§10 pilot. OSM-only: trails, areas, the hiking-route official signal, and the inside-a-protected-area whitelist (from OSM area polygons) all come from OpenStreetMap — no per-country source. curation_mode=baked ships the high+medium bands."
+      "notes": "§10 pilot. OSM-only; no per-country source."
+    },
+    "switzerland": {
+      "wave": 2,
+      "countries": ["CH"],
+      "geofabrik_extract": "europe/switzerland",
+      "sources": ["osm"],
+      "authoritative_trail_sources": [],
+      "official_whitelist_sources": [],
+      "curation_mode": "baked",
+      "region_trust": "high"
+    },
+    "austria": {
+      "wave": 2,
+      "countries": ["AT"],
+      "geofabrik_extract": "europe/austria",
+      "sources": ["osm"],
+      "authoritative_trail_sources": [],
+      "official_whitelist_sources": [],
+      "curation_mode": "baked",
+      "region_trust": "high"
+    },
+    "norway": {
+      "wave": 2,
+      "countries": ["NO"],
+      "geofabrik_extract": "europe/norway",
+      "sources": ["osm"],
+      "authoritative_trail_sources": [],
+      "official_whitelist_sources": [],
+      "curation_mode": "baked",
+      "region_trust": "high"
+    },
+    "iceland": {
+      "wave": 2,
+      "countries": ["IS"],
+      "geofabrik_extract": "europe/iceland",
+      "sources": ["osm"],
+      "authoritative_trail_sources": [],
+      "official_whitelist_sources": [],
+      "curation_mode": "baked",
+      "region_trust": "medium"
+    },
+    "scotland": {
+      "wave": 2,
+      "countries": ["GB"],
+      "geofabrik_extract": "europe/great-britain/scotland",
+      "sources": ["osm"],
+      "authoritative_trail_sources": [],
+      "official_whitelist_sources": [],
+      "curation_mode": "baked",
+      "region_trust": "high"
+    },
+    "japan": {
+      "wave": 2,
+      "countries": ["JP"],
+      "geofabrik_extract": "asia/japan",
+      "sources": ["osm"],
+      "authoritative_trail_sources": [],
+      "official_whitelist_sources": [],
+      "curation_mode": "baked",
+      "region_trust": "high"
+    },
+    "nepal": {
+      "wave": 2,
+      "countries": ["NP"],
+      "geofabrik_extract": "asia/nepal",
+      "sources": ["osm"],
+      "authoritative_trail_sources": [],
+      "official_whitelist_sources": [],
+      "curation_mode": "baked",
+      "region_trust": "medium"
+    },
+    "chile": {
+      "wave": 2,
+      "countries": ["CL"],
+      "geofabrik_extract": "south-america/chile",
+      "sources": ["osm"],
+      "authoritative_trail_sources": [],
+      "official_whitelist_sources": [],
+      "curation_mode": "baked",
+      "region_trust": "medium"
+    },
+    "peru": {
+      "wave": 2,
+      "countries": ["PE"],
+      "geofabrik_extract": "south-america/peru",
+      "sources": ["osm"],
+      "authoritative_trail_sources": [],
+      "official_whitelist_sources": [],
+      "curation_mode": "baked",
+      "region_trust": "medium"
+    },
+    "british-columbia": {
+      "wave": 2,
+      "countries": ["CA"],
+      "geofabrik_extract": "north-america/canada/british-columbia",
+      "sources": ["osm"],
+      "authoritative_trail_sources": [],
+      "official_whitelist_sources": [],
+      "curation_mode": "baked",
+      "region_trust": "high"
+    },
+    "colorado": {
+      "wave": 2,
+      "countries": ["US"],
+      "geofabrik_extract": "north-america/us/colorado",
+      "sources": ["osm"],
+      "authoritative_trail_sources": [],
+      "official_whitelist_sources": [],
+      "curation_mode": "baked",
+      "region_trust": "high"
     }
   }
 }

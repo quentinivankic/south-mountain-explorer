@@ -149,6 +149,15 @@ class Classification(unittest.TestCase):
         self.assertTrue(m._is_trailish({"highway": "steps"}))
         self.assertTrue(m._is_trailish({"highway": "via_ferrata"}))
 
+    def test_road_like_track_demoted(self):
+        # access/utility roads tagged as track are not trails (the parking road).
+        self.assertFalse(m._is_trailish({"highway": "track", "motor_vehicle": "yes"}))
+        self.assertFalse(m._is_trailish({"highway": "track", "name": "Dobbins Lookout Road"}))
+        self.assertFalse(m._is_trailish({"highway": "track", "name": "Irrigation Canal"}))
+        # a plain named track (a real trail) stays.
+        self.assertTrue(m._is_trailish({"highway": "track", "name": "Desert Classic Trail"}))
+        self.assertTrue(m._is_trailish({"highway": "track"}))
+
 
 if __name__ == "__main__":
     unittest.main()

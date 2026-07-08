@@ -420,6 +420,23 @@ def assemble(nodes: dict, ways: dict, relations: dict,
 TRAILISH_HIGHWAY = {"path", "footway", "steps", "track", "bridleway",
                     "via_ferrata", "cycleway", "pedestrian"}
 
+# A highway=track that's really a vehicle/utility/access road — not a hike.
+# Ported from System 2 (data-pipeline stage_osm._vehicle_or_utility_road):
+# catches the paved/graded access roads (e.g. the road to a trailhead lot).
+_ROAD_WORDS = ("road", "drive", "avenue", "canal", "drain", "ditch",
+               "boulevard", "highway", "freeway", "parkway", "route")
+
+
+def _road_like_track(tags: dict) -> bool:
+    if tags.get("highway") != "track":
+        return False
+    if str(tags.get("motor_vehicle", "")).strip().lower() in {"yes", "designated"}:
+        return True
+    if str(tags.get("motorcar", "")).strip().lower() == "yes":
+        return True
+    name = str(tags.get("name", "")).lower()
+    return any(w in name for w in _ROAD_WORDS)
+
 
 def _is_trailish(tags: dict) -> bool:
     hw = tags.get("highway")
@@ -428,6 +445,8 @@ def _is_trailish(tags: dict) -> bool:
     if hw == "footway" and tags.get("footway") in {"sidewalk", "crossing"}:
         return False
     if tags.get("indoor") == "yes" or tags.get("trail") == "no":
+        return False
+    if _road_like_track(tags):          # access/utility road masquerading as a track
         return False
     return True
 

@@ -83,6 +83,10 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Assemble trail objects from OSM PBF")
     ap.add_argument("--in", dest="inp", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--only-area", dest="only_area",
+                    help="keep only trails inside area(s) whose name contains this "
+                         "(case-insensitive; unions all matches). Boundaries are "
+                         "assembled from the same --in PBF.")
     args = ap.parse_args(argv)
 
     nodes, ways, relations, pois = read_pbf(args.inp)
@@ -90,15 +94,31 @@ def main(argv=None) -> int:
           f"{len(pois):,} POIs, {len(nodes):,} nodes", file=sys.stderr)
 
     trails = model.assemble(nodes, ways, relations, pois)
-    fc = {"type": "FeatureCollection",
-          "features": [t.to_feature() for t in trails],
+    features = [t.to_feature() for t in trails]
+
+    area_note = ""
+    if args.only_area:
+        import areas as areamod
+        union, names = areamod.union_matching(
+            areamod.assemble_areas(args.inp), args.only_area)
+        if union is None:
+            print(f"WARNING: no area matched '{args.only_area}' in {args.inp} "
+                  f"— leaving trails unfiltered", file=sys.stderr)
+        else:
+            before = len(features)
+            features = areamod.filter_features_inside(features, union)
+            matched = ", ".join(sorted(n for n in names if n)) or "(unnamed)"
+            area_note = (f"; inside '{args.only_area}' [{matched}]: "
+                         f"{before} -> {len(features)}")
+
+    fc = {"type": "FeatureCollection", "features": features,
           "coverage": model.coverage_stats(ways, relations, pois)}
     Path(args.out).write_text(json.dumps(fc), encoding="utf-8")
 
-    welded = sum(1 for t in trails if t.welds)
-    from_rel = sum(1 for t in trails if t.source == "relation")
-    print(f"assembled {len(trails):,} trails "
-          f"({from_rel:,} from relations, {welded:,} with welded spurs) -> {args.out}",
+    welded = sum(1 for f in features if f["properties"].get("welds"))
+    from_rel = sum(1 for f in features if f["properties"].get("source") == "relation")
+    print(f"assembled {len(features):,} trails "
+          f"({from_rel:,} from relations, {welded:,} with welded spurs){area_note} -> {args.out}",
           file=sys.stderr)
     return 0
 

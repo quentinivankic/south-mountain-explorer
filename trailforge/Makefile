@@ -20,7 +20,7 @@ help:
 	@echo "  download-planet   fetch the full planet (~80 GB) -> $(DATA)/raw/"
 	@echo "  prefilter         stream-filter raw PBF -> $(DATA)/hiking.osm.pbf (IN=<file>)"
 	@echo "  aoi               cut+export an AOI (NAME=sedona BBOX=lon,lat,lon,lat)"
-	@echo "  assemble          assemble trail objects for an AOI (NAME=sedona)"
+	@echo "  assemble          assemble trail objects (NAME=sedona [AREA=\"south mountain\"])"
 	@echo "  golden            run the full golden-trail regression suite"
 	@echo "  verify-golden     validate golden.json (SNAP=1 on homelab to snap coords to OSM)"
 	@echo "  qa                serve the local viewer at http://localhost:8000"
@@ -53,10 +53,12 @@ aoi:
 	bash extract/aoi.sh
 
 NAME ?= sedona
+AREA ?=
 assemble:
 	python3 assemble/assemble.py \
 	  --in $(DATA)/aoi/$(NAME).osm.pbf \
-	  --out $(DATA)/aoi/$(NAME).trails.geojson
+	  --out $(DATA)/aoi/$(NAME).trails.geojson \
+	  $(if $(strip $(AREA)),--only-area "$(AREA)")
 
 golden:
 	python3 tools/run_golden.py --hiking $(DATA)/hiking.osm.pbf

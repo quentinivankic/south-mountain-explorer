@@ -1,8 +1,9 @@
 # assemble/ — trail-object assembly (v3)
 
-Empty on purpose. The assembler is implemented on the homelab **after**
-`../SPEC.md` lands (it is distilled from the deep-research report; the
-research validates every step below against how mature OSM products do it).
+**Implemented and unit-tested** (`model.py` + `assemble.py`, `test_model.py`
+— 11 tests incl. a synthetic Devils Bridge that reaches the arch). The
+homelab RUNS and tunes it on real OSM. Algorithm below is the contract the
+code follows, distilled from `../SPEC.md`.
 
 ## The algorithm shape locked in by the plan
 

@@ -1,10 +1,11 @@
 name: Build Region Tiles
 
-# Dispatch-only: builds one region's trail/area .pmtiles through the
-# data-pipeline (data-pipeline/, spec §10) and optionally publishes it to
-# the Cloudflare R2 dev bucket. Mirrors the manual-only cadence of
-# build-trail-index.yml — never auto-triggers, so it can't burn CI on
-# intermediate merges.
+# Dispatch-only: builds one OR MORE regions' trail/area .pmtiles through
+# the data-pipeline (data-pipeline/, spec §10) and optionally publishes to
+# the Cloudflare R2 dev bucket. Pass several region ids (comma/space
+# separated) and they build in parallel via a matrix (max 3 at a time).
+# Mirrors the manual-only cadence of build-trail-index.yml — never
+# auto-triggers, so it can't burn CI on intermediate merges.
 #
 # Pipeline (spec §1): gate -> download -> stage -> build -> tile ->
 # (publish). The FAIL-CLOSED licensing gate runs first and hard-stops the
@@ -26,8 +27,8 @@ name: Build Region Tiles
 on:
   workflow_dispatch:
     inputs:
-      region:
-        description: 'Region id from data-pipeline/config/regions.json'
+      regions:
+        description: 'Region id(s) from config/regions.json — one, or several comma/space-separated (e.g. "austria, norway iceland"). Each builds in parallel.'
         required: true
         default: 'new-zealand'
       publish:
@@ -35,14 +36,34 @@ on:
         type: boolean
         default: false
 
-concurrency:
-  group: build-region-tiles-${{ github.event.inputs.region }}
-  cancel-in-progress: false
-
 jobs:
+  # Parse the free-form regions input into a JSON array for the build matrix.
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.parse.outputs.matrix }}
+    steps:
+      - id: parse
+        env:
+          RAW: ${{ inputs.regions }}
+        run: |
+          MATRIX=$(python3 -c "import json,os,re; ids=[x for x in re.split(r'[,\s]+', os.environ['RAW'].strip()) if x]; assert ids, 'no regions given'; print(json.dumps(ids))")
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "building regions: $MATRIX"
+
   build:
+    needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false            # one region's failure must not cancel the others
+      max-parallel: 3             # be a good Geofabrik citizen — a couple at a time
+      matrix:
+        region: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    # Per-region lock: reruns of the same region serialize; different regions run free.
+    concurrency:
+      group: build-region-tiles-${{ matrix.region }}
+      cancel-in-progress: false
     defaults:
       run:
         working-directory: data-pipeline
@@ -57,7 +78,7 @@ jobs:
       - name: Licensing gate (fail-closed) + unit tests
         run: |
           set -e
-          REGION='${{ github.event.inputs.region }}'
+          REGION='${{ matrix.region }}'
           echo "== fail-closed licensing gate for $REGION =="
           make gate REGION="$REGION"
           echo "== policy-core unit tests =="
@@ -81,7 +102,7 @@ jobs:
       - name: Download OSM extract
         run: |
           set -e
-          REGION='${{ github.event.inputs.region }}'
+          REGION='${{ matrix.region }}'
           cd sources/downloaders
           python3 osm_region.py --region "$REGION"
 
@@ -89,7 +110,7 @@ jobs:
       - name: Stage OSM
         run: |
           set -e
-          REGION='${{ github.event.inputs.region }}'
+          REGION='${{ matrix.region }}'
           mkdir -p staging/osm staging/areas
           # Prefilter to just the tags we stage (§3) BEFORE export.
           # Exporting a whole-country PBF (every road/building/landuse
@@ -137,7 +158,7 @@ jobs:
       - name: Attach Bucket B flags + inclusion guard
         run: |
           set -e
-          REGION='${{ github.event.inputs.region }}'
+          REGION='${{ matrix.region }}'
           TRUST=$(python3 -c "import json;print(json.load(open('config/regions.json'))['regions']['$REGION']['region_trust'])")
           python3 build/confidence.py \
             --trails staging/osm/${REGION}_trails.geojson \
@@ -152,7 +173,7 @@ jobs:
       - name: Assign trails to areas
         run: |
           set -e
-          REGION='${{ github.event.inputs.region }}'
+          REGION='${{ matrix.region }}'
           mkdir -p dist
           python3 build/assign_areas.py \
             --trails staging/${REGION}_trails_flagged.geojson \
@@ -167,7 +188,7 @@ jobs:
       - name: Curate shipped trail set (high+medium)
         run: |
           set -e
-          REGION='${{ github.event.inputs.region }}'
+          REGION='${{ matrix.region }}'
           mkdir -p dist
           python3 build/curate.py \
             --trails staging/${REGION}_trails_final.geojson \
@@ -185,7 +206,7 @@ jobs:
       - name: Sample trails for the Confidence Lab (printed to log)
         run: |
           set -e
-          REGION='${{ github.event.inputs.region }}'
+          REGION='${{ matrix.region }}'
           mkdir -p dist
           echo "===== TRAIL SAMPLE ($REGION) BEGIN ====="
           python3 build/sample_trails.py \
@@ -197,7 +218,7 @@ jobs:
       - name: Generate attributions.json
         run: |
           set -e
-          REGION='${{ github.event.inputs.region }}'
+          REGION='${{ matrix.region }}'
           SRC=$(python3 -c "import json;print(' '.join(json.load(open('config/regions.json'))['regions']['$REGION']['sources']))")
           CC=$(python3 -c "import json;print(' '.join(json.load(open('config/regions.json'))['regions']['$REGION']['countries']))")
           mkdir -p dist
@@ -210,7 +231,7 @@ jobs:
       - name: Tile to .pmtiles
         run: |
           set -e
-          REGION='${{ github.event.inputs.region }}'
+          REGION='${{ matrix.region }}'
           mkdir -p dist/regions
           bash build/tiles/build_tiles.sh "$REGION" \
             staging/${REGION}_trails_curated.geojson \
@@ -220,17 +241,17 @@ jobs:
       - name: Upload .pmtiles as build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.region }}-pmtiles
+          name: ${{ matrix.region }}-pmtiles
           path: |
-            data-pipeline/dist/regions/${{ github.event.inputs.region }}.pmtiles
-            data-pipeline/dist/attributions.${{ github.event.inputs.region }}.json
-            data-pipeline/dist/${{ github.event.inputs.region }}-trail-sample.json
-            data-pipeline/dist/${{ github.event.inputs.region }}-areas-index.json
+            data-pipeline/dist/regions/${{ matrix.region }}.pmtiles
+            data-pipeline/dist/attributions.${{ matrix.region }}.json
+            data-pipeline/dist/${{ matrix.region }}-trail-sample.json
+            data-pipeline/dist/${{ matrix.region }}-areas-index.json
           if-no-files-found: error
 
       # ---- publish to R2 dev bucket (§7.4) ----
       - name: Publish to R2 dev bucket
-        if: ${{ github.event.inputs.publish == 'true' }}
+        if: ${{ inputs.publish }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -238,7 +259,7 @@ jobs:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
         run: |
           set -e
-          REGION='${{ github.event.inputs.region }}'
+          REGION='${{ matrix.region }}'
           if [ -z "$R2_ACCOUNT_ID" ] || [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
             echo "publish=true but R2_* secrets are unset."; exit 1
           fi

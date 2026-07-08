@@ -90,7 +90,12 @@ def main(argv=None) -> int:
         return 2
 
     results = run(hiking, golden, Path(args.out))
+    # results.json powers the viewer dashboard (viewer/?aoi=golden).
+    res_path = Path(args.out).with_name("golden.results.json")
+    res_path.write_text(json.dumps({"results": results}, indent=2, ensure_ascii=False))
     print(ge.summarize(results))
+    print(f"\nwrote {res_path} + {args.out} — view: "
+          f"http://localhost:8000/viewer/?aoi=golden", file=sys.stderr)
     return 0 if all(r["passed"] for r in results) else 1
 
 

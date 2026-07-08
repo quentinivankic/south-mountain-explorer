@@ -75,10 +75,12 @@ transitively (the Te Araroa fix). Reuse the approach in the assembler.
 
 ## Your steps (mostly RUN, then tune)
 
-1. **Bootstrap:** `make setup && make download-extract && make prefilter`
-   (north-america first — planet later once the loop works). **Record the
-   subset size + prefilter runtime in this file** — that validates the
-   ≤16 GB streaming thesis (SPEC.md §4/§7 Q1).
+1. **Bootstrap:** `make setup && make doctor` (preflight: tools/disk/RAM —
+   don't start an 80 GB download if it warns), then
+   `make download-extract && make prefilter` (north-america first — planet
+   later once the loop works). **Record the subset size + prefilter
+   runtime in this file** — that validates the ≤16 GB streaming thesis
+   (SPEC.md §4/§7 Q1).
 2. **Prove Devils Bridge on real data:**
    `make aoi && make assemble && make qa` → open
    `http://localhost:8000/viewer/?aoi=sedona`. Check the assembled
@@ -87,9 +89,12 @@ transitively (the Te Araroa fix). Reuse the approach in the assembler.
 3. **Snap the golden coords:** `make verify-golden SNAP=1` → writes
    `golden/golden.snapped.json` (seeded coords → real OSM POIs). Eyeball a
    few snaps in the viewer.
-4. **Run the suite:** `make golden`. Read the pass/fail table. Devils
-   Bridge should PASS. For failures, open that trail in the viewer and use
-   the click-to-inspect welds to see what assembled vs what OSM has.
+4. **Run the suite:** `make golden` → pass/fail table + `golden.results.json`
+   + merged geojson. Devils Bridge should PASS. Then
+   `make qa` and open `http://localhost:8000/viewer/?aoi=golden` for the
+   **visual dashboard**: green/red markers per golden trail, the N/20
+   passing count, and click-to-inspect welds (what assembled vs what OSM
+   has). Iterate against the reds.
 5. **Tune** `assemble/model.py` against real failures — spur-attach
    thresholds (`SPUR_MAX_MI`, `SPUR_POI_REACH_FT`), POI set, name
    normalization. `make test` guards the synthetic cases; `make golden`

@@ -67,6 +67,21 @@ class AssignAreas(unittest.TestCase):
         self.assertEqual(out["features"][0]["properties"]["area_ids"], [])
         self.assertEqual(idx["areas"], [])
 
+    def test_in_official_whitelist_from_protected_rank(self):
+        # OSM-native whitelist: inside a rank>=25 area → true; a bare
+        # landuse=forest (rank 10) or outside → false.
+        areas = _fc(_poly("P", "Park", (0, 0, 10, 10), rank=35),
+                    _poly("F", "Plantation", (20, 20, 30, 30), rank=10))
+        out, _ = A.assign(
+            _fc(_line("t1", [[1, 1], [2, 2]]),        # inside protected park
+                _line("t2", [[25, 25], [26, 26]]),    # inside forest (rank 10)
+                _line("t3", [[50, 50], [51, 51]])),   # outside everything
+            areas)
+        p = {f["properties"]["osm_id"]: f["properties"] for f in out["features"]}
+        self.assertTrue(p["t1"]["in_official_whitelist"])
+        self.assertFalse(p["t2"]["in_official_whitelist"])
+        self.assertFalse(p["t3"]["in_official_whitelist"])
+
 
 if __name__ == "__main__":
     unittest.main()

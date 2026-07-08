@@ -100,8 +100,12 @@ def _load(path: str) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Attach Bucket B flags to trail features (§4.2)")
     ap.add_argument("--trails", required=True, help="trails GeoJSON FeatureCollection")
-    ap.add_argument("--matches", required=True,
-                    help="conflation match index JSON (osm_id -> {matched,source,whitelist})")
+    ap.add_argument("--matches",
+                    help="OPTIONAL conflation match index JSON (osm_id -> "
+                         "{matched,source,whitelist}). Omitted in the OSM-only "
+                         "pipeline — authoritative_match is then simply False, "
+                         "and in_official_whitelist is derived from OSM area "
+                         "polygons downstream in assign_areas.")
     ap.add_argument("--region-trust", default="medium",
                     choices=["high", "medium", "low"])
     ap.add_argument("--low-trust-ids", help="optional JSON array of low-trust osm_ids")
@@ -109,7 +113,7 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     fc = _load(args.trails)
-    matches = _load(args.matches)
+    matches = _load(args.matches) if args.matches else {}
     low = set(map(str, _load(args.low_trust_ids))) if args.low_trust_ids else set()
 
     out = apply_to_collection(fc, matches=matches, region_trust=args.region_trust,

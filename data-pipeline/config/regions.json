@@ -55,7 +55,7 @@
     "scotland": {
       "wave": 2,
       "countries": ["GB"],
-      "geofabrik_extract": "europe/great-britain/scotland",
+      "geofabrik_extract": "europe/united-kingdom/scotland",
       "sources": ["osm"],
       "authoritative_trail_sources": [],
       "official_whitelist_sources": [],

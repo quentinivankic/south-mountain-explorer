@@ -6,12 +6,12 @@
       "countries": ["NZ"],
       "geofabrik_extract": "australia-oceania/new-zealand",
       "bbox": [166.0, -47.5, 179.5, -34.0],
-      "sources": ["osm", "nz_doc", "nz_linz"],
-      "authoritative_trail_sources": ["nz_doc"],
-      "official_whitelist_sources": ["nz_doc"],
-      "curation_mode": "shipped_filter",
+      "sources": ["osm"],
+      "authoritative_trail_sources": [],
+      "official_whitelist_sources": [],
+      "curation_mode": "baked",
       "region_trust": "high",
-      "notes": "§10 pilot. Best-provisioned country: DOC publishes tracks + PCL boundaries under CC-BY-4.0; LINZ boundaries CC-BY-4.0. Lean on authoritative directly, conflate OSM against DOC tracks."
+      "notes": "§10 pilot. OSM-only: trails, areas, the hiking-route official signal, and the inside-a-protected-area whitelist (from OSM area polygons) all come from OpenStreetMap — no per-country source. curation_mode=baked ships the high+medium bands."
     }
   }
 }

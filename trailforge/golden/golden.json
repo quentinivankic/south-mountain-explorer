@@ -1,0 +1,229 @@
+{
+  "_comment": "Golden-trail regression suite — the pass/fail spine of System 3 (trailforge). Each entry encodes a FAILURE MODE our old extractors had, not just a famous hike. Coordinates are knowledge-seeded approximations: run `make verify-golden SNAP=1` on the homelab to snap each destination to its real OSM POI (osm_hint drives the match) before trusting reach tests. kind=destination → the assembled trail must reach `destination` within reach_tolerance_ft. kind=through → one trail object must connect both `endpoints` (tolerance endpoint_tolerance_mi). expected_one_way_mi is secondary (±length_tolerance_pct); reachability is the primary assertion.",
+  "version": 1,
+  "defaults": { "reach_tolerance_ft": 200, "endpoint_tolerance_mi": 1.0, "length_tolerance_pct": 30 },
+  "trails": [
+    {
+      "id": "devils-bridge",
+      "name": "Devils Bridge Trail",
+      "country": "US", "region": "Sedona, Arizona",
+      "kind": "destination",
+      "destination": { "lat": 34.9008, "lon": -111.8153 },
+      "reach_tolerance_ft": 150,
+      "expected_one_way_mi": 1.0,
+      "osm_hint": "natural=arch named 'Devil's Bridge' (or the end node of Devils Bridge Trail #120); final approach is a rock staircase likely highway=steps",
+      "coord_confidence": "medium",
+      "why": "THE regression. Systems 1/2 exclude highway=steps, shipping this trail 838 ft short of the bridge. Must assemble path+steps into one trail reaching the arch."
+    },
+    {
+      "id": "angels-landing",
+      "name": "Angels Landing Trail",
+      "country": "US", "region": "Zion NP, Utah",
+      "kind": "destination",
+      "destination": { "lat": 37.2690, "lon": -112.9469 },
+      "expected_one_way_mi": 2.4,
+      "osm_hint": "natural=peak 'Angels Landing'; final half-mile is the chained scramble (sac_scale, maybe highway=via_ferrata or path with safety tags)",
+      "coord_confidence": "medium",
+      "why": "Chains-finish: exposed scramble section tagged differently from the approach trail must still be part of the trail object."
+    },
+    {
+      "id": "half-dome",
+      "name": "Half Dome Trail (via Mist Trail)",
+      "country": "US", "region": "Yosemite NP, California",
+      "kind": "destination",
+      "destination": { "lat": 37.7459, "lon": -119.5332 },
+      "expected_one_way_mi": 8.0,
+      "osm_hint": "natural=peak 'Half Dome'; cables section is its own way (often highway=via_ferrata or path+safety=cable)",
+      "coord_confidence": "medium",
+      "why": "Cables-finish + multi-named composition (Mist Trail -> John Muir Trail -> Half Dome Trail): tests both spur attachment and long name-transitions."
+    },
+    {
+      "id": "vernal-fall",
+      "name": "Mist Trail to Vernal Fall",
+      "country": "US", "region": "Yosemite NP, California",
+      "kind": "destination",
+      "destination": { "lat": 37.7276, "lon": -119.5442 },
+      "expected_one_way_mi": 1.5,
+      "osm_hint": "waterway=waterfall 'Vernal Fall'; the Mist Trail's granite staircase section is plausibly highway=steps",
+      "coord_confidence": "medium",
+      "why": "Waterfall destination + mid-trail staircase: steps must not BREAK a trail into two fragments."
+    },
+    {
+      "id": "delicate-arch",
+      "name": "Delicate Arch Trail",
+      "country": "US", "region": "Arches NP, Utah",
+      "kind": "destination",
+      "destination": { "lat": 38.7436, "lon": -109.4993 },
+      "expected_one_way_mi": 1.5,
+      "osm_hint": "natural=arch 'Delicate Arch'; slickrock sections may be unnamed or trail_visibility=bad",
+      "coord_confidence": "high",
+      "why": "Arch destination over slickrock: segments with poor visibility/no name must still assemble."
+    },
+    {
+      "id": "quandary-peak",
+      "name": "Quandary Peak Trail (East Ridge)",
+      "country": "US", "region": "Colorado",
+      "kind": "destination",
+      "destination": { "lat": 39.3973, "lon": -106.1064 },
+      "expected_one_way_mi": 3.3,
+      "osm_hint": "natural=peak 'Quandary Peak' (14,265 ft)",
+      "coord_confidence": "high",
+      "why": "14er standard route: above-treeline segments often sac_scale-tagged and patchily named."
+    },
+    {
+      "id": "diamond-head",
+      "name": "Diamond Head Summit Trail",
+      "country": "US", "region": "Oʻahu, Hawaiʻi",
+      "kind": "destination",
+      "destination": { "lat": 21.2600, "lon": -157.8060 },
+      "expected_one_way_mi": 0.8,
+      "osm_hint": "natural=peak / viewpoint on Lēʻahi (Diamond Head) crater rim; trail famously ends in two long staircases + tunnel",
+      "coord_confidence": "low",
+      "why": "Staircase-dominated finish (steps + tunnel): the extreme version of the Devils Bridge failure mode."
+    },
+    {
+      "id": "grouse-grind",
+      "name": "Grouse Grind",
+      "country": "CA", "region": "British Columbia",
+      "kind": "destination",
+      "destination": { "lat": 49.3803, "lon": -123.0820 },
+      "expected_one_way_mi": 1.8,
+      "osm_hint": "top station / chalet on Grouse Mountain; the Grind is essentially a 2,830-step staircase, plausibly highway=steps for long stretches",
+      "coord_confidence": "medium",
+      "why": "A trail that IS mostly stairs — if steps are excluded, the whole trail vanishes."
+    },
+    {
+      "id": "base-de-las-torres",
+      "name": "Sendero Base de las Torres",
+      "country": "CL", "region": "Torres del Paine",
+      "kind": "destination",
+      "destination": { "lat": -50.9420, "lon": -72.9570 },
+      "expected_one_way_mi": 6.2,
+      "osm_hint": "viewpoint/lake at Mirador Base de las Torres; final moraine section may be unnamed/poor visibility",
+      "coord_confidence": "medium",
+      "why": "Southern-hemisphere Spanish naming + unnamed boulder-field finish."
+    },
+    {
+      "id": "ben-nevis",
+      "name": "Ben Nevis Mountain Track (Pony Track)",
+      "country": "GB", "region": "Scotland",
+      "kind": "destination",
+      "destination": { "lat": 56.7969, "lon": -5.0036 },
+      "expected_one_way_mi": 5.0,
+      "osm_hint": "natural=peak 'Ben Nevis' (1345 m); route may exist as a relation named 'Ben Nevis Mountain Track'",
+      "coord_confidence": "high",
+      "why": "Summit destination; UK naming ('Mountain Track' vs 'Pony Track' aliases) tests name normalization."
+    },
+    {
+      "id": "old-man-of-storr",
+      "name": "Old Man of Storr path",
+      "country": "GB", "region": "Isle of Skye, Scotland",
+      "kind": "destination",
+      "destination": { "lat": 57.5073, "lon": -6.1735 },
+      "expected_one_way_mi": 1.9,
+      "osm_hint": "natural=rock / peak 'Old Man of Storr' pinnacle",
+      "coord_confidence": "medium",
+      "why": "Destination is a rock feature, not a peak; upper paths often unnamed braids."
+    },
+    {
+      "id": "west-highland-way",
+      "name": "West Highland Way",
+      "country": "GB", "region": "Scotland",
+      "kind": "through",
+      "endpoints": [ { "lat": 55.9420, "lon": -4.3170 }, { "lat": 56.8198, "lon": -5.1052 } ],
+      "expected_one_way_mi": 96.0,
+      "osm_hint": "relation type=route route=hiking name='West Highland Way' (Milngavie → Fort William), likely network=nwn",
+      "coord_confidence": "high",
+      "why": "Long-distance route relation must become ONE trail object end-to-end (relations-first assembly)."
+    },
+    {
+      "id": "preikestolen",
+      "name": "Preikestolen (Pulpit Rock) trail",
+      "country": "NO", "region": "Rogaland",
+      "kind": "destination",
+      "destination": { "lat": 58.9864, "lon": 6.1904 },
+      "expected_one_way_mi": 2.4,
+      "osm_hint": "tourism=viewpoint / natural=cliff 'Preikestolen'",
+      "coord_confidence": "high",
+      "why": "Norwegian naming + stone-staircase sections built by sherpas — likely steps segments mid-trail."
+    },
+    {
+      "id": "trolltunga",
+      "name": "Trolltunga trail",
+      "country": "NO", "region": "Vestland",
+      "kind": "destination",
+      "destination": { "lat": 60.1242, "lon": 6.7400 },
+      "expected_one_way_mi": 8.7,
+      "osm_hint": "natural=cliff / viewpoint 'Trolltunga'",
+      "coord_confidence": "medium",
+      "why": "Very long day-hike; route pieces span multiple named ways and old funicular stairs at the start."
+    },
+    {
+      "id": "laugavegur",
+      "name": "Laugavegur",
+      "country": "IS", "region": "Highlands of Iceland",
+      "kind": "through",
+      "endpoints": [ { "lat": 63.9830, "lon": -19.0670 }, { "lat": 63.6830, "lon": -19.5110 } ],
+      "expected_one_way_mi": 34.0,
+      "osm_hint": "relation type=route route=hiking name='Laugavegur' (Landmannalaugar → Þórsmörk)",
+      "coord_confidence": "medium",
+      "why": "Sparse-OSM country + Icelandic characters (Þ, ö) — non-ASCII name handling end to end."
+    },
+    {
+      "id": "tongariro-crossing",
+      "name": "Tongariro Alpine Crossing",
+      "country": "NZ", "region": "Tongariro NP",
+      "kind": "through",
+      "endpoints": [ { "lat": -39.1440, "lon": 175.5810 }, { "lat": -39.0980, "lon": 175.6720 } ],
+      "expected_one_way_mi": 12.0,
+      "osm_hint": "relation route=hiking 'Tongariro Alpine Crossing'; Emerald Lakes waypoint ~(-39.1340, 175.6530); descent from Red Crater is loose scree, possibly trail_visibility-tagged",
+      "coord_confidence": "medium",
+      "why": "NZ marquee through-hike; volcanic terrain sections with degraded visibility tags must not fragment the crossing."
+    },
+    {
+      "id": "hooker-valley",
+      "name": "Hooker Valley Track",
+      "country": "NZ", "region": "Aoraki / Mount Cook NP",
+      "kind": "destination",
+      "destination": { "lat": -43.6717, "lon": 170.1130 },
+      "expected_one_way_mi": 3.1,
+      "osm_hint": "trail ends at Hooker Lake; track includes swing bridges (bridge=yes) and boardwalk (surface=wood) segments",
+      "coord_confidence": "medium",
+      "why": "Bridge + boardwalk segments interleaved with path — structure tags must not break assembly. Also tests macron naming (Māori names)."
+    },
+    {
+      "id": "queen-charlotte-track",
+      "name": "Queen Charlotte Track",
+      "country": "NZ", "region": "Marlborough Sounds",
+      "kind": "through",
+      "endpoints": [ { "lat": -41.0930, "lon": 174.2360 }, { "lat": -41.2590, "lon": 173.9530 } ],
+      "expected_one_way_mi": 45.0,
+      "osm_hint": "relation route=hiking 'Queen Charlotte Track' (Ship Cove → Anakiwa); may be a superrelation of stages",
+      "coord_confidence": "medium",
+      "why": "Superrelation/staged route: stages must roll up into one trail object (the Te Araroa lesson)."
+    },
+    {
+      "id": "mt-fuji-yoshida",
+      "name": "Mount Fuji Yoshida Trail",
+      "country": "JP", "region": "Yamanashi",
+      "kind": "destination",
+      "destination": { "lat": 35.3606, "lon": 138.7274 },
+      "expected_one_way_mi": 6.0,
+      "osm_hint": "natural=peak '富士山' (Mount Fuji); trail names primarily in Japanese (吉田ルート), name:en present on some ways only",
+      "coord_confidence": "high",
+      "why": "Non-Latin primary naming: assembly must group by the canonical name, not just name:en, and emit a displayable name."
+    },
+    {
+      "id": "gr20",
+      "name": "GR 20",
+      "country": "FR", "region": "Corsica",
+      "kind": "through",
+      "endpoints": [ { "lat": 42.5089, "lon": 8.8555 }, { "lat": 41.7383, "lon": 9.3103 } ],
+      "endpoint_tolerance_mi": 3.0,
+      "expected_one_way_mi": 112.0,
+      "osm_hint": "superrelation type=route route=hiking 'GR 20' composed of Nord/Sud (and stage) relations; osmc:symbol red/white",
+      "coord_confidence": "medium",
+      "why": "The hardest relation case in Europe: nested superrelations + stages + variants must resolve to one canonical trail."
+    }
+  ]
+}

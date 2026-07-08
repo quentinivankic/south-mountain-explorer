@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>trailforge QA viewer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- Local-only QA tool (homelab). CDN + OSM raster tiles are fine here;
+     this never ships to users. -->
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<style>
+  html, body, #map { margin: 0; height: 100%; }
+  #panel {
+    position: absolute; top: 10px; left: 10px; z-index: 2;
+    background: rgba(255,255,255,.95); border-radius: 8px; padding: 10px 12px;
+    font: 13px/1.5 system-ui, sans-serif; box-shadow: 0 1px 6px rgba(0,0,0,.25);
+    max-width: 300px;
+  }
+  #panel h1 { font-size: 14px; margin: 0 0 6px; }
+  #panel label { display: block; cursor: pointer; }
+  #golden-list { margin: 6px 0 0; padding: 0; list-style: none; max-height: 40vh; overflow: auto; }
+  #golden-list li { cursor: pointer; padding: 1px 4px; border-radius: 4px; }
+  #golden-list li:hover { background: #eef; }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="panel">
+  <h1>trailforge QA</h1>
+  <label><input type="checkbox" id="toggle-raw" checked />
+    <span class="swatch" style="background:#888"></span>OSM raw (aoi.raw)</label>
+  <label><input type="checkbox" id="toggle-trails" checked />
+    <span class="swatch" style="background:#e6521f"></span>Assembled trails (v3)</label>
+  <label><input type="checkbox" id="toggle-golden" checked />
+    <span class="swatch" style="background:#1a7f37"></span>Golden destinations</label>
+  <div style="margin-top:6px"><b>Golden trails</b> (click to fly)</div>
+  <ul id="golden-list"></ul>
+</div>
+<script>
+const AOI = new URLSearchParams(location.search).get("aoi") || "sedona";
+
+const map = new maplibregl.Map({
+  container: "map",
+  center: [-111.8153, 34.9008],  // Devils Bridge — the founding regression
+  zoom: 13,
+  style: {
+    version: 8,
+    sources: {
+      osm: {
+        type: "raster", tileSize: 256,
+        tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+        attribution: "© OpenStreetMap contributors",
+      },
+    },
+    layers: [{ id: "osm", type: "raster", source: "osm" }],
+  },
+});
+map.addControl(new maplibregl.NavigationControl());
+
+async function maybeJSON(url) {
+  try { const r = await fetch(url); return r.ok ? await r.json() : null; }
+  catch { return null; }
+}
+
+map.on("load", async () => {
+  // Layer 1: raw OSM export of the AOI (what the data contains).
+  const raw = await maybeJSON(`../data/aoi/${AOI}.raw.geojson`);
+  if (raw) {
+    map.addSource("raw", { type: "geojson", data: raw });
+    map.addLayer({ id: "raw-lines", source: "raw", type: "line",
+      filter: ["==", ["geometry-type"], "LineString"],
+      paint: { "line-color": "#888", "line-width": 1.5, "line-dasharray": [2, 2] } });
+    map.addLayer({ id: "raw-pois", source: "raw", type: "circle",
+      filter: ["==", ["geometry-type"], "Point"],
+      paint: { "circle-color": "#888", "circle-radius": 3 } });
+  }
+
+  // Layer 2: OUR assembled trails (one feature per trail object).
+  const trails = await maybeJSON(`../data/aoi/${AOI}.trails.geojson`);
+  if (trails) {
+    map.addSource("trails", { type: "geojson", data: trails });
+    map.addLayer({ id: "trail-lines", source: "trails", type: "line",
+      paint: { "line-color": "#e6521f", "line-width": 3 } });
+    map.on("click", "trail-lines", (e) => {
+      const p = e.features[0].properties;
+      new maplibregl.Popup().setLngLat(e.lngLat)
+        .setHTML(`<b>${p.name || "(unnamed)"}</b><br>` +
+                 Object.entries(p).map(([k, v]) => `${k}: ${v}`).join("<br>"))
+        .addTo(map);
+    });
+  }
+
+  // Layer 3: golden destinations + reach-tolerance rings.
+  const golden = await maybeJSON(`../golden/golden.json`);
+  if (golden) {
+    const feats = [];
+    const list = document.getElementById("golden-list");
+    for (const t of golden.trails) {
+      const pts = t.kind === "destination" ? [t.destination] : t.endpoints;
+      for (const c of pts) {
+        feats.push({ type: "Feature", properties: { id: t.id, name: t.name, why: t.why },
+                     geometry: { type: "Point", coordinates: [c.lon, c.lat] } });
+      }
+      const li = document.createElement("li");
+      li.textContent = `${t.name} (${t.country})`;
+      const c0 = pts[0];
+      li.onclick = () => map.flyTo({ center: [c0.lon, c0.lat], zoom: 14 });
+      list.appendChild(li);
+    }
+    map.addSource("golden", { type: "geojson",
+      data: { type: "FeatureCollection", features: feats } });
+    map.addLayer({ id: "golden-pts", source: "golden", type: "circle",
+      paint: { "circle-color": "#1a7f37", "circle-radius": 7,
+               "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
+    map.on("click", "golden-pts", (e) => {
+      const p = e.features[0].properties;
+      new maplibregl.Popup().setLngLat(e.lngLat)
+        .setHTML(`<b>${p.name}</b><br>${p.why}`).addTo(map);
+    });
+  }
+
+  const wire = (box, ids) => document.getElementById(box).onchange = (e) =>
+    ids.forEach((id) => map.getLayer(id) &&
+      map.setLayoutProperty(id, "visibility", e.target.checked ? "visible" : "none"));
+  wire("toggle-raw", ["raw-lines", "raw-pois"]);
+  wire("toggle-trails", ["trail-lines"]);
+  wire("toggle-golden", ["golden-pts"]);
+});
+</script>
+</body>
+</html>

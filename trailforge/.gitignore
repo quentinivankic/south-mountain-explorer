@@ -1,0 +1,5 @@
+# Large reproducible data — never commit. raw/ can be 80 GB (planet).
+data/
+*.osm.pbf
+*.geojson
+!golden/*.json

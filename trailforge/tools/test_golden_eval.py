@@ -68,6 +68,47 @@ class Through(unittest.TestCase):
         self.assertFalse(r["passed"])
 
 
+class Diagnosis(unittest.TestCase):
+    def _fc(self, feats, coverage):
+        return {"type": "FeatureCollection", "features": feats, "coverage": coverage}
+
+    def test_missing_data_when_few_ways(self):
+        r = ge.evaluate(DEST, self._fc([], {"raw_trailish_ways": 2,
+                        "hiking_route_relations": 0, "destination_pois": 0}))
+        self.assertTrue(r["diagnosis"].startswith("missing-data"))
+
+    def test_assembly_gap_when_close_but_short(self):
+        # a trail ends ~800 ft from the arch, ways are plentiful → our gap
+        f = feat("Devils Bridge Trail",
+                 [[-111.820, 34.899], [-111.8175, 34.9006]], length_mi=0.9)
+        r = ge.evaluate(DEST, self._fc([f], {"raw_trailish_ways": 120,
+                        "hiking_route_relations": 1, "destination_pois": 3}))
+        self.assertFalse(r["passed"])
+        self.assertTrue(r["diagnosis"].startswith("assembly-gap"), r["diagnosis"])
+
+    def test_missing_poi(self):
+        f = feat("Devils Bridge Trail",
+                 [[-111.820, 34.899], [-111.8175, 34.9006]], length_mi=0.9)
+        r = ge.evaluate(DEST, self._fc([f], {"raw_trailish_ways": 120,
+                        "hiking_route_relations": 1, "destination_pois": 0}))
+        self.assertTrue(r["diagnosis"].startswith("missing-poi"), r["diagnosis"])
+
+    def test_through_no_relation(self):
+        entry = {"id": "x", "name": "Long", "kind": "through",
+                 "endpoints": [{"lon": 0, "lat": 0}, {"lon": 1, "lat": 1}]}
+        r = ge.evaluate(entry, self._fc([], {"raw_trailish_ways": 300,
+                        "hiking_route_relations": 0, "destination_pois": 5}))
+        self.assertTrue(r["diagnosis"].startswith("no-route-relation"), r["diagnosis"])
+
+    def test_pass_diagnosis_is_ok(self):
+        f = feat("Devils Bridge Trail",
+                 [[-111.820, 34.899], [-111.8153, 34.9008]], length_mi=1.0)
+        r = ge.evaluate(DEST, self._fc([f], {"raw_trailish_ways": 120,
+                        "hiking_route_relations": 1, "destination_pois": 3}))
+        self.assertTrue(r["passed"])
+        self.assertEqual(r["diagnosis"], "ok")
+
+
 class RealGolden(unittest.TestCase):
     def test_summarize_runs_on_real_golden_ids(self):
         import json

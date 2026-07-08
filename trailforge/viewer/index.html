@@ -119,6 +119,7 @@ map.on("load", async () => {
         feats.push({ type: "Feature",
           properties: { id: t.id, name: t.name, why: t.why,
                         pass: passed === null ? "—" : passed ? "PASS" : "FAIL",
+                        diagnosis: r ? (r.diagnosis || "") : "",
                         detail: r ? (r.reasons || []).join("; ") || `reach ${r.reach_ft}ft` : "" },
           geometry: { type: "Point", coordinates: [c.lon, c.lat] } });
       }
@@ -140,8 +141,9 @@ map.on("load", async () => {
         "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
     map.on("click", "golden-pts", (e) => {
       const p = e.features[0].properties;
+      const diag = p.diagnosis ? `<br><i>${p.diagnosis}</i>` : "";
       new maplibregl.Popup().setLngLat(e.lngLat)
-        .setHTML(`<b>${p.name}</b> — ${p.pass}<br>${p.detail || p.why}`).addTo(map);
+        .setHTML(`<b>${p.name}</b> — ${p.pass}${diag}<br>${p.detail || p.why}`).addTo(map);
     });
   }
 

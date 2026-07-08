@@ -91,7 +91,8 @@ def main(argv=None) -> int:
 
     trails = model.assemble(nodes, ways, relations, pois)
     fc = {"type": "FeatureCollection",
-          "features": [t.to_feature() for t in trails]}
+          "features": [t.to_feature() for t in trails],
+          "coverage": model.coverage_stats(ways, relations, pois)}
     Path(args.out).write_text(json.dumps(fc), encoding="utf-8")
 
     welded = sum(1 for t in trails if t.welds)

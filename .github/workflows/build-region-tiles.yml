@@ -6,20 +6,21 @@ name: Build Region Tiles
 # build-trail-index.yml — never auto-triggers, so it can't burn CI on
 # intermediate merges.
 #
-# Pipeline (spec §1): gate -> download -> stage -> conflate -> build ->
-# tile -> (publish). The FAIL-CLOSED licensing gate runs first and hard-
-# stops the job if any of the region's sources isn't legally shippable.
+# Pipeline (spec §1): gate -> download -> stage -> build -> tile ->
+# (publish). The FAIL-CLOSED licensing gate runs first and hard-stops the
+# job if any of the region's sources isn't legally shippable.
 #
-# Pilot region: new-zealand (§10) — OSM (Geofabrik) + DOC tracks/PCL,
-# LINZ optional. Everything is CC-BY-4.0 / ODbL, so the gate passes.
+# OSM-ONLY: every signal is derived from OpenStreetMap (Geofabrik extract)
+# — trails, areas, the hiking-route "official" signal, and the inside-a-
+# protected-area whitelist (from OSM area polygons). No per-country
+# authoritative source (DOC/LINZ/etc.), so a new region is just a config
+# row. Everything is ODbL, so the gate passes.
 #
 # Required repo secrets to PUBLISH (Settings → Secrets and variables →
 # Actions) — same trio the sync-geom-to-r2 workflow already uses:
 #   - R2_ACCOUNT_ID
 #   - R2_ACCESS_KEY_ID
 #   - R2_SECRET_ACCESS_KEY
-# Optional:
-#   - LINZ_API_KEY          (only if inputs.include_linz is true)
 # Build-only runs (publish=false) need no secrets.
 
 on:
@@ -33,18 +34,6 @@ on:
         description: 'Upload the .pmtiles + attributions to the R2 dev bucket'
         type: boolean
         default: false
-      include_linz:
-        description: 'Also fetch LINZ (needs LINZ_API_KEY secret)'
-        type: boolean
-        default: false
-      doc_tracks_url:
-        description: 'Override DOC Tracks ArcGIS URL (FeatureServer/<n>, from the DOC hub). Blank = script default.'
-        required: false
-        default: ''
-      doc_pcl_url:
-        description: 'Override DOC Public Conservation Land ArcGIS URL. Blank = script default.'
-        required: false
-        default: ''
 
 concurrency:
   group: build-region-tiles-${{ github.event.inputs.region }}
@@ -75,54 +64,32 @@ jobs:
           python3 -m unittest discover -s tests
 
       # ---- geo toolchain ----
-      - name: Install geo tools (osmium, GDAL, tippecanoe) + shapely
+      - name: Install geo tools (osmium, tippecanoe) + shapely
         run: |
           set -e
           sudo apt-get update
-          sudo apt-get install -y osmium-tool gdal-bin build-essential \
+          sudo apt-get install -y osmium-tool build-essential \
             libsqlite3-dev zlib1g-dev
           python3 -m pip install --quiet 'shapely>=2.0' 'osmium>=4.0'
           # tippecanoe (>=2.x emits .pmtiles natively) — build from source.
           git clone --depth 1 https://github.com/felt/tippecanoe /tmp/tippecanoe
           make -C /tmp/tippecanoe -j"$(nproc)"
           sudo make -C /tmp/tippecanoe install
-          osmium --version && ogr2ogr --version && tippecanoe --version
+          osmium --version && tippecanoe --version
 
-      # ---- download raw sources (§3.3) ----
-      # OSM is required (base trail set, always ships). DOC is OPTIONAL:
-      # it only ADDS the authoritative_match signal + PCL area boundaries.
-      # If its ArcGIS endpoints fail (e.g. the URLs drifted), the build
-      # continues OSM-only and records DOC_OK=0 so the stage/conflate
-      # steps skip DOC cleanly. Supply verified DOC URLs via the
-      # doc_tracks_url / doc_pcl_url inputs to enable the full signal set.
-      - name: Download OSM + DOC (+ LINZ if requested)
-        env:
-          LINZ_API_KEY: ${{ secrets.LINZ_API_KEY }}
-          DOC_TRACKS_URL: ${{ github.event.inputs.doc_tracks_url }}
-          DOC_PCL_URL: ${{ github.event.inputs.doc_pcl_url }}
+      # ---- download raw source (§3.3): OSM Geofabrik extract (the only source) ----
+      - name: Download OSM extract
         run: |
           set -e
           cd sources/downloaders
           python3 osm_nz.py
-          if python3 nz_doc.py; then
-            echo "DOC_OK=1" >> "$GITHUB_ENV"
-          else
-            echo "::warning::DOC fetch failed — continuing OSM-only (no authoritative_match / PCL). Set doc_tracks_url / doc_pcl_url to enable DOC."
-            echo "DOC_OK=0" >> "$GITHUB_ENV"
-          fi
-          if [ '${{ github.event.inputs.include_linz }}' = 'true' ]; then
-            if [ -z "$LINZ_API_KEY" ]; then
-              echo "include_linz=true but LINZ_API_KEY secret is unset"; exit 1
-            fi
-            python3 nz_linz.py
-          fi
 
       # ---- stage: osmium export -> normalized trails/areas GeoJSON (§3) ----
-      - name: Stage OSM + reproject DOC to EPSG:4326
+      - name: Stage OSM
         run: |
           set -e
           REGION='${{ github.event.inputs.region }}'
-          mkdir -p staging/osm staging/nz_doc staging/areas
+          mkdir -p staging/osm staging/areas
           # Prefilter to just the tags we stage (§3) BEFORE export.
           # Exporting the whole NZ PBF (every road/building/landuse
           # polygon) to GeoJSON is many GB and minutes; this shrinks it to
@@ -159,39 +126,11 @@ jobs:
             --trails-out staging/osm/${REGION}_raw_trails.geojson \
             --areas-out  staging/areas/${REGION}_areas.geojson $ROUTE_ARG
           # Collapse multi-segment named routes (Te Araroa etc.) into one
-          # trail BEFORE conflation, so downstream sees whole routes.
+          # trail so downstream sees whole routes.
           echo "== dedup multi-segment routes =="
           python3 build/dedup_trails.py \
             --in staging/osm/${REGION}_raw_trails.geojson \
             --out staging/osm/${REGION}_trails.geojson
-          if [ "${DOC_OK:-0}" = "1" ] && [ -f raw/nz_doc/doc_tracks.geojson ]; then
-            echo "== normalize DOC tracks + PCL to WGS84 GeoJSON =="
-            ogr2ogr -f GeoJSON -t_srs EPSG:4326 \
-              staging/nz_doc/tracks.geojson raw/nz_doc/doc_tracks.geojson
-            ogr2ogr -f GeoJSON -t_srs EPSG:4326 \
-              staging/nz_doc/pcl.geojson raw/nz_doc/doc_pcl.geojson
-          else
-            echo "== DOC absent — OSM-only, skipping DOC reprojection =="
-          fi
-
-      # ---- conflate OSM <-> DOC (§5) ----
-      # DOC present → real conflation (authoritative_match fires). DOC
-      # absent → empty match map; confidence.py reads it as "no matches"
-      # so authoritative_match is simply False everywhere.
-      - name: Conflate OSM against DOC tracks + PCL boundaries
-        run: |
-          set -e
-          REGION='${{ github.event.inputs.region }}'
-          if [ -f staging/nz_doc/tracks.geojson ]; then
-            python3 conflation/match.py \
-              --osm staging/osm/${REGION}_trails.geojson \
-              --authoritative staging/nz_doc/tracks.geojson \
-              --boundaries staging/nz_doc/pcl.geojson \
-              --source-id doc --out staging/${REGION}_matches.json
-          else
-            echo "no DOC tracks — writing empty match map (OSM-only)"
-            echo '{}' > staging/${REGION}_matches.json
-          fi
 
       # ---- build: Bucket B flags + inclusion guard (§4.2, §7.1) ----
       - name: Attach Bucket B flags + inclusion guard
@@ -201,7 +140,6 @@ jobs:
           TRUST=$(python3 -c "import json;print(json.load(open('config/regions.json'))['regions']['$REGION']['region_trust'])")
           python3 build/confidence.py \
             --trails staging/osm/${REGION}_trails.geojson \
-            --matches staging/${REGION}_matches.json \
             --region-trust "$TRUST" \
             --out staging/${REGION}_trails_flagged.geojson
           python3 qa/assert_inclusion.py --trails staging/${REGION}_trails_flagged.geojson

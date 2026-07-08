@@ -54,6 +54,15 @@ def _miles(geom) -> float:
     return 0.0
 
 
+# A trail lying INSIDE a genuine protected area earns the weak
+# `in_official_whitelist` signal — the OSM-native replacement for the old
+# DOC-boundary whitelist ("use OSM for everything"). Threshold 25 keeps
+# protected_area (35/40), national_park (30) and nature_reserve (25) but
+# excludes bare landuse=forest (10), which is often plantation and would
+# otherwise bless every logging track.
+OFFICIAL_WHITELIST_MIN_RANK = 25
+
+
 def _area_id(props: dict[str, Any]) -> str:
     return str(props.get("osm_id") or props.get("name") or "")
 
@@ -68,6 +77,14 @@ def assign(trails_fc: dict[str, Any],
     area_geoms = [shape(f["geometry"]) for f in area_feats]
     area_props = [f.get("properties", {}) or {} for f in area_feats]
     tree = STRtree(area_geoms) if area_geoms else None
+
+    # area_id -> authority_rank, for the in_official_whitelist derivation.
+    rank_by_id: dict[str, int] = {}
+    for p in area_props:
+        aid = _area_id(p)
+        r = p.get("authority_rank")
+        if aid and r is not None:
+            rank_by_id[aid] = max(rank_by_id.get(aid, 0), int(r))
 
     stats: dict[str, dict[str, Any]] = {}
     for p in area_props:
@@ -93,6 +110,9 @@ def assign(trails_fc: dict[str, Any],
                         area_ids.append(aid)
         props = dict(f.get("properties", {}) or {})
         props["area_ids"] = area_ids
+        # OSM-native "inside an official protected area" whitelist signal.
+        props["in_official_whitelist"] = any(
+            rank_by_id.get(aid, 0) >= OFFICIAL_WHITELIST_MIN_RANK for aid in area_ids)
         out_trails.append({"type": "Feature", "geometry": f["geometry"],
                            "properties": props})
 

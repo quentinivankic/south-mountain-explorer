@@ -195,6 +195,39 @@ Deferred (do when full area-routing lands):
   are kept but flagged so a park view can suppress them. Remaining: the
   viewer/app layer toggle that acts on `kind`.
 
+## 6c. Canonical hikes — HARVEST, don't synthesize (EXPERIMENTAL)
+
+**The completion unit is the *hike*, not the physical trail.** What people
+mean by "Angels Landing" is the whole Grotto→summit journey — a route over
+named trails — not the 0.43 mi spur OSM literally names "Angels Landing
+Trail". Overlap between a hike and the trails it runs over is expected (a
+hike is a curated overlay); the checklist is per-hike, not per-mile, so
+double-counting miles is fine (AllTrails lists both Angels Landing AND West
+Rim Trail).
+
+**Decision (scalability): harvest OSM's route relations, do NOT synthesize
+routes via graph search.** OSM route relations already ARE the crowd-sourced
+canonical hikes — a human mapped the real popular route. Consuming them is
+zero-heuristic and rides community curation that only grows; synthesizing
+would need per-park heuristic tuning (trailhead selection, path realism) =
+hand-curation in disguise. Where OSM has no route, we degrade gracefully to
+the named-trail checklist and fill in as the map improves.
+
+`model.promote_hikes` (assemble step 6): a *local* route (kind=route, NOT
+network rwn/nwn/iwn) that terminates at a named destination POI is promoted
+to `kind="hike"`, renamed from the payoff ("...--West Rim Trail" → "Angels
+Landing Trail"). Thru-routes (Hayduke) stay `route`; named trails untouched.
+
+Tiered plan (only tier 1 built): **1** harvest+rename (this); **2** deferred
+destination-synthesis (only if coverage gaps prove painful — rejected as
+default, not scalable); **3** a tiny hand-curated override table for marquee
+spots where OSM is wrong.
+
+Known open items on the branch: a promoted hike ("Angels Landing Trail") may
+name-collide with the physical spur fragment OSM also names that — decide
+whether to absorb/suppress the covered fragment. Checkpoint to revert the
+whole experiment: branch `checkpoint/pre-canonical-hikes`.
+
 ## 7. Open questions the homelab loop resolves
 
 1. Actual hiking-subset size + prefilter runtime on planet (validates the

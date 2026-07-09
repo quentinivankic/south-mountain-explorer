@@ -227,6 +227,9 @@ class Classification(unittest.TestCase):
         self.assertFalse(m._is_trailish({"highway": "track", "motor_vehicle": "yes"}))
         self.assertFalse(m._is_trailish({"highway": "track", "name": "Dobbins Lookout Road"}))
         self.assertFalse(m._is_trailish({"highway": "track", "name": "Irrigation Canal"}))
+        # a 2+-lane track is a drivable road (the sand road named after the park).
+        self.assertFalse(m._is_trailish({"highway": "track", "lanes": "2",
+                                         "name": "Phoenix South Mountain Park"}))
         # a plain named track (a real trail) stays.
         self.assertTrue(m._is_trailish({"highway": "track", "name": "Desert Classic Trail"}))
         self.assertTrue(m._is_trailish({"highway": "track"}))

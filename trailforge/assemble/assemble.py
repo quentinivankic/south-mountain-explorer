@@ -89,9 +89,10 @@ def main(argv=None) -> int:
                          "assembled from the same --in PBF.")
     ap.add_argument("--min-length-mi", dest="min_length_mi", type=float, default=0.0,
                     help="drop assembled trails shorter than this (miles); 0 = keep all")
-    ap.add_argument("--min-inside-frac", dest="min_inside_frac", type=float, default=0.25,
-                    help="with --only-area, keep a trail only if more than this "
-                         "fraction of its length is inside the area (default 0.25)")
+    ap.add_argument("--min-inside-mi", dest="min_inside_mi", type=float, default=0.05,
+                    help="with --only-area, drop a clipped trail whose in-park "
+                         "remnant is shorter than this (miles); guards against "
+                         "boundary slivers (default 0.05)")
     args = ap.parse_args(argv)
 
     nodes, ways, relations, pois = read_pbf(args.inp)
@@ -109,14 +110,15 @@ def main(argv=None) -> int:
             areamod.assemble_areas(args.inp), args.only_area)
         if union is None:
             print(f"WARNING: no area matched '{args.only_area}' in {args.inp} "
-                  f"— leaving trails unfiltered", file=sys.stderr)
+                  f"— leaving trails unclipped", file=sys.stderr)
         else:
             before = len(features)
-            features = areamod.filter_features_inside(
-                features, union, min_inside_frac=args.min_inside_frac)
+            features = areamod.clip_features_to_area(
+                features, union, min_inside_mi=args.min_inside_mi)
+            clipped = sum(1 for f in features if f["properties"].get("clipped"))
             matched = ", ".join(sorted(n for n in names if n)) or "(unnamed)"
-            area_note = (f"; inside '{args.only_area}' [{matched}]: "
-                         f"{before} -> {len(features)}")
+            area_note = (f"; clipped to '{args.only_area}' [{matched}]: "
+                         f"{before} -> {len(features)} ({clipped} trimmed at boundary)")
 
     fc = {"type": "FeatureCollection", "features": features,
           "coverage": model.coverage_stats(ways, relations, pois)}

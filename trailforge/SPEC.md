@@ -174,7 +174,16 @@ ways). Route relations (Maricopa Trail, West Highland Way) are a SEPARATE
 overlapping layer — their own completable objects that route over named
 trails; the overlap is real (two things share pavement), not a bug.
 
-Deferred (do when area-routing lands):
+**Trail↔area is clip-based.** `--only-area` clips each trail to the area
+boundary (`areas.clip_features_to_area`), keeping only its in-park portion
+and discarding whatever runs outside. A connector that leaves the park to
+reach a road (DC-Ray Connector) keeps its in-park piece; a trail entirely
+outside clips to nothing and drops on its own — no fraction threshold. A
+clipped trail's `length_mi` becomes its in-park length (`full_length_mi`
+preserved, `clipped: true` flagged); a sub-`min_inside_mi` remnant is a
+boundary sliver and is dropped. This is the first half of area-routing.
+
+Deferred (do when full area-routing lands):
 - **Per-area merge.** Same-name merge is currently AOI-wide (blind). The
   correct scope is per-area: assign each trail its area(s), then merge
   same-name WITHIN an area, so two different "Loop Trail"s in different

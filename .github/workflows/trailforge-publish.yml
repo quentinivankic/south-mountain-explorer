@@ -31,6 +31,13 @@ concurrency:
   group: trailforge-publish
   cancel-in-progress: false
 
+# GITHUB_TOKEN defaults to read-only in this repo, so the publish commit's
+# `git push` 403s without this. Mirrors build-trail-index.yml: contents:write
+# to push the published data to main, actions:write to dispatch the R2 sync.
+permissions:
+  contents: write
+  actions: write
+
 jobs:
   publish:
     runs-on: ubuntu-latest

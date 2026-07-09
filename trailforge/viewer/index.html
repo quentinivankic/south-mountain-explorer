@@ -33,6 +33,8 @@
   <h1>trailforge QA</h1>
   <label><input type="checkbox" id="toggle-raw" checked />
     <span class="swatch" style="background:#888"></span>OSM raw (aoi.raw)</label>
+  <label><input type="checkbox" id="toggle-hikes" checked />
+    <span class="swatch" style="background:#17913a"></span>Hikes (canonical)</label>
   <label><input type="checkbox" id="toggle-trails" checked />
     <span class="swatch" style="background:#e6521f"></span>Trails (v3)</label>
   <label><input type="checkbox" id="toggle-routes" checked />
@@ -105,15 +107,16 @@ map.on("load", async () => {
     // feature-state — and since one trail = one MultiLineString feature,
     // that lights up the WHOLE assembled trail at once.
     map.addSource("trails", { type: "geojson", data: trails, generateId: true });
-    // selected feature-state flips either layer's line to cyan + thicker.
-    const selPaint = (base) => ({
+    // selected feature-state flips a line to cyan + thicker.
+    const selPaint = (base, w = 3) => ({
       "line-color": ["case", ["boolean", ["feature-state", "selected"], false],
                      "#00b7ff", base],
-      "line-width": ["case", ["boolean", ["feature-state", "selected"], false], 6, 3],
+      "line-width": ["case", ["boolean", ["feature-state", "selected"], false], 6, w],
     });
-    // Named trails (kind != route) — solid orange.
+    // Named physical trails (kind == trail) — solid orange. Unknown/missing
+    // kind falls here too (safe default).
     map.addLayer({ id: "trail-lines", source: "trails", type: "line",
-      filter: ["!=", ["get", "kind"], "route"],
+      filter: ["all", ["!=", ["get", "kind"], "route"], ["!=", ["get", "kind"], "hike"]],
       layout: { "line-cap": "round", "line-join": "round" },
       paint: selPaint("#e6521f") });
     // Routes that traverse named trails (kind == route) — dashed purple, so a
@@ -122,8 +125,14 @@ map.on("load", async () => {
       filter: ["==", ["get", "kind"], "route"],
       layout: { "line-cap": "round", "line-join": "round" },
       paint: { ...selPaint("#8b3fd6"), "line-dasharray": [2, 1.5] } });
+    // Canonical hikes (kind == hike) — solid green, thicker, drawn on top:
+    // the marquee "complete this" objects harvested from OSM routes (SPEC §6c).
+    map.addLayer({ id: "hike-lines", source: "trails", type: "line",
+      filter: ["==", ["get", "kind"], "hike"],
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: selPaint("#17913a", 4.5) });
 
-    const HIT = ["trail-lines", "route-lines"];
+    const HIT = ["hike-lines", "trail-lines", "route-lines"];
     let selectedId = null;
     const clearSel = () => {
       if (selectedId !== null) {
@@ -183,7 +192,8 @@ map.on("load", async () => {
       listEl.innerHTML = "";
       for (const [i, p] of items) {
         const li = document.createElement("li");
-        const color = p.kind === "route" ? "#8b3fd6" : "#e6521f";
+        const color = p.kind === "hike" ? "#17913a"
+                    : p.kind === "route" ? "#8b3fd6" : "#e6521f";
         li.innerHTML = `<span class="swatch" style="background:${color}"></span>` +
           `${p.name || "(unnamed)"} <span class="mi">${(p.length_mi || 0).toFixed(1)}mi</span>`;
         li.onclick = () => pick(i);
@@ -256,6 +266,7 @@ map.on("load", async () => {
     ids.forEach((id) => map.getLayer(id) &&
       map.setLayoutProperty(id, "visibility", e.target.checked ? "visible" : "none"));
   wire("toggle-raw", ["raw-lines", "raw-pois"]);
+  wire("toggle-hikes", ["hike-lines"]);
   wire("toggle-trails", ["trail-lines"]);
   wire("toggle-routes", ["route-lines"]);
   wire("toggle-golden", ["golden-pts"]);

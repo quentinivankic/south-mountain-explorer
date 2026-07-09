@@ -55,6 +55,17 @@ class AreaFilter(unittest.TestCase):
         kept = A.filter_features_inside(feats, union)
         self.assertEqual(len(kept), 2)
 
+    def test_straddler_kept_when_majority_inside(self):
+        # A connector leaving the park (union spans x:0..12): DC-Ray-style.
+        union, _ = A.union_matching(self.AREAS, "south mountain")
+        # 6 of 10 units inside (x 6->12), 4 outside (12->16) -> 60% -> kept.
+        majority = _line([[6, 5], [16, 5]])
+        # 2 of 10 inside (x 10->12) -> 20% -> dropped.
+        minority = _line([[10, 5], [20, 5]])
+        kept = A.filter_features_inside([majority, minority], union)
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(kept[0]["geometry"]["coordinates"][0], [6, 5])
+
     def test_no_match_returns_none(self):
         union, names = A.union_matching(self.AREAS, "nonexistent park")
         self.assertIsNone(union)

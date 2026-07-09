@@ -188,9 +188,12 @@ Deferred (do when full area-routing lands):
   correct scope is per-area: assign each trail its area(s), then merge
   same-name WITHIN an area, so two different "Loop Trail"s in different
   parks never fuse. Low risk today (we work in park-sized AOIs).
-- **Hide long-distance routes in a park view.** Keep route objects
-  (`network=rwn/nwn/iwn`) but let a park/area view suppress them so a local
-  view isn't cluttered by a county/thru route crossing it.
+- **Hide long-distance routes in a park view.** *Data side landed:* every
+  object now carries `kind: trail|route` (`model.classify_kind` — regional+
+  network grade, a composite `--` name, or the word "Route"). Routes (Hayduke
+  #13, the Narrows top-down/bottom-up routes, the Angels Landing composite)
+  are kept but flagged so a park view can suppress them. Remaining: the
+  viewer/app layer toggle that acts on `kind`.
 
 ## 7. Open questions the homelab loop resolves
 

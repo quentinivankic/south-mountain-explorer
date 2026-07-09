@@ -241,6 +241,23 @@ class Classification(unittest.TestCase):
         self.assertTrue(m._is_trailish({"highway": "track", "name": "Desert Classic Trail"}))
         self.assertTrue(m._is_trailish({"highway": "track"}))
 
+    def test_classify_kind_route_vs_trail(self):
+        # thru-routes by network grade
+        self.assertEqual(m.classify_kind("Hayduke Trail #13", {"network": "rwn"}), "route")
+        self.assertEqual(m.classify_kind("Some Way", {"network": "nwn"}), "route")
+        self.assertEqual(m.classify_kind("Some Way", {"network": "IWN"}), "route")
+        # composite '--' name (a route over two named trails)
+        self.assertEqual(
+            m.classify_kind("Angels Landing Trail--West Rim Trail", {}), "route")
+        # explicitly a 'Route' in the name
+        self.assertEqual(
+            m.classify_kind("Zion Narrows Top-Down Hiking Route", {}), "route")
+        # named trails stay trails — incl. a route relation named for one trail
+        self.assertEqual(m.classify_kind("West Rim Trail", {"network": "lwn"}), "trail")
+        self.assertEqual(m.classify_kind("Angels Landing Trail", {}), "trail")
+        self.assertEqual(m.classify_kind("Ma-Ha-Tuak Trail", {}), "trail")  # single hyphen
+        self.assertEqual(m.classify_kind(None, {}), "trail")
+
 
 if __name__ == "__main__":
     unittest.main()

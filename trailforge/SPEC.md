@@ -184,10 +184,32 @@ preserved, `clipped: true` flagged); a sub-`min_inside_mi` remnant is a
 boundary sliver and is dropped. This is the first half of area-routing.
 
 Deferred (do when full area-routing lands):
-- **Per-area merge.** Same-name merge is currently AOI-wide (blind). The
-  correct scope is per-area: assign each trail its area(s), then merge
-  same-name WITHIN an area, so two different "Loop Trail"s in different
-  parks never fuse. Low risk today (we work in park-sized AOIs).
+- **Per-area merge.** Same-name merge is AOI-wide (blind). The correct scope
+  is per-area: assign each trail its area(s), then merge same-name WITHIN an
+  area, so two different "Loop Trail"s in different parks never fuse.
+
+  *Why it matters (AZ statewide scale run):* unclipped, 145 scattered ways
+  named "Trail" fused into one 131-mi/119-island Frankenstein; "Ridge Trail"
+  = 12 different parks' trails fused; 511/5,812 objects were provably
+  scattered (bbox span > path length). At park scale (clipped to one area)
+  the blind merge is CORRECT — that's why a Frankenstein only appeared in the
+  unclipped whole-state test.
+
+  *Connectivity-gating was considered and REJECTED.* It looked cheap, but:
+  (1) `merge_same_name`'s "two disconnected same-name ways = one trail with a
+  gap" is a DELIBERATE decision (see test_same_name_merges_into_one_object)
+  that makes National Trail — a real trail with a **4.57-mi** internal gap —
+  come out as one object; a connectivity gate reverses it. (2) National Trail
+  proved a distance threshold can't separate "one trail with a big gap" from
+  "two different trails nearby" — the distinguisher is AREA, not distance or
+  connectivity. So the fix is genuinely per-area, not a gate.
+
+  *Design being built:* `merge_same_name(trails, area_of=None)` — when
+  `area_of` is None (park runs, existing tests) behavior is unchanged (blind
+  within the one implicit area); when provided, group by (area, name) so
+  merges never cross an area boundary. Backcountry trails in NO named area
+  don't cross-merge. Area assignment by a representative point via stdlib
+  ray-cast (keeps model.py pure-stdlib), areas from `assemble_areas`.
 - **Hide long-distance routes in a park view.** *Data side landed:* every
   object now carries `kind: trail|route` (`model.classify_kind` — regional+
   network grade, a composite `--` name, or the word "Route"). Routes (Hayduke

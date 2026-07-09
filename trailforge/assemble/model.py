@@ -509,6 +509,7 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     #    spares its object. min_length_mi<=0 keeps everything.
     kept = [t for t in merged
             if not is_closed_name(t.name)
+            and not is_road_code_name(t.name)
             and not (is_generic_name(t.name) and t.source != "relation")
             and (min_length_mi <= 0 or t.length_mi >= min_length_mi)]
 
@@ -702,6 +703,36 @@ _GRID_ROAD = re.compile(
 _FOREST_ROAD = re.compile(
     r"^\s*(?:(?:nf|fr|fsr|fs|usfs|blm|cr|nv)\b[-\s]?\d"
     r"|[a-z]{1,4}[-\s]?\d{3,}[a-z]?\s*$)", re.IGNORECASE)
+
+
+# Name-only road/ID-code junk that rides on highway=path/footway or comes in
+# as a route relation, so _road_like_track (track-scoped) never sees it —
+# "[FR 1098]", ";NF-246C", "NF-D1857", "MT-2026 - FDR 2026", "U2259", "PST012",
+# "212E", "F R 8080", "Forest Service Road 420". Digit-GATED and word-aware:
+# a name with any genuine word (alphabetic, >=3 chars, has a vowel, not a road
+# designator) is kept, so real trails that merely carry a number survive
+# ("Aerie #168", "Calloway Trail 33", "See Canyon Trail #184").
+_CODE_DECOR = re.compile(r"\*\*.*?\*\*|\bOHV\b|\b4WD\b|[\[\]();#]", re.IGNORECASE)
+_CODE_TOKEN = re.compile(r"^[a-z]{0,4}\d+[a-z]?\d*[a-z]?$", re.IGNORECASE)
+_ROAD_DESIGNATORS = {"fr", "fdr", "fs", "fsr", "nf", "usf", "usfs", "blm", "cr",
+                     "nv", "mt", "rd", "rt", "u", "t", "forest", "service",
+                     "road", "route", "hwy", "highway"}
+
+
+def is_road_code_name(name: str | None) -> bool:
+    """The name is nothing but an agency road / OSM-ref code — no trail identity."""
+    if not name:
+        return False
+    toks = [t for t in _CODE_DECOR.sub(" ", name).replace("-", " ").split() if t]
+    if not toks or not any(c.isdigit() for t in toks for c in t):
+        return False  # no digits => a real name; leave it alone
+    for t in toks:
+        tl = t.lower()
+        if tl in _ROAD_DESIGNATORS or _CODE_TOKEN.match(t):
+            continue
+        if t.isalpha() and len(t) >= 3 and any(v in tl for v in "aeiou"):
+            return False  # a genuine word token => keep as a real trail
+    return True
 
 
 def _road_like_track(tags: dict) -> bool:

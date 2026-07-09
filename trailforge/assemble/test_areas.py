@@ -52,26 +52,41 @@ class AreaFilter(unittest.TestCase):
             _line([[52, 52], [53, 53]]),    # in Cesar Chavez — out
             _line([[30, 30], [31, 31]]),    # nowhere near — out
         ]
-        kept = A.filter_features_inside(feats, union)
+        kept = A.clip_features_to_area(feats, union)
         self.assertEqual(len(kept), 2)
 
-    def test_straddler_kept_at_default_frac(self):
-        # union spans x:0..12. Default min_inside_frac=0.25 keeps a trail that
-        # mostly-but-not-majority exits the park (DC-Ray sits at 0.44) while
-        # dropping one that only clips the edge (Helipad-like, ~0.1).
+    def test_straddler_clipped_to_in_park_portion(self):
+        # union spans x:0..12. A DC-Ray-style connector runs from inside the
+        # park out to a road; clipping keeps only the in-park piece.
         union, _ = A.union_matching(self.AREAS, "south mountain")
-        straddler = _line([[8, 5], [18, 5]])   # 4 of 10 inside -> 0.40 -> kept
-        clipper = _line([[11, 5], [21, 5]])    # 1 of 10 inside -> 0.10 -> dropped
-        kept = A.filter_features_inside([straddler, clipper], union)
+        # full line is 10 deg (~688 mi); the in-park piece x:8->12 is 4 deg.
+        straddler = {"type": "Feature",
+                     "properties": {"name": "DC-Ray", "length_mi": 688.0},
+                     "geometry": {"type": "LineString",
+                                  "coordinates": [[8, 5], [18, 5]]}}
+        kept = A.clip_features_to_area([straddler], union)
         self.assertEqual(len(kept), 1)
-        self.assertEqual(kept[0]["geometry"]["coordinates"][0], [8, 5])
+        coords = kept[0]["geometry"]["coordinates"]
+        xs = [pt[0] for line in coords for pt in line]
+        self.assertLessEqual(max(xs), 12.0 + 1e-9)   # nothing past the boundary
+        self.assertGreaterEqual(min(xs), 8.0 - 1e-9)
+        # clipped length recorded, original preserved, flagged.
+        p = kept[0]["properties"]
+        self.assertTrue(p["clipped"])
+        self.assertEqual(p["full_length_mi"], 688.0)
+        self.assertLess(p["length_mi"], 688.0)
 
-    def test_min_inside_frac_is_tunable(self):
-        # The same 0.40-inside straddler drops when the threshold is raised.
+    def test_fully_outside_clips_to_nothing(self):
         union, _ = A.union_matching(self.AREAS, "south mountain")
-        straddler = _line([[8, 5], [18, 5]])   # 0.40 inside
-        self.assertEqual(len(A.filter_features_inside([straddler], union, 0.25)), 1)
-        self.assertEqual(len(A.filter_features_inside([straddler], union, 0.5)), 0)
+        outside = _line([[52, 52], [55, 55]])   # entirely in Cesar Chavez
+        self.assertEqual(A.clip_features_to_area([outside], union), [])
+
+    def test_boundary_sliver_dropped_by_floor(self):
+        # A tiny in-park remnant is a sliver, not a trail — dropped by the floor.
+        union, _ = A.union_matching(self.AREAS, "south mountain")
+        tiny = _line([[1, 1], [1.0001, 1]])     # ~0.007 mi inside
+        self.assertEqual(len(A.clip_features_to_area([tiny], union, min_inside_mi=0.05)), 0)
+        self.assertEqual(len(A.clip_features_to_area([tiny], union, min_inside_mi=0.0)), 1)
 
     def test_no_match_returns_none(self):
         union, names = A.union_matching(self.AREAS, "nonexistent park")

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Area-boundary filtering for assembled trails — the trail↔area step.
 
-The assembler produces every trail in a rectangular AOI; this keeps only
-the ones actually inside a named area (a park/preserve boundary). Area
+The assembler produces every trail in a rectangular AOI; this clips them
+to a named area (a park/preserve boundary), keeping each trail's in-park
+portion and discarding whatever runs outside. Area
 polygons are assembled straight from the PBF with libosmium's area
 assembler (via pyosmium) — it handles both closed-way areas AND
 multipolygon/boundary relations (South Mountain is a `type=boundary`
@@ -11,8 +12,7 @@ relation), which `osmium export` does not reliably emit.
 Matching unions every area whose name CONTAINS the query (case-insensitive)
 — so "south mountain" folds the 'South Mountain Park and Preserve'
 boundary AND its 'South Mountain Preserve' member polygons into one
-boundary — then keeps trails with a meaningful share of their length
-inside it (>25% by default).
+boundary — then clips trails to it, keeping each trail's in-park portion.
 
 Needs pyosmium + shapely (both installed by the pipeline). Kept out of
 model.py so the core assembly stays pure/stdlib.
@@ -73,35 +73,63 @@ def union_matching(areas: list[dict[str, Any]], name_substr: str):
     return unary_union([a["geom"] for a in matched]), {a["name"] for a in matched}
 
 
-def filter_features_inside(features: list[dict[str, Any]], area_union,
-                           min_inside_frac: float = 0.25) -> list[dict[str, Any]]:
-    """Keep features with a meaningful share of their length inside the area.
+def _line_parts(geom) -> list:
+    """Flatten a shapely geometry to its LineString parts (drop points/polys).
 
-    A trail is kept when more than `min_inside_frac` of its LENGTH falls
-    inside the boundary — not merely a single representative point. This
-    recovers trails that straddle the edge (a connector leaving the park to
-    reach a road) while still rejecting trails that only clip the boundary.
-    The 0.25 default sits in the natural gap seen at South Mountain: real
-    park trails that partly exit sit at ~0.43+, while genuinely-outside
-    neighbourhood/canal paths sit at ~0.07 and below. Degenerate
-    (zero-length) geometries fall back to a point-in-area test.
+    line∩polygon can yield a LineString, a MultiLineString, or a
+    GeometryCollection with stray boundary-tangent Points — we want only
+    the line pieces.
     """
+    if geom.is_empty:
+        return []
+    gt = geom.geom_type
+    if gt == "LineString":
+        return [geom]
+    if gt in ("MultiLineString", "GeometryCollection"):
+        out = []
+        for g in geom.geoms:
+            out.extend(_line_parts(g))
+        return out
+    return []
+
+
+def clip_features_to_area(features: list[dict[str, Any]], area_union,
+                          min_inside_mi: float = 0.05) -> list[dict[str, Any]]:
+    """Clip each trail to the area boundary, keeping only its in-park portion.
+
+    The correct model for a trail that straddles the edge: a connector that
+    leaves the park to reach a road keeps the piece inside the boundary and
+    loses the piece outside. Trails entirely outside clip to nothing and
+    drop on their own — no fraction threshold needed. A clipped trail's
+    reported `length_mi` becomes its in-park length (the original is kept as
+    `full_length_mi`, and `clipped: true` is flagged). A trail whose in-park
+    remnant is below `min_inside_mi` — a mere boundary sliver — is dropped.
+    A trail that dips out and back in becomes a MultiLineString of its
+    in-park pieces.
+    """
+    import model
     from shapely.geometry import shape
 
     kept = []
     for f in features:
         try:
-            geom = shape(f["geometry"])
-        except Exception:  # noqa: BLE001
-            continue
-        total = geom.length
-        try:
-            if total <= 0:                       # point-like: no length to weigh
-                if area_union.covers(geom.representative_point()):
-                    kept.append(f)
-                continue
-            if geom.intersection(area_union).length / total > min_inside_frac:
-                kept.append(f)
+            clipped = shape(f["geometry"]).intersection(area_union)
         except Exception:  # noqa: BLE001 — invalid geometry; skip rather than crash
             continue
+        parts = _line_parts(clipped)
+        if not parts:
+            continue
+        lines = [[(c[0], c[1]) for c in ln.coords] for ln in parts]
+        inside_mi = round(sum(model.line_mi(l) for l in lines), 3)
+        if inside_mi < min_inside_mi:
+            continue
+        props = dict(f["properties"])
+        full = props.get("length_mi")
+        props["length_mi"] = inside_mi
+        if full is not None and abs(full - inside_mi) > 1e-6:
+            props["full_length_mi"] = full
+            props["clipped"] = True
+        kept.append({**f, "properties": props,
+                     "geometry": {"type": "MultiLineString",
+                                  "coordinates": [[list(p) for p in l] for l in lines]}})
     return kept

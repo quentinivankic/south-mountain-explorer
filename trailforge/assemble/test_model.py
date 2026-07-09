@@ -252,6 +252,20 @@ class Classification(unittest.TestCase):
         self.assertEqual(t.name, "Angels Landing Trail")
         self.assertEqual(t.to_feature()["properties"]["kind"], "hike")
 
+    def test_promote_hike_absorbs_covered_fragment(self):
+        # the composite route promotes to the hike; the shorter same-named
+        # physical spur (kind=trail) is absorbed so it isn't listed twice.
+        hike = m.Trail("Angels Landing Trail--West Rim Trail", "relation", [1],
+                       [[(0.0, 0.0), (0.001, 0.001)]], {}, [])
+        spur = m.Trail("Angels Landing Trail", "name-stitch", [2],
+                       [[(0.0008, 0.0008), (0.001, 0.001)]], {}, [])
+        pois = [{"name": "Angels Landing", "coord": (0.001, 0.001),
+                 "tags": {"natural": "peak"}}]
+        out = m.promote_hikes([hike, spur], pois)
+        self.assertEqual(len(out), 1)
+        self.assertTrue(out[0].hike)
+        self.assertEqual(out[0].name, "Angels Landing Trail")
+
     def test_promote_hike_skips_thru_routes_and_plain_trails(self):
         poi = [{"name": "Peak", "coord": (0.001, 0.001), "tags": {"natural": "peak"}}]
         line = [[(0.0, 0.0), (0.001, 0.001)]]

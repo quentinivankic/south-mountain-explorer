@@ -489,9 +489,9 @@ def assemble(nodes: dict, ways: dict, relations: dict,
             and (min_length_mi <= 0 or t.length_mi >= min_length_mi)]
 
     # 6. tier-1 canonical hikes: promote local routes that reach a named
-    #    destination POI into a 'hike', renamed from the payoff (SPEC §6c).
-    promote_hikes(kept, pois)
-    return kept
+    #    destination POI into a 'hike', renamed from the payoff, and absorb the
+    #    redundant physical fragment the hike covers (SPEC §6c).
+    return promote_hikes(kept, pois)
 
 
 def merge_same_name(trails: list["Trail"]) -> list["Trail"]:
@@ -536,22 +536,28 @@ def _reached_destination(trail: "Trail", dest_pois: list[dict]) -> dict | None:
     return best
 
 
-def promote_hikes(trails: list["Trail"], pois: list[dict]) -> None:
+def promote_hikes(trails: list["Trail"], pois: list[dict]) -> list["Trail"]:
     """Tier 1 — HARVEST, don't synthesize. Promote a *local* route that
     reaches a named destination POI into a canonical 'hike', renamed from the
     payoff: OSM's 'Angels Landing Trail--West Rim Trail' route (which ends at
     the Angels Landing peak) becomes the hike 'Angels Landing Trail', drawn as
-    the whole thing. Mutates in place.
+    the whole thing. Returns the surviving trails (mutating promoted ones).
 
     Only local routes qualify — a regional+ thru-route (network rwn/nwn/iwn,
     e.g. the Hayduke) passes through many payoffs and is not one hike, so it
     stays a route. Named physical trails are never touched. Overlap with the
     trails a hike runs over is expected (a hike is a curated overlay); the
     completion checklist is per-hike, not per-mile (SPEC §6c).
+
+    Then ABSORB the physical fragment a hike already covers: a shorter
+    standalone trail sharing the hike's name (the 0.43 mi 'Angels Landing
+    Trail' spur that sits inside the promoted 2.17 mi hike) is redundant and
+    dropped, so the checklist doesn't list the same payoff twice.
     """
     dest_pois = [p for p in pois if p.get("name")]
     if not dest_pois:
-        return
+        return trails
+    promoted: list["Trail"] = []
     for t in trails:
         if str(t.tags.get("network", "")).strip().lower() in _ROUTE_NETWORKS:
             continue                                  # thru-route, not one hike
@@ -562,6 +568,21 @@ def promote_hikes(trails: list["Trail"], pois: list[dict]) -> None:
             t.destinations = [dest["name"]]
             t.name = _hike_name(dest["name"])
             t.hike = True
+            promoted.append(t)
+    if not promoted:
+        return trails
+
+    hikes_by_key: dict[str, list["Trail"]] = {}
+    for h in promoted:
+        hikes_by_key.setdefault(merge_key(h.name), []).append(h)
+    out: list["Trail"] = []
+    for t in trails:
+        if not t.hike:
+            covers = hikes_by_key.get(merge_key(t.name))
+            if covers and any(t.length_mi < h.length_mi for h in covers):
+                continue                              # absorbed into its hike
+        out.append(t)
+    return out
 
 
 TRAILISH_HIGHWAY = {"path", "footway", "steps", "track", "bridleway",

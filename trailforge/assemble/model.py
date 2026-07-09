@@ -503,6 +503,11 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     #    Trail"), but never fuse same-named trails across parks (SPEC §6b).
     merged = merge_same_name(trails, area_of=make_area_of(areas) if areas else None)
 
+    # 4b. drop geometry-duplicate trails the name-merge missed — a route
+    #     relation and a name-stitch built over the same ways under names that
+    #     normalize differently ('Casner Canyon Trail' vs 'Casner Canyon #11').
+    merged = dedupe_duplicate_trails(merged)
+
     # 5. curation: drop name-flagged-closed trails, sub-threshold stubs (tiny
     #    connectors), and pure-generic-named objects with no identity ("Trail",
     #    "Connector" — also what fuse into region-scale blobs); a route relation
@@ -608,6 +613,94 @@ def merge_same_name(trails: list["Trail"], area_of=None) -> list["Trail"]:
         if base.source != "relation" and t.source == "relation":
             base.source, base.tags, base.name = "relation", t.tags, t.name
     return out
+
+
+_REF_SUFFIX = re.compile(r"#\s*\d+[a-z]?\s*$", re.IGNORECASE)
+_TYPE_WORD = re.compile(r"\b(trail|loop|path|way|route)\b", re.IGNORECASE)
+
+
+def _name_rank(name: str | None) -> int:
+    """Higher = keep. Prefer a worded name over a bare '#<ref>' form, and a
+    name that carries a trail-type word ('Casner Canyon Trail' > 'Casner
+    Canyon #11')."""
+    if not name:
+        return -1
+    r = 0
+    if not _REF_SUFFIX.search(name.strip()):
+        r += 2
+    if _TYPE_WORD.search(name):
+        r += 1
+    return r
+
+
+def _endpoint_set(t: "Trail") -> frozenset:
+    """Rounded terminal coords of every line — an orientation-independent
+    fingerprint of the trail's physical span (~1 m at 5 decimals)."""
+    pts = set()
+    for line in t.lines:
+        if len(line) >= 2:
+            for c in (line[0], line[-1]):
+                pts.add((round(c[0], 5), round(c[1], 5)))
+    return frozenset(pts)
+
+
+def _is_duplicate(a: "Trail", b: "Trail") -> bool:
+    """Two trails describe the SAME physical trail: near-equal length AND
+    either they're built from substantially the same OSM ways OR their
+    terminal coords coincide. The length gate stops a short fragment from
+    absorbing a full-length trail, so only genuine full duplicates match."""
+    la, lb = a.length_mi, b.length_mi
+    if la <= 0 or lb <= 0 or abs(la - lb) > 0.05 * max(la, lb):
+        return False
+    wa, wb = set(a.member_ways), set(b.member_ways)
+    if wa and wb and len(wa & wb) >= 0.5 * len(wa | wb):
+        return True
+    ea = _endpoint_set(a)
+    return bool(ea) and ea == _endpoint_set(b)
+
+
+def _prefer(a: "Trail", b: "Trail") -> "Trail":
+    """The keeper of a duplicate pair: best name, then longer geometry, then
+    the route-relation object (human-curated)."""
+    ra, rb = _name_rank(a.name), _name_rank(b.name)
+    if ra != rb:
+        return a if ra > rb else b
+    if abs(a.length_mi - b.length_mi) > 1e-6:
+        return a if a.length_mi > b.length_mi else b
+    if (a.source == "relation") != (b.source == "relation"):
+        return a if a.source == "relation" else b
+    return a
+
+
+def dedupe_duplicate_trails(trails: list["Trail"]) -> list["Trail"]:
+    """Drop trails that duplicate another trail's geometry within the same
+    area — e.g. a route relation 'Casner Canyon Trail' over the same ways a
+    name-stitch emits as 'Casner Canyon #11'. merge_same_name misses these
+    because the names normalize differently; matching on GEOMETRY collapses
+    only provably-identical trails and never fuses two DISTINCT trails that
+    merely share a base name (Bear Canyon #29 vs #31 differ in geometry -> both
+    kept). Keeps the better-named object; area-scoped via the area set by
+    merge_same_name."""
+    from collections import defaultdict
+    by_area: dict = defaultdict(list)
+    for t in trails:
+        by_area[t.area].append(t)
+    drop: set = set()
+    for group in by_area.values():
+        for i in range(len(group)):
+            a = group[i]
+            if id(a) in drop:
+                continue
+            for j in range(i + 1, len(group)):
+                b = group[j]
+                if id(b) in drop or not _is_duplicate(a, b):
+                    continue
+                if _prefer(a, b) is a:
+                    drop.add(id(b))
+                else:
+                    drop.add(id(a))
+                    break
+    return [t for t in trails if id(t) not in drop]
 
 
 def _reached_destination(trail: "Trail", dest_pois: list[dict]) -> dict | None:

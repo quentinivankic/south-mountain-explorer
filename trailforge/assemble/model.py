@@ -591,14 +591,24 @@ TRAILISH_HIGHWAY = {"path", "footway", "steps", "track", "bridleway",
 # A highway=track that's really a vehicle/utility/access road — not a hike.
 # Ported from System 2 (data-pipeline stage_osm._vehicle_or_utility_road):
 # catches the paved/graded access roads (e.g. the road to a trailhead lot).
-_ROAD_WORDS = ("road", "drive", "avenue", "canal", "drain", "ditch",
-               "boulevard", "highway", "freeway", "parkway", "route")
+# Name-based road tells for a highway=track. Word-boundary matched, so
+# "Placerita" isn't caught by "place" and "Broadway Trail" isn't caught by
+# "road". Covers named rural roads AND the street/lane/court/place suffixes
+# that flood grid/subdivision areas at region scale (AZ statewide run).
+_ROAD_NAME = re.compile(
+    r"\b(road|street|avenue|boulevard|drive|lane|court|place|"
+    r"canal|drain|ditch|highway|freeway|parkway|route)\b", re.IGNORECASE)
 
 # US numeric grid-address road names — "3900 East", "N 400 W", "700 South".
 # Pervasive in UT/AZ/ID rural grids; a hiking trail is never named this way.
 _GRID_ROAD = re.compile(
     r"^\s*(?:[nsew]\.?\s+)?\d+\s+(?:north|south|east|west|n|s|e|w)\.?\s*$",
     re.IGNORECASE)
+
+# Forest Service / BLM / county road codes — "NF-418C", "BLM 1048", "FR 236",
+# "FS 6005". Dirt vehicle roads through national forests (Kaibab, Coconino,
+# Tonto…), not hiking trails. 1,338 of them in the Arizona statewide run.
+_FOREST_ROAD = re.compile(r"^\s*(nf|fr|fsr|fs|usfs|blm|cr)\b[-\s]?\d", re.IGNORECASE)
 
 
 def _road_like_track(tags: dict) -> bool:
@@ -615,10 +625,10 @@ def _road_like_track(tags: dict) -> bool:
             return True
     except ValueError:
         pass
-    name = str(tags.get("name", "")).lower()
-    if _GRID_ROAD.match(tags.get("name", "") or ""):   # "3900 East" grid road
-        return True
-    return any(w in name for w in _ROAD_WORDS)
+    name = str(tags.get("name", "") or "")
+    return bool(_GRID_ROAD.match(name)        # "3900 East"
+                or _FOREST_ROAD.match(name)   # "NF-418C", "BLM 1048"
+                or _ROAD_NAME.search(name))    # "7th Street", "Holley Lane"
 
 
 def _is_trailish(tags: dict) -> bool:

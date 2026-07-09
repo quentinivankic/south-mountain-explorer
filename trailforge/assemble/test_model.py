@@ -376,6 +376,19 @@ class Classification(unittest.TestCase):
         c.area = d.area = "Coronado National Forest"
         self.assertEqual(len(m.dedupe_duplicate_trails([c, d])), 2)
 
+    def test_dedupe_keeps_the_descriptive_name_not_the_generic_one(self):
+        # a duplicate pair must keep the DISTINCTIVE name, never a bare
+        # 'Trail <n>' — and must prefer fuller spelling over a typo/abbrev.
+        line = [(-112.45, 34.55), (-112.46, 34.56), (-112.47, 34.57)]
+        for good, bad in [("Granite Mountain Trail #261", "Trail 261"),
+                          ("Wilson Mountain Spur B #10B", "Willson Mtn Spur B"),
+                          ("Raspberry Ridge Trail #228", "Rasberry Ridge Trail #228")]:
+            a = m.Trail(good, "name-stitch", [1], [list(line)], {}, [])
+            b = m.Trail(bad, "relation", [1], [list(line)], {}, [])
+            a.area = b.area = "Prescott National Forest"
+            out = m.dedupe_duplicate_trails([a, b])
+            self.assertEqual([t.name for t in out], [good], f"{good!r} vs {bad!r}")
+
     def test_dedupe_keeps_distinct_trails_sharing_endpoints(self):
         # two different routes between the same trailhead and peak: SAME
         # endpoints, similar length, DIFFERENT path between -> both survive.

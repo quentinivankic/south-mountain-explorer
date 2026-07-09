@@ -617,21 +617,28 @@ def merge_same_name(trails: list["Trail"], area_of=None) -> list["Trail"]:
 
 
 _REF_SUFFIX = re.compile(r"#\s*\d+[a-z]?\s*$", re.IGNORECASE)
-_TYPE_WORD = re.compile(r"\b(trail|loop|path|way|route)\b", re.IGNORECASE)
+_GENERIC_TOKENS = {"trail", "trails", "loop", "path", "pathway", "way", "route",
+                   "spur", "connector", "cutoff", "bypass", "segment", "extension"}
 
 
-def _name_rank(name: str | None) -> int:
-    """Higher = keep. Prefer a worded name over a bare '#<ref>' form, and a
-    name that carries a trail-type word ('Casner Canyon Trail' > 'Casner
-    Canyon #11')."""
+def _name_rank(name: str | None) -> tuple:
+    """Keep-preference key for a duplicate pair (higher tuple wins):
+      1. a name with >=1 DISTINCTIVE word beats a pure-generic one, so
+         'Granite Mountain Trail #261' > 'Trail 261';
+      2. then fuller spelling (more letters), so 'Wilson Mountain' > 'Willson
+         Mtn' and 'Raspberry' > 'Rasberry';
+      3. then a clean name over a '#<ref>' form, so 'Casner Canyon Trail' >
+         'Casner Canyon #11'.
+    A distinctive word is any token that isn't a generic trail word or a
+    number/ref code."""
     if not name:
-        return -1
-    r = 0
-    if not _REF_SUFFIX.search(name.strip()):
-        r += 2
-    if _TYPE_WORD.search(name):
-        r += 1
-    return r
+        return (-1, 0, 0)
+    toks = re.findall(r"[a-z0-9]+", name.lower())
+    has_distinct = 1 if any(t not in _GENERIC_TOKENS and not t[0].isdigit()
+                            for t in toks) else 0
+    alpha = sum(c.isalpha() for c in name)
+    no_ref = 0 if _REF_SUFFIX.search(name.strip()) else 1
+    return (has_distinct, alpha, no_ref)
 
 
 def _coord_set(t: "Trail") -> frozenset:

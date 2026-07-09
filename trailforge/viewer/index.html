@@ -31,7 +31,9 @@
   <label><input type="checkbox" id="toggle-raw" checked />
     <span class="swatch" style="background:#888"></span>OSM raw (aoi.raw)</label>
   <label><input type="checkbox" id="toggle-trails" checked />
-    <span class="swatch" style="background:#e6521f"></span>Assembled trails (v3)</label>
+    <span class="swatch" style="background:#e6521f"></span>Trails (v3)</label>
+  <label><input type="checkbox" id="toggle-routes" checked />
+    <span class="swatch" style="background:#8b3fd6"></span>Routes (thru / composite)</label>
   <label><input type="checkbox" id="toggle-golden" checked />
     <span class="swatch" style="background:#1a7f37"></span>Golden destinations</label>
   <div style="margin-top:6px"><b id="golden-title">Golden trails</b> (click to fly)</div>
@@ -88,15 +90,25 @@ map.on("load", async () => {
     // feature-state — and since one trail = one MultiLineString feature,
     // that lights up the WHOLE assembled trail at once.
     map.addSource("trails", { type: "geojson", data: trails, generateId: true });
+    // selected feature-state flips either layer's line to cyan + thicker.
+    const selPaint = (base) => ({
+      "line-color": ["case", ["boolean", ["feature-state", "selected"], false],
+                     "#00b7ff", base],
+      "line-width": ["case", ["boolean", ["feature-state", "selected"], false], 6, 3],
+    });
+    // Named trails (kind != route) — solid orange.
     map.addLayer({ id: "trail-lines", source: "trails", type: "line",
+      filter: ["!=", ["get", "kind"], "route"],
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: {
-        "line-color": ["case", ["boolean", ["feature-state", "selected"], false],
-                       "#00b7ff", "#e6521f"],
-        "line-width": ["case", ["boolean", ["feature-state", "selected"], false],
-                       6, 3],
-      } });
+      paint: selPaint("#e6521f") });
+    // Routes that traverse named trails (kind == route) — dashed purple, so a
+    // park view can uncheck them and see just the named-trail set (SPEC §6b).
+    map.addLayer({ id: "route-lines", source: "trails", type: "line",
+      filter: ["==", ["get", "kind"], "route"],
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: { ...selPaint("#8b3fd6"), "line-dasharray": [2, 1.5] } });
 
+    const HIT = ["trail-lines", "route-lines"];
     let selectedId = null;
     const clearSel = () => {
       if (selectedId !== null) {
@@ -104,10 +116,10 @@ map.on("load", async () => {
         selectedId = null;
       }
     };
-    map.on("mouseenter", "trail-lines", () => map.getCanvas().style.cursor = "pointer");
-    map.on("mouseleave", "trail-lines", () => map.getCanvas().style.cursor = "");
+    map.on("mouseenter", HIT, () => map.getCanvas().style.cursor = "pointer");
+    map.on("mouseleave", HIT, () => map.getCanvas().style.cursor = "");
 
-    map.on("click", "trail-lines", (e) => {
+    map.on("click", HIT, (e) => {
       clearSel();
       const f = e.features[0];
       selectedId = f.id;
@@ -118,9 +130,9 @@ map.on("load", async () => {
                  Object.entries(p).map(([k, v]) => `${k}: ${v}`).join("<br>"))
         .addTo(map);
     });
-    // click empty space (off any trail) to clear the highlight
+    // click empty space (off any trail/route) to clear the highlight
     map.on("click", (e) => {
-      if (!map.queryRenderedFeatures(e.point, { layers: ["trail-lines"] }).length) clearSel();
+      if (!map.queryRenderedFeatures(e.point, { layers: HIT }).length) clearSel();
     });
   }
 
@@ -180,6 +192,7 @@ map.on("load", async () => {
       map.setLayoutProperty(id, "visibility", e.target.checked ? "visible" : "none"));
   wire("toggle-raw", ["raw-lines", "raw-pois"]);
   wire("toggle-trails", ["trail-lines"]);
+  wire("toggle-routes", ["route-lines"]);
   wire("toggle-golden", ["golden-pts"]);
 });
 </script>

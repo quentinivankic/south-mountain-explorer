@@ -96,11 +96,26 @@ class NameStitch(unittest.TestCase):
         self.assertEqual(len(trails), 1)
         self.assertEqual(set(trails[0].member_ways), {1, 2, 3})
 
-    def test_same_name_disconnected_stays_separate(self):
+    def test_same_name_merges_into_one_object(self):
+        # Two disconnected "Ridge Trail" ways = one trail with a gap, ONE object.
         ways = {1: W([1, 2], highway="path", name="Ridge Trail"),
                 2: W([8, 9], highway="path", name="Ridge Trail")}
         nodes = {1: (0, 0), 2: (0, 1), 8: (5, 5), 9: (5, 6)}
-        self.assertEqual(len(m.assemble(nodes, ways, {}, [])), 2)
+        trails = m.assemble(nodes, ways, {}, [])
+        self.assertEqual(len(trails), 1)
+        self.assertEqual(len(trails[0].lines), 2)   # both pieces kept
+
+    def test_relation_and_standalone_same_name_merge(self):
+        # National Trail: some ways in the route relation, some standalone.
+        rels = {1: {"tags": {"type": "route", "route": "hiking", "name": "National Trail"},
+                    "members": [("w", 10, "")]}}
+        ways = {10: W([1, 2], highway="path", name="National Trail"),   # relation member
+                20: W([5, 6], highway="path", name="National Trail")}   # standalone
+        nodes = {1: (0, 0), 2: (0, 1), 5: (0, 5), 6: (0, 6)}
+        nat = [t for t in m.assemble(nodes, ways, rels, []) if t.name == "National Trail"]
+        self.assertEqual(len(nat), 1)               # one National Trail, not two
+        self.assertEqual(nat[0].source, "relation")  # relation metadata wins
+        self.assertEqual(set(nat[0].member_ways), {10, 20})
 
 
 class SpurAttach(unittest.TestCase):

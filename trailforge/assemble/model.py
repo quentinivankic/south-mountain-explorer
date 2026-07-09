@@ -108,6 +108,33 @@ def is_closed_name(name: str | None) -> bool:
     return bool(name) and "closed" in norm_name(name).split()
 
 
+# network grades that mark a long-distance thru-route (vs a local trail).
+_ROUTE_NETWORKS = {"rwn", "nwn", "iwn"}
+_ROUTE_WORD = re.compile(r"\broute\b", re.IGNORECASE)
+
+
+def classify_kind(name: str | None, tags: dict) -> str:
+    """'route' for a meta-object that traverses named trails; 'trail' otherwise.
+
+    A route is a completable object in its own right but overlaps the named
+    trails it runs over (the overlap is real, not a bug — SPEC §6b). Tagging
+    it lets a park/completion view show named trails and suppress the route
+    layer. Three tells, all generic:
+      - `network` grade regional-or-higher (rwn/nwn/iwn) — a thru-route like
+        the Hayduke;
+      - a composite `--` name joining two trail names (OSM's way of naming a
+        route over two trails, e.g. 'Angels Landing Trail--West Rim Trail');
+      - the word 'Route' in the name ('Zion Narrows Top-Down Hiking Route').
+    A single-named trail that happens to be a route relation (West Rim Trail,
+    network=lwn) stays a trail.
+    """
+    if str(tags.get("network", "")).strip().lower() in _ROUTE_NETWORKS:
+        return "route"
+    if name and ("--" in name or _ROUTE_WORD.search(name)):
+        return "route"
+    return "trail"
+
+
 # ---------------------------------------------------------------------------
 # geometry helpers
 # ---------------------------------------------------------------------------
@@ -362,6 +389,7 @@ class Trail:
             "type": "Feature",
             "properties": {
                 "name": self.name,
+                "kind": classify_kind(self.name, self.tags),
                 "source": self.source,
                 "length_mi": self.length_mi,
                 "member_ways": self.member_ways,

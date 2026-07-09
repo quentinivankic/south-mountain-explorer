@@ -671,10 +671,17 @@ _GRID_ROAD = re.compile(
     r"^\s*(?:[nsew]\.?\s+)?\d+\s+(?:north|south|east|west|n|s|e|w)\.?\s*$",
     re.IGNORECASE)
 
-# Forest Service / BLM / county road codes — "NF-418C", "BLM 1048", "FR 236",
-# "FS 6005". Dirt vehicle roads through national forests (Kaibab, Coconino,
-# Tonto…), not hiking trails. 1,338 of them in the Arizona statewide run.
-_FOREST_ROAD = re.compile(r"^\s*(nf|fr|fsr|fs|usfs|blm|cr)\b[-\s]?\d", re.IGNORECASE)
+# Agency dirt-road codes — "NF-418C", "BLM 1048", "FR 236", "FS 6005",
+# "NV-9040V". Two branches so we don't play prefix whack-a-mole:
+#   (a) known agency prefixes + any digits (catches 1-2 digit "CR 15");
+#   (b) GENERIC: a short (<=4) letter code + 3+ digits (+opt trailing letter),
+#       as the whole name — catches unfamiliar prefixes (NV, ranger-district
+#       letters) WITHOUT hitting 1-2-digit TRAIL codes (GR20, E5) or worded
+#       names ("Trail 100" — "Trail" is 5 letters). Track-scoped either way,
+#       so real named paths are never touched.
+_FOREST_ROAD = re.compile(
+    r"^\s*(?:(?:nf|fr|fsr|fs|usfs|blm|cr|nv)\b[-\s]?\d"
+    r"|[a-z]{1,4}[-\s]?\d{3,}[a-z]?\s*$)", re.IGNORECASE)
 
 
 def _road_like_track(tags: dict) -> bool:

@@ -424,7 +424,38 @@ def assemble(nodes: dict, ways: dict, relations: dict,
                         if wid not in claimed and _is_trailish(w["tags"])]
     attach_spurs(trails, unnamed_leftover, ways, nodes, pois)
 
-    return trails
+    # 4. one object per named trail — combine the pieces split across a route
+    #    relation and standalone same-named ways (e.g. "National Trail").
+    return merge_same_name(trails)
+
+
+def merge_same_name(trails: list["Trail"]) -> list["Trail"]:
+    """Fold trail objects sharing a name into one.
+
+    Within an AOI a repeated trail name is the same trail: "National Trail"
+    that appears as a route relation PLUS standalone same-named ways should
+    be one object, so it highlights and counts as one. Relation metadata
+    wins. Unnamed trails (welded spurs etc.) pass through untouched.
+    """
+    base_by_name: dict[str, "Trail"] = {}
+    out: list["Trail"] = []
+    for t in trails:
+        key = norm_name(t.name) if t.name else ""
+        if not key:
+            out.append(t)
+            continue
+        base = base_by_name.get(key)
+        if base is None:
+            base_by_name[key] = t
+            out.append(t)
+            continue
+        base.lines.extend(t.lines)
+        base.member_ways.extend(w for w in t.member_ways if w not in base.member_ways)
+        base.destinations.extend(t.destinations)
+        base.welds.extend(t.welds)
+        if base.source != "relation" and t.source == "relation":
+            base.source, base.tags, base.name = "relation", t.tags, t.name
+    return out
 
 
 TRAILISH_HIGHWAY = {"path", "footway", "steps", "track", "bridleway",

@@ -165,6 +165,24 @@ Design intent (numbers to confirm empirically on the box):
 - Defer the format choice until assembly quality is proven; it doesn't
   block Phases D–E.
 
+## 6b. Trail identity + deferred refinements (South Mountain QA)
+
+**Identity by name, not by route.** A trail = the ways sharing a `name`
+(`model.merge_same_name`, assemble step 4 folds same-named pieces into one
+object — e.g. a "National Trail" split across a route relation + standalone
+ways). Route relations (Maricopa Trail, West Highland Way) are a SEPARATE
+overlapping layer — their own completable objects that route over named
+trails; the overlap is real (two things share pavement), not a bug.
+
+Deferred (do when area-routing lands):
+- **Per-area merge.** Same-name merge is currently AOI-wide (blind). The
+  correct scope is per-area: assign each trail its area(s), then merge
+  same-name WITHIN an area, so two different "Loop Trail"s in different
+  parks never fuse. Low risk today (we work in park-sized AOIs).
+- **Hide long-distance routes in a park view.** Keep route objects
+  (`network=rwn/nwn/iwn`) but let a park/area view suppress them so a local
+  view isn't cluttered by a county/thru route crossing it.
+
 ## 7. Open questions the homelab loop resolves
 
 1. Actual hiking-subset size + prefilter runtime on planet (validates the

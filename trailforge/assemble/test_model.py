@@ -234,9 +234,23 @@ class Classification(unittest.TestCase):
         self.assertFalse(m._is_trailish({"highway": "track", "name": "3900 East"}))
         self.assertFalse(m._is_trailish({"highway": "track", "name": "400 South"}))
         self.assertFalse(m._is_trailish({"highway": "track", "name": "N 400 W"}))
+        # Forest Service / BLM road codes (Kaibab etc.) — dirt vehicle roads.
+        for n in ("NF-418C", "NF-761", "BLM 1048", "FR 236", "FS 6005", "Fr 301"):
+            self.assertFalse(m._is_trailish({"highway": "track", "name": n}), n)
+        # rural grid-street / lane / place names tagged as track.
+        for n in ("7th Street", "54th Street North", "Holley Lane",
+                  "Middle Place", "Easy Street", "West Orchard Lane"):
+            self.assertFalse(m._is_trailish({"highway": "track", "name": n}), n)
         # ...but a numbered *trail* (no grid direction pattern) stays.
         self.assertTrue(m._is_trailish({"highway": "track", "name": "Trail 100"}))
         self.assertTrue(m._is_trailish({"highway": "path", "name": "East Rim Trail"}))
+        # legit trails that merely CONTAIN a road-ish word stay: path-typed, or
+        # word-boundary spares them (relation-named trails keep their names too).
+        self.assertTrue(m._is_trailish({"highway": "path", "name": "Old Country Road Trail"}))
+        self.assertTrue(m._is_trailish({"highway": "path", "name": "Prescott Circle Trail"}))
+        self.assertTrue(m._is_trailish({"highway": "footway", "name": "Sun Circle Trail"}))
+        self.assertTrue(m._is_trailish({"highway": "track", "name": "Broadway Trail"}))  # not "road"
+        self.assertTrue(m._is_trailish({"highway": "track", "name": "Creek 5 Loop"}))    # not "CR 5"
         # a plain named track (a real trail) stays.
         self.assertTrue(m._is_trailish({"highway": "track", "name": "Desert Classic Trail"}))
         self.assertTrue(m._is_trailish({"highway": "track"}))

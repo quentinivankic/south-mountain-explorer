@@ -378,6 +378,7 @@ class Trail:
         self.destinations: list[str] = []
         self.welds: list[dict] = []     # QA: what got attached and why
         self.hike = False               # tier-1 promoted canonical hike (SPEC §6c)
+        self.area: str | None = None    # park area assigned for per-area merge (§6b)
 
     def weld_spur(self, wid, coords, poi):
         self.member_ways.append(wid)
@@ -396,6 +397,7 @@ class Trail:
             "properties": {
                 "name": self.name,
                 "kind": "hike" if self.hike else classify_kind(self.name, self.tags),
+                "area": self.area,
                 "source": self.source,
                 "length_mi": self.length_mi,
                 "member_ways": self.member_ways,
@@ -562,11 +564,13 @@ def merge_same_name(trails: list["Trail"], area_of=None) -> list["Trail"]:
     base_by_key: dict[tuple, "Trail"] = {}
     out: list["Trail"] = []
     for t in trails:
+        if area_of is not None:
+            t.area = area_of(t)             # record for emit + viewer filter
         name_key = merge_key(t.name) if t.name else ""
         if not name_key:
             out.append(t)
             continue
-        area = area_of(t) if area_of is not None else "\x00aoi"
+        area = t.area if area_of is not None else "\x00aoi"
         if area is None:                    # backcountry: never cross-merge
             out.append(t)
             continue

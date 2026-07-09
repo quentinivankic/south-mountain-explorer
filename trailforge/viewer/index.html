@@ -41,6 +41,8 @@
     <span class="swatch" style="background:#e6521f"></span>Trails (v3)</label>
   <label><input type="checkbox" id="toggle-routes" checked />
     <span class="swatch" style="background:#8b3fd6"></span>Routes (thru / composite)</label>
+  <label><input type="checkbox" id="toggle-inarea" />
+    <span class="swatch" style="background:#e6521f;opacity:.35"></span>Only trails in an area</label>
   <label><input type="checkbox" id="toggle-golden" checked />
     <span class="swatch" style="background:#1a7f37"></span>Golden destinations</label>
   <div style="margin-top:8px"><b>Trails</b> <span id="inview-count" class="mi"></span></div>
@@ -130,24 +132,39 @@ map.on("load", async () => {
                      "#00b7ff", base],
       "line-width": ["case", ["boolean", ["feature-state", "selected"], false], 6, w],
     });
+    // Base filter per kind. The "Only trails in an area" toggle ANDs an
+    // area-membership clause onto these (SPEC §6b — arealess backcountry).
+    const KIND_FILTER = {
+      "trail-lines": ["all", ["!=", ["get", "kind"], "route"], ["!=", ["get", "kind"], "hike"]],
+      "route-lines": ["==", ["get", "kind"], "route"],
+      "hike-lines": ["==", ["get", "kind"], "hike"],
+    };
     // Named physical trails (kind == trail) — solid orange. Unknown/missing
     // kind falls here too (safe default).
     map.addLayer({ id: "trail-lines", source: "trails", type: "line",
-      filter: ["all", ["!=", ["get", "kind"], "route"], ["!=", ["get", "kind"], "hike"]],
+      filter: KIND_FILTER["trail-lines"],
       layout: { "line-cap": "round", "line-join": "round" },
       paint: selPaint("#e6521f") });
     // Routes that traverse named trails (kind == route) — dashed purple, so a
     // park view can uncheck them and see just the named-trail set (SPEC §6b).
     map.addLayer({ id: "route-lines", source: "trails", type: "line",
-      filter: ["==", ["get", "kind"], "route"],
+      filter: KIND_FILTER["route-lines"],
       layout: { "line-cap": "round", "line-join": "round" },
       paint: { ...selPaint("#8b3fd6"), "line-dasharray": [2, 1.5] } });
     // Canonical hikes (kind == hike) — solid green, thicker, drawn on top:
     // the marquee "complete this" objects harvested from OSM routes (SPEC §6c).
     map.addLayer({ id: "hike-lines", source: "trails", type: "line",
-      filter: ["==", ["get", "kind"], "hike"],
+      filter: KIND_FILTER["hike-lines"],
       layout: { "line-cap": "round", "line-join": "round" },
       paint: selPaint("#17913a", 4.5) });
+    // "Only trails in an area": AND an area-membership clause onto each kind.
+    document.getElementById("toggle-inarea").onchange = (e) => {
+      for (const [lid, base] of Object.entries(KIND_FILTER)) {
+        if (!map.getLayer(lid)) continue;
+        map.setFilter(lid, e.target.checked
+          ? ["all", base, ["to-boolean", ["get", "area"]]] : base);
+      }
+    };
 
     const HIT = ["hike-lines", "trail-lines", "route-lines"];
     let selectedId = null;

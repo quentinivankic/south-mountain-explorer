@@ -653,7 +653,15 @@ struct TrailMapView: View {
             }
         }
         let completed = completedTrailIdsForArea
-        let sourceTrails = (area.rawTrails ?? area.trails)
+        // Snap onto the DECIMATED render geometry (`area.trails`) — the exact
+        // polylines the map draws — NOT the dense `rawTrails`. The two diverge
+        // by up to the 5 m decimation epsilon on curves, which is invisible at
+        // normal zoom but shows when zoomed in: snapping to raw made the cyan
+        // drift OFF the drawn trail line (the "scatter" and the
+        // cyan-with-no-line-under-it). Emitting render nodes puts the cyan
+        // pixel-on-pixel over the trail; the 30 m buffer keeps detection
+        // robust despite the sparser node set.
+        let sourceTrails = area.trails
             .filter { !completed.contains($0.id) }
         var all: [[CLLocationCoordinate2D]] = []
         for trail in sourceTrails {

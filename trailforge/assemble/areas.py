@@ -11,7 +11,8 @@ relation), which `osmium export` does not reliably emit.
 Matching unions every area whose name CONTAINS the query (case-insensitive)
 — so "south mountain" folds the 'South Mountain Park and Preserve'
 boundary AND its 'South Mountain Preserve' member polygons into one
-boundary — then keeps trails that are majority-inside it (by length).
+boundary — then keeps trails with a meaningful share of their length
+inside it (>25% by default).
 
 Needs pyosmium + shapely (both installed by the pipeline). Kept out of
 model.py so the core assembly stays pure/stdlib.
@@ -73,15 +74,17 @@ def union_matching(areas: list[dict[str, Any]], name_substr: str):
 
 
 def filter_features_inside(features: list[dict[str, Any]], area_union,
-                           min_inside_frac: float = 0.5) -> list[dict[str, Any]]:
-    """Keep features that are majority-inside the area union.
+                           min_inside_frac: float = 0.25) -> list[dict[str, Any]]:
+    """Keep features with a meaningful share of their length inside the area.
 
     A trail is kept when more than `min_inside_frac` of its LENGTH falls
     inside the boundary — not merely a single representative point. This
     recovers trails that straddle the edge (a connector leaving the park to
-    reach a road) while still rejecting long thru-routes and trails that only
-    clip the boundary. Degenerate (zero-length) geometries fall back to a
-    point-in-area test.
+    reach a road) while still rejecting trails that only clip the boundary.
+    The 0.25 default sits in the natural gap seen at South Mountain: real
+    park trails that partly exit sit at ~0.43+, while genuinely-outside
+    neighbourhood/canal paths sit at ~0.07 and below. Degenerate
+    (zero-length) geometries fall back to a point-in-area test.
     """
     from shapely.geometry import shape
 

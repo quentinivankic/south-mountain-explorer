@@ -55,16 +55,23 @@ class AreaFilter(unittest.TestCase):
         kept = A.filter_features_inside(feats, union)
         self.assertEqual(len(kept), 2)
 
-    def test_straddler_kept_when_majority_inside(self):
-        # A connector leaving the park (union spans x:0..12): DC-Ray-style.
+    def test_straddler_kept_at_default_frac(self):
+        # union spans x:0..12. Default min_inside_frac=0.25 keeps a trail that
+        # mostly-but-not-majority exits the park (DC-Ray sits at 0.44) while
+        # dropping one that only clips the edge (Helipad-like, ~0.1).
         union, _ = A.union_matching(self.AREAS, "south mountain")
-        # 6 of 10 units inside (x 6->12), 4 outside (12->16) -> 60% -> kept.
-        majority = _line([[6, 5], [16, 5]])
-        # 2 of 10 inside (x 10->12) -> 20% -> dropped.
-        minority = _line([[10, 5], [20, 5]])
-        kept = A.filter_features_inside([majority, minority], union)
+        straddler = _line([[8, 5], [18, 5]])   # 4 of 10 inside -> 0.40 -> kept
+        clipper = _line([[11, 5], [21, 5]])    # 1 of 10 inside -> 0.10 -> dropped
+        kept = A.filter_features_inside([straddler, clipper], union)
         self.assertEqual(len(kept), 1)
-        self.assertEqual(kept[0]["geometry"]["coordinates"][0], [6, 5])
+        self.assertEqual(kept[0]["geometry"]["coordinates"][0], [8, 5])
+
+    def test_min_inside_frac_is_tunable(self):
+        # The same 0.40-inside straddler drops when the threshold is raised.
+        union, _ = A.union_matching(self.AREAS, "south mountain")
+        straddler = _line([[8, 5], [18, 5]])   # 0.40 inside
+        self.assertEqual(len(A.filter_features_inside([straddler], union, 0.25)), 1)
+        self.assertEqual(len(A.filter_features_inside([straddler], union, 0.5)), 0)
 
     def test_no_match_returns_none(self):
         union, names = A.union_matching(self.AREAS, "nonexistent park")

@@ -327,6 +327,24 @@ class Classification(unittest.TestCase):
         self.assertTrue(m._is_trailish({"highway": "track", "name": "Desert Classic Trail"}))
         self.assertTrue(m._is_trailish({"highway": "track"}))
 
+    def test_road_code_name_dropped_regardless_of_highway(self):
+        # forest-road / OSM-ref codes that ride on path/footway or route
+        # relations (so the track-scoped filter never sees them) — from the
+        # AZ statewide diff (Tonto/Kaibab/Apache-Sitgreaves).
+        for n in ("[FR 1098]", "[FR 374] **4WD**", "[FS 9601A]  **4WD**",
+                  ";NF-246C", "NF-D1857", "NF-W17", "MT-2026 - FDR 2026",
+                  "U2259", "U72B", "U2271A", "PST012", "212E", "300V1",
+                  "8170D", "237B OHV", "09149T", "#744", "933b", "F R 8080",
+                  "FR8375A", "Forest Rt 85", "Forest Service Road 420",
+                  "T4417", "U S F 3347", "8080"):
+            self.assertTrue(m.is_road_code_name(n), n)
+        # real trails that merely carry a number are KEPT (digit-gated + word-aware)
+        for n in ("Aerie #168", "Calloway Trail 33", "See Canyon Trail #184",
+                  "Little Saddle Mountain Trail #244", "Trail #2090",
+                  "32nd St Connector", "35th Ave Access Trail", "Alta Trail",
+                  "National Trail", "DC-Ray Connector", "Pure O"):
+            self.assertFalse(m.is_road_code_name(n), n)
+
     def test_promote_hike_renames_local_route_from_destination(self):
         # a local route ending at a named destination POI -> canonical hike
         t = m.Trail("Angels Landing Trail--West Rim Trail", "relation", [1],

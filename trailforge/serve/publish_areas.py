@@ -30,6 +30,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "assemble"))
 import to_app_json as conv          # noqa: E402
 import areas as areamod             # noqa: E402
+import model                        # noqa: E402 — merge_key for rescue dedupe
 
 _DEFAULT_INDEX = os.path.join(os.path.dirname(__file__), "..", "..",
                               "ios", "SouthMountainExplorer", "Resources", "areas-index.json")
@@ -114,8 +115,38 @@ def main(argv=None) -> int:
         if b.get("name"):
             g = _union_from_rings(b["rings"])
             if g is not None:
-                geoms[b["name"]] = g
+                # OSM often carries MORE THAN ONE boundary relation under the
+                # same name (a park split into several relations/multipolygons).
+                # A plain dict assignment keeps only the last and silently clips
+                # away every trail that fell in the others — that's the South
+                # Mountain 78->76 drop, which the different-name sibling-fold
+                # below can't reach (a same-named piece is skipped by the
+                # index_names guard AND never lands in geoms). Union same-named
+                # boundaries so every piece contributes.
+                geoms[b["name"]] = (unary_union([geoms[b["name"]], g])
+                                    if b["name"] in geoms else g)
     index_names = {m["name"].casefold() for m in az.values()}
+
+    # Boundary-straddlers: trails the statewide run assigned to NO park
+    # (area=None) because their rep-point (midpoint) fell just outside every
+    # boundary polygon — e.g. South Mountain's DC-Ray Connector, whose midpoint
+    # sits in a concavity of the park edge. They belong to whichever park their
+    # geometry actually lies inside, so we offer them to each area's clip; a
+    # trail with no in-park remnant clips to nothing and drops for free, and a
+    # TAGGED trail (Maricopa, National) is never in this set, so the deferred
+    # thru-route policy is untouched. Precompute each with its bounds so the
+    # per-area test is a cheap bbox reject.
+    from shapely.geometry import shape as _shape
+    untagged = []
+    for f in fc["features"]:
+        if f["properties"].get("area"):
+            continue
+        try:
+            untagged.append((_shape(f["geometry"]).bounds, f))
+        except Exception:
+            pass
+    print(f"untagged (no-park) trails available for edge rescue: {len(untagged)}",
+          file=sys.stderr)
 
     def siblings(primary: str) -> list[str]:
         """primary boundary + any OSM boundary that overlaps it, shares a name
@@ -137,8 +168,30 @@ def main(argv=None) -> int:
                 pass
         return names
 
+    def existing_diff(slug: str, row: dict):
+        """removed/added trail names vs the currently-published file, plus any
+        duplicate-named entries the run itself emits. Uses multiset (per-name
+        count) semantics so a rescued straddler that shares a name with an
+        existing trail — invisible to a set diff — still surfaces as '(xN)'."""
+        from collections import Counter
+        path = os.path.join(args.out_dir, f"{slug}.json")
+        if not os.path.exists(path):
+            return None
+        try:
+            live = json.load(open(path))
+        except Exception:
+            return None
+        new_c = Counter(t["name"] for t in row["trails"])
+        live_c = Counter(t["name"] for t in live.get("trails", []))
+        removed = sorted(f"{n} (x{live_c[n]-new_c[n]})" if live_c[n]-new_c[n] > 1 else n
+                         for n in live_c if live_c[n] > new_c[n])
+        added = sorted(f"{n} (x{new_c[n]-live_c[n]})" if new_c[n]-live_c[n] > 1 else n
+                       for n in new_c if new_c[n] > live_c[n])
+        dups = sorted(f"{n} (x{c})" for n, c in new_c.items() if c > 1)
+        return removed, added, dups
+
     kinds = {"trail", "hike"} if args.no_routes else {"trail", "hike", "route"}
-    published, skipped, failed = [], [], []
+    published, skipped, failed, changes = [], [], [], []
     count = 0
     for slug, meta in sorted(az.items()):
         if args.limit and count >= args.limit:
@@ -153,12 +206,32 @@ def main(argv=None) -> int:
         if not feats:
             skipped.append((slug, "no trails assigned to this area")); continue
         union = unary_union([geoms[n] for n in sib])
-        clipped = areamod.clip_features_to_area(feats, union, min_inside_mi=args.min_inside_mi)
+        ux0, uy0, ux1, uy1 = union.bounds
+        # Rescue untagged straddlers, but NOT a name already present here as a
+        # tagged trail — else we add a second "Maricopa Trail"/"Degoba Loop"
+        # fragment beside the real one. Dedupe by merge_key (vs tagged AND vs
+        # earlier rescues), so only genuinely-new trails (DC-Ray Connector,
+        # Degoba Alt) come back.
+        have = {model.merge_key(f["properties"].get("name") or "") for f in feats}
+        rescue = []
+        for (bx0, by0, bx1, by1), f in untagged:
+            if bx1 < ux0 or bx0 > ux1 or by1 < uy0 or by0 > uy1:
+                continue
+            k = model.merge_key(f["properties"].get("name") or "")
+            if k in have:
+                continue
+            have.add(k)
+            rescue.append(f)
+        clipped = areamod.clip_features_to_area(feats + rescue, union,
+                                                min_inside_mi=args.min_inside_mi)
         row = conv.convert({"features": clipped}, slug, meta["name"], meta["state"],
                            meta["center"], meta["osm_rel"], kinds)
         problems = validate(row)
         if problems:
             failed.append((slug, problems)); continue
+        d = existing_diff(slug, row)
+        if d and (d[0] or d[1] or d[2]):
+            changes.append((slug, d[0], d[1], d[2]))
         count += 1
         if args.dry_run:
             published.append((slug, row["trail_count"], "dry-run"))
@@ -186,6 +259,17 @@ def main(argv=None) -> int:
         print(f"\nFAILED validation {len(failed)} (NOT written):")
         for slug, probs in failed:
             print(f"  {slug}: {probs}")
+    if changes:
+        print(f"\n=== trail changes vs currently-published files ({len(changes)} areas) ===")
+        for slug, removed, added, dups in changes:
+            print(f"  {slug}:  -{len(removed)} / +{len(added)}"
+                  + (f"  [{len(dups)} duplicate-named]" if dups else ""))
+            for nm in removed:
+                print(f"      REMOVED: {nm}")
+            for nm in added:
+                print(f"      added:   {nm}")
+            for nm in dups:
+                print(f"      DUP-NAME: {nm}")
     return 0
 
 

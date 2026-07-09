@@ -1,0 +1,93 @@
+name: Trailforge — publish a state to the app
+
+# Runs the whole trailforge pipeline in the cloud (no homelab): download a
+# Geofabrik extract -> prefilter -> assemble statewide with per-area merge ->
+# batch-publish each app area (clip to boundary, convert, VALIDATE) into
+# public/areas/geom + bump the index, then trigger the R2 sync.
+#
+# State-scale only (fits the 16 GB runner; planet still needs the homelab).
+# Default is a DRY RUN — it reports what would publish and writes nothing, so
+# you can review before committing anything to production.
+
+on:
+  workflow_dispatch:
+    inputs:
+      extract:
+        description: "Geofabrik extract path (no -latest suffix)"
+        default: "north-america/us/arizona"
+      state:
+        description: "Index 'state' whose areas to publish"
+        default: "Arizona"
+      dry_run:
+        description: "Preview only — report matches, write/publish nothing"
+        type: boolean
+        default: true
+      no_routes:
+        description: "Drop thru-routes (Maricopa, AZ Trail) from the checklist"
+        type: boolean
+        default: false
+
+concurrency:
+  group: trailforge-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install osmium + pyosmium + shapely
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely
+
+      - name: Download + prefilter extract
+        run: |
+          set -e
+          cd trailforge
+          mkdir -p data/raw data/aoi
+          F="data/raw/$(basename '${{ github.event.inputs.extract }}').osm.pbf"
+          echo "Downloading ${{ github.event.inputs.extract }} ..."
+          curl -fL --retry 5 --retry-delay 5 --connect-timeout 20 \
+            --speed-limit 2000 --speed-time 30 -o "$F" \
+            "https://download.geofabrik.de/${{ github.event.inputs.extract }}-latest.osm.pbf"
+          ls -lh "$F"
+          bash extract/prefilter.sh "$F" data/hiking.osm.pbf
+
+      - name: Assemble (statewide, per-area merge)
+        run: |
+          set -e
+          cd trailforge
+          python3 assemble/assemble.py --in data/hiking.osm.pbf \
+            --out data/aoi/state.trails.geojson --min-length-mi 0.1 --per-area-merge
+
+      - name: Publish areas (clip + convert + validate)
+        run: |
+          set -e
+          cd trailforge
+          FLAGS=""
+          [ "${{ github.event.inputs.dry_run }}" = "true" ]  && FLAGS="$FLAGS --dry-run"
+          [ "${{ github.event.inputs.no_routes }}" = "true" ] && FLAGS="$FLAGS --no-routes"
+          python3 serve/publish_areas.py \
+            --trails data/aoi/state.trails.geojson --hiking data/hiking.osm.pbf \
+            --state "${{ github.event.inputs.state }}" \
+            --out-dir ../public/areas/geom $FLAGS
+
+      - name: Commit published data
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          set -e
+          git config user.name "trailforge-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/areas/geom ios/SouthMountainExplorer/Resources/areas-index.json
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."; exit 0
+          fi
+          git commit -m "trailforge: publish ${{ github.event.inputs.state }} areas to app"
+          git push
+
+      - name: Trigger R2 sync
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run sync-geom-to-r2.yml

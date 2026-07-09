@@ -57,11 +57,13 @@ final class DemoUserDotAnnotation: MKPointAnnotation {}
 struct MapKitMapView: UIViewRepresentable {
     let area: Area
     let activeRecording: ActiveRecording?
-    /// Per-past-hike on-trail-filtered GPS segments. Each inner array
-    /// is one segment of one hike's halo path. TrailMapView still
-    /// owns the spatial-grid filter that produces these (so the
-    /// coordinate-grid logic stays alongside the other geometry
-    /// caches it manages).
+    /// Trail-snapped "walked here" runs for the cyan lifetime halo.
+    /// TrailMapView snaps every past hike's GPS onto the trail
+    /// polylines (`trailSnappedHaloRuns`) and passes the result as a
+    /// single group; each inner array is a run of trail nodes, so the
+    /// overlay follows the trail exactly rather than the raw GPS
+    /// scatter. The outer array is just the grouping the renderer
+    /// flattens — kept `[[[…]]]` to match the overlay-rebuild path.
     let haloSegments: [[[CLLocationCoordinate2D]]]
     /// On-trail-filtered segments of the **live** recording's GPS
     /// path. While a recording is active, TrailMapView rebuilds

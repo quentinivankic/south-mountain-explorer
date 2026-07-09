@@ -100,23 +100,11 @@ struct TrailMapView: View {
     @Environment(ProgressService.self) private var progress
     @Environment(LocationService.self) private var location
 
-    /// Pre-built spatial index over every trail node in the area, used
-    /// by the halo's `onTrailSegments` filter. Built once on appear so
-    /// new hikes don't rebuild a 5000-node grid.
-    @State private var cachedTrailGrid = SpatialGrid()
-    /// Grid built from only the NOT-yet-completed trails. The cyan
-    /// past-hike halo is filtered through this, so it never draws over
-    /// an already-completed trail — where a translucent cyan trace on
-    /// top of the already-cyan completed line just smeared into a muddy
-    /// band. The full `cachedTrailGrid` still feeds the live-recording
-    /// halo and the walked-since-completion overlay (both of which
-    /// legitimately care about completed trails).
-    @State private var cachedHaloGrid = SpatialGrid()
-    /// Per-past-hike pre-filtered halo segments (the on-trail subset
-    /// of each recorded GPS path). Rebuilt on appear and whenever
-    /// `pastPaths.count` changes — i.e. only when a new hike
-    /// finishes. Passed straight through to `MapKitMapView`, which
-    /// renders each segment as an `MKPolyline` overlay.
+    /// Trail-snapped runs for the cyan lifetime "walked here" halo
+    /// (`trailSnappedHaloRuns`), wrapped in a single outer group.
+    /// Rebuilt on appear and whenever `pastHikes.count` or the set of
+    /// completed trails changes. Passed straight through to
+    /// `MapKitMapView`, which renders each run as an `MKPolyline`.
     @State private var cachedHaloSegments: [[[CLLocationCoordinate2D]]] = []
     /// On-trail-filtered segments of the **live** recording's GPS
     /// path. Recomputed at most once per second from
@@ -251,23 +239,12 @@ struct TrailMapView: View {
             }
         }
         .onAppear {
-            // Build the spatial grid once on appear from the dense
-            // pre-decimation node set (rawTrails when available). The
-            // grid feeds the halo on-trail filter — building from
-            // decimated nodes leaves 25-30 m gaps that the user's
-            // raw GPS path drops through, dropping halo segments.
-            let gridTrails = area.rawTrails ?? area.trails
-            var grid = SpatialGrid()
-            for trail in gridTrails {
-                for seg in trail.segments {
-                    for node in seg where node.count >= 2 {
-                        grid.insert(node)
-                    }
-                }
-            }
-            cachedTrailGrid = grid
-            cachedHaloGrid = buildHaloGrid()
-            cachedHaloSegments = pastHikes.map { onTrailSegments($0.path, grid: cachedHaloGrid) }
+            // Snap every past hike's GPS onto the trail network so the
+            // cyan "walked here" overlay follows the trail polylines
+            // exactly and overlapping passes collapse into one line
+            // (see trailSnappedHaloRuns), instead of drawing the raw
+            // GPS scatter.
+            cachedHaloSegments = [trailSnappedHaloRuns()]
             // If the view was re-entered with a recording already in
             // progress (e.g. app foregrounded after backgrounding
             // mid-hike), populate the live halo immediately so the
@@ -289,19 +266,18 @@ struct TrailMapView: View {
             }
         }
         .onChange(of: pastHikes.count) { _, _ in
-            // New hike finished and AreaView reloaded pastHikes.
-            // Refresh the halo cache against the completed-excluding grid.
-            cachedHaloSegments = pastHikes.map { onTrailSegments($0.path, grid: cachedHaloGrid) }
+            // New hike finished and AreaView reloaded pastHikes —
+            // re-snap the walked-here overlay to include it.
+            cachedHaloSegments = [trailSnappedHaloRuns()]
             // Same trigger — refresh the walked-since-completion
             // overlay so the just-finished hike contributes.
             recomputeWalkedSinceCompletion()
         }
         .onChange(of: completedTrailIdsForArea) { _, _ in
             // A trail just completed (live, mid-hike, or on area open):
-            // rebuild the halo grid so its halo stops drawing, and
-            // refresh the cached segments against it.
-            cachedHaloGrid = buildHaloGrid()
-            cachedHaloSegments = pastHikes.map { onTrailSegments($0.path, grid: cachedHaloGrid) }
+            // re-snap so the walked-here overlay stops painting the
+            // now-completed trail (trailSnappedHaloRuns excludes it).
+            cachedHaloSegments = [trailSnappedHaloRuns()]
         }
         .onChange(of: selectedTrailId) { _, newId in
             // Recompute the orange walked-since-completion overlay
@@ -655,6 +631,37 @@ struct TrailMapView: View {
         return all
     }
 
+    // MARK: - Walked-here (lifetime) halo
+
+    /// Trail-polyline-snapped runs for the cyan lifetime "walked here"
+    /// halo. Builds ONE GPS grid from every past hike, then walks each
+    /// not-yet-completed trail's polyline and emits runs of nodes within
+    /// 30 m of any GPS point (the lifetime buffer — looser than the 10 m
+    /// since-completion buffer, matching `rebuildCoverageFromHistory` so
+    /// the halo and the coverage bar agree on what counts as walked).
+    ///
+    /// Because it iterates the TRAIL nodes rather than the GPS path, the
+    /// result follows the trail exactly and multiple passes over the same
+    /// stretch collapse into a single run — no more raw-GPS scatter or
+    /// stacked overlapping traces. Completed trails are excluded so their
+    /// finished-state styling isn't smeared over.
+    private func trailSnappedHaloRuns() -> [[CLLocationCoordinate2D]] {
+        var gpsGrid = SpatialGrid()
+        for hike in pastHikes {
+            for p in hike.path where p.count >= 2 {
+                gpsGrid.insert(p)
+            }
+        }
+        let completed = completedTrailIdsForArea
+        let sourceTrails = (area.rawTrails ?? area.trails)
+            .filter { !completed.contains($0.id) }
+        var all: [[CLLocationCoordinate2D]] = []
+        for trail in sourceTrails {
+            all.append(contentsOf: trailNodeRuns(coveredBy: gpsGrid, in: trail, bufferM: 30.0))
+        }
+        return all
+    }
+
     // MARK: - Walked-since-completion overlay
 
     /// Recompute the orange walked-since-completion segments for
@@ -731,8 +738,8 @@ struct TrailMapView: View {
     /// `rebuildCoverageFromHistory`, so the bar's "% remaining"
     /// and the orange overlay agree on what counts as "drifted
     /// across this trail" post-completion.
-    private func trailNodeRuns(coveredBy gpsGrid: SpatialGrid, in trail: Trail) -> [[CLLocationCoordinate2D]] {
-        let bufferM = 10.0
+    private func trailNodeRuns(coveredBy gpsGrid: SpatialGrid, in trail: Trail,
+                               bufferM: Double = 10.0) -> [[CLLocationCoordinate2D]] {
         var runs: [[CLLocationCoordinate2D]] = []
         for seg in trail.segments {
             var current: [CLLocationCoordinate2D] = []
@@ -749,53 +756,6 @@ struct TrailMapView: View {
             if current.count >= 2 { runs.append(current) }
         }
         return runs
-    }
-
-    // MARK: - Halo segment filter
-
-    /// Split a recorded GPS path into runs of consecutive points that
-    /// lie within `bufferM` of any trail node. Off-trail runs
-    /// (e.g. commuting from home to the trailhead) drop out so the
-    /// cyan halo only paints actual trail coverage. The grid is
-    /// usually pulled from `cachedTrailGrid`, but `.onAppear` passes
-    /// the freshly-built grid explicitly because @State writes within
-    /// the same closure aren't guaranteed to be visible to subsequent
-    /// reads in that closure.
-    /// Spatial grid over only the trails that AREN'T complete yet — the
-    /// past-hike halo's on-trail filter, so it never smears over an
-    /// already-cyan completed trail. Built from the dense pre-decimation
-    /// nodes for the same reason the full grid is.
-    private func buildHaloGrid() -> SpatialGrid {
-        let completed = completedTrailIdsForArea
-        let trails = (area.rawTrails ?? area.trails).filter { !completed.contains($0.id) }
-        var grid = SpatialGrid()
-        for trail in trails {
-            for seg in trail.segments {
-                for node in seg where node.count >= 2 { grid.insert(node) }
-            }
-        }
-        return grid
-    }
-
-    private func onTrailSegments(
-        _ path: [GpsPoint],
-        grid: SpatialGrid? = nil
-    ) -> [[CLLocationCoordinate2D]] {
-        let g = grid ?? cachedTrailGrid
-        let bufferM = 30.0
-        var segments: [[CLLocationCoordinate2D]] = []
-        var current: [CLLocationCoordinate2D] = []
-        for p in path {
-            guard p.count >= 2 else { continue }
-            if g.hasNeighbor(lat: p[0], lon: p[1], withinMeters: bufferM) {
-                current.append(CLLocationCoordinate2D(latitude: p[0], longitude: p[1]))
-            } else if !current.isEmpty {
-                if current.count >= 2 { segments.append(current) }
-                current.removeAll(keepingCapacity: true)
-            }
-        }
-        if current.count >= 2 { segments.append(current) }
-        return segments
     }
 
     // MARK: - Fitted-region math

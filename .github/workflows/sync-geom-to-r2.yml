@@ -57,7 +57,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # Always sync main's TIP, not the SHA that triggered this run. A
+      # workflow_dispatch fired right after an upstream push (trailforge-
+      # publish's "Trigger R2 sync" step) resolves to the PRE-push commit, so
+      # the default checkout would sync stale data and silently skip the new
+      # geom. Pinning ref: main fetches the just-pushed data.
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Sync area data to R2
         env:

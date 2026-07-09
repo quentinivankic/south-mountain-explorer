@@ -70,6 +70,22 @@ def _union_from_rings(rings):
     return u if u.is_valid else u.buffer(0)
 
 
+# Designator words dropped when comparing park names — the distinctive part
+# ("South Mountain") is what identifies the same park across split polygons.
+_AREA_STOPWORDS = {
+    "national", "state", "park", "preserve", "forest", "forests", "wilderness",
+    "monument", "area", "areas", "recreation", "recreational", "conservation",
+    "natural", "nature", "reserve", "refuge", "and", "the", "of", "district",
+    "study", "regional", "county", "memorial", "management", "critical",
+    "environmental", "concern", "wildlife", "riparian",
+}
+
+
+def _sig_tokens(name: str) -> set[str]:
+    return {t for t in re.split(r"[^a-z0-9]+", (name or "").lower())
+            if t and t not in _AREA_STOPWORDS}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="batch-publish trailforge areas -> app JSON")
     ap.add_argument("--trails", required=True, help="statewide trails.geojson (--per-area-merge)")
@@ -90,14 +106,36 @@ def main(argv=None) -> int:
     print(f"index: {len(az)} '{args.state}' areas", file=sys.stderr)
 
     fc = json.load(open(args.trails))
-    by_area: dict[str, list] = {}
-    for f in fc["features"]:
-        a = f["properties"].get("area")
-        if a:
-            by_area.setdefault(a, []).append(f)
 
     print("assembling park boundaries from the PBF…", file=sys.stderr)
-    bnd = {b["name"].casefold(): b for b in areamod.merge_areas(args.hiking) if b.get("name")}
+    from shapely.ops import unary_union
+    geoms = {}
+    for b in areamod.merge_areas(args.hiking):
+        if b.get("name"):
+            g = _union_from_rings(b["rings"])
+            if g is not None:
+                geoms[b["name"]] = g
+    index_names = {m["name"].casefold() for m in az.values()}
+
+    def siblings(primary: str) -> list[str]:
+        """primary boundary + any OSM boundary that overlaps it, shares a name
+        token, and is NOT itself a separate app area — folds 'loose' split
+        polygons (e.g. 'South Mountain Preserve') into their parent while
+        keeping nested app areas (a wilderness inside a forest) independent."""
+        pg = geoms.get(primary)
+        names = [primary]
+        if pg is None or pg.area <= 0:
+            return names
+        ptok = _sig_tokens(primary)
+        for nm, g in geoms.items():
+            if nm == primary or nm.casefold() in index_names or not (ptok & _sig_tokens(nm)):
+                continue
+            try:
+                if pg.intersection(g).area > 0.3 * min(pg.area, g.area):
+                    names.append(nm)
+            except Exception:
+                pass
+        return names
 
     kinds = {"trail", "hike"} if args.no_routes else {"trail", "hike", "route"}
     published, skipped, failed = [], [], []
@@ -105,15 +143,17 @@ def main(argv=None) -> int:
     for slug, meta in sorted(az.items()):
         if args.limit and count >= args.limit:
             break
-        feats = by_area.get(meta["name"], [])
-        b = bnd.get(meta["name"].casefold())
+        primary = next((nm for nm in geoms if nm.casefold() == meta["name"].casefold()), None)
+        if primary is None:
+            skipped.append((slug, "no boundary in PBF")); continue
+        sib = siblings(primary)
+        sib_cf = {n.casefold() for n in sib}
+        feats = [f for f in fc["features"]
+                 if (f["properties"].get("area") or "").casefold() in sib_cf]
         if not feats:
             skipped.append((slug, "no trails assigned to this area")); continue
-        if not b:
-            skipped.append((slug, "no boundary in PBF")); continue
-        union = _union_from_rings(b["rings"])
-        clipped = (areamod.clip_features_to_area(feats, union, min_inside_mi=args.min_inside_mi)
-                   if union is not None else feats)
+        union = unary_union([geoms[n] for n in sib])
+        clipped = areamod.clip_features_to_area(feats, union, min_inside_mi=args.min_inside_mi)
         row = conv.convert({"features": clipped}, slug, meta["name"], meta["state"],
                            meta["center"], meta["osm_rel"], kinds)
         problems = validate(row)

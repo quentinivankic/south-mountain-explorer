@@ -93,14 +93,25 @@ def main(argv=None) -> int:
                     help="with --only-area, drop a clipped trail whose in-park "
                          "remnant is shorter than this (miles); guards against "
                          "boundary slivers (default 0.05)")
+    ap.add_argument("--per-area-merge", dest="per_area_merge", action="store_true",
+                    help="scope same-name merge to within each park boundary. For "
+                         "unclipped region/state runs, so same-named trails in "
+                         "different parks don't fuse into one scattered object.")
     args = ap.parse_args(argv)
 
     nodes, ways, relations, pois = read_pbf(args.inp)
     print(f"read: {len(ways):,} ways, {len(relations):,} route relations, "
           f"{len(pois):,} POIs, {len(nodes):,} nodes", file=sys.stderr)
 
+    areas_arg = None
+    if args.per_area_merge:
+        import areas as areamod
+        areas_arg = areamod.merge_areas(args.inp)
+        print(f"per-area merge: scoping same-name merge to {len(areas_arg):,} "
+              f"park areas", file=sys.stderr)
+
     trails = model.assemble(nodes, ways, relations, pois,
-                            min_length_mi=args.min_length_mi)
+                            min_length_mi=args.min_length_mi, areas=areas_arg)
     features = [t.to_feature() for t in trails]
 
     area_note = ""

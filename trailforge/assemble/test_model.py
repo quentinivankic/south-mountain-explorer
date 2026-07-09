@@ -153,6 +153,58 @@ class NameStitch(unittest.TestCase):
         self.assertEqual(nat[0].source, "relation")  # relation metadata wins
         self.assertEqual(set(nat[0].member_ways), {10, 20})
 
+    # --- per-area merge (SPEC §6b) ---
+    _AREAS = [
+        {"name": "ParkA", "bbox": (0, 0, 2, 2),
+         "rings": [[(0, 0), (2, 0), (2, 2), (0, 2), (0, 0)]]},
+        {"name": "ParkB", "bbox": (10, 10, 12, 12),
+         "rings": [[(10, 10), (12, 10), (12, 12), (10, 12), (10, 10)]]},
+    ]
+
+    def test_merge_blind_when_no_areas(self):
+        # area_of=None -> original blind AOI-wide behavior (park runs, tests).
+        a = m.Trail("Trail", "name-stitch", [1], [[(0, 0), (1, 0)]], {}, [])
+        b = m.Trail("Trail", "name-stitch", [2], [[(9, 9), (10, 9)]], {}, [])  # far
+        self.assertEqual(len(m.merge_same_name([a, b])), 1)
+
+    def test_merge_scoped_does_not_cross_areas(self):
+        area_of = m.make_area_of(self._AREAS)
+        a = m.Trail("Ridge Trail", "name-stitch", [1], [[(0.5, 0.5), (1.5, 1.5)]], {}, [])   # ParkA
+        b = m.Trail("Ridge Trail", "name-stitch", [2], [[(10.5, 10.5), (11.5, 11.5)]], {}, [])  # ParkB
+        self.assertEqual(len(m.merge_same_name([a, b], area_of=area_of)), 2)   # not fused
+
+    def test_merge_scoped_fuses_within_one_area(self):
+        area_of = m.make_area_of(self._AREAS)
+        a = m.Trail("Ridge Trail", "name-stitch", [1], [[(0.5, 0.5), (0.6, 0.6)]], {}, [])
+        c = m.Trail("Ridge Trail", "name-stitch", [3], [[(1.2, 1.2), (1.3, 1.3)]], {}, [])  # both ParkA
+        self.assertEqual(len(m.merge_same_name([a, c], area_of=area_of)), 1)   # same park -> one
+
+    def test_backcountry_trails_never_cross_merge(self):
+        area_of = m.make_area_of(self._AREAS)
+        x = m.Trail("Trail", "name-stitch", [4], [[(50, 50), (51, 51)]], {}, [])  # no area
+        y = m.Trail("Trail", "name-stitch", [5], [[(60, 60), (61, 61)]], {}, [])  # no area
+        self.assertEqual(len(m.merge_same_name([x, y], area_of=area_of)), 2)
+
+    def test_relation_gap_preserved_and_standalone_merges_in_area(self):
+        # National Trail: a route relation with a real internal gap + a
+        # standalone same-name piece, all inside one park -> one object, gap kept.
+        area_of = m.make_area_of([{"name": "SM", "bbox": (0, 0, 10, 10),
+                                   "rings": [[(0, 0), (10, 0), (10, 10), (0, 10), (0, 0)]]}])
+        rel = m.Trail("National Trail", "relation", [1, 2],
+                      [[(1, 1), (2, 1)], [(8, 1), (9, 1)]], {"network": "lwn"}, [])  # gap
+        standalone = m.Trail("National Trail", "name-stitch", [3], [[(5, 1), (6, 1)]], {}, [])
+        out = m.merge_same_name([rel, standalone], area_of=area_of)
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0].source, "relation")   # relation wins
+        self.assertEqual(len(out[0].lines), 3)         # relation's 2 parts (gap kept) + standalone
+
+    def test_area_of_assigns_park_and_backcountry_none(self):
+        area_of = m.make_area_of(self._AREAS)
+        inside = m.Trail("X", "name-stitch", [1], [[(0.5, 0.5), (1, 1)]], {}, [])
+        outside = m.Trail("Y", "name-stitch", [2], [[(5, 5), (6, 6)]], {}, [])
+        self.assertEqual(area_of(inside), "ParkA")
+        self.assertIsNone(area_of(outside))
+
 
 class SpurAttach(unittest.TestCase):
     def test_devils_bridge_reaches_the_arch(self):

@@ -35,6 +35,52 @@ def _display_name(tags: dict) -> str | None:
     return None
 
 
+def _is_park_area(tags: dict) -> bool:
+    """A protected park/preserve/forest — the granularity that scopes a
+    same-name merge. Deliberately EXCLUDES admin boundaries (counties are too
+    coarse — they'd re-fuse cross-park trails) and landuse noise."""
+    if tags.get("boundary") in ("national_park", "protected_area", "national_forest"):
+        return True
+    if tags.get("leisure") in ("nature_reserve", "park"):
+        return True
+    return "protect_class" in tags
+
+
+def merge_areas(pbf_path: str) -> list[dict[str, Any]]:
+    """Park polygons for per-area merge scoping (SPEC §6b), as plain rings so
+    model.py can point-test them without shapely.
+
+    Returns [{"name", "bbox": (x0,y0,x1,y1), "rings": [[(x,y),...], ...]}].
+    Requires a SORTED PBF (osmium/prefilter output always is).
+    """
+    import osmium
+    import shapely.wkb
+
+    wkbfab = osmium.geom.WKBFactory()
+    out: list[dict[str, Any]] = []
+
+    class Handler(osmium.SimpleHandler):
+        def area(self, a):
+            tags = {t.k: t.v for t in a.tags}
+            if not _is_park_area(tags):
+                return
+            name = _display_name(tags)
+            if not name:
+                return
+            try:
+                geom = shapely.wkb.loads(wkbfab.create_multipolygon(a), hex=True)
+            except Exception:  # noqa: BLE001 — skip an unassemblable area
+                return
+            polys = geom.geoms if geom.geom_type == "MultiPolygon" else [geom]
+            rings = [[(x, y) for x, y in p.exterior.coords]
+                     for p in polys if p.geom_type == "Polygon"]
+            if rings:
+                out.append({"name": name, "bbox": geom.bounds, "rings": rings})
+
+    Handler().apply_file(pbf_path, locations=True)
+    return out
+
+
 def assemble_areas(pbf_path: str) -> list[dict[str, Any]]:
     """Assemble park-ish area polygons from an OSM PBF.
 

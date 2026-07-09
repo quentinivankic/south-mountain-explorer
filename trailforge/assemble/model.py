@@ -28,6 +28,7 @@ Algorithm order (SPEC.md §2, all steps confirmed by research):
 from __future__ import annotations
 
 import math
+import re
 import unicodedata
 from typing import Any
 
@@ -492,6 +493,12 @@ TRAILISH_HIGHWAY = {"path", "footway", "steps", "track", "bridleway",
 _ROAD_WORDS = ("road", "drive", "avenue", "canal", "drain", "ditch",
                "boulevard", "highway", "freeway", "parkway", "route")
 
+# US numeric grid-address road names — "3900 East", "N 400 W", "700 South".
+# Pervasive in UT/AZ/ID rural grids; a hiking trail is never named this way.
+_GRID_ROAD = re.compile(
+    r"^\s*(?:[nsew]\.?\s+)?\d+\s+(?:north|south|east|west|n|s|e|w)\.?\s*$",
+    re.IGNORECASE)
+
 
 def _road_like_track(tags: dict) -> bool:
     if tags.get("highway") != "track":
@@ -508,6 +515,8 @@ def _road_like_track(tags: dict) -> bool:
     except ValueError:
         pass
     name = str(tags.get("name", "")).lower()
+    if _GRID_ROAD.match(tags.get("name", "") or ""):   # "3900 East" grid road
+        return True
     return any(w in name for w in _ROAD_WORDS)
 
 

@@ -230,6 +230,13 @@ class Classification(unittest.TestCase):
         # a 2+-lane track is a drivable road (the sand road named after the park).
         self.assertFalse(m._is_trailish({"highway": "track", "lanes": "2",
                                          "name": "Phoenix South Mountain Park"}))
+        # numeric grid-address road names (Utah/AZ grids) are roads, not trails.
+        self.assertFalse(m._is_trailish({"highway": "track", "name": "3900 East"}))
+        self.assertFalse(m._is_trailish({"highway": "track", "name": "400 South"}))
+        self.assertFalse(m._is_trailish({"highway": "track", "name": "N 400 W"}))
+        # ...but a numbered *trail* (no grid direction pattern) stays.
+        self.assertTrue(m._is_trailish({"highway": "track", "name": "Trail 100"}))
+        self.assertTrue(m._is_trailish({"highway": "path", "name": "East Rim Trail"}))
         # a plain named track (a real trail) stays.
         self.assertTrue(m._is_trailish({"highway": "track", "name": "Desert Classic Trail"}))
         self.assertTrue(m._is_trailish({"highway": "track"}))

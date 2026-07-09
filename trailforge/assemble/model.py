@@ -421,7 +421,8 @@ def _terminal_nodes(chains: list[list[int]], ways: dict) -> list[int]:
 
 
 def assemble(nodes: dict, ways: dict, relations: dict,
-             pois: list[dict], min_length_mi: float = 0.0) -> list[Trail]:
+             pois: list[dict], min_length_mi: float = 0.0,
+             areas: list[dict] | None = None) -> list[Trail]:
     trails: list[Trail] = []
     claimed: set[int] = set()
 
@@ -478,9 +479,10 @@ def assemble(nodes: dict, ways: dict, relations: dict,
                         if wid not in claimed and _is_trailish(w["tags"])]
     attach_spurs(trails, unnamed_leftover, ways, nodes, pois)
 
-    # 4. one object per named trail — combine the pieces split across a route
-    #    relation and standalone same-named ways (e.g. "National Trail").
-    merged = merge_same_name(trails)
+    # 4. one object per named trail WITHIN an area — combine the pieces split
+    #    across a route relation and standalone same-named ways (e.g. "National
+    #    Trail"), but never fuse same-named trails across parks (SPEC §6b).
+    merged = merge_same_name(trails, area_of=make_area_of(areas) if areas else None)
 
     # 5. curation: drop name-flagged-closed trails + sub-threshold stubs
     #    (tiny connectors). min_length_mi<=0 keeps everything.
@@ -494,24 +496,84 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     return promote_hikes(kept, pois)
 
 
-def merge_same_name(trails: list["Trail"]) -> list["Trail"]:
-    """Fold trail objects sharing a name into one.
+def _rep_point(trail: "Trail") -> tuple[float, float] | None:
+    """A representative interior point of a trail — midpoint of its longest
+    line. Used to assign the trail to an area for per-area merge scoping."""
+    best = None
+    for line in trail.lines:
+        if line and (best is None or len(line) > len(best)):
+            best = line
+    return best[len(best) // 2] if best else None
 
-    Within an AOI a repeated trail name is the same trail: "National Trail"
-    that appears as a route relation PLUS standalone same-named ways should
-    be one object, so it highlights and counts as one. Relation metadata
-    wins. Unnamed trails (welded spurs etc.) pass through untouched.
+
+def _point_in_ring(x: float, y: float, ring: list) -> bool:
+    """Ray-casting point-in-polygon (stdlib, keeps model.py shapely-free)."""
+    inside = False
+    n = len(ring)
+    j = n - 1
+    for i in range(n):
+        xi, yi = ring[i]
+        xj, yj = ring[j]
+        if ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi) + xi):
+            inside = not inside
+        j = i
+    return inside
+
+
+def make_area_of(areas: list[dict]):
+    """Build an `area_of(trail)` -> area name | None from park polygons.
+
+    `areas`: [{"name", "bbox": (x0,y0,x1,y1), "rings": [[(x,y),...], ...]}].
+    A trail is assigned to the first area whose bbox contains its rep point
+    and one of whose rings encloses it. bbox pre-filter keeps it fast at
+    region scale. Trails in no park area return None (backcountry).
     """
-    base_by_name: dict[str, "Trail"] = {}
+    def area_of(trail: "Trail") -> str | None:
+        pt = _rep_point(trail)
+        if pt is None:
+            return None
+        x, y = pt
+        for a in areas:
+            x0, y0, x1, y1 = a["bbox"]
+            if not (x0 <= x <= x1 and y0 <= y <= y1):
+                continue
+            if any(_point_in_ring(x, y, r) for r in a["rings"]):
+                return a["name"]
+        return None
+    return area_of
+
+
+def merge_same_name(trails: list["Trail"], area_of=None) -> list["Trail"]:
+    """Fold trail objects sharing a name into one — scoped to an area.
+
+    Within ONE area a repeated trail name is the same trail: "National Trail"
+    as a route relation PLUS standalone same-named ways should be one object
+    (even across a real internal gap — SPEC §6b). But ACROSS areas the same
+    name is usually DIFFERENT trails (a "Ridge Trail" in every park), so a
+    blind AOI-wide merge fuses them into a scattered Frankenstein at region
+    scale.
+
+    `area_of(trail) -> area-name | None` scopes the merge: same name fuses
+    only within the same area. None (park runs, tests) = the whole AOI is one
+    implicit area = the original blind behavior. A trail in NO named area
+    (backcountry) does not cross-merge with anything. Relation metadata wins.
+    Unnamed trails pass through untouched.
+    """
+    base_by_key: dict[tuple, "Trail"] = {}
     out: list["Trail"] = []
     for t in trails:
-        key = merge_key(t.name) if t.name else ""
-        if not key:
+        name_key = merge_key(t.name) if t.name else ""
+        if not name_key:
             out.append(t)
             continue
-        base = base_by_name.get(key)
+        area = area_of(t) if area_of is not None else "\x00aoi"
+        if area is None:                    # backcountry: never cross-merge
+            out.append(t)
+            continue
+        gk = (area, name_key)
+        base = base_by_key.get(gk)
         if base is None:
-            base_by_name[key] = t
+            base_by_key[gk] = t
             out.append(t)
             continue
         base.lines.extend(t.lines)

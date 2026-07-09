@@ -89,6 +89,9 @@ def main(argv=None) -> int:
                          "assembled from the same --in PBF.")
     ap.add_argument("--min-length-mi", dest="min_length_mi", type=float, default=0.0,
                     help="drop assembled trails shorter than this (miles); 0 = keep all")
+    ap.add_argument("--min-inside-frac", dest="min_inside_frac", type=float, default=0.25,
+                    help="with --only-area, keep a trail only if more than this "
+                         "fraction of its length is inside the area (default 0.25)")
     args = ap.parse_args(argv)
 
     nodes, ways, relations, pois = read_pbf(args.inp)
@@ -109,7 +112,8 @@ def main(argv=None) -> int:
                   f"— leaving trails unfiltered", file=sys.stderr)
         else:
             before = len(features)
-            features = areamod.filter_features_inside(features, union)
+            features = areamod.filter_features_inside(
+                features, union, min_inside_frac=args.min_inside_frac)
             matched = ", ".join(sorted(n for n in names if n)) or "(unnamed)"
             area_note = (f"; inside '{args.only_area}' [{matched}]: "
                          f"{before} -> {len(features)}")

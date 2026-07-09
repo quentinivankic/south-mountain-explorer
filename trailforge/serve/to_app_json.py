@@ -21,8 +21,12 @@ Usage:
 from __future__ import annotations
 import argparse
 import json
+import os
 import re
 import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "assemble"))
+import model  # noqa: E402 — for merge_key (same-trail matching across renames)
 
 
 def trail_slug(name: str) -> str:
@@ -50,7 +54,8 @@ def difficulty(sac: str | None, vis: str | None, miles: float) -> str:
 
 def convert(fc: dict, area_id: str, name: str, state: str,
             center: tuple[float, float], osm_rel: int | None,
-            include_kinds: set[str]) -> dict:
+            include_kinds: set[str],
+            id_by_mergekey: dict[str, str] | None = None) -> dict:
     trails = []
     slug_counts: dict[str, int] = {}
     minlat = minlon = 1e9
@@ -64,10 +69,18 @@ def convert(fc: dict, area_id: str, name: str, state: str,
         nm = p.get("name")
         if not nm:
             continue
-        base = trail_slug(nm)
-        seen = slug_counts.get(base, 0)
-        slug_counts[base] = seen + 1
-        tid = base if seen == 0 else f"{base}-{seen}"
+        # id continuity: if this is the SAME trail as a live one (same
+        # merge_key) but our name-normalization changed the slug, keep the
+        # LIVE id so the completion re-binds instead of orphaning.
+        preserved = id_by_mergekey.get(model.merge_key(nm)) if id_by_mergekey else None
+        if preserved and preserved not in slug_counts:
+            tid = preserved
+            slug_counts[preserved] = 1
+        else:
+            base = trail_slug(nm)
+            seen = slug_counts.get(base, 0)
+            slug_counts[base] = seen + 1
+            tid = base if seen == 0 else f"{base}-{seen}"
         segs = []
         for line in f["geometry"]["coordinates"]:
             pts = [[round(lat, 6), round(lon, 6)] for lon, lat in line]  # [lon,lat]->[lat,lon]
@@ -125,29 +138,77 @@ def diff(new_row: dict, live: dict) -> None:
             print(f"    + {cid}   ({new_by_canon[cid]})")
 
 
+_DEFAULT_INDEX = os.path.join(os.path.dirname(__file__), "..", "..",
+                              "ios", "SouthMountainExplorer", "Resources", "areas-index.json")
+
+
+def _index_lookup(index_path: str, area_id: str) -> dict | None:
+    """Row for area_id from the bundled areas-index.json tuple array:
+    [id, name, state, lat, lon, trail_count?, total_mi?, osm_relation_id?]."""
+    for row in json.load(open(index_path)):
+        if row and row[0] == area_id:
+            return {"name": row[1], "state": row[2],
+                    "center": (row[3], row[4]),
+                    "osm_rel": row[7] if len(row) > 7 else None}
+    return None
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="trailforge geojson -> app AreaRow json + orphan diff")
     ap.add_argument("--in", dest="inp", required=True)
     ap.add_argument("--area-id", required=True)
-    ap.add_argument("--name", required=True)
-    ap.add_argument("--state", default="Arizona")
-    ap.add_argument("--center-lat", type=float, required=True)
-    ap.add_argument("--center-lon", type=float, required=True)
-    ap.add_argument("--osm-relation-id", type=int, default=None)
+    # name/state/center/osm-rel auto-fill from --index by area-id; override here.
+    ap.add_argument("--name")
+    ap.add_argument("--state")
+    ap.add_argument("--center-lat", type=float)
+    ap.add_argument("--center-lon", type=float)
+    ap.add_argument("--osm-relation-id", type=int)
+    ap.add_argument("--index", default=_DEFAULT_INDEX,
+                    help="areas-index.json to auto-fill area metadata (and --update-index)")
     ap.add_argument("--out")
+    ap.add_argument("--update-index", action="store_true",
+                    help="patch the area's trail_count + total_mi in --index in place")
     ap.add_argument("--compare", help="live area json to diff trail-ids against")
+    ap.add_argument("--preserve-ids-from",
+                    help="live area json: keep its id for a same-trail (merge_key) match "
+                         "so completions re-bind across a rename (opt-in)")
     ap.add_argument("--no-routes", action="store_true",
                     help="exclude kind=route overlays (default: include everything)")
     args = ap.parse_args(argv)
 
+    meta = _index_lookup(args.index, args.area_id) if os.path.exists(args.index) else None
+    name = args.name or (meta and meta["name"])
+    state = args.state or (meta and meta["state"]) or "Arizona"
+    center = ((args.center_lat, args.center_lon) if args.center_lat is not None
+              else (meta and meta["center"]))
+    osm_rel = args.osm_relation_id if args.osm_relation_id is not None else (meta and meta["osm_rel"])
+    if not name or not center:
+        ap.error(f"no metadata for '{args.area_id}' in {args.index}; pass --name/--center-lat/--center-lon")
+
+    id_by_mergekey = None
+    if args.preserve_ids_from:
+        live = json.load(open(args.preserve_ids_from))
+        id_by_mergekey = {model.merge_key(t["name"]): canonical(t["id"])
+                          for t in live.get("trails", [])}
+
     fc = json.load(open(args.inp))
     kinds = {"trail", "hike"} if args.no_routes else {"trail", "hike", "route"}
-    row = convert(fc, args.area_id, args.name, args.state,
-                  (args.center_lat, args.center_lon), args.osm_relation_id, kinds)
+    row = convert(fc, args.area_id, name, state, center, osm_rel, kinds, id_by_mergekey)
     print(f"converted {row['trail_count']} trails, {row['total_mi']} mi", file=sys.stderr)
     if args.out:
         json.dump(row, open(args.out, "w"))
         print(f"wrote {args.out}", file=sys.stderr)
+    if args.update_index:
+        idx = json.load(open(args.index))
+        for r in idx:
+            if r and r[0] == args.area_id:
+                while len(r) < 8:
+                    r.append(None)
+                r[5], r[6] = row["trail_count"], row["total_mi"]
+                break
+        json.dump(idx, open(args.index, "w"))
+        print(f"updated index {args.area_id}: {row['trail_count']} trails, "
+              f"{row['total_mi']} mi in {args.index}", file=sys.stderr)
     if args.compare:
         diff(row, json.load(open(args.compare)))
     return 0

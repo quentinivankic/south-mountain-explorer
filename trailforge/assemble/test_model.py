@@ -234,9 +234,13 @@ class Classification(unittest.TestCase):
         self.assertFalse(m._is_trailish({"highway": "track", "name": "3900 East"}))
         self.assertFalse(m._is_trailish({"highway": "track", "name": "400 South"}))
         self.assertFalse(m._is_trailish({"highway": "track", "name": "N 400 W"}))
-        # Forest Service / BLM road codes (Kaibab etc.) — dirt vehicle roads.
-        for n in ("NF-418C", "NF-761", "BLM 1048", "FR 236", "FS 6005", "Fr 301"):
+        # Forest Service / BLM / agency road codes — dirt vehicle roads.
+        for n in ("NF-418C", "NF-761", "BLM 1048", "FR 236", "FS 6005", "Fr 301",
+                  "NV-9040V", "N9234", "H1290"):   # incl. unfamiliar prefixes (3+ digits)
             self.assertFalse(m._is_trailish({"highway": "track", "name": n}), n)
+        # ...but short numbered TRAIL codes (1-2 digits) are NOT road codes.
+        self.assertTrue(m._is_trailish({"highway": "track", "name": "GR 20"}), "GR20")
+        self.assertTrue(m._is_trailish({"highway": "path", "name": "E5"}), "E5")
         # rural grid-street / lane / place names tagged as track.
         for n in ("7th Street", "54th Street North", "Holley Lane",
                   "Middle Place", "Easy Street", "West Orchard Lane"):

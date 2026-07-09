@@ -228,6 +228,28 @@ name-collide with the physical spur fragment OSM also names that — decide
 whether to absorb/suppress the covered fragment. Checkpoint to revert the
 whole experiment: branch `checkpoint/pre-canonical-hikes`.
 
+## 6d. Known gap — super-relation stitching (TODO, Scotland/UK run)
+
+**Staged long-distance trails fragment.** The West Highland Way is a
+super-relation whose children are per-stage route relations, each carrying a
+distinct name (`West Highland Way (Kinlochleven to Fort William)`,
+`… (High Route to Fort William)`). Relations-first emits each stage as its
+own object, and because the stage names differ, `merge_same_name` can't
+recombine them — so a 96-mi trail shatters into stage-fragments, none
+spanning both endpoints. Golden `West Highland Way` stays FAIL
+(assembly-gap, not missing-data) and is the tracker for this.
+
+Fix (SPEC §2.1, not yet wired): when a `type=route` relation is a MEMBER of
+another route relation, resolve the parent transitively and attribute the
+child's ways to the parent (parent name wins), instead of emitting each
+child as a top-level object. Generalizes to GR20, Te Araroa, any staged
+thru-trail. Affects the route layer only (thru-routes are `kind=route`), not
+the named-trail checklist — bounded, so it's logged, not urgent.
+
+Otherwise the UK run VALIDATED "worldwide without per-country code": Ben
+Nevis + Old Man of Storr golden PASS, `nwn`/`rwn` classified as routes
+correctly, Gaelic (Latin-script) names clean, zero promotion misfires.
+
 ## 7. Open questions the homelab loop resolves
 
 1. Actual hiking-subset size + prefilter runtime on planet (validates the

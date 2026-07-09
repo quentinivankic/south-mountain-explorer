@@ -84,15 +84,43 @@ map.on("load", async () => {
     : `../data/aoi/${AOI}.trails.geojson`;
   const trails = await maybeJSON(trailsUrl);
   if (trails) {
-    map.addSource("trails", { type: "geojson", data: trails });
+    // generateId gives each trail feature an id so a click can flip its
+    // feature-state — and since one trail = one MultiLineString feature,
+    // that lights up the WHOLE assembled trail at once.
+    map.addSource("trails", { type: "geojson", data: trails, generateId: true });
     map.addLayer({ id: "trail-lines", source: "trails", type: "line",
-      paint: { "line-color": "#e6521f", "line-width": 3 } });
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": ["case", ["boolean", ["feature-state", "selected"], false],
+                       "#00b7ff", "#e6521f"],
+        "line-width": ["case", ["boolean", ["feature-state", "selected"], false],
+                       6, 3],
+      } });
+
+    let selectedId = null;
+    const clearSel = () => {
+      if (selectedId !== null) {
+        map.setFeatureState({ source: "trails", id: selectedId }, { selected: false });
+        selectedId = null;
+      }
+    };
+    map.on("mouseenter", "trail-lines", () => map.getCanvas().style.cursor = "pointer");
+    map.on("mouseleave", "trail-lines", () => map.getCanvas().style.cursor = "");
+
     map.on("click", "trail-lines", (e) => {
-      const p = e.features[0].properties;
+      clearSel();
+      const f = e.features[0];
+      selectedId = f.id;
+      map.setFeatureState({ source: "trails", id: selectedId }, { selected: true });
+      const p = f.properties;
       new maplibregl.Popup().setLngLat(e.lngLat)
         .setHTML(`<b>${p.name || "(unnamed)"}</b><br>` +
                  Object.entries(p).map(([k, v]) => `${k}: ${v}`).join("<br>"))
         .addTo(map);
+    });
+    // click empty space (off any trail) to clear the highlight
+    map.on("click", (e) => {
+      if (!map.queryRenderedFeatures(e.point, { layers: ["trail-lines"] }).length) clearSel();
     });
   }
 

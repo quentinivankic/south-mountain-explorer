@@ -228,6 +228,21 @@ name-collide with the physical spur fragment OSM also names that — decide
 whether to absorb/suppress the covered fragment. Checkpoint to revert the
 whole experiment: branch `checkpoint/pre-canonical-hikes`.
 
+**Worked example — the harvest ceiling biting (Ben Nevis, UK run).** Ben
+Nevis has NO route relation, so tier-1 harvests nothing — and OSM splits the
+ascent into two overlapping named trails: `Ben Nevis Trail` (the fuller
+approach, but modeled to END at the junction, *short* of the summit) and
+`Ben Nevis Mountain Path` (reaches the summit POI, otherwise a subset of the
+Trail). Neither object is the clean "whole hike to the top." NOT a bug (we
+render OSM's relations faithfully; the summit is reachable — Ben Nevis golden
+PASSES via the Mountain Path), but it's the identity gap made visible: the
+marquee object stops short of its payoff and the summit segment lives in a
+different named way. This is the case tier-2 (synthesize trailhead→summit,
+stitching the final segment regardless of which way owns it) or tier-3 (a
+one-line marquee override) would fix — kept as the concrete test case for
+when we decide which. Contrast South Mountain's clean zero (no split, just
+no hikes); Ben Nevis is the *awkward* ceiling.
+
 ## 6d. Known gap — super-relation stitching (TODO, Scotland/UK run)
 
 **Staged long-distance trails fragment.** The West Highland Way is a

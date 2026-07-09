@@ -52,6 +52,28 @@ class RelationsFirst(unittest.TestCase):
         self.assertEqual(trails[0].source, "relation")
         self.assertEqual(set(trails[0].member_ways), {1, 2})
 
+    def test_umbrella_route_keeps_local_named_members(self):
+        # A route relation whose member has its OWN name must not erase that
+        # trail — the Maricopa Trail absorbing "Bursera Canyon" bug.
+        rels = {1: {"tags": {"type": "route", "route": "hiking", "name": "Maricopa Trail"},
+                    "members": [("w", 10, ""), ("w", 11, "")]}}
+        ways = {10: W([1, 2], highway="path", name="Maricopa Trail"),
+                11: W([2, 3], highway="path", name="Bursera Canyon")}
+        nodes = {1: (0, 0), 2: (0, 1), 3: (0, 2)}
+        names = sorted(t.name for t in m.assemble(nodes, ways, rels, []))
+        self.assertIn("Bursera Canyon", names)   # local trail preserved as itself
+        self.assertIn("Maricopa Trail", names)   # umbrella route still emitted
+
+    def test_relation_excludes_road_like_track_member(self):
+        # A vehicle/access-road track that's a route member isn't drawn as trail.
+        rels = {1: {"tags": {"type": "route", "route": "hiking", "name": "Loop"},
+                    "members": [("w", 10, ""), ("w", 11, "")]}}
+        ways = {10: W([1, 2], highway="path"),
+                11: W([2, 3], highway="track", motor_vehicle="yes", name="Service Road")}
+        nodes = {1: (0, 0), 2: (0, 1), 3: (0, 2)}
+        t = [x for x in m.assemble(nodes, ways, rels, []) if x.source == "relation"][0]
+        self.assertNotIn(11, t.member_ways)
+
     def test_member_roles_main_vs_approach(self):
         rels = {200: {"tags": {"type": "route", "route": "hiking", "name": "Peak Route"},
                       "members": [("w", 1, "main"), ("w", 2, "approach")]}}

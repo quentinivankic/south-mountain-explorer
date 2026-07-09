@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import math
 import re
+import sys
 import unicodedata
 from typing import Any
 
@@ -633,36 +634,38 @@ def _name_rank(name: str | None) -> int:
     return r
 
 
-def _endpoint_set(t: "Trail") -> frozenset:
-    """Rounded terminal coords of every line — an orientation-independent
-    fingerprint of the trail's physical span (~1 m at 5 decimals)."""
-    pts = set()
-    for line in t.lines:
-        if len(line) >= 2:
-            for c in (line[0], line[-1]):
-                pts.add((round(c[0], 5), round(c[1], 5)))
-    return frozenset(pts)
+def _coord_set(t: "Trail") -> frozenset:
+    """ALL rounded coords of the trail (~1 m at 5 decimals) — a geometry
+    fingerprint. Endpoints alone are too weak: two DISTINCT trails between the
+    same trailhead and peak share endpoints but not the path between, so we
+    fingerprint the whole line and require near-total overlap to call a dup."""
+    return frozenset((round(c[0], 5), round(c[1], 5))
+                     for line in t.lines for c in line if len(c) >= 2)
 
 
 def _trail_sig(t: "Trail") -> tuple:
-    """(member-way set, endpoint set, length) — the values the duplicate test
+    """(member-way set, coord set, length) — the values the duplicate test
     needs, computed once so an O(n^2) area scan doesn't rebuild them per pair
     (a 657-trail forest went from ~20 min to seconds with this precompute)."""
-    return (frozenset(t.member_ways), _endpoint_set(t), t.length_mi)
+    return (frozenset(t.member_ways), _coord_set(t), t.length_mi)
 
 
 def _sig_duplicate(sa: tuple, sb: tuple) -> bool:
     """Two trail signatures describe the SAME physical trail: near-equal length
-    AND either substantially the same OSM ways OR coincident terminal coords.
-    The length gate stops a short fragment from absorbing a full-length trail,
-    so only genuine full duplicates match."""
-    wa, ea, la = sa
-    wb, eb, lb = sb
+    AND either substantially the same OSM ways OR near-total coordinate
+    overlap (>=90% of the smaller trail's nodes coincide). The length gate
+    stops a short fragment from absorbing a full-length trail; the coordinate
+    (not endpoint) test stops two distinct trails that merely share endpoints
+    from folding — only genuine full duplicates match."""
+    wa, ca, la = sa
+    wb, cb, lb = sb
     if la <= 0 or lb <= 0 or abs(la - lb) > 0.05 * max(la, lb):
         return False
     if wa and wb and len(wa & wb) >= 0.5 * len(wa | wb):
         return True
-    return bool(ea) and ea == eb
+    if ca and cb:
+        return len(ca & cb) >= 0.9 * min(len(ca), len(cb))
+    return False
 
 
 def _is_duplicate(a: "Trail", b: "Trail") -> bool:
@@ -696,6 +699,7 @@ def dedupe_duplicate_trails(trails: list["Trail"]) -> list["Trail"]:
     for t in trails:
         by_area[t.area].append(t)
     drop: set = set()
+    dropped: list = []          # (loser, keeper) names — logged for review
     for group in by_area.values():
         sig = {id(t): _trail_sig(t) for t in group}   # once per trail, not per pair
         n = len(group)
@@ -708,11 +712,19 @@ def dedupe_duplicate_trails(trails: list["Trail"]) -> list["Trail"]:
                 b = group[j]
                 if id(b) in drop or not _sig_duplicate(sa, sig[id(b)]):
                     continue
-                if _prefer(a, b) is a:
-                    drop.add(id(b))
-                else:
-                    drop.add(id(a))
+                keep = _prefer(a, b)
+                lose = b if keep is a else a
+                drop.add(id(lose))
+                dropped.append((lose.name, keep.name))
+                if lose is a:
                     break
+    # Every drop is logged with the trail it deferred to, so a review can
+    # confirm each removal really had a surviving twin (not an over-merge).
+    if dropped:
+        print(f"dedupe: dropped {len(dropped)} geometry-duplicate trails",
+              file=sys.stderr)
+        for lo, wi in sorted(dropped, key=lambda p: (p[0] or "", p[1] or "")):
+            print(f"  dedupe: {lo!r} -> kept {wi!r}", file=sys.stderr)
     return [t for t in trails if id(t) not in drop]
 
 

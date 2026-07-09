@@ -376,6 +376,18 @@ class Classification(unittest.TestCase):
         c.area = d.area = "Coronado National Forest"
         self.assertEqual(len(m.dedupe_duplicate_trails([c, d])), 2)
 
+    def test_dedupe_keeps_distinct_trails_sharing_endpoints(self):
+        # two different routes between the same trailhead and peak: SAME
+        # endpoints, similar length, DIFFERENT path between -> both survive.
+        # Endpoint coincidence alone must not trigger a merge (the over-removal
+        # guard); only near-total coordinate overlap counts.
+        a = m.Trail("Cathedral Rock Trail", "relation", [1],
+                    [[(-111.80, 34.82), (-111.81, 34.83), (-111.82, 34.84)]], {}, [])
+        b = m.Trail("Templeton Trail", "name-stitch", [2],
+                    [[(-111.80, 34.82), (-111.79, 34.83), (-111.82, 34.84)]], {}, [])
+        a.area = b.area = "Coconino National Forest"
+        self.assertEqual(len(m.dedupe_duplicate_trails([a, b])), 2)
+
     def test_dedupe_is_area_scoped(self):
         # identical name+geometry in DIFFERENT areas are not each other's dupes
         line = [(-111.703, 34.889), (-111.733, 34.893)]

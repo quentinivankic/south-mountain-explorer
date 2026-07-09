@@ -376,22 +376,32 @@ def assemble(nodes: dict, ways: dict, relations: dict,
         if not _is_route(rel["tags"]):
             continue
         members = resolve_route_members(rid, relations)
-        main_ways = [w for w, role in members if role in MAIN_ROLES and w in ways]
-        spur_ways = [w for w, role in members if role in SPUR_ROLES and w in ways]
+        main_ways = [w for w, role in members
+                     if role in MAIN_ROLES and w in ways and _is_trailish(ways[w]["tags"])]
+        spur_ways = [w for w, role in members
+                     if role in SPUR_ROLES and w in ways and _is_trailish(ways[w]["tags"])]
         if not main_ways:
             continue
         chains = order_ways(main_ways, ways)
         lines = chains_to_multiline(chains, ways, nodes)
         if not lines:
             continue
+        rel_name = norm_name(display_name(rel["tags"]))
         t = Trail(display_name(rel["tags"]) or _first_named(main_ways, ways),
                   "relation", main_ways, lines, rel["tags"],
                   _terminal_nodes(chains, ways))
         # approach/connection spurs are part of the object but not the main line
         for sw in spur_ways:
             t.member_ways.append(sw)
-        claimed.update(main_ways)
-        claimed.update(spur_ways)
+        # Claim ONLY members without their own distinct identity — unnamed
+        # connectors or ways sharing the route's name. A member with its OWN
+        # different name (e.g. "Bursera Canyon" inside the umbrella "Maricopa
+        # Trail" route) is NOT claimed, so name-stitch still emits it as its
+        # own trail. The umbrella route keeps its full geometry regardless.
+        for w in main_ways + spur_ways:
+            wname = norm_name(ways[w]["tags"].get("name"))
+            if not wname or wname == rel_name:
+                claimed.add(w)
         trails.append(t)
 
     # 2. name-stitch the remainder

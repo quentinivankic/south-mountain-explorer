@@ -241,6 +241,52 @@ class Classification(unittest.TestCase):
         self.assertTrue(m._is_trailish({"highway": "track", "name": "Desert Classic Trail"}))
         self.assertTrue(m._is_trailish({"highway": "track"}))
 
+    def test_promote_hike_renames_local_route_from_destination(self):
+        # a local route ending at a named destination POI -> canonical hike
+        t = m.Trail("Angels Landing Trail--West Rim Trail", "relation", [1],
+                    [[(0.0, 0.0), (0.001, 0.001)]], {}, [])
+        pois = [{"name": "Angels Landing", "coord": (0.001, 0.001),
+                 "tags": {"natural": "peak"}}]
+        m.promote_hikes([t], pois)
+        self.assertTrue(t.hike)
+        self.assertEqual(t.name, "Angels Landing Trail")
+        self.assertEqual(t.to_feature()["properties"]["kind"], "hike")
+
+    def test_promote_hike_absorbs_covered_fragment(self):
+        # the composite route promotes to the hike; the shorter same-named
+        # physical spur (kind=trail) is absorbed so it isn't listed twice.
+        hike = m.Trail("Angels Landing Trail--West Rim Trail", "relation", [1],
+                       [[(0.0, 0.0), (0.001, 0.001)]], {}, [])
+        spur = m.Trail("Angels Landing Trail", "name-stitch", [2],
+                       [[(0.0008, 0.0008), (0.001, 0.001)]], {}, [])
+        pois = [{"name": "Angels Landing", "coord": (0.001, 0.001),
+                 "tags": {"natural": "peak"}}]
+        out = m.promote_hikes([hike, spur], pois)
+        self.assertEqual(len(out), 1)
+        self.assertTrue(out[0].hike)
+        self.assertEqual(out[0].name, "Angels Landing Trail")
+
+    def test_promote_hike_skips_thru_routes_and_plain_trails(self):
+        poi = [{"name": "Peak", "coord": (0.001, 0.001), "tags": {"natural": "peak"}}]
+        line = [[(0.0, 0.0), (0.001, 0.001)]]
+        # a regional thru-route reaching the POI is NOT one hike -> stays a route
+        thru = m.Trail("Hayduke Trail #13", "relation", [1], line, {"network": "rwn"}, [])
+        # a plain named trail reaching the POI is a trail, not promoted
+        trail = m.Trail("Summit Trail", "name-stitch", [2], line, {}, [])
+        m.promote_hikes([thru, trail], poi)
+        self.assertFalse(thru.hike)
+        self.assertFalse(trail.hike)
+        self.assertEqual(thru.to_feature()["properties"]["kind"], "route")
+        self.assertEqual(trail.to_feature()["properties"]["kind"], "trail")
+
+    def test_promote_hike_needs_a_named_destination_in_reach(self):
+        # a route that ends nowhere near a destination POI is left alone
+        t = m.Trail("Some Loop Route", "relation", [1],
+                    [[(0.0, 0.0), (0.001, 0.001)]], {}, [])
+        far = [{"name": "Far Peak", "coord": (5.0, 5.0), "tags": {"natural": "peak"}}]
+        m.promote_hikes([t], far)
+        self.assertFalse(t.hike)
+
     def test_classify_kind_route_vs_trail(self):
         # thru-routes by network grade
         self.assertEqual(m.classify_kind("Hayduke Trail #13", {"network": "rwn"}), "route")

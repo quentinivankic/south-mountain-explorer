@@ -135,6 +135,11 @@ def classify_kind(name: str | None, tags: dict) -> str:
     return "trail"
 
 
+def _hike_name(dest_name: str) -> str:
+    n = dest_name.strip()
+    return n if n.lower().endswith("trail") else f"{n} Trail"
+
+
 # ---------------------------------------------------------------------------
 # geometry helpers
 # ---------------------------------------------------------------------------
@@ -372,6 +377,7 @@ class Trail:
         self.terminal_nodes = list(terminal_nodes)
         self.destinations: list[str] = []
         self.welds: list[dict] = []     # QA: what got attached and why
+        self.hike = False               # tier-1 promoted canonical hike (SPEC §6c)
 
     def weld_spur(self, wid, coords, poi):
         self.member_ways.append(wid)
@@ -389,7 +395,7 @@ class Trail:
             "type": "Feature",
             "properties": {
                 "name": self.name,
-                "kind": classify_kind(self.name, self.tags),
+                "kind": "hike" if self.hike else classify_kind(self.name, self.tags),
                 "source": self.source,
                 "length_mi": self.length_mi,
                 "member_ways": self.member_ways,
@@ -478,9 +484,14 @@ def assemble(nodes: dict, ways: dict, relations: dict,
 
     # 5. curation: drop name-flagged-closed trails + sub-threshold stubs
     #    (tiny connectors). min_length_mi<=0 keeps everything.
-    return [t for t in merged
+    kept = [t for t in merged
             if not is_closed_name(t.name)
             and (min_length_mi <= 0 or t.length_mi >= min_length_mi)]
+
+    # 6. tier-1 canonical hikes: promote local routes that reach a named
+    #    destination POI into a 'hike', renamed from the payoff, and absorb the
+    #    redundant physical fragment the hike covers (SPEC §6c).
+    return promote_hikes(kept, pois)
 
 
 def merge_same_name(trails: list["Trail"]) -> list["Trail"]:
@@ -509,6 +520,68 @@ def merge_same_name(trails: list["Trail"]) -> list["Trail"]:
         base.welds.extend(t.welds)
         if base.source != "relation" and t.source == "relation":
             base.source, base.tags, base.name = "relation", t.tags, t.name
+    return out
+
+
+def _reached_destination(trail: "Trail", dest_pois: list[dict]) -> dict | None:
+    """The named destination POI a trail terminates at/near (its payoff), or
+    None. Checks the endpoints of every line — a summit/arch sits at an end."""
+    ends = [c for line in trail.lines if line for c in (line[0], line[-1])]
+    best, bestd = None, SPUR_POI_REACH_FT / 5280.0
+    for c in ends:
+        for p in dest_pois:
+            d = haversine_mi(c, p["coord"])
+            if d <= bestd:
+                best, bestd = p, d
+    return best
+
+
+def promote_hikes(trails: list["Trail"], pois: list[dict]) -> list["Trail"]:
+    """Tier 1 — HARVEST, don't synthesize. Promote a *local* route that
+    reaches a named destination POI into a canonical 'hike', renamed from the
+    payoff: OSM's 'Angels Landing Trail--West Rim Trail' route (which ends at
+    the Angels Landing peak) becomes the hike 'Angels Landing Trail', drawn as
+    the whole thing. Returns the surviving trails (mutating promoted ones).
+
+    Only local routes qualify — a regional+ thru-route (network rwn/nwn/iwn,
+    e.g. the Hayduke) passes through many payoffs and is not one hike, so it
+    stays a route. Named physical trails are never touched. Overlap with the
+    trails a hike runs over is expected (a hike is a curated overlay); the
+    completion checklist is per-hike, not per-mile (SPEC §6c).
+
+    Then ABSORB the physical fragment a hike already covers: a shorter
+    standalone trail sharing the hike's name (the 0.43 mi 'Angels Landing
+    Trail' spur that sits inside the promoted 2.17 mi hike) is redundant and
+    dropped, so the checklist doesn't list the same payoff twice.
+    """
+    dest_pois = [p for p in pois if p.get("name")]
+    if not dest_pois:
+        return trails
+    promoted: list["Trail"] = []
+    for t in trails:
+        if str(t.tags.get("network", "")).strip().lower() in _ROUTE_NETWORKS:
+            continue                                  # thru-route, not one hike
+        if classify_kind(t.name, t.tags) != "route":
+            continue                                  # only promote route-ish objects
+        dest = _reached_destination(t, dest_pois)
+        if dest:
+            t.destinations = [dest["name"]]
+            t.name = _hike_name(dest["name"])
+            t.hike = True
+            promoted.append(t)
+    if not promoted:
+        return trails
+
+    hikes_by_key: dict[str, list["Trail"]] = {}
+    for h in promoted:
+        hikes_by_key.setdefault(merge_key(h.name), []).append(h)
+    out: list["Trail"] = []
+    for t in trails:
+        if not t.hike:
+            covers = hikes_by_key.get(merge_key(t.name))
+            if covers and any(t.length_mi < h.length_mi for h in covers):
+                continue                              # absorbed into its hike
+        out.append(t)
     return out
 
 

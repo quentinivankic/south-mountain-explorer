@@ -644,19 +644,29 @@ def _endpoint_set(t: "Trail") -> frozenset:
     return frozenset(pts)
 
 
-def _is_duplicate(a: "Trail", b: "Trail") -> bool:
-    """Two trails describe the SAME physical trail: near-equal length AND
-    either they're built from substantially the same OSM ways OR their
-    terminal coords coincide. The length gate stops a short fragment from
-    absorbing a full-length trail, so only genuine full duplicates match."""
-    la, lb = a.length_mi, b.length_mi
+def _trail_sig(t: "Trail") -> tuple:
+    """(member-way set, endpoint set, length) — the values the duplicate test
+    needs, computed once so an O(n^2) area scan doesn't rebuild them per pair
+    (a 657-trail forest went from ~20 min to seconds with this precompute)."""
+    return (frozenset(t.member_ways), _endpoint_set(t), t.length_mi)
+
+
+def _sig_duplicate(sa: tuple, sb: tuple) -> bool:
+    """Two trail signatures describe the SAME physical trail: near-equal length
+    AND either substantially the same OSM ways OR coincident terminal coords.
+    The length gate stops a short fragment from absorbing a full-length trail,
+    so only genuine full duplicates match."""
+    wa, ea, la = sa
+    wb, eb, lb = sb
     if la <= 0 or lb <= 0 or abs(la - lb) > 0.05 * max(la, lb):
         return False
-    wa, wb = set(a.member_ways), set(b.member_ways)
     if wa and wb and len(wa & wb) >= 0.5 * len(wa | wb):
         return True
-    ea = _endpoint_set(a)
-    return bool(ea) and ea == _endpoint_set(b)
+    return bool(ea) and ea == eb
+
+
+def _is_duplicate(a: "Trail", b: "Trail") -> bool:
+    return _sig_duplicate(_trail_sig(a), _trail_sig(b))
 
 
 def _prefer(a: "Trail", b: "Trail") -> "Trail":
@@ -687,13 +697,16 @@ def dedupe_duplicate_trails(trails: list["Trail"]) -> list["Trail"]:
         by_area[t.area].append(t)
     drop: set = set()
     for group in by_area.values():
-        for i in range(len(group)):
+        sig = {id(t): _trail_sig(t) for t in group}   # once per trail, not per pair
+        n = len(group)
+        for i in range(n):
             a = group[i]
             if id(a) in drop:
                 continue
-            for j in range(i + 1, len(group)):
+            sa = sig[id(a)]
+            for j in range(i + 1, n):
                 b = group[j]
-                if id(b) in drop or not _is_duplicate(a, b):
+                if id(b) in drop or not _sig_duplicate(sa, sig[id(b)]):
                     continue
                 if _prefer(a, b) is a:
                     drop.add(id(b))

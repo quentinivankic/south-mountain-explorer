@@ -58,6 +58,7 @@ def convert(fc: dict, area_id: str, name: str, state: str,
             id_by_mergekey: dict[str, str] | None = None) -> dict:
     trails = []
     slug_counts: dict[str, int] = {}
+    used_canonical: set[str] = set()
     minlat = minlon = 1e9
     maxlat = maxlon = -1e9
     # longest-first = a stable, deterministic collision order.
@@ -81,6 +82,12 @@ def convert(fc: dict, area_id: str, name: str, state: str,
             seen = slug_counts.get(base, 0)
             slug_counts[base] = seen + 1
             tid = base if seen == 0 else f"{base}-{seen}"
+        # The app strips a trailing -<1-3 digits> on load (canonicalTrailId),
+        # so "Foo" + "Foo 2" both collapse to "foo" and crash its id-keyed
+        # dict. Guarantee the CANONICAL id is unique; '-x' survives the strip.
+        while canonical(tid) in used_canonical:
+            tid += "-x"
+        used_canonical.add(canonical(tid))
         segs = []
         for line in f["geometry"]["coordinates"]:
             pts = [[round(lat, 6), round(lon, 6)] for lon, lat in line]  # [lon,lat]->[lat,lon]

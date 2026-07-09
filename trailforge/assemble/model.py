@@ -108,6 +108,23 @@ def is_closed_name(name: str | None) -> bool:
     return bool(name) and "closed" in norm_name(name).split()
 
 
+# Names that are pure generic category words — no identity, so a useless
+# completion-checklist item ("complete: Trail" — which one?). These are also
+# what fuse into the region-scale "Trail" blobs. Dropped in curation UNLESS a
+# route relation carries the object (relations reflect human curation).
+_GENERIC_NAMES = {
+    "trail", "path", "trailhead", "loop", "the loop", "loop trail",
+    "connector", "connector trail", "nature trail", "spur", "cutoff",
+    "shortcut", "access", "access trail", "main trail", "upper loop",
+    "lower loop", "unnamed", "trail 1", "trail 2", "hiking trail",
+}
+
+
+def is_generic_name(name: str | None) -> bool:
+    """The name is nothing but a generic trail-category word — no identity."""
+    return norm_name(name) in _GENERIC_NAMES
+
+
 # network grades that mark a long-distance thru-route (vs a local trail).
 _ROUTE_NETWORKS = {"rwn", "nwn", "iwn"}
 _ROUTE_WORD = re.compile(r"\broute\b", re.IGNORECASE)
@@ -486,10 +503,13 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     #    Trail"), but never fuse same-named trails across parks (SPEC §6b).
     merged = merge_same_name(trails, area_of=make_area_of(areas) if areas else None)
 
-    # 5. curation: drop name-flagged-closed trails + sub-threshold stubs
-    #    (tiny connectors). min_length_mi<=0 keeps everything.
+    # 5. curation: drop name-flagged-closed trails, sub-threshold stubs (tiny
+    #    connectors), and pure-generic-named objects with no identity ("Trail",
+    #    "Connector" — also what fuse into region-scale blobs); a route relation
+    #    spares its object. min_length_mi<=0 keeps everything.
     kept = [t for t in merged
             if not is_closed_name(t.name)
+            and not (is_generic_name(t.name) and t.source != "relation")
             and (min_length_mi <= 0 or t.length_mi >= min_length_mi)]
 
     # 6. tier-1 canonical hikes: promote local routes that reach a named

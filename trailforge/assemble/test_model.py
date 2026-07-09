@@ -141,6 +141,22 @@ class NameStitch(unittest.TestCase):
         # with no threshold, the stub survives
         self.assertIn("Stub", {t.name for t in m.assemble(nodes, ways, {}, [])})
 
+    def test_generic_named_trails_dropped_unless_relation(self):
+        # A standalone way named just "Trail" has no identity -> dropped.
+        # A same-generic-named ROUTE RELATION is spared (human curation).
+        rels = {1: {"tags": {"type": "route", "route": "hiking", "name": "Trail"},
+                    "members": [("w", 30, "")]}}
+        ways = {10: W([1, 2], highway="path", name="Trail"),            # generic standalone
+                20: W([3, 4], highway="path", name="Nature Trail"),     # generic standalone
+                30: W([5, 6], highway="path"),                          # relation member
+                40: W([7, 8], highway="path", name="Desert Classic Trail")}  # real name
+        nodes = {1: (0, 0), 2: (0, 1), 3: (2, 0), 4: (2, 1),
+                 5: (4, 0), 6: (4, 1), 7: (6, 0), 8: (6, 1)}
+        names = {t.name for t in m.assemble(nodes, ways, rels, [])}
+        self.assertNotIn("Nature Trail", names)          # generic standalone dropped
+        self.assertIn("Desert Classic Trail", names)     # real name kept
+        self.assertIn("Trail", names)                    # generic BUT from a relation -> kept
+
     def test_relation_and_standalone_same_name_merge(self):
         # National Trail: some ways in the route relation, some standalone.
         rels = {1: {"tags": {"type": "route", "route": "hiking", "name": "National Trail"},

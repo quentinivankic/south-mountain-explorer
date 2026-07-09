@@ -365,12 +365,13 @@ struct TrailRow: View {
     var body: some View {
         HStack(spacing: 14) {
             // The trail's own shape, stroked in its difficulty color
-            // (cyan once completed — same color language as the map).
-            // Replaced the leaf/arrow/bolt difficulty glyphs; difficulty
-            // stays readable via the colored text in the caption row.
+            // (gold once completed — same color language as the map's thick
+            // gold completed stroke). Replaced the leaf/arrow/bolt difficulty
+            // glyphs; difficulty stays readable via the colored text in the
+            // caption row.
             TrailShapeThumb(
                 trail: trail,
-                color: isComplete ? .cyan : difficultyColor
+                color: isComplete ? .completedGold : difficultyColor
             )
 
             VStack(alignment: .leading, spacing: 2) {

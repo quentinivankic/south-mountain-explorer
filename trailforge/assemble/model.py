@@ -500,6 +500,13 @@ def _road_like_track(tags: dict) -> bool:
         return True
     if str(tags.get("motorcar", "")).strip().lower() == "yes":
         return True
+    # 2+ lanes = a drivable road, not a foot trail (e.g. the sand service
+    # road through South Mountain Park mis-named after the park itself).
+    try:
+        if int(str(tags.get("lanes", "")).strip()) >= 2:
+            return True
+    except ValueError:
+        pass
     name = str(tags.get("name", "")).lower()
     return any(w in name for w in _ROAD_WORDS)
 

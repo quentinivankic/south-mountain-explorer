@@ -14,14 +14,17 @@
     position: absolute; top: 10px; left: 10px; z-index: 2;
     background: rgba(255,255,255,.95); border-radius: 8px; padding: 10px 12px;
     font: 13px/1.5 system-ui, sans-serif; box-shadow: 0 1px 6px rgba(0,0,0,.25);
-    max-width: 300px;
+    max-width: 300px; max-height: calc(100vh - 20px); overflow-y: auto;
   }
   #panel h1 { font-size: 14px; margin: 0 0 6px; }
   #panel label { display: block; cursor: pointer; }
-  #golden-list { margin: 6px 0 0; padding: 0; list-style: none; max-height: 40vh; overflow: auto; }
-  #golden-list li { cursor: pointer; padding: 1px 4px; border-radius: 4px; }
-  #golden-list li:hover { background: #eef; }
+  #golden-list, #inview-list { margin: 6px 0 0; padding: 0; list-style: none; max-height: 34vh; overflow: auto; }
+  #golden-list li, #inview-list li { cursor: pointer; padding: 1px 4px; border-radius: 4px; }
+  #golden-list li:hover, #inview-list li:hover { background: #eef; }
+  #trail-search { width: 100%; box-sizing: border-box; margin: 4px 0; padding: 3px 6px;
+    border: 1px solid #ccc; border-radius: 4px; font: inherit; }
   .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+  .mi { color: #888; }
 </style>
 </head>
 <body>
@@ -36,6 +39,9 @@
     <span class="swatch" style="background:#8b3fd6"></span>Routes (thru / composite)</label>
   <label><input type="checkbox" id="toggle-golden" checked />
     <span class="swatch" style="background:#1a7f37"></span>Golden destinations</label>
+  <div style="margin-top:8px"><b>Trails</b> <span id="inview-count" class="mi"></span></div>
+  <input id="trail-search" type="search" placeholder="search all trails…" />
+  <ul id="inview-list"></ul>
   <div style="margin-top:6px"><b id="golden-title">Golden trails</b> (click to fly)</div>
   <div id="golden-summary" style="font-weight:600"></div>
   <ul id="golden-list"></ul>
@@ -64,6 +70,15 @@ map.addControl(new maplibregl.NavigationControl());
 async function maybeJSON(url) {
   try { const r = await fetch(url); return r.ok ? await r.json() : null; }
   catch { return null; }
+}
+
+// grow a LngLatBounds to cover a (Multi)LineString feature.
+function extendBounds(b, feature) {
+  const g = feature.geometry || {};
+  const lines = g.type === "MultiLineString" ? g.coordinates
+              : g.type === "LineString" ? [g.coordinates] : [];
+  for (const line of lines) for (const c of line) b.extend(c);
+  return b;
 }
 
 map.on("load", async () => {
@@ -134,6 +149,56 @@ map.on("load", async () => {
     map.on("click", (e) => {
       if (!map.queryRenderedFeatures(e.point, { layers: HIT }).length) clearSel();
     });
+
+    // --- trail picker: list what's in view, search across all, click to frame ---
+    // id === feature index (maplibre generateId), so we can look up full geometry.
+    const feats = trails.features;
+    const listEl = document.getElementById("inview-list");
+    const countEl = document.getElementById("inview-count");
+    const searchEl = document.getElementById("trail-search");
+
+    // frame + highlight the whole trail on pick.
+    const pick = (id) => {
+      clearSel();
+      selectedId = id;
+      map.setFeatureState({ source: "trails", id }, { selected: true });
+      const b = extendBounds(new maplibregl.LngLatBounds(), feats[id]);
+      if (!b.isEmpty()) map.fitBounds(b, { padding: 60, maxZoom: 15, duration: 600 });
+    };
+
+    const renderList = () => {
+      const q = (searchEl.value || "").trim().toLowerCase();
+      let items;
+      if (q) {                                   // search ALL trails in the AOI
+        items = feats.map((f, i) => [i, f.properties])
+                     .filter(([, p]) => (p.name || "").toLowerCase().includes(q));
+      } else {                                   // just what's rendered in the viewport
+        const seen = new Set();
+        for (const f of map.queryRenderedFeatures({ layers: HIT }))
+          if (f.id != null) seen.add(f.id);
+        items = [...seen].map((i) => [i, feats[i].properties]);
+      }
+      items.sort((a, b) => (a[1].name || "~").localeCompare(b[1].name || "~"));
+      countEl.textContent = q ? `(${items.length} matches)` : `(${items.length} in view)`;
+      listEl.innerHTML = "";
+      for (const [i, p] of items) {
+        const li = document.createElement("li");
+        const color = p.kind === "route" ? "#8b3fd6" : "#e6521f";
+        li.innerHTML = `<span class="swatch" style="background:${color}"></span>` +
+          `${p.name || "(unnamed)"} <span class="mi">${(p.length_mi || 0).toFixed(1)}mi</span>`;
+        li.onclick = () => pick(i);
+        listEl.appendChild(li);
+      }
+    };
+
+    // frame the whole AOI on load (so trails aren't off-screen), then list.
+    if (AOI !== "golden") {
+      const all = feats.reduce((b, f) => extendBounds(b, f), new maplibregl.LngLatBounds());
+      if (!all.isEmpty()) map.fitBounds(all, { padding: 30, duration: 0 });
+    }
+    map.on("moveend", () => { if (!searchEl.value.trim()) renderList(); });
+    searchEl.addEventListener("input", renderList);
+    renderList();
   }
 
   // Layer 3: golden destinations, colored PASS/FAIL when results exist.

@@ -87,13 +87,16 @@ def main(argv=None) -> int:
                     help="keep only trails inside area(s) whose name contains this "
                          "(case-insensitive; unions all matches). Boundaries are "
                          "assembled from the same --in PBF.")
+    ap.add_argument("--min-length-mi", dest="min_length_mi", type=float, default=0.0,
+                    help="drop assembled trails shorter than this (miles); 0 = keep all")
     args = ap.parse_args(argv)
 
     nodes, ways, relations, pois = read_pbf(args.inp)
     print(f"read: {len(ways):,} ways, {len(relations):,} route relations, "
           f"{len(pois):,} POIs, {len(nodes):,} nodes", file=sys.stderr)
 
-    trails = model.assemble(nodes, ways, relations, pois)
+    trails = model.assemble(nodes, ways, relations, pois,
+                            min_length_mi=args.min_length_mi)
     features = [t.to_feature() for t in trails]
 
     area_note = ""

@@ -88,6 +88,25 @@ def display_name(tags: dict[str, str]) -> str | None:
     return None
 
 
+def merge_key(name: str | None) -> str:
+    """Grouping key for the same-trail merge — looser than the display name.
+
+    Folds hyphens→spaces and drops a trailing 'Trail' so OSM's inconsistent
+    tagging of one trail collapses: 'Alta' == 'Alta Trail', 'Ma-Ha-Tuak' ==
+    'Ma Ha Tuak'. Distinct trails stay distinct ('Mormon' vs 'Mormon Loop',
+    'Alta' vs 'West Alta').
+    """
+    k = " ".join(norm_name(name).replace("-", " ").split())
+    if k.endswith(" trail"):
+        k = k[:-6].rstrip()
+    return k
+
+
+def is_closed_name(name: str | None) -> bool:
+    """A trail whose name flags it closed (e.g. 'CLOSED - old Pyramid Trail')."""
+    return bool(name) and "closed" in norm_name(name).split()
+
+
 # ---------------------------------------------------------------------------
 # geometry helpers
 # ---------------------------------------------------------------------------
@@ -367,7 +386,7 @@ def _terminal_nodes(chains: list[list[int]], ways: dict) -> list[int]:
 
 
 def assemble(nodes: dict, ways: dict, relations: dict,
-             pois: list[dict]) -> list[Trail]:
+             pois: list[dict], min_length_mi: float = 0.0) -> list[Trail]:
     trails: list[Trail] = []
     claimed: set[int] = set()
 
@@ -426,7 +445,13 @@ def assemble(nodes: dict, ways: dict, relations: dict,
 
     # 4. one object per named trail — combine the pieces split across a route
     #    relation and standalone same-named ways (e.g. "National Trail").
-    return merge_same_name(trails)
+    merged = merge_same_name(trails)
+
+    # 5. curation: drop name-flagged-closed trails + sub-threshold stubs
+    #    (tiny connectors). min_length_mi<=0 keeps everything.
+    return [t for t in merged
+            if not is_closed_name(t.name)
+            and (min_length_mi <= 0 or t.length_mi >= min_length_mi)]
 
 
 def merge_same_name(trails: list["Trail"]) -> list["Trail"]:
@@ -440,7 +465,7 @@ def merge_same_name(trails: list["Trail"]) -> list["Trail"]:
     base_by_name: dict[str, "Trail"] = {}
     out: list["Trail"] = []
     for t in trails:
-        key = norm_name(t.name) if t.name else ""
+        key = merge_key(t.name) if t.name else ""
         if not key:
             out.append(t)
             continue

@@ -105,6 +105,42 @@ class NameStitch(unittest.TestCase):
         self.assertEqual(len(trails), 1)
         self.assertEqual(len(trails[0].lines), 2)   # both pieces kept
 
+    def test_merge_key_folds_trail_suffix_and_hyphens(self):
+        self.assertEqual(m.merge_key("Alta"), m.merge_key("Alta Trail"))
+        self.assertEqual(m.merge_key("Ma-Ha-Tuak"), m.merge_key("Ma Ha Tuak"))
+        self.assertEqual(m.merge_key("Desert Classic"), m.merge_key("Desert Classic Trail"))
+        # distinct trails stay distinct
+        self.assertNotEqual(m.merge_key("Alta"), m.merge_key("West Alta"))
+        self.assertNotEqual(m.merge_key("Mormon Trail"), m.merge_key("Mormon Loop Trail"))
+
+    def test_alta_variant_names_merge(self):
+        # "Alta" (long) + "Alta Trail" (short) = one trail; "West Alta" separate.
+        ways = {1: W([1, 2], highway="path", name="Alta"),
+                2: W([8, 9], highway="path", name="Alta Trail"),
+                3: W([20, 21], highway="path", name="West Alta")}
+        nodes = {1: (0, 0), 2: (0, 1), 8: (5, 5), 9: (5, 6), 20: (9, 9), 21: (9, 10)}
+        names = sorted(t.name for t in m.assemble(nodes, ways, {}, []))
+        self.assertEqual(len(names), 2)             # Alta(+Trail) merged, West Alta separate
+        self.assertIn("West Alta", names)
+
+    def test_closed_named_trail_dropped(self):
+        ways = {1: W([1, 2], highway="path", name="CLOSED - old Pyramid Trail"),
+                2: W([3, 4], highway="path", name="Pyramid Trail")}
+        nodes = {1: (0, 0), 2: (0, 1), 3: (0, 2), 4: (0, 3)}
+        names = {t.name for t in m.assemble(nodes, ways, {}, [])}
+        self.assertNotIn("CLOSED - old Pyramid Trail", names)
+        self.assertIn("Pyramid Trail", names)
+
+    def test_min_length_drops_short_trails(self):
+        ways = {1: W([1, 2], highway="path", name="Stub"),        # ~tiny
+                2: W([3, 4], highway="path", name="Long Trail")}  # ~1 deg lat = 69mi
+        nodes = {1: (0, 0), 2: (0, 0.0003), 3: (0, 0), 4: (0, 1)}
+        names = {t.name for t in m.assemble(nodes, ways, {}, [], min_length_mi=0.1)}
+        self.assertNotIn("Stub", names)
+        self.assertIn("Long Trail", names)
+        # with no threshold, the stub survives
+        self.assertIn("Stub", {t.name for t in m.assemble(nodes, ways, {}, [])})
+
     def test_relation_and_standalone_same_name_merge(self):
         # National Trail: some ways in the route relation, some standalone.
         rels = {1: {"tags": {"type": "route", "route": "hiking", "name": "National Trail"},

@@ -345,6 +345,40 @@ class Classification(unittest.TestCase):
                   "National Trail", "DC-Ray Connector", "Pure O"):
             self.assertFalse(m.is_road_code_name(n), n)
 
+    def test_offtrail_name_drops_worded_agency_roads_and_features(self):
+        # from the Idaho/Washington audit — worded agency roads is_road_code_name
+        # lets through, plus freeway ramps / airport concourses / parking lots.
+        for n in ("National Forest Development Road 005",
+                  "National Forest Development Road 113 Trail",
+                  "Caribou National Forest Road 155", "National Forest Development 626 Road",
+                  "Natl Forrest Develop Rd 2798-A", "Forest Service Road 420",
+                  "East Fsr 1562A", "Conjector Mine Rd FS-1017", "NF-65 (abandoned)",
+                  "IDL 43D", "Bia 37", "Bureau of Indian Affairs Road 115",
+                  "Ramp 23", "Soundside Ramp 52", "Lower Off-Ramp",
+                  "Concourse A (Main Access Road)", "Proposed Parking lot"):
+            self.assertTrue(m.is_offtrail_name(n), n)
+        # false alarms — real trails that must survive (bare road names are kept
+        # on purpose per the audit decision).
+        for n in ("Alligator Road", "Fire Road", "Service Road", "Grassy Gap Fire Road",
+                  "Yellow Brick Road", "Thunder Road", "Old Cole Mill Rd Trail",
+                  "Roanoke Canal Trail", "Historic Columbia River Highway State Trail",
+                  "Golden Gate Trail", "Ramparts Trail", "Parking Lot Connector Trail",
+                  "Driveway Butte Trail"):
+            self.assertFalse(m.is_offtrail_name(n), n)
+
+    def test_motorized_ways_are_not_trailish(self):
+        # ATV/OHV/4WD/snowmobile designations => drop (tag-based, so a foot-only
+        # path merely NAMED 'Jeep Trail' with no such tag is kept).
+        self.assertFalse(m._is_trailish({"highway": "track", "atv": "yes"}))
+        self.assertFalse(m._is_trailish({"highway": "path", "ohv": "yes"}))
+        self.assertFalse(m._is_trailish({"highway": "track", "4wd_only": "yes"}))
+        self.assertFalse(m._is_trailish({"highway": "path", "snowmobile": "designated"}))
+        self.assertFalse(m._is_trailish({"highway": "path", "motor_vehicle": "designated"}))
+        # foot-only path named like a jeep trail (no motor tag) stays trailish
+        self.assertTrue(m._is_trailish({"highway": "path", "name": "Old Jeep Trail",
+                                        "motor_vehicle": "no"}))
+        self.assertTrue(m._is_trailish({"highway": "path", "name": "Huckleberry Trail"}))
+
     def test_dedupe_ref_vs_name_duplicate(self):
         # a route relation and a name-stitch over the SAME ways under names
         # that normalize differently — the Casner Canyon #11 == Casner Canyon

@@ -516,6 +516,7 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     kept = [t for t in merged
             if not is_closed_name(t.name)
             and not is_road_code_name(t.name)
+            and not is_offtrail_name(t.name)
             and not (is_generic_name(t.name) and t.source != "relation")
             and (min_length_mi <= 0 or t.length_mi >= min_length_mi)]
 
@@ -860,6 +861,61 @@ def is_road_code_name(name: str | None) -> bool:
     return True
 
 
+# WORDED agency-road / non-trail-feature names that is_road_code_name lets
+# through because they're full of real English words — surfaced by the ID/WA
+# audit: "National Forest Development Road 005", "Forest Service Road 420",
+# "Natl Forrest Develop Rd 2798-A", "FSR 1562A", "NF-65 (abandoned)", "IDL
+# 43D", "Bia 37", "Bureau of Indian Affairs Road 115", plus freeway ramps
+# ("Ramp 23", "Soundside Ramp 52"), airport concourses ("Concourse A"), and
+# parking lots. Deliberately NARROW — it does NOT touch bare "X Road" names
+# (Alligator Road, Fire Road), which we keep on purpose so whimsical trail
+# names ("Yellow Brick Road", "Thunder Road") survive.
+_ROAD_WORD = re.compile(r"\b(road|rd|route)\b", re.IGNORECASE)
+_AGENCY_PREFIX_CODE = re.compile(r"\b(fsr|fs|nf|nfd|idl|bia)\b[-\s]?\d", re.IGNORECASE)
+_FOREST_ROAD_PHRASE = re.compile(
+    r"\bnational forest\b|\bnatl?\.?\s*forr?e?st\b|\bforest (service|development)\b",
+    re.IGNORECASE)
+_RAMP = re.compile(r"^\s*ramp\s*$|\bramp\s*\d|\boff[\s-]?ramp\b", re.IGNORECASE)
+_CONCOURSE = re.compile(r"\bconcourse\b", re.IGNORECASE)
+_PARKING_LOT = re.compile(r"\bparking\s*lot\b", re.IGNORECASE)
+_TRAIL_WORD = re.compile(r"\b(trail|loop|path|pathway|connector|greenway|trace|spur)\b",
+                         re.IGNORECASE)
+
+
+def is_offtrail_name(name: str | None) -> bool:
+    """A worded agency road (Forest Service / National Forest / FSR / NF- /
+    IDL / BIA code) or a non-trail feature (freeway ramp, airport concourse,
+    parking lot) — not a foot trail. Complements is_road_code_name, which only
+    catches code-like names with no real words."""
+    if not name:
+        return False
+    if _AGENCY_PREFIX_CODE.search(name):        # FSR 1562A, NF-65, IDL 43D, Bia 37
+        return True
+    if _FOREST_ROAD_PHRASE.search(name) and _ROAD_WORD.search(name):
+        return True                             # National Forest / Forest Service … Road
+    if "bureau of indian affairs" in name.lower():
+        return True
+    # ramp / concourse / parking-lot features — but spare a named trail that
+    # merely touches one ("Parking Lot Connector Trail").
+    if _RAMP.search(name) or _CONCOURSE.search(name) or _PARKING_LOT.search(name):
+        return not _TRAIL_WORD.search(name)
+    return False
+
+
+def _is_motorized(tags: dict) -> bool:
+    """The way is designated for motor vehicles / off-highway use — an
+    ATV/OHV/4WD/snowmobile route, not a foot trail. OSM tags these explicitly
+    (atv/ohv/motor_vehicle/4wd_only/snowmobile), so we drop by TAG, not by a
+    'Jeep'/'ATV' NAME: a foot-only path that merely carries such a name has
+    none of these tags and is kept, and a real hiking route survives via its
+    route relation regardless. (Research: OSM tags ATV/4WD tracks atv=yes,
+    Jeep/OHV routes ohv=yes.)"""
+    if str(tags.get("4wd_only", "")).strip().lower() in {"yes", "designated"}:
+        return True
+    return any(str(tags.get(k, "")).strip().lower() in {"yes", "designated"}
+               for k in ("motor_vehicle", "motorcar", "atv", "ohv", "snowmobile"))
+
+
 def _road_like_track(tags: dict) -> bool:
     if tags.get("highway") != "track":
         return False
@@ -889,6 +945,8 @@ def _is_trailish(tags: dict) -> bool:
     if tags.get("indoor") == "yes" or tags.get("trail") == "no":
         return False
     if _road_like_track(tags):          # access/utility road masquerading as a track
+        return False
+    if _is_motorized(tags):             # ATV/OHV/4WD/snowmobile route, not a foot trail
         return False
     return True
 

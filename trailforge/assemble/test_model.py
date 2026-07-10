@@ -345,6 +345,70 @@ class Classification(unittest.TestCase):
                   "National Trail", "DC-Ray Connector", "Pure O"):
             self.assertFalse(m.is_road_code_name(n), n)
 
+    def test_dedupe_ref_vs_name_duplicate(self):
+        # a route relation and a name-stitch over the SAME ways under names
+        # that normalize differently — the Casner Canyon #11 == Casner Canyon
+        # Trail case. Geometry (shared ways) matches -> keep the worded name.
+        line = [(-111.703, 34.889), (-111.718, 34.891), (-111.733, 34.893)]
+        a = m.Trail("Casner Canyon Trail", "relation", [10, 11, 12], [list(line)], {}, [])
+        b = m.Trail("Casner Canyon #11", "name-stitch", [10, 11, 12], [list(line)], {}, [])
+        a.area = b.area = "Coconino National Forest"
+        out = m.dedupe_duplicate_trails([a, b])
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0].name, "Casner Canyon Trail")
+
+    def test_dedupe_matches_identical_geometry_without_shared_ways(self):
+        # duplicate mappings (different way ids, same traced path) still fold
+        line = [(-111.703, 34.889), (-111.733, 34.893)]
+        a = m.Trail("Foo Trail", "relation", [30], [list(line)], {}, [])
+        b = m.Trail("Foo #7", "name-stitch", [99], [list(line)], {}, [])
+        a.area = b.area = "X"
+        out = m.dedupe_duplicate_trails([a, b])
+        self.assertEqual([t.name for t in out], ["Foo Trail"])
+
+    def test_dedupe_keeps_distinct_trails_sharing_a_base_name(self):
+        # same base name, DIFFERENT geometry (different canyon segments) ->
+        # both survive; the ref is not a merge signal, geometry is.
+        c = m.Trail("Bear Canyon #29", "name-stitch", [20],
+                    [[(-110.0, 32.0), (-110.01, 32.01)]], {}, [])
+        d = m.Trail("Bear Canyon #31", "name-stitch", [21],
+                    [[(-110.5, 32.5), (-110.51, 32.51)]], {}, [])
+        c.area = d.area = "Coronado National Forest"
+        self.assertEqual(len(m.dedupe_duplicate_trails([c, d])), 2)
+
+    def test_dedupe_keeps_the_descriptive_name_not_the_generic_one(self):
+        # a duplicate pair must keep the DISTINCTIVE name, never a bare
+        # 'Trail <n>' — and must prefer fuller spelling over a typo/abbrev.
+        line = [(-112.45, 34.55), (-112.46, 34.56), (-112.47, 34.57)]
+        for good, bad in [("Granite Mountain Trail #261", "Trail 261"),
+                          ("Wilson Mountain Spur B #10B", "Willson Mtn Spur B"),
+                          ("Raspberry Ridge Trail #228", "Rasberry Ridge Trail #228")]:
+            a = m.Trail(good, "name-stitch", [1], [list(line)], {}, [])
+            b = m.Trail(bad, "relation", [1], [list(line)], {}, [])
+            a.area = b.area = "Prescott National Forest"
+            out = m.dedupe_duplicate_trails([a, b])
+            self.assertEqual([t.name for t in out], [good], f"{good!r} vs {bad!r}")
+
+    def test_dedupe_keeps_distinct_trails_sharing_endpoints(self):
+        # two different routes between the same trailhead and peak: SAME
+        # endpoints, similar length, DIFFERENT path between -> both survive.
+        # Endpoint coincidence alone must not trigger a merge (the over-removal
+        # guard); only near-total coordinate overlap counts.
+        a = m.Trail("Cathedral Rock Trail", "relation", [1],
+                    [[(-111.80, 34.82), (-111.81, 34.83), (-111.82, 34.84)]], {}, [])
+        b = m.Trail("Templeton Trail", "name-stitch", [2],
+                    [[(-111.80, 34.82), (-111.79, 34.83), (-111.82, 34.84)]], {}, [])
+        a.area = b.area = "Coconino National Forest"
+        self.assertEqual(len(m.dedupe_duplicate_trails([a, b])), 2)
+
+    def test_dedupe_is_area_scoped(self):
+        # identical name+geometry in DIFFERENT areas are not each other's dupes
+        line = [(-111.703, 34.889), (-111.733, 34.893)]
+        a = m.Trail("Ridge Trail", "relation", [1], [list(line)], {}, [])
+        b = m.Trail("Ridge Trail", "relation", [1], [list(line)], {}, [])
+        a.area, b.area = "Park A", "Park B"
+        self.assertEqual(len(m.dedupe_duplicate_trails([a, b])), 2)
+
     def test_promote_hike_renames_local_route_from_destination(self):
         # a local route ending at a named destination POI -> canonical hike
         t = m.Trail("Angels Landing Trail--West Rim Trail", "relation", [1],

@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import math
 import re
+import sys
 import unicodedata
 from typing import Any
 
@@ -503,6 +504,11 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     #    Trail"), but never fuse same-named trails across parks (SPEC §6b).
     merged = merge_same_name(trails, area_of=make_area_of(areas) if areas else None)
 
+    # 4b. drop geometry-duplicate trails the name-merge missed — a route
+    #     relation and a name-stitch built over the same ways under names that
+    #     normalize differently ('Casner Canyon Trail' vs 'Casner Canyon #11').
+    merged = dedupe_duplicate_trails(merged)
+
     # 5. curation: drop name-flagged-closed trails, sub-threshold stubs (tiny
     #    connectors), and pure-generic-named objects with no identity ("Trail",
     #    "Connector" — also what fuse into region-scale blobs); a route relation
@@ -608,6 +614,125 @@ def merge_same_name(trails: list["Trail"], area_of=None) -> list["Trail"]:
         if base.source != "relation" and t.source == "relation":
             base.source, base.tags, base.name = "relation", t.tags, t.name
     return out
+
+
+_REF_SUFFIX = re.compile(r"#\s*\d+[a-z]?\s*$", re.IGNORECASE)
+_GENERIC_TOKENS = {"trail", "trails", "loop", "path", "pathway", "way", "route",
+                   "spur", "connector", "cutoff", "bypass", "segment", "extension"}
+
+
+def _name_rank(name: str | None) -> tuple:
+    """Keep-preference key for a duplicate pair (higher tuple wins):
+      1. a name with >=1 DISTINCTIVE word beats a pure-generic one, so
+         'Granite Mountain Trail #261' > 'Trail 261';
+      2. then fuller spelling (more letters), so 'Wilson Mountain' > 'Willson
+         Mtn' and 'Raspberry' > 'Rasberry';
+      3. then a clean name over a '#<ref>' form, so 'Casner Canyon Trail' >
+         'Casner Canyon #11'.
+    A distinctive word is any token that isn't a generic trail word or a
+    number/ref code."""
+    if not name:
+        return (-1, 0, 0)
+    toks = re.findall(r"[a-z0-9]+", name.lower())
+    has_distinct = 1 if any(t not in _GENERIC_TOKENS and not t[0].isdigit()
+                            for t in toks) else 0
+    alpha = sum(c.isalpha() for c in name)
+    no_ref = 0 if _REF_SUFFIX.search(name.strip()) else 1
+    return (has_distinct, alpha, no_ref)
+
+
+def _coord_set(t: "Trail") -> frozenset:
+    """ALL rounded coords of the trail (~1 m at 5 decimals) — a geometry
+    fingerprint. Endpoints alone are too weak: two DISTINCT trails between the
+    same trailhead and peak share endpoints but not the path between, so we
+    fingerprint the whole line and require near-total overlap to call a dup."""
+    return frozenset((round(c[0], 5), round(c[1], 5))
+                     for line in t.lines for c in line if len(c) >= 2)
+
+
+def _trail_sig(t: "Trail") -> tuple:
+    """(member-way set, coord set, length) — the values the duplicate test
+    needs, computed once so an O(n^2) area scan doesn't rebuild them per pair
+    (a 657-trail forest went from ~20 min to seconds with this precompute)."""
+    return (frozenset(t.member_ways), _coord_set(t), t.length_mi)
+
+
+def _sig_duplicate(sa: tuple, sb: tuple) -> bool:
+    """Two trail signatures describe the SAME physical trail: near-equal length
+    AND either substantially the same OSM ways OR near-total coordinate
+    overlap (>=90% of the smaller trail's nodes coincide). The length gate
+    stops a short fragment from absorbing a full-length trail; the coordinate
+    (not endpoint) test stops two distinct trails that merely share endpoints
+    from folding — only genuine full duplicates match."""
+    wa, ca, la = sa
+    wb, cb, lb = sb
+    if la <= 0 or lb <= 0 or abs(la - lb) > 0.05 * max(la, lb):
+        return False
+    if wa and wb and len(wa & wb) >= 0.5 * len(wa | wb):
+        return True
+    if ca and cb:
+        return len(ca & cb) >= 0.9 * min(len(ca), len(cb))
+    return False
+
+
+def _is_duplicate(a: "Trail", b: "Trail") -> bool:
+    return _sig_duplicate(_trail_sig(a), _trail_sig(b))
+
+
+def _prefer(a: "Trail", b: "Trail") -> "Trail":
+    """The keeper of a duplicate pair: best name, then longer geometry, then
+    the route-relation object (human-curated)."""
+    ra, rb = _name_rank(a.name), _name_rank(b.name)
+    if ra != rb:
+        return a if ra > rb else b
+    if abs(a.length_mi - b.length_mi) > 1e-6:
+        return a if a.length_mi > b.length_mi else b
+    if (a.source == "relation") != (b.source == "relation"):
+        return a if a.source == "relation" else b
+    return a
+
+
+def dedupe_duplicate_trails(trails: list["Trail"]) -> list["Trail"]:
+    """Drop trails that duplicate another trail's geometry within the same
+    area — e.g. a route relation 'Casner Canyon Trail' over the same ways a
+    name-stitch emits as 'Casner Canyon #11'. merge_same_name misses these
+    because the names normalize differently; matching on GEOMETRY collapses
+    only provably-identical trails and never fuses two DISTINCT trails that
+    merely share a base name (Bear Canyon #29 vs #31 differ in geometry -> both
+    kept). Keeps the better-named object; area-scoped via the area set by
+    merge_same_name."""
+    from collections import defaultdict
+    by_area: dict = defaultdict(list)
+    for t in trails:
+        by_area[t.area].append(t)
+    drop: set = set()
+    dropped: list = []          # (loser, keeper) names — logged for review
+    for group in by_area.values():
+        sig = {id(t): _trail_sig(t) for t in group}   # once per trail, not per pair
+        n = len(group)
+        for i in range(n):
+            a = group[i]
+            if id(a) in drop:
+                continue
+            sa = sig[id(a)]
+            for j in range(i + 1, n):
+                b = group[j]
+                if id(b) in drop or not _sig_duplicate(sa, sig[id(b)]):
+                    continue
+                keep = _prefer(a, b)
+                lose = b if keep is a else a
+                drop.add(id(lose))
+                dropped.append((lose.name, keep.name))
+                if lose is a:
+                    break
+    # Every drop is logged with the trail it deferred to, so a review can
+    # confirm each removal really had a surviving twin (not an over-merge).
+    if dropped:
+        print(f"dedupe: dropped {len(dropped)} geometry-duplicate trails",
+              file=sys.stderr)
+        for lo, wi in sorted(dropped, key=lambda p: (p[0] or "", p[1] or "")):
+            print(f"  dedupe: {lo!r} -> kept {wi!r}", file=sys.stderr)
+    return [t for t in trails if id(t) not in drop]
 
 
 def _reached_destination(trail: "Trail", dest_pois: list[dict]) -> dict | None:

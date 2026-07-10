@@ -1,0 +1,113 @@
+name: Trailforge — publish a BATCH of states
+
+# One dispatch, many states, ONE commit + ONE R2 sync — the whole-US mechanism.
+# Loops the requested states inside a single job (download -> prefilter ->
+# assemble -> publish_areas into public/areas/geom against the MASTER index),
+# continues past a failing state, then regenerates the app bundle, commits, and
+# triggers the R2 sync once. Shares the trailforge-publish concurrency group so
+# it never races a single-state run's git push.
+#
+# Default is a DRY RUN (per-state report, writes/commits nothing).
+
+on:
+  workflow_dispatch:
+    inputs:
+      states:
+        description: "Comma-separated Geofabrik state slugs (e.g. colorado,washington,oregon), or 'all'"
+        default: "colorado,washington,oregon,new-mexico,nevada"
+      dry_run:
+        description: "Preview only — per-state report, write/commit/publish nothing"
+        type: boolean
+        default: true
+      no_routes:
+        description: "Drop thru-routes (Colorado Trail, PCT) from the checklist"
+        type: boolean
+        default: false
+
+concurrency:
+  group: trailforge-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install osmium + pyosmium + shapely
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely
+
+      - name: Publish each state (into public/areas/geom, cumulative)
+        run: |
+          set -uo pipefail
+          cd trailforge
+          mkdir -p data/raw data/aoi
+
+          STATES="${{ github.event.inputs.states }}"
+          if [ "$STATES" = "all" ]; then STATES=$(python3 tools/state_slug.py all); fi
+          DRY=""; [ "${{ github.event.inputs.dry_run }}" = "true" ]  && DRY="--dry-run"
+          NOROUTES=""; [ "${{ github.event.inputs.no_routes }}" = "true" ] && NOROUTES="--no-routes"
+
+          ok=""; failed=""; skipped=""
+          IFS=',' read -ra SLUGS <<< "$STATES"
+          for slug in "${SLUGS[@]}"; do
+            slug=$(echo "$slug" | xargs)
+            [ -z "$slug" ] && continue
+            echo "==================== $slug ===================="
+            NAME=$(python3 tools/state_slug.py name "$slug")
+            raw="data/raw/$slug.osm.pbf"
+
+            if ! curl -fL --retry 5 --retry-delay 5 --connect-timeout 20 \
+                 --speed-limit 2000 --speed-time 30 -o "$raw" \
+                 "https://download.geofabrik.de/north-america/us/$slug-latest.osm.pbf"; then
+              echo "!! no extract for $slug"; skipped="$skipped $slug"; rm -f "$raw"; continue
+            fi
+            if ! bash extract/prefilter.sh "$raw" data/hiking.osm.pbf; then
+              echo "!! prefilter failed for $slug"; failed="$failed $slug"; rm -f "$raw"; continue
+            fi
+            rm -f "$raw"                                   # free disk before assemble
+            if ! python3 assemble/assemble.py --in data/hiking.osm.pbf \
+                 --out data/aoi/state.trails.geojson --min-length-mi 0.1 --per-area-merge; then
+              echo "!! assemble failed for $slug"; failed="$failed $slug"; continue
+            fi
+            if ! python3 serve/publish_areas.py \
+                 --trails data/aoi/state.trails.geojson --hiking data/hiking.osm.pbf \
+                 --state "$NAME" --index ../public/areas/index.json \
+                 --out-dir ../public/areas/geom $DRY $NOROUTES; then
+              echo "!! publish failed for $slug"; failed="$failed $slug"; continue
+            fi
+            ok="$ok $slug"
+          done
+
+          echo "==================== SUMMARY ===================="
+          echo "published:${ok:- none}"
+          echo "skipped:  ${skipped:- none}"
+          echo "failed:   ${failed:- none}"
+
+      - name: Regenerate app bundle (only areas with clean trailforge geom)
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: python3 scripts/filter-ios-bundle.py
+
+      - name: Commit published data
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          set -e
+          git config user.name "trailforge-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/areas ios/SouthMountainExplorer/Resources/areas-index.json
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."; exit 0
+          fi
+          git commit -m "trailforge: publish batch [${{ github.event.inputs.states }}]"
+          git push
+
+      - name: Trigger R2 sync
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run sync-geom-to-r2.yml

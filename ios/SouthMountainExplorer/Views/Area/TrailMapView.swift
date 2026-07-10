@@ -286,7 +286,8 @@ struct TrailMapView: View {
             recomputeWalkedSinceCompletion()
             guard let id = newId,
                   let trail = area.trails.first(where: { $0.id == id }) else {
-                centerOnArea()
+                // Deselecting leaves the camera where it is — snapping back to
+                // the whole-area view on every deselect was disorienting.
                 return
             }
             centerOn(trail: trail)

@@ -517,6 +517,7 @@ def assemble(nodes: dict, ways: dict, relations: dict,
             if not is_closed_name(t.name)
             and not is_road_code_name(t.name)
             and not is_offtrail_name(t.name)
+            and not is_motorized_name(t.name)
             and not (is_generic_name(t.name) and t.source != "relation")
             and (min_length_mi <= 0 or t.length_mi >= min_length_mi)]
 
@@ -900,6 +901,19 @@ def is_offtrail_name(name: str | None) -> bool:
     if _RAMP.search(name) or _CONCOURSE.search(name) or _PARKING_LOT.search(name):
         return not _TRAIL_WORD.search(name)
     return False
+
+
+_MOTORIZED_NAME = re.compile(r"\b(ATV|OHV|UTV|4WD|snowmobile|jeep)\b", re.IGNORECASE)
+
+
+def is_motorized_name(name: str | None) -> bool:
+    """Name marks a motor route — ATV/OHV/UTV/4WD/snowmobile/Jeep. US mappers
+    routinely name these ('Basalt Jeep Trail', 'Pine Creek South ATV Trail',
+    'Deer Creek Trail (OHV Section)') without the atv/ohv access tags, so the
+    tag-based _is_motorized can't see them; this catches the named-but-untagged
+    ones in curation. Every one reviewed in the ID audit was a genuine vehicle
+    route, not a foot hike."""
+    return bool(name and _MOTORIZED_NAME.search(name))
 
 
 def _is_motorized(tags: dict) -> bool:

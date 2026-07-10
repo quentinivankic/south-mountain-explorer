@@ -374,10 +374,22 @@ class Classification(unittest.TestCase):
         self.assertFalse(m._is_trailish({"highway": "track", "4wd_only": "yes"}))
         self.assertFalse(m._is_trailish({"highway": "path", "snowmobile": "designated"}))
         self.assertFalse(m._is_trailish({"highway": "path", "motor_vehicle": "designated"}))
-        # foot-only path named like a jeep trail (no motor tag) stays trailish
-        self.assertTrue(m._is_trailish({"highway": "path", "name": "Old Jeep Trail",
-                                        "motor_vehicle": "no"}))
+        # foot-only path (no motor tag) stays trailish at the WAY level; the
+        # name-based motorized filter runs later in curation.
         self.assertTrue(m._is_trailish({"highway": "path", "name": "Huckleberry Trail"}))
+
+    def test_motorized_name_dropped_in_curation(self):
+        # US mappers name these without atv/ohv tags, so the NAME filter catches
+        # them (from the Idaho audit — all genuine vehicle routes).
+        for n in ("Basalt Jeep Trail", "Pine Creek South ATV Trail",
+                  "Bobtail Spur OHV Trail", "George Gulch 4WD Trail",
+                  "Eccles Road Snowmobile Trail", "Deer Creek Trail (OHV Section) #158",
+                  "Lewis and Clark Jeep Trail", "Jeep Trail", "ATV TR 1550"):
+            self.assertTrue(m.is_motorized_name(n), n)
+        # normal hiking names untouched
+        for n in ("Deer Creek Trail", "Huckleberry Trail", "Angels Landing Trail",
+                  "West Rim Trail", "Casner Canyon Trail"):
+            self.assertFalse(m.is_motorized_name(n), n)
 
     def test_dedupe_ref_vs_name_duplicate(self):
         # a route relation and a name-stitch over the SAME ways under names

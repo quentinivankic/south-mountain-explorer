@@ -26,6 +26,10 @@ on:
         description: "Drop thru-routes (Maricopa, AZ Trail) from the checklist"
         type: boolean
         default: false
+      touch_report:
+        description: "Diagnostic: report trails that TOUCH each area but aren't published (keep-whole gain). Writes nothing."
+        type: boolean
+        default: false
 
 concurrency:
   group: trailforge-publish
@@ -75,6 +79,7 @@ jobs:
           FLAGS=""
           [ "${{ github.event.inputs.dry_run }}" = "true" ]  && FLAGS="$FLAGS --dry-run"
           [ "${{ github.event.inputs.no_routes }}" = "true" ] && FLAGS="$FLAGS --no-routes"
+          [ "${{ github.event.inputs.touch_report }}" = "true" ] && FLAGS="$FLAGS --touch-report"
           # Read the MASTER index (every seeded state) so a not-yet-bundled
           # state has areas to fill; publish_areas updates its counts in place.
           python3 serve/publish_areas.py \

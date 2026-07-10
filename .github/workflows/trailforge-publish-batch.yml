@@ -104,7 +104,14 @@ jobs:
             echo "No data changes to commit."; exit 0
           fi
           git commit -m "trailforge: publish batch [${{ github.event.inputs.states }}]"
-          git push
+          # main can move during a long batch run (code merge, other publish),
+          # which rejects a plain push — rebase our data commit on top and retry.
+          for i in 1 2 3 4 5; do
+            if git push; then exit 0; fi
+            echo "push rejected (attempt $i) — rebasing on latest main"
+            git pull --rebase origin main || git rebase --abort || true
+          done
+          echo "push failed after retries"; exit 1
 
       - name: Trigger R2 sync
         if: ${{ github.event.inputs.dry_run == 'false' }}

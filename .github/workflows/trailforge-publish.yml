@@ -75,10 +75,17 @@ jobs:
           FLAGS=""
           [ "${{ github.event.inputs.dry_run }}" = "true" ]  && FLAGS="$FLAGS --dry-run"
           [ "${{ github.event.inputs.no_routes }}" = "true" ] && FLAGS="$FLAGS --no-routes"
+          # Read the MASTER index (every seeded state) so a not-yet-bundled
+          # state has areas to fill; publish_areas updates its counts in place.
           python3 serve/publish_areas.py \
             --trails data/aoi/state.trails.geojson --hiking data/hiking.osm.pbf \
             --state "${{ github.event.inputs.state }}" \
+            --index ../public/areas/index.json \
             --out-dir ../public/areas/geom $FLAGS
+
+      - name: Regenerate app bundle (only areas with clean trailforge geom)
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: python3 scripts/filter-ios-bundle.py
 
       - name: Commit published data
         if: ${{ github.event.inputs.dry_run == 'false' }}
@@ -86,7 +93,8 @@ jobs:
           set -e
           git config user.name "trailforge-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add public/areas/geom ios/SouthMountainExplorer/Resources/areas-index.json
+          # public/areas covers geom + the master index; the bundle is the app's.
+          git add public/areas ios/SouthMountainExplorer/Resources/areas-index.json
           if git diff --cached --quiet; then
             echo "No data changes to commit."; exit 0
           fi

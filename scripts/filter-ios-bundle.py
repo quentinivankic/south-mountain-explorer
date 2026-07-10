@@ -39,48 +39,68 @@ from _seed_constants import (  # noqa: E402
     code_from_slug,
 )
 
-# Codes whose rows ship in the iOS bundle — only the states we've published
-# clean, trailforge-curated data for. The master index keeps every seeded
-# region (US states, CA provinces, EU, …) as the re-enable source; re-adding a
-# state is a one-line edit here. Everything else — the old System-1 data — is
-# no longer bundled or served.
-BUNDLED_REGION_CODES: set[str] = {"AZ", "UT"}
+# Regions eligible for the iOS bundle: every US state + Canadian province. This
+# is the OUTER gate — the actual per-area gate is "has a clean trailforge geom
+# file" (below), so a state only appears once we've published it. Publishing a
+# new state therefore adds it to the bundle automatically, no edit here. The
+# master index keeps every seeded region (incl. EU) as the re-enable source.
+BUNDLED_REGION_CODES: set[str] = {
+    code for code in STATE_NAMES
+    if (code not in COUNTRY_CODES and "-" not in code)   # US state codes
+    or code.startswith("CA-")                            # or CA province
+}
 
-# Within the bundled states, an area is ALSO dropped if its geom still carries
-# old System-1 data. Signature: a trail literally named "Unnamed <way-id>" —
-# trailforge never emits those, System-1 (build-trail-counts.py) always did for
-# nameless ways. So their presence marks an area trailforge couldn't publish
-# (cross-state boundary absent from the state extract, or a redundant park
-# parent whose trails went to its sub-districts) that still shows unnamed /
-# road-code junk. Detecting this from the geom means the rule self-maintains:
-# if such an area is later published cleanly, it returns to the bundle on its
-# own.
+# The real gate: ship an area ONLY if it has a clean, trailforge-published geom
+# file. Fails when: (a) no geom file — seeded but never published, so shipping
+# it would 404 the app; (b) the geom is System-1 output, RELIABLY marked by a
+# top-level `cached_at` field that build-trail-counts.py writes and trailforge
+# never does; (c) empty, or the old System-1 "Unnamed <way-id>" trail signature
+# (kept as a belt-and-suspenders). Geom-driven, so the rule self-maintains:
+# publish a state cleanly and its areas join the bundle on their own; areas
+# trailforge can't publish (cross-state boundaries, redundant park parents,
+# still-System-1 areas) stay out.
 GEOM_DIR = Path(__file__).resolve().parent.parent / "public" / "areas" / "geom"
 _SYS1_UNNAMED = re.compile(r"^Unnamed \d+$")
 
 
-def _has_system1_leftovers(slug: str) -> bool:
+def _clean_geom(slug: str) -> dict | None:
+    """The parsed geom dict if it's a clean trailforge publish, else None."""
     try:
         data = json.loads((GEOM_DIR / f"{slug}.json").read_text())
     except Exception:
-        return False  # no geom to judge — don't drop on that basis
-    return any(_SYS1_UNNAMED.match(t.get("name") or "")
-               for t in data.get("trails", []))
+        return None  # no geom file -> not published -> would 404 -> don't ship
+    if "cached_at" in data:      # System-1 signature — not trailforge-published
+        return None
+    trails = data.get("trails") or []
+    if not trails:
+        return None
+    if any(_SYS1_UNNAMED.match(t.get("name") or "") for t in trails):
+        return None
+    return data
 
 
 def filter_rows(rows: list[list]) -> tuple[list[list], dict[str, int]]:
     """Return (filtered_rows, drop_counts_by_code). drop_counts_by_code
-    aggregates how many rows were dropped per region code, for the
-    workflow summary."""
+    aggregates how many rows were dropped per region code, for the workflow
+    summary. Kept rows take their trail_count/total_mi from the geom file —
+    the geom is authoritative for a published area, and the master index row
+    may still hold stale System-1 seed counts."""
     kept: list[list] = []
     dropped: dict[str, int] = {}
     for row in rows:
         slug = row[0]
         code = code_from_slug(slug) or ""
-        if code in BUNDLED_REGION_CODES and not _has_system1_leftovers(slug):
-            kept.append(row)
-        else:
+        geom = _clean_geom(slug) if code in BUNDLED_REGION_CODES else None
+        if geom is None:
             dropped[code] = dropped.get(code, 0) + 1
+            continue
+        row = list(row)                       # don't mutate the source row
+        if len(row) > 6:                       # [id,name,state,lat,lon,count,mi,...]
+            if geom.get("trail_count") is not None:
+                row[5] = geom["trail_count"]
+            if geom.get("total_mi") is not None:
+                row[6] = geom["total_mi"]
+        kept.append(row)
     return kept, dropped
 
 

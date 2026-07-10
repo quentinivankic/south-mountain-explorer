@@ -1082,6 +1082,24 @@ def _is_motorized(tags: dict) -> bool:
                          "motorcycle"))
 
 
+def _is_nonhiking(tags: dict) -> bool:
+    """A purpose-built non-hiking way — a bike-park flow/downhill run or an
+    alpine ski feature — that carries highway=path but is not a foot trail. The
+    Colorado audit (Keystone/Breck/Vail) dumped hundreds of these: 'Gluteus
+    Minimus', 'Holy Diver', 'Uphill Skinning Egress (No Hiking)', 'Lift 8
+    Tower'. bicycle=designated alone can't tell them from a shared-use trail, so
+    we drop by SAFE tags that never appear on a real hike: foot=no (hikers
+    banned), mtb:type=flow/downhill (built bike feature), piste:type=downhill
+    (alpine ski run)."""
+    if str(tags.get("foot", "")).strip().lower() == "no":
+        return True
+    if str(tags.get("mtb:type", "")).strip().lower() in {"flow", "downhill"}:
+        return True
+    if str(tags.get("piste:type", "")).strip().lower() == "downhill":
+        return True
+    return False
+
+
 def _road_like_track(tags: dict) -> bool:
     if tags.get("highway") != "track":
         return False
@@ -1113,6 +1131,8 @@ def _is_trailish(tags: dict) -> bool:
     if _road_like_track(tags):          # access/utility road masquerading as a track
         return False
     if _is_motorized(tags):             # ATV/OHV/4WD/snowmobile route, not a foot trail
+        return False
+    if _is_nonhiking(tags):             # bike-park flow run / alpine ski feature
         return False
     return True
 

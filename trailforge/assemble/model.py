@@ -563,7 +563,39 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     # 6. tier-1 canonical hikes: promote local routes that reach a named
     #    destination POI into a 'hike', renamed from the payoff, and absorb the
     #    redundant physical fragment the hike covers (SPEC §6c).
-    return promote_hikes(kept, pois)
+    promoted = promote_hikes(kept, pois)
+
+    # 7. checklist coalesce: one object per (name, area). The spread-gate splits
+    #    a long trail into contiguous pieces for clean map geometry, but for a
+    #    completion checklist a named trail should be ONE row per park — the
+    #    Bonneville Shoreline Trail is 28 pieces in Uinta-Wasatch-Cache NF, and
+    #    that should read as one "Bonneville Shoreline Trail", not 28. Merge
+    #    same-name objects sharing an area into one multi-segment object. No-op
+    #    when areas aren't assigned (park runs / tests keep area=None).
+    return coalesce_by_area(promoted)
+
+
+def coalesce_by_area(trails: list["Trail"]) -> list["Trail"]:
+    """One object per (name, area) for the completion checklist. Merges every
+    same-name trail assigned to the same park into a single multi-segment
+    object, so a long trail split across a huge area (or a loop split by shared
+    tread) is one completion row instead of many duplicates. Trails with no
+    assigned area (backcountry) or no name pass through untouched."""
+    groups: dict[tuple, list["Trail"]] = {}
+    order: list[tuple] = []
+    out: list["Trail"] = []
+    for t in trails:
+        k = merge_key(t.name) if t.name else ""
+        if not k or t.area is None:
+            out.append(t)
+            continue
+        gk = (t.area, k)
+        if gk not in groups:
+            groups[gk] = []
+            order.append(gk)
+        groups[gk].append(t)
+    out.extend(_fuse_cluster(groups[gk]) for gk in order)
+    return out
 
 
 def _rep_point(trail: "Trail") -> tuple[float, float] | None:

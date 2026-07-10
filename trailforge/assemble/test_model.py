@@ -174,7 +174,7 @@ class NameStitch(unittest.TestCase):
         self.assertEqual(nat[0].source, "relation")  # relation metadata wins
         self.assertEqual(set(nat[0].member_ways), {10, 20})
 
-    # --- connectivity-based merge (SPEC §6b) ---
+    # --- spread-gated, area-scoped merge (SPEC §6b) ---
     _AREAS = [
         {"name": "ParkA", "bbox": (0, 0, 2, 2),
          "rings": [[(0, 0), (2, 0), (2, 2), (0, 2), (0, 0)]]},
@@ -182,31 +182,43 @@ class NameStitch(unittest.TestCase):
          "rings": [[(10, 10), (12, 10), (12, 12), (10, 12), (10, 10)]]},
     ]
 
-    def test_disconnected_same_name_stay_separate(self):
-        # The Bonneville Shoreline case: same name, no shared vertex -> two
-        # objects, NOT one scattered blob. Connectivity is the join key.
+    def test_compact_disconnected_same_name_fuse(self):
+        # The Pima Canyon Loop case: a small loop whose same-named pieces are
+        # split by short shared-tread segments -> ONE object. Spread is well
+        # under the cap, so the group fuses even without a shared vertex.
+        a = m.Trail("Loop Trail", "name-stitch", [1], [[(33.360, -111.980), (33.365, -111.975)]], {}, [])
+        b = m.Trail("Loop Trail", "name-stitch", [2], [[(33.370, -111.970), (33.372, -111.965)]], {}, [])
+        self.assertEqual(len(m.merge_same_name([a, b])), 1)
+
+    def test_sprawling_same_name_splits_into_components(self):
+        # The Bonneville Shoreline case: same name spread far past the cap ->
+        # split into connected components, NOT one scattered blob.
         a = m.Trail("Trail", "name-stitch", [1], [[(0, 0), (1, 0)]], {}, [])
-        b = m.Trail("Trail", "name-stitch", [2], [[(9, 9), (10, 9)]], {}, [])  # far
+        b = m.Trail("Trail", "name-stitch", [2], [[(9, 9), (10, 9)]], {}, [])  # ~800 mi away
         self.assertEqual(len(m.merge_same_name([a, b])), 2)
 
-    def test_connected_same_name_fuse_regardless_of_area(self):
-        # A contiguous section (shared vertex (1,0)) fuses into one object even
-        # though the two pieces would land in different area buckets — the old
-        # area-scoped merge tore these apart at boundaries.
+    def test_sprawling_but_connected_stays_one(self):
+        # A long trail spanning past the cap but genuinely connected end-to-end
+        # is ONE component -> stays one object.
         a = m.Trail("Ridge Trail", "name-stitch", [1], [[(0, 0), (1, 0)]], {}, [])
         b = m.Trail("Ridge Trail", "name-stitch", [2], [[(1, 0), (2, 0)]], {}, [])  # touches a
         self.assertEqual(len(m.merge_same_name([a, b])), 1)
 
-    def test_touching_pieces_fuse_disjoint_do_not(self):
-        a = m.Trail("Ridge Trail", "name-stitch", [1], [[(0.5, 0.5), (0.6, 0.6)]], {}, [])
-        b = m.Trail("Ridge Trail", "name-stitch", [2], [[(0.6, 0.6), (0.7, 0.7)]], {}, [])  # touch
-        c = m.Trail("Ridge Trail", "name-stitch", [3], [[(5.2, 5.2), (5.3, 5.3)]], {}, [])  # far
-        out = m.merge_same_name([a, b, c])
-        self.assertEqual(len(out), 2)                  # {a,b} fused, c separate
+    def test_area_scoping_keeps_nearby_parks_separate(self):
+        # Two compact same-name trails straddling adjacent parks: spread is under
+        # the cap so without scoping they'd wrongly fuse; area_of keeps them apart.
+        areas = [{"name": "ParkA", "bbox": (0, 0, 1, 1),
+                  "rings": [[(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]]},
+                 {"name": "ParkB", "bbox": (1, 0, 2, 1),
+                  "rings": [[(1, 0), (2, 0), (2, 1), (1, 1), (1, 0)]]}]
+        area_of = m.make_area_of(areas)
+        a = m.Trail("Ridge Trail", "name-stitch", [1], [[(0.90, 0.5), (0.95, 0.5)]], {}, [])  # ParkA
+        b = m.Trail("Ridge Trail", "name-stitch", [2], [[(1.05, 0.5), (1.10, 0.5)]], {}, [])  # ParkB
+        self.assertEqual(len(m.merge_same_name([a, b], area_of=area_of)), 2)
 
     def test_different_names_never_fuse(self):
-        a = m.Trail("Trail", "name-stitch", [4], [[(0, 0), (1, 1)]], {}, [])
-        y = m.Trail("Other Trail", "name-stitch", [5], [[(1, 1), (2, 2)]], {}, [])  # touches
+        a = m.Trail("Trail", "name-stitch", [4], [[(0.0, 0.0), (0.01, 0.01)]], {}, [])
+        y = m.Trail("Other Trail", "name-stitch", [5], [[(0.01, 0.01), (0.02, 0.02)]], {}, [])
         self.assertEqual(len(m.merge_same_name([a, y])), 2)
 
     def test_relation_gap_preserved_and_connected_standalone_merges(self):

@@ -536,10 +536,20 @@ def assemble(nodes: dict, ways: dict, relations: dict,
                         if wid not in claimed and _is_trailish(w["tags"])]
     attach_spurs(trails, unnamed_leftover, ways, nodes, pois)
 
-    # 4. one object per named trail WITHIN an area — combine the pieces split
-    #    across a route relation and standalone same-named ways (e.g. "National
-    #    Trail"), but never fuse same-named trails across parks (SPEC §6b).
-    merged = merge_same_name(trails, area_of=make_area_of(areas) if areas else None)
+    # 4. one object per named trail — fuse same-name pieces that physically
+    #    connect (share a junction vertex), so a route relation and its
+    #    standalone same-named ways become one object while disconnected
+    #    same-name stretches (the Bonneville Shoreline blob) stay separate.
+    merged = merge_same_name(trails)
+
+    # 4a. area assignment (decoupled from merge): tag each trail with the park
+    #     it sits in, by rep point, for per-area publish + the viewer filter.
+    #     Done before dedupe so dedupe stays area-scoped; promote_hikes mutates
+    #     in place so the assignment survives promotion.
+    if areas:
+        assign_area = make_area_of(areas)
+        for t in merged:
+            t.area = assign_area(t)
 
     # 4b. drop geometry-duplicate trails the name-merge missed — a route
     #     relation and a name-stitch built over the same ways under names that
@@ -612,47 +622,72 @@ def make_area_of(areas: list[dict]):
     return area_of
 
 
-def merge_same_name(trails: list["Trail"], area_of=None) -> list["Trail"]:
-    """Fold trail objects sharing a name into one — scoped to an area.
+def _connectivity_clusters(group: list["Trail"]) -> list[list["Trail"]]:
+    """Partition same-name trails into physically-connected clusters. Two
+    trails join the same cluster iff they share a vertex — an OSM junction
+    node, which after coordinate rounding (~1 m) is an exact coord match.
+    Union-find over a coord->owner map, O(total vertices)."""
+    uf = _UF()
+    coord_owner: dict[tuple, int] = {}
+    for i, t in enumerate(group):
+        uf.find(i)
+        for c in _coord_set(t):
+            if c in coord_owner:
+                uf.union(i, coord_owner[c])
+            else:
+                coord_owner[c] = i
+    buckets: dict[int, list["Trail"]] = {}
+    for i, t in enumerate(group):
+        buckets.setdefault(uf.find(i), []).append(t)
+    return list(buckets.values())
 
-    Within ONE area a repeated trail name is the same trail: "National Trail"
-    as a route relation PLUS standalone same-named ways should be one object
-    (even across a real internal gap — SPEC §6b). But ACROSS areas the same
-    name is usually DIFFERENT trails (a "Ridge Trail" in every park), so a
-    blind AOI-wide merge fuses them into a scattered Frankenstein at region
-    scale.
 
-    `area_of(trail) -> area-name | None` scopes the merge: same name fuses
-    only within the same area. None (park runs, tests) = the whole AOI is one
-    implicit area = the original blind behavior. A trail in NO named area
-    (backcountry) does not cross-merge with anything. Relation metadata wins.
-    Unnamed trails pass through untouched.
-    """
-    base_by_key: dict[tuple, "Trail"] = {}
-    out: list["Trail"] = []
-    for t in trails:
-        if area_of is not None:
-            t.area = area_of(t)             # record for emit + viewer filter
-        name_key = merge_key(t.name) if t.name else ""
-        if not name_key:
-            out.append(t)
-            continue
-        area = t.area if area_of is not None else "\x00aoi"
-        if area is None:                    # backcountry: never cross-merge
-            out.append(t)
-            continue
-        gk = (area, name_key)
-        base = base_by_key.get(gk)
-        if base is None:
-            base_by_key[gk] = t
-            out.append(t)
+def _fuse_cluster(cluster: list["Trail"]) -> "Trail":
+    """Fuse one connected same-name cluster into a single Trail. A route
+    relation is the base so its metadata wins; otherwise the piece with the
+    most member ways. Geometry, member ways, destinations and welds all
+    accumulate onto the base."""
+    if len(cluster) == 1:
+        return cluster[0]
+    base = next((t for t in cluster if t.source == "relation"), None) \
+        or max(cluster, key=lambda t: len(t.member_ways))
+    for t in cluster:
+        if t is base:
             continue
         base.lines.extend(t.lines)
         base.member_ways.extend(w for w in t.member_ways if w not in base.member_ways)
         base.destinations.extend(t.destinations)
         base.welds.extend(t.welds)
+        base.terminal_nodes.extend(t.terminal_nodes)
         if base.source != "relation" and t.source == "relation":
             base.source, base.tags, base.name = "relation", t.tags, t.name
+    return base
+
+
+def merge_same_name(trails: list["Trail"]) -> list["Trail"]:
+    """Fold same-name trail objects into one — but ONLY where they physically
+    CONNECT (share an OSM junction vertex). Name equality alone is the wrong
+    join key: the Bonneville Shoreline Trail is 40+ disconnected stretches
+    under one name across 100+ miles, and a blind name merge fuses them into a
+    single scattered blob. Worse, the old area-scoped variant tore genuinely
+    contiguous sections apart when their ways landed in different area buckets.
+    Connectivity is correct on both counts: a section stays whole across a park
+    boundary, and unrelated same-name stretches stay separate objects. Area
+    assignment is now a separate pass (see make_area_of), decoupled from merge.
+
+    Unnamed trails pass through untouched. Relation metadata wins in a fuse.
+    """
+    by_name: dict[str, list["Trail"]] = {}
+    out: list["Trail"] = []
+    for t in trails:
+        k = merge_key(t.name) if t.name else ""
+        if not k:
+            out.append(t)
+            continue
+        by_name.setdefault(k, []).append(t)
+    for group in by_name.values():
+        for cluster in _connectivity_clusters(group):
+            out.append(_fuse_cluster(cluster))
     return out
 
 

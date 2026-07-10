@@ -1083,19 +1083,30 @@ def _is_motorized(tags: dict) -> bool:
 
 
 def _is_nonhiking(tags: dict) -> bool:
-    """A purpose-built non-hiking way — a bike-park flow/downhill run or an
-    alpine ski feature — that carries highway=path but is not a foot trail. The
-    Colorado audit (Keystone/Breck/Vail) dumped hundreds of these: 'Gluteus
-    Minimus', 'Holy Diver', 'Uphill Skinning Egress (No Hiking)', 'Lift 8
-    Tower'. bicycle=designated alone can't tell them from a shared-use trail, so
-    we drop by SAFE tags that never appear on a real hike: foot=no (hikers
-    banned), mtb:type=flow/downhill (built bike feature), piste:type=downhill
-    (alpine ski run)."""
+    """A purpose-built non-hiking way — a bike-park flow run or a ski piste —
+    that carries highway=path but is not a foot trail. The Colorado audit
+    (Keystone/Breck/Vail nordic centers + bike parks) surfaced these; probing
+    their real tags gave reliable markers that never appear on a genuine hike:
+
+      - mtb:scale:imba — the IMBA flow-trail difficulty rating; only built
+        MTB/bike-park trails carry it ('Gluteus Minimus', 'Holy Diver',
+        'Banzai Donwhill', 'Helter Skelter').
+      - piste:type without 'hike' — a ski piste (nordic/downhill). A
+        'nordic;hike' piste is genuinely dual-use and kept.
+      - mtb:type=flow/downhill and foot=no — built bike feature / hikers banned.
+      - a name that literally says '(No Hiking)' (some are tagged foot=yes, so
+        only the name gives them away).
+    """
+    if "no hiking" in str(tags.get("name", "")).strip().lower():
+        return True
     if str(tags.get("foot", "")).strip().lower() == "no":
+        return True
+    if str(tags.get("mtb:scale:imba", "")).strip() != "":
         return True
     if str(tags.get("mtb:type", "")).strip().lower() in {"flow", "downhill"}:
         return True
-    if str(tags.get("piste:type", "")).strip().lower() == "downhill":
+    piste = str(tags.get("piste:type", "")).strip().lower()
+    if piste and "hike" not in piste:
         return True
     return False
 

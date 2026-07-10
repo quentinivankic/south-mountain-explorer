@@ -418,18 +418,24 @@ class Classification(unittest.TestCase):
         self.assertFalse(m._is_trailish({"highway": "path", "motorcycle": "yes"}))
 
     def test_bikepark_and_ski_ways_are_not_trailish(self):
-        # bike-park flow/downhill runs + alpine ski features (CO resort audit) => drop
+        # bike-park flow runs + ski pistes (CO resort audit, real tags) => drop
         self.assertFalse(m._is_trailish({"highway": "path", "foot": "no"}))
-        self.assertFalse(m._is_trailish({"highway": "path", "mtb:type": "flow",
-                                         "bicycle": "designated"}))
-        self.assertFalse(m._is_trailish({"highway": "path", "mtb:type": "downhill"}))
+        self.assertFalse(m._is_trailish({"highway": "path", "mtb:type": "flow"}))
+        # IMBA flow rating = built bike-park trail (the marker that actually caught them)
+        self.assertFalse(m._is_trailish({"highway": "path", "bicycle": "designated",
+                                         "mtb:scale:imba": "4"}))
+        # ski pistes: nordic or downhill => drop
         self.assertFalse(m._is_trailish({"highway": "path", "piste:type": "downhill"}))
-        # a SHARED-USE hiking path (bikes allowed, hikers NOT banned) stays trailish
+        self.assertFalse(m._is_trailish({"highway": "path", "piste:type": "nordic"}))
+        # name literally says no hiking (tagged foot=yes, only the name gives it away)
+        self.assertFalse(m._is_trailish({"highway": "path", "foot": "yes",
+                                         "name": "Uphill Skinning Egress (No Hiking)"}))
+        # KEPT: shared-use hiking path (bikes allowed, no imba, hikers welcome)
         self.assertTrue(m._is_trailish({"highway": "path", "bicycle": "designated"}))
         self.assertTrue(m._is_trailish({"highway": "path", "bicycle": "yes",
                                         "mtb:scale": "2"}))
-        # a nordic ski route that doubles as a summer hike is kept (only downhill drops)
-        self.assertTrue(m._is_trailish({"highway": "path", "piste:type": "nordic"}))
+        # KEPT: a nordic piste explicitly mapped as dual-use (nordic;hike)
+        self.assertTrue(m._is_trailish({"highway": "path", "piste:type": "nordic;hike"}))
         # foot-only path (no motor tag) stays trailish at the WAY level; the
         # name-based motorized filter runs later in curation.
         self.assertTrue(m._is_trailish({"highway": "path", "name": "Huckleberry Trail"}))

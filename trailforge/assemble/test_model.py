@@ -391,6 +391,36 @@ class Classification(unittest.TestCase):
                   "West Rim Trail", "Casner Canyon Trail"):
             self.assertFalse(m.is_motorized_name(n), n)
 
+    def test_removal_reason_names_the_rule_that_fired(self):
+        # QA viewer relies on removal_reason mirroring curation's predicate
+        # order; each removed trail must carry a non-empty plain-language reason.
+        line = [(0.0, 0.0), (0.1, 0.0)]  # ~6.9 mi, well over any min-length
+        cases = {
+            "CLOSED - Old Pyramid Trail": "closed",
+            "FR 231": "code",
+            "Forest Service Road 420": "road",
+            "Basalt Jeep Trail": "motor",
+            "Trail": "generic",
+        }
+        for name, needle in cases.items():
+            t = m.Trail(name, "name-stitch", [1], [list(line)], {}, [])
+            reason = m.removal_reason(t)
+            self.assertIsNotNone(reason, name)
+            self.assertIn(needle, reason.lower(), (name, reason))
+        # a real named trail is kept (reason is None)
+        keep = m.Trail("Angels Landing Trail", "name-stitch", [1], [list(line)], {}, [])
+        self.assertIsNone(m.removal_reason(keep))
+        # a route relation spares an otherwise-generic name
+        rel = m.Trail("Trail", "relation", [1], [list(line)], {}, [])
+        self.assertIsNone(m.removal_reason(rel))
+
+    def test_min_length_removal_reason(self):
+        stub = m.Trail("Tiny Connector Path", "name-stitch", [1],
+                       [[(0.0, 0.0), (0.0001, 0.0)]], {}, [])  # ~40 ft
+        reason = m.removal_reason(stub, min_length_mi=0.1)
+        self.assertIsNotNone(reason)
+        self.assertIn("short", reason.lower())
+
     def test_dedupe_ref_vs_name_duplicate(self):
         # a route relation and a name-stitch over the SAME ways under names
         # that normalize differently — the Casner Canyon #11 == Casner Canyon

@@ -397,6 +397,7 @@ class Trail:
         self.welds: list[dict] = []     # QA: what got attached and why
         self.hike = False               # tier-1 promoted canonical hike (SPEC §6c)
         self.area: str | None = None    # park area assigned for per-area merge (§6b)
+        self.removed_reason: str | None = None  # QA: why curation dropped it (§5)
 
     def weld_spur(self, wid, coords, poi):
         self.member_ways.append(wid)
@@ -425,6 +426,7 @@ class Trail:
                 "operator": self.tags.get("operator", ""),
                 "sac_scale": self.tags.get("sac_scale", ""),
                 "trail_visibility": self.tags.get("trail_visibility", ""),
+                "removed_reason": self.removed_reason,
             },
             "geometry": {"type": "MultiLineString",
                          "coordinates": [[list(p) for p in line] for line in self.lines]},
@@ -440,9 +442,40 @@ def _terminal_nodes(chains: list[list[int]], ways: dict) -> list[int]:
     return ends
 
 
+def removal_reason(trail: "Trail", min_length_mi: float = 0.0) -> str | None:
+    """Plain-language reason curation would drop this trail, or None if it's
+    kept. The checks and their ORDER mirror the curation predicate in
+    assemble() exactly — first match wins, so the reason names the actual
+    rule that fired. Used to surface removals in the QA viewer."""
+    name = trail.name
+    if is_closed_name(name):
+        return ("Marked closed in OSM — the name itself says CLOSED "
+                "(e.g. 'CLOSED - old Pyramid Trail').")
+    if is_road_code_name(name):
+        return ("Bare road/ref code, not a trail name — nothing but an agency "
+                "or OSM reference number (e.g. 'FR 231', 'CR 12', '9A').")
+    if is_offtrail_name(name):
+        return ("Agency road or non-trail feature, not a foot trail — a Forest "
+                "Service / National Forest / FSR / NF / IDL / BIA road, or a "
+                "freeway ramp, airport concourse, or parking lot.")
+    if is_motorized_name(name):
+        return ("Motorized route, not a foot trail — the name marks it "
+                "ATV / OHV / UTV / 4WD / snowmobile / Jeep.")
+    if is_generic_name(name) and trail.source != "relation":
+        return ("Generic name with no identity ('Trail', 'Connector', 'Path', "
+                "'Loop') and not backed by an OSM route relation — usually a "
+                "fragment that would blob into unrelated trails.")
+    if min_length_mi > 0 and trail.length_mi < min_length_mi:
+        return (f"Too short — {trail.length_mi} mi is below the "
+                f"{min_length_mi} mi minimum (likely a connector stub, not a "
+                f"hike on its own).")
+    return None
+
+
 def assemble(nodes: dict, ways: dict, relations: dict,
              pois: list[dict], min_length_mi: float = 0.0,
-             areas: list[dict] | None = None) -> list[Trail]:
+             areas: list[dict] | None = None,
+             collect_removed: list | None = None) -> list[Trail]:
     trails: list[Trail] = []
     claimed: set[int] = set()
 
@@ -513,13 +546,14 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     #    connectors), and pure-generic-named objects with no identity ("Trail",
     #    "Connector" — also what fuse into region-scale blobs); a route relation
     #    spares its object. min_length_mi<=0 keeps everything.
-    kept = [t for t in merged
-            if not is_closed_name(t.name)
-            and not is_road_code_name(t.name)
-            and not is_offtrail_name(t.name)
-            and not is_motorized_name(t.name)
-            and not (is_generic_name(t.name) and t.source != "relation")
-            and (min_length_mi <= 0 or t.length_mi >= min_length_mi)]
+    kept = []
+    for t in merged:
+        reason = removal_reason(t, min_length_mi)
+        if reason is None:
+            kept.append(t)
+        elif collect_removed is not None:
+            t.removed_reason = reason
+            collect_removed.append(t)
 
     # 6. tier-1 canonical hikes: promote local routes that reach a named
     #    destination POI into a 'hike', renamed from the payoff, and absorb the

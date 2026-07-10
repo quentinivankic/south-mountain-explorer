@@ -110,8 +110,10 @@ def main(argv=None) -> int:
         print(f"per-area merge: scoping same-name merge to {len(areas_arg):,} "
               f"park areas", file=sys.stderr)
 
+    removed: list = []
     trails = model.assemble(nodes, ways, relations, pois,
-                            min_length_mi=args.min_length_mi, areas=areas_arg)
+                            min_length_mi=args.min_length_mi, areas=areas_arg,
+                            collect_removed=removed)
     features = [t.to_feature() for t in trails]
 
     area_note = ""
@@ -135,10 +137,23 @@ def main(argv=None) -> int:
           "coverage": model.coverage_stats(ways, relations, pois)}
     Path(args.out).write_text(json.dumps(fc), encoding="utf-8")
 
+    # Sidecar: the trails curation dropped, each carrying a plain-language
+    # `removed_reason`, so the QA viewer can show/hide them and explain WHY.
+    # Kept separate from the trails output so publish + the app never see them.
+    removed_path = Path(args.out).with_suffix("")  # strip .geojson
+    if removed_path.suffix == ".trails":
+        removed_path = removed_path.with_suffix("")
+    removed_path = removed_path.with_name(removed_path.name + ".removed.geojson")
+    removed_fc = {"type": "FeatureCollection",
+                  "features": [t.to_feature() for t in removed]}
+    removed_path.write_text(json.dumps(removed_fc), encoding="utf-8")
+
     welded = sum(1 for f in features if f["properties"].get("welds"))
     from_rel = sum(1 for f in features if f["properties"].get("source") == "relation")
     print(f"assembled {len(features):,} trails "
           f"({from_rel:,} from relations, {welded:,} with welded spurs){area_note} -> {args.out}",
+          file=sys.stderr)
+    print(f"removed {len(removed):,} trails (curation) -> {removed_path}",
           file=sys.stderr)
     return 0
 

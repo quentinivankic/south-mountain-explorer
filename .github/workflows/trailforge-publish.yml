@@ -68,10 +68,6 @@ jobs:
           python3 assemble/assemble.py --in data/hiking.osm.pbf \
             --out data/aoi/state.trails.geojson --min-length-mi 0.1 --per-area-merge
 
-      - name: (diag) dump sample bike-park/ski way tags
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        run: cd trailforge && python3 tools/probe_tags.py data/hiking.osm.pbf || true
-
       - name: Publish areas (clip + convert + validate)
         run: |
           set -e

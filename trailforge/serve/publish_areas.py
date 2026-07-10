@@ -98,6 +98,11 @@ def main(argv=None) -> int:
     ap.add_argument("--no-routes", action="store_true")
     ap.add_argument("--limit", type=int, help="only publish the first N areas (a first wave)")
     ap.add_argument("--dry-run", action="store_true", help="report matches; write nothing")
+    ap.add_argument("--touch-report", action="store_true",
+                    help="diagnostic: count trails that TOUCH each area's polygon "
+                         "(by even a foot) but aren't currently published there, with "
+                         "their full lengths — the gain from a keep-whole clip policy. "
+                         "Writes nothing.")
     args = ap.parse_args(argv)
 
     index = json.load(open(args.index))
@@ -192,6 +197,15 @@ def main(argv=None) -> int:
 
     kinds = {"trail", "hike"} if args.no_routes else {"trail", "hike", "route"}
     published, skipped, failed, changes = [], [], [], []
+    touch_gain = []                     # (slug, name, full_length_mi) for --touch-report
+    all_shapes = []
+    if args.touch_report:
+        for f in fc["features"]:
+            try:
+                g = _shape(f["geometry"])
+                all_shapes.append((g.bounds, g, f))
+            except Exception:  # noqa: BLE001
+                pass
     count = 0
     for slug, meta in sorted(az.items()):
         if args.limit and count >= args.limit:
@@ -232,6 +246,21 @@ def main(argv=None) -> int:
         d = existing_diff(slug, row)
         if d and (d[0] or d[1] or d[2]):
             changes.append((slug, d[0], d[1], d[2]))
+        if args.touch_report:
+            ux0, uy0, ux1, uy1 = union.bounds
+            pub = {model.merge_key(t.get("name") or "") for t in row["trails"]}
+            for (bx0, by0, bx1, by1), g, f in all_shapes:
+                if bx1 < ux0 or bx0 > ux1 or by1 < uy0 or by0 > uy1:
+                    continue
+                if model.merge_key(f["properties"].get("name") or "") in pub:
+                    continue
+                try:
+                    if not g.intersects(union):
+                        continue
+                except Exception:  # noqa: BLE001
+                    continue
+                touch_gain.append((slug, f["properties"].get("name"),
+                                   float(f["properties"].get("length_mi") or 0.0)))
         count += 1
         if args.dry_run:
             published.append((slug, row["trail_count"], "dry-run"))
@@ -270,6 +299,28 @@ def main(argv=None) -> int:
                 print(f"      added:   {nm}")
             for nm in dups:
                 print(f"      DUP-NAME: {nm}")
+
+    if args.touch_report:
+        import collections
+        uniq = {}
+        for slug, nm, full in touch_gain:
+            uniq[nm] = max(uniq.get(nm, 0.0), full)
+        buckets = collections.Counter()
+        for _, _, full in touch_gain:
+            b = ("<0.5" if full < 0.5 else "0.5-1" if full < 1 else "1-3" if full < 3
+                 else "3-8" if full < 8 else "8+")
+            buckets[b] += 1
+        print(f"\n=== TOUCH REPORT — {args.state} (keep any trail touching by a foot) ===")
+        print(f"new area-trail entries gained: {len(touch_gain)}")
+        print(f"unique trails gained: {len(uniq)}")
+        print(f"total added mileage (entries, full length): "
+              f"{round(sum(x[2] for x in touch_gain), 1)} mi")
+        print("size distribution of gained entries (full mi):")
+        for b in ["<0.5", "0.5-1", "1-3", "3-8", "8+"]:
+            print(f"   {b:>6} mi: {buckets.get(b, 0)}")
+        print("largest gained (top 20):")
+        for slug, nm, full in sorted(touch_gain, key=lambda x: -x[2])[:20]:
+            print(f"   {round(full, 1):>5} mi  {nm}  -> {slug}")
     return 0
 
 

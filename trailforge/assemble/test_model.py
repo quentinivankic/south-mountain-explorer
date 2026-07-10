@@ -416,6 +416,20 @@ class Classification(unittest.TestCase):
         self.assertFalse(m._is_trailish({"highway": "path", "motor_vehicle": "designated"}))
         # motorcycle singletrack (Moab's Sovereign/Klondike moto trails) => drop
         self.assertFalse(m._is_trailish({"highway": "path", "motorcycle": "yes"}))
+
+    def test_bikepark_and_ski_ways_are_not_trailish(self):
+        # bike-park flow/downhill runs + alpine ski features (CO resort audit) => drop
+        self.assertFalse(m._is_trailish({"highway": "path", "foot": "no"}))
+        self.assertFalse(m._is_trailish({"highway": "path", "mtb:type": "flow",
+                                         "bicycle": "designated"}))
+        self.assertFalse(m._is_trailish({"highway": "path", "mtb:type": "downhill"}))
+        self.assertFalse(m._is_trailish({"highway": "path", "piste:type": "downhill"}))
+        # a SHARED-USE hiking path (bikes allowed, hikers NOT banned) stays trailish
+        self.assertTrue(m._is_trailish({"highway": "path", "bicycle": "designated"}))
+        self.assertTrue(m._is_trailish({"highway": "path", "bicycle": "yes",
+                                        "mtb:scale": "2"}))
+        # a nordic ski route that doubles as a summer hike is kept (only downhill drops)
+        self.assertTrue(m._is_trailish({"highway": "path", "piste:type": "nordic"}))
         # foot-only path (no motor tag) stays trailish at the WAY level; the
         # name-based motorized filter runs later in curation.
         self.assertTrue(m._is_trailish({"highway": "path", "name": "Huckleberry Trail"}))

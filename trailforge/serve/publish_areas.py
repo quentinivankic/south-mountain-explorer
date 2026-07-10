@@ -87,6 +87,42 @@ def _sig_tokens(name: str) -> set[str]:
             if t and t not in _AREA_STOPWORDS}
 
 
+def _clip_one(g, f, area_union, min_inside_mi, route_clamp_mi):
+    """Decide one trail's presence in an area. A trail belongs to an area if its
+    geometry enters the boundary with at least `min_inside_mi` inside (filters
+    boundary grazes). A ROUTE-scale trail (kind=route OR full length >=
+    route_clamp_mi) is CLAMPED to its in-park segment — we never drop a whole
+    thru-route into a park it merely crosses. A local named trail is kept WHOLE
+    (full geometry + full length) so a boundary-straddler like South Sixmile
+    Canyon shows as the real trail, not a clipped sliver. Returns the output
+    feature or None."""
+    try:
+        inter = g.intersection(area_union)
+    except Exception:  # noqa: BLE001 — invalid geometry
+        return None
+    parts = areamod._line_parts(inter)
+    if not parts:
+        return None
+    inside_lines = [[(c[0], c[1]) for c in ln.coords] for ln in parts]
+    inside_mi = round(sum(model.line_mi(l) for l in inside_lines), 3)
+    if inside_mi < min_inside_mi:
+        return None
+    props = dict(f["properties"])
+    full = props.get("length_mi")
+    is_route = (props.get("kind") == "route"
+                or (full is not None and full >= route_clamp_mi))
+    if is_route:
+        props["length_mi"] = inside_mi
+        if full is not None and abs(full - inside_mi) > 1e-6:
+            props["full_length_mi"] = full
+            props["clipped"] = True
+        geom = {"type": "MultiLineString",
+                "coordinates": [[list(p) for p in l] for l in inside_lines]}
+    else:
+        geom = f["geometry"]                 # keep the whole trail
+    return {**f, "properties": props, "geometry": geom}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="batch-publish trailforge areas -> app JSON")
     ap.add_argument("--trails", required=True, help="statewide trails.geojson (--per-area-merge)")
@@ -94,15 +130,15 @@ def main(argv=None) -> int:
     ap.add_argument("--index", default=_DEFAULT_INDEX)
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--state", default="Arizona")
-    ap.add_argument("--min-inside-mi", type=float, default=0.05)
+    ap.add_argument("--min-inside-mi", type=float, default=0.25,
+                    help="a trail needs at least this many miles inside the area "
+                         "to be included (filters boundary grazes)")
+    ap.add_argument("--route-clamp-mi", type=float, default=30.0,
+                    help="a trail this long (or kind=route) is route-scale: CLAMP "
+                         "it to its in-park segment instead of keeping it whole")
     ap.add_argument("--no-routes", action="store_true")
     ap.add_argument("--limit", type=int, help="only publish the first N areas (a first wave)")
     ap.add_argument("--dry-run", action="store_true", help="report matches; write nothing")
-    ap.add_argument("--touch-report", action="store_true",
-                    help="diagnostic: count trails that TOUCH each area's polygon "
-                         "(by even a foot) but aren't currently published there, with "
-                         "their full lengths — the gain from a keep-whole clip policy. "
-                         "Writes nothing.")
     args = ap.parse_args(argv)
 
     index = json.load(open(args.index))
@@ -132,26 +168,11 @@ def main(argv=None) -> int:
                                     if b["name"] in geoms else g)
     index_names = {m["name"].casefold() for m in az.values()}
 
-    # Boundary-straddlers: trails the statewide run assigned to NO park
-    # (area=None) because their rep-point (midpoint) fell just outside every
-    # boundary polygon — e.g. South Mountain's DC-Ray Connector, whose midpoint
-    # sits in a concavity of the park edge. They belong to whichever park their
-    # geometry actually lies inside, so we offer them to each area's clip; a
-    # trail with no in-park remnant clips to nothing and drops for free, and a
-    # TAGGED trail (Maricopa, National) is never in this set, so the deferred
-    # thru-route policy is untouched. Precompute each with its bounds so the
-    # per-area test is a cheap bbox reject.
+    # Selection is now TOUCH-based (see the per-area loop): a trail belongs to
+    # every area its geometry actually enters, which subsumes the old rep-point
+    # assignment AND the separate boundary-straddler rescue — a straddler like
+    # DC-Ray Connector is picked up simply because it touches the park.
     from shapely.geometry import shape as _shape
-    untagged = []
-    for f in fc["features"]:
-        if f["properties"].get("area"):
-            continue
-        try:
-            untagged.append((_shape(f["geometry"]).bounds, f))
-        except Exception:
-            pass
-    print(f"untagged (no-park) trails available for edge rescue: {len(untagged)}",
-          file=sys.stderr)
 
     def siblings(primary: str) -> list[str]:
         """primary boundary + any OSM boundary that overlaps it, shares a name
@@ -198,14 +219,19 @@ def main(argv=None) -> int:
     kinds = {"trail", "hike"} if args.no_routes else {"trail", "hike", "route"}
     published, skipped, failed, changes = [], [], [], []
     touch_gain = []                     # (slug, name, full_length_mi) for --touch-report
+
+    # Selection is TOUCH-based: a trail belongs to every area its geometry enters,
+    # not just the one its midpoint fell in — that's what keeps a boundary-
+    # straddling trail in the park instead of clipping it to a sliver. Precompute
+    # each trail's shape + bounds once, then bbox-prefilter per area.
     all_shapes = []
-    if args.touch_report:
-        for f in fc["features"]:
-            try:
-                g = _shape(f["geometry"])
-                all_shapes.append((g.bounds, g, f))
-            except Exception:  # noqa: BLE001
-                pass
+    for f in fc["features"]:
+        try:
+            g = _shape(f["geometry"])
+            all_shapes.append((g.bounds, g, f))
+        except Exception:  # noqa: BLE001
+            pass
+
     count = 0
     for slug, meta in sorted(az.items()):
         if args.limit and count >= args.limit:
@@ -214,30 +240,26 @@ def main(argv=None) -> int:
         if primary is None:
             skipped.append((slug, "no boundary in PBF")); continue
         sib = siblings(primary)
-        sib_cf = {n.casefold() for n in sib}
-        feats = [f for f in fc["features"]
-                 if (f["properties"].get("area") or "").casefold() in sib_cf]
-        if not feats:
-            skipped.append((slug, "no trails assigned to this area")); continue
         union = unary_union([geoms[n] for n in sib])
         ux0, uy0, ux1, uy1 = union.bounds
-        # Rescue untagged straddlers, but NOT a name already present here as a
-        # tagged trail — else we add a second "Maricopa Trail"/"Degoba Loop"
-        # fragment beside the real one. Dedupe by merge_key (vs tagged AND vs
-        # earlier rescues), so only genuinely-new trails (DC-Ray Connector,
-        # Degoba Alt) come back.
-        have = {model.merge_key(f["properties"].get("name") or "") for f in feats}
-        rescue = []
-        for (bx0, by0, bx1, by1), f in untagged:
+        # Every trail whose bbox overlaps the area is a candidate; _clip_one
+        # decides in/out (>= min_inside), keep-whole (local trail) vs clamp
+        # (route-scale). Dedupe by merge_key so two same-name objects reaching
+        # the same park don't both land.
+        clipped, have = [], set()
+        for (bx0, by0, bx1, by1), g, f in all_shapes:
             if bx1 < ux0 or bx0 > ux1 or by1 < uy0 or by0 > uy1:
                 continue
-            k = model.merge_key(f["properties"].get("name") or "")
-            if k in have:
+            r = _clip_one(g, f, union, args.min_inside_mi, args.route_clamp_mi)
+            if r is None:
+                continue
+            k = model.merge_key(r["properties"].get("name") or "")
+            if k and k in have:
                 continue
             have.add(k)
-            rescue.append(f)
-        clipped = areamod.clip_features_to_area(feats + rescue, union,
-                                                min_inside_mi=args.min_inside_mi)
+            clipped.append(r)
+        if not clipped:
+            skipped.append((slug, "no trails touch this area")); continue
         row = conv.convert({"features": clipped}, slug, meta["name"], meta["state"],
                            meta["center"], meta["osm_rel"], kinds)
         problems = validate(row)
@@ -246,21 +268,6 @@ def main(argv=None) -> int:
         d = existing_diff(slug, row)
         if d and (d[0] or d[1] or d[2]):
             changes.append((slug, d[0], d[1], d[2]))
-        if args.touch_report:
-            ux0, uy0, ux1, uy1 = union.bounds
-            pub = {model.merge_key(t.get("name") or "") for t in row["trails"]}
-            for (bx0, by0, bx1, by1), g, f in all_shapes:
-                if bx1 < ux0 or bx0 > ux1 or by1 < uy0 or by0 > uy1:
-                    continue
-                if model.merge_key(f["properties"].get("name") or "") in pub:
-                    continue
-                try:
-                    if not g.intersects(union):
-                        continue
-                except Exception:  # noqa: BLE001
-                    continue
-                touch_gain.append((slug, f["properties"].get("name"),
-                                   float(f["properties"].get("length_mi") or 0.0)))
         count += 1
         if args.dry_run:
             published.append((slug, row["trail_count"], "dry-run"))
@@ -299,28 +306,6 @@ def main(argv=None) -> int:
                 print(f"      added:   {nm}")
             for nm in dups:
                 print(f"      DUP-NAME: {nm}")
-
-    if args.touch_report:
-        import collections
-        uniq = {}
-        for slug, nm, full in touch_gain:
-            uniq[nm] = max(uniq.get(nm, 0.0), full)
-        buckets = collections.Counter()
-        for _, _, full in touch_gain:
-            b = ("<0.5" if full < 0.5 else "0.5-1" if full < 1 else "1-3" if full < 3
-                 else "3-8" if full < 8 else "8+")
-            buckets[b] += 1
-        print(f"\n=== TOUCH REPORT — {args.state} (keep any trail touching by a foot) ===")
-        print(f"new area-trail entries gained: {len(touch_gain)}")
-        print(f"unique trails gained: {len(uniq)}")
-        print(f"total added mileage (entries, full length): "
-              f"{round(sum(x[2] for x in touch_gain), 1)} mi")
-        print("size distribution of gained entries (full mi):")
-        for b in ["<0.5", "0.5-1", "1-3", "3-8", "8+"]:
-            print(f"   {b:>6} mi: {buckets.get(b, 0)}")
-        print("largest gained (top 20):")
-        for slug, nm, full in sorted(touch_gain, key=lambda x: -x[2])[:20]:
-            print(f"   {round(full, 1):>5} mi  {nm}  -> {slug}")
     return 0
 
 

@@ -3,10 +3,13 @@ import MapKit
 import UIKit
 
 extension Color {
-    /// Achievement gold for completed trails — the single source of truth
-    /// shared by the map's completed-trail stroke (bridged to UIColor) and
-    /// the trail-list completed thumbnail, so the two never drift.
-    static let completedGold = Color(red: 1.0, green: 0.75, blue: 0.0)
+    /// Gold for completed trails — the single source of truth shared by the
+    /// map's completed-trail stroke (bridged to UIColor) and the trail-list
+    /// completed thumbnail, so the two never drift. Distinct from difficulty
+    /// (green/orange/red), selection (blue), recording (purple), and the cyan
+    /// walked-here halo; the color alone marks "done" — same line width as the
+    /// other trails.
+    static let completedTrail = Color(red: 1.0, green: 0.75, blue: 0.0)
 }
 
 /// UIKit-backed map. Replaces SwiftUI's `Map { ... }` content tree
@@ -582,12 +585,9 @@ struct MapKitMapView: UIViewRepresentable {
             } else if isSelected {
                 baseColor = .systemBlue
             } else if isComplete {
-                // Completed trails get a thick GOLD line (width below) — a
-                // "conquered" marker. The lifetime cyan halo deliberately
-                // skips completed trails, so this stroke is what shows they're
-                // done; the old thin mint line read as absent next to the fat
-                // cyan halo on still-in-progress trails.
-                baseColor = Self.completedGold
+                // Completed trails are gold — the color marks "done"; the line
+                // width stays the same as every other trail (below).
+                baseColor = Self.completedTrail
             } else {
                 baseColor = Self.difficultyColor(difficulty)
             }
@@ -601,19 +601,15 @@ struct MapKitMapView: UIViewRepresentable {
             // as obviously distinct even when paralleling a completed
             // trail at full opacity (they overlap, both visible — width
             // is the differentiator).
-            // Completed trails get a fat gold stroke (7) so "done" reads as
-            // boldly as the cyan halo does on in-progress trails; selection
-            // (9) and recording (10) still win.
-            renderer.lineWidth = isRecordingThis ? 10 : (isSelected ? 9 : (isComplete ? 7 : 3))
+            renderer.lineWidth = isRecordingThis ? 10 : (isSelected ? 9 : 3)
             renderer.lineCap = .round
             renderer.lineJoin = .round
         }
 
-        /// Gold stroke for completed trails — an achievement hue that sits
-        /// outside the difficulty (green/orange/red), selection (blue),
-        /// recording (purple), and halo (cyan/pink) colors already in use.
-        /// Bridged from `Color.completedGold` so map + list stay identical.
-        static let completedGold = UIColor(Color.completedGold)
+        /// Gold stroke for completed trails, bridged from
+        /// `Color.completedTrail` so the map and the trail-list thumbnail stay
+        /// identical.
+        static let completedTrail = UIColor(Color.completedTrail)
 
         private static func difficultyColor(_ difficulty: Difficulty?) -> UIColor {
             switch difficulty {

@@ -241,6 +241,26 @@ class NameStitch(unittest.TestCase):
         self.assertEqual(area_of(inside), "ParkA")
         self.assertIsNone(area_of(outside))
 
+    def test_coalesce_by_area_one_row_per_name(self):
+        # The Bonneville Shoreline case: many disconnected same-name pieces in
+        # ONE area collapse to a single multi-segment checklist row; a piece in
+        # a different area stays separate; a different name stays separate.
+        def T(name, wid, line, area):
+            t = m.Trail(name, "name-stitch", [wid], [line], {}, [])
+            t.area = area
+            return t
+        a = T("Bonneville Shoreline Trail", 1, [(0, 0), (1, 0)], "UWC NF")
+        b = T("Bonneville Shoreline Trail", 2, [(5, 5), (6, 5)], "UWC NF")  # far but same area
+        c = T("Bonneville Shoreline Trail", 3, [(9, 9), (10, 9)], "Antelope Island")
+        d = T("Dry Canyon Trail", 4, [(1, 1), (2, 1)], "UWC NF")
+        e = T("Backcountry", 5, [(3, 3), (4, 3)], None)  # no area -> passthrough
+        out = m.coalesce_by_area([a, b, c, d, e])
+        self.assertEqual(len(out), 4)                     # BST(UWC), BST(AI), DryCanyon, Backcountry
+        bst_uwc = [t for t in out if t.name == "Bonneville Shoreline Trail" and t.area == "UWC NF"]
+        self.assertEqual(len(bst_uwc), 1)                 # a + b coalesced
+        self.assertEqual(len(bst_uwc[0].lines), 2)        # both segments kept
+        self.assertEqual(set(bst_uwc[0].member_ways), {1, 2})
+
 
 class SpurAttach(unittest.TestCase):
     def test_devils_bridge_reaches_the_arch(self):

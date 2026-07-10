@@ -1046,7 +1046,8 @@ def _is_motorized(tags: dict) -> bool:
     if str(tags.get("4wd_only", "")).strip().lower() in {"yes", "designated"}:
         return True
     return any(str(tags.get(k, "")).strip().lower() in {"yes", "designated"}
-               for k in ("motor_vehicle", "motorcar", "atv", "ohv", "snowmobile"))
+               for k in ("motor_vehicle", "motorcar", "atv", "ohv", "snowmobile",
+                         "motorcycle"))
 
 
 def _road_like_track(tags: dict) -> bool:

@@ -394,6 +394,8 @@ class Classification(unittest.TestCase):
         self.assertFalse(m._is_trailish({"highway": "track", "4wd_only": "yes"}))
         self.assertFalse(m._is_trailish({"highway": "path", "snowmobile": "designated"}))
         self.assertFalse(m._is_trailish({"highway": "path", "motor_vehicle": "designated"}))
+        # motorcycle singletrack (Moab's Sovereign/Klondike moto trails) => drop
+        self.assertFalse(m._is_trailish({"highway": "path", "motorcycle": "yes"}))
         # foot-only path (no motor tag) stays trailish at the WAY level; the
         # name-based motorized filter runs later in curation.
         self.assertTrue(m._is_trailish({"highway": "path", "name": "Huckleberry Trail"}))

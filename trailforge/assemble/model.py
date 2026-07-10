@@ -397,6 +397,7 @@ class Trail:
         self.welds: list[dict] = []     # QA: what got attached and why
         self.hike = False               # tier-1 promoted canonical hike (SPEC §6c)
         self.area: str | None = None    # park area assigned for per-area merge (§6b)
+        self.removed_reason: str | None = None  # QA: why curation dropped it (§5)
 
     def weld_spur(self, wid, coords, poi):
         self.member_ways.append(wid)
@@ -425,6 +426,7 @@ class Trail:
                 "operator": self.tags.get("operator", ""),
                 "sac_scale": self.tags.get("sac_scale", ""),
                 "trail_visibility": self.tags.get("trail_visibility", ""),
+                "removed_reason": self.removed_reason,
             },
             "geometry": {"type": "MultiLineString",
                          "coordinates": [[list(p) for p in line] for line in self.lines]},
@@ -440,9 +442,44 @@ def _terminal_nodes(chains: list[list[int]], ways: dict) -> list[int]:
     return ends
 
 
+def removal_reason(trail: "Trail", min_length_mi: float = 0.0) -> str | None:
+    """Plain-language reason curation would drop this trail, or None if it's
+    kept. The checks and their ORDER mirror the curation predicate in
+    assemble() exactly — first match wins, so the reason names the actual
+    rule that fired. Used to surface removals in the QA viewer."""
+    name = trail.name
+    if is_closed_name(name):
+        return ("Marked closed in OSM — the name itself says CLOSED "
+                "(e.g. 'CLOSED - old Pyramid Trail').")
+    if is_road_code_name(name):
+        return ("Bare road/ref code, not a trail name — nothing but an agency "
+                "or OSM reference number (e.g. 'FR 231', 'CR 12', '9A').")
+    if is_offtrail_name(name):
+        return ("Agency road or non-trail feature, not a foot trail — a Forest "
+                "Service / National Forest / FSR / NF / IDL / BIA road, or a "
+                "freeway ramp, airport concourse, or parking lot.")
+    if is_motorized_name(name):
+        return ("Motorized route, not a foot trail — the name marks it "
+                "ATV / OHV / UTV / 4WD / snowmobile / Jeep.")
+    if is_grid_address_name(name):
+        return ("Section-line grid road, not a trail — a rural PLSS grid "
+                "address like 'North 3325 West', part of the farm-road "
+                "lattice, never a hiking trail.")
+    if is_generic_name(name) and trail.source != "relation":
+        return ("Generic name with no identity ('Trail', 'Connector', 'Path', "
+                "'Loop') and not backed by an OSM route relation — usually a "
+                "fragment that would blob into unrelated trails.")
+    if min_length_mi > 0 and trail.length_mi < min_length_mi:
+        return (f"Too short — {trail.length_mi} mi is below the "
+                f"{min_length_mi} mi minimum (likely a connector stub, not a "
+                f"hike on its own).")
+    return None
+
+
 def assemble(nodes: dict, ways: dict, relations: dict,
              pois: list[dict], min_length_mi: float = 0.0,
-             areas: list[dict] | None = None) -> list[Trail]:
+             areas: list[dict] | None = None,
+             collect_removed: list | None = None) -> list[Trail]:
     trails: list[Trail] = []
     claimed: set[int] = set()
 
@@ -499,10 +536,20 @@ def assemble(nodes: dict, ways: dict, relations: dict,
                         if wid not in claimed and _is_trailish(w["tags"])]
     attach_spurs(trails, unnamed_leftover, ways, nodes, pois)
 
-    # 4. one object per named trail WITHIN an area — combine the pieces split
-    #    across a route relation and standalone same-named ways (e.g. "National
-    #    Trail"), but never fuse same-named trails across parks (SPEC §6b).
-    merged = merge_same_name(trails, area_of=make_area_of(areas) if areas else None)
+    # 4. one object per named trail — fuse same-name pieces that physically
+    #    connect (share a junction vertex), so a route relation and its
+    #    standalone same-named ways become one object while disconnected
+    #    same-name stretches (the Bonneville Shoreline blob) stay separate.
+    merged = merge_same_name(trails)
+
+    # 4a. area assignment (decoupled from merge): tag each trail with the park
+    #     it sits in, by rep point, for per-area publish + the viewer filter.
+    #     Done before dedupe so dedupe stays area-scoped; promote_hikes mutates
+    #     in place so the assignment survives promotion.
+    if areas:
+        assign_area = make_area_of(areas)
+        for t in merged:
+            t.area = assign_area(t)
 
     # 4b. drop geometry-duplicate trails the name-merge missed — a route
     #     relation and a name-stitch built over the same ways under names that
@@ -513,11 +560,14 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     #    connectors), and pure-generic-named objects with no identity ("Trail",
     #    "Connector" — also what fuse into region-scale blobs); a route relation
     #    spares its object. min_length_mi<=0 keeps everything.
-    kept = [t for t in merged
-            if not is_closed_name(t.name)
-            and not is_road_code_name(t.name)
-            and not (is_generic_name(t.name) and t.source != "relation")
-            and (min_length_mi <= 0 or t.length_mi >= min_length_mi)]
+    kept = []
+    for t in merged:
+        reason = removal_reason(t, min_length_mi)
+        if reason is None:
+            kept.append(t)
+        elif collect_removed is not None:
+            t.removed_reason = reason
+            collect_removed.append(t)
 
     # 6. tier-1 canonical hikes: promote local routes that reach a named
     #    destination POI into a 'hike', renamed from the payoff, and absorb the
@@ -572,47 +622,72 @@ def make_area_of(areas: list[dict]):
     return area_of
 
 
-def merge_same_name(trails: list["Trail"], area_of=None) -> list["Trail"]:
-    """Fold trail objects sharing a name into one — scoped to an area.
+def _connectivity_clusters(group: list["Trail"]) -> list[list["Trail"]]:
+    """Partition same-name trails into physically-connected clusters. Two
+    trails join the same cluster iff they share a vertex — an OSM junction
+    node, which after coordinate rounding (~1 m) is an exact coord match.
+    Union-find over a coord->owner map, O(total vertices)."""
+    uf = _UF()
+    coord_owner: dict[tuple, int] = {}
+    for i, t in enumerate(group):
+        uf.find(i)
+        for c in _coord_set(t):
+            if c in coord_owner:
+                uf.union(i, coord_owner[c])
+            else:
+                coord_owner[c] = i
+    buckets: dict[int, list["Trail"]] = {}
+    for i, t in enumerate(group):
+        buckets.setdefault(uf.find(i), []).append(t)
+    return list(buckets.values())
 
-    Within ONE area a repeated trail name is the same trail: "National Trail"
-    as a route relation PLUS standalone same-named ways should be one object
-    (even across a real internal gap — SPEC §6b). But ACROSS areas the same
-    name is usually DIFFERENT trails (a "Ridge Trail" in every park), so a
-    blind AOI-wide merge fuses them into a scattered Frankenstein at region
-    scale.
 
-    `area_of(trail) -> area-name | None` scopes the merge: same name fuses
-    only within the same area. None (park runs, tests) = the whole AOI is one
-    implicit area = the original blind behavior. A trail in NO named area
-    (backcountry) does not cross-merge with anything. Relation metadata wins.
-    Unnamed trails pass through untouched.
-    """
-    base_by_key: dict[tuple, "Trail"] = {}
-    out: list["Trail"] = []
-    for t in trails:
-        if area_of is not None:
-            t.area = area_of(t)             # record for emit + viewer filter
-        name_key = merge_key(t.name) if t.name else ""
-        if not name_key:
-            out.append(t)
-            continue
-        area = t.area if area_of is not None else "\x00aoi"
-        if area is None:                    # backcountry: never cross-merge
-            out.append(t)
-            continue
-        gk = (area, name_key)
-        base = base_by_key.get(gk)
-        if base is None:
-            base_by_key[gk] = t
-            out.append(t)
+def _fuse_cluster(cluster: list["Trail"]) -> "Trail":
+    """Fuse one connected same-name cluster into a single Trail. A route
+    relation is the base so its metadata wins; otherwise the piece with the
+    most member ways. Geometry, member ways, destinations and welds all
+    accumulate onto the base."""
+    if len(cluster) == 1:
+        return cluster[0]
+    base = next((t for t in cluster if t.source == "relation"), None) \
+        or max(cluster, key=lambda t: len(t.member_ways))
+    for t in cluster:
+        if t is base:
             continue
         base.lines.extend(t.lines)
         base.member_ways.extend(w for w in t.member_ways if w not in base.member_ways)
         base.destinations.extend(t.destinations)
         base.welds.extend(t.welds)
+        base.terminal_nodes.extend(t.terminal_nodes)
         if base.source != "relation" and t.source == "relation":
             base.source, base.tags, base.name = "relation", t.tags, t.name
+    return base
+
+
+def merge_same_name(trails: list["Trail"]) -> list["Trail"]:
+    """Fold same-name trail objects into one — but ONLY where they physically
+    CONNECT (share an OSM junction vertex). Name equality alone is the wrong
+    join key: the Bonneville Shoreline Trail is 40+ disconnected stretches
+    under one name across 100+ miles, and a blind name merge fuses them into a
+    single scattered blob. Worse, the old area-scoped variant tore genuinely
+    contiguous sections apart when their ways landed in different area buckets.
+    Connectivity is correct on both counts: a section stays whole across a park
+    boundary, and unrelated same-name stretches stay separate objects. Area
+    assignment is now a separate pass (see make_area_of), decoupled from merge.
+
+    Unnamed trails pass through untouched. Relation metadata wins in a fuse.
+    """
+    by_name: dict[str, list["Trail"]] = {}
+    out: list["Trail"] = []
+    for t in trails:
+        k = merge_key(t.name) if t.name else ""
+        if not k:
+            out.append(t)
+            continue
+        by_name.setdefault(k, []).append(t)
+    for group in by_name.values():
+        for cluster in _connectivity_clusters(group):
+            out.append(_fuse_cluster(cluster))
     return out
 
 
@@ -860,6 +935,91 @@ def is_road_code_name(name: str | None) -> bool:
     return True
 
 
+# WORDED agency-road / non-trail-feature names that is_road_code_name lets
+# through because they're full of real English words — surfaced by the ID/WA
+# audit: "National Forest Development Road 005", "Forest Service Road 420",
+# "Natl Forrest Develop Rd 2798-A", "FSR 1562A", "NF-65 (abandoned)", "IDL
+# 43D", "Bia 37", "Bureau of Indian Affairs Road 115", plus freeway ramps
+# ("Ramp 23", "Soundside Ramp 52"), airport concourses ("Concourse A"), and
+# parking lots. Deliberately NARROW — it does NOT touch bare "X Road" names
+# (Alligator Road, Fire Road), which we keep on purpose so whimsical trail
+# names ("Yellow Brick Road", "Thunder Road") survive.
+_ROAD_WORD = re.compile(r"\b(road|rd|route)\b", re.IGNORECASE)
+_AGENCY_PREFIX_CODE = re.compile(r"\b(fsr|fs|nf|nfd|idl|bia)\b[-\s]?\d", re.IGNORECASE)
+_FOREST_ROAD_PHRASE = re.compile(
+    r"\bnational forest\b|\bnatl?\.?\s*forr?e?st\b|\bforest (service|development)\b",
+    re.IGNORECASE)
+_RAMP = re.compile(r"^\s*ramp\s*$|\bramp\s*\d|\boff[\s-]?ramp\b", re.IGNORECASE)
+_CONCOURSE = re.compile(r"\bconcourse\b", re.IGNORECASE)
+_PARKING_LOT = re.compile(r"\bparking\s*lot\b", re.IGNORECASE)
+_TRAIL_WORD = re.compile(r"\b(trail|loop|path|pathway|connector|greenway|trace|spur)\b",
+                         re.IGNORECASE)
+
+
+# Section-line GRID addresses — the rural Utah/PLSS naming where every farm
+# road is "<dir> <number> <dir>": "North 3325 West", "West 6000 North", "North
+# 4000 West". These form a dense regular lattice of tracks that OSM tags with a
+# grid name; no hiking trail is ever named this way, so the pattern is a safe,
+# unambiguous cull. Surfaced by the Utah state audit.
+_GRID_ADDRESS = re.compile(
+    r"^\s*(north|south|east|west|n|s|e|w)\s+\d{2,6}\s+"
+    r"(north|south|east|west|n|s|e|w)\s*$",
+    re.IGNORECASE)
+
+
+def is_grid_address_name(name: str | None) -> bool:
+    """The name is a section-line grid address ('North 3325 West') — a rural
+    road-lattice coordinate, never a trail name."""
+    return bool(name and _GRID_ADDRESS.match(name))
+
+
+def is_offtrail_name(name: str | None) -> bool:
+    """A worded agency road (Forest Service / National Forest / FSR / NF- /
+    IDL / BIA code) or a non-trail feature (freeway ramp, airport concourse,
+    parking lot) — not a foot trail. Complements is_road_code_name, which only
+    catches code-like names with no real words."""
+    if not name:
+        return False
+    if _AGENCY_PREFIX_CODE.search(name):        # FSR 1562A, NF-65, IDL 43D, Bia 37
+        return True
+    if _FOREST_ROAD_PHRASE.search(name) and _ROAD_WORD.search(name):
+        return True                             # National Forest / Forest Service … Road
+    if "bureau of indian affairs" in name.lower():
+        return True
+    # ramp / concourse / parking-lot features — but spare a named trail that
+    # merely touches one ("Parking Lot Connector Trail").
+    if _RAMP.search(name) or _CONCOURSE.search(name) or _PARKING_LOT.search(name):
+        return not _TRAIL_WORD.search(name)
+    return False
+
+
+_MOTORIZED_NAME = re.compile(r"\b(ATV|OHV|UTV|4WD|snowmobile|jeep)\b", re.IGNORECASE)
+
+
+def is_motorized_name(name: str | None) -> bool:
+    """Name marks a motor route — ATV/OHV/UTV/4WD/snowmobile/Jeep. US mappers
+    routinely name these ('Basalt Jeep Trail', 'Pine Creek South ATV Trail',
+    'Deer Creek Trail (OHV Section)') without the atv/ohv access tags, so the
+    tag-based _is_motorized can't see them; this catches the named-but-untagged
+    ones in curation. Every one reviewed in the ID audit was a genuine vehicle
+    route, not a foot hike."""
+    return bool(name and _MOTORIZED_NAME.search(name))
+
+
+def _is_motorized(tags: dict) -> bool:
+    """The way is designated for motor vehicles / off-highway use — an
+    ATV/OHV/4WD/snowmobile route, not a foot trail. OSM tags these explicitly
+    (atv/ohv/motor_vehicle/4wd_only/snowmobile), so we drop by TAG, not by a
+    'Jeep'/'ATV' NAME: a foot-only path that merely carries such a name has
+    none of these tags and is kept, and a real hiking route survives via its
+    route relation regardless. (Research: OSM tags ATV/4WD tracks atv=yes,
+    Jeep/OHV routes ohv=yes.)"""
+    if str(tags.get("4wd_only", "")).strip().lower() in {"yes", "designated"}:
+        return True
+    return any(str(tags.get(k, "")).strip().lower() in {"yes", "designated"}
+               for k in ("motor_vehicle", "motorcar", "atv", "ohv", "snowmobile"))
+
+
 def _road_like_track(tags: dict) -> bool:
     if tags.get("highway") != "track":
         return False
@@ -889,6 +1049,8 @@ def _is_trailish(tags: dict) -> bool:
     if tags.get("indoor") == "yes" or tags.get("trail") == "no":
         return False
     if _road_like_track(tags):          # access/utility road masquerading as a track
+        return False
+    if _is_motorized(tags):             # ATV/OHV/4WD/snowmobile route, not a foot trail
         return False
     return True
 

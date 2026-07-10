@@ -96,14 +96,17 @@ class NameStitch(unittest.TestCase):
         self.assertEqual(len(trails), 1)
         self.assertEqual(set(trails[0].member_ways), {1, 2, 3})
 
-    def test_same_name_merges_into_one_object(self):
-        # Two disconnected "Ridge Trail" ways = one trail with a gap, ONE object.
+    def test_same_name_connected_merge_disconnected_split(self):
+        # Connectivity is the join key. Two CONNECTED "Ridge Trail" ways stitch
+        # into one object; two DISCONNECTED ones stay separate (no blob).
         ways = {1: W([1, 2], highway="path", name="Ridge Trail"),
-                2: W([8, 9], highway="path", name="Ridge Trail")}
-        nodes = {1: (0, 0), 2: (0, 1), 8: (5, 5), 9: (5, 6)}
-        trails = m.assemble(nodes, ways, {}, [])
-        self.assertEqual(len(trails), 1)
-        self.assertEqual(len(trails[0].lines), 2)   # both pieces kept
+                2: W([2, 3], highway="path", name="Ridge Trail")}     # touch at node 2
+        nodes = {1: (0, 0), 2: (0, 1), 3: (0, 2)}
+        self.assertEqual(len(m.assemble(nodes, ways, {}, [])), 1)
+        ways2 = {1: W([1, 2], highway="path", name="Ridge Trail"),
+                 2: W([8, 9], highway="path", name="Ridge Trail")}    # far apart
+        nodes2 = {1: (0, 0), 2: (0, 1), 8: (5, 5), 9: (5, 6)}
+        self.assertEqual(len(m.assemble(nodes2, ways2, {}, [])), 2)
 
     def test_merge_key_folds_trail_suffix_and_hyphens(self):
         self.assertEqual(m.merge_key("Alta"), m.merge_key("Alta Trail"))
@@ -114,11 +117,12 @@ class NameStitch(unittest.TestCase):
         self.assertNotEqual(m.merge_key("Mormon Trail"), m.merge_key("Mormon Loop Trail"))
 
     def test_alta_variant_names_merge(self):
-        # "Alta" (long) + "Alta Trail" (short) = one trail; "West Alta" separate.
+        # "Alta" + "Alta Trail" fold to one merge_key AND touch (node 2), so
+        # they fuse; "West Alta" is a distinct name and stays separate.
         ways = {1: W([1, 2], highway="path", name="Alta"),
-                2: W([8, 9], highway="path", name="Alta Trail"),
+                2: W([2, 3], highway="path", name="Alta Trail"),   # touches Alta at node 2
                 3: W([20, 21], highway="path", name="West Alta")}
-        nodes = {1: (0, 0), 2: (0, 1), 8: (5, 5), 9: (5, 6), 20: (9, 9), 21: (9, 10)}
+        nodes = {1: (0, 0), 2: (0, 1), 3: (0, 2), 20: (9, 9), 21: (9, 10)}
         names = sorted(t.name for t in m.assemble(nodes, ways, {}, []))
         self.assertEqual(len(names), 2)             # Alta(+Trail) merged, West Alta separate
         self.assertIn("West Alta", names)
@@ -158,18 +162,19 @@ class NameStitch(unittest.TestCase):
         self.assertIn("Trail", names)                    # generic BUT from a relation -> kept
 
     def test_relation_and_standalone_same_name_merge(self):
-        # National Trail: some ways in the route relation, some standalone.
+        # National Trail: some ways in the route relation, some standalone —
+        # the standalone CONNECTS to the relation (shares node 2), so they fuse.
         rels = {1: {"tags": {"type": "route", "route": "hiking", "name": "National Trail"},
                     "members": [("w", 10, "")]}}
         ways = {10: W([1, 2], highway="path", name="National Trail"),   # relation member
-                20: W([5, 6], highway="path", name="National Trail")}   # standalone
-        nodes = {1: (0, 0), 2: (0, 1), 5: (0, 5), 6: (0, 6)}
+                20: W([2, 3], highway="path", name="National Trail")}   # standalone, touches
+        nodes = {1: (0, 0), 2: (0, 1), 3: (0, 2)}
         nat = [t for t in m.assemble(nodes, ways, rels, []) if t.name == "National Trail"]
         self.assertEqual(len(nat), 1)               # one National Trail, not two
         self.assertEqual(nat[0].source, "relation")  # relation metadata wins
         self.assertEqual(set(nat[0].member_ways), {10, 20})
 
-    # --- per-area merge (SPEC §6b) ---
+    # --- connectivity-based merge (SPEC §6b) ---
     _AREAS = [
         {"name": "ParkA", "bbox": (0, 0, 2, 2),
          "rings": [[(0, 0), (2, 0), (2, 2), (0, 2), (0, 0)]]},
@@ -177,39 +182,42 @@ class NameStitch(unittest.TestCase):
          "rings": [[(10, 10), (12, 10), (12, 12), (10, 12), (10, 10)]]},
     ]
 
-    def test_merge_blind_when_no_areas(self):
-        # area_of=None -> original blind AOI-wide behavior (park runs, tests).
+    def test_disconnected_same_name_stay_separate(self):
+        # The Bonneville Shoreline case: same name, no shared vertex -> two
+        # objects, NOT one scattered blob. Connectivity is the join key.
         a = m.Trail("Trail", "name-stitch", [1], [[(0, 0), (1, 0)]], {}, [])
         b = m.Trail("Trail", "name-stitch", [2], [[(9, 9), (10, 9)]], {}, [])  # far
+        self.assertEqual(len(m.merge_same_name([a, b])), 2)
+
+    def test_connected_same_name_fuse_regardless_of_area(self):
+        # A contiguous section (shared vertex (1,0)) fuses into one object even
+        # though the two pieces would land in different area buckets — the old
+        # area-scoped merge tore these apart at boundaries.
+        a = m.Trail("Ridge Trail", "name-stitch", [1], [[(0, 0), (1, 0)]], {}, [])
+        b = m.Trail("Ridge Trail", "name-stitch", [2], [[(1, 0), (2, 0)]], {}, [])  # touches a
         self.assertEqual(len(m.merge_same_name([a, b])), 1)
 
-    def test_merge_scoped_does_not_cross_areas(self):
-        area_of = m.make_area_of(self._AREAS)
-        a = m.Trail("Ridge Trail", "name-stitch", [1], [[(0.5, 0.5), (1.5, 1.5)]], {}, [])   # ParkA
-        b = m.Trail("Ridge Trail", "name-stitch", [2], [[(10.5, 10.5), (11.5, 11.5)]], {}, [])  # ParkB
-        self.assertEqual(len(m.merge_same_name([a, b], area_of=area_of)), 2)   # not fused
-
-    def test_merge_scoped_fuses_within_one_area(self):
-        area_of = m.make_area_of(self._AREAS)
+    def test_touching_pieces_fuse_disjoint_do_not(self):
         a = m.Trail("Ridge Trail", "name-stitch", [1], [[(0.5, 0.5), (0.6, 0.6)]], {}, [])
-        c = m.Trail("Ridge Trail", "name-stitch", [3], [[(1.2, 1.2), (1.3, 1.3)]], {}, [])  # both ParkA
-        self.assertEqual(len(m.merge_same_name([a, c], area_of=area_of)), 1)   # same park -> one
+        b = m.Trail("Ridge Trail", "name-stitch", [2], [[(0.6, 0.6), (0.7, 0.7)]], {}, [])  # touch
+        c = m.Trail("Ridge Trail", "name-stitch", [3], [[(5.2, 5.2), (5.3, 5.3)]], {}, [])  # far
+        out = m.merge_same_name([a, b, c])
+        self.assertEqual(len(out), 2)                  # {a,b} fused, c separate
 
-    def test_backcountry_trails_never_cross_merge(self):
-        area_of = m.make_area_of(self._AREAS)
-        x = m.Trail("Trail", "name-stitch", [4], [[(50, 50), (51, 51)]], {}, [])  # no area
-        y = m.Trail("Trail", "name-stitch", [5], [[(60, 60), (61, 61)]], {}, [])  # no area
-        self.assertEqual(len(m.merge_same_name([x, y], area_of=area_of)), 2)
+    def test_different_names_never_fuse(self):
+        a = m.Trail("Trail", "name-stitch", [4], [[(0, 0), (1, 1)]], {}, [])
+        y = m.Trail("Other Trail", "name-stitch", [5], [[(1, 1), (2, 2)]], {}, [])  # touches
+        self.assertEqual(len(m.merge_same_name([a, y])), 2)
 
-    def test_relation_gap_preserved_and_standalone_merges_in_area(self):
+    def test_relation_gap_preserved_and_connected_standalone_merges(self):
         # National Trail: a route relation with a real internal gap + a
-        # standalone same-name piece, all inside one park -> one object, gap kept.
-        area_of = m.make_area_of([{"name": "SM", "bbox": (0, 0, 10, 10),
-                                   "rings": [[(0, 0), (10, 0), (10, 10), (0, 10), (0, 0)]]}])
+        # standalone same-name piece that TOUCHES one relation part -> one
+        # object, the relation's internal gap kept.
         rel = m.Trail("National Trail", "relation", [1, 2],
                       [[(1, 1), (2, 1)], [(8, 1), (9, 1)]], {"network": "lwn"}, [])  # gap
-        standalone = m.Trail("National Trail", "name-stitch", [3], [[(5, 1), (6, 1)]], {}, [])
-        out = m.merge_same_name([rel, standalone], area_of=area_of)
+        standalone = m.Trail("National Trail", "name-stitch", [3],
+                             [[(2, 1), (5, 1)]], {}, [])   # shares (2,1) with rel part 1
+        out = m.merge_same_name([rel, standalone])
         self.assertEqual(len(out), 1)
         self.assertEqual(out[0].source, "relation")   # relation wins
         self.assertEqual(len(out[0].lines), 3)         # relation's 2 parts (gap kept) + standalone
@@ -344,6 +352,92 @@ class Classification(unittest.TestCase):
                   "32nd St Connector", "35th Ave Access Trail", "Alta Trail",
                   "National Trail", "DC-Ray Connector", "Pure O"):
             self.assertFalse(m.is_road_code_name(n), n)
+
+    def test_offtrail_name_drops_worded_agency_roads_and_features(self):
+        # from the Idaho/Washington audit — worded agency roads is_road_code_name
+        # lets through, plus freeway ramps / airport concourses / parking lots.
+        for n in ("National Forest Development Road 005",
+                  "National Forest Development Road 113 Trail",
+                  "Caribou National Forest Road 155", "National Forest Development 626 Road",
+                  "Natl Forrest Develop Rd 2798-A", "Forest Service Road 420",
+                  "East Fsr 1562A", "Conjector Mine Rd FS-1017", "NF-65 (abandoned)",
+                  "IDL 43D", "Bia 37", "Bureau of Indian Affairs Road 115",
+                  "Ramp 23", "Soundside Ramp 52", "Lower Off-Ramp",
+                  "Concourse A (Main Access Road)", "Proposed Parking lot"):
+            self.assertTrue(m.is_offtrail_name(n), n)
+        # false alarms — real trails that must survive (bare road names are kept
+        # on purpose per the audit decision).
+        for n in ("Alligator Road", "Fire Road", "Service Road", "Grassy Gap Fire Road",
+                  "Yellow Brick Road", "Thunder Road", "Old Cole Mill Rd Trail",
+                  "Roanoke Canal Trail", "Historic Columbia River Highway State Trail",
+                  "Golden Gate Trail", "Ramparts Trail", "Parking Lot Connector Trail",
+                  "Driveway Butte Trail"):
+            self.assertFalse(m.is_offtrail_name(n), n)
+
+    def test_motorized_ways_are_not_trailish(self):
+        # ATV/OHV/4WD/snowmobile designations => drop (tag-based, so a foot-only
+        # path merely NAMED 'Jeep Trail' with no such tag is kept).
+        self.assertFalse(m._is_trailish({"highway": "track", "atv": "yes"}))
+        self.assertFalse(m._is_trailish({"highway": "path", "ohv": "yes"}))
+        self.assertFalse(m._is_trailish({"highway": "track", "4wd_only": "yes"}))
+        self.assertFalse(m._is_trailish({"highway": "path", "snowmobile": "designated"}))
+        self.assertFalse(m._is_trailish({"highway": "path", "motor_vehicle": "designated"}))
+        # foot-only path (no motor tag) stays trailish at the WAY level; the
+        # name-based motorized filter runs later in curation.
+        self.assertTrue(m._is_trailish({"highway": "path", "name": "Huckleberry Trail"}))
+
+    def test_motorized_name_dropped_in_curation(self):
+        # US mappers name these without atv/ohv tags, so the NAME filter catches
+        # them (from the Idaho audit — all genuine vehicle routes).
+        for n in ("Basalt Jeep Trail", "Pine Creek South ATV Trail",
+                  "Bobtail Spur OHV Trail", "George Gulch 4WD Trail",
+                  "Eccles Road Snowmobile Trail", "Deer Creek Trail (OHV Section) #158",
+                  "Lewis and Clark Jeep Trail", "Jeep Trail", "ATV TR 1550"):
+            self.assertTrue(m.is_motorized_name(n), n)
+        # normal hiking names untouched
+        for n in ("Deer Creek Trail", "Huckleberry Trail", "Angels Landing Trail",
+                  "West Rim Trail", "Casner Canyon Trail"):
+            self.assertFalse(m.is_motorized_name(n), n)
+
+    def test_removal_reason_names_the_rule_that_fired(self):
+        # QA viewer relies on removal_reason mirroring curation's predicate
+        # order; each removed trail must carry a non-empty plain-language reason.
+        line = [(0.0, 0.0), (0.1, 0.0)]  # ~6.9 mi, well over any min-length
+        cases = {
+            "CLOSED - Old Pyramid Trail": "closed",
+            "FR 231": "code",
+            "Forest Service Road 420": "road",
+            "Basalt Jeep Trail": "motor",
+            "Trail": "generic",
+        }
+        for name, needle in cases.items():
+            t = m.Trail(name, "name-stitch", [1], [list(line)], {}, [])
+            reason = m.removal_reason(t)
+            self.assertIsNotNone(reason, name)
+            self.assertIn(needle, reason.lower(), (name, reason))
+        # a real named trail is kept (reason is None)
+        keep = m.Trail("Angels Landing Trail", "name-stitch", [1], [list(line)], {}, [])
+        self.assertIsNone(m.removal_reason(keep))
+        # a route relation spares an otherwise-generic name
+        rel = m.Trail("Trail", "relation", [1], [list(line)], {}, [])
+        self.assertIsNone(m.removal_reason(rel))
+
+    def test_min_length_removal_reason(self):
+        stub = m.Trail("Tiny Connector Path", "name-stitch", [1],
+                       [[(0.0, 0.0), (0.0001, 0.0)]], {}, [])  # ~40 ft
+        reason = m.removal_reason(stub, min_length_mi=0.1)
+        self.assertIsNotNone(reason)
+        self.assertIn("short", reason.lower())
+
+    def test_grid_address_name_dropped(self):
+        # Utah section-line grid — rural farm-road lattice, never a trail.
+        for n in ("North 3325 West", "West 6000 North", "North 4000 West",
+                  "South 100 East", "N 3600 W", "west 600 north"):
+            self.assertTrue(m.is_grid_address_name(n), n)
+        # real trails and near-miss names survive
+        for n in ("Bonneville Shoreline Trail", "North Rim Trail",
+                  "West Fork Trail", "North 40", "Highway 6", "3600 West Trail"):
+            self.assertFalse(m.is_grid_address_name(n), n)
 
     def test_dedupe_ref_vs_name_duplicate(self):
         # a route relation and a name-stitch over the SAME ways under names

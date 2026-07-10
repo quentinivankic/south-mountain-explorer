@@ -536,20 +536,11 @@ def assemble(nodes: dict, ways: dict, relations: dict,
                         if wid not in claimed and _is_trailish(w["tags"])]
     attach_spurs(trails, unnamed_leftover, ways, nodes, pois)
 
-    # 4. one object per named trail — fuse same-name pieces that physically
-    #    connect (share a junction vertex), so a route relation and its
-    #    standalone same-named ways become one object while disconnected
-    #    same-name stretches (the Bonneville Shoreline blob) stay separate.
-    merged = merge_same_name(trails)
-
-    # 4a. area assignment (decoupled from merge): tag each trail with the park
-    #     it sits in, by rep point, for per-area publish + the viewer filter.
-    #     Done before dedupe so dedupe stays area-scoped; promote_hikes mutates
-    #     in place so the assignment survives promotion.
-    if areas:
-        assign_area = make_area_of(areas)
-        for t in merged:
-            t.area = assign_area(t)
+    # 4. one object per named trail WITHIN an area — fuse same-name pieces that
+    #    sit in one park, but split a sprawling same-name group (a bare
+    #    long-trail name mapped as many disconnected stretches, e.g. Bonneville
+    #    Shoreline) into connected components instead of one scattered blob.
+    merged = merge_same_name(trails, area_of=make_area_of(areas) if areas else None)
 
     # 4b. drop geometry-duplicate trails the name-merge missed — a route
     #     relation and a name-stitch built over the same ways under names that
@@ -622,6 +613,29 @@ def make_area_of(areas: list[dict]):
     return area_of
 
 
+# A same-name group whose pieces sprawl farther than this is treated as a
+# blob (a bare long-trail name mapped as many disconnected stretches, e.g. the
+# Bonneville Shoreline Trail at 70+ mi) and split into connected components.
+# A compact group under it is one real trail — a loop or perimeter whose named
+# ways are separated by short shared-tread segments — and fuses whole, so
+# South Mountain's Pima Canyon Loop stays ONE object instead of fragmenting.
+MERGE_SPREAD_CAP_MI = 15.0
+
+
+def _group_spread_mi(group: list["Trail"]) -> float:
+    """Diagonal of the bounding box over every vertex in the group, in miles —
+    how far the same-name pieces sprawl."""
+    xs, ys = [], []
+    for t in group:
+        for line in t.lines:
+            for x, y in line:
+                xs.append(x)
+                ys.append(y)
+    if not xs:
+        return 0.0
+    return haversine_mi((min(xs), min(ys)), (max(xs), max(ys)))
+
+
 def _connectivity_clusters(group: list["Trail"]) -> list[list["Trail"]]:
     """Partition same-name trails into physically-connected clusters. Two
     trails join the same cluster iff they share a vertex — an OSM junction
@@ -664,30 +678,45 @@ def _fuse_cluster(cluster: list["Trail"]) -> "Trail":
     return base
 
 
-def merge_same_name(trails: list["Trail"]) -> list["Trail"]:
-    """Fold same-name trail objects into one — but ONLY where they physically
-    CONNECT (share an OSM junction vertex). Name equality alone is the wrong
-    join key: the Bonneville Shoreline Trail is 40+ disconnected stretches
-    under one name across 100+ miles, and a blind name merge fuses them into a
-    single scattered blob. Worse, the old area-scoped variant tore genuinely
-    contiguous sections apart when their ways landed in different area buckets.
-    Connectivity is correct on both counts: a section stays whole across a park
-    boundary, and unrelated same-name stretches stay separate objects. Area
-    assignment is now a separate pass (see make_area_of), decoupled from merge.
+def merge_same_name(trails: list["Trail"], area_of=None) -> list["Trail"]:
+    """Fold same-name trail objects into one, scoped to an area and gated on
+    geographic SPREAD.
 
-    Unnamed trails pass through untouched. Relation metadata wins in a fuse.
+    Within ONE area a repeated trail name is normally the same trail — a route
+    relation plus standalone same-named ways, or a loop whose named segments are
+    split by short shared-tread sections — so we fuse the whole group. But a
+    bare long-trail name mapped as dozens of disconnected stretches (the
+    Bonneville Shoreline Trail, 70+ mi) would fuse into a scattered blob, so a
+    group that sprawls past MERGE_SPREAD_CAP_MI is instead split into its
+    physically-connected components. Spread — not raw connectivity — is the
+    right discriminator: it keeps a compact loop whole (Pima Canyon Loop stays
+    ONE object) while still breaking the cross-state blob apart.
+
+    `area_of(trail) -> area-name | None` scopes the merge so a generic name
+    ("Ridge Trail") in adjacent parks never fuses. None (park runs, tests) =
+    the whole AOI is one implicit area. A trail in NO named area (backcountry)
+    never cross-merges. Relation metadata wins. Unnamed trails pass through.
     """
-    by_name: dict[str, list["Trail"]] = {}
+    groups: dict[tuple, list["Trail"]] = {}
     out: list["Trail"] = []
     for t in trails:
+        if area_of is not None:
+            t.area = area_of(t)                 # record for emit + viewer filter
         k = merge_key(t.name) if t.name else ""
         if not k:
             out.append(t)
             continue
-        by_name.setdefault(k, []).append(t)
-    for group in by_name.values():
-        for cluster in _connectivity_clusters(group):
-            out.append(_fuse_cluster(cluster))
+        area = t.area if area_of is not None else "\x00aoi"
+        if area is None:                        # backcountry: never cross-merge
+            out.append(t)
+            continue
+        groups.setdefault((area, k), []).append(t)
+    for group in groups.values():
+        if len(group) == 1 or _group_spread_mi(group) <= MERGE_SPREAD_CAP_MI:
+            out.append(_fuse_cluster(group))            # one real trail
+        else:
+            for cluster in _connectivity_clusters(group):
+                out.append(_fuse_cluster(cluster))      # sprawling blob -> split
     return out
 
 

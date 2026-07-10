@@ -461,6 +461,10 @@ def removal_reason(trail: "Trail", min_length_mi: float = 0.0) -> str | None:
     if is_motorized_name(name):
         return ("Motorized route, not a foot trail — the name marks it "
                 "ATV / OHV / UTV / 4WD / snowmobile / Jeep.")
+    if is_grid_address_name(name):
+        return ("Section-line grid road, not a trail — a rural PLSS grid "
+                "address like 'North 3325 West', part of the farm-road "
+                "lattice, never a hiking trail.")
     if is_generic_name(name) and trail.source != "relation":
         return ("Generic name with no identity ('Trail', 'Connector', 'Path', "
                 "'Loop') and not backed by an OSM route relation — usually a "
@@ -915,6 +919,23 @@ _CONCOURSE = re.compile(r"\bconcourse\b", re.IGNORECASE)
 _PARKING_LOT = re.compile(r"\bparking\s*lot\b", re.IGNORECASE)
 _TRAIL_WORD = re.compile(r"\b(trail|loop|path|pathway|connector|greenway|trace|spur)\b",
                          re.IGNORECASE)
+
+
+# Section-line GRID addresses — the rural Utah/PLSS naming where every farm
+# road is "<dir> <number> <dir>": "North 3325 West", "West 6000 North", "North
+# 4000 West". These form a dense regular lattice of tracks that OSM tags with a
+# grid name; no hiking trail is ever named this way, so the pattern is a safe,
+# unambiguous cull. Surfaced by the Utah state audit.
+_GRID_ADDRESS = re.compile(
+    r"^\s*(north|south|east|west|n|s|e|w)\s+\d{2,6}\s+"
+    r"(north|south|east|west|n|s|e|w)\s*$",
+    re.IGNORECASE)
+
+
+def is_grid_address_name(name: str | None) -> bool:
+    """The name is a section-line grid address ('North 3325 West') — a rural
+    road-lattice coordinate, never a trail name."""
+    return bool(name and _GRID_ADDRESS.match(name))
 
 
 def is_offtrail_name(name: str | None) -> bool:

@@ -421,6 +421,16 @@ class Classification(unittest.TestCase):
         self.assertIsNotNone(reason)
         self.assertIn("short", reason.lower())
 
+    def test_grid_address_name_dropped(self):
+        # Utah section-line grid — rural farm-road lattice, never a trail.
+        for n in ("North 3325 West", "West 6000 North", "North 4000 West",
+                  "South 100 East", "N 3600 W", "west 600 north"):
+            self.assertTrue(m.is_grid_address_name(n), n)
+        # real trails and near-miss names survive
+        for n in ("Bonneville Shoreline Trail", "North Rim Trail",
+                  "West Fork Trail", "North 40", "Highway 6", "3600 West Trail"):
+            self.assertFalse(m.is_grid_address_name(n), n)
+
     def test_dedupe_ref_vs_name_duplicate(self):
         # a route relation and a name-stitch over the SAME ways under names
         # that normalize differently — the Casner Canyon #11 == Casner Canyon

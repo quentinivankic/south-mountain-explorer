@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -38,18 +39,33 @@ from _seed_constants import (  # noqa: E402
     code_from_slug,
 )
 
-# Codes whose rows ship in the iOS bundle. Computed at import time
-# from STATE_NAMES so adding a new US state / CA province automatically
-# flows through; the explicit logic is "everything in STATE_NAMES that
-# isn't a foreign country." To re-enable a foreign region, drop its
-# code from the exclusion below or replace this with an inline set.
-BUNDLED_REGION_CODES: set[str] = {
-    code for code in STATE_NAMES
-    # US state codes: 2-letter, no hyphen, not a country.
-    if (code not in COUNTRY_CODES and "-" not in code)
-    # OR Canadian province / territory.
-    or code.startswith("CA-")
-}
+# Codes whose rows ship in the iOS bundle — only the states we've published
+# clean, trailforge-curated data for. The master index keeps every seeded
+# region (US states, CA provinces, EU, …) as the re-enable source; re-adding a
+# state is a one-line edit here. Everything else — the old System-1 data — is
+# no longer bundled or served.
+BUNDLED_REGION_CODES: set[str] = {"AZ", "UT"}
+
+# Within the bundled states, an area is ALSO dropped if its geom still carries
+# old System-1 data. Signature: a trail literally named "Unnamed <way-id>" —
+# trailforge never emits those, System-1 (build-trail-counts.py) always did for
+# nameless ways. So their presence marks an area trailforge couldn't publish
+# (cross-state boundary absent from the state extract, or a redundant park
+# parent whose trails went to its sub-districts) that still shows unnamed /
+# road-code junk. Detecting this from the geom means the rule self-maintains:
+# if such an area is later published cleanly, it returns to the bundle on its
+# own.
+GEOM_DIR = Path(__file__).resolve().parent.parent / "public" / "areas" / "geom"
+_SYS1_UNNAMED = re.compile(r"^Unnamed \d+$")
+
+
+def _has_system1_leftovers(slug: str) -> bool:
+    try:
+        data = json.loads((GEOM_DIR / f"{slug}.json").read_text())
+    except Exception:
+        return False  # no geom to judge — don't drop on that basis
+    return any(_SYS1_UNNAMED.match(t.get("name") or "")
+               for t in data.get("trails", []))
 
 
 def filter_rows(rows: list[list]) -> tuple[list[list], dict[str, int]]:
@@ -59,8 +75,9 @@ def filter_rows(rows: list[list]) -> tuple[list[list], dict[str, int]]:
     kept: list[list] = []
     dropped: dict[str, int] = {}
     for row in rows:
-        code = code_from_slug(row[0]) or ""
-        if code in BUNDLED_REGION_CODES:
+        slug = row[0]
+        code = code_from_slug(slug) or ""
+        if code in BUNDLED_REGION_CODES and not _has_system1_leftovers(slug):
             kept.append(row)
         else:
             dropped[code] = dropped.get(code, 0) + 1

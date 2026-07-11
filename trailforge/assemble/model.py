@@ -137,6 +137,39 @@ _BIKEPARK_NAME = re.compile(
     r"\b(down\s*hill|dh|slalom|flow|jump\s*line|pump\s*track|berm|freeride)\b",
     re.IGNORECASE)
 
+# Famous long-distance thru-hikes, matched by NAME. Tag-driven detection fails
+# here — OSM tags US thru-hikes inconsistently (no network, the name slapped on
+# ways, flat/nameless relations), so the name is the only reliable signal. A
+# trail literally named one of these IS the thru-hike; its numbered segments
+# ('Colorado Trail (Segment 5)') and name-stitched pieces ('Continental Divide
+# Trail') all match. A curated registry, not fuzzy guessing — extend per region
+# as coverage grows (Te Araroa, GR/E-paths, …).
+_THRU_HIKE_RE = re.compile(
+    r"\b("
+    r"arizona (national )?(scenic )?trail|azt"
+    r"|pacific crest trail|pct"
+    r"|continental divide (national )?(scenic )?(trail|nst)|cdt|cdnst"
+    r"|colorado trail"
+    r"|hayduke"
+    r"|grand enchantment"
+    r"|sky islands traverse"
+    r"|maricopa trail"
+    r"|great western trail"
+    r"|appalachian trail"
+    r"|john muir trail|jmt"
+    r"|pacific northwest trail|pnt"
+    r"|tahoe rim trail"
+    r"|oregon coast trail"
+    r"|idaho centennial trail"
+    r")\b",
+    re.IGNORECASE)
+
+
+def is_thru_hike_name(name: str | None) -> bool:
+    """True if the name is a famous long-distance thru-hike (or a numbered
+    segment / name-stitched piece of one) — see _THRU_HIKE_RE."""
+    return bool(_THRU_HIKE_RE.search(name or ""))
+
 
 def classify_kind(name: str | None, tags: dict) -> str:
     """'route' for a meta-object that traverses named trails; 'trail' otherwise.
@@ -458,6 +491,10 @@ def removal_reason(trail: "Trail", min_length_mi: float = 0.0) -> str | None:
     if is_closed_name(name):
         return ("Marked closed in OSM — the name itself says CLOSED "
                 "(e.g. 'CLOSED - old Pyramid Trail').")
+    if is_thru_hike_name(name):
+        return ("Long-distance thru-hike, not a single completable trail — a "
+                "named national/regional route (PCT, CDT, Colorado Trail, "
+                "Hayduke, Arizona Trail, …) or one of its numbered segments.")
     if is_road_code_name(name):
         return ("Bare road/ref code, not a trail name — nothing but an agency "
                 "or OSM reference number (e.g. 'FR 231', 'CR 12', '9A').")

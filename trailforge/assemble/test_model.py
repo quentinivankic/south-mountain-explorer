@@ -78,15 +78,16 @@ class RelationsFirst(unittest.TestCase):
 
     def test_umbrella_route_keeps_local_named_members(self):
         # A route relation whose member has its OWN name must not erase that
-        # trail — the Maricopa Trail absorbing "Bursera Canyon" bug.
-        rels = {1: {"tags": {"type": "route", "route": "hiking", "name": "Maricopa Trail"},
+        # trail — the umbrella-route absorbing "Bursera Canyon" bug. (Uses a
+        # non-thru-hike umbrella name so the thru-hike filter doesn't apply.)
+        rels = {1: {"tags": {"type": "route", "route": "hiking", "name": "Sun Circle Trail"},
                     "members": [("w", 10, ""), ("w", 11, "")]}}
-        ways = {10: W([1, 2], highway="path", name="Maricopa Trail"),
+        ways = {10: W([1, 2], highway="path", name="Sun Circle Trail"),
                 11: W([2, 3], highway="path", name="Bursera Canyon")}
         nodes = {1: (0, 0), 2: (0, 1), 3: (0, 2)}
         names = sorted(t.name for t in m.assemble(nodes, ways, rels, []))
-        self.assertIn("Bursera Canyon", names)   # local trail preserved as itself
-        self.assertIn("Maricopa Trail", names)   # umbrella route still emitted
+        self.assertIn("Bursera Canyon", names)    # local trail preserved as itself
+        self.assertIn("Sun Circle Trail", names)  # umbrella route still emitted
 
     def test_relation_excludes_road_like_track_member(self):
         # A vehicle/access-road track that's a route member isn't drawn as trail.
@@ -499,6 +500,22 @@ class Classification(unittest.TestCase):
         for n in ("Deer Creek Trail", "Huckleberry Trail", "Angels Landing Trail",
                   "West Rim Trail", "Casner Canyon Trail"):
             self.assertFalse(m.is_motorized_name(n), n)
+
+    def test_thru_hike_names_dropped(self):
+        # Famous long-distance thru-hikes + their numbered/name-stitched pieces
+        # are dropped by name (OSM tags them too inconsistently for tags alone).
+        for n in ("Colorado Trail (Segment 5)", "Colorado Trail Seg. 14 Chalk Creek",
+                  "Continental Divide Trail", "CDT", "Continental Divide NST",
+                  "Continental Divide National Scenic Trail - Cottonwood South",
+                  "Arizona Trail #31", "Arizona National Scenic Trail",
+                  "Pacific Crest Trail (Old Snowy Alternate)", "Hayduke Crossing South",
+                  "Maricopa Trail", "Grand Enchantment Trail"):
+            self.assertTrue(m.is_thru_hike_name(n), n)
+        # local trails that merely share a word must NOT match
+        for n in ("Continental Divide Overlook", "Divide Creek Trail",
+                  "Colorado River Trail", "Rainbow Trail (FS 1336)",
+                  "Arizona Hot Spring Trail: Lower Route", "Miller Peak Trail"):
+            self.assertFalse(m.is_thru_hike_name(n), n)
 
     def test_removal_reason_names_the_rule_that_fired(self):
         # QA viewer relies on removal_reason mirroring curation's predicate

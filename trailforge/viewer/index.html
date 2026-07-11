@@ -45,6 +45,8 @@
     <span class="swatch" style="background:#b3261e"></span>Removed (filtered out) <span id="removed-count" class="mi"></span></label>
   <label><input type="checkbox" id="toggle-inarea" />
     <span class="swatch" style="background:#e6521f;opacity:.35"></span>Only trails in an area</label>
+  <label><input type="checkbox" id="toggle-clip" />
+    <span class="swatch" style="background:#e6521f"></span>Clip to park boundaries (preview what ships)</label>
   <label><input type="checkbox" id="toggle-golden" checked />
     <span class="swatch" style="background:#1a7f37"></span>Golden destinations</label>
   <div style="margin-top:8px"><b>Trails</b> <span id="inview-count" class="mi"></span></div>
@@ -123,6 +125,7 @@ map.on("load", async () => {
     ? `../data/golden.trails.geojson`
     : `../data/aoi/${AOI}.trails.geojson`;
   const trails = await maybeJSON(trailsUrl);
+  let clippedTrails = null;   // publish-preview geometry, built alongside _inarea
   // Geometry-based area membership for the "Only trails in an area" toggle.
   // The publisher ships a trail in a park when its GEOMETRY touches the
   // boundary, regardless of the assembler's `area` merge-scope tag — a
@@ -174,6 +177,26 @@ map.on("load", async () => {
       // Fall back to the tag when no area polygons are available.
       tf.properties._inarea = polys.length ? hit : !!tf.properties.area;
     }
+    // Publish preview: trim each line to the span between its first and last
+    // in-park vertex — drops dangling out-of-park tails (DC-Ray's neighbourhood
+    // run) but keeps a mid gap between two in-park stretches, the same "trim
+    // dangling ends" the publisher applies. Vertex-granular, close enough for
+    // QA; toggled by "Clip to park boundaries".
+    if (polys.length) {
+      const trimLine = (line) => {
+        let first = -1, last = -1;
+        for (let i = 0; i < line.length; i++)
+          if (ptInAnyArea(line[i][0], line[i][1])) { if (first < 0) first = i; last = i; }
+        return first < 0 ? null : line.slice(first, last + 1);
+      };
+      clippedTrails = { type: "FeatureCollection", features: trails.features.map((f) => {
+        const g = f.geometry;
+        const parts = g.type === "MultiLineString" ? g.coordinates
+                    : (g.type === "LineString" ? [g.coordinates] : []);
+        const out = parts.map(trimLine).filter((l) => l && l.length > 1);
+        return { ...f, geometry: { type: "MultiLineString", coordinates: out } };
+      }).filter((f) => f.geometry.coordinates.length) };
+    }
   }
   if (trails) {
     // generateId gives each trail feature an id so a click can flip its
@@ -218,6 +241,15 @@ map.on("load", async () => {
         map.setFilter(lid, e.target.checked
           ? ["all", base, ["to-boolean", ["get", "_inarea"]]] : base);
       }
+    };
+    // "Clip to park boundaries": swap the trails source between the raw
+    // assembly and the publish-preview (dangling tails trimmed). Disabled if
+    // there were no area polygons to clip against.
+    const clipEl = document.getElementById("toggle-clip");
+    if (!clippedTrails) clipEl.disabled = true;
+    clipEl.onchange = (e) => {
+      const src = map.getSource("trails");
+      if (src && clippedTrails) src.setData(e.target.checked ? clippedTrails : trails);
     };
 
     const HIT = ["hike-lines", "trail-lines", "route-lines"];

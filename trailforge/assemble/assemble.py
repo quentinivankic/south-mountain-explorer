@@ -97,6 +97,11 @@ def main(argv=None) -> int:
                     help="scope same-name merge to within each park boundary. For "
                          "unclipped region/state runs, so same-named trails in "
                          "different parks don't fuse into one scattered object.")
+    ap.add_argument("--region",
+                    help="2-letter state code (e.g. vt, nm) — enables region-scoped "
+                         "thru-hike drops whose bare name collides with unrelated "
+                         "local trails elsewhere (Vermont's 'Long Trail', NM's "
+                         "'Skyline Trail'). Match what the publisher ships.")
     args = ap.parse_args(argv)
 
     nodes, ways, relations, pois = read_pbf(args.inp)
@@ -113,7 +118,7 @@ def main(argv=None) -> int:
     removed: list = []
     trails = model.assemble(nodes, ways, relations, pois,
                             min_length_mi=args.min_length_mi, areas=areas_arg,
-                            collect_removed=removed)
+                            collect_removed=removed, region=args.region)
     features = [t.to_feature() for t in trails]
 
     area_note = ""

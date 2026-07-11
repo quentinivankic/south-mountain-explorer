@@ -146,6 +146,25 @@ extension AnalyticsEvent {
         ])
     }
 
+    /// User-reported problem with a specific trail. Like feedback, the reason
+    /// code + optional free-text details are user-authored payload (fair game).
+    /// The trail/area ids make it actionable — look up exactly which trail to
+    /// fix, which is often an OSM tagging error to correct upstream.
+    static func trailReported(reason: String, details: String, trailId: String,
+                              trailName: String, areaId: String) -> AnalyticsEvent {
+        var properties: [String: String] = [
+            "reason": reason,
+            "trail_id": trailId,
+            "trail_name": trailName,
+            "area_id": areaId,
+            "has_details": details.isEmpty ? "false" : "true",
+        ]
+        if !details.isEmpty {
+            properties["details"] = details
+        }
+        return AnalyticsEvent("trail_reported", properties)
+    }
+
     static func feedbackSubmitted(category: String, message: String, email: String?) -> AnalyticsEvent {
         var properties: [String: String] = [
             "category": category,

@@ -114,27 +114,49 @@ def _line_geom_and_mi(lines):
     return geom, mi
 
 
-def _clamp_to_parks(g, all_parks):
-    """Trail geometry clipped to the union of ALL parks: any stretch outside
-    every park (a residential/unmanaged tail — DC-Ray Connector running into a
-    neighbourhood) is dropped, while a stretch continuing into an adjacent park
-    is kept. Returns (lines, miles); ([], 0) if it touches no park."""
-    try:
-        inter = g.intersection(all_parks)
-    except Exception:  # noqa: BLE001 — invalid geometry
-        return [], 0.0
-    lines = [[(c[0], c[1]) for c in ln.coords] for ln in areamod._line_parts(inter)]
-    return lines, sum(model.line_mi(l) for l in lines)
+def _trim_to_parks(g, all_parks):
+    """Trim only the DANGLING ends of a trail that hang outside every park — a
+    residential/unmanaged dead-end like DC-Ray Connector running into a
+    neighbourhood. Everything BETWEEN the first and last point where the trail
+    touches a park is kept, so an in->gap->in trail that links two parks stays
+    whole (the connecting gap is not a dangle). Returns (lines, miles); ([], 0)
+    if the trail never touches a park.
+
+    Per component: keep the sub-line between the first and last in-park vertex
+    (linear-referenced onto the component). A component entirely outside every
+    park is dropped; a dangling tail past the last park-contact is trimmed; a
+    mid-trail gap survives because it sits between two in-park contacts."""
+    from shapely.geometry import LineString, MultiLineString, Point
+    from shapely.ops import substring
+    comps = list(g.geoms) if isinstance(g, MultiLineString) else [g]
+    out = []
+    for comp in comps:
+        if not isinstance(comp, LineString) or comp.length == 0:
+            continue
+        try:
+            inside = comp.intersection(all_parks)
+        except Exception:  # noqa: BLE001 — invalid geometry
+            continue
+        parts = areamod._line_parts(inside)
+        if not parts:
+            continue                      # component never touches a park
+        ds = [comp.project(Point(c)) for ln in parts for c in ln.coords]
+        seg = substring(comp, min(ds), max(ds))
+        segs = list(seg.geoms) if isinstance(seg, MultiLineString) else [seg]
+        for s in segs:
+            if isinstance(s, LineString) and s.length > 0:
+                out.append([(x, y) for x, y in s.coords])
+    return out, sum(model.line_mi(l) for l in out)
 
 
 def _clamped_feature(g, f, all_parks, cache):
-    """Feature clipped to the all-parks union, with length_mi updated to the
-    clamped length (full_length_mi + clipped flag kept when it shrank). Returns
-    (feature, clamped_mi), or (None, 0) if the trail touches no park. The clamp
-    is cached per trail (same for every area), keyed by object identity."""
+    """Feature with its dangling out-of-park ends trimmed (see _trim_to_parks),
+    length_mi updated to the trimmed length (full_length_mi + clipped flag kept
+    when it shrank). Returns (feature, clamped_mi), or (None, 0) if the trail
+    touches no park. The trim is cached per trail (same for every area)."""
     key = id(f)
     if key not in cache:
-        cache[key] = _clamp_to_parks(g, all_parks)
+        cache[key] = _trim_to_parks(g, all_parks)
     lines, clamped_mi = cache[key]
     if not lines:
         return None, 0.0

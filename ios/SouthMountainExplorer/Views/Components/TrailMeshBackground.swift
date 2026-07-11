@@ -61,17 +61,29 @@ struct TrailMeshBackground: View {
 
 extension View {
     /// Swap a flat surface for the base system colour plus the faint Tonto
-    /// trail mesh. Hides the default scroll/list background so the mesh shows
-    /// through List / Form / ScrollView content too.
+    /// trail mesh, when the Settings toggle is on. MUST be applied to the
+    /// List/ScrollView INSIDE a NavigationStack (not outside it) — a
+    /// NavigationStack paints its own opaque background that would cover this.
+    /// Hides the default scroll/list background so the mesh shows through.
     func trailMeshBackground() -> some View {
-        self
-            .scrollContentBackground(.hidden)
+        modifier(TrailMeshBackgroundModifier())
+    }
+}
+
+private struct TrailMeshBackgroundModifier: ViewModifier {
+    @AppStorage(StorageKeys.trailMesh) private var enabled = true
+
+    func body(content: Content) -> some View {
+        content
+            .scrollContentBackground(enabled ? .hidden : .automatic)
             .background {
-                ZStack {
-                    Color(.systemBackground)
-                    TrailMeshBackground()
+                if enabled {
+                    ZStack {
+                        Color(.systemBackground)
+                        TrailMeshBackground()
+                    }
+                    .ignoresSafeArea()
                 }
-                .ignoresSafeArea()
             }
     }
 }

@@ -157,6 +157,7 @@ struct BrowseView: View {
                     .searchFocused($searchFocused)
                 }
             }
+            .trailMeshBackground()
             .navigationTitle("Browse")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

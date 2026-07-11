@@ -137,9 +137,14 @@ def main(argv=None) -> int:
                     help="a trail this long (or kind=route) is route-scale: CLAMP "
                          "it to its in-park segment instead of keeping it whole")
     ap.add_argument("--no-routes", action="store_true")
+    ap.add_argument("--multi-area-report", action="store_true",
+                    help="diagnostic: list NON-route trails that touch >=2 areas "
+                         "(does a 'one home park' rule lose anything?). Writes nothing.")
     ap.add_argument("--limit", type=int, help="only publish the first N areas (a first wave)")
     ap.add_argument("--dry-run", action="store_true", help="report matches; write nothing")
     args = ap.parse_args(argv)
+    if args.multi_area_report:
+        args.dry_run = True             # pure diagnostic — never write
 
     index = json.load(open(args.index))
     az = {r[0]: {"name": r[1], "state": r[2], "center": (r[3], r[4]),
@@ -219,6 +224,9 @@ def main(argv=None) -> int:
     kinds = {"trail", "hike"} if args.no_routes else {"trail", "hike", "route"}
     published, skipped, failed, changes = [], [], [], []
     touch_gain = []                     # (slug, name, full_length_mi) for --touch-report
+    # merge_key -> {name, kind, full, slugs[]} for --multi-area-report: which
+    # trails a "one home park" (argmax) rule would move out of a second area.
+    membership = {}
 
     # Selection is TOUCH-based: a trail belongs to every area its geometry enters,
     # not just the one its midpoint fell in — that's what keeps a boundary-
@@ -258,6 +266,13 @@ def main(argv=None) -> int:
                 continue
             have.add(k)
             clipped.append(r)
+            if k:
+                p = r["properties"]
+                full = p.get("full_length_mi", p.get("length_mi"))
+                m = membership.setdefault(
+                    k, {"name": p.get("name") or "", "kind": p.get("kind"),
+                        "full": full, "slugs": []})
+                m["slugs"].append(slug)
         if not clipped:
             skipped.append((slug, "no trails touch this area")); continue
         row = conv.convert({"features": clipped}, slug, meta["name"], meta["state"],
@@ -306,6 +321,34 @@ def main(argv=None) -> int:
                 print(f"      added:   {nm}")
             for nm in dups:
                 print(f"      DUP-NAME: {nm}")
+
+    if args.multi_area_report:
+        # A "one home park" rule places each trail in a single area (argmax
+        # overlap). It only LOSES something for a trail that legitimately sits
+        # in >=2 areas. Routes are expected to (they're being dropped anyway);
+        # the real question is how many NON-route trails span parks.
+        route_full = args.route_clamp_mi
+        def _is_route(m):
+            return m["kind"] == "route" or (m["full"] is not None and m["full"] >= route_full)
+        multi = [m for m in membership.values() if len(set(m["slugs"])) >= 2]
+        non_route = sorted((m for m in multi if not _is_route(m)),
+                           key=lambda m: -len(set(m["slugs"])))
+        routes = [m for m in multi if _is_route(m)]
+        from collections import Counter
+        dist = Counter(len(set(m["slugs"])) for m in non_route)
+        print(f"\n=== multi-area report ===")
+        print(f"trails touching >=2 areas: {len(multi)}  "
+              f"({len(non_route)} non-route, {len(routes)} route-scale)")
+        print(f"non-route span distribution (n areas -> trails):")
+        for n in sorted(dist):
+            print(f"  {n} areas: {dist[n]}")
+        print(f"\nnon-route trails in >=2 areas (name — miles — areas):")
+        for m in non_route[:60]:
+            slugs = sorted(set(m["slugs"]))
+            mi = f"{m['full']:.2f}mi" if m["full"] is not None else "?"
+            print(f"  {m['name']!r} — {mi} — {', '.join(slugs)}")
+        if len(non_route) > 60:
+            print(f"  … and {len(non_route) - 60} more")
     return 0
 
 

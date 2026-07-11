@@ -50,16 +50,16 @@ struct ContentView: View {
             }
         )) {
             Tab("Explore", systemImage: "mountain.2.fill", value: AppTab.explore) {
-                HomeView()
+                HomeView().trailMeshBackground()
             }
             Tab("Browse", systemImage: "magnifyingglass", value: AppTab.browse) {
-                BrowseView()
+                BrowseView().trailMeshBackground()
             }
             Tab("Stats", systemImage: "chart.line.uptrend.xyaxis", value: AppTab.stats) {
-                StatsView()
+                StatsView().trailMeshBackground()
             }
             Tab("Settings", systemImage: "gearshape.fill", value: AppTab.settings) {
-                SettingsView()
+                SettingsView().trailMeshBackground()
             }
         }
         // iOS 26 — tab bar automatically gets Liquid Glass styling

@@ -126,10 +126,12 @@ map.on("load", async () => {
     : `../data/aoi/${AOI}.trails.geojson`;
   const trails = await maybeJSON(trailsUrl);
   // Geometry-based area membership + publish-preview clipping for the two area
-  // toggles. Both ray-cast trail vertices against the park polygons, which is
-  // heavy over a whole state — so they are LAZY: nothing runs on load (that
-  // was freezing the viewer). `computeInArea()` runs once (memoized) on the
-  // in-area toggle; `applyClip()` trims only the on-screen trails, per pan.
+  // toggles. Ray-casting every trail vertex against every park polygon is heavy
+  // on a dense state (MA: ~110k vertices x ~100 parks), so: nothing runs on
+  // load; a spatial grid cuts each point to a handful of candidate polygons;
+  // per-vertex membership is computed ONCE (memoized) the first time either
+  // toggle is used and shared by both. After that, toggling/panning is pure
+  // array work — no per-pan recompute.
   let hasAreas = false;
   let computeInArea = () => {};
   let applyClip = () => {};
@@ -149,6 +151,26 @@ map.on("load", async () => {
     // Global park bbox — a cheap trail-level reject before touching any vertex.
     let gx0=Infinity, gy0=Infinity, gx1=-Infinity, gy1=-Infinity;
     for (const [x0,y0,x1,y1] of bb) { if(x0<gx0)gx0=x0; if(y0<gy0)gy0=y0; if(x1>gx1)gx1=x1; if(y1>gy1)gy1=y1; }
+
+    // Uniform spatial grid over the park bboxes. Each point tests only the few
+    // polygons whose bbox lands in its cell, not all N — the difference between
+    // O(points x polygons) (unusable on a dense state like MA: ~1,260 trails,
+    // ~110k vertices, ~100 parks) and ~O(points).
+    const GN = Math.max(1, Math.min(128, Math.round(Math.sqrt(polys.length || 1)) * 8));
+    const gdx = (gx1 - gx0) / GN || 1, gdy = (gy1 - gy0) / GN || 1;
+    const clampX = (c) => c < 0 ? 0 : c > GN - 1 ? GN - 1 : c;
+    const grid = new Map();
+    for (let i = 0; i < polys.length; i++) {
+      const [x0,y0,x1,y1] = bb[i];
+      const cx0=clampX(Math.floor((x0-gx0)/gdx)), cx1=clampX(Math.floor((x1-gx0)/gdx));
+      const cy0=clampX(Math.floor((y0-gy0)/gdy)), cy1=clampX(Math.floor((y1-gy0)/gdy));
+      for (let cy=cy0; cy<=cy1; cy++) for (let cx=cx0; cx<=cx1; cx++) {
+        const k = cy*GN+cx; let a = grid.get(k); if (!a) grid.set(k, a=[]); a.push(i);
+      }
+    }
+    const cellOf = (x, y) =>
+      clampX(Math.floor((y-gy0)/gdy)) * GN + clampX(Math.floor((x-gx0)/gdx));
+
     const inRing = (x, y, ring) => {
       let inside = false;
       for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -164,8 +186,10 @@ map.on("load", async () => {
     };
     const ptInAnyArea = (x, y) => {
       if (x < gx0 || x > gx1 || y < gy0 || y > gy1) return false;
-      for (let i = 0; i < polys.length; i++) {
-        const [x0, y0, x1, y1] = bb[i];
+      const cand = grid.get(cellOf(x, y));
+      if (!cand) return false;
+      for (let n = 0; n < cand.length; n++) {
+        const i = cand[n], [x0, y0, x1, y1] = bb[i];
         if (x < x0 || x > x1 || y < y0 || y > y1) continue;
         if (inPoly(x, y, polys[i])) return true;
       }
@@ -173,66 +197,75 @@ map.on("load", async () => {
     };
     const partsOf = (g) => g.type === "MultiLineString" ? g.coordinates
                          : (g.type === "LineString" ? [g.coordinates] : []);
-    // Precompute each trail's bbox once (cheap — no point-in-polygon) for the
-    // toggles' trail-level prefilter and the clip viewport check.
-    const tbox = trails.features.map((f) => {
-      let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity;
-      for (const line of partsOf(f.geometry)) for (const [x,y] of line) { if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
-      return [x0, y0, x1, y1];
-    });
-    const hitsParks = (i) => { const [x0,y0,x1,y1]=tbox[i]; return !(x1<gx0||x0>gx1||y1<gy0||y0>gy1); };
-    // Lazy: derive `_inarea` (touch, like the publisher) and push it to the
-    // source so the "Only trails in an area" filter can read it.
-    let inAreaDone = false;
-    computeInArea = () => {
-      if (inAreaDone) return;
-      inAreaDone = true;
+
+    // Per-vertex membership, computed ONCE (memoized) and shared by BOTH area
+    // toggles: the in-area filter reads "any vertex inside", the clip reads the
+    // first/last inside vertex to trim. So the point-in-polygon pass happens a
+    // single time — after it, toggling and panning are pure array work.
+    let membership = null;             // membership[i] = Array<Uint8Array> per part
+    const ensureMembership = () => {
+      if (membership) return;
+      const cv = map.getCanvas(); const prev = cv.style.cursor; cv.style.cursor = "progress";
+      membership = trails.features.map((f) => {
+        if (!hasAreas) return null;
+        return partsOf(f.geometry).map((line) => {
+          const bits = new Uint8Array(line.length);
+          for (let i = 0; i < line.length; i++)
+            if (ptInAnyArea(line[i][0], line[i][1])) bits[i] = 1;
+          return bits;
+        });
+      });
+      cv.style.cursor = prev;
+    };
+
+    // Stamp `_inarea` (touch, like the publisher) onto every feature from the
+    // cached membership, so the "Only trails in an area" layer filter can read
+    // it. Cheap array work once membership exists.
+    const setInarea = () => {
       trails.features.forEach((tf, i) => {
         tf.properties = tf.properties || {};
         if (!hasAreas) { tf.properties._inarea = !!tf.properties.area; return; }
         let hit = false;
-        if (hitsParks(i)) {
-          outer: for (const line of partsOf(tf.geometry)) for (const [x,y] of line)
-            if (ptInAnyArea(x,y)) { hit = true; break outer; }
-        }
+        for (const bits of membership[i]) { for (let k = 0; k < bits.length; k++) if (bits[k]) { hit = true; break; } if (hit) break; }
         tf.properties._inarea = hit;
       });
-      const src = map.getSource("trails");
-      if (src) src.setData(trails);
     };
-    const trimLine = (line) => {
-      let first = -1, last = -1;
-      for (let i = 0; i < line.length; i++)
-        if (ptInAnyArea(line[i][0], line[i][1])) { if (first < 0) first = i; last = i; }
-      return first < 0 ? null : line.slice(first, last + 1);
-    };
-    // Clip preview is VIEWPORT-SCOPED so it can't choke on a whole state: only
-    // trails intersecting the current map bounds are trimmed (drop dangling
-    // out-of-park tails, keep mid gaps); off-screen ones pass through raw and
-    // get trimmed once you pan to them. A cap bails out if the view holds too
-    // many trails (zoomed way out) rather than freezing.
-    const CLIP_CAP = 1500;
+
+    // Single source-of-truth for the trails geometry fed to the map. Clip
+    // trims each line to its first..last in-park vertex (drops dangling
+    // out-of-park tails, keeps in->gap->in connectors, matching the publisher's
+    // _trim_to_parks). Both toggles route through here so they COMPOSE: turning
+    // one on never clobbers the other's effect. Reads cached membership, so it
+    // runs once for the whole state — no per-pan recompute, no viewport cap.
     let clipOn = false;
-    applyClip = (on) => {
-      if (on !== undefined) clipOn = on;
-      const src = map.getSource("trails");
-      if (!src) return;
-      if (!clipOn || !hasAreas) { src.setData(trails); return; }
-      const b = map.getBounds();
-      const wx0=b.getWest(), wy0=b.getSouth(), wx1=b.getEast(), wy1=b.getNorth();
-      const inView = (i) => { const [x0,y0,x1,y1]=tbox[i]; return !(x1<wx0||x0>wx1||y1<wy0||y0>wy1); };
-      let n = 0;
-      for (let i = 0; i < trails.features.length; i++) if (inView(i)) n++;
-      if (n > CLIP_CAP) { src.setData(trails); return; }   // too many — bail, no clip
-      const feats = [];
-      trails.features.forEach((f, i) => {
-        if (!inView(i)) { feats.push(f); return; }          // off-screen: pass raw
-        const out = partsOf(f.geometry).map(trimLine).filter((l) => l && l.length > 1);
-        if (out.length) feats.push({ ...f, geometry: { type: "MultiLineString", coordinates: out } });
+    const buildData = () => {
+      if (!(clipOn && hasAreas)) return trails;
+      // Keep the array 1:1 with trails.features (a fully-out-of-park trail
+      // becomes an empty line, drawn as nothing) so generateId indices stay
+      // aligned with the trail picker's `feats[id]` lookups.
+      const feats = trails.features.map((f, i) => {
+        const lines = partsOf(f.geometry), parts = membership[i], out = [];
+        for (let pi = 0; pi < lines.length; pi++) {
+          const bits = parts[pi];
+          let first = -1, last = -1;
+          for (let k = 0; k < bits.length; k++) if (bits[k]) { if (first < 0) first = k; last = k; }
+          if (first >= 0 && last > first) out.push(lines[pi].slice(first, last + 1));
+        }
+        return { ...f, geometry: { type: "MultiLineString", coordinates: out } };
       });
-      src.setData({ type: "FeatureCollection", features: feats });
+      return { type: "FeatureCollection", features: feats };
     };
-    map.on("moveend", () => { if (clipOn) applyClip(); });
+    const refresh = () => {
+      if ((clipOn) && hasAreas) ensureMembership();
+      const src = map.getSource("trails");
+      if (src) src.setData(buildData());
+    };
+
+    // "Only trails in an area": ensure membership + stamp _inarea, then refresh
+    // (keeping any active clip). The layer filter itself is set by the handler.
+    computeInArea = () => { ensureMembership(); setInarea(); refresh(); };
+    // "Clip to park boundaries": flip clip state and rebuild geometry.
+    applyClip = (on) => { if (on !== undefined) clipOn = on; refresh(); };
   }
   if (trails) {
     // generateId gives each trail feature an id so a click can flip its

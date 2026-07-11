@@ -578,6 +578,66 @@ class Classification(unittest.TestCase):
                   "Red Roof Inn Row", "Public Easement", "Miller Peak Trail"):
             self.assertFalse(m.is_utility_corridor_name(n), n)
 
+    def _trail(self, name, tags=None, source="name-stitch"):
+        return m.Trail(name, source, [1], [[(0.0, 0.0), (0.1, 0.0)]], tags or {}, [])
+
+    def test_access_gate(self):
+        # access=private/no (or foot=no/private) is a hard public-access gate.
+        for tags in ({"access": "private"}, {"access": "no"},
+                     {"foot": "no"}, {"foot": "private"}):
+            self.assertTrue(m.is_access_blocked(tags), tags)
+            self.assertEqual(m.removal_category(self._trail("X Trail", tags)), "access")
+        # foot permission WINS over access=* — a gated road open to walkers stays.
+        for tags in ({"access": "no", "foot": "yes"},
+                     {"access": "private", "foot": "designated"},
+                     {"access": "permit"}, {"access": "customers"}, {}):
+            self.assertFalse(m.is_access_blocked(tags), tags)
+            self.assertIsNone(m.removal_category(self._trail("X Trail", tags)), tags)
+
+    def test_nontrail_feature_names(self):
+        # HARD (never a trail, even with a 'Loop'/'Connector' in the name):
+        for n in ("Tusyan Sidewalk", "Maswik Sidewalk", "Village Loop Drive Sidewalk",
+                  "Runway Lighting", "Runway Lighting Connector",
+                  # SOFT (unguarded here) — bare lift/parking:
+                  "Bottom Lift 7", "Top Lift 10", "Lift 8 Tower",
+                  "Opal Parking", "Backcountry Parking - Trailhead Access"):
+            self.assertTrue(m.is_nontrail_feature_name(n), n)
+            self.assertEqual(m.removal_category(self._trail(n)), "non-trail-feature")
+        # SOFT tokens spared by a trail word, plus ambiguous lift/tram names — kept
+        for n in ("Parking Lot Trail", "Overflow Parking Trail", "Lift Line Trail",
+                  "Tramway Trail", "Chairlift Loop", "Ski Lift Path", "Lift Line"):
+            self.assertFalse(m.is_nontrail_feature_name(n), n)
+
+    def test_curation_guards_must_survive(self):
+        # Real trails that share a word/tag with a filter and MUST be kept — the
+        # regression net that lets us tune aggressively without eating trails.
+        for n in ("Powerline Trail", "Pipeline Trail", "Aqueduct Trail",
+                  "Grand Ditch Trail", "Flume Trail", "Park Avenue Trail",
+                  "Eagle Lake Carriage Road", "Around-Mountain Carriage Road",
+                  "Parking Lot Trail", "Quemazon/Pipeline Loop",
+                  "Weston Aqueduct Walking Trail", "Leif Erikson Drive"):
+            self.assertIsNone(m.removal_category(self._trail(n)), n)
+        # a gated road explicitly open to hikers survives despite access=no
+        self.assertIsNone(
+            m.removal_category(self._trail("Dosewallips River Road",
+                                           {"access": "no", "foot": "yes"})))
+
+    def test_known_junk_drops_with_expected_category(self):
+        cases = {
+            "Basalt Jeep Trail": "motorized",
+            "FR 231": "road-code",
+            "Powerline": "utility",
+            "Tusyan Sidewalk": "non-trail-feature",
+            "Lift 8 Tower": "non-trail-feature",
+            "CLOSED - Old Pyramid Trail": "closed",
+        }
+        for name, cat in cases.items():
+            self.assertEqual(m.removal_category(self._trail(name)), cat, name)
+        self.assertEqual(m.removal_category(self._trail("Long Trail"), region="vt"),
+                         "thru-hike")
+        self.assertEqual(
+            m.removal_category(self._trail("X Trail", {"access": "private"})), "access")
+
     def test_removal_reason_names_the_rule_that_fired(self):
         # QA viewer relies on removal_reason mirroring curation's predicate
         # order; each removed trail must carry a non-empty plain-language reason.

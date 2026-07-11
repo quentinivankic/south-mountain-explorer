@@ -542,6 +542,11 @@ def _removal_verdict(trail: "Trail", min_length_mi: float = 0.0,
         return ("closed",
                 "Marked closed in OSM — the name itself says CLOSED "
                 "(e.g. 'CLOSED - old Pyramid Trail').")
+    if is_access_blocked(trail.tags):
+        return ("access",
+                "Not open to the public — OSM marks this way access=private / "
+                "access=no (or foot=no) with no foot permission, so it isn't a "
+                "trail the public can legally complete.")
     if is_thru_hike_name(name, region):
         return ("thru-hike",
                 "Long-distance thru-hike, not a single completable trail — a "
@@ -570,6 +575,12 @@ def _removal_verdict(trail: "Trail", min_length_mi: float = 0.0,
                 "pipeline / gas-line / aqueduct right-of-way (e.g. 'Power "
                 "Line', 'Pipeline Clearing'). A named path along one "
                 "('Powerline Trail') is kept.")
+    if is_nontrail_feature_name(name):
+        return ("non-trail-feature",
+                "Named non-trail feature, not a foot trail — a sidewalk, "
+                "airport runway, ski-lift line, or bare parking area (e.g. "
+                "'Tusyan Sidewalk', 'Lift 8 Tower', 'Opal Parking'). A path "
+                "that merely touches one ('Parking Lot Trail') is kept.")
     if is_grid_address_name(name):
         return ("grid-address",
                 "Section-line grid road, not a trail — a rural PLSS grid "
@@ -1240,6 +1251,53 @@ def is_utility_corridor_name(name: str | None) -> bool:
     if not name or not _UTILITY_CORRIDOR.search(name):
         return False
     return not _TRAIL_WORD.search(name)
+
+
+# Named non-trail features mapped as a path but not hikeable. Two tiers:
+#   HARD — a sidewalk / airport runway / taxiway is NEVER a foot trail, whatever
+#     else is in the name ('Village Loop Drive Sidewalk' has 'Loop' but is still
+#     a sidewalk).
+#   SOFT — a ski-lift line ('Lift 8 Tower') or a bare parking area ('Opal
+#     Parking') is usually not a trail, BUT a real path can share the word
+#     ('Parking Lot Trail', 'Lift Line Trail'), so spare it via _TRAIL_WORD.
+# Deliberately excludes 'tramway/gondola' (a hike can be named for the tram it
+# parallels — Sandia's 'Tramway Trail') and any '…Lift' without a number
+# ('Lift Line' is a common ski-area HIKING trail).
+_NONTRAIL_HARD = re.compile(r"\b(sidewalk|runway|taxiway)\b", re.IGNORECASE)
+_NONTRAIL_SOFT = re.compile(r"\b(chairlift|lift\s+\d+|parking)\b", re.IGNORECASE)
+
+
+def is_nontrail_feature_name(name: str | None) -> bool:
+    """A named non-trail feature — sidewalk / runway / ski-lift line / bare
+    parking area — mapped as a path but not hikeable. See _NONTRAIL_HARD /
+    _NONTRAIL_SOFT."""
+    if not name:
+        return False
+    if _NONTRAIL_HARD.search(name):
+        return True
+    if _NONTRAIL_SOFT.search(name):
+        return not _TRAIL_WORD.search(name)
+    return False
+
+
+# Public-access gate. OSM `access=private` / `access=no` marks a way the public
+# can't legally use — a first-class filter distinct from whether the trail
+# exists (AllTrails treats access the same way). foot=* WINS over access=*: a
+# gated road (access=no) that is explicitly foot=yes/designated is a legitimate
+# hike (a washed-out forest road open to walkers), so it stays.
+_FOOT_ALLOWED = {"yes", "designated", "permissive", "official",
+                 "customers", "destination", "permit"}
+
+
+def is_access_blocked(tags: dict) -> bool:
+    """True if OSM marks this way closed to the public on foot — foot=no/private,
+    or access=private/no with no overriding foot permission."""
+    foot = str(tags.get("foot", "")).strip().lower()
+    if foot in {"no", "private"}:
+        return True
+    if foot in _FOOT_ALLOWED:
+        return False                      # explicit foot permission overrides access
+    return str(tags.get("access", "")).strip().lower() in {"private", "no"}
 
 
 def _is_motorized(tags: dict) -> bool:

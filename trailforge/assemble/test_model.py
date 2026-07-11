@@ -421,6 +421,16 @@ class Classification(unittest.TestCase):
         # bike-park flow runs + ski pistes (CO resort audit, real tags) => drop
         self.assertFalse(m._is_trailish({"highway": "path", "foot": "no"}))
         self.assertFalse(m._is_trailish({"highway": "path", "mtb:type": "flow"}))
+        # bike-park flow trail = IMBA-rated AND (one-way OR bike-park name).
+        # One-way rated path (Holy Diver, Milky Way, Dual Slalom Flow) => drop.
+        self.assertFalse(m._is_trailish({"highway": "path", "bicycle": "designated",
+                                         "mtb:scale:imba": "3", "oneway": "yes"}))
+        # IMBA-rated with a bike-park name (Banzai Downhill, Slalom, Dome Flow,
+        # Funner DH) => drop even without oneway.
+        for nm in ("Banzai Downhill", "Slalom Trail", "Dome Flow Trail",
+                   "Father of Ginormous Jump Line", "Funner DH"):
+            self.assertFalse(m._is_trailish({"highway": "path", "bicycle": "yes",
+                                             "mtb:scale:imba": "3", "name": nm}), nm)
         # ski pistes: nordic or downhill => drop
         self.assertFalse(m._is_trailish({"highway": "path", "piste:type": "downhill"}))
         self.assertFalse(m._is_trailish({"highway": "path", "piste:type": "nordic"}))
@@ -437,6 +447,16 @@ class Classification(unittest.TestCase):
         # whole network; a real bike-park run is caught by foot=no / mtb:type.
         self.assertTrue(m._is_trailish({"highway": "path", "foot": "yes",
                                         "bicycle": "yes", "mtb:scale:imba": "4"}))
+        # KEPT: the bike-park signals are GATED on imba — a one-way path or a
+        # 'Downhill'/'Flow'-named trail WITHOUT imba is a normal trail and stays
+        # (so a lava 'Obsidian Flow' hike or a rare one-way footpath is safe).
+        self.assertTrue(m._is_trailish({"highway": "path", "oneway": "yes"}))
+        self.assertTrue(m._is_trailish({"highway": "path", "name": "Big Obsidian Flow Trail"}))
+        self.assertTrue(m._is_trailish({"highway": "path", "name": "Downhill Connector"}))
+        # KEPT: Rainbow Trail — imba-rated, two-way, normally named.
+        self.assertTrue(m._is_trailish({"highway": "path", "foot": "yes",
+                                        "bicycle": "designated", "mtb:scale:imba": "4",
+                                        "name": "Rainbow Trail"}))
         # KEPT: a nordic piste explicitly mapped as dual-use (nordic;hike)
         self.assertTrue(m._is_trailish({"highway": "path", "piste:type": "nordic;hike"}))
         # foot-only path (no motor tag) stays trailish at the WAY level; the

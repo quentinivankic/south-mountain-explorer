@@ -200,6 +200,11 @@ struct ContentView: View {
         }
         // Notification-tap deep-link. Set the celebration name first so
         // AreaView reads it on its first .task, then trigger the cover.
+        // Out-of-region "look around" — the WaitlistCard jumps the user
+        // into the served parks list (Browse) so the app isn't empty for them.
+        .onReceive(NotificationCenter.default.publisher(for: .showBrowseTab)) { _ in
+            selectedTab = .browse
+        }
         .onReceive(NotificationCenter.default.publisher(for: NotificationService.celebrateNotification)) { msg in
             guard
                 let info = msg.userInfo,

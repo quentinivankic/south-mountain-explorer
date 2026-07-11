@@ -135,10 +135,14 @@ extension AnalyticsEvent {
     /// carries user-authored contact info (the email IS the point — it's
     /// how the user gets notified when their region launches). `country`
     /// is the device region code, the key you filter/export on later.
-    static func waitlistJoined(country: String, email: String) -> AnalyticsEvent {
+    /// `beta_interest` flags users who volunteered to help test their
+    /// region early — filter on it to build a per-country tester list.
+    static func waitlistJoined(country: String, email: String,
+                               wantsBeta: Bool = false) -> AnalyticsEvent {
         AnalyticsEvent("waitlist_joined", [
             "country": country,
             "email": email,
+            "beta_interest": wantsBeta ? "true" : "false",
         ])
     }
 

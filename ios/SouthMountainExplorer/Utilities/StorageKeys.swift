@@ -21,6 +21,8 @@ enum StorageKeys {
     /// `MapStylePreference` enum (`standard` / `satellite` / `hybrid`).
     /// Default `standard` — same as the prior hardcoded `mv.mapType`.
     static let mapStyle = "summit:map-style"
+    /// Show the faint Tonto trail-mesh backdrop behind the main tabs. Default on.
+    static let trailMesh = "summit:trail-mesh"
 
     /// Distance + elevation unit preference. Raw value matches
     /// `UnitsPreference` (`imperial` / `metric`). Default `imperial`

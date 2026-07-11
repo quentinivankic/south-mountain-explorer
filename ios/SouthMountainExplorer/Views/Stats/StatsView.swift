@@ -31,6 +31,7 @@ struct StatsView: View {
                     statsList
                 }
             }
+            .trailMeshBackground()
             .navigationTitle("Stats")
             .task { await loadHikes() }
             .refreshable { await loadHikes() }

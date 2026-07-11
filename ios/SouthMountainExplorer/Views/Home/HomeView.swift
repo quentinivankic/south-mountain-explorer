@@ -127,6 +127,7 @@ struct HomeView: View {
                     location.startLiveTracking()
                 }
             }
+            .trailMeshBackground()
             .navigationTitle("Explore")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

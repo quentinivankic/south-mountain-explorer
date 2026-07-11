@@ -52,6 +52,7 @@ struct SettingsView: View {
     @Environment(RecordingService.self) private var recording
 
     @AppStorage(StorageKeys.theme) private var theme: AppTheme = .system
+    @AppStorage(StorageKeys.trailMesh) private var trailMesh = true
     @AppStorage(StorageKeys.debugHUD) private var showDebugHUD: Bool = false
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
@@ -189,6 +190,13 @@ struct SettingsView: View {
                         )
                         AnalyticsService.shared.capture(.themeChanged(value: newValue.rawValue))
                     }
+                    Toggle("Trail backdrop", isOn: $trailMesh)
+                        .onChange(of: trailMesh) { _, newValue in
+                            ActivityLogService.shared.log(
+                                category: "settings", action: "trailMesh",
+                                context: ["value": String(newValue)]
+                            )
+                        }
                 }
 
                 Section("Display") {
@@ -457,6 +465,7 @@ struct SettingsView: View {
                     }
                 }
             }
+            .trailMeshBackground()
             .navigationTitle("Settings")
         }
         .sheet(isPresented: $showSignIn) {

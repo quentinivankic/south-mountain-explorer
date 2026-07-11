@@ -230,7 +230,8 @@ struct TrailListView: View {
                                 trail: trail,
                                 areaId: area.id,
                                 selectedTrailId: $selectedTrailId,
-                                onOpenDetail: { detailTrail = $0 }
+                                onOpenDetail: { detailTrail = $0 },
+                                onRecordTrail: onRecordTrail
                             )
                             // Tag each row with the trail id so
                             // ScrollViewReader can target it via
@@ -346,11 +347,12 @@ struct TrailRow: View {
     let trail: Trail
     let areaId: String
     @Binding var selectedTrailId: String?
-    /// Called when the row is tapped. Caller presents the
-    /// TrailDetailSheet for the supplied trail. The row also
-    /// updates `selectedTrailId` so the map polyline highlights
-    /// in parallel — sheet + highlight are one gesture.
+    /// Called on LONG-PRESS to open the TrailDetailSheet (full stats +
+    /// Export GPX). A plain tap no longer opens it — tap just highlights.
     var onOpenDetail: ((Trail) -> Void)? = nil
+    /// Called when the trailing "Record" button (shown only while this row is
+    /// selected) is tapped — starts recording this trail.
+    var onRecordTrail: ((Trail) -> Void)? = nil
 
     @Environment(ProgressService.self) private var progress
     @Environment(CoverageService.self) private var coverage
@@ -406,16 +408,34 @@ struct TrailRow: View {
 
             Spacer()
 
+            // Trailing control. Normally the completion checkmark (tap to
+            // mark done). The moment this row is SELECTED it becomes a Record
+            // button — tap a trail in the list, then hit Record right there,
+            // no popup. Re-tapping the row deselects and the checkmark returns.
             Button {
-                Task { await progress.toggleTrail(areaId: areaId, trailId: trail.id) }
+                if isSelected {
+                    onRecordTrail?(trail)
+                } else {
+                    Task { await progress.toggleTrail(areaId: areaId, trailId: trail.id) }
+                }
             } label: {
-                // Outlined checkmark hints the action; fills in cyan when complete.
-                // Wrap both branches in AnyShapeStyle so the ternary has a single
-                // type — .cyan is a Color, .tertiary is a HierarchicalShapeStyle,
-                // and Swift can't unify them otherwise.
-                Image(systemName: isComplete ? "checkmark.circle.fill" : "checkmark.circle")
-                    .font(.title3)
-                    .foregroundStyle(isComplete ? AnyShapeStyle(Color.cyan) : AnyShapeStyle(.tertiary))
+                if isSelected {
+                    Label(isRecordingThis ? "Recording" : "Record",
+                          systemImage: "record.circle")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(isRecordingThis ? Color.red : Color.accentColor))
+                } else {
+                    // Outlined checkmark hints the action; fills in cyan when complete.
+                    // Wrap both branches in AnyShapeStyle so the ternary has a single
+                    // type — .cyan is a Color, .tertiary is a HierarchicalShapeStyle,
+                    // and Swift can't unify them otherwise.
+                    Image(systemName: isComplete ? "checkmark.circle.fill" : "checkmark.circle")
+                        .font(.title3)
+                        .foregroundStyle(isComplete ? AnyShapeStyle(Color.cyan) : AnyShapeStyle(.tertiary))
+                }
             }
             .buttonStyle(.plain)
         }
@@ -424,16 +444,20 @@ struct TrailRow: View {
         .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
         .contentShape(Rectangle())
         .onTapGesture {
-            // Tap highlights the polyline on the map AND opens the
-            // detail half-sheet. The sheet sits at .medium detent so
-            // the highlight is visible underneath — both surface the
-            // same trail at once. Re-tapping the same row leaves
-            // selection in place and re-opens the sheet (cheap).
+            // Tap only highlights the polyline on the map (no popup) — so you
+            // can click around trails freely. It also toggles selection, which
+            // swaps this row's trailing control to a Record button; tapping the
+            // same row again deselects and restores the checkmark.
             ActivityLogService.shared.log(
                 category: "trail",
                 action: "tap",
                 context: ["areaId": areaId, "trailId": trail.id]
             )
+            selectedTrailId = (selectedTrailId == trail.id) ? nil : trail.id
+        }
+        .onLongPressGesture {
+            // Long-press is the way to the full detail sheet (stats + Export
+            // GPX) now that tap no longer opens it.
             selectedTrailId = trail.id
             onOpenDetail?(trail)
         }

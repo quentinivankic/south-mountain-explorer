@@ -480,6 +480,7 @@ class Trail:
         self.hike = False               # tier-1 promoted canonical hike (SPEC §6c)
         self.area: str | None = None    # park area assigned for per-area merge (§6b)
         self.removed_reason: str | None = None  # QA: why curation dropped it (§5)
+        self.removed_category: str | None = None  # QA: short slug of that rule
 
     def weld_spur(self, wid, coords, poi):
         self.member_ways.append(wid)
@@ -509,6 +510,10 @@ class Trail:
                 "sac_scale": self.tags.get("sac_scale", ""),
                 "trail_visibility": self.tags.get("trail_visibility", ""),
                 "removed_reason": self.removed_reason,
+                "removed_category": self.removed_category,
+                # Stable per-trail key for run-to-run diff review (member OSM
+                # ways don't change when only a curation rule is re-tuned).
+                "ckey": "w" + "-".join(str(w) for w in sorted(self.member_ways)),
             },
             "geometry": {"type": "MultiLineString",
                          "coordinates": [[list(p) for p in line] for line in self.lines]},
@@ -524,53 +529,79 @@ def _terminal_nodes(chains: list[list[int]], ways: dict) -> list[int]:
     return ends
 
 
-def removal_reason(trail: "Trail", min_length_mi: float = 0.0,
-                   region: str | None = None) -> str | None:
-    """Plain-language reason curation would drop this trail, or None if it's
-    kept. The checks and their ORDER mirror the curation predicate in
-    assemble() exactly — first match wins, so the reason names the actual
-    rule that fired. Used to surface removals in the QA viewer. `region` (a
-    2-letter state code) enables region-scoped thru-hike names like Vermont's
-    'Long Trail' — see is_thru_hike_name."""
+def _removal_verdict(trail: "Trail", min_length_mi: float = 0.0,
+                     region: str | None = None) -> tuple[str | None, str | None]:
+    """(category-slug, plain-language reason) curation would drop this trail on,
+    or (None, None) if it's kept. The checks and their ORDER mirror the curation
+    predicate in assemble() exactly — first match wins. Returning BOTH from one
+    place keeps the short slug (for the viewer's per-reason review buckets) and
+    the sentence (for the popup) from ever drifting. `region` (a 2-letter state
+    code) enables region-scoped thru-hike names like Vermont's 'Long Trail'."""
     name = trail.name
     if is_closed_name(name):
-        return ("Marked closed in OSM — the name itself says CLOSED "
+        return ("closed",
+                "Marked closed in OSM — the name itself says CLOSED "
                 "(e.g. 'CLOSED - old Pyramid Trail').")
     if is_thru_hike_name(name, region):
-        return ("Long-distance thru-hike, not a single completable trail — a "
+        return ("thru-hike",
+                "Long-distance thru-hike, not a single completable trail — a "
                 "named national/regional route (PCT, CDT, Colorado Trail, "
                 "Hayduke, Arizona Trail, …) or one of its numbered segments.")
     if is_road_code_name(name):
-        return ("Bare road/ref code, not a trail name — nothing but an agency "
+        return ("road-code",
+                "Bare road/ref code, not a trail name — nothing but an agency "
                 "or OSM reference number (e.g. 'FR 231', 'CR 12', '9A').")
     if name is not None and len(name.strip()) <= 2:
-        return ("No real name — a 1–2 character stub or agency abbreviation "
+        return ("short-name",
+                "No real name — a 1–2 character stub or agency abbreviation "
                 "('FR', 'FS', 'BR', '?'), not a trail name.")
     if is_offtrail_name(name):
-        return ("Agency road or non-trail feature, not a foot trail — a Forest "
+        return ("off-trail",
+                "Agency road or non-trail feature, not a foot trail — a Forest "
                 "Service / National Forest / FSR / NF / IDL / BIA road, or a "
                 "freeway ramp, airport concourse, or parking lot.")
     if is_motorized_name(name):
-        return ("Motorized route, not a foot trail — the name marks it "
+        return ("motorized",
+                "Motorized route, not a foot trail — the name marks it "
                 "ATV / OHV / UTV / 4WD / snowmobile / Jeep.")
     if is_utility_corridor_name(name):
-        return ("Utility corridor, not a foot trail — a bare powerline / "
+        return ("utility",
+                "Utility corridor, not a foot trail — a bare powerline / "
                 "pipeline / gas-line / aqueduct right-of-way (e.g. 'Power "
                 "Line', 'Pipeline Clearing'). A named path along one "
                 "('Powerline Trail') is kept.")
     if is_grid_address_name(name):
-        return ("Section-line grid road, not a trail — a rural PLSS grid "
+        return ("grid-address",
+                "Section-line grid road, not a trail — a rural PLSS grid "
                 "address like 'North 3325 West', part of the farm-road "
                 "lattice, never a hiking trail.")
     if is_generic_name(name) and trail.source != "relation":
-        return ("Generic name with no identity ('Trail', 'Connector', 'Path', "
+        return ("generic",
+                "Generic name with no identity ('Trail', 'Connector', 'Path', "
                 "'Loop') and not backed by an OSM route relation — usually a "
                 "fragment that would blob into unrelated trails.")
     if min_length_mi > 0 and trail.length_mi < min_length_mi:
-        return (f"Too short — {trail.length_mi} mi is below the "
+        return ("min-length",
+                f"Too short — {trail.length_mi} mi is below the "
                 f"{min_length_mi} mi minimum (likely a connector stub, not a "
                 f"hike on its own).")
-    return None
+    return (None, None)
+
+
+def removal_reason(trail: "Trail", min_length_mi: float = 0.0,
+                   region: str | None = None) -> str | None:
+    """Plain-language reason curation would drop this trail, or None if kept.
+    Used to surface removals in the QA viewer popup. See _removal_verdict."""
+    return _removal_verdict(trail, min_length_mi, region)[1]
+
+
+def removal_category(trail: "Trail", min_length_mi: float = 0.0,
+                     region: str | None = None) -> str | None:
+    """Short category slug for the rule that would drop this trail (e.g.
+    'motorized', 'road-code', 'thru-hike'), or None if kept. Drives the viewer's
+    per-reason review buckets so a whole class is judged at once. See
+    _removal_verdict."""
+    return _removal_verdict(trail, min_length_mi, region)[0]
 
 
 def assemble(nodes: dict, ways: dict, relations: dict,
@@ -636,6 +667,7 @@ def assemble(nodes: dict, ways: dict, relations: dict,
             if collect_removed is not None:
                 t.removed_reason = ("part of a long-distance thru-hike route "
                                     "(super-relation) — dropped from the checklist")
+                t.removed_category = "thru-hike"
                 collect_removed.append(t)
             continue
         trails.append(t)
@@ -677,11 +709,12 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     #    spares its object. min_length_mi<=0 keeps everything.
     kept = []
     for t in merged:
-        reason = removal_reason(t, min_length_mi, region)
+        category, reason = _removal_verdict(t, min_length_mi, region)
         if reason is None:
             kept.append(t)
         elif collect_removed is not None:
             t.removed_reason = reason
+            t.removed_category = category
             collect_removed.append(t)
 
     # 6. tier-1 canonical hikes: promote local routes that reach a named

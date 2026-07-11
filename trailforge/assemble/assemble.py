@@ -157,6 +157,57 @@ def main(argv=None) -> int:
                   "features": [t.to_feature() for t in removed]}
     removed_path.write_text(json.dumps(removed_fc), encoding="utf-8")
 
+    # Sidecar 1b: curation snapshot + run-to-run DIFF. Maps each trail's stable
+    # `ckey` (its sorted member OSM ways — unchanged when only a rule is tuned)
+    # to its verdict this run ('kept' or the removal category). If a prior
+    # snapshot sits beside it (an earlier assemble of this AOI in this session),
+    # emit a diff so the viewer can show ONLY what moved — newly removed, newly
+    # kept, or shifted between removal reasons — instead of re-reviewing the
+    # whole area. (data/ is scratch: between sessions the first run has no
+    # baseline and is a full review, which is correct.)
+    snap_path = base.with_name(base.name + ".curation.json")
+    diff_path = base.with_name(base.name + ".curation-diff.json")
+    new_snap = {}
+    for f in features:
+        k = f["properties"].get("ckey")
+        if k:
+            new_snap[k] = "kept"
+    for f in removed_fc["features"]:
+        k = f["properties"].get("ckey")
+        if k:
+            new_snap[k] = f["properties"].get("removed_category") or "removed"
+    has_baseline = snap_path.exists()
+    diff = {"has_baseline": has_baseline, "new_removed": [], "new_kept": [],
+            "reason_changed": []}
+    if has_baseline:
+        try:
+            old_snap = json.loads(snap_path.read_text())
+        except Exception:
+            old_snap = {}
+        name_by_key = {f["properties"].get("ckey"): f["properties"].get("name")
+                       for f in features + removed_fc["features"]}
+        for k, cat in new_snap.items():
+            old = old_snap.get(k)
+            if old is None or old == cat:
+                continue                       # brand-new way, or unchanged
+            entry = {"ckey": k, "name": name_by_key.get(k)}
+            if old == "kept":
+                diff["new_removed"].append({**entry, "category": cat})
+            elif cat == "kept":
+                diff["new_kept"].append({**entry, "was": old})
+            else:
+                diff["reason_changed"].append({**entry, "from": old, "to": cat})
+    diff_path.write_text(json.dumps(diff), encoding="utf-8")
+    snap_path.write_text(json.dumps(new_snap), encoding="utf-8")
+    if has_baseline:
+        print(f"curation diff vs last run: {len(diff['new_removed'])} newly removed, "
+              f"{len(diff['new_kept'])} newly kept, "
+              f"{len(diff['reason_changed'])} reason-changed -> {diff_path}",
+              file=sys.stderr)
+    else:
+        print(f"curation snapshot written (no baseline — full review) -> {snap_path}",
+              file=sys.stderr)
+
     # Sidecar 2: the park-area polygons the merge/clip scope to. The viewer
     # draws them (green fills) AND its "Only trails in an area" + clip toggles
     # test trail vertices against them — WITHOUT this file every trail reads as

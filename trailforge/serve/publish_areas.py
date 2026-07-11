@@ -460,7 +460,8 @@ def main(argv=None) -> int:
                 base = base[:-len(suf)]; break
         drop_path = base + ".dropped-routes.geojson"
         feats = [{"type": "Feature", "geometry": f["geometry"],
-                  "properties": {**f["properties"], "removed_reason": reason}}
+                  "properties": {**f["properties"], "removed_reason": reason,
+                                 "removed_category": "route-traverse"}}
                  for nm, mi, reason, f in dropped_routes]
         json.dump({"type": "FeatureCollection", "features": feats}, open(drop_path, "w"))
         print(f"\ndropped-routes geojson -> {drop_path} ({len(feats)} features)")

@@ -43,6 +43,9 @@
     <span class="swatch" style="background:#8b3fd6"></span>Routes (thru / composite)</label>
   <label><input type="checkbox" id="toggle-removed" />
     <span class="swatch" style="background:#b3261e"></span>Removed (filtered out) <span id="removed-count" class="mi"></span></label>
+  <div id="removed-cats" style="margin:0 0 2px 18px; font-size:12px;"></div>
+  <label><input type="checkbox" id="toggle-diff" />
+    <span class="swatch" style="background:#ffd400"></span>Changed since last run <span id="diff-count" class="mi"></span></label>
   <label><input type="checkbox" id="toggle-inarea" />
     <span class="swatch" style="background:#e6521f;opacity:.35"></span>Only trails in an area</label>
   <label><input type="checkbox" id="toggle-clip" />
@@ -418,12 +421,66 @@ map.on("load", async () => {
   if (removedFeatures.length) {
     const removedData = { type: "FeatureCollection", features: removedFeatures };
     map.addSource("removed", { type: "geojson", data: removedData, generateId: true });
+
+    // A distinct colour per curation reason so a whole CLASS reads at a glance
+    // — you judge "motorized (412): trust" once instead of eyeballing each line.
+    const CAT_COLORS = {
+      "thru-hike": "#8b3fd6", "route-traverse": "#5e35b1", "motorized": "#d81b60",
+      "utility": "#00897b", "road-code": "#6d4c41", "off-trail": "#546e7a",
+      "grid-address": "#8d6e63", "generic": "#f9a825", "short-name": "#9e9e9e",
+      "min-length": "#c0ca33", "closed": "#e53935",
+    };
+    const catColor = (c) => CAT_COLORS[c] || "#b3261e";
+    const colorExpr = ["match", ["get", "removed_category"]];
+    for (const [k, v] of Object.entries(CAT_COLORS)) colorExpr.push(k, v);
+    colorExpr.push("#b3261e");                      // fallback for any unknown slug
+
     map.addLayer({ id: "removed-lines", source: "removed", type: "line",
       layout: { "line-cap": "round", "line-join": "round", visibility: "none" },
-      paint: { "line-color": "#b3261e", "line-width": 2, "line-opacity": 0.9,
+      paint: { "line-color": colorExpr, "line-width": 2, "line-opacity": 0.9,
                "line-dasharray": [1.5, 1.5] } });
+
+    // Review-band state: which reason buckets are shown, and (diff mode) whether
+    // to scope the layer to only what changed since the last assemble.
+    const counts = {};
+    for (const f of removedFeatures) {
+      const c = (f.properties && f.properties.removed_category) || "removed";
+      counts[c] = (counts[c] || 0) + 1;
+    }
+    const enabledCats = new Set(Object.keys(counts));   // all reasons on by default
+    let diffOn = false;
+    const diffRemovedKeys = new Set();
+    const applyRemovedFilter = () => {
+      if (!map.getLayer("removed-lines")) return;
+      map.setFilter("removed-lines", diffOn
+        ? ["in", ["get", "ckey"], ["literal", [...diffRemovedKeys]]]
+        : ["in", ["get", "removed_category"], ["literal", [...enabledCats]]]);
+    };
+
     const rc = document.getElementById("removed-count");
     if (rc) rc.textContent = `(${removedFeatures.length})`;
+
+    // One checkbox per reason bucket — the review unit.
+    const catBox = document.getElementById("removed-cats");
+    if (catBox) {
+      for (const c of Object.keys(counts).sort((a, b) => counts[b] - counts[a])) {
+        const lab = document.createElement("label");
+        lab.innerHTML = `<input type="checkbox" checked />` +
+          `<span class="swatch" style="background:${catColor(c)}"></span>` +
+          `${c} <span class="mi">(${counts[c]})</span>`;
+        catBox.appendChild(lab);
+        lab.querySelector("input").onchange = (e) => {
+          if (e.target.checked) enabledCats.add(c); else enabledCats.delete(c);
+          applyRemovedFilter();
+        };
+      }
+    }
+    // Parent toggle shows/hides the whole removed layer.
+    const parentBox = document.getElementById("toggle-removed");
+    if (parentBox) parentBox.onchange = (e) =>
+      map.setLayoutProperty("removed-lines", "visibility",
+        e.target.checked ? "visible" : "none");
+
     map.on("mouseenter", "removed-lines", () => map.getCanvas().style.cursor = "pointer");
     map.on("mouseleave", "removed-lines", () => map.getCanvas().style.cursor = "");
     map.on("click", "removed-lines", (e) => {
@@ -437,11 +494,45 @@ map.on("load", async () => {
       new maplibregl.Popup({ maxWidth: "300px" }).setLngLat(e.lngLat)
         .setHTML(
           `<b>${p.name || "(unnamed)"}</b>` +
-          `<div style="color:#b3261e;font-weight:600;margin:4px 0">✕ Removed</div>` +
+          `<div style="color:${catColor(p.removed_category)};font-weight:600;margin:4px 0">` +
+          `✕ Removed · ${p.removed_category || "?"}</div>` +
           `<div style="margin-bottom:4px">${reason}</div>` +
           `<div style="color:#888;font-size:11px">${bits.join(" · ")}</div>`)
         .addTo(map);
     });
+
+    // --- Diff: only what CHANGED since the last assemble of this AOI. On a
+    // re-run (tweak a rule, re-assemble) you review the handful of deltas, not
+    // the whole area again. Newly-removed scope the removed layer; newly-KEPT
+    // get a bright highlight on the trails layer.
+    const diff = AOI === "golden" ? null
+               : await maybeJSON(`../data/aoi/${AOI}.curation-diff.json`);
+    const diffKeptKeys = new Set();
+    if (diff && diff.has_baseline) {
+      for (const e of diff.new_removed || []) diffRemovedKeys.add(e.ckey);
+      for (const e of diff.reason_changed || []) diffRemovedKeys.add(e.ckey);
+      for (const e of diff.new_kept || []) diffKeptKeys.add(e.ckey);
+    }
+    const dc = document.getElementById("diff-count");
+    if (dc) dc.textContent = (diff && diff.has_baseline)
+      ? `(${diffRemovedKeys.size + diffKeptKeys.size})` : "(no baseline)";
+    if (map.getSource("trails")) {
+      map.addLayer({ id: "diff-kept", source: "trails", type: "line",
+        layout: { "line-cap": "round", "line-join": "round", visibility: "none" },
+        filter: ["in", ["get", "ckey"], ["literal", [...diffKeptKeys]]],
+        paint: { "line-color": "#ffd400", "line-width": 5, "line-opacity": 0.95 } });
+    }
+    const diffBox = document.getElementById("toggle-diff");
+    if (diffBox) diffBox.onchange = (e) => {
+      diffOn = e.target.checked;
+      if (diffOn && parentBox) {                     // reveal changed removals
+        parentBox.checked = true;
+        map.setLayoutProperty("removed-lines", "visibility", "visible");
+      }
+      applyRemovedFilter();
+      if (map.getLayer("diff-kept"))
+        map.setLayoutProperty("diff-kept", "visibility", diffOn ? "visible" : "none");
+    };
   }
 
   // Layer 3: golden destinations, colored PASS/FAIL when results exist.
@@ -503,7 +594,8 @@ map.on("load", async () => {
   wire("toggle-hikes", ["hike-lines"]);
   wire("toggle-trails", ["trail-lines"]);
   wire("toggle-routes", ["route-lines"]);
-  wire("toggle-removed", ["removed-lines"]);
+  // toggle-removed + toggle-diff are wired inside the removed block (they drive
+  // per-category filters, not just visibility).
   wire("toggle-golden", ["golden-pts"]);
 });
 </script>

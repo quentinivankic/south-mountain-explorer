@@ -287,6 +287,39 @@ Otherwise the UK run VALIDATED "worldwide without per-country code": Ben
 Nevis + Old Man of Storr golden PASS, `nwn`/`rwn` classified as routes
 correctly, Gaelic (Latin-script) names clean, zero promotion misfires.
 
+## 6e. Planned upgrade — real difficulty from elevation gain (global DEM)
+
+**Difficulty today is a length bucket.** `serve/to_app_json.py::difficulty`
+is: `sac_scale` harder than `hiking` → Hard; else `>4mi` → Hard, `>2mi` (or
+`trail_visibility=intermediate`) → Moderate, else Easy. But `sac_scale` /
+`trail_visibility` are European conventions rarely present on US/most trails,
+so in practice difficulty ≈ pure length, with arbitrary 2mi/4mi cutoffs. This
+is the weakest part of the "AllTrails-quality" claim: it ignores **elevation
+gain**, the dominant difficulty factor — a flat 5mi path reads Hard, a 2mi
+climb with 2,000ft gain reads Moderate (backwards).
+
+**Fix — sample a global DEM ourselves.** Elevation is genuinely absent from
+2D OSM ways, so it can't be derived from geometry; but the *data* is free and
+global and the *gain math* is ours (no US-only source, no paid API):
+
+- **Source:** Copernicus DEM **GLO-30** (ESA, 30m, truly global incl. poles,
+  free/attribution) — or **AWS Terrarium terrain tiles** (global pre-merged
+  SRTM+Copernicus+3DEP, PNG RGB-decoded, free on AWS Open Data), which are the
+  easiest to sample. Both license-clean. (Plain SRTM/NASADEM stop ~60°N — use
+  Copernicus to avoid the high-latitude gap.)
+- **Compute:** per trail, densify the line to ~30m spacing, look up elevation
+  at each point, sum positive deltas = gain (+ max grade). Difficulty becomes
+  a real function of gain + length; ship the gain as a per-trail stat too.
+- **Mandatory smoothing:** raw 30m DEM elevation is noisy and naive
+  up-tick summing MASSIVELY inflates gain (4,000ft on a rolling 3mi trail).
+  Smooth the profile (small moving window) before summing — same as
+  AllTrails/Strava. Skip it and the numbers are garbage.
+
+**Pipeline fit:** homelab downloads the DEM tiles covering the region
+(cached), samples during/after assembly. Sandbox can't reach DEM sources —
+homelab work. Logged now; build once coverage is stable (highest-leverage
+quality lever remaining). Not US-only by design.
+
 ## 7. Open questions the homelab loop resolves
 
 1. Actual hiking-subset size + prefilter runtime on planet (validates the

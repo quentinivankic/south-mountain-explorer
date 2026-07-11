@@ -516,7 +516,11 @@ class Classification(unittest.TestCase):
                   "NET/M&M Trail (white)", "NET/Lone Pine Cross Trail",
                   "Cohos Trail", "Wapack Trail", "Wapack Trail/Mid State Trail",
                   "Mid State Trail", "Midstate Trail",
-                  "Monadnock-Sunapee Greenway", "Monadnock Sunapee Trail"):
+                  "Monadnock-Sunapee Greenway", "Monadnock Sunapee Trail",
+                  "Sunapee-Ragged-Kearsarge Greenway",
+                  # Western long-distance trails — full distinctive name only
+                  "Uinta Highline Trail", "Fremont NRT",
+                  "Fremont National Recreation Trail"):
             self.assertTrue(m.is_thru_hike_name(n), n)
         # Vermont's 'Long Trail' is region-scoped — a thru-hike only in New
         # England, so the same bare name stays a local trail in AZ/CO/NM.
@@ -524,6 +528,13 @@ class Classification(unittest.TestCase):
             self.assertTrue(m.is_thru_hike_name(n, "vt"), n)
             self.assertFalse(m.is_thru_hike_name(n), n)        # no region → local
             self.assertFalse(m.is_thru_hike_name(n, "az"), n)  # AZ → local
+        # NM's Pecos 'Skyline Trail' is region-scoped — the same name is a famous
+        # LOCAL trail in WA (Rainier) and MA (Blue Hills), which must survive.
+        for n in ("Skyline Trail (251)", "Skyline Trail"):
+            self.assertTrue(m.is_thru_hike_name(n, "nm"), n)
+            self.assertFalse(m.is_thru_hike_name(n), n)        # no region → local
+            self.assertFalse(m.is_thru_hike_name(n, "wa"), n)  # Rainier → local
+            self.assertFalse(m.is_thru_hike_name(n, "ma"), n)  # Blue Hills → local
         # local trails that merely share a word must NOT match (any region)
         for n in ("Continental Divide Overlook", "Divide Creek Trail",
                   "Colorado River Trail", "Rainbow Trail (FS 1336)",
@@ -533,9 +544,18 @@ class Classification(unittest.TestCase):
                   # bare 'Net' word must not trip the NET abbreviation
                   "Net Zero", "Lazy H Horse Trail Net",
                   # Mt Monadnock's own summit trails are NOT the Greenway
-                  "Monadnock", "White Dot Trail", "White Cross Trail"):
+                  "Monadnock", "White Dot Trail", "White Cross Trail",
+                  # bare 'Highline Trail' is local everywhere (Tonto, Mogollon Rim)
+                  "Highline Trail #31", "Highline Trail", "Sneffels Highline Trail",
+                  # 'Fremont' locals are not the Fremont NRT
+                  "Mount Fremont Lookout Trail", "Fremont River Trail",
+                  # 'Ragged' locals are not the SRK Greenway
+                  "Raggeds Trail 820", "Ragged Creek", "Raggedy Run Trail",
+                  # 'Skyline' locals in NM must survive even IN nm (different names)
+                  "Old Skyline Trail", "Taconic Skyline Trail"):
             self.assertFalse(m.is_thru_hike_name(n), n)
             self.assertFalse(m.is_thru_hike_name(n, "vt"), n)
+            self.assertFalse(m.is_thru_hike_name(n, "nm"), n)
 
     def test_removal_reason_names_the_rule_that_fired(self):
         # QA viewer relies on removal_reason mirroring curation's predicate

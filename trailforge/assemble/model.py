@@ -168,6 +168,12 @@ _THRU_HIKE_RE = re.compile(
     r"|wapack trail"
     r"|mid\s*state trail"
     r"|monadnock[\s-]sunapee"
+    r"|ragged[\s-]kearsarge"        # Sunapee-Ragged-Kearsarge Greenway (NH)
+    # Western long-distance trails — the FULL distinctive name only. Bare
+    # 'Highline Trail' (Tonto #31, Mogollon Rim, Mt Adams #114) and 'Fremont'
+    # (Mount Fremont Lookout, Fremont River) are unrelated local trails.
+    r"|uinta highline trail"
+    r"|fremont (national recreation trail|nrt)"
     r")\b"
     # NET only in its real abbreviated forms ('NET/M&M Trail', 'NET Trail
     # (white)', 'Metacomet Trail (NET)') — never a bare 'Net' word, which would
@@ -177,12 +183,16 @@ _THRU_HIKE_RE = re.compile(
 
 # Ambiguous bare names: also the name of unrelated local trails elsewhere.
 # 'Long Trail' is both Vermont's 272-mi thru-hike AND a 1-mi loop in Bandelier
-# NM, a 'John Long Trail' in AZ, a 'Too Long Trail' in CO — name-only can't tell
-# them apart, so match them only in the region that owns the thru-hike. Anchored
-# at the start so 'John Long Trail' / 'Too Long Trail' never match.
+# NM, a 'John Long Trail' in AZ, a 'Too Long Trail' in CO. 'Skyline Trail' is
+# NM's ~65-mi Pecos Wilderness thru-hike AND famous local trails (Rainier's
+# Paradise loop, Blue Hills MA, Middlesex Fells MA). Name-only can't tell them
+# apart, so match them only in the region that owns the thru-hike. Anchored at
+# the start so 'John Long Trail' / 'Too Long Trail' / 'Old Skyline Trail' never
+# match.
 _NEW_ENGLAND = frozenset({"vt", "nh", "ma", "me", "ct", "ri"})
 _THRU_HIKE_REGIONAL = (
     (_NEW_ENGLAND, re.compile(r"^(old )?long trail\b", re.IGNORECASE)),
+    (frozenset({"nm"}), re.compile(r"^skyline trail\b", re.IGNORECASE)),
 )
 
 

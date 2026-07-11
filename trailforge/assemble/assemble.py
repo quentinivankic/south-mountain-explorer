@@ -142,16 +142,42 @@ def main(argv=None) -> int:
           "coverage": model.coverage_stats(ways, relations, pois)}
     Path(args.out).write_text(json.dumps(fc), encoding="utf-8")
 
-    # Sidecar: the trails curation dropped, each carrying a plain-language
+    # Sidecar base: strip '.trails.geojson' (or '.geojson') down to the stem so
+    # the sidecars land next to the trails output (vermont.trails.geojson ->
+    # vermont.removed.geojson / vermont.areas.geojson).
+    base = Path(args.out).with_suffix("")          # strip .geojson
+    if base.suffix == ".trails":
+        base = base.with_suffix("")
+
+    # Sidecar 1: the trails curation dropped, each carrying a plain-language
     # `removed_reason`, so the QA viewer can show/hide them and explain WHY.
     # Kept separate from the trails output so publish + the app never see them.
-    removed_path = Path(args.out).with_suffix("")  # strip .geojson
-    if removed_path.suffix == ".trails":
-        removed_path = removed_path.with_suffix("")
-    removed_path = removed_path.with_name(removed_path.name + ".removed.geojson")
+    removed_path = base.with_name(base.name + ".removed.geojson")
     removed_fc = {"type": "FeatureCollection",
                   "features": [t.to_feature() for t in removed]}
     removed_path.write_text(json.dumps(removed_fc), encoding="utf-8")
+
+    # Sidecar 2: the park-area polygons the merge/clip scope to. The viewer
+    # draws them (green fills) AND its "Only trails in an area" + clip toggles
+    # test trail vertices against them — WITHOUT this file every trail reads as
+    # "not in an area" and the toggle hides them all. Assembled from the same
+    # AOI PBF (already the source for --only-area / --per-area-merge).
+    areas_path = base.with_name(base.name + ".areas.geojson")
+    try:
+        import areas as areamod
+        from shapely.geometry import mapping as shp_mapping
+        area_objs = areamod.assemble_areas(args.inp)
+        area_feats = [{"type": "Feature",
+                       "properties": {"name": a.get("name")},
+                       "geometry": shp_mapping(a["geom"])}
+                      for a in area_objs if a.get("geom") is not None]
+    except Exception as e:
+        area_feats = []
+        print(f"note: could not export park areas ({e})", file=sys.stderr)
+    areas_path.write_text(
+        json.dumps({"type": "FeatureCollection", "features": area_feats}),
+        encoding="utf-8")
+    print(f"exported {len(area_feats):,} park areas -> {areas_path}", file=sys.stderr)
 
     welded = sum(1 for f in features if f["properties"].get("welds"))
     from_rel = sum(1 for f in features if f["properties"].get("source") == "relation")

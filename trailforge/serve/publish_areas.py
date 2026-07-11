@@ -87,37 +87,33 @@ def _sig_tokens(name: str) -> set[str]:
             if t and t not in _AREA_STOPWORDS}
 
 
-def _clip_one(g, f, area_union, min_inside_mi):
-    """Decide one trail's presence in an area.
+# A route "belongs" to a park when that park holds the MAJORITY of its
+# length. That's the definition of belonging, not a tuned knob: a trail more
+# inside one park than outside it is that park's trail; a route no single park
+# mostly contains is a traverse (PCT/AZT/Hayduke) that would only leave pokers.
+_MAJORITY = 0.5
 
-    Thru-routes (kind=route — the OSM route-relation signal that marks
-    PCT/AZT/Maricopa and the like) are DROPPED entirely: giant traverses
-    are out of the completion checklist, and dropping them (rather than
-    clipping) means they never leave sub-mile "pokers" in every park they
-    cross. There is deliberately NO length threshold here — the route
-    relation tag is the authoritative, non-arbitrary signal; a genuinely
-    long single trail (kind=trail) is still a real trail and stays.
 
-    Every other trail belongs to each area whose boundary its geometry
-    enters by at least `min_inside_mi` (a graze filter, the only knob) and
-    is kept WHOLE — full geometry and length, unmodified — so a nested
-    designation (a trail in both Saguaro NP and Saguaro Wilderness) and a
-    boundary-straddler (South Sixmile Canyon) both show as the real trail.
-    Returns the feature unchanged, or None to drop it from this area."""
-    if f["properties"].get("kind") == "route":
-        return None
+def _inside_mi(g, area_union):
+    """Miles of g's line geometry that fall inside `area_union` (0 on error)."""
     try:
         inter = g.intersection(area_union)
     except Exception:  # noqa: BLE001 — invalid geometry
-        return None
+        return 0.0
     parts = areamod._line_parts(inter)
     if not parts:
-        return None
-    inside_lines = [[(c[0], c[1]) for c in ln.coords] for ln in parts]
-    inside_mi = round(sum(model.line_mi(l) for l in inside_lines), 3)
-    if inside_mi < min_inside_mi:
-        return None
-    return f                                 # keep the whole trail, unmodified
+        return 0.0
+    return sum(model.line_mi([(c[0], c[1]) for c in ln.coords]) for ln in parts)
+
+
+def _clip_one(g, f, area_union, min_inside_mi):
+    """A NON-route trail belongs to (and is kept WHOLE in) each area whose
+    boundary its geometry enters by at least `min_inside_mi` — a graze filter,
+    the only knob. Kept unmodified so a nested designation (a trail in both
+    Saguaro NP and Saguaro Wilderness) and a boundary-straddler (South Sixmile
+    Canyon) both show as the real trail. Thru-routes are decided globally in
+    the containment pre-pass, not here. Returns the feature or None."""
+    return f if _inside_mi(g, area_union) >= min_inside_mi else None
 
 
 def main(argv=None) -> int:
@@ -236,27 +232,72 @@ def main(argv=None) -> int:
         except Exception:  # noqa: BLE001
             pass
 
-    count = 0
+    # Park boundaries (each unioned with its loose siblings) computed ONCE and
+    # shared by the route pre-pass and the per-area loop, in deterministic order.
+    area_unions = {}                        # slug -> (union, bounds)
     for slug, meta in sorted(az.items()):
-        if args.limit and count >= args.limit:
-            break
         primary = next((nm for nm in geoms if nm.casefold() == meta["name"].casefold()), None)
         if primary is None:
             skipped.append((slug, "no boundary in PBF")); continue
-        sib = siblings(primary)
-        union = unary_union([geoms[n] for n in sib])
-        ux0, uy0, ux1, uy1 = union.bounds
-        # Every trail whose bbox overlaps the area is a candidate; _clip_one
-        # decides in/out (>= min_inside), drops thru-routes (kind=route), and
-        # keeps every other trail WHOLE. Dedupe by merge_key so two same-name
-        # objects reaching the same park don't both land.
+        u = unary_union([geoms[n] for n in siblings(primary)])
+        area_unions[slug] = (u, u.bounds)
+
+    # THRU-ROUTE decision (global, geometric, nesting-immune). A route is a real
+    # trail for a park only if that park holds the MAJORITY of its length; a
+    # route no single park mostly contains is a traverse (AZT/Maricopa/Hayduke)
+    # and is dropped everywhere, so it leaves no sub-mile pokers. A route fully
+    # inside Saguaro NP reads ~100% in the wilderness AND the park, so it's kept
+    # whole in both. No length threshold — containment is the whole signal.
+    route_home = {}                         # id(f) -> set(slugs) kept in (empty = dropped)
+    kept_routes, dropped_routes = [], []    # (name, miles, homes|reason, feature)
+    for bounds, g, f in all_shapes:
+        if f["properties"].get("kind") != "route":
+            continue
+        total = f["properties"].get("length_mi") or _inside_mi(g, g.envelope) or 0.0
+        bx0, by0, bx1, by1 = bounds
+        homes, best_frac, best_slug, touched = set(), 0.0, None, 0
+        for slug, (u, (ux0, uy0, ux1, uy1)) in area_unions.items():
+            if bx1 < ux0 or bx0 > ux1 or by1 < uy0 or by0 > uy1:
+                continue
+            inside = _inside_mi(g, u)
+            if inside >= args.min_inside_mi:
+                touched += 1
+            frac = inside / total if total else 0.0
+            if frac >= _MAJORITY:
+                homes.add(slug)
+            if frac > best_frac:
+                best_frac, best_slug = frac, slug
+        route_home[id(f)] = homes
+        nm = f["properties"].get("name")
+        if homes:
+            kept_routes.append((nm, total, sorted(homes)))
+        else:
+            reason = (f"thru-hike: spans {touched} areas, "
+                      f"largest holds {best_frac * 100:.0f}%"
+                      + (f" ({best_slug})" if best_slug else ""))
+            dropped_routes.append((nm, total, reason, f))
+
+    count = 0
+    for slug, (union, (ux0, uy0, ux1, uy1)) in area_unions.items():
+        if args.limit and count >= args.limit:
+            break
+        meta = az[slug]
+        # Every trail whose bbox overlaps the area is a candidate. A kept route
+        # lands WHOLE only in its home park(s); a non-route is kept whole if it
+        # clears the graze filter. Dedupe by merge_key so two same-name objects
+        # reaching the same park don't both land.
         clipped, have = [], set()
         for (bx0, by0, bx1, by1), g, f in all_shapes:
             if bx1 < ux0 or bx0 > ux1 or by1 < uy0 or by0 > uy1:
                 continue
-            r = _clip_one(g, f, union, args.min_inside_mi)
-            if r is None:
-                continue
+            if f["properties"].get("kind") == "route":
+                if slug not in route_home.get(id(f), ()):
+                    continue
+                r = f                        # whole route, only in its home park(s)
+            else:
+                r = _clip_one(g, f, union, args.min_inside_mi)
+                if r is None:
+                    continue
             k = model.merge_key(r["properties"].get("name") or "")
             if k and k in have:
                 continue
@@ -318,9 +359,32 @@ def main(argv=None) -> int:
             for nm in dups:
                 print(f"      DUP-NAME: {nm}")
 
+    # Thru-route verdicts — the eyeball table (KEEP <park(s)> / DROP <reason>).
+    print(f"\n=== thru-route decisions: {len(kept_routes)} kept, "
+          f"{len(dropped_routes)} dropped ===")
+    for nm, mi, homes in sorted(kept_routes, key=lambda x: -(x[1] or 0)):
+        print(f"  KEEP  {mi or 0:7.2f}  {nm}  ->  {', '.join(homes)}")
+    for nm, mi, reason, f in sorted(dropped_routes, key=lambda x: -(x[1] or 0)):
+        print(f"  DROP  {mi or 0:7.2f}  {nm}  [{reason}]")
+
+    # Dropped routes -> a geojson the QA viewer can overlay in its show/hide
+    # 'removed' panel. Written even on a dry run so you can compare before any
+    # publish. Each feature carries a plain-language `removed_reason`.
+    if dropped_routes:
+        base = args.trails
+        for suf in (".trails.geojson", ".geojson"):
+            if base.endswith(suf):
+                base = base[:-len(suf)]; break
+        drop_path = base + ".dropped-routes.geojson"
+        feats = [{"type": "Feature", "geometry": f["geometry"],
+                  "properties": {**f["properties"], "removed_reason": reason}}
+                 for nm, mi, reason, f in dropped_routes]
+        json.dump({"type": "FeatureCollection", "features": feats}, open(drop_path, "w"))
+        print(f"\ndropped-routes geojson -> {drop_path} ({len(feats)} features)")
+
     if args.multi_area_report:
-        # Routes are already dropped in _clip_one, so `membership` is all
-        # keep-whole trails. A trail sitting in >=2 areas is almost always a
+        # `membership` is every published trail (kept routes live only in their
+        # home park(s)). A trail sitting in >=2 areas is almost always a
         # nested designation (wilderness inside a park, a monument over a
         # forest) — which is why we credit every area it enters instead of
         # forcing one "home park". This lists them so that stays visible.

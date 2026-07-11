@@ -4,6 +4,80 @@ This file is the source of truth for a fresh Claude session. Read it
 first; it tells you what already exists, what's been deliberately
 deferred, and what mistakes prior Claudes have made.
 
+---
+
+## ⭐ CURRENT STATE — read this first (updated 2026-07-11)
+
+Much of the app-detail below predates the **trailforge** era. When it
+conflicts with this section, this section wins. Verify against the code
+before trusting any specific claim (see "Things Claude gets wrong").
+
+**Trailforge is the live trail pipeline** (`trailforge/`): OSM extract →
+prefilter → assemble (relations-first → name-stitch → spur-attach → merge →
+curation) → `serve/publish_areas.py` (per-area boundary clip + convert +
+validate) → `public/areas/geom/*.json` + master `public/areas/index.json` →
+`scripts/filter-ios-bundle.py` regenerates the app bundle
+(`ios/.../Resources/areas-index.json`, NA-only, gated on clean trailforge
+geom = no `cached_at`) → push to `main` auto-triggers `sync-geom-to-r2.yml`
+→ R2 (`cdn.trekdex.app`) → app. `AreaSilhouetteService`/`AreaIndexService`
+fetch from R2 with a bundled fallback.
+
+**7 states live & clean:** Arizona, Utah, Colorado, Washington, Oregon,
+New Mexico, Nevada — ~613 areas, ~21.6k trails, ~58k mi. Data-only changes
+stream via R2 (no app build); app-CODE changes need a TestFlight build.
+
+**Trail selection/curation policy (all in `trailforge/assemble/model.py`
+unless noted), each learned the hard way — DON'T undo without re-reading:**
+- `mtb:scale:imba` is NOT a bike/hike signal (it's a difficulty rating on
+  shared-use HIKING trails — it once silently ate all of South Mountain).
+- Bike-park flow trails: `_is_nonhiking` = `foot=no` / `mtb:type=flow|downhill`
+  / non-hike piste / imba+`oneway=yes` / imba+bike-park-name.
+- Thru-routes: drop `kind=route` that no single park majority-contains
+  (containment, in `serve/publish_areas.py::_clip_one`); keep contained
+  single-park routes.
+- Thru-HIKES (AZT/PCT/CDT/Colorado Trail/Hayduke…): OSM tags them
+  inconsistently, so `is_thru_hike_name()` is a **curated name registry** +
+  super-relation drop. Tags alone do NOT work — verified.
+- Geometry: trim dangling out-of-park tails but keep in→gap→in connectors
+  (`_trim_to_parks`); non-route trails kept WHOLE in each park they touch.
+- Motorized/junk: `is_motorized_name` (incl. 4x4/motorcycle), road codes,
+  grid addresses, `is_offtrail_name`, ≤2-char stub names.
+- `scripts/sweep-geom-names.py` re-applies the name filters to published
+  geom — reaches areas the publisher SKIPS (no boundary in extract), whose
+  stale geom otherwise keeps old junk forever.
+
+**Publish flow:** CI is the norm — `trailforge-publish.yml` (single state)
+and `trailforge-publish-batch.yml` (`states: a,b,c` or `all`). **Default
+dry_run=true** — always dry-run + eyeball first, then dry_run=false for the
+real write (one commit, one R2 sync). Homelab is the fallback for planet
+scale. The MCP GitHub token can't dispatch workflows (403) — the USER
+dispatches from the Actions UI. Trailforge paths have NO CI gate; iOS paths
+do (`ios-pr-build`, must be green before merge). TestFlight upload is
+manual `workflow_dispatch` only — never re-enable auto-trigger.
+
+**Recent app UX (all shipped):** tap a trail in the list = highlight only
+(no popup) + toggles selection; the selected row's checkmark becomes a
+**Record** button; three-dots GPX export is selection-aware ("Export
+<trail>" when one's selected, else whole area). Tabs are now Explore ·
+Browse · **Stats** · Settings. A faint Tonto trail-mesh backdrop
+(`TrailMeshBackground`, Settings→Appearance toggle) is merged but **not
+rendering on device yet** — deferred/WIP.
+
+**Backlog (see the session task list):** (1) filter named roads
+(`Cub Creek Road`) + bare features (`Powerline`/`Sidewalk`/`Ski Trail`),
+guarding false-positives (`Park Avenue Trail`, `Grand Ditch Trail`);
+(2) elevation-based difficulty from a global DEM (Copernicus GLO-30 / AWS
+terrarium tiles) — see `trailforge/SPEC.md §6e`. Current difficulty is a
+weak length bucket.
+
+**Working rhythm that's proven out:** small PR per change → for trailforge,
+merge after unit tests + a homelab/dry-run eyeball; for iOS, wait for
+`ios-pr-build` green → verify each state's dry-run before a real publish →
+audit the published geom for regressions. The user catches issues by
+eyeballing real data; back every claim with a probe, not memory.
+
+---
+
 ## What this app is today
 
 iOS hiking-tracker app, distributed via **public TestFlight (live,

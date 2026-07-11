@@ -490,6 +490,23 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     trails: list[Trail] = []
     claimed: set[int] = set()
 
+    # Long-distance thru-hikes (Arizona Trail, PCT, CDT, Hayduke, …) are mapped
+    # as SUPERROUTES: a route relation whose members include other route
+    # relations (the numbered segments). Flag the whole hierarchy — the parent
+    # superroute AND every child segment — so relations-first drops the thru-hike
+    # object and its fragments. This is member/ref-driven (not name-guessing) and
+    # scales globally. The differently-named local trails a thru-hike runs over
+    # survive: their ways aren't claimed as the route's own, so name-stitch still
+    # emits them.
+    _route_ids = {rid for rid, rel in relations.items() if _is_route(rel["tags"])}
+    superroute_ids: set[int] = set()
+    for rid in _route_ids:
+        kids = [ref for (mt, ref, _role) in relations[rid]["members"]
+                if mt == "r" and ref in _route_ids]
+        if kids:
+            superroute_ids.add(rid)          # the parent superroute
+            superroute_ids.update(kids)      # its child segments
+
     # 1. relations-first
     for rid, rel in relations.items():
         if not _is_route(rel["tags"]):
@@ -521,6 +538,15 @@ def assemble(nodes: dict, ways: dict, relations: dict,
             wname = norm_name(ways[w]["tags"].get("name"))
             if not wname or wname == rel_name:
                 claimed.add(w)
+        # Super-relation drop: a thru-hike superroute or one of its numbered
+        # segments. Its own ways are claimed above so name-stitch can't resurface
+        # the fragment; drop the object itself (underlying local trails survive).
+        if rid in superroute_ids:
+            if collect_removed is not None:
+                t.removed_reason = ("part of a long-distance thru-hike route "
+                                    "(super-relation) — dropped from the checklist")
+                collect_removed.append(t)
+            continue
         trails.append(t)
 
     # 2. name-stitch the remainder

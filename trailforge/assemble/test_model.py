@@ -52,6 +52,30 @@ class RelationsFirst(unittest.TestCase):
         self.assertEqual(trails[0].source, "relation")
         self.assertEqual(set(trails[0].member_ways), {1, 2})
 
+    def test_superroute_of_route_children_is_dropped(self):
+        # A long-distance thru-hike (Arizona Trail): a parent route relation
+        # whose members are CHILD ROUTE relations (the numbered segments). The
+        # whole hierarchy — parent + children — drops; a differently-named local
+        # trail the route runs over survives via name-stitch.
+        rels = {
+            200: {"tags": {"type": "route", "route": "hiking",
+                           "name": "Arizona Trail", "network": "nwn"},
+                  "members": [("r", 201, ""), ("r", 202, "")]},
+            201: {"tags": {"type": "route", "route": "hiking", "name": "Arizona Trail #1"},
+                  "members": [("w", 10, "")]},
+            202: {"tags": {"type": "route", "route": "hiking", "name": "Arizona Trail #2"},
+                  "members": [("w", 11, ""), ("w", 12, "")]},
+        }
+        ways = {10: W([1, 2], highway="path"),                       # AZT connector
+                11: W([2, 3], highway="path"),                       # AZT connector
+                12: W([3, 4], highway="path", name="Miller Peak Trail")}  # local trail
+        nodes = {1: (0, 0), 2: (0, 1), 3: (0, 2), 4: (0, 3)}
+        names = {t.name for t in m.assemble(nodes, ways, rels, [])}
+        self.assertNotIn("Arizona Trail", names)
+        self.assertNotIn("Arizona Trail #1", names)
+        self.assertNotIn("Arizona Trail #2", names)
+        self.assertIn("Miller Peak Trail", names)   # underlying local trail preserved
+
     def test_umbrella_route_keeps_local_named_members(self):
         # A route relation whose member has its OWN name must not erase that
         # trail — the Maricopa Trail absorbing "Bursera Canyon" bug.

@@ -358,12 +358,26 @@ struct AreaView: View {
                         }
                     }
                     Divider()
-                    Button {
-                        exportAreaGpx()
-                    } label: {
-                        Label("Export All Trails as GPX", systemImage: "square.and.arrow.up")
+                    // Selection-aware GPX export: with a trail selected in the
+                    // list, export just that one trail (small, what people
+                    // actually want); otherwise export the whole area as a
+                    // multi-track GPX (the bulk/backup path).
+                    if let area, let tid = selectedTrailId,
+                       let trail = area.trails.first(where: { $0.id == tid }) {
+                        Button {
+                            exportTrailGpx(trail)
+                        } label: {
+                            Label("Export \u{201C}\(trail.name)\u{201D} as GPX",
+                                  systemImage: "square.and.arrow.up")
+                        }
+                    } else {
+                        Button {
+                            exportAreaGpx()
+                        } label: {
+                            Label("Export All Trails as GPX", systemImage: "square.and.arrow.up")
+                        }
+                        .disabled(area == nil)
                     }
-                    .disabled(area == nil)
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.body.weight(.semibold))
@@ -703,6 +717,23 @@ struct AreaView: View {
         )
         do {
             let url = try GpxExport.temporaryFile(area: area)
+            areaGpxShareURL = IdentifiedURL(url: url)
+        } catch {
+            // Silent — share sheet won't appear; user can retry.
+        }
+    }
+
+    /// Single-trail GPX (the selected trail) — small, one clean track, the
+    /// common "load this hike onto my watch" case. Shares the same share-sheet
+    /// state as the area export.
+    private func exportTrailGpx(_ trail: Trail) {
+        ActivityLogService.shared.log(
+            category: "trail",
+            action: "exportTrailGpx",
+            context: ["areaId": areaId, "trailId": trail.id]
+        )
+        do {
+            let url = try GpxExport.temporaryFile(trail: trail, areaName: area?.name)
             areaGpxShareURL = IdentifiedURL(url: url)
         } catch {
             // Silent — share sheet won't appear; user can retry.

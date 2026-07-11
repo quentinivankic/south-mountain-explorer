@@ -93,11 +93,6 @@ struct TrailListView: View {
     @Environment(RecordingService.self) private var recording
 
     @FocusState private var searchFocused: Bool
-    /// Trail whose detail half-sheet is currently presented (or
-    /// nil). Driven by `TrailRow.onTapGesture` so tap = "show me
-    /// this trail" — selectedTrailId still updates in parallel to
-    /// highlight the polyline on the map underneath.
-    @State private var detailTrail: Trail? = nil
 
     private var trimmedQuery: String {
         searchQuery.trimmingCharacters(in: .whitespaces)
@@ -230,7 +225,6 @@ struct TrailListView: View {
                                 trail: trail,
                                 areaId: area.id,
                                 selectedTrailId: $selectedTrailId,
-                                onOpenDetail: { detailTrail = $0 },
                                 onRecordTrail: onRecordTrail
                             )
                             // Tag each row with the trail id so
@@ -258,14 +252,6 @@ struct TrailListView: View {
                 }
             }
             }
-        }
-        .sheet(item: $detailTrail) { trail in
-            TrailDetailSheet(
-                trail: trail,
-                areaId: area.id,
-                areaName: area.name,
-                onRecordTrail: onRecordTrail
-            )
         }
     }
 
@@ -347,9 +333,6 @@ struct TrailRow: View {
     let trail: Trail
     let areaId: String
     @Binding var selectedTrailId: String?
-    /// Called on LONG-PRESS to open the TrailDetailSheet (full stats +
-    /// Export GPX). A plain tap no longer opens it — tap just highlights.
-    var onOpenDetail: ((Trail) -> Void)? = nil
     /// Called when the trailing "Record" button (shown only while this row is
     /// selected) is tapped — starts recording this trail.
     var onRecordTrail: ((Trail) -> Void)? = nil
@@ -454,12 +437,6 @@ struct TrailRow: View {
                 context: ["areaId": areaId, "trailId": trail.id]
             )
             selectedTrailId = (selectedTrailId == trail.id) ? nil : trail.id
-        }
-        .onLongPressGesture {
-            // Long-press is the way to the full detail sheet (stats + Export
-            // GPX) now that tap no longer opens it.
-            selectedTrailId = trail.id
-            onOpenDetail?(trail)
         }
     }
 

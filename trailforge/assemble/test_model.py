@@ -608,6 +608,20 @@ class Classification(unittest.TestCase):
                   "Tramway Trail", "Chairlift Loop", "Ski Lift Path", "Lift Line"):
             self.assertFalse(m.is_nontrail_feature_name(n), n)
 
+    def test_named_road_names(self):
+        for n in ("Maxwell Ranch Road", "Anderson Lake Road", "Bell Road",
+                  "4th of July Road", "Grayback Road", "Woodhaul Wagon Road",
+                  "Dosewallips River Road", "Amphitheater Expressway",
+                  "Old Forest Road", "Chama Road"):
+            self.assertTrue(m.is_named_road_name(n), n)
+            self.assertEqual(m.removal_category(self._trail(n)), "named-road")
+        # KEPT: trail-word, carriage roads, and the Drive/Avenue/Street traps.
+        for n in ("Battle Road Trail", "Bear Canyon Road Connector",
+                  "Carriage Road", "Eagle Lake Carriage Road", "Camp Loop Rd",
+                  "Leif Erikson Drive", "Northwest Leif Erikson Drive",
+                  "Park Avenue Trail", "136th Street Express", "Bluebell Road Trail"):
+            self.assertFalse(m.is_named_road_name(n), n)
+
     def test_curation_guards_must_survive(self):
         # Real trails that share a word/tag with a filter and MUST be kept — the
         # regression net that lets us tune aggressively without eating trails.
@@ -617,9 +631,9 @@ class Classification(unittest.TestCase):
                   "Parking Lot Trail", "Quemazon/Pipeline Loop",
                   "Weston Aqueduct Walking Trail", "Leif Erikson Drive"):
             self.assertIsNone(m.removal_category(self._trail(n)), n)
-        # a gated road explicitly open to hikers survives despite access=no
+        # a way explicitly open to hikers survives despite access=no
         self.assertIsNone(
-            m.removal_category(self._trail("Dosewallips River Road",
+            m.removal_category(self._trail("Cascade Pass",
                                            {"access": "no", "foot": "yes"})))
 
     def test_known_junk_drops_with_expected_category(self):

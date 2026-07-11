@@ -581,6 +581,12 @@ def _removal_verdict(trail: "Trail", min_length_mi: float = 0.0,
                 "airport runway, ski-lift line, or bare parking area (e.g. "
                 "'Tusyan Sidewalk', 'Lift 8 Tower', 'Opal Parking'). A path "
                 "that merely touches one ('Parking Lot Trail') is kept.")
+    if is_named_road_name(name):
+        return ("named-road",
+                "Named road carried as a path — a bare '… Road / Highway' with "
+                "no trail identity (e.g. 'Maxwell Ranch Road'). Carriage roads "
+                "and any '… Trail' are kept; a washed-out road you still hike "
+                "can be rescued from this bucket by eye.")
     if is_grid_address_name(name):
         return ("grid-address",
                 "Section-line grid road, not a trail — a rural PLSS grid "
@@ -1307,6 +1313,28 @@ def is_nontrail_feature_name(name: str | None) -> bool:
     if _NONTRAIL_SOFT.search(name):
         return not _TRAIL_WORD.search(name)
     return False
+
+
+# A named ROAD carried as a path. Only the UNAMBIGUOUS road words — 'Drive /
+# Avenue / Street / Lane' are deliberately excluded because they collide with
+# real trails ('Leif Erikson Drive', 'Park Avenue Trail', '136th Street
+# Express'), and using only 'Road/Rd/Highway/…' keeps those traps automatically.
+_ROAD_SUFFIX = re.compile(
+    r"\b(road|rd|highway|hwy|turnpike|freeway|expressway)\b", re.IGNORECASE)
+
+
+def is_named_road_name(name: str | None) -> bool:
+    """A bare '… Road / Rd / Highway' with no trail identity — a road carried as
+    a path ('Maxwell Ranch Road', 'Anderson Lake Road'). SPARES anything with a
+    trail word (_TRAIL_WORD → 'Battle Road Trail', 'Bear Canyon Road Connector')
+    and Acadia-style 'Carriage Road's (a signature hiking network). Drop-by-
+    default but REVIEWABLE: a washed-out / abandoned road that's now hiked
+    ('Dosewallips River Road') lands in this bucket to rescue by eye."""
+    if not name or not _ROAD_SUFFIX.search(name):
+        return False
+    if _TRAIL_WORD.search(name):
+        return False
+    return "carriage" not in name.lower()
 
 
 # Public-access gate. OSM `access=private` / `access=no` marks a way the public

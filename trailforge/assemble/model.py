@@ -553,6 +553,11 @@ def removal_reason(trail: "Trail", min_length_mi: float = 0.0,
     if is_motorized_name(name):
         return ("Motorized route, not a foot trail — the name marks it "
                 "ATV / OHV / UTV / 4WD / snowmobile / Jeep.")
+    if is_utility_corridor_name(name):
+        return ("Utility corridor, not a foot trail — a bare powerline / "
+                "pipeline / gas-line / aqueduct right-of-way (e.g. 'Power "
+                "Line', 'Pipeline Clearing'). A named path along one "
+                "('Powerline Trail') is kept.")
     if is_grid_address_name(name):
         return ("Section-line grid road, not a trail — a rural PLSS grid "
                 "address like 'North 3325 West', part of the farm-road "
@@ -1184,6 +1189,24 @@ def is_motorized_name(name: str | None) -> bool:
     ones in curation. Every one reviewed in the ID audit was a genuine vehicle
     route, not a foot hike."""
     return bool(name and _MOTORIZED_NAME.search(name))
+
+
+_UTILITY_CORRIDOR = re.compile(
+    r"\b(power\s*line|pipe\s*line|gas\s*line|transmission line|penstock|aqueduct)\b",
+    re.IGNORECASE)
+
+
+def is_utility_corridor_name(name: str | None) -> bool:
+    """A bare utility corridor — a powerline / pipeline / gas line / aqueduct
+    right-of-way mapped as a way, not a hiking trail ('Power Line', 'Gasline',
+    'Pipeline Clearing', 'underground powerline'). SPARES a named footpath that
+    merely follows the corridor ('Powerline Trail', 'Aqueduct Path',
+    'Quemazon/Pipeline Loop') via _TRAIL_WORD — those are real walked trails.
+    'Row' is deliberately NOT a signal: 'Stone Row', 'Greek Row', 'Skid Row'
+    are New England / place names, not rights-of-way."""
+    if not name or not _UTILITY_CORRIDOR.search(name):
+        return False
+    return not _TRAIL_WORD.search(name)
 
 
 def _is_motorized(tags: dict) -> bool:

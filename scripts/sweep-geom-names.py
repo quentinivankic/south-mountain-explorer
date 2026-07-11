@@ -49,6 +49,8 @@ def drop_reason(name: str | None, region: str | None = None) -> str | None:
         return "off-trail"
     if model.is_motorized_name(name):
         return "motorized"
+    if model.is_utility_corridor_name(name):
+        return "utility-corridor"
     if model.is_grid_address_name(name):
         return "grid-address"
     return None

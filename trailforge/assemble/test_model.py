@@ -557,6 +557,27 @@ class Classification(unittest.TestCase):
             self.assertFalse(m.is_thru_hike_name(n, "vt"), n)
             self.assertFalse(m.is_thru_hike_name(n, "nm"), n)
 
+    def test_utility_corridor_names_dropped(self):
+        # Bare utility rights-of-way (powerline/pipeline/gas line/aqueduct) are
+        # infrastructure, not foot trails — dropped.
+        for n in ("Power Line", "Powerline", "Power line", "Gasline", "Gas Line",
+                  "Pipeline", "Pipe Line", "Pipeline Clearing", "underground powerline",
+                  "Powerline Route", "Middleton Powerline", "Powerline-Gypsum",
+                  "Gas Line Road", "West Pipeline Road", "Aqueduct",
+                  "Transmission Line", "601 Powerline"):
+            self.assertTrue(m.is_utility_corridor_name(n), n)
+        # A named footpath that merely FOLLOWS a corridor is a real trail — kept.
+        for n in ("Powerline Trail", "Pipeline Trail", "Power Line Trail",
+                  "Aqueduct Trail", "Weston Aqueduct Walking Trail",
+                  "Hultman Aqueduct Path", "Quemazon/Pipeline Loop",
+                  "Powerline Connector", "Pipeline Connector Trail",
+                  "Tumwater Penstock Trail", "City Creek Pipeline Trail"):
+            self.assertFalse(m.is_utility_corridor_name(n), n)
+        # 'Row' is NOT a utility signal — these are place / landscape names.
+        for n in ("Stone Row", "Greek Row", "Skid Row Trail", "Skidder Row",
+                  "Red Roof Inn Row", "Public Easement", "Miller Peak Trail"):
+            self.assertFalse(m.is_utility_corridor_name(n), n)
+
     def test_removal_reason_names_the_rule_that_fired(self):
         # QA viewer relies on removal_reason mirroring curation's predicate
         # order; each removed trail must carry a non-empty plain-language reason.

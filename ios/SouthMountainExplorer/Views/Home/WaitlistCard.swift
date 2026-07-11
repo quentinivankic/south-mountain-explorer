@@ -38,7 +38,7 @@ struct WaitlistCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Not in \(countryName) yet")
                         .font(.headline)
-                    Text("TrekDex covers the US & Canada today. Browse those parks below — or get an email when we reach you.")
+                    Text("TrekDex covers the US & Canada today. Browse those parks below — or get an email when we reach you. If you're visiting an area we cover, you can still use the app!")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -46,8 +46,7 @@ struct WaitlistCard: View {
             }
 
             if joined {
-                Label(wantsBeta ? "You're on the list — and down to help test"
-                                : "You're on the waitlist",
+                Label("You're on the list, thanks!",
                       systemImage: "checkmark.circle.fill")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.green)

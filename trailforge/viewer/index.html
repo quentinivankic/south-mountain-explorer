@@ -128,12 +128,11 @@ map.on("load", async () => {
   // Geometry-based area membership + publish-preview clipping for the two area
   // toggles. Both ray-cast trail vertices against the park polygons, which is
   // heavy over a whole state — so they are LAZY: nothing runs on load (that
-  // was freezing the viewer). `computeInArea()` and `ensureClipped()` run once,
-  // memoized, the first time you flip the relevant toggle.
+  // was freezing the viewer). `computeInArea()` runs once (memoized) on the
+  // in-area toggle; `applyClip()` trims only the on-screen trails, per pan.
   let hasAreas = false;
-  let clippedTrails = null;
   let computeInArea = () => {};
-  let ensureClipped = () => null;
+  let applyClip = () => {};
   if (trails) {
     const polys = [];
     for (const af of (areas ? areas.features : [])) {
@@ -174,49 +173,66 @@ map.on("load", async () => {
     };
     const partsOf = (g) => g.type === "MultiLineString" ? g.coordinates
                          : (g.type === "LineString" ? [g.coordinates] : []);
-    const bboxHitsParks = (g) => {           // trail-level prefilter vs global park bbox
+    // Precompute each trail's bbox once (cheap — no point-in-polygon) for the
+    // toggles' trail-level prefilter and the clip viewport check.
+    const tbox = trails.features.map((f) => {
       let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity;
-      for (const line of partsOf(g)) for (const [x,y] of line) { if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
-      return !(x1 < gx0 || x0 > gx1 || y1 < gy0 || y0 > gy1);
-    };
+      for (const line of partsOf(f.geometry)) for (const [x,y] of line) { if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+      return [x0, y0, x1, y1];
+    });
+    const hitsParks = (i) => { const [x0,y0,x1,y1]=tbox[i]; return !(x1<gx0||x0>gx1||y1<gy0||y0>gy1); };
     // Lazy: derive `_inarea` (touch, like the publisher) and push it to the
     // source so the "Only trails in an area" filter can read it.
     let inAreaDone = false;
     computeInArea = () => {
       if (inAreaDone) return;
       inAreaDone = true;
-      for (const tf of trails.features) {
+      trails.features.forEach((tf, i) => {
         tf.properties = tf.properties || {};
-        if (!hasAreas) { tf.properties._inarea = !!tf.properties.area; continue; }
+        if (!hasAreas) { tf.properties._inarea = !!tf.properties.area; return; }
         let hit = false;
-        if (bboxHitsParks(tf.geometry)) {
+        if (hitsParks(i)) {
           outer: for (const line of partsOf(tf.geometry)) for (const [x,y] of line)
             if (ptInAnyArea(x,y)) { hit = true; break outer; }
         }
         tf.properties._inarea = hit;
-      }
+      });
       const src = map.getSource("trails");
       if (src) src.setData(trails);
     };
-    // Lazy: build the publish preview — each line trimmed to the span between
-    // its first and last in-park vertex (dangling tails dropped, mid gaps kept).
-    ensureClipped = () => {
-      if (clippedTrails || !hasAreas) return clippedTrails;
-      const trimLine = (line) => {
-        let first = -1, last = -1;
-        for (let i = 0; i < line.length; i++)
-          if (ptInAnyArea(line[i][0], line[i][1])) { if (first < 0) first = i; last = i; }
-        return first < 0 ? null : line.slice(first, last + 1);
-      };
-      clippedTrails = { type: "FeatureCollection", features: trails.features
-        .filter((f) => bboxHitsParks(f.geometry))
-        .map((f) => {
-          const out = partsOf(f.geometry).map(trimLine).filter((l) => l && l.length > 1);
-          return { ...f, geometry: { type: "MultiLineString", coordinates: out } };
-        })
-        .filter((f) => f.geometry.coordinates.length) };
-      return clippedTrails;
+    const trimLine = (line) => {
+      let first = -1, last = -1;
+      for (let i = 0; i < line.length; i++)
+        if (ptInAnyArea(line[i][0], line[i][1])) { if (first < 0) first = i; last = i; }
+      return first < 0 ? null : line.slice(first, last + 1);
     };
+    // Clip preview is VIEWPORT-SCOPED so it can't choke on a whole state: only
+    // trails intersecting the current map bounds are trimmed (drop dangling
+    // out-of-park tails, keep mid gaps); off-screen ones pass through raw and
+    // get trimmed once you pan to them. A cap bails out if the view holds too
+    // many trails (zoomed way out) rather than freezing.
+    const CLIP_CAP = 1500;
+    let clipOn = false;
+    applyClip = (on) => {
+      if (on !== undefined) clipOn = on;
+      const src = map.getSource("trails");
+      if (!src) return;
+      if (!clipOn || !hasAreas) { src.setData(trails); return; }
+      const b = map.getBounds();
+      const wx0=b.getWest(), wy0=b.getSouth(), wx1=b.getEast(), wy1=b.getNorth();
+      const inView = (i) => { const [x0,y0,x1,y1]=tbox[i]; return !(x1<wx0||x0>wx1||y1<wy0||y0>wy1); };
+      let n = 0;
+      for (let i = 0; i < trails.features.length; i++) if (inView(i)) n++;
+      if (n > CLIP_CAP) { src.setData(trails); return; }   // too many — bail, no clip
+      const feats = [];
+      trails.features.forEach((f, i) => {
+        if (!inView(i)) { feats.push(f); return; }          // off-screen: pass raw
+        const out = partsOf(f.geometry).map(trimLine).filter((l) => l && l.length > 1);
+        if (out.length) feats.push({ ...f, geometry: { type: "MultiLineString", coordinates: out } });
+      });
+      src.setData({ type: "FeatureCollection", features: feats });
+    };
+    map.on("moveend", () => { if (clipOn) applyClip(); });
   }
   if (trails) {
     // generateId gives each trail feature an id so a click can flip its
@@ -264,16 +280,11 @@ map.on("load", async () => {
           ? ["all", base, ["to-boolean", ["get", "_inarea"]]] : base);
       }
     };
-    // "Clip to park boundaries": lazily build the publish-preview (first use),
-    // then swap the trails source between raw assembly and the trimmed preview.
+    // "Clip to park boundaries": viewport-scoped publish-preview (trims only
+    // on-screen trails; re-runs on pan). Disabled if no area polygons loaded.
     const clipEl = document.getElementById("toggle-clip");
     if (!hasAreas) clipEl.disabled = true;
-    clipEl.onchange = (e) => {
-      const src = map.getSource("trails");
-      if (!src) return;
-      const c = e.target.checked ? ensureClipped() : trails;
-      src.setData(c || trails);
-    };
+    clipEl.onchange = (e) => applyClip(e.target.checked);
 
     const HIT = ["hike-lines", "trail-lines", "route-lines"];
     let selectedId = null;

@@ -494,7 +494,8 @@ class Classification(unittest.TestCase):
         for n in ("Basalt Jeep Trail", "Pine Creek South ATV Trail",
                   "Bobtail Spur OHV Trail", "George Gulch 4WD Trail",
                   "Eccles Road Snowmobile Trail", "Deer Creek Trail (OHV Section) #158",
-                  "Lewis and Clark Jeep Trail", "Jeep Trail", "ATV TR 1550"):
+                  "Lewis and Clark Jeep Trail", "Jeep Trail", "ATV TR 1550",
+                  "Sedge Ridge 4x4 Trail", "Richardson Fork 4x4-A", "Motorcycle Terrain Park"):
             self.assertTrue(m.is_motorized_name(n), n)
         # normal hiking names untouched
         for n in ("Deer Creek Trail", "Huckleberry Trail", "Angels Landing Trail",
@@ -527,6 +528,8 @@ class Classification(unittest.TestCase):
             "Forest Service Road 420": "road",
             "Basalt Jeep Trail": "motor",
             "Trail": "generic",
+            "?": "no real name",
+            "d": "no real name",
         }
         for name, needle in cases.items():
             t = m.Trail(name, "name-stitch", [1], [list(line)], {}, [])

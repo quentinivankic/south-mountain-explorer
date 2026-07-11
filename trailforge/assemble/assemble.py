@@ -116,9 +116,11 @@ def main(argv=None) -> int:
               f"park areas", file=sys.stderr)
 
     removed: list = []
+    ingest_dropped: list = []
     trails = model.assemble(nodes, ways, relations, pois,
                             min_length_mi=args.min_length_mi, areas=areas_arg,
-                            collect_removed=removed, region=args.region)
+                            collect_removed=removed, region=args.region,
+                            collect_ingest_dropped=ingest_dropped)
     features = [t.to_feature() for t in trails]
 
     area_note = ""
@@ -156,6 +158,17 @@ def main(argv=None) -> int:
     removed_fc = {"type": "FeatureCollection",
                   "features": [t.to_feature() for t in removed]}
     removed_path.write_text(json.dumps(removed_fc), encoding="utf-8")
+
+    # Sidecar 1a: NAMED ways a TAG gate filtered out before assembly (foot=no,
+    # ski piste, road-like track, motor vehicle). Each carries a category +
+    # reason so the viewer's 'ingest-filtered' layer makes a named trail
+    # wrongly eaten by a tag rule visible instead of silently gone.
+    ingest_path = base.with_name(base.name + ".ingest-dropped.geojson")
+    ingest_path.write_text(
+        json.dumps({"type": "FeatureCollection", "features": ingest_dropped}),
+        encoding="utf-8")
+    print(f"ingest-filtered (named, tag rules): {len(ingest_dropped)} -> {ingest_path}",
+          file=sys.stderr)
 
     # Sidecar 1b: curation snapshot + run-to-run DIFF. Maps each trail's stable
     # `ckey` (its sorted member OSM ways — unchanged when only a rule is tuned)

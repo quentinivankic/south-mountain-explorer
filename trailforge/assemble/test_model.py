@@ -638,6 +638,22 @@ class Classification(unittest.TestCase):
         self.assertEqual(
             m.removal_category(self._trail("X Trail", {"access": "private"})), "access")
 
+    def test_ingest_drop_reason_and_trailish_agree(self):
+        self.assertIsNone(m.ingest_drop_reason({"highway": "path", "name": "Bear Trail"}))
+        self.assertIsNone(m.ingest_drop_reason({"highway": "residential"}))  # not a candidate
+        self.assertEqual(m.ingest_drop_reason(
+            {"highway": "footway", "footway": "sidewalk"})[0], "sidewalk")
+        self.assertEqual(m.ingest_drop_reason({"highway": "path", "foot": "no"})[0],
+                         "non-hiking-tag")
+        self.assertEqual(m.ingest_drop_reason(
+            {"highway": "track", "motor_vehicle": "yes"})[0], "road-like-track")
+        # _is_trailish must stay consistent with ingest_drop_reason (no drift).
+        for tags in ({"highway": "path"}, {"highway": "path", "foot": "no"},
+                     {"highway": "footway", "footway": "sidewalk"},
+                     {"highway": "track", "lanes": "2"}, {"highway": "steps"}):
+            self.assertEqual(m._is_trailish(tags),
+                             m.ingest_drop_reason(tags) is None, tags)
+
     def test_removal_reason_names_the_rule_that_fired(self):
         # QA viewer relies on removal_reason mirroring curation's predicate
         # order; each removed trail must carry a non-empty plain-language reason.

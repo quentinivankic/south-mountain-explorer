@@ -619,9 +619,38 @@ def assemble(nodes: dict, ways: dict, relations: dict,
              pois: list[dict], min_length_mi: float = 0.0,
              areas: list[dict] | None = None,
              collect_removed: list | None = None,
-             region: str | None = None) -> list[Trail]:
+             region: str | None = None,
+             collect_ingest_dropped: list | None = None) -> list[Trail]:
     trails: list[Trail] = []
     claimed: set[int] = set()
+
+    # Diagnostic: NAMED ways whose highway type is trail-ish but which a tag
+    # gate filters out before assembly (foot=no, ski piste, road-like track,
+    # motor-vehicle). Collected so the viewer can show them with a reason — a
+    # named trail wrongly eaten by a tag rule is otherwise invisible. Nameless
+    # drops (sidewalks, pistes) are skipped: pure noise, no false-negative risk.
+    if collect_ingest_dropped is not None:
+        for wid, w in ways.items():
+            nm = display_name(w["tags"])
+            if not nm:
+                continue
+            verdict = ingest_drop_reason(w["tags"])
+            if not verdict:
+                continue
+            coords = [nodes[n] for n in w["nodes"] if n in nodes]
+            if len(coords) < 2:
+                continue
+            cat, reason = verdict
+            collect_ingest_dropped.append({
+                "type": "Feature",
+                "properties": {"name": nm, "removed_category": cat,
+                               "removed_reason": reason,
+                               "highway": w["tags"].get("highway", ""),
+                               "ckey": f"w{wid}"},
+                # nodes are stored (lon, lat) — already GeoJSON order.
+                "geometry": {"type": "LineString",
+                             "coordinates": [list(c) for c in coords]},
+            })
 
     # Long-distance thru-hikes (Arizona Trail, PCT, CDT, Hayduke, …) are mapped
     # as SUPERROUTES: a route relation whose members include other route
@@ -1374,21 +1403,38 @@ def _road_like_track(tags: dict) -> bool:
                 or _ROAD_NAME.search(name))    # "7th Street", "Holley Lane"
 
 
+def ingest_drop_reason(tags: dict) -> tuple[str, str] | None:
+    """For a way whose highway type IS trail-ish but which the ingest filter
+    drops by a SECONDARY tag rule, the (category, plain-language reason); else
+    None (kept, or never a trail candidate). Surfaced in the viewer's
+    'ingest-filtered' diagnostic so a NAMED trail silently eaten by a tag gate
+    (the class of bug that once ate South Mountain) is visible, not invisible.
+    _is_trailish delegates the secondary checks here so the two can't drift."""
+    hw = tags.get("highway")
+    if hw not in TRAILISH_HIGHWAY:
+        return None                      # a road / non-highway — never a trail candidate
+    if hw == "footway" and tags.get("footway") in {"sidewalk", "crossing"}:
+        return ("sidewalk", "footway=sidewalk / =crossing — pavement, not a trail.")
+    if tags.get("indoor") == "yes" or tags.get("trail") == "no":
+        return ("indoor/trail=no", "tagged indoor=yes or trail=no.")
+    if _road_like_track(tags):
+        return ("road-like-track",
+                "highway=track tagged or named as a drivable / utility road "
+                "(motor_vehicle, 2+ lanes, or a road-suffix name).")
+    if _is_motorized(tags):
+        return ("motorized-tag",
+                "tagged for motor vehicles — atv / ohv / 4wd / motor_vehicle.")
+    if _is_nonhiking(tags):
+        return ("non-hiking-tag",
+                "foot=no, a ski piste (piste:type), or a bike-park flow run.")
+    return None
+
+
 def _is_trailish(tags: dict) -> bool:
     hw = tags.get("highway")
     if hw not in TRAILISH_HIGHWAY:
         return "highway" in tags and tags.get("highway", "").startswith("abandoned")
-    if hw == "footway" and tags.get("footway") in {"sidewalk", "crossing"}:
-        return False
-    if tags.get("indoor") == "yes" or tags.get("trail") == "no":
-        return False
-    if _road_like_track(tags):          # access/utility road masquerading as a track
-        return False
-    if _is_motorized(tags):             # ATV/OHV/4WD/snowmobile route, not a foot trail
-        return False
-    if _is_nonhiking(tags):             # bike-park flow run / alpine ski feature
-        return False
-    return True
+    return ingest_drop_reason(tags) is None
 
 
 def _first_named(way_ids: list[int], ways: dict) -> str | None:

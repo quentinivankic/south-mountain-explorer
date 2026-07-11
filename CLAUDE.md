@@ -12,6 +12,28 @@ Much of the app-detail below predates the **trailforge** era. When it
 conflicts with this section, this section wins. Verify against the code
 before trusting any specific claim (see "Things Claude gets wrong").
 
+**The user's setup — where work happens (pick the right path each time):**
+- **Home = homelab.** A Debian/Ubuntu box with the repo cloned at
+  `~/south-mountain-explorer`. Runs the full trailforge pipeline directly
+  (download extract → prefilter → assemble → publish), dry-runs, and ad-hoc
+  probes; has the OSM/Geofabrik/DEM network egress the sandbox lacks.
+  `data/` (raw extracts, assembly) is scratch and can vanish between
+  sessions — just re-download. Planet-scale / DEM work lives here.
+- **Work = GitHub only.** When the user is at work they can't reach the
+  homelab, so everything goes through GitHub: they dispatch
+  `trailforge-publish*.yml` / `ios-testflight.yml` from the Actions UI,
+  review PRs, watch CI. The batch workflow exists so multi-state publishes
+  need no homelab. Ask which environment they're in if it matters.
+- **You (Claude) run in a cloud sandbox.** It reaches GitHub (MCP tools) and
+  the repo, but NOT OSM/Geofabrik/DEM sources, and CANNOT dispatch workflows
+  (MCP token 403s) — so hand the user exact Actions-UI steps or homelab
+  commands and have them paste output back.
+- **Timezone: Arizona (MST, UTC−7).** Git/CI stamps are UTC — shift ~7h when
+  reconciling with the user's "today" (a commit at 01:xxZ is the prior
+  evening for them).
+- **Testing: the user's iPhone via TestFlight.** Data changes show after an
+  in-app refresh (R2); app-CODE changes need a fresh TestFlight build.
+
 **Trailforge is the live trail pipeline** (`trailforge/`): OSM extract →
 prefilter → assemble (relations-first → name-stitch → spur-attach → merge →
 curation) → `serve/publish_areas.py` (per-area boundary clip + convert +

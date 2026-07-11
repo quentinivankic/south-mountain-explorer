@@ -44,29 +44,64 @@ geom = no `cached_at`) → push to `main` auto-triggers `sync-geom-to-r2.yml`
 → R2 (`cdn.trekdex.app`) → app. `AreaSilhouetteService`/`AreaIndexService`
 fetch from R2 with a bundled fallback.
 
-**7 states live & clean:** Arizona, Utah, Colorado, Washington, Oregon,
-New Mexico, Nevada — ~613 areas, ~21.6k trails, ~58k mi. Data-only changes
-stream via R2 (no app build); app-CODE changes need a TestFlight build.
+**13 states live & clean:** Arizona, Utah, Colorado, Washington, Oregon,
+New Mexico, Nevada (western batch) + Maine, New Hampshire, Vermont,
+Massachusetts, Connecticut, Rhode Island (New England batch) — ~869 areas,
+~24.9k trails, ~61k mi. (6 empty 0-trail areas pruned from the index.)
+Data-only changes stream via R2 (no app build); app-CODE changes need a
+TestFlight build. **Next: the rest of the US** — ~37 states left, ~6 region
+batches; the gate is QA eyeball time, not compute (see review tooling below).
 
 **Trail selection/curation policy (all in `trailforge/assemble/model.py`
-unless noted), each learned the hard way — DON'T undo without re-reading:**
+unless noted), each learned the hard way — DON'T undo without re-reading.**
+Curation runs through `_removal_verdict()` → `(category-slug, sentence)`;
+`removal_reason`/`removal_category` are thin wrappers so the two can't drift.
+Each dropped trail carries `removed_category` for the viewer's review buckets.
 - `mtb:scale:imba` is NOT a bike/hike signal (it's a difficulty rating on
   shared-use HIKING trails — it once silently ate all of South Mountain).
 - Bike-park flow trails: `_is_nonhiking` = `foot=no` / `mtb:type=flow|downhill`
   / non-hike piste / imba+`oneway=yes` / imba+bike-park-name.
+- **Access gate:** `is_access_blocked` drops `access=private`/`access=no`
+  (and `foot=no/private`) as category `access` — but `foot=yes/designated`
+  WINS (a gated road open to walkers stays).
 - Thru-routes: drop `kind=route` that no single park majority-contains
   (containment, in `serve/publish_areas.py::_clip_one`); keep contained
   single-park routes.
 - Thru-HIKES (AZT/PCT/CDT/Colorado Trail/Hayduke…): OSM tags them
   inconsistently, so `is_thru_hike_name()` is a **curated name registry** +
-  super-relation drop. Tags alone do NOT work — verified.
+  super-relation drop. Tags alone do NOT work — verified. Some are
+  **region-gated** (Vermont's bare `Long Trail`, NM's `Skyline Trail` collide
+  with local trails elsewhere → only thru-hikes in their own state; the sweep
+  derives region from the slug suffix).
 - Geometry: trim dangling out-of-park tails but keep in→gap→in connectors
   (`_trim_to_parks`); non-route trails kept WHOLE in each park they touch.
 - Motorized/junk: `is_motorized_name` (incl. 4x4/motorcycle), road codes,
   grid addresses, `is_offtrail_name`, ≤2-char stub names.
-- `scripts/sweep-geom-names.py` re-applies the name filters to published
-  geom — reaches areas the publisher SKIPS (no boundary in extract), whose
-  stale geom otherwise keeps old junk forever.
+- **Utility corridors:** `is_utility_corridor_name` — bare powerline /
+  pipeline / gas-line / aqueduct ROWs; `…Trail`-suffixed ones kept. NOT 'Row'
+  (Stone/Greek/Skid Row are place names).
+- **Non-trail features:** `is_nontrail_feature_name` — sidewalks / runways /
+  taxiways HARD, ski-lift lines (`Lift 8 Tower`) / bare parking SOFT (a
+  `…Trail` path spares them).
+- **Named roads (REVIEWABLE bucket):** `is_named_road_name` — bare `… Road /
+  Rd / Highway`. Uses ONLY unambiguous road words (NOT Drive/Avenue/Street —
+  that auto-keeps `Leif Erikson Drive`, `Park Avenue Trail`); spares `…Trail`
+  and Acadia `Carriage Road`s. Drop-by-default but eyeball-to-rescue
+  (washed-out roads still hiked).
+- `scripts/sweep-geom-names.py` re-applies the NAME filters (not the tag ones —
+  published geom has no tags) to published geom — reaches areas the publisher
+  SKIPS (no boundary in extract), whose stale geom otherwise keeps old junk
+  forever. Always `--dry-run` + eyeball first.
+
+**QA review tooling (built to cut eyeball time — see `trailforge/viewer/`):**
+the viewer's "Removed" layer is bucketed **per `removed_category`** (color +
+count + checkbox — judge a whole class at once). "Changed since last run"
+shows only the diff vs the last assemble (each trail has a stable `ckey` =
+sorted member OSM ways; assemble writes `.curation.json` snapshot +
+`.curation-diff.json`). "Ingest-filtered (named)" surfaces NAMED ways a TAG
+gate dropped BEFORE assembly (`.ingest-dropped.geojson`), bucketed — the
+`road-track-name` bucket is the false-negative-risk one to CHECK. `make
+assemble REGION=xx` passes region so the viewer matches what ships.
 
 **Publish flow:** CI is the norm — `trailforge-publish.yml` (single state)
 and `trailforge-publish-batch.yml` (`states: a,b,c` or `all`). **Default
@@ -77,20 +112,26 @@ dispatches from the Actions UI. Trailforge paths have NO CI gate; iOS paths
 do (`ios-pr-build`, must be green before merge). TestFlight upload is
 manual `workflow_dispatch` only — never re-enable auto-trigger.
 
-**Recent app UX (all shipped):** tap a trail in the list = highlight only
-(no popup) + toggles selection; the selected row's checkmark becomes a
-**Record** button; three-dots GPX export is selection-aware ("Export
-<trail>" when one's selected, else whole area). Tabs are now Explore ·
-Browse · **Stats** · Settings. A faint Tonto trail-mesh backdrop
-(`TrailMeshBackground`, Settings→Appearance toggle) is merged but **not
-rendering on device yet** — deferred/WIP.
+**Recent app UX (all shipped/merged to main):** tap a trail = highlight only
++ toggles selection; selected row's checkmark becomes a **Record** button;
+three-dots GPX export is selection-aware. Tabs are Explore · Browse · **Stats**
+· Settings. **Out-of-region waitlist** (`RegionSupport` gates on
+`Locale.current.region`; `WaitlistCard` on the Explore/Home tab captures
+country + email to **PostHog** — no separate backend): now has a **beta-tester
+toggle** (`beta_interest`) and a **"Look around US & Canada"** button that
+jumps to Browse (#352/#353). **Browse trail search** results now draw the
+single trail's linework, not the whole area's (#354). Faint Tonto trail-mesh
+backdrop is merged but **not rendering on device** — deferred/WIP. All these
+ship in the NEXT TestFlight build (manual `ios-testflight` dispatch).
 
-**Backlog (see the session task list):** (1) filter named roads
-(`Cub Creek Road`) + bare features (`Powerline`/`Sidewalk`/`Ski Trail`),
-guarding false-positives (`Park Avenue Trail`, `Grand Ditch Trail`);
+**Backlog (see the session task list):** (1) **named roads** — the reviewable
+`named-road` bucket now collects 407 candidates; the remaining call is your
+viewer eyeball (rescue washed-out-roads-still-hiked like `Dosewallips River
+Road`) — plus ditches / stock-driveways per the research decision table;
 (2) elevation-based difficulty from a global DEM (Copernicus GLO-30 / AWS
 terrarium tiles) — see `trailforge/SPEC.md §6e`. Current difficulty is a
-weak length bucket.
+weak length bucket. (3) decide whether to whitelist `Powerline-Gypsum` (5.1mi,
+White River NF — dropped by the utility filter, may be a real MTB connector).
 
 **Working rhythm that's proven out:** small PR per change → for trailforge,
 merge after unit tests + a homelab/dry-run eyeball; for iOS, wait for
@@ -208,12 +249,16 @@ ios-testflight + sync-geom-to-r2 (the latter auto-runs on push to
 Cloudflare R2 bucket `trekdex-areas`. Already covers geom +
 silhouettes. Does NOT yet cover `index.json`.
 
-**Recent main HEAD (as of 2026-05-19):**
-- `f899bdac` — feat: drop minimum iOS target 26 → 18 with Liquid Glass fallback (#165)
-- `914dba23` — docs: add CLAUDE.md primer for fresh sessions (#164)
-- `fd041e99` — fix: Reset All Progress re-presents onboarding (#163)
-- `7422232e` — fix: Reset and Import refresh in-memory state (#162)
-- `b1993868` — Revert: data-export-import + Reset (#161)
+**Recent main HEAD (as of 2026-07-11):**
+- `1112b173` — trailforge: named-road reviewable bucket
+- `2f67584f` — trailforge: split ingest track-drops (tag vs name) + per-bucket toggles
+- `6d25f509` — trailforge: viewer surfaces named ways dropped by ingest tag-gates
+- `fe65a233` — trailforge: access gate + non-trail-feature filter + guard net
+- `0be36e26` — trailforge: review-time tooling (per-reason buckets + run-to-run diff)
+- `d8293ec1` — trailforge: prune 6 empty areas from the index
+- `e87919b7` — Waitlist: beta-tester opt-in + "look around" CTA (#352)
+Earlier iOS baseline: `f899bdac` dropped min iOS target 26 → 18 (Liquid Glass
+fallback in `Utilities/GlassCompat.swift`).
 
 ## Current goals
 

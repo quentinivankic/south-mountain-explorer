@@ -106,23 +106,86 @@ def _inside_mi(g, area_union):
     return sum(model.line_mi([(c[0], c[1]) for c in ln.coords]) for ln in parts)
 
 
-def _clip_one(g, f, area_union, min_inside_mi):
-    """A NON-route trail belongs to (and is kept WHOLE in) an area if a
-    meaningful part of it is inside: at least `min_inside_mi` OR the majority of
-    the trail's length. The absolute floor catches boundary-straddlers of long
-    trails; the majority test keeps a SHORT trail that lives entirely in the
-    park (a 0.12mi connector whose whole length is under min_inside_mi — not a
-    graze). Only a long trail with a small nub inside falls through both.
+def _line_geom_and_mi(lines):
+    """(MultiLineString geojson, rounded miles) from a list of coord-lists."""
+    mi = round(sum(model.line_mi(l) for l in lines), 3)
+    geom = {"type": "MultiLineString",
+            "coordinates": [[list(p) for p in l] for l in lines]}
+    return geom, mi
 
-    Kept unmodified so a nested designation (a trail in both Saguaro NP and
-    Saguaro Wilderness) and a boundary-straddler both show as the real trail.
-    Thru-routes are decided globally in the containment pre-pass, not here."""
+
+def _trim_to_parks(g, all_parks):
+    """Trim only the DANGLING ends of a trail that hang outside every park — a
+    residential/unmanaged dead-end like DC-Ray Connector running into a
+    neighbourhood. Everything BETWEEN the first and last point where the trail
+    touches a park is kept, so an in->gap->in trail that links two parks stays
+    whole (the connecting gap is not a dangle). Returns (lines, miles); ([], 0)
+    if the trail never touches a park.
+
+    Per component: keep the sub-line between the first and last in-park vertex
+    (linear-referenced onto the component). A component entirely outside every
+    park is dropped; a dangling tail past the last park-contact is trimmed; a
+    mid-trail gap survives because it sits between two in-park contacts."""
+    from shapely.geometry import LineString, MultiLineString, Point
+    from shapely.ops import substring
+    comps = list(g.geoms) if isinstance(g, MultiLineString) else [g]
+    out = []
+    for comp in comps:
+        if not isinstance(comp, LineString) or comp.length == 0:
+            continue
+        try:
+            inside = comp.intersection(all_parks)
+        except Exception:  # noqa: BLE001 — invalid geometry
+            continue
+        parts = areamod._line_parts(inside)
+        if not parts:
+            continue                      # component never touches a park
+        ds = [comp.project(Point(c)) for ln in parts for c in ln.coords]
+        seg = substring(comp, min(ds), max(ds))
+        segs = list(seg.geoms) if isinstance(seg, MultiLineString) else [seg]
+        for s in segs:
+            if isinstance(s, LineString) and s.length > 0:
+                out.append([(x, y) for x, y in s.coords])
+    return out, sum(model.line_mi(l) for l in out)
+
+
+def _clamped_feature(g, f, all_parks, cache):
+    """Feature with its dangling out-of-park ends trimmed (see _trim_to_parks),
+    length_mi updated to the trimmed length (full_length_mi + clipped flag kept
+    when it shrank). Returns (feature, clamped_mi), or (None, 0) if the trail
+    touches no park. The trim is cached per trail (same for every area)."""
+    key = id(f)
+    if key not in cache:
+        cache[key] = _trim_to_parks(g, all_parks)
+    lines, clamped_mi = cache[key]
+    if not lines:
+        return None, 0.0
+    geom, mi = _line_geom_and_mi(lines)
+    props = dict(f["properties"])
+    full = props.get("length_mi")
+    props["length_mi"] = mi
+    # Only flag genuine clipping — a fully-in-park trail is unchanged, but
+    # shapely's intersection nudges coords, so ignore sub-~50ft float noise.
+    if full is not None and full - mi > 0.01:
+        props["full_length_mi"] = full
+        props["clipped"] = True
+    return {**f, "properties": props, "geometry": geom}, clamped_mi
+
+
+def _clip_one(g, f, area_union, min_inside_mi, all_parks, cache):
+    """Decide + shape a NON-route trail for one area. Geometry is clamped to the
+    all-parks union (residential tails dropped, cross-park stretches kept).
+    Membership needs a meaningful in-area portion — at least `min_inside_mi` OR
+    the majority of the CLAMPED length. Measuring against the clamped length
+    (not the raw length) is what brings back a trail like DC-Ray whose entire
+    park-portion sits in this one park but was dwarfed by a residential tail.
+    Returns the clamped feature or None."""
+    feat, clamped_mi = _clamped_feature(g, f, all_parks, cache)
+    if feat is None:
+        return None
     inside = _inside_mi(g, area_union)
-    if inside >= min_inside_mi:
-        return f
-    total = f["properties"].get("length_mi") or _inside_mi(g, g.envelope) or 0.0
-    if total and inside >= _MAJORITY * total:
-        return f
+    if inside >= min_inside_mi or (clamped_mi and inside >= _MAJORITY * clamped_mi):
+        return feat
     return None
 
 
@@ -252,6 +315,13 @@ def main(argv=None) -> int:
         u = unary_union([geoms[n] for n in siblings(primary)])
         area_unions[slug] = (u, u.bounds)
 
+    # Union of EVERY park — the clamp target. A trail's geometry outside this
+    # (a residential/unmanaged tail) is clipped off; geometry inside any park
+    # (including a neighbour park it crosses into) is kept. Clamp is cached per
+    # trail in clamp_cache. `all_parks` is None only when no area has a boundary.
+    all_parks = unary_union([u for u, _ in area_unions.values()]) if area_unions else None
+    clamp_cache = {}
+
     # THRU-ROUTE decision (global, geometric, nesting-immune). A route is a real
     # trail for a park only if that park holds the MAJORITY of its length; a
     # route no single park mostly contains is a traverse (AZT/Maricopa/Hayduke)
@@ -292,10 +362,11 @@ def main(argv=None) -> int:
         if args.limit and count >= args.limit:
             break
         meta = az[slug]
-        # Every trail whose bbox overlaps the area is a candidate. A kept route
-        # lands WHOLE only in its home park(s); a non-route is kept whole if it
-        # clears the graze filter. Dedupe by merge_key so two same-name objects
-        # reaching the same park don't both land.
+        # Every trail whose bbox overlaps the area is a candidate. All geometry
+        # is clamped to the all-parks union (residential tails off, cross-park
+        # stretches kept). A kept route lands in its home park(s); a non-route
+        # needs a meaningful in-area portion. Dedupe by merge_key so two
+        # same-name objects reaching the same park don't both land.
         clipped, have = [], set()
         for (bx0, by0, bx1, by1), g, f in all_shapes:
             if bx1 < ux0 or bx0 > ux1 or by1 < uy0 or by0 > uy1:
@@ -303,9 +374,11 @@ def main(argv=None) -> int:
             if f["properties"].get("kind") == "route":
                 if slug not in route_home.get(id(f), ()):
                     continue
-                r = f                        # whole route, only in its home park(s)
+                r, _mi = _clamped_feature(g, f, all_parks, clamp_cache)
+                if r is None:
+                    continue
             else:
-                r = _clip_one(g, f, union, args.min_inside_mi)
+                r = _clip_one(g, f, union, args.min_inside_mi, all_parks, clamp_cache)
                 if r is None:
                     continue
             k = model.merge_key(r["properties"].get("name") or "")

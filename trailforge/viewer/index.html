@@ -254,14 +254,25 @@ map.on("load", async () => {
     ? `../data/golden.removed.geojson`
     : `../data/aoi/${AOI}.removed.geojson`;
   const removed = await maybeJSON(removedUrl);
-  if (removed && removed.features.length) {
-    map.addSource("removed", { type: "geojson", data: removed, generateId: true });
+  // Thru-routes the PUBLISHER dropped (they span parks with no majority home)
+  // live in a sidecar the assembler doesn't write. Merge them into the same
+  // removed layer so this panel covers curation removals AND dropped
+  // thru-hikes — both carry a plain-language removed_reason.
+  const droppedRoutes = AOI === "golden"
+    ? null : await maybeJSON(`../data/aoi/${AOI}.dropped-routes.geojson`);
+  const removedFeatures = [
+    ...((removed && removed.features) || []),
+    ...((droppedRoutes && droppedRoutes.features) || []),
+  ];
+  if (removedFeatures.length) {
+    const removedData = { type: "FeatureCollection", features: removedFeatures };
+    map.addSource("removed", { type: "geojson", data: removedData, generateId: true });
     map.addLayer({ id: "removed-lines", source: "removed", type: "line",
       layout: { "line-cap": "round", "line-join": "round", visibility: "none" },
       paint: { "line-color": "#b3261e", "line-width": 2, "line-opacity": 0.9,
                "line-dasharray": [1.5, 1.5] } });
     const rc = document.getElementById("removed-count");
-    if (rc) rc.textContent = `(${removed.features.length})`;
+    if (rc) rc.textContent = `(${removedFeatures.length})`;
     map.on("mouseenter", "removed-lines", () => map.getCanvas().style.cursor = "pointer");
     map.on("mouseleave", "removed-lines", () => map.getCanvas().style.cursor = "");
     map.on("click", "removed-lines", (e) => {

@@ -48,6 +48,7 @@
     <span class="swatch" style="background:#ffd400"></span>Changed since last run <span id="diff-count" class="mi"></span></label>
   <label><input type="checkbox" id="toggle-ingest" />
     <span class="swatch" style="background:#00695c"></span>Ingest-filtered (named, tag rules) <span id="ingest-count" class="mi"></span></label>
+  <div id="ingest-cats" style="margin:0 0 2px 18px; font-size:12px;"></div>
   <label><input type="checkbox" id="toggle-inarea" />
     <span class="swatch" style="background:#e6521f;opacity:.35"></span>Only trails in an area</label>
   <label><input type="checkbox" id="toggle-clip" />
@@ -546,9 +547,12 @@ map.on("load", async () => {
                : await maybeJSON(`../data/aoi/${AOI}.ingest-dropped.geojson`);
   if (ingest && ingest.features && ingest.features.length) {
     map.addSource("ingest", { type: "geojson", data: ingest, generateId: true });
+    // 'road-track-name' (a track dropped only because its NAME looks road-like)
+    // is the fuzzy, false-negative-risk bucket — deep orange to stand out. The
+    // rest are unambiguous tag drops.
     const ICOL = { "sidewalk": "#8e8e8e", "indoor/trail=no": "#8e8e8e",
-      "road-like-track": "#6d4c41", "motorized-tag": "#d81b60",
-      "non-hiking-tag": "#00838f" };
+      "road-track-tag": "#6d4c41", "road-track-name": "#e65100",
+      "motorized-tag": "#d81b60", "non-hiking-tag": "#00838f" };
     const iexpr = ["match", ["get", "removed_category"]];
     for (const [k, v] of Object.entries(ICOL)) iexpr.push(k, v);
     iexpr.push("#00695c");
@@ -558,6 +562,32 @@ map.on("load", async () => {
                "line-dasharray": [0.5, 2] } });
     const ic = document.getElementById("ingest-count");
     if (ic) ic.textContent = `(${ingest.features.length})`;
+
+    // Per-category buckets, same as Removed — so you can show JUST
+    // 'road-track-name' (the handful worth checking) and hide the noise.
+    const iCounts = {};
+    for (const f of ingest.features) {
+      const c = (f.properties && f.properties.removed_category) || "?";
+      iCounts[c] = (iCounts[c] || 0) + 1;
+    }
+    const iEnabled = new Set(Object.keys(iCounts));
+    const applyIngestFilter = () => map.getLayer("ingest-lines") &&
+      map.setFilter("ingest-lines",
+        ["in", ["get", "removed_category"], ["literal", [...iEnabled]]]);
+    const iBox = document.getElementById("ingest-cats");
+    if (iBox) {
+      for (const c of Object.keys(iCounts).sort((a, b) => iCounts[b] - iCounts[a])) {
+        const lab = document.createElement("label");
+        lab.innerHTML = `<input type="checkbox" checked />` +
+          `<span class="swatch" style="background:${ICOL[c] || "#00695c"}"></span>` +
+          `${c} <span class="mi">(${iCounts[c]})</span>`;
+        iBox.appendChild(lab);
+        lab.querySelector("input").onchange = (e) => {
+          if (e.target.checked) iEnabled.add(c); else iEnabled.delete(c);
+          applyIngestFilter();
+        };
+      }
+    }
     map.on("mouseenter", "ingest-lines", () => map.getCanvas().style.cursor = "pointer");
     map.on("mouseleave", "ingest-lines", () => map.getCanvas().style.cursor = "");
     map.on("click", "ingest-lines", (e) => {

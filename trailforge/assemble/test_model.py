@@ -646,7 +646,9 @@ class Classification(unittest.TestCase):
         self.assertEqual(m.ingest_drop_reason({"highway": "path", "foot": "no"})[0],
                          "non-hiking-tag")
         self.assertEqual(m.ingest_drop_reason(
-            {"highway": "track", "motor_vehicle": "yes"})[0], "road-like-track")
+            {"highway": "track", "motor_vehicle": "yes"})[0], "road-track-tag")
+        self.assertEqual(m.ingest_drop_reason(
+            {"highway": "track", "name": "Maxwell Ranch Road"})[0], "road-track-name")
         # _is_trailish must stay consistent with ingest_drop_reason (no drift).
         for tags in ({"highway": "path"}, {"highway": "path", "foot": "no"},
                      {"highway": "footway", "footway": "sidewalk"},

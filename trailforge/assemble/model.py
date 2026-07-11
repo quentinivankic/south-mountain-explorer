@@ -1383,24 +1383,36 @@ def _is_nonhiking(tags: dict) -> bool:
     return False
 
 
-def _road_like_track(tags: dict) -> bool:
+def _road_like_track_kind(tags: dict) -> str | None:
+    """Why a highway=track reads as a road, or None. 'tag' = an unambiguous
+    hard signal (motor_vehicle / motorcar / 2+ lanes). 'name' = only its NAME
+    looks road-like (a Road/Drive/Ditch suffix, an FR-code, a PLSS grid). The
+    split matters for review: a 'name' drop is the fuzzy one that could eat a
+    real trail mis-tagged as a track, so the viewer flags it CHECK; a 'tag'
+    drop is a real road."""
     if tags.get("highway") != "track":
-        return False
+        return None
     if str(tags.get("motor_vehicle", "")).strip().lower() in {"yes", "designated"}:
-        return True
+        return "tag"
     if str(tags.get("motorcar", "")).strip().lower() == "yes":
-        return True
+        return "tag"
     # 2+ lanes = a drivable road, not a foot trail (e.g. the sand service
     # road through South Mountain Park mis-named after the park itself).
     try:
         if int(str(tags.get("lanes", "")).strip()) >= 2:
-            return True
+            return "tag"
     except ValueError:
         pass
     name = str(tags.get("name", "") or "")
-    return bool(_GRID_ROAD.match(name)        # "3900 East"
-                or _FOREST_ROAD.match(name)   # "NF-418C", "BLM 1048"
-                or _ROAD_NAME.search(name))    # "7th Street", "Holley Lane"
+    if (_GRID_ROAD.match(name)          # "3900 East"
+            or _FOREST_ROAD.match(name)  # "NF-418C", "BLM 1048"
+            or _ROAD_NAME.search(name)):  # "7th Street", "Holley Lane"
+        return "name"
+    return None
+
+
+def _road_like_track(tags: dict) -> bool:
+    return _road_like_track_kind(tags) is not None
 
 
 def ingest_drop_reason(tags: dict) -> tuple[str, str] | None:
@@ -1417,10 +1429,16 @@ def ingest_drop_reason(tags: dict) -> tuple[str, str] | None:
         return ("sidewalk", "footway=sidewalk / =crossing — pavement, not a trail.")
     if tags.get("indoor") == "yes" or tags.get("trail") == "no":
         return ("indoor/trail=no", "tagged indoor=yes or trail=no.")
-    if _road_like_track(tags):
-        return ("road-like-track",
-                "highway=track tagged or named as a drivable / utility road "
-                "(motor_vehicle, 2+ lanes, or a road-suffix name).")
+    rk = _road_like_track_kind(tags)
+    if rk == "tag":
+        return ("road-track-tag",
+                "highway=track marked for motor vehicles / multi-lane — a "
+                "drivable road, not a foot trail.")
+    if rk == "name":
+        return ("road-track-name",
+                "highway=track whose NAME reads as a road (a Road/Drive/Ditch "
+                "suffix, an FR-code, or a PLSS grid address). CHECK — a real "
+                "trail mis-tagged as a track would land here.")
     if _is_motorized(tags):
         return ("motorized-tag",
                 "tagged for motor vehicles — atv / ohv / 4wd / motor_vehicle.")

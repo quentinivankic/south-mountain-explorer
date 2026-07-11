@@ -498,6 +498,9 @@ def removal_reason(trail: "Trail", min_length_mi: float = 0.0) -> str | None:
     if is_road_code_name(name):
         return ("Bare road/ref code, not a trail name — nothing but an agency "
                 "or OSM reference number (e.g. 'FR 231', 'CR 12', '9A').")
+    if name is not None and len(name.strip()) <= 2:
+        return ("No real name — a 1–2 character stub or agency abbreviation "
+                "('FR', 'FS', 'BR', '?'), not a trail name.")
     if is_offtrail_name(name):
         return ("Agency road or non-trail feature, not a foot trail — a Forest "
                 "Service / National Forest / FSR / NF / IDL / BIA road, or a "
@@ -1124,7 +1127,7 @@ def is_offtrail_name(name: str | None) -> bool:
     return False
 
 
-_MOTORIZED_NAME = re.compile(r"\b(ATV|OHV|UTV|4WD|snowmobile|jeep)\b", re.IGNORECASE)
+_MOTORIZED_NAME = re.compile(r"\b(ATV|OHV|UTV|4WD|4x4|snowmobile|jeep|motorcycle)\b", re.IGNORECASE)
 
 
 def is_motorized_name(name: str | None) -> bool:

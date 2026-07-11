@@ -87,15 +87,25 @@ def _sig_tokens(name: str) -> set[str]:
             if t and t not in _AREA_STOPWORDS}
 
 
-def _clip_one(g, f, area_union, min_inside_mi, route_clamp_mi):
-    """Decide one trail's presence in an area. A trail belongs to an area if its
-    geometry enters the boundary with at least `min_inside_mi` inside (filters
-    boundary grazes). A ROUTE-scale trail (kind=route OR full length >=
-    route_clamp_mi) is CLAMPED to its in-park segment — we never drop a whole
-    thru-route into a park it merely crosses. A local named trail is kept WHOLE
-    (full geometry + full length) so a boundary-straddler like South Sixmile
-    Canyon shows as the real trail, not a clipped sliver. Returns the output
-    feature or None."""
+def _clip_one(g, f, area_union, min_inside_mi):
+    """Decide one trail's presence in an area.
+
+    Thru-routes (kind=route — the OSM route-relation signal that marks
+    PCT/AZT/Maricopa and the like) are DROPPED entirely: giant traverses
+    are out of the completion checklist, and dropping them (rather than
+    clipping) means they never leave sub-mile "pokers" in every park they
+    cross. There is deliberately NO length threshold here — the route
+    relation tag is the authoritative, non-arbitrary signal; a genuinely
+    long single trail (kind=trail) is still a real trail and stays.
+
+    Every other trail belongs to each area whose boundary its geometry
+    enters by at least `min_inside_mi` (a graze filter, the only knob) and
+    is kept WHOLE — full geometry and length, unmodified — so a nested
+    designation (a trail in both Saguaro NP and Saguaro Wilderness) and a
+    boundary-straddler (South Sixmile Canyon) both show as the real trail.
+    Returns the feature unchanged, or None to drop it from this area."""
+    if f["properties"].get("kind") == "route":
+        return None
     try:
         inter = g.intersection(area_union)
     except Exception:  # noqa: BLE001 — invalid geometry
@@ -107,20 +117,7 @@ def _clip_one(g, f, area_union, min_inside_mi, route_clamp_mi):
     inside_mi = round(sum(model.line_mi(l) for l in inside_lines), 3)
     if inside_mi < min_inside_mi:
         return None
-    props = dict(f["properties"])
-    full = props.get("length_mi")
-    is_route = (props.get("kind") == "route"
-                or (full is not None and full >= route_clamp_mi))
-    if is_route:
-        props["length_mi"] = inside_mi
-        if full is not None and abs(full - inside_mi) > 1e-6:
-            props["full_length_mi"] = full
-            props["clipped"] = True
-        geom = {"type": "MultiLineString",
-                "coordinates": [[list(p) for p in l] for l in inside_lines]}
-    else:
-        geom = f["geometry"]                 # keep the whole trail
-    return {**f, "properties": props, "geometry": geom}
+    return f                                 # keep the whole trail, unmodified
 
 
 def main(argv=None) -> int:
@@ -133,13 +130,12 @@ def main(argv=None) -> int:
     ap.add_argument("--min-inside-mi", type=float, default=0.25,
                     help="a trail needs at least this many miles inside the area "
                          "to be included (filters boundary grazes)")
-    ap.add_argument("--route-clamp-mi", type=float, default=30.0,
-                    help="a trail this long (or kind=route) is route-scale: CLAMP "
-                         "it to its in-park segment instead of keeping it whole")
-    ap.add_argument("--no-routes", action="store_true")
+    ap.add_argument("--no-routes", action="store_true",
+                    help="(default behavior) drop kind=route thru-hikes; kept as an "
+                         "accepted no-op so existing dispatchers don't break")
     ap.add_argument("--multi-area-report", action="store_true",
-                    help="diagnostic: list NON-route trails that touch >=2 areas "
-                         "(does a 'one home park' rule lose anything?). Writes nothing.")
+                    help="diagnostic: list trails that touch >=2 areas — the nested "
+                         "designations 'one home park' would wrongly strip. Writes nothing.")
     ap.add_argument("--limit", type=int, help="only publish the first N areas (a first wave)")
     ap.add_argument("--dry-run", action="store_true", help="report matches; write nothing")
     args = ap.parse_args(argv)
@@ -251,14 +247,14 @@ def main(argv=None) -> int:
         union = unary_union([geoms[n] for n in sib])
         ux0, uy0, ux1, uy1 = union.bounds
         # Every trail whose bbox overlaps the area is a candidate; _clip_one
-        # decides in/out (>= min_inside), keep-whole (local trail) vs clamp
-        # (route-scale). Dedupe by merge_key so two same-name objects reaching
-        # the same park don't both land.
+        # decides in/out (>= min_inside), drops thru-routes (kind=route), and
+        # keeps every other trail WHOLE. Dedupe by merge_key so two same-name
+        # objects reaching the same park don't both land.
         clipped, have = [], set()
         for (bx0, by0, bx1, by1), g, f in all_shapes:
             if bx1 < ux0 or bx0 > ux1 or by1 < uy0 or by0 > uy1:
                 continue
-            r = _clip_one(g, f, union, args.min_inside_mi, args.route_clamp_mi)
+            r = _clip_one(g, f, union, args.min_inside_mi)
             if r is None:
                 continue
             k = model.merge_key(r["properties"].get("name") or "")
@@ -323,32 +319,27 @@ def main(argv=None) -> int:
                 print(f"      DUP-NAME: {nm}")
 
     if args.multi_area_report:
-        # A "one home park" rule places each trail in a single area (argmax
-        # overlap). It only LOSES something for a trail that legitimately sits
-        # in >=2 areas. Routes are expected to (they're being dropped anyway);
-        # the real question is how many NON-route trails span parks.
-        route_full = args.route_clamp_mi
-        def _is_route(m):
-            return m["kind"] == "route" or (m["full"] is not None and m["full"] >= route_full)
-        multi = [m for m in membership.values() if len(set(m["slugs"])) >= 2]
-        non_route = sorted((m for m in multi if not _is_route(m)),
-                           key=lambda m: -len(set(m["slugs"])))
-        routes = [m for m in multi if _is_route(m)]
+        # Routes are already dropped in _clip_one, so `membership` is all
+        # keep-whole trails. A trail sitting in >=2 areas is almost always a
+        # nested designation (wilderness inside a park, a monument over a
+        # forest) — which is why we credit every area it enters instead of
+        # forcing one "home park". This lists them so that stays visible.
         from collections import Counter
-        dist = Counter(len(set(m["slugs"])) for m in non_route)
+        multi = sorted((m for m in membership.values() if len(set(m["slugs"])) >= 2),
+                       key=lambda m: -len(set(m["slugs"])))
+        dist = Counter(len(set(m["slugs"])) for m in multi)
         print(f"\n=== multi-area report ===")
-        print(f"trails touching >=2 areas: {len(multi)}  "
-              f"({len(non_route)} non-route, {len(routes)} route-scale)")
-        print(f"non-route span distribution (n areas -> trails):")
+        print(f"trails touching >=2 areas: {len(multi)}")
+        print(f"span distribution (n areas -> trails):")
         for n in sorted(dist):
             print(f"  {n} areas: {dist[n]}")
-        print(f"\nnon-route trails in >=2 areas (name — miles — areas):")
-        for m in non_route[:60]:
+        print(f"\ntrails in >=2 areas (name — miles — areas):")
+        for m in multi[:60]:
             slugs = sorted(set(m["slugs"]))
             mi = f"{m['full']:.2f}mi" if m["full"] is not None else "?"
             print(f"  {m['name']!r} — {mi} — {', '.join(slugs)}")
-        if len(non_route) > 60:
-            print(f"  … and {len(non_route) - 60} more")
+        if len(multi) > 60:
+            print(f"  … and {len(multi) - 60} more")
     return 0
 
 

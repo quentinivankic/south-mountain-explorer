@@ -161,12 +161,12 @@ class NameStitch(unittest.TestCase):
         self.assertIn("Pyramid Trail", names)
 
     def test_min_length_drops_short_trails(self):
-        ways = {1: W([1, 2], highway="path", name="Stub"),        # ~tiny
-                2: W([3, 4], highway="path", name="Long Trail")}  # ~1 deg lat = 69mi
+        ways = {1: W([1, 2], highway="path", name="Stub"),         # ~tiny
+                2: W([3, 4], highway="path", name="Ridgeline Trail")}  # ~1 deg lat = 69mi
         nodes = {1: (0, 0), 2: (0, 0.0003), 3: (0, 0), 4: (0, 1)}
         names = {t.name for t in m.assemble(nodes, ways, {}, [], min_length_mi=0.1)}
         self.assertNotIn("Stub", names)
-        self.assertIn("Long Trail", names)
+        self.assertIn("Ridgeline Trail", names)
         # with no threshold, the stub survives
         self.assertIn("Stub", {t.name for t in m.assemble(nodes, ways, {}, [])})
 
@@ -510,13 +510,32 @@ class Classification(unittest.TestCase):
                   "Continental Divide National Scenic Trail - Cottonwood South",
                   "Arizona Trail #31", "Arizona National Scenic Trail",
                   "Pacific Crest Trail (Old Snowy Alternate)", "Hayduke Crossing South",
-                  "Maricopa Trail", "Grand Enchantment Trail"):
+                  "Maricopa Trail", "Grand Enchantment Trail",
+                  # New England — distinctive names match in any region
+                  "New England Trail", "Metacomet Trail (NET)", "NET Trail (white)",
+                  "NET/M&M Trail (white)", "NET/Lone Pine Cross Trail",
+                  "Cohos Trail", "Wapack Trail", "Wapack Trail/Mid State Trail",
+                  "Mid State Trail", "Midstate Trail",
+                  "Monadnock-Sunapee Greenway", "Monadnock Sunapee Trail"):
             self.assertTrue(m.is_thru_hike_name(n), n)
-        # local trails that merely share a word must NOT match
+        # Vermont's 'Long Trail' is region-scoped — a thru-hike only in New
+        # England, so the same bare name stays a local trail in AZ/CO/NM.
+        for n in ("Long Trail", "Old Long Trail", "Long Trail Temporary Realignment"):
+            self.assertTrue(m.is_thru_hike_name(n, "vt"), n)
+            self.assertFalse(m.is_thru_hike_name(n), n)        # no region → local
+            self.assertFalse(m.is_thru_hike_name(n, "az"), n)  # AZ → local
+        # local trails that merely share a word must NOT match (any region)
         for n in ("Continental Divide Overlook", "Divide Creek Trail",
                   "Colorado River Trail", "Rainbow Trail (FS 1336)",
-                  "Arizona Hot Spring Trail: Lower Route", "Miller Peak Trail"):
+                  "Arizona Hot Spring Trail: Lower Route", "Miller Peak Trail",
+                  # bare-'Long Trail' collisions elsewhere — never the thru-hike
+                  "John Long Trail #267", "Too Long Trail", "Longmeadow Loop",
+                  # bare 'Net' word must not trip the NET abbreviation
+                  "Net Zero", "Lazy H Horse Trail Net",
+                  # Mt Monadnock's own summit trails are NOT the Greenway
+                  "Monadnock", "White Dot Trail", "White Cross Trail"):
             self.assertFalse(m.is_thru_hike_name(n), n)
+            self.assertFalse(m.is_thru_hike_name(n, "vt"), n)
 
     def test_removal_reason_names_the_rule_that_fired(self):
         # QA viewer relies on removal_reason mirroring curation's predicate

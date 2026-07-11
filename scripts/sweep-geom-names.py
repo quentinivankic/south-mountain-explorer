@@ -31,13 +31,15 @@ sys.path.insert(0, os.path.join(_ROOT, "trailforge", "assemble"))
 import model  # noqa: E402
 
 
-def drop_reason(name: str | None) -> str | None:
+def drop_reason(name: str | None, region: str | None = None) -> str | None:
     """Which NAME filter fires (mirrors model.removal_reason's name checks,
     minus the source-gated generic rule and the length rule that needs geometry
-    the assembler already applied). None = keep."""
+    the assembler already applied). None = keep. `region` (a 2-letter state
+    code, from the slug suffix) enables region-scoped thru-hike names like
+    Vermont's 'Long Trail' — see model.is_thru_hike_name."""
     if model.is_closed_name(name):
         return "closed"
-    if model.is_thru_hike_name(name):
+    if model.is_thru_hike_name(name, region):
         return "thru-hike"
     if model.is_road_code_name(name):
         return "road-code"
@@ -87,14 +89,19 @@ def main(argv=None) -> int:
             continue
         if "cached_at" in d:           # System-1 legacy — leave it
             continue
+        slug = os.path.splitext(os.path.basename(path))[0]
+        # Slugs carry the state as a trailing '-xx' suffix (…-vt, …-nm) — the
+        # region context region-scoped thru-hike names (Vermont's 'Long Trail')
+        # need to avoid eating same-named local trails elsewhere.
+        tail = slug.rsplit("-", 1)[-1]
+        region = tail if len(tail) == 2 and tail.isalpha() else None
         ts = d.get("trails") or []
         kept, dropped = [], []
         for t in ts:
-            r = drop_reason(t.get("name"))
+            r = drop_reason(t.get("name"), region)
             (dropped if r else kept).append((t, r))
         if not any(r for _, r in dropped):
             continue
-        slug = os.path.splitext(os.path.basename(path))[0]
         for t, r in dropped:
             reasons[r] += 1
             if len(removed_examples) < 60:

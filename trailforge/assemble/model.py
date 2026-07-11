@@ -161,14 +161,46 @@ _THRU_HIKE_RE = re.compile(
     r"|tahoe rim trail"
     r"|oregon coast trail"
     r"|idaho centennial trail"
-    r")\b",
+    # New England — distinctive names that don't collide with local trails
+    r"|new england trail"
+    r"|metacomet"
+    r"|cohos trail"
+    r"|wapack trail"
+    r"|mid\s*state trail"
+    r"|monadnock[\s-]sunapee"
+    r")\b"
+    # NET only in its real abbreviated forms ('NET/M&M Trail', 'NET Trail
+    # (white)', 'Metacomet Trail (NET)') — never a bare 'Net' word, which would
+    # eat 'Net Zero' and 'Lazy H Horse Trail Net'.
+    r"|\bnet\s*/|\bnet trail\b|\(net\)",
     re.IGNORECASE)
 
+# Ambiguous bare names: also the name of unrelated local trails elsewhere.
+# 'Long Trail' is both Vermont's 272-mi thru-hike AND a 1-mi loop in Bandelier
+# NM, a 'John Long Trail' in AZ, a 'Too Long Trail' in CO — name-only can't tell
+# them apart, so match them only in the region that owns the thru-hike. Anchored
+# at the start so 'John Long Trail' / 'Too Long Trail' never match.
+_NEW_ENGLAND = frozenset({"vt", "nh", "ma", "me", "ct", "ri"})
+_THRU_HIKE_REGIONAL = (
+    (_NEW_ENGLAND, re.compile(r"^(old )?long trail\b", re.IGNORECASE)),
+)
 
-def is_thru_hike_name(name: str | None) -> bool:
+
+def is_thru_hike_name(name: str | None, region: str | None = None) -> bool:
     """True if the name is a famous long-distance thru-hike (or a numbered
-    segment / name-stitched piece of one) — see _THRU_HIKE_RE."""
-    return bool(_THRU_HIKE_RE.search(name or ""))
+    segment / name-stitched piece of one). Distinctive names (_THRU_HIKE_RE)
+    match in any region; ambiguous bare names that collide with unrelated local
+    trails match only in the region that owns them, so `region` (a 2-letter
+    state code) must be supplied to catch those — see _THRU_HIKE_REGIONAL."""
+    n = name or ""
+    if _THRU_HIKE_RE.search(n):
+        return True
+    if region:
+        r = region.lower()
+        for states, rx in _THRU_HIKE_REGIONAL:
+            if r in states and rx.search(n):
+                return True
+    return False
 
 
 def classify_kind(name: str | None, tags: dict) -> str:
@@ -482,16 +514,19 @@ def _terminal_nodes(chains: list[list[int]], ways: dict) -> list[int]:
     return ends
 
 
-def removal_reason(trail: "Trail", min_length_mi: float = 0.0) -> str | None:
+def removal_reason(trail: "Trail", min_length_mi: float = 0.0,
+                   region: str | None = None) -> str | None:
     """Plain-language reason curation would drop this trail, or None if it's
     kept. The checks and their ORDER mirror the curation predicate in
     assemble() exactly — first match wins, so the reason names the actual
-    rule that fired. Used to surface removals in the QA viewer."""
+    rule that fired. Used to surface removals in the QA viewer. `region` (a
+    2-letter state code) enables region-scoped thru-hike names like Vermont's
+    'Long Trail' — see is_thru_hike_name."""
     name = trail.name
     if is_closed_name(name):
         return ("Marked closed in OSM — the name itself says CLOSED "
                 "(e.g. 'CLOSED - old Pyramid Trail').")
-    if is_thru_hike_name(name):
+    if is_thru_hike_name(name, region):
         return ("Long-distance thru-hike, not a single completable trail — a "
                 "named national/regional route (PCT, CDT, Colorado Trail, "
                 "Hayduke, Arizona Trail, …) or one of its numbered segments.")
@@ -526,7 +561,8 @@ def removal_reason(trail: "Trail", min_length_mi: float = 0.0) -> str | None:
 def assemble(nodes: dict, ways: dict, relations: dict,
              pois: list[dict], min_length_mi: float = 0.0,
              areas: list[dict] | None = None,
-             collect_removed: list | None = None) -> list[Trail]:
+             collect_removed: list | None = None,
+             region: str | None = None) -> list[Trail]:
     trails: list[Trail] = []
     claimed: set[int] = set()
 
@@ -626,7 +662,7 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     #    spares its object. min_length_mi<=0 keeps everything.
     kept = []
     for t in merged:
-        reason = removal_reason(t, min_length_mi)
+        reason = removal_reason(t, min_length_mi, region)
         if reason is None:
             kept.append(t)
         elif collect_removed is not None:

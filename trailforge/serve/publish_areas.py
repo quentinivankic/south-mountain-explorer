@@ -107,13 +107,23 @@ def _inside_mi(g, area_union):
 
 
 def _clip_one(g, f, area_union, min_inside_mi):
-    """A NON-route trail belongs to (and is kept WHOLE in) each area whose
-    boundary its geometry enters by at least `min_inside_mi` — a graze filter,
-    the only knob. Kept unmodified so a nested designation (a trail in both
-    Saguaro NP and Saguaro Wilderness) and a boundary-straddler (South Sixmile
-    Canyon) both show as the real trail. Thru-routes are decided globally in
-    the containment pre-pass, not here. Returns the feature or None."""
-    return f if _inside_mi(g, area_union) >= min_inside_mi else None
+    """A NON-route trail belongs to (and is kept WHOLE in) an area if a
+    meaningful part of it is inside: at least `min_inside_mi` OR the majority of
+    the trail's length. The absolute floor catches boundary-straddlers of long
+    trails; the majority test keeps a SHORT trail that lives entirely in the
+    park (a 0.12mi connector whose whole length is under min_inside_mi — not a
+    graze). Only a long trail with a small nub inside falls through both.
+
+    Kept unmodified so a nested designation (a trail in both Saguaro NP and
+    Saguaro Wilderness) and a boundary-straddler both show as the real trail.
+    Thru-routes are decided globally in the containment pre-pass, not here."""
+    inside = _inside_mi(g, area_union)
+    if inside >= min_inside_mi:
+        return f
+    total = f["properties"].get("length_mi") or _inside_mi(g, g.envelope) or 0.0
+    if total and inside >= _MAJORITY * total:
+        return f
+    return None
 
 
 def main(argv=None) -> int:

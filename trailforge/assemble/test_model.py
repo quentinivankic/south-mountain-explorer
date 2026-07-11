@@ -421,19 +421,22 @@ class Classification(unittest.TestCase):
         # bike-park flow runs + ski pistes (CO resort audit, real tags) => drop
         self.assertFalse(m._is_trailish({"highway": "path", "foot": "no"}))
         self.assertFalse(m._is_trailish({"highway": "path", "mtb:type": "flow"}))
-        # IMBA flow rating = built bike-park trail (the marker that actually caught them)
-        self.assertFalse(m._is_trailish({"highway": "path", "bicycle": "designated",
-                                         "mtb:scale:imba": "4"}))
         # ski pistes: nordic or downhill => drop
         self.assertFalse(m._is_trailish({"highway": "path", "piste:type": "downhill"}))
         self.assertFalse(m._is_trailish({"highway": "path", "piste:type": "nordic"}))
         # name literally says no hiking (tagged foot=yes, only the name gives it away)
         self.assertFalse(m._is_trailish({"highway": "path", "foot": "yes",
                                          "name": "Uphill Skinning Egress (No Hiking)"}))
-        # KEPT: shared-use hiking path (bikes allowed, no imba, hikers welcome)
+        # KEPT: shared-use hiking path (bikes allowed, hikers welcome)
         self.assertTrue(m._is_trailish({"highway": "path", "bicycle": "designated"}))
         self.assertTrue(m._is_trailish({"highway": "path", "bicycle": "yes",
                                         "mtb:scale": "2"}))
+        # KEPT: an IMBA difficulty rating is NOT a bike-park signal — South
+        # Mountain's shared-use HIKING trails (Old Man, Telegraph Pass, National
+        # Trail) are foot=yes/bicycle=yes with imba=2..4. Gating on it ate the
+        # whole network; a real bike-park run is caught by foot=no / mtb:type.
+        self.assertTrue(m._is_trailish({"highway": "path", "foot": "yes",
+                                        "bicycle": "yes", "mtb:scale:imba": "4"}))
         # KEPT: a nordic piste explicitly mapped as dual-use (nordic;hike)
         self.assertTrue(m._is_trailish({"highway": "path", "piste:type": "nordic;hike"}))
         # foot-only path (no motor tag) stays trailish at the WAY level; the

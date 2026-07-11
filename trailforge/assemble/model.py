@@ -1084,24 +1084,27 @@ def _is_motorized(tags: dict) -> bool:
 
 def _is_nonhiking(tags: dict) -> bool:
     """A purpose-built non-hiking way — a bike-park flow run or a ski piste —
-    that carries highway=path but is not a foot trail. The Colorado audit
-    (Keystone/Breck/Vail nordic centers + bike parks) surfaced these; probing
-    their real tags gave reliable markers that never appear on a genuine hike:
+    that carries highway=path but is not a foot trail. Detection uses only
+    POSITIVE exclusion signals that never appear on a genuine hike:
 
-      - mtb:scale:imba — the IMBA flow-trail difficulty rating; only built
-        MTB/bike-park trails carry it ('Gluteus Minimus', 'Holy Diver',
-        'Banzai Donwhill', 'Helter Skelter').
+      - foot=no — hikers are banned.
+      - mtb:type=flow/downhill — a built downhill/flow bike feature.
       - piste:type without 'hike' — a ski piste (nordic/downhill). A
         'nordic;hike' piste is genuinely dual-use and kept.
-      - mtb:type=flow/downhill and foot=no — built bike feature / hikers banned.
       - a name that literally says '(No Hiking)' (some are tagged foot=yes, so
         only the name gives them away).
+
+    NOT a signal: mtb:scale:imba. It was tried (the Colorado bike-park audit)
+    but it is just an IMBA difficulty RATING carried by countless shared-use
+    HIKING trails — South Mountain's whole network (Old Man, Telegraph Pass,
+    Corona de Loma, National Trail) is foot=yes/bicycle=yes with imba=2..4.
+    Gating on it silently ate every rated hiking trail. A built bike-park flow
+    run also carries foot=no or mtb:type, so the positive signals still catch
+    the genuine ones without the collateral damage.
     """
     if "no hiking" in str(tags.get("name", "")).strip().lower():
         return True
     if str(tags.get("foot", "")).strip().lower() == "no":
-        return True
-    if str(tags.get("mtb:scale:imba", "")).strip() != "":
         return True
     if str(tags.get("mtb:type", "")).strip().lower() in {"flow", "downhill"}:
         return True

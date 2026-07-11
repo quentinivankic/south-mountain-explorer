@@ -130,6 +130,13 @@ def is_generic_name(name: str | None) -> bool:
 _ROUTE_NETWORKS = {"rwn", "nwn", "iwn"}
 _ROUTE_WORD = re.compile(r"\broute\b", re.IGNORECASE)
 
+# Bike-park vocabulary in a trail NAME — only trusted when the way is also
+# IMBA-rated (see _is_nonhiking), so a lava 'Obsidian Flow' hiking trail (no
+# imba) or 'Mayflower' (not the word 'flow') is never caught.
+_BIKEPARK_NAME = re.compile(
+    r"\b(down\s*hill|dh|slalom|flow|jump\s*line|pump\s*track|berm|freeride)\b",
+    re.IGNORECASE)
+
 
 def classify_kind(name: str | None, tags: dict) -> str:
     """'route' for a meta-object that traverses named trails; 'trail' otherwise.
@@ -1094,13 +1101,14 @@ def _is_nonhiking(tags: dict) -> bool:
       - a name that literally says '(No Hiking)' (some are tagged foot=yes, so
         only the name gives them away).
 
-    NOT a signal: mtb:scale:imba. It was tried (the Colorado bike-park audit)
-    but it is just an IMBA difficulty RATING carried by countless shared-use
-    HIKING trails — South Mountain's whole network (Old Man, Telegraph Pass,
-    Corona de Loma, National Trail) is foot=yes/bicycle=yes with imba=2..4.
-    Gating on it silently ate every rated hiking trail. A built bike-park flow
-    run also carries foot=no or mtb:type, so the positive signals still catch
-    the genuine ones without the collateral damage.
+    mtb:scale:imba (an IMBA difficulty RATING) is NOT a signal on its own — it
+    rides on countless shared-use HIKING trails (South Mountain's whole network
+    is foot=yes/bicycle=yes with imba=2..4), and gating on it alone silently ate
+    them. But COMBINED with a directional or bike-park-named signal it cleanly
+    fingers a flow run (Colorado audit — Keystone/Breck/Vail): a rated path that
+    is one-way, or whose name is Downhill/Slalom/Flow/Jump Line/etc., is a bike
+    feature, never a hike. Requiring imba first keeps Rainbow Trail (imba, but
+    two-way and normally named) and every real trail untouched.
     """
     if "no hiking" in str(tags.get("name", "")).strip().lower():
         return True
@@ -1111,6 +1119,12 @@ def _is_nonhiking(tags: dict) -> bool:
     piste = str(tags.get("piste:type", "")).strip().lower()
     if piste and "hike" not in piste:
         return True
+    # Bike-park flow trails: only when IMBA-rated AND (one-way OR bike-park name).
+    if str(tags.get("mtb:scale:imba", "")).strip() != "":
+        if str(tags.get("oneway", "")).strip().lower() in {"yes", "1", "true"}:
+            return True
+        if _BIKEPARK_NAME.search(str(tags.get("name", "") or "")):
+            return True
     return False
 
 

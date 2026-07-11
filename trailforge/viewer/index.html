@@ -125,14 +125,15 @@ map.on("load", async () => {
     ? `../data/golden.trails.geojson`
     : `../data/aoi/${AOI}.trails.geojson`;
   const trails = await maybeJSON(trailsUrl);
-  let clippedTrails = null;   // publish-preview geometry, built alongside _inarea
-  // Geometry-based area membership for the "Only trails in an area" toggle.
-  // The publisher ships a trail in a park when its GEOMETRY touches the
-  // boundary, regardless of the assembler's `area` merge-scope tag — a
-  // straddler like DC-Ray Connector is area=None yet publishes into South
-  // Mountain. So derive `_inarea` by ray-casting the trail's vertices against
-  // the area polygons (touch, like the publisher), and filter on that; the old
-  // tag-based filter hid every touch-published straddler and misled QA.
+  // Geometry-based area membership + publish-preview clipping for the two area
+  // toggles. Both ray-cast trail vertices against the park polygons, which is
+  // heavy over a whole state — so they are LAZY: nothing runs on load (that
+  // was freezing the viewer). `computeInArea()` and `ensureClipped()` run once,
+  // memoized, the first time you flip the relevant toggle.
+  let hasAreas = false;
+  let clippedTrails = null;
+  let computeInArea = () => {};
+  let ensureClipped = () => null;
   if (trails) {
     const polys = [];
     for (const af of (areas ? areas.features : [])) {
@@ -140,11 +141,15 @@ map.on("load", async () => {
       if (gt === "Polygon") polys.push(c);
       else if (gt === "MultiPolygon") for (const p of c) polys.push(p);
     }
+    hasAreas = polys.length > 0;
     const bb = polys.map((rings) => {
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
       for (const [x, y] of rings[0]) { if (x<x0)x0=x; if (x>x1)x1=x; if (y<y0)y0=y; if (y>y1)y1=y; }
       return [x0, y0, x1, y1];
     });
+    // Global park bbox — a cheap trail-level reject before touching any vertex.
+    let gx0=Infinity, gy0=Infinity, gx1=-Infinity, gy1=-Infinity;
+    for (const [x0,y0,x1,y1] of bb) { if(x0<gx0)gx0=x0; if(y0<gy0)gy0=y0; if(x1>gx1)gx1=x1; if(y1>gy1)gy1=y1; }
     const inRing = (x, y, ring) => {
       let inside = false;
       for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -154,11 +159,12 @@ map.on("load", async () => {
       return inside;
     };
     const inPoly = (x, y, rings) => {
-      if (!inRing(x, y, rings[0])) return false;          // outside outer ring
-      for (let k = 1; k < rings.length; k++) if (inRing(x, y, rings[k])) return false;  // in a hole
+      if (!inRing(x, y, rings[0])) return false;
+      for (let k = 1; k < rings.length; k++) if (inRing(x, y, rings[k])) return false;
       return true;
     };
     const ptInAnyArea = (x, y) => {
+      if (x < gx0 || x > gx1 || y < gy0 || y > gy1) return false;
       for (let i = 0; i < polys.length; i++) {
         const [x0, y0, x1, y1] = bb[i];
         if (x < x0 || x > x1 || y < y0 || y > y1) continue;
@@ -166,37 +172,51 @@ map.on("load", async () => {
       }
       return false;
     };
-    for (const tf of trails.features) {
-      const g = tf.geometry;
-      const parts = g.type === "MultiLineString" ? g.coordinates
-                  : (g.type === "LineString" ? [g.coordinates] : []);
-      let hit = false;
-      outer: for (const line of parts) for (const [x, y] of line)
-        if (ptInAnyArea(x, y)) { hit = true; break outer; }
-      tf.properties = tf.properties || {};
-      // Fall back to the tag when no area polygons are available.
-      tf.properties._inarea = polys.length ? hit : !!tf.properties.area;
-    }
-    // Publish preview: trim each line to the span between its first and last
-    // in-park vertex — drops dangling out-of-park tails (DC-Ray's neighbourhood
-    // run) but keeps a mid gap between two in-park stretches, the same "trim
-    // dangling ends" the publisher applies. Vertex-granular, close enough for
-    // QA; toggled by "Clip to park boundaries".
-    if (polys.length) {
+    const partsOf = (g) => g.type === "MultiLineString" ? g.coordinates
+                         : (g.type === "LineString" ? [g.coordinates] : []);
+    const bboxHitsParks = (g) => {           // trail-level prefilter vs global park bbox
+      let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity;
+      for (const line of partsOf(g)) for (const [x,y] of line) { if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+      return !(x1 < gx0 || x0 > gx1 || y1 < gy0 || y0 > gy1);
+    };
+    // Lazy: derive `_inarea` (touch, like the publisher) and push it to the
+    // source so the "Only trails in an area" filter can read it.
+    let inAreaDone = false;
+    computeInArea = () => {
+      if (inAreaDone) return;
+      inAreaDone = true;
+      for (const tf of trails.features) {
+        tf.properties = tf.properties || {};
+        if (!hasAreas) { tf.properties._inarea = !!tf.properties.area; continue; }
+        let hit = false;
+        if (bboxHitsParks(tf.geometry)) {
+          outer: for (const line of partsOf(tf.geometry)) for (const [x,y] of line)
+            if (ptInAnyArea(x,y)) { hit = true; break outer; }
+        }
+        tf.properties._inarea = hit;
+      }
+      const src = map.getSource("trails");
+      if (src) src.setData(trails);
+    };
+    // Lazy: build the publish preview — each line trimmed to the span between
+    // its first and last in-park vertex (dangling tails dropped, mid gaps kept).
+    ensureClipped = () => {
+      if (clippedTrails || !hasAreas) return clippedTrails;
       const trimLine = (line) => {
         let first = -1, last = -1;
         for (let i = 0; i < line.length; i++)
           if (ptInAnyArea(line[i][0], line[i][1])) { if (first < 0) first = i; last = i; }
         return first < 0 ? null : line.slice(first, last + 1);
       };
-      clippedTrails = { type: "FeatureCollection", features: trails.features.map((f) => {
-        const g = f.geometry;
-        const parts = g.type === "MultiLineString" ? g.coordinates
-                    : (g.type === "LineString" ? [g.coordinates] : []);
-        const out = parts.map(trimLine).filter((l) => l && l.length > 1);
-        return { ...f, geometry: { type: "MultiLineString", coordinates: out } };
-      }).filter((f) => f.geometry.coordinates.length) };
-    }
+      clippedTrails = { type: "FeatureCollection", features: trails.features
+        .filter((f) => bboxHitsParks(f.geometry))
+        .map((f) => {
+          const out = partsOf(f.geometry).map(trimLine).filter((l) => l && l.length > 1);
+          return { ...f, geometry: { type: "MultiLineString", coordinates: out } };
+        })
+        .filter((f) => f.geometry.coordinates.length) };
+      return clippedTrails;
+    };
   }
   if (trails) {
     // generateId gives each trail feature an id so a click can flip its
@@ -234,22 +254,25 @@ map.on("load", async () => {
       filter: KIND_FILTER["hike-lines"],
       layout: { "line-cap": "round", "line-join": "round" },
       paint: selPaint("#17913a", 4.5) });
-    // "Only trails in an area": AND an area-membership clause onto each kind.
+    // "Only trails in an area": lazily derive _inarea (first use), then AND an
+    // area-membership clause onto each kind's filter.
     document.getElementById("toggle-inarea").onchange = (e) => {
+      if (e.target.checked) computeInArea();
       for (const [lid, base] of Object.entries(KIND_FILTER)) {
         if (!map.getLayer(lid)) continue;
         map.setFilter(lid, e.target.checked
           ? ["all", base, ["to-boolean", ["get", "_inarea"]]] : base);
       }
     };
-    // "Clip to park boundaries": swap the trails source between the raw
-    // assembly and the publish-preview (dangling tails trimmed). Disabled if
-    // there were no area polygons to clip against.
+    // "Clip to park boundaries": lazily build the publish-preview (first use),
+    // then swap the trails source between raw assembly and the trimmed preview.
     const clipEl = document.getElementById("toggle-clip");
-    if (!clippedTrails) clipEl.disabled = true;
+    if (!hasAreas) clipEl.disabled = true;
     clipEl.onchange = (e) => {
       const src = map.getSource("trails");
-      if (src && clippedTrails) src.setData(e.target.checked ? clippedTrails : trails);
+      if (!src) return;
+      const c = e.target.checked ? ensureClipped() : trails;
+      src.setData(c || trails);
     };
 
     const HIT = ["hike-lines", "trail-lines", "route-lines"];

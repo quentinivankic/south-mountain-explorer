@@ -14,6 +14,7 @@ struct WaitlistCard: View {
 
     @AppStorage(StorageKeys.waitlistJoined) private var joined = false
     @State private var email = ""
+    @State private var wantsBeta = false
 
     private var trimmedEmail: String {
         email.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -45,9 +46,12 @@ struct WaitlistCard: View {
             }
 
             if joined {
-                Label("You're on the waitlist", systemImage: "checkmark.circle.fill")
+                Label(wantsBeta ? "You're on the list — and down to help test"
+                                : "You're on the waitlist",
+                      systemImage: "checkmark.circle.fill")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.green)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 HStack(spacing: 8) {
                     TextField("Email", text: $email)
@@ -61,7 +65,26 @@ struct WaitlistCard: View {
                         .buttonStyle(.borderedProminent)
                         .disabled(!emailLooksValid)
                 }
+                // Beta-tester interest for their own country — flagged on the
+                // signup so the per-country tester list is a filter away.
+                Toggle(isOn: $wantsBeta) {
+                    Text("I'd like to help beta test TrekDex in \(countryName)")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .toggleStyle(.switch)
             }
+
+            // Always available: drop the user into a region we DO serve so the
+            // app isn't empty for them while they wait. Switches to Browse.
+            Button {
+                NotificationCenter.default.post(name: .showBrowseTab, object: nil)
+            } label: {
+                Label("Look around US & Canada parks", systemImage: "map")
+                    .font(.subheadline.weight(.medium))
+            }
+            .buttonStyle(.bordered)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -71,11 +94,12 @@ struct WaitlistCard: View {
     private func join() {
         guard emailLooksValid else { return }
         AnalyticsService.shared.capture(
-            .waitlistJoined(country: regionCode, email: trimmedEmail))
+            .waitlistJoined(country: regionCode, email: trimmedEmail, wantsBeta: wantsBeta))
         // Local breadcrumb without the email (keeps the activity log
         // free-text-free, matching its discipline).
         ActivityLogService.shared.log(
-            category: "waitlist", action: "join", context: ["country": regionCode])
+            category: "waitlist", action: "join",
+            context: ["country": regionCode, "beta": wantsBeta ? "true" : "false"])
         joined = true
     }
 }

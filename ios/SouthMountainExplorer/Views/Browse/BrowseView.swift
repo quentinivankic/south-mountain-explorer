@@ -7,6 +7,11 @@ extension Notification.Name {
     /// selected. BrowseView responds by focusing the search field so
     /// the keyboard opens immediately.
     static let browseSearchTabTapped = Notification.Name("summit.browseSearchTabTapped")
+
+    /// Posted by the out-of-region WaitlistCard's "look around" button so
+    /// an EU/etc. user can jump straight into the served parks list.
+    /// ContentView responds by switching the root TabView to Browse.
+    static let showBrowseTab = Notification.Name("summit.showBrowseTab")
 }
 
 private enum BrowseSort: String, CaseIterable, Identifiable {

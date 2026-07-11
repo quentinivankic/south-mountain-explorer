@@ -33,6 +33,13 @@ struct AnalyticsEventTests {
         let e = AnalyticsEvent.waitlistJoined(country: "FR", email: "hiker@example.com")
         #expect(e.properties["country"] == "FR")
         #expect(e.properties["email"] == "hiker@example.com")
+        #expect(e.properties["beta_interest"] == "false")   // defaults off
+    }
+
+    @Test func waitlistFlagsBetaInterest() {
+        let e = AnalyticsEvent.waitlistJoined(country: "DE", email: "t@e.com", wantsBeta: true)
+        #expect(e.properties["beta_interest"] == "true")
+        #expect(e.properties["country"] == "DE")
     }
 
     @Test func diagnosticEventsCarryCount() {

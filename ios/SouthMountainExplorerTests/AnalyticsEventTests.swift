@@ -76,6 +76,26 @@ struct AnalyticsEventTests {
         #expect(blankEmail.properties["email"] == nil)
     }
 
+    @Test func trailReportCarriesReasonTrailAndDetailsFlag() {
+        let e = AnalyticsEvent.trailReported(
+            reason: "is_a_road", details: "this is clearly a fire road",
+            trailId: "t42", trailName: "Maxwell Ranch Road", areaId: "a7")
+        #expect(e.name == "trail_reported")
+        #expect(e.properties["reason"] == "is_a_road")
+        #expect(e.properties["trail_id"] == "t42")
+        #expect(e.properties["trail_name"] == "Maxwell Ranch Road")
+        #expect(e.properties["area_id"] == "a7")
+        #expect(e.properties["has_details"] == "true")
+        #expect(e.properties["details"] == "this is clearly a fire road")
+
+        // No details → flag false, no stray "details" key.
+        let bare = AnalyticsEvent.trailReported(
+            reason: "not_a_trail", details: "", trailId: "t1",
+            trailName: "X", areaId: "a1")
+        #expect(bare.properties["has_details"] == "false")
+        #expect(bare.properties["details"] == nil)
+    }
+
     // MARK: - Privacy: no coordinates or raw continuous values leak
 
     @Test func noPropertyValueLooksLikeACoordinate() {

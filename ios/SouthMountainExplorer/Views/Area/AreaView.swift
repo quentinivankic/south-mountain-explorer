@@ -83,6 +83,8 @@ struct AreaView: View {
     /// Which segment of the area sheet is showing — trail list or Dex.
     @State private var sheetTab: AreaSheetTab = .trails
     @State private var selectedTrailId: String? = nil
+    /// Trail being reported via the overflow menu — drives the report sheet.
+    @State private var reportingTrail: Trail? = nil
     /// Per-recording-session set of trail ids the user has
     /// dismissed from the suggestion banner. Prevents the same
     /// "Add Bajada Trail" pill from re-appearing five seconds
@@ -369,6 +371,12 @@ struct AreaView: View {
                         } label: {
                             Label("Export \u{201C}\(trail.name)\u{201D} as GPX",
                                   systemImage: "square.and.arrow.up")
+                        }
+                        Button {
+                            reportingTrail = trail
+                        } label: {
+                            Label("Report a problem with this trail",
+                                  systemImage: "exclamationmark.bubble")
                         }
                     } else {
                         Button {
@@ -976,6 +984,9 @@ struct AreaView: View {
         // conflicting with each other.
         .sheet(item: $areaGpxShareURL) { wrapped in
             ShareSheet(items: [wrapped.url])
+        }
+        .sheet(item: $reportingTrail) { trail in
+            ReportTrailView(trail: trail, areaId: areaId, areaName: areaName)
         }
         .sheet(isPresented: $showSummary) {
             if let finished = finishedRecording {

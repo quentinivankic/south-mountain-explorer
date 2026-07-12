@@ -37,6 +37,9 @@ final class AreaSilhouetteService {
 
     private(set) var byId: [String: AreaSilhouette] = [:]
     private var loadingTasks: [String: Task<AreaSilhouette?, Never>] = [:]
+    /// Areas already background-revalidated this session, so repeated
+    /// renders of the same card don't stack redundant R2 fetches.
+    private var revalidated: Set<String> = []
 
     /// Same custom domain + bucket as the geom files; per-area
     /// silhouettes live under the `silhouettes/` prefix on the
@@ -79,6 +82,15 @@ final class AreaSilhouetteService {
             // low-disk pressure.
             if let fromDisk = self.readDiskCache(areaId: areaId) {
                 self.byId[areaId] = fromDisk
+                // Background-revalidate against R2 so a regenerated
+                // silhouette (re-curation, lifted trail cap) replaces the
+                // stale disk copy. Without this the disk cache is terminal
+                // and card art freezes at whatever first landed, even as
+                // the trail geom refreshes — AreaDataService already does
+                // the equivalent staleness re-fetch for geom. Fire-and-
+                // forget: the disk copy is already returned, so a change
+                // just swaps in on a later render via @Observable.
+                self.revalidate(areaId: areaId)
                 return fromDisk
             }
             // R2 fetch.
@@ -93,6 +105,28 @@ final class AreaSilhouetteService {
         let result = await task.value
         loadingTasks[areaId] = nil
         return result
+    }
+
+    // MARK: - Revalidation
+
+    /// Background-refresh an already-cached silhouette against R2. Runs at
+    /// most once per area per session (`revalidated` guard) so re-rendering
+    /// a card doesn't stack fetches. Re-fetches bypassing the local URL
+    /// cache — otherwise the 24 h `max-age` on the object would just hand
+    /// back the same stale bytes without a network trip — and only rewrites
+    /// disk + memory when the art actually changed, so unchanged areas cost
+    /// one cheap request and never churn the UI.
+    private func revalidate(areaId: String) {
+        guard revalidated.insert(areaId).inserted else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            guard let fresh = await self.fetchFromCdn(areaId: areaId, bypassCache: true) else {
+                return
+            }
+            if self.byId[areaId] == fresh { return }   // no change — leave UI alone
+            self.writeDiskCache(areaId: areaId, silhouette: fresh)
+            self.byId[areaId] = fresh
+        }
     }
 
     // MARK: - Disk cache
@@ -116,14 +150,20 @@ final class AreaSilhouetteService {
 
     // MARK: - CDN fetch
 
-    private func fetchFromCdn(areaId: String) async -> AreaSilhouette? {
+    /// - Parameter bypassCache: when true, ignores the local URL cache and
+    ///   forces a network fetch (used by `revalidate`, which needs the live
+    ///   object, not the 24 h-cached one). The cold-load path leaves it
+    ///   false so a first open still benefits from any warm URL-cache entry.
+    private func fetchFromCdn(areaId: String, bypassCache: Bool = false) async -> AreaSilhouette? {
         let signpostID = OSSignpostID(log: silhouetteLoadLog)
         os_signpost(.begin, log: silhouetteLoadLog, name: "fetchFromCdn", signpostID: signpostID, "%{public}s", areaId)
         defer { os_signpost(.end, log: silhouetteLoadLog, name: "fetchFromCdn", signpostID: signpostID) }
 
         guard let url = URL(string: "\(cdnBaseURL)/\(areaId).json") else { return nil }
+        var request = URLRequest(url: url)
+        if bypassCache { request.cachePolicy = .reloadIgnoringLocalCacheData }
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            let (data, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
                 return nil
             }

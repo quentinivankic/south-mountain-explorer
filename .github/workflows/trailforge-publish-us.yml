@@ -1,0 +1,157 @@
+name: Trailforge — publish the ENTIRE US (parallel fan-out)
+
+# One dispatch → ~13 PARALLEL region jobs, each publishing its states' clean
+# geom into an ARTIFACT (no commit) → one FAN-IN job that merges the geom,
+# refreshes the master index, regenerates the app bundle, and does ONE commit +
+# one R2 sync. This sidesteps the two problems with a single giant job:
+#   * the 350-min per-job time limit (each region is small, runs in parallel);
+#   * the commit races that block naive parallelism (only the fan-in commits).
+#
+# Default is a DRY RUN: each region prints its per-state summary in its log,
+# uploads nothing, and the fan-in is skipped — so you can validate the whole
+# country in ~one parallel pass before flipping dry_run=false for the real
+# publish.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview only — per-region summaries, write/commit nothing"
+        type: boolean
+        default: true
+      no_routes:
+        description: "Drop thru-routes (Colorado Trail, PCT) from the checklist"
+        type: boolean
+        default: false
+
+concurrency:
+  # Shares the publish group so the fan-in commit never races a single-state or
+  # batch publish. Matrix jobs within THIS run still fan out in parallel.
+  group: trailforge-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  publish:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { id: california,  states: "california" }
+          - { id: texas,       states: "texas" }
+          - { id: florida,     states: "florida" }
+          - { id: midatlantic, states: "new-york,pennsylvania,new-jersey" }
+          - { id: appalachia,  states: "virginia,west-virginia,maryland,delaware,district-of-columbia" }
+          - { id: southeast,   states: "north-carolina,south-carolina,georgia,tennessee,kentucky" }
+          - { id: deepsouth,   states: "alabama,mississippi,arkansas,louisiana,oklahoma" }
+          - { id: greatlakes,  states: "michigan,wisconsin,minnesota,ohio,indiana,illinois" }
+          - { id: plains,      states: "iowa,missouri,kansas,nebraska,north-dakota,south-dakota" }
+          - { id: northwest,   states: "washington,oregon,idaho,montana,wyoming,nevada" }
+          - { id: southwest,   states: "arizona,new-mexico,utah,colorado" }
+          - { id: newengland,  states: "maine,new-hampshire,vermont,massachusetts,connecticut,rhode-island" }
+          - { id: noncontig,   states: "alaska,hawaii" }
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install osmium + pyosmium + shapely
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely
+
+      - name: Publish region "${{ matrix.id }}" into an artifact dir
+        run: |
+          set -uo pipefail
+          OUT="$GITHUB_WORKSPACE/out/geom"; mkdir -p "$OUT"
+          cd trailforge
+          mkdir -p data/raw data/aoi
+
+          DRY=""; [ "${{ inputs.dry_run }}" = "true" ]  && DRY="--dry-run"
+          NOROUTES=""; [ "${{ inputs.no_routes }}" = "true" ] && NOROUTES="--no-routes"
+
+          ok=""; failed=""; skipped=""
+          IFS=',' read -ra SLUGS <<< "${{ matrix.states }}"
+          for slug in "${SLUGS[@]}"; do
+            slug=$(echo "$slug" | xargs)
+            [ -z "$slug" ] && continue
+            echo "==================== $slug ===================="
+            NAME=$(python3 tools/state_slug.py name "$slug")
+            raw="data/raw/$slug.osm.pbf"
+
+            if ! curl -fL --retry 5 --retry-delay 5 --connect-timeout 20 \
+                 --speed-limit 2000 --speed-time 30 -o "$raw" \
+                 "https://download.geofabrik.de/north-america/us/$slug-latest.osm.pbf"; then
+              echo "!! no extract for $slug"; skipped="$skipped $slug"; rm -f "$raw"; continue
+            fi
+            if ! bash extract/prefilter.sh "$raw" data/hiking.osm.pbf; then
+              echo "!! prefilter failed for $slug"; failed="$failed $slug"; rm -f "$raw"; continue
+            fi
+            rm -f "$raw"                                   # free disk before assemble
+            if ! python3 assemble/assemble.py --in data/hiking.osm.pbf \
+                 --out data/aoi/state.trails.geojson --min-length-mi 0.1 --per-area-merge; then
+              echo "!! assemble failed for $slug"; failed="$failed $slug"; continue
+            fi
+            # Publish reads the SEEDED master index (../public/areas/index.json)
+            # to find this state's area rows, and writes clean geom into $OUT.
+            # Its own index writeback is local to this runner and discarded — the
+            # fan-in re-derives counts from the geom it uploads.
+            if ! python3 serve/publish_areas.py \
+                 --trails data/aoi/state.trails.geojson --hiking data/hiking.osm.pbf \
+                 --state "$NAME" --index ../public/areas/index.json \
+                 --out-dir "$OUT" $DRY $NOROUTES; then
+              echo "!! publish failed for $slug"; failed="$failed $slug"; continue
+            fi
+            ok="$ok $slug"
+          done
+
+          echo "==================== SUMMARY (${{ matrix.id }}) ===================="
+          echo "published:${ok:- none}"
+          echo "skipped:  ${skipped:- none}"
+          echo "failed:   ${failed:- none}"
+
+      - name: Upload region geom artifact
+        if: ${{ inputs.dry_run == 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: geom-${{ matrix.id }}
+          path: out/geom
+          if-no-files-found: warn
+          retention-days: 1
+
+  merge:
+    needs: publish
+    if: ${{ inputs.dry_run == 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all region geom artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Merge geom + refresh master index
+        run: python3 scripts/merge-published-geom.py --artifacts-root artifacts
+
+      - name: Regenerate app bundle (only areas with clean trailforge geom)
+        run: python3 scripts/filter-ios-bundle.py
+
+      - name: Commit + push (one commit, one R2 sync via geom push)
+        run: |
+          set -e
+          git config user.name "trailforge-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/areas ios/SouthMountainExplorer/Resources/areas-index.json
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."; exit 0
+          fi
+          git commit -m "trailforge: publish ENTIRE US (parallel fan-out)"
+          # main can move during the long parallel run — rebase + retry the push.
+          for i in 1 2 3 4 5; do
+            if git push; then exit 0; fi
+            git pull --rebase origin main || true
+            sleep $((i * 5))
+          done
+          git push

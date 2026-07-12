@@ -6,7 +6,7 @@ deferred, and what mistakes prior Claudes have made.
 
 ---
 
-## ⭐ CURRENT STATE — read this first (updated 2026-07-11)
+## ⭐ CURRENT STATE — read this first (updated 2026-07-13)
 
 Much of the app-detail below predates the **trailforge** era. When it
 conflicts with this section, this section wins. Verify against the code
@@ -50,20 +50,12 @@ gated on clean trailforge geom = no `cached_at`) → push to `main` auto-trigger
 fallback. All three publish workflows run the silhouette regen before the
 bundle regen, so silhouettes never drift from the geom.
 
-**Coverage — WHOLE US in flight (2026-07-12).** 13 states shipped cleanly
-first (AZ UT CO WA OR NM NV + ME NH VT MA CT RI, ~869 areas). Then built the
-**whole-US parallel publish** and dry-run-validated it across all 50 + DC:
-clean, no failures, **~2,900 areas / ~50 states** (CA alone 387 areas; ~3.3×
-the 13-state set). The real publish is the current operation — see
-`trailforge-publish-us.yml` below. **CRITICAL GOTCHA:** its `dry_run` input is
-a checkbox CHECKED by default; a run that leaves it checked previews only
-(upload + `merge` jobs skip, nothing commits). To actually publish you MUST
-**uncheck `dry_run`**. When the real run lands you'll see a `trailforge:
-publish ENTIRE US` commit on main + the app ships the whole country (the
-index is already seeded for all 50 states; the fan-out replaces the System-1
-`cached_at` geom of the 37 unshipped states with clean trailforge geom, which
-clears `filter-ios-bundle`'s no-`cached_at` gate). Data streams via R2 — no
-app build needed for coverage.
+**Coverage — WHOLE US published (landed 2026-07-12, commit `5e594aeb`
+"publish ENTIRE US").** ~2,639 areas across all 50 states shipped via the
+parallel fan-out (`trailforge-publish-us.yml`). Data streams via R2 — no app
+build needed for coverage. **Now in a quality-refinement pass, state by
+state, starting with NY** — see "Curation flywheel" below for what changed
+and why NY is the pilot.
 
 **Trail selection/curation policy (all in `trailforge/assemble/model.py`
 unless noted), each learned the hard way — DON'T undo without re-reading.**
@@ -77,6 +69,31 @@ Each dropped trail carries `removed_category` for the viewer's review buckets.
 - **Access gate:** `is_access_blocked` drops `access=private`/`access=no`
   (and `foot=no/private`) as category `access` — but `foot=yes/designated`
   WINS (a gated road open to walkers stays).
+- **MTB-named trails (no imba co-signal needed):** `_is_nonhiking`'s
+  `_BIKEPARK_NAME` vocabulary (Downhill/Flow/Slalom/…) is only trusted when
+  the way ALSO carries `mtb:scale:imba` — real bike-park trails often carry
+  NONE of the tag signals (found via `Party of 5 (MTB)` and its whole
+  Adirondack cluster — Venom Flow, Big Foot, Electric Ave…, zero imba/oneway/
+  mtb:type tags, just an explicit name). Whole-word `MTB` or `mountain bike`
+  in the name is now an unconditional drop UNLESS the name has a `/` or
+  `' and '` (dual-use disclosure like `MTB/Hiking Trail`, or a merge artifact
+  fusing two ways' names together) — audited 78 real matches, 67 clean drops.
+- **Area-level ownership red flags (`scripts/_seed_constants.py::red_flag`,
+  called from `is_quality()` — auto-excludes at SEED time, not curation):**
+  areas asserting neither public nor private ownership (the tag's just
+  missing) get a narrow, evidence-backed check — `mine/mining/quarry` or
+  `water supply/watershed` in protection_title/description, or `hunting` in
+  the name/title/description — UNLESS the operator reads as government
+  (`Department of`/`County`/`City of`/`Town of`/`National Park Service`/…),
+  the water-supply flag hits NYC DEP specifically (real public-access
+  watershed land, not a closed reservoir buffer), or the name says `Trail(s)`.
+  Found via `Bucktown LLC Conservation Easement` — private mining-company
+  land (`description=mine`, private LLC operator) that passed every OTHER
+  filter. v1 of this (require PROOF of public ownership) flagged 439/2957 NY
+  candidates, ~93% false positives (legit county parks / land trusts / NYC
+  DEP land the keyword list didn't recognize) — proving legitimacy is
+  unbounded; catching the narrow bad pattern is what scales. See
+  `scripts/audit-easement-ownership.py`'s docstring for the full story.
 - **KEY POLICY — contained = keep, cross-park = drop.** A trail that lives in
   ONE park is that park's trail, HOWEVER LONG → KEPT (Wonderland 93mi, Tonto
   91mi, Northville-Placid 124mi, VT's Long Trail 244mi, Pinhoti 154mi, Lone
@@ -119,8 +136,58 @@ shows only the diff vs the last assemble (each trail has a stable `ckey` =
 sorted member OSM ways; assemble writes `.curation.json` snapshot +
 `.curation-diff.json`). "Ingest-filtered (named)" surfaces NAMED ways a TAG
 gate dropped BEFORE assembly (`.ingest-dropped.geojson`), bucketed — the
-`road-track-name` bucket is the false-negative-risk one to CHECK. `make
-assemble REGION=xx` passes region so the viewer matches what ships.
+`road-track-name` bucket is the false-negative-risk one to CHECK. "Tiny &
+isolated (review)" flags KEPT trails <0.15mi that touch no other trail
+within ~20m — NOT an auto-drop (blindly dropping isolated tiny trails was
+tested and rejected: it would've emptied 6 areas and gutted 30%+ of trails
+in 31 more, since plenty of real trails start at a road/parking lot, not
+another trail). `make assemble REGION=xx` passes region so the viewer
+matches what ships.
+
+**Curation flywheel — trust the tested rule, review after the fact, not
+before.** The operating model as of 2026-07-13: `scripts/_seed_constants.py`'s
+`is_quality()` + `red_flag()` now auto-exclude at SEED time (mining/hunting/
+water-supply red flags, `access`/`ownership=private`) — no more "run an audit,
+read a list, manually strip slugs before every publish." The user explicitly
+signed off on this trade (session 2026-07-12 night): trust narrow,
+real-example-backed exclusion rules completely; stay "somewhat" in the loop
+via `scripts/audit-easement-ownership.py` as an after-the-fact report of what
+got excluded and why, not a gate to approve beforehand. **The whole point is
+reducing manual copy-paste toil while still obsessing over quality** — every
+rule in this file earned its way in by catching a REAL discovered bad example
+(Bucktown LLC, Party of 5 (MTB)) and was verified against a growing regression
+list before being trusted, never speculatively enumerated in advance (that
+approach — v1 of the audit script tried to require PROOF of legitimacy —
+produced 439 candidates for NY, ~93% false positives; proving something's good
+is unbounded, catching a specific bad pattern is not).
+`scripts/audit-easement-ownership.py` now supports multi-state / `--all` in
+one run (writes ONE combined report, retries a flaky Overpass query 3x before
+moving on) — built specifically so this doesn't require 50 individual
+one-state investigations. **If a genuinely new red-flag category shows up in
+another state** (a logging/ranching/oil-gas easement pattern, something we
+haven't seen — GA and VT both came back 0-flagged, which is reassuring but
+NOT proof nothing's there, just that nothing matches the categories we've
+already found), add it the same way: find a real example, verify it doesn't
+false-positive known-good cases, add both the rule AND a test case to
+`_seed_constants.py` — never guess at a pattern with no real example behind it.
+
+**Homelab Claude Code — run this flywheel with live tool access, not through
+a cloud-sandboxed relay.** The sandboxed Claude session has no Overpass/
+GitHub-dispatch egress, so every step (seed, audit, publish, log-pull) had to
+round-trip through the user copy-pasting terminal output — that was the real
+bottleneck on 2026-07-12 night, not the decision-making. A Claude Code
+session run directly on the homelab (`cd ~/south-mountain-explorer && claude`,
+auth via `ANTHROPIC_API_KEY` to skip the headless-browser login problem) can
+run the full per-state loop unattended: `seed-areas.py --merge <state>` (now
+auto-excludes red flags) → push → dispatch `trailforge-publish.yml` dry-run
+via `gh` → pull the log directly → sanity-check the verdict (published count
+non-trivial, failed-validation ~0, skip rate in a normal range) → dispatch the
+real publish or flag an anomaly for the user. Scale to `--all` states with the
+same loop. **Known gotcha found 2026-07-12:** `publish_areas.py`'s printed
+skip-detail list is capped (`skipped[:40]`) — the REAL total is in the header
+line `skipped {len(skipped)} (no trails / no boundary)`, not the visible
+detail count. Don't undercount a publish's skip rate by only grep-counting
+the individual `no trails touch this area` lines.
 
 **Publish flow.** Three dispatch-only workflows, all **default dry_run=true**
 (always dry-run + eyeball, then dry_run=false for the real write):
@@ -166,6 +233,23 @@ regenerated card art never reaching a device that already cached the old
 sketch. None of #352–356 has shipped in a TestFlight build yet (manual
 `ios-testflight` dispatch — not yet cut since before this batch).
 
+**ACTIVE — nationwide rollout of tonight's curation fixes (2026-07-12/13).**
+The way-vs-relation seed fix, MTB name filter, and ownership red-flag
+exclusion are all live on `main`, but NOT retroactive — every already-
+published state (all 50, from the whole-US publish) still has whatever MTB
+trails / missing way-mapped areas / unscreened ownership it had before,
+until it gets a fresh `seed-areas.py --merge <state>` + re-publish. **NY is
+the fully-vetted pilot**: re-seeded (picked up Otter Creek State Forest +
+~1,300 other way-mapped areas, minus 17 hand-confirmed red-flags before the
+auto-exclusion existed), dry-run publish CLEAN (731 published / 1,668
+skipped, mostly correctly-self-resolving trail-less parcels like fishing-
+access points / 5 trivial validation failures / 18 out-of-state boundary
+misses near the NY border) — **ready for a real publish, not yet done.**
+Next: roll the same `seed-areas.py --merge <state>` + dry-run + verdict +
+publish loop to the other 49 states, ideally via a homelab Claude Code
+session (see "Curation flywheel" above) rather than one state at a time
+through the sandbox.
+
 **Backlog (see the session task list):** (1) **named roads** — the reviewable
 `named-road` bucket now collects 407 candidates; the remaining call is your
 viewer eyeball (rescue washed-out-roads-still-hiked like `Dosewallips River
@@ -177,7 +261,22 @@ White River NF — dropped by the utility filter, may be a real MTB connector).
 (4) **Flywheel + cadence** (tasks #19/#20): make `trail_reported` OSM-actionable
 (carry a way id → 1-click OSM edit) + a triage script; and a scheduled
 `trailforge-refresh.yml` that re-imports states on rotation and posts a diff
-digest for review — planned, sandbox-buildable, not started. (5) **Pre-broad-
+digest for review — planned, sandbox-buildable, not started. This is
+deliberately v2 — the user wants the seed→curate→publish loop itself running
+reliably first (see "ACTIVE" above) before building the user-report side of
+the flywheel. (5) **`leisure=park` nationwide gap (task #21, found
+2026-07-13):** `seed-areas.py`'s Overpass query has NEVER searched
+`leisure=park` — only `boundary=protected_area`/`leisure=nature_reserve` —
+so every plain municipal/city/county park is invisible to seeding in EVERY
+state. Confirmed via live Overpass: Central Park (NYC) is tagged
+`leisure=park` (`owner: NYC Dept of Parks and Recreation`), zero protected-
+area/nature-reserve tags, completely unseeded. Bigger scope than tonight's
+fixes — `leisure=park` is applied to essentially every park in OSM (Central
+Park down to a fenced playground), so a naive query addition would surface
+an enormous low-signal candidate volume that `is_quality()`'s existing name
+keyword ("Park") would trivially accept. Needs a genuinely new quality
+signal — most plausibly a minimum polygon-area/trail-density threshold — not
+just a query tweak. Treat as its own dedicated session. (6) **Pre-broad-
 launch**: cut a TestFlight build so the report loop is live; then let reports +
 re-imports improve data (per the AllTrails/Komoot lesson — nobody 100%-eyeballs;
 cadenced batch + curation gate + community feedback is the standard).

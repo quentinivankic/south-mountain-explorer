@@ -112,7 +112,7 @@ jobs:
           echo "failed:   ${failed:- none}"
 
       - name: Upload region geom artifact
-        if: ${{ inputs.dry_run == 'false' }}
+        if: ${{ !inputs.dry_run }}
         uses: actions/upload-artifact@v4
         with:
           name: geom-${{ matrix.id }}
@@ -122,7 +122,7 @@ jobs:
 
   merge:
     needs: publish
-    if: ${{ inputs.dry_run == 'false' }}
+    if: ${{ !inputs.dry_run }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -511,9 +511,6 @@ class Classification(unittest.TestCase):
                   "Arizona Trail #31", "Arizona National Scenic Trail",
                   "Pacific Crest Trail (Old Snowy Alternate)", "Hayduke Crossing South",
                   "Maricopa Trail", "Grand Enchantment Trail",
-                  # Mid-Atlantic / NE thru-hikes containment missed
-                  "Batona Trail", "Batona Trail (former route)",
-                  "Northville-Placid Trail", "Northville Placid Trail",
                   # New England — distinctive names match in any region
                   "New England Trail", "Metacomet Trail (NET)", "NET Trail (white)",
                   "NET/M&M Trail (white)", "NET/Lone Pine Cross Trail",

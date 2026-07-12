@@ -174,11 +174,6 @@ _THRU_HIKE_RE = re.compile(
     # (Mount Fremont Lookout, Fremont River) are unrelated local trails.
     r"|uinta highline trail"
     r"|fremont (national recreation trail|nrt)"
-    # Mid-Atlantic / NE — thru-hikes containment missed (they sit inside one
-    # huge park, or name-stitch across two): NJ's Batona (Pine Barrens) and
-    # NY's Northville-Placid (124mi inside Adirondack Park). Distinctive names.
-    r"|batona trail"
-    r"|northville[\s-]placid"
     r")\b"
     # NET only in its real abbreviated forms ('NET/M&M Trail', 'NET Trail
     # (white)', 'Metacomet Trail (NET)') — never a bare 'Net' word, which would

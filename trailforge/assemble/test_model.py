@@ -522,19 +522,15 @@ class Classification(unittest.TestCase):
                   "Uinta Highline Trail", "Fremont NRT",
                   "Fremont National Recreation Trail"):
             self.assertTrue(m.is_thru_hike_name(n), n)
-        # Vermont's 'Long Trail' is region-scoped — a thru-hike only in New
-        # England, so the same bare name stays a local trail in AZ/CO/NM.
-        for n in ("Long Trail", "Old Long Trail", "Long Trail Temporary Realignment"):
-            self.assertTrue(m.is_thru_hike_name(n, "vt"), n)
-            self.assertFalse(m.is_thru_hike_name(n), n)        # no region → local
-            self.assertFalse(m.is_thru_hike_name(n, "az"), n)  # AZ → local
-        # NM's Pecos 'Skyline Trail' is region-scoped — the same name is a famous
-        # LOCAL trail in WA (Rainier) and MA (Blue Hills), which must survive.
-        for n in ("Skyline Trail (251)", "Skyline Trail"):
-            self.assertTrue(m.is_thru_hike_name(n, "nm"), n)
-            self.assertFalse(m.is_thru_hike_name(n), n)        # no region → local
-            self.assertFalse(m.is_thru_hike_name(n, "wa"), n)  # Rainier → local
-            self.assertFalse(m.is_thru_hike_name(n, "ma"), n)  # Blue Hills → local
+        # POLICY: contained single-park thru-hikes are KEPT, however long — so
+        # 'Long Trail' (VT, 244mi in Green Mtn NF) and 'Skyline Trail' (NM Pecos)
+        # are NOT dropped, in any region. (Local same-named trails were always
+        # kept; now the famous ones are too — consistent with Wonderland/Tonto.)
+        for n in ("Long Trail", "Old Long Trail", "Long Trail Temporary Realignment",
+                  "Skyline Trail (251)", "Skyline Trail"):
+            self.assertFalse(m.is_thru_hike_name(n), n)
+            self.assertFalse(m.is_thru_hike_name(n, "vt"), n)
+            self.assertFalse(m.is_thru_hike_name(n, "nm"), n)
         # local trails that merely share a word must NOT match (any region)
         for n in ("Continental Divide Overlook", "Divide Creek Trail",
                   "Colorado River Trail", "Rainbow Trail (FS 1336)",
@@ -647,8 +643,9 @@ class Classification(unittest.TestCase):
         }
         for name, cat in cases.items():
             self.assertEqual(m.removal_category(self._trail(name)), cat, name)
-        self.assertEqual(m.removal_category(self._trail("Long Trail"), region="vt"),
-                         "thru-hike")
+        # Cross-park named route still drops; contained 'Long Trail' is now kept.
+        self.assertEqual(m.removal_category(self._trail("Appalachian Trail")), "thru-hike")
+        self.assertIsNone(m.removal_category(self._trail("Long Trail"), region="vt"))
         self.assertEqual(
             m.removal_category(self._trail("X Trail", {"access": "private"})), "access")
 

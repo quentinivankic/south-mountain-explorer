@@ -181,27 +181,24 @@ _THRU_HIKE_RE = re.compile(
     r"|\bnet\s*/|\bnet trail\b|\(net\)",
     re.IGNORECASE)
 
-# Ambiguous bare names: also the name of unrelated local trails elsewhere.
-# 'Long Trail' is both Vermont's 272-mi thru-hike AND a 1-mi loop in Bandelier
-# NM, a 'John Long Trail' in AZ, a 'Too Long Trail' in CO. 'Skyline Trail' is
-# NM's ~65-mi Pecos Wilderness thru-hike AND famous local trails (Rainier's
-# Paradise loop, Blue Hills MA, Middlesex Fells MA). Name-only can't tell them
-# apart, so match them only in the region that owns the thru-hike. Anchored at
-# the start so 'John Long Trail' / 'Too Long Trail' / 'Old Skyline Trail' never
-# match.
-_NEW_ENGLAND = frozenset({"vt", "nh", "ma", "me", "ct", "ri"})
-_THRU_HIKE_REGIONAL = (
-    (_NEW_ENGLAND, re.compile(r"^(old )?long trail\b", re.IGNORECASE)),
-    (frozenset({"nm"}), re.compile(r"^skyline trail\b", re.IGNORECASE)),
-)
+# Region-scoped thru-hike names — currently EMPTY by policy. A trail that lives
+# in one park IS that park's trail, however long, so contained single-park
+# thru-hikes are KEPT regardless of length (Vermont's 'Long Trail' 244mi in
+# Green Mountain NF, NM's 'Skyline Trail' 62mi in the Pecos, like Wonderland
+# 93mi / Tonto 91mi / Northville-Placid 124mi). The always-match _THRU_HIKE_RE
+# still drops the genuinely CROSS-PARK named routes (AT/PCT/CDT/…) that smear
+# across many areas with no home. The `region` hook stays wired so a future
+# name that must be scoped to its owning state can be added here without a
+# signature change — e.g. `(frozenset({"xx"}), re.compile(r"^foo\b", re.I))`.
+_THRU_HIKE_REGIONAL: tuple = ()
 
 
 def is_thru_hike_name(name: str | None, region: str | None = None) -> bool:
     """True if the name is a famous long-distance thru-hike (or a numbered
-    segment / name-stitched piece of one). Distinctive names (_THRU_HIKE_RE)
-    match in any region; ambiguous bare names that collide with unrelated local
-    trails match only in the region that owns them, so `region` (a 2-letter
-    state code) must be supplied to catch those — see _THRU_HIKE_REGIONAL."""
+    segment / name-stitched piece of one) that SPANS parks and should be dropped
+    from the per-park checklist. Distinctive cross-park names (_THRU_HIKE_RE)
+    match anywhere; `region` (a 2-letter state code) enables any region-scoped
+    names in _THRU_HIKE_REGIONAL (empty by policy — contained trails are kept)."""
     n = name or ""
     if _THRU_HIKE_RE.search(n):
         return True

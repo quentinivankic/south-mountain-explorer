@@ -44,13 +44,20 @@ geom = no `cached_at`) → push to `main` auto-triggers `sync-geom-to-r2.yml`
 → R2 (`cdn.trekdex.app`) → app. `AreaSilhouetteService`/`AreaIndexService`
 fetch from R2 with a bundled fallback.
 
-**13 states live & clean:** Arizona, Utah, Colorado, Washington, Oregon,
-New Mexico, Nevada (western batch) + Maine, New Hampshire, Vermont,
-Massachusetts, Connecticut, Rhode Island (New England batch) — ~869 areas,
-~24.9k trails, ~61k mi. (6 empty 0-trail areas pruned from the index.)
-Data-only changes stream via R2 (no app build); app-CODE changes need a
-TestFlight build. **Next: the rest of the US** — ~37 states left, ~6 region
-batches; the gate is QA eyeball time, not compute (see review tooling below).
+**Coverage — WHOLE US in flight (2026-07-12).** 13 states shipped cleanly
+first (AZ UT CO WA OR NM NV + ME NH VT MA CT RI, ~869 areas). Then built the
+**whole-US parallel publish** and dry-run-validated it across all 50 + DC:
+clean, no failures, **~2,900 areas / ~50 states** (CA alone 387 areas; ~3.3×
+the 13-state set). The real publish is the current operation — see
+`trailforge-publish-us.yml` below. **CRITICAL GOTCHA:** its `dry_run` input is
+a checkbox CHECKED by default; a run that leaves it checked previews only
+(upload + `merge` jobs skip, nothing commits). To actually publish you MUST
+**uncheck `dry_run`**. When the real run lands you'll see a `trailforge:
+publish ENTIRE US` commit on main + the app ships the whole country (the
+index is already seeded for all 50 states; the fan-out replaces the System-1
+`cached_at` geom of the 37 unshipped states with clean trailforge geom, which
+clears `filter-ios-bundle`'s no-`cached_at` gate). Data streams via R2 — no
+app build needed for coverage.
 
 **Trail selection/curation policy (all in `trailforge/assemble/model.py`
 unless noted), each learned the hard way — DON'T undo without re-reading.**
@@ -64,15 +71,21 @@ Each dropped trail carries `removed_category` for the viewer's review buckets.
 - **Access gate:** `is_access_blocked` drops `access=private`/`access=no`
   (and `foot=no/private`) as category `access` — but `foot=yes/designated`
   WINS (a gated road open to walkers stays).
+- **KEY POLICY — contained = keep, cross-park = drop.** A trail that lives in
+  ONE park is that park's trail, HOWEVER LONG → KEPT (Wonderland 93mi, Tonto
+  91mi, Northville-Placid 124mi, VT's Long Trail 244mi, Pinhoti 154mi, Lone
+  Star 80mi). Only genuinely CROSS-PARK named routes that smear across many
+  areas with no home get dropped (AT/PCT/CDT/Colorado Trail/Great Allegheny/
+  NET/Cohos…). Do NOT add a length cap — it would cut the beloved loops.
 - Thru-routes: drop `kind=route` that no single park majority-contains
-  (containment, in `serve/publish_areas.py::_clip_one`); keep contained
-  single-park routes.
-- Thru-HIKES (AZT/PCT/CDT/Colorado Trail/Hayduke…): OSM tags them
-  inconsistently, so `is_thru_hike_name()` is a **curated name registry** +
-  super-relation drop. Tags alone do NOT work — verified. Some are
-  **region-gated** (Vermont's bare `Long Trail`, NM's `Skyline Trail` collide
-  with local trails elsewhere → only thru-hikes in their own state; the sweep
-  derives region from the slug suffix).
+  (containment, `serve/publish_areas.py::_clip_one`); keep contained ones.
+- Thru-HIKES: `is_thru_hike_name()` is a curated name registry (`_THRU_HIKE_RE`,
+  always-match cross-park names) + super-relation drop. Tags alone do NOT work.
+  `_THRU_HIKE_REGIONAL` (region-scoped names) is **now EMPTY by policy** — Long
+  Trail + Skyline were the only entries and are contained, so they're kept
+  (the region hook stays wired for a future must-scope name). NB: the publish
+  workflows don't pass `--region`, which is why keeping region-gating empty is
+  also the robust choice.
 - Geometry: trim dangling out-of-park tails but keep in→gap→in connectors
   (`_trim_to_parks`); non-route trails kept WHOLE in each park they touch.
 - Motorized/junk: `is_motorized_name` (incl. 4x4/motorcycle), road codes,
@@ -103,14 +116,28 @@ gate dropped BEFORE assembly (`.ingest-dropped.geojson`), bucketed — the
 `road-track-name` bucket is the false-negative-risk one to CHECK. `make
 assemble REGION=xx` passes region so the viewer matches what ships.
 
-**Publish flow:** CI is the norm — `trailforge-publish.yml` (single state)
-and `trailforge-publish-batch.yml` (`states: a,b,c` or `all`). **Default
-dry_run=true** — always dry-run + eyeball first, then dry_run=false for the
-real write (one commit, one R2 sync). Homelab is the fallback for planet
-scale. The MCP GitHub token can't dispatch workflows (403) — the USER
-dispatches from the Actions UI. Trailforge paths have NO CI gate; iOS paths
-do (`ios-pr-build`, must be green before merge). TestFlight upload is
-manual `workflow_dispatch` only — never re-enable auto-trigger.
+**Publish flow.** Three dispatch-only workflows, all **default dry_run=true**
+(always dry-run + eyeball, then dry_run=false for the real write):
+- `trailforge-publish.yml` — one state.
+- `trailforge-publish-batch.yml` — `states: a,b,c`|`all`, serial loop, ONE
+  commit at the END (a mid-loop timeout loses the whole run → keep batches
+  small, ~5-8 states). Concurrency group `trailforge-publish` serializes
+  back-to-back dispatches safely.
+- `trailforge-publish-us.yml` (**the whole-US mechanism**) — one dispatch →
+  13 PARALLEL region jobs, each publishes its states' geom to an ARTIFACT (no
+  commit) → a `merge` fan-in job (`scripts/merge-published-geom.py`) copies all
+  geom + refreshes the index counts from the geom → ONE commit + R2 sync.
+  Sidesteps the 350-min per-job cap AND commit races. Matrix = all 50 + DC.
+  Remember the **dry_run checkbox is checked by default** (uncheck to publish).
+The MCP GitHub token can't dispatch workflows (403) — the USER dispatches from
+the Actions UI, or homelab (planet-scale fallback). Trailforge paths have NO
+CI gate; iOS paths do (`ios-pr-build`). TestFlight is manual-dispatch only.
+
+**Homelab GitHub CLI:** browser device-flow fails headless; use
+`export GH_TOKEN=$(printf 'protocol=https\nhost=github.com\n\n' | git
+credential fill | sed -n 's/^password=//p')` (reuses the stored push token) or
+a PAT. Then pull run summaries with `gh run view <id> -R <repo> --log | grep
+-aE "SUMMARY|published:|failed:|!!|assembled [0-9,]+ trails|KEEP +[0-9]"`.
 
 **Recent app UX (all shipped/merged to main):** tap a trail = highlight only
 + toggles selection; selected row's checkmark becomes a **Record** button;
@@ -120,9 +147,13 @@ three-dots GPX export is selection-aware. Tabs are Explore · Browse · **Stats*
 country + email to **PostHog** — no separate backend): now has a **beta-tester
 toggle** (`beta_interest`) and a **"Look around US & Canada"** button that
 jumps to Browse (#352/#353). **Browse trail search** results now draw the
-single trail's linework, not the whole area's (#354). Faint Tonto trail-mesh
-backdrop is merged but **not rendering on device** — deferred/WIP. All these
-ship in the NEXT TestFlight build (manual `ios-testflight` dispatch).
+single trail's linework, not the whole area's (#354). **Report-a-problem-with-
+this-trail** form (`ReportTrailView`, from the area three-dots menu when a
+trail is selected): reason code + free text → `trail_reported` PostHog event
+with trail/area ids — actionable, often points at an OSM fix (#355). Faint
+Tonto trail-mesh backdrop is merged but **not rendering on device** — WIP.
+**All four PRs (#352–355) are merged to main and ride the NEXT TestFlight
+build** (manual `ios-testflight` dispatch — not yet cut).
 
 **Backlog (see the session task list):** (1) **named roads** — the reviewable
 `named-road` bucket now collects 407 candidates; the remaining call is your
@@ -132,6 +163,13 @@ Road`) — plus ditches / stock-driveways per the research decision table;
 terrarium tiles) — see `trailforge/SPEC.md §6e`. Current difficulty is a
 weak length bucket. (3) decide whether to whitelist `Powerline-Gypsum` (5.1mi,
 White River NF — dropped by the utility filter, may be a real MTB connector).
+(4) **Flywheel + cadence** (tasks #19/#20): make `trail_reported` OSM-actionable
+(carry a way id → 1-click OSM edit) + a triage script; and a scheduled
+`trailforge-refresh.yml` that re-imports states on rotation and posts a diff
+digest for review — planned, sandbox-buildable, not started. (5) **Pre-broad-
+launch**: cut a TestFlight build so the report loop is live; then let reports +
+re-imports improve data (per the AllTrails/Komoot lesson — nobody 100%-eyeballs;
+cadenced batch + curation gate + community feedback is the standard).
 
 **Working rhythm that's proven out:** small PR per change → for trailforge,
 merge after unit tests + a homelab/dry-run eyeball; for iOS, wait for
@@ -249,16 +287,17 @@ ios-testflight + sync-geom-to-r2 (the latter auto-runs on push to
 Cloudflare R2 bucket `trekdex-areas`. Already covers geom +
 silhouettes. Does NOT yet cover `index.json`.
 
-**Recent main HEAD (as of 2026-07-11):**
-- `1112b173` — trailforge: named-road reviewable bucket
-- `2f67584f` — trailforge: split ingest track-drops (tag vs name) + per-bucket toggles
-- `6d25f509` — trailforge: viewer surfaces named ways dropped by ingest tag-gates
-- `fe65a233` — trailforge: access gate + non-trail-feature filter + guard net
-- `0be36e26` — trailforge: review-time tooling (per-reason buckets + run-to-run diff)
+**Recent main HEAD (as of 2026-07-12):**
+- `316b1be8` — trailforge: keep contained thru-hikes (drop only cross-park)
+- `3eb03235` — trailforge: parallel whole-US publish (matrix fan-out + fan-in)
 - `d8293ec1` — trailforge: prune 6 empty areas from the index
-- `e87919b7` — Waitlist: beta-tester opt-in + "look around" CTA (#352)
-Earlier iOS baseline: `f899bdac` dropped min iOS target 26 → 18 (Liquid Glass
-fallback in `Utilities/GlassCompat.swift`).
+- `540ee322` — Report a problem with this trail (#355)
+- `e87919b7` — Waitlist: beta-tester opt-in + "look around" CTA (#352–354)
+- `1112b173` / `fe65a233` / `0be36e26` — named-road bucket · access + non-trail
+  filters + guard net · review tooling (per-reason buckets + diff + ingest layer)
+IN FLIGHT: the whole-US real publish (`trailforge-publish-us.yml`, dry_run
+UNCHECKED) — when it lands look for a `publish ENTIRE US` commit. Earlier iOS
+baseline: `f899bdac` dropped min iOS target 26 → 18 (Liquid Glass fallback).
 
 ## Current goals
 

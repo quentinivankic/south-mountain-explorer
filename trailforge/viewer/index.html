@@ -49,6 +49,9 @@
   <label><input type="checkbox" id="toggle-ingest" />
     <span class="swatch" style="background:#00695c"></span>Ingest-filtered (named, tag rules) <span id="ingest-count" class="mi"></span></label>
   <div id="ingest-cats" style="margin:0 0 2px 18px; font-size:12px;"></div>
+  <label><input type="checkbox" id="toggle-review" />
+    <span class="swatch" style="background:#ffc400"></span>Tiny &amp; isolated (review) <span id="review-count" class="mi"></span></label>
+  <div id="review-bands" style="margin:0 0 2px 18px; font-size:12px;"></div>
   <label><input type="checkbox" id="toggle-inarea" />
     <span class="swatch" style="background:#e6521f;opacity:.35"></span>Only trails in an area</label>
   <label><input type="checkbox" id="toggle-clip" />
@@ -601,6 +604,123 @@ map.on("load", async () => {
           `<div style="color:#888;font-size:11px">highway=${p.highway || "?"}</div>`)
         .addTo(map);
     });
+  }
+
+  // Layer 2d: KEPT trails that are TINY (<0.15mi) and geometrically ISOLATED —
+  // touch no other trail within ~20m. NOT a curation drop (these still ship);
+  // this is a review surface only. Blanket-dropping isolated tiny trails was
+  // rejected: many legitimately start at a road/parking lot rather than
+  // another trail (a pond-access spur, an overlook path), so isolation alone
+  // is a weak junk signal, and a whole-US test run showed it would empty 6
+  // areas and gut 30%+ of trails in 31 more. Two bands instead: "near-zero"
+  // (<0.02mi, ~100ft — almost certainly a digitization artifact or duplicate
+  // node) vs "short" (0.02–0.15mi — genuine judgment call: real short
+  // destination trail, or a boundary-clip sliver of a trail that lives mostly
+  // in another park). Client-side only, reusing the trails GeoJSON already
+  // loaded — no new pipeline output needed to iterate on this.
+  if (trails && trails.features && trails.features.length) {
+    const partsOf2 = (g) => g.type === "MultiLineString" ? g.coordinates
+                           : (g.type === "LineString" ? [g.coordinates] : []);
+    const TOL = 0.00018;          // ~20m grid cell — matches the offline audit
+    const cellOfXY = (x, y) => [Math.round(x / TOL), Math.round(y / TOL)];
+    const keyOf = (cx, cy) => cx + ":" + cy;
+
+    // Pass 1: every trail (any kind — a route or canonical hike still counts
+    // as "the network" for connectivity purposes) stamps its vertex cells.
+    const occ = new Map();                       // cellKey -> Set<featureIndex>
+    const featCells = trails.features.map((f, i) => {
+      const cells = [];
+      for (const line of partsOf2(f.geometry)) for (const [x, y] of line) {
+        const c = cellOfXY(x, y);
+        cells.push(c);
+        const k = keyOf(c[0], c[1]);
+        let s = occ.get(k); if (!s) occ.set(k, s = new Set());
+        s.add(i);
+      }
+      return cells;
+    });
+    const touchesOther = (i) => {
+      for (const [cx, cy] of featCells[i]) {
+        for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+          const s = occ.get(keyOf(cx + dx, cy + dy));
+          if (!s) continue;
+          for (const j of s) if (j !== i) return true;
+        }
+      }
+      return false;
+    };
+
+    // Pass 2: candidates are non-route, non-hike (those are curated/scoped
+    // elsewhere and long by nature), under the tiny threshold, and isolated.
+    const NEAR_ZERO_MI = 0.02, TINY_MI = 0.15;
+    const reviewFeatures = [];
+    trails.features.forEach((f, i) => {
+      const p = f.properties || {};
+      if (p.kind === "route" || p.kind === "hike") return;
+      const mi = p.length_mi || 0;
+      if (mi >= TINY_MI) return;
+      if (touchesOther(i)) return;
+      reviewFeatures.push({ ...f, properties: { ...p,
+        _review_band: mi < NEAR_ZERO_MI ? "near-zero" : "short" } });
+    });
+
+    if (reviewFeatures.length) {
+      map.addSource("tiny-isolated", { type: "geojson", generateId: true,
+        data: { type: "FeatureCollection", features: reviewFeatures } });
+      const REVIEW_COLORS = { "near-zero": "#ff1744", "short": "#ffc400" };
+      map.addLayer({ id: "review-lines", source: "tiny-isolated", type: "line",
+        layout: { "line-cap": "round", "line-join": "round", visibility: "none" },
+        paint: {
+          "line-color": ["match", ["get", "_review_band"],
+            "near-zero", REVIEW_COLORS["near-zero"],
+            "short", REVIEW_COLORS["short"], REVIEW_COLORS["short"]],
+          "line-width": 4, "line-opacity": 0.95 } });
+
+      const counts = { "near-zero": 0, "short": 0 };
+      for (const f of reviewFeatures) counts[f.properties._review_band]++;
+      const rc = document.getElementById("review-count");
+      if (rc) rc.textContent = `(${reviewFeatures.length})`;
+
+      const rEnabled = new Set(["near-zero", "short"]);
+      const applyReviewFilter = () => map.getLayer("review-lines") &&
+        map.setFilter("review-lines",
+          ["in", ["get", "_review_band"], ["literal", [...rEnabled]]]);
+      const BAND_LABELS = { "near-zero": "near-zero (<0.02mi)", "short": "short (0.02–0.15mi)" };
+      const rBox = document.getElementById("review-bands");
+      if (rBox) {
+        for (const band of ["near-zero", "short"]) {
+          const lab = document.createElement("label");
+          lab.innerHTML = `<input type="checkbox" checked />` +
+            `<span class="swatch" style="background:${REVIEW_COLORS[band]}"></span>` +
+            `${BAND_LABELS[band]} <span class="mi">(${counts[band]})</span>`;
+          rBox.appendChild(lab);
+          lab.querySelector("input").onchange = (e) => {
+            if (e.target.checked) rEnabled.add(band); else rEnabled.delete(band);
+            applyReviewFilter();
+          };
+        }
+      }
+      const reviewParentBox = document.getElementById("toggle-review");
+      if (reviewParentBox) reviewParentBox.onchange = (e) =>
+        map.setLayoutProperty("review-lines", "visibility", e.target.checked ? "visible" : "none");
+
+      map.on("mouseenter", "review-lines", () => map.getCanvas().style.cursor = "pointer");
+      map.on("mouseleave", "review-lines", () => map.getCanvas().style.cursor = "");
+      map.on("click", "review-lines", (e) => {
+        const p = e.features[0].properties;
+        new maplibregl.Popup({ maxWidth: "300px" }).setLngLat(e.lngLat)
+          .setHTML(
+            `<b>${p.name || "(unnamed)"}</b>` +
+            `<div style="color:${REVIEW_COLORS[p._review_band]};font-weight:600;margin:4px 0">` +
+            `⚠ Tiny &amp; isolated · ${p._review_band}</div>` +
+            `<div style="margin-bottom:4px">${(+p.length_mi).toFixed(3)} mi · touches no other ` +
+            `trail within ~20m</div>` +
+            `<div style="color:#888;font-size:11px">Still ships — not auto-dropped. Judgment call: ` +
+            `real short destination trail, or a boundary-clip sliver of a trail that lives mostly ` +
+            `elsewhere?</div>`)
+          .addTo(map);
+      });
+    }
   }
 
   // Layer 3: golden destinations, colored PASS/FAIL when results exist.

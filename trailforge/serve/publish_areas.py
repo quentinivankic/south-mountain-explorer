@@ -410,7 +410,13 @@ def main(argv=None) -> int:
         json.dump(row, open(os.path.join(args.out_dir, f"{slug}.json"), "w"))
         for r in index:
             if r and r[0] == slug:
-                while len(r) < 8:
+                # Pad to 7, NOT 8 — see merge-published-geom.py's comment on
+                # the same pattern. A row with no real osm_relation_id must
+                # stay a 7-tuple (element absent), not an 8-tuple with an
+                # explicit trailing null — iOS's JSONValue decoder has no
+                # null case, so any null anywhere fails the whole-array
+                # decode for every user.
+                while len(r) < 7:
                     r.append(None)
                 r[5], r[6] = row["trail_count"], row["total_mi"]
                 break

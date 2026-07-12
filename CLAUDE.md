@@ -145,21 +145,26 @@ credential fill | sed -n 's/^password=//p')` (reuses the stored push token) or
 a PAT. Then pull run summaries with `gh run view <id> -R <repo> --log | grep
 -aE "SUMMARY|published:|failed:|!!|assembled [0-9,]+ trails|KEEP +[0-9]"`.
 
-**Recent app UX (all shipped/merged to main):** tap a trail = highlight only
-+ toggles selection; selected row's checkmark becomes a **Record** button;
-three-dots GPX export is selection-aware. Tabs are Explore · Browse · **Stats**
-· Settings. **Out-of-region waitlist** (`RegionSupport` gates on
-`Locale.current.region`; `WaitlistCard` on the Explore/Home tab captures
-country + email to **PostHog** — no separate backend): now has a **beta-tester
-toggle** (`beta_interest`) and a **"Look around US & Canada"** button that
-jumps to Browse (#352/#353). **Browse trail search** results now draw the
-single trail's linework, not the whole area's (#354). **Report-a-problem-with-
-this-trail** form (`ReportTrailView`, from the area three-dots menu when a
-trail is selected): reason code + free text → `trail_reported` PostHog event
-with trail/area ids — actionable, often points at an OSM fix (#355). Faint
-Tonto trail-mesh backdrop is merged but **not rendering on device** — WIP.
-**All four PRs (#352–355) are merged to main and ride the NEXT TestFlight
-build** (manual `ios-testflight` dispatch — not yet cut).
+**Recent app UX (verified merged on main as of 2026-07-12 — see the "PR merge
+status" lesson below):** tap a trail = highlight only + toggles selection;
+selected row's checkmark becomes a **Record** button; three-dots GPX export
+is selection-aware. Tabs are Explore · Browse · **Stats** · Settings.
+**Out-of-region waitlist** (`RegionSupport` gates on `Locale.current.region`;
+`WaitlistCard` on the Explore/Home tab captures country + email to
+**PostHog** — no separate backend): has a **beta-tester toggle**
+(`beta_interest`) and a **"Look around US & Canada"** button that jumps to
+Browse (#352), plus copy tweaks — "You're on the list, thanks!" + a
+still-served-while-traveling note (#353). **Browse trail search** results
+draw the single trail's linework, not the whole area's (#354).
+**Report-a-problem-with-this-trail** form (`ReportTrailView`, from the area
+three-dots menu when a trail is selected): reason code + free text →
+`trail_reported` PostHog event with trail/area ids — actionable, often
+points at an OSM fix (#355). Faint Tonto trail-mesh backdrop is merged but
+**not rendering on device** — WIP. **Silhouette cache now revalidates**
+against R2 in the background instead of caching terminally (#356) — fixes
+regenerated card art never reaching a device that already cached the old
+sketch. None of #352–356 has shipped in a TestFlight build yet (manual
+`ios-testflight` dispatch — not yet cut since before this batch).
 
 **Backlog (see the session task list):** (1) **named roads** — the reviewable
 `named-road` bucket now collects 407 candidates; the remaining call is your
@@ -368,6 +373,21 @@ suggesting any destructive flow:
 1. Confirm a fresh Export sits in Files / iCloud Drive.
 2. Suggest the AirDrop / external copy as belt-and-suspenders.
 3. Never run a destructive command on the user's device "to test."
+
+### 5. Claiming a PR is "merged to main" without checking the API
+
+On 2026-07-11 a session opened #352–355, watched #352 and #355 actually
+merge, then wrote "All four PRs (#352–355) are merged to main" into this
+file — #353 and #354 were still sitting open, untouched, `merged: false`.
+That false claim survived until the user reported a real bug (Browse trail
+search drawing the whole area instead of one trail — exactly what the
+still-open #354 fixed) and a follow-up session had to `pull_request_read`
+every PR number individually to find the two stragglers. **Never write "PR
+#N is merged" from memory or from a prior session's notes — call
+`pull_request_read` (method: get) and check `merged: true` yourself before
+the claim goes in this file or in anything you tell the user.** This is
+distinct from lesson #2 (waiting for CI before merging) — this is about
+verifying a merge that supposedly *already happened*.
 
 ## Open PRs (as of 2026-05-19)
 

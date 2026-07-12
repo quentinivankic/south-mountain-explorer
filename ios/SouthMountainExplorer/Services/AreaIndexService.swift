@@ -75,6 +75,14 @@ final class AreaIndexService {
         defer { os_signpost(.end, log: indexLoadLog, name: "revalidate", signpostID: signpostID) }
 
         var request = URLRequest(url: cdnURL)
+        // Bypass the local HTTP cache — otherwise the object's 5 min
+        // max-age means URLSession serves a stale local response without
+        // ever sending a request, so If-None-Match below never even
+        // reaches the server. Same fix as AreaSilhouetteService's
+        // revalidate path (#356); this service just didn't get it at the
+        // time, which is exactly why a freshly-published area (Otter
+        // Creek State Forest) failed to show up even after a hard restart.
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         if let etag = UserDefaults.standard.string(forKey: Self.etagKey) {
             request.setValue(etag, forHTTPHeaderField: "If-None-Match")
         }

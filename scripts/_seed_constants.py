@@ -221,8 +221,22 @@ def slugify(name: str, state_code: str) -> str:
 
 def is_quality(tags: dict) -> bool:
     """Whether an OSM relation's tags qualify it as an outdoor area
-    we want to surface. protect_class whitelist OR name keyword."""
+    we want to surface. protect_class whitelist OR name keyword.
+
+    `ownership=private` is an explicit, unambiguous assertion — distinct
+    from a name-based guess — so it's as safe to act on as `access=private`.
+    Found via a real example: 'Bucktown LLC Conservation Easement' (NY) is
+    private mining-company land tied to an environmental permit, tagged
+    boundary=protected_area + a protect_class we already whitelist — it
+    would otherwise pass every check we have. protect_class alone doesn't
+    distinguish public land from a private easement; explicit ownership
+    does. Areas that DON'T explicitly declare private/public ownership
+    (missing the tag entirely) are a separate, genuinely ambiguous case —
+    handled by scripts/audit-easement-ownership.py as a review flag, not an
+    auto-drop, since absence of a tag isn't proof of anything."""
     if tags.get("access") == "private":
+        return False
+    if tags.get("ownership") == "private":
         return False
     name = (tags.get("name") or "").strip()
     if not name:

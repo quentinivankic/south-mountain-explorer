@@ -135,6 +135,9 @@ jobs:
       - name: Merge geom + refresh master index
         run: python3 scripts/merge-published-geom.py --artifacts-root artifacts
 
+      - name: Regenerate silhouettes from the clean geom (Explore/Browse art)
+        run: python3 scripts/silhouettes-from-geom.py
+
       - name: Regenerate app bundle (only areas with clean trailforge geom)
         run: python3 scripts/filter-ios-bundle.py
 

@@ -38,11 +38,17 @@ before trusting any specific claim (see "Things Claude gets wrong").
 prefilter → assemble (relations-first → name-stitch → spur-attach → merge →
 curation) → `serve/publish_areas.py` (per-area boundary clip + convert +
 validate) → `public/areas/geom/*.json` + master `public/areas/index.json` →
-`scripts/filter-ios-bundle.py` regenerates the app bundle
-(`ios/.../Resources/areas-index.json`, NA-only, gated on clean trailforge
-geom = no `cached_at`) → push to `main` auto-triggers `sync-geom-to-r2.yml`
-→ R2 (`cdn.trekdex.app`) → app. `AreaSilhouetteService`/`AreaIndexService`
-fetch from R2 with a bundled fallback.
+`scripts/silhouettes-from-geom.py` regenerates the Explore/Browse card art
+(`public/areas/silhouettes/*.json`) FROM the clean geom — same no-`cached_at`
+gate; before this the silhouettes were stale System-1 Overpass sketches that
+still drew every road/utility/junk way trailforge now filters (Acadia: 156
+clean geom trails vs a 402-line silhouette) → `scripts/filter-ios-bundle.py`
+regenerates the app bundle (`ios/.../Resources/areas-index.json`, NA-only,
+gated on clean trailforge geom = no `cached_at`) → push to `main` auto-triggers
+`sync-geom-to-r2.yml` → R2 (`cdn.trekdex.app`) → app.
+`AreaSilhouetteService`/`AreaIndexService` fetch from R2 with a bundled
+fallback. All three publish workflows run the silhouette regen before the
+bundle regen, so silhouettes never drift from the geom.
 
 **Coverage — WHOLE US in flight (2026-07-12).** 13 states shipped cleanly
 first (AZ UT CO WA OR NM NV + ME NH VT MA CT RI, ~869 areas). Then built the

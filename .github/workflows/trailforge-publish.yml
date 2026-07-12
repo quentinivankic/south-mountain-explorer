@@ -88,6 +88,10 @@ jobs:
             --index ../public/areas/index.json \
             --out-dir ../public/areas/geom $FLAGS
 
+      - name: Regenerate silhouettes from the clean geom (Explore/Browse art)
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: python3 scripts/silhouettes-from-geom.py
+
       - name: Regenerate app bundle (only areas with clean trailforge geom)
         if: ${{ github.event.inputs.dry_run == 'false' }}
         run: python3 scripts/filter-ios-bundle.py

@@ -31,9 +31,15 @@ MIN_TRAIL_MI = 0.59
 
 SILHOUETTE_SPACING_M = 20.0
 SILHOUETTE_DECIMALS = 5
-# Cap the number of trails contributing to a silhouette — past ~400
-# the rendered card just becomes noise.
-SILHOUETTE_MAX_TRAILS = 400
+# Cap on the number of trails contributing to a silhouette. `None` = no cap:
+# draw the whole network. The old 400 cap dated to System-1, whose networks
+# were full of road/utility/junk ways, so past ~400 the card was noise. With
+# curated trailforge geom every line is a real trail, so an uncapped silhouette
+# is just more faithful. Only ~21 areas (big national forests, Adirondack Park
+# at 1,217 trails) ever exceeded 400; point count plateaus past ~800 (the extra
+# trails are short), so the file-size cost is bounded (~+30% on those few
+# files). Used as a plain slice `[:SILHOUETTE_MAX_TRAILS]`, so None = all.
+SILHOUETTE_MAX_TRAILS = None
 
 GEOM_SPACING_M = 5.0
 GEOM_DECIMALS = 6

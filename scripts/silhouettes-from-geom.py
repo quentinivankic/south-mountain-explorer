@@ -45,16 +45,17 @@ from _seed_constants import (
 _DIFF_CODE = {"Easy": "e", "Moderate": "m", "Hard": "h"}
 
 
-def silhouette_from_geom(geom: dict) -> dict | None:
+def silhouette_from_geom(geom: dict, max_trails=SILHOUETTE_MAX_TRAILS) -> dict | None:
     """Build a `{b, l}` silhouette from one area's geom dict, or None if the
-    area has no drawable geometry. Longest trails first, capped, re-downsampled
-    at the coarser silhouette spacing."""
+    area has no drawable geometry. Longest trails first, optionally capped at
+    `max_trails` (None = no cap), re-downsampled at the coarser silhouette
+    spacing."""
     trails = geom.get("trails") or []
     if not trails:
         return None
     # Longest-first, matching finalize_area's silhouette ordering, then cap.
     ordered = sorted(trails, key=lambda t: -(t.get("distanceMi") or 0.0))
-    ordered = ordered[:SILHOUETTE_MAX_TRAILS]
+    ordered = ordered[:max_trails]
 
     lines: list = []
     min_lat = min_lon = float("inf")
@@ -99,7 +100,13 @@ def main(argv=None) -> int:
     ap.add_argument("--index-only", action="store_true", default=True,
                     help="only areas present in the master index (the ones the "
                          "app actually shows). On by default.")
+    ap.add_argument("--max-trails", type=int, default=None,
+                    help="cap trails per silhouette (default: the "
+                         "SILHOUETTE_MAX_TRAILS constant, currently uncapped). "
+                         "Pass a number to draw only the N longest trails.")
     args = ap.parse_args(argv)
+
+    max_trails = args.max_trails if args.max_trails is not None else SILHOUETTE_MAX_TRAILS
 
     # The app only ever renders index areas; skip the ~10k legacy geom files
     # that have no index row so we don't emit orphan silhouettes.
@@ -125,7 +132,7 @@ def main(argv=None) -> int:
         if geom.get("cached_at") is not None and not args.all:
             skipped_cached += 1
             continue
-        sil = silhouette_from_geom(geom)
+        sil = silhouette_from_geom(geom, max_trails=max_trails)
         if sil is None:
             empty += 1
             continue

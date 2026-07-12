@@ -137,6 +137,19 @@ _BIKEPARK_NAME = re.compile(
     r"\b(down\s*hill|dh|slalom|flow|jump\s*line|pump\s*track|berm|freeride)\b",
     re.IGNORECASE)
 
+# A name that literally says MTB / mountain bike — 'Party of 5 (MTB)', 'Yellow
+# MTB Trail', 'Thomas Mountain Bike Trail'. Unlike _BIKEPARK_NAME this needs no
+# mtb:scale:imba co-signal: whole-word 'MTB' or 'mountain bike' never appears
+# in a genuine hiking-trail name by accident (a whole bike-park network audit
+# — Adirondack, Blue Knob, Montgomery Bell — found this exact naming pattern
+# on every entry, 0 false positives). The one guard that matters is a slash or
+# ' and ' in the name: 'Ryan Gulch MTB/Hiking Trail' explicitly declares dual
+# use, and 'X Trail and Y Mountain Bike Trail' is a merge artifact (two ways
+# fused under a concatenated name) — neither should silently drop a trail that
+# may still be a real, walkable hike.
+_BIKE_ONLY_NAME = re.compile(r"\bmtb\b|\bmountain\s*bike\b", re.IGNORECASE)
+_BIKE_NAME_COMPOSITE = re.compile(r"/| and ", re.IGNORECASE)
+
 # Famous long-distance thru-hikes, matched by NAME. Tag-driven detection fails
 # here — OSM tags US thru-hikes inconsistently (no network, the name slapped on
 # ways, flat/nameless relations), so the name is the only reliable signal. A
@@ -1380,6 +1393,12 @@ def _is_nonhiking(tags: dict) -> bool:
         'nordic;hike' piste is genuinely dual-use and kept.
       - a name that literally says '(No Hiking)' (some are tagged foot=yes, so
         only the name gives them away).
+      - a name that says MTB / mountain bike outright ('Party of 5 (MTB)',
+        'Yellow MTB Trail') with no slash or ' and ' — a whole-word 'MTB' or
+        'mountain bike' never shows up in a real hike's name by accident, so
+        (unlike mtb:scale:imba) it needs no tag co-signal. The slash/'and'
+        guard spares explicit dual-use names ('MTB/Hiking Trail') and merge
+        artifacts (two ways fused into one concatenated name).
 
     mtb:scale:imba (an IMBA difficulty RATING) is NOT a signal on its own — it
     rides on countless shared-use HIKING trails (South Mountain's whole network
@@ -1390,7 +1409,10 @@ def _is_nonhiking(tags: dict) -> bool:
     feature, never a hike. Requiring imba first keeps Rainbow Trail (imba, but
     two-way and normally named) and every real trail untouched.
     """
-    if "no hiking" in str(tags.get("name", "")).strip().lower():
+    name = str(tags.get("name", "") or "")
+    if "no hiking" in name.strip().lower():
+        return True
+    if _BIKE_ONLY_NAME.search(name) and not _BIKE_NAME_COMPOSITE.search(name):
         return True
     if str(tags.get("foot", "")).strip().lower() == "no":
         return True
@@ -1403,7 +1425,7 @@ def _is_nonhiking(tags: dict) -> bool:
     if str(tags.get("mtb:scale:imba", "")).strip() != "":
         if str(tags.get("oneway", "")).strip().lower() in {"yes", "1", "true"}:
             return True
-        if _BIKEPARK_NAME.search(str(tags.get("name", "") or "")):
+        if _BIKEPARK_NAME.search(name):
             return True
     return False
 

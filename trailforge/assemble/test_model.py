@@ -488,6 +488,23 @@ class Classification(unittest.TestCase):
         # name-based motorized filter runs later in curation.
         self.assertTrue(m._is_trailish({"highway": "path", "name": "Huckleberry Trail"}))
 
+    def test_mtb_named_trails_dropped_without_imba_cosignal(self):
+        # A name that just says MTB / mountain bike outright needs no
+        # mtb:scale:imba tag — unlike _BIKEPARK_NAME's vocabulary words
+        # (real Adirondack / Blue Knob / Montgomery Bell bike-park names).
+        for nm in ("Party of 5 (MTB)", "Venom Flow (MTB)", "Big Foot (MTB)",
+                   "Yellow MTB Trail", "MTB Trail", "Crist Ridge Trail - MTB Trail",
+                   "Sylaward Mtb Maintrunk Trail", "Thomas Mountain Bike Trail",
+                   "Cathedral Pines Mountain Bike Trail"):
+            self.assertFalse(m._is_trailish({"highway": "path", "name": nm}), nm)
+        # KEPT: a slash or ' and ' means dual-use disclosure or a merge
+        # artifact (two ways fused into one concatenated name) — never
+        # silently drop those.
+        for nm in ("Ryan Gulch MTB/Hiking Trail",
+                   "Cuivre River Trail - South Loop and Blackhawk Point Mountain Bike Trail",
+                   "Shepherd Lake Trail/Mountain Bike Loop/Race Trail"):
+            self.assertTrue(m._is_trailish({"highway": "path", "name": nm}), nm)
+
     def test_motorized_name_dropped_in_curation(self):
         # US mappers name these without atv/ohv tags, so the NAME filter catches
         # them (from the Idaho audit — all genuine vehicle routes).

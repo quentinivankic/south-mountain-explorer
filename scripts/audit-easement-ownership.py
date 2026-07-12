@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-"""Flag seeded areas that show an actual RED FLAG for private/restricted
-land — for manual review, not auto-drop.
+"""Report seeded areas that got auto-excluded for showing an actual RED FLAG
+for private/restricted land — a lightweight after-the-fact log, not a gate.
 
-v1 of this script tried to REQUIRE positive proof of public ownership
-(a government tag, a recognized land-trust name, a "State Forest"-style
+`red_flag()` (in _seed_constants.py, shared with is_quality()) is now called
+DIRECTLY by the seeding pipeline — a flagged area never gets seeded in the
+first place, no manual review-then-strip step needed. This script exists so
+you still see WHAT got excluded and WHY, without having to approve it first.
+
+History: v1 tried to REQUIRE positive proof of public ownership (a
+government tag, a recognized land-trust name, a "State Forest"-style
 designation) before considering an area safe. Real NY data showed that
 doesn't scale: it flagged 439 areas for review, and sampling them showed
 the overwhelming majority were legitimate — `Sands Point Preserve`
@@ -11,26 +16,12 @@ the overwhelming majority were legitimate — `Sands Point Preserve`
 a dozen `North Shore Land Alliance` preserves — all correctly public, just
 using operator names or org-naming conventions (County of X, Town of X,
 "Alliance", "Foundation", "Heritage Trust", ...) that no fixed keyword list
-can ever fully enumerate. Proving "this operator is legitimate" is an
-unbounded problem across thousands of local land trusts and municipalities.
-
-v2 instead only flags a NARROW, evidence-based set of actual red flags —
-the same signals that caught the two REAL bad examples we found (Bucktown
-LLC Conservation Easement, tied to a mine; Eagle Creek Renewable Energy
-Conservation Easement, same pattern):
-
-  - description/title mentions mine/mining/quarry (industrial land)
-  - title/description mentions hunting (club/preserve/lodge — private
-    membership land, not public hiking)
-  - title mentions water supply/watershed (often a closed municipal
-    reservoir protection zone, not open to public recreation even though
-    it's government-owned)
-
-Everything else that already passed is_quality() (which requires a
-protect_class whitelist match or a name keyword, and now also hard-excludes
-access=private / ownership=private) is trusted by default. This flips the
-burden of proof to something actually achievable: catch the identifiable
-bad pattern, not enumerate every possible good one.
+can ever fully enumerate. v2/v3 flipped to a narrow, evidence-backed set of
+actual red flags instead (mine/mining/quarry, hunting club/preserve, water
+supply/watershed — see _seed_constants.red_flag()'s docstring for the full
+story). Verified against 17 real cases with zero false positives, plus clean
+0-flag runs on GA and VT, before being promoted from "flag for review" to an
+automatic exclusion.
 
 Usage:
     python3 scripts/audit-easement-ownership.py NY
@@ -44,21 +35,19 @@ flaky state (Overpass timeouts are common on big/dense states) doesn't block
 the batch. Failed states print at the end so you can re-run just those.
 
 Run on the homelab (needs live Overpass). Read-only — writes nothing to
-index.json; use the printed slugs to decide what (if anything) to exclude
-before a real publish.
+index.json.
 """
 from __future__ import annotations
 
 import argparse
 import importlib.util
-import re
 import sys
 import time
 from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(_SCRIPTS_DIR))
-from _seed_constants import is_quality, STATE_NAMES  # noqa: E402
+from _seed_constants import is_quality, red_flag, STATE_NAMES  # noqa: E402
 
 # seed-areas.py has a hyphen, so it can't be a plain `import` target.
 _spec = importlib.util.spec_from_file_location(
@@ -72,72 +61,13 @@ fetch_overpass = _seed_areas.fetch_overpass
 # 504/timeout doesn't require a manual re-run of the whole batch.
 _RETRY_BACKOFFS_SECONDS = [60, 180, 600]
 
-# "mine"/"quarry"/"water supply" are common innocuous words in a PLACE name
-# (Mine Kill State Park, Essex Quarry Nature Preserve, Middletown Reservoir
-# Trails) — checked against protection_title + description only, never name.
-# "hunting" is different: nothing legitimate is named "X Hunting Club"/
-# "X Hunting Preserve" by accident, so it's checked against name too — still
-# protected by the government-operator exemption below for genuinely public
-# hunting-access land.
-_RED_FLAGS_TITLE_DESC_ONLY = {
-    "mine/mining/quarry": re.compile(r"\b(mine|mining|quarry|quarries)\b", re.IGNORECASE),
-    "water supply/watershed": re.compile(r"\b(water supply|watershed)\b", re.IGNORECASE),
-}
-_HUNTING_FLAG = re.compile(r"\bhunting\b", re.IGNORECASE)
-
-# Government agency naming is a small, closed, genuinely nationwide-consistent
-# pattern — unlike land-trust names (unbounded, the v1 mistake), "Department
-# of", "County", "City of", "Town of" etc. reliably signal a public operator
-# regardless of which state or agency. Real example: 'Mongaup Valley
-# Wildlife Management Area' has description="mine" (a historical-feature
-# note, not an access restriction) but operator="New York State Department
-# of Environmental Conservation" — obviously public despite the mine flag.
-_GOVERNMENT_OPERATOR = re.compile(
-    r"\b(department of|state of|county|city of|town of|village of|"
-    r"national park service|forest service|bureau of land management|"
-    r"fish and wildlife service|u\.?s\.? |commonwealth of)\b",
-    re.IGNORECASE,
-)
-
-# NYC's Catskill/Delaware watershed land (hundreds of individually-mapped
-# "Unit" parcels) is one of the most well-documented ACTUALLY-public hiking
-# resources in NY — DEP runs a Public Access Program and popular Catskill
-# trailheads sit on this land. The water-supply flag was calibrated on small
-# municipal reservoir buffers (Town of Chester, Village of Warwick — plausibly
-# closed), which this exemption doesn't touch. Sampling the first NY run
-# showed ~93% of all flagged candidates were this one operator.
-_KNOWN_PUBLIC_WATER_OPERATOR = re.compile(
-    r"new york city department of environmental protection", re.IGNORECASE)
-
-# A name containing "Trail(s)" is an unambiguous public-hiking signal on its
-# own — 'Middletown Reservoir Trails' got flagged by v2 purely because its
-# OWN title/description said water-supply, despite its name literally saying
-# what it is.
-_NAME_SAYS_TRAIL = re.compile(r"\btrails?\b", re.IGNORECASE)
-
-
-def _red_flag(tags: dict) -> str | None:
-    name = tags.get("name") or ""
-    operator = tags.get("operator") or ""
-    title_desc = " ".join(str(tags.get(k) or "") for k in ("protection_title", "description"))
-    flag = next((label for label, pattern in _RED_FLAGS_TITLE_DESC_ONLY.items()
-                 if pattern.search(title_desc)), None)
-    if flag is None and _HUNTING_FLAG.search(name + " " + title_desc):
-        flag = "hunting club/preserve"
-    if flag is None:
-        return None
-    if _GOVERNMENT_OPERATOR.search(operator):
-        return None
-    if flag == "water supply/watershed" and _KNOWN_PUBLIC_WATER_OPERATOR.search(operator):
-        return None
-    if _NAME_SAYS_TRAIL.search(name):
-        return None
-    return flag
-
 
 def audit_state(state: str) -> tuple[int, int, list[tuple[dict, str]]]:
     """(safe_count, dropped_count, review_list) for one state. Retries a
-    flaky Overpass response up to 3x (60/180/600s) before raising."""
+    flaky Overpass response up to 3x (60/180/600s) before raising. `review`
+    here means "auto-excluded by red_flag()", reported after the fact —
+    `dropped` is every OTHER is_quality() exclusion (access/ownership=
+    private, no protect_class/keyword match)."""
     last_err: Exception | None = None
     data = None
     for attempt, backoff in enumerate(_RETRY_BACKOFFS_SECONDS, start=1):
@@ -159,14 +89,14 @@ def audit_state(state: str) -> tuple[int, int, list[tuple[dict, str]]]:
         if el.get("type") not in ("relation", "way"):
             continue
         tags = el.get("tags") or {}
-        if not is_quality(tags):
-            dropped += 1
+        flag = red_flag(tags)
+        if flag is not None:
+            review.append((tags, flag))
             continue
-        flag = _red_flag(tags)
-        if flag is None:
+        if is_quality(tags):
             safe += 1
-            continue
-        review.append((tags, flag))
+        else:
+            dropped += 1
     return safe, dropped, review
 
 
@@ -203,8 +133,9 @@ def main(argv=None) -> int:
         totals["safe"] += safe
         totals["dropped"] += dropped
         totals["review"] += len(review)
-        print(f"\n{state}: {safe} trusted (no red flag), {dropped} already "
-              f"excluded (access/ownership=private), {len(review)} flagged for review\n")
+        print(f"\n{state}: {safe} seeded, {dropped} excluded (access/ownership="
+              f"private or no protect_class/keyword match), {len(review)} "
+              f"auto-excluded (red flag)\n")
 
         for tags, flag in sorted(review, key=lambda t: t[0].get("name") or ""):
             name = tags.get("name") or "(unnamed)"
@@ -217,15 +148,16 @@ def main(argv=None) -> int:
             print(line)
 
     print(f"\n=== TOTAL across {len(states) - len(failed_states)} state(s): "
-          f"{totals['safe']} trusted, {totals['dropped']} already excluded, "
-          f"{totals['review']} flagged for review ===")
+          f"{totals['safe']} seeded, {totals['dropped']} excluded, "
+          f"{totals['review']} auto-excluded (red flag) ===")
     if failed_states:
         print(f"FAILED (Overpass gave up after 3 attempts, re-run these "
               f"separately): {' '.join(failed_states)}")
 
     if args.out:
         Path(args.out).write_text("\n".join(all_lines) + "\n")
-        print(f"\nWrote {len(all_lines)} review lines to {args.out}", file=sys.stderr)
+        print(f"\nWrote {len(all_lines)} lines to {args.out} — this is a report "
+              f"of what was auto-excluded, not something to act on", file=sys.stderr)
 
     return 0
 

@@ -219,6 +219,80 @@ def slugify(name: str, state_code: str) -> str:
     return f"{s[:60]}-{state_code.lower()}"
 
 
+# ---------- Red-flag exclusion (private/restricted land signals) ----------
+#
+# Started as a manual-review tool (scripts/audit-easement-ownership.py) —
+# v1 tried to REQUIRE positive proof of public ownership before trusting an
+# area and flagged 439/2957 NY candidates, ~93% of them false positives
+# (legitimate county parks, land trusts, NYC DEP watershed land the keyword
+# list just didn't recognize). v2/v3 flipped to a narrow, evidence-backed
+# set of actual red flags instead — proof of BADNESS, not goodness, which is
+# a bounded problem. Verified against 17 real cases (2026-07-12 NY rollout)
+# with zero false positives, plus clean 0-flag runs on GA and VT. Promoted
+# from "flag for manual review" to an automatic is_quality() exclusion once
+# that held up — the user explicitly signed off on trusting these categories
+# so future seeding doesn't need a human to read and strip a review list by
+# hand. scripts/audit-easement-ownership.py still exists as a lightweight
+# after-the-fact report of what got auto-excluded (not a gate).
+_RED_FLAGS_TITLE_DESC_ONLY = {
+    "mine/mining/quarry": re.compile(r"\b(mine|mining|quarry|quarries)\b", re.IGNORECASE),
+    "water supply/watershed": re.compile(r"\b(water supply|watershed)\b", re.IGNORECASE),
+}
+_HUNTING_FLAG = re.compile(r"\bhunting\b", re.IGNORECASE)
+
+# Government agency naming is a small, closed, genuinely nationwide-consistent
+# pattern — unlike land-trust names (unbounded, the v1 mistake), "Department
+# of", "County", "City of", "Town of" etc. reliably signal a public operator
+# regardless of which state or agency. Real example: 'Mongaup Valley
+# Wildlife Management Area' has description="mine" (a historical-feature
+# note, not an access restriction) but operator="New York State Department
+# of Environmental Conservation" — obviously public despite the mine flag.
+_GOVERNMENT_OPERATOR = re.compile(
+    r"\b(department of|state of|county|city of|town of|village of|"
+    r"national park service|forest service|bureau of land management|"
+    r"fish and wildlife service|u\.?s\.? |commonwealth of)\b",
+    re.IGNORECASE,
+)
+
+# NYC's Catskill/Delaware watershed land (hundreds of individually-mapped
+# "Unit" parcels) is one of the most well-documented ACTUALLY-public hiking
+# resources in NY — DEP runs a Public Access Program and popular Catskill
+# trailheads sit on this land. The water-supply flag was calibrated on small
+# municipal reservoir buffers (Town of Chester, Village of Warwick — plausibly
+# closed), which this exemption doesn't touch.
+_KNOWN_PUBLIC_WATER_OPERATOR = re.compile(
+    r"new york city department of environmental protection", re.IGNORECASE)
+
+# A name containing "Trail(s)" is an unambiguous public-hiking signal on its
+# own — 'Middletown Reservoir Trails' would otherwise flag purely because its
+# OWN title/description said water-supply, despite its name literally saying
+# what it is.
+_NAME_SAYS_TRAIL = re.compile(r"\btrails?\b", re.IGNORECASE)
+
+
+def red_flag(tags: dict) -> str | None:
+    """A narrow, real-example-backed reason this area is likely private/
+    restricted land, or None if it's trusted. See the module comment above
+    for why this list stays narrow instead of trying to enumerate every
+    legitimate operator."""
+    name = tags.get("name") or ""
+    operator = tags.get("operator") or ""
+    title_desc = " ".join(str(tags.get(k) or "") for k in ("protection_title", "description"))
+    flag = next((label for label, pattern in _RED_FLAGS_TITLE_DESC_ONLY.items()
+                 if pattern.search(title_desc)), None)
+    if flag is None and _HUNTING_FLAG.search(name + " " + title_desc):
+        flag = "hunting club/preserve"
+    if flag is None:
+        return None
+    if _GOVERNMENT_OPERATOR.search(operator):
+        return None
+    if flag == "water supply/watershed" and _KNOWN_PUBLIC_WATER_OPERATOR.search(operator):
+        return None
+    if _NAME_SAYS_TRAIL.search(name):
+        return None
+    return flag
+
+
 def is_quality(tags: dict) -> bool:
     """Whether an OSM relation's tags qualify it as an outdoor area
     we want to surface. protect_class whitelist OR name keyword.
@@ -230,10 +304,14 @@ def is_quality(tags: dict) -> bool:
     boundary=protected_area + a protect_class we already whitelist — it
     would otherwise pass every check we have. protect_class alone doesn't
     distinguish public land from a private easement; explicit ownership
-    does. Areas that DON'T explicitly declare private/public ownership
-    (missing the tag entirely) are a separate, genuinely ambiguous case —
-    handled by scripts/audit-easement-ownership.py as a review flag, not an
-    auto-drop, since absence of a tag isn't proof of anything."""
+    does.
+
+    red_flag() catches the harder case: areas that DON'T explicitly declare
+    ownership at all (the tag is just missing) but show a real-example-backed
+    sign of being private/restricted anyway (a mining easement, a hunting
+    club, a closed municipal water-supply zone). See red_flag()'s docstring
+    for why this is a narrow exclusion list, not an attempt to whitelist
+    every legitimate public operator."""
     if tags.get("access") == "private":
         return False
     if tags.get("ownership") == "private":
@@ -242,9 +320,11 @@ def is_quality(tags: dict) -> bool:
     if not name:
         return False
     pc = (tags.get("protect_class") or "").strip().lower()
-    if pc and pc in ALLOWED_PROTECT_CLASSES:
-        return True
-    return bool(NAME_KEYWORD_RE.search(name))
+    has_pc = bool(pc and pc in ALLOWED_PROTECT_CLASSES)
+    has_keyword = bool(NAME_KEYWORD_RE.search(name))
+    if not (has_pc or has_keyword):
+        return False
+    return red_flag(tags) is None
 
 
 def load_overrides(path: Path) -> set[str]:

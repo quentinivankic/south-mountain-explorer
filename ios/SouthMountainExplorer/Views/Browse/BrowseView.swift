@@ -301,7 +301,9 @@ private struct TrailHitRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            SilhouetteThumb(areaId: hit.areaId)
+            // Just THIS trail's linework — not the whole area (which is what
+            // the area rows below show). See TrailThumb.
+            TrailThumb(areaId: hit.areaId, trailId: hit.trailId)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(hit.trailName)
@@ -362,6 +364,87 @@ private struct SilhouetteThumb: View {
         .frame(width: 44, height: 44)
         .task(id: areaId) {
             await silhouettes.silhouette(for: areaId)
+        }
+    }
+}
+
+/// 44×44 thumbnail of a SINGLE trail's linework — used by trail search
+/// results so the swatch shows the trail itself, not the whole area it
+/// lives in. The full area is already cached (trail search only surfaces
+/// cached areas), so the geometry is a synchronous lookup.
+private struct TrailThumb: View {
+    let areaId: String
+    let trailId: String
+    @Environment(AreaDataService.self) private var areas
+
+    var body: some View {
+        Group {
+            if let trail = areas.cachedArea(id: areaId)?.trails
+                .first(where: { $0.id == trailId }), !trail.segments.isEmpty {
+                TrailThumbCanvas(trail: trail)
+            } else {
+                Image(systemName: "figure.hiking")
+                    .foregroundStyle(.tertiary)
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(width: 44, height: 44)
+    }
+}
+
+/// Paints one trail's polyline(s) into the thumbnail, self-framed to the
+/// trail's own bounds and coloured by its difficulty — same projection as
+/// ThumbCanvas but scoped to a single trail.
+private struct TrailThumbCanvas: View {
+    let trail: Trail
+
+    var body: some View {
+        Canvas { context, size in
+            var w = Double.infinity, s = Double.infinity
+            var e = -Double.infinity, n = -Double.infinity
+            for seg in trail.segments {
+                for pt in seg where pt.count >= 2 {
+                    if pt[1] < w { w = pt[1] }; if pt[1] > e { e = pt[1] }
+                    if pt[0] < s { s = pt[0] }; if pt[0] > n { n = pt[0] }
+                }
+            }
+            guard w.isFinite else { return }
+            let pad: CGFloat = 5
+            let drawW = size.width - 2 * pad
+            let drawH = size.height - 2 * pad
+            guard drawW > 0, drawH > 0 else { return }
+            let centerLat = (s + n) / 2
+            let lonScale = cos(centerLat * .pi / 180)
+            let xRange = max((e - w) * lonScale, .leastNonzeroMagnitude)
+            let yRange = max(n - s, .leastNonzeroMagnitude)
+            let scale = min(drawW / xRange, drawH / yRange)
+            let canvasW = xRange * scale
+            let canvasH = yRange * scale
+            let xOffset = pad + (drawW - canvasW) / 2
+            let yOffset = pad + (drawH - canvasH) / 2
+
+            var path = Path()
+            for seg in trail.segments {
+                var started = false
+                for pt in seg where pt.count >= 2 {
+                    let x = xOffset + (pt[1] - w) * lonScale * scale
+                    let y = yOffset + canvasH - (pt[0] - s) * scale
+                    let p = CGPoint(x: x, y: y)
+                    if started { path.addLine(to: p) } else { path.move(to: p); started = true }
+                }
+            }
+            let color: Color
+            switch trail.difficulty {
+            case .easy: color = .green
+            case .moderate: color = .orange
+            case .hard: color = .red
+            }
+            context.stroke(
+                path,
+                with: .color(color),
+                style: StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round)
+            )
         }
     }
 }

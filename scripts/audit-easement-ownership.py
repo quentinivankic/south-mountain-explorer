@@ -60,22 +60,67 @@ _spec.loader.exec_module(_seed_areas)
 overpass_query = _seed_areas.overpass_query
 fetch_overpass = _seed_areas.fetch_overpass
 
-# Each is a narrow, real-example-backed pattern — not a guess at what "bad"
-# might look like in general. Checked against name + protection_title +
-# description, the only free-text fields likely to carry this signal.
-_RED_FLAGS = {
+# "mine"/"quarry"/"water supply" are common innocuous words in a PLACE name
+# (Mine Kill State Park, Essex Quarry Nature Preserve, Middletown Reservoir
+# Trails) — checked against protection_title + description only, never name.
+# "hunting" is different: nothing legitimate is named "X Hunting Club"/
+# "X Hunting Preserve" by accident, so it's checked against name too — still
+# protected by the government-operator exemption below for genuinely public
+# hunting-access land.
+_RED_FLAGS_TITLE_DESC_ONLY = {
     "mine/mining/quarry": re.compile(r"\b(mine|mining|quarry|quarries)\b", re.IGNORECASE),
-    "hunting club/preserve": re.compile(r"\bhunting\b", re.IGNORECASE),
     "water supply/watershed": re.compile(r"\b(water supply|watershed)\b", re.IGNORECASE),
 }
+_HUNTING_FLAG = re.compile(r"\bhunting\b", re.IGNORECASE)
+
+# Government agency naming is a small, closed, genuinely nationwide-consistent
+# pattern — unlike land-trust names (unbounded, the v1 mistake), "Department
+# of", "County", "City of", "Town of" etc. reliably signal a public operator
+# regardless of which state or agency. Real example: 'Mongaup Valley
+# Wildlife Management Area' has description="mine" (a historical-feature
+# note, not an access restriction) but operator="New York State Department
+# of Environmental Conservation" — obviously public despite the mine flag.
+_GOVERNMENT_OPERATOR = re.compile(
+    r"\b(department of|state of|county|city of|town of|village of|"
+    r"national park service|forest service|bureau of land management|"
+    r"fish and wildlife service|u\.?s\.? |commonwealth of)\b",
+    re.IGNORECASE,
+)
+
+# NYC's Catskill/Delaware watershed land (hundreds of individually-mapped
+# "Unit" parcels) is one of the most well-documented ACTUALLY-public hiking
+# resources in NY — DEP runs a Public Access Program and popular Catskill
+# trailheads sit on this land. The water-supply flag was calibrated on small
+# municipal reservoir buffers (Town of Chester, Village of Warwick — plausibly
+# closed), which this exemption doesn't touch. Sampling the first NY run
+# showed ~93% of all flagged candidates were this one operator.
+_KNOWN_PUBLIC_WATER_OPERATOR = re.compile(
+    r"new york city department of environmental protection", re.IGNORECASE)
+
+# A name containing "Trail(s)" is an unambiguous public-hiking signal on its
+# own — 'Middletown Reservoir Trails' got flagged by v2 purely because its
+# OWN title/description said water-supply, despite its name literally saying
+# what it is.
+_NAME_SAYS_TRAIL = re.compile(r"\btrails?\b", re.IGNORECASE)
 
 
 def _red_flag(tags: dict) -> str | None:
-    text = " ".join(str(tags.get(k) or "") for k in ("name", "protection_title", "description"))
-    for label, pattern in _RED_FLAGS.items():
-        if pattern.search(text):
-            return label
-    return None
+    name = tags.get("name") or ""
+    operator = tags.get("operator") or ""
+    title_desc = " ".join(str(tags.get(k) or "") for k in ("protection_title", "description"))
+    flag = next((label for label, pattern in _RED_FLAGS_TITLE_DESC_ONLY.items()
+                 if pattern.search(title_desc)), None)
+    if flag is None and _HUNTING_FLAG.search(name + " " + title_desc):
+        flag = "hunting club/preserve"
+    if flag is None:
+        return None
+    if _GOVERNMENT_OPERATOR.search(operator):
+        return None
+    if flag == "water supply/watershed" and _KNOWN_PUBLIC_WATER_OPERATOR.search(operator):
+        return None
+    if _NAME_SAYS_TRAIL.search(name):
+        return None
+    return flag
 
 
 def main(argv=None) -> int:

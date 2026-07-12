@@ -74,12 +74,20 @@ def overpass_query(code: str) -> str:
         bbox = f'area["ISO3166-1"="{code}"]->.region;'
     else:
         bbox = f'area["ISO3166-2"="US-{code}"]->.region;'
+    # Both relation (multi-part boundary) AND way (a single closed polygon) —
+    # a simple protected area is just as often mapped as one way as it is a
+    # relation (e.g. NY's Otter Creek State Forest: boundary=protected_area,
+    # leisure=nature_reserve, protect_class=6, all on a bare `way`). Missing
+    # the way clause silently drops every area mapped that way, regardless of
+    # how well it'd pass is_quality() — the candidate never even reaches it.
     return f"""
 [out:json][timeout:300];
 {bbox}
 (
   relation["boundary"~"^(protected_area|national_park)$"]["name"](area.region);
   relation["leisure"="nature_reserve"]["name"](area.region);
+  way["boundary"~"^(protected_area|national_park)$"]["name"](area.region);
+  way["leisure"="nature_reserve"]["name"](area.region);
 );
 out tags center;
 """.strip()
@@ -188,10 +196,21 @@ def fetch_region_bbox(state_code: str) -> tuple[float, float, float, float] | No
     return best
 
 
-def fetch_state(state_code: str) -> list[tuple[list, int]]:
+def fetch_state(state_code: str) -> list[tuple[list, int | None]]:
     """Returns (index_row, osm_relation_id) pairs. The osm_id pins
     the same polygon Python and iOS both query — Nominatim's
-    `featuretype=relation` was unstable for ambiguous names."""
+    `featuretype=relation` was unstable for ambiguous names.
+
+    osm_relation_id is None for a way-sourced candidate: the app's live-
+    Overpass fallback (AreaDataService.fetchFromOverpass) computes the
+    Overpass `area()` id as `osmId + 3_600_000_000`, which is the RELATION-
+    only offset (a way's is +2_400_000_000). Storing a way id there would
+    silently point the fallback at the wrong polygon; leaving it unset makes
+    it fall through to the next tier (Nominatim lookup, then a bbox query) —
+    a soft degrade instead of a silent wrong answer. Only the (rare) live-
+    fallback path is affected — the primary path is trailforge's own
+    PBF-based boundary assembly, which already handles both ways and
+    relations natively (see assemble/areas.py)."""
     print(f"Querying Overpass for {state_code}...", file=sys.stderr, flush=True)
     data: dict | None = None
     last_err: Exception | None = None
@@ -225,11 +244,12 @@ def fetch_state(state_code: str) -> list[tuple[list, int]]:
     bbox = fetch_region_bbox(state_code)
 
 
-    out: list[tuple[list, int]] = []
+    out: list[tuple[list, int | None]] = []
     raw = 0
     out_of_bbox = 0
     for el in data.get("elements", []):
-        if el.get("type") != "relation":
+        el_type = el.get("type")
+        if el_type not in ("relation", "way"):
             continue
         raw += 1
         tags = el.get("tags") or {}
@@ -269,7 +289,7 @@ def fetch_state(state_code: str) -> list[tuple[list, int]]:
             round(float(lat), 4),
             round(float(lon), 4),
         ]
-        out.append((row, int(osm_id)))
+        out.append((row, int(osm_id) if el_type == "relation" else None))
     msg = (
         f"  {state_code}: {raw} candidates, {len(out)} passed quality filter"
     )
@@ -415,7 +435,8 @@ def main() -> None:
             if row[1].lower() in excludes:
                 continue
             new_rows.append(row)
-            new_osm_ids[row[0]] = osm_id
+            if osm_id is not None:      # way-sourced candidates carry no id (see fetch_state)
+                new_osm_ids[row[0]] = osm_id
         index_size = flush_state(
             new_rows,
             new_osm_ids,

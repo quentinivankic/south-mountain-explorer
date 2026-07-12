@@ -83,13 +83,25 @@ typealias AreaTuple = [JSONValue]
 enum JSONValue: Codable, Sendable {
     case string(String)
     case number(Double)
+    case null
 
+    /// `null` must be checked BEFORE attempting String/Double decode —
+    /// without this case, any null anywhere in the index array (an area
+    /// row with no osm_relation_id, padded to 8 elements with a trailing
+    /// null by the publish pipeline) throws typeMismatch, which fails the
+    /// WHOLE-ARRAY decode of `[[JSONValue]]`, not just that one row. Found
+    /// via a real report: Otter Creek State Forest never appeared in the
+    /// app despite the CDN correctly serving it — revalidate() decodes as
+    /// a validation step before persisting, so this silently failed for
+    /// EVERY user on EVERY refresh attempt the moment any way-sourced area
+    /// (osm_relation_id = null by design, see seed-areas.py) got published.
     init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
+        if c.decodeNil() { self = .null; return }
         if let s = try? c.decode(String.self) { self = .string(s); return }
         if let n = try? c.decode(Double.self) { self = .number(n); return }
         throw DecodingError.typeMismatch(JSONValue.self,
-            .init(codingPath: decoder.codingPath, debugDescription: "Expected String or Number"))
+            .init(codingPath: decoder.codingPath, debugDescription: "Expected String, Number, or null"))
     }
 
     func encode(to encoder: Encoder) throws {
@@ -97,6 +109,7 @@ enum JSONValue: Codable, Sendable {
         switch self {
         case .string(let s): try c.encode(s)
         case .number(let n): try c.encode(n)
+        case .null: try c.encodeNil()
         }
     }
 

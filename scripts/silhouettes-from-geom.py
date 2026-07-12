@@ -92,9 +92,23 @@ def main(argv=None) -> int:
         description="regenerate silhouettes from trailforge-clean geom")
     ap.add_argument("--dry-run", action="store_true",
                     help="report what would change; write nothing")
+    ap.add_argument("--all", action="store_true",
+                    help="regenerate EVERY area's silhouette from its geom, "
+                         "including System-1 (cached_at) areas. Default only "
+                         "touches trailforge-clean geom (the bundle-filter gate).")
+    ap.add_argument("--index-only", action="store_true", default=True,
+                    help="only areas present in the master index (the ones the "
+                         "app actually shows). On by default.")
     args = ap.parse_args(argv)
 
-    wrote = skipped_cached = empty = 0
+    # The app only ever renders index areas; skip the ~10k legacy geom files
+    # that have no index row so we don't emit orphan silhouettes.
+    import os
+    index = json.load(open(os.path.join(
+        GEOM_DIR.parent, "index.json")))
+    index_slugs = {r[0] for r in index if r}
+
+    wrote = changed = skipped_cached = skipped_nonindex = empty = 0
     for geom_path in sorted(GEOM_DIR.glob("*.json")):
         try:
             geom = json.loads(geom_path.read_text())
@@ -102,24 +116,38 @@ def main(argv=None) -> int:
             continue
         if not isinstance(geom, dict):
             continue
-        # Only trailforge-clean geom (no cached_at) — same gate as the bundle
-        # filter. System-1 areas keep their System-1 silhouettes.
-        if geom.get("cached_at") is not None:
+        area_id = geom.get("id") or geom_path.stem
+        if area_id not in index_slugs:
+            skipped_nonindex += 1
+            continue
+        # By default only trailforge-clean geom (no cached_at) — same gate as
+        # the bundle filter. --all also regenerates System-1 areas.
+        if geom.get("cached_at") is not None and not args.all:
             skipped_cached += 1
             continue
-        area_id = geom.get("id") or geom_path.stem
         sil = silhouette_from_geom(geom)
         if sil is None:
             empty += 1
             continue
+        sil_path = GEOM_DIR.parent / "silhouettes" / f"{area_id}.json"
+        prior = None
+        if sil_path.exists():
+            try:
+                prior = json.loads(sil_path.read_text())
+            except Exception:
+                prior = None
+        if prior != sil:
+            changed += 1
         if not args.dry_run:
             write_silhouette(area_id, sil)
         wrote += 1
 
     verb = "would write" if args.dry_run else "wrote"
-    print(f"{verb} {wrote} silhouettes from trailforge geom; "
-          f"skipped {skipped_cached} System-1 areas (cached_at); "
-          f"{empty} clean areas had no drawable geometry")
+    scope = "ALL index areas" if args.all else "trailforge-clean index areas"
+    print(f"{verb} {wrote} silhouettes ({scope}); {changed} differ from the "
+          f"current file; skipped {skipped_cached} System-1 (cached_at, "
+          f"use --all to include), {skipped_nonindex} non-index geom, "
+          f"{empty} with no drawable geometry")
     return 0
 
 

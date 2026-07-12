@@ -55,7 +55,15 @@ def main(argv=None) -> int:
         if row is None:
             missing_row.append(slug)         # geom with no seeded index row
             continue
-        while len(row) < 8:
+        # Pad to 7, NOT 8 — a row with no real osm_relation_id should stay a
+        # 7-tuple (element absent) rather than an 8-tuple with an explicit
+        # trailing null. iOS's JSONValue decoder has no null case, so ANY
+        # null anywhere in the index array fails the whole-array decode —
+        # found via Otter Creek State Forest never appearing in the app
+        # despite correct CDN data: 524 of 3,163 bundle rows had this exact
+        # 8-element-trailing-null shape, silently breaking revalidate() for
+        # every user, every time, since the NY publish that introduced them.
+        while len(row) < 7:
             row.append(None)
         row[5], row[6] = d.get("trail_count"), d.get("total_mi")
         updated += 1

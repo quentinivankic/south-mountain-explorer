@@ -591,6 +591,32 @@ class Classification(unittest.TestCase):
                   "Red Roof Inn Row", "Public Easement", "Miller Peak Trail"):
             self.assertFalse(m.is_utility_corridor_name(n), n)
 
+    def test_nonhiking_route_names_dropped(self):
+        # Named '… Route's that are bike / climbing / glacier mountaineering
+        # lines, evacuation routes, or dead mapping artifacts — not foot hikes.
+        for n in ("Nose Dive Bike Route", "Claim Jumper Bike Route",
+                  "Sunset Bike Route", "Emmons Glacier Route",
+                  "Boulder Glacier Route", "Easton Glacier Route",
+                  "Squak Glacier Route", "Inter Glacier Route",
+                  "Monitor Ridge Climbing Route", "Green Butte Climbing Route",
+                  "Avalanche Gulch Climbing Route",
+                  "Clear Creek Climbing Route (Stewart Trail)",
+                  "Evacuation route", "Trail Route: NOT VISIBLE 2019",
+                  "Forest Route 31 Obliterated at Mud Creek"):
+            self.assertTrue(m.is_nonhiking_route_name(n), n)
+        # The whole point: the overwhelming majority of '… Route' names are
+        # REAL hikes and MUST survive. A blanket 'Route' drop would gut these.
+        for n in ("Zion Narrows Top-Down Hiking Route",
+                  "Zion Narrows Bottom-Up Day-Hiking Route",
+                  "El Camino Real Historic Route Trail", "Escalante Route",
+                  "Esplanade Route", "Royal Arch Route",
+                  "Ozark Trail - Eleven Point High Route", "La Luz to Crest Route",
+                  "Blue Trail Hiking Route", "Coyote Gulch - Hurricane Wash Route",
+                  # 'Glacier'/'Climbing' NOT adjacent to 'Route' — real trails.
+                  "Glacier Gorge Trail", "Glacier Lake Trail",
+                  "Rock Climbing Access Trail"):
+            self.assertFalse(m.is_nonhiking_route_name(n), n)
+
     def _trail(self, name, tags=None, source="name-stitch"):
         return m.Trail(name, source, [1], [[(0.0, 0.0), (0.1, 0.0)]], tags or {}, [])
 

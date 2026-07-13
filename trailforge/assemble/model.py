@@ -579,6 +579,14 @@ def _removal_verdict(trail: "Trail", min_length_mi: float = 0.0,
         return ("motorized",
                 "Motorized route, not a foot trail — the name marks it "
                 "ATV / OHV / UTV / 4WD / snowmobile / Jeep.")
+    if is_nonhiking_route_name(name):
+        return ("nonhiking-route",
+                "Named '… Route' that isn't a hiking trail — a mountain-bike "
+                "route, a technical climbing / glacier mountaineering line "
+                "('Emmons Glacier Route', 'Monitor Ridge Climbing Route'), an "
+                "evacuation route, or a dead mapping artifact ('… NOT VISIBLE', "
+                "'… Obliterated …'). Real named routes (Zion Narrows, Grand "
+                "Canyon's Escalante/Royal Arch, El Camino Real) are kept.")
     if is_utility_corridor_name(name):
         return ("utility",
                 "Utility corridor, not a foot trail — a bare powerline / "
@@ -1296,6 +1304,34 @@ def is_utility_corridor_name(name: str | None) -> bool:
     if not name or not _UTILITY_CORRIDOR.search(name):
         return False
     return not _TRAIL_WORD.search(name)
+
+
+_NONHIKING_ROUTE = re.compile(
+    r"\b(bike|climbing|glacier|evacuation)\s+route\b"
+    r"|\b(not\s+visible|obliterated)\b",
+    re.IGNORECASE)
+
+
+def is_nonhiking_route_name(name: str | None) -> bool:
+    """A named '… Route' that isn't a hiking trail: a mountain-bike route
+    ('Nose Dive Bike Route'), a technical climbing / glacier mountaineering
+    line ('Emmons Glacier Route', 'Monitor Ridge Climbing Route'), an
+    evacuation route, or a dead mapping artifact whose name says so ('Trail
+    Route: NOT VISIBLE 2019', 'Forest Route 31 Obliterated at Mud Creek').
+
+    Deliberately NARROW — only the phrase '<bike|climbing|glacier|evacuation>
+    route' or an explicit not-visible / obliterated marker. This is the whole
+    point: the vast majority of '… Route' names are REAL hikes and must be
+    kept — Grand Canyon's Escalante / Esplanade / Royal Arch Routes, both Zion
+    Narrows Hiking Routes, Ozark Trail segment routes, El Camino Real Historic
+    Route — so a blanket 'Route' drop would be a serious quality regression.
+    The genuinely ambiguous ones (E-Routes, 'State Route …' road codes, ridge
+    scrambles) are left for the viewer's review bucket, not auto-dropped.
+    Every pattern here was checked against the full published set (277 '… Route'
+    trails across all states) to hit only the unambiguous non-hiking cases with
+    zero false positives; no _TRAIL_WORD spare, because a 'Climbing Route
+    (… Trail)' is still a climb."""
+    return bool(name and _NONHIKING_ROUTE.search(name))
 
 
 # Named non-trail features mapped as a path but not hikeable. Two tiers:

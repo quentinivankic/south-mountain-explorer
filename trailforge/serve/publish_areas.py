@@ -93,6 +93,19 @@ def _sig_tokens(name: str) -> set[str]:
 # mostly contains is a traverse (PCT/AZT/Hayduke) that would only leave pokers.
 _MAJORITY = 0.5
 
+# Minimum TOTAL clipped trail mileage for an area to be worth publishing. An
+# area whose trails only graze its boundary clips down to a near-zero-length
+# sliver (e.g. a 2-metre stub of a trail whose real length lives in a
+# neighbouring area), and ships to the app as a broken "1 trail, 0.0 mi"
+# entry. Verified against the whole-US publish (2026-07-13): everything under
+# 0.1 mi total is a degenerate clip artifact (97 areas, 93 single-trail
+# ~0-length stubs), while the 0.1-0.3 mi band holds REAL short preserve trails
+# (Susquehanna Wetland Trail, Matthews Island Trail, Cane Creek's Steep
+# Trail) — so 0.1 is the safe floor, no legit small hike lost. Self-healing:
+# if a boundary later catches the real trail, the area re-publishes with real
+# mileage.
+_MIN_AREA_MI = 0.1
+
 
 def _inside_mi(g, area_union):
     """Miles of g's line geometry that fall inside `area_union` (0 on error)."""
@@ -397,6 +410,9 @@ def main(argv=None) -> int:
             skipped.append((slug, "no trails touch this area")); continue
         row = conv.convert({"features": clipped}, slug, meta["name"], meta["state"],
                            meta["center"], meta["osm_rel"], kinds)
+        if row["total_mi"] < _MIN_AREA_MI:
+            skipped.append((slug, f"degenerate clip ({row['total_mi']} mi total)"))
+            continue
         problems = validate(row)
         if problems:
             failed.append((slug, problems)); continue

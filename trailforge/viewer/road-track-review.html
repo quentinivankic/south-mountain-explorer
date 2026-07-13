@@ -41,7 +41,7 @@
       <div class="sub" id="count">loading…</div>
     </header>
     <div class="controls">
-      <label><input type="checkbox" id="hotonly" /> likely-trail only</label>
+      <label><input type="checkbox" id="hotonly" checked /> likely-trail only</label>
       <input type="text" id="q" placeholder="filter name…" size="12" />
     </div>
     <div id="list"></div>
@@ -70,7 +70,15 @@ function isHot(p) {
 }
 
 function bounds(coords){ const b=new maplibregl.LngLatBounds(); coords.forEach(c=>b.extend(c)); return b; }
-let FEATS=[], BYID=new Map();
+let FEATS=[];
+
+// The map shows only likely-trail lines when the toggle is on, so the green
+// rescue candidates aren't buried under thousands of legit-road lines.
+function applyMapFilter(){
+  if (!map.getLayer("drops-line")) return;
+  const hot = document.getElementById("hotonly").checked;
+  map.setFilter("drops-line", hot ? ["==",["get","_hot"],1] : null);
+}
 
 function focus(f, el){
   document.querySelectorAll(".item").forEach(x=>x.classList.remove("active"));
@@ -78,15 +86,18 @@ function focus(f, el){
   map.fitBounds(bounds(f.geometry.coordinates), {padding:80, maxZoom:15, duration:500});
 }
 
+const LIST_CAP = 500;   // don't build tens of thousands of DOM rows
 function render(){
   const hot = document.getElementById("hotonly").checked;
   const q = document.getElementById("q").value.toLowerCase();
   const list = document.getElementById("list"); list.innerHTML="";
-  let shown=0;
+  let matched=0, shown=0;
   for (const f of FEATS){
     const p=f.properties;
     if (hot && !isHot(p)) continue;
     if (q && !(p.name||"").toLowerCase().includes(q)) continue;
+    matched++;
+    if (shown >= LIST_CAP) continue;   // keep counting, stop building rows
     shown++;
     const el=document.createElement("div"); el.className="item";
     const tags=[];
@@ -99,7 +110,10 @@ function render(){
     el.onclick=()=>focus(f, el);
     list.appendChild(el);
   }
-  document.getElementById("count").textContent=`${shown} shown / ${FEATS.length} drops`;
+  const hotTotal = FEATS.filter(f=>isHot(f.properties)).length;
+  const cap = matched > LIST_CAP ? ` (list capped at ${LIST_CAP} — narrow with filter)` : "";
+  document.getElementById("count").textContent =
+    `${matched} match${cap} · ${hotTotal} likely-trail / ${FEATS.length} drops`;
 }
 
 (async () => {
@@ -115,14 +129,15 @@ function render(){
   }
   FEATS = fc.features.sort((a,b)=> (isHot(b.properties)-isHot(a.properties))
         || (a.properties.name||"").localeCompare(b.properties.name||""));
-  FEATS.forEach(f=>BYID.set(f.properties.osm_way, f));
-  map.addSource("drops",{type:"geojson", data:fc, generateId:true});
+  // Tag each feature so the SAME flag drives both list + map filter + colour.
+  FEATS.forEach(f=>{ f.properties._hot = isHot(f.properties) ? 1 : 0; });
+  map.addSource("drops",{type:"geojson", data:fc});
   map.addLayer({ id:"drops-line", type:"line", source:"drops",
     layout:{ "line-cap":"round","line-join":"round" },
-    paint:{ "line-color":["case", ["boolean",["feature-state","hot"],false], "#39d353", "#e65100"],
-            "line-width":3, "line-opacity":0.9 }});
-  // colour rescue-candidates green via feature-state
-  fc.features.forEach((f,i)=>{ if (isHot(f.properties)) map.setFeatureState({source:"drops",id:i},{hot:true}); });
+    paint:{ "line-color":["case", ["==",["get","_hot"],1], "#39d353", "#e65100"],
+            "line-width":["case", ["==",["get","_hot"],1], 4, 2.5],
+            "line-opacity":0.9 }});
+  applyMapFilter();
   map.on("click","drops-line",(e)=>{
     const p=e.features[0].properties;
     const osm=`https://www.openstreetmap.org/way/${p.osm_way}`;
@@ -133,7 +148,8 @@ function render(){
   });
   map.on("mouseenter","drops-line",()=>map.getCanvas().style.cursor="pointer");
   map.on("mouseleave","drops-line",()=>map.getCanvas().style.cursor="");
-  ["hotonly","q"].forEach(id=>document.getElementById(id).addEventListener("input",render));
+  document.getElementById("hotonly").addEventListener("input",()=>{ applyMapFilter(); render(); });
+  document.getElementById("q").addEventListener("input",render);
   render();
 })();
 </script>

@@ -3,3 +3,4 @@ data/
 *.osm.pbf
 *.geojson
 !golden/*.json
+viewer/road-track-drops.geojson

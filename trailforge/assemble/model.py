@@ -1275,7 +1275,9 @@ def is_offtrail_name(name: str | None) -> bool:
     return False
 
 
-_MOTORIZED_NAME = re.compile(r"\b(ATV|OHV|UTV|4WD|4x4|snowmobile|jeep|motorcycle)\b", re.IGNORECASE)
+_MOTORIZED_NAME = re.compile(
+    r"\b(ATV|OHV|UTV|4WD|4x4|four[\s-]?wheeler|4[\s-]?wheeler|snowmobile|jeep|motorcycle)\b",
+    re.IGNORECASE)
 
 
 def is_motorized_name(name: str | None) -> bool:

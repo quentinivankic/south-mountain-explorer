@@ -512,7 +512,10 @@ class Classification(unittest.TestCase):
                   "Bobtail Spur OHV Trail", "George Gulch 4WD Trail",
                   "Eccles Road Snowmobile Trail", "Deer Creek Trail (OHV Section) #158",
                   "Lewis and Clark Jeep Trail", "Jeep Trail", "ATV TR 1550",
-                  "Sedge Ridge 4x4 Trail", "Richardson Fork 4x4-A", "Motorcycle Terrain Park"):
+                  "Sedge Ridge 4x4 Trail", "Richardson Fork 4x4-A", "Motorcycle Terrain Park",
+                  # 'fourwheeler' was a gap — found via 'Fourwheeler trails' (Bristol
+                  # Beach State Park NY), a motorized track slipping through as a hike.
+                  "Fourwheeler trails", "Four Wheeler Loop", "4-wheeler track", "4 Wheeler Trail"):
             self.assertTrue(m.is_motorized_name(n), n)
         # normal hiking names untouched
         for n in ("Deer Creek Trail", "Huckleberry Trail", "Angels Landing Trail",

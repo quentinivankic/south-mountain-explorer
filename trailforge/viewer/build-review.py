@@ -39,7 +39,7 @@ _TRAILWORD = re.compile(r"\b(trail|path|pathway|loop|greenway|connector|trace|sp
 _ROUTE_AMB = re.compile(
     r"\bE-?route\b"
     r"|\b(state|old|historic|county|us|paper|stage|mail|bridle|horse) route\b"
-    r"|\bminor route\b|\btraction\b|\btrolley\b",
+    r"|\bminor route\b",
     re.I)
 
 # ~0.0005 deg ≈ 55 m cells; a problem point stamps its cell + the 8 neighbours,
@@ -50,7 +50,13 @@ _CELL = 0.0005
 
 
 def _flag(name: str) -> str | None:
-    if _RAIL.search(name) and not _TRAILWORD.search(name):
+    # A trail-word suffix ("… Trail / Path / Loop …") is the strongest "this is
+    # a real named trail" signal — spare it from BOTH buckets. Without this,
+    # 'Old Trolley Line trail' (a real rail-trail) and 'El Camino Real Historic
+    # Route Trail' get wrongly flagged. Confirmed false positives on review.
+    if _TRAILWORD.search(name):
+        return None
+    if _RAIL.search(name):
         return "rail-bare"
     if _ROUTE_AMB.search(name):
         return "route-ambiguous"

@@ -1,0 +1,213 @@
+#!/usr/bin/env python3
+"""Elevation gain + real difficulty from a global DEM (SPEC.md §6e).
+
+Two halves, deliberately split so the MATH is unit-tested in the sandbox and
+only the tile FETCH needs network (homelab / CI runner):
+
+  pure math   terrarium_decode · densify · smooth · gain_ft · difficulty_label
+              — no network, fully tested.
+  TileSampler AWS "Terrarium" terrain tiles (global, pre-merged SRTM +
+              Copernicus + 3DEP, free on AWS Open Data), PNG RGB-decoded,
+              disk+memory cached. Needs urllib + Pillow.
+
+Elevation is genuinely absent from 2D OSM ways, so it can't be derived from
+geometry — but the DEM data is free/global and the gain math is ours (no
+US-only source, no paid API).
+"""
+from __future__ import annotations
+
+import math
+
+# --- pure math -------------------------------------------------------------
+
+# AWS terrarium native max zoom is 15; z13 (~19 m/px at the equator, finer
+# toward the poles) comfortably resolves the ~30 m densify spacing below.
+DEM_ZOOM = 13
+_M_PER_FT = 0.3048
+
+
+def terrarium_decode(r: int, g: int, b: int) -> float:
+    """Terrarium RGB -> metres. elevation = (R*256 + G + B/256) - 32768."""
+    return (r * 256 + g + b / 256.0) - 32768.0
+
+
+def _px_x(lon: float, z: int) -> float:
+    """Global pixel X (256 px/tile) for a longitude at zoom z."""
+    return (lon + 180.0) / 360.0 * (2 ** z) * 256.0
+
+
+def _px_y(lat: float, z: int) -> float:
+    lat = max(min(lat, 85.05112878), -85.05112878)
+    s = math.sin(math.radians(lat))
+    y = 0.5 - math.log((1 + s) / (1 - s)) / (4 * math.pi)
+    return y * (2 ** z) * 256.0
+
+
+def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371000.0
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lon2 - lon1)
+    a = (math.sin(dp / 2) ** 2
+         + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2)
+    return 2 * R * math.asin(math.sqrt(a))
+
+
+def densify(coords: list[tuple[float, float]],
+            spacing_m: float = 30.0) -> list[tuple[float, float]]:
+    """Resample a (lat, lon) polyline to ~`spacing_m` point spacing, keeping the
+    original vertices as anchors. So a straight 300 m segment yields ~11 evenly
+    spaced points — one elevation sample every ~30 m, per §6e."""
+    if len(coords) < 2:
+        return list(coords)
+    out: list[tuple[float, float]] = [coords[0]]
+    for (la1, lo1), (la2, lo2) in zip(coords, coords[1:]):
+        d = haversine_m(la1, lo1, la2, lo2)
+        n = max(1, int(d // spacing_m))
+        for i in range(1, n + 1):
+            t = i / n
+            out.append((la1 + (la2 - la1) * t, lo1 + (lo2 - lo1) * t))
+    return out
+
+
+def smooth(vals: list[float], window: int = 5) -> list[float]:
+    """Centered moving average. MANDATORY before summing gain — raw 30 m DEM
+    elevation is noisy and naive up-tick summing massively inflates gain
+    (§6e: 4,000 ft on a rolling 3 mi trail). Same idea as AllTrails/Strava."""
+    n = len(vals)
+    if n == 0 or window <= 1:
+        return list(vals)
+    half = window // 2
+    out = []
+    for i in range(n):
+        lo, hi = max(0, i - half), min(n, i + half + 1)
+        out.append(sum(vals[lo:hi]) / (hi - lo))
+    return out
+
+
+def gain_ft(elevs_m: list[float], window: int = 5,
+            min_delta_m: float = 0.5) -> float:
+    """Total positive elevation gain in FEET from a metre elevation profile.
+    Smooths first (kills the DEM noise that would inflate gain), then sums
+    positive step deltas above a light residual-noise floor. The floor is kept
+    small on purpose — smoothing does the heavy lifting, and a large floor
+    would under-count a real but gentle continuous climb (small per-30 m step).
+    Window / floor are tuned against known trails on the homelab (§6e)."""
+    if len(elevs_m) < 2:
+        return 0.0
+    s = smooth(elevs_m, window)
+    total = 0.0
+    for a, b in zip(s, s[1:]):
+        d = b - a
+        if d > min_delta_m:
+            total += d
+    return round(total / _M_PER_FT)
+
+
+def difficulty_label(miles: float, gain_ft: float | None,
+                     sac: str | None = None, vis: str | None = None) -> str:
+    """Easy / Moderate / Hard.
+
+    With `gain_ft` (DEM sampled): a real function of effort, the NPS/Shenandoah
+    numerical rating `sqrt(2 * gain_ft * miles)` plus a pure-distance floor so a
+    long FLAT walk still reads Moderate/Hard. Fixes the backwards length-only
+    behaviour (a flat 5 mi path was Hard; a 2 mi / 2,000 ft climb was Moderate).
+
+    Without `gain_ft` (no DEM): the legacy length-only fallback, so the pipeline
+    still works when elevation wasn't sampled.
+    """
+    sac = (sac or "").strip()
+    if sac and sac != "hiking":
+        return "Hard"                       # technical terrain — beyond walking
+    if gain_ft is None:
+        if miles > 4:
+            return "Hard"
+        if miles > 2 or (vis or "") == "intermediate":
+            return "Moderate"
+        return "Easy"
+    rating = math.sqrt(2 * max(gain_ft, 0.0) * max(miles, 0.0))
+    if rating >= 80 or miles >= 10:
+        return "Hard"
+    if rating >= 45 or miles >= 5:
+        return "Moderate"
+    return "Easy"
+
+
+def trail_gain_ft(segments: list[list], sampler) -> float:
+    """Sum gain across a trail's segments (each a [[lat, lon], ...] polyline),
+    densified to ~30 m and sampled via `sampler.elevation(lat, lon)`."""
+    total = 0.0
+    for seg in segments:
+        pts = densify([(p[0], p[1]) for p in seg if len(p) >= 2])
+        if len(pts) < 2:
+            continue
+        elevs = [sampler.elevation(la, lo) for la, lo in pts]
+        total += gain_ft(elevs)
+    return round(total)
+
+
+# --- tile sampler (needs network + Pillow) ---------------------------------
+
+class TileSampler:
+    """Bilinear elevation lookup against AWS Terrarium tiles, cached.
+
+    Tiles: https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png
+    Decoded tiles are memoised in RAM; PNGs optionally cached on disk so a
+    re-run (or the next state sharing a tile) skips the download.
+    """
+
+    URL = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
+
+    def __init__(self, zoom: int = DEM_ZOOM, cache_dir: str | None = None):
+        self.z = zoom
+        self.cache_dir = cache_dir
+        self._tiles: dict[tuple[int, int], list[list[float]]] = {}
+        if cache_dir:
+            import os
+            os.makedirs(cache_dir, exist_ok=True)
+
+    def _tile(self, tx: int, ty: int) -> list[list[float]]:
+        key = (tx, ty)
+        cached = self._tiles.get(key)
+        if cached is not None:
+            return cached
+        from PIL import Image                    # lazy: only when fetching
+        import io
+        import urllib.request
+        png = None
+        path = None
+        if self.cache_dir:
+            import os
+            path = os.path.join(self.cache_dir, f"{self.z}_{tx}_{ty}.png")
+            if os.path.exists(path):
+                png = open(path, "rb").read()
+        if png is None:
+            url = self.URL.format(z=self.z, x=tx, y=ty)
+            with urllib.request.urlopen(url, timeout=60) as r:
+                png = r.read()
+            if path:
+                open(path, "wb").write(png)
+        img = Image.open(io.BytesIO(png)).convert("RGB")
+        w, h = img.size
+        px = img.load()
+        grid = [[terrarium_decode(*px[x, y]) for x in range(w)] for y in range(h)]
+        self._tiles[key] = grid
+        return grid
+
+    def _pixel(self, gx: int, gy: int) -> float:
+        tx, ox = divmod(gx, 256)
+        ty, oy = divmod(gy, 256)
+        return self._tile(tx, ty)[oy][ox]
+
+    def elevation(self, lat: float, lon: float) -> float:
+        gx = _px_x(lon, self.z)
+        gy = _px_y(lat, self.z)
+        x0, y0 = int(math.floor(gx)), int(math.floor(gy))
+        fx, fy = gx - x0, gy - y0
+        e00 = self._pixel(x0, y0)
+        e10 = self._pixel(x0 + 1, y0)
+        e01 = self._pixel(x0, y0 + 1)
+        e11 = self._pixel(x0 + 1, y0 + 1)
+        top = e00 * (1 - fx) + e10 * fx
+        bot = e01 * (1 - fx) + e11 * fx
+        return top * (1 - fy) + bot * fy

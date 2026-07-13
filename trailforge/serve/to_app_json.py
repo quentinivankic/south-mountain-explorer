@@ -27,6 +27,8 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "assemble"))
 import model  # noqa: E402 — for merge_key (same-trail matching across renames)
+sys.path.insert(0, os.path.dirname(__file__))
+import elevation  # noqa: E402 — single source of truth for the difficulty label
 
 
 def trail_slug(name: str) -> str:
@@ -40,16 +42,13 @@ def canonical(tid: str) -> str:
     return re.sub(r"-\d{1,3}$", "", tid or "")
 
 
-def difficulty(sac: str | None, vis: str | None, miles: float) -> str:
-    """Mirror _difficulty_label (Easy/Moderate/Hard)."""
-    sac = (sac or "").strip()
-    if sac and sac != "hiking":
-        return "Hard"
-    if miles > 4:
-        return "Hard"
-    if miles > 2 or (vis or "") == "intermediate":
-        return "Moderate"
-    return "Easy"
+def difficulty(sac: str | None, vis: str | None, miles: float,
+               gain_ft: float | None = None) -> str:
+    """Easy/Moderate/Hard via elevation.difficulty_label (single source of
+    truth). gain_ft=None keeps the legacy length-only behaviour for the
+    convert path, which has no DEM; the elevation post-process passes a real
+    gain to upgrade it."""
+    return elevation.difficulty_label(miles, gain_ft, sac, vis)
 
 
 def convert(fc: dict, area_id: str, name: str, state: str,

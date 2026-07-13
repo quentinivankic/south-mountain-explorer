@@ -28,7 +28,7 @@ help:
 
 setup:
 	sudo apt-get update && sudo apt-get install -y osmium-tool python3-pip
-	pip3 install --user osmium shapely
+	pip3 install --user osmium shapely pillow   # pillow: DEM tile decode (§6e elevation)
 	osmium --version
 
 doctor:

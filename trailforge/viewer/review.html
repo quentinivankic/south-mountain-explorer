@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trailforge — deferred-review viewer</title>
+<!-- Local-only QA tool (homelab). CDN + OSM raster tiles are fine here. -->
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<style>
+  :root { --bg:#1b1d21; --panel:#23262b; --line:#333; --txt:#e8e8e8; --dim:#9aa0a6; }
+  * { box-sizing: border-box; }
+  html,body { margin:0; height:100%; font:13px/1.4 system-ui,sans-serif; color:var(--txt); }
+  #app { display:flex; height:100%; }
+  #side { width:340px; flex:none; background:var(--panel); border-right:1px solid var(--line);
+          display:flex; flex-direction:column; }
+  #map { flex:1; }
+  header { padding:10px 12px; border-bottom:1px solid var(--line); }
+  header h1 { margin:0 0 6px; font-size:14px; }
+  header .sub { color:var(--dim); font-size:12px; }
+  .controls { padding:8px 12px; border-bottom:1px solid var(--line); display:flex; gap:6px; flex-wrap:wrap; }
+  .controls select, .controls input { background:var(--bg); color:var(--txt); border:1px solid var(--line);
+          border-radius:5px; padding:4px 6px; font:12px system-ui; }
+  #list { overflow-y:auto; flex:1; }
+  .item { padding:8px 12px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .item:hover { background:#2c3036; }
+  .item.active { background:#2f3742; box-shadow:inset 3px 0 0 #4a90e2; }
+  .item .nm { font-weight:600; }
+  .item .meta { color:var(--dim); font-size:11.5px; margin-top:2px; }
+  .flag { display:inline-block; padding:0 5px; border-radius:3px; font-size:10.5px; margin:2px 3px 0 0; }
+  .flag.rail-bare { background:#5a3; color:#eafce0; }
+  .flag.route-ambiguous { background:#a63; color:#fce8d0; }
+  .badge { font-size:10.5px; padding:0 5px; border-radius:8px; }
+  .badge.iso { background:#822; color:#fdd; }
+  .badge.conn { background:#264; color:#dfd; }
+  .legend { padding:8px 12px; border-top:1px solid var(--line); color:var(--dim); font-size:11.5px; }
+  .legend span { display:inline-block; margin-right:10px; }
+  .sw { display:inline-block; width:12px; height:3px; vertical-align:middle; margin-right:4px; }
+  .maplibregl-popup-content { color:#111; font:12px system-ui; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="side">
+    <header>
+      <h1>Deferred-review trails</h1>
+      <div class="sub" id="count">loading…</div>
+    </header>
+    <div class="controls">
+      <select id="reason">
+        <option value="">all reasons</option>
+        <option value="rail-bare">rail-bare</option>
+        <option value="route-ambiguous">route-ambiguous</option>
+      </select>
+      <select id="conn">
+        <option value="">all</option>
+        <option value="iso">isolated (0 touch)</option>
+        <option value="conn">connected</option>
+      </select>
+      <input id="q" placeholder="filter name…" size="12" />
+    </div>
+    <div id="list"></div>
+    <div class="legend">
+      <span><i class="sw" style="background:#e11"></i>flagged</span>
+      <span><i class="sw" style="background:#f90"></i>same area</span>
+      <span><i class="sw" style="background:#39f"></i>touches it</span>
+      <span><i class="sw" style="background:#888"></i>neighbor</span>
+    </div>
+  </div>
+  <div id="map"></div>
+</div>
+<script>
+const GEOM = (slug) => `/public/areas/geom/${encodeURIComponent(slug)}.json`;
+const map = new maplibregl.Map({
+  container: "map",
+  style: { version: 8, sources: { osm: { type:"raster", tileSize:256,
+      tiles:["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      attribution:"© OpenStreetMap contributors" } },
+    layers: [{ id:"osm", type:"raster", source:"osm" }] },
+  center: [-98, 39], zoom: 3.4,
+});
+map.addControl(new maplibregl.NavigationControl());
+
+let MANIFEST = null, ACTIVE = null;
+const geomCache = new Map();
+async function getGeom(slug) {
+  if (geomCache.has(slug)) return geomCache.get(slug);
+  const p = fetch(GEOM(slug)).then(r => r.ok ? r.json() : null).catch(() => null);
+  geomCache.set(slug, p); return p;
+}
+
+// Build a FeatureCollection of LineStrings from a geom doc, tagging each trail
+// with a role + which id-set it's in.
+function trailsToFeatures(geom, role, flaggedIds, touchIds) {
+  const out = [];
+  for (const t of (geom.trails || [])) {
+    let r = role;
+    if (flaggedIds && flaggedIds.has(t.id)) r = "flagged";
+    else if (touchIds && touchIds.has(t.id)) r = "neighbor-touch";
+    for (const seg of (t.segments || [])) {
+      if (!seg || seg.length < 2) continue;
+      out.push({ type:"Feature",
+        properties:{ role:r, name:t.name || "(unnamed)", area:geom.name, mi:t.distanceMi },
+        geometry:{ type:"LineString", coordinates: seg.map(p => [p[1], p[0]]) } });
+    }
+  }
+  return out;
+}
+
+function setLayer(fc) {
+  const src = map.getSource("review");
+  if (src) { src.setData(fc); return; }
+  map.addSource("review", { type:"geojson", data:fc });
+  map.addLayer({ id:"review-line", type:"line", source:"review",
+    layout:{ "line-cap":"round", "line-join":"round" },
+    paint:{
+      "line-color":["match",["get","role"],
+        "flagged","#e11","problem-other","#f90","neighbor-touch","#39f","#888"],
+      "line-width":["match",["get","role"],
+        "flagged",4.5,"neighbor-touch",3,"problem-other",2.5,1.5],
+      "line-opacity":["match",["get","role"],"neighbor-other",0.55,0.95],
+    }});
+  map.on("click","review-line",(e)=>{
+    const p = e.features[0].properties;
+    new maplibregl.Popup().setLngLat(e.lngLat)
+      .setHTML(`<b>${p.name}</b><br>${p.area}<br><small>${p.role}${p.mi?` · ${p.mi} mi`:""}</small>`)
+      .addTo(map);
+  });
+  map.on("mouseenter","review-line",()=>map.getCanvas().style.cursor="pointer");
+  map.on("mouseleave","review-line",()=>map.getCanvas().style.cursor="");
+}
+
+async function select(pa, el) {
+  ACTIVE = pa.slug;
+  document.querySelectorAll(".item").forEach(x=>x.classList.remove("active"));
+  if (el) el.classList.add("active");
+  const flaggedIds = new Set(pa.flagged.map(f=>f.id));
+  const feats = [];
+  const bounds = new maplibregl.LngLatBounds();
+  const pg = await getGeom(pa.slug);
+  if (pg) {
+    for (const f of trailsToFeatures(pg, "problem-other", flaggedIds, null)) {
+      feats.push(f); f.geometry.coordinates.forEach(c=>bounds.extend(c));
+    }
+  }
+  // neighbors: their touching trails get the blue role, the rest grey.
+  const geoms = await Promise.all(pa.neighbors.map(n=>getGeom(n.slug)));
+  pa.neighbors.forEach((n,i)=>{
+    const g = geoms[i]; if (!g) return;
+    const touch = new Set(n.touching);
+    for (const f of trailsToFeatures(g, "neighbor-other", null, touch)) feats.push(f);
+  });
+  setLayer({ type:"FeatureCollection", features:feats });
+  if (!bounds.isEmpty()) map.fitBounds(bounds, { padding:60, maxZoom:14, duration:600 });
+}
+
+function render() {
+  const reason = document.getElementById("reason").value;
+  const conn = document.getElementById("conn").value;
+  const q = document.getElementById("q").value.toLowerCase();
+  const list = document.getElementById("list"); list.innerHTML = "";
+  let shown = 0;
+  for (const pa of MANIFEST.problem_areas) {
+    const reasons = new Set(pa.flagged.map(f=>f.reason));
+    if (reason && !reasons.has(reason)) continue;
+    const isIso = pa.neighbors.length === 0;
+    if (conn === "iso" && !isIso) continue;
+    if (conn === "conn" && isIso) continue;
+    const hay = (pa.name + " " + pa.state + " " + pa.flagged.map(f=>f.name).join(" ")).toLowerCase();
+    if (q && !hay.includes(q)) continue;
+    shown++;
+    const el = document.createElement("div"); el.className = "item";
+    el.innerHTML = `<div class="nm">${pa.name} <span class="badge ${isIso?"iso":"conn"}">`
+      + `${isIso?"isolated":pa.neighbors.length+" touch"}</span></div>`
+      + `<div class="meta">${pa.state}</div>`
+      + pa.flagged.map(f=>`<span class="flag ${f.reason}">${f.name}</span>`).join("");
+    el.onclick = () => select(pa, el);
+    list.appendChild(el);
+  }
+  document.getElementById("count").textContent =
+    `${shown} / ${MANIFEST.problem_areas.length} problem areas`;
+}
+
+(async () => {
+  MANIFEST = await fetch("review-manifest.json").then(r=>r.json());
+  ["reason","conn","q"].forEach(id =>
+    document.getElementById(id).addEventListener("input", render));
+  await new Promise(res => map.on("load", res));
+  render();
+})();
+</script>
+</body>
+</html>

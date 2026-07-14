@@ -261,6 +261,15 @@ struct TrailMapView: View {
             // works even before a fresh live fix lands.
             if (activeRecording?.path.count ?? 0) >= 2 {
                 centerOnActiveRecording()
+            } else if let id = selectedTrailId,
+                      let trail = area.trails.first(where: { $0.id == id }) {
+                // Opened from a trail-search result (or any pre-selected
+                // trail): frame the selected trail, not the whole area.
+                // The selection is set by AreaView during the loading
+                // floor — often BEFORE this view mounts — so the
+                // `.onChange(of: selectedTrailId)` below never fires for
+                // it and `onAppear` is the only place that can catch it.
+                centerOn(trail: trail)
             } else {
                 centerOnArea()
             }
@@ -286,8 +295,19 @@ struct TrailMapView: View {
             recomputeWalkedSinceCompletion()
             guard let id = newId,
                   let trail = area.trails.first(where: { $0.id == id }) else {
-                // Deselecting leaves the camera where it is — snapping back to
-                // the whole-area view on every deselect was disorienting.
+                // Deselecting (tap on empty map, or a banner clears the
+                // selection). When the user is just browsing — not
+                // recording, and the camera isn't locked to their
+                // location — pull back to the whole-area overview so the
+                // map matches "nothing selected." During a recording or
+                // an active follow mode we leave the camera where it is:
+                // yanking it off the user's position on a deselect (e.g.
+                // the retarget banner's dismiss) would be disorienting,
+                // which is why an unconditional recenter was avoided
+                // before.
+                if activeRecording == nil && trackingMode == .free {
+                    centerOnArea()
+                }
                 return
             }
             centerOn(trail: trail)

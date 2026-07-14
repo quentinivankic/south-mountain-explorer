@@ -130,4 +130,16 @@ jobs:
             --cache-control "public, max-age=300" \
             --no-progress
 
+          # Per-trail thumbnail shapes — a bigger (~3 MB) companion the app
+          # loads in the BACKGROUND (off the search path) to draw trail linework
+          # for un-visited areas. Regenerated fresh from the geom every sync.
+          echo "Building + syncing trail-shapes..."
+          python3 scripts/build-trail-shapes.py --out /tmp/trail-shapes.json
+          aws s3 cp /tmp/trail-shapes.json \
+            s3://trekdex-areas/trail-shapes.json \
+            --endpoint-url "$ENDPOINT" \
+            --content-type "application/json" \
+            --cache-control "public, max-age=300" \
+            --no-progress
+
           echo "Sync complete."

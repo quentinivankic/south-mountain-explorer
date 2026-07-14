@@ -14,6 +14,7 @@ struct SouthMountainExplorerApp: App {
     private let activity = ActivityService.shared
     private let activityLog = ActivityLogService.shared
     private let trailSearch = TrailSearchService.shared
+    private let trailShapes = TrailShapeService.shared
 
     init() {
         // DEBUG-only: seed a deterministic demo state for the App Store
@@ -60,6 +61,7 @@ struct SouthMountainExplorerApp: App {
                 .environment(favorites)
                 .environment(activity)
                 .environment(trailSearch)
+                .environment(trailShapes)
         }
     }
 }

@@ -1,0 +1,156 @@
+name: Trailforge — bake DEM elevation difficulty (all US states)
+
+# Roll real elevation-gain difficulty (SPEC §6e) to every US state. Today only
+# Arizona has `gainFt` + gain-aware difficulty baked in; every other state is
+# still on the weak length-only bucket. `serve/add-elevation.py` samples a
+# global DEM (AWS Terrarium, s3.amazonaws.com/elevation-tiles-prod) — reachable
+# from CI runners — so this runs here instead of the homelab.
+#
+# Shape mirrors trailforge-publish-us.yml: one dispatch → 13 PARALLEL region
+# jobs, each running add-elevation over its states and uploading ONLY its own
+# states' updated geom → a FAN-IN job that overlays every region's geom,
+# regenerates silhouettes (difficulty colors change) + the iOS bundle
+# (difficulty ships in it), and does ONE commit + one R2 sync.
+#
+# Default is a DRY RUN: each region prints per-state gain summaries + top-gain
+# trails + difficulty label-change counts in its log, uploads nothing, and the
+# fan-in is skipped — eyeball a few states against AllTrails before flipping
+# dry_run=false for the real write.
+#
+# NOTE (durable follow-up): add-elevation is a POST-process on published geom;
+# a republish drops gainFt until this reruns. Folding DEM sampling into the
+# publish pipeline is the permanent fix — see add-elevation.py's docstring.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview only — per-state gain summaries, write/commit nothing"
+        type: boolean
+        default: true
+
+concurrency:
+  # Share the publish group so the fan-in commit never races a publish run.
+  group: trailforge-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  elevation:
+    strategy:
+      fail-fast: false
+      matrix:
+        # 50 states + DC, same region split as trailforge-publish-us.yml but
+        # with 2-letter codes (add-elevation --state matches the geom slug
+        # suffix, e.g. -ca.json). AZ is included and is a cheap idempotent
+        # no-op (its gainFt is already baked in).
+        include:
+          - { id: california,  codes: "CA" }
+          - { id: texas,       codes: "TX" }
+          - { id: florida,     codes: "FL" }
+          - { id: midatlantic, codes: "NY PA NJ" }
+          - { id: appalachia,  codes: "VA WV MD DE DC" }
+          - { id: southeast,   codes: "NC SC GA TN KY" }
+          - { id: deepsouth,   codes: "AL MS AR LA OK" }
+          - { id: greatlakes,  codes: "MI WI MN OH IN IL" }
+          - { id: plains,      codes: "IA MO KS NE ND SD" }
+          - { id: northwest,   codes: "WA OR ID MT WY NV" }
+          - { id: southwest,   codes: "AZ NM UT CO" }
+          - { id: newengland,  codes: "ME NH VT MA CT RI" }
+          - { id: noncontig,   codes: "AK HI" }
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Pillow (DEM tile decode)
+        run: pip install Pillow
+
+      - name: Bake elevation for region "${{ matrix.id }}"
+        run: |
+          set -uo pipefail
+          OUT="$GITHUB_WORKSPACE/out/geom"; mkdir -p "$OUT"
+          DRY=""; [ "${{ inputs.dry_run }}" = "true" ] && DRY="--dry-run"
+          ok=""; failed=""
+          for code in ${{ matrix.codes }}; do
+            lc=$(echo "$code" | tr '[:upper:]' '[:lower:]')
+            echo "==================== $code ===================="
+            if python3 trailforge/serve/add-elevation.py --state "$lc" $DRY --top 8; then
+              ok="$ok $code"
+              # Real run: stash just THIS state's updated geom for the fan-in.
+              # add-elevation writes in place to public/areas/geom; copy only
+              # the -<code>.json files so regions never clobber each other's
+              # (unmodified) files during the overlay.
+              if [ "${{ inputs.dry_run }}" != "true" ]; then
+                cp public/areas/geom/*-"$lc".json "$OUT"/ 2>/dev/null || true
+              fi
+            else
+              echo "!! elevation failed for $code"; failed="$failed $code"
+            fi
+          done
+          echo "==================== SUMMARY (${{ matrix.id }}) ===================="
+          echo "ok:     ${ok:- none}"
+          echo "failed: ${failed:- none}"
+
+      - name: Upload region's updated geom
+        if: ${{ !inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: elev-geom-${{ matrix.id }}
+          path: out/geom
+          if-no-files-found: warn
+          retention-days: 1
+
+  merge:
+    needs: elevation
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all region geom artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Overlay every region's updated geom onto the tree
+        run: |
+          set -e
+          # Each artifact holds only its region's states' geom files, so there
+          # is no cross-region overlap — copying them all in is safe.
+          shopt -s nullglob
+          for d in artifacts/elev-geom-*; do
+            [ -d "$d" ] && cp -a "$d/." public/areas/geom/
+          done
+          echo "geom files now carrying gainFt:"
+          grep -l '"gainFt"' public/areas/geom/*.json | wc -l
+
+      - name: Regenerate silhouettes from the updated geom (difficulty colors)
+        run: python3 scripts/silhouettes-from-geom.py
+
+      - name: Regenerate iOS bundle (difficulty ships in it)
+        run: python3 scripts/filter-ios-bundle.py
+
+      - name: Commit + push (one commit, one R2 sync via geom push)
+        run: |
+          set -e
+          git config user.name "trailforge-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/areas ios/SouthMountainExplorer/Resources/areas-index.json
+          if git diff --cached --quiet; then
+            echo "No elevation changes to commit."; exit 0
+          fi
+          git commit -m "trailforge: bake DEM elevation difficulty nationwide"
+          # main can move during the long parallel run — rebase + retry the push.
+          for i in 1 2 3 4 5; do
+            if git push; then exit 0; fi
+            git pull --rebase origin main || true
+            sleep $((i * 5))
+          done
+          git push

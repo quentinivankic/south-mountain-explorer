@@ -55,6 +55,45 @@ Snapshot of the active threads this session — see the PRs for detail.
   Settings → General → **"Automatically delete head branches"** so future
   branches self-clean on merge.
 
+## Shipped 2026-07-13/14 (curation + difficulty + search) — see CLAUDE.md
+
+- **Otter Creek / null-decode root-cause fix** (#357 cache-bypass, #358
+  null-tolerant `JSONValue`). Areas silently failed to appear because one
+  `null` in the index array failed the whole-array decode for every user.
+- **Whole-US re-seed + re-publish** with the curation suite (all 50+DC,
+  `236e2ff3`); coverage ~5,400 → 9,539 areas with real geom.
+- **New curation:** `is_nonhiking_route_name`, `fourwheeler`, degenerate-clip
+  gate (`_MIN_AREA_MI`) — 97 broken "0.0 mi" areas swept.
+- **DEM elevation difficulty** (`serve/elevation.py` + `add-elevation.py`) —
+  AZ baked in, direction-invariant, calibrated 99.4% vs Humphreys. gain shown
+  in-app (#360).
+- **Global trail search** (#361) + **scroll-to-result** (#362) + **search
+  thumbnails** (#363, `trail-shapes.json`).
+- **Trail-mesh backdrop fix** (#359).
+
+### Open follow-ups from this session
+- [ ] **Roll DEM difficulty to the other 49 states.** One command each on the
+  homelab: `add-elevation.py --state XX` → `silhouettes-from-geom.py` → commit
+  → push (sync auto-fires on a real-token push).
+- [ ] **Fold DEM sampling into the publish pipeline** so gain survives a
+  republish (it's a post-process now — a re-publish reverts to length-only).
+- [ ] **Audit stale red-flagged AREAS across all states** (task #27):
+  `audit-easement-ownership.py --all` — `--merge` never purged pre-red-flag-era
+  bad areas.
+- [ ] **`trailforge-publish-us.yml` doesn't auto-dispatch the R2 sync** (task
+  #29) — its merge job commits via `GITHUB_TOKEN`, which can't trigger
+  downstream, so the sync must be dispatched by hand after a whole-US publish.
+  Add a dispatch step mirroring the batch workflow. (Homelab `git push` DOES
+  auto-fire the sync — real-token push.)
+- [ ] **Reverse-profile / "descends first" signal** (task #32) — a signed
+  net-elevation / warning for canyon hikes (descend-in, climb-out). Separate
+  from difficulty (which correctly stays direction-invariant); needs trailhead
+  orientation.
+- [ ] **Rail-line name curation** (task #30 remainder) — bare trolley/traction/
+  `Old Railroad Grade` names: deferred to the viewer bucket, NOT auto-dropped
+  (many are real hiked rail beds; auto-drop would de-list real parks like
+  Cayuga Lake State Park).
+
 ## App Store release gate
 
 Items required (or strongly advised) before submitting to the App Store
@@ -225,11 +264,13 @@ TF builds.
 
 ## Backlog — tech debt / ops
 
-- [ ] **Area quality cull.** Drop areas below a trail-count /
-  mileage floor with a name-token whitelist for NPS-style units.
-  Originally raised this session before pivoting to NA-only; still a
-  real Browse-quality lever (some areas are 3-trail / 2-mi fragments
-  that dilute the list).
+- [~] **Area quality cull.** PARTIAL — a `_MIN_AREA_MI=0.1`
+  degenerate-clip gate shipped 2026-07-14 (`publish_areas.py`; skips
+  areas whose trails clip to a near-zero sliver — 97 live ones swept,
+  `31c660c5`). A broader trail-count/mileage floor with an NPS-style
+  whitelist is still open (some 1-2 trail fragments dilute Browse), but
+  data showed the floor must be low: dropping <0.15mi trails would empty
+  6 areas + gut 30%+ of trails in 31 more, so tread carefully.
 - [ ] **R2 NA orphan purge.** Bucket has ~17,000 objects; index
   references 3,226. So ~14k unreferenced NA geom/silhouette files
   (areas the count/dedup filters dropped before they reached the
@@ -242,10 +283,13 @@ TF builds.
 - [ ] **NAME_KEYWORD_RE dead weight.** Still carries
   Danish/German/Icelandic/French/Italian keywords now that EU is
   gone. Tiny cleanup.
-- [ ] **Global trail-name search index.** Browse trail search (#243)
-  covers locally-available areas only (trail names live in full area
-  payloads, not the index). A pipeline-built (trail name → area id)
-  index served from R2 would make trail search nationwide.
+- [x] **Global trail-name search index.** DONE 2026-07-14 (#361 +
+  `build-trail-search-index.py`). Compact `[name,areaId,trailId,mi,
+  difficulty]` index served from R2 as `trail-search.json` (~1.3 MB gz),
+  loaded by `TrailSearchService` — trail search is now nationwide.
+  Follow-on shipped: **search-result trail thumbnails** (#363) via a
+  separate background-loaded `trail-shapes.json` (~3 MB gz, ~11-pt
+  Douglas-Peucker shapes).
 - [ ] Ad-Hoc + Diawi distribution pipeline (only if the TestFlight
   cycle becomes a real bottleneck).
 

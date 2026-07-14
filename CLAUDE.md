@@ -6,7 +6,7 @@ deferred, and what mistakes prior Claudes have made.
 
 ---
 
-## ⭐ CURRENT STATE — read this first (updated 2026-07-13)
+## ⭐ CURRENT STATE — read this first (updated 2026-07-14)
 
 Much of the app-detail below predates the **trailforge** era. When it
 conflicts with this section, this section wins. Verify against the code
@@ -50,12 +50,52 @@ gated on clean trailforge geom = no `cached_at`) → push to `main` auto-trigger
 fallback. All three publish workflows run the silhouette regen before the
 bundle regen, so silhouettes never drift from the geom.
 
-**Coverage — WHOLE US published (landed 2026-07-12, commit `5e594aeb`
-"publish ENTIRE US").** ~2,639 areas across all 50 states shipped via the
-parallel fan-out (`trailforge-publish-us.yml`). Data streams via R2 — no app
-build needed for coverage. **Now in a quality-refinement pass, state by
-state, starting with NY** — see "Curation flywheel" below for what changed
-and why NY is the pilot.
+**Coverage — WHOLE US RE-SEEDED + RE-PUBLISHED with the full curation suite
+(landed 2026-07-14, commit `236e2ff3` "publish ENTIRE US").** All 50 states +
+DC re-seeded (way-vs-relation fix, MTB filter, ownership red-flag exclusion)
+then republished via `trailforge-publish-us.yml`'s parallel fan-out. **~9,539
+areas now ship with real trail geom** (up from ~5,400). NY/GA/VT were the
+hand-vetted pilot; the whole-US run then rolled it to everything. Data streams
+via R2 — no app build needed for coverage.
+
+**2026-07-14 SESSION LANDMARKS (verify against code before trusting):**
+- **DEM elevation difficulty** (`trailforge/serve/elevation.py` + `serve/add-elevation.py`,
+  SPEC §6e). Difficulty is now a real function of elevation gain — the NPS
+  numerical rating `sqrt(2·gain·mi)` + a pure-distance floor — replacing the
+  length-only bucket. Gain = DEM-sampled (AWS Terrarium tiles), smoothed, and
+  **DIRECTION-INVARIANT** (`max(total ascent, total descent)`; OSM way direction
+  is arbitrary, so an ascent-only sum read Humphreys as 63 ft — the fix landed
+  after calibrating to 99.4% vs AllTrails' ~3,333 ft). `add-elevation.py`
+  post-processes published geom per state (`--state az`), writing `gainFt` +
+  difficulty; run on the homelab (needs Pillow + DEM tile egress), then commit
+  + regen silhouettes + sync. **Only Arizona is baked in so far** — the other 49
+  are still length-based until run. Pure math unit-tested (`serve/test_elevation.py`).
+  DURABLE FOLLOW-UP: fold sampling into the publish pipeline (it's a post-process
+  now, lost on any republish).
+- **Global trail-name search** (`TrailSearchService` + `scripts/build-trail-search-index.py`).
+  Browse trail search used to match only trails in already-loaded areas (names
+  aren't in the area index). Now a compact global index
+  `[name,areaId,trailId,mi,difficulty]` is built + served from R2 as
+  `trail-search.json` (~1.3 MB gz), so EVERY trail name is searchable.
+- **Search-result trail thumbnails** (`TrailShapeService` + `scripts/build-trail-shapes.py`).
+  Search rows draw each trail's linework via a SEPARATE, background-loaded
+  `trail-shapes.json` (~3 MB gz — Douglas-Peucker to ~11 pts, normalized 0-255
+  ints, keyed `areaId/trailId`), kept off the search critical path. (lat/lon
+  encoding was rejected: +8.94 MB gz — coordinates don't compress.)
+- **New curation filters** (`model.py` / `publish_areas.py`): `is_nonhiking_route_name`
+  (bike/glacier/climbing/artifact `…Route` — NARROW, spares Zion Narrows /
+  Grand Canyon routes); `fourwheeler` added to `is_motorized_name`; and a
+  `_MIN_AREA_MI=0.1` degenerate-clip gate (skips an area whose trails clip to a
+  near-zero-length sliver — 97 such live areas swept, commit `31c660c5`).
+- **FINDING — tag-based curation is sound; name-based review is a dead end.**
+  Built the deferred-review viewer + a road-track-name scanner
+  (`trailforge/viewer/`); eyeballing confirmed rail/route-NAMED trails are
+  correctly-included `highway=path` footpaths, and road-track-name drops are
+  correctly roads. OSM tags are the right signal — don't chase NAME patterns
+  for inclusion/exclusion. (Tooling stays for spot-checks.)
+- **R2 now serves** `index.json` + per-area geom/silhouettes + `trail-search.json`
+  + `trail-shapes.json`. The last two are built fresh + uploaded on every
+  `sync-geom-to-r2` run (never committed to the repo).
 
 **Trail selection/curation policy (all in `trailforge/assemble/model.py`
 unless noted), each learned the hard way — DON'T undo without re-reading.**
@@ -111,8 +151,19 @@ Each dropped trail carries `removed_category` for the viewer's review buckets.
   also the robust choice.
 - Geometry: trim dangling out-of-park tails but keep in→gap→in connectors
   (`_trim_to_parks`); non-route trails kept WHOLE in each park they touch.
-- Motorized/junk: `is_motorized_name` (incl. 4x4/motorcycle), road codes,
-  grid addresses, `is_offtrail_name`, ≤2-char stub names.
+- Motorized/junk: `is_motorized_name` (incl. 4x4/motorcycle/**fourwheeler**),
+  road codes, grid addresses, `is_offtrail_name`, ≤2-char stub names.
+- **Non-hiking routes:** `is_nonhiking_route_name` (category `nonhiking-route`)
+  — the phrase `<bike|climbing|glacier|evacuation> route` or a dead-way marker
+  (`NOT VISIBLE`/`Obliterated`). Deliberately NARROW: most `…Route` names are
+  REAL hikes (Zion Narrows, Grand Canyon's Escalante/Royal Arch, Ozark Trail),
+  so a blanket `Route` drop is wrong — the ambiguous remainder goes to the
+  viewer's review bucket, not an auto-drop.
+- **Degenerate-clip gate** (`serve/publish_areas.py`, `_MIN_AREA_MI=0.1`): skip
+  an area whose trails only graze its boundary and clip to <0.1 mi total — it
+  ships as a broken "1 trail, 0.0 mi" entry. Self-healing (re-publishes if a
+  boundary later catches real trail). 97 already-live such areas were swept
+  (`31c660c5`); master index keeps their seed rows.
 - **Utility corridors:** `is_utility_corridor_name` — bare powerline /
   pipeline / gas-line / aqueduct ROWs; `…Trail`-suffixed ones kept. NOT 'Row'
   (Stone/Greek/Skid Row are place names).
@@ -230,25 +281,30 @@ points at an OSM fix (#355). Faint Tonto trail-mesh backdrop is merged but
 **not rendering on device** — WIP. **Silhouette cache now revalidates**
 against R2 in the background instead of caching terminally (#356) — fixes
 regenerated card art never reaching a device that already cached the old
-sketch. None of #352–356 has shipped in a TestFlight build yet (manual
-`ios-testflight` dispatch — not yet cut since before this batch).
+sketch.
 
-**ACTIVE — nationwide rollout of tonight's curation fixes (2026-07-12/13).**
-The way-vs-relation seed fix, MTB name filter, and ownership red-flag
-exclusion are all live on `main`, but NOT retroactive — every already-
-published state (all 50, from the whole-US publish) still has whatever MTB
-trails / missing way-mapped areas / unscreened ownership it had before,
-until it gets a fresh `seed-areas.py --merge <state>` + re-publish. **NY is
-the fully-vetted pilot**: re-seeded (picked up Otter Creek State Forest +
-~1,300 other way-mapped areas, minus 17 hand-confirmed red-flags before the
-auto-exclusion existed), dry-run publish CLEAN (731 published / 1,668
-skipped, mostly correctly-self-resolving trail-less parcels like fishing-
-access points / 5 trivial validation failures / 18 out-of-state boundary
-misses near the NY border) — **ready for a real publish, not yet done.**
-Next: roll the same `seed-areas.py --merge <state>` + dry-run + verdict +
-publish loop to the other 49 states, ideally via a homelab Claude Code
-session (see "Curation flywheel" above) rather than one state at a time
-through the sandbox.
+**iOS build state (2026-07-14).** A TF build carrying #358 (null-decode /
+Otter Creek), #359 (trail-mesh visible + centered), #360 (elevation gain shown
+next to distance), and #361 (global trail search) was cut and tested on-device
+— all confirmed working. **Merged AFTER that build, so they need the NEXT one:**
+#362 (search result scrolls the trail list to the tapped trail) and #363
+(search-result trail thumbnails via `trail-shapes.json`). #363 also needs an
+R2 sync dispatched to put `trail-shapes.json` on the CDN before it draws
+anything. TestFlight is still manual-dispatch only — never re-enable auto.
+
+**DONE — nationwide rollout of the curation fixes (finished 2026-07-14).** The
+way-vs-relation seed fix, MTB name filter, and ownership red-flag exclusion
+were rolled to ALL 50 states + DC: re-seeded (`seed-areas.py --merge`, all 48
+remaining after the NY/GA/VT pilot in one run), dry-run verified clean, then
+real-published via `trailforge-publish-us.yml` (commit `236e2ff3`). Plus the
+`nonhiking-route` filter and the degenerate-clip gate landed in the same pass.
+Coverage went ~5,400 → 9,539 areas with real geom. **Still NOT retroactively
+purged: whole bad AREAS** already in the index from the pre-red-flag-gate bulk
+seed — `--merge` is additive, never removes existing rows, and the tag-based
+`red_flag()` only screens FRESH Overpass candidates. Follow-up (task #27): run
+`scripts/audit-easement-ownership.py --all` after the rollout to see what stale
+red-flagged areas are still shipping, then remove deliberately (like the 7 NY
+orphans). NY/GA/VT area-name scan came back essentially clean.
 
 **Backlog (see the session task list):** (1) **named roads** — the reviewable
 `named-road` bucket now collects 407 candidates; the remaining call is your

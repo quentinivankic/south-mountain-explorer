@@ -141,7 +141,7 @@ jobs:
       - name: Regenerate app bundle (only areas with clean trailforge geom)
         run: python3 scripts/filter-ios-bundle.py
 
-      - name: Commit + push (one commit, one R2 sync via geom push)
+      - name: Commit + push (one commit)
         run: |
           set -e
           git config user.name "trailforge-bot"
@@ -158,3 +158,13 @@ jobs:
             sleep $((i * 5))
           done
           git push
+
+      - name: Trigger R2 sync
+        # The commit above is pushed with GITHUB_TOKEN, and GitHub deliberately
+        # does NOT let a token-push trigger another workflow (loop prevention).
+        # So sync-geom-to-r2's `push` trigger never fires for our commit —
+        # dispatch it explicitly (needs the actions:write permission above).
+        # Mirrors trailforge-publish.yml / -batch.yml, which already do this.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run sync-geom-to-r2.yml

@@ -36,6 +36,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   elevation:
@@ -154,3 +155,11 @@ jobs:
             sleep $((i * 5))
           done
           git push
+
+      - name: Trigger R2 sync
+        # GITHUB_TOKEN pushes don't trigger sync-geom-to-r2's `push` trigger
+        # (GitHub loop-prevention), so dispatch it explicitly. Same pattern as
+        # the trailforge-publish workflows.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run sync-geom-to-r2.yml

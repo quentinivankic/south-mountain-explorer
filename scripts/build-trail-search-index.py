@@ -43,7 +43,12 @@ def build(bundle_path: str, geom_dir: str) -> list[list]:
         for t in g.get("trails", []):
             nm, tid = t.get("name"), t.get("id")
             if nm and tid:
-                out.append([nm, slug, tid])
+                # [name, areaId, trailId, distanceMi, difficulty] — distance +
+                # difficulty included so a global search result shows full
+                # detail (uniform with an already-loaded-area hit) without
+                # first fetching the area geom. Area name/state still joined
+                # client-side from summaries.
+                out.append([nm, slug, tid, t.get("distanceMi"), t.get("difficulty")])
     return out
 
 

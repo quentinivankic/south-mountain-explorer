@@ -251,6 +251,20 @@ struct TrailListView: View {
                     proxy.scrollTo(newId, anchor: .center)
                 }
             }
+            .onAppear {
+                // Opened from a Browse trail-search result: AreaView sets
+                // selectedTrailId BEFORE this list mounts, so .onChange above
+                // never fires for it. Scroll the pre-selected row into view on
+                // appear, deferred one hop so the LazyVStack has laid out
+                // enough to resolve the target id.
+                guard let tid = selectedTrailId else { return }
+                Task {
+                    await Task.yield()
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        proxy.scrollTo(tid, anchor: .center)
+                    }
+                }
+            }
             }
         }
     }

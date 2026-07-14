@@ -358,7 +358,8 @@ final class AreaDataService {
                 name: t.name,
                 distanceMi: t.distanceMi,
                 difficulty: t.difficulty,
-                segments: t.segments
+                segments: t.segments,
+                gainFt: t.gainFt
             )
         }
         return Area(
@@ -723,7 +724,8 @@ final class AreaDataService {
                 id: id, name: name,
                 distanceMi: Double(String(format: "%.2f", totalMi))!,
                 difficulty: difficulty(tags: info.tags, mi: totalMi),
-                segments: info.segments
+                segments: info.segments,
+                gainFt: nil   // live-Overpass fallback has no DEM gain
             ))
         }
         return trails.sorted { $0.distanceMi > $1.distanceMi }

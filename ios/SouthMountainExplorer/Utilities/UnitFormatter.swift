@@ -68,6 +68,13 @@ enum UnitFormatter {
         }
     }
 
+    /// Convenience for gain already stored in FEET (trailforge bakes `gainFt`
+    /// as feet). Routes through `elevation(meters:)` so the ft/m toggle and
+    /// rounding stay in one place.
+    static func elevation(feet: Double, units: UnitsPreference) -> String {
+        elevation(meters: feet / 3.28084, units: units)
+    }
+
     /// Short suffix (no value), used by stat-grid cards where the
     /// value and unit are rendered as separate text fields.
     static func distanceSuffix(units: UnitsPreference) -> String {

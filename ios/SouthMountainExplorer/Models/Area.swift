@@ -129,7 +129,8 @@ extension Area {
                 name: trail.name,
                 distanceMi: trail.distanceMi,
                 difficulty: trail.difficulty,
-                segments: newSegments
+                segments: newSegments,
+                gainFt: trail.gainFt
             )
         }
         return Area(

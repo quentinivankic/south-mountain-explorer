@@ -13,9 +13,16 @@ struct Trail: Codable, Identifiable, Sendable, Equatable {
     let difficulty: Difficulty
     // segments: array of polylines, each polyline is array of [lat, lon]
     let segments: [[[Double]]]
+    /// Elevation gain in FEET, baked into the geom by the trailforge DEM pass
+    /// (serve/elevation.py / add-elevation.py). Optional: nil for areas not
+    /// yet run through the elevation post-process, and for the live-Overpass
+    /// fallback path. `= nil` default keeps the memberwise init backward-
+    /// compatible for existing call sites/tests; Codable still decodes it via
+    /// decodeIfPresent, so old data (no gainFt key) stays valid.
+    var gainFt: Int? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, name, segments, difficulty
+        case id, name, segments, difficulty, gainFt
         case distanceMi = "distanceMi"
     }
 }

@@ -373,6 +373,11 @@ struct TrailRow: View {
 
                 HStack(spacing: 8) {
                     Label(UnitFormatter.distance(miles: trail.distanceMi, units: units), systemImage: "figure.walk")
+                    if let gain = trail.gainFt, gain > 0 {
+                        Text("·")
+                        Label(UnitFormatter.elevation(feet: Double(gain), units: units),
+                              systemImage: "arrow.up.forward")
+                    }
                     Text("·")
                     Text(trail.difficulty.rawValue)
                         .foregroundStyle(difficultyColor)

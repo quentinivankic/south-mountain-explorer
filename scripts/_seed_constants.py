@@ -254,14 +254,29 @@ _GOVERNMENT_OPERATOR = re.compile(
     re.IGNORECASE,
 )
 
-# NYC's Catskill/Delaware watershed land (hundreds of individually-mapped
-# "Unit" parcels) is one of the most well-documented ACTUALLY-public hiking
-# resources in NY — DEP runs a Public Access Program and popular Catskill
-# trailheads sit on this land. The water-supply flag was calibrated on small
-# municipal reservoir buffers (Town of Chester, Village of Warwick — plausibly
-# closed), which this exemption doesn't touch.
+# Water-supply operators that run genuinely PUBLIC hiking land, so the
+# water-supply flag shouldn't exclude them. Each is a real, verified example —
+# NOT a speculative allowlist (proving legitimacy is unbounded; this stays a
+# short list of specific operators we've confirmed open their watershed to
+# hikers):
+#   * NYC DEP — Catskill/Delaware watershed, hundreds of individually-mapped
+#     "Unit" parcels, a documented Public Access Program; popular Catskill
+#     trailheads sit on this land.
+#   * Marin Municipal Water District — the Mt Tamalpais watershed is legally
+#     open to hikers and one of the most-hiked areas in the Bay Area
+#     ('Mount Tamalpais Watershed', 83 trails; #27 audit false positive).
+#   * Portland Water District — maintains a public hiking network on the
+#     Sebago Lake Land Reserve, ME ('Sebago Lake Land Reserve', 29 trails;
+#     #27 audit false positive).
+# The flag was calibrated on small municipal reservoir buffers (Town of
+# Chester, Village of Warwick — plausibly closed) and strict closed watersheds
+# (SF PUC's Alameda, Seattle Public Utilities' Tolt, Providence Water's
+# Scituate), which this exemption deliberately does NOT touch.
 _KNOWN_PUBLIC_WATER_OPERATOR = re.compile(
-    r"new york city department of environmental protection", re.IGNORECASE)
+    r"new york city department of environmental protection"
+    r"|marin municipal water district"
+    r"|portland water district",
+    re.IGNORECASE)
 
 # A name containing "Trail(s)" is an unambiguous public-hiking signal on its
 # own — 'Middletown Reservoir Trails' would otherwise flag purely because its

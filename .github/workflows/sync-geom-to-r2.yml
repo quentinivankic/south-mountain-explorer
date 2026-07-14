@@ -115,4 +115,19 @@ jobs:
             --cache-control "public, max-age=300" \
             --no-progress
 
+          # Global trail-name search index — lets the app's Browse trail search
+          # match EVERY trail name, not just areas whose geom is already cached
+          # (see scripts/build-trail-search-index.py). Generated fresh from the
+          # geom the bundle ships, so it can't drift. R2/CloudFlare compresses
+          # on the wire (6 MB JSON -> ~1 MB gzipped). NOT committed — it's a
+          # pure R2 artifact rebuilt here every sync.
+          echo "Building + syncing trail-search index..."
+          python3 scripts/build-trail-search-index.py --out /tmp/trail-search.json
+          aws s3 cp /tmp/trail-search.json \
+            s3://trekdex-areas/trail-search.json \
+            --endpoint-url "$ENDPOINT" \
+            --content-type "application/json" \
+            --cache-control "public, max-age=300" \
+            --no-progress
+
           echo "Sync complete."

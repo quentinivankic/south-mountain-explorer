@@ -87,21 +87,27 @@ def smooth(vals: list[float], window: int = 5) -> list[float]:
 
 def gain_ft(elevs_m: list[float], window: int = 5,
             min_delta_m: float = 0.5) -> float:
-    """Total positive elevation gain in FEET from a metre elevation profile.
-    Smooths first (kills the DEM noise that would inflate gain), then sums
-    positive step deltas above a light residual-noise floor. The floor is kept
-    small on purpose — smoothing does the heavy lifting, and a large floor
-    would under-count a real but gentle continuous climb (small per-30 m step).
-    Window / floor are tuned against known trails on the homelab (§6e)."""
+    """Elevation gain in FEET for hiking difficulty — DIRECTION-INVARIANT.
+
+    OSM way direction is arbitrary: Humphreys Summit Trail is stored
+    summit->trailhead, so summing only *uphill* deltas gives ~0. We instead
+    return max(total ascent, total descent) — the climb you do in the harder
+    direction, which is what AllTrails reports for an out-and-back (and matches
+    Humphreys' ~3,333 ft either way). Smooths first (kills the DEM noise that
+    would inflate gain); the small floor rejects residual noise without
+    under-counting a gentle continuous climb. Window / floor tuned against
+    known trails on the homelab (§6e)."""
     if len(elevs_m) < 2:
         return 0.0
     s = smooth(elevs_m, window)
-    total = 0.0
+    up = down = 0.0
     for a, b in zip(s, s[1:]):
         d = b - a
         if d > min_delta_m:
-            total += d
-    return round(total / _M_PER_FT)
+            up += d
+        elif -d > min_delta_m:
+            down += -d
+    return round(max(up, down) / _M_PER_FT)
 
 
 def difficulty_label(miles: float, gain_ft: float | None,

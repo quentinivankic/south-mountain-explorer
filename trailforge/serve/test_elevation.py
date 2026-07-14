@@ -34,6 +34,13 @@ class Gain(unittest.TestCase):
         climb = [305.0 * i / 199 for i in range(200)]
         self.assertTrue(970 <= e.gain_ft(climb) <= 1000, e.gain_ft(climb))
 
+    def test_direction_invariant(self):
+        # a trail stored DOWNHILL (summit->trailhead, the Humphreys bug) must
+        # give the same gain as uphill — max(ascent, descent), not uphill-only.
+        climb = [305.0 * i / 199 for i in range(200)]
+        self.assertEqual(e.gain_ft(climb), e.gain_ft(list(reversed(climb))))
+        self.assertTrue(970 <= e.gain_ft(list(reversed(climb))) <= 1000)
+
     def test_noise_does_not_inflate(self):
         # ±1.5 m jitter, net zero -> smoothing + floor keep gain tiny
         jit = [50 + 1.5 * math.sin(i * 1.3) + (0.8 if i % 3 == 0 else -0.4)

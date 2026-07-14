@@ -68,6 +68,8 @@ def main(argv=None) -> int:
     ap.add_argument("--cache-dir", default=os.path.join(_HERE, "..", "data", "dem-cache"))
     ap.add_argument("--dry-run", action="store_true", help="compute + report, write nothing")
     ap.add_argument("--top", type=int, default=10, help="print the N highest-gain trails")
+    ap.add_argument("--name", help="calibration: print gain for every trail whose "
+                    "name contains this (case-insensitive), e.g. --name humphreys")
     args = ap.parse_args(argv)
 
     files = sorted(glob.glob(os.path.join(args.geom_dir, "*.json")))
@@ -95,7 +97,8 @@ def main(argv=None) -> int:
         for k, v in delta.items():
             delta_all[k] = delta_all.get(k, 0) + v
         for t in geom.get("trails", []):
-            top.append((t.get("gainFt", 0), t.get("name") or "", geom.get("name") or ""))
+            top.append((t.get("gainFt", 0), t.get("name") or "", geom.get("name") or "",
+                        t.get("distanceMi", 0), t.get("difficulty", "")))
         if not args.dry_run:
             json.dump(geom, open(f, "w"), separators=(",", ":"))
         if i % 25 == 0 or i == len(files):
@@ -109,9 +112,16 @@ def main(argv=None) -> int:
         for k in sorted(delta_all, key=lambda k: -delta_all[k]):
             print(f"  {delta_all[k]:5}  {k}")
     top.sort(reverse=True)
-    print(f"\ntop {args.top} by gain (sanity-check vs AllTrails):")
-    for g, tn, an in top[:args.top]:
-        print(f"  {g:6} ft  {tn}  ({an})")
+    if args.name:
+        q = args.name.lower()
+        hits = [r for r in top if q in r[1].lower()]
+        print(f"\ncalibration — trails matching {args.name!r} ({len(hits)}):")
+        for g, tn, an, mi, diff in hits:
+            print(f"  {g:6} ft  {mi:5} mi  {diff:8}  {tn}  ({an})")
+    else:
+        print(f"\ntop {args.top} by gain (sanity-check vs AllTrails):")
+        for g, tn, an, mi, diff in top[:args.top]:
+            print(f"  {g:6} ft  {mi:5} mi  {diff:8}  {tn}  ({an})")
     return 0
 
 

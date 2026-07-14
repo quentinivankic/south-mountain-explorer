@@ -67,6 +67,9 @@ struct BrowseView: View {
     @Environment(AreaDataService.self) private var areas
     @Environment(FavoritesService.self) private var favorites
     @Environment(LocationService.self) private var location
+    /// Global trail-name index — makes trail search cover EVERY trail, not just
+    /// areas already loaded. Falls back to the local search when unloaded.
+    @Environment(TrailSearchService.self) private var trailSearch
 
     @State private var query = ""
     @State private var selectedArea: AreaSummary? = nil
@@ -86,6 +89,20 @@ struct BrowseView: View {
     private var trailResults: [AreaDataService.TrailSearchHit] {
         guard !query.isEmpty else { return [] }
         let q = query.lowercased()
+        // Global index (every trail) when loaded; else fall back to the local
+        // loaded-areas search, so search never regresses below today's.
+        let global = trailSearch.search(query, limit: 25)
+        if !global.isEmpty {
+            let areaNames = Dictionary(areas.summaries.map { ($0.id, $0.name) },
+                                       uniquingKeysWith: { first, _ in first })
+            return global.compactMap { e in
+                guard let areaName = areaNames[e.areaId] else { return nil }
+                return AreaDataService.TrailSearchHit(
+                    trailId: e.trailId, trailName: e.trailName, searchKey: e.searchKey,
+                    difficulty: e.difficulty, distanceMi: e.distanceMi,
+                    areaId: e.areaId, areaName: areaName)
+            }
+        }
         return Array(areas.trailSearchHits().filter { $0.searchKey.contains(q) }.prefix(25))
     }
 
@@ -160,6 +177,7 @@ struct BrowseView: View {
                     .listStyle(.plain)
                     .searchable(text: $query, prompt: "Search trails and parks")
                     .searchFocused($searchFocused)
+                    .task { await trailSearch.loadIfNeeded() }
                 }
             }
             .trailMeshBackground()

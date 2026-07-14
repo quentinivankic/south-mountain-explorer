@@ -1,0 +1,117 @@
+name: Trailforge — audit red-flagged areas (all US states)
+
+# Task #27 mechanism: find stale, pre-quality-gate areas still shipping that
+# would be RED-FLAGGED today (private mining/quarry land, hunting clubs, closed
+# water-supply/watershed buffers). `red_flag()` (scripts/_seed_constants.py) only
+# screens FRESH Overpass candidates at seed time; areas seeded BEFORE that gate
+# existed are still in index.json (--merge is additive, never removes rows).
+#
+# This is a homelab-free path: GitHub-hosted runners can reach Overpass (same as
+# build-trail-index.yml's seeding), so the audit runs here. One dispatch → 13
+# PARALLEL region jobs, each running scripts/audit-easement-ownership.py over its
+# states → a fan-in job concatenates every region's report, prints the whole
+# thing to its log (readable without downloading), and uploads it as an artifact.
+#
+# READ-ONLY: this workflow makes NO commits and touches NO data. It only reports
+# what red_flag() would exclude. Deciding which of those to actually remove from
+# index.json is a deliberate, separate step (cross-referenced against what's
+# currently shipping) — never an auto-delete.
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: trailforge-audit
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    strategy:
+      fail-fast: false
+      matrix:
+        # 50 states + DC, grouped to mirror trailforge-publish-us.yml's regions
+        # (2-letter codes here, since audit-easement-ownership.py keys on the
+        # STATE_NAMES codes, not Geofabrik slugs).
+        include:
+          - { id: california,  codes: "CA" }
+          - { id: texas,       codes: "TX" }
+          - { id: florida,     codes: "FL" }
+          - { id: midatlantic, codes: "NY PA NJ" }
+          - { id: appalachia,  codes: "VA WV MD DE DC" }
+          - { id: southeast,   codes: "NC SC GA TN KY" }
+          - { id: deepsouth,   codes: "AL MS AR LA OK" }
+          - { id: greatlakes,  codes: "MI WI MN OH IN IL" }
+          - { id: plains,      codes: "IA MO KS NE ND SD" }
+          - { id: northwest,   codes: "WA OR ID MT WY NV" }
+          - { id: southwest,   codes: "AZ NM UT CO" }
+          - { id: newengland,  codes: "ME NH VT MA CT RI" }
+          - { id: noncontig,   codes: "AK HI" }
+    runs-on: ubuntu-latest
+    # Generous: a happy-path state query is ~1-2 min, but a dense state can hit
+    # Overpass timeouts and burn the 60/180/600s retry backoff before giving up.
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Audit region "${{ matrix.id }}"
+        run: |
+          set -uo pipefail
+          # Unquoted expansion is intentional: "NY PA NJ" must become three
+          # argv (audit takes nargs="*" state codes). The script prints each
+          # state's summary + flagged lines to stdout AND writes the review file.
+          python3 scripts/audit-easement-ownership.py ${{ matrix.codes }} \
+            --out "review-${{ matrix.id }}.txt"
+
+      - name: Upload region report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-${{ matrix.id }}
+          path: review-${{ matrix.id }}.txt
+          if-no-files-found: warn
+          retention-days: 7
+
+  merge:
+    needs: audit
+    # Run even if a region failed, so partial results still surface.
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all region reports
+        uses: actions/download-artifact@v4
+        with:
+          path: reports
+
+      - name: Combine + print the full red-flag review
+        run: |
+          set -e
+          : > all-states-review.txt
+          # Each region artifact lands in reports/audit-<id>/review-<id>.txt
+          for f in reports/*/review-*.txt; do
+            [ -s "$f" ] && cat "$f" >> all-states-review.txt || true
+          done
+          COUNT=$(grep -c '.' all-states-review.txt 2>/dev/null || echo 0)
+          echo "===================================================================="
+          echo "  COMBINED RED-FLAG AUDIT — all 50 states + DC"
+          echo "  $COUNT flagged area line(s). Each is an area red_flag() would"
+          echo "  exclude today. Cross-reference against index.json to find which"
+          echo "  are STILL SHIPPING (those are the removal candidates)."
+          echo "===================================================================="
+          cat all-states-review.txt
+          echo "===================================================================="
+          echo "  END OF REVIEW ($COUNT lines)"
+          echo "===================================================================="
+
+      - name: Upload combined report
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-states-review
+          path: all-states-review.txt
+          retention-days: 7

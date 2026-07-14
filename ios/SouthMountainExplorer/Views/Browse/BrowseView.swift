@@ -321,7 +321,7 @@ private struct TrailHitRow: View {
         HStack(spacing: 14) {
             // Just THIS trail's linework — not the whole area (which is what
             // the area rows below show). See TrailThumb.
-            TrailThumb(areaId: hit.areaId, trailId: hit.trailId)
+            TrailThumb(areaId: hit.areaId, trailId: hit.trailId, difficulty: hit.difficulty)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(hit.trailName)
@@ -393,13 +393,20 @@ private struct SilhouetteThumb: View {
 private struct TrailThumb: View {
     let areaId: String
     let trailId: String
+    let difficulty: Difficulty
     @Environment(AreaDataService.self) private var areas
+    @Environment(TrailShapeService.self) private var shapes
 
     var body: some View {
         Group {
             if let trail = areas.cachedArea(id: areaId)?.trails
                 .first(where: { $0.id == trailId }), !trail.segments.isEmpty {
+                // Full local geometry — an area we've already fetched.
                 TrailThumbCanvas(trail: trail)
+            } else if let shape = shapes.shape(areaId: areaId, trailId: trailId) {
+                // Simplified shape from the background-loaded R2 file — lets an
+                // un-visited area's trail still show its linework.
+                ShapeThumbCanvas(shape: shape, difficulty: difficulty)
             } else {
                 Image(systemName: "figure.hiking")
                     .foregroundStyle(.tertiary)
@@ -408,6 +415,56 @@ private struct TrailThumb: View {
             }
         }
         .frame(width: 44, height: 44)
+    }
+}
+
+/// Paints a Douglas-Peucker-simplified polyline (flat `[x0,y0,x1,y1,…]` in a
+/// 0–255 box, from TrailShapeService) into the 44 px thumbnail, self-framed to
+/// its own bounds and coloured by difficulty — the compact-shape twin of
+/// TrailThumbCanvas.
+private struct ShapeThumbCanvas: View {
+    let shape: [UInt8]
+    let difficulty: Difficulty
+
+    var body: some View {
+        Canvas { context, size in
+            guard shape.count >= 4 else { return }
+            var minX = 255.0, maxX = 0.0, minY = 255.0, maxY = 0.0
+            var i = 0
+            while i + 1 < shape.count {
+                let x = Double(shape[i]), y = Double(shape[i + 1])
+                minX = min(minX, x); maxX = max(maxX, x)
+                minY = min(minY, y); maxY = max(maxY, y)
+                i += 2
+            }
+            let pad: CGFloat = 5
+            let drawW = size.width - 2 * pad, drawH = size.height - 2 * pad
+            guard drawW > 0, drawH > 0 else { return }
+            let sw = max(maxX - minX, 1e-6), sh = max(maxY - minY, 1e-6)
+            let scale = min(drawW / sw, drawH / sh)
+            let cw = sw * scale, ch = sh * scale
+            let ox = pad + (drawW - cw) / 2, oy = pad + (drawH - ch) / 2
+
+            var path = Path()
+            var started = false
+            i = 0
+            while i + 1 < shape.count {
+                let x = Double(shape[i]), y = Double(shape[i + 1])
+                // Flip y — the shape stores latitude increasing upward.
+                let p = CGPoint(x: ox + (x - minX) * scale,
+                                y: oy + ch - (y - minY) * scale)
+                if started { path.addLine(to: p) } else { path.move(to: p); started = true }
+                i += 2
+            }
+            let color: Color
+            switch difficulty {
+            case .easy: color = .green
+            case .moderate: color = .orange
+            case .hard: color = .red
+            }
+            context.stroke(path, with: .color(color),
+                           style: StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round))
+        }
     }
 }
 

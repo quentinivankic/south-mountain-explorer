@@ -85,6 +85,9 @@ struct ContentView: View {
                 )
             }
         }
+        // Warm the trail-shape thumbnails in the background at launch (while
+        // the user is in onboarding / browsing), off the search critical path.
+        .task { await TrailShapeService.shared.loadIfNeeded() }
         // Banner tap for an in-progress WALK reopens the walk screen
         // (which restores from the recording's own nearby-area list)
         // instead of the primary area's AreaView.

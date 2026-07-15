@@ -6,7 +6,56 @@ deferred, and what mistakes prior Claudes have made.
 
 ---
 
-## ⭐ CURRENT STATE — read this first (updated 2026-07-14)
+## ⭐ CURRENT STATE — read this first (updated 2026-07-15)
+
+**2026-07-15 SESSION LANDMARKS (verify against code before trusting):**
+- **Multi-area completion for trail + roam hikes** (#372 + fetch-storm cap #373).
+  A normal (trail/roam) recording now credits EVERY neighbor area whose trails
+  its GPS path actually crossed — not just the area you started in. This is the
+  APP half of "a cross-park trail lives in ONE home area but you complete it by
+  walking it anywhere." It reuses the walk-mode multi-area engine at STOP:
+  `RecordingService.neighborAreasCrossed` finds nearby areas (center-proximity
+  pre-filter on `AreaSummary` — which has NO bbox, only a center — then loads the
+  nearest ≤16 and gates on the loaded `Area`'s real bbox + actual trail
+  coverage), and `stopRecording` credits each via the same `mergeCoverage` the
+  primary area uses. `SavedRecording` now PERSISTS `mode` (`isWalk = mode ==
+  .walk`) via a never-throw raw-string decode, so a multi-area HIKE isn't
+  mislabeled a walk; old records infer mode as `isWalk` used to. **Not yet
+  verified on-device — needs a real cross-park hike.** Detect-at-start + drawing
+  neighbor trails on the map in grey (tap → callout) was explicitly DEFERRED
+  until testable.
+- **DEM elevation difficulty is now NATIONWIDE** (was AZ-only). Built
+  `trailforge-elevation-us.yml` (#368, 13-region CI fan-out; `add-elevation.py`
+  fetches AWS Terrarium tiles, reachable from CI), dry-ran + calibrated (Boundary
+  Peak 4,743 ft ✓), then real-ran. Gain-based difficulty ships for all 50 + DC.
+  STILL a post-process (a republish reverts to length-only until re-run — durable
+  fix = fold sampling into publish).
+- **Red-flag audit went homelab-free + ran** (#365 `trailforge-audit.yml`, task
+  #27). CI runs `audit-easement-ownership.py` (Overpass reachable from runners).
+  121 flagged nationwide → only 4 still shipping → **removed 2** (Elk Forest MD
+  hunting area, Newark Watershed NJ, #367). Kept Mt Tam (MMWD) + Sebago (Portland
+  Water District) — legit public watershed, `red_flag` false positives → widened
+  the water-operator whitelist (#370, task #35) + added the FIRST `red_flag`
+  tests (`scripts/test_red_flag.py`).
+- **All whole-US workflows now auto-dispatch the R2 sync** (#369, task #29) —
+  `publish-us` + `elevation-us` run `gh workflow run sync-geom-to-r2` (a
+  GITHUB_TOKEN push can't trigger downstream).
+- **Cleanup:** removed the dead System-2 `build-region-tiles.yml` (#366, pmtiles
+  pipeline superseded — kept `data-pipeline/` as the Confidence-Lab scoring ref);
+  purged 1,672 orphaned System-1 `cached_at` geom/silhouette files not in any
+  index row (#371, task #24 REPO side — R2-side sweep still pending: task #36,
+  `cleanup-r2-orphans` is Europe-only and needs generalizing).
+- **Map centers on the selected trail** (#364) — search→open frames that trail;
+  deselect → whole-area (browsing only).
+- **KNOWN, DEFERRED — nested/duplicate areas (task #37).** A trail appears in
+  BOTH a park and its nested wilderness (Wonderland in Rainier NP + Rainier
+  Wilderness) because seeding makes one app-area per OSM protected-area polygon.
+  ~9,300 trails are in ≥2 areas. Investigated a dedup (drop the redundant nested
+  area, keep the more-ICONIC designation) — reliable only for ~50 large cases,
+  NOT scalable (small areas false-match on coincidental shared trail-ids;
+  famous-by-name places need eyeball). **Decided: keep both for now** (cosmetic —
+  #372 made them completable). Real fix belongs in the trailforge pipeline (a
+  containment gate at publish, where boundaries exist).
 
 Much of the app-detail below predates the **trailforge** era. When it
 conflicts with this section, this section wins. Verify against the code

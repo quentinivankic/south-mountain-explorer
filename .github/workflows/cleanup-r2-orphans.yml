@@ -1,15 +1,16 @@
 name: Cleanup R2 Orphans
 
-# One-shot, manual-dispatch cleanup of orphaned area objects in the
-# Cloudflare R2 bucket — geom / silhouette files whose area slug is no
-# longer in public/areas/index.json (e.g. after the European-data
-# removal). The regular sync-geom-to-r2 workflow can't do this with
-# `aws s3 sync --delete` because geom lives at the bucket root next to
-# index.json and the silhouettes/ prefix, so a blanket delete would
-# nuke those. scripts/cleanup-r2-orphans.py instead diffs bucket keys
-# against the current index and deletes only the orphans, never
-# index.json, never via suffix patterns (which would hit the CA-SK /
-# Slovakia style collisions).
+# Manual-dispatch cleanup of orphaned area objects in the Cloudflare R2
+# bucket — geom / silhouette files whose area slug is no longer in
+# public/areas/index.json (a pruned seed row, a removed red-flag area,
+# a tightened curation/degenerate filter). The regular sync-geom-to-r2
+# workflow can't do this with `aws s3 sync --delete` because geom lives
+# at the bucket root next to index.json and the silhouettes/ prefix, so
+# a blanket delete would nuke those. scripts/cleanup-r2-orphans.py
+# instead diffs bucket keys against the current index and deletes only
+# the orphans, never index.json / trail-search.json / trail-shapes.json,
+# with safety belts that abort on a short-loaded index or an implausible
+# orphan fraction (> 60%).
 #
 # Defaults to a DRY RUN. Set the `apply` input to "true" to delete.
 #

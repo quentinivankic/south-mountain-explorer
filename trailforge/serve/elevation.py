@@ -161,6 +161,42 @@ def trail_gain_ft(segments: list[list], sampler) -> float:
     return round(total)
 
 
+def process_area(geom: dict, sampler) -> tuple[int, dict]:
+    """Set `gainFt` + a gain-aware `difficulty` per trail and a per-area
+    `total_gain_ft`, sampling elevation via `sampler.elevation(lat, lon)`.
+
+    Mutates `geom` in place; returns `(trails_updated, {"old->new": count})`
+    so a caller can print a label-change summary. A per-trail sampling failure
+    (a bad/missing tile) is skipped — that trail keeps its existing
+    length-based difficulty — so one bad tile never aborts the whole area.
+    Testable with any object exposing `.elevation(lat, lon)`.
+
+    Shared by `add-elevation.py` (the standalone post-process) and
+    `publish_areas.py` (which calls this inline so gain survives a republish).
+    """
+    import sys
+    changed = 0
+    delta: dict[str, int] = {}
+    total_gain = 0.0
+    for t in geom.get("trails", []):
+        miles = t.get("distanceMi", 0.0)
+        try:
+            g = trail_gain_ft(t.get("segments", []), sampler)
+        except Exception as e:                      # a bad/missing tile: skip trail
+            print(f"    ! gain failed for {t.get('id')}: {e}", file=sys.stderr)
+            continue
+        old = t.get("difficulty")
+        new = difficulty_label(miles, g)
+        t["gainFt"] = int(g)
+        t["difficulty"] = new
+        total_gain += g
+        changed += 1
+        if old != new:
+            delta[f"{old}->{new}"] = delta.get(f"{old}->{new}", 0) + 1
+    geom["total_gain_ft"] = int(total_gain)
+    return changed, delta
+
+
 # --- tile sampler (needs network + Pillow) ---------------------------------
 
 class TileSampler:
@@ -226,3 +262,22 @@ class TileSampler:
         top = e00 * (1 - fx) + e10 * fx
         bot = e01 * (1 - fx) + e11 * fx
         return top * (1 - fy) + bot * fy
+
+
+def build_sampler(zoom: int = DEM_ZOOM, cache_dir: str | None = None,
+                  probe: tuple[float, float] = (36.106, -112.113)):
+    """Build a `TileSampler` and verify it can actually fetch + decode one tile
+    (elevation sampling needs network egress + Pillow). Returns the sampler, or
+    **None** — with a one-line warning — when elevation is unavailable, so
+    callers fall back to length-based difficulty instead of crashing (the
+    sandbox has no DEM egress; a runner may lack Pillow). The default probe is
+    a Grand Canyon point that certainly has tile data."""
+    import sys
+    s = TileSampler(zoom=zoom, cache_dir=cache_dir)
+    try:
+        s.elevation(*probe)
+    except Exception as e:
+        print(f"! elevation unavailable ({type(e).__name__}: {e}); "
+              f"falling back to length-based difficulty", file=sys.stderr)
+        return None
+    return s

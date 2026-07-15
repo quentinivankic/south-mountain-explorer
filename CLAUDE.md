@@ -28,8 +28,11 @@ deferred, and what mistakes prior Claudes have made.
   `trailforge-elevation-us.yml` (#368, 13-region CI fan-out; `add-elevation.py`
   fetches AWS Terrarium tiles, reachable from CI), dry-ran + calibrated (Boundary
   Peak 4,743 ft ✓), then real-ran. Gain-based difficulty ships for all 50 + DC.
-  STILL a post-process (a republish reverts to length-only until re-run — durable
-  fix = fold sampling into publish).
+  NO LONGER a fragile post-process: publishing now samples elevation INLINE
+  (`publish_areas.py --elevation`, default ON in all 3 publish workflows, via the
+  shared `elevation.process_area`), so a republish keeps gain instead of
+  reverting to length-only. Graceful fallback if DEM/Pillow unavailable;
+  `add-elevation.py` stays as a standalone re-sample tool.
 - **Red-flag audit went homelab-free + ran** (#365 `trailforge-audit.yml`, task
   #27). CI runs `audit-easement-ownership.py` (Overpass reachable from runners).
   121 flagged nationwide → only 4 still shipping → **removed 2** (Elk Forest MD

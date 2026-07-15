@@ -31,6 +31,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "assemble"))
 import to_app_json as conv          # noqa: E402
 import areas as areamod             # noqa: E402
 import model                        # noqa: E402 — merge_key for rescue dedupe
+import elevation                    # noqa: E402 — inline DEM gain + difficulty
 
 _DEFAULT_INDEX = os.path.join(os.path.dirname(__file__), "..", "..",
                               "ios", "SouthMountainExplorer", "Resources", "areas-index.json")
@@ -220,9 +221,28 @@ def main(argv=None) -> int:
                          "designations 'one home park' would wrongly strip. Writes nothing.")
     ap.add_argument("--limit", type=int, help="only publish the first N areas (a first wave)")
     ap.add_argument("--dry-run", action="store_true", help="report matches; write nothing")
+    ap.add_argument("--elevation", action="store_true",
+                    help="sample a global DEM (AWS Terrarium) inline while publishing "
+                         "so each trail's gainFt + gain-aware difficulty are baked into "
+                         "the geom — durable across republishes (no separate "
+                         "add-elevation.py pass). Needs network + Pillow; if either is "
+                         "missing it warns once and falls back to length-based "
+                         "difficulty. Skipped on --dry-run.")
+    ap.add_argument("--dem-cache-dir", default=os.path.join(os.path.dirname(__file__),
+                    "..", "data", "dem-cache"), help="disk cache for DEM tiles")
+    ap.add_argument("--dem-zoom", type=int, default=elevation.DEM_ZOOM)
     args = ap.parse_args(argv)
     if args.multi_area_report:
         args.dry_run = True             # pure diagnostic — never write
+
+    # Build the DEM sampler up front so an unavailable-elevation warning prints
+    # once (not per area). None => fall back to length-based difficulty.
+    sampler = None
+    if args.elevation and not args.dry_run:
+        print("elevation: probing DEM sampler…", file=sys.stderr)
+        sampler = elevation.build_sampler(zoom=args.dem_zoom, cache_dir=args.dem_cache_dir)
+        if sampler is not None:
+            print("elevation: sampling gain + difficulty inline", file=sys.stderr)
 
     index = json.load(open(args.index))
     az = {r[0]: {"name": r[1], "state": r[2], "center": (r[3], r[4]),
@@ -413,6 +433,16 @@ def main(argv=None) -> int:
         if row["total_mi"] < _MIN_AREA_MI:
             skipped.append((slug, f"degenerate clip ({row['total_mi']} mi total)"))
             continue
+        if sampler is not None:
+            # Bake real DEM gain + gain-aware difficulty into the geom so a
+            # republish keeps it (vs the old add-elevation.py post-process that
+            # a republish reverted to length-only). Per-trail tile failures are
+            # swallowed inside process_area; a whole-area failure falls back to
+            # the length-based difficulty conv.convert already set.
+            try:
+                elevation.process_area(row, sampler)
+            except Exception as e:
+                print(f"  ! elevation sampling failed for {slug}: {e}", file=sys.stderr)
         problems = validate(row)
         if problems:
             failed.append((slug, problems)); continue

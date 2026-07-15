@@ -104,5 +104,41 @@ class TrailGain(unittest.TestCase):
         self.assertTrue(6300 <= g <= 6600, g)
 
 
+class ProcessArea(unittest.TestCase):
+    """process_area() is the shared core folded into publish_areas.py so gain
+    survives a republish. Testable with any object exposing .elevation()."""
+
+    class _Ramp:
+        def elevation(self, lat, lon):
+            return lat * 111320  # metres north — monotonic climb
+
+    def test_sets_gain_difficulty_and_total(self):
+        # 0.4 mi over ~500 m of climb (~1,250 m/mi... well past the grade floor)
+        seg = [[0.0, 0.0], [500 / 111320, 0.0]]
+        geom = {"trails": [{"id": "t1", "distanceMi": 0.4,
+                            "difficulty": "Easy", "segments": [seg]}]}
+        changed, delta = e.process_area(geom, self._Ramp())
+        t = geom["trails"][0]
+        self.assertEqual(changed, 1)
+        self.assertGreater(t["gainFt"], 1000)          # real gain baked in
+        self.assertEqual(t["difficulty"], "Hard")       # steep+short -> floor
+        self.assertEqual(geom["total_gain_ft"], t["gainFt"])
+        self.assertEqual(delta, {"Easy->Hard": 1})      # label change recorded
+
+    def test_bad_tile_skips_trail_not_area(self):
+        # a sampler that always throws -> the trail keeps its length-based
+        # difficulty and the area still gets a (zero) total_gain_ft; no crash.
+        class Boom:
+            def elevation(self, lat, lon):
+                raise RuntimeError("no tile")
+        geom = {"trails": [{"id": "t1", "distanceMi": 2.0,
+                            "difficulty": "Moderate",
+                            "segments": [[[0.0, 0.0], [0.01, 0.0]]]}]}
+        changed, delta = e.process_area(geom, Boom())
+        self.assertEqual(changed, 0)
+        self.assertEqual(geom["trails"][0]["difficulty"], "Moderate")  # untouched
+        self.assertEqual(geom["total_gain_ft"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()

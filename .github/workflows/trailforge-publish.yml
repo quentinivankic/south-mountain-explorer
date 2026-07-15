@@ -30,6 +30,10 @@ on:
         description: "Diagnostic: report trails that TOUCH each area but aren't published (keep-whole gain). Writes nothing."
         type: boolean
         default: false
+      elevation:
+        description: "Bake DEM elevation gain + gain-aware difficulty into the geom while publishing (durable across republishes). Uncheck only to skip sampling."
+        type: boolean
+        default: true
 
 concurrency:
   group: trailforge-publish
@@ -49,8 +53,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install osmium + pyosmium + shapely
-        run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely
+      - name: Install osmium + pyosmium + shapely + Pillow
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely python3-pil
 
       - name: Download + prefilter extract
         run: |
@@ -80,6 +84,7 @@ jobs:
           [ "${{ github.event.inputs.dry_run }}" = "true" ]  && FLAGS="$FLAGS --dry-run"
           [ "${{ github.event.inputs.no_routes }}" = "true" ] && FLAGS="$FLAGS --no-routes"
           [ "${{ github.event.inputs.touch_report }}" = "true" ] && FLAGS="$FLAGS --touch-report"
+          [ "${{ github.event.inputs.elevation }}" = "true" ] && FLAGS="$FLAGS --elevation"
           # Read the MASTER index (every seeded state) so a not-yet-bundled
           # state has areas to fill; publish_areas updates its counts in place.
           python3 serve/publish_areas.py \

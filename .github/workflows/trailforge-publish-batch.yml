@@ -23,6 +23,10 @@ on:
         description: "Drop thru-routes (Colorado Trail, PCT) from the checklist"
         type: boolean
         default: false
+      elevation:
+        description: "Bake DEM elevation gain + gain-aware difficulty into the geom while publishing (durable across republishes). Uncheck only to skip sampling."
+        type: boolean
+        default: true
 
 concurrency:
   group: trailforge-publish
@@ -39,8 +43,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install osmium + pyosmium + shapely
-        run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely
+      - name: Install osmium + pyosmium + shapely + Pillow
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely python3-pil
 
       - name: Publish each state (into public/areas/geom, cumulative)
         run: |
@@ -52,6 +56,7 @@ jobs:
           if [ "$STATES" = "all" ]; then STATES=$(python3 tools/state_slug.py all); fi
           DRY=""; [ "${{ github.event.inputs.dry_run }}" = "true" ]  && DRY="--dry-run"
           NOROUTES=""; [ "${{ github.event.inputs.no_routes }}" = "true" ] && NOROUTES="--no-routes"
+          ELEV=""; [ "${{ github.event.inputs.elevation }}" = "true" ] && ELEV="--elevation"
 
           ok=""; failed=""; skipped=""
           IFS=',' read -ra SLUGS <<< "$STATES"

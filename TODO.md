@@ -106,8 +106,12 @@ Snapshot of the active threads this session — see the PRs for detail.
 - [x] **Roll DEM difficulty to the other 49 states** — DONE via the new
   `trailforge-elevation-us.yml` (#368); real gain-based difficulty ships for all
   50 + DC.
-- [ ] **Fold DEM sampling into the publish pipeline** so gain survives a
-  republish (it's a post-process now — a re-publish reverts to length-only).
+- [x] **Fold DEM sampling into the publish pipeline** — DONE. `publish_areas.py`
+  now takes `--elevation` (default ON in all 3 publish workflows) and samples
+  gain + gain-aware difficulty inline via the shared `elevation.process_area`,
+  so a republish keeps it (no more revert to length-only). Graceful fallback if
+  DEM/Pillow is unavailable (warns once → length-based); skipped on `--dry-run`.
+  `add-elevation.py` stays as a standalone re-sample tool.
 - [x] **Audit stale red-flagged AREAS** (task #27) — DONE. `trailforge-audit.yml`
   (#365) ran; 121 flagged, 4 still shipping, **removed 2** (#367).
 - [x] **`trailforge-publish-us.yml` R2 auto-dispatch** (task #29) — DONE (#369);

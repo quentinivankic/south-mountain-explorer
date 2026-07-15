@@ -67,6 +67,20 @@ class Difficulty(unittest.TestCase):
         self.assertEqual(e.difficulty_label(12, 0), "Hard")
         self.assertEqual(e.difficulty_label(5, 0), "Moderate")
 
+    def test_steepness_floor(self):
+        D = e.difficulty_label
+        # Acadia's Precipice: 966 ft in 0.67 mi (~1,440 ft/mi). The NPS rating
+        # alone scored 36 -> "Easy"; the grade floor must lift it off Easy.
+        self.assertNotEqual(D(0.67, 966), "Easy")
+        # a very steep short scramble (>=1,500 ft/mi) reads Hard
+        self.assertEqual(D(0.5, 900), "Hard")      # 1,800 ft/mi
+        self.assertEqual(D(0.35, 656), "Hard")     # 1,874 ft/mi (Hurricane Crag)
+        # a moderately steep short pitch (>=1,000, <1,500 ft/mi) reads Moderate
+        self.assertEqual(D(0.6, 720), "Moderate")  # 1,200 ft/mi
+        # the floor only RAISES: a gentle grade is untouched
+        self.assertEqual(D(1.0, 300), "Easy")      # 300 ft/mi
+        self.assertEqual(D(3.0, 100), "Easy")      # flat-ish nature trail
+
     def test_sac_override(self):
         self.assertEqual(e.difficulty_label(0.5, 0, sac="demanding_alpine_hiking"), "Hard")
 

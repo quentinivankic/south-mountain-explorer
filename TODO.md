@@ -370,8 +370,13 @@ repo:
 - [ ] Enter the App Privacy nutrition label in App Store Connect —
   now **Data Collection: Yes** (PostHog): Product Interaction, Other
   User Content, Email, Crash Data. Draft in `docs/app-store-submission.md`.
-- [ ] Update the trekdex.app **privacy policy** to name PostHog as the
-  analytics processor + the **US** data region + the collected types.
+- [ ] **Publish** the refreshed **privacy policy + ToS** to trekdex.app
+  (same URLs). Canonical source now in-repo: `docs/privacy-policy.md` +
+  `docs/terms-of-service.md` (#382) — corrected the false "no analytics /
+  collect nothing" language (app uses PostHog + MetricKit + feedback/waitlist)
+  and removed the not-built iCloud/CloudKit sync claim. Entity confirmed:
+  **Trekdex LLC** is a real entity, so both docs are consistent (Individual
+  Apple account just means the store seller name is the personal legal name).
 - [ ] Dispatch `ios-screenshots` (#255 already merged) for the final
   capture set (verifies shot-3 blue dot + no empty stats month), then
   upload the PNGs to ASC.

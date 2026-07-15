@@ -68,35 +68,19 @@ ALLOWED_PROTECT_CLASSES = {
 # Catches state parks, national forests, regional/county parks, etc.
 # that don't tag protect_class (common in OSM US data).
 NAME_KEYWORD_RE = re.compile(
-    # English + French + Italian keywords. Word boundaries on both
-    # sides since these languages use whitespace between terms.
+    # English + French keywords, covering the whole shipped footprint
+    # (US + anglophone Canada, plus Québec / francophone Canada). Word
+    # boundaries on both sides since these languages use whitespace
+    # between terms. The old Italian / Danish / German / Icelandic
+    # branches were dropped — seeding is North-America-only, so those
+    # never matched a shipped area (the "accidental Spanish coverage on
+    # parco/riserva" note was also wrong: those are Italian, not Spanish).
     r"\b(park|preserve|wilderness|forest|monument|recreation area|"
     r"recreation site|refuge|sanctuary|reserve|open space|"
     r"conservation|wildlife|trailhead|trail system|nra|sra"
-    # French (Quebec / Swiss Romandie / other French-speaking).
+    # French (Québec / francophone Canada).
     r"|parc|réserve|aire|faunique|écologique|sauvage|naturelle"
-    r"|sanctuaire|forêt"
-    # Italian (Ticino, plus accidental Spanish coverage on "parco" /
-    # "riserva" overlap).
-    r"|parco|riserva|area protetta)\b"
-    # Compound-word languages — Danish, German (DE / CH / AT),
-    # Icelandic. NO left word boundary because these languages chain
-    # morphemes into single words ("Naturpark", "Vatnajökulsþjóðgarður").
-    # Right boundary stays so suffixed forms ("naturparken") still
-    # match via their base.
-    r"|(naturpark|nationalpark|naturreservat|vildtreservat|"
-    r"fredning|naturskov|vådområde"
-    # German (Swiss / Austrian / German). naturpark / nationalpark /
-    # naturreservat already land via the Danish branch above as exact
-    # cognates. These are the *additional* German compounds Danish
-    # doesn't share.
-    r"|naturschutzgebiet|landschaftsschutzgebiet|biosphärenreservat"
-    r"|wildschutzgebiet"
-    # Icelandic. Þjóðgarður = national park, often compounded
-    # ("Vatnajökulsþjóðgarður"). Friðland = nature reserve. Fólkvangur
-    # = recreation area / public commons. Náttúruverndarsvæði =
-    # nature-protection area. re.IGNORECASE folds Þ↔þ and Ð↔ð.
-    r"|þjóðgarður|friðland|fólkvangur|náttúruverndarsvæði)",
+    r"|sanctuaire|forêt)\b",
     re.IGNORECASE,
 )
 

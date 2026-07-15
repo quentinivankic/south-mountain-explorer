@@ -220,7 +220,11 @@ final class RecordingService {
                     // (their ids are canonical from birth), but this
                     // rebuild must never strip fields it doesn't know.
                     multiAreaCompletions: hike.multiAreaCompletions,
-                    multiAreaRevisited: hike.multiAreaRevisited
+                    multiAreaRevisited: hike.multiAreaRevisited,
+                    // Carry mode through: this rebuild preserves the walk
+                    // fields, so it must preserve walk-ness too (isWalk now
+                    // reads `mode`, not the presence of multiAreaCompletions).
+                    mode: hike.mode
                 ))
                 everComplete.formUnion(union)
             }
@@ -491,6 +495,60 @@ final class RecordingService {
         )
         revisited.append(contentsOf: pendingRevisits)
 
+        // --- Multi-area completion (trail + roam) ---
+        // Credit neighbor areas whose trails this hike's GPS path crossed,
+        // using the SAME per-area coverage merge as the primary area above.
+        // mergeCoverage writes each neighbor's coverage/completions to the
+        // live services immediately AND we record them in the dicts below so
+        // a cold-launch history replay re-derives them. Only areas actually
+        // covered end up credited; when none are crossed the dicts stay empty
+        // and this saves as a plain single-area record, byte-identical to
+        // before. Walk mode has its own multi-area path (stopWalk).
+        var multiCompleted: [String: [String]] = [:]
+        var multiRevisited: [String: [String]] = [:]
+        if rec.mode != .walk {
+            for (aid, ntrails) in await neighborAreasCrossed(by: rec.path, excluding: rec.areaId) {
+                // "Was it complete BEFORE this hike?" — snapshot before the
+                // per-area mergeCoverage mutates CoverageService.
+                let priorComplete = Set(
+                    CoverageService.shared.coverage(for: aid)
+                        .filter { $0.value >= completeThreshold }
+                        .map(\.key)
+                )
+                let nCombined = combinedPathForArea(aid, currentPath: rec.path)
+                let nSession = measureCoverage(path: nCombined, trails: ntrails, bufferMeters: bufferMeters)
+                let (nMergeNew, nMergeRev, _) = await mergeCoverage(
+                    areaId: aid, sessionCoverage: nSession, trails: ntrails, combinedPath: nCombined
+                )
+                var neighborNewly: [String] = []
+                var neighborRevisited: [String] = []
+                for tid in Set(nMergeNew + nMergeRev) {
+                    if priorComplete.contains(tid) { neighborRevisited.append(tid) }
+                    else { neighborNewly.append(tid) }
+                }
+                neighborRevisited.append(contentsOf: computeRevisits(
+                    areaId: aid, currentPath: rec.path, trails: ntrails,
+                    alreadyClassified: Set(neighborNewly).union(neighborRevisited)
+                ))
+                // Record the touch as a key even with no completions, so
+                // this neighbor lands in touchedAreaIds and a cold-launch /
+                // post-reset history replay re-derives its PARTIAL coverage
+                // (the cross-park accumulation this whole feature enables).
+                // neighborAreasCrossed already touch-gated, so every entry
+                // here genuinely had trail coverage from this hike.
+                multiCompleted[aid] = neighborNewly
+                if !neighborRevisited.isEmpty { multiRevisited[aid] = neighborRevisited }
+            }
+        }
+        let hasMultiArea = !multiCompleted.isEmpty || !multiRevisited.isEmpty
+        if hasMultiArea {
+            // Fold the primary area in so multi-area consumers read one
+            // uniform dict (completedTrailIds(in:) reads multiAreaCompletions
+            // when present, ignoring the flat arrays).
+            multiCompleted[rec.areaId] = newlyCompleted
+            multiRevisited[rec.areaId] = revisited
+        }
+
         let finished = FinishedRecording(
             areaId: rec.areaId,
             mode: rec.mode,
@@ -502,7 +560,9 @@ final class RecordingService {
             distanceMi: rec.distanceMi,
             newlyCompletedTrailIds: newlyCompleted,
             revisitedTrailIds: revisited,
-            coverageDelta: perHikeDelta
+            coverageDelta: perHikeDelta,
+            multiAreaCompletions: hasMultiArea ? multiCompleted : nil,
+            multiAreaRevisited: hasMultiArea ? multiRevisited : nil
         )
 
         saveToHistory(finished)
@@ -1437,6 +1497,70 @@ final class RecordingService {
 
     // MARK: - Local history persistence
 
+    /// Areas — other than `primary` — whose boundary bbox overlaps this
+    /// hike's GPS-path extent, i.e. the areas the path could have crossed,
+    /// each paired with its trails (dense `rawTrails` when available).
+    /// Loads from the in-memory cache first, else fetches. Bounded in
+    /// practice: a normal hike overlaps its own area plus 0–3 neighbors, so
+    /// this is a handful of lookups at stop time. Powers trail/roam
+    /// multi-area completion (walk mode gathers its areas at start instead).
+    private func neighborAreasCrossed(by path: [GpsPoint], excluding primary: String) async -> [(String, [Trail])] {
+        let pts = path.filter { $0.count >= 2 }
+        guard pts.count >= 2,
+              let minLat = pts.map({ $0[0] }).min(), let maxLat = pts.map({ $0[0] }).max(),
+              let minLon = pts.map({ $0[1] }).min(), let maxLon = pts.map({ $0[1] }).max()
+        else { return [] }
+        // AreaSummary carries only a CENTER (no bbox), so pre-filter cheaply
+        // by center proximity to the path extent (~7 mi margin), then load the
+        // full Area — which DOES have a bbox — and gate precisely on whether
+        // the path actually entered that bbox. A plain for/guard loop (not
+        // `.filter { … }`) avoids Swift 6 mis-picking Foundation's
+        // `Predicate`-based `filter` overload.
+        let margin = 0.1   // ~7 mi of latitude; centers within this are candidates
+        var out: [(String, [Trail])] = []
+        for s in AreaDataService.shared.summaries {
+            guard s.id != primary,
+                  s.centerLat >= minLat - margin, s.centerLat <= maxLat + margin,
+                  s.centerLon >= minLon - margin, s.centerLon <= maxLon + margin
+            else { continue }
+            let area: Area?
+            if let cached = AreaDataService.shared.cachedArea(id: s.id) {
+                area = cached
+            } else {
+                area = await AreaDataService.shared.area(id: s.id)
+            }
+            // Precise gate on the loaded area's real bbox: did the path
+            // physically enter this area's bounds?
+            guard let a = area, Self.pathEntersBBox(pts, areaBBox: a.bbox) else { continue }
+            let trails = a.rawTrails ?? a.trails
+            guard !trails.isEmpty else { continue }
+            // Touch-gate: only a neighbor whose trails THIS hike's path
+            // actually covers gets credited — otherwise a park merely
+            // near the route (or one the user visited on a past hike)
+            // would be re-credited on every unrelated stop.
+            let touched = measureCoverage(path: path, trails: trails, bufferMeters: bufferMeters)
+            guard touched.contains(where: { $0.value.fraction > 0 }) else { continue }
+            out.append((s.id, trails))
+        }
+        return out
+    }
+
+    /// Whether any point of `path` lies inside `areaBBox` (padded), i.e. the
+    /// hike physically entered the area's bounds. `areaBBox` is
+    /// `[minLon, minLat, maxLon, maxLat]`. Pure + `nonisolated` for tests.
+    nonisolated static func pathEntersBBox(_ path: [GpsPoint], areaBBox: [Double]?,
+                                           padDegrees: Double = 0.005) -> Bool {
+        guard let b = areaBBox, b.count == 4 else { return false }
+        let minLon = b[0] - padDegrees, minLat = b[1] - padDegrees
+        let maxLon = b[2] + padDegrees, maxLat = b[3] + padDegrees
+        for p in path where p.count >= 2 {
+            if p[0] >= minLat && p[0] <= maxLat && p[1] >= minLon && p[1] <= maxLon {
+                return true
+            }
+        }
+        return false
+    }
+
     private func saveToHistory(_ rec: FinishedRecording) {
         var history = loadHistorySync()
         let saved = SavedRecording(
@@ -1451,7 +1575,8 @@ final class RecordingService {
             trailId: rec.trailId,
             revisitedTrailIds: rec.revisitedTrailIds,
             multiAreaCompletions: rec.multiAreaCompletions,
-            multiAreaRevisited: rec.multiAreaRevisited
+            multiAreaRevisited: rec.multiAreaRevisited,
+            mode: rec.mode
         )
         history.insert(saved, at: 0)
         if let data = try? JSONEncoder().encode(history) {

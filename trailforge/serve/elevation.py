@@ -119,6 +119,14 @@ def difficulty_label(miles: float, gain_ft: float | None,
     long FLAT walk still reads Moderate/Hard. Fixes the backwards length-only
     behaviour (a flat 5 mi path was Hard; a 2 mi / 2,000 ft climb was Moderate).
 
+    STEEPNESS FLOOR: the NPS rating scales with `sqrt(distance)`, so it
+    under-rates a SHORT brutal climb — Acadia's Precipice (966 ft in 0.67 mi,
+    ~1,440 ft/mi) scored 36 and read "Easy" despite being an iron-rung ascent.
+    A per-mile grade (gain / miles) floors the label so sustained steepness
+    reads hard regardless of total length: >= 1,500 ft/mi (~28% grade) is Hard,
+    >= 1,000 ft/mi (~19%) is at least Moderate. It only ever RAISES the label
+    (a flat trail's grade is tiny), so long/flat behaviour is unchanged.
+
     Without `gain_ft` (no DEM): the legacy length-only fallback, so the pipeline
     still works when elevation wasn't sampled.
     """
@@ -132,9 +140,10 @@ def difficulty_label(miles: float, gain_ft: float | None,
             return "Moderate"
         return "Easy"
     rating = math.sqrt(2 * max(gain_ft, 0.0) * max(miles, 0.0))
-    if rating >= 80 or miles >= 10:
+    grade = max(gain_ft, 0.0) / max(miles, 0.05)   # ft per mile
+    if rating >= 80 or miles >= 10 or grade >= 1500:
         return "Hard"
-    if rating >= 45 or miles >= 5:
+    if rating >= 45 or miles >= 5 or grade >= 1000:
         return "Moderate"
     return "Easy"
 

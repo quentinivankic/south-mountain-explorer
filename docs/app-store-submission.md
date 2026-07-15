@@ -1,8 +1,17 @@
 # App Store Submission — TrekDex
 
 Paste-ready drafts for the App Store Connect listing + review. Everything
-here is editable copy, not code. Fill the ASC fields from this once org
-enrollment (DUNS) clears. Character limits noted are Apple's.
+here is editable copy, not code. Character limits noted are Apple's.
+
+> **Account decision (2026-07-15): ship v1 under the existing INDIVIDUAL
+> Apple Developer account.** No D-U-N-S / Organization enrollment is needed
+> to submit — the Individual account publishes fine. The one visible
+> tradeoff: the App Store **seller name is the developer's personal legal
+> name** (not an LLC). The Organization conversion is DEFERRED, to be pursued
+> later in parallel (confirm with Apple Support whether it's an in-place
+> membership conversion or a new-Org-account + App Transfer — App Transfer
+> has conditions). This removes the D-U-N-S wait (1–2 weeks) from the
+> critical path.
 
 > Status: analytics + feedback + crash capture (PostHog + MetricKit) and
 > the out-of-region **waitlist** all **shipped**, so the App Privacy
@@ -251,8 +260,12 @@ On you / Apple — remaining:
 - [x] Privacy policy hosted + reachable (trekdex.app/privacy-policy)
 - [ ] **Update privacy policy** to name PostHog + US region + collected types
 - [ ] **App Privacy nutrition label** entered in ASC (table above)
-- [ ] **Screenshots** captured (plan above) — often the long pole; can do pre-DUNS
+- [ ] **Screenshots** captured (plan above) — often the long pole; dispatch
+      the `ios-screenshots` workflow (#255 polish is merged) → upload the PNGs
 - [ ] Metadata pasted into ASC (name/subtitle/desc/keywords/category/URLs)
 - [ ] Reviewer notes pasted into ASC
 - [ ] Crash/stability sweep on device
-- [ ] **DUNS / org enrollment** — approved, ~24–48 h out (gates submission)
+- [x] ~~DUNS / org enrollment~~ — **N/A: shipping under the Individual account**
+      (see the account-decision note at the top). Org conversion deferred.
+- [ ] **Submission build** — dispatch `ios-testflight` for the candidate build
+      (after the Confidence Lab is re-gated to DEBUG), then submit that build in ASC

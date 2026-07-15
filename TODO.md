@@ -38,16 +38,17 @@ Snapshot of the active threads this session — see the PRs for detail.
     branch `claude/screenshot-polish-stats-shot3-shot5`** (the simulated-
     location coord lives in that branch's workflow), verify the blue dot +
     no empty month, then merge #255. Those PNGs are the App Store 6.9" set.
-- **App Store Connect / org enrollment.** Individual→Organization
-  membership conversion **submitted** (LLC + EIN + DUNS in hand; Apple
-  reviews within ~1 business day and may call the D&B-listed phone
-  number). Membership stays active meanwhile, so ASC listing prep can
-  proceed now.
-  - ⚠️ **Card expired** on the Apple account — update it (developer.apple.com
-    → Update card) or membership/apps can lapse.
-  - After approval: accept the **Paid Applications Agreement** + complete
-    tax/banking (EIN, business bank account, W-9) under ASC → Business,
-    if the app will be paid / have IAP.
+- **App Store Connect account.** **Decided 2026-07-15: ship v1 under the
+  existing INDIVIDUAL account** — no D-U-N-S / Org enrollment on the critical
+  path. (The earlier "Individual→Organization conversion submitted" note was
+  inaccurate — it was never started.) Org conversion is deferred to pursue
+  later in parallel.
+  - Tradeoff accepted: App Store **seller name = developer's personal legal
+    name** for v1.
+  - ⚠️ Make sure the **payment card on the Apple account is valid** (developer.apple.com
+    → Membership) so it doesn't lapse.
+  - If the app will be free with no IAP (current plan), the Paid Applications
+    Agreement + tax/banking are NOT needed. Revisit only if paid / IAP later.
 - **Stale branch cleanup.** ~182 old `claude/*` branches. Can't delete
   from the agent environment (the git proxy silently drops ref deletions
   and there's no delete-branch API tool). Prune locally — keep `main` +
@@ -187,11 +188,16 @@ TF builds.
   artifact. Latest polish is **PR #255** (in flight — see "In flight"):
   stats variation, shot-3 zoom + blue dot, shot-5 tiles. Once merged +
   re-dispatched, paste the PNGs + text into ASC.
-- [ ] **DUNS / organization enrollment** — Gates submission itself.
-  **Individual→Organization conversion submitted** (LLC + EIN + DUNS);
-  Apple review ~1 business day. See "In flight" for the post-approval
-  steps (Paid Applications Agreement + tax/banking) and the ⚠️ expired-
-  card warning.
+- [x] ~~DUNS / organization enrollment~~ — **N/A (decided 2026-07-15): ship
+  v1 under the existing INDIVIDUAL account.** No D-U-N-S / Org enrollment
+  needed to submit; the only tradeoff is the seller name being the
+  developer's personal legal name. Org conversion DEFERRED (not started —
+  the earlier "conversion submitted" note was inaccurate). This removes the
+  1–2 week D-U-N-S wait from the critical path. When pursued later, confirm
+  with Apple Support whether it's an in-place membership conversion or a new
+  Org account + App Transfer (App Transfer has conditions). ⚠️ Still worth
+  making sure the **payment card on the Apple account is valid** so the
+  membership doesn't lapse.
 
 > ⚠️ **Analytics + feedback now collect off-device** (PostHog, US
 > region — shipped #208–#212). The manifest already reflects this; make
@@ -365,12 +371,15 @@ repo:
   User Content, Email, Crash Data. Draft in `docs/app-store-submission.md`.
 - [ ] Update the trekdex.app **privacy policy** to name PostHog as the
   analytics processor + the **US** data region + the collected types.
-- [ ] Dispatch `ios-screenshots` against the **#255 branch** for the
-  final capture set (verifies shot-3 blue dot + no empty stats month),
-  then merge #255 and upload the PNGs to ASC.
+- [ ] Dispatch `ios-screenshots` (#255 already merged) for the final
+  capture set (verifies shot-3 blue dot + no empty stats month), then
+  upload the PNGs to ASC.
 - [ ] Crash/stability pass on device.
-- [ ] Finish the **Individual→Organization** conversion (submitted;
-  ~1 business day) + fix the ⚠️ expired card on the Apple account.
+- [ ] Verify the **payment card on the Apple account** is valid so the
+  Individual membership doesn't lapse. (Org conversion deferred — shipping
+  v1 under Individual, decided 2026-07-15.)
+- [ ] Dispatch **`ios-testflight`** for the submission-candidate build once
+  the Confidence Lab is re-gated to DEBUG, then submit that build in ASC.
 - [ ] Dispatch **Build Region Tiles** (`region=new-zealand`) — build-only
   first, then add `R2_*` secrets and re-run with `publish=true`.
 

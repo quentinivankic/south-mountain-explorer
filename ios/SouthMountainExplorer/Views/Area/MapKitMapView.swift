@@ -3,13 +3,15 @@ import MapKit
 import UIKit
 
 extension Color {
-    /// Gold for completed trails — the single source of truth shared by the
+    /// Cyan for completed trails — the single source of truth shared by the
     /// map's completed-trail stroke (bridged to UIColor) and the trail-list
-    /// completed thumbnail, so the two never drift. Distinct from difficulty
-    /// (green/orange/red), selection (blue), recording (purple), and the cyan
-    /// walked-here halo; the color alone marks "done" — same line width as the
-    /// other trails.
-    static let completedTrail = Color(red: 1.0, green: 0.75, blue: 0.0)
+    /// completed thumbnail, so the two never drift. This is the app's "done /
+    /// progress" language (the onboarding promises "trails you finish turn
+    /// cyan"); it also reads as cyan under the translucent walked-here halo.
+    /// Distinct from difficulty (green/orange/red), selection (blue), and
+    /// recording (purple); the color alone marks "done" — same line width as
+    /// the other trails.
+    static let completedTrail = Color.cyan
 }
 
 /// UIKit-backed map. Replaces SwiftUI's `Map { ... }` content tree
@@ -585,7 +587,7 @@ struct MapKitMapView: UIViewRepresentable {
             } else if isSelected {
                 baseColor = .systemBlue
             } else if isComplete {
-                // Completed trails are gold — the color marks "done"; the line
+                // Completed trails are cyan — the color marks "done"; the line
                 // width stays the same as every other trail (below).
                 baseColor = Self.completedTrail
             } else {
@@ -606,7 +608,7 @@ struct MapKitMapView: UIViewRepresentable {
             renderer.lineJoin = .round
         }
 
-        /// Gold stroke for completed trails, bridged from
+        /// Cyan stroke for completed trails, bridged from
         /// `Color.completedTrail` so the map and the trail-list thumbnail stay
         /// identical.
         static let completedTrail = UIColor(Color.completedTrail)

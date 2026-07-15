@@ -99,9 +99,12 @@ struct SettingsView: View {
 
     /// Trail Confidence Lab reveal (see the Build-row tap gesture). Session
     /// state — re-tap each launch; keeps the dev tool out of Release UI
-    /// unless deliberately summoned.
+    /// unless deliberately summoned. DEBUG-only: the authoring lab must not
+    /// ship in the App Store user build (spec §8).
+    #if DEBUG
     @State private var labTapCount = 0
     @State private var showTrailLab = false
+    #endif
 
     var body: some View {
         NavigationStack {
@@ -416,12 +419,11 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
-                    // Trail-confidence authoring lab (spec §4.3). A dev
-                    // tool, hidden behind a 7-tap gesture on the Build row
-                    // (below) so it's reachable in TestFlight without
-                    // cluttering normal testers' Settings. Re-gate with
-                    // `#if DEBUG` (or drop the reveal) before App Store —
-                    // §8 says the shipped user build carries no confidence UI.
+                    // Trail-confidence authoring lab (spec §4.3). A dev tool,
+                    // hidden behind a 7-tap gesture on the Build row (below).
+                    // DEBUG-only so it never ships in the App Store user build
+                    // (§8: the shipped user build carries no confidence UI).
+                    #if DEBUG
                     if showTrailLab {
                         NavigationLink {
                             TrailConfidenceLabView()
@@ -429,21 +431,23 @@ struct SettingsView: View {
                             Label("Trail Confidence Lab", systemImage: "slider.horizontal.3")
                         }
                     }
+                    #endif
                 }
 
                 Section("About") {
                     LabeledContent("Version", value: appVersion)
                     LabeledContent("Build", value: buildNumber)
-                        // Hidden reveal for the Trail Confidence Lab:
-                        // tap Build 7× to surface it in the Developer
-                        // section. Obscure enough that ordinary testers
-                        // won't trip it; no-op once revealed.
+                        // Hidden reveal for the Trail Confidence Lab: tap Build
+                        // 7× to surface it in the Developer section. DEBUG-only
+                        // — the reveal must not exist in the App Store build.
+                        #if DEBUG
                         .contentShape(Rectangle())
                         .onTapGesture {
                             guard !showTrailLab else { return }
                             labTapCount += 1
                             if labTapCount >= 7 { showTrailLab = true }
                         }
+                        #endif
                     if let url = privacyPolicyURL {
                         Link(destination: url) {
                             Label("Privacy Policy", systemImage: "hand.raised")

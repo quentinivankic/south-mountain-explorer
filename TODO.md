@@ -123,6 +123,26 @@ Snapshot of the active threads this session — see the PRs for detail.
   16,164 shipped geom files: **0** ship with ≥1 trail but <0.1 mi total. The
   whole-US republish (`236e2ff3`) ran with the `_MIN_AREA_MI=0.1` gate active
   and swept every ghost.
+- [x] **Grade-aware difficulty floor** (task **#39**) — DONE (#377). The NPS
+  rating `sqrt(2·gain·mi)` scales with distance, so it under-rated short brutal
+  climbs (Acadia's Precipice, 966 ft in 0.67 mi, shipped **Easy**). Added a
+  per-mile grade floor (≥1,500 ft/mi → Hard, ≥1,000 → Moderate; only ever
+  raises). `scripts/recompute-difficulty.py` re-labels from the baked `gainFt`
+  (no DEM re-sample): **1,377 trails relabelled (1.7%), all upward**. Found in a
+  data-quality audit; concentrated in Adirondack High Peaks / Alpine Lakes /
+  Acadia / Okanogan-Wenatchee.
+- [ ] **System-1 (cached_at) area hygiene** (task #38) — a QA audit found
+  **7,304 shipped geom files still carry `cached_at`** (System-1 legacy), for
+  areas trailforge never re-published (no boundary in the state extract —
+  cross-state parks like Allegheny NF, Absaroka-Beartooth). They hold ~3,200
+  trails the name filters would drop (bare forest-road numbers, ATV/snowmobile).
+  **NOT a live bug: the iOS bundle, global search, silhouettes, and shapes all
+  EXCLUDE `cached_at` areas** (bundle = exactly the 8,860 clean areas), so none
+  of this junk is user-visible — it's dead repo/R2 storage. `sweep-geom-names.py`
+  has an `--include-cached` capability drafted but NOT shipped (running it churns
+  ~3,600 invisible files for no app-facing gain). Real fix = get these cross-state
+  areas re-published by trailforge (a boundary/extract issue), or purge them as
+  superseded. Decide before spending churn.
 - [ ] **Reverse-profile / "descends first" signal** (task #32) — deferred; needs
   trailhead orientation.
 - [ ] **Nested/duplicate areas** (task #37) — a trail appears in both a park and

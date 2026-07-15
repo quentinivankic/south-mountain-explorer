@@ -55,6 +55,36 @@ Snapshot of the active threads this session — see the PRs for detail.
   Settings → General → **"Automatically delete head branches"** so future
   branches self-clean on merge.
 
+## Shipped 2026-07-15 (multi-area completion + CI workflows + cleanup) — see CLAUDE.md
+
+- **Multi-area completion for trail + roam hikes** (#372, + fetch-storm cap
+  #373). A trail/roam recording now credits every NEIGHBOR area whose trails its
+  GPS path actually crossed — the app half of "a cross-park trail lives in one
+  home area, credited from anywhere." Detect-at-stop; touch-gate + bbox-entry
+  gate + nearest-16 load cap (dense-metro guard). `SavedRecording` now persists
+  `mode` (`isWalk = mode == .walk`) via a never-throw decode so a multi-area
+  HIKE isn't mislabeled a walk. **Needs an on-device cross-park hike to verify.**
+- **Nationwide DEM elevation difficulty** — built `trailforge-elevation-us.yml`
+  (#368, 13-region fan-out, dry-run default), dry-ran + verified gains (Boundary
+  Peak 4,743 ft ✓), then real-ran: gain-based difficulty now ships for all 50 +
+  DC (was AZ-only). Still a post-process (fold-into-publish remains a follow-up).
+- **Red-flag audit, homelab-free** (#365 `trailforge-audit.yml`; task #27) —
+  runs `audit-easement-ownership.py` on CI. 121 flagged → 4 shipping → **removed
+  2** (Elk Forest MD hunting area, Newark Watershed NJ, #367); kept Mt Tam +
+  Sebago (legit public watershed, `red_flag` false positives).
+- **Widen `red_flag` water-operator whitelist** (#370, task #35) — MMWD +
+  Portland Water District; first regression tests (`scripts/test_red_flag.py`).
+- **Auto-dispatch R2 sync** (#369, task #29) — publish-us + elevation workflows
+  now dispatch `sync-geom-to-r2` (GITHUB_TOKEN pushes can't trigger downstream).
+- **Removed dead System-2 `build-region-tiles.yml`** (#366) — pmtiles pipeline
+  fully superseded by trailforge; nothing consumes it (kept `data-pipeline/`).
+- **Purged 1,672 orphaned System-1 geom/silhouette files** (#371, task #24 repo
+  side) — stale `cached_at` files not in any index row; stops the R2 re-upload
+  loop. R2-side sweep still pending (task #36).
+- **Map centers on the selected trail** (#364) — open from a search result →
+  frame that trail; tap empty map to deselect → back to whole-area (browsing
+  only, not while recording/following).
+
 ## Shipped 2026-07-13/14 (curation + difficulty + search) — see CLAUDE.md
 
 - **Otter Creek / null-decode root-cause fix** (#357 cache-bypass, #358
@@ -71,28 +101,28 @@ Snapshot of the active threads this session — see the PRs for detail.
   thumbnails** (#363, `trail-shapes.json`).
 - **Trail-mesh backdrop fix** (#359).
 
-### Open follow-ups from this session
-- [ ] **Roll DEM difficulty to the other 49 states.** One command each on the
-  homelab: `add-elevation.py --state XX` → `silhouettes-from-geom.py` → commit
-  → push (sync auto-fires on a real-token push).
+### Open follow-ups (updated 2026-07-15)
+- [x] **Roll DEM difficulty to the other 49 states** — DONE via the new
+  `trailforge-elevation-us.yml` (#368); real gain-based difficulty ships for all
+  50 + DC.
 - [ ] **Fold DEM sampling into the publish pipeline** so gain survives a
   republish (it's a post-process now — a re-publish reverts to length-only).
-- [ ] **Audit stale red-flagged AREAS across all states** (task #27):
-  `audit-easement-ownership.py --all` — `--merge` never purged pre-red-flag-era
-  bad areas.
-- [ ] **`trailforge-publish-us.yml` doesn't auto-dispatch the R2 sync** (task
-  #29) — its merge job commits via `GITHUB_TOKEN`, which can't trigger
-  downstream, so the sync must be dispatched by hand after a whole-US publish.
-  Add a dispatch step mirroring the batch workflow. (Homelab `git push` DOES
-  auto-fire the sync — real-token push.)
-- [ ] **Reverse-profile / "descends first" signal** (task #32) — a signed
-  net-elevation / warning for canyon hikes (descend-in, climb-out). Separate
-  from difficulty (which correctly stays direction-invariant); needs trailhead
-  orientation.
-- [ ] **Rail-line name curation** (task #30 remainder) — bare trolley/traction/
-  `Old Railroad Grade` names: deferred to the viewer bucket, NOT auto-dropped
-  (many are real hiked rail beds; auto-drop would de-list real parks like
-  Cayuga Lake State Park).
+- [x] **Audit stale red-flagged AREAS** (task #27) — DONE. `trailforge-audit.yml`
+  (#365) ran; 121 flagged, 4 still shipping, **removed 2** (#367).
+- [x] **`trailforge-publish-us.yml` R2 auto-dispatch** (task #29) — DONE (#369);
+  publish-us + elevation now `gh workflow run sync-geom-to-r2`.
+- [x] **Rail-line name curation** (task #30) — RESOLVED: `fourwheeler` shipped;
+  trolley/traction/railway names are real rail-trail footpaths → won't filter.
+- [ ] **Finish #24 R2-side** — the repo purge landed (#371, 1,672 orphans);
+  the R2 objects still linger because `cleanup-r2-orphans` is Europe-only.
+  Generalize it to sweep NA orphans (task **#36**, in progress).
+- [ ] **Reverse-profile / "descends first" signal** (task #32) — deferred; needs
+  trailhead orientation.
+- [ ] **Nested/duplicate areas** (task #37) — a trail appears in both a park and
+  its nested wilderness. Investigated a dedup; **deferred, keep both for now**
+  (cosmetic since #372 made them completable). Real fix belongs in the pipeline.
+- [ ] **Verify + close degenerate-clip sweep** (task #31) — the whole-US republish
+  appears to have swept them (0 shipping areas <0.1 mi in the last scan).
 
 ## App Store release gate
 

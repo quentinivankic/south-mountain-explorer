@@ -326,12 +326,13 @@ TF builds.
   whitelist is still open (some 1-2 trail fragments dilute Browse), but
   data showed the floor must be low: dropping <0.15mi trails would empty
   6 areas + gut 30%+ of trails in 31 more, so tread carefully.
-- [ ] **R2 NA orphan purge.** Bucket has ~17,000 objects; index
-  references 3,226. So ~14k unreferenced NA geom/silhouette files
-  (areas the count/dedup filters dropped before they reached the
-  index). Storage bloat — the `cleanup-r2-orphans` script can be
-  rescoped from "European only" to "anything not in the bundled
-  index" for a one-shot purge, with the same dry-run / apply safety.
+- [x] **R2 NA orphan purge.** DONE 2026-07-15 (#375, task #36).
+  `cleanup-r2-orphans.py` generalized off the Europe-only allowlist to
+  "anything not in the current index," with safety belts (≥1000-id
+  floor, protected root files, >60%-orphan abort). Dry-run flagged 1,683
+  orphans (6.1%: dropped red-flag areas, slug renames, below-quality CA
+  areas); apply run deleted all 1,683. The 375 curated CA areas the app
+  ships were untouched.
 - [ ] **iOS 18 Liquid Glass visual QA.** Build was dropped to iOS 18
   with `.regularMaterial` as the glass fallback (PR #165) but never
   eyeballed on an actual iOS 18 device/simulator. Pure QA, no code.

@@ -134,10 +134,14 @@ Still NOT collected (leave undeclared):
 - **Sign in with Apple:** the user id is stored in the device Keychain
   only; not sent anywhere.
 
-Also update the **privacy policy** at trekdex.app: name PostHog as the
-analytics processor, the **US** data region, what's collected (usage
-events, feedback + optional email), and why. This is required now that
-data leaves the device.
+The **privacy policy** + **Terms of Service** to publish at trekdex.app are
+now drafted in-repo as the canonical source: `docs/privacy-policy.md` and
+`docs/terms-of-service.md`. They correct two inaccuracies in the June 30
+live versions — the old "no analytics / collect nothing" language (the app
+now uses PostHog analytics + MetricKit crash counts + feedback/waitlist
+email, US region) and the described iCloud/CloudKit cross-device sync (not
+built). Publish those files to trekdex.app, then confirm the ASC Privacy
+Policy URL still points to them.
 
 ---
 

@@ -113,16 +113,21 @@ Snapshot of the active threads this session — see the PRs for detail.
   publish-us + elevation now `gh workflow run sync-geom-to-r2`.
 - [x] **Rail-line name curation** (task #30) — RESOLVED: `fourwheeler` shipped;
   trolley/traction/railway names are real rail-trail footpaths → won't filter.
-- [ ] **Finish #24 R2-side** — the repo purge landed (#371, 1,672 orphans);
-  the R2 objects still linger because `cleanup-r2-orphans` is Europe-only.
-  Generalize it to sweep NA orphans (task **#36**, in progress).
+- [x] **Finish #24 R2-side** (task **#36**) — DONE (#375). Generalized
+  `cleanup-r2-orphans.py` off the Europe-only allowlist: deletes any R2
+  geom/silhouette whose slug isn't in the current `index.json`, with safety
+  belts (≥1000-id index floor, protected root files, >60% orphan-fraction
+  abort). Repo purge was #371. **Next: dispatch the workflow (dry-run → apply)
+  to actually purge R2.**
+- [x] **Verify + close degenerate-clip sweep** (task #31) — DONE. Scanned all
+  16,164 shipped geom files: **0** ship with ≥1 trail but <0.1 mi total. The
+  whole-US republish (`236e2ff3`) ran with the `_MIN_AREA_MI=0.1` gate active
+  and swept every ghost.
 - [ ] **Reverse-profile / "descends first" signal** (task #32) — deferred; needs
   trailhead orientation.
 - [ ] **Nested/duplicate areas** (task #37) — a trail appears in both a park and
   its nested wilderness. Investigated a dedup; **deferred, keep both for now**
   (cosmetic since #372 made them completable). Real fix belongs in the pipeline.
-- [ ] **Verify + close degenerate-clip sweep** (task #31) — the whole-US republish
-  appears to have swept them (0 shipping areas <0.1 mi in the last scan).
 
 ## App Store release gate
 

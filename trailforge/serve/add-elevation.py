@@ -13,9 +13,13 @@ state to eyeball the numbers against AllTrails before going nationwide.
     python3 trailforge/serve/add-elevation.py --state az --dry-run --top 15
     python3 trailforge/serve/add-elevation.py                   # every published area
 
-Then commit the changed geom + run sync-geom-to-r2. (Durable pipeline
-integration — sampling inside publish — is the follow-up; this post-process
-ships the improvement now without a full re-assembly.)
+Then commit the changed geom + run sync-geom-to-r2.
+
+NOTE: publishing now samples elevation INLINE — run any publish workflow with
+`--elevation` (the default) and gain + gain-aware difficulty are baked in as
+part of the publish, so they survive a republish. This standalone pass stays
+useful for re-sampling already-published geom without re-assembling (e.g. after
+a difficulty-formula change), and shares the same `elevation.process_area`.
 """
 from __future__ import annotations
 
@@ -31,32 +35,9 @@ import elevation  # noqa: E402
 
 _GEOM = os.path.join(_HERE, "..", "..", "public", "areas", "geom")
 
-
-def process_area(geom: dict, sampler) -> tuple[int, dict]:
-    """Mutate `geom` in place: set gainFt + difficulty per trail and a per-area
-    total_gain_ft. Returns (trails_updated, difficulty_delta) where the delta
-    counts label changes old->new for the run summary. Testable with any
-    object exposing `.elevation(lat, lon)`."""
-    changed = 0
-    delta: dict[str, int] = {}
-    total_gain = 0.0
-    for t in geom.get("trails", []):
-        miles = t.get("distanceMi", 0.0)
-        try:
-            g = elevation.trail_gain_ft(t.get("segments", []), sampler)
-        except Exception as e:                      # a bad/missing tile: skip trail
-            print(f"    ! gain failed for {t.get('id')}: {e}", file=sys.stderr)
-            continue
-        old = t.get("difficulty")
-        new = elevation.difficulty_label(miles, g)
-        t["gainFt"] = int(g)
-        t["difficulty"] = new
-        total_gain += g
-        changed += 1
-        if old != new:
-            delta[f"{old}->{new}"] = delta.get(f"{old}->{new}", 0) + 1
-    geom["total_gain_ft"] = int(total_gain)
-    return changed, delta
+# process_area now lives in elevation.py so publish_areas.py can call the same
+# code inline (gain survives a republish). Re-exported here for back-compat.
+process_area = elevation.process_area
 
 
 def main(argv=None) -> int:

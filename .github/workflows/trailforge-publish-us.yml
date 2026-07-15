@@ -19,6 +19,10 @@ on:
         description: "Preview only — per-region summaries, write/commit nothing"
         type: boolean
         default: true
+      elevation:
+        description: "Bake DEM elevation gain + gain-aware difficulty into the geom while publishing (durable across republishes). Uncheck only to skip sampling."
+        type: boolean
+        default: true
       no_routes:
         description: "Drop thru-routes (Colorado Trail, PCT) from the checklist"
         type: boolean
@@ -58,8 +62,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install osmium + pyosmium + shapely
-        run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely
+      - name: Install osmium + pyosmium + shapely + Pillow
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely python3-pil
 
       - name: Publish region "${{ matrix.id }}" into an artifact dir
         run: |
@@ -70,6 +74,7 @@ jobs:
 
           DRY=""; [ "${{ inputs.dry_run }}" = "true" ]  && DRY="--dry-run"
           NOROUTES=""; [ "${{ inputs.no_routes }}" = "true" ] && NOROUTES="--no-routes"
+          ELEV=""; [ "${{ inputs.elevation }}" = "true" ] && ELEV="--elevation"
 
           ok=""; failed=""; skipped=""
           IFS=',' read -ra SLUGS <<< "${{ matrix.states }}"
@@ -100,7 +105,7 @@ jobs:
             if ! python3 serve/publish_areas.py \
                  --trails data/aoi/state.trails.geojson --hiking data/hiking.osm.pbf \
                  --state "$NAME" --index ../public/areas/index.json \
-                 --out-dir "$OUT" $DRY $NOROUTES; then
+                 --out-dir "$OUT" $DRY $NOROUTES $ELEV; then
               echo "!! publish failed for $slug"; failed="$failed $slug"; continue
             fi
             ok="$ok $slug"

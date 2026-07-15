@@ -137,6 +137,15 @@ struct TrailMapView: View {
     @State private var cameraTarget: MapTarget
     @State private var cameraTick: Int = 0
 
+    /// One-shot guard for the area-overview re-frame. `bottomInset` (the
+    /// trail-list sheet's height) often arrives as 0 on the first render and
+    /// only settles a frame later; the initial `centerOnArea()` in `onAppear`
+    /// then fit the park to the FULL screen, so once the sheet covered the
+    /// bottom the park read as zoomed-out (the "not centered on the park"
+    /// screenshot). When the inset settles we re-fit ONCE — but never again,
+    /// so a later user sheet-drag doesn't yank a map they've since panned.
+    @State private var pendingInsetReframe = true
+
     init(
         area: Area,
         activeRecording: ActiveRecording?,
@@ -311,6 +320,19 @@ struct TrailMapView: View {
                 return
             }
             centerOn(trail: trail)
+        }
+        .onChange(of: bottomInset) { _, _ in
+            // The sheet reported its real height after the initial frame —
+            // re-fit the park to the correct inset ONCE, so the whole-area
+            // overview isn't left zoomed-out (fit for a full screen the sheet
+            // then half-covers). Only when idle-browsing (not recording, no
+            // active follow, nothing selected — those framings are intentional
+            // and must not be yanked to the area overview).
+            guard pendingInsetReframe else { return }
+            pendingInsetReframe = false
+            if activeRecording == nil && trackingMode == .free && selectedTrailId == nil {
+                centerOnArea()
+            }
         }
         .onChange(of: centerOnSwitchedTrailTick) { _, _ in
             // Fired by AreaView when Switch is tapped on the retarget

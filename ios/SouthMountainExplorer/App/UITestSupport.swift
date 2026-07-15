@@ -26,6 +26,17 @@ enum UITestSupport {
     static var isSeedRequested: Bool { args.contains("--uitest-seed") }
     static var isRecordingRequested: Bool { args.contains("--uitest-recording") }
 
+    /// `--uitest-completed <n>`: seed EXACTLY n completed trails (the first n
+    /// of `allTrailIds`) instead of deriving completions from the demo hikes.
+    /// Lets each screenshot tell its own story — the map shot stays a modest
+    /// ~10 (no arg, hike-derived), while the Dex + Stats shots pass 70 to look
+    /// accomplished. Ignored in recording mode (that shot sets its own count).
+    static var uitestCompletedCount: Int? {
+        guard let i = args.firstIndex(of: "--uitest-completed"),
+              i + 1 < args.count else { return nil }
+        return Int(args[i + 1])
+    }
+
     /// Called once from `SouthMountainExplorerApp.init()`. No-op unless
     /// `--uitest-seed` is present, so normal Debug launches are untouched.
     /// `@MainActor` because it re-hydrates the main-actor-isolated
@@ -72,18 +83,28 @@ enum UITestSupport {
         }
 
         // Completions = exactly the trails the seeded hikes completed
-        // (12 of 48 ≈ 25%), stamped with the completing hike's end date
-        // so the Dex earn dates line up with the history. A quarter done
-        // is the sweet spot for the map shot: a satisfying cyan subset
-        // against plenty of not-yet-hiked green/orange/red trails —
-        // including uncompleted moderates and hards for color variety —
-        // instead of a wall of cyan. The "Completionist" crown stays a
-        // believable locked badge either way.
+        // (~10 of 77), stamped with the completing hike's end date so the
+        // Dex earn dates line up with the history. A modest fraction is the
+        // sweet spot for the MAP shot: a satisfying cyan subset against
+        // plenty of not-yet-hiked green/orange/red trails, instead of a wall
+        // of cyan. `--uitest-completed N` (below) overrides this for the
+        // Dex/Stats shots, which want to look nearly finished.
         let iso = ISO8601DateFormatter()
         var completions: [String: String] = [:]
         for hike in hikes.sorted(by: { $0.startedAt < $1.startedAt }) {
             for tid in hike.completedTrailIds where completions[tid] == nil {
                 completions[tid] = iso.string(from: hike.endedAt)
+            }
+        }
+        // `--uitest-completed N`: override to exactly the first N real trail
+        // IDs, stamped with descending dates, so the Dex + Stats shots read
+        // "N of 77" (accomplished) while the default (no arg) stays the modest
+        // hike-derived subset for the map shot.
+        if let n = uitestCompletedCount {
+            completions = [:]
+            for (i, tid) in allTrailIds.prefix(n).enumerated() {
+                let date = Date().addingTimeInterval(-Double(5 + i * 3) * 86_400)
+                completions[tid] = iso.string(from: date)
             }
         }
         // The RECORDING shot tells the opposite story from the map shot:
@@ -402,20 +423,32 @@ enum UITestSupport {
     /// The full 48-trail roster (from the area's R2 geom). Used only by
     /// the recording-mode completion override, which marks everything
     /// complete except the five hand-picked remaining trails.
+    /// The area's REAL 77 trail IDs (from the published geom). Used to seed
+    /// completions by count for the screenshots — so "N of 77 completed" reads
+    /// exactly, and stale IDs can't be silently filtered out of the count.
+    /// (Ordered as the geom lists them — the most iconic trails come first, so
+    /// a partial "first N" completion still highlights recognizable trails.)
     private static let allTrailIds: [String] = [
-        "alta", "bajada-trail", "beacon-hill-trail", "beverly-pima-connector-trail",
-        "bursera-canyon", "bursera-trail", "cholla-flats-loop", "corona-de-loma-trail",
-        "crosscut-trail", "dc-ray-connector", "desert-classic", "desert-classic-trail",
-        "devestator-trail", "gila-trail", "guadalupe-perimeter", "guadalupe-perimeter-trail",
-        "hau-pal-loop-trail", "holbert-trail", "javelina-canyon-trail", "kiwanis-trail",
-        "las-lomitas-trail", "lost-ranch-trail", "lower-corona-de-loma-trail",
-        "ma-ha-tuak-perimeter-trail", "marcos-de-niza-trail", "max-delta-trail",
-        "midlife-crisis", "mormon-trail", "national-trail", "old-man-trail",
-        "pima-canyon-loop", "pima-canyon-loop-trail", "pima-wash-trail", "prospector-loop",
-        "ranger-trail", "ridgeline-trail", "shaughnessey-connector", "sidewinder",
-        "telegraph-pass-trail", "thash-kavid-north-trail", "thash-kavid-south-trail",
-        "thondum-wihom-trail", "unnamed-1474825928", "unnamed-494466239",
-        "unnamed-977459640", "upper-gila-trail", "west-alta", "young-man-trail",
+        "national-trail", "desert-classic-trail", "ma-ha-tuak-perimeter-trail", "alta-trail",
+        "guadalupe-perimeter", "bajada-trail", "bursera-trail", "pima-canyon-loop-trail",
+        "holbert-trail", "gila-trail", "javelina-canyon-trail", "las-lomitas-trail",
+        "hau-pal-loop-trail", "cholla-flats-loop", "thondum-wihom-trail", "upper-gila-trail",
+        "prospector-loop", "ranger-trail", "beverly-canyon-trail", "max-delta-trail",
+        "lost-ranch-trail", "corona-de-loma-trail", "ridgeline-trail", "pima-west-loop-trail",
+        "old-man-trail", "pima-wash-trail", "mormon-trail", "ma-ha-tuak-trail",
+        "marcos-de-niza-trail", "mormon-loop-trail", "bursera-canyon", "pima-east-loop",
+        "beverly-pima-connector-trail", "lower-corona-de-loma-trail", "telegraph-pass-trail", "midlife-crisis",
+        "crosscut-trail", "kiwanis-trail", "beacon-hill-trail", "young-man-trail",
+        "sidewinder", "thash-kavid-south-trail", "dc-ray-connector", "devestator-trail",
+        "pyramid-trail", "thash-kavid-north-trail", "shaughnessey-connector", "west-alta",
+        "judith-tunnell-accessible-trail", "judith-tunnell-challenge-trail", "hidden-valley-trail", "t-bone-trail",
+        "corona-to-dc-connector", "gila-lookout-connector", "telegraph-pass-trailhead-paved", "alta-to-hau-pal-connector",
+        "alta-bajada-connector", "ma-ha-tuak-connector", "ridgeline-connector", "hidden-valley-connector-trail",
+        "dobbins-lookout-connector", "lost-ranch-to-cholla", "pcl-to-beacon", "degoba-loop",
+        "32nd-st-connector", "javelina-to-national-connector", "corona-to-dc-connector-2-x", "de-las-lomas-access-trail",
+        "javelina-to-ridgeline", "prospector-to-national", "bursera-to-gila", "kachina-access-trail",
+        "degoba-alt", "35th-ave-access-trail", "thash-kavid-trail", "gpt-to-dc-connector",
+        "helipad",
     ]
 
     /// Real sampled `[lat, lon]` vertices (coordinate order is `[lat,

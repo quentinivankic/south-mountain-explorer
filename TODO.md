@@ -208,12 +208,13 @@ TF builds.
 
 ### Strongly advised (rejection-likely or bad first impression)
 
-- [ ] **Re-gate the Trail Confidence Lab before App Store.** It now ships
-  in Release (reachable in TestFlight) hidden behind a 7-tap gesture on
-  Settings → About → Build, so the dev authoring tool can be tuned
-  on-device. §8 says the shipped USER build carries no confidence UI —
-  wrap `TrailConfidenceLabView` + its Settings link back in `#if DEBUG`
-  (or drop the reveal) before submitting. Code comments flag both sites.
+- [x] **Re-gate the Trail Confidence Lab before App Store.** DONE. Wrapped
+  `TrailConfidenceLabView.swift` (whole file) + its Settings entry point
+  (the `showTrailLab`/`labTapCount` state, the NavigationLink, and the 7-tap
+  Build-row reveal) in `#if DEBUG`, so the dev authoring tool compiles out of
+  the Release/App Store binary entirely (§8). The `TrailScoring` service +
+  tests are untouched. Verified nothing in Release references the gated
+  symbols.
 - [x] **"Always" location audit** — Done in #202. The app never
   actually needed Always (no geofencing / significant-change relaunch;
   `requestAlwaysAuthorization` was defined-but-unused). Dropped the

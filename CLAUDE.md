@@ -361,8 +361,13 @@ viewer eyeball (rescue washed-out-roads-still-hiked like `Dosewallips River
 Road`) — plus ditches / stock-driveways per the research decision table;
 (2) elevation-based difficulty from a global DEM (Copernicus GLO-30 / AWS
 terrarium tiles) — see `trailforge/SPEC.md §6e`. Current difficulty is a
-weak length bucket. (3) decide whether to whitelist `Powerline-Gypsum` (5.1mi,
-White River NF — dropped by the utility filter, may be a real MTB connector).
+weak length bucket. (3) ~~decide whether to whitelist `Powerline-Gypsum`~~ RESOLVED 2026-07-15:
+KEEP THE DROP. White River NF (CO) has 834 trails and NO "Gypsum" trail, so
+it's not a two-trail connector; "Gypsum" is the adjacent CO town, so the name
+reads "powerline corridor near Gypsum" — a bare ROW, correctly dropped. Real
+powerline TRAILS (198 shipping) are already spared by `_TRAIL_WORD` (incl.
+"connector"); loosening the rule for one ambiguous name would risk them. Test
+already asserts the drop.
 (4) **Flywheel + cadence** (tasks #19/#20): make `trail_reported` OSM-actionable
 (carry a way id → 1-click OSM edit) + a triage script; and a scheduled
 `trailforge-refresh.yml` that re-imports states on rotation and posts a diff

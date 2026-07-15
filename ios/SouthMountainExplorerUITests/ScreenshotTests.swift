@@ -65,7 +65,12 @@ final class ScreenshotTests: XCTestCase {
         // reliably land as authorized, which popped the system location
         // dialog on top of the shot. The whole-park overview is reliable.
         if openAreaFromStats(app) {
-            settle(8)   // let MapKit tiles + R2 polylines render
+            // Standard-map basemap tiles can take a while on a cold CI
+            // simulator — an 8 s dwell loaded them in some runs but left a
+            // bare gray grid in others. 18 s makes the basemap reliable (the
+            // one-shot inset re-frame has settled the park framing well before
+            // this).
+            settle(18)
             capture(app, "01-completion-map")
         } else {
             settle(5)

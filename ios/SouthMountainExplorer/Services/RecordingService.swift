@@ -1497,32 +1497,47 @@ final class RecordingService {
 
     // MARK: - Local history persistence
 
-    /// Areas — other than `primary` — whose boundary bbox overlaps this
-    /// hike's GPS-path extent, i.e. the areas the path could have crossed,
-    /// each paired with its trails (dense `rawTrails` when available).
-    /// Loads from the in-memory cache first, else fetches. Bounded in
-    /// practice: a normal hike overlaps its own area plus 0–3 neighbors, so
-    /// this is a handful of lookups at stop time. Powers trail/roam
-    /// multi-area completion (walk mode gathers its areas at start instead).
+    /// Areas — other than `primary` — that this hike's GPS path actually
+    /// crossed and covered a trail in, each paired with its trails (dense
+    /// `rawTrails` when available). Powers trail/roam multi-area completion
+    /// (walk mode gathers its areas at start instead).
+    ///
+    /// Three gates, cheapest first, so a dense metro can't trigger a fetch
+    /// storm at stop: (1) `AreaSummary` carries only a CENTER, so pre-filter
+    /// by center proximity to the path extent; (2) sort by nearest center and
+    /// take at most `maxLoads`, then LOAD only those (cache first, else fetch)
+    /// and gate on whether the path entered the loaded area's real bbox;
+    /// (3) touch-gate on actual trail coverage. A plain loop (not
+    /// `.filter { … }`) avoids Swift 6 mis-picking Foundation's `Predicate`
+    /// `filter` overload.
     private func neighborAreasCrossed(by path: [GpsPoint], excluding primary: String) async -> [(String, [Trail])] {
         let pts = path.filter { $0.count >= 2 }
         guard pts.count >= 2,
               let minLat = pts.map({ $0[0] }).min(), let maxLat = pts.map({ $0[0] }).max(),
               let minLon = pts.map({ $0[1] }).min(), let maxLon = pts.map({ $0[1] }).max()
         else { return [] }
-        // AreaSummary carries only a CENTER (no bbox), so pre-filter cheaply
-        // by center proximity to the path extent (~7 mi margin), then load the
-        // full Area — which DOES have a bbox — and gate precisely on whether
-        // the path actually entered that bbox. A plain for/guard loop (not
-        // `.filter { … }`) avoids Swift 6 mis-picking Foundation's
-        // `Predicate`-based `filter` overload.
-        let margin = 0.1   // ~7 mi of latitude; centers within this are candidates
-        var out: [(String, [Trail])] = []
+        let margin = 0.1     // ~7 mi of latitude; centers within this are candidates
+        let maxLoads = 16    // hard cap on area loads per stop (fetch-storm guard)
+        let cLat = (minLat + maxLat) / 2, cLon = (minLon + maxLon) / 2
+
+        var candidates: [AreaSummary] = []
         for s in AreaDataService.shared.summaries {
             guard s.id != primary,
                   s.centerLat >= minLat - margin, s.centerLat <= maxLat + margin,
                   s.centerLon >= minLon - margin, s.centerLon <= maxLon + margin
             else { continue }
+            candidates.append(s)
+        }
+        // Nearest-first so, under the cap, we load the parks most likely
+        // actually crossed (squared distance — no sqrt needed for ordering).
+        candidates.sort { a, b in
+            let da = (a.centerLat - cLat) * (a.centerLat - cLat) + (a.centerLon - cLon) * (a.centerLon - cLon)
+            let db = (b.centerLat - cLat) * (b.centerLat - cLat) + (b.centerLon - cLon) * (b.centerLon - cLon)
+            return da < db
+        }
+
+        var out: [(String, [Trail])] = []
+        for s in candidates.prefix(maxLoads) {
             let area: Area?
             if let cached = AreaDataService.shared.cachedArea(id: s.id) {
                 area = cached
@@ -1535,9 +1550,9 @@ final class RecordingService {
             let trails = a.rawTrails ?? a.trails
             guard !trails.isEmpty else { continue }
             // Touch-gate: only a neighbor whose trails THIS hike's path
-            // actually covers gets credited — otherwise a park merely
-            // near the route (or one the user visited on a past hike)
-            // would be re-credited on every unrelated stop.
+            // actually covers gets credited — otherwise a park merely near
+            // the route (or one visited on a past hike) would be re-credited
+            // on every unrelated stop.
             let touched = measureCoverage(path: path, trails: trails, bufferMeters: bufferMeters)
             guard touched.contains(where: { $0.value.fraction > 0 }) else { continue }
             out.append((s.id, trails))

@@ -26,11 +26,12 @@ enum UITestSupport {
     static var isSeedRequested: Bool { args.contains("--uitest-seed") }
     static var isRecordingRequested: Bool { args.contains("--uitest-recording") }
 
-    /// `--uitest-completed <n>`: seed EXACTLY n completed trails (the first n
-    /// of `allTrailIds`) instead of deriving completions from the demo hikes.
-    /// Lets each screenshot tell its own story — the map shot stays a modest
-    /// ~10 (no arg, hike-derived), while the Dex + Stats shots pass 70 to look
-    /// accomplished. Ignored in recording mode (that shot sets its own count).
+    /// `--uitest-completed <n>`: seed n completed trails (the first n real IDs
+    /// that aren't in `showcaseIncomplete`) instead of deriving completions
+    /// from the demo hikes. Lets each screenshot tell its own story — the map
+    /// shot stays a modest ~10 (no arg, hike-derived), while the Dex + Stats
+    /// shots pass 70 to look accomplished, leaving the seven difficulty-varied
+    /// showcase trails incomplete. Ignored in recording mode (its own override).
     static var uitestCompletedCount: Int? {
         guard let i = args.firstIndex(of: "--uitest-completed"),
               i + 1 < args.count else { return nil }
@@ -96,34 +97,29 @@ enum UITestSupport {
                 completions[tid] = iso.string(from: hike.endedAt)
             }
         }
-        // `--uitest-completed N`: override to exactly the first N real trail
-        // IDs, stamped with descending dates, so the Dex + Stats shots read
-        // "N of 77" (accomplished) while the default (no arg) stays the modest
-        // hike-derived subset for the map shot.
+        // `--uitest-completed N`: override to N completed trails, drawn from the
+        // real IDs but ALWAYS leaving `showcaseIncomplete` uncompleted, so the
+        // Dex + Stats shots read "N of 77" (accomplished) with a difficulty-
+        // varied sprinkle of incomplete trails rather than the obscure tail of
+        // the list. The default (no arg) stays the modest hike-derived subset
+        // for the map shot.
         if let n = uitestCompletedCount {
             completions = [:]
-            for (i, tid) in allTrailIds.prefix(n).enumerated() {
+            let pool = allTrailIds.filter { !showcaseIncomplete.contains($0) }
+            for (i, tid) in pool.prefix(n).enumerated() {
                 let date = Date().addingTimeInterval(-Double(5 + i * 3) * 86_400)
                 completions[tid] = iso.string(from: date)
             }
         }
-        // The RECORDING shot tells the opposite story from the map shot:
-        // the area is nearly finished (43 of 48) and the live hike is on
-        // Bajada Trail — one of the last five. The remaining trails are
-        // picked for color variety on the map: Bajada (red, in
-        // progress), two moderates (orange), two easies (green). All of
-        // the history-completed trails are inside the 43, so the
-        // launch-time rebuild from history can't disturb the count.
+        // The RECORDING shot: the area is nearly finished (70 of 77) with the
+        // live hike on Bajada Trail — one of the `showcaseIncomplete` seven.
+        // Same difficulty-varied, west→east-spread incomplete set as the Dex /
+        // Stats shots, so the completion state is consistent across shots.
+        // None of the seven are history-completed, so the launch-time rebuild
+        // can't flip them.
         if isRecordingRequested {
-            let remaining: Set<String> = [
-                "bajada-trail",        // hard — the one being hiked live
-                "gila-trail",          // moderate
-                "cholla-flats-loop",   // moderate
-                "beacon-hill-trail",   // easy
-                "young-man-trail",     // easy
-            ]
             completions = [:]
-            for (i, tid) in allTrailIds.filter({ !remaining.contains($0) }).enumerated() {
+            for (i, tid) in allTrailIds.filter({ !showcaseIncomplete.contains($0) }).enumerated() {
                 let date = Date().addingTimeInterval(-Double(10 + i * 8) * 86_400)
                 completions[tid] = iso.string(from: date)
             }
@@ -243,9 +239,9 @@ enum UITestSupport {
         // track reads as a real recording; shot 5 needs it for the route
         // map + elevation profile.
         HikeSpec(trailId: "national-trail",  distanceMi: 15.17, daysAgo: 2,   startHour: 6,  durationMin: 305, withPath: true),
-        HikeSpec(trailId: "alta",            distanceMi: 4.60,  daysAgo: 5,   startHour: 8,  durationMin: 150, withPath: false),
+        HikeSpec(trailId: "alta-trail",            distanceMi: 4.60,  daysAgo: 5,   startHour: 8,  durationMin: 150, withPath: false),
         HikeSpec(trailId: "holbert-trail",   distanceMi: 2.60,  daysAgo: 12,  startHour: 7,  durationMin: 95,  withPath: false),
-        HikeSpec(trailId: "desert-classic",  distanceMi: 3.88,  daysAgo: 22,  startHour: 9,  durationMin: 120, withPath: false),
+        HikeSpec(trailId: "desert-classic-trail",  distanceMi: 3.88,  daysAgo: 22,  startHour: 9,  durationMin: 120, withPath: false),
         HikeSpec(trailId: "hau-pal-loop-trail",     distanceMi: 2.72, daysAgo: 31, startHour: 7,  durationMin: 88,  withPath: false),
         HikeSpec(trailId: "javelina-canyon-trail",  distanceMi: 2.94, daysAgo: 50, startHour: 8,  durationMin: 96,  withPath: false, completes: false),
         HikeSpec(trailId: "mormon-trail",           distanceMi: 1.36, daysAgo: 72, startHour: 7,  durationMin: 52,  withPath: false),
@@ -253,12 +249,12 @@ enum UITestSupport {
         HikeSpec(trailId: "telegraph-pass-trail",   distanceMi: 0.72, daysAgo: 92, startHour: 8,  durationMin: 28,  withPath: false),
         // Older, distance/date only (no path needed for badges + chart).
         HikeSpec(trailId: "national-trail",             distanceMi: 15.17, daysAgo: 110, startHour: 6,  durationMin: 300, withPath: false),
-        HikeSpec(trailId: "alta",                       distanceMi: 4.60,  daysAgo: 122, startHour: 8,  durationMin: 150, withPath: false),
-        HikeSpec(trailId: "desert-classic",             distanceMi: 3.88,  daysAgo: 165, startHour: 9,  durationMin: 120, withPath: false),
+        HikeSpec(trailId: "alta-trail",                       distanceMi: 4.60,  daysAgo: 122, startHour: 8,  durationMin: 150, withPath: false),
+        HikeSpec(trailId: "desert-classic-trail",             distanceMi: 3.88,  daysAgo: 165, startHour: 9,  durationMin: 120, withPath: false),
         HikeSpec(trailId: "ma-ha-tuak-perimeter-trail", distanceMi: 7.13,  daysAgo: 140, startHour: 7,  durationMin: 230, withPath: false),
         HikeSpec(trailId: "desert-classic-trail",       distanceMi: 4.73,  daysAgo: 200, startHour: 8,  durationMin: 150, withPath: false),
         HikeSpec(trailId: "bursera-trail",              distanceMi: 3.32,  daysAgo: 225, startHour: 9,  durationMin: 110, withPath: false),
-        HikeSpec(trailId: "guadalupe-perimeter-trail",  distanceMi: 2.75,  daysAgo: 235, startHour: 8,  durationMin: 92,  withPath: false, completes: false),
+        HikeSpec(trailId: "guadalupe-perimeter",  distanceMi: 2.75,  daysAgo: 235, startHour: 8,  durationMin: 92,  withPath: false, completes: false),
         HikeSpec(trailId: "las-lomitas-trail",          distanceMi: 2.79,  daysAgo: 245, startHour: 7,  durationMin: 94,  withPath: false),
         HikeSpec(trailId: "thondum-wihom-trail",        distanceMi: 2.40,  daysAgo: 265, startHour: 9,  durationMin: 82,  withPath: false, completes: false),
         HikeSpec(trailId: "national-trail",             distanceMi: 15.17, daysAgo: 290, startHour: 6,  durationMin: 300, withPath: false),
@@ -449,6 +445,25 @@ enum UITestSupport {
         "javelina-to-ridgeline", "prospector-to-national", "bursera-to-gila", "kachina-access-trail",
         "degoba-alt", "35th-ave-access-trail", "thash-kavid-trail", "gpt-to-dc-connector",
         "helipad",
+    ]
+
+    /// The 7 trails deliberately left INCOMPLETE in the near-complete shots
+    /// (Dex / Stats / recording). Hand-picked to (a) span all three difficulty
+    /// colors — Hard (red), Moderate (orange), Easy (green) — and (b) spread
+    /// west→east across the park, so the incomplete trails read as a natural
+    /// sprinkle among the cyan rather than a same-color cluster. None are
+    /// completed by the demo history (so the launch-time rebuild can't flip
+    /// them), and `bajada-trail` is here because the live recording is on it.
+    /// NOTE post-elevation difficulty: `guadalupe-perimeter` is the only Hard
+    /// trail the history doesn't already complete, and `bajada` is Moderate now.
+    private static let showcaseIncomplete: Set<String> = [
+        "west-alta",              // Easy   — far west
+        "gila-trail",             // Moderate — west-central
+        "bajada-trail",           // Moderate — central (the live recording)
+        "pyramid-trail",          // Easy   — central
+        "old-man-trail",          // Moderate — east
+        "guadalupe-perimeter",    // Hard   — east (the one red incomplete)
+        "pima-canyon-loop-trail", // Moderate — far east
     ]
 
     /// Real sampled `[lat, lon]` vertices (coordinate order is `[lat,

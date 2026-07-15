@@ -26,7 +26,8 @@ struct WalkRecordingTests {
             ],
             multiAreaRevisited: [
                 "second-area": ["s-trail-3"],
-            ]
+            ],
+            mode: .walk
         )
     }
 

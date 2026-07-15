@@ -140,12 +140,21 @@ struct SavedRecording: Codable, Identifiable, Sendable {
     /// Walk mode: revisited trails per area, same shape as
     /// `multiAreaCompletions`. `nil` for non-walk records.
     let multiAreaRevisited: [String: [String]]?
+    /// How this hike was recorded (trail / roam / walk). Persisted so a
+    /// multi-area HIKE — one that credited neighbor areas its path crossed
+    /// — isn't misread as a walk just because it carries
+    /// `multiAreaCompletions`. Decoded via a raw-string fallback that can
+    /// NEVER throw (see `init(from:)`): the concern the comment above
+    /// raised about a mode enum blanking History only applies to a hard
+    /// `decode`, which this deliberately avoids. Old records lack the key
+    /// and infer the mode on decode, preserving prior behavior exactly.
+    let mode: RecordingMode
 
     /// True when this record was captured by the area-less walk mode.
-    var isWalk: Bool { multiAreaCompletions != nil }
+    var isWalk: Bool { mode == .walk }
 
     enum CodingKeys: String, CodingKey {
-        case id, areaId, startedAt, endedAt, distanceMi, durationSeconds, completedTrailIds, path, trailId, revisitedTrailIds, multiAreaCompletions, multiAreaRevisited
+        case id, areaId, startedAt, endedAt, distanceMi, durationSeconds, completedTrailIds, path, trailId, revisitedTrailIds, multiAreaCompletions, multiAreaRevisited, mode
     }
 
     init(
@@ -160,7 +169,8 @@ struct SavedRecording: Codable, Identifiable, Sendable {
         trailId: String? = nil,
         revisitedTrailIds: [String] = [],
         multiAreaCompletions: [String: [String]]? = nil,
-        multiAreaRevisited: [String: [String]]? = nil
+        multiAreaRevisited: [String: [String]]? = nil,
+        mode: RecordingMode = .roam
     ) {
         self.id = id
         self.areaId = areaId
@@ -174,6 +184,7 @@ struct SavedRecording: Codable, Identifiable, Sendable {
         self.revisitedTrailIds = revisitedTrailIds
         self.multiAreaCompletions = multiAreaCompletions
         self.multiAreaRevisited = multiAreaRevisited
+        self.mode = mode
     }
 
     init(from decoder: Decoder) throws {
@@ -190,6 +201,15 @@ struct SavedRecording: Codable, Identifiable, Sendable {
         revisitedTrailIds = try c.decodeIfPresent([String].self, forKey: .revisitedTrailIds) ?? []
         multiAreaCompletions = try c.decodeIfPresent([String: [String]].self, forKey: .multiAreaCompletions)
         multiAreaRevisited = try c.decodeIfPresent([String: [String]].self, forKey: .multiAreaRevisited)
+        // Decode mode via a raw String with `try?` so a missing key OR an
+        // unknown future value both fall back instead of throwing — one
+        // throwing record would blank all of History (loadHistorySync
+        // decodes the whole array with try?). Old records (no key) infer
+        // the mode exactly as `isWalk` used to: walk iff multiArea present,
+        // else trail/roam by whether a trailId was recorded.
+        let rawMode = (try? c.decodeIfPresent(String.self, forKey: .mode)) ?? nil
+        mode = rawMode.flatMap(RecordingMode.init(rawValue:))
+            ?? (multiAreaCompletions != nil ? .walk : (trailId != nil ? .trail : .roam))
     }
 
     /// The set of area ids this record touches: the primary area plus —

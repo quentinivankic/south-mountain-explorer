@@ -37,7 +37,13 @@ final class ScreenshotTests: XCTestCase {
     func testCaptureAppStoreScreenshots() {
         let app = XCUIApplication()
 
-        // ---- Launch A: seeded history ----
+        // Each screenshot tells its own completion story, so the shots are
+        // split across launches by how many trails are seeded complete:
+        //   Launch A — default (~10, hike-derived): the map "filling in".
+        //   Launch B — `--uitest-completed 70`: an accomplished Dex + Stats.
+        //   Launch C — recording (its own ~72-of-77 near-done state).
+
+        // ---- Launch A: modest completion for the map "fill-in" shot ----
         app.launchArguments = ["--uitest-seed"]
         app.launch()
 
@@ -46,12 +52,35 @@ final class ScreenshotTests: XCTestCase {
         // prefetches favorited areas from R2, and rebuilds completions
         // from history — the main thread is busy enough that an early
         // accessibility snapshot can time out ("Failed to get matching
-        // snapshots"), which aborts the whole test uncatchably. Every run
-        // that visited Stats late succeeded; the one that went at t≈20s
-        // died here. Sleeping is immune to snapshot timeouts.
+        // snapshots"), which aborts the whole test uncatchably. Sleeping
+        // is immune to snapshot timeouts.
+        settle(25)
+        openStatsTab(app)
+        _ = app.staticTexts["Recent Hikes"].firstMatch.waitForExistence(timeout: 60)
+
+        // Shot 1 — the completion map, ~10 of 77 done (cyan subset against
+        // plenty of not-yet-hiked trails). Push AreaView from the Area
+        // Progress row. Do NOT tap recenter — it calls requestPermission()
+        // when location isn't authorized and the CI simctl grant doesn't
+        // reliably land as authorized, which popped the system location
+        // dialog on top of the shot. The whole-park overview is reliable.
+        if openAreaFromStats(app) {
+            settle(8)   // let MapKit tiles + R2 polylines render
+            capture(app, "01-completion-map")
+        } else {
+            settle(5)
+            capture(app, "01-completion-map")
+            XCTFail("Area sheet never appeared (launch A)")
+        }
+
+        // ---- Launch B: nearly complete — Dex + Stats look accomplished ----
+        app.terminate()
+        app.launchArguments = ["--uitest-seed", "--uitest-completed", "70"]
+        app.launch()
         settle(25)
 
-        // Shot 4 — the Stats tab (totals + hikes-per-month chart).
+        // Shot 4 — the Stats tab (totals + hikes-per-month chart), now with
+        // Area Progress reading 70/77.
         openStatsTab(app)
         if !app.staticTexts["Recent Hikes"].firstMatch.waitForExistence(timeout: 60) {
             dumpTree(app, "stats-tab-missing-recent-hikes")
@@ -59,15 +88,15 @@ final class ScreenshotTests: XCTestCase {
         settle(3)
         capture(app, "04-stats")
 
-        // Shot 5 — a finished hike's detail (route map + elevation),
-        // pushed from the Recent Hikes list.
+        // Shot 5 — a finished hike's detail (route map + elevation), pushed
+        // from the Recent Hikes list.
         let featuredRow = app.descendants(matching: .any)["hike-row-demo-national-trail-2"].firstMatch
         if featuredRow.waitForExistence(timeout: 10) {
             tapElement(featuredRow)
             // Long dwell: the hike-detail map is satellite imagery
-            // (`.imagery`). At 5 s the right edge of the map card was
-            // still a blank gray band where tiles hadn't downloaded —
-            // 15 s lets the whole frame's imagery land before capture.
+            // (`.imagery`). At 5 s the right edge was still a blank gray
+            // band where tiles hadn't downloaded — 15 s lets the whole
+            // frame's imagery land before capture.
             settle(15)
             capture(app, "05-hike-detail")
             goBack(app)
@@ -76,32 +105,20 @@ final class ScreenshotTests: XCTestCase {
             XCTFail("Featured hike row not found for hike-detail shot")
         }
 
-        // Shots 1 + 2 — push AreaView from the Area Progress row, then
-        // wait for the trail-list sheet's Trails/Dex selector.
+        // Shot 2 — the Dex badge grid, now with 70/77 completed so the
+        // milestones + difficulty badges read richly earned.
         if openAreaFromStats(app) {
-            settle(8)   // let MapKit tiles + R2 polylines render
-            // NOTE: do NOT tap recenter here. It calls
-            // requestPermission() when location isn't authorized, and
-            // the CI simctl grant doesn't reliably land as authorized
-            // before the app reads it — so tapping recenter popped the
-            // system location dialog on top of shot 1. The whole-park
-            // overview (now halo-free via #252) is the reliable shot.
-            capture(app, "01-completion-map")
-
-            // Shot 2 — the Dex badge grid.
+            settle(8)
             tapSegment(app, "Dex")
             settle(3)
             capture(app, "02-dex")
         } else {
-            // Capture anyway — even a partial render (fullscreen map,
-            // no sheet) is diagnostic and possibly usable.
             settle(5)
-            capture(app, "01-completion-map")
             capture(app, "02-dex")
-            XCTFail("Area sheet never appeared (launch A)")
+            XCTFail("Area sheet never appeared (launch B)")
         }
 
-        // ---- Launch B: same seed + a live active recording ----
+        // ---- Launch C: same seed + a live active recording ----
         // The recording is injected in-memory without starting GPS, so no
         // location-permission alert can appear. Reach the area the same
         // proven way: Stats tab → Area Progress row push. The Trails
@@ -110,19 +127,15 @@ final class ScreenshotTests: XCTestCase {
         app.terminate()
         app.launchArguments = ["--uitest-seed", "--uitest-recording"]
         app.launch()
-
-        // Same launch-burst dwell as launch A (see comment there).
         settle(25)
 
         openStatsTab(app)
         _ = app.staticTexts["Recent Hikes"].firstMatch.waitForExistence(timeout: 60)
 
-        // Shot 3 — the active recording panel (live pace + elevation).
-        // The map now auto-frames zoomed on the recording's current
-        // position (TrailMapView.centerOnActiveRecording), so this reads
-        // as "mid-hike on the trail" rather than a whole-park overview —
-        // no recenter tap needed (which would risk the location prompt).
-        // Extra dwell lets the zoomed-in map tiles finish loading.
+        // Shot 3 — the active recording panel (live pace + elevation). The
+        // map auto-frames zoomed on the recording's current position
+        // (TrailMapView.centerOnActiveRecording), so it reads as "mid-hike
+        // on the trail". Extra dwell lets the zoomed-in tiles finish.
         if openAreaFromStats(app) {
             settle(11)
             capture(app, "03-recording")

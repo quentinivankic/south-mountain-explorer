@@ -1,0 +1,65 @@
+{
+  "identifier" : "trekdex-tipjar",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "TIPSMALL01",
+      "localizations" : [
+        {
+          "description" : "A small thank-you toward TrekDex's development.",
+          "displayName" : "Trailhead Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.southmountainexplorer.app.tip.small",
+      "referenceName" : "Trailhead Tip",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "TIPMEDIUM01",
+      "localizations" : [
+        {
+          "description" : "A generous tip that helps keep the trails coming.",
+          "displayName" : "Summit Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.southmountainexplorer.app.tip.medium",
+      "referenceName" : "Summit Tip",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "TIPLARGE01",
+      "localizations" : [
+        {
+          "description" : "Big-hearted support for an indie hiking app.",
+          "displayName" : "Base Camp Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.southmountainexplorer.app.tip.large",
+      "referenceName" : "Base Camp Tip",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "trekdex",
+    "_developerTeamID" : "",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : []
+  },
+  "subscriptionGroups" : [],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

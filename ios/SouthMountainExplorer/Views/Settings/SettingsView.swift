@@ -375,6 +375,15 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("Support TrekDex") {
+                    NavigationLink {
+                        TipJarView()
+                    } label: {
+                        Label("Leave a Tip", systemImage: "heart")
+                    }
+                    .accessibilityIdentifier("tip-jar-link")
+                }
+
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
                         Label("Back up your hikes", systemImage: "icloud.and.arrow.up")

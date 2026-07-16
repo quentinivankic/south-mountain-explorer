@@ -12,11 +12,11 @@ private struct UserStats: Equatable {
 /// Policy row in Settings → About links to the authoritative copy.
 /// The SAME URL must go into App Store Connect's Privacy Policy URL
 /// field at submission — keep them in sync.
-private let privacyPolicyURL: URL? = URL(string: "https://trekdex.app/privacy-policy")
+private let privacyPolicyURL: URL? = URL(string: "https://trekdex.app/privacypolicy")
 
 /// Terms of Service, hosted at trekdex.app. Surfaced in Settings →
 /// About next to the privacy policy.
-private let termsOfServiceURL: URL? = URL(string: "https://trekdex.app/terms-of-service")
+private let termsOfServiceURL: URL? = URL(string: "https://trekdex.app/termsofservice")
 
 /// OpenStreetMap copyright / licence page. The ODbL requires the
 /// "© OpenStreetMap contributors" credit to link here. Force-unwrapped

@@ -95,8 +95,10 @@ indexes those separately.)
 - **Support URL** (required): `https://trekdex.app` (or a `/support`
   page if you add one — must be reachable and mention how to get help)
 - **Marketing URL** (optional): `https://trekdex.app`
-- **Privacy Policy URL** (required): `https://trekdex.app/privacy-policy`
-  — MUST match the in-app link.
+- **Privacy Policy URL** (required): `https://trekdex.app/privacypolicy`
+  — MUST match the in-app link (SettingsView `privacyPolicyURL`). NOTE the
+  live pages have **no hyphen** (`/privacypolicy`, `/termsofservice`); the
+  app links were corrected to match (was `/privacy-policy`).
 
 ## What's New (version release notes, first public version)
 
@@ -261,8 +263,11 @@ Code side — all done:
 - [x] Export compliance key set (see above)
 
 On you / Apple — remaining:
-- [x] Privacy policy hosted + reachable (trekdex.app/privacy-policy)
-- [ ] **Update privacy policy** to name PostHog + US region + collected types
+- [x] Privacy policy hosted + reachable (trekdex.app/privacypolicy)
+- [x] **Update privacy policy** to name PostHog + US region + collected types
+      (published to trekdex.app; ToS too)
+- [x] In-app Privacy/Terms links corrected to the live no-hyphen URLs
+      (`/privacypolicy`, `/termsofservice`) — needs the next build
 - [ ] **App Privacy nutrition label** entered in ASC (table above)
 - [ ] **Screenshots** captured (plan above) — often the long pole; dispatch
       the `ios-screenshots` workflow (#255 polish is merged) → upload the PNGs

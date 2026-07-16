@@ -3,7 +3,7 @@
 **Last updated: 2026-07-15**
 
 > Canonical source for the terms published at
-> **https://trekdex.app/terms-of-service**. Edit here, then publish.
+> **https://trekdex.app/termsofservice**. Edit here, then publish.
 >
 > **Corrections in this revision (vs the June 30, 2026 live version):**
 > removed the "cross-device sync … via Apple's iCloud" clause from the

@@ -3,7 +3,7 @@
 **Last updated: 2026-07-15**
 
 > Canonical source for the policy published at
-> **https://trekdex.app/privacy-policy**. Edit here, then publish. Keep the
+> **https://trekdex.app/privacypolicy**. Edit here, then publish. Keep the
 > "Last updated" date in sync with the live page and with the App Store
 > Connect **App Privacy** answers (see `app-store-submission.md`).
 >

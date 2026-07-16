@@ -63,6 +63,17 @@ struct StatsView: View {
                     .listRowSeparator(.hidden)
             }
 
+            Section {
+                NavigationLink {
+                    InsightsView(hikes: hikes)
+                } label: {
+                    Label("Insights", systemImage: "chart.bar.xaxis")
+                }
+                .accessibilityIdentifier("insights-link")
+            } footer: {
+                Text("Personal records, streaks, and yearly trends.")
+            }
+
             let rows = areaCompletionRows()
             if !rows.isEmpty {
                 Section("Area Progress") {

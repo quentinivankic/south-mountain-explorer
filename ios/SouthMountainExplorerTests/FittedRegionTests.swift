@@ -25,7 +25,8 @@ struct FittedRegionTests {
             latDelta: 0.02,
             lonDelta: 0.025,
             bottomInset: 0,
-            screenHeight: 800
+            screenHeight: 800,
+            screenWidth: 400
         )
         switch target {
         case .region(let lat, let lon, let latDelta, let lonDelta):
@@ -47,13 +48,15 @@ struct FittedRegionTests {
             centerLat: 33.3, centerLon: -112.0,
             latDelta: 0.02, lonDelta: 0.025,
             bottomInset: 0,
-            screenHeight: 800
+            screenHeight: 800,
+            screenWidth: 400
         )
         let shifted = TrailMapView.fittedRegion(
             centerLat: 33.3, centerLon: -112.0,
             latDelta: 0.02, lonDelta: 0.025,
             bottomInset: 200,
-            screenHeight: 800
+            screenHeight: 800,
+            screenWidth: 400
         )
         guard case .region(let zLat, let zLon, let zDLat, let zDLon) = zero,
               case .region(let sLat, let sLon, let sDLat, let sDLon) = shifted
@@ -82,7 +85,8 @@ struct FittedRegionTests {
             centerLat: 33.3, centerLon: -112.0,
             latDelta: 0.0001, lonDelta: 0.0001,
             bottomInset: 0,
-            screenHeight: 800
+            screenHeight: 800,
+            screenWidth: 400
         )
         guard case .region(_, _, let latDelta, let lonDelta) = target else {
             Issue.record("Expected .region")
@@ -112,7 +116,7 @@ struct FittedRegionTests {
             trails: [trail1, trail2],
             trailCount: 2, totalMi: 2.0, cachedAt: nil
         )
-        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0, screenHeight: 800)
+        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0, screenHeight: 800, screenWidth: 400)
         guard case .region(let lat, let lon, _, _) = target else {
             Issue.record("Expected .region")
             return
@@ -137,7 +141,7 @@ struct FittedRegionTests {
             trails: [trail1, trail2],
             trailCount: 2, totalMi: 2.0, cachedAt: nil
         )
-        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0, screenHeight: 800)
+        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0, screenHeight: 800, screenWidth: 400)
         guard case .region(_, _, let latDelta, let lonDelta) = target else {
             Issue.record("Expected .region")
             return
@@ -158,7 +162,7 @@ struct FittedRegionTests {
             trails: [],
             trailCount: 0, totalMi: 0, cachedAt: nil
         )
-        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0, screenHeight: 800)
+        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0, screenHeight: 800, screenWidth: 400)
         guard case .region(let lat, let lon, _, _) = target else {
             Issue.record("Expected .region")
             return
@@ -175,7 +179,7 @@ struct FittedRegionTests {
             trails: [],
             trailCount: 0, totalMi: 0, cachedAt: nil
         )
-        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0, screenHeight: 800)
+        let target = TrailMapView.regionCoveringArea(area: area, bottomInset: 0, screenHeight: 800, screenWidth: 400)
         guard case .camera(let lat, let lon, let distance, let heading) = target else {
             Issue.record("Expected .camera fallback")
             return
@@ -184,5 +188,34 @@ struct FittedRegionTests {
         #expect(lon == -112.0)
         #expect(distance == 5000)
         #expect(heading == 0)
+    }
+
+    // MARK: - fittedRegion: wide area centers in the visible area
+
+    @Test func fittedRegion_wideArea_shiftsMoreThanSquare() {
+        // A wide, thin area (South Mountain is ~20 mi × 3 mi) is
+        // width-constrained: MapKit displays far MORE latitude than the
+        // area's own span, so the south-shift must scale with that DISPLAYED
+        // span — otherwise the area lands near the full-screen center (low,
+        // behind the sheet) with the surrounding city filling the top. So a
+        // wide area must shift south MORE than a square one at the same inset.
+        // (The old code shifted by the area's own latDelta, giving both the
+        // same shift — this test fails against that bug.)
+        let square = TrailMapView.fittedRegion(
+            centerLat: 33.3, centerLon: -112.0,
+            latDelta: 0.05, lonDelta: 0.05,
+            bottomInset: 400, screenHeight: 900, screenWidth: 400
+        )
+        let wide = TrailMapView.fittedRegion(
+            centerLat: 33.3, centerLon: -112.0,
+            latDelta: 0.05, lonDelta: 0.30,   // 6× wider, same height
+            bottomInset: 400, screenHeight: 900, screenWidth: 400
+        )
+        guard case .region(let sqLat, _, _, _) = square,
+              case .region(let wideLat, _, _, _) = wide else {
+            Issue.record("Expected .region cases"); return
+        }
+        #expect((33.3 - wideLat) > (33.3 - sqLat),
+                "A wide area must shift south more than a square one to sit centered in the visible area")
     }
 }

@@ -44,7 +44,17 @@ final class ScreenshotTests: XCTestCase {
         //   Launch C — recording (its own ~72-of-77 near-done state).
 
         // ---- Launch A: modest completion for the map "fill-in" shot ----
-        app.launchArguments = ["--uitest-seed"]
+        // Hand-framed camera for South Mountain's completion map: the park is
+        // a wide, two-lobed ~18 km range whose geometric center lands in the
+        // low-density gap between lobes, so the automatic bbox fit doesn't read
+        // as "centered." "lat,lon,latSpan,lonSpan" — trimmed to the dense park
+        // + Pima lobe (drops the sparse far-west tip / south spur) so the shot
+        // fills and centers. Tune these four numbers if the composition needs
+        // a nudge; only affects this screenshot.
+        app.launchArguments = [
+            "--uitest-seed",
+            "--uitest-map-region", "33.343,-112.055,0.075,0.16",
+        ]
         app.launch()
 
         // Let the launch burst finish BEFORE the first query. Right after

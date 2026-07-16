@@ -532,6 +532,20 @@ struct TrailMapView: View {
     }
 
     private func centerOnArea() {
+        #if DEBUG
+        // Screenshot-only hand-frame override (see `uitestMapRegion`). Routed
+        // through fittedRegion so it still centers in the visible area above
+        // the sheet, just from a chosen center/span instead of the bbox.
+        if let r = Self.uitestMapRegion {
+            setCameraTarget(Self.fittedRegion(
+                centerLat: r.0, centerLon: r.1, latDelta: r.2, lonDelta: r.3,
+                bottomInset: bottomInset,
+                screenHeight: UIScreen.main.bounds.height,
+                screenWidth: UIScreen.main.bounds.width
+            ))
+            return
+        }
+        #endif
         setCameraTarget(Self.regionCoveringArea(
             area: area,
             bottomInset: bottomInset,
@@ -539,6 +553,22 @@ struct TrailMapView: View {
             screenWidth: UIScreen.main.bounds.width
         ))
     }
+
+    #if DEBUG
+    /// Screenshot-only override for the area-overview camera. Pass
+    /// `--uitest-map-region "lat,lon,latSpan,lonSpan"` to hand-frame a shot —
+    /// used for the wide, two-lobed South Mountain completion map, whose true
+    /// geometric center lands in the low-density gap between its lobes so the
+    /// automatic bbox fit doesn't read as "centered." nil in every real build.
+    static var uitestMapRegion: (Double, Double, Double, Double)? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "--uitest-map-region"), i + 1 < args.count
+        else { return nil }
+        let parts = args[i + 1].split(separator: ",").compactMap { Double($0) }
+        guard parts.count == 4 else { return nil }
+        return (parts[0], parts[1], parts[2], parts[3])
+    }
+    #endif
 
     /// Frame the camera on an in-progress recording's current position
     /// (its last GPS sample), zoomed to the same ~1500 m as the recenter

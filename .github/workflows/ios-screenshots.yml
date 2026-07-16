@@ -49,7 +49,19 @@ jobs:
           echo "downloadPlatform failed after 4 attempts" >&2
           exit 1
 
+      - name: Cache Homebrew downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: brew-${{ runner.os }}-xcodegen-xcparse
+
       - name: Install XcodeGen + xcparse
+        # HOMEBREW_NO_AUTO_UPDATE skips the slow `brew update` that otherwise
+        # runs before every install; NO_INSTALL_CLEANUP skips the post-install
+        # cleanup. Neither changes what's installed — just trims ~1 min.
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
         run: |
           brew install xcodegen
           brew install chargepoint/xcparse/xcparse
@@ -120,6 +132,24 @@ jobs:
           xcrun simctl privacy "$SIM_UDID" grant location com.southmountainexplorer.app || true
           xcrun simctl location "$SIM_UDID" set 33.330353,-112.104609 || true
 
+      - name: Cache DerivedData (build products + SPM)
+        # Warm the build: DerivedData holds the compiled app, the PostHog SPM
+        # package + its built products, and the module cache. Restoring it lets
+        # xcodebuild do an INCREMENTAL build — only changed source recompiles
+        # (e.g. a one-line ScreenshotTests tweak), not the whole app + PostHog
+        # from scratch. The run_id in the key saves a fresh cache each run so
+        # it stays current; restore-keys warm-start from the most recent one.
+        # No stale-build risk: changed sources always recompile, and a
+        # module-cache mismatch would fail the build (visible), never ship a
+        # silently-stale app.
+        uses: actions/cache@v4
+        with:
+          path: ios/DerivedData
+          key: dd-screenshots-${{ runner.os }}-${{ hashFiles('ios/project.yml') }}-${{ github.run_id }}
+          restore-keys: |
+            dd-screenshots-${{ runner.os }}-${{ hashFiles('ios/project.yml') }}-
+            dd-screenshots-${{ runner.os }}-
+
       - name: Capture screenshots (UI test)
         working-directory: ios
         run: |
@@ -129,6 +159,7 @@ jobs:
             -scheme SouthMountainExplorerUITests \
             -configuration Debug \
             -destination "id=$SIM_UDID" \
+            -derivedDataPath "$PWD/DerivedData" \
             -resultBundlePath "$PWD/ScreenshotResults.xcresult" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \

@@ -172,7 +172,8 @@ struct TrailMapView: View {
         self._cameraTarget = State(initialValue: Self.regionCoveringArea(
             area: area,
             bottomInset: bottomInset,
-            screenHeight: UIScreen.main.bounds.height
+            screenHeight: UIScreen.main.bounds.height,
+            screenWidth: UIScreen.main.bounds.width
         ))
     }
 
@@ -525,7 +526,8 @@ struct TrailMapView: View {
             latDelta: latDelta,
             lonDelta: lonDelta,
             bottomInset: bottomInset,
-            screenHeight: UIScreen.main.bounds.height
+            screenHeight: UIScreen.main.bounds.height,
+            screenWidth: UIScreen.main.bounds.width
         ))
     }
 
@@ -533,7 +535,8 @@ struct TrailMapView: View {
         setCameraTarget(Self.regionCoveringArea(
             area: area,
             bottomInset: bottomInset,
-            screenHeight: UIScreen.main.bounds.height
+            screenHeight: UIScreen.main.bounds.height,
+            screenWidth: UIScreen.main.bounds.width
         ))
     }
 
@@ -555,7 +558,8 @@ struct TrailMapView: View {
             latDelta: 1500.0 / 111_000.0,
             lonDelta: 1500.0 / (111_000.0 * cosLat),
             bottomInset: bottomInset,
-            screenHeight: UIScreen.main.bounds.height
+            screenHeight: UIScreen.main.bounds.height,
+            screenWidth: UIScreen.main.bounds.width
         ))
     }
 
@@ -575,7 +579,8 @@ struct TrailMapView: View {
             latDelta: max((maxLat - minLat) * 1.4, 0.005),
             lonDelta: max((maxLon - minLon) * 1.4, 0.005),
             bottomInset: bottomInset,
-            screenHeight: UIScreen.main.bounds.height
+            screenHeight: UIScreen.main.bounds.height,
+            screenWidth: UIScreen.main.bounds.width
         ))
     }
 
@@ -612,7 +617,8 @@ struct TrailMapView: View {
             latDelta: max((maxLat - minLat) * 1.4, 0.005),
             lonDelta: max((maxLon - minLon) * 1.4, 0.005),
             bottomInset: bottomInset,
-            screenHeight: UIScreen.main.bounds.height
+            screenHeight: UIScreen.main.bounds.height,
+            screenWidth: UIScreen.main.bounds.width
         ))
     }
 
@@ -831,7 +837,8 @@ struct TrailMapView: View {
         centerLat: Double, centerLon: Double,
         latDelta: Double, lonDelta: Double,
         bottomInset: CGFloat,
-        screenHeight: CGFloat
+        screenHeight: CGFloat,
+        screenWidth: CGFloat
     ) -> MapTarget {
         // Cap p at 0.7 so a worst-case panel-covers-everything state
         // still leaves a sane minimum visible area.
@@ -844,10 +851,20 @@ struct TrailMapView: View {
         let regionLatDelta = max(latDelta / visibleFraction, 0.005)
         let regionLonDelta = max(lonDelta, 0.005)
 
-        // Shift center south by half the extra span we just added,
-        // so the visible center of the region matches the requested
-        // centerLat.
-        let shiftLat = regionLatDelta * p / 2
+        // Shift center south so the content sits centered in the VISIBLE
+        // (top, un-occluded) portion of the map. The shift must be half the
+        // occluded fraction of the latitude MapKit will actually DISPLAY —
+        // not of `regionLatDelta`. MapKit shows at least the region and fits
+        // by the more-constrained axis: a WIDE area (large lonDelta) is
+        // width-constrained, so the displayed latitude span balloons to
+        // `lonDelta * (height/width)` — far bigger than regionLatDelta. Using
+        // regionLatDelta for the shift (the old bug) barely nudged a wide
+        // park, leaving it near the full-screen center → low, right at the
+        // sheet, with the surrounding city filling the top. Basing the shift
+        // on the displayed span centers the park in the visible area.
+        let displayedLatDelta = max(regionLatDelta,
+                                    regionLonDelta * Double(screenHeight / max(screenWidth, 1)))
+        let shiftLat = displayedLatDelta * p / 2
         return .region(
             centerLat: centerLat - shiftLat,
             centerLon: centerLon,
@@ -856,7 +873,7 @@ struct TrailMapView: View {
         )
     }
 
-    nonisolated static func regionCoveringArea(area: Area, bottomInset: CGFloat, screenHeight: CGFloat) -> MapTarget {
+    nonisolated static func regionCoveringArea(area: Area, bottomInset: CGFloat, screenHeight: CGFloat, screenWidth: CGFloat) -> MapTarget {
         let coords = area.trails
             .flatMap { $0.segments.flatMap { $0 } }
             .compactMap { p -> (lat: Double, lon: Double)? in
@@ -876,7 +893,8 @@ struct TrailMapView: View {
                 latDelta: max((maxLat - minLat) * 1.3, 0.01),
                 lonDelta: max((maxLon - minLon) * 1.3, 0.01),
                 bottomInset: bottomInset,
-                screenHeight: screenHeight
+                screenHeight: screenHeight,
+                screenWidth: screenWidth
             )
         }
 
@@ -887,7 +905,8 @@ struct TrailMapView: View {
                 latDelta: max(abs(bbox[3] - bbox[1]) * 1.2, 0.01),
                 lonDelta: max(abs(bbox[2] - bbox[0]) * 1.2, 0.01),
                 bottomInset: bottomInset,
-                screenHeight: screenHeight
+                screenHeight: screenHeight,
+                screenWidth: screenWidth
             )
         }
 

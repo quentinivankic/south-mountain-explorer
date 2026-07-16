@@ -57,6 +57,12 @@ enum StorageKeys {
     /// instead of asking again. Not progress → not cleared by Reset.
     static let waitlistJoined = "summit:waitlist-joined"
 
+    /// Count of tips the user has left via the (optional) tip jar.
+    /// TrekDex is free; tips are a pure thank-you with no unlock, so
+    /// this only drives the "you're a supporter ♥" acknowledgment.
+    /// Kept across resets — it's not hike progress.
+    static let tipsGiven = "summit:tips-given"
+
     // MARK: - Internal caches (cleared by their own paths,
     //         e.g. Clear All Downloads also clears the prefetch cooldown)
 

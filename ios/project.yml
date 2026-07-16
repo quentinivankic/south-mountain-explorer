@@ -17,6 +17,11 @@ targets:
     deploymentTarget: "18.0"
     sources:
       - path: SouthMountainExplorer
+        # The StoreKit config is a dev-scheme aid (see the scheme's
+        # storeKitConfiguration below), not a shipped resource — keep it
+        # out of the app bundle.
+        excludes:
+          - "**/*.storekit"
     dependencies:
       - package: PostHog
         product: PostHog
@@ -112,6 +117,11 @@ schemes:
     build:
       targets:
         SouthMountainExplorer: all
+    run:
+      # Local dev only: makes the consumable tip products load in the
+      # simulator before the real App Store Connect IAPs exist. Ignored by
+      # release/TestFlight builds, which use the live StoreKit products.
+      storeKitConfiguration: SouthMountainExplorer/TrekDex.storekit
     test:
       targets:
         - SouthMountainExplorerTests

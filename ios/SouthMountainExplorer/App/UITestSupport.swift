@@ -210,7 +210,17 @@ enum UITestSupport {
     private struct HikeSpec {
         let trailId: String
         let distanceMi: Double
-        let daysAgo: Int
+        /// Recency in days — used for the recent/featured hikes that must be
+        /// robustly in the past regardless of the run date. Mutually exclusive
+        /// with `monthsAgo`/`dayOfMonth`.
+        var daysAgo: Int? = nil
+        /// Calendar-month anchor for the chart-filler hikes: N months before
+        /// the current month, on `dayOfMonth`. The Stats "Hikes per Month"
+        /// chart buckets by CALENDAR month, so anchoring by month (not a
+        /// rolling day count) is what guarantees every month reads >=2 no
+        /// matter which day the screenshot run lands on.
+        var monthsAgo: Int? = nil
+        var dayOfMonth: Int = 15
         let startHour: Int
         let durationMin: Int
         let withPath: Bool
@@ -222,51 +232,77 @@ enum UITestSupport {
         var completes: Bool = true
     }
 
-    /// ~21 hikes across 13 months. `daysAgo` is spaced to give the
-    /// Stats "Hikes per Month" chart real month-to-month VARIATION
-    /// (every month 1–4, never empty, but not a flat run of 1s) — a
-    /// livelier chart screenshots better. Still designed to unlock every history-based
-    /// Dex badge: total > 100 mi (Century Club + tiers), a ≥5 mi hike
-    /// (Long Hauler), a pre-7 am start (Early Bird), starts spanning all
-    /// four meteorological seasons (Four Seasons), and > 10 distinct days
-    /// (Regular). The most recent traces real trail geometry so the
-    /// hike-detail route + elevation and the map's cyan halos look real.
+    /// 27 hikes across the last 12 calendar months — at least TWO per month (a
+    /// few months get a third for a livelier chart), so the Stats "Hikes per
+    /// Month" chart always reads >= 2. It buckets by CALENDAR month, so the
+    /// chart-filler hikes are anchored by `monthsAgo`/`dayOfMonth` (not a
+    /// rolling day count, which drifts across calendar boundaries and left
+    /// some months at 1). The current month gets the featured hike on daysAgo:2
+    /// (most-recent + id `demo-national-trail-2` for the shot-5 lookup) plus two
+    /// monthsAgo:0/dayOfMonth:1 companions, which stay in-month for any run day
+    /// so the current month reads >= 2 even on a day-1/2 run.
+    ///
+    /// Preserves every history-based Dex badge: total > 100 mi (Century Club +
+    /// tiers — a filler tops up if the sampled path shrinks it), a >= 5 mi hike
+    /// (Long Hauler: National 15.17 / Ma-Ha-Tuak 7.13), a pre-7 am start (Early
+    /// Bird: startHour 6), starts across all four seasons (12-month spread),
+    /// and > 10 distinct days (Four Seasons / Regular). Exactly 11 distinct
+    /// trails carry `completes: true` so the map shot reads "11 of 77."
     private static let hikeSpecs: [HikeSpec] = [
-        // Featured hike — the ONLY one with a GPS path. The map draws a
-        // translucent cyan halo along every recorded path, and synthetic
-        // paths that hug their trails exactly rendered as a weird outline
-        // around each completed trail in the map shots. One jittered
-        // track reads as a real recording; shot 5 needs it for the route
-        // map + elevation profile.
-        HikeSpec(trailId: "national-trail",  distanceMi: 15.17, daysAgo: 2,   startHour: 6,  durationMin: 305, withPath: true),
-        HikeSpec(trailId: "alta-trail",            distanceMi: 4.60,  daysAgo: 5,   startHour: 8,  durationMin: 150, withPath: false),
-        HikeSpec(trailId: "holbert-trail",   distanceMi: 2.60,  daysAgo: 12,  startHour: 7,  durationMin: 95,  withPath: false),
-        HikeSpec(trailId: "desert-classic-trail",  distanceMi: 3.88,  daysAgo: 22,  startHour: 9,  durationMin: 120, withPath: false),
-        HikeSpec(trailId: "hau-pal-loop-trail",     distanceMi: 2.72, daysAgo: 31, startHour: 7,  durationMin: 88,  withPath: false),
-        HikeSpec(trailId: "javelina-canyon-trail",  distanceMi: 2.94, daysAgo: 50, startHour: 8,  durationMin: 96,  withPath: false, completes: false),
-        HikeSpec(trailId: "mormon-trail",           distanceMi: 1.36, daysAgo: 72, startHour: 7,  durationMin: 52,  withPath: false),
-        HikeSpec(trailId: "kiwanis-trail",          distanceMi: 1.05, daysAgo: 82, startHour: 9,  durationMin: 40,  withPath: false),
-        HikeSpec(trailId: "telegraph-pass-trail",   distanceMi: 0.72, daysAgo: 92, startHour: 8,  durationMin: 28,  withPath: false),
-        // Older, distance/date only (no path needed for badges + chart).
-        HikeSpec(trailId: "national-trail",             distanceMi: 15.17, daysAgo: 110, startHour: 6,  durationMin: 300, withPath: false),
-        HikeSpec(trailId: "alta-trail",                       distanceMi: 4.60,  daysAgo: 122, startHour: 8,  durationMin: 150, withPath: false),
-        HikeSpec(trailId: "desert-classic-trail",             distanceMi: 3.88,  daysAgo: 165, startHour: 9,  durationMin: 120, withPath: false),
-        HikeSpec(trailId: "ma-ha-tuak-perimeter-trail", distanceMi: 7.13,  daysAgo: 140, startHour: 7,  durationMin: 230, withPath: false),
-        HikeSpec(trailId: "desert-classic-trail",       distanceMi: 4.73,  daysAgo: 200, startHour: 8,  durationMin: 150, withPath: false),
-        HikeSpec(trailId: "bursera-trail",              distanceMi: 3.32,  daysAgo: 225, startHour: 9,  durationMin: 110, withPath: false),
-        HikeSpec(trailId: "guadalupe-perimeter",  distanceMi: 2.75,  daysAgo: 235, startHour: 8,  durationMin: 92,  withPath: false, completes: false),
-        HikeSpec(trailId: "las-lomitas-trail",          distanceMi: 2.79,  daysAgo: 245, startHour: 7,  durationMin: 94,  withPath: false),
-        HikeSpec(trailId: "thondum-wihom-trail",        distanceMi: 2.40,  daysAgo: 265, startHour: 9,  durationMin: 82,  withPath: false, completes: false),
-        HikeSpec(trailId: "national-trail",             distanceMi: 15.17, daysAgo: 290, startHour: 6,  durationMin: 300, withPath: false),
-        HikeSpec(trailId: "javelina-canyon-trail",      distanceMi: 2.94,  daysAgo: 300, startHour: 8,  durationMin: 96,  withPath: false, completes: false),
-        HikeSpec(trailId: "hau-pal-loop-trail",         distanceMi: 2.72,  daysAgo: 325, startHour: 7,  durationMin: 88,  withPath: false),
+        // ---- Current month: the featured hike (the ONLY GPS-pathed one; the
+        // map draws a cyan halo along it and shot 5 needs it for the route +
+        // elevation) on daysAgo:2 so it's the most-recent row AND keeps the id
+        // `demo-national-trail-2` the shot-5 lookup expects. PLUS two companions
+        // anchored to monthsAgo:0 dayOfMonth:1, which land in the current
+        // calendar month for ANY run day — so the current month reads >=2 even
+        // when the screenshot run lands on day 1-2 and the daysAgo:2 featured
+        // hike spills back into the previous month.
+        HikeSpec(trailId: "national-trail", distanceMi: 15.17, daysAgo: 2, startHour: 6, durationMin: 305, withPath: true),
+        HikeSpec(trailId: "alta-trail", distanceMi: 4.60, monthsAgo: 0, dayOfMonth: 1, startHour: 8, durationMin: 150, withPath: false),
+        HikeSpec(trailId: "desert-classic-trail", distanceMi: 4.12, monthsAgo: 0, dayOfMonth: 1, startHour: 9, durationMin: 132, withPath: false, completes: false),
+        // ---- Older months: distance/date only. 11 distinct completes:true
+        // trails (national, alta, ma-ha-tuak, holbert, desert-classic,
+        // hau-pal, mormon, kiwanis, telegraph, bursera, las-lomitas); the rest
+        // are non-completing visits / repeats.
+        HikeSpec(trailId: "ma-ha-tuak-perimeter-trail", distanceMi: 7.13, monthsAgo: 1, dayOfMonth: 22, startHour: 7, durationMin: 230, withPath: false),
+        HikeSpec(trailId: "holbert-trail", distanceMi: 2.60, monthsAgo: 1, dayOfMonth: 8, startHour: 7, durationMin: 95, withPath: false),
+        HikeSpec(trailId: "desert-classic-trail", distanceMi: 4.73, monthsAgo: 2, dayOfMonth: 22, startHour: 9, durationMin: 150, withPath: false),
+        HikeSpec(trailId: "javelina-canyon-trail", distanceMi: 2.94, monthsAgo: 2, dayOfMonth: 9, startHour: 8, durationMin: 96, withPath: false, completes: false),
+        HikeSpec(trailId: "hau-pal-loop-trail", distanceMi: 2.72, monthsAgo: 3, dayOfMonth: 19, startHour: 7, durationMin: 88, withPath: false),
+        HikeSpec(trailId: "mormon-trail", distanceMi: 1.36, monthsAgo: 3, dayOfMonth: 7, startHour: 7, durationMin: 52, withPath: false),
+        HikeSpec(trailId: "kiwanis-trail", distanceMi: 1.05, monthsAgo: 4, dayOfMonth: 21, startHour: 9, durationMin: 40, withPath: false),
+        HikeSpec(trailId: "telegraph-pass-trail", distanceMi: 0.72, monthsAgo: 4, dayOfMonth: 10, startHour: 6, durationMin: 28, withPath: false),
+        HikeSpec(trailId: "national-trail", distanceMi: 15.17, monthsAgo: 4, dayOfMonth: 15, startHour: 6, durationMin: 300, withPath: false, completes: false),
+        HikeSpec(trailId: "bursera-trail", distanceMi: 3.32, monthsAgo: 5, dayOfMonth: 20, startHour: 9, durationMin: 110, withPath: false),
+        HikeSpec(trailId: "las-lomitas-trail", distanceMi: 2.79, monthsAgo: 5, dayOfMonth: 8, startHour: 7, durationMin: 94, withPath: false),
+        HikeSpec(trailId: "guadalupe-perimeter", distanceMi: 2.75, monthsAgo: 6, dayOfMonth: 22, startHour: 8, durationMin: 92, withPath: false, completes: false),
+        HikeSpec(trailId: "thondum-wihom-trail", distanceMi: 2.40, monthsAgo: 6, dayOfMonth: 8, startHour: 9, durationMin: 82, withPath: false, completes: false),
+        HikeSpec(trailId: "pima-canyon-loop-trail", distanceMi: 3.24, monthsAgo: 7, dayOfMonth: 20, startHour: 8, durationMin: 110, withPath: false, completes: false),
+        HikeSpec(trailId: "desert-classic-trail", distanceMi: 3.88, monthsAgo: 7, dayOfMonth: 7, startHour: 9, durationMin: 120, withPath: false, completes: false),
+        HikeSpec(trailId: "ma-ha-tuak-perimeter-trail", distanceMi: 7.13, monthsAgo: 8, dayOfMonth: 21, startHour: 7, durationMin: 230, withPath: false, completes: false),
+        HikeSpec(trailId: "javelina-canyon-trail", distanceMi: 2.94, monthsAgo: 8, dayOfMonth: 9, startHour: 8, durationMin: 96, withPath: false, completes: false),
+        HikeSpec(trailId: "national-trail", distanceMi: 15.17, monthsAgo: 9, dayOfMonth: 19, startHour: 6, durationMin: 300, withPath: false, completes: false),
+        HikeSpec(trailId: "hau-pal-loop-trail", distanceMi: 2.72, monthsAgo: 9, dayOfMonth: 7, startHour: 7, durationMin: 88, withPath: false, completes: false),
+        HikeSpec(trailId: "bursera-trail", distanceMi: 3.32, monthsAgo: 10, dayOfMonth: 20, startHour: 9, durationMin: 110, withPath: false, completes: false),
+        HikeSpec(trailId: "alta-trail", distanceMi: 4.60, monthsAgo: 10, dayOfMonth: 8, startHour: 8, durationMin: 150, withPath: false, completes: false),
+        HikeSpec(trailId: "las-lomitas-trail", distanceMi: 2.79, monthsAgo: 10, dayOfMonth: 14, startHour: 7, durationMin: 94, withPath: false, completes: false),
+        HikeSpec(trailId: "desert-classic-trail", distanceMi: 4.73, monthsAgo: 11, dayOfMonth: 21, startHour: 9, durationMin: 150, withPath: false, completes: false),
+        HikeSpec(trailId: "holbert-trail", distanceMi: 2.60, monthsAgo: 11, dayOfMonth: 9, startHour: 7, durationMin: 95, withPath: false, completes: false),
     ]
 
     private static func demoHikes() -> [SavedRecording] {
         let cal = Calendar.current
         let now = Date()
+        let thisMonthStart = cal.dateInterval(of: .month, for: now)?.start ?? now
         var hikes: [SavedRecording] = hikeSpecs.map { spec in
-            let day = cal.date(byAdding: .day, value: -spec.daysAgo, to: now) ?? now
+            let day: Date
+            if let d = spec.daysAgo {
+                day = cal.date(byAdding: .day, value: -d, to: now) ?? now
+            } else {
+                let monthStart = cal.date(byAdding: .month, value: -(spec.monthsAgo ?? 0),
+                                          to: thisMonthStart) ?? thisMonthStart
+                day = cal.date(byAdding: .day, value: spec.dayOfMonth - 1, to: monthStart) ?? monthStart
+            }
             let start = cal.date(bySettingHour: spec.startHour, minute: 0, second: 0, of: day) ?? day
             let path = spec.withPath
                 ? densifiedPath(coords: trailCoords[spec.trailId] ?? [], startMs: start.timeIntervalSince1970 * 1000)
@@ -287,8 +323,9 @@ enum UITestSupport {
                 distanceMi = spec.distanceMi
                 durationSeconds = spec.durationMin * 60
             }
+            let idSuffix = spec.daysAgo.map(String.init) ?? "m\(spec.monthsAgo ?? 0)d\(spec.dayOfMonth)"
             return SavedRecording(
-                id: "demo-\(spec.trailId)-\(spec.daysAgo)",
+                id: "demo-\(spec.trailId)-\(idSuffix)",
                 areaId: areaId,
                 startedAt: start,
                 endedAt: start.addingTimeInterval(Double(durationSeconds)),

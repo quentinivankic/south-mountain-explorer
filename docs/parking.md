@@ -64,6 +64,37 @@ Known limits: overlapping area bboxes can attach one lot to two areas
 (no cross-area dedup); a large/irregular lot's centroid can land off the lot;
 park-and-ride is not specially handled.
 
+## How other apps solve this (and what it validates)
+
+Researched the majors to sanity-check our model (WebSearch; proprietary apps,
+so this is documented behavior, not internals):
+
+- **AllTrails** — a **"Directions" button that hands off to Google/Apple Maps**
+  to drive you to the trail start; it does NOT do in-app driving navigation.
+  Trail pages supplement with **editorial + community notes** on restrooms,
+  parking, and fees.
+  <https://support.alltrails.com/hc/en-us/articles/37200401098516-Getting-started-on-AllTrails>
+- **Gaia GPS** — "Guide Me" on a waypoint **links out to your streets app**
+  for directions to the trail start; users **drop a waypoint** to mark their
+  parked car. <https://blog.gaiagps.com/top-10-ways-to-use-waypoints/>
+- **onX** — no direct handoff: copy the waypoint coordinates, paste into
+  Google Maps. <https://www.territorysupply.com/onx-vs-gaia-gps>
+
+What this validates for us:
+1. **Nobody does in-app driving nav — everyone hands off to the phone's maps
+   app.** So the eventual "Directions" button is just an Apple Maps handoff
+   (`MKMapItem.openInMaps` to the parking point) — the industry norm, and why
+   deferring driving directions is the right call.
+2. **Parking is a single point / waypoint**, not a rendered polygon — validates
+   the centroid representation.
+3. **`fee` is worth surfacing** (AllTrails calls it out); we carry it from OSM.
+
+The honest gap: AllTrails fills parking info with **human editorial + community
+notes**, so its coverage beats raw OSM where OSM is thin. We can't match that
+automatically — OSM `amenity=parking` + `fee` is a strong automated baseline,
+and closing the gap is a future **community "report parking"** flow (tied to
+the existing report-a-problem flywheel), not something to fake now.
+
 ## Validation is automated (no eyeballing)
 
 Eyeballing 247 AZ areas doesn't scale, so quality is judged from numbers:

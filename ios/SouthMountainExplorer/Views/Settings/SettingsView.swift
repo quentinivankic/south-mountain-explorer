@@ -1,13 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-private struct UserStats: Equatable {
-    var hikeCount: Int
-    var totalMi: Double
-    var trailsCompleted: Int
-    var areasExplored: Int
-}
-
 /// Privacy policy, hosted at trekdex.app. Pinned here so the Privacy
 /// Policy row in Settings → About links to the authoritative copy.
 /// The SAME URL must go into App Store Connect's Privacy Policy URL
@@ -46,10 +39,6 @@ private let progressHoldDuration: Duration = .seconds(1.5)
 
 struct SettingsView: View {
     @Environment(AuthService.self) private var auth
-    @Environment(ProgressService.self) private var progress
-    @Environment(CoverageService.self) private var coverage
-    @Environment(FavoritesService.self) private var favorites
-    @Environment(RecordingService.self) private var recording
 
     @AppStorage(StorageKeys.theme) private var theme: AppTheme = .system
     @AppStorage(StorageKeys.trailMesh) private var trailMesh = true
@@ -86,7 +75,6 @@ struct SettingsView: View {
     @State private var importSuccess = false
     @State private var showRefreshConfirm = false
     @State private var trailDataRefreshed = false
-    @State private var stats: UserStats? = nil
     /// Active "Download for Offline" progress as `(completed, total)`.
     /// Non-nil while the prefetch task is running so the button label can
     /// show "Downloading 2 of 5…". Cleared a beat after completion so the
@@ -162,19 +150,6 @@ struct SettingsView: View {
                             showSignIn = true
                         } label: {
                             Label("Sign in with Apple", systemImage: "apple.logo")
-                        }
-                    }
-                }
-
-                Section("Your Activity") {
-                    if let s = stats {
-                        statsBlock(s)
-                    } else {
-                        HStack {
-                            ProgressView()
-                            Text("Tallying your hikes…")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -525,10 +500,6 @@ struct SettingsView: View {
         } message: {
             Text("Quit and relaunch the app to see the restored data — the app caches some state in memory at launch.")
         }
-        // Re-run when the recording state flips (recording starts or stops)
-        // so completing a hike then opening Settings shows fresh numbers
-        // instead of whatever was cached on the last view appearance.
-        .task(id: recording.activeRecording == nil) { await refreshStats() }
     }
 
     /// Kick off a manual "Download Nearby" run with `force: true` so it
@@ -566,67 +537,6 @@ struct SettingsView: View {
             try? await Task.sleep(for: progressHoldDuration)
             nearbyProgress = nil
         }
-    }
-
-    private func statsBlock(_ s: UserStats) -> some View {
-        HStack {
-            statColumn(value: "\(s.hikeCount)", label: s.hikeCount == 1 ? "hike" : "hikes")
-            Divider().frame(height: 36)
-            statColumn(value: UnitFormatter.distanceValue(miles: s.totalMi, units: units),
-                       label: units == .imperial ? "miles" : "km")
-            Divider().frame(height: 36)
-            statColumn(value: "\(s.trailsCompleted)", label: s.trailsCompleted == 1 ? "trail" : "trails")
-            Divider().frame(height: 36)
-            statColumn(value: "\(s.areasExplored)", label: s.areasExplored == 1 ? "area" : "areas")
-        }
-        .padding(.vertical, 4)
-    }
-
-    private func statColumn(value: String, label: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.headline.monospacedDigit())
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    /// Roll up history + completions into the vanity stats block. Counts a
-    /// (areaId, trailId) pair as a single completion across both sources so
-    /// auto-completes from a hike + manual toggles for the same trail don't
-    /// double-count.
-    private func refreshStats() async {
-        let history = await recording.loadHistory()
-
-        var completedPairs = Set<String>()
-        for (areaId, trails) in progress.completions {
-            for trailId in trails.keys {
-                completedPairs.insert("\(areaId):\(trailId)")
-            }
-        }
-        for hike in history {
-            // Walk-aware: credit each touched area's own completions.
-            for areaId in hike.touchedAreaIds {
-                for trailId in hike.completedTrailIds(in: areaId) {
-                    completedPairs.insert("\(areaId):\(trailId)")
-                }
-            }
-        }
-
-        var areas = Set<String>()
-        for hike in history { areas.formUnion(hike.touchedAreaIds) }
-        for (areaId, trails) in progress.completions where !trails.isEmpty {
-            areas.insert(areaId)
-        }
-
-        stats = UserStats(
-            hikeCount: history.count,
-            totalMi: history.reduce(0.0) { $0 + $1.distanceMi },
-            trailsCompleted: completedPairs.count,
-            areasExplored: areas.count
-        )
     }
 
     /// Build the export blob, write it to a temp file, and present

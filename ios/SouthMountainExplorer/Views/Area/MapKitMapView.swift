@@ -66,6 +66,11 @@ enum MapTarget: Equatable {
 /// the real MKUserLocation).
 final class DemoUserDotAnnotation: MKPointAnnotation {}
 
+/// A trailhead parking lot pin (see `Area.parking`). A distinct class lets
+/// the Coordinator's `viewFor` render it as a blue "P" marker with a
+/// name/fee callout, without touching other annotations MapKit manages.
+final class ParkingAnnotation: MKPointAnnotation {}
+
 struct MapKitMapView: UIViewRepresentable {
     let area: Area
     let activeRecording: ActiveRecording?
@@ -227,6 +232,7 @@ struct MapKitMapView: UIViewRepresentable {
         // (Trail set within an area is stable for the area's lifetime.)
         if coord.lastAreaId != area.id {
             coord.rebuildTrailOverlays(on: mapView, from: area)
+            coord.rebuildParkingAnnotations(on: mapView, from: area)
             coord.lastAreaId = area.id
             // Force re-style on next pass since renderer dict was reset.
             coord.lastSelectedTrailId = nil
@@ -772,15 +778,45 @@ struct MapKitMapView: UIViewRepresentable {
         /// `demoUserDot`). Returns nil for every other annotation so
         /// MapKit keeps its default views — including the real
         /// MKUserLocation dot when authorization does land.
+        /// Replace the area's parking pins when the area changes. Called from
+        /// the `updateUIView` area-changed block alongside the trail rebuild.
+        func rebuildParkingAnnotations(on mapView: MKMapView, from area: Area) {
+            let existing = mapView.annotations.compactMap { $0 as? ParkingAnnotation }
+            if !existing.isEmpty { mapView.removeAnnotations(existing) }
+            for lot in area.parking ?? [] {
+                let ann = ParkingAnnotation()
+                ann.coordinate = CLLocationCoordinate2D(latitude: lot.lat, longitude: lot.lon)
+                ann.title = lot.name ?? "Parking"
+                if let fee = lot.fee {
+                    ann.subtitle = fee ? "Paid parking" : "Free parking"
+                }
+                mapView.addAnnotation(ann)
+            }
+        }
+
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
-            guard annotation is DemoUserDotAnnotation else { return nil }
-            let id = "demo-user-dot"
-            let view = mapView.dequeueReusableAnnotationView(withIdentifier: id)
-                ?? MKAnnotationView(annotation: annotation, reuseIdentifier: id)
-            view.annotation = annotation
-            view.image = Self.demoUserDotImage
-            view.zPriority = .max
-            return view
+            if annotation is DemoUserDotAnnotation {
+                let id = "demo-user-dot"
+                let view = mapView.dequeueReusableAnnotationView(withIdentifier: id)
+                    ?? MKAnnotationView(annotation: annotation, reuseIdentifier: id)
+                view.annotation = annotation
+                view.image = Self.demoUserDotImage
+                view.zPriority = .max
+                return view
+            }
+            if annotation is ParkingAnnotation {
+                let id = "parking"
+                let view = (mapView.dequeueReusableAnnotationView(withIdentifier: id)
+                            as? MKMarkerAnnotationView)
+                    ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: id)
+                view.annotation = annotation
+                view.markerTintColor = .systemBlue     // Maps parking convention
+                view.glyphText = "P"
+                view.canShowCallout = true
+                view.displayPriority = .required        // a few per area — always show
+                return view
+            }
+            return nil
         }
 
         /// System-look location dot: soft shadow, white ring,

@@ -64,6 +64,26 @@ Known limits: overlapping area bboxes can attach one lot to two areas
 (no cross-area dedup); a large/irregular lot's centroid can land off the lot;
 park-and-ride is not specially handled.
 
+### Pin point vs. navigation target (centroid is fine here)
+
+We store each lot as its **centroid**. For a *map pin* that's correct. For
+future *driving directions*, the OSM guidance is that routing to a polygon
+centroid is unreliable — it "would potentially snap to an incorrect nearest
+highway node, which could mean long detours" — and the proper target is an
+`amenity=parking_entrance` node (or `routing:entrance=main`).
+· <https://wiki.openstreetmap.org/wiki/Tag:amenity=parking_entrance>
+· <https://wiki.openstreetmap.org/wiki/Key:routing:entrance>
+
+The nuance that keeps this simple for us: `parking_entrance` is used mostly
+for **garages** (underground / multi-storey). Trailhead lots are almost always
+small **surface** lots you drive straight into off the road, where the
+centroid ≈ the entrance. The centroid-misrouting risk only bites **large**
+lots. So centroid is the right choice for the pin AND an acceptable directions
+target for the common case; capturing `parking_entrance` as the drive-to point
+is an upgrade for the rare large-lot case, and it belongs with the directions
+feature (later) — not worth a nav field in the extractor the app won't use
+yet.
+
 ## How other apps solve this (and what it validates)
 
 Researched the majors to sanity-check our model (WebSearch; proprietary apps,
@@ -94,6 +114,17 @@ notes**, so its coverage beats raw OSM where OSM is thin. We can't match that
 automatically — OSM `amenity=parking` + `fee` is a strong automated baseline,
 and closing the gap is a future **community "report parking"** flow (tied to
 the existing report-a-problem flywheel), not something to fake now.
+
+## What we deliberately DON'T do
+
+**No name-based filtering.** It's tempting to drop lots named "Safeway" /
+"Walgreens" as retail, or keep ones named "…Trailhead." We don't — this repo
+learned the hard way that *tags are the right signal and name matching is a
+dead end* (see the trail-curation notes in CLAUDE.md). The correct signal for
+a retail lot is `access=customers`; if OSM lacks that tag, that's a data gap
+to fix upstream, not something to paper over with name heuristics that would
+false-positive on "Safeway Trailhead"-style edge cases. Most real trailhead
+lots are unnamed anyway.
 
 ## Validation is automated (no eyeballing)
 

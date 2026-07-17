@@ -2,30 +2,45 @@
 """Enrich published area geom with trailhead PARKING from OpenStreetMap.
 
 People need to know where to *park* before they can hike — the app draws a
-beautiful trail network but says nothing about how to get to it. This script
-adds an `amenity=parking` layer to each area's published geom so the app can
-draw parking pins (and, later, offer directions to one).
+beautiful trail network but says nothing about how to get to it. This adds an
+`amenity=parking` layer to each area's geom so the app can draw parking pins.
 
-How it works (per area, driven off the ALREADY-published geom — no OSM
-extract or homelab needed, just Overpass, which CI runners can reach):
-  1. Read the area's bbox from `public/areas/geom/<id>.json`.
-  2. Query Overpass for parking (node/way/relation `amenity=parking`) in
-     that bbox, `out center` so ways/relations resolve to a point.
-  3. Keep only lots within `PARKING_TRAIL_MAX_M` of a trail vertex — that
-     turns "every lot in the bbox" (shops, neighborhoods) into "the lots
-     that actually serve this trail network," i.e. trailhead parking.
-  4. Dedup near-duplicates and write a compact `parking` list into the geom.
+Runs off the ALREADY-published geom via Overpass (which CI runners can reach,
+so no OSM extract / homelab needed — same pattern as seed-areas /
+audit-easement-ownership).
 
-    python3 scripts/add-parking.py --state az            # write
-    python3 scripts/add-parking.py --state az --dry-run  # report only
-    python3 scripts/add-parking.py --all                 # every state
+Extraction logic (evidence-based; see docs/parking.md for the OSM-wiki
+citations behind each choice):
+  1. Read the area's bbox from public/areas/geom/<id>.json.
+  2. Overpass for `amenity=parking` (the LOT — never `amenity=parking_space`,
+     which tags individual stalls and would shatter one lot into many pins)
+     AND `highway=trailhead` (a de-facto tag that marks where a trail starts,
+     often on/at the parking) in that bbox, `out center` so ways/relations
+     resolve to a point.
+  3. Drop what isn't usable public trailhead parking:
+       - access in {private, no, customers, permit}  (customers = a store's
+         lot; keep untagged + permissive — real trailhead lots are usually one
+         of those).
+       - parking in {street_side, lane, on_kerb, half_on_kerb, on_street,
+         shoulder, layby, painted_area}  (on-street parking, not a lot).
+  4. Associate with THIS area: keep a lot if it's within
+     `PARKING_TRAIL_MAX_M` of a trail vertex OR within `TRAILHEAD_COINCIDE_M`
+     of a `highway=trailhead` (the trailhead tag IS the association). Lots
+     corroborated by a trailhead are flagged `trailhead: true` — higher
+     confidence than mere proximity.
+  5. Dedup near-duplicates; write a compact `parking` list into the geom.
 
-Idempotent: re-running over unchanged OSM reproduces the same `parking`.
-Post-process for now (a republish would drop it), mirroring how DEM
-elevation started — fold into the publish pipeline once it's proven.
+Every run prints an aggregate REPORT (counts, coverage, lot→trail distance
+histogram, % trailhead-corroborated, outlier areas) so quality is judged from
+numbers, not by eyeballing hundreds of areas. `--dry-run` reports without
+writing; the histogram is how we tune `PARKING_TRAIL_MAX_M` from real data.
 
-Overpass is flaky under load; each area retries a few times before it's
-skipped (its geom is left untouched, never emptied).
+    python3 scripts/add-parking.py --state az --dry-run   # measure, write nothing
+    python3 scripts/add-parking.py --state az             # write + report
+    python3 scripts/add-parking.py --all
+
+Post-process for now (a republish drops it), mirroring how DEM elevation
+started — fold into the publish pipeline once proven.
 """
 from __future__ import annotations
 
@@ -49,15 +64,27 @@ _spec.loader.exec_module(_seed_areas)
 fetch_overpass = _seed_areas.fetch_overpass
 
 GEOM_DIR = _SCRIPTS_DIR.parent / "public" / "areas" / "geom"
+GOLDEN_FILE = _SCRIPTS_DIR / "golden-parking.json"
 
-# A lot is "trailhead parking" if it's within this many metres of any trail
-# vertex. 250 m keeps the lot at the end of a trail (and small pull-offs a
-# short walk away) while dropping unrelated city/retail parking that merely
-# shares the area's bbox.
+# A lot is trailhead parking if it's within this of a trail vertex. 250 m is a
+# heuristic (OSM has no standard) — the run's distance histogram is what
+# tells us whether to tighten it.
 PARKING_TRAIL_MAX_M = 250.0
-# Two lots closer than this are the same lot mapped twice (a node inside a
-# way, or overlapping polygons); keep one.
+# A lot within this of a highway=trailhead is trailhead parking regardless of
+# trail-geometry distance (the trailhead tag is the association).
+TRAILHEAD_COINCIDE_M = 80.0
+# Two lots closer than this are the same lot mapped twice; keep one.
 PARKING_DEDUP_M = 40.0
+
+# `access` values that are NOT usable public trailhead parking. Untagged +
+# permissive are KEPT (that's how most public trailhead land is tagged).
+_EXCLUDE_ACCESS = {"private", "no", "customers", "permit"}
+# `parking=*` values that describe ON-STREET parking (linear, along a road),
+# not a trailhead LOT. Real lots are surface / multi-storey / underground.
+_STREET_PARKING = {
+    "street_side", "lane", "on_kerb", "half_on_kerb",
+    "on_street", "shoulder", "layby", "painted_area",
+}
 
 RETRY_BACKOFFS_SECONDS = [30, 90, 300]
 
@@ -71,61 +98,59 @@ def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * r * math.asin(min(1.0, math.sqrt(a)))
 
 
-def overpass_parking_query(bbox: list[float]) -> str:
+def overpass_query(bbox: list[float]) -> str:
     """`bbox` is the geom's [lonmin, latmin, lonmax, latmax]; Overpass wants
     (south, west, north, east)."""
     lonmin, latmin, lonmax, latmax = bbox
     b = f"{latmin},{lonmin},{latmax},{lonmax}"
-    return (
-        "[out:json][timeout:180];"
-        "("
-        f'node["amenity"="parking"]({b});'
-        f'way["amenity"="parking"]({b});'
-        f'relation["amenity"="parking"]({b});'
-        ");"
-        "out center tags;"
-    )
+    parts = []
+    for kv in ('"amenity"="parking"', '"highway"="trailhead"'):
+        for typ in ("node", "way", "relation"):
+            parts.append(f"{typ}[{kv}]({b});")
+    return "[out:json][timeout:180];(" + "".join(parts) + ");out center tags;"
 
 
-# `access` values that mean "not usable public trailhead parking." Untagged
-# lots are KEPT — most real trailhead lots carry no access tag and are public.
-# `customers` is a store's lot; `permit`/`private`/`no` aren't open parking.
-_EXCLUDE_ACCESS = {"private", "no", "customers", "permit"}
-# `parking=*` values that describe ON-STREET parking (a linear feature along a
-# road), NOT a trailhead lot. Common near urban-adjacent trails, so they'd be
-# false "lots" without this. Real lots are surface / multi-storey / underground.
-_STREET_PARKING = {
-    "street_side", "lane", "on_kerb", "half_on_kerb",
-    "on_street", "layby", "painted_area",
-}
+def _point(el: dict) -> tuple[float | None, float | None]:
+    if el.get("type") == "node":
+        return el.get("lat"), el.get("lon")
+    c = el.get("center") or {}
+    return c.get("lat"), c.get("lon")
 
 
 def parse_parking(data: dict) -> list[dict]:
-    """Overpass response -> list of {lat, lon, name?, fee?}. Ways/relations
-    use their `center` (from `out center`); nodes use their own lat/lon.
-    Drops lots that aren't usable public trailhead parking: non-public
-    `access`, and on-street `parking=*` (street parking, not a lot)."""
+    """Overpass response -> candidate lots. Each: {lat, lon, name?, fee?,
+    _self_th}. `_self_th` (stripped before write) marks a lot whose own
+    element is also tagged highway=trailhead. Filters non-public access and
+    on-street parking."""
     out: list[dict] = []
     for el in data.get("elements", []):
-        if el.get("type") == "node":
-            lat, lon = el.get("lat"), el.get("lon")
-        else:
-            c = el.get("center") or {}
-            lat, lon = c.get("lat"), c.get("lon")
+        tags = el.get("tags", {})
+        if tags.get("amenity") != "parking":
+            continue
+        lat, lon = _point(el)
         if lat is None or lon is None:
             continue
-        tags = el.get("tags", {})
         if tags.get("access") in _EXCLUDE_ACCESS:
             continue
         if tags.get("parking") in _STREET_PARKING:
             continue
-        entry: dict = {"lat": lat, "lon": lon}
+        entry: dict = {"lat": lat, "lon": lon, "_self_th": tags.get("highway") == "trailhead"}
         if tags.get("name"):
             entry["name"] = tags["name"]
         if tags.get("fee") in ("yes", "no"):
             entry["fee"] = tags["fee"] == "yes"
         out.append(entry)
     return out
+
+
+def parse_trailheads(data: dict) -> list[tuple[float, float]]:
+    pts: list[tuple[float, float]] = []
+    for el in data.get("elements", []):
+        if el.get("tags", {}).get("highway") == "trailhead":
+            lat, lon = _point(el)
+            if lat is not None and lon is not None:
+                pts.append((lat, lon))
+    return pts
 
 
 def trail_vertices(geom: dict) -> list[tuple[float, float]]:
@@ -137,15 +162,17 @@ def trail_vertices(geom: dict) -> list[tuple[float, float]]:
     return pts
 
 
-def near_trail(lat: float, lon: float, verts: list[tuple[float, float]],
-               max_m: float) -> bool:
-    for vlat, vlon in verts:
-        # Cheap bbox reject before the trig (≈ max_m in degrees).
-        if abs(vlat - lat) > 0.004 or abs(vlon - lon) > 0.005:
+def min_dist_m(lat: float, lon: float, pts: list[tuple[float, float]]) -> float:
+    """Nearest of `pts` in metres (inf if empty). Cheap bbox reject before the
+    trig for speed on dense trail networks."""
+    best = math.inf
+    for plat, plon in pts:
+        if abs(plat - lat) > 0.02 or abs(plon - lon) > 0.024:
             continue
-        if haversine_m(lat, lon, vlat, vlon) <= max_m:
-            return True
-    return False
+        d = haversine_m(lat, lon, plat, plon)
+        if d < best:
+            best = d
+    return best
 
 
 def dedup(lots: list[dict], min_m: float) -> list[dict]:
@@ -158,26 +185,180 @@ def dedup(lots: list[dict], min_m: float) -> list[dict]:
         )
         if dupe is None:
             kept.append(lot)
-        elif "name" not in dupe and "name" in lot:
-            # Prefer the named copy of a duplicated lot.
-            dupe.update(lot)
+        else:
+            # Merge: prefer a name, keep trailhead corroboration, keep the
+            # smaller trail distance.
+            if "name" not in dupe and "name" in lot:
+                dupe["name"] = lot["name"]
+            dupe["trailhead"] = dupe.get("trailhead") or lot.get("trailhead")
+            dupe["_dist_m"] = min(dupe.get("_dist_m", math.inf),
+                                  lot.get("_dist_m", math.inf))
     return kept
 
 
 def parking_for_geom(geom: dict, data: dict) -> list[dict]:
-    """Pure transform (unit-tested): Overpass parking + geom trails -> the
-    trailhead-parking list written into the geom."""
+    """Pure transform (unit-tested): Overpass parking + trailheads + the
+    geom's trails -> the parking list to write, each with internal `_dist_m`
+    (metres to nearest trail) and `trailhead` (corroborated) for the report."""
     verts = trail_vertices(geom)
     if not verts:
         return []
-    lots = [p for p in parse_parking(data)
-            if near_trail(p["lat"], p["lon"], verts, PARKING_TRAIL_MAX_M)]
-    for lot in lots:
+    trailheads = parse_trailheads(data)
+
+    kept: list[dict] = []
+    for lot in parse_parking(data):
+        dist = min_dist_m(lot["lat"], lot["lon"], verts)
+        th = lot.pop("_self_th", False)
+        if not th and trailheads:
+            th = min_dist_m(lot["lat"], lot["lon"], trailheads) <= TRAILHEAD_COINCIDE_M
+        if dist > PARKING_TRAIL_MAX_M and not th:
+            continue
         lot["lat"] = round(lot["lat"], 6)
         lot["lon"] = round(lot["lon"], 6)
-    lots = dedup(lots, PARKING_DEDUP_M)
-    lots.sort(key=lambda p: (p["lat"], p["lon"]))
-    return lots
+        lot["_dist_m"] = round(dist, 1) if math.isfinite(dist) else None
+        if th:
+            lot["trailhead"] = True
+        kept.append(lot)
+
+    kept = dedup(kept, PARKING_DEDUP_M)
+    kept.sort(key=lambda p: (p["lat"], p["lon"]))
+    return kept
+
+
+def _strip_internal(lots: list[dict]) -> list[dict]:
+    """Geom-ready copy: drop the `_dist_m` metric field (keep lat/lon/name/
+    fee/trailhead)."""
+    clean = []
+    for lot in lots:
+        clean.append({k: v for k, v in lot.items() if not k.startswith("_")})
+    return clean
+
+
+# ---------------------------------------------------------------- reporting
+
+def _histogram(dists: list[float]) -> str:
+    buckets = [(0, 25), (25, 50), (50, 100), (100, 150), (150, 200), (200, 250)]
+    counts = [0] * (len(buckets) + 1)  # +1 = trailhead-only (dist > 250 / None)
+    for d in dists:
+        if d is None or d > 250:
+            counts[-1] += 1
+            continue
+        for i, (lo, hi) in enumerate(buckets):
+            if lo <= d < hi:
+                counts[i] += 1
+                break
+    total = max(1, len(dists))
+    lines = ["  lot -> nearest trail (metres):"]
+    labels = [f"{lo:>3}-{hi:<3}" for lo, hi in buckets] + ["trailhead-only"]
+    for label, c in zip(labels, counts):
+        bar = "#" * round(40 * c / total)
+        lines.append(f"    {label:>13} | {c:5d}  {bar}")
+    return "\n".join(lines)
+
+
+def print_report(per_area: list[tuple[str, list[dict]]], dry_run: bool) -> None:
+    areas = len(per_area)
+    with_lots = [(aid, lots) for aid, lots in per_area if lots]
+    all_lots = [lot for _, lots in per_area for lot in lots]
+    dists = [lot.get("_dist_m") for lot in all_lots]
+    named = sum(1 for lot in all_lots if lot.get("name"))
+    th = sum(1 for lot in all_lots if lot.get("trailhead"))
+    counts = sorted((len(lots) for _, lots in per_area), reverse=True)
+
+    def pct(n: int) -> str:
+        return f"{100 * n / max(1, len(all_lots)):.0f}%"
+
+    print("\n" + "=" * 60)
+    print("PARKING EXTRACTION REPORT" + ("  (dry run — nothing written)" if dry_run else ""))
+    print("=" * 60)
+    print(f"  areas processed        : {areas}")
+    print(f"  areas with >=1 lot     : {len(with_lots)} ({100 * len(with_lots) / max(1, areas):.0f}%)")
+    print(f"  areas with 0 lots      : {areas - len(with_lots)}")
+    print(f"  total lots             : {len(all_lots)}")
+    if counts:
+        mid = counts[len(counts) // 2]
+        p95 = counts[max(0, int(len(counts) * 0.05))]
+        print(f"  lots/area  median {mid}  p95 {p95}  max {counts[0]}")
+    print(f"  named lots             : {named} ({pct(named)})")
+    print(f"  trailhead-corroborated : {th} ({pct(th)})  <- precision signal")
+    if dists:
+        print(_histogram(dists))
+    # Outlier areas — where a loose threshold would show as bbox bleed.
+    top = sorted(with_lots, key=lambda x: -len(x[1]))[:10]
+    if top:
+        print("  highest lot counts (eyeball these few, not all areas):")
+        for aid, lots in top:
+            print(f"    {len(lots):3d}  {aid}")
+    print("=" * 60)
+
+
+def check_golden(area_counts: dict[str, int]) -> bool:
+    """Regression gate: assert known areas land in expected [min,max] lot
+    bounds. Loose bounds now (no real-data baseline yet); tighten after the
+    first real run. Only checks golden areas that were in this run."""
+    if not GOLDEN_FILE.exists():
+        return True
+    golden = json.loads(GOLDEN_FILE.read_text())
+    ok = True
+    checked = 0
+    print("\nGOLDEN CHECK:")
+    for aid, bounds in sorted(golden.items()):
+        if aid not in area_counts:
+            continue
+        checked += 1
+        n = area_counts[aid]
+        lo, hi = bounds.get("min", 0), bounds.get("max", 10 ** 9)
+        status = "ok  " if lo <= n <= hi else "FAIL"
+        if status == "FAIL":
+            ok = False
+        print(f"  {status}  {aid}: {n} lots (expect {lo}-{hi})")
+    if checked == 0:
+        print("  (no golden areas in this run)")
+    return ok
+
+
+# ---------------------------------------------------------------- driver
+
+def process(files: list[Path], dry_run: bool) -> bool:
+    per_area: list[tuple[str, list[dict]]] = []
+    area_counts: dict[str, int] = {}
+    changed = 0
+    for f in files:
+        geom = json.loads(f.read_text())
+        if not geom.get("trails") or not geom.get("bbox"):
+            continue
+        data = None
+        for i, backoff in enumerate([0] + RETRY_BACKOFFS_SECONDS):
+            if backoff:
+                time.sleep(backoff)
+            try:
+                data = fetch_overpass(overpass_query(geom["bbox"]))
+                break
+            except Exception as e:  # noqa: BLE001
+                print(f"  {f.stem}: overpass attempt {i + 1} failed ({e})",
+                      file=sys.stderr)
+        if data is None:
+            print(f"  {f.stem}: SKIPPED (overpass unavailable)", file=sys.stderr)
+            continue
+
+        lots = parking_for_geom(geom, data)
+        per_area.append((f.stem, lots))
+        area_counts[f.stem] = len(lots)
+        clean = _strip_internal(lots)
+        if geom.get("parking") != clean:
+            changed += 1
+            if not dry_run:
+                if clean:
+                    geom["parking"] = clean
+                else:
+                    geom.pop("parking", None)
+                f.write_text(json.dumps(geom))
+
+    print_report(per_area, dry_run)
+    golden_ok = check_golden(area_counts)
+    verb = "would write" if dry_run else "wrote"
+    print(f"\n{verb} parking for {changed} area(s).")
+    return golden_ok
 
 
 def geom_files_for_state(state_code: str) -> list[Path]:
@@ -195,46 +376,6 @@ def geom_files_for_state(state_code: str) -> list[Path]:
     return files
 
 
-def process(files: list[Path], dry_run: bool) -> None:
-    total_lots = 0
-    changed = 0
-    for f in files:
-        geom = json.loads(f.read_text())
-        if not geom.get("trails"):
-            continue
-        bbox = geom.get("bbox")
-        if not bbox:
-            continue
-        data = None
-        for i, backoff in enumerate([0] + RETRY_BACKOFFS_SECONDS):
-            if backoff:
-                time.sleep(backoff)
-            try:
-                data = fetch_overpass(overpass_parking_query(bbox))
-                break
-            except Exception as e:  # noqa: BLE001
-                print(f"  {f.stem}: overpass attempt {i + 1} failed ({e})",
-                      file=sys.stderr)
-        if data is None:
-            print(f"  {f.stem}: SKIPPED (overpass unavailable)", file=sys.stderr)
-            continue
-
-        lots = parking_for_geom(geom, data)
-        total_lots += len(lots)
-        if geom.get("parking") != lots:
-            changed += 1
-            print(f"  {f.stem}: {len(lots)} parking")
-            if not dry_run:
-                if lots:
-                    geom["parking"] = lots
-                else:
-                    geom.pop("parking", None)
-                f.write_text(json.dumps(geom))
-    verb = "would write" if dry_run else "wrote"
-    print(f"{verb} parking for {changed} area(s); {total_lots} lots total "
-          f"across {len(files)} area(s)")
-
-
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     g = ap.add_mutually_exclusive_group(required=True)
@@ -248,7 +389,9 @@ def main() -> None:
     else:
         files = geom_files_for_state(args.state)
     print(f"Processing {len(files)} area(s)...")
-    process(files, args.dry_run)
+    golden_ok = process(files, args.dry_run)
+    if not golden_ok:
+        sys.exit(2)
 
 
 if __name__ == "__main__":

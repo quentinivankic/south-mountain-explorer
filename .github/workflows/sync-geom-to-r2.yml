@@ -4,9 +4,10 @@ name: Sync Geom to R2
 # AND the iOS-bundle index (`ios/.../areas-index.json`) to the Cloudflare
 # R2 bucket the app reads from. R2 is S3-compatible, so the AWS CLI
 # (pre-installed on `ubuntu-latest`) talks to it with a custom
-# `--endpoint-url`. `aws s3 sync` compares by size + mtime (NOT
-# --size-only, which silently skipped same-size content changes like a
-# difficulty-code flip — see the note by the sync step).
+# `--endpoint-url`. geom + silhouettes upload by CONTENT (each file's MD5
+# vs the R2 ETag, via scripts/stage-changed-r2.py) — NOT `--size-only`,
+# which silently skipped same-size content changes like a difficulty-code
+# flip (the Abalone Cove stale-silhouette bug); see the note by the sync step.
 #
 # Index publishing note: we deliberately publish the **iOS bundle**
 # version of areas-index.json (the NA-filtered subset produced by
@@ -101,27 +102,48 @@ jobs:
           fi
           ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
 
-          # NOTE: deliberately NOT --size-only. A difficulty recompute flips a
-          # trail's code in place (e.g. "e" -> "m") — SAME byte count — so
-          # --size-only treated the file as unchanged and never re-uploaded it,
-          # leaving R2 serving stale silhouettes/geom forever (the Abalone Cove
-          # all-green bug; #377 flipped thousands of short-steep trails). The
-          # default size+mtime compare re-uploads on a fresh checkout (mtime =
-          # checkout time), so content changes always propagate. The files are
-          # small JSON, so a full re-upload is a few minutes.
-          echo "Syncing geom..."
-          aws s3 sync public/areas/geom/ s3://trekdex-areas/ \
+          # Upload geom + silhouettes by CONTENT, not size or mtime. We had
+          # `aws s3 sync --size-only`, which compares only byte size — so a
+          # difficulty recompute that flips a code in place ("e" -> "m", same
+          # size) was judged unchanged and never re-uploaded, stranding stale
+          # silhouettes on R2 (the Abalone Cove all-green bug; #377 flipped
+          # thousands of short-steep trails). Plain `aws s3 sync` (size+mtime)
+          # fixes correctness but a fresh checkout stamps every mtime to "now",
+          # so it re-uploads all ~18k files every run (slow, risks timeout).
+          #
+          # Instead: diff each local file's MD5 against the R2 object's ETag
+          # (a single-part PUT's ETag IS the body MD5) and upload only the ones
+          # that differ. Correct (a same-size flip changes the MD5) AND
+          # incremental (steady-state uploads ~nothing).
+          echo "Listing R2 ETags..."
+          aws s3api list-objects-v2 --bucket trekdex-areas \
             --endpoint-url "$ENDPOINT" \
-            --content-type "application/json" \
-            --cache-control "public, max-age=86400" \
-            --no-progress
+            --query 'Contents[].[Key,ETag]' --output text > /tmp/r2_etags.tsv || true
 
-          echo "Syncing silhouettes..."
-          aws s3 sync public/areas/silhouettes/ s3://trekdex-areas/silhouettes/ \
-            --endpoint-url "$ENDPOINT" \
-            --content-type "application/json" \
-            --cache-control "public, max-age=86400" \
-            --no-progress
+          echo "Staging content-changed files (MD5 vs ETag)..."
+          python3 scripts/stage-changed-r2.py
+
+          if [ -d /tmp/up_geom ]; then
+            echo "Uploading changed geom..."
+            aws s3 cp /tmp/up_geom/ s3://trekdex-areas/ --recursive \
+              --endpoint-url "$ENDPOINT" \
+              --content-type "application/json" \
+              --cache-control "public, max-age=86400" \
+              --no-progress
+          else
+            echo "No geom changes to upload."
+          fi
+
+          if [ -d /tmp/up_sil ]; then
+            echo "Uploading changed silhouettes..."
+            aws s3 cp /tmp/up_sil/ s3://trekdex-areas/silhouettes/ --recursive \
+              --endpoint-url "$ENDPOINT" \
+              --content-type "application/json" \
+              --cache-control "public, max-age=86400" \
+              --no-progress
+          else
+            echo "No silhouette changes to upload."
+          fi
 
           # Index.json gets a short cache TTL (300s vs 86400s on
           # per-area data) so new regions reach existing TF users

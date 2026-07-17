@@ -13,11 +13,14 @@ struct TipJarView: View {
     var body: some View {
         List {
             Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("TrekDex is free")
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("A note from the developer")
                         .font(.headline)
-                    Text("Every trail, every feature — no subscription, no paywall. If the app has earned a spot on your hikes and you'd like to chip in toward its development, you can leave a tip. It unlocks nothing; it just means a lot.")
+                    Text("I am a solo developer working hard to make the best hiking app out there. Tips directly support development, including buying a more powerful computer and an Apple Watch to make a companion app. Thank you so much for considering a tip.")
                         .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text("TrekDex is currently free, but will include a paid tier in the future to support ongoing costs. The free tier will always include the core features of the app.")
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
                     if store.isSupporter {
                         Label("Thanks for supporting TrekDex ♥", systemImage: "heart.fill")

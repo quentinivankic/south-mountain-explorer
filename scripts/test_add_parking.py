@@ -109,6 +109,19 @@ def test_strip_internal_removes_dist_keeps_trailhead():
     assert clean[0]["name"] == "Lot"
 
 
+def test_dedup_handles_none_distance():
+    # Two co-located lots kept via trailhead corroboration with no trail
+    # nearby -> both _dist_m None. dedup must merge without crashing.
+    lots = [
+        {"lat": 33.74, "lon": -118.37, "trailhead": True, "_dist_m": None},
+        {"lat": 33.740001, "lon": -118.370001, "trailhead": True, "_dist_m": None, "name": "TH"},
+    ]
+    kept = ap.dedup(lots, ap.PARKING_DEDUP_M)
+    assert len(kept) == 1
+    assert kept[0]["_dist_m"] is None
+    assert kept[0].get("name") == "TH"
+
+
 def test_no_trails_no_parking():
     data = {"elements": [_park_node(1, 33.74005, -118.37298, name="Lot")]}
     assert ap.parking_for_geom({"trails": []}, data) == []

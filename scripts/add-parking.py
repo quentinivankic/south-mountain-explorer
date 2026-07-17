@@ -210,12 +210,13 @@ def dedup(lots: list[dict], min_m: float) -> list[dict]:
             kept.append(lot)
         else:
             # Merge: prefer a name, keep trailhead corroboration, keep the
-            # smaller trail distance.
+            # smaller trail distance. `_dist_m` is None for a trailhead-only
+            # lot with no trail nearby, so min() over the non-None values.
             if "name" not in dupe and "name" in lot:
                 dupe["name"] = lot["name"]
             dupe["trailhead"] = dupe.get("trailhead") or lot.get("trailhead")
-            dupe["_dist_m"] = min(dupe.get("_dist_m", math.inf),
-                                  lot.get("_dist_m", math.inf))
+            dists = [d for d in (dupe.get("_dist_m"), lot.get("_dist_m")) if d is not None]
+            dupe["_dist_m"] = min(dists) if dists else None
     return kept
 
 

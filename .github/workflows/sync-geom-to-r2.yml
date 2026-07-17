@@ -4,8 +4,9 @@ name: Sync Geom to R2
 # AND the iOS-bundle index (`ios/.../areas-index.json`) to the Cloudflare
 # R2 bucket the app reads from. R2 is S3-compatible, so the AWS CLI
 # (pre-installed on `ubuntu-latest`) talks to it with a custom
-# `--endpoint-url`. `aws s3 sync` only uploads new or changed objects,
-# so re-running is cheap.
+# `--endpoint-url`. `aws s3 sync` compares by size + mtime (NOT
+# --size-only, which silently skipped same-size content changes like a
+# difficulty-code flip — see the note by the sync step).
 #
 # Index publishing note: we deliberately publish the **iOS bundle**
 # version of areas-index.json (the NA-filtered subset produced by
@@ -32,8 +33,7 @@ name: Sync Geom to R2
 #    manual sync (the Abalone Cove difficulty-color mismatch). The
 #    checkout pins `ref: main`, so it syncs the post-merge tip.
 # 4. `schedule` — a once-daily reconcile backstop so R2 converges to
-#    the repo regardless of how a commit landed. `aws s3 sync
-#    --size-only` is a near-no-op when nothing changed.
+#    the repo regardless of how a commit landed.
 #
 # Required repo secrets (Settings → Secrets and variables →
 # Actions):
@@ -101,21 +101,27 @@ jobs:
           fi
           ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
 
+          # NOTE: deliberately NOT --size-only. A difficulty recompute flips a
+          # trail's code in place (e.g. "e" -> "m") — SAME byte count — so
+          # --size-only treated the file as unchanged and never re-uploaded it,
+          # leaving R2 serving stale silhouettes/geom forever (the Abalone Cove
+          # all-green bug; #377 flipped thousands of short-steep trails). The
+          # default size+mtime compare re-uploads on a fresh checkout (mtime =
+          # checkout time), so content changes always propagate. The files are
+          # small JSON, so a full re-upload is a few minutes.
           echo "Syncing geom..."
           aws s3 sync public/areas/geom/ s3://trekdex-areas/ \
             --endpoint-url "$ENDPOINT" \
             --content-type "application/json" \
             --cache-control "public, max-age=86400" \
-            --no-progress \
-            --size-only
+            --no-progress
 
           echo "Syncing silhouettes..."
           aws s3 sync public/areas/silhouettes/ s3://trekdex-areas/silhouettes/ \
             --endpoint-url "$ENDPOINT" \
             --content-type "application/json" \
             --cache-control "public, max-age=86400" \
-            --no-progress \
-            --size-only
+            --no-progress
 
           # Index.json gets a short cache TTL (300s vs 86400s on
           # per-area data) so new regions reach existing TF users

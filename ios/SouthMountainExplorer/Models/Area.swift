@@ -75,9 +75,11 @@ struct AreaRow: Codable, Sendable {
     /// (runtime) querying the same polygon.
     let osmRelationId: Int?
     /// Trailhead parking lots, when the geom has been enriched (nil otherwise).
-    /// `= nil` default keeps it out of the memberwise init (existing manual
-    /// `AreaRow(...)` stubs compile unchanged) while Codable still decodes it.
-    let parking: [ParkingLot]? = nil
+    /// Must be `var`, not `let`: a `let` with a default value is treated as a
+    /// fixed constant and EXCLUDED from synthesized Codable (it would never
+    /// decode). `var … = nil` both decodes AND stays out of the memberwise
+    /// init, so the manual `AreaRow(...)` stubs compile unchanged.
+    var parking: [ParkingLot]? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, name, state, zoom, bbox, trails, parking

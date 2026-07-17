@@ -121,6 +121,28 @@ def test_query_includes_both_layers_and_bbox_order():
     assert "(33.73,-118.38,33.75,-118.36)" in q   # S,W,N,E
 
 
+def test_state_query_scopes_to_iso_area():
+    q = ap.overpass_state_query("az")
+    assert 'area["ISO3166-2"="US-AZ"]->.s' in q
+    assert '"amenity"="parking"' in q and '"highway"="trailhead"' in q
+    assert "(area.s)" in q
+
+
+def test_bbox_prefilter_and_shared_lots_not_mutated():
+    # State-wide lots shared across areas: one inside the area near the trail,
+    # one far outside the bbox. parking_for_area must keep the near one, drop
+    # the far one (bbox pre-filter), and NOT mutate the shared input.
+    geom = {"trails": GEOM["trails"], "bbox": [-118.3735, 33.7398, -118.3720, 33.7407]}
+    shared = [
+        {"lat": 33.74005, "lon": -118.37298, "name": "In", "_self_th": False},
+        {"lat": 34.50, "lon": -117.00, "name": "FarAway", "_self_th": False},
+    ]
+    snapshot = [dict(l) for l in shared]
+    kept = ap.parking_for_area(geom, shared, [])
+    assert _names(kept) == {"In"}, _names(kept)
+    assert shared == snapshot, "shared lots must not be mutated"
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

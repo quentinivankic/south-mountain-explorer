@@ -7,7 +7,10 @@ beautiful trail network but says nothing about how to get to it. This adds an
 
 Runs off the ALREADY-published geom via Overpass (which CI runners can reach,
 so no OSM extract / homelab needed — same pattern as seed-areas /
-audit-easement-ownership).
+audit-easement-ownership). Queries ONE state at a time (all parking +
+trailheads in the state's ISO admin area), then assigns lots to areas
+locally — one Overpass query per state, not per area (247 per-area queries
+triggered 504 timeout storms).
 
 Extraction logic (evidence-based; see docs/parking.md for the OSM-wiki
 citations behind each choice):
@@ -98,16 +101,36 @@ def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * r * math.asin(min(1.0, math.sqrt(a)))
 
 
-def overpass_query(bbox: list[float]) -> str:
-    """`bbox` is the geom's [lonmin, latmin, lonmax, latmax]; Overpass wants
-    (south, west, north, east)."""
-    lonmin, latmin, lonmax, latmax = bbox
-    b = f"{latmin},{lonmin},{latmax},{lonmax}"
+def _layer_clauses(selector: str) -> str:
+    """parking + trailhead node/way/relation clauses inside `(selector)`."""
     parts = []
     for kv in ('"amenity"="parking"', '"highway"="trailhead"'):
         for typ in ("node", "way", "relation"):
-            parts.append(f"{typ}[{kv}]({b});")
-    return "[out:json][timeout:180];(" + "".join(parts) + ");out center tags;"
+            parts.append(f"{typ}[{kv}]{selector};")
+    return "".join(parts)
+
+
+def overpass_query(bbox: list[float]) -> str:
+    """Single-area bbox query (used for the raw-data probe / debugging).
+    `bbox` is the geom's [lonmin, latmin, lonmax, latmax]; Overpass wants
+    (south, west, north, east)."""
+    lonmin, latmin, lonmax, latmax = bbox
+    b = f"({latmin},{lonmin},{latmax},{lonmax})"
+    return "[out:json][timeout:180];(" + _layer_clauses(b) + ");out center tags;"
+
+
+def overpass_state_query(state_code: str) -> str:
+    """ONE query for a whole state's parking + trailheads, scoped to the
+    state's ISO3166-2 admin area (same approach as seed-areas.py). Replaces
+    247 per-area bbox queries with one — far faster and much kinder to
+    Overpass (per-area querying triggered 504 storms)."""
+    code = state_code.upper()
+    return (
+        "[out:json][timeout:600];"
+        f'area["ISO3166-2"="US-{code}"]->.s;'
+        "(" + _layer_clauses("(area.s)") + ");"
+        "out center tags;"
+    )
 
 
 def _point(el: dict) -> tuple[float | None, float | None]:
@@ -196,17 +219,37 @@ def dedup(lots: list[dict], min_m: float) -> list[dict]:
     return kept
 
 
-def parking_for_geom(geom: dict, data: dict) -> list[dict]:
-    """Pure transform (unit-tested): Overpass parking + trailheads + the
-    geom's trails -> the parking list to write, each with internal `_dist_m`
-    (metres to nearest trail) and `trailhead` (corroborated) for the report."""
+# Degrees to pre-filter the state-wide lot set down to an area's bbox before
+# the distance math. Must exceed PARKING_TRAIL_MAX_M (~250 m ≈ 0.0025°) so no
+# keepable lot is filtered out; 0.006° ≈ 660 m is a safe margin.
+_BBOX_BUFFER_DEG = 0.006
+
+
+def parking_for_area(geom: dict, lots: list[dict],
+                     trailheads: list[tuple[float, float]]) -> list[dict]:
+    """Assign the SHARED, state-wide parking + trailheads to one area.
+
+    Pure + unit-tested. `lots`/`trailheads` are parsed once per state and
+    passed to every area, so this MUST NOT mutate them (each kept lot is
+    copied first). A bbox pre-filter trims the state set to the area's
+    neighbourhood before the O(lots×vertices) distance math."""
     verts = trail_vertices(geom)
     if not verts:
         return []
-    trailheads = parse_trailheads(data)
+
+    bbox = geom.get("bbox")
+    if bbox:
+        lonmin, latmin, lonmax, latmax = bbox
+        b = _BBOX_BUFFER_DEG
+        cand = [l for l in lots
+                if latmin - b <= l["lat"] <= latmax + b
+                and lonmin - b <= l["lon"] <= lonmax + b]
+    else:
+        cand = lots
 
     kept: list[dict] = []
-    for lot in parse_parking(data):
+    for src in cand:
+        lot = dict(src)                       # copy — never mutate the shared lot
         dist = min_dist_m(lot["lat"], lot["lon"], verts)
         th = lot.pop("_self_th", False)
         if not th and trailheads:
@@ -223,6 +266,12 @@ def parking_for_geom(geom: dict, data: dict) -> list[dict]:
     kept = dedup(kept, PARKING_DEDUP_M)
     kept.sort(key=lambda p: (p["lat"], p["lon"]))
     return kept
+
+
+def parking_for_geom(geom: dict, data: dict) -> list[dict]:
+    """Convenience wrapper (used by the raw-probe + tests): parse a single
+    Overpass response and assign it to one area."""
+    return parking_for_area(geom, parse_parking(data), parse_trailheads(data))
 
 
 def _strip_internal(lots: list[dict]) -> list[dict]:
@@ -319,61 +368,74 @@ def check_golden(area_counts: dict[str, int]) -> bool:
 
 # ---------------------------------------------------------------- driver
 
-def process(files: list[Path], dry_run: bool) -> bool:
+def fetch_state(state_code: str) -> dict | None:
+    """One Overpass query for the whole state, with the same retry backoff.
+    Returns the response, or None if every attempt failed."""
+    for i, backoff in enumerate([0] + RETRY_BACKOFFS_SECONDS):
+        if backoff:
+            time.sleep(backoff)
+        try:
+            return fetch_overpass(overpass_state_query(state_code))
+        except Exception as e:  # noqa: BLE001
+            print(f"  {state_code.upper()}: overpass attempt {i + 1} failed ({e})",
+                  file=sys.stderr)
+    return None
+
+
+def geom_by_state() -> dict[str, list[Path]]:
+    """Map each state NAME -> its geom files, scanning the geom dir once."""
+    groups: dict[str, list[Path]] = {}
+    for f in sorted(GEOM_DIR.glob("*.json")):
+        try:
+            st = json.loads(f.read_text()).get("state")
+        except Exception:  # noqa: BLE001
+            continue
+        if st:
+            groups.setdefault(st, []).append(f)
+    return groups
+
+
+def process(state_codes: list[str], dry_run: bool) -> bool:
+    groups = geom_by_state()
     per_area: list[tuple[str, list[dict]]] = []
     area_counts: dict[str, int] = {}
     changed = 0
-    for f in files:
-        geom = json.loads(f.read_text())
-        if not geom.get("trails") or not geom.get("bbox"):
+    for code in state_codes:
+        name = STATE_NAMES.get(code.upper())
+        files = groups.get(name, []) if name else []
+        if not files:
             continue
-        data = None
-        for i, backoff in enumerate([0] + RETRY_BACKOFFS_SECONDS):
-            if backoff:
-                time.sleep(backoff)
-            try:
-                data = fetch_overpass(overpass_query(geom["bbox"]))
-                break
-            except Exception as e:  # noqa: BLE001
-                print(f"  {f.stem}: overpass attempt {i + 1} failed ({e})",
-                      file=sys.stderr)
+        print(f"{code.upper()}: 1 Overpass query for {len(files)} areas...")
+        data = fetch_state(code)
         if data is None:
-            print(f"  {f.stem}: SKIPPED (overpass unavailable)", file=sys.stderr)
+            print(f"  {code.upper()}: SKIPPED (overpass unavailable)", file=sys.stderr)
             continue
+        lots = parse_parking(data)
+        trailheads = parse_trailheads(data)
+        print(f"  {code.upper()}: {len(lots)} parking + {len(trailheads)} trailheads statewide")
 
-        lots = parking_for_geom(geom, data)
-        per_area.append((f.stem, lots))
-        area_counts[f.stem] = len(lots)
-        clean = _strip_internal(lots)
-        if geom.get("parking") != clean:
-            changed += 1
-            if not dry_run:
-                if clean:
-                    geom["parking"] = clean
-                else:
-                    geom.pop("parking", None)
-                f.write_text(json.dumps(geom))
+        for f in files:
+            geom = json.loads(f.read_text())
+            if not geom.get("trails") or not geom.get("bbox"):
+                continue
+            kept = parking_for_area(geom, lots, trailheads)
+            per_area.append((f.stem, kept))
+            area_counts[f.stem] = len(kept)
+            clean = _strip_internal(kept)
+            if geom.get("parking") != clean:
+                changed += 1
+                if not dry_run:
+                    if clean:
+                        geom["parking"] = clean
+                    else:
+                        geom.pop("parking", None)
+                    f.write_text(json.dumps(geom))
 
     print_report(per_area, dry_run)
     golden_ok = check_golden(area_counts)
     verb = "would write" if dry_run else "wrote"
     print(f"\n{verb} parking for {changed} area(s).")
     return golden_ok
-
-
-def geom_files_for_state(state_code: str) -> list[Path]:
-    name = STATE_NAMES.get(state_code.upper())
-    if not name:
-        raise SystemExit(f"Unknown state code: {state_code}")
-    files = []
-    for f in sorted(GEOM_DIR.glob("*.json")):
-        try:
-            g = json.loads(f.read_text())
-        except Exception:  # noqa: BLE001
-            continue
-        if g.get("state") == name:
-            files.append(f)
-    return files
 
 
 def main() -> None:
@@ -385,11 +447,12 @@ def main() -> None:
     args = ap.parse_args()
 
     if args.all:
-        files = sorted(GEOM_DIR.glob("*.json"))
+        codes = sorted(STATE_NAMES.keys())
     else:
-        files = geom_files_for_state(args.state)
-    print(f"Processing {len(files)} area(s)...")
-    golden_ok = process(files, args.dry_run)
+        if args.state.upper() not in STATE_NAMES:
+            raise SystemExit(f"Unknown state code: {args.state}")
+        codes = [args.state]
+    golden_ok = process(codes, args.dry_run)
     if not golden_ok:
         sys.exit(2)
 

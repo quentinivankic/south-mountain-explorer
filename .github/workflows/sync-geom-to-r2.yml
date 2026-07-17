@@ -16,17 +16,24 @@ name: Sync Geom to R2
 # a one-line edit in `scripts/filter-ios-bundle.py` — both bundle and
 # R2 inherit it.
 #
-# Two triggers:
+# Triggers:
 #
 # 1. `workflow_dispatch` — manual one-shot, used for the initial
-#    bulk upload and any time you want to force a re-sync without
-#    waiting on `build-trail-index`.
+#    bulk upload and any time you want to force a re-sync.
 # 2. `push` on main when geom / silhouettes / iOS-bundle index
-#    changes — keeps the bucket in lock-step with whatever the
-#    upstream `build-trail-index` workflow commits. Note: bot-
-#    authored pushes by GITHUB_TOKEN don't trigger downstream
-#    workflows, so `build-trail-index` ALSO explicitly dispatches
-#    this workflow in its final step.
+#    changes — keeps the bucket in lock-step with whatever an
+#    upstream workflow commits. Note: bot-authored pushes by
+#    GITHUB_TOKEN don't trigger downstream workflows.
+# 3. `pull_request: closed` on those same paths — fires the moment a
+#    DATA PR is MERGED (guarded on `merged == true`). This closes the
+#    gap where a PR merged via the API/a GitHub App pushes to main
+#    WITHOUT triggering the `push` trigger above, which used to leave
+#    R2 serving stale silhouettes/geom until someone dispatched a
+#    manual sync (the Abalone Cove difficulty-color mismatch). The
+#    checkout pins `ref: main`, so it syncs the post-merge tip.
+# 4. `schedule` — a once-daily reconcile backstop so R2 converges to
+#    the repo regardless of how a commit landed. `aws s3 sync
+#    --size-only` is a near-no-op when nothing changed.
 #
 # Required repo secrets (Settings → Secrets and variables →
 # Actions):
@@ -47,6 +54,17 @@ on:
       - 'public/areas/geom/**'
       - 'public/areas/silhouettes/**'
       - 'ios/SouthMountainExplorer/Resources/areas-index.json'
+  pull_request:
+    types: [closed]
+    paths:
+      - 'public/areas/geom/**'
+      - 'public/areas/silhouettes/**'
+      - 'ios/SouthMountainExplorer/Resources/areas-index.json'
+  schedule:
+    # Daily reconcile backstop (07:23 UTC) — converges R2 to the repo even
+    # if a merge landed without firing the push/PR triggers. Off-minute on
+    # purpose (avoids the top-of-hour scheduler crush).
+    - cron: '23 7 * * *'
 
 concurrency:
   group: sync-geom-to-r2
@@ -54,6 +72,9 @@ concurrency:
 
 jobs:
   sync:
+    # Run for push / dispatch / schedule; for pull_request, ONLY when the PR
+    # actually merged (a plain "closed without merge" must not sync).
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

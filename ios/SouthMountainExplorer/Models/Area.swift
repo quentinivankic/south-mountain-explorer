@@ -1,5 +1,19 @@
 import Foundation
 
+/// A trailhead parking lot for an area, from OSM `amenity=parking`
+/// (see `scripts/add-parking.py` + `docs/parking.md`). Decoded from the
+/// area geom's `parking` array; absent for areas not yet enriched.
+struct ParkingLot: Codable, Sendable, Hashable {
+    let lat: Double
+    let lon: Double
+    let name: String?
+    /// true = paid, false = free, nil = unknown (OSM had no `fee` tag).
+    let fee: Bool?
+    /// true when a nearby OSM `highway=trailhead` corroborated this lot —
+    /// higher confidence that it actually serves the trail network.
+    let trailhead: Bool?
+}
+
 struct Area: Codable, Identifiable, Sendable {
     let id: String
     let name: String
@@ -12,6 +26,11 @@ struct Area: Codable, Identifiable, Sendable {
     let trailCount: Int?
     let totalMi: Double?
     let cachedAt: Date?
+    /// Trailhead parking lots (OSM `amenity=parking`), when the area geom has
+    /// been enriched. `var … = nil` so absent JSON decodes to nil and existing
+    /// memberwise-init call sites compile unchanged (same trick as
+    /// `rawTrails`), but it IS in `CodingKeys` so it decodes from the geom.
+    var parking: [ParkingLot]? = nil
     /// In-memory-only carrier for the pre-decimation trail geometry.
     /// `trails` is the decimated render-side data; `rawTrails`, when
     /// set, holds the dense node set used for spatial-grid build,
@@ -28,7 +47,7 @@ struct Area: Codable, Identifiable, Sendable {
     var resolvedTotalMi: Double { totalMi ?? trails.reduce(0) { $0 + $1.distanceMi } }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, subtitle, zoom, bbox, trails
+        case id, name, subtitle, zoom, bbox, trails, parking
         case centerLat = "center_lat"
         case centerLon = "center_lon"
         case trailCount = "trail_count"
@@ -55,9 +74,15 @@ struct AreaRow: Codable, Sendable {
     /// through Nominatim, which keeps Python (build-time) and iOS
     /// (runtime) querying the same polygon.
     let osmRelationId: Int?
+    /// Trailhead parking lots, when the geom has been enriched (nil otherwise).
+    /// Must be `var`, not `let`: a `let` with a default value is treated as a
+    /// fixed constant and EXCLUDED from synthesized Codable (it would never
+    /// decode). `var … = nil` both decodes AND stays out of the memberwise
+    /// init, so the manual `AreaRow(...)` stubs compile unchanged.
+    var parking: [ParkingLot]? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, name, state, zoom, bbox, trails
+        case id, name, state, zoom, bbox, trails, parking
         case centerLat = "center_lat"
         case centerLon = "center_lon"
         case trailCount = "trail_count"
@@ -85,7 +110,8 @@ struct AreaRow: Codable, Sendable {
             // cached Area read back as cachedAt=nil → staleness=∞ → a silent
             // background refresh on every open, which non-deterministically
             // re-shuffled trail IDs and double-counted completions.
-            cachedAt: cachedAt.flatMap { formatter.date(from: $0) } ?? Date()
+            cachedAt: cachedAt.flatMap { formatter.date(from: $0) } ?? Date(),
+            parking: parking
         )
     }
 }
@@ -109,6 +135,7 @@ extension Area {
             trailCount: trailCount,
             totalMi: totalMi,
             cachedAt: cachedAt,
+            parking: parking,
             rawTrails: newRawTrails
         )
     }
@@ -144,7 +171,8 @@ extension Area {
             trails: decimatedTrails,
             trailCount: trailCount,
             totalMi: totalMi,
-            cachedAt: cachedAt
+            cachedAt: cachedAt,
+            parking: parking
         )
     }
 

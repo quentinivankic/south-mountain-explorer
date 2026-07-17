@@ -39,15 +39,27 @@ def test_keeps_lots_near_a_trail_drops_far_ones():
     assert fee_lot, "fee=yes should become fee: true"
 
 
-def test_drops_private_parking():
+def test_drops_non_public_access():
     data = {"elements": [
         _node(1, 33.74005, -118.37298, name="Gated Lot", access="private"),
-        _node(2, 33.74005, -118.37299, name="Public Lot"),
+        _node(2, 33.74006, -118.37299, name="Store Lot", access="customers"),
+        _node(3, 33.74007, -118.37300, name="Permit Lot", access="permit"),
+        _node(4, 33.74008, -118.37301, name="Public Lot"),          # untagged -> keep
     ]}
     lots = ap.parking_for_geom(GEOM, data)
     names = {l.get("name") for l in lots}
-    assert "Gated Lot" not in names
-    assert "Public Lot" in names
+    assert names == {"Public Lot"}, names
+
+
+def test_drops_on_street_parking():
+    data = {"elements": [
+        _node(1, 33.74005, -118.37298, name="Roadside", parking="street_side"),
+        _node(2, 33.74006, -118.37299, name="Lane", parking="lane"),
+        _node(3, 33.74007, -118.37300, name="Real Lot", parking="surface"),
+    ]}
+    lots = ap.parking_for_geom(GEOM, data)
+    names = {l.get("name") for l in lots}
+    assert names == {"Real Lot"}, names
 
 
 def test_dedups_colocated_lots_preferring_named():

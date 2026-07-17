@@ -87,10 +87,24 @@ def overpass_parking_query(bbox: list[float]) -> str:
     )
 
 
+# `access` values that mean "not usable public trailhead parking." Untagged
+# lots are KEPT — most real trailhead lots carry no access tag and are public.
+# `customers` is a store's lot; `permit`/`private`/`no` aren't open parking.
+_EXCLUDE_ACCESS = {"private", "no", "customers", "permit"}
+# `parking=*` values that describe ON-STREET parking (a linear feature along a
+# road), NOT a trailhead lot. Common near urban-adjacent trails, so they'd be
+# false "lots" without this. Real lots are surface / multi-storey / underground.
+_STREET_PARKING = {
+    "street_side", "lane", "on_kerb", "half_on_kerb",
+    "on_street", "layby", "painted_area",
+}
+
+
 def parse_parking(data: dict) -> list[dict]:
     """Overpass response -> list of {lat, lon, name?, fee?}. Ways/relations
     use their `center` (from `out center`); nodes use their own lat/lon.
-    `access=private/no` lots are dropped — you can't park there."""
+    Drops lots that aren't usable public trailhead parking: non-public
+    `access`, and on-street `parking=*` (street parking, not a lot)."""
     out: list[dict] = []
     for el in data.get("elements", []):
         if el.get("type") == "node":
@@ -101,7 +115,9 @@ def parse_parking(data: dict) -> list[dict]:
         if lat is None or lon is None:
             continue
         tags = el.get("tags", {})
-        if tags.get("access") in ("private", "no"):
+        if tags.get("access") in _EXCLUDE_ACCESS:
+            continue
+        if tags.get("parking") in _STREET_PARKING:
             continue
         entry: dict = {"lat": lat, "lon": lon}
         if tags.get("name"):

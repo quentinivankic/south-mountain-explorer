@@ -1,0 +1,73 @@
+name: Trailforge – Add Parking (Overpass)
+
+# Enriches published area geom with trailhead parking from OpenStreetMap
+# (amenity=parking near the trail network), via scripts/add-parking.py.
+# Runs here (not the homelab) because it only needs Overpass, which GitHub
+# runners can reach — same as seed-areas / audit-easement-ownership.
+#
+# Dispatch-only, and dry_run defaults TRUE — run once to see the per-area
+# counts, then re-run with dry_run unchecked to write + sync.
+
+on:
+  workflow_dispatch:
+    inputs:
+      states:
+        description: "Comma-separated state codes (e.g. az or az,ca,nv)"
+        default: "az"
+        required: true
+      dry_run:
+        description: "Report only — no commit"
+        type: boolean
+        default: true
+
+concurrency:
+  group: trailforge-parking
+  cancel-in-progress: false
+
+jobs:
+  parking:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write   # commit + push the enriched geom
+      actions: write    # dispatch the R2 sync (GITHUB_TOKEN push won't trigger it)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Add parking (Overpass)
+        run: |
+          FLAG=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then FLAG="--dry-run"; fi
+          IFS=',' read -ra STATES <<< "${{ inputs.states }}"
+          for s in "${STATES[@]}"; do
+            code="$(echo "$s" | xargs)"   # trim whitespace
+            echo "==== $code ===="
+            python3 scripts/add-parking.py --state "$code" $FLAG
+          done
+
+      - name: Commit enriched geom
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/areas/geom/
+          if git diff --cached --quiet; then
+            echo "No parking changes to commit."
+          else
+            git commit -m "trailforge: add OSM parking (${{ inputs.states }})"
+            git push
+          fi
+
+      - name: Trigger R2 sync
+        # A GITHUB_TOKEN push doesn't fire sync-geom-to-r2's push trigger, so
+        # dispatch it explicitly (mirrors the publish workflows).
+        if: ${{ inputs.dry_run == false }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run sync-geom-to-r2.yml --ref main || true

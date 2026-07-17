@@ -1,0 +1,9 @@
+{
+  "south-mountain-park-and-preserve-az": {"min": 1, "max": 40},
+  "mcdowell-sonoran-preserve-az": {"min": 1, "max": 40},
+  "mcdowell-mountain-regional-park-az": {"min": 1, "max": 25},
+  "usery-mountain-regional-park-az": {"min": 1, "max": 25},
+  "estrella-mountain-regional-park-az": {"min": 1, "max": 25},
+  "thunderbird-conservation-park-az": {"min": 1, "max": 15},
+  "pinnacle-peak-park-az": {"min": 1, "max": 12}
+}

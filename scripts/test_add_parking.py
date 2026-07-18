@@ -127,6 +127,34 @@ def test_no_trails_no_parking():
     assert ap.parking_for_geom({"trails": []}, data) == []
 
 
+def test_point_in_rings():
+    # Unit square in (lon, lat); point_in_rings takes (lat, lon).
+    ring = [(-1, -1), (1, -1), (1, 1), (-1, 1), (-1, -1)]
+    assert ap.point_in_rings(0, 0, [ring])         # centre
+    assert not ap.point_in_rings(2, 2, [ring])     # outside
+    assert not ap.point_in_rings(0, 5, [ring])     # outside on one axis
+
+
+def test_containment_gate_drops_across_boundary_lot():
+    # A small ring around vertex A only. Both lots are near the trail (A and
+    # B), but the B-area lot is OUTSIDE the ring -> dropped by containment,
+    # exactly like a lot across the park fence.
+    rings = [[(-118.3732, 33.7399), (-118.3728, 33.7399),
+              (-118.3728, 33.7402), (-118.3732, 33.7402), (-118.3732, 33.7399)]]
+    data = {"elements": [
+        _park_node(1, 33.74005, -118.37298, name="Inside"),   # near A, in ring
+        _park_node(2, 33.7406, -118.3724, name="Outside"),    # near B, out of ring
+    ]}
+    lots, ths = ap.parse_parking(data), ap.parse_trailheads(data)
+    stats: dict = {}
+    kept = ap.parking_for_area(GEOM, lots, ths, rings=rings, stats=stats)
+    assert _names(kept) == {"Inside"}, _names(kept)
+    assert stats.get("containment_dropped") == 1
+    # Without a boundary, both survive (proximity-only fallback).
+    kept_none = ap.parking_for_area(GEOM, lots, ths, rings=None)
+    assert _names(kept_none) == {"Inside", "Outside"}, _names(kept_none)
+
+
 def test_query_includes_both_layers_and_bbox_order():
     q = ap.overpass_query([-118.38, 33.73, -118.36, 33.75])
     assert '"amenity"="parking"' in q

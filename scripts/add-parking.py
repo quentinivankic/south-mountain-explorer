@@ -26,11 +26,16 @@ citations behind each choice):
          of those).
        - parking in {street_side, lane, on_kerb, half_on_kerb, on_street,
          shoulder, layby, painted_area}  (on-street parking, not a lot).
-  4. Associate with THIS area: keep a lot if it's within
+  4. Associate with THIS area. PRIMARY gate = point-in-polygon containment in
+     the area's real boundary (fetched by osm_relation_id, buffered out 30 m
+     for fence-line lots): proximity alone can't tell "inside the park" from
+     "across the road" — a neighbour/school lot 26 m from a perimeter trail is
+     still across the fence (see the probe: Thunderbird 26->12, 14 across-road
+     lots dropped). Within the boundary a lot is kept if it's within
      `PARKING_TRAIL_MAX_M` of a trail vertex OR within `TRAILHEAD_COINCIDE_M`
      of a `highway=trailhead` (the trailhead tag IS the association). Lots
-     corroborated by a trailhead are flagged `trailhead: true` — higher
-     confidence than mere proximity.
+     corroborated by a trailhead are flagged `trailhead: true`. If a boundary
+     can't be fetched the area degrades to proximity-only.
   5. Dedup near-duplicates; write a compact `parking` list into the geom.
 
 Every run prints an aggregate REPORT (counts, coverage, lot→trail distance
@@ -78,6 +83,13 @@ PARKING_TRAIL_MAX_M = 250.0
 TRAILHEAD_COINCIDE_M = 80.0
 # Two lots closer than this are the same lot mapped twice; keep one.
 PARKING_DEDUP_M = 40.0
+# The PRIMARY quality gate: a lot must sit inside the area's real boundary
+# polygon (from osm_relation_id) — proximity alone can't tell "inside the park"
+# from "across the road" (a neighbour/school lot 26 m from a perimeter trail is
+# still across the fence). We buffer the boundary OUTWARD by this much so a real
+# trailhead lot right at the fence-line survives, while across-the-road lots
+# (road width + setback >> 30 m) stay cut. See docs/parking.md + the probe.
+_BOUNDARY_BUFFER_M = 30.0
 
 # `access` values that are NOT usable public trailhead parking. Untagged +
 # permissive are KEPT (that's how most public trailhead land is tagged).
@@ -99,6 +111,80 @@ def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     dl = math.radians(lon2 - lon1)
     a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
     return 2 * r * math.asin(min(1.0, math.sqrt(a)))
+
+
+def _pip(x: float, y: float, ring: list[tuple[float, float]]) -> bool:
+    """Ray-casting point-in-polygon. `ring` is [(lon, lat), ...]; (x, y) is
+    (lon, lat). Pure Python so the gate is unit-testable without shapely."""
+    inside = False
+    n = len(ring)
+    j = n - 1
+    for i in range(n):
+        xi, yi = ring[i]
+        xj, yj = ring[j]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            inside = not inside
+        j = i
+    return inside
+
+
+def point_in_rings(lat: float, lon: float,
+                   rings: list[list[tuple[float, float]]]) -> bool:
+    """Inside the boundary if inside ANY outer ring (multipolygon parks have
+    several). Holes are ignored — negligible for trailhead parking."""
+    return any(_pip(lon, lat, r) for r in rings)
+
+
+def _rings_from_union(u, buffer_m: float) -> list[list[tuple[float, float]]]:
+    """shapely (Multi)Polygon -> list of exterior ring coord lists [(lon,lat)],
+    buffered outward by `buffer_m` (approx degrees) so fence-line lots survive."""
+    if buffer_m:
+        u = u.buffer(buffer_m / 111_000.0)
+    geoms = list(u.geoms) if hasattr(u, "geoms") else [u]
+    rings: list[list[tuple[float, float]]] = []
+    for g in geoms:
+        if g.geom_type == "Polygon":
+            rings.append([(x, y) for x, y in g.exterior.coords])
+    return rings
+
+
+def fetch_state_boundaries(rel_ids: list[int]) -> dict[int, list]:
+    """ONE batched Overpass `out geom` query for a state's area boundary
+    relations -> {rel_id: [outer rings]}. shapely assembles the (possibly
+    unordered / split) member ways into rings; a relation that won't polygonize
+    is simply omitted (that area falls back to proximity-only). Needs shapely
+    (homelab / CI have it); a missing shapely raises and the caller degrades."""
+    from shapely.geometry import LineString
+    from shapely.ops import polygonize, unary_union
+
+    ids = ";".join(f"rel({r})" for r in rel_ids if r)
+    if not ids:
+        return {}
+    data = fetch_overpass(f"[out:json][timeout:600];({ids};);out geom;")
+    per_rel: dict[int, list] = {}
+    for el in data.get("elements", []):
+        if el.get("type") != "relation":
+            continue
+        lines = []
+        for m in el.get("members", []):
+            if m.get("role") not in ("outer", "", None):
+                continue
+            g = m.get("geometry")
+            if not g or len(g) < 2:
+                continue
+            lines.append(LineString([(p["lon"], p["lat"]) for p in g]))
+        if not lines:
+            continue
+        polys = list(polygonize(lines))
+        if not polys:
+            continue
+        u = unary_union(polys)
+        if not u.is_valid:
+            u = u.buffer(0)
+        rings = _rings_from_union(u, _BOUNDARY_BUFFER_M)
+        if rings:
+            per_rel[el["id"]] = rings
+    return per_rel
 
 
 def _layer_clauses(selector: str) -> str:
@@ -227,13 +313,22 @@ _BBOX_BUFFER_DEG = 0.006
 
 
 def parking_for_area(geom: dict, lots: list[dict],
-                     trailheads: list[tuple[float, float]]) -> list[dict]:
+                     trailheads: list[tuple[float, float]],
+                     rings: list | None = None,
+                     stats: dict | None = None) -> list[dict]:
     """Assign the SHARED, state-wide parking + trailheads to one area.
 
     Pure + unit-tested. `lots`/`trailheads` are parsed once per state and
     passed to every area, so this MUST NOT mutate them (each kept lot is
     copied first). A bbox pre-filter trims the state set to the area's
-    neighbourhood before the O(lots×vertices) distance math."""
+    neighbourhood before the O(lots×vertices) distance math.
+
+    `rings` (the area's buffered boundary outer rings, from
+    `fetch_state_boundaries`) is the PRIMARY gate when present: a lot must be
+    inside the boundary AND near a trail/trailhead. Proximity alone can't tell
+    "inside the park" from "across the road". When `rings` is None (no
+    boundary) it degrades to proximity-only. `stats["containment_dropped"]`
+    counts lots that passed proximity but failed containment."""
     verts = trail_vertices(geom)
     if not verts:
         return []
@@ -256,6 +351,10 @@ def parking_for_area(geom: dict, lots: list[dict],
         if not th and trailheads:
             th = min_dist_m(lot["lat"], lot["lon"], trailheads) <= TRAILHEAD_COINCIDE_M
         if dist > PARKING_TRAIL_MAX_M and not th:
+            continue
+        if rings is not None and not point_in_rings(lot["lat"], lot["lon"], rings):
+            if stats is not None:
+                stats["containment_dropped"] = stats.get("containment_dropped", 0) + 1
             continue
         lot["lat"] = round(lot["lat"], 6)
         lot["lon"] = round(lot["lon"], 6)
@@ -396,10 +495,37 @@ def geom_by_state() -> dict[str, list[Path]]:
     return groups
 
 
+def _state_boundaries(files: list[Path]) -> tuple[dict[str, list], int]:
+    """Fetch every area's boundary polygon for this state in one batched
+    Overpass query. Returns ({area_id: rings}, n_areas_with_boundary). On any
+    failure (no shapely, Overpass down) returns ({}, 0) so the run degrades to
+    proximity-only rather than dying."""
+    rel_of: dict[str, int] = {}
+    for f in files:
+        try:
+            rid = json.loads(f.read_text()).get("osm_relation_id")
+        except Exception:  # noqa: BLE001
+            continue
+        if rid:
+            rel_of[f.stem] = rid
+    if not rel_of:
+        return {}, 0
+    try:
+        per_rel = fetch_state_boundaries(sorted(set(rel_of.values())))
+    except Exception as e:  # noqa: BLE001
+        print(f"  boundary fetch failed ({e}); proximity-only fallback",
+              file=sys.stderr)
+        return {}, 0
+    rings_by_area = {aid: per_rel[rid] for aid, rid in rel_of.items()
+                     if rid in per_rel}
+    return rings_by_area, len(rings_by_area)
+
+
 def process(state_codes: list[str], dry_run: bool) -> bool:
     groups = geom_by_state()
     per_area: list[tuple[str, list[dict]]] = []
     area_counts: dict[str, int] = {}
+    stats: dict[str, int] = {}
     changed = 0
     for code in state_codes:
         name = STATE_NAMES.get(code.upper())
@@ -415,11 +541,16 @@ def process(state_codes: list[str], dry_run: bool) -> bool:
         trailheads = parse_trailheads(data)
         print(f"  {code.upper()}: {len(lots)} parking + {len(trailheads)} trailheads statewide")
 
+        rings_by_area, n_bnd = _state_boundaries(files)
+        print(f"  {code.upper()}: {n_bnd}/{len(files)} area boundaries loaded "
+              f"(containment gate; rest proximity-only)")
+
         for f in files:
             geom = json.loads(f.read_text())
             if not geom.get("trails") or not geom.get("bbox"):
                 continue
-            kept = parking_for_area(geom, lots, trailheads)
+            rings = rings_by_area.get(f.stem)
+            kept = parking_for_area(geom, lots, trailheads, rings=rings, stats=stats)
             per_area.append((f.stem, kept))
             area_counts[f.stem] = len(kept)
             clean = _strip_internal(kept)
@@ -433,6 +564,9 @@ def process(state_codes: list[str], dry_run: bool) -> bool:
                     f.write_text(json.dumps(geom))
 
     print_report(per_area, dry_run)
+    if stats.get("containment_dropped"):
+        print(f"  dropped by containment : {stats['containment_dropped']}  "
+              "(near a trail but OUTSIDE the park boundary — across-road bleed)")
     golden_ok = check_golden(area_counts)
     verb = "would write" if dry_run else "wrote"
     print(f"\n{verb} parking for {changed} area(s).")

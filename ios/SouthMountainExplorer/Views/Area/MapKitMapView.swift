@@ -1,6 +1,9 @@
 import SwiftUI
 import MapKit
 import UIKit
+import os
+
+private let mapLog = Logger(subsystem: "app.trekdex", category: "map")
 
 extension Color {
     /// Cyan for completed trails — the single source of truth shared by the
@@ -783,6 +786,7 @@ struct MapKitMapView: UIViewRepresentable {
         func rebuildParkingAnnotations(on mapView: MKMapView, from area: Area) {
             let existing = mapView.annotations.compactMap { $0 as? ParkingAnnotation }
             if !existing.isEmpty { mapView.removeAnnotations(existing) }
+            mapLog.notice("parkingPins area=\(area.id, privacy: .public) lots=\(area.parking?.count ?? -1)")
             for lot in area.parking ?? [] {
                 let ann = ParkingAnnotation()
                 ann.coordinate = CLLocationCoordinate2D(latitude: lot.lat, longitude: lot.lon)

@@ -40,6 +40,42 @@ struct AreaParkingTests {
         #expect(abs(parking[1].lat - 33.7431) < 1e-9)
     }
 
+    @Test func federalSourceDecodesAndFlowsThrough() throws {
+        // A tier-2 federal fill: a BLM trailhead point carries source="blm".
+        let json = """
+        {
+          "id": "aravaipa-canyon-wilderness-az", "name": "Aravaipa Canyon Wilderness",
+          "state": "Arizona", "center_lat": 32.88, "center_lon": -110.44,
+          "zoom": 13, "trails": [],
+          "parking": [{"lat": 32.881532, "lon": -110.437342, "source": "blm", "trailhead": true}]
+        }
+        """
+        let area = try decodeRow(json).toArea()
+        let lot = try #require(area.parking?.first)
+        #expect(lot.source == "blm")
+        #expect(lot.trailhead == true)
+    }
+
+    @Test func onlyBlmAndUsfsPointsRenderAsTrailheads() {
+        // The "don't mislabel a trail start as a parking lot" rule.
+        typealias C = MapKitMapView.Coordinator
+        #expect(C.isTrailheadSource("blm"))
+        #expect(C.isTrailheadSource("usfs"))
+        #expect(!C.isTrailheadSource("nps"))     // NPS is a real parking lot
+        #expect(!C.isTrailheadSource("osm"))
+        #expect(!C.isTrailheadSource(nil))       // untagged OSM lot
+    }
+
+    @Test func subtitleCarriesTypeAndAttribution() {
+        typealias C = MapKitMapView.Coordinator
+        let blm = ParkingLot(lat: 0, lon: 0, name: nil, fee: nil, trailhead: true, source: "blm")
+        #expect(C.parkingSubtitle(for: blm, isTrailhead: true) == "Trailhead · Data: BLM")
+        let nps = ParkingLot(lat: 0, lon: 0, name: nil, fee: false, trailhead: nil, source: "nps")
+        #expect(C.parkingSubtitle(for: nps, isTrailhead: false) == "Free parking · Data: NPS")
+        let osm = ParkingLot(lat: 0, lon: 0, name: nil, fee: true, trailhead: nil, source: nil)
+        #expect(C.parkingSubtitle(for: osm, isTrailhead: false) == "Paid parking")
+    }
+
     @Test func absentParkingIsNil() throws {
         let json = """
         {"id": "x", "name": "X", "state": "AZ", "center_lat": 33.3,

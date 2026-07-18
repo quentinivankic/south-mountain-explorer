@@ -12,6 +12,11 @@ struct ParkingLot: Codable, Sendable, Hashable {
     /// true when a nearby OSM `highway=trailhead` corroborated this lot —
     /// higher confidence that it actually serves the trail network.
     let trailhead: Bool?
+    /// Provenance of this pin, written by `scripts/add-parking.py`:
+    /// nil/"osm" = OpenStreetMap parking (default); "blm"/"usfs" = a federal
+    /// agency TRAILHEAD point (drawn as a trailhead marker, not a parking "P");
+    /// "nps" = an NPS public parking lot. Drives the map glyph + attribution.
+    let source: String?
 }
 
 struct Area: Codable, Identifiable, Sendable {

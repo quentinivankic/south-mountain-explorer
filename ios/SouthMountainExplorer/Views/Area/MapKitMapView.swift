@@ -69,10 +69,14 @@ enum MapTarget: Equatable {
 /// the real MKUserLocation).
 final class DemoUserDotAnnotation: MKPointAnnotation {}
 
-/// A trailhead parking lot pin (see `Area.parking`). A distinct class lets
-/// the Coordinator's `viewFor` render it as a blue "P" marker with a
-/// name/fee callout, without touching other annotations MapKit manages.
-final class ParkingAnnotation: MKPointAnnotation {}
+/// A trailhead parking / access pin (see `Area.parking`). A distinct class lets
+/// the Coordinator's `viewFor` render it without touching other annotations
+/// MapKit manages. `isTrailhead` (a federal BLM/USFS trailhead POINT, not a
+/// parking lot) switches it from the blue "P" parking marker to a green
+/// trailhead marker so we never mislabel a trail start as a parking lot.
+final class ParkingAnnotation: MKPointAnnotation {
+    var isTrailhead = false
+}
 
 struct MapKitMapView: UIViewRepresentable {
     let area: Area
@@ -818,12 +822,45 @@ struct MapKitMapView: UIViewRepresentable {
             for lot in area.parking ?? [] {
                 let ann = ParkingAnnotation()
                 ann.coordinate = CLLocationCoordinate2D(latitude: lot.lat, longitude: lot.lon)
-                ann.title = lot.name ?? "Parking"
-                if let fee = lot.fee {
-                    ann.subtitle = fee ? "Paid parking" : "Free parking"
-                }
+                // A federal BLM/USFS point is a trailhead, not a parking lot.
+                ann.isTrailhead = Self.isTrailheadSource(lot.source)
+                ann.title = lot.name ?? (ann.isTrailhead ? "Trailhead" : "Parking")
+                ann.subtitle = Self.parkingSubtitle(for: lot, isTrailhead: ann.isTrailhead)
                 mapView.addAnnotation(ann)
             }
+        }
+
+        /// Federal agency trailhead POINTS (BLM/USFS layers) — rendered as a
+        /// trailhead marker. NPS ("nps"), OSM, and untagged lots are real
+        /// parking and keep the "P".
+        static func isTrailheadSource(_ source: String?) -> Bool {
+            source == "blm" || source == "usfs"
+        }
+
+        /// Human agency label for attribution (federal data is public domain;
+        /// attribution is a courtesy we still surface in the pin's callout).
+        static func attribution(for source: String?) -> String? {
+            switch source {
+            case "blm": return "BLM"
+            case "nps": return "NPS"
+            case "usfs": return "USFS"
+            default: return nil          // OSM / untagged — no extra credit line
+            }
+        }
+
+        /// Callout subtitle: the access type, plus a "Data: <agency>" credit
+        /// for federal sources and a fee note for parking lots that carry one.
+        static func parkingSubtitle(for lot: ParkingLot, isTrailhead: Bool) -> String? {
+            var parts: [String] = []
+            if isTrailhead {
+                parts.append("Trailhead")
+            } else if let fee = lot.fee {
+                parts.append(fee ? "Paid parking" : "Free parking")
+            }
+            if let agency = attribution(for: lot.source) {
+                parts.append("Data: \(agency)")
+            }
+            return parts.isEmpty ? nil : parts.joined(separator: " · ")
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
@@ -836,14 +873,24 @@ struct MapKitMapView: UIViewRepresentable {
                 view.zPriority = .max
                 return view
             }
-            if annotation is ParkingAnnotation {
-                let id = "parking"
+            if let parking = annotation as? ParkingAnnotation {
+                // Reuse-id per style so a recycled trailhead view never keeps a
+                // parking glyph (or vice-versa) after MapKit dequeues it.
+                let id = parking.isTrailhead ? "trailhead" : "parking"
                 let view = (mapView.dequeueReusableAnnotationView(withIdentifier: id)
                             as? MKMarkerAnnotationView)
                     ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: id)
                 view.annotation = annotation
-                view.markerTintColor = .systemBlue     // Maps parking convention
-                view.glyphText = "P"
+                if parking.isTrailhead {
+                    // A trail START, not a lot: green + a hiker glyph so it
+                    // reads as "the trail begins here," never "park on this dot."
+                    view.markerTintColor = .systemGreen
+                    view.glyphImage = UIImage(systemName: "figure.walk")
+                } else {
+                    view.markerTintColor = .systemBlue   // Maps parking convention
+                    view.glyphImage = nil
+                    view.glyphText = "P"
+                }
                 view.canShowCallout = true
                 view.displayPriority = .required        // a few per area — always show
                 return view

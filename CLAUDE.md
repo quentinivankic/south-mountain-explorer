@@ -6,7 +6,79 @@ deferred, and what mistakes prior Claudes have made.
 
 ---
 
-## ⭐ CURRENT STATE — read this first (updated 2026-07-15)
+## ⭐ CURRENT STATE — read this first (updated 2026-07-18)
+
+**2026-07-18 SESSION LANDMARKS (verify against code before trusting):**
+- **Trailhead PARKING feature — big session.** OSM `amenity=parking` enriched
+  onto area geom via `scripts/add-parking.py` (per-state Overpass; boundary
+  point-in-polygon CONTAINMENT gate, not proximity — a lot must sit inside the
+  area's real boundary). AZ live on R2. Full detail + all the hard-won rules in
+  the auto-memory `parking-feature.md`. Key decisions THIS session:
+  - **Federal fallback (tier-2) to fill OSM-blank areas: BLM DROPPED, NPS+USFS
+    kept.** BLM's "Natl RIDB Trailhead" layer is generic recreation-AREA POI
+    markers, NOT trailheads (RecAreaName = the wilderness; dropped mid-nowhere).
+    Verified bad across Kanab Creek + Grand Canyon-Parashant → removed from
+    `_FED_SOURCES` (#427). NPS = real parking polygons (kept, Saguaro verified);
+    USFS = named TH points (kept but UNVALIDATED — validate on first states it
+    fills). Lesson: a layer NAMED "trailhead" isn't — verify each source yields
+    a real GOOD example before trusting it.
+  - **Road-proximity gate** (#423): a federal point ships only if ≤250 m from a
+    drivable OSM road (incl `track` dirt roads) via chunked Overpass `around`;
+    runs AFTER containment-assignment so only the handful of assigned points get
+    road-checked (not hundreds per state, #425). Drops roadless area-markers.
+  - **On-selection parking display** (#429, iOS): parking is HIDDEN while
+    browsing; tapping a trail shows its ≤3 nearest lots (within 0.5 mi of the
+    trail's endpoints) + the zoom frames trail + those pins. One shared
+    `Area.nearestParking(for:)` feeds both pins and zoom. Threshold/count are
+    tunable constants.
+  - **Distinct federal trailhead marker + attribution** (#421): BLM/USFS points
+    draw as a green `figure.walk` "Trailhead" marker (not blue "P"); callout
+    carries "Data: BLM/NPS/USFS". `ParkingLot` gained `source`.
+  - **Publish PRESERVES parking across republishes** (#426): parking is a
+    post-process, and publish rebuilt geom from assembly with no parking, so any
+    republish silently wiped it (both `publish_areas.py` AND the whole-US
+    `merge-published-geom.py` blind copyfile). Both now carry forward the
+    existing geom's `parking` before writing. Test: `scripts/test_merge_parking.py`.
+- **⚠️ STALE-GEOM CACHE BUG FIXED (#424, iOS) — root cause of recurring "ghost
+  pin" reports.** A removed/corrected pin kept drawing on-device even after
+  Settings → Trail Data → Clear & Refresh, because THREE cache layers sat between
+  an R2 correction and the phone and only the app disk cache was cleared:
+  (1) the CDN serves geom with `max-age=86400`, and `AreaDataService.fetchFromCdn`
+  used the default cache policy → URLSession returned a 24h-old response without
+  hitting the network; (2) `clearAreaCache()` wiped the disk cache but NOT
+  `URLCache` → refresh re-served stale bytes; (3) disk cache only re-fetched
+  after 24h stale. Fix: `.reloadRevalidatingCacheData` (ETag revalidate),
+  `URLCache.shared.removeAllCachedResponses()` in clearAreaCache, and 24h→5min
+  staleness. On the CURRENT device build corrections now propagate; on an OLD
+  build only delete+reinstall clears URLCache.
+- **SYSTEM-1 GEOM PURGED ENTIRELY (#428).** 7,304 System-1 geom files (top-level
+  `cached_at`, pre-trailforge Overpass sketches) + 601 silhouettes DELETED — they
+  never shipped (bundle excludes `cached_at`) and kept causing "has trails but
+  doesn't ship" confusion. Guarded delete (only `cached_at`; 8,860 clean geom
+  untouched = the bundle set). Reversible via git. Nothing regenerates System-1
+  unless the old dispatch-only `build-trail-index.yml` runs — DON'T. R2-side
+  orphans of the 7,304 likely linger (harmless; task #36 sweep).
+- **⭐ BIGGEST COVERAGE GAP FOUND + US FIX SHIPPED — see memory
+  `coverage-gap-missing-areas.md`.** 810 substantial areas (≥3 mi) are in the
+  index but DON'T ship — Great Smoky Mtns NP (823 mi, most-visited US park!),
+  Banff, Jasper, Humboldt-Toiyabe/Custer-Gallatin/Coronado NFs, Absaroka-Beartooth.
+  TWO causes, both proven: (1) **Canada never published** (360/810) — the publish
+  is US-scoped; needs the pipeline pointed at Canadian extracts (no code fix).
+  (2) **US multi-state areas (450)** — their boundary member ways are CLIPPED at
+  the state line in a per-state extract, so the ring won't close, `merge_areas`
+  makes no polygon, and the area drops as "no boundary in PBF". PROVEN on GSMNP
+  (10 of 24 boundary ways missing from the NC extract). **FIX SHIPPED (#430):**
+  `publish_areas.py::_fetch_boundary_by_rel` fetches the COMPLETE boundary by
+  `osm_rel` id via Overpass when PBF assembly fails (like
+  add-parking.py); gated `--no-boundary-fetch`. Verified: GSMNP went from
+  "skipped, no boundary" → "published: 128 trails". **The 450 won't appear until
+  the affected states are RE-PUBLISHED** (fix is in code; needs the run). A full
+  NC re-publish was kicked off this session to validate in production.
+- **KNOWN, DEFERRED — nested/duplicate areas got a stark example (task #37).**
+  Searching "Saguaro" returns 4 overlapping areas for one park (the park, its 2
+  districts which SUM to the park, + the wilderness) — same trails counted 3-4×.
+  Real fix = a containment gate at publish (keep the most-iconic designation,
+  drop redundant nested/district polygons). User said leave it for now.
 
 **2026-07-15 SESSION LANDMARKS (verify against code before trusting):**
 - **Multi-area completion for trail + roam hikes** (#372 + fetch-storm cap #373).

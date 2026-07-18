@@ -215,3 +215,38 @@ extension Area {
         return AreaSilhouette(b: [minLon, minLat, maxLon, maxLat], l: lines)
     }
 }
+
+extension Area {
+    /// The ≤`max` parking lots nearest the given trail's ENDPOINTS, within
+    /// `thresholdMeters`. Endpoints (each segment's start/end) are where you
+    /// actually access a trail, so a lot near one answers "where do I park for
+    /// this trail." Returns empty when the area has no parking or nothing is
+    /// close enough — the map then draws nothing, which is the intended
+    /// declutter (parking shows ONLY for the selected trail, never while
+    /// browsing). One source of truth for both the map pins and the zoom frame.
+    func nearestParking(for trail: Trail, max: Int = 3,
+                        thresholdMeters: Double = 805) -> [ParkingLot] {
+        guard let lots = parking, !lots.isEmpty else { return [] }
+        var ends: [(Double, Double)] = []
+        for seg in trail.segments {
+            if let f = seg.first, f.count >= 2 { ends.append((f[0], f[1])) }
+            if let l = seg.last, l.count >= 2 { ends.append((l[0], l[1])) }
+        }
+        guard !ends.isEmpty else { return [] }
+        func meters(_ aLat: Double, _ aLon: Double, _ bLat: Double, _ bLon: Double) -> Double {
+            let R = 6_371_000.0
+            let dLat = (bLat - aLat) * .pi / 180, dLon = (bLon - aLon) * .pi / 180
+            let la1 = aLat * .pi / 180, la2 = bLat * .pi / 180
+            let h = sin(dLat / 2) * sin(dLat / 2)
+                + cos(la1) * cos(la2) * sin(dLon / 2) * sin(dLon / 2)
+            return 2 * R * asin(min(1, sqrt(h)))
+        }
+        return lots.compactMap { lot -> (ParkingLot, Double)? in
+            let d = ends.map { meters(lot.lat, lot.lon, $0.0, $0.1) }.min() ?? .infinity
+            return d <= thresholdMeters ? (lot, d) : nil
+        }
+        .sorted { $0.1 < $1.1 }
+        .prefix(max)
+        .map { $0.0 }
+    }
+}

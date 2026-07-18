@@ -594,11 +594,17 @@ struct TrailMapView: View {
     }
 
     private func centerOn(trail: Trail) {
-        let pts = trail.segments.flatMap { $0 }.compactMap { p -> (Double, Double)? in
+        var pts = trail.segments.flatMap { $0 }.compactMap { p -> (Double, Double)? in
             guard p.count >= 2 else { return nil }
             return (p[0], p[1])
         }
         guard !pts.isEmpty else { return }
+        // Frame the trail's ≤3 nearest lots too, so tapping a trail shows both
+        // the route and where to park for it in one view (matches the pins the
+        // map now draws for the selection).
+        for lot in area.nearestParking(for: trail) {
+            pts.append((lot.lat, lot.lon))
+        }
         let lats = pts.map { $0.0 }
         let lons = pts.map { $0.1 }
         let minLat = lats.min()!, maxLat = lats.max()!

@@ -120,11 +120,18 @@ _FED_EDGE_BUFFER_M = 250.0   # a curated federal trailhead may sit just OUTSIDE
                              # from the wilderness polygon by design). Admit such
                              # a point only if it's contained by NO area at all —
                              # then it belongs to the nearest blank area's edge.
+# BLM's "Natl RIDB Trailhead" (MapServer/7) was DROPPED (2026-07-18). Despite
+# the layer name, its points are generic RECREATION-AREA markers — `RecAreaName`
+# is the wilderness/monument itself and the point sits wherever, often deep in
+# the interior — not curated trailheads with parking. Verified bad across Kanab
+# Creek (0.58 mi from any road) AND Grand Canyon-Parashant (RecAreaName = the
+# monument / "Mt. Trumbull", activities incl. fishing/OHV/camping, middle of
+# nowhere). It produced ZERO usable pins; the road gate can't save it because
+# the AZ Strip's dirt tracks let generic markers pass. NPS parking POLYGONS are
+# real lots (Saguaro verified). USFS EDW is named trailhead points (different,
+# more specific dataset) — kept, but VALIDATE it on the first states it fills
+# before trusting it in the roll (it filled nothing in AZ).
 _FED_SOURCES = [
-    {"key": "blm",
-     "url": "https://gis.blm.gov/arcgis/rest/services/recreation/"
-            "BLM_Natl_Recreation_Sites_Facilities/MapServer/7",
-     "where": "1=1", "trailhead": True},          # BLM Natl RIDB Trailhead
     {"key": "nps",
      "url": "https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/"
             "NPS_Public_ParkingLots/FeatureServer/0",

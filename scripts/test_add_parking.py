@@ -184,6 +184,31 @@ def test_bbox_prefilter_and_shared_lots_not_mutated():
     assert shared == snapshot, "shared lots must not be mutated"
 
 
+def test_boundary_fetch_failure_reports_not_ok(tmp_dir=None):
+    # A transient Overpass failure must surface ok=False so process() refuses
+    # to WRITE proximity-only (bleed-carrying) results — found 2026-07-18 when
+    # a 504 silently degraded AZ to proximity-only and Thunderbird went 14->26.
+    import json as _json
+    import tempfile
+    from pathlib import Path as _P
+    with tempfile.TemporaryDirectory() as td:
+        f = _P(td) / "some-area-xx.json"
+        f.write_text(_json.dumps({"osm_relation_id": 12345}))
+        orig = ap.fetch_state_boundaries
+        try:
+            def _boom(rel_ids):
+                raise RuntimeError("504")
+            ap.fetch_state_boundaries = _boom
+            rings, n, ok = ap._state_boundaries([f])
+            assert rings == {} and n == 0 and ok is False, (rings, n, ok)
+        finally:
+            ap.fetch_state_boundaries = orig
+        # No relation ids at all -> nothing to fetch -> ok=True (not a failure).
+        f.write_text(_json.dumps({}))
+        rings, n, ok = ap._state_boundaries([f])
+        assert rings == {} and n == 0 and ok is True, (rings, n, ok)
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

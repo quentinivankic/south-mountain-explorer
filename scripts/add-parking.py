@@ -135,6 +135,37 @@ def point_in_rings(lat: float, lon: float,
     return any(_pip(lon, lat, r) for r in rings)
 
 
+def _dist_point_to_seg_m(lat: float, lon: float,
+                         a: tuple[float, float], b: tuple[float, float]) -> float:
+    """Distance (m) from (lat,lon) to segment a-b, each (lon,lat). Projects in a
+    local equirectangular frame — fine at trailhead scale (<1 km)."""
+    latr = math.radians(lat)
+    mx = 111_320.0 * math.cos(latr)          # m per degree lon at this lat
+    my = 110_540.0                            # m per degree lat
+    px, py = lon * mx, lat * my
+    ax, ay = a[0] * mx, a[1] * my
+    bx, by = b[0] * mx, b[1] * my
+    dx, dy = bx - ax, by - ay
+    seg2 = dx * dx + dy * dy
+    if seg2 <= 0:
+        return math.hypot(px - ax, py - ay)
+    t = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / seg2))
+    return math.hypot(px - (ax + t * dx), py - (ay + t * dy))
+
+
+def dist_to_rings_m(lat: float, lon: float,
+                    rings: list[list[tuple[float, float]]]) -> float:
+    """Min distance (m) from (lat,lon) to the nearest ring EDGE. 0-ish when the
+    point sits on the boundary; used to measure how far OUTSIDE a dropped lot is."""
+    best = math.inf
+    for r in rings:
+        for i in range(len(r) - 1):
+            d = _dist_point_to_seg_m(lat, lon, r[i], r[i + 1])
+            if d < best:
+                best = d
+    return best
+
+
 def _rings_from_union(u, buffer_m: float) -> list[list[tuple[float, float]]]:
     """shapely (Multi)Polygon -> list of exterior ring coord lists [(lon,lat)],
     buffered outward by `buffer_m` (approx degrees) so fence-line lots survive."""
@@ -315,7 +346,8 @@ _BBOX_BUFFER_DEG = 0.006
 def parking_for_area(geom: dict, lots: list[dict],
                      trailheads: list[tuple[float, float]],
                      rings: list | None = None,
-                     stats: dict | None = None) -> list[dict]:
+                     stats: dict | None = None,
+                     drops: list | None = None) -> list[dict]:
     """Assign the SHARED, state-wide parking + trailheads to one area.
 
     Pure + unit-tested. `lots`/`trailheads` are parsed once per state and
@@ -355,6 +387,8 @@ def parking_for_area(geom: dict, lots: list[dict],
         if rings is not None and not point_in_rings(lot["lat"], lot["lon"], rings):
             if stats is not None:
                 stats["containment_dropped"] = stats.get("containment_dropped", 0) + 1
+            if drops is not None:
+                drops.append((bool(th), dist_to_rings_m(lot["lat"], lot["lon"], rings)))
             continue
         lot["lat"] = round(lot["lat"], 6)
         lot["lon"] = round(lot["lon"], 6)
@@ -495,11 +529,17 @@ def geom_by_state() -> dict[str, list[Path]]:
     return groups
 
 
-def _state_boundaries(files: list[Path]) -> tuple[dict[str, list], int]:
+def _state_boundaries(files: list[Path]) -> tuple[dict[str, list], int, bool]:
     """Fetch every area's boundary polygon for this state in one batched
-    Overpass query. Returns ({area_id: rings}, n_areas_with_boundary). On any
-    failure (no shapely, Overpass down) returns ({}, 0) so the run degrades to
-    proximity-only rather than dying."""
+    Overpass query. Returns ({area_id: rings}, n_areas_with_boundary, ok).
+
+    ok=False means the fetch itself FAILED (Overpass down / no shapely) — the
+    containment gate is unavailable, so proximity-only results would carry the
+    across-road bleed the gate exists to stop. Callers must not WRITE in that
+    state (2026-07-18: a transient 504 here silently degraded a dry-run to
+    proximity-only and Thunderbird ballooned 14 -> 26 lots; only the golden
+    check caught it, and golden covers just 7 AZ areas — a nationwide real run
+    would have shipped the bleed everywhere else)."""
     rel_of: dict[str, int] = {}
     for f in files:
         try:
@@ -509,16 +549,79 @@ def _state_boundaries(files: list[Path]) -> tuple[dict[str, list], int]:
         if rid:
             rel_of[f.stem] = rid
     if not rel_of:
-        return {}, 0
+        # Genuinely nothing to fetch — proximity-only is the best possible
+        # here, not a degradation.
+        return {}, 0, True
     try:
         per_rel = fetch_state_boundaries(sorted(set(rel_of.values())))
     except Exception as e:  # noqa: BLE001
-        print(f"  boundary fetch failed ({e}); proximity-only fallback",
-              file=sys.stderr)
-        return {}, 0
+        print(f"  boundary fetch FAILED ({e})", file=sys.stderr)
+        return {}, 0, False
     rings_by_area = {aid: per_rel[rid] for aid, rid in rel_of.items()
                      if rid in per_rel}
-    return rings_by_area, len(rings_by_area)
+    return rings_by_area, len(rings_by_area), True
+
+
+def print_containment_diag(cont_diag: list[tuple[str, int, list]]) -> None:
+    """Measure the wilderness-trailhead problem: lots that passed the
+    proximity/trailhead check but were dropped for sitting OUTSIDE the boundary.
+    Reports how many are trailhead-corroborated (OSM says a trail starts there)
+    by distance-outside, and — the deciding number — how many currently-BLANK
+    areas would light up if we admitted a trailhead lot within buffer B outside.
+    Read-only: informs where to set a trailhead-only outward buffer; ships nothing."""
+    if not cont_diag:
+        return
+    all_drops = [d for _, _, ds in cont_diag for d in ds]
+    if not all_drops:
+        return
+    edges = [(0, 50), (50, 100), (100, 150), (150, 250), (250, 500), (500, 10 ** 9)]
+    labels = ["  0-50", " 50-100", "100-150", "150-250", "250-500", "  >500"]
+
+    def bucket(dm: float) -> int:
+        for i, (lo, hi) in enumerate(edges):
+            if lo <= dm < hi:
+                return i
+        return len(edges) - 1
+
+    th_hist = [0] * len(edges)
+    non_hist = [0] * len(edges)
+    for th, dm in all_drops:
+        (th_hist if th else non_hist)[bucket(dm)] += 1
+
+    print("\n  CONTAINMENT DIAGNOSTIC (measure only — nothing changed):")
+    print(f"  lots dropped just OUTSIDE a boundary, by metres out:")
+    print(f"    {'range(m)':<9}{'trailhead':<11}{'plain':<8}")
+    for i, lab in enumerate(labels):
+        print(f"    {lab:<9}{th_hist[i]:<11}{non_hist[i]:<8}")
+
+    blank = [(aid, ds) for aid, kept, ds in cont_diag if kept == 0]
+    print(f"\n  currently-blank areas w/ a boundary: {len(blank)}")
+    print(f"  of those, # rescued if we admit a TRAILHEAD lot within B metres out:")
+    for B in (50, 100, 150, 250):
+        n = sum(1 for _, ds in blank if any(th and dm <= B for th, dm in ds))
+        print(f"    B={B:>3}m : {n} areas rescued")
+    print(f"  (plain-parking admit for the same buffers, for contrast:)")
+    for B in (50, 100, 150, 250):
+        n = sum(1 for _, ds in blank if any((not th) and dm <= B for th, dm in ds))
+        print(f"    B={B:>3}m : {n} areas")
+
+
+def print_trailhead_cover(th_cover: list[tuple[str, int, int]]) -> None:
+    """Measure the trailhead-marker lever: how many areas (esp. PARKING-BLANK
+    ones) contain a `highway=trailhead` node we could surface as a distinct
+    'trail starts here' marker where no lot is mapped. Read-only."""
+    if not th_cover:
+        return
+    total = len(th_cover)
+    with_th = sum(1 for _, _, n in th_cover if n > 0)
+    blank = [(a, n) for a, k, n in th_cover if k == 0]
+    blank_with_th = sum(1 for _, n in blank if n > 0)
+    print("\n  TRAILHEAD-MARKER DIAGNOSTIC (measure only):")
+    print(f"  boundaried areas                     : {total}")
+    print(f"    with >=1 trailhead node inside      : {with_th}")
+    print(f"  parking-BLANK boundaried areas       : {len(blank)}")
+    print(f"    of those, >=1 trailhead node inside : {blank_with_th}"
+          f"  <- blanks a trailhead marker would fill")
 
 
 def process(state_codes: list[str], dry_run: bool) -> bool:
@@ -526,7 +629,13 @@ def process(state_codes: list[str], dry_run: bool) -> bool:
     per_area: list[tuple[str, list[dict]]] = []
     area_counts: dict[str, int] = {}
     stats: dict[str, int] = {}
+    # (area_id, kept_count, [(trailhead_bool, dist_outside_m), ...]) for areas
+    # that HAD a boundary — feeds the containment diagnostic below.
+    cont_diag: list[tuple[str, int, list]] = []
+    # (area_id, kept_lot_count, trailhead_nodes_inside_boundary)
+    th_cover: list[tuple[str, int, int]] = []
     changed = 0
+    boundary_failed = False
     for code in state_codes:
         name = STATE_NAMES.get(code.upper())
         files = groups.get(name, []) if name else []
@@ -541,16 +650,34 @@ def process(state_codes: list[str], dry_run: bool) -> bool:
         trailheads = parse_trailheads(data)
         print(f"  {code.upper()}: {len(lots)} parking + {len(trailheads)} trailheads statewide")
 
-        rings_by_area, n_bnd = _state_boundaries(files)
+        rings_by_area, n_bnd, bnd_ok = _state_boundaries(files)
         print(f"  {code.upper()}: {n_bnd}/{len(files)} area boundaries loaded "
               f"(containment gate; rest proximity-only)")
+        if not bnd_ok:
+            # No containment gate -> proximity-only bleed would ship. Refuse
+            # to write this state; a dry run may proceed (report is still
+            # useful) but is flagged as a failed run either way.
+            boundary_failed = True
+            print(f"  {code.upper()}: boundary fetch failed — "
+                  f"{'skipping WRITES for this state' if not dry_run else 'dry-run report only'} "
+                  "(containment gate unavailable; rerun when Overpass recovers)",
+                  file=sys.stderr)
+            if not dry_run:
+                continue
 
         for f in files:
             geom = json.loads(f.read_text())
             if not geom.get("trails") or not geom.get("bbox"):
                 continue
             rings = rings_by_area.get(f.stem)
-            kept = parking_for_area(geom, lots, trailheads, rings=rings, stats=stats)
+            area_drops: list = []
+            kept = parking_for_area(geom, lots, trailheads, rings=rings,
+                                    stats=stats, drops=area_drops)
+            if rings is not None:
+                cont_diag.append((f.stem, len(kept), area_drops))
+                th_in = sum(1 for tlat, tlon in trailheads
+                            if point_in_rings(tlat, tlon, rings))
+                th_cover.append((f.stem, len(kept), th_in))
             per_area.append((f.stem, kept))
             area_counts[f.stem] = len(kept)
             clean = _strip_internal(kept)
@@ -567,10 +694,16 @@ def process(state_codes: list[str], dry_run: bool) -> bool:
     if stats.get("containment_dropped"):
         print(f"  dropped by containment : {stats['containment_dropped']}  "
               "(near a trail but OUTSIDE the park boundary — across-road bleed)")
+    print_containment_diag(cont_diag)
+    print_trailhead_cover(th_cover)
     golden_ok = check_golden(area_counts)
     verb = "would write" if dry_run else "wrote"
     print(f"\n{verb} parking for {changed} area(s).")
-    return golden_ok
+    if boundary_failed:
+        print("\n!! boundary fetch failed for >=1 state — containment gate was "
+              "unavailable there (writes skipped); rerun those states.",
+              file=sys.stderr)
+    return golden_ok and not boundary_failed
 
 
 def main() -> None:

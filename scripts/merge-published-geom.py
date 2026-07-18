@@ -49,7 +49,22 @@ def main(argv=None) -> int:
         if not isinstance(d, dict) or "trail_count" not in d:
             continue                         # not an area geom (e.g. a stray json)
         slug = os.path.splitext(os.path.basename(path))[0]
-        shutil.copyfile(path, os.path.join(args.geom_dir, f"{slug}.json"))
+        dst = os.path.join(args.geom_dir, f"{slug}.json")
+        # Preserve the parking layer add-parking.py wrote into the shipped geom.
+        # The artifact geom (rebuilt from assembly) has no parking, so a blind
+        # copy would wipe every area's pins on a whole-US republish. Carry the
+        # existing parking into the incoming geom before writing.
+        prev_parking = None
+        if os.path.exists(dst):
+            try:
+                prev_parking = json.load(open(dst)).get("parking")
+            except Exception:
+                pass
+        if prev_parking:
+            d["parking"] = prev_parking
+            json.dump(d, open(dst, "w"))
+        else:
+            shutil.copyfile(path, dst)
         copied += 1
         row = by_slug.get(slug)
         if row is None:

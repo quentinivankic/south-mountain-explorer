@@ -443,6 +443,21 @@ def main(argv=None) -> int:
                 elevation.process_area(row, sampler)
             except Exception as e:
                 print(f"  ! elevation sampling failed for {slug}: {e}", file=sys.stderr)
+        # Preserve the parking layer add-parking.py wrote into the shipped geom.
+        # Publish rebuilds `row` fresh from assembly (which has no parking), so
+        # without this a republish silently drops every area's parking pins — the
+        # exact class of regression the DEM-elevation inline sampling above was
+        # added to prevent. add-parking.py re-runs periodically to refresh/add;
+        # publish must not destroy its output between runs. (Read the shipped
+        # geom, not the assembly, so this is a no-op on a fresh artifact dir.)
+        _out = os.path.join(args.out_dir, f"{slug}.json")
+        if os.path.exists(_out):
+            try:
+                _prev = json.load(open(_out))
+                if _prev.get("parking"):
+                    row["parking"] = _prev["parking"]
+            except Exception:
+                pass
         problems = validate(row)
         if problems:
             failed.append((slug, problems)); continue
@@ -453,7 +468,7 @@ def main(argv=None) -> int:
         if args.dry_run:
             published.append((slug, row["trail_count"], "dry-run"))
             continue
-        json.dump(row, open(os.path.join(args.out_dir, f"{slug}.json"), "w"))
+        json.dump(row, open(_out, "w"))
         for r in index:
             if r and r[0] == slug:
                 # Pad to 7, NOT 8 — see merge-published-geom.py's comment on

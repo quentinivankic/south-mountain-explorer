@@ -76,6 +76,38 @@ struct AreaParkingTests {
         #expect(C.parkingSubtitle(for: osm, isTrailhead: false) == "Paid parking")
     }
 
+    @Test func nearestParkingReturnsThreeClosestWithinThreshold() throws {
+        // Trail endpoint at (33.7400,-118.3700). Lots at increasing lon offsets
+        // (~92 m per 0.001° at this lat): N1 ~9 m, N2 ~185 m, N3 ~370 m,
+        // N4 ~555 m (within 805 m but beyond the top-3), Far ~925 m (dropped).
+        let json = """
+        {"id":"x","name":"X","state":"AZ","center_lat":33.74,"center_lon":-118.37,"zoom":13,
+         "trails":[{"id":"t","name":"T","distanceMi":1,"difficulty":"Easy",
+                    "segments":[[[33.7400,-118.3700],[33.7405,-118.3700]]]}],
+         "parking":[
+           {"lat":33.7400,"lon":-118.3701,"name":"N1"},
+           {"lat":33.7400,"lon":-118.3720,"name":"N2"},
+           {"lat":33.7400,"lon":-118.3740,"name":"N3"},
+           {"lat":33.7400,"lon":-118.3760,"name":"N4"},
+           {"lat":33.7400,"lon":-118.3800,"name":"Far"}
+         ]}
+        """
+        let area = try decodeRow(json).toArea()
+        let trail = try #require(area.trails.first)
+        #expect(area.nearestParking(for: trail).map(\.name) == ["N1", "N2", "N3"])
+    }
+
+    @Test func nearestParkingEmptyWhenNoneWithinThreshold() throws {
+        let json = """
+        {"id":"x","name":"X","state":"AZ","center_lat":33.74,"center_lon":-118.37,"zoom":13,
+         "trails":[{"id":"t","name":"T","distanceMi":1,"difficulty":"Easy",
+                    "segments":[[[33.7400,-118.3700],[33.7405,-118.3700]]]}],
+         "parking":[{"lat":33.7400,"lon":-118.3900,"name":"Far"}]}
+        """
+        let area = try decodeRow(json).toArea()
+        #expect(area.nearestParking(for: area.trails[0]).isEmpty)
+    }
+
     @Test func absentParkingIsNil() throws {
         let json = """
         {"id": "x", "name": "X", "state": "AZ", "center_lat": 33.3,

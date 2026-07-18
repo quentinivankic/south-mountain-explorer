@@ -250,9 +250,13 @@ struct MapKitMapView: UIViewRepresentable {
         // parking can arrive in a later in-place area update (same id) after
         // the first render (e.g. a background refetch that adds the layer).
         // Gating on area.id alone would draw zero pins and never revisit.
-        let parkingSig = Self.parkingSig(area.parking)
+        // Declutter: parking is HIDDEN while browsing; only the selected
+        // trail's ≤3 nearest lots draw. So the signature includes the
+        // selection — tapping a trail (or clearing it) rebuilds the pins.
+        let parkingSig = Self.parkingSig(area.parking, selectedTrailId: selectedTrailId)
         if parkingSig != coord.lastParkingSig {
-            coord.rebuildParkingAnnotations(on: mapView, from: area)
+            coord.rebuildParkingAnnotations(on: mapView, from: area,
+                                            selectedTrailId: selectedTrailId)
             coord.lastParkingSig = parkingSig
         }
 
@@ -461,9 +465,12 @@ struct MapKitMapView: UIViewRepresentable {
     /// parking changes (including nil -> populated) but not on unrelated
     /// updateUIView passes. -1 marks "no parking layer" (distinct from the
     /// `-2` sentinel that means "never evaluated").
-    private static func parkingSig(_ lots: [ParkingLot]?) -> Int {
-        guard let lots else { return -1 }
+    private static func parkingSig(_ lots: [ParkingLot]?, selectedTrailId: String?) -> Int {
         var h = Hasher()
+        // Selection is part of the signature: parking is drawn per-selected-trail
+        // now, so changing (or clearing) the selection must rebuild the pins.
+        h.combine(selectedTrailId)
+        guard let lots else { h.combine(-1); return h.finalize() }
         h.combine(lots.count)
         for lot in lots {
             h.combine(lot.lat); h.combine(lot.lon)
@@ -815,11 +822,21 @@ struct MapKitMapView: UIViewRepresentable {
         /// MKUserLocation dot when authorization does land.
         /// Replace the area's parking pins when the area changes. Called from
         /// the `updateUIView` area-changed block alongside the trail rebuild.
-        func rebuildParkingAnnotations(on mapView: MKMapView, from area: Area) {
+        func rebuildParkingAnnotations(on mapView: MKMapView, from area: Area,
+                                       selectedTrailId: String?) {
             let existing = mapView.annotations.compactMap { $0 as? ParkingAnnotation }
             if !existing.isEmpty { mapView.removeAnnotations(existing) }
-            mapLog.notice("parkingPins area=\(area.id, privacy: .public) lots=\(area.parking?.count ?? -1)")
-            for lot in area.parking ?? [] {
+            // No selection → no parking (browsing stays uncluttered). With a
+            // trail selected, show only its ≤3 nearest lots.
+            guard let selectedTrailId,
+                  let trail = area.trails.first(where: { $0.id == selectedTrailId })
+            else {
+                mapLog.notice("parkingPins area=\(area.id, privacy: .public) none (no selection)")
+                return
+            }
+            let lots = area.nearestParking(for: trail)
+            mapLog.notice("parkingPins area=\(area.id, privacy: .public) trail=\(selectedTrailId, privacy: .public) shown=\(lots.count)")
+            for lot in lots {
                 let ann = ParkingAnnotation()
                 ann.coordinate = CLLocationCoordinate2D(latitude: lot.lat, longitude: lot.lon)
                 // A federal BLM/USFS point is a trailhead, not a parking lot.

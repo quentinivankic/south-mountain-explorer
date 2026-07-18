@@ -72,6 +72,56 @@ def _union_from_rings(rings):
     return u if u.is_valid else u.buffer(0)
 
 
+def _fetch_boundary_by_rel(rel_id):
+    """Fetch a boundary relation's COMPLETE geometry by id via Overpass and
+    polygonize it. This rescues MULTI-STATE areas (e.g. Great Smoky Mtns
+    straddling TN/NC, big multi-state National Forests) whose boundary member
+    ways are clipped at the state line in a per-state PBF — with ways missing
+    the ring won't close, merge_areas produces no polygon, and the area is
+    dropped as "no boundary in PBF". `out geom` returns every member's geometry
+    regardless of extract clipping, so the ring closes. Same pattern as
+    add-parking.py::fetch_state_boundaries. Returns a shapely (Multi)Polygon or
+    None; never raises (a failure just leaves the area unpublished, as before)."""
+    import urllib.request
+    import urllib.parse
+    import time
+    from shapely.geometry import LineString
+    from shapely.ops import polygonize, unary_union
+    q = f"[out:json][timeout:180];rel({rel_id});out geom;"
+    data = None
+    for ep in ("https://overpass-api.de/api/interpreter",
+               "https://overpass.kumi.systems/api/interpreter"):
+        for attempt in range(3):
+            try:
+                req = urllib.request.Request(
+                    ep, data=urllib.parse.urlencode({"data": q}).encode(),
+                    headers={"User-Agent": "trekdex-publish/1.0"})
+                data = json.loads(urllib.request.urlopen(req, timeout=180).read())
+                break
+            except Exception:  # noqa: BLE001
+                time.sleep(5 * (attempt + 1))
+        if data is not None:
+            break
+    if data is None:
+        return None
+    lines = []
+    for el in data.get("elements", []):
+        if el.get("type") != "relation":
+            continue
+        for m in el.get("members", []):
+            if m.get("role") in ("outer", "inner", "", None) and m.get("geometry"):
+                pts = [(p["lon"], p["lat"]) for p in m["geometry"]]
+                if len(pts) >= 2:
+                    lines.append(LineString(pts))
+    polys = list(polygonize(lines))
+    if not polys:
+        return None
+    u = unary_union(polys)
+    if not u.is_valid:
+        u = u.buffer(0)
+    return u if (u is not None and u.area > 0) else None
+
+
 # Designator words dropped when comparing park names — the distinctive part
 # ("South Mountain") is what identifies the same park across split polygons.
 _AREA_STOPWORDS = {
@@ -221,6 +271,9 @@ def main(argv=None) -> int:
                          "designations 'one home park' would wrongly strip. Writes nothing.")
     ap.add_argument("--limit", type=int, help="only publish the first N areas (a first wave)")
     ap.add_argument("--dry-run", action="store_true", help="report matches; write nothing")
+    ap.add_argument("--no-boundary-fetch", action="store_true",
+                    help="skip the Overpass fetch-by-rel-id rescue of multi-state "
+                         "areas whose boundary is clipped in the per-state PBF")
     ap.add_argument("--elevation", action="store_true",
                     help="sample a global DEM (AWS Terrarium) inline while publishing "
                          "so each trail's gainFt + gain-aware difficulty are baked into "
@@ -337,6 +390,28 @@ def main(argv=None) -> int:
             all_shapes.append((g.bounds, g, f))
         except Exception:  # noqa: BLE001
             pass
+
+    # Rescue MULTI-STATE areas whose boundary didn't assemble from the per-state
+    # PBF (member ways clipped at the state line -> ring won't close -> "no
+    # boundary in PBF"). For any seeded area with an osm_rel that isn't already
+    # in `geoms`, fetch its COMPLETE boundary by rel id via Overpass. In a real
+    # full-region run this is a small set (the big multi-state parks/forests);
+    # gate it with --no-boundary-fetch to skip the network step.
+    if not args.no_boundary_fetch:
+        have_cf = {nm.casefold() for nm in geoms}
+        need = [(slug, meta) for slug, meta in sorted(az.items())
+                if meta.get("osm_rel") and meta["name"].casefold() not in have_cf]
+        if need:
+            print(f"boundary: {len(need)} area(s) not in PBF; fetching by osm_rel "
+                  f"id via Overpass…", file=sys.stderr)
+            rescued = 0
+            for slug, meta in need:
+                poly = _fetch_boundary_by_rel(meta["osm_rel"])
+                if poly is not None:
+                    nm = meta["name"]
+                    geoms[nm] = unary_union([geoms[nm], poly]) if nm in geoms else poly
+                    rescued += 1
+            print(f"boundary: rescued {rescued}/{len(need)} by rel id", file=sys.stderr)
 
     # Park boundaries (each unioned with its loose siblings) computed ONCE and
     # shared by the route pre-pass and the per-area loop, in deterministic order.

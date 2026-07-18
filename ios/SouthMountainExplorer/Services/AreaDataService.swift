@@ -411,7 +411,11 @@ final class AreaDataService {
             os_signpost(.event, log: areaLoadLog, name: "diskCache hit", signpostID: signpostID)
             let cached = cacheAreaForRendering(onDisk)
             let staleness = Date().timeIntervalSince(onDisk.cachedAt ?? .distantPast)
-            if staleness > 24 * 3600 { Task { await fetchAndCacheArea(id: id) } }
+            // Stale-while-revalidate: return the cached copy now, but kick a
+            // background re-fetch on any copy older than a few minutes so a
+            // shipped correction lands by the next open — not up to 24h later.
+            // Cheap now that fetchFromCdn revalidates via ETag (304 if unchanged).
+            if staleness > 300 { Task { await fetchAndCacheArea(id: id) } }
             return cached
         }
         if let existing = loadingTasks[id] { return await existing.value }
@@ -431,7 +435,11 @@ final class AreaDataService {
         if let onDisk = loadAreaFromDisk(id: id), !onDisk.trails.isEmpty {
             let cached = cacheAreaForRendering(onDisk)
             let staleness = Date().timeIntervalSince(onDisk.cachedAt ?? .distantPast)
-            if staleness > 24 * 3600 { Task { await fetchAndCacheArea(id: id) } }
+            // Stale-while-revalidate: return the cached copy now, but kick a
+            // background re-fetch on any copy older than a few minutes so a
+            // shipped correction lands by the next open — not up to 24h later.
+            // Cheap now that fetchFromCdn revalidates via ETag (304 if unchanged).
+            if staleness > 300 { Task { await fetchAndCacheArea(id: id) } }
             return (cached, nil)
         }
         if let existing = loadingTasks[id] {
@@ -555,6 +563,13 @@ final class AreaDataService {
 
         guard let url = URL(string: "\(cdnBaseURL)/\(id).json") else { return nil }
         var req = URLRequest(url: url, timeoutInterval: 20)
+        // The CDN serves geom with `max-age=86400`, so the default
+        // `.useProtocolCachePolicy` makes URLSession return a day-old cached
+        // response without hitting the network — a corrected pin (e.g. a bad
+        // parking lot we removed) would keep drawing for up to 24h even after
+        // the user clears the app cache. Revalidate against the origin ETag
+        // instead: a changed area re-downloads, an unchanged one is a cheap 304.
+        req.cachePolicy = .reloadRevalidatingCacheData
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         do {
             let (data, response) = try await URLSession.shared.data(for: req)
@@ -812,6 +827,11 @@ final class AreaDataService {
 
     func clearAreaCache() {
         areaCache.removeAll()
+        // The HTTP-response cache is SEPARATE from our disk cache. Without this
+        // a "Clear & Refresh" re-serves the same stale geom bytes from URLCache
+        // (the CDN's max-age=86400 keeps them "fresh"), so a removed pin never
+        // disappears. Clear it too so the refresh actually re-fetches.
+        URLCache.shared.removeAllCachedResponses()
         if let files = try? FileManager.default.contentsOfDirectory(at: cacheDir, includingPropertiesForKeys: nil) {
             for file in files where file.pathExtension == "json" && file.lastPathComponent != "index-v2.json" && file.lastPathComponent != "summaries-v2.json" {
                 try? FileManager.default.removeItem(at: file)

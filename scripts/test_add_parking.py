@@ -231,7 +231,12 @@ def test_boundary_fetch_failure_reports_not_ok(tmp_dir=None):
         f = _P(td) / "some-area-xx.json"
         f.write_text(_json.dumps({"osm_relation_id": 12345}))
         orig = ap.fetch_state_boundaries
+        orig_backoff = ap.RETRY_BACKOFFS_SECONDS
         try:
+            # Neutralize the retry backoff so the always-fail path doesn't
+            # actually sleep through the 30/90/300 s ladder in the test.
+            ap.RETRY_BACKOFFS_SECONDS = []
+
             def _boom(rel_ids):
                 raise RuntimeError("504")
             ap.fetch_state_boundaries = _boom
@@ -239,6 +244,7 @@ def test_boundary_fetch_failure_reports_not_ok(tmp_dir=None):
             assert rings == {} and n == 0 and ok is False, (rings, n, ok)
         finally:
             ap.fetch_state_boundaries = orig
+            ap.RETRY_BACKOFFS_SECONDS = orig_backoff
         # No relation ids at all -> nothing to fetch -> ok=True (not a failure).
         f.write_text(_json.dumps({}))
         rings, n, ok = ap._state_boundaries([f])

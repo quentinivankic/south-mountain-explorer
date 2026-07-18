@@ -190,6 +190,21 @@ def test_fed_name_picks_first_real_name():
     assert ap._fed_name({"NAME": "  ", "foo": "bar"}) is None
 
 
+def test_road_gate_assigned_gates_and_prunes_empty_areas():
+    # Gate runs on the assigned points only; an area whose points all fail the
+    # gate is dropped entirely. road_gate is stubbed (it hits Overpass live).
+    a = {"lat": 1.0, "lon": 1.0, "source": "blm"}
+    b = {"lat": 2.0, "lon": 2.0, "source": "blm"}
+    fed_by_area = {"keeps": [a], "drops": [b]}
+    orig = ap.road_gate
+    try:
+        ap.road_gate = lambda pts, stats=None: [p for p in pts if p is a]
+        out = ap.road_gate_assigned(fed_by_area)
+        assert out == {"keeps": [a]}, out
+    finally:
+        ap.road_gate = orig
+
+
 def test_road_gate_drops_roadless_points():
     # Two federal points; a road node sits ~50 m from the first, none near the
     # second (Kanab-style interior marker). Only the road-adjacent one survives.

@@ -414,6 +414,24 @@ def road_gate(fed: list[dict], stats: dict | None = None) -> list[dict]:
     return kept
 
 
+def road_gate_assigned(fed_by_area: dict[str, list[dict]],
+                       stats: dict | None = None) -> dict[str, list[dict]]:
+    """Road-gate ONLY the federal points already assigned to a blank area (a
+    dozen per state), not every federal point in the state (hundreds). Same gate
+    (`road_gate`), far fewer Overpass `around` queries — the difference between
+    a nationwide run that finishes and one that 504s to death. Drops empty areas."""
+    assigned = [lot for lots in fed_by_area.values() for lot in lots]
+    if not assigned:
+        return fed_by_area
+    kept_ids = {id(lot) for lot in road_gate(assigned, stats=stats)}
+    out: dict[str, list[dict]] = {}
+    for aid, lots in fed_by_area.items():
+        keep = [lot for lot in lots if id(lot) in kept_ids]
+        if keep:
+            out[aid] = keep
+    return out
+
+
 def assign_federal(fed: list[dict], rings_by_area: dict[str, list],
                    blank_ids: set[str]) -> dict[str, list[dict]]:
     """Assign federal features to BLANK areas only (OSM stays authoritative
@@ -965,8 +983,13 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> 
             if blank_ids:
                 bbox = _bbox_of_geoms(files)
                 fed = fetch_federal(bbox) if bbox else []
-                fed = road_gate(fed, stats=stats) if fed else []
+                # Assign by containment FIRST (pure/local), then road-gate only
+                # the handful that landed in a blank area — not every federal
+                # point in the state. A big state has hundreds of federal points
+                # but only a dozen land in blank areas; gating all of them meant
+                # hundreds of Overpass `around` queries (they 504 under load).
                 fed_by_area = assign_federal(fed, rings_by_area, blank_ids) if fed else {}
+                fed_by_area = road_gate_assigned(fed_by_area, stats=stats)
                 n_area = n_pin = 0
                 for f, geom, kept in state_areas:
                     add = fed_by_area.get(f.stem)

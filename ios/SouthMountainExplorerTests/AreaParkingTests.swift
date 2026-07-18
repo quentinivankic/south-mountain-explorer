@@ -58,4 +58,27 @@ struct AreaParkingTests {
         let area = try decodeRow(json).toArea().withDecimatedSegments(epsilonMeters: 5)
         #expect(area.parking?.first?.name == "Lot")
     }
+
+    /// Regression: `cacheAreaForRendering` runs every loaded area through
+    /// `canonicalizeTrailIds`, which rebuilds the `Area` via its memberwise
+    /// init. That rebuild once omitted `parking:`, so a CDN payload with
+    /// parking reached the map with `parking == nil` and no pins ever drew.
+    /// The whole render transform (canonicalize -> decimate -> attach raw)
+    /// must preserve parking.
+    @Test func parkingSurvivesCanonicalization() throws {
+        let json = """
+        {"id": "sm", "name": "South Mountain", "state": "AZ",
+         "center_lat": 33.33, "center_lon": -112.07, "zoom": 13,
+         "trails": [{"id": "national-trail", "name": "National Trail", "distanceMi": 1.0,
+                     "difficulty": "Easy", "segments": [[[33.3,-112.0],[33.31,-112.01]]]}],
+         "parking": [{"lat": 33.30, "lon": -112.10, "name": "Bursera Trailhead", "fee": false},
+                     {"lat": 33.31, "lon": -112.06}]}
+        """
+        let area = try decodeRow(json).toArea()
+        let canon = AreaDataService.canonicalizeTrailIds(area)
+        let parking = try #require(canon.parking, "parking dropped by canonicalization")
+        #expect(parking.count == 2)
+        #expect(parking.first?.name == "Bursera Trailhead")
+        #expect(parking.first?.fee == false)
+    }
 }

@@ -190,6 +190,16 @@ def test_fed_name_picks_first_real_name():
     assert ap._fed_name({"NAME": "  ", "foo": "bar"}) is None
 
 
+def test_road_gate_drops_roadless_points():
+    # Two federal points; a road node sits ~50 m from the first, none near the
+    # second (Kanab-style interior marker). Only the road-adjacent one survives.
+    near = {"lat": 32.0, "lon": -110.0, "source": "blm", "trailhead": True}
+    far = {"lat": 33.0, "lon": -111.0, "source": "blm", "trailhead": True}
+    road_nodes = [(32.0 + 50.0 / 111_000.0, -110.0)]     # ~50 m north of `near`
+    kept = ap._road_gate_filter([near, far], road_nodes, ap._ROAD_GATE_MAX_M)
+    assert kept == [near], kept
+
+
 def test_assign_federal_fills_only_blank_areas():
     # Ring A (a blank area) around (0,0)-(1,1); ring B (a non-blank area) around
     # (10,10)-(11,11). A federal point inside A -> A; inside B -> dropped

@@ -56,8 +56,11 @@ import argparse
 import importlib.util
 import json
 import math
+import ssl
 import sys
 import time
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -102,6 +105,46 @@ _STREET_PARKING = {
 }
 
 RETRY_BACKOFFS_SECONDS = [30, 90, 300]
+
+# ── Tier-2: authoritative federal fallback ────────────────────────────────
+# OSM is primary. Where OSM mapped NO contained parking for an area (typically
+# remote BLM/USFS wilderness), we fill from the managing agency's own trailhead/
+# parking geodata. All three are US-government public domain (ODbL-compatible,
+# free for commercial use, attribution encouraged) and NATIONWIDE from one
+# ArcGIS REST service each — so this scales to all 50 states with no per-state
+# integration. Measured AZ fill (2026-07-18): 4 (OSM-only) -> 13 blank areas.
+# Federal points are only ever ADDED to areas OSM left blank, never merged into
+# areas that already have OSM lots (OSM stays authoritative where it exists).
+_FED_EDGE_BUFFER_M = 250.0   # a curated federal trailhead may sit just OUTSIDE
+                             # a wilderness boundary (the access road is excluded
+                             # from the wilderness polygon by design). Admit such
+                             # a point only if it's contained by NO area at all —
+                             # then it belongs to the nearest blank area's edge.
+_FED_SOURCES = [
+    {"key": "blm",
+     "url": "https://gis.blm.gov/arcgis/rest/services/recreation/"
+            "BLM_Natl_Recreation_Sites_Facilities/MapServer/7",
+     "where": "1=1", "trailhead": True},          # BLM Natl RIDB Trailhead
+    {"key": "nps",
+     "url": "https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/"
+            "NPS_Public_ParkingLots/FeatureServer/0",
+     "where": "1=1", "trailhead": False},         # NPS public parking polygons
+    {"key": "usfs",
+     "url": "https://apps.fs.usda.gov/arcx/rest/services/EDW/"
+            "EDW_RecreationOpportunities_01/MapServer/0",
+     "where": "MARKERACTIVITY='Trailhead'", "trailhead": True},
+]
+# Attribute names each agency uses for a feature's display name (first hit wins).
+_FED_NAME_KEYS = ("LOTNAME", "RECAREANAME", "NAME", "name", "SITE_NAME",
+                  "FEATURENAME", "MAPLABEL", "RECAREA")
+_ARCGIS_MAXREC = 1000
+_ARCGIS_TIMEOUT = 60
+# Some agency GIS hosts present certificate chains urllib dislikes; the data is
+# public and read-only, so an unverified context is acceptable here (we only GET
+# open geodata, never send credentials).
+_ARCGIS_SSL = ssl.create_default_context()
+_ARCGIS_SSL.check_hostname = False
+_ARCGIS_SSL.verify_mode = ssl.CERT_NONE
 
 
 def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -216,6 +259,138 @@ def fetch_state_boundaries(rel_ids: list[int]) -> dict[int, list]:
         if rings:
             per_rel[el["id"]] = rings
     return per_rel
+
+
+def _fed_name(props: dict) -> str | None:
+    for k in _FED_NAME_KEYS:
+        v = props.get(k)
+        if isinstance(v, str) and v.strip() and v.strip().lower() not in ("none", "null"):
+            return v.strip()
+    return None
+
+
+def fetch_arcgis(url: str, bbox: list[float], where: str) -> list[tuple[float, float, dict]]:
+    """Query an ArcGIS REST feature/map layer for features intersecting `bbox`
+    ([lonmin, latmin, lonmax, latmax]). Returns [(lat, lon, props)]; a polygon
+    feature is reduced to its ring centroid. Paginates via resultOffset. Raises
+    on transport failure (caller decides whether to skip that source)."""
+    xmin, ymin, xmax, ymax = bbox
+    out: list[tuple[float, float, dict]] = []
+    offset = 0
+    while True:
+        params = urllib.parse.urlencode({
+            "where": where,
+            "geometry": f"{xmin},{ymin},{xmax},{ymax}",
+            "geometryType": "esriGeometryEnvelope",
+            "inSR": "4326", "outSR": "4326",
+            "spatialRel": "esriSpatialRelIntersects",
+            "outFields": "*", "returnGeometry": "true", "f": "geojson",
+            "resultOffset": offset, "resultRecordCount": _ARCGIS_MAXREC,
+        })
+        req = urllib.request.Request(url + "/query?" + params,
+                                     headers={"User-Agent": "trekdex-parking/1.0"})
+        with urllib.request.urlopen(req, timeout=_ARCGIS_TIMEOUT,
+                                    context=_ARCGIS_SSL) as r:
+            data = json.loads(r.read())
+        feats = data.get("features") or []
+        if not feats:
+            break
+        for ft in feats:
+            g = ft.get("geometry") or {}
+            gt, coords = g.get("type"), g.get("coordinates")
+            if not coords:
+                continue
+            if gt == "Point":
+                lon, lat = coords[0], coords[1]
+            elif gt in ("Polygon", "MultiPolygon"):
+                ring = coords[0] if gt == "Polygon" else coords[0][0]
+                lon = sum(p[0] for p in ring) / len(ring)
+                lat = sum(p[1] for p in ring) / len(ring)
+            else:
+                continue
+            out.append((lat, lon, ft.get("properties") or {}))
+        if len(feats) < _ARCGIS_MAXREC:
+            break
+        offset += _ARCGIS_MAXREC
+    return out
+
+
+def fetch_federal(bbox: list[float]) -> list[dict]:
+    """Fetch every federal source's trailhead/parking features in `bbox`.
+    Returns candidate lots {lat, lon, source, name?, trailhead?}. A source that
+    fails to fetch is skipped (never fails the whole run) — OSM already shipped,
+    federal is a bonus fill."""
+    out: list[dict] = []
+    for s in _FED_SOURCES:
+        try:
+            feats = fetch_arcgis(s["url"], bbox, s["where"])
+        except Exception as e:  # noqa: BLE001
+            print(f"  federal source {s['key']} fetch failed ({e}); skipped",
+                  file=sys.stderr)
+            continue
+        n = 0
+        for lat, lon, props in feats:
+            lot = {"lat": round(lat, 6), "lon": round(lon, 6), "source": s["key"]}
+            nm = _fed_name(props)
+            if nm:
+                lot["name"] = nm
+            if s["trailhead"]:
+                lot["trailhead"] = True
+            out.append(lot)
+            n += 1
+        print(f"  federal {s['key']}: {n} features in bbox")
+    return out
+
+
+def assign_federal(fed: list[dict], rings_by_area: dict[str, list],
+                   blank_ids: set[str]) -> dict[str, list[dict]]:
+    """Assign federal features to BLANK areas only (OSM stays authoritative
+    where it mapped anything). A feature CONTAINED by a blank area is that
+    area's (nested areas each get it). A feature contained by a NON-blank area
+    is dropped (OSM covers it). A feature contained by NO area is an orphan —
+    given to the nearest blank area whose boundary edge is within
+    `_FED_EDGE_BUFFER_M` (wilderness trailheads sit just outside the polygon).
+    Returns {area_id: [lots]}, deduped per area."""
+    by_area: dict[str, list[dict]] = {}
+    for f in fed:
+        lat, lon = f["lat"], f["lon"]
+        contained = [aid for aid, rings in rings_by_area.items()
+                     if point_in_rings(lat, lon, rings)]
+        blank_containers = [aid for aid in contained if aid in blank_ids]
+        if blank_containers:
+            for aid in blank_containers:
+                by_area.setdefault(aid, []).append(f)
+            continue
+        if contained:
+            continue  # inside a non-blank area — OSM already covers it
+        best_aid, best_d = None, _FED_EDGE_BUFFER_M
+        for aid in blank_ids:
+            rings = rings_by_area.get(aid)
+            if not rings:
+                continue
+            d = dist_to_rings_m(lat, lon, rings)
+            if d <= best_d:
+                best_d, best_aid = d, aid
+        if best_aid:
+            by_area.setdefault(best_aid, []).append(f)
+    return {aid: dedup(lots, PARKING_DEDUP_M) for aid, lots in by_area.items()}
+
+
+def _bbox_of_geoms(files: list[Path]) -> list[float] | None:
+    """Envelope [lonmin, latmin, lonmax, latmax] over the areas' own bboxes —
+    the query window for federal sources. No hardcoded state extents, so this
+    works for any state."""
+    xs0, ys0, xs1, ys1 = [], [], [], []
+    for f in files:
+        try:
+            b = json.loads(f.read_text()).get("bbox")
+        except Exception:  # noqa: BLE001
+            continue
+        if b and len(b) == 4:
+            xs0.append(b[0]); ys0.append(b[1]); xs1.append(b[2]); ys1.append(b[3])
+    if not xs0:
+        return None
+    return [min(xs0), min(ys0), max(xs1), max(ys1)]
 
 
 def _layer_clauses(selector: str) -> str:
@@ -552,10 +727,21 @@ def _state_boundaries(files: list[Path]) -> tuple[dict[str, list], int, bool]:
         # Genuinely nothing to fetch — proximity-only is the best possible
         # here, not a degradation.
         return {}, 0, True
-    try:
-        per_rel = fetch_state_boundaries(sorted(set(rel_of.values())))
-    except Exception as e:  # noqa: BLE001
-        print(f"  boundary fetch FAILED ({e})", file=sys.stderr)
+    # The boundary query is one heavy batched `out geom` over every rel id, so
+    # it 504s more than the parking query does. Retry with the same backoff
+    # ladder as fetch_state before declaring the containment gate unavailable.
+    rel_ids = sorted(set(rel_of.values()))
+    per_rel = None
+    for i, backoff in enumerate([0] + RETRY_BACKOFFS_SECONDS):
+        if backoff:
+            time.sleep(backoff)
+        try:
+            per_rel = fetch_state_boundaries(rel_ids)
+            break
+        except Exception as e:  # noqa: BLE001
+            print(f"  boundary fetch attempt {i + 1} failed ({e})", file=sys.stderr)
+    if per_rel is None:
+        print("  boundary fetch FAILED after retries", file=sys.stderr)
         return {}, 0, False
     rings_by_area = {aid: per_rel[rid] for aid, rid in rel_of.items()
                      if rid in per_rel}
@@ -624,7 +810,21 @@ def print_trailhead_cover(th_cover: list[tuple[str, int, int]]) -> None:
           f"  <- blanks a trailhead marker would fill")
 
 
-def process(state_codes: list[str], dry_run: bool) -> bool:
+def print_federal_fill(fed_fill: list[tuple[str, str, list[str]]]) -> None:
+    """Report which blank areas were filled from federal sources, and by which
+    agency — this is the eyeball list before a real write."""
+    if not fed_fill:
+        return
+    import collections
+    src_totals = collections.Counter(s for _, _, srcs in fed_fill for s in srcs)
+    print(f"\n  FEDERAL FILL (tier-2 — OSM-blank areas given agency access points):")
+    print(f"  areas filled : {len(fed_fill)} | pins by source : {dict(src_totals)}")
+    for aid, name, srcs in sorted(fed_fill, key=lambda x: x[1] or x[0]):
+        by = collections.Counter(srcs)
+        print(f"    {name or aid:45} {dict(by)}")
+
+
+def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> bool:
     groups = geom_by_state()
     per_area: list[tuple[str, list[dict]]] = []
     area_counts: dict[str, int] = {}
@@ -634,6 +834,8 @@ def process(state_codes: list[str], dry_run: bool) -> bool:
     cont_diag: list[tuple[str, int, list]] = []
     # (area_id, kept_lot_count, trailhead_nodes_inside_boundary)
     th_cover: list[tuple[str, int, int]] = []
+    # (area_id, name, [source,...]) for blank areas filled from federal data.
+    fed_fill: list[tuple[str, str, list[str]]] = []
     changed = 0
     boundary_failed = False
     for code in state_codes:
@@ -665,6 +867,9 @@ def process(state_codes: list[str], dry_run: bool) -> bool:
             if not dry_run:
                 continue
 
+        # Pass 1 — OSM parking per area (primary). No write yet: we may still
+        # fill blanks from federal sources below, and want one write per file.
+        state_areas: list[tuple[Path, dict, list]] = []
         for f in files:
             geom = json.loads(f.read_text())
             if not geom.get("trails") or not geom.get("bbox"):
@@ -678,6 +883,31 @@ def process(state_codes: list[str], dry_run: bool) -> bool:
                 th_in = sum(1 for tlat, tlon in trailheads
                             if point_in_rings(tlat, tlon, rings))
                 th_cover.append((f.stem, len(kept), th_in))
+            state_areas.append((f, geom, kept))
+
+        # Pass 2 — tier-2 federal fill for areas OSM left blank (needs the
+        # containment boundaries; skipped if they didn't load or --no-federal).
+        if use_federal and bnd_ok:
+            blank_ids = {f.stem for f, _, kept in state_areas
+                         if not kept and rings_by_area.get(f.stem)}
+            if blank_ids:
+                bbox = _bbox_of_geoms(files)
+                fed = fetch_federal(bbox) if bbox else []
+                fed_by_area = assign_federal(fed, rings_by_area, blank_ids) if fed else {}
+                n_area = n_pin = 0
+                for f, geom, kept in state_areas:
+                    add = fed_by_area.get(f.stem)
+                    if add:
+                        kept.extend(add)
+                        n_area += 1
+                        n_pin += len(add)
+                        fed_fill.append((f.stem, geom.get("name"),
+                                         [lot["source"] for lot in add]))
+                print(f"  {code.upper()}: federal fill added {n_pin} pin(s) to "
+                      f"{n_area} of {len(blank_ids)} blank area(s)")
+
+        # Pass 3 — record + write (one write per changed file).
+        for f, geom, kept in state_areas:
             per_area.append((f.stem, kept))
             area_counts[f.stem] = len(kept)
             clean = _strip_internal(kept)
@@ -691,6 +921,7 @@ def process(state_codes: list[str], dry_run: bool) -> bool:
                     f.write_text(json.dumps(geom))
 
     print_report(per_area, dry_run)
+    print_federal_fill(fed_fill)
     if stats.get("containment_dropped"):
         print(f"  dropped by containment : {stats['containment_dropped']}  "
               "(near a trail but OUTSIDE the park boundary — across-road bleed)")
@@ -712,6 +943,9 @@ def main() -> None:
     g.add_argument("--state", help="two-letter state code, e.g. az")
     g.add_argument("--all", action="store_true", help="every state")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--no-federal", action="store_true",
+                    help="skip the tier-2 federal (BLM/NPS/USFS) fill of "
+                         "OSM-blank areas; OSM parking only")
     args = ap.parse_args()
 
     if args.all:
@@ -720,7 +954,7 @@ def main() -> None:
         if args.state.upper() not in STATE_NAMES:
             raise SystemExit(f"Unknown state code: {args.state}")
         codes = [args.state]
-    golden_ok = process(codes, args.dry_run)
+    golden_ok = process(codes, args.dry_run, use_federal=not args.no_federal)
     if not golden_ok:
         sys.exit(2)
 

@@ -184,6 +184,42 @@ def test_bbox_prefilter_and_shared_lots_not_mutated():
     assert shared == snapshot, "shared lots must not be mutated"
 
 
+def test_fed_name_picks_first_real_name():
+    assert ap._fed_name({"LOTNAME": "Main Lot"}) == "Main Lot"
+    assert ap._fed_name({"NAME": "None", "RECAREANAME": "Kanab Creek TH"}) == "Kanab Creek TH"
+    assert ap._fed_name({"NAME": "  ", "foo": "bar"}) is None
+
+
+def test_assign_federal_fills_only_blank_areas():
+    # Ring A (a blank area) around (0,0)-(1,1); ring B (a non-blank area) around
+    # (10,10)-(11,11). A federal point inside A -> A; inside B -> dropped
+    # (OSM covers B); an orphan just outside A -> nearest blank area A by edge.
+    ringA = [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]]        # (lon,lat)
+    ringB = [[(10, 10), (10, 11), (11, 11), (11, 10), (10, 10)]]
+    rings_by_area = {"blankA": ringA, "osmB": ringB}
+    blank_ids = {"blankA"}
+    # ~1 m outside A's east edge at lat 0.5 (edge buffer is 250 m).
+    orphan_lon = 1.0 + 1.0 / 111_000.0
+    fed = [
+        {"lat": 0.5, "lon": 0.5, "source": "blm", "trailhead": True},   # inside A
+        {"lat": 10.5, "lon": 10.5, "source": "nps"},                    # inside B
+        {"lat": 0.5, "lon": orphan_lon, "source": "usfs", "trailhead": True},  # orphan near A
+    ]
+    out = ap.assign_federal(fed, rings_by_area, blank_ids)
+    assert set(out) == {"blankA"}, out                 # osmB never filled
+    got = {(l["source"]) for l in out["blankA"]}
+    assert got == {"blm", "usfs"}, got                 # inside + orphan-edge, not nps
+
+
+def test_assign_federal_orphan_beyond_buffer_dropped():
+    ringA = [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]]
+    # 500 m east of A's edge — beyond the 250 m edge buffer.
+    far_lon = 1.0 + 500.0 / 111_000.0
+    fed = [{"lat": 0.5, "lon": far_lon, "source": "blm", "trailhead": True}]
+    out = ap.assign_federal(fed, {"blankA": ringA}, {"blankA"})
+    assert out == {}, out
+
+
 def test_boundary_fetch_failure_reports_not_ok(tmp_dir=None):
     # A transient Overpass failure must surface ok=False so process() refuses
     # to WRITE proximity-only (bleed-carrying) results — found 2026-07-18 when

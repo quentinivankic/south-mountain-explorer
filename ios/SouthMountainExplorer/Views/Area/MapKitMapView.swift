@@ -235,12 +235,21 @@ struct MapKitMapView: UIViewRepresentable {
         // (Trail set within an area is stable for the area's lifetime.)
         if coord.lastAreaId != area.id {
             coord.rebuildTrailOverlays(on: mapView, from: area)
-            coord.rebuildParkingAnnotations(on: mapView, from: area)
             coord.lastAreaId = area.id
             // Force re-style on next pass since renderer dict was reset.
             coord.lastSelectedTrailId = nil
             coord.lastRecordingTrailId = nil
             coord.lastCompletedTrailIds = []
+        }
+
+        // 1b) Parking pins — gated on the parking SET, not area.id, because
+        // parking can arrive in a later in-place area update (same id) after
+        // the first render (e.g. a background refetch that adds the layer).
+        // Gating on area.id alone would draw zero pins and never revisit.
+        let parkingSig = Self.parkingSig(area.parking)
+        if parkingSig != coord.lastParkingSig {
+            coord.rebuildParkingAnnotations(on: mapView, from: area)
+            coord.lastParkingSig = parkingSig
         }
 
         // 2) Halo overlays — rebuild when the per-hike segment hashes
@@ -444,6 +453,20 @@ struct MapKitMapView: UIViewRepresentable {
         }
     }
 
+    /// Stable signature of the parking set so the pin rebuild fires when
+    /// parking changes (including nil -> populated) but not on unrelated
+    /// updateUIView passes. -1 marks "no parking layer" (distinct from the
+    /// `-2` sentinel that means "never evaluated").
+    private static func parkingSig(_ lots: [ParkingLot]?) -> Int {
+        guard let lots else { return -1 }
+        var h = Hasher()
+        h.combine(lots.count)
+        for lot in lots {
+            h.combine(lot.lat); h.combine(lot.lon)
+        }
+        return h.finalize()
+    }
+
     /// Same shape as `haloHashes` but flat — live halo is the
     /// segments from the single in-progress recording, not a
     /// per-hike outer list.
@@ -514,6 +537,11 @@ struct MapKitMapView: UIViewRepresentable {
         var lastCameraTick: Int = -1
         var lastHaloHashes: [Int] = []
         var lastLiveTrailSnappedHash: Int = 0
+        /// Signature of the parking set last drawn. Parking arrives with the
+        /// area but can also land in a later in-place update (same area.id), so
+        /// gating the pin rebuild only on area.id change would miss it. -1 =
+        /// never drawn.
+        var lastParkingSig: Int = -2
         var lastSelectedTrailWalkedHash: Int = 0
 
         init(parent: MapKitMapView) {

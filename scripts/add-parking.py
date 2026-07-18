@@ -134,6 +134,15 @@ _FED_SOURCES = [
             "EDW_RecreationOpportunities_01/MapServer/0",
      "where": "MARKERACTIVITY='Trailhead'", "trailhead": True},
 ]
+# A federal point ships ONLY if it's within this of a DRIVABLE road — the
+# gate that distinguishes a real drive-to trailhead from a BLM wilderness-marker
+# point dropped deep in the interior (Kanab Creek's marker sat 0.58 mi from any
+# road; containment alone let it through). `track` = dirt road: real AZ
+# trailheads are reached by them, so they count as drivable access.
+_ROAD_GATE_MAX_M = 250.0
+_DRIVABLE_HW = ("motorway|trunk|primary|secondary|tertiary|"
+                "unclassified|residential|service|track|road")
+_ROAD_CHUNK = 60  # around-clauses per Overpass query (batch for nationwide runs)
 # Attribute names each agency uses for a feature's display name (first hit wins).
 _FED_NAME_KEYS = ("LOTNAME", "RECAREANAME", "NAME", "name", "SITE_NAME",
                   "FEATURENAME", "MAPLABEL", "RECAREA")
@@ -340,6 +349,69 @@ def fetch_federal(bbox: list[float]) -> list[dict]:
             n += 1
         print(f"  federal {s['key']}: {n} features in bbox")
     return out
+
+
+def fetch_roads_near(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """Overpass: all DRIVABLE road vertices within `_ROAD_GATE_MAX_M` of ANY of
+    `points`, in chunked `around` queries (batched for nationwide runs). Returns
+    [(lat, lon)] road nodes. Raises if a chunk can't be fetched after retries —
+    the caller then drops federal points rather than shipping unverified ones."""
+    nodes: list[tuple[float, float]] = []
+    for i in range(0, len(points), _ROAD_CHUNK):
+        chunk = points[i:i + _ROAD_CHUNK]
+        clauses = "".join(
+            f'way["highway"~"^({_DRIVABLE_HW})(_link)?$"]'
+            f'(around:{_ROAD_GATE_MAX_M},{lat},{lon});'
+            for lat, lon in chunk)
+        q = f"[out:json][timeout:180];({clauses});out geom;"
+        data = None
+        for j, backoff in enumerate([0] + RETRY_BACKOFFS_SECONDS):
+            if backoff:
+                time.sleep(backoff)
+            try:
+                data = fetch_overpass(q)
+                break
+            except Exception as e:  # noqa: BLE001
+                print(f"  road-gate fetch attempt {j + 1} failed ({e})", file=sys.stderr)
+        if data is None:
+            raise RuntimeError("road-gate Overpass fetch failed")
+        for el in data.get("elements", []):
+            for g in el.get("geometry", []) or []:
+                nodes.append((g["lat"], g["lon"]))
+    return nodes
+
+
+def _road_gate_filter(fed: list[dict], road_nodes: list[tuple[float, float]],
+                      max_m: float) -> list[dict]:
+    """Keep only federal points within `max_m` of a road node. Pure — the
+    fetch is separate so this is unit-testable."""
+    return [f for f in fed
+            if min_dist_m(f["lat"], f["lon"], road_nodes) <= max_m]
+
+
+def road_gate(fed: list[dict], stats: dict | None = None) -> list[dict]:
+    """Drop federal points with no drivable road within `_ROAD_GATE_MAX_M` — a
+    'trailhead' POINT is only usable parking if you can actually drive to it.
+    If the road fetch fails outright, drop ALL federal (never ship access we
+    couldn't verify) rather than degrade to unchecked points."""
+    if not fed:
+        return fed
+    pts = [(f["lat"], f["lon"]) for f in fed]
+    try:
+        road_nodes = fetch_roads_near(pts)
+    except Exception as e:  # noqa: BLE001
+        print(f"  road gate: fetch failed ({e}); dropping all {len(fed)} federal "
+              "point(s) — cannot verify road access", file=sys.stderr)
+        if stats is not None:
+            stats["federal_road_unverified"] = stats.get("federal_road_unverified", 0) + len(fed)
+        return []
+    kept = _road_gate_filter(fed, road_nodes, _ROAD_GATE_MAX_M)
+    dropped = len(fed) - len(kept)
+    if stats is not None:
+        stats["federal_road_dropped"] = stats.get("federal_road_dropped", 0) + dropped
+    print(f"  federal road gate: kept {len(kept)}/{len(fed)} "
+          f"(dropped {dropped} roadless)")
+    return kept
 
 
 def assign_federal(fed: list[dict], rings_by_area: dict[str, list],
@@ -893,6 +965,7 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> 
             if blank_ids:
                 bbox = _bbox_of_geoms(files)
                 fed = fetch_federal(bbox) if bbox else []
+                fed = road_gate(fed, stats=stats) if fed else []
                 fed_by_area = assign_federal(fed, rings_by_area, blank_ids) if fed else {}
                 n_area = n_pin = 0
                 for f, geom, kept in state_areas:

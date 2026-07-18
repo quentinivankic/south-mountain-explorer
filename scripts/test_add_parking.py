@@ -184,6 +184,73 @@ def test_bbox_prefilter_and_shared_lots_not_mutated():
     assert shared == snapshot, "shared lots must not be mutated"
 
 
+def test_fed_name_picks_first_real_name():
+    assert ap._fed_name({"LOTNAME": "Main Lot"}) == "Main Lot"
+    assert ap._fed_name({"NAME": "None", "RECAREANAME": "Kanab Creek TH"}) == "Kanab Creek TH"
+    assert ap._fed_name({"NAME": "  ", "foo": "bar"}) is None
+
+
+def test_assign_federal_fills_only_blank_areas():
+    # Ring A (a blank area) around (0,0)-(1,1); ring B (a non-blank area) around
+    # (10,10)-(11,11). A federal point inside A -> A; inside B -> dropped
+    # (OSM covers B); an orphan just outside A -> nearest blank area A by edge.
+    ringA = [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]]        # (lon,lat)
+    ringB = [[(10, 10), (10, 11), (11, 11), (11, 10), (10, 10)]]
+    rings_by_area = {"blankA": ringA, "osmB": ringB}
+    blank_ids = {"blankA"}
+    # ~1 m outside A's east edge at lat 0.5 (edge buffer is 250 m).
+    orphan_lon = 1.0 + 1.0 / 111_000.0
+    fed = [
+        {"lat": 0.5, "lon": 0.5, "source": "blm", "trailhead": True},   # inside A
+        {"lat": 10.5, "lon": 10.5, "source": "nps"},                    # inside B
+        {"lat": 0.5, "lon": orphan_lon, "source": "usfs", "trailhead": True},  # orphan near A
+    ]
+    out = ap.assign_federal(fed, rings_by_area, blank_ids)
+    assert set(out) == {"blankA"}, out                 # osmB never filled
+    got = {(l["source"]) for l in out["blankA"]}
+    assert got == {"blm", "usfs"}, got                 # inside + orphan-edge, not nps
+
+
+def test_assign_federal_orphan_beyond_buffer_dropped():
+    ringA = [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]]
+    # 500 m east of A's edge — beyond the 250 m edge buffer.
+    far_lon = 1.0 + 500.0 / 111_000.0
+    fed = [{"lat": 0.5, "lon": far_lon, "source": "blm", "trailhead": True}]
+    out = ap.assign_federal(fed, {"blankA": ringA}, {"blankA"})
+    assert out == {}, out
+
+
+def test_boundary_fetch_failure_reports_not_ok(tmp_dir=None):
+    # A transient Overpass failure must surface ok=False so process() refuses
+    # to WRITE proximity-only (bleed-carrying) results — found 2026-07-18 when
+    # a 504 silently degraded AZ to proximity-only and Thunderbird went 14->26.
+    import json as _json
+    import tempfile
+    from pathlib import Path as _P
+    with tempfile.TemporaryDirectory() as td:
+        f = _P(td) / "some-area-xx.json"
+        f.write_text(_json.dumps({"osm_relation_id": 12345}))
+        orig = ap.fetch_state_boundaries
+        orig_backoff = ap.RETRY_BACKOFFS_SECONDS
+        try:
+            # Neutralize the retry backoff so the always-fail path doesn't
+            # actually sleep through the 30/90/300 s ladder in the test.
+            ap.RETRY_BACKOFFS_SECONDS = []
+
+            def _boom(rel_ids):
+                raise RuntimeError("504")
+            ap.fetch_state_boundaries = _boom
+            rings, n, ok = ap._state_boundaries([f])
+            assert rings == {} and n == 0 and ok is False, (rings, n, ok)
+        finally:
+            ap.fetch_state_boundaries = orig
+            ap.RETRY_BACKOFFS_SECONDS = orig_backoff
+        # No relation ids at all -> nothing to fetch -> ok=True (not a failure).
+        f.write_text(_json.dumps({}))
+        rings, n, ok = ap._state_boundaries([f])
+        assert rings == {} and n == 0 and ok is True, (rings, n, ok)
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

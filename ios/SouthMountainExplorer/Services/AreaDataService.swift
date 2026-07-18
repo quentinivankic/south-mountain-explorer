@@ -351,7 +351,7 @@ final class AreaDataService {
     /// the build-trail-counts.py change these suffixes don't appear
     /// in fresh data, but old persisted Area JSON does until the
     /// next refetch.
-    func canonicalizeTrailIds(_ area: Area) -> Area {
+    nonisolated static func canonicalizeTrailIds(_ area: Area) -> Area {
         let canon = area.trails.map { t in
             Trail(
                 id: t.id.canonicalTrailId,
@@ -390,7 +390,7 @@ final class AreaDataService {
     private func cacheAreaForRendering(_ area: Area) -> Area {
         let signpostID = OSSignpostID(log: areaLoadLog)
         os_signpost(.begin, log: areaLoadLog, name: "decimate", signpostID: signpostID, "%{public}s", area.id)
-        let canonical = canonicalizeTrailIds(area)
+        let canonical = Self.canonicalizeTrailIds(area)
         let decimated = canonical.withDecimatedSegments(epsilonMeters: Self.renderDecimationEpsilonMeters)
         let attached = decimated.with(rawTrails: canonical.trails)
         os_signpost(.end, log: areaLoadLog, name: "decimate", signpostID: signpostID)

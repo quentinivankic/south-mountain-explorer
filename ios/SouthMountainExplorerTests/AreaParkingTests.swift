@@ -75,7 +75,7 @@ struct AreaParkingTests {
                      {"lat": 33.31, "lon": -112.06}]}
         """
         let area = try decodeRow(json).toArea()
-        let canon = AreaDataService.shared.canonicalizeTrailIds(area)
+        let canon = AreaDataService.canonicalizeTrailIds(area)
         let parking = try #require(canon.parking, "parking dropped by canonicalization")
         #expect(parking.count == 2)
         #expect(parking.first?.name == "Bursera Trailhead")

@@ -156,13 +156,22 @@ extension Area {
             let newSegments = trail.segments.map {
                 PolylineDecimator.decimate($0, epsilonMeters: epsilonMeters)
             }
+            // Every field must be carried across. This rebuild is on the load
+            // path for EVERY area, so anything omitted here is silently stripped
+            // from the copy the UI renders — the disk and CDN copies keep it, so
+            // the data looks correct everywhere you'd think to check.
+            // `profileFt` was missing, which nil'd the elevation profile for
+            // every trail in the app while `gainFt` (carried) displayed fine.
+            // No amount of refreshing could fix it: the strip happened after
+            // each load. When adding a field to Trail, add it HERE too.
             return Trail(
                 id: trail.id,
                 name: trail.name,
                 distanceMi: trail.distanceMi,
                 difficulty: trail.difficulty,
                 segments: newSegments,
-                gainFt: trail.gainFt
+                gainFt: trail.gainFt,
+                profileFt: trail.profileFt
             )
         }
         return Area(

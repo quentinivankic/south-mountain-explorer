@@ -152,4 +152,37 @@ struct TrailProfileTests {
         #expect(a.profileFt == [10, 20])
         #expect(b.profileFt == nil)     // pre-profile geom stays valid
     }
+
+    // MARK: - profileFt must survive the load-path rebuilds
+
+    /// `AreaDataService.cacheAreaForRendering` runs every loaded area through
+    /// `canonicalizeTrailIds` then `withDecimatedSegments`. Both REBUILD each
+    /// Trail, and both omitted `profileFt` — so the elevation profile was
+    /// stripped from the copy the UI renders, app-wide, while the disk and CDN
+    /// copies stayed correct. No amount of refreshing could fix it.
+    @Test func profileFt_survivesDecimation() {
+        let t = Trail(id: "t-1", name: "T", distanceMi: 2.0, difficulty: .hard,
+                      segments: [[[33.0, -112.0], [33.01, -112.01], [33.02, -112.0]]],
+                      gainFt: 500, profileFt: [100, 200, 300, 400])
+        let area = Area(id: "a", name: "A", subtitle: "S", centerLat: 33, centerLon: -112,
+                        zoom: 13, bbox: nil, trails: [t], trailCount: 1, totalMi: 2.0,
+                        cachedAt: nil, parking: nil)
+        let out = area.withDecimatedSegments(epsilonMeters: 5.0)
+        #expect(out.trails[0].profileFt == [100, 200, 300, 400],
+                "decimation must carry profileFt, not nil it")
+        #expect(out.trails[0].gainFt == 500, "decimation must carry gainFt")
+    }
+
+    @Test func profileFt_survivesIdCanonicalization() {
+        let t = Trail(id: "unnamed-494466239-43", name: "T", distanceMi: 2.0,
+                      difficulty: .hard,
+                      segments: [[[33.0, -112.0], [33.02, -112.0]]],
+                      gainFt: 500, profileFt: [100, 200, 300])
+        let area = Area(id: "a", name: "A", subtitle: "S", centerLat: 33, centerLon: -112,
+                        zoom: 13, bbox: nil, trails: [t], trailCount: 1, totalMi: 2.0,
+                        cachedAt: nil, parking: nil)
+        let out = AreaDataService.canonicalizeTrailIds(area)
+        #expect(out.trails[0].profileFt == [100, 200, 300],
+                "id canonicalization must carry profileFt, not nil it")
+    }
 }

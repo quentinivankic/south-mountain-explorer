@@ -353,13 +353,20 @@ final class AreaDataService {
     /// next refetch.
     nonisolated static func canonicalizeTrailIds(_ area: Area) -> Area {
         let canon = area.trails.map { t in
+            // Carry EVERY field. This runs on the load path for every area and
+            // BEFORE withDecimatedSegments, so a field omitted here is stripped
+            // no matter what the later rebuild does. `profileFt` was missing in
+            // both, which nil'd the elevation profile app-wide while the disk
+            // and CDN copies looked perfectly correct. Adding a field to Trail
+            // means adding it here AND in Area.withDecimatedSegments.
             Trail(
                 id: t.id.canonicalTrailId,
                 name: t.name,
                 distanceMi: t.distanceMi,
                 difficulty: t.difficulty,
                 segments: t.segments,
-                gainFt: t.gainFt
+                gainFt: t.gainFt,
+                profileFt: t.profileFt
             )
         }
         return Area(

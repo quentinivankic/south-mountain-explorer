@@ -56,6 +56,51 @@ Snapshot of the active threads this session — see the PRs for detail.
   Settings → General → **"Automatically delete head branches"** so future
   branches self-clean on merge.
 
+## In flight 2026-07-18/19 (parking + coverage — big session)
+
+- **Whole-US cross-state coverage re-publish — RUNNING.** `trailforge-publish-us.yml`
+  (real, `dry_run=false`) re-publishing all US areas WITH the new multi-state
+  boundary fix → ships the ~450 areas dropped as "no boundary in PBF" (Great
+  Smoky NC side, giant National Forests, wildernesses) + refreshes existing geom
+  + bakes elevation. Fans in to one commit + R2 sync. Reaches OLD apps via the
+  R2-served index (no build needed). Watcher active.
+  - NEXT after it lands: verify no regressions (golden areas, counts, parking
+    preserved); then parking-nationwide OR the no-rel-id stragglers (below).
+
+## Shipped 2026-07-18/19 (trailhead parking + the coverage gap) — see CLAUDE.md + auto-memory
+
+- **Trailhead PARKING feature.** OSM `amenity=parking` enriched onto geom via
+  `scripts/add-parking.py` (per-state Overpass, boundary point-in-polygon
+  CONTAINMENT gate). AZ live on R2. Deep detail in auto-memory `parking-feature.md`.
+  Sub-decisions: **federal fallback — BLM DROPPED** (generic area-POI markers,
+  not trailheads; verified bad on Kanab + Grand Canyon-Parashant, #427),
+  **NPS+USFS kept**. **Road-proximity gate** (#423) + **assign-then-gate
+  efficiency** (#425). **iOS on-selection display** (#429 — parking hidden while
+  browsing; tap a trail → ≤3 nearest + zoom frame) + **distinct green trailhead
+  marker + attribution** (#421). **Publish PRESERVES parking on republish** (#426).
+- **⚠️ Stale-geom cache bug FIXED (#424)** — root cause of recurring "ghost pin"
+  reports (3 cache layers: HTTP `max-age`, `URLCache` not cleared by Refresh, 24h
+  disk staleness). Now revalidate + URLCache clear + 5-min staleness.
+- **System-1 geom PURGED (#428)** — 7,304 `cached_at` files + 601 silhouettes
+  deleted; closes/supersedes task #38.
+- **⭐ Coverage gap found + US fix shipped** — 810 areas (Great Smoky, Banff,
+  big NFs) never shipped: Canada never published (360, DEFERRED), and US
+  multi-state boundaries clipped at the state line (450). Fix
+  (#430/#432/#435/#436): `publish_areas.py::_fetch_boundary_by_rel` fetches a
+  multi-state boundary by `osm_rel` id via Overpass when PBF assembly fails.
+  Shipped NC (#434) + MT (#437), then the whole-US run (above). Detail in
+  `coverage-gap-missing-areas.md`.
+- **CLAUDE.md condensed** 728→230 (#433) + corrected the false "index not
+  R2-served" claim (`AreaIndexService` exists and works).
+
+### Open follow-ups from this session
+- [ ] **No-rel-id stragglers** — the fix rescues areas WITH an `osm_relation_id`;
+  bare-seed ones (Great Smoky TN side, Humboldt-Toiyabe) still don't ship. Fix =
+  re-seed to attach a rel id, then republish. Completes US coverage.
+- [ ] **Parking nationwide** — expand `add-parking.py` AZ → all states (safe now:
+  publish preserves it); validate USFS on first states.
+- [ ] **Canada** (360) — DEFERRED per user 2026-07-19.
+
 ## Shipped 2026-07-15 (multi-area completion + CI workflows + cleanup) — see CLAUDE.md
 
 - **Multi-area completion for trail + roam hikes** (#372, + fetch-storm cap
@@ -136,7 +181,10 @@ Snapshot of the active threads this session — see the PRs for detail.
   (no DEM re-sample): **1,377 trails relabelled (1.7%), all upward**. Found in a
   data-quality audit; concentrated in Adirondack High Peaks / Alpine Lakes /
   Acadia / Okanogan-Wenatchee.
-- [ ] **System-1 (cached_at) area hygiene** (task #38) — a QA audit found
+- [x] **System-1 (cached_at) area hygiene** (task #38) — DONE 2026-07-18 (#428):
+  purged all 7,304 `cached_at` geom + 601 silhouettes (guarded; 8,860 clean geom
+  untouched; reversible via git). R2-side handled by task #36 sweep. Orig note:
+  a QA audit found
   **7,304 shipped geom files still carry `cached_at`** (System-1 legacy), for
   areas trailforge never re-published (no boundary in the state extract —
   cross-state parks like Allegheny NF, Absaroka-Beartooth). They hold ~3,200
@@ -151,7 +199,9 @@ Snapshot of the active threads this session — see the PRs for detail.
 - [ ] **Reverse-profile / "descends first" signal** (task #32) — deferred; needs
   trailhead orientation.
 - [ ] **Nested/duplicate areas** (task #37) — a trail appears in both a park and
-  its nested wilderness. Investigated a dedup; **deferred, keep both for now**
+  its nested wilderness. STARK EXAMPLE (2026-07-18): "Saguaro" returns 4
+  overlapping areas (park + 2 districts that SUM to the park + the wilderness).
+  Investigated a dedup; **deferred, keep both for now**
   (cosmetic since #372 made them completable). Real fix belongs in the pipeline.
 
 ## App Store release gate
@@ -322,8 +372,9 @@ TF builds.
 - [ ] **Completion celebration upgrade.** Trail-complete and
   area-100% currently show a basic overlay. Add haptics + a richer
   animation; this is the moment of payoff.
-- [ ] **Trailheads & parking pins** on the map. Where to actually
-  start a hike.
+- [x] **Trailheads & parking pins** on the map — SHIPPED 2026-07-18 (AZ). OSM
+  containment-gated parking + federal (NPS/USFS) fallback; show only for the
+  selected trail (≤3 nearest). See `parking-feature.md`. Remaining: roll beyond AZ.
 - [ ] **Share card expansion.** `ShareableHikeCard` exists; grow it
   into a proper "I completed X" share-out (especially good with the
   Dex once that lands).
@@ -362,9 +413,11 @@ TF builds.
 
 ## Backlog — content
 
-- [ ] **Fuller NA coverage.** Audit whether all 50 US states and 13
-  Canadian provinces are seeded vs partially covered, fill gaps via
-  `build-trail-index` dispatches.
+- [~] **Fuller NA coverage.** IN PROGRESS 2026-07-18/19: the big US gap was the
+  multi-state boundary bug (810 areas incl. Great Smoky/NFs) — fixed + whole-US
+  re-publish running (see "In flight" + `coverage-gap-missing-areas.md`).
+  Remaining: no-rel-id stragglers (re-seed), then Canada (deferred). Do NOT use
+  the old `build-trail-index` dispatch — that's the purged System-1 pipeline.
 
 ## Waiting on you (not code)
 

@@ -28,6 +28,10 @@ struct TrailElevationProfileView: View {
     /// at open — see `TrailRow.profileStartIsNearer` for why it must not change
     /// while the chart is up.
     var startIsNearer: Bool = true
+    /// Compass name for the end the chart starts from, e.g. "west end". nil on
+    /// loops, whose ends coincide — the label is then omitted rather than
+    /// inventing a direction.
+    var startEndLabel: String? = nil
     /// Called when the user flips the direction. nil hides the control — the
     /// chart is also used where flipping has no meaning.
     var onFlip: (() -> Void)? = nil
@@ -66,7 +70,13 @@ struct TrailElevationProfileView: View {
                 // convention; the button lets you set it when you know better
                 // ("I'm parking at THAT end").
                 HStack(spacing: 6) {
-                    Text("Start: nearest end")
+                    // Names the physical end by compass direction. The earlier
+                    // "nearest end" described the algorithm instead of answering
+                    // the question — ambiguous about nearest to WHAT, silent on
+                    // which end that is, and weakest when browsing from far
+                    // away. A loop has no distinguishable ends, so it falls back
+                    // to the neutral wording rather than inventing a direction.
+                    Text(startEndLabel.map { "Starts: \($0)" } ?? "Start of trail")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 0)

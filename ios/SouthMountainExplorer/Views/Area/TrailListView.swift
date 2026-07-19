@@ -515,6 +515,10 @@ struct TrailRow: View {
                 totalDistanceMi: trail.distanceMi,
                 position: snappedFraction,
                 startIsNearer: profileStartIsNearer,
+                startEndLabel: TrailProfile.startEndCompassLabel(
+                    segments: trail.segments,
+                    startIsNearer: profileStartIsNearer
+                ),
                 // Flipping writes the choice for THIS trail and redraws. The
                 // automatic answer stays the default everywhere else — see
                 // ProfileDirectionStore for why this is an override, not a

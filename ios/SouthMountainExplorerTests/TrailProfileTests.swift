@@ -185,4 +185,38 @@ struct TrailProfileTests {
         #expect(out.trails[0].profileFt == [100, 200, 300],
                 "id canonicalization must carry profileFt, not nil it")
     }
+
+    // MARK: - startEndCompassLabel
+
+    /// Verified against the real geometry: National Trail runs from
+    /// 33.3303,-112.1441 to 33.3608,-112.0050, so its stored start is the
+    /// WESTERN end and flipping must name the eastern one.
+    @Test func compassLabel_namesThePhysicalEnd() {
+        let segs = [[[33.3303, -112.1441], [33.3450, -112.0700], [33.3608, -112.0050]]]
+        #expect(TrailProfile.startEndCompassLabel(segments: segs, startIsNearer: true)
+                == "west end")
+        #expect(TrailProfile.startEndCompassLabel(segments: segs, startIsNearer: false)
+                == "east end")
+    }
+
+    /// A loop's ends coincide, so naming a direction would be a lie. The view
+    /// falls back to neutral wording when this returns nil.
+    @Test func compassLabel_nilForALoop() {
+        let segs = [[[33.30, -112.10], [33.31, -112.09], [33.30, -112.10]]]
+        #expect(TrailProfile.startEndCompassLabel(segments: segs, startIsNearer: true) == nil,
+                "a loop has no distinguishable end to name")
+    }
+
+    @Test func compassLabel_nilWithoutUsableGeometry() {
+        #expect(TrailProfile.startEndCompassLabel(segments: [], startIsNearer: true) == nil)
+    }
+
+    /// North/south must not be confused with east/west by the longitude scaling.
+    @Test func compassLabel_northSouth() {
+        let segs = [[[33.30, -112.00], [33.40, -112.00]]]
+        #expect(TrailProfile.startEndCompassLabel(segments: segs, startIsNearer: true)
+                == "south end")
+        #expect(TrailProfile.startEndCompassLabel(segments: segs, startIsNearer: false)
+                == "north end")
+    }
 }

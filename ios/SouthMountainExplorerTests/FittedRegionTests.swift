@@ -218,4 +218,38 @@ struct FittedRegionTests {
         #expect((33.3 - wideLat) > (33.3 - sqLat),
                 "A wide area must shift south more than a square one to sit centered in the visible area")
     }
+
+    // MARK: - lonCenterAndSpan: antimeridian crossing
+
+    /// Alaska Maritime National Wildlife Refuge runs the Aleutians from
+    /// -166.7256° to +173.1396°. The naive midpoint puts its center at 3.21°
+    /// (off Africa) and the naive span is 339.87°, which after 1.3x padding
+    /// asks MKCoordinateSpan for 441° — wider than the planet. setRegion traps
+    /// on that, so tapping the refuge crashed the app every time.
+    @Test func lonCenterAndSpan_antimeridian_usesShortWayRound() {
+        let r = TrailMapView.lonCenterAndSpan(minLon: -166.7256, maxLon: 173.1396)
+        #expect(r.span > 0 && r.span < 180,
+                "An antimeridian crosser must resolve to the SHORT way round, got \(r.span)")
+        #expect(abs(r.span - 20.1348) < 0.001, "Expected ~20.13° span, got \(r.span)")
+        #expect(r.center < -170,
+                "Center must land in the Aleutians (negative, near -177), got \(r.center)")
+        #expect(abs(r.center - (-176.793)) < 0.001, "Expected ~-176.79°, got \(r.center)")
+        // The actual crash condition: padded span must stay inside MapKit's range.
+        #expect(r.span * 1.3 <= 360, "Padded longitude span must never exceed 360°")
+    }
+
+    /// The ordinary case must be untouched by the antimeridian branch.
+    @Test func lonCenterAndSpan_normalExtent_isPlainMidpoint() {
+        let r = TrailMapView.lonCenterAndSpan(minLon: -112.1, maxLon: -112.0)
+        #expect(abs(r.center - (-112.05)) < 1e-9, "Expected plain midpoint, got \(r.center)")
+        #expect(abs(r.span - 0.1) < 1e-9, "Expected plain span, got \(r.span)")
+    }
+
+    /// A wide-but-not-crossing extent (the contiguous US) must NOT be treated
+    /// as an antimeridian crosser — its span is under the 180° threshold.
+    @Test func lonCenterAndSpan_wideContiguousExtent_notTreatedAsCrossing() {
+        let r = TrailMapView.lonCenterAndSpan(minLon: -124.7, maxLon: -66.9)
+        #expect(abs(r.center - (-95.8)) < 1e-9, "Expected plain midpoint, got \(r.center)")
+        #expect(abs(r.span - 57.8) < 1e-9, "Expected plain span, got \(r.span)")
+    }
 }

@@ -11,10 +11,16 @@ import Foundation
 ///
 /// **Direction is deliberately meaningless.** OSM way order is arbitrary —
 /// Humphreys Summit Trail is stored summit→trailhead — so index 0 is NOT the
-/// trailhead and must never be drawn as one. Instead we anchor the chart on
-/// where the hiker actually is (`snap`) and orient it by which way they're
-/// walking (`travellingForward`), which sidesteps "which end is the start"
-/// entirely. That question is why the reverse-profile idea stalled.
+/// trailhead and must never be drawn as one. We supply direction from the USER
+/// instead: `snap` puts a marker where they are, and `startIsNearer` puts the
+/// trail end nearest them on the left. That question — which end is the start —
+/// is why the reverse-profile idea stalled for so long.
+///
+/// Rejected alternatives and the evidence against each are recorded in
+/// CLAUDE.md ("Trail elevation profiles — the direction problem"). The short
+/// version: network connectivity answers only ~33% of trails (measured),
+/// parking covers ~1% of areas today, and low-end-left is wrong for every
+/// canyon descent.
 enum TrailProfile {
 
     // MARK: - Geometry
@@ -128,44 +134,41 @@ enum TrailProfile {
 
     // MARK: - Orientation
 
-    /// Are they walking in the stored polyline's direction?
+    /// Is the trail's stored START the end nearer this coordinate?
     ///
-    /// Compares two successive snapped fractions. Equal fractions (standing
-    /// still, or GPS jitter under the resolution of the trail) keep the last
-    /// known orientation rather than flipping the chart — a marker that
-    /// mirrors every time you pause would be unreadable.
-    static func travellingForward(previous: Double, current: Double,
-                                  lastKnown: Bool = true) -> Bool {
-        if current > previous { return true }
-        if current < previous { return false }
-        return lastKnown
-    }
-
-    /// Orientation for BROWSING, when there's no hiker to anchor on.
+    /// This is the ONLY orientation rule: put the end nearest the user on the
+    /// LEFT, because that's the end they'd set off from. It always has an
+    /// answer — no distance cutoff, no parking, no fallback chain — and it
+    /// sharpens as they approach: arbitrary-ish from home, right while driving
+    /// in, exact at the trailhead.
     ///
-    /// Without a position we still shouldn't draw an arbitrary direction — a
-    /// profile that opens with a descent because OSM stored the way downhill
-    /// reads as a completely different trail. So we anchor on the trailhead
-    /// instead: snap the parking lot onto the trail and put whichever end it
-    /// lands nearer on the LEFT, which is the direction you'd actually walk.
+    /// Compares the two ENDPOINTS rather than the snapped fraction. Snapping
+    /// would return ~0.5 for anyone standing off the middle of the trail, which
+    /// is precisely where the answer needs to be most stable.
     ///
     /// Returns nil when the trail has no usable geometry — the caller then
     /// draws the bare shape rather than inventing a direction.
-    static func trailheadIsForward(lat: Double, lon: Double,
-                                   segments: [[[Double]]]) -> Bool? {
-        guard let snap = snap(lat: lat, lon: lon, segments: segments) else { return nil }
-        return snap.fraction <= 0.5
+    static func startIsNearer(lat: Double, lon: Double,
+                              segments: [[[Double]]]) -> Bool? {
+        let pts = polyline(segments)
+        guard let first = pts.first, let last = pts.last, pts.count >= 2 else { return nil }
+        let me = Point(lat: lat, lon: lon)
+        return meters(me, first) <= meters(me, last)
     }
 
-    /// The profile oriented so the hiker's direction of travel reads LEFT →
-    /// RIGHT, with their own position mapped into the same frame.
+    /// The profile oriented so the user's end of the trail reads LEFT → RIGHT,
+    /// with their position mapped into the same frame.
     ///
-    /// When they're walking against the stored order we reverse the samples,
-    /// so "ahead of me" is always to the right of the marker no matter how OSM
-    /// happened to store the way.
+    /// `startIsNearer == false` means the stored order runs toward them, so
+    /// both the samples and the marker flip together.
+    ///
+    /// NOTE: orientation is deliberately NOT recomputed as you walk. Latching
+    /// it (see `TrailRow.profileStartIsNearer`) is what keeps the chart still:
+    /// recomputing would flip it at the trail's midpoint, when the far end
+    /// becomes the nearer one — mid-hike, for every point-to-point trail.
     static func oriented(_ profile: [Int], fraction: Double,
-                         travellingForward: Bool) -> (samples: [Int], fraction: Double) {
-        travellingForward
+                         startIsNearer: Bool) -> (samples: [Int], fraction: Double) {
+        startIsNearer
             ? (profile, min(1, max(0, fraction)))
             : (profile.reversed(), 1 - min(1, max(0, fraction)))
     }

@@ -11,12 +11,12 @@ import Charts
 /// against trail length, and adds the "you are here" marker. Merging them
 /// would mean a view with two unit systems and two x-axis meanings.
 ///
-/// **Direction comes from the hiker, not the data.** `profileFt` follows
-/// arbitrary OSM way order, so the caller passes a `position` (from
-/// `TrailProfile.snap`) and whether they're `travellingForward`; the series is
-/// oriented so what's AHEAD is always to the right of the marker. With no
-/// position — browsing at home — it renders the bare shape with no marker
-/// and no implied start.
+/// **Direction comes from the user, not the data.** `profileFt` follows
+/// arbitrary OSM way order, so the caller passes `startIsNearer` — is the
+/// stored start the trail end closer to them — and the series is drawn from
+/// that end. It orients with or without a `position`, so a browsed profile
+/// still opens at the end you'd set off from; `position` only adds the marker.
+/// See CLAUDE.md, "Trail elevation profiles — the direction problem".
 struct TrailElevationProfileView: View {
     /// Elevations in feet, evenly spaced by distance (`Trail.profileFt`).
     let profileFt: [Int]
@@ -24,17 +24,23 @@ struct TrailElevationProfileView: View {
     let totalDistanceMi: Double
     /// Where the hiker is along the STORED series, 0…1. nil = not on trail.
     var position: Double? = nil
-    /// Which way they're walking relative to stored order.
-    var travellingForward: Bool = true
+    /// Is the stored START the trail end nearer the user? Latched by the caller
+    /// at open — see `TrailRow.profileStartIsNearer` for why it must not change
+    /// while the chart is up.
+    var startIsNearer: Bool = true
 
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     /// Series + marker oriented into the hiker's frame of reference. Both flip
     /// together, so the elevation under the marker never changes on a re-draw.
     private var view: (samples: [Int], fraction: Double?) {
-        guard let position else { return (profileFt, nil) }
+        // The series is oriented whether or not we have a position: direction
+        // comes from which trail END is nearer, so a browsed profile still
+        // opens at the end you'd set off from.
+        let samples = startIsNearer ? profileFt : profileFt.reversed()
+        guard let position else { return (samples, nil) }
         let o = TrailProfile.oriented(profileFt, fraction: position,
-                                      travellingForward: travellingForward)
+                                      startIsNearer: startIsNearer)
         return (o.samples, o.fraction)
     }
 

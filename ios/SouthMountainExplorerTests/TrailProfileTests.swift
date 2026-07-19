@@ -96,54 +96,50 @@ struct TrailProfileTests {
 
     // MARK: - Orientation
 
-    @Test func orientedLeavesForwardTravelUntouched() {
+    @Test func startIsNearerWhenStandingAtTheStoredStart() throws {
+        let near = try #require(TrailProfile.startIsNearer(
+            lat: 32.995, lon: -112.0, segments: northTrail))
+        #expect(near)
+    }
+
+    @Test func startIsNotNearerWhenStandingBeyondTheStoredEnd() throws {
+        let north = 33.0 + (1200.0 / 111_132.0)
+        let near = try #require(TrailProfile.startIsNearer(
+            lat: north, lon: -112.0, segments: northTrail))
+        #expect(!near)
+    }
+
+    @Test func startIsNearerWorksAtAnyDistanceNoCutoff() throws {
+        // The whole point of this rule: it always has an answer. 60 km south
+        // of the trail still resolves to the southern (stored start) end.
+        let far = 33.0 - (60_000.0 / 111_132.0)
+        let near = try #require(TrailProfile.startIsNearer(
+            lat: far, lon: -112.0, segments: northTrail))
+        #expect(near)
+    }
+
+    @Test func startIsNearerNilWithoutGeometry() {
+        #expect(TrailProfile.startIsNearer(lat: 33, lon: -112, segments: []) == nil)
+    }
+
+    @Test func orientedLeavesNearStartUntouched() {
         let p = [100, 200, 300, 400]
-        let o = TrailProfile.oriented(p, fraction: 0.25, travellingForward: true)
+        let o = TrailProfile.oriented(p, fraction: 0.25, startIsNearer: true)
         #expect(o.samples == p)
         #expect(o.fraction == 0.25)
     }
 
-    @Test func orientedMirrorsBothSeriesAndPositionWhenWalkingBackwards() {
-        // Walking against stored order: the series flips AND the marker moves
-        // with it, so "ahead of me" stays to the right of the marker.
+    @Test func orientedMirrorsBothSeriesAndPositionWhenEndIsNearer() {
+        // Stored order runs toward the user: the series flips AND the marker
+        // moves with it, so the two stay consistent.
         let p = [100, 200, 300, 400]
-        let o = TrailProfile.oriented(p, fraction: 0.25, travellingForward: false)
+        let o = TrailProfile.oriented(p, fraction: 0.25, startIsNearer: false)
         #expect(o.samples == [400, 300, 200, 100])
         #expect(o.fraction == 0.75)
         // The elevation under the marker must not change just because we
         // re-drew the chart — that would be a visible jump on screen.
         #expect(TrailProfile.elevationFt(p, at: 0.25)
                 == TrailProfile.elevationFt(o.samples, at: o.fraction))
-    }
-
-    @Test func travellingForwardHoldsOrientationWhenStationary() {
-        #expect(TrailProfile.travellingForward(previous: 0.2, current: 0.3))
-        #expect(!TrailProfile.travellingForward(previous: 0.3, current: 0.2))
-        // Standing still must NOT flip the chart back and forth.
-        #expect(TrailProfile.travellingForward(previous: 0.3, current: 0.3, lastKnown: true))
-        #expect(!TrailProfile.travellingForward(previous: 0.3, current: 0.3, lastKnown: false))
-    }
-
-    // MARK: - Trailhead anchoring (the browsing case)
-
-    @Test func trailheadNearStoredStartReadsForward() throws {
-        // Parking sits at the southern (index 0) end of the north-running trail.
-        let forward = try #require(TrailProfile.trailheadIsForward(
-            lat: 33.0, lon: -112.0, segments: northTrail))
-        #expect(forward)
-    }
-
-    @Test func trailheadNearStoredEndReadsBackward() throws {
-        // Same trail, but the parking is at the northern end — so the way is
-        // stored "downhill from the trailhead" and the chart must flip.
-        let north = 33.0 + (1000.0 / 111_132.0)
-        let forward = try #require(TrailProfile.trailheadIsForward(
-            lat: north, lon: -112.0, segments: northTrail))
-        #expect(!forward)
-    }
-
-    @Test func trailheadOrientationNilWithoutGeometry() {
-        #expect(TrailProfile.trailheadIsForward(lat: 33, lon: -112, segments: []) == nil)
     }
 
     // MARK: - Decoding

@@ -173,11 +173,18 @@ trailhead, and drawing the array raw means half of all trails show a descent for
 what is really a climb. `gain_ft` sidesteps this by being direction-invariant
 (`max(ascent, descent)`); a CHART cannot.
 
-**DECIDED: orient by whichever trail end is nearest the user, always** — no
-distance cutoff. The "you are here" marker still requires being genuinely on
-trail (50 m), but ORIENTATION always has an answer. One code path, no fallback
-chain, degrades smoothly: arbitrary-ish at home, right while driving in, exact
-on trail. Chosen because every alternative has a hole, not because it's clever.
+**DECIDED + SHIPPED in #445: orient by whichever trail end is nearest the
+user, always** (`TrailProfile.startIsNearer`) — no distance cutoff. The "you are
+here" marker still needs 50 m, but ORIENTATION always has an answer. One code
+path, no fallback chain, degrades smoothly: arbitrary-ish at home, right while
+driving in, exact at the trailhead. Chosen because every alternative has a hole,
+not because it's clever.
+
+**It is LATCHED when the chart opens, and that is load-bearing.** "Which end is
+nearer" inverts at the trail's MIDPOINT, so recomputing live would mirror the
+chart mid-hike on every point-to-point trail. Compares the two ENDPOINTS, not
+the snapped fraction — snapping returns ~0.5 for anyone standing off the middle,
+exactly where the answer must be most stable.
 
 **Options rejected — do not re-propose without new evidence:**
 - **Trail-network connectivity** ("the dead-end is the destination"). MEASURED
@@ -186,11 +193,13 @@ on trail. Chosen because every alternative has a hole, not because it's clever.
   give NO signal**, so it needs a fallback anyway, and it's the most work of
   anything considered. (The 28% is partly artifact: boundary-clipped trails look
   free-ended.)
-- **Nearest parking lot as the anchor.** Built + CI-green on PR #445, then
-  rejected on review; **still IN the branch pending revert as of 2026-07-19** —
-  if you find `trailhead:`/`chartOrientation` in `TrailListView`, that is the
-  code this entry is about. Parking exists for AZ only — 106 of 8,973 areas — so
-  it fired for ~1% and coupled an elevation feature to the parking rollout.
+- **Nearest parking lot as the anchor.** Built, CI-green, then REVERTED in the
+  same PR. Parking exists for AZ only — 106 of 8,973 areas — so it fired for ~1%
+  and coupled an elevation feature to the parking rollout.
+- **Direction of travel** (flip so "ahead" is always right). Dropped with the
+  above: it mirrors the chart when you turn round on an out-and-back, and needed
+  `@State` + an `onChange` to damp the flapping. Latched nearest-end is stable
+  for the whole hike and needs neither.
 - **Low end on the left.** Right for most hikes, wrong for every canyon descent
   (Grand Canyon). A guess wearing a rule's clothes.
 - **User drops a pin.** Works mechanically (a pin snaps exactly like a GPS fix),

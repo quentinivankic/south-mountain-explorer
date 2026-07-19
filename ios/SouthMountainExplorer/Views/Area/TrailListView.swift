@@ -230,9 +230,6 @@ struct TrailListView: View {
                                 // parking lives on Area, which the row doesn't
                                 // see; nearestParking already returns them
                                 // ordered by distance to the trail's ends.
-                                trailhead: selectedTrailId == trail.id
-                                    ? area.nearestParking(for: trail).first
-                                    : nil,
                                 onRecordTrail: onRecordTrail
                             )
                             // Tag each row with the trail id so
@@ -355,10 +352,6 @@ struct TrailRow: View {
     let trail: Trail
     let areaId: String
     @Binding var selectedTrailId: String?
-    /// Nearest parking lot, supplied by the list (parking lives on `Area`).
-    /// Used ONLY to orient the profile chart while browsing — see
-    /// `chartOrientation`. nil for unselected rows and areas without parking.
-    var trailhead: ParkingLot? = nil
     /// Called when the trailing "Record" button (shown only while this row is
     /// selected) is tapped — starts recording this trail.
     var onRecordTrail: ((Trail) -> Void)? = nil
@@ -369,10 +362,14 @@ struct TrailRow: View {
     @Environment(LocationService.self) private var location
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
-    /// Which way the hiker is walking relative to the stored series, so the
-    /// profile can put what's AHEAD to the right of the marker. Held as state
-    /// because it's derived from CHANGE in position, not position itself.
-    @State private var travellingForward = true
+    /// Chart orientation, LATCHED when the profile opens.
+    ///
+    /// It has to be latched rather than computed live: "which end is nearer"
+    /// inverts at the trail's midpoint, so recomputing would mirror the chart
+    /// mid-hike on every point-to-point trail. Fixing it at open keeps the
+    /// picture still while you walk across it — the marker moves, the trail
+    /// doesn't.
+    @State private var profileStartIsNearer = true
 
     private var isComplete: Bool { progress.isComplete(areaId: areaId, trailId: trail.id) }
     private var coveragePct: Double { coverage.trailCoverage(areaId: areaId, trailId: trail.id) }
@@ -401,20 +398,13 @@ struct TrailRow: View {
     /// sitting a few metres off.
     private static let onTrailMeters = 50.0
 
-    /// Which way to draw the chart.
-    ///
-    /// On the trail, direction of travel wins — that's the whole point of
-    /// anchoring on the hiker. Off it, fall back to the trailhead so a browsed
-    /// profile opens where you'd actually start walking; a chart that opens
-    /// with a descent purely because OSM stored the way downhill reads as a
-    /// different trail entirely. With neither, the stored order stands.
-    private var chartOrientation: Bool {
-        if snappedFraction != nil { return travellingForward }
-        guard let trailhead,
-              let forward = TrailProfile.trailheadIsForward(
-                  lat: trailhead.lat, lon: trailhead.lon, segments: trail.segments)
-        else { return true }
-        return forward
+    /// Orientation to latch when the profile opens: is the stored START the
+    /// trail end nearer the user? nil when we have no location at all, in
+    /// which case stored order stands and no direction is implied.
+    private var startIsNearerNow: Bool? {
+        guard let here = location.liveLocation ?? location.userLocation else { return nil }
+        return TrailProfile.startIsNearer(lat: here.latitude, lon: here.longitude,
+                                          segments: trail.segments)
     }
 
     /// VoiceOver can't read a chart, so state the shape in words: the range,
@@ -524,7 +514,7 @@ struct TrailRow: View {
                 profileFt: profile,
                 totalDistanceMi: trail.distanceMi,
                 position: snappedFraction,
-                travellingForward: chartOrientation
+                startIsNearer: profileStartIsNearer
             )
             .frame(height: 96)
             .padding(.trailing, 4)
@@ -535,13 +525,12 @@ struct TrailRow: View {
         .padding(.horizontal)
         .padding(.vertical, 9)
         .animation(.easeInOut(duration: 0.2), value: isSelected)
-        .onChange(of: snappedFraction) { previous, current in
-            // Hold the last orientation when we can't tell (just arrived on
-            // trail, or standing still) — a chart that mirrors every time you
-            // pause would be unreadable.
-            guard let previous, let current else { return }
-            travellingForward = TrailProfile.travellingForward(
-                previous: previous, current: current, lastKnown: travellingForward)
+        .onChange(of: isSelected, initial: true) { _, nowSelected in
+            // Latch orientation at OPEN and never while it's up. "Which end is
+            // nearer" inverts at the trail's midpoint, so live recomputation
+            // would mirror the chart mid-hike on every point-to-point trail.
+            guard nowSelected, let s = startIsNearerNow else { return }
+            profileStartIsNearer = s
         }
         .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
         .contentShape(Rectangle())

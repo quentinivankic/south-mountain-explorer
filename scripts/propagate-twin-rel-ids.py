@@ -7,12 +7,20 @@ sometimes attaches the rel id to only one of them, leaving the twin a bare row
 that `publish_areas.py`'s boundary fetch can never reach.
 
 Those twins are recoverable without touching Overpass: if a row lacking a rel id
-has an identically-NAMED row whose center is within `--max-km`, they are the same
-physical place and the id can simply be copied across.
+has an identically-NAMED row at the SAME center, they are the same physical place
+and the id can simply be copied across.
 
-Guards: exact case-folded name match AND a center-distance cap (default 25 km),
-so unrelated areas that merely share a common name ("Mount Pisgah") are never
-merged. Where several twins qualify, the nearest wins.
+Guards: exact case-folded name match AND an effectively-identical center
+(`--max-km`, default 0.05). The tight default is the real invariant, not a tuned
+knob: the seeder derives a row's center FROM its relation, so every per-state row
+of one relation stores the SAME center by construction. A non-zero distance is
+therefore evidence the name matched but the relation did NOT.
+
+Measured on the 2026-07-19 index: 96 name-matches, 92 at an identical center and
+4 apart. Those 4 are exactly the false positives — e.g.
+`appalachian-trail-scenic-open-space-ma` vs `-ct`, 22.6 km apart, which are
+separate parcels of AT corridor sharing one generic name, NOT one relation.
+Raise `--max-km` only to review such cases by hand; do not loosen the default.
 
     python3 scripts/propagate-twin-rel-ids.py --dry-run
     python3 scripts/propagate-twin-rel-ids.py            # writes index.json
@@ -38,8 +46,9 @@ def km(alat: float, alon: float, blat: float, blon: float) -> float:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--max-km", type=float, default=25.0,
-                    help="center-distance cap for calling two rows the same place")
+    ap.add_argument("--max-km", type=float, default=0.05,
+                    help="center-distance cap for calling two rows the same place; "
+                         "the default demands an identical center (see module docstring)")
     args = ap.parse_args()
 
     rows = json.loads(INDEX.read_text())

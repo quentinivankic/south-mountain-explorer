@@ -161,7 +161,7 @@ struct TrailProfileTests {
     /// stripped from the copy the UI renders, app-wide, while the disk and CDN
     /// copies stayed correct. No amount of refreshing could fix it.
     @Test func profileFt_survivesDecimation() {
-        let t = Trail(id: "t-1", name: "T", distanceMi: 2.0, difficulty: .Hard,
+        let t = Trail(id: "t-1", name: "T", distanceMi: 2.0, difficulty: .hard,
                       segments: [[[33.0, -112.0], [33.01, -112.01], [33.02, -112.0]]],
                       gainFt: 500, profileFt: [100, 200, 300, 400])
         let area = Area(id: "a", name: "A", subtitle: "S", centerLat: 33, centerLon: -112,
@@ -175,7 +175,7 @@ struct TrailProfileTests {
 
     @Test func profileFt_survivesIdCanonicalization() {
         let t = Trail(id: "unnamed-494466239-43", name: "T", distanceMi: 2.0,
-                      difficulty: .Hard,
+                      difficulty: .hard,
                       segments: [[[33.0, -112.0], [33.02, -112.0]]],
                       gainFt: 500, profileFt: [100, 200, 300])
         let area = Area(id: "a", name: "A", subtitle: "S", centerLat: 33, centerLon: -112,

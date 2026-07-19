@@ -302,13 +302,24 @@ def main(argv=None) -> int:
     ap.add_argument("--no-boundary-fetch", action="store_true",
                     help="skip the Overpass fetch-by-rel-id rescue of multi-state "
                          "areas whose boundary is clipped in the per-state PBF")
+    # DEM sampling is ON BY DEFAULT and must stay that way. It was opt-in via
+    # --elevation, which made FORGETTING the flag silently destructive: the
+    # publish succeeds, reports nothing wrong, and quietly strips gainFt from
+    # every area it rewrites, downgrading gain-based difficulty to length-based.
+    # That is not hypothetical — two callers had the bug simultaneously:
+    #   * trailforge-publish-batch.yml computed $ELEV and never passed it, which
+    #     stripped elevation from 18,641 trails across CA/MT/TN/VA (2026-07-19);
+    #   * tools/publish-states.sh (the homelab path) never passed it at all.
+    # Omission now means "sample" — the safe outcome — and disabling requires
+    # saying so explicitly. --elevation is kept as an accepted no-op so existing
+    # callers keep working.
     ap.add_argument("--elevation", action="store_true",
-                    help="sample a global DEM (AWS Terrarium) inline while publishing "
-                         "so each trail's gainFt + gain-aware difficulty are baked into "
-                         "the geom — durable across republishes (no separate "
-                         "add-elevation.py pass). Needs network + Pillow; if either is "
-                         "missing it warns once and falls back to length-based "
-                         "difficulty. Skipped on --dry-run.")
+                    help="(default, kept for compatibility — DEM sampling is on "
+                         "unless --no-elevation is passed)")
+    ap.add_argument("--no-elevation", action="store_true",
+                    help="skip DEM sampling; trails keep length-based difficulty and "
+                         "get no gainFt/profileFt. Use only when you deliberately want "
+                         "a faster publish without elevation.")
     ap.add_argument("--dem-cache-dir", default=os.path.join(os.path.dirname(__file__),
                     "..", "data", "dem-cache"), help="disk cache for DEM tiles")
     ap.add_argument("--dem-zoom", type=int, default=elevation.DEM_ZOOM)
@@ -319,11 +330,22 @@ def main(argv=None) -> int:
     # Build the DEM sampler up front so an unavailable-elevation warning prints
     # once (not per area). None => fall back to length-based difficulty.
     sampler = None
-    if args.elevation and not args.dry_run:
+    if args.no_elevation:
+        print("elevation: DISABLED by --no-elevation — trails will keep "
+              "length-based difficulty and get no gainFt/profileFt",
+              file=sys.stderr)
+    elif not args.dry_run:
         print("elevation: probing DEM sampler…", file=sys.stderr)
         sampler = elevation.build_sampler(zoom=args.dem_zoom, cache_dir=args.dem_cache_dir)
         if sampler is not None:
             print("elevation: sampling gain + difficulty inline", file=sys.stderr)
+        else:
+            # Loud, because a silent fallback here is exactly how 18,641 trails
+            # lost their gain-based difficulty without anyone noticing.
+            print("elevation: !! DEM sampler UNAVAILABLE (no network or no Pillow) "
+                  "— publishing WITHOUT elevation; every area written by this run "
+                  "will lose gainFt and fall back to length-based difficulty",
+                  file=sys.stderr)
 
     index = json.load(open(args.index))
     az = {r[0]: {"name": r[1], "state": r[2], "center": (r[3], r[4]),

@@ -40,6 +40,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      # add-parking.py imports shapely for the boundary CONTAINMENT gate. This
+      # step never existed, so every run of this workflow died on `No module
+      # named 'shapely'`, skipped writes for want of the gate, and exited 2 —
+      # the workflow had a 100% failure rate and had never once succeeded.
+      # (Arizona's shipped parking was produced from the homelab, where shapely
+      # is already installed, which is why the gap went unnoticed.)
+      # pip, not apt: setup-python provides its own interpreter, which would not
+      # see an apt-installed python3-shapely.
+      - name: Install shapely (boundary containment gate)
+        run: python3 -m pip install --upgrade shapely
+
       - name: Add parking (Overpass)
         run: |
           FLAG=""

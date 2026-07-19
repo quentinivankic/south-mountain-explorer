@@ -930,7 +930,13 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> 
     th_cover: list[tuple[str, int, int]] = []
     # (area_id, name, [source,...]) for blank areas filled from federal data.
     fed_fill: list[tuple[str, str, list[str]]] = []
-    changed = 0
+    # Split the outcome three ways. A single `changed` counter reported
+    # "wrote parking for N area(s)" while N included areas whose parking was
+    # REMOVED — Colorado logged 261 when 197 gained parking and 64 had a stale
+    # key cleared. The number was true; the sentence inverted its meaning.
+    added = 0        # had no parking, now has some
+    updated = 0      # had parking, lots changed
+    cleared = 0      # had parking, no longer qualifies -> key removed
     boundary_failed = False
     for code in state_codes:
         name = STATE_NAMES.get(code.upper())
@@ -1007,8 +1013,18 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> 
             per_area.append((f.stem, kept))
             area_counts[f.stem] = len(kept)
             clean = _strip_internal(kept)
-            if geom.get("parking") != clean:
-                changed += 1
+            had = geom.get("parking")
+            if had != clean:
+                # Classify BEFORE writing: clearing a stale key is a legitimate
+                # outcome (better than leaving pins for parking that no longer
+                # qualifies) but it must never be reported as if parking were
+                # added.
+                if clean and not had:
+                    added += 1
+                elif clean:
+                    updated += 1
+                else:
+                    cleared += 1
                 if not dry_run:
                     if clean:
                         geom["parking"] = clean
@@ -1024,8 +1040,18 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> 
     print_containment_diag(cont_diag)
     print_trailhead_cover(th_cover)
     golden_ok = check_golden(area_counts)
-    verb = "would write" if dry_run else "wrote"
-    print(f"\n{verb} parking for {changed} area(s).")
+    # Report the three outcomes separately. "wrote parking for N" conflated
+    # them, so a run that CLEARED stale keys read as if it had added parking.
+    verb = "would add" if dry_run else "added"
+    verb2 = "would update" if dry_run else "updated"
+    verb3 = "would clear" if dry_run else "cleared"
+    print(f"\nparking: {verb} {added}, {verb2} {updated}, "
+          f"{verb3} {cleared} (stale key removed — no longer qualifies)")
+    print(f"  areas touched in total: {added + updated + cleared}")
+    if cleared:
+        print(f"  NOTE: {cleared} area(s) LOST parking in this run. That is "
+              "intended when parking no longer qualifies (OSM deleted, or the "
+              "containment gate tightened), but check it is not a regression.")
     if boundary_failed:
         print("\n!! boundary fetch failed for >=1 state — containment gate was "
               "unavailable there (writes skipped); rerun those states.",

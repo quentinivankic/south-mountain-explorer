@@ -5,6 +5,13 @@ name: Trailforge – Add Parking (Overpass)
 # Runs here (not the homelab) because it only needs Overpass, which GitHub
 # runners can reach — same as seed-areas / audit-easement-ownership.
 #
+# ONE JOB PER STATE (matrix) → per-state artifacts → ONE fan-in commit.
+# Measured 2026-07-19: colorado alone takes ~28 min. The old shape looped every
+# requested state SERIALLY inside a single 90-minute job, so only ~3 states fit
+# per dispatch and a nationwide roll would have meant ~17 dispatches and ~23 h of
+# serial runtime. Fanning out per state bounds wall clock at roughly ONE state.
+# Same pattern trailforge-publish-us.yml uses, and for the same reason.
+#
 # Dispatch-only, and dry_run defaults TRUE — run once to see the per-area
 # counts, then re-run with dry_run unchecked to write + sync.
 
@@ -12,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       states:
-        description: "Comma-separated state codes (e.g. az or az,ca,nv)"
+        description: "Comma-separated state codes (e.g. az or az,ca,nv), or 'all' for every US state"
         default: "az"
         required: true
       dry_run:
@@ -25,12 +32,58 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  parking:
+  # Turn the free-text `states` input into a JSON array the matrix can consume.
+  # 'all' expands to the 51 US codes only — STATE_NAMES also holds CA-* province
+  # codes, and Canada is deliberately out of scope.
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      states: ${{ steps.parse.outputs.states }}
+      count: ${{ steps.parse.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - id: parse
+        env:
+          RAW: ${{ inputs.states }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, sys
+          sys.path.insert(0, "scripts")
+          from _seed_constants import STATE_NAMES
+          raw = (os.environ.get("RAW") or "").strip()
+          if raw.lower() == "all":
+              codes = sorted(c for c in STATE_NAMES if "-" not in c)
+          else:
+              codes = [c.strip().upper() for c in raw.split(",") if c.strip()]
+          unknown = [c for c in codes if c not in STATE_NAMES]
+          if not codes:
+              raise SystemExit("no state codes given")
+          if unknown:
+              raise SystemExit(f"unknown state code(s): {unknown}")
+          print("states=" + json.dumps(codes))
+          print("count=" + str(len(codes)))
+          PY
+          echo "resolved states:"; cat "$GITHUB_OUTPUT"
+
+  parking:
+    needs: setup
+    strategy:
+      fail-fast: false
+      # Each state is ~2 heavy Overpass queries (one batched parking query, one
+      # batched boundary query) plus local containment math — so the cap is about
+      # not stampeding Overpass with concurrent HEAVY queries, which 504 readily.
+      # 8 keeps a nationwide roll to roughly 4 h instead of 23 h serial. Raise
+      # only with evidence from a dry run.
+      max-parallel: 8
+      matrix:
+        state: ${{ fromJSON(needs.setup.outputs.states) }}
+    runs-on: ubuntu-latest
+    # One state measured at ~28 min; 90 leaves generous headroom and surfaces a
+    # wedged state instead of letting it sit.
     timeout-minutes: 90
-    permissions:
-      contents: write   # commit + push the enriched geom
-      actions: write    # dispatch the R2 sync (GITHUB_TOKEN push won't trigger it)
     steps:
       - uses: actions/checkout@v4
         with:
@@ -51,34 +104,109 @@ jobs:
       - name: Install shapely (boundary containment gate)
         run: python3 -m pip install --upgrade shapely
 
-      - name: Add parking (Overpass)
+      - name: Add parking for "${{ matrix.state }}"
         run: |
           FLAG=""
           if [ "${{ inputs.dry_run }}" = "true" ]; then FLAG="--dry-run"; fi
-          IFS=',' read -ra STATES <<< "${{ inputs.states }}"
-          for s in "${STATES[@]}"; do
-            code="$(echo "$s" | xargs)"   # trim whitespace
-            echo "==== $code ===="
-            python3 scripts/add-parking.py --state "$code" $FLAG
-          done
+          echo "==== ${{ matrix.state }} ===="
+          python3 scripts/add-parking.py --state "${{ matrix.state }}" $FLAG
 
-      - name: Commit enriched geom
-        if: ${{ inputs.dry_run == false }}
+      # add-parking.py enriches geom IN PLACE, so the changed files are exactly
+      # what git reports dirty. Collect only those into the artifact — one state
+      # touches only its own areas, so slugs never collide across artifacts.
+      - name: Collect this state's enriched geom
+        if: ${{ !inputs.dry_run }}
         run: |
+          set -e
+          mkdir -p out/geom
+          changed=$(git diff --name-only -- public/areas/geom/ || true)
+          if [ -z "$changed" ]; then
+            echo "no geom changed for ${{ matrix.state }}"; exit 0
+          fi
+          n=0
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            cp "$f" "out/geom/$(basename "$f")"
+            n=$((n + 1))
+          done <<< "$changed"
+          echo "collected $n enriched geom file(s) for ${{ matrix.state }}"
+
+      - name: Upload state parking artifact
+        if: ${{ !inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: parking-${{ matrix.state }}
+          path: out/geom
+          if-no-files-found: ignore
+          retention-days: 1
+
+  merge:
+    needs: [setup, parking]
+    # always(), NOT success() — one straggling or failing state must not discard
+    # every state that did succeed. Safe because the fan-in only copies files
+    # present in the artifacts; untouched areas keep the geom they already have.
+    # Still skipped on cancellation: a cancelled run is a human saying stop.
+    if: ${{ always() && !inputs.dry_run && needs.parking.result != 'cancelled' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # commit + push the enriched geom
+      actions: write    # dispatch the R2 sync (GITHUB_TOKEN push won't trigger it)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download all state parking artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Report state coverage (and refuse an empty merge)
+        run: |
+          set -e
+          found=$(find artifacts -mindepth 1 -maxdepth 1 -type d -name 'parking-*' 2>/dev/null | wc -l)
+          echo "state artifacts present: $found / ${{ needs.setup.outputs.count }} requested"
+          find artifacts -mindepth 1 -maxdepth 1 -type d -name 'parking-*' 2>/dev/null \
+            | sed 's|.*/parking-|  state: |' | sort
+          if [ "$found" -eq 0 ]; then
+            echo "::error::No state artifacts at all — every state failed or wrote nothing."
+            exit 1
+          fi
+          if [ "${{ needs.parking.result }}" != "success" ]; then
+            echo "::warning::parking result was '${{ needs.parking.result }}' — merging the $found state(s) that DID succeed. Missing states keep their existing geom; re-dispatch those."
+          fi
+
+      - name: Apply enriched geom
+        run: |
+          set -e
+          n=0
+          while IFS= read -r f; do
+            cp "$f" "public/areas/geom/$(basename "$f")"
+            n=$((n + 1))
+          done < <(find artifacts -type f -name '*.json')
+          echo "applied $n enriched geom file(s)"
+
+      - name: Commit enriched geom (one commit)
+        run: |
+          set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/areas/geom/
           if git diff --cached --quiet; then
-            echo "No parking changes to commit."
-          else
-            git commit -m "trailforge: add OSM parking (${{ inputs.states }})"
-            git push
+            echo "No parking changes to commit."; exit 0
           fi
+          git commit -m "trailforge: add OSM parking (${{ inputs.states }})"
+          # main can move during a long parallel run — rebase + retry the push.
+          for i in 1 2 3 4 5; do
+            if git push; then exit 0; fi
+            git pull --rebase origin main || true
+            sleep $((i * 5))
+          done
+          git push
 
       - name: Trigger R2 sync
         # A GITHUB_TOKEN push doesn't fire sync-geom-to-r2's push trigger, so
         # dispatch it explicitly (mirrors the publish workflows).
-        if: ${{ inputs.dry_run == false }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run sync-geom-to-r2.yml --ref main || true

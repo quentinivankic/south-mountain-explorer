@@ -78,6 +78,14 @@ OSM extract (Geofabrik/planet) → prefilter (hiking-only PBF) → aoi (bbox cut
 - **`add-parking.py`** is a post-process that enriches geom with OSM/federal
   parking (see `parking-feature.md`). Publish PRESERVES parking on republish
   (`publish_areas.py` + `merge-published-geom.py` carry it forward).
+  `trailforge-parking.yml` is now **per-state matrix** (`max-parallel: 8`) →
+  artifacts → one fan-in commit (#455); it was serial-in-one-job, and at ~28 min
+  PER STATE a nationwide roll would have meant ~17 dispatches / ~23 h. Takes
+  `states: all` (51 US codes; CA-* provinces excluded). **It had NEVER once
+  succeeded before #454** — the workflow never installed `shapely`, so every run
+  died on the import, lost the boundary containment gate, skipped writes and
+  exited 2. AZ's shipped parking came from the homelab, which is why it went
+  unnoticed. First use of the new shape should be a single-state dry run.
 - **Elevation difficulty** is DEM-sampled inline at publish
   (`serve/elevation.py`, gain-based NPS rating, direction-invariant). AZ baked;
   other states length-based until republished.
@@ -101,10 +109,23 @@ OSM extract (Geofabrik/planet) → prefilter (hiking-only PBF) → aoi (bbox cut
 ### Publish flow (three dispatch-only workflows, all default dry_run=true)
 Always dry-run + eyeball, then dry_run=false for the real write.
 - `trailforge-publish.yml` — one state.
-- `trailforge-publish-batch.yml` — `states: a,b,c`|`all`, serial, ONE commit at
-  end (keep batches ~5-8 states; a mid-loop timeout loses the run).
-- `trailforge-publish-us.yml` — whole-US: 13 parallel region jobs → artifacts →
-  `merge-published-geom.py` fan-in → one commit + R2 sync.
+- `trailforge-publish-batch.yml` — `states: a,b,c`|`all`, **still SERIAL in one
+  job**, ONE commit at end (keep batches ~5-8 states; a mid-loop timeout loses
+  the run). 4 states measured at ~63 min. Not yet fanned out — see below.
+- `trailforge-publish-us.yml` — whole-US: **51 parallel PER-STATE jobs**
+  (`max-parallel: 16`) → artifacts → `merge-published-geom.py` fan-in → one
+  commit + R2 sync. Was 13 region buckets until #453; wall clock tracked the
+  slowest BUCKET, so northwest (6 big western states, serial in one job) ran
+  2h42m while equal-sized plains ran 17 min. Now bounded by the slowest single
+  state (california, ~46 min). **#453 has not been exercised yet — first use
+  must be a dry run.**
+
+**Fan-in is resilient (#452):** `merge` runs on `always()`, not `success()`, so
+one failing/timed-out state no longer discards every state that succeeded. Safe
+because `merge-published-geom.py` is strictly ADDITIVE — it copies only slugs
+present in the artifacts and refreshes only those index rows, so a partial
+publish is a partial UPDATE, never a truncation. It warns on a partial merge and
+fails only on zero artifacts.
 
 **Gotcha:** `publish_areas.py`'s printed skip list is capped at `[:40]` — the
 real total is in the `skipped {N}` header, not the visible lines.

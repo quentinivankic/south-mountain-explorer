@@ -63,6 +63,22 @@ enum StorageKeys {
     /// Kept across resets — it's not hike progress.
     static let tipsGiven = "summit:tips-given"
 
+    /// Per-trail OVERRIDE of the elevation profile's direction, as
+    /// `[trailId: startIsNearer]`. Empty by default: the profile orients
+    /// itself by whichever trail END is nearest you, and this only records
+    /// the trails where you said otherwise.
+    ///
+    /// The override exists because the automatic answer is weakest exactly
+    /// where you're most likely to be looking — browsing from home, "nearest
+    /// end" is near-arbitrary and nothing on screen tells you which way it
+    /// went. CLAUDE.md pre-registered this remedy ("complaints that browsed
+    /// profiles read backwards → add the pin/flip override, don't swap the
+    /// default"), so the latched-nearest-end default is unchanged and this
+    /// sits on top of it.
+    ///
+    /// Survives Reset All Progress: it's a display preference, not hike data.
+    static let profileDirectionOverrides = "summit:profile-direction-overrides"
+
     // MARK: - Internal caches (cleared by their own paths,
     //         e.g. Clear All Downloads also clears the prefetch cooldown)
 

@@ -28,6 +28,9 @@ struct TrailElevationProfileView: View {
     /// at open — see `TrailRow.profileStartIsNearer` for why it must not change
     /// while the chart is up.
     var startIsNearer: Bool = true
+    /// Called when the user flips the direction. nil hides the control — the
+    /// chart is also used where flipping has no meaning.
+    var onFlip: (() -> Void)? = nil
 
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
@@ -54,8 +57,38 @@ struct TrailElevationProfileView: View {
     private var totalMeters: Double { max(totalDistanceMi * 1609.344, 1) }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if onFlip != nil {
+                // Names the left edge, which the chart alone never did — the
+                // series orients by whichever trail END is nearest you, and
+                // browsing from home that is near-arbitrary with nothing on
+                // screen to say which way it went. The label states the
+                // convention; the button lets you set it when you know better
+                // ("I'm parking at THAT end").
+                HStack(spacing: 6) {
+                    Text("Start: nearest end")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                    Button(action: { onFlip?() }) {
+                        Label("Flip", systemImage: "arrow.left.arrow.right")
+                            .font(.caption2)
+                            .labelStyle(.titleAndIcon)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.tint)
+                    .accessibilityLabel("Flip profile direction")
+                    .accessibilityHint("Draws the profile from the other end of the trail")
+                }
+                .padding(.bottom, 1)
+            }
+            chart
+        }
+    }
+
+    private var chart: some View {
         let samples = view.samples
-        Chart {
+        return Chart {
             // Positional identity for the same reason ElevationProfileView
             // uses it: repeated elevation values must not collide into one
             // mark and draw stray segments across the profile.

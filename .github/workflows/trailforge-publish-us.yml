@@ -127,7 +127,20 @@ jobs:
 
   merge:
     needs: publish
-    if: ${{ !inputs.dry_run }}
+    # `always()` — NOT `success()`. One straggling region must not discard every
+    # good one. Measured 2026-07-19: 12 of 13 regions finished in 7-66 min while
+    # northwest ran 2h42m against timeout-minutes: 350. Had it timed out, the old
+    # `needs: publish` gate would have skipped this job and thrown away twelve
+    # successful regions along with their 1-day artifacts.
+    #
+    # Safe because the fan-in is strictly ADDITIVE: merge-published-geom.py only
+    # copies slugs present in the artifacts and refreshes only those index rows —
+    # areas from a missing region keep the geom and counts they already have. A
+    # partial publish is therefore a partial UPDATE, never a truncation. Publish
+    # is self-healing, so a dropped region is picked up on the next run.
+    #
+    # Still skipped on cancellation: a cancelled run is a human saying stop.
+    if: ${{ always() && !inputs.dry_run && needs.publish.result != 'cancelled' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -136,6 +149,21 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+
+      - name: Report region coverage (and refuse an empty merge)
+        run: |
+          set -e
+          found=$(find artifacts -mindepth 1 -maxdepth 1 -type d -name 'geom-*' | wc -l)
+          echo "region artifacts present: $found"
+          find artifacts -mindepth 1 -maxdepth 1 -type d -name 'geom-*' \
+            | sed 's|.*/geom-|  region: |' | sort
+          if [ "$found" -eq 0 ]; then
+            echo "::error::No region artifacts at all — every region failed. Nothing to merge."
+            exit 1
+          fi
+          if [ "${{ needs.publish.result }}" != "success" ]; then
+            echo "::warning::publish result was '${{ needs.publish.result }}' — merging $found region(s) that DID succeed. Missing regions keep their existing geom and will be picked up on the next publish."
+          fi
 
       - name: Merge geom + refresh master index
         run: python3 scripts/merge-published-geom.py --artifacts-root artifacts

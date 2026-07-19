@@ -813,16 +813,29 @@ def _state_boundaries(files: list[Path]) -> tuple[dict[str, list], int, bool]:
     # ladder as fetch_state before declaring the containment gate unavailable.
     rel_ids = sorted(set(rel_of.values()))
     per_rel = None
+    local_cause = None
     for i, backoff in enumerate([0] + RETRY_BACKOFFS_SECONDS):
         if backoff:
             time.sleep(backoff)
         try:
             per_rel = fetch_state_boundaries(rel_ids)
             break
+        except ImportError as e:
+            # NOT transient — retrying a missing module just burns the whole
+            # backoff ladder (~7 min) and then blames Overpass for a local
+            # dependency problem. The CI parking workflow shipped with no
+            # install step at all, so every run died on `No module named
+            # 'shapely'` while the log advised waiting for Overpass to recover.
+            local_cause = f"{type(e).__name__}: {e}"
+            print(f"  boundary fetch cannot run locally ({local_cause}) — "
+                  f"not retrying; this is a missing dependency, NOT an "
+                  f"Overpass outage. Install shapely.", file=sys.stderr)
+            break
         except Exception as e:  # noqa: BLE001
             print(f"  boundary fetch attempt {i + 1} failed ({e})", file=sys.stderr)
     if per_rel is None:
-        print("  boundary fetch FAILED after retries", file=sys.stderr)
+        print(f"  boundary fetch FAILED ({local_cause or 'after retries'})",
+              file=sys.stderr)
         return {}, 0, False
     rings_by_area = {aid: per_rel[rid] for aid, rid in rel_of.items()
                      if rid in per_rel}
@@ -943,7 +956,8 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> 
             boundary_failed = True
             print(f"  {code.upper()}: boundary fetch failed — "
                   f"{'skipping WRITES for this state' if not dry_run else 'dry-run report only'} "
-                  "(containment gate unavailable; rerun when Overpass recovers)",
+                  "(containment gate unavailable; see the cause logged above — "
+                  "a missing dependency needs fixing, an Overpass error needs a rerun)",
                   file=sys.stderr)
             if not dry_run:
                 continue

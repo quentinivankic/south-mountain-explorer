@@ -58,6 +58,59 @@ Snapshot of the active threads this session — see the PRs for detail.
   Settings → General → **"Automatically delete head branches"** so future
   branches self-clean on merge.
 
+## In flight 2026-07-19 (day 2 — rel-id backfill, parking bug, elevation profiles)
+
+- **Whole-US republish #2 — RUNNING** (`dry_run=false`, run 29690745615). Carries
+  the 525 backfilled rel ids. Dry-run first: green, 13/13 regions, 65 min, no
+  hang (#441's bound held under the heavier fetch load).
+  - Dry-run CONFIRMED publishing: `great-smoky-mountains-national-park-tn` 131
+    trails, `inyo-national-forest-ca` 319, `pisgah-national-forest-nc` 404,
+    `george-washington-national-forest-va` 401,
+    `chattahoochee-oconee-national-forest-ga` 295, `waterton-glacier` 158.
+  - ⚠️ **Death Valley MISSED** — and it is NOT a data problem. rel `174732`
+    fetches clean (138 members → 2 rings, 1.395 deg²). Rel-id rescue rates run
+    ~80% (4/4, 11/12, 10/13, 6/9, 3/5, 6/8) with failures scattered at random =
+    TRANSIENT Overpass pressure from 13 parallel regions. Self-healing by design
+    (see `_fetch_boundary_by_rel`'s own comment). **NEXT: single-state re-publish
+    for the stragglers**, where Overpass isn't contended.
+- **PR #443 MERGED** (`87ef5833`) — `osm_relation_id` backfilled for **525/583**
+  bare-seed areas via new `scripts/backfill-rel-ids.py` (batched Overpass name
+  queries, matched by `name.casefold()` + nearest stored centre; idempotent, so
+  two runs union to rescue a fetch-failed batch). The 58 left are tiny 1–2-trail
+  preserves with no OSM boundary relation — accept. Verified: 0 counts clobbered,
+  0 identity drift, all rel ids int, row count unchanged (29,852).
+- **PR #444 OPEN — parking wilderness fix.** `assign_federal` tested "contained
+  by a NON-blank area" BEFORE the edge-buffer check, so a wilderness trailhead
+  (which sits just OUTSIDE the wilderness, on a road still INSIDE the
+  surrounding NF) was dropped as "OSM covers it" and the wilderness stayed blank
+  forever. **55 of AZ's 58 blank areas.** `_FED_EDGE_BUFFER_M` existed for
+  exactly this and was unreachable. 21 tests pass, incl. a guardrail that #423's
+  anti-bleed still drops a point with no blank neighbour in range.
+  - Also adds **`trailforge-parking-us.yml`** — 16-region parallel fan-out,
+    balanced by AREA COUNT (max 894, min 497; New England alone is 2,163). The
+    existing `trailforge-parking.yml` loops states serially in ONE 90-min job,
+    which cannot fit 8,809 areas / 50 states.
+  - **BLOCKED**: needs a live `--state az --dry-run` before merge (no CI gate on
+    scripts/). Held off while the publish contends for Overpass.
+  - **Coronado NF was NOT this bug** — purged in #428, recreated by the whole-US
+    publish AFTER the AZ parking pass, so parking never ran on it. Replaying the
+    real gate against it yields **112 lots**. Only 3 of the 58 are this kind.
+- **PR #445 OPEN — trail elevation profiles.** `serve/elevation.py` already
+  computed the full DEM series and discarded it; now emits `profileFt` (feet,
+  evenly spaced by distance, ~8/mile, floor 8, cap 64). **+7 MB on 430 MB
+  (+1.7%)** measured over an 800-area sample. One DEM pass feeds gain + profile.
+  App: `TrailProfile` (snap → fraction, interpolate, orient) + 
+  `TrailElevationProfileView`, expanded into the selected row in `TrailListView`.
+  iOS CI GREEN. **Direction decision + all rejected options are in CLAUDE.md.**
+  - NEXT (task #11): swap to **nearest-end-always** orientation, revert the
+    parking anchor.
+  - NEXT (task #12): profiles only exist after a republish WITH this merged —
+    the 2026-07-19 run predates it. Batch that republish; then a TF build, since
+    the chart is app code.
+- **No TF build is worth dispatching right now** — zero Swift changes on `main`
+  since the shipped build `caf26794`; the only `ios/` churn is the bundled
+  `areas-index.json` (offline fallback only; live index comes from R2).
+
 ## In flight 2026-07-18/19 (parking + coverage — big session)
 
 - **Whole-US cross-state coverage re-publish — RUNNING.** `trailforge-publish-us.yml`
@@ -96,9 +149,10 @@ Snapshot of the active threads this session — see the PRs for detail.
   R2-served" claim (`AreaIndexService` exists and works).
 
 ### Open follow-ups from this session
-- [ ] **No-rel-id stragglers** — the fix rescues areas WITH an `osm_relation_id`;
-  bare-seed ones (Great Smoky TN side, Humboldt-Toiyabe) still don't ship. Fix =
-  re-seed to attach a rel id, then republish. Completes US coverage.
+- [x] **No-rel-id stragglers** — DONE 2026-07-19 (#443). A plain re-seed does NOT
+  work (`seed-areas.py --merge` is slug-keyed APPEND-ONLY and never updates an
+  existing row; the osm_id goes to a CI-only cache). Real fix was a targeted
+  backfill: `scripts/backfill-rel-ids.py`, 525/583 filled.
 - [ ] **Parking nationwide** — expand `add-parking.py` AZ → all states (safe now:
   publish preserves it); validate USFS on first states.
 - [ ] **Canada** (360) — DEFERRED per user 2026-07-19.

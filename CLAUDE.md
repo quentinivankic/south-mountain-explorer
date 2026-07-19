@@ -311,6 +311,38 @@ mean one view with two unit systems and two meanings for x.
    `ios-pr-build.yml` triggers on exactly `ios/**`, `public/areas/index.json`,
    and its own file. CI firing unexpectedly means the DIFF is wrong, not the
    workflow.
+7. **A green run proves the job EXITED 0, not that it DID anything. Verify the
+   OUTPUT.** Three separate bugs on 2026-07-19 all had this shape — a step
+   reporting success while silently doing nothing:
+   - `trailforge-parking.yml` never installed `shapely`, so every run in the
+     workflow's ENTIRE history died on the import, lost the containment gate and
+     skipped its writes. AZ's parking had come from the homelab, so nobody
+     noticed CI had never once worked.
+   - That same `ImportError` was retried through the full backoff ladder and
+     then reported as *"rerun when Overpass recovers"* — a local missing module
+     blamed on a remote service, which sent me hunting a nonexistent outage.
+   - `trailforge-publish-batch.yml` computed `$ELEV` and never passed it to
+     `publish_areas.py`. The log printed the flag being set. The republish then
+     STRIPPED elevation from 18,641 trails across CA/MT/TN/VA, downgrading
+     gain-based difficulty to length-based, with a green check throughout.
+
+   So after any publish/enrich run, **count the thing it was supposed to
+   produce** — `gainFt`, `profileFt`, `parking`, trail counts — in the actual
+   geom, and compare against before. `jq`/a 5-line Python scan is enough. Never
+   report a data job as done on the strength of a green check.
+8. **Never tell the user to test a feature without verifying its DATA exists.**
+   Burned 2026-07-19: the elevation-profile chart shipped in a TestFlight build
+   and was written up with confident test steps, while `profileFt` was absent
+   from all 91,922 trails — the publish that would have baked it ran BEFORE the
+   baking code merged. The app half shipped and the data half never ran. This is
+   the two-deploy-path hazard documented in `docs/adr/0001` and it was walked
+   into hours later the same day. **Feature = code + data. Check both.**
+9. **An unexpected signal is evidence, not noise — investigate before
+   explaining it away.** Every mistake above was preceded by a correct signal
+   that got rationalised: CI firing on a "trailforge-only" PR, a parking dry-run
+   exiting 2 while printing a healthy report. When something contradicts the
+   model, the model is usually wrong. Check before writing a "correction" — a
+   false correction into this file is worse than the original error.
 
 ---
 

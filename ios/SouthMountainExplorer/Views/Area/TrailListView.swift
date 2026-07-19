@@ -225,6 +225,11 @@ struct TrailListView: View {
                                 trail: trail,
                                 areaId: area.id,
                                 selectedTrailId: $selectedTrailId,
+                                // Anchors the profile chart when the hiker
+                                // isn't on the trail. Computed here because
+                                // parking lives on Area, which the row doesn't
+                                // see; nearestParking already returns them
+                                // ordered by distance to the trail's ends.
                                 onRecordTrail: onRecordTrail
                             )
                             // Tag each row with the trail id so
@@ -354,95 +359,179 @@ struct TrailRow: View {
     @Environment(ProgressService.self) private var progress
     @Environment(CoverageService.self) private var coverage
     @Environment(RecordingService.self) private var recording
+    @Environment(LocationService.self) private var location
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
+
+    /// Chart orientation, LATCHED when the profile opens.
+    ///
+    /// It has to be latched rather than computed live: "which end is nearer"
+    /// inverts at the trail's midpoint, so recomputing would mirror the chart
+    /// mid-hike on every point-to-point trail. Fixing it at open keeps the
+    /// picture still while you walk across it — the marker moves, the trail
+    /// doesn't.
+    @State private var profileStartIsNearer = true
 
     private var isComplete: Bool { progress.isComplete(areaId: areaId, trailId: trail.id) }
     private var coveragePct: Double { coverage.trailCoverage(areaId: areaId, trailId: trail.id) }
     private var isRecordingThis: Bool { recording.activeRecording?.trailId == trail.id }
     private var isSelected: Bool { selectedTrailId == trail.id }
 
+    /// Where the hiker sits on THIS trail, 0…1, or nil when they aren't on it.
+    ///
+    /// Only computed for the selected row — snapping walks the whole polyline,
+    /// and doing that for every row in a 600-trail area on each render would be
+    /// wasteful for a chart nobody is looking at.
+    private var snappedFraction: Double? {
+        guard isSelected, trail.profileFt != nil,
+              let here = location.liveLocation ?? location.userLocation,
+              let snap = TrailProfile.snap(lat: here.latitude, lon: here.longitude,
+                                           segments: trail.segments),
+              snap.offTrailMeters <= Self.onTrailMeters
+        else { return nil }
+        return snap.fraction
+    }
+
+    /// How close counts as "on this trail" for drawing the marker. Deliberately
+    /// looser than coverage's 10 m: coverage decides whether you WALKED a
+    /// segment and must be strict, while this only decides whether to draw a
+    /// dot — and a dot that blinks out on ordinary GPS wobble is worse than one
+    /// sitting a few metres off.
+    private static let onTrailMeters = 50.0
+
+    /// Orientation to latch when the profile opens: is the stored START the
+    /// trail end nearer the user? nil when we have no location at all, in
+    /// which case stored order stands and no direction is implied.
+    private var startIsNearerNow: Bool? {
+        guard let here = location.liveLocation ?? location.userLocation else { return nil }
+        return TrailProfile.startIsNearer(lat: here.latitude, lon: here.longitude,
+                                          segments: trail.segments)
+    }
+
+    /// VoiceOver can't read a chart, so state the shape in words: the range,
+    /// and where the hiker sits in it when we know.
+    private var profileAccessibilityLabel: String {
+        guard let profile = trail.profileFt, let lo = profile.min(), let hi = profile.max()
+        else { return "Elevation profile" }
+        let range = "Elevation profile, "
+            + UnitFormatter.elevation(feet: Double(lo), units: units)
+            + " to " + UnitFormatter.elevation(feet: Double(hi), units: units)
+        guard let f = snappedFraction,
+              let here = TrailProfile.elevationFt(profile, at: f)
+        else { return range }
+        return range + ", you are at "
+            + UnitFormatter.elevation(feet: here, units: units)
+            + ", \(Int((f * 100).rounded())) percent along"
+    }
+
     var body: some View {
-        HStack(spacing: 14) {
-            // The trail's own shape, stroked in its difficulty color
-            // (cyan once completed — same color language as the map's cyan
-            // completed stroke). Replaced the leaf/arrow/bolt difficulty
-            // glyphs; difficulty stays readable via the colored text in the
-            // caption row.
-            TrailShapeThumb(
-                trail: trail,
-                color: isComplete ? .completedTrail : difficultyColor
-            )
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 14) {
+                // The trail's own shape, stroked in its difficulty color
+                // (cyan once completed — same color language as the map's cyan
+                // completed stroke). Replaced the leaf/arrow/bolt difficulty
+                // glyphs; difficulty stays readable via the colored text in the
+                // caption row.
+                TrailShapeThumb(
+                    trail: trail,
+                    color: isComplete ? .completedTrail : difficultyColor
+                )
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Text(trail.name)
-                        .font(.body)
-                        .fontWeight(isRecordingThis ? .semibold : .regular)
-                    if isRecordingThis {
-                        Image(systemName: "record.circle.fill")
-                            .foregroundStyle(.red)
-                            .symbolEffect(.pulse)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text(trail.name)
+                            .font(.body)
+                            .fontWeight(isRecordingThis ? .semibold : .regular)
+                        if isRecordingThis {
+                            Image(systemName: "record.circle.fill")
+                                .foregroundStyle(.red)
+                                .symbolEffect(.pulse)
+                        }
                     }
-                }
 
-                HStack(spacing: 8) {
-                    Label(UnitFormatter.distance(miles: trail.distanceMi, units: units), systemImage: "figure.walk")
-                    if let gain = trail.gainFt, gain > 0 {
+                    HStack(spacing: 8) {
+                        Label(UnitFormatter.distance(miles: trail.distanceMi, units: units), systemImage: "figure.walk")
+                        if let gain = trail.gainFt, gain > 0 {
+                            Text("·")
+                            Label(UnitFormatter.elevation(feet: Double(gain), units: units),
+                                  systemImage: "arrow.up.forward")
+                        }
                         Text("·")
-                        Label(UnitFormatter.elevation(feet: Double(gain), units: units),
-                              systemImage: "arrow.up.forward")
+                        Text(trail.difficulty.rawValue)
+                            .foregroundStyle(difficultyColor)
+                        Text("·")
+                        Label(trail.routeType.label, systemImage: trail.routeType.systemImage)
                     }
-                    Text("·")
-                    Text(trail.difficulty.rawValue)
-                        .foregroundStyle(difficultyColor)
-                    Text("·")
-                    Label(trail.routeType.label, systemImage: trail.routeType.systemImage)
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-                if coveragePct > 0.02 && !isComplete {
-                    ProgressView(value: coveragePct)
-                        .tint(difficultyColor)
-                        .frame(maxWidth: 120)
+                    if coveragePct > 0.02 && !isComplete {
+                        ProgressView(value: coveragePct)
+                            .tint(difficultyColor)
+                            .frame(maxWidth: 120)
+                    }
                 }
+
+                Spacer()
+
+                // Trailing control. Normally the completion checkmark (tap to
+                // mark done). The moment this row is SELECTED it becomes a Record
+                // button — tap a trail in the list, then hit Record right there,
+                // no popup. Re-tapping the row deselects and the checkmark returns.
+                Button {
+                    if isSelected {
+                        onRecordTrail?(trail)
+                    } else {
+                        Task { await progress.toggleTrail(areaId: areaId, trailId: trail.id) }
+                    }
+                } label: {
+                    if isSelected {
+                        Label(isRecordingThis ? "Recording" : "Record",
+                              systemImage: "record.circle")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(isRecordingThis ? Color.red : Color.accentColor))
+                    } else {
+                        // Outlined checkmark hints the action; fills in cyan when complete.
+                        // Wrap both branches in AnyShapeStyle so the ternary has a single
+                        // type — .cyan is a Color, .tertiary is a HierarchicalShapeStyle,
+                        // and Swift can't unify them otherwise.
+                        Image(systemName: isComplete ? "checkmark.circle.fill" : "checkmark.circle")
+                            .font(.title3)
+                            .foregroundStyle(isComplete ? AnyShapeStyle(Color.cyan) : AnyShapeStyle(.tertiary))
+                    }
+                }
+                .buttonStyle(.plain)
             }
 
-            Spacer()
-
-            // Trailing control. Normally the completion checkmark (tap to
-            // mark done). The moment this row is SELECTED it becomes a Record
-            // button — tap a trail in the list, then hit Record right there,
-            // no popup. Re-tapping the row deselects and the checkmark returns.
-            Button {
-                if isSelected {
-                    onRecordTrail?(trail)
-                } else {
-                    Task { await progress.toggleTrail(areaId: areaId, trailId: trail.id) }
-                }
-            } label: {
-                if isSelected {
-                    Label(isRecordingThis ? "Recording" : "Record",
-                          systemImage: "record.circle")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Capsule().fill(isRecordingThis ? Color.red : Color.accentColor))
-                } else {
-                    // Outlined checkmark hints the action; fills in cyan when complete.
-                    // Wrap both branches in AnyShapeStyle so the ternary has a single
-                    // type — .cyan is a Color, .tertiary is a HierarchicalShapeStyle,
-                    // and Swift can't unify them otherwise.
-                    Image(systemName: isComplete ? "checkmark.circle.fill" : "checkmark.circle")
-                        .font(.title3)
-                        .foregroundStyle(isComplete ? AnyShapeStyle(Color.cyan) : AnyShapeStyle(.tertiary))
-                }
-            }
-            .buttonStyle(.plain)
+        // The profile expands INTO the selected row rather than opening a
+        // sheet, matching this screen's existing no-popup pattern (tap a
+        // trail, hit Record right there). Areas published before the DEM
+        // profile pass have no `profileFt`, so the row simply stays compact.
+        if isSelected, let profile = trail.profileFt, profile.count >= 2 {
+            TrailElevationProfileView(
+                profileFt: profile,
+                totalDistanceMi: trail.distanceMi,
+                position: snappedFraction,
+                startIsNearer: profileStartIsNearer
+            )
+            .frame(height: 96)
+            .padding(.trailing, 4)
+            .transition(.opacity.combined(with: .move(edge: .top)))
+            .accessibilityLabel(profileAccessibilityLabel)
+        }
         }
         .padding(.horizontal)
         .padding(.vertical, 9)
+        .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .onChange(of: isSelected, initial: true) { _, nowSelected in
+            // Latch orientation at OPEN and never while it's up. "Which end is
+            // nearer" inverts at the trail's midpoint, so live recomputation
+            // would mirror the chart mid-hike on every point-to-point trail.
+            guard nowSelected, let s = startIsNearerNow else { return }
+            profileStartIsNearer = s
+        }
         .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
         .contentShape(Rectangle())
         .onTapGesture {

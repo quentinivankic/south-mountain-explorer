@@ -148,17 +148,77 @@ def difficulty_label(miles: float, gain_ft: float | None,
     return "Easy"
 
 
-def trail_gain_ft(segments: list[list], sampler) -> float:
-    """Sum gain across a trail's segments (each a [[lat, lon], ...] polyline),
-    densified to ~30 m and sampled via `sampler.elevation(lat, lon)`."""
-    total = 0.0
+def sample_segments(segments: list[list], sampler) -> list[tuple[list, list]]:
+    """Densify each segment to ~30 m and sample its elevations ONCE.
+
+    Returns [(points, elevs_m), ...]. Both `trail_gain_ft` and
+    `trail_profile_ft` derive from this so a trail costs exactly one pass of
+    DEM sampling — the expensive part — no matter how many outputs we want.
+    """
+    out = []
     for seg in segments:
         pts = densify([(p[0], p[1]) for p in seg if len(p) >= 2])
         if len(pts) < 2:
             continue
-        elevs = [sampler.elevation(la, lo) for la, lo in pts]
-        total += gain_ft(elevs)
-    return round(total)
+        out.append((pts, [sampler.elevation(la, lo) for la, lo in pts]))
+    return out
+
+
+def trail_gain_ft(segments: list[list], sampler) -> float:
+    """Sum gain across a trail's segments (each a [[lat, lon], ...] polyline),
+    densified to ~30 m and sampled via `sampler.elevation(lat, lon)`."""
+    return round(sum(gain_ft(e) for _, e in sample_segments(segments, sampler)))
+
+
+def profile_ft(sampled: list[tuple[list, list]], max_points: int = 64) -> list[int]:
+    """Evenly-spaced elevation series in FEET along the trail, for the app's
+    elevation-profile chart. Returns [] when there's nothing to sample.
+
+    DIRECTION IS ARBITRARY, and that is fine. OSM way order is meaningless
+    (Humphreys Summit Trail is stored summit->trailhead), so index 0 is NOT
+    "the trailhead" and must never be drawn as one. The app anchors the chart
+    on the hiker's snapped position instead, which sidesteps the question
+    entirely — that is why this ships as a bare series with no start/end
+    semantics attached. `gain_ft` stays direction-invariant for the same reason.
+
+    Evenly spaced by DISTANCE, so the app maps position -> index with a plain
+    `fraction * (count - 1)` and needs no distance array of its own. Point
+    count scales with length (~8/mile, floor 8, cap `max_points`): a 0.4 mi
+    connector doesn't need 64 samples and a 30 mi epic doesn't get to bloat
+    every geom file. Smoothed before downsampling for the same reason
+    `gain_ft` smooths — raw 30 m DEM is noisy enough to draw visible teeth.
+    """
+    dists: list[float] = []
+    elevs: list[float] = []
+    run = 0.0
+    for pts, es in sampled:
+        for i, ((la, lo), e) in enumerate(zip(pts, es)):
+            if i:
+                run += haversine_m(pts[i - 1][0], pts[i - 1][1], la, lo)
+            dists.append(run)
+            elevs.append(e)
+    if len(elevs) < 2:
+        return []
+    total = dists[-1]
+    if total <= 0:
+        return []
+    elevs = smooth(elevs)
+    miles = total / 1609.344
+    n = min(max_points, max(8, round(miles * 8)))
+    out: list[int] = []
+    j = 0
+    for k in range(n):
+        target = total * k / (n - 1)
+        while j + 1 < len(dists) and dists[j + 1] < target:
+            j += 1
+        # Linear interpolation between the two bracketing DEM samples.
+        if j + 1 < len(dists) and dists[j + 1] > dists[j]:
+            f = (target - dists[j]) / (dists[j + 1] - dists[j])
+            e = elevs[j] + (elevs[j + 1] - elevs[j]) * f
+        else:
+            e = elevs[j]
+        out.append(int(round(e / _M_PER_FT)))
+    return out
 
 
 def process_area(geom: dict, sampler) -> tuple[int, dict]:
@@ -181,7 +241,10 @@ def process_area(geom: dict, sampler) -> tuple[int, dict]:
     for t in geom.get("trails", []):
         miles = t.get("distanceMi", 0.0)
         try:
-            g = trail_gain_ft(t.get("segments", []), sampler)
+            # One DEM pass feeds both gain and the chart series.
+            sampled = sample_segments(t.get("segments", []), sampler)
+            g = round(sum(gain_ft(e) for _, e in sampled))
+            prof = profile_ft(sampled)
         except Exception as e:                      # a bad/missing tile: skip trail
             print(f"    ! gain failed for {t.get('id')}: {e}", file=sys.stderr)
             continue
@@ -189,6 +252,8 @@ def process_area(geom: dict, sampler) -> tuple[int, dict]:
         new = difficulty_label(miles, g)
         t["gainFt"] = int(g)
         t["difficulty"] = new
+        if prof:
+            t["profileFt"] = prof
         total_gain += g
         changed += 1
         if old != new:

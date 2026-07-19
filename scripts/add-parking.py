@@ -278,8 +278,10 @@ def fetch_state_boundaries(rel_ids: list[int]) -> dict[int, list]:
 
 
 def _fed_name(props: dict) -> str | None:
+    # Case-insensitive: USFS EDW uses lowercase recareaname, NPS uppercase LOTNAME.
+    lower = {k.lower(): v for k, v in props.items()}
     for k in _FED_NAME_KEYS:
-        v = props.get(k)
+        v = lower.get(k.lower())
         if isinstance(v, str) and v.strip() and v.strip().lower() not in ("none", "null"):
             return v.strip()
     return None

@@ -274,6 +274,22 @@ mean one view with two unit systems and two meanings for x.
 5. **Never claim a PR is merged from memory** — call `pull_request_read` and
    check `merged: true`. (Burned before: #353/#354 claimed merged while still
    open.)
+6. **Branch from `origin/main`, never from whatever HEAD happens to be**, and
+   check `git diff --stat origin/main...HEAD` BEFORE opening the PR. `git
+   checkout -b fix/foo` inherits every unmerged commit on the current branch —
+   `git add <one file>` only controls the NEW change, so already-committed work
+   rides along invisibly. Burned 2026-07-19: a session that started on
+   `feature/trail-elevation-profile` opened what looked like a one-file
+   trailforge fix; #447 merged **9 files**, silently landing the whole elevation
+   -profile feature (TrailProfile.swift, TrailElevationProfileView.swift,
+   TrailListView.swift, elevation.py, +59 lines of this file) under a commit
+   titled "trailforge: fetch a boundary…". Use
+   `git checkout -b <name> origin/main`. The tell was there and was misread:
+   `ios-pr-build` fired on a supposedly trailforge-only PR, and that got
+   explained away as the trigger paths being wrong. **They are not wrong** —
+   `ios-pr-build.yml` triggers on exactly `ios/**`, `public/areas/index.json`,
+   and its own file. CI firing unexpectedly means the DIFF is wrong, not the
+   workflow.
 
 ---
 

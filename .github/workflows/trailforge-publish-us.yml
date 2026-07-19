@@ -42,30 +42,94 @@ jobs:
   publish:
     strategy:
       fail-fast: false
+      # ONE JOB PER STATE, not per region bucket.
+      #
+      # The buckets used to hide a 4x imbalance, because wall clock was set by the
+      # slowest BUCKET, not the slowest state. Measured 2026-07-19 on run
+      # 29690745615: plains (6 states) 17 min, newengland (6) 40, greatlakes (6)
+      # 46 — but northwest (6: washington,oregon,idaho,montana,wyoming,nevada)
+      # ran 2h42m, since six large trail-dense western states were bucketed
+      # together and processed SERIALLY inside one job. The whole ~3h run was
+      # waiting on one bucket while twelve runners sat idle.
+      #
+      # The loop body was already per-state and fully independent — each state
+      # downloads its own extract, prefilters, assembles and publishes into
+      # out/geom with no cross-state state — so fanning out per state is a pure
+      # win and deletes the bucket-balancing problem by construction. Wall clock
+      # is now bounded by the slowest SINGLE state (california, ~46 min measured)
+      # instead of the slowest bucket.
+      #
+      # max-parallel caps how many run at once. The cap is deliberate: the
+      # boundary fetch talks to Overpass, and 13 concurrent regions already
+      # induced rate-limiting severe enough to stretch one region to 83 min
+      # (fixed by bounding each fetch in #441). 51 unbounded jobs would be worse,
+      # so hold concurrency near today's level while still removing the serial
+      # tail. Raise only with evidence from a dry run.
+      max-parallel: 16
       matrix:
-        include:
-          - { id: california,  states: "california" }
-          - { id: texas,       states: "texas" }
-          - { id: florida,     states: "florida" }
-          - { id: midatlantic, states: "new-york,pennsylvania,new-jersey" }
-          - { id: appalachia,  states: "virginia,west-virginia,maryland,delaware,district-of-columbia" }
-          - { id: southeast,   states: "north-carolina,south-carolina,georgia,tennessee,kentucky" }
-          - { id: deepsouth,   states: "alabama,mississippi,arkansas,louisiana,oklahoma" }
-          - { id: greatlakes,  states: "michigan,wisconsin,minnesota,ohio,indiana,illinois" }
-          - { id: plains,      states: "iowa,missouri,kansas,nebraska,north-dakota,south-dakota" }
-          - { id: northwest,   states: "washington,oregon,idaho,montana,wyoming,nevada" }
-          - { id: southwest,   states: "arizona,new-mexico,utah,colorado" }
-          - { id: newengland,  states: "maine,new-hampshire,vermont,massachusetts,connecticut,rhode-island" }
-          - { id: noncontig,   states: "alaska,hawaii" }
+        state:
+          - alabama
+          - alaska
+          - arizona
+          - arkansas
+          - california
+          - colorado
+          - connecticut
+          - delaware
+          - district-of-columbia
+          - florida
+          - georgia
+          - hawaii
+          - idaho
+          - illinois
+          - indiana
+          - iowa
+          - kansas
+          - kentucky
+          - louisiana
+          - maine
+          - maryland
+          - massachusetts
+          - michigan
+          - minnesota
+          - mississippi
+          - missouri
+          - montana
+          - nebraska
+          - nevada
+          - new-hampshire
+          - new-jersey
+          - new-mexico
+          - new-york
+          - north-carolina
+          - north-dakota
+          - ohio
+          - oklahoma
+          - oregon
+          - pennsylvania
+          - rhode-island
+          - south-carolina
+          - south-dakota
+          - tennessee
+          - texas
+          - utah
+          - vermont
+          - virginia
+          - washington
+          - west-virginia
+          - wisconsin
+          - wyoming
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    # Was 350 for a whole BUCKET of states run serially. One state needs a
+    # fraction of that; the slowest measured single state (california) was 46 min.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 
       - name: Install osmium + pyosmium + shapely + Pillow
         run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely python3-pil
 
-      - name: Publish region "${{ matrix.id }}" into an artifact dir
+      - name: Publish state "${{ matrix.state }}" into an artifact dir
         run: |
           set -uo pipefail
           OUT="$GITHUB_WORKSPACE/out/geom"; mkdir -p "$OUT"
@@ -77,7 +141,9 @@ jobs:
           ELEV=""; [ "${{ inputs.elevation }}" = "true" ] && ELEV="--elevation"
 
           ok=""; failed=""; skipped=""
-          IFS=',' read -ra SLUGS <<< "${{ matrix.states }}"
+          # One state per job now; the loop stays so the per-state error
+          # handling and SUMMARY block below are untouched.
+          SLUGS=("${{ matrix.state }}")
           for slug in "${SLUGS[@]}"; do
             slug=$(echo "$slug" | xargs)
             [ -z "$slug" ] && continue
@@ -111,16 +177,16 @@ jobs:
             ok="$ok $slug"
           done
 
-          echo "==================== SUMMARY (${{ matrix.id }}) ===================="
+          echo "==================== SUMMARY (${{ matrix.state }}) ===================="
           echo "published:${ok:- none}"
           echo "skipped:  ${skipped:- none}"
           echo "failed:   ${failed:- none}"
 
-      - name: Upload region geom artifact
+      - name: Upload state geom artifact
         if: ${{ !inputs.dry_run }}
         uses: actions/upload-artifact@v4
         with:
-          name: geom-${{ matrix.id }}
+          name: geom-${{ matrix.state }}
           path: out/geom
           if-no-files-found: warn
           retention-days: 1

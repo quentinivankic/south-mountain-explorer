@@ -514,7 +514,22 @@ struct TrailRow: View {
                 profileFt: profile,
                 totalDistanceMi: trail.distanceMi,
                 position: snappedFraction,
-                startIsNearer: profileStartIsNearer
+                startIsNearer: profileStartIsNearer,
+                // Flipping writes the choice for THIS trail and redraws. The
+                // automatic answer stays the default everywhere else — see
+                // ProfileDirectionStore for why this is an override, not a
+                // replacement.
+                onFlip: {
+                    let flipped = !profileStartIsNearer
+                    profileStartIsNearer = flipped
+                    ProfileDirectionStore.set(flipped, trailId: trail.id)
+                    ActivityLogService.shared.log(
+                        category: "trail",
+                        action: "profile-flip",
+                        context: ["areaId": areaId, "trailId": trail.id,
+                                  "startIsNearer": String(flipped)]
+                    )
+                }
             )
             .frame(height: 96)
             .padding(.trailing, 4)
@@ -529,8 +544,17 @@ struct TrailRow: View {
             // Latch orientation at OPEN and never while it's up. "Which end is
             // nearer" inverts at the trail's midpoint, so live recomputation
             // would mirror the chart mid-hike on every point-to-point trail.
-            guard nowSelected, let s = startIsNearerNow else { return }
-            profileStartIsNearer = s
+            guard nowSelected else { return }
+            // A saved flip wins over the automatic answer — the user has told
+            // us which end they set off from, and unlike "which end is nearer"
+            // that doesn't change as they travel. Falls back to the latch when
+            // they haven't chosen, and leaves the previous value alone when
+            // there's no geometry to compute one from.
+            if let saved = ProfileDirectionStore.override(trailId: trail.id) {
+                profileStartIsNearer = saved
+            } else if let s = startIsNearerNow {
+                profileStartIsNearer = s
+            }
         }
         .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
         .contentShape(Rectangle())

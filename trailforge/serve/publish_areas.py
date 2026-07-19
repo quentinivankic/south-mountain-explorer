@@ -401,8 +401,26 @@ def main(argv=None) -> int:
         have_cf = {nm.casefold() for nm in geoms}
         need = [(slug, meta) for slug, meta in sorted(az.items())
                 if meta.get("osm_rel") and meta["name"].casefold() not in have_cf]
+        # Only fetch for areas that actually have assembled trails NEAR them — an
+        # area with no trails near its center won't publish regardless, so skip
+        # its (Overpass) boundary fetch. Cuts a whole-state run from hundreds of
+        # fetches to the handful of trail-bearing multi-state areas. `center` is
+        # (lat, lon); all_shapes bounds are (minlon, minlat, maxlon, maxlat).
+        def _has_trails_near(center, deg=0.4):
+            clat, clon = center
+            for (bx0, by0, bx1, by1), _g, _f in all_shapes:
+                if bx0 <= clon + deg and bx1 >= clon - deg \
+                        and by0 <= clat + deg and by1 >= clat - deg:
+                    return True
+            return False
+        before = len(need)
+        need = [(s, m) for s, m in need if _has_trails_near(m["center"])]
+        if before != len(need):
+            print(f"boundary: {before} area(s) missing from PBF; {len(need)} have "
+                  f"trails nearby (skipping {before - len(need)} trail-less)",
+                  file=sys.stderr)
         if need:
-            print(f"boundary: {len(need)} area(s) not in PBF; fetching by osm_rel "
+            print(f"boundary: fetching {len(need)} boundary(ies) by osm_rel "
                   f"id via Overpass…", file=sys.stderr)
             rescued = 0
             for slug, meta in need:

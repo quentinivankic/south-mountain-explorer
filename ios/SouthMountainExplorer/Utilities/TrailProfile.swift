@@ -156,6 +156,43 @@ enum TrailProfile {
         return meters(me, first) <= meters(me, last)
     }
 
+    /// Compass label for the trail END the chart starts from, e.g. "west end".
+    ///
+    /// Replaces the earlier "nearest end" wording, which described the ALGORITHM
+    /// rather than answering the question. "Nearest" is ambiguous (nearest to
+    /// what?), never says which physical end, and is weakest exactly when you're
+    /// browsing from far away — the case where you most need to know.
+    ///
+    /// A compass bearing is unambiguous wherever you're standing and needs no
+    /// data beyond the two endpoints we already have. Bearing runs FROM the
+    /// opposite end TO the starting end, so the label names where the start
+    /// lies: a trail drawn from its western end reads "west end".
+    ///
+    /// Returns nil when the ends are too close to have a meaningful direction —
+    /// a loop's endpoints coincide, and "north end" would be a lie there.
+    static func startEndCompassLabel(segments: [[[Double]]],
+                                     startIsNearer: Bool) -> String? {
+        let pts = polyline(segments)
+        guard let first = pts.first, let last = pts.last, pts.count >= 2 else { return nil }
+        let startPt = startIsNearer ? first : last
+        let otherPt = startIsNearer ? last : first
+        // Loops and near-loops have no distinguishable ends. 150 m is comfortably
+        // past GPS-scale noise while still admitting genuinely short trails.
+        guard meters(startPt, otherPt) >= 150 else { return nil }
+
+        let dLat = startPt.lat - otherPt.lat
+        // Longitude degrees shrink toward the poles; scale so the bearing is
+        // geometric rather than skewed by latitude.
+        let dLon = (startPt.lon - otherPt.lon) * cos(otherPt.lat * .pi / 180)
+        var deg = atan2(dLon, dLat) * 180 / .pi     // 0 = north, clockwise
+        if deg < 0 { deg += 360 }
+
+        let names = ["north", "northeast", "east", "southeast",
+                     "south", "southwest", "west", "northwest"]
+        let idx = Int(((deg + 22.5) / 45).rounded(.down)) % 8
+        return "\(names[idx]) end"
+    }
+
     /// The profile oriented so the user's end of the trail reads LEFT → RIGHT,
     /// with their position mapped into the same frame.
     ///

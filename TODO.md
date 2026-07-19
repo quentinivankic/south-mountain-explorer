@@ -45,10 +45,12 @@ Snapshot of the active threads this session — see the PRs for detail.
   later in parallel.
   - Tradeoff accepted: App Store **seller name = developer's personal legal
     name** for v1.
-  - ⚠️ Make sure the **payment card on the Apple account is valid** (developer.apple.com
-    → Membership) so it doesn't lapse.
-  - If the app will be free with no IAP (current plan), the Paid Applications
-    Agreement + tax/banking are NOT needed. Revisit only if paid / IAP later.
+  - **Payment card on the Apple account — UPDATED 2026-07-19 (user).** Keep it
+    valid so the Individual membership doesn't lapse.
+  - **App HAS IAP — a three-tier TIP JAR, fully built in code** (inactive until
+    App Store publish; the StoreKit products go live at store submission). So the
+    **Paid Applications Agreement + tax/banking ARE required** before submitting
+    (corrects the earlier "free, no IAP" note).
 - **Stale branch cleanup.** ~182 old `claude/*` branches. Can't delete
   from the agent environment (the git proxy silently drops ref deletions
   and there's no delete-branch API tool). Prune locally — keep `main` +
@@ -427,20 +429,24 @@ repo:
 - [ ] Enter the App Privacy nutrition label in App Store Connect —
   now **Data Collection: Yes** (PostHog): Product Interaction, Other
   User Content, Email, Crash Data. Draft in `docs/app-store-submission.md`.
-- [ ] **Publish** the refreshed **privacy policy + ToS** to trekdex.app
-  (same URLs). Canonical source now in-repo: `docs/privacy-policy.md` +
-  `docs/terms-of-service.md` (#382) — corrected the false "no analytics /
-  collect nothing" language (app uses PostHog + MetricKit + feedback/waitlist)
-  and removed the not-built iCloud/CloudKit sync claim. Entity confirmed:
-  **Trekdex LLC** is a real entity, so both docs are consistent (Individual
-  Apple account just means the store seller name is the personal legal name).
+- [x] **Privacy policy + ToS — DONE (user, 2026-07-19): fully up to date and
+  live on the website.** Canonical source in-repo: `docs/privacy-policy.md` +
+  `docs/terms-of-service.md` (#382) — analytics (PostHog + MetricKit + feedback/
+  waitlist) language corrected, not-built iCloud/CloudKit claim removed. Entity:
+  **Trekdex LLC** (real entity; Individual Apple account = store seller name is
+  the personal legal name).
+- [ ] **Paid Applications Agreement + tax/banking in App Store Connect** —
+  REQUIRED now that the app ships a **three-tier tip jar IAP** (built in code,
+  inactive until store publish). Sign the agreement + complete banking/tax before
+  the tip-jar products can go live. (Was previously marked N/A under the "free,
+  no IAP" assumption — corrected 2026-07-19.)
 - [ ] Dispatch `ios-screenshots` (#255 already merged) for the final
   capture set (verifies shot-3 blue dot + no empty stats month), then
   upload the PNGs to ASC.
 - [ ] Crash/stability pass on device.
-- [ ] Verify the **payment card on the Apple account** is valid so the
-  Individual membership doesn't lapse. (Org conversion deferred — shipping
-  v1 under Individual, decided 2026-07-15.)
+- [x] **Payment card on the Apple account — UPDATED 2026-07-19 (user).** Keep it
+  valid so the Individual membership doesn't lapse. (Org conversion deferred —
+  shipping v1 under Individual, decided 2026-07-15.)
 - [ ] Dispatch **`ios-testflight`** for the submission-candidate build once
   the Confidence Lab is re-gated to DEBUG, then submit that build in ASC.
 - [ ] Dispatch **Build Region Tiles** (`region=new-zealand`) — build-only

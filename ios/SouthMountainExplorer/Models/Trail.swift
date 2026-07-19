@@ -20,9 +20,21 @@ struct Trail: Codable, Identifiable, Sendable, Equatable {
     /// compatible for existing call sites/tests; Codable still decodes it via
     /// decodeIfPresent, so old data (no gainFt key) stays valid.
     var gainFt: Int? = nil
+    /// Elevation samples in FEET, evenly spaced BY DISTANCE along `segments`,
+    /// baked by the trailforge DEM pass (`serve/elevation.py`). Even spacing is
+    /// what lets `TrailProfile` map a position to an index arithmetically
+    /// instead of shipping a parallel distance array in every geom file.
+    ///
+    /// DIRECTION IS MEANINGLESS: the series follows arbitrary OSM way order, so
+    /// index 0 is NOT the trailhead. Read it through `TrailProfile`, which
+    /// anchors on the hiker's snapped position and orients by travel direction.
+    ///
+    /// Optional for the same reason as `gainFt` — areas published before the
+    /// profile pass, and the live-Overpass fallback, simply won't have it.
+    var profileFt: [Int]? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, name, segments, difficulty, gainFt
+        case id, name, segments, difficulty, gainFt, profileFt
         case distanceMi = "distanceMi"
     }
 }

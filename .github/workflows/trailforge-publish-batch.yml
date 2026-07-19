@@ -83,7 +83,7 @@ jobs:
             if ! python3 serve/publish_areas.py \
                  --trails data/aoi/state.trails.geojson --hiking data/hiking.osm.pbf \
                  --state "$NAME" --index ../public/areas/index.json \
-                 --out-dir ../public/areas/geom $DRY $NOROUTES; then
+                 --out-dir ../public/areas/geom $DRY $NOROUTES $ELEV; then
               echo "!! publish failed for $slug"; failed="$failed $slug"; continue
             fi
             ok="$ok $slug"

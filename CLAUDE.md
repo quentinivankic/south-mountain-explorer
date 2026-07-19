@@ -41,9 +41,17 @@ trail in an area. SwiftUI, iOS 18+ deployment target.
   `.regularMaterial`). Use `.compatibleGlass*`, never `.glassEffect` directly,
   or iOS-18 compile breaks.
 
+**Index IS R2-served (verified in code 2026-07-19):** `AreaIndexService` fetches
+`cdn.trekdex.app/index.json` on launch with ETag revalidation, bundle as
+offline fallback; `AreaDataService` prefers the R2 copy and reloads on a newer
+one. `sync-geom-to-r2` uploads the bundle index to R2 (300 s TTL), and the
+publish workflows regen the bundle (`filter-ios-bundle.py`) + commit it. So NEW
+areas reach OLD apps via R2 on next launch — **no build needed for coverage**;
+a build is only needed for app CODE changes. (An earlier version of this file
+wrongly listed this as "not built" — verify against code, always.)
+
 **Not built (don't propose as if missing by oversight):** Live Activity /
-widgets, distance-to-next-turn banner, R2-served `areas-index` (bundled only;
-no `AreaIndexService` on main), cloud sync (Backup copy is aspirational),
+widgets, distance-to-next-turn banner, cloud sync (Backup copy is aspirational),
 `PrivacyInfo.xcprivacy` (public TF accepted without it — NOT a blocker).
 
 ---

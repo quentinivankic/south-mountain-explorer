@@ -104,6 +104,62 @@ class TrailGain(unittest.TestCase):
         self.assertTrue(6300 <= g <= 6600, g)
 
 
+class Profile(unittest.TestCase):
+    """profile_ft() — the app's elevation-profile series. Direction is
+    arbitrary by design (the app anchors on the hiker's position), so these
+    assert SHAPE and SPACING, never "index 0 is the trailhead"."""
+
+    class _Ramp:
+        def elevation(self, lat, lon):
+            return lat * 111320  # metres north — monotonic climb
+
+    def _sampled(self, seg):
+        return e.sample_segments([seg], self._Ramp())
+
+    def test_monotonic_climb_yields_ascending_series(self):
+        seg = [[0.0, 0.0], [2000 / 111320, 0.0]]
+        p = e.profile_ft(self._sampled(seg))
+        self.assertGreaterEqual(len(p), 8)
+        self.assertEqual(p, sorted(p), p)              # ramp -> ascending
+        self.assertGreater(p[-1] - p[0], 6000)         # ~2,000 m in feet
+
+    def test_point_count_scales_with_length_and_caps(self):
+        short = e.profile_ft(self._sampled([[0.0, 0.0], [200 / 111320, 0.0]]))
+        self.assertEqual(len(short), 8)                # floor, not 1 sample
+        # ~30 mi north — well past the 64-point cap.
+        lon = [[0.0, 0.0], [48000 / 111320, 0.0]]
+        self.assertEqual(len(e.profile_ft(self._sampled(lon), max_points=64)), 64)
+
+    def test_evenly_spaced_by_distance(self):
+        # On a linear ramp, even DISTANCE spacing means even ELEVATION steps.
+        p = e.profile_ft(self._sampled([[0.0, 0.0], [3000 / 111320, 0.0]]))
+        steps = [b - a for a, b in zip(p, p[1:])]
+        self.assertLess(max(steps) - min(steps), max(steps) * 0.25, steps)
+
+    def test_degenerate_inputs_return_empty(self):
+        self.assertEqual(e.profile_ft([]), [])
+        # A zero-length trail has no distance to spread samples over.
+        self.assertEqual(e.profile_ft(self._sampled([[1.0, 1.0], [1.0, 1.0]])), [])
+
+    def test_reversing_the_way_reverses_the_series(self):
+        # OSM way direction is arbitrary; the series follows it. Documented
+        # behaviour — the app must map position->index, not assume a start.
+        fwd = e.profile_ft(self._sampled([[0.0, 0.0], [1500 / 111320, 0.0]]))
+        rev = e.profile_ft(self._sampled([[1500 / 111320, 0.0], [0.0, 0.0]]))
+        self.assertEqual(fwd, list(reversed(rev)))
+
+    def test_process_area_bakes_profile(self):
+        seg = [[0.0, 0.0], [900 / 111320, 0.0]]
+        geom = {"trails": [{"id": "t1", "distanceMi": 0.6,
+                            "difficulty": "Easy", "segments": [seg]}]}
+        e.process_area(geom, self._Ramp())
+        t = geom["trails"][0]
+        self.assertIn("profileFt", t)
+        self.assertGreaterEqual(len(t["profileFt"]), 8)
+        # Gain still matches the standalone path — one DEM pass, same answer.
+        self.assertEqual(t["gainFt"], int(e.trail_gain_ft([seg], self._Ramp())))
+
+
 class ProcessArea(unittest.TestCase):
     """process_area() is the shared core folded into publish_areas.py so gain
     survives a republish. Testable with any object exposing .elevation()."""

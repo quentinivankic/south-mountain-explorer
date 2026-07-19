@@ -87,16 +87,24 @@ def _fetch_boundary_by_rel(rel_id):
     import time
     from shapely.geometry import LineString
     from shapely.ops import polygonize, unary_union
-    q = f"[out:json][timeout:180];rel({rel_id});out geom;"
+    # BOUNDED worst-case time (2026-07-19): a boundary fetch must never block the
+    # publish for many minutes. The old 180 s server + 180 s urlopen × 3 attempts
+    # × 2 endpoints = ~18 min PER AREA — during the whole-US run (13 regions all
+    # hitting Overpass at once) a rate-limited region crept toward that and one
+    # region's publish step ran 83 min. Now 90 s server + 90 s urlopen × 2 attempts
+    # × 2 endpoints = ≤~6 min worst case per area, and normal fetches return in
+    # seconds. A hard failure just leaves that area unpublished (picked up on a
+    # later single-state run), which is far better than stalling the whole run.
+    q = f"[out:json][timeout:90];rel({rel_id});out geom;"
     data = None
     for ep in ("https://overpass-api.de/api/interpreter",
                "https://overpass.kumi.systems/api/interpreter"):
-        for attempt in range(3):
+        for attempt in range(2):
             try:
                 req = urllib.request.Request(
                     ep, data=urllib.parse.urlencode({"data": q}).encode(),
                     headers={"User-Agent": "trekdex-publish/1.0"})
-                data = json.loads(urllib.request.urlopen(req, timeout=180).read())
+                data = json.loads(urllib.request.urlopen(req, timeout=90).read())
                 break
             except Exception:  # noqa: BLE001
                 time.sleep(5 * (attempt + 1))

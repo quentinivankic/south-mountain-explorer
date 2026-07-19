@@ -116,10 +116,30 @@ def _fetch_boundary_by_rel(rel_id):
     polys = list(polygonize(lines))
     if not polys:
         return None
-    u = unary_union(polys)
+    # Big multi-state boundaries polygonize into self-touching / invalid rings
+    # that make GEOS `unary_union` throw a TopologyException ("side location
+    # conflict"). Clean each ring with buffer(0) first, and fall back to a
+    # per-ring-cleaned union — one bad ring must NEVER crash the whole publish.
+    cleaned = []
+    for p in polys:
+        if not p.is_valid:
+            p = p.buffer(0)
+        if p is not None and not p.is_empty:
+            cleaned.append(p)
+    if not cleaned:
+        return None
+    try:
+        u = unary_union(cleaned)
+    except Exception:  # noqa: BLE001
+        try:
+            u = unary_union([p.buffer(0) for p in cleaned])
+        except Exception:  # noqa: BLE001
+            return None
+    if u is None or u.is_empty:
+        return None
     if not u.is_valid:
         u = u.buffer(0)
-    return u if (u is not None and u.area > 0) else None
+    return u if u.area > 0 else None
 
 
 # Designator words dropped when comparing park names — the distinctive part
@@ -434,11 +454,22 @@ def main(argv=None) -> int:
                   f"id via Overpass…", file=sys.stderr)
             rescued = 0
             for slug, meta in need:
-                poly = _fetch_boundary_by_rel(meta["osm_rel"])
+                # Defense in depth: a single pathological boundary must never
+                # crash the whole run — skip it and keep going.
+                try:
+                    poly = _fetch_boundary_by_rel(meta["osm_rel"])
+                except Exception as e:  # noqa: BLE001
+                    print(f"  boundary: {slug} rel {meta['osm_rel']} failed ({e}); "
+                          "skipping", file=sys.stderr)
+                    poly = None
                 if poly is not None:
                     nm = meta["name"]
-                    geoms[nm] = unary_union([geoms[nm], poly]) if nm in geoms else poly
-                    rescued += 1
+                    try:
+                        geoms[nm] = unary_union([geoms[nm], poly]) if nm in geoms else poly
+                        rescued += 1
+                    except Exception:  # noqa: BLE001
+                        geoms[nm] = poly
+                        rescued += 1
             print(f"boundary: rescued {rescued}/{len(need)} by rel id", file=sys.stderr)
 
     # Park boundaries (each unioned with its loose siblings) computed ONCE and

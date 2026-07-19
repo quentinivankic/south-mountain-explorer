@@ -430,32 +430,31 @@ def main(argv=None) -> int:
         have_cf = {nm.casefold() for nm in geoms}
         need = [(slug, meta) for slug, meta in sorted(az.items())
                 if meta.get("osm_rel") and meta["name"].casefold() not in have_cf]
-        # Only fetch for areas that actually have assembled trails NEAR them — an
-        # area with no trails near its center won't publish regardless, so skip
-        # its (Overpass) boundary fetch. Cuts a whole-state run from hundreds of
-        # fetches to the handful of trail-bearing multi-state areas. `center` is
-        # (lat, lon); all_shapes bounds are (minlon, minlat, maxlon, maxlat).
-        def _has_trails_near(center, deg=0.4):
-            clat, clon = center
-            for (bx0, by0, bx1, by1), _g, _f in all_shapes:
-                if bx0 <= clon + deg and bx1 >= clon - deg \
-                        and by0 <= clat + deg and by1 >= clat - deg:
-                    return True
-            return False
-        # Keep an area if its index row already KNOWS it has trails
-        # (trail_count > 0) OR trails fall near its center. The trail_count
-        # signal is the robust one — a GIANT multi-lobe area (a big National
-        # Forest) can have a trail-empty centroid yet clearly have trails, and
-        # must NOT be skipped; the near-center check only rescues areas whose
-        # index row lacks a count. Trail-less tiny preserves fail both.
+        # Skip the (Overpass) boundary fetch only on POSITIVE evidence that an
+        # area has no trails — i.e. its index row says trail_count == 0. An
+        # unknown count (None) must NOT be read as "no trails".
+        #
+        # This used to also skip when no assembled trails fell within 0.4deg of
+        # the area's CENTER. That heuristic is wrong for exactly the areas this
+        # fetch exists to rescue: Humboldt-Toiyabe NF spans CA+NV with its
+        # centroid in Nevada, so publishing California found no trails near the
+        # center and silently skipped a ~1,000-trail forest. Bare seed rows
+        # padded by the rel-id backfill carry trail_count=None, which made them
+        # depend entirely on that broken test.
+        #
+        # Measured on the 2026-07-19 whole-US dry run: the center test filtered
+        # only 7 of 220 candidate areas (3%), so dropping it costs single-digit
+        # extra fetches per whole-US run and buys back the giant multi-state
+        # forests. A fetch that turns out trail-less just clips to nothing and
+        # is skipped downstream — one wasted request, not a bad publish.
         def _worth_fetch(m):
             tc = m.get("trail_count")
-            return (tc is not None and tc > 0) or _has_trails_near(m["center"])
+            return tc is None or tc > 0
         before = len(need)
         need = [(s, m) for s, m in need if _worth_fetch(m)]
         if before != len(need):
-            print(f"boundary: {before} area(s) missing from PBF; {len(need)} have "
-                  f"trails nearby (skipping {before - len(need)} trail-less)",
+            print(f"boundary: {before} area(s) missing from PBF; {len(need)} may "
+                  f"have trails (skipping {before - len(need)} known trail-less)",
                   file=sys.stderr)
         if need:
             print(f"boundary: fetching {len(need)} boundary(ies) by osm_rel "

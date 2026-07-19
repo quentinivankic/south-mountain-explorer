@@ -299,6 +299,7 @@ def main(argv=None) -> int:
 
     index = json.load(open(args.index))
     az = {r[0]: {"name": r[1], "state": r[2], "center": (r[3], r[4]),
+                 "trail_count": r[5] if len(r) > 5 else None,
                  "osm_rel": r[7] if len(r) > 7 else None}
           for r in index if len(r) >= 5 and r[2] == args.state}
     print(f"index: {len(az)} '{args.state}' areas", file=sys.stderr)
@@ -413,8 +414,17 @@ def main(argv=None) -> int:
                         and by0 <= clat + deg and by1 >= clat - deg:
                     return True
             return False
+        # Keep an area if its index row already KNOWS it has trails
+        # (trail_count > 0) OR trails fall near its center. The trail_count
+        # signal is the robust one — a GIANT multi-lobe area (a big National
+        # Forest) can have a trail-empty centroid yet clearly have trails, and
+        # must NOT be skipped; the near-center check only rescues areas whose
+        # index row lacks a count. Trail-less tiny preserves fail both.
+        def _worth_fetch(m):
+            tc = m.get("trail_count")
+            return (tc is not None and tc > 0) or _has_trails_near(m["center"])
         before = len(need)
-        need = [(s, m) for s, m in need if _has_trails_near(m["center"])]
+        need = [(s, m) for s, m in need if _worth_fetch(m)]
         if before != len(need):
             print(f"boundary: {before} area(s) missing from PBF; {len(need)} have "
                   f"trails nearby (skipping {before - len(need)} trail-less)",

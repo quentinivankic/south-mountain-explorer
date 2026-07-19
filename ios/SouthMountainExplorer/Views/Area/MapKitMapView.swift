@@ -366,10 +366,18 @@ struct MapKitMapView: UIViewRepresentable {
                                           animated: Bool) {
         switch target {
         case .region(let lat, let lon, let latDelta, let lonDelta):
+            // Defense in depth: MKCoordinateSpan REJECTS an out-of-range span and
+            // setRegion then traps, killing the app rather than mis-framing. The
+            // known producer (an antimeridian-crossing area asking for a 441°
+            // longitude span) is fixed at source in TrailMapView.lonCenterAndSpan,
+            // but a bad span must never be able to crash the map again.
+            let safeLat = min(max(latDelta, 0.0001), 180)
+            let safeLon = min(max(lonDelta, 0.0001), 360)
             let region = MKCoordinateRegion(
                 center: CLLocationCoordinate2D(latitude: lat, longitude: lon),
-                span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lonDelta)
+                span: MKCoordinateSpan(latitudeDelta: safeLat, longitudeDelta: safeLon)
             )
+            guard CLLocationCoordinate2DIsValid(region.center) else { return }
             mapView.setRegion(region, animated: animated)
         case .camera(let lat, let lon, let distance, let heading):
             let cam = MKMapCamera(

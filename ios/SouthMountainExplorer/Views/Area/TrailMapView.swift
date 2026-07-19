@@ -909,6 +909,30 @@ struct TrailMapView: View {
         )
     }
 
+    /// Longitude center + span for an extent that may CROSS the antimeridian
+    /// (±180°).
+    ///
+    /// A naive `(min + max) / 2` / `max - min` breaks for any such area, and it
+    /// CRASHES rather than merely mis-framing. Alaska Maritime National Wildlife
+    /// Refuge runs the Aleutians from -166.73° to +173.14°, so the naive math
+    /// asks for a center of 3.21° (off the coast of Africa) and a longitude span
+    /// of 441° — wider than the planet. `MKCoordinateSpan` rejects that and
+    /// `setRegion` traps, so tapping the area killed the app every time.
+    ///
+    /// When the naive span exceeds 180° the extent is really the SHORT way round
+    /// through the antimeridian: the true span is `360 - naive`, centered past
+    /// `maxLon` and wrapped back into [-180, 180]. For that refuge: a 20.13°
+    /// span centered at -176.79°, which is the Aleutians.
+    nonisolated static func lonCenterAndSpan(minLon: Double,
+                                             maxLon: Double) -> (center: Double, span: Double) {
+        let naive = maxLon - minLon
+        guard naive > 180 else { return ((minLon + maxLon) / 2, naive) }
+        let span = 360 - naive
+        var center = maxLon + span / 2
+        if center > 180 { center -= 360 }
+        return (center, span)
+    }
+
     nonisolated static func regionCoveringArea(area: Area, bottomInset: CGFloat, screenHeight: CGFloat, screenWidth: CGFloat) -> MapTarget {
         let coords = area.trails
             .flatMap { $0.segments.flatMap { $0 } }
@@ -922,12 +946,14 @@ struct TrailMapView: View {
             let lons = coords.map { $0.lon }
             let minLat = lats.min()!, maxLat = lats.max()!
             let minLon = lons.min()!, maxLon = lons.max()!
+            // Antimeridian-safe — see lonCenterAndSpan.
+            let lon = lonCenterAndSpan(minLon: minLon, maxLon: maxLon)
             return fittedRegion(
                 centerLat: (minLat + maxLat) / 2,
-                centerLon: (minLon + maxLon) / 2,
+                centerLon: lon.center,
                 // 1.3x padding so trails don't kiss the visible edges.
                 latDelta: max((maxLat - minLat) * 1.3, 0.01),
-                lonDelta: max((maxLon - minLon) * 1.3, 0.01),
+                lonDelta: max(lon.span * 1.3, 0.01),
                 bottomInset: bottomInset,
                 screenHeight: screenHeight,
                 screenWidth: screenWidth
@@ -935,11 +961,13 @@ struct TrailMapView: View {
         }
 
         if let bbox = area.bbox, bbox.count == 4 {
+            // Antimeridian-safe — see lonCenterAndSpan.
+            let lon = lonCenterAndSpan(minLon: bbox[0], maxLon: bbox[2])
             return fittedRegion(
                 centerLat: (bbox[1] + bbox[3]) / 2,
-                centerLon: (bbox[0] + bbox[2]) / 2,
+                centerLon: lon.center,
                 latDelta: max(abs(bbox[3] - bbox[1]) * 1.2, 0.01),
-                lonDelta: max(abs(bbox[2] - bbox[0]) * 1.2, 0.01),
+                lonDelta: max(abs(lon.span) * 1.2, 0.01),
                 bottomInset: bottomInset,
                 screenHeight: screenHeight,
                 screenWidth: screenWidth

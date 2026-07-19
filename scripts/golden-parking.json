@@ -1,9 +1,50 @@
 {
-  "south-mountain-park-and-preserve-az": {"min": 1, "max": 40},
-  "mcdowell-sonoran-preserve-az": {"min": 1, "max": 40},
-  "mcdowell-mountain-regional-park-az": {"min": 1, "max": 25},
-  "usery-mountain-regional-park-az": {"min": 1, "max": 25},
-  "estrella-mountain-regional-park-az": {"min": 1, "max": 25},
-  "thunderbird-conservation-park-az": {"min": 1, "max": 15},
-  "pinnacle-peak-park-az": {"min": 1, "max": 12}
+  "south-mountain-park-and-preserve-az": {
+    "min": 1,
+    "max": 40
+  },
+  "mcdowell-sonoran-preserve-az": {
+    "min": 1,
+    "max": 40
+  },
+  "mcdowell-mountain-regional-park-az": {
+    "min": 1,
+    "max": 25
+  },
+  "usery-mountain-regional-park-az": {
+    "min": 1,
+    "max": 25
+  },
+  "estrella-mountain-regional-park-az": {
+    "min": 1,
+    "max": 25
+  },
+  "thunderbird-conservation-park-az": {
+    "min": 1,
+    "max": 15
+  },
+  "pinnacle-peak-park-az": {
+    "min": 1,
+    "max": 12
+  },
+  "white-river-national-forest-co": {
+    "min": 57,
+    "max": 681
+  },
+  "roosevelt-national-forest-co": {
+    "min": 36,
+    "max": 438
+  },
+  "pike-national-forest-co": {
+    "min": 20,
+    "max": 246
+  },
+  "rocky-mountain-national-park-co": {
+    "min": 20,
+    "max": 237
+  },
+  "cherry-creek-state-park-co": {
+    "min": 18,
+    "max": 210
+  }
 }

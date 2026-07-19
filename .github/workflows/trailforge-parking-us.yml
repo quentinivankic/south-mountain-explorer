@@ -1,0 +1,220 @@
+name: Trailforge — add parking for the ENTIRE US (parallel fan-out)
+
+# One dispatch → 16 PARALLEL region jobs, each enriching its states' published
+# geom with trailhead parking into an ARTIFACT (no commit) → one FAN-IN job that
+# copies the enriched geom back, makes ONE commit, and triggers the R2 sync.
+#
+# Why not reuse trailforge-parking.yml: that one loops states SERIALLY inside a
+# single 90-minute job. Arizona alone (164 areas) is ~2% of the country; the
+# remaining 8,809 areas across 50 states cannot finish in one job, and a
+# mid-loop timeout loses the whole run (same trap as the batch publish).
+#
+# Regions are balanced by PUBLISHED AREA COUNT (max 894, min 497), not by
+# geography — New England alone holds 2,163 areas and would otherwise be the
+# long pole by 20x. States are never split across jobs, so each area is touched
+# by exactly one job and the fan-in copy is conflict-free.
+#
+# Unlike the publish fan-out this needs NO osmium/PBF/DEM: add-parking.py only
+# reads existing geom and queries Overpass + the federal ArcGIS layers. It also
+# leaves the master index untouched (parking lives only in the geom), so the
+# fan-in skips the index refresh, silhouettes, and bundle regen.
+#
+# Default is a DRY RUN: each region prints its per-area lot counts and uploads
+# nothing, so you can validate the whole country in one parallel pass before
+# flipping dry_run=false.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview only — per-area parking counts, write/commit nothing"
+        type: boolean
+        default: true
+      no_federal:
+        description: "Skip the federal fallback (NPS parking + USFS trailheads); OSM only"
+        type: boolean
+        default: false
+      regions:
+        description: "Optional comma-separated region ids to limit the run (e.g. r01,r02). Blank = all."
+        default: ""
+
+concurrency:
+  # Serialize against the single-state parking workflow so the two never write
+  # the same geom concurrently.
+  group: trailforge-parking
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  parking:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { id: r01, states: "ca" }                # 894 areas
+          - { id: r02, states: "ma" }                # 759
+          - { id: r03, states: "ny" }                # 727
+          - { id: r04, states: "me,nv" }             # 516
+          - { id: r05, states: "pa,vt,sc" }          # 516
+          - { id: r06, states: "ct,mn,al" }          # 513
+          - { id: r07, states: "or,ut,tn,ky" }       # 513
+          - { id: r08, states: "wa,ak,sd,nd" }       # 511
+          - { id: r09, states: "co,mo,id,ar" }       # 509
+          - { id: r10, states: "oh,az,in,wy" }       # 508
+          - { id: r11, states: "nh,mt,dc,ms" }       # 506
+          - { id: r12, states: "mi,nm,wv,ks" }       # 503
+          - { id: r13, states: "fl,wi,ga,ok" }       # 503
+          - { id: r14, states: "il,tx,ia,ne" }       # 499
+          - { id: r15, states: "va,nj,hi,de" }       # 499
+          - { id: r16, states: "md,nc,ri,la" }       # 497
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Skip region not in the requested subset
+        id: gate
+        run: |
+          want="${{ inputs.regions }}"
+          if [ -z "$want" ] || echo ",$want," | grep -q ",${{ matrix.id }},"; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "region ${{ matrix.id }} not requested — skipping"
+          fi
+
+      - name: Add parking for region "${{ matrix.id }}"
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          set -uo pipefail
+          FLAG=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then FLAG="$FLAG --dry-run"; fi
+          if [ "${{ inputs.no_federal }}" = "true" ]; then FLAG="$FLAG --no-federal"; fi
+          rc=0
+          IFS=',' read -ra STATES <<< "${{ matrix.states }}"
+          for s in "${STATES[@]}"; do
+            code="$(echo "$s" | xargs)"
+            echo "==== $code ===="
+            # One state failing (Overpass 504, ArcGIS hiccup) must not lose the
+            # other states already enriched in this job — record and continue.
+            python3 scripts/add-parking.py --state "$code" $FLAG || {
+              echo "::warning::parking failed for $code (continuing)"
+              rc=1
+            }
+          done
+          echo "region_rc=$rc" >> "$GITHUB_ENV"
+
+      - name: Stage the enriched geom this region actually changed
+        if: ${{ steps.gate.outputs.run == 'true' && !inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          mkdir -p staged
+          # add-parking.py edits geom in place, so git tells us exactly which
+          # files gained parking — no need to copy the untouched thousands.
+          git diff --name-only -- public/areas/geom > changed.txt || true
+          count=$(wc -l < changed.txt)
+          echo "changed geom files: $count"
+          while read -r f; do
+            [ -n "$f" ] || continue
+            mkdir -p "staged/$(dirname "$f")"
+            cp "$f" "staged/$f"
+          done < changed.txt
+
+      - name: Upload region geom artifact
+        if: ${{ steps.gate.outputs.run == 'true' && !inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: parking-${{ matrix.id }}
+          path: staged/
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Fail the region if any state errored
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          # Non-blocking for the fan-in (fail-fast is off, and the fan-in merges
+          # whatever artifacts exist) but surfaces the bad state in the UI.
+          if [ "${region_rc:-0}" != "0" ]; then
+            echo "one or more states failed in ${{ matrix.id }}"; exit 1
+          fi
+
+  merge:
+    needs: parking
+    # `always()` so a single flaky region doesn't discard the other 15's work.
+    if: ${{ !inputs.dry_run && always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download all region parking artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: parking-*
+          merge-multiple: true
+
+      - name: Copy enriched geom into place
+        run: |
+          set -euo pipefail
+          if [ ! -d artifacts/public/areas/geom ]; then
+            echo "no artifacts — nothing to merge"; exit 0
+          fi
+          n=$(find artifacts/public/areas/geom -name '*.json' | wc -l)
+          echo "merging $n enriched geom files"
+          # Regions are disjoint by state, so no two artifacts contain the same
+          # file and a plain copy cannot clobber a sibling region's work.
+          cp -r artifacts/public/areas/. public/areas/
+
+      - name: Sanity-check the merged geom
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, sys
+          from pathlib import Path
+          bad, withp, lots = [], 0, 0
+          for f in Path("public/areas/geom").glob("*.json"):
+              try:
+                  d = json.loads(f.read_text())
+              except Exception as e:
+                  bad.append((f.name, str(e))); continue
+              p = d.get("parking")
+              if p:
+                  withp += 1; lots += len(p)
+              if d.get("trails") is None:
+                  bad.append((f.name, "lost its trails key"))
+          print(f"areas with parking: {withp}  lots: {lots}")
+          if bad:
+              print("CORRUPT:", bad[:10]); sys.exit(1)
+          PY
+
+      - name: Commit + push (one commit)
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/areas/geom/
+          if git diff --cached --quiet; then
+            echo "No parking changes to commit."
+          else
+            git commit -m "trailforge: add parking nationwide (parallel fan-out)"
+            git push
+          fi
+
+      - name: Trigger R2 sync
+        # A GITHUB_TOKEN push doesn't fire sync-geom-to-r2's push trigger, so
+        # dispatch it explicitly (mirrors the publish workflows).
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run sync-geom-to-r2.yml --ref main

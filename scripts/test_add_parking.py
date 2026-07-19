@@ -221,6 +221,38 @@ def test_assign_federal_fills_only_blank_areas():
     assert got == {"blm", "usfs"}, got                 # inside + orphan-edge, not nps
 
 
+def test_assign_federal_wilderness_nested_in_forest_still_fills():
+    # REGRESSION (2026-07-19): a wilderness trailhead sits just OUTSIDE the
+    # wilderness polygon, on the road — but that road is still INSIDE the
+    # surrounding national forest. assign_federal used to test "contained by a
+    # non-blank area" BEFORE the edge-buffer check, so the point was dropped as
+    # "OSM covers it" and the wilderness stayed blank forever. That left 55 of
+    # Arizona's 58 blank areas empty (Chiricahua, Mazatzal, Galiuro, ... all
+    # nested in Coronado/Tonto/Prescott NF).
+    forest = [[(0, 0), (0, 10), (10, 10), (10, 0), (0, 0)]]      # non-blank
+    wild = [[(4, 4), (4, 5), (5, 5), (5, 4), (4, 4)]]            # blank, nested
+    rings_by_area = {"osmForest": forest, "blankWild": wild}
+    # ~1 m east of the wilderness edge: outside `wild`, inside `forest`.
+    lon = 5.0 + 1.0 / 111_000.0
+    fed = [{"lat": 4.5, "lon": lon, "source": "usfs", "trailhead": True}]
+    out = ap.assign_federal(fed, rings_by_area, {"blankWild"})
+    assert set(out) == {"blankWild"}, out
+    assert len(out["blankWild"]) == 1, out
+
+
+def test_assign_federal_non_blank_containment_still_wins_without_blank_neighbor():
+    # The other half of the same fix: with no blank area in range, a point
+    # inside a non-blank area is STILL dropped (OSM stays authoritative). This
+    # is the anti-bleed guarantee #423 established — the reorder must not
+    # weaken it.
+    forest = [[(0, 0), (0, 10), (10, 10), (10, 0), (0, 0)]]
+    far_wild = [[(90, 40), (90, 41), (91, 41), (91, 40), (90, 40)]]
+    fed = [{"lat": 5.0, "lon": 5.0, "source": "usfs", "trailhead": True}]
+    out = ap.assign_federal(fed, {"osmForest": forest, "blankFar": far_wild},
+                            {"blankFar"})
+    assert out == {}, out
+
+
 def test_assign_federal_orphan_beyond_buffer_dropped():
     ringA = [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]]
     # 500 m east of A's edge — beyond the 250 m edge buffer.

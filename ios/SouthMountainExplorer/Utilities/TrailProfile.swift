@@ -141,6 +141,22 @@ enum TrailProfile {
         return lastKnown
     }
 
+    /// Orientation for BROWSING, when there's no hiker to anchor on.
+    ///
+    /// Without a position we still shouldn't draw an arbitrary direction — a
+    /// profile that opens with a descent because OSM stored the way downhill
+    /// reads as a completely different trail. So we anchor on the trailhead
+    /// instead: snap the parking lot onto the trail and put whichever end it
+    /// lands nearer on the LEFT, which is the direction you'd actually walk.
+    ///
+    /// Returns nil when the trail has no usable geometry — the caller then
+    /// draws the bare shape rather than inventing a direction.
+    static func trailheadIsForward(lat: Double, lon: Double,
+                                   segments: [[[Double]]]) -> Bool? {
+        guard let snap = snap(lat: lat, lon: lon, segments: segments) else { return nil }
+        return snap.fraction <= 0.5
+    }
+
     /// The profile oriented so the hiker's direction of travel reads LEFT →
     /// RIGHT, with their own position mapped into the same frame.
     ///

@@ -124,6 +124,28 @@ struct TrailProfileTests {
         #expect(!TrailProfile.travellingForward(previous: 0.3, current: 0.3, lastKnown: false))
     }
 
+    // MARK: - Trailhead anchoring (the browsing case)
+
+    @Test func trailheadNearStoredStartReadsForward() throws {
+        // Parking sits at the southern (index 0) end of the north-running trail.
+        let forward = try #require(TrailProfile.trailheadIsForward(
+            lat: 33.0, lon: -112.0, segments: northTrail))
+        #expect(forward)
+    }
+
+    @Test func trailheadNearStoredEndReadsBackward() throws {
+        // Same trail, but the parking is at the northern end — so the way is
+        // stored "downhill from the trailhead" and the chart must flip.
+        let north = 33.0 + (1000.0 / 111_132.0)
+        let forward = try #require(TrailProfile.trailheadIsForward(
+            lat: north, lon: -112.0, segments: northTrail))
+        #expect(!forward)
+    }
+
+    @Test func trailheadOrientationNilWithoutGeometry() {
+        #expect(TrailProfile.trailheadIsForward(lat: 33, lon: -112, segments: []) == nil)
+    }
+
     // MARK: - Decoding
 
     @Test func trailDecodesProfileAndToleratesItsAbsence() throws {

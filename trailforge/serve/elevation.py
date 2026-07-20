@@ -170,6 +170,65 @@ def trail_gain_ft(segments: list[list], sampler) -> float:
     return round(sum(gain_ft(e) for _, e in sample_segments(segments, sampler)))
 
 
+def _chain_segments(sampled: list[tuple[list, list]]) -> list[tuple[list, list]]:
+    """Order sampled segments end-to-end, reversing any that fit backwards.
+
+    OSM stores a trail's segments in arbitrary order and arbitrary direction.
+    South Mountain's National Trail ships as 5 pieces whose consecutive ends sit
+    3.2, 7.3, 9.7 and 15.1 km apart, yet its internal point spacing is sane (max
+    192 m) — the pieces are genuinely one trail, just shuffled. Walking them in
+    stored order is what put a fabricated cliff in the chart.
+
+    Greedy nearest-end chaining: start from the first segment, then repeatedly
+    take whichever remaining segment has an endpoint closest to the current
+    tail, flipping it if its far end is the nearer one. That is O(n^2) in
+    segment count, which is nothing — the 99th-percentile trail has a handful of
+    segments, and the work is trivial beside the DEM sampling that produced this
+    input.
+
+    Makes no claim to fix genuinely disconnected trails: it only guarantees the
+    best available ordering. The caller still advances x by the real gap
+    distance, so whatever separation survives is drawn as ground rather than as
+    a vertical step.
+    """
+    if len(sampled) < 2:
+        return sampled
+
+    def ends(seg):
+        pts = seg[0]
+        return pts[0], pts[-1]
+
+    def build(start: int, flip_start: bool):
+        remaining = list(sampled)
+        first = remaining.pop(start)
+        chain = [(first[0][::-1], first[1][::-1]) if flip_start else first]
+        total = 0.0
+        while remaining:
+            tail = ends(chain[-1])[1]
+            best_i, best_d, best_flip = 0, float("inf"), False
+            for i, seg in enumerate(remaining):
+                head, end = ends(seg)
+                d_head = haversine_m(tail[0], tail[1], head[0], head[1])
+                d_end = haversine_m(tail[0], tail[1], end[0], end[1])
+                if d_head < best_d:
+                    best_i, best_d, best_flip = i, d_head, False
+                if d_end < best_d:
+                    best_i, best_d, best_flip = i, d_end, True
+            pts, es = remaining.pop(best_i)
+            chain.append((pts[::-1], es[::-1]) if best_flip else (pts, es))
+            total += best_d
+        return total, chain
+
+    # Greedy from a fixed start is order-dependent: beginning in the MIDDLE of a
+    # trail strands one arm and leaves a long jump at the end. National Trail
+    # chained to gaps of 178/15/73 m plus a stray 15 km until the start was
+    # chosen properly. Segment counts are tiny, so try every start (and both
+    # directions) and keep whichever ordering leaves the least total gap.
+    best = min((build(i, f) for i in range(len(sampled)) for f in (False, True)),
+               key=lambda tc: tc[0])
+    return best[1]
+
+
 def profile_ft(sampled: list[tuple[list, list]], max_points: int = 64) -> list[int]:
     """Evenly-spaced elevation series in FEET along the trail, for the app's
     elevation-profile chart. Returns [] when there's nothing to sample.
@@ -188,10 +247,32 @@ def profile_ft(sampled: list[tuple[list, list]], max_points: int = 64) -> list[i
     every geom file. Smoothed before downsampling for the same reason
     `gain_ft` smooths — raw 30 m DEM is noisy enough to draw visible teeth.
     """
+    # Order the segments end-to-end BEFORE flattening, then walk them.
+    #
+    # OSM gives a trail's segments in arbitrary order, and concatenating them
+    # blind adds ZERO distance across a seam while stepping the full elevation
+    # difference — an infinitely steep wall that smoothing and downsampling turn
+    # into a plausible-looking cliff. Reported from the shipped app: South
+    # Mountain's National Trail fell 1,048 ft over one 1,269 ft sample interval
+    # (-82.6%) where its stored segments jumped 3-15 km across the park.
+    # Measured 2026-07-19: 7,834 of 91,976 profiled trails (8.5%) carried at
+    # least one such seam, the worst a 659 km jump on the California Coastal
+    # Trail.
+    #
+    # `trail_gain_ft` was never affected — it sums gain PER SEGMENT and so never
+    # crosses a seam. This is a profile-only defect.
+    ordered = _chain_segments(sampled)
+
+    # Gap distance is deliberately NOT added to `run`. `distanceMi` is the sum of
+    # SEGMENT lengths and excludes gaps, and the app labels the x-axis from
+    # `distanceMi` while mapping position -> index as `fraction * (count - 1)`.
+    # Adding gaps here would stretch the series past the axis it is drawn
+    # against: National Trail would span 24.72 mi under a 15.14 mi label. So the
+    # series stays exactly as long as the trail, and ordering does the work.
     dists: list[float] = []
     elevs: list[float] = []
     run = 0.0
-    for pts, es in sampled:
+    for pts, es in ordered:
         for i, ((la, lo), e) in enumerate(zip(pts, es)):
             if i:
                 run += haversine_m(pts[i - 1][0], pts[i - 1][1], la, lo)

@@ -106,6 +106,10 @@ struct MapKitMapView: UIViewRepresentable {
     /// since its last completion).
     let selectedTrailWalkedSegments: [[CLLocationCoordinate2D]]
     @Binding var selectedTrailId: String?
+    /// Show every lot in the area rather than only the selected trail's few.
+    /// Off by default — see StorageKeys.showAllParking for why the per-trail
+    /// gate stays strict and this exists alongside it.
+    var showAllParking: Bool = false
     /// nil = render every trail. Non-nil = only render trails whose
     /// id is in this set, plus the recording trail and the selected
     /// trail (which are exempt so the user can always see what
@@ -253,10 +257,12 @@ struct MapKitMapView: UIViewRepresentable {
         // Declutter: parking is HIDDEN while browsing; only the selected
         // trail's ≤3 nearest lots draw. So the signature includes the
         // selection — tapping a trail (or clearing it) rebuilds the pins.
-        let parkingSig = Self.parkingSig(area.parking, selectedTrailId: selectedTrailId)
+        let parkingSig = Self.parkingSig(area.parking, selectedTrailId: selectedTrailId,
+                                         showAll: showAllParking)
         if parkingSig != coord.lastParkingSig {
             coord.rebuildParkingAnnotations(on: mapView, from: area,
-                                            selectedTrailId: selectedTrailId)
+                                            selectedTrailId: selectedTrailId,
+                                            showAll: showAllParking)
             coord.lastParkingSig = parkingSig
         }
 
@@ -473,8 +479,13 @@ struct MapKitMapView: UIViewRepresentable {
     /// parking changes (including nil -> populated) but not on unrelated
     /// updateUIView passes. -1 marks "no parking layer" (distinct from the
     /// `-2` sentinel that means "never evaluated").
-    private static func parkingSig(_ lots: [ParkingLot]?, selectedTrailId: String?) -> Int {
+    private static func parkingSig(_ lots: [ParkingLot]?, selectedTrailId: String?,
+                                   showAll: Bool) -> Int {
         var h = Hasher()
+        // The flag is part of the signature: flipping it changes what is drawn
+        // while the area and selection are unchanged, so without this the pins
+        // would not rebuild.
+        h.combine(showAll)
         // Selection is part of the signature: parking is drawn per-selected-trail
         // now, so changing (or clearing) the selection must rebuild the pins.
         h.combine(selectedTrailId)
@@ -831,26 +842,59 @@ struct MapKitMapView: UIViewRepresentable {
         /// Replace the area's parking pins when the area changes. Called from
         /// the `updateUIView` area-changed block alongside the trail rebuild.
         func rebuildParkingAnnotations(on mapView: MKMapView, from area: Area,
-                                       selectedTrailId: String?) {
+                                       selectedTrailId: String?,
+                                       showAll: Bool = false) {
             let existing = mapView.annotations.compactMap { $0 as? ParkingAnnotation }
             if !existing.isEmpty { mapView.removeAnnotations(existing) }
-            // No selection → no parking (browsing stays uncluttered). With a
-            // trail selected, show only its ≤3 nearest lots.
-            guard let selectedTrailId,
-                  let trail = area.trails.first(where: { $0.id == selectedTrailId })
-            else {
-                mapLog.notice("parkingPins area=\(area.id, privacy: .public) none (no selection)")
-                return
+            // Show-all wins over the selection gate: the point is to answer
+            // "does this area have parking at all", which the per-trail view
+            // cannot. Measured on Helena-Lewis and Clark NF: 31 lots exist but
+            // only 16% of trails have one within the 805 m endpoint radius, so
+            // browsing trail by trail reads as "no parking here".
+            let lots: [ParkingLot]
+            var farLots: Set<String> = []
+            var farMeters: [String: Double] = [:]
+            if showAll {
+                lots = area.parking ?? []
+                mapLog.notice("parkingPins area=\(area.id, privacy: .public) ALL shown=\(lots.count)")
+            } else {
+                // No selection → no parking (browsing stays uncluttered). With a
+                // trail selected, show only its ≤3 nearest lots.
+                guard let selectedTrailId,
+                      let trail = area.trails.first(where: { $0.id == selectedTrailId })
+                else {
+                    mapLog.notice("parkingPins area=\(area.id, privacy: .public) none (no selection)")
+                    return
+                }
+                // Fallback-aware: when nothing sits within 805 m of a trail
+                // end we still answer with the closest lots in the area, marked
+                // as far. 45% of trails hit this and previously drew an empty
+                // map indistinguishable from "no parking exists here".
+                let ranked = area.nearestParkingWithFallback(for: trail)
+                lots = ranked.map(\.lot)
+                farLots = Set(ranked.filter { !$0.isNear }.map { "\($0.lot.lat),\($0.lot.lon)" })
+                farMeters = Dictionary(uniqueKeysWithValues:
+                    ranked.map { ("\($0.lot.lat),\($0.lot.lon)", $0.meters) })
+                mapLog.notice("parkingPins area=\(area.id, privacy: .public) trail=\(selectedTrailId, privacy: .public) shown=\(lots.count) far=\(farLots.count)")
             }
-            let lots = area.nearestParking(for: trail)
-            mapLog.notice("parkingPins area=\(area.id, privacy: .public) trail=\(selectedTrailId, privacy: .public) shown=\(lots.count)")
             for lot in lots {
                 let ann = ParkingAnnotation()
                 ann.coordinate = CLLocationCoordinate2D(latitude: lot.lat, longitude: lot.lon)
                 // A federal BLM/USFS point is a trailhead, not a parking lot.
                 ann.isTrailhead = Self.isTrailheadSource(lot.source)
                 ann.title = lot.name ?? (ann.isTrailhead ? "Trailhead" : "Parking")
-                ann.subtitle = Self.parkingSubtitle(for: lot, isTrailhead: ann.isTrailhead)
+                let key = "\(lot.lat),\(lot.lon)"
+                var sub = Self.parkingSubtitle(for: lot, isTrailhead: ann.isTrailhead)
+                // State the distance when this is NOT at the trail. Saying it is
+                // what makes offering a far lot honest rather than a trailhead
+                // claim — the same reason the containment gate exists.
+                if farLots.contains(key), let d = farMeters[key] {
+                    let mi = d / 1609.344
+                    let far = mi < 10 ? String(format: "%.1f mi from trail", mi)
+                                      : String(format: "%.0f mi from trail", mi)
+                    sub = sub.map { "\($0) · \(far)" } ?? far
+                }
+                ann.subtitle = sub
                 mapView.addAnnotation(ann)
             }
         }

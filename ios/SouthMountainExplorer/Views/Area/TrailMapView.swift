@@ -80,6 +80,7 @@ struct TrailMapView: View {
     /// would not fire).
     let centerOnSwitchedTrailTick: Int
     @Binding var selectedTrailId: String?
+    @AppStorage(StorageKeys.showAllParking) private var showAllParking = false
     /// nil = render every trail. Non-nil = only render trails whose id is
     /// in this set (plus the recording trail and the selected trail, which
     /// always render so the user can see what they tapped or what they're
@@ -198,6 +199,7 @@ struct TrailMapView: View {
                 liveHaloSegments: liveHaloSegments,
                 selectedTrailWalkedSegments: selectedTrailWalkedSegments,
                 selectedTrailId: $selectedTrailId,
+                showAllParking: showAllParking,
                 visibleTrailIds: visibleTrailIds,
                 completedTrailIds: completedTrailIdsForArea,
                 cameraTarget: cameraTarget,

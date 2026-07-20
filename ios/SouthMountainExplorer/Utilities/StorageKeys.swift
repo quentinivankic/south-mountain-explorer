@@ -79,6 +79,24 @@ enum StorageKeys {
     /// Survives Reset All Progress: it's a display preference, not hike data.
     static let profileDirectionOverrides = "summit:profile-direction-overrides"
 
+    /// Show EVERY parking lot in an area, instead of only the selected trail's
+    /// nearest few. Default false — the selected-trail gate (#429) is the right
+    /// default and keeps a busy map readable.
+    ///
+    /// The toggle exists because that gate makes an area's parking
+    /// undiscoverable. Measured on helena-lewis-and-clark-national-forest-mt:
+    /// 31 lots exist, but only 38 of 233 trails (16%) have one within the 805 m
+    /// endpoint radius, and the MEDIAN trail's nearest lot is 5.7 miles away. So
+    /// clicking through trails shows nothing and reads as "this forest has no
+    /// parking" when it has 31 lots.
+    ///
+    /// Deliberately NOT solved by widening the radius: a lot 5.7 mi from a
+    /// trail's end is not that trail's parking, and admitting it would revive
+    /// the across-the-road false-association the containment gate fixed, at
+    /// forest scale. Per-trail stays strict; this shows the area's parking as
+    /// its own answer.
+    static let showAllParking = "summit:show-all-parking"
+
     // MARK: - Internal caches (cleared by their own paths,
     //         e.g. Clear All Downloads also clears the prefetch cooldown)
 

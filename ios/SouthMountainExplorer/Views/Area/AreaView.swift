@@ -44,6 +44,7 @@ struct AreaView: View {
     /// Settings. Same `@AppStorage` key MapKitMapView reads, so
     /// changes propagate immediately to the open map.
     @AppStorage(StorageKeys.mapStyle) private var mapStyle: MapStylePreference = .standard
+    @AppStorage(StorageKeys.showAllParking) private var showAllParking = false
     /// Units preference so the header's area total renders in mi/km and
     /// reacts to the Settings toggle. Was previously hardcoded to miles.
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
@@ -359,6 +360,17 @@ struct AreaView: View {
                             Text(style.label).tag(style)
                         }
                     }
+                    // Parking is normally gated to the selected trail (#429) so
+                    // a busy map stays readable. That gate also makes an area's
+                    // parking undiscoverable: Helena-Lewis and Clark NF has 31
+                    // lots, but only 16% of its trails have one within the 805 m
+                    // endpoint radius, so browsing trail by trail reads as "no
+                    // parking here". This answers the area-level question
+                    // without loosening the per-trail association.
+                    Toggle(isOn: $showAllParking) {
+                        Label("Show All Parking", systemImage: "parkingsign.circle")
+                    }
+                    .disabled((area?.parking?.isEmpty ?? true))
                     Divider()
                     // Selection-aware GPX export: with a trail selected in the
                     // list, export just that one trail (small, what people

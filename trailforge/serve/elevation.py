@@ -23,6 +23,10 @@ import math
 # AWS terrarium native max zoom is 15; z13 (~19 m/px at the equator, finer
 # toward the poles) comfortably resolves the ~30 m densify spacing below.
 DEM_ZOOM = 13
+# Seams under this are unmapped scraps, not gaps worth telling the user about:
+# 798 of 3,823 affected trails total under 0.5 mi, and a dashed break across a
+# 300 m scrap implies a problem that is not there.
+_GAP_MIN_M = 805.0   # 0.5 mi
 _M_PER_FT = 0.3048
 
 
@@ -229,7 +233,8 @@ def _chain_segments(sampled: list[tuple[list, list]]) -> list[tuple[list, list]]
     return best[1]
 
 
-def profile_ft(sampled: list[tuple[list, list]], max_points: int = 64) -> list[int]:
+def profile_and_gaps(sampled: list[tuple[list, list]],
+                     max_points: int = 64) -> tuple[list[int], list[list[int]]]:
     """Evenly-spaced elevation series in FEET along the trail, for the app's
     elevation-profile chart. Returns [] when there's nothing to sample.
 
@@ -271,18 +276,29 @@ def profile_ft(sampled: list[tuple[list, list]], max_points: int = 64) -> list[i
     # series stays exactly as long as the trail, and ordering does the work.
     dists: list[float] = []
     elevs: list[float] = []
+    seams: list[tuple[float, float]] = []   # (distance_along, gap_metres)
     run = 0.0
+    prev_end = None
     for pts, es in ordered:
+        if prev_end is not None:
+            g = haversine_m(prev_end[0], prev_end[1], pts[0][0], pts[0][1])
+            if g > _GAP_MIN_M:
+                # Record WHERE the discontinuity falls along the series. The gap
+                # itself takes no x — see above — so it can only be marked, not
+                # spaced. The app draws a break here rather than a line implying
+                # you can walk it.
+                seams.append((run, g))
         for i, ((la, lo), e) in enumerate(zip(pts, es)):
             if i:
                 run += haversine_m(pts[i - 1][0], pts[i - 1][1], la, lo)
             dists.append(run)
             elevs.append(e)
+        prev_end = (pts[-1][0], pts[-1][1])
     if len(elevs) < 2:
-        return []
+        return [], []
     total = dists[-1]
     if total <= 0:
-        return []
+        return [], []
     elevs = smooth(elevs)
     miles = total / 1609.344
     n = min(max_points, max(8, round(miles * 8)))
@@ -299,7 +315,20 @@ def profile_ft(sampled: list[tuple[list, list]], max_points: int = 64) -> list[i
         else:
             e = elevs[j]
         out.append(int(round(e / _M_PER_FT)))
-    return out
+
+    # Map each seam's distance-along onto the DOWNSAMPLED index it precedes, so
+    # the app can mark it without carrying a distance array. A gap takes no x
+    # (see above), so it is reported as the boundary between two samples.
+    gaps: list[list[int]] = []
+    for at, metres in seams:
+        idx = min(n - 1, max(1, round(at / total * (n - 1))))
+        gaps.append([idx, int(round(metres))])
+    return out, gaps
+
+
+def profile_ft(sampled: list[tuple[list, list]], max_points: int = 64) -> list[int]:
+    """Back-compat wrapper: the series alone, without seam positions."""
+    return profile_and_gaps(sampled, max_points)[0]
 
 
 def process_area(geom: dict, sampler) -> tuple[int, dict]:
@@ -325,7 +354,7 @@ def process_area(geom: dict, sampler) -> tuple[int, dict]:
             # One DEM pass feeds both gain and the chart series.
             sampled = sample_segments(t.get("segments", []), sampler)
             g = round(sum(gain_ft(e) for _, e in sampled))
-            prof = profile_ft(sampled)
+            prof, prof_gaps = profile_and_gaps(sampled)
         except Exception as e:                      # a bad/missing tile: skip trail
             print(f"    ! gain failed for {t.get('id')}: {e}", file=sys.stderr)
             continue
@@ -335,6 +364,13 @@ def process_area(geom: dict, sampler) -> tuple[int, dict]:
         t["difficulty"] = new
         if prof:
             t["profileFt"] = prof
+            # Only present when the trail actually has a discontinuity, so the
+            # common case costs nothing. Additive: an older app ignores it and
+            # renders exactly as before.
+            if prof_gaps:
+                t["profileGaps"] = prof_gaps
+            else:
+                t.pop("profileGaps", None)
         total_gain += g
         changed += 1
         if old != new:

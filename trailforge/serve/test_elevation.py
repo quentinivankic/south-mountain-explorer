@@ -256,3 +256,44 @@ class ChainSegmentsTests(unittest.TestCase):
         prof = e.profile_ft([a, far])
         self.assertTrue(all(p == 3280 or p == 3281 for p in prof),
                         f"flat pieces must stay flat, got {set(prof)}")
+
+
+class ProfileGapsTests(unittest.TestCase):
+    """`profile_and_gaps` reports WHERE a trail is discontinuous.
+
+    A gap contributes no x to the series (distanceMi excludes gaps and the app
+    labels the axis from it), so a discontinuity can only be MARKED, not spaced.
+    These pin the contract the app renders against.
+    """
+
+    @staticmethod
+    def _flat(pts):
+        return (pts, [1500.0] * len(pts))
+
+    def test_reports_index_and_metres(self):
+        a = [(47.2635, -112.5382), (47.2700, -112.5300), (47.2800, -112.5200)]
+        b = [(47.3142, -112.8218), (47.3200, -112.8100), (47.3300, -112.8000)]
+        prof, gaps = e.profile_and_gaps([self._flat(a), self._flat(b)])
+        self.assertEqual(len(gaps), 1)
+        idx, metres = gaps[0]
+        self.assertTrue(0 < idx < len(prof), f"index {idx} must fall inside the series")
+        self.assertGreater(metres, 805, "must report the real separation")
+
+    def test_contiguous_trail_reports_none(self):
+        a = [(47.2635, -112.5382), (47.2700, -112.5300), (47.2800, -112.5200)]
+        b = [(47.2800, -112.5200), (47.2900, -112.5100)]
+        self.assertEqual(e.profile_and_gaps([self._flat(a), self._flat(b)])[1], [],
+                         "a joined trail has no discontinuity to mark")
+
+    def test_sub_threshold_scrap_ignored(self):
+        """798 of 3,823 affected trails total under 0.5 mi of gap. Marking a
+        300 m unmapped scrap implies a problem that is not there."""
+        a = [(47.2635, -112.5382), (47.2700, -112.5300), (47.2800, -112.5200)]
+        near = [(47.2830, -112.5170), (47.2900, -112.5100)]
+        self.assertEqual(e.profile_and_gaps([self._flat(a), self._flat(near)])[1], [])
+
+    def test_profile_ft_wrapper_still_returns_a_bare_series(self):
+        a = [(47.2635, -112.5382), (47.2700, -112.5300)]
+        out = e.profile_ft([self._flat(a)])
+        self.assertIsInstance(out, list)
+        self.assertTrue(all(isinstance(v, int) for v in out))

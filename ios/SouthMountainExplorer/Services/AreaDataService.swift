@@ -366,7 +366,8 @@ final class AreaDataService {
                 difficulty: t.difficulty,
                 segments: t.segments,
                 gainFt: t.gainFt,
-                profileFt: t.profileFt
+                profileFt: t.profileFt,
+                profileGaps: t.profileGaps
             )
         }
         return Area(

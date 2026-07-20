@@ -219,4 +219,45 @@ struct TrailProfileTests {
         #expect(TrailProfile.startEndCompassLabel(segments: segs, startIsNearer: false)
                 == "north end")
     }
+
+    // MARK: - profileGaps must survive the load-path rebuilds
+
+    /// Same trap that hid profileFt: canonicalizeTrailIds and
+    /// withDecimatedSegments both REBUILD each Trail field-by-field, so a field
+    /// missing from either is silently stripped from the copy the UI renders
+    /// while the CDN and disk copies stay correct.
+    @Test func profileGaps_survivesDecimation() {
+        let t = Trail(id: "t-1", name: "T", distanceMi: 9.81, difficulty: .hard,
+                      segments: [[[47.26, -112.53], [47.28, -112.52]]],
+                      gainFt: 500, profileFt: [100, 200, 300, 400],
+                      profileGaps: [[2, 11965]])
+        let area = Area(id: "a", name: "A", subtitle: "S", centerLat: 47, centerLon: -112,
+                        zoom: 13, bbox: nil, trails: [t], trailCount: 1, totalMi: 9.81,
+                        cachedAt: nil, parking: nil)
+        let out = area.withDecimatedSegments(epsilonMeters: 5.0)
+        #expect(out.trails[0].profileGaps ?? [] == [[2, 11965]],
+                "decimation must carry profileGaps, not nil it")
+    }
+
+    @Test func profileGaps_survivesIdCanonicalization() {
+        let t = Trail(id: "unnamed-494466239-43", name: "T", distanceMi: 9.81,
+                      difficulty: .hard,
+                      segments: [[[47.26, -112.53], [47.28, -112.52]]],
+                      gainFt: 500, profileFt: [100, 200, 300],
+                      profileGaps: [[1, 11965]])
+        let area = Area(id: "a", name: "A", subtitle: "S", centerLat: 47, centerLon: -112,
+                        zoom: 13, bbox: nil, trails: [t], trailCount: 1, totalMi: 9.81,
+                        cachedAt: nil, parking: nil)
+        let out = AreaDataService.canonicalizeTrailIds(area)
+        #expect(out.trails[0].profileGaps ?? [] == [[1, 11965]],
+                "id canonicalization must carry profileGaps, not nil it")
+    }
+
+    /// A trail with no discontinuity must decode to nil, not an empty marker.
+    @Test func profileGaps_absentOnAnOrdinaryTrail() {
+        let t = Trail(id: "t", name: "T", distanceMi: 2, difficulty: .easy,
+                      segments: [[[33.3, -112.1], [33.31, -112.09]]],
+                      gainFt: 100, profileFt: [100, 110])
+        #expect(t.profileGaps == nil)
+    }
 }

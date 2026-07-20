@@ -32,11 +32,29 @@ struct TrailElevationProfileView: View {
     /// loops, whose ends coincide — the label is then omitted rather than
     /// inventing a direction.
     var startEndLabel: String? = nil
+    /// `Trail.profileGaps` — `[[sampleIndex, gapMetres], ...]` where the trail
+    /// does not actually join. Empty for the overwhelming majority.
+    var profileGaps: [[Int]] = []
     /// Called when the user flips the direction. nil hides the control — the
     /// chart is also used where flipping has no meaning.
     var onFlip: (() -> Void)? = nil
 
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
+
+    /// Gap sample-indices in the CURRENTLY DRAWN orientation.
+    ///
+    /// The series flips with `startIsNearer`, so a gap baked at index i sits at
+    /// `count - 1 - i` when reversed. Getting this wrong would put the break at
+    /// the mirror image of the real discontinuity — visible only on flipped
+    /// trails, which is exactly the sort of thing that hides.
+    private var orientedGaps: [(index: Int, metres: Int)] {
+        let n = profileFt.count
+        guard n > 1 else { return [] }
+        return profileGaps.compactMap { g in
+            guard g.count == 2, g[0] > 0, g[0] < n else { return nil }
+            return (startIsNearer ? g[0] : n - g[0], g[1])
+        }
+    }
 
     /// Series + marker oriented into the hiker's frame of reference. Both flip
     /// together, so the elevation under the marker never changes on a re-draw.
@@ -96,6 +114,12 @@ struct TrailElevationProfileView: View {
         }
     }
 
+    /// Which contiguous run a sample belongs to. Charts connects marks within a
+    /// series, so bumping the series at each gap is what breaks the line there.
+    private func runIndex(for sampleIndex: Int) -> Int {
+        orientedGaps.reduce(0) { $0 + (sampleIndex >= $1.index ? 1 : 0) }
+    }
+
     private var chart: some View {
         let samples = view.samples
         return Chart {
@@ -109,7 +133,11 @@ struct TrailElevationProfileView: View {
                 AreaMark(
                     x: .value("Distance", x),
                     yStart: .value("Floor", yAxis.domain.lowerBound),
-                    yEnd: .value("Elevation", y)
+                    yEnd: .value("Elevation", y),
+                    // `series` splits the marks into independent runs at each
+                    // gap, so Charts stops connecting across a discontinuity
+                    // instead of drawing a line you cannot walk.
+                    series: .value("Run", runIndex(for: item.offset))
                 )
                 .foregroundStyle(
                     LinearGradient(colors: [.green.opacity(0.6), .green.opacity(0.05)],
@@ -119,11 +147,31 @@ struct TrailElevationProfileView: View {
 
                 LineMark(
                     x: .value("Distance", x),
-                    y: .value("Elevation", y)
+                    y: .value("Elevation", y),
+                    series: .value("Run", runIndex(for: item.offset))
                 )
                 .foregroundStyle(.green)
                 .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
                 .interpolationMethod(.monotone)
+            }
+
+            // Mark each discontinuity. The gap takes no x — distanceMi excludes
+            // it — so it is a boundary, not a span: a muted dashed rule at the
+            // seam, with a distance only when the gap is big enough to be worth
+            // words. Without this the two runs sit flush and read as one trail.
+            ForEach(Array(orientedGaps.enumerated()), id: \.offset) { g in
+                let x = distanceMeters(at: g.element.index, count: samples.count)
+                RuleMark(x: .value("Gap", x))
+                    .foregroundStyle(.secondary.opacity(0.55))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 3]))
+                    .annotation(position: .top, alignment: .center, spacing: 0) {
+                        if g.element.metres >= 1609 {
+                            Text(UnitFormatter.distance(meters: Double(g.element.metres),
+                                                        units: units))
+                                .font(.system(size: 9))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
             }
 
             // "You are here". Drawn last so it sits above the fill.

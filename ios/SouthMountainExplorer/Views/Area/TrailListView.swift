@@ -519,6 +519,7 @@ struct TrailRow: View {
                     segments: trail.segments,
                     startIsNearer: profileStartIsNearer
                 ),
+                profileGaps: trail.profileGaps ?? [],
                 // Flipping writes the choice for THIS trail and redraws. The
                 // automatic answer stays the default everywhere else — see
                 // ProfileDirectionStore for why this is an override, not a

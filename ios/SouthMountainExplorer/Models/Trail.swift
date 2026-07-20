@@ -32,9 +32,25 @@ struct Trail: Codable, Identifiable, Sendable, Equatable {
     /// Optional for the same reason as `gainFt` — areas published before the
     /// profile pass, and the live-Overpass fallback, simply won't have it.
     var profileFt: [Int]? = nil
+    /// Where `profileFt` is DISCONTINUOUS, as `[[sampleIndex, gapMetres], ...]`.
+    ///
+    /// Some trails are several stretches that share a name but do not join —
+    /// Dearborn River is two pieces 7.4 mi apart inside one national forest.
+    /// Drawing the series as one line implies you can walk straight through, so
+    /// the chart breaks at these indices instead.
+    ///
+    /// MARKED, NOT SPACED: `distanceMi` excludes inter-segment gaps and the
+    /// x-axis is labelled from it, so a gap has ZERO width on the chart. The
+    /// index is the sample boundary the break falls on; the metres are carried
+    /// only so the break can be labelled with a real distance.
+    ///
+    /// Baked by `serve/elevation.py` (>=805 m / 0.5 mi only) and present ONLY on
+    /// trails that actually break, so nothing changes for the common case. Older
+    /// geom simply won't have it.
+    var profileGaps: [[Int]]? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, name, segments, difficulty, gainFt, profileFt
+        case id, name, segments, difficulty, gainFt, profileFt, profileGaps
         case distanceMi = "distanceMi"
     }
 }

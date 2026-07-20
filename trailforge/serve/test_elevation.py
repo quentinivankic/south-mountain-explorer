@@ -198,3 +198,102 @@ class ProcessArea(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ChainSegmentsTests(unittest.TestCase):
+    """`_chain_segments` orders a trail's segments end-to-end before the profile
+    is flattened.
+
+    OSM stores segments in arbitrary order AND arbitrary direction. Walking them
+    as stored adds zero distance across a seam while stepping the full elevation
+    difference — an infinitely steep wall that smoothing turns into a plausible
+    cliff. South Mountain's National Trail shipped with a -82.6% grade this way.
+    """
+
+    def test_reorders_shuffled_segments(self):
+        """Asserts CONTIGUITY, not a direction. `profile_ft` documents direction
+        as deliberately arbitrary — the app orients the series from the user —
+        so an east-to-west chain is just as correct as west-to-east. What must
+        hold is that consecutive pieces touch."""
+        a = ([(33.30, -112.10), (33.30, -112.09)], [1000, 1010])
+        c = ([(33.30, -112.07), (33.30, -112.06)], [1020, 1030])
+        out = e._chain_segments([c, a])          # stored backwards
+        gap = e.haversine_m(out[0][0][-1][0], out[0][0][-1][1],
+                            out[1][0][0][0], out[1][0][0][1])
+        self.assertLess(gap, 3000, f"pieces must be chained end-to-end, gap {gap:.0f} m")
+        joined = out[0][1] + out[1][1]
+        self.assertIn(joined, ([1000, 1010, 1020, 1030], [1030, 1020, 1010, 1000]),
+                      f"elevations must run monotonically along the chain, got {joined}")
+
+    def test_flips_a_segment_stored_backwards(self):
+        a = ([(33.30, -112.10), (33.30, -112.09)], [1000, 1010])
+        # b runs east->west, so it must be reversed to follow a
+        b = ([(33.30, -112.07), (33.30, -112.08)], [1030, 1020])
+        out = e._chain_segments([a, b])
+        self.assertEqual(out[1][1], [1020, 1030], "backwards segment must be flipped")
+
+    def test_start_choice_avoids_stranding_an_arm(self):
+        """Greedy from a MIDDLE segment strands one arm and leaves a long jump.
+        Trying every start is what dropped National Trail's worst gap from
+        15,148 m to 178 m."""
+        west = ([(33.30, -112.20), (33.30, -112.19)], [900, 910])
+        mid = ([(33.30, -112.15), (33.30, -112.14)], [950, 960])
+        east = ([(33.30, -112.10), (33.30, -112.09)], [1000, 1010])
+        out = e._chain_segments([mid, west, east])   # middle first
+        lons = [s[0][0][1] for s in out]
+        self.assertEqual(lons, sorted(lons) if lons[0] < lons[-1] else sorted(lons, reverse=True),
+                         "chain must run monotonically along the trail")
+
+    def test_single_segment_untouched(self):
+        one = ([(33.30, -112.10), (33.30, -112.09)], [1000, 1010])
+        self.assertEqual(e._chain_segments([one]), [one])
+
+    def test_profile_spans_only_segment_length_not_gaps(self):
+        """`distanceMi` excludes inter-segment gaps and the app labels the axis
+        from it, so the series must not stretch past the trail's own length."""
+        a = ([(33.30, -112.10), (33.30, -112.09)], [1000, 1000])
+        far = ([(33.30, -111.50), (33.30, -111.49)], [1000, 1000])
+        prof = e.profile_ft([a, far])
+        self.assertTrue(all(p == 3280 or p == 3281 for p in prof),
+                        f"flat pieces must stay flat, got {set(prof)}")
+
+
+class ProfileGapsTests(unittest.TestCase):
+    """`profile_and_gaps` reports WHERE a trail is discontinuous.
+
+    A gap contributes no x to the series (distanceMi excludes gaps and the app
+    labels the axis from it), so a discontinuity can only be MARKED, not spaced.
+    These pin the contract the app renders against.
+    """
+
+    @staticmethod
+    def _flat(pts):
+        return (pts, [1500.0] * len(pts))
+
+    def test_reports_index_and_metres(self):
+        a = [(47.2635, -112.5382), (47.2700, -112.5300), (47.2800, -112.5200)]
+        b = [(47.3142, -112.8218), (47.3200, -112.8100), (47.3300, -112.8000)]
+        prof, gaps = e.profile_and_gaps([self._flat(a), self._flat(b)])
+        self.assertEqual(len(gaps), 1)
+        idx, metres = gaps[0]
+        self.assertTrue(0 < idx < len(prof), f"index {idx} must fall inside the series")
+        self.assertGreater(metres, 805, "must report the real separation")
+
+    def test_contiguous_trail_reports_none(self):
+        a = [(47.2635, -112.5382), (47.2700, -112.5300), (47.2800, -112.5200)]
+        b = [(47.2800, -112.5200), (47.2900, -112.5100)]
+        self.assertEqual(e.profile_and_gaps([self._flat(a), self._flat(b)])[1], [],
+                         "a joined trail has no discontinuity to mark")
+
+    def test_sub_threshold_scrap_ignored(self):
+        """798 of 3,823 affected trails total under 0.5 mi of gap. Marking a
+        300 m unmapped scrap implies a problem that is not there."""
+        a = [(47.2635, -112.5382), (47.2700, -112.5300), (47.2800, -112.5200)]
+        near = [(47.2830, -112.5170), (47.2900, -112.5100)]
+        self.assertEqual(e.profile_and_gaps([self._flat(a), self._flat(near)])[1], [])
+
+    def test_profile_ft_wrapper_still_returns_a_bare_series(self):
+        a = [(47.2635, -112.5382), (47.2700, -112.5300)]
+        out = e.profile_ft([self._flat(a)])
+        self.assertIsInstance(out, list)
+        self.assertTrue(all(isinstance(v, int) for v in out))

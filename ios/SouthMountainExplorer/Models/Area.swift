@@ -171,7 +171,8 @@ extension Area {
                 difficulty: trail.difficulty,
                 segments: newSegments,
                 gainFt: trail.gainFt,
-                profileFt: trail.profileFt
+                profileFt: trail.profileFt,
+                profileGaps: trail.profileGaps
             )
         }
         return Area(

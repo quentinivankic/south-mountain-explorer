@@ -52,6 +52,26 @@ struct CompletionAcrossDuplicateAreasTests {
                 "an id collision with different geometry must not over-credit")
     }
 
+    @Test func mapColoringAndCountCreditTheTwin() async {
+        ProgressService.shared.resetAll()
+        let park = "south-mountain-park-and-preserve-az"
+        let preserve = "south-mountain-preserve-az"
+        let done = trail("national-trail", geomA)
+        let notDone = trail("other-trail", geomB)
+
+        await ProgressService.shared.markComplete(areaId: park, trailId: "national-trail")
+        ProgressService.shared.indexArea(areaId: park, trails: [done])
+
+        // The set every map surface (TrailMapView/DexView/WalkView) now uses.
+        let colored = ProgressService.shared.completedTrailIds(
+            in: preserve, among: [done, notDone])
+        #expect(colored == ["national-trail"],
+                "map must draw the twin-completed trail cyan and nothing else")
+        // The count the home card now uses.
+        #expect(ProgressService.shared.completionCount(
+            in: preserve, trails: [done, notDone]) == 1)
+    }
+
     @Test func resetClearsTheFingerprintIndex() async {
         ProgressService.shared.resetAll()
         await ProgressService.shared.markComplete(areaId: "a", trailId: "t")

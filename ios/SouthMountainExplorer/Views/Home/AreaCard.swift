@@ -53,7 +53,10 @@ struct AreaCard: View {
     /// hasn't been hydrated yet so the card isn't stuck at 0 pre-prefetch.
     private var completedCount: Int {
         if let trails = cachedArea?.trails, !trails.isEmpty {
-            return progress.completionCount(in: area.id, validTrailIds: Set(trails.map(\.id)))
+            // Credit duplicate-area twins by geometry, so the same completed
+            // trails that show a checkmark inside also count here (0/77 under a
+            // twin was the "my completion disappeared" report).
+            return progress.completionCount(in: area.id, trails: trails)
         }
         return progress.completionCount(in: area.id)
     }

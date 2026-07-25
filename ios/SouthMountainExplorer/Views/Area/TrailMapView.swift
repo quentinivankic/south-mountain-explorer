@@ -408,7 +408,10 @@ struct TrailMapView: View {
     /// MapKitMapView gets a stable Equatable input that detects
     /// toggles without manual plumbing.
     private var completedTrailIdsForArea: Set<String> {
-        Set(progress.completedTrails(in: area.id).keys)
+        // Credit duplicate-area twins by geometry (not raw id keys), so a trail
+        // completed under an identical twin still draws cyan here. Raw keys were
+        // empty under the twin the user was viewing → no cyan lines.
+        progress.completedTrailIds(in: area.id, among: area.trails)
     }
 
     // MARK: - Camera control

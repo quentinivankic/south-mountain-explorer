@@ -207,7 +207,7 @@ struct WalkView: View {
     private var completedTrailIds: Set<String> {
         var ids: Set<String> = []
         for area in loadedAreas {
-            ids.formUnion(progress.completedTrails(in: area.id).keys)
+            ids.formUnion(progress.completedTrailIds(in: area.id, among: area.trails))
         }
         return ids
     }

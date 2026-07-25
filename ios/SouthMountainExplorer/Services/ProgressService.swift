@@ -91,6 +91,15 @@ final class ProgressService {
         trails.reduce(0) { $0 + (isComplete($1, areaId: areaId) ? 1 : 0) }
     }
 
+    /// Ids of the trails in `trails` that are complete, crediting duplicate-area
+    /// twins by geometry. Map coloring and header counts must go through this
+    /// (not the raw `completedTrails(in:).keys`), or they show 0 under a twin
+    /// where the completion was recorded under the OTHER identical area —
+    /// the cyan lines and the card count would then disagree with the checkmarks.
+    func completedTrailIds(in areaId: String, among trails: [Trail]) -> Set<String> {
+        Set(trails.lazy.filter { self.isComplete($0, areaId: areaId) }.map(\.id))
+    }
+
     /// Drop completions whose trail IDs no longer match anything in the
     /// current area data. Kept for explicit cleanup paths but no longer
     /// called automatically — pruning silently lost a tester's progress

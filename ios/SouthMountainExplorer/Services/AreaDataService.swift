@@ -79,6 +79,31 @@ final class AreaDataService {
     /// True when `id` is hidden from Browse in favour of its canonical.
     func isHiddenAlias(_ id: String) -> Bool { aliasMap[id] != nil }
 
+    /// Reverse of `aliasMap`: canonical id -> the hidden twin ids that resolve
+    /// to it. Built once alongside `aliasMap`.
+    @ObservationIgnored
+    private lazy var aliasReverse: [String: [String]] = AreaDataService.reverseAliases(aliasMap)
+
+    nonisolated static func reverseAliases(_ forward: [String: String]) -> [String: [String]] {
+        var reverse: [String: [String]] = [:]
+        for (id, canonical) in forward { reverse[canonical, default: []].append(id) }
+        return reverse
+    }
+
+    /// `areaId` plus any hidden twins that resolve to it. Scope a hike filter
+    /// through this so coverage and the walked-here trace recorded under a
+    /// now-hidden twin surface on the canonical the user actually opens. Just
+    /// `[areaId]` when the area has no twins.
+    func areaAndTwins(_ areaId: String) -> Set<String> {
+        AreaDataService.expandTwins(areaId, reverse: aliasReverse)
+    }
+
+    nonisolated static func expandTwins(_ areaId: String, reverse: [String: [String]]) -> Set<String> {
+        var ids: Set<String> = [areaId]
+        if let twins = reverse[areaId] { ids.formUnion(twins) }
+        return ids
+    }
+
     // MARK: - Area Index
 
     func loadIndex() async {

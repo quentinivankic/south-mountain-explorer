@@ -39,4 +39,21 @@ struct AreaAliasHideTests {
         """)
         #expect(AreaDataService.visibleSummaries(from: rows, hidden: []).count == 2)
     }
+
+    // #29: coverage + walked-here trace recorded under a hidden twin must
+    // resolve onto its canonical, so opening the canonical scopes hikes to it
+    // AND its twins.
+    @Test func twinExpansionGathersHiddenTwinsOntoCanonical() {
+        let forward = [
+            "south-mountain-preserve-az": "south-mountain-park-and-preserve-az",
+            "camelback-alias-az": "camelback-mountain-az",
+        ]
+        let reverse = AreaDataService.reverseAliases(forward)
+        // Opening the canonical scopes to itself + every twin that resolves to it.
+        #expect(AreaDataService.expandTwins("south-mountain-park-and-preserve-az", reverse: reverse)
+            == ["south-mountain-park-and-preserve-az", "south-mountain-preserve-az"])
+        // An area with no twins scopes to just itself.
+        #expect(AreaDataService.expandTwins("papago-park-az", reverse: reverse)
+            == ["papago-park-az"])
+    }
 }

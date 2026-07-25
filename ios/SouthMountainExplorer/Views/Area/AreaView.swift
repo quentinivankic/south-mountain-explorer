@@ -640,8 +640,11 @@ struct AreaView: View {
     private func makePastHikes(from history: [SavedRecording]) -> [PastHike] {
         // touchedAreaIds: a walk that credited trails here renders its
         // GPS track as a cyan halo just like a hike recorded in-area.
-        history
-            .filter { $0.touchedAreaIds.contains(areaId) }
+        // areaAndTwins: a hike recorded under a now-hidden duplicate twin
+        // (docs/adr/0002) draws its trace on this canonical area too.
+        let areas = AreaDataService.shared.areaAndTwins(areaId)
+        return history
+            .filter { !$0.touchedAreaIds.isDisjoint(with: areas) }
             .map { PastHike(path: $0.path, startedAt: $0.startedAt) }
     }
 

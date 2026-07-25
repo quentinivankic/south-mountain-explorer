@@ -627,11 +627,9 @@ struct MapKitMapView: UIViewRepresentable {
             let p = parent
             let recordingTrailId = p.activeRecording?.trailId
             let selectedTrailId = p.selectedTrailId
-            let highlightedTrailId = recordingTrailId ?? selectedTrailId
 
             let isRecordingThis = trailId == recordingTrailId
             let isSelected = trailId == selectedTrailId
-            let isHighlighted = isRecordingThis || isSelected
             let isComplete = p.completedTrailIds.contains(trailId)
 
             // Resolve difficulty by trail lookup. O(n) but only runs
@@ -660,7 +658,14 @@ struct MapKitMapView: UIViewRepresentable {
             } else {
                 baseColor = Self.difficultyColor(difficulty)
             }
-            let dimmed = (highlightedTrailId != nil && !isHighlighted)
+            // Dim non-highlighted trails ONLY while browsing a selection —
+            // never mid-hike. During an active recording the tracked trail is
+            // already purple and 10pt, so it stands out without help; dimming
+            // the rest just makes the surrounding network hard to read in
+            // bright sun (user report from a real hike). Show every trail at
+            // full colour then. Browse-time selection still dims so the blue
+            // selection pops against the tangle.
+            let dimmed = recordingTrailId == nil && selectedTrailId != nil && !isSelected
             // Tightened dim alpha 0.5 → 0.35 so the selected trail's
             // bright blue pops harder against the surrounding tangle.
             let alpha: CGFloat = dimmed ? 0.35 : 1.0

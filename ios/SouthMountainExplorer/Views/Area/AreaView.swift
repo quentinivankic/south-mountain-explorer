@@ -1235,10 +1235,16 @@ private struct LoadingSilhouetteCanvas: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var startDate = Date()
 
+    /// Draw order is difficulty priority so where trails cross, the harder
+    /// color wins (red over orange over green) instead of two translucent
+    /// strokes blending. Within a difficulty, longest spines lead so the reveal
+    /// still fills big-to-small.
+    private static func priority(_ d: String) -> Int { d == "h" ? 2 : (d == "m" ? 1 : 0) }
     private var orderedLines: [SilhouetteLine] {
-        // Longest segments first → big spines reveal early, capillaries
-        // fill in afterwards.
-        silhouette.l.sorted { $0.p.count > $1.p.count }
+        silhouette.l.filter { $0.p.count >= 2 }.sorted {
+            let pa = Self.priority($0.d), pb = Self.priority($1.d)
+            return pa == pb ? $0.p.count > $1.p.count : pa < pb
+        }
     }
 
     var body: some View {
@@ -1263,7 +1269,6 @@ private struct LoadingSilhouetteCanvas: View {
                 let xOffset = pad + (drawW - canvasW) / 2
                 let yOffset = pad + (drawH - canvasH) / 2
 
-                let baseOpacity: Double = colorScheme == .dark ? 0.55 : 0.35
                 let totalAnimation: TimeInterval = 1.0
                 // Single-line silhouettes get the full duration to
                 // themselves so a tiny area doesn't snap-in in 0.4 s and
@@ -1317,17 +1322,19 @@ private struct LoadingSilhouetteCanvas: View {
                     case "h": color = .red
                     default:  color = .gray
                     }
-                    // Slight pop while a line is in-flight (progress < 1)
-                    // so the leading edge feels brighter than the settled
-                    // body of already-revealed trails.
-                    let opacity = progress < 1 ? min(1.0, baseOpacity + 0.25) : baseOpacity
+                    // Opaque: overlapping trails must NOT accumulate alpha — that
+                    // additive blend is what pushed a dimmed orange up into gold.
+                    // The faint-backdrop wash is applied once to the whole Canvas
+                    // via `.opacity` below, AFTER overlaps resolve by priority, so
+                    // orange stays orange instead of collapsing to gold.
                     ctx.stroke(
                         trimmed,
-                        with: .color(color.opacity(opacity)),
+                        with: .color(color),
                         style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round)
                     )
                 }
             }
+            .opacity(colorScheme == .dark ? 0.9 : 0.82)
         }
         .onAppear { startDate = Date() }
     }

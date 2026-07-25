@@ -41,7 +41,7 @@ struct TrailDetailSheet: View {
     }
 
     private var isComplete: Bool {
-        progress.isComplete(areaId: areaId, trailId: trail.id)
+        progress.isComplete(trail, areaId: areaId)
     }
 
     var body: some View {

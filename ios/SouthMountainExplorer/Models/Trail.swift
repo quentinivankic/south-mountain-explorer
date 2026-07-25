@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 enum Difficulty: String, Codable, CaseIterable {
     case easy = "Easy"
@@ -52,6 +53,40 @@ struct Trail: Codable, Identifiable, Sendable, Equatable {
     enum CodingKeys: String, CodingKey {
         case id, name, segments, difficulty, gainFt, profileFt, profileGaps
         case distanceMi = "distanceMi"
+    }
+
+    /// A stable identity for the PHYSICAL trail, derived from its geometry.
+    ///
+    /// Completion is stored per (areaId, trailId), but the same place is often
+    /// seeded twice under name variants — measured 2026-07-25: 903 areas (10%)
+    /// have an identical-trail-set twin (`south-mountain-preserve` vs
+    /// `-park-and-preserve`, `haleakalā` vs `haleakal`, accents/typos). Progress
+    /// recorded under one twin was invisible under the other. This lets
+    /// ProgressService credit completion across areas by the TRAIL, not the
+    /// container.
+    ///
+    /// Keyed on GEOMETRY, not id, on purpose: 5,205 trail ids collide across
+    /// UNRELATED areas (`ice-age-trail` spans 47 areas, a different segment in
+    /// each), so id-equality would falsely credit one segment's walk to all 47.
+    /// Identical geometry is the only safe "same trail" signal.
+    ///
+    /// SHA256 of coordinates rounded to 5 dp (~1 m) so float noise never splits
+    /// a match; hex-truncated. Deterministic across launches (unlike
+    /// `Hasher`, which is per-process seeded) because it is persisted.
+    var completionFingerprint: String {
+        var canon = ""
+        for seg in segments {
+            for p in seg where p.count >= 2 {
+                canon += String(format: "%.5f,%.5f;", p[0], p[1])
+            }
+            canon += "|"
+        }
+        return Self.sha256Hex(canon)
+    }
+
+    private static func sha256Hex(_ s: String) -> String {
+        let digest = SHA256.hash(data: Data(s.utf8))
+        return digest.prefix(16).map { String(format: "%02x", $0) }.joined()
     }
 }
 

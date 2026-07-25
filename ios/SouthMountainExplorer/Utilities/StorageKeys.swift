@@ -33,6 +33,10 @@ enum StorageKeys {
     // MARK: - User progress (cleared by Reset All Progress)
 
     static let completedTrails = "summit:completed"
+    /// Geometry fingerprints of completed trails, so completion follows the
+    /// physical trail across duplicate areas. Backfilled from `completedTrails`;
+    /// cleared alongside it on Reset All Progress.
+    static let completedTrailFingerprints = "summit:completed-fingerprints"
     static let coverage = "summit:coverage"
     /// Per-trail coverage *since the last completion* — resets to 0
     /// when a trail completes, then climbs as the user re-walks it.

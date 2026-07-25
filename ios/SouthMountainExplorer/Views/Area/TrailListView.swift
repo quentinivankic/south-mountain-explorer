@@ -371,7 +371,7 @@ struct TrailRow: View {
     /// doesn't.
     @State private var profileStartIsNearer = true
 
-    private var isComplete: Bool { progress.isComplete(areaId: areaId, trailId: trail.id) }
+    private var isComplete: Bool { progress.isComplete(trail, areaId: areaId) }
     private var coveragePct: Double { coverage.trailCoverage(areaId: areaId, trailId: trail.id) }
     private var isRecordingThis: Bool { recording.activeRecording?.trailId == trail.id }
     private var isSelected: Bool { selectedTrailId == trail.id }

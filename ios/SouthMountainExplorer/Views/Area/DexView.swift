@@ -235,8 +235,9 @@ struct DexView: View {
         // seasons, distance tiers use per-hike distance — the walk's
         // full distance counts, same as any multi-trail hike).
         let areaHikes = history.filter { $0.touchedAreaIds.contains(area.id) }
-        let completedMap = progress.completedTrails(in: area.id)
-        let completedTrailIds = Set(completedMap.keys)
+        // Credit duplicate-area twins by geometry so the dex map colors a trail
+        // completed under an identical twin.
+        let completedTrailIds = progress.completedTrailIds(in: area.id, among: area.trails)
         var completionDates: [String: Date] = [:]
         for tid in completedTrailIds {
             if let d = progress.completionDate(areaId: area.id, trailId: tid) {

@@ -276,7 +276,16 @@ extension Area {
     func nearestParkingWithFallback(for trail: Trail, max: Int = 3,
                                     thresholdMeters: Double = 805)
         -> [(lot: ParkingLot, meters: Double, isNear: Bool)] {
-        guard let lots = parking, !lots.isEmpty else { return [] }
+        Self.nearestParkingWithFallback(lots: parking, for: trail,
+                                        max: max, thresholdMeters: thresholdMeters)
+    }
+
+    /// Static form so a view holding only the area's `parking` (not the whole
+    /// Area) can compute the same result — the trail-row parking banner uses it.
+    static func nearestParkingWithFallback(lots allLots: [ParkingLot]?, for trail: Trail,
+                                           max: Int = 3, thresholdMeters: Double = 805)
+        -> [(lot: ParkingLot, meters: Double, isNear: Bool)] {
+        guard let lots = allLots, !lots.isEmpty else { return [] }
         var ends: [(Double, Double)] = []
         for seg in trail.segments {
             if let f = seg.first, f.count >= 2 { ends.append((f[0], f[1])) }

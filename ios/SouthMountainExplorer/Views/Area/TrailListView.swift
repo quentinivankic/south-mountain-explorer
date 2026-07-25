@@ -224,12 +224,8 @@ struct TrailListView: View {
                             TrailRow(
                                 trail: trail,
                                 areaId: area.id,
+                                areaParking: area.parking,
                                 selectedTrailId: $selectedTrailId,
-                                // Anchors the profile chart when the hiker
-                                // isn't on the trail. Computed here because
-                                // parking lives on Area, which the row doesn't
-                                // see; nearestParking already returns them
-                                // ordered by distance to the trail's ends.
                                 onRecordTrail: onRecordTrail
                             )
                             // Tag each row with the trail id so
@@ -351,6 +347,9 @@ struct TrailListView: View {
 struct TrailRow: View {
     let trail: Trail
     let areaId: String
+    /// The area's parking lots, so the selected row can state where to park —
+    /// especially when the nearest lot is far and its map pin sits off-screen.
+    var areaParking: [ParkingLot]? = nil
     @Binding var selectedTrailId: String?
     /// Called when the trailing "Record" button (shown only while this row is
     /// selected) is tapped — starts recording this trail.
@@ -372,6 +371,19 @@ struct TrailRow: View {
     @State private var profileStartIsNearer = true
 
     private var isComplete: Bool { progress.isComplete(trail, areaId: areaId) }
+
+    /// Where to park for this trail, phrased for the expanded row. nil when the
+    /// area has no parking at all. Crucially STATES the distance for a far
+    /// fallback lot — whose map pin sits off-screen because the camera frames
+    /// the trail — so an empty-looking map doesn't read as "no parking here".
+    private var nearestParkingInfo: (text: String, isNear: Bool)? {
+        let pk = Area.nearestParkingWithFallback(lots: areaParking, for: trail)
+        guard let top = pk.first else { return nil }
+        if top.isNear { return ("Parking at the trailhead", true) }
+        let dist = UnitFormatter.distance(meters: top.meters, units: units)
+        let name = top.lot.name.map { "\($0), " } ?? ""
+        return ("Nearest parking: \(name)\(dist) away", false)
+    }
     private var coveragePct: Double { coverage.trailCoverage(areaId: areaId, trailId: trail.id) }
     private var isRecordingThis: Bool { recording.activeRecording?.trailId == trail.id }
     private var isSelected: Bool { selectedTrailId == trail.id }
@@ -540,6 +552,23 @@ struct TrailRow: View {
             .padding(.trailing, 4)
             .transition(.opacity.combined(with: .move(edge: .top)))
             .accessibilityLabel(profileAccessibilityLabel)
+        }
+
+        // Parking line for the selected trail. The map draws near lots as pins,
+        // but a FAR fallback lot lands off-screen — so state it in words here.
+        if isSelected, let pk = nearestParkingInfo {
+            HStack(spacing: 6) {
+                Image(systemName: pk.isNear ? "p.circle.fill" : "figure.walk.circle")
+                    .font(.caption)
+                    .foregroundStyle(pk.isNear ? Color.blue : Color.orange)
+                Text(pk.text)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+            }
+            .padding(.top, 3)
+            .transition(.opacity)
+            .accessibilityLabel(pk.text)
         }
         }
         .padding(.horizontal)

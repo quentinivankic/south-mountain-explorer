@@ -87,12 +87,36 @@ for aid, fps in area_fps.items():
     for fp in fps:
         fp2areas[fp].add(aid)
 
-# A nested area is only a REDUNDANT re-listing (hide from browse) when it is
-# near-coextensive with its container. A 3-trail wilderness inside a 380-trail
-# forest is a distinct destination someone searches by name — NOT redundant.
-# The ratio = A's trails / container's trails is the knob; RATIO gates the alias.
+# Designation ladder — higher = the name a hiker searches for and expects to
+# survive, INDEPENDENT of which polygon geometrically contains which. A National
+# Park inside a binational Peace Park is still what people look up; a Wilderness
+# inside a National Forest is the destination, but inside a State Park it is a
+# sub-unit. Order verified against the 2026-07-19 sanity set (see memory
+# nested-area-dedup.md). Unrecognised names score 0.
+RANK = [
+    ("national park", 100), ("peace park", 96), ("national seashore", 95),
+    ("national lakeshore", 95), ("national monument", 90),
+    ("national volcanic", 88), ("state park", 70),
+    ("national recreation area", 60), ("recreation area", 58),
+    ("wilderness", 55), ("wildlife refuge", 52), ("preserve", 50),
+    ("state natural area", 42), ("natural area", 42), ("state forest", 36),
+    ("open space", 34), ("national forest", 30),
+]
+def rank(name):
+    n = (name or "").lower()
+    return max((r for kw, r in RANK if kw in n), default=0)
+
+# THE LOSSLESS INVARIANT. Only alias A -> canonical when the canonical's trail
+# set is a SUPERSET of A's AND the canonical is at least as iconic. A nested area
+# is a strict subset of its container, so the container is always a superset —
+# but if the container is the LESS iconic name (Glacier NP inside Waterton-Glacier
+# Peace Park), aliasing would hide the name people search for. In that "trap"
+# case we do NOT alias either way and keep BOTH entries: never hide the
+# more-iconic area, and never hide a trail that has no visible superset home.
+# Consequence: nothing that gets hidden has a single trail its canonical lacks,
+# so no union / graft is ever needed and 0 trails can be lost. Proven below.
 RATIO = float(os.environ.get("NEST_RATIO", "0.75"))
-nested_ratios = []
+nested_ratios, traps = [], []
 for aid, fps in area_fps.items():
     if aid in aliases:
         continue
@@ -104,26 +128,58 @@ for aid, fps in area_fps.items():
     container = min(strict, key=lambda s: (len(area_fps[s]), s))
     ratio = len(fps) / len(area_fps[container])
     nested_ratios.append(ratio)
-    if ratio >= RATIO:
+    if ratio < RATIO:
+        continue
+    if rank(meta[container]["name"]) >= rank(meta[aid]["name"]):
         aliases[aid] = {"canonical": container, "kind": "nested", "ratio": round(ratio, 2)}
+    else:
+        traps.append((aid, container, round(ratio, 2)))  # kept as two entries
 
-# How the nested count moves with the threshold, so the knob is picked on data.
+# Resolve any A->B->C chain to its ultimate visible canonical (defensive; near-
+# coextensive chains are possible). Break cycles rather than loop forever.
+for a in list(aliases):
+    seen, c = {a}, aliases[a]["canonical"]
+    while c in aliases and c not in seen:
+        seen.add(c); c = aliases[c]["canonical"]
+    aliases[a]["canonical"] = c
+
+# ---- VERIFY completeness: no trail is lost (quality gate, not exit code) -----
+visible = {a: f for a, f in area_fps.items() if a not in aliases}
+visible_fps = set().union(*visible.values()) if visible else set()
+all_fps = set().union(*area_fps.values())
+orphaned = all_fps - visible_fps                       # trails with no visible home
+bad_superset = [a for a, v in aliases.items()
+                if not area_fps[a] <= area_fps.get(v["canonical"], frozenset())]
+print(f"\nVERIFY superset invariant: {len(bad_superset)} violations "
+      f"(hidden area whose canonical lacks one of its trails)", file=sys.stderr)
+print(f"VERIFY trail completeness: {len(orphaned)} orphaned fingerprints "
+      f"of {len(all_fps)} (trails visible nowhere after hiding)", file=sys.stderr)
+assert not bad_superset, f"LOSSY: {bad_superset[:5]}"
+assert not orphaned, f"LOSSY: {len(orphaned)} trails would vanish"
+print("VERIFY: PASS — every hidden area's trails all survive under its canonical",
+      file=sys.stderr)
+
 import bisect
 nr = sorted(nested_ratios)
 print(f"\nnested subset candidates: {len(nr)} (ratio = A_trails / container_trails)",
       file=sys.stderr)
 for th in (0.5, 0.6, 0.75, 0.9, 0.95):
     n = len(nr) - bisect.bisect_left(nr, th)
-    print(f"  ratio >= {th}: {n} areas aliased", file=sys.stderr)
+    print(f"  ratio >= {th}: {n}", file=sys.stderr)
 
 dups = {k: v for k, v in aliases.items() if v["kind"] == "duplicate"}
 nested = {k: v for k, v in aliases.items() if v["kind"] == "nested"}
-print(f"duplicate groups: {len(dup_groups)}  aliased-away: {len(dups)}", file=sys.stderr)
-print(f"nested aliases:   {len(nested)}", file=sys.stderr)
+print(f"\nduplicate groups: {len(dup_groups)}  hidden: {len(dups)}", file=sys.stderr)
+print(f"nested hidden:    {len(nested)}", file=sys.stderr)
+print(f"traps kept as two entries (never hidden): {len(traps)}", file=sys.stderr)
 
 os.makedirs(OUT, exist_ok=True)
+# Ship only id -> {canonical, kind}; the ratio was a tuning aid, not runtime data.
+ship = {a: {"canonical": v["canonical"], "kind": v["kind"]}
+        for a, v in sorted(aliases.items())}
 with open(f"{OUT}/aliases.json", "w") as f:
-    json.dump(dict(sorted(aliases.items())), f, indent=0)
+    json.dump(ship, f, separators=(",", ":"), sort_keys=True)
+    f.write("\n")
 with open(f"{OUT}/aliases-report.tsv", "w") as f:
     f.write("id\tkind\tcanonical\tid_name\tid_trails\tcanon_name\tcanon_trails\tstate\n")
     for a, v in sorted(aliases.items(), key=lambda kv: (kv[1]["kind"], kv[0])):
@@ -131,12 +187,13 @@ with open(f"{OUT}/aliases-report.tsv", "w") as f:
         f.write(f"{a}\t{v['kind']}\t{c}\t{meta.get(a,{}).get('name')}\t"
                 f"{meta.get(a,{}).get('trailCount')}\t{meta.get(c,{}).get('name')}\t"
                 f"{meta.get(c,{}).get('trailCount')}\t{meta.get(a,{}).get('state')}\n")
+with open(f"{OUT}/traps-kept-both.tsv", "w") as f:
+    f.write("iconic_kept\ttrails\tless_iconic_also_kept\ttrails\tratio\tstate\n")
+    for aid, cont, ratio in sorted(traps):
+        f.write(f"{meta[aid]['name']}\t{meta.get(aid,{}).get('trailCount')}\t"
+                f"{meta[cont]['name']}\t{meta.get(cont,{}).get('trailCount')}\t"
+                f"{ratio}\t{meta.get(aid,{}).get('state')}\n")
 
-# A few examples for the eyeball.
-print("\n--- duplicate examples ---", file=sys.stderr)
-for a, v in list(dups.items())[:6]:
-    print(f"  {a}  ->  {v['canonical']}   ({meta.get(a,{}).get('name')})", file=sys.stderr)
-print("--- nested examples ---", file=sys.stderr)
-for a, v in list(nested.items())[:6]:
-    print(f"  {a} ({meta.get(a,{}).get('trailCount')} tr)  ->  "
-          f"{v['canonical']} ({meta.get(v['canonical'],{}).get('trailCount')} tr)", file=sys.stderr)
+print("\n--- trap pairs kept as TWO entries (iconic never hidden) ---", file=sys.stderr)
+for aid, cont, ratio in sorted(traps):
+    print(f"  keep BOTH: {meta[aid]['name']} + {meta[cont]['name']}", file=sys.stderr)

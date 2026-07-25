@@ -66,41 +66,54 @@ per-trail fingerprint (matches the app's `Trail.completionFingerprint`):
 - **Nested — strict subset:** 1,248 raw candidates is **far too broad** — it
   hides distinct named destinations (Salome Wilderness, 3 trails, sits inside
   Tonto National Forest, 380). Gate on `ratio = A_trails / container_trails`.
-  At **ratio ≥ 0.75 → 28 areas**, exactly the "national park re-listed as its
-  wilderness/natural-area twin" pattern (Congaree NP Wilderness → Congaree NP;
-  Frozen Head State Natural Area → State Park). This is the true Saguaro-class
-  redundancy.
+  At **ratio ≥ 0.75 → 28 areas**, the "national park re-listed as its
+  wilderness/natural-area twin" pattern. Of those, **19 hide** and **9 are kept
+  as two entries** (see the trap below).
 
-### The canonical trap (why D must not auto-execute)
+### The canonical trap, and the lossless rule that resolves it
 
 For nested areas, **"canonical = the container" is wrong.** Glacier National
 Park (156 trails) is a strict subset of Waterton-Glacier International Peace Park
 (158), so a size-based rule would *hide Glacier National Park*. Caesars Head
-State Park would vanish behind Mountain Bridge Wilderness. Canonical must be the
-**more iconic designation** (National Park > Peace Park > National Monument >
-Wilderness > State Park > Natural Area …), independent of which polygon contains
-which. 28 cases — small enough to hand-review behind a designation-priority rule.
+State Park would vanish behind Mountain Bridge Wilderness.
+
+The rule that resolves it is a single **lossless invariant**: *alias `A →
+canonical` only when the canonical's trail set is a **superset** of A's AND the
+canonical is at least as iconic* (designation ladder: National Park > Peace Park
+> National Monument > … > Wilderness > … > National Forest). Consequences:
+- A nested container is always a superset, so if it is *also* at least as
+  iconic, hide the sub-listing (19 cases).
+- If the container is the *less* iconic name (the trap), the invariant forbids
+  the alias in either direction, so **both entries are kept** (9 cases). We never
+  hide the more-iconic area, and never strand a trail with no visible superset.
+- **No union / graft is ever needed.** Because everything hidden is a subset of
+  its canonical, no hidden area contributes a trail the canonical lacks. Proven
+  in-script: **0 superset violations, 0 orphaned trails of 75,106.**
 
 ## Mechanism (wire-safe, reversible)
 
 `public/areas/index.json` is a **positional array** shared with old app builds —
 appending per-row fields risks their strict decoders. So:
 
-- Ship a side-car **`public/areas/aliases.json`** = `{ id: { canonical, kind } }`.
-  Old apps ignore an unknown file; new apps read it.
-- **Browse/search** hides aliased ids, so each place appears once. Reversible:
-  delete the file.
-- **Progress:** completion already crosses via fingerprint. Coverage and the
-  halo resolve an aliased id to its canonical **additively** — copy, never
-  delete; `touchedAreaIds` is computed, so tag the canonical rather than rewrite.
-- **Nothing deletes an area or a trail.** An area with even one trail no other
-  area has is never aliased — the exact loss the tester worried about.
+- Ship a side-car **`public/areas/aliases.json`** = `{ id: { canonical, kind } }`,
+  filtered into the iOS bundle by `filter-ios-bundle.py` only when *both* the id
+  and its canonical ship (a place can never vanish without a visible
+  replacement). Old apps ignore the file; new apps read it.
+- **Browse/search** hides aliased ids at one choke point (`AreaDataService`
+  `.summaries`), so each place appears once. Reversible: delete the file.
+- **Completion** already crosses to the canonical via geometry fingerprint
+  (`#471`/`#474`); since the canonical is a superset, every completed trail under
+  a hidden twin has a match there.
+- **Nothing deletes an area or a trail.**
 
 ## Consequences / open
 
-- Nested canonical needs the designation ranking wired before execute (the
-  Glacier trap). Duplicates are safe now.
-- Coverage + halo cross-resolution is the remaining client work; until it lands,
-  only completion crosses an alias.
+- Shipped: detection + `aliases.json` + the bundle filter + the Browse/search
+  hide (`AreaDataService.visibleSummaries`).
+- **Deferred (task #29):** coverage + the walked-here halo are derived from hikes
+  tagged to an area id, so a user who recorded under a now-hidden twin sees those
+  overlays only after we resolve the hidden id to its canonical. Completion shows
+  regardless; the hidden area's stored data is untouched, so nothing is lost
+  meanwhile.
 - If measurement later shows progress crossing genuinely-distinct overlaps is
   common, escalate to C — but only once a stable trail id exists.

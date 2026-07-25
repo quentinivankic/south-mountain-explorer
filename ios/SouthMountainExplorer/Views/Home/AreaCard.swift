@@ -313,7 +313,14 @@ private struct SilhouetteCanvas: View {
             let xOffset = pad + (drawW - canvasW) / 2
             let yOffset = pad + (drawH - canvasH) / 2
 
-            for line in silhouette.l {
+            // Where trails cross, the harder color wins (red > orange > green)
+            // instead of whichever happened to draw last.
+            let ordered = silhouette.l.sorted {
+                let pa = $0.d == "h" ? 2 : ($0.d == "m" ? 1 : 0)
+                let pb = $1.d == "h" ? 2 : ($1.d == "m" ? 1 : 0)
+                return pa < pb
+            }
+            for line in ordered {
                 guard line.p.count >= 2 else { continue }
                 var path = Path()
                 for (i, pt) in line.p.enumerated() {

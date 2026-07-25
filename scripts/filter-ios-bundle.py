@@ -118,6 +118,18 @@ def main() -> int:
         default="ios/SouthMountainExplorer/Resources/areas-index.json",
         help="iOS bundle path to write.",
     )
+    ap.add_argument(
+        "--aliases-in",
+        dest="alias_src",
+        default="public/areas/aliases.json",
+        help="Master duplicate/nested alias map to read (docs/adr/0002).",
+    )
+    ap.add_argument(
+        "--aliases-out",
+        dest="alias_dst",
+        default="ios/SouthMountainExplorer/Resources/area-aliases.json",
+        help="iOS bundle alias path to write.",
+    )
     args = ap.parse_args()
 
     src = Path(args.src)
@@ -129,6 +141,23 @@ def main() -> int:
     # Match the master's formatting (compact, single-line) so the diff
     # surface in git is identical to a bare `cp` modulo the row count.
     dst.write_text(json.dumps(kept, separators=(",", ":")))
+
+    # Emit the bundle's alias map: keep an alias ONLY when both the hidden id and
+    # its canonical ship in this bundle — never hide an area whose visible
+    # replacement isn't present, or a place would vanish from the app.
+    alias_src, alias_dst = Path(args.alias_src), Path(args.alias_dst)
+    if alias_src.exists():
+        kept_ids = {r[0] for r in kept}
+        aliases = json.loads(alias_src.read_text())
+        bundle_aliases = {
+            aid: v for aid, v in aliases.items()
+            if aid in kept_ids and v.get("canonical") in kept_ids
+        }
+        alias_dst.write_text(
+            json.dumps(bundle_aliases, separators=(",", ":"), sort_keys=True))
+        skipped = sum(1 for aid in aliases if aid in kept_ids) - len(bundle_aliases)
+        print(f"Wrote {len(bundle_aliases)} aliases to {alias_dst} "
+              f"(skipped {skipped} whose canonical isn't bundled).", file=sys.stderr)
 
     total_dropped = sum(dropped.values())
     print(

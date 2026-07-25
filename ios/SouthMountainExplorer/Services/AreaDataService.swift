@@ -49,6 +49,36 @@ final class AreaDataService {
         Task { await loadIndex() }
     }
 
+    // MARK: - Duplicate / nested area aliases (see docs/adr/0002)
+
+    /// `id -> canonical id` for areas hidden from Browse: identical twins whose
+    /// trails the canonical also has, and nested re-listings a canonical
+    /// subsumes. Loaded once from the bundled `area-aliases.json`. Hiding is
+    /// provably lossless — the canonical is always a SUPERSET, so no trail and
+    /// no completion is dropped (completion already crosses by geometry
+    /// fingerprint, so a checkmark recorded under a hidden twin still shows on
+    /// its canonical).
+    @ObservationIgnored
+    private lazy var aliasMap: [String: String] = AreaDataService.loadAliasMap()
+
+    private struct AliasEntry: Decodable { let canonical: String; let kind: String }
+
+    private static func loadAliasMap() -> [String: String] {
+        guard let url = Bundle.main.url(forResource: "area-aliases", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let decoded = try? JSONDecoder().decode([String: AliasEntry].self, from: data)
+        else { return [:] }
+        return decoded.mapValues(\.canonical)
+    }
+
+    /// Canonical area id for `id` — returns `id` unchanged when it isn't hidden.
+    /// Resolve a stored or linked area id through this so a hidden twin's data
+    /// lands on the area the user can actually open.
+    func canonicalId(for id: String) -> String { aliasMap[id] ?? id }
+
+    /// True when `id` is hidden from Browse in favour of its canonical.
+    func isHiddenAlias(_ id: String) -> Bool { aliasMap[id] != nil }
+
     // MARK: - Area Index
 
     func loadIndex() async {
@@ -123,9 +153,18 @@ final class AreaDataService {
         // seeded but not yet hydrated) made entire states disappear
         // from the app. Showing them as "loading-but-tappable" is
         // strictly better than hiding them.
-        return tuples
+        return Self.visibleSummaries(from: tuples, hidden: Set(aliasMap.keys))
+    }
+
+    /// Browse-visible summaries: real areas only. Drops zero-trail rows and
+    /// areas hidden in favour of a canonical twin (docs/adr/0002) so each real
+    /// place appears once in Browse and search. Lossless — an aliased area's
+    /// trails all live on its canonical. Static + injectable so the hide is
+    /// unit-testable without the app bundle.
+    nonisolated static func visibleSummaries(from tuples: [[JSONValue]], hidden: Set<String>) -> [AreaSummary] {
+        tuples
             .compactMap { AreaSummary(tuple: $0) }
-            .filter { $0.trailCount != 0 }
+            .filter { $0.trailCount != 0 && !hidden.contains($0.id) }
     }
 
     func search(_ query: String) -> [AreaSummary] {

@@ -251,9 +251,17 @@ final class RecordingService {
         // covered trail as "newly completed" (not in snapshot) vs
         // "revisited" (in snapshot) — independent of the intra-session
         // CoverageService writes that applyLiveCoverage performs.
-        let priorComplete = CoverageService.shared.coverage(for: areaId)
-            .filter { $0.value >= completeThreshold }
-            .map(\.key)
+        // OFFICIALLY-completed trails only — NOT bare coverage fraction. A trail
+        // can sit at fraction >= completeThreshold from an earlier recording that
+        // incidentally covered it (mergeCoverage credits every trail a path
+        // touches, not just the target) while never reaching its endpoints — so
+        // it never actually completed or celebrated. Using the fraction here put
+        // such a trail in the baseline, so the recording that FINALLY completed
+        // it (endpoints reached) classified it "revisited" and the celebration
+        // never fired. Real bug, build 247: woodlandtrail (Wild Basin) completed
+        // with newlyCompleted=0. ProgressService is the authoritative,
+        // endpoint-gated record of what has actually completed.
+        let priorComplete = Array(ProgressService.shared.completedTrails(in: areaId).keys)
         activeRecording = ActiveRecording(
             areaId: areaId,
             mode: mode,
@@ -510,11 +518,9 @@ final class RecordingService {
             for (aid, ntrails) in await neighborAreasCrossed(by: rec.path, excluding: rec.areaId) {
                 // "Was it complete BEFORE this hike?" — snapshot before the
                 // per-area mergeCoverage mutates CoverageService.
-                let priorComplete = Set(
-                    CoverageService.shared.coverage(for: aid)
-                        .filter { $0.value >= completeThreshold }
-                        .map(\.key)
-                )
+                // Officially-completed neighbours before this hike — not bare
+                // fraction (see the startRecording note for why).
+                let priorComplete = Set(ProgressService.shared.completedTrails(in: aid).keys)
                 let nCombined = combinedPathForArea(aid, currentPath: rec.path)
                 let nSession = measureCoverage(path: nCombined, trails: ntrails, bufferMeters: bufferMeters)
                 let (nMergeNew, nMergeRev, _) = await mergeCoverage(
@@ -604,9 +610,10 @@ final class RecordingService {
     func startWalk(primaryAreaId: String, nearbyAreaIds: [String]) {
         var priorByArea: [String: Set<String>] = [:]
         for aid in nearbyAreaIds {
-            let prior = CoverageService.shared.coverage(for: aid)
-                .filter { $0.value >= completeThreshold }
-                .map(\.key)
+            // Officially-completed only (see the startRecording note) — not
+            // bare fraction, which misclassifies a first real completion as a
+            // revisit and swallows the celebration.
+            let prior = Array(ProgressService.shared.completedTrails(in: aid).keys)
             priorByArea[aid] = Set(prior)
         }
         activeRecording = ActiveRecording(

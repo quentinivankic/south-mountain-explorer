@@ -167,7 +167,7 @@ struct AreaView: View {
     /// TrailMapView (which renders the polylines).
     private func computeFilteredTrails(_ area: Area) -> [Trail] {
         area.trails.filter { trail in
-            let isComplete = progress.isComplete(areaId: areaId, trailId: trail.id)
+            let isComplete = progress.isComplete(trail, areaId: areaId)
             switch statusFilter {
             case .all: break
             case .incomplete: if isComplete { return false }
@@ -433,6 +433,10 @@ struct AreaView: View {
             loadError = result.error
             isLoading = false
             if let loadedArea = result.area {
+                // Backfill the completion fingerprint index from this area's
+                // geometry, so progress recorded here credits a duplicate-area
+                // twin, and a twin's progress credits here. Cheap + idempotent.
+                progress.indexArea(areaId: areaId, trails: loadedArea.trails)
                 log.notice("areaOpened areaId=\(self.areaId, privacy: .public) trails=\(loadedArea.trails.count) rawTrails=\(loadedArea.rawTrails?.count ?? 0) parking=\(loadedArea.parking?.count ?? -1)")
             } else if let err = result.error {
                 log.error("areaOpenFailed areaId=\(self.areaId, privacy: .public) error=\(err, privacy: .public)")
@@ -621,7 +625,7 @@ struct AreaView: View {
         guard area != nil else { return 0 }
         // areaTrailIds is the cached Set from `recomputeFiltered()`;
         // see `@State areaTrailIds` for why this isn't built inline.
-        return progress.completionCount(in: areaId, validTrailIds: areaTrailIds)
+        return progress.completionCount(in: areaId, trails: area?.trails ?? [])
     }
 
     private func loadPastPaths() async {
@@ -907,7 +911,7 @@ struct AreaView: View {
                 // · completion. `areaTrailIds` is the cached Set from
                 // recomputeFiltered() — avoids a per-eval O(N) rebuild.
                 // Whole line turns green at 100% as an area-complete cue.
-                let completed = progress.completionCount(in: area.id, validTrailIds: areaTrailIds)
+                let completed = progress.completionCount(in: area.id, trails: area.trails)
                 let areaComplete = area.resolvedTrailCount > 0 && completed >= area.resolvedTrailCount
                 Text(areaSummaryLine(area: area, completed: completed))
                     .font(.subheadline)

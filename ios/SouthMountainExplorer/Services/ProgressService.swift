@@ -11,14 +11,46 @@ final class ProgressService {
 
     private(set) var completions: [String: [String: String]] = [:]
 
+    /// Geometry fingerprints of every completed trail, so completion follows the
+    /// PHYSICAL trail across duplicate areas (see `Trail.completionFingerprint`).
+    /// Persisted, and backfilled from `completions` as areas load via
+    /// `indexArea`. A superset key — never the source of truth for a specific
+    /// (areaId, trailId), only the cross-area credit.
+    private(set) var completedFingerprints: Set<String> = []
+
     private init() {
         completions = readLocal()
+        completedFingerprints = readFingerprints()
     }
 
     // MARK: - Read
 
     func isComplete(areaId: String, trailId: String) -> Bool {
         completions[areaId]?[trailId] != nil
+    }
+
+    /// Completion for a trail you have in hand — credits it if this exact
+    /// (areaId, trailId) is complete OR if the SAME physical trail (identical
+    /// geometry) is complete in any area. Fixes progress recorded under a
+    /// duplicate-area twin not showing here. Falls back to the id check when the
+    /// fingerprint set hasn't indexed the source twin yet.
+    func isComplete(_ trail: Trail, areaId: String) -> Bool {
+        if completions[areaId]?[trail.id] != nil { return true }
+        return completedFingerprints.contains(trail.completionFingerprint)
+    }
+
+    /// Backfill the fingerprint index from an area's now-loaded geometry: every
+    /// trail that is complete by (areaId, trailId) contributes its fingerprint.
+    /// Idempotent; call on area load. This is how existing completions (stored
+    /// before fingerprints existed) become cross-area, and how a live completion
+    /// propagates to its twin on next load.
+    func indexArea(areaId: String, trails: [Trail]) {
+        guard let done = completions[areaId], !done.isEmpty else { return }
+        var added = false
+        for t in trails where done[t.id] != nil {
+            if completedFingerprints.insert(t.completionFingerprint).inserted { added = true }
+        }
+        if added { saveFingerprints() }
     }
 
     /// Parsed completion timestamp for the trail, or nil if never
@@ -50,6 +82,13 @@ final class ProgressService {
     func completionCount(in areaId: String, validTrailIds: Set<String>) -> Int {
         guard let area = completions[areaId] else { return 0 }
         return area.keys.filter(validTrailIds.contains).count
+    }
+
+    /// Completion count that also credits duplicate-area twins, so the header
+    /// count matches the per-row checkmarks (both go through `isComplete(_:)`).
+    /// Needs the trails in hand to fingerprint them.
+    func completionCount(in areaId: String, trails: [Trail]) -> Int {
+        trails.reduce(0) { $0 + (isComplete($1, areaId: areaId) ? 1 : 0) }
     }
 
     /// Drop completions whose trail IDs no longer match anything in the
@@ -121,7 +160,9 @@ final class ProgressService {
     /// this the UI keeps showing checkmarks until next launch.
     func resetAll() {
         completions = [:]
+        completedFingerprints = []
         UserDefaults.standard.removeObject(forKey: storageKey)
+        UserDefaults.standard.removeObject(forKey: StorageKeys.completedTrailFingerprints)
     }
 
     /// Re-read the completions dictionary from UserDefaults. Called
@@ -130,6 +171,10 @@ final class ProgressService {
     /// otherwise keep showing pre-import state until next launch.
     func reload() {
         completions = readLocal()
+        // Imported completions carry no geometry, so drop the fingerprint index
+        // and let `indexArea` rebuild it lazily as areas load.
+        completedFingerprints = []
+        UserDefaults.standard.removeObject(forKey: StorageKeys.completedTrailFingerprints)
     }
 
     /// Rewrite every trail-id key through `transform`. Used by the
@@ -183,5 +228,17 @@ final class ProgressService {
     private func saveLocal() {
         guard let data = try? JSONEncoder().encode(completions) else { return }
         UserDefaults.standard.set(data, forKey: storageKey)
+    }
+
+    private func readFingerprints() -> Set<String> {
+        guard let data = UserDefaults.standard.data(forKey: StorageKeys.completedTrailFingerprints),
+              let decoded = try? JSONDecoder().decode(Set<String>.self, from: data)
+        else { return [] }
+        return decoded
+    }
+
+    private func saveFingerprints() {
+        guard let data = try? JSONEncoder().encode(completedFingerprints) else { return }
+        UserDefaults.standard.set(data, forKey: StorageKeys.completedTrailFingerprints)
     }
 }

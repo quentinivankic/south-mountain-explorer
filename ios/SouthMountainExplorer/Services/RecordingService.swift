@@ -865,8 +865,12 @@ final class RecordingService {
         // patch loop at the bottom skips walk records entirely (their
         // stop-time classification is already correct, and rewriting
         // them from a projection would corrupt the multi-area dicts).
+        // areaAndTwins: hikes recorded under a now-hidden duplicate twin
+        // (docs/adr/0002) rebuild THIS canonical area's coverage too — their
+        // GPS paths snap onto the identical trail geometry.
+        let areas = AreaDataService.shared.areaAndTwins(areaId)
         let areaHistory = loadHistorySync()
-            .filter { $0.touchedAreaIds.contains(areaId) }
+            .filter { !$0.touchedAreaIds.isDisjoint(with: areas) }
             .map { hike -> SavedRecording in
                 guard hike.isWalk else { return hike }
                 return SavedRecording(

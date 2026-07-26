@@ -3,7 +3,8 @@
 Source of truth for a fresh session. Read it first. It's a concise map, not
 a changelog — **verify specific claims against the code before trusting them**,
 and see the auto-memory files (`MEMORY.md` index) for deep detail on active
-threads (parking, the coverage gap). Updated 2026-07-19.
+threads (App Store submission, trail/area quality, dedup, parking, coverage gap).
+Updated 2026-07-26.
 
 ---
 
@@ -246,7 +247,7 @@ mean one view with two unit systems and two meanings for x.
 
 ---
 
-## Active threads (2026-07-19) — see auto-memory for depth
+## Active threads (updated 2026-07-26) — see auto-memory for depth
 
 - **Parking** (`parking-feature.md`): OSM containment-gated parking live for AZ.
   Federal fallback = NPS parking + USFS trailheads (BLM DROPPED — its "trailhead"

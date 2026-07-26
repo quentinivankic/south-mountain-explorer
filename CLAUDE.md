@@ -285,15 +285,19 @@ mean one view with two unit systems and two meanings for x.
 
 ## Build / release / CI
 
-- **TestFlight:** public link live; uploads are **manual dispatch only**
-  (`ios-testflight.yml`, workflow_dispatch). NEVER re-enable auto-on-push (#160).
+- **TestFlight:** public link live; uploads via `ios-testflight.yml`
+  (workflow_dispatch). Keep the WORKFLOW dispatch-only — NEVER re-enable
+  auto-on-push (#160). But **Claude MAY dispatch it** (user OK'd auto-dispatch
+  2026-07-26): sensibly — after merging app-CODE changes on green CI, coalescing
+  back-to-back merges; skip for data-only (ships via R2) or docs-only changes.
 - **PR CI:** `ios-pr-build.yml` (simulator compile + unit tests) runs on
   `ios/**`, `public/areas/index.json`, and the workflow file. ~8-13 min.
   **Wait for green before merging** these. Trailforge/scripts paths have NO CI
   gate — dry-run + eyeball is the gate there.
 - **Merge authority:** the user authorized merging PRs autonomously once CI is
-  green (squash + delete branch). Still eyeball a dry-run for no-CI-gate PRs. Do
-  NOT auto-dispatch TestFlight.
+  green (squash + delete branch). Still eyeball a dry-run for no-CI-gate PRs.
+  Claude MAY also dispatch TestFlight after app-code merges (user OK'd 2026-07-26)
+  — see the TestFlight note above for when.
 - **R2 sync:** `sync-geom-to-r2.yml` auto-runs on push to `public/areas/geom/**`
   or `silhouettes/**` → R2 bucket `trekdex-areas` (`cdn.trekdex.app`). Also
   rebuilds `trail-search.json` + `trail-shapes.json`. Does NOT cover `index.json`.

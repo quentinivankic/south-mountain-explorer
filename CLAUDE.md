@@ -270,6 +270,13 @@ mean one view with two unit systems and two meanings for x.
 - **DEFERRED — nested/duplicate areas** (task #37): e.g. "Saguaro" returns 4
   overlapping areas (park + 2 districts + wilderness). Real fix = a containment
   gate at publish (keep the iconic designation, drop redundant nested polygons).
+  (Related dedup B+D SHIPPED #475 — see auto-memory `nested-area-dedup`.)
+- **Trail/area quality audit** (2026-07-26, tasks #21,#30-36; auto-memory
+  `area-quality-grayling-audit`): investigated + quantified. TIGER roads-as-trails
+  (3,561 flagged, auto-drop 256 + review), 0-length stubs (251, lossless), thru-route
+  teleport/fragmentation (996 gaps ≥2mi; split into road-bounded sections),
+  fragmentation quality score, route-source decision. Re-measure any time with
+  `python3 scripts/audit-trail-quality.py` (reproduces the baselines).
 
 ---
 
@@ -292,8 +299,10 @@ mean one view with two unit systems and two meanings for x.
 
 ## Things Claude gets wrong (read before proposing)
 
-1. **Public TestFlight is LIVE.** Privacy-manifest / Beta-App-Review work is
-   moot (Apple accepted builds without it). Valid only for App Store submission.
+1. **v1.0 SUBMITTED to the App Store 2026-07-26** (iPhone-only), awaiting review —
+   so App Store compliance is NO LONGER moot (privacy manifest / metadata / IAP /
+   account deletion all apply and were satisfied; see auto-memory
+   `app-store-submission`). Public TestFlight is also live for testers.
 2. **Never merge before CI is green** on `ios-*` PRs. Poll `get_check_runs` for
    `conclusion: success` on the merge commit; don't merge right after opening.
 3. **Verify state via code, not this file or a roadmap.** Both drift. grep/Read

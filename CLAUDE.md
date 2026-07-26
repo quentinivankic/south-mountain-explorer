@@ -385,7 +385,8 @@ mean one view with two unit systems and two meanings for x.
 - Workflows → `.github/workflows/`
 
 ## When in doubt
-Ask before: merging a PR (wait for CI), dispatching anything that uploads to
-TestFlight, touching `Documents/hike-history.json` or `activity-log.json` on the
-device, reverting on main, or force-pushing a shared branch. For outward-facing
-or hard-to-reverse actions, confirm first unless already authorized.
+Already authorized (don't ask): merging PRs on green CI, and dispatching
+TestFlight (see the TestFlight note above for when). Still ask before: touching
+`Documents/hike-history.json` or `activity-log.json` on the device, reverting on
+main, or force-pushing a shared branch. For outward-facing or hard-to-reverse
+actions, confirm first unless already authorized.

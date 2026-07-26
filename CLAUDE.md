@@ -197,9 +197,10 @@ what is really a climb. `gain_ft` sidesteps this by being direction-invariant
 
 **DECIDED + SHIPPED: orient by whichever trail end is nearest the
 user, always** (`TrailProfile.startIsNearer`) — no distance cutoff. It landed
-via **#447**, NOT #445 — cite #447. (#445 is still open and now hundreds of
-files behind `main`; it must never be merged. This is the same mis-scoped merge
-described in "Things Claude gets wrong" #6.) The "you are
+via **#447**, NOT #445 — cite #447. (#445 was CLOSED 2026-07-26, never merged;
+it had drifted hundreds of files behind `main`, so merging it would have reverted
+the dedup/alias work and most of `public/areas/geom`. This is the same mis-scoped
+merge described in "Things Claude gets wrong" #6.) The "you are
 here" marker still needs 50 m, but ORIENTATION always has an answer. One code
 path, no fallback chain, degrades smoothly: arbitrary-ish at home, right while
 driving in, exact at the trailhead. Chosen because every alternative has a hole,

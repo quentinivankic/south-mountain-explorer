@@ -442,8 +442,14 @@ def assign_federal(fed: list[dict], rings_by_area: dict[str, list],
             for aid in blank_containers:
                 by_area.setdefault(aid, []).append(f)
             continue
-        if contained:
-            continue  # inside a non-blank area — OSM already covers it
+        # Edge fill, checked BEFORE the non-blank drop below. A wilderness
+        # trailhead sits just OUTSIDE the wilderness polygon, on the road — but
+        # that road is usually still INSIDE the surrounding national forest.
+        # Testing `contained` first therefore dropped the feature as "OSM
+        # covers it" and left the wilderness blank forever (55 of Arizona's 58
+        # blank areas were Wildernesses nested in Coronado/Tonto/Prescott NF).
+        # The nearest blank area's edge wins regardless of what else contains
+        # the point; OSM still stays authoritative for any area that has lots.
         best_aid, best_d = None, _FED_EDGE_BUFFER_M
         for aid in blank_ids:
             rings = rings_by_area.get(aid)
@@ -454,6 +460,9 @@ def assign_federal(fed: list[dict], rings_by_area: dict[str, list],
                 best_d, best_aid = d, aid
         if best_aid:
             by_area.setdefault(best_aid, []).append(f)
+            continue
+        if contained:
+            continue  # inside a non-blank area — OSM already covers it
     return {aid: dedup(lots, PARKING_DEDUP_M) for aid, lots in by_area.items()}
 
 

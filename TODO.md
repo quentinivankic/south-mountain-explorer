@@ -4,7 +4,110 @@ Long-running tracker of shipped work + open items. Live "what's in the
 current build" planning lives in `~/.claude/plans/binary-hatching-
 toucan.md`; this file is the historical record.
 
-## In flight (open PRs + awaiting action)
+⚠️ **Read the dated section below, then treat every "In flight" section
+further down as HISTORY.** Those were accurate on their date and are kept for
+the lessons; their PR numbers and "NEXT" instructions are stale. Verify against
+code / `gh pr list` before acting on anything below this line.
+
+## In flight (2026-07-26) — the current picture
+
+- **v1.0 is SUBMITTED to the App Store** (2026-07-26) and awaiting review.
+  iPhone-only (`TARGETED_DEVICE_FAMILY=1`, #478). Build `919c5c1f5` is both the
+  submission candidate and the current TestFlight build — there are no unshipped
+  Swift changes on `main`. Privacy answers, store copy, and the screenshot recipe
+  are in auto-memory `app-store-submission.md`.
+- **Trail / area QUALITY is the active engineering thread** — tasks #21, #30-37.
+  Re-measure any baseline with `python3 scripts/audit-trail-quality.py`; depth in
+  auto-memory `area-quality-grayling-audit.md`. Nothing in it is shipped yet.
+- **Parking: national, with one real-but-modest bug fixed in code (#487,
+  `519b58ad`).** 6,204 of 9,060 areas ship parking (39,082 lots, verified
+  2026-07-26). `assign_federal` dropped a federal trailhead as "OSM covers it"
+  *before* the 250 m edge search, which made that edge rule unreachable for a
+  wilderness nested inside a national forest — the exact case it was written for.
+  - **Do not oversell it.** The affected POPULATION is large (1,376 of the 2,856
+    blank areas sit inside an area that has parking, 326 named Wilderness), but
+    an A/B of `main` against the fix over the same fetched boundary + federal
+    data gave **Arizona +1, New Mexico +4, 0 regressions** — Organ Pipe Cactus,
+    Bandelier, Dome, San Pedro Parks and Sandia Mountain Wildernesses. Order of
+    **~100 areas nationally**, not 326, and states with little federal land
+    contribute nothing.
+  - **The binding constraint is federal source coverage, not the rule.** Of
+    Arizona's 37 blank areas that have a boundary, **26 have no federal point
+    within 5 km**. Only 846 of the 2,856 blank areas have an `osm_relation_id`
+    at all, so 2,010 can never be edge-filled. USFS's ArcGIS layer returned 93
+    features for the whole of Arizona. This matches the 2026-07-18 finding in
+    auto-memory `parking-feature.md` ("rescues only 3 of 47 blank areas").
+  - **Follow-up worth its own review:** five real wildernesses sit in the
+    250 m – 1 km band (Chiricahua 358 m, Granite Mountain 405 m, Miller Peak
+    697 m, Bear Wallow 780 m, Castle Creek 834 m). Raising
+    `_FED_EDGE_BUFFER_M` toward ~1 km would roughly triple the Arizona fill, but
+    the buffer is the only thing preventing misattribution to a neighbouring
+    area and the road gate does not help with that — needs before/after review on
+    named examples, not a tuning tweak.
+  - **The geom does not change until `trailforge-parking.yml` is re-run — that
+    roll has NOT happened.** ~4 h at `max-parallel: 8`.
+- **Canada is the only coverage gap left.** 375 `-ca-*` rows sit in the master
+  index with trail counts (Banff 421, Jasper 199) and ZERO published geom, and
+  there is no Canada publish path (`trailforge-publish-us.yml` is 51 US codes).
+  The iOS bundle gates on geom presence, so none of them reach the app — this is
+  a missing region, not a broken one.
+- **`trailforge/extract/` NAS staging scripts merged** (#468, `da065332`) —
+  `fetch-us-extract.sh` pulls the ~11 GB Geofabrik US extract onto the NAS and
+  `prefilter-access.sh` derives a roads + parking subset. This is what turns
+  Overpass-per-question work into local osmium passes; task #22 (`--update` via
+  pyosmium diffs) builds on it.
+- **PR queue, cleaned 2026-07-26.** Merged #468 and #487. Closed:
+  - **#445** trail elevation profiles — its work landed via **#447**, and the
+    branch was hundreds of files behind `main`, so merging it would have reverted
+    the dedup/alias work, `docs/adr/0002`, and most of `public/areas/geom`.
+  - **#444** parking wilderness fix — superseded by #487, which re-applied the
+    same 13-line hunk on current `main` without reverting later fixes.
+- **Still open (verified 2026-07-26):**
+  - **#425** parking gate-after-assign + `roll-parking.sh` — **still unmerged.**
+    Neither piece is on `main` (`main` gates *before* assigning, and there is no
+    `scripts/roll-parking.sh`). Do NOT cite #425 as shipped.
+  - **#224** app-icon punch-in — a product call that needs a fresh build; parked
+    while v1.0 is in review.
+  - **#147** Live Activity and **#144** distance-to-next-turn — long-standing
+    drafts, both still valid ideas.
+- **342 remote branches, 309 of them `claude/*`.** Nothing prunes them. Turning
+  on Settings → General → "Automatically delete head branches" stops the bleeding;
+  the existing pile needs a deliberate `git push origin --delete` sweep, restricted
+  to branches whose tips are already in `main`.
+
+## Shipped 2026-07-20/26 (dedup, App Store submission, quality audit)
+
+- **Duplicate / nested areas — build B+D SHIPPED (#475), confirmed on device.**
+  205 areas hidden from Browse (186 identical twins + 19 near-coextensive nests
+  at trail-set ratio ≥0.75), 9 canonical "traps" deliberately kept as two entries
+  (Glacier NP ⊂ Waterton-Glacier would otherwise hide Glacier NP), provably
+  lossless — 0 orphaned trails of 75,106. Mechanism is a reversible
+  `public/areas/aliases.json` sidecar, never a delete, because `index.json` is a
+  POSITIONAL array shared with old app builds. Rationale in
+  `docs/adr/0002-areas-overlap-trails-are-identity.md`. The framing that unlocked
+  it: the duplication is at the TRAIL level, so the fix is trail identity, not
+  area deletion.
+  - **Completion crosses twins by geometry fingerprint** (#471, extended to the
+    home-card count and the map's cyan lines in #474) and **coverage + the
+    walked-here halo resolve from a hidden twin onto its canonical** (#477).
+  - STILL OPEN as task #37: sibling GROUPING. "Saguaro" still returns 4 and
+    "Au Sable" 4 — real distinct polygons below the 0.75 cut, so the fix is to
+    group them under one iconic parent in search, NOT to delete any.
+- **v1.0 submitted to the App Store** (2026-07-26, iPhone-only via #478).
+- **Parking rolled nationwide** — 6,204 of 9,060 areas, 39,082 lots.
+  `trailforge-parking.yml` became a per-state matrix (#455) after the serial
+  single-job shape proved unusable at ~28 min per state.
+- **US coverage gap CLOSED.** Great Smoky ships as two state-clipped rows
+  (`-nc` 128 trails, `-tn` 131, same OSM rel `2131838` — an artifact of the state
+  clip, not a gap), and Death Valley (135 trails) and the other multi-state areas
+  ship too. Only Canada is left.
+- **Silhouette colour fixes** (#476) — moderate reads orange, overlaps no longer
+  blend to gold.
+- **Trail-quality audit tooling** (#481) — `scripts/audit-trail-quality.py`
+  reproduces the #30 / #31 / #35 baselines straight from shipped geom, so every
+  number in those tasks is re-checkable instead of remembered.
+
+## HISTORICAL — in flight as of ~2026-07-15 (stale, kept for the lessons)
 
 Snapshot of the active threads this session — see the PRs for detail.
 
@@ -58,7 +161,10 @@ Snapshot of the active threads this session — see the PRs for detail.
   Settings → General → **"Automatically delete head branches"** so future
   branches self-clean on merge.
 
-## In flight 2026-07-19 (day 2 — rel-id backfill, parking bug, elevation profiles)
+## HISTORICAL — in flight 2026-07-19 (day 2: rel-id backfill, parking bug, elevation profiles)
+
+_Stale: the republish landed, Death Valley ships (135 trails), #443 merged, #444
+is superseded by #487, and #445's work landed via #447. Kept for the mechanisms._
 
 - **Whole-US republish #2 — RUNNING** (`dry_run=false`, run 29690745615). Carries
   the 525 backfilled rel ids. Dry-run first: green, 13/13 regions, 65 min, no
@@ -111,7 +217,9 @@ Snapshot of the active threads this session — see the PRs for detail.
   since the shipped build `caf26794`; the only `ios/` churn is the bundled
   `areas-index.json` (offline fallback only; live index comes from R2).
 
-## In flight 2026-07-18/19 (parking + coverage — big session)
+## HISTORICAL — in flight 2026-07-18/19 (parking + coverage, big session)
+
+_Stale: that whole-US republish landed and the US coverage gap is CLOSED._
 
 - **Whole-US cross-state coverage re-publish — RUNNING.** `trailforge-publish-us.yml`
   (real, `dry_run=false`) re-publishing all US areas WITH the new multi-state
@@ -129,8 +237,10 @@ Snapshot of the active threads this session — see the PRs for detail.
   CONTAINMENT gate). AZ live on R2. Deep detail in auto-memory `parking-feature.md`.
   Sub-decisions: **federal fallback — BLM DROPPED** (generic area-POI markers,
   not trailheads; verified bad on Kanab + Grand Canyon-Parashant, #427),
-  **NPS+USFS kept**. **Road-proximity gate** (#423) + **assign-then-gate
-  efficiency** (#425). **iOS on-selection display** (#429 — parking hidden while
+  **NPS+USFS kept**. **Road-proximity gate** (#423). ⚠️ The assign-then-gate
+  efficiency change (**#425**) was NEVER merged — `main` still road-gates BEFORE
+  assigning, and there is no `scripts/roll-parking.sh`. Do not cite it as
+  shipped. **iOS on-selection display** (#429 — parking hidden while
   browsing; tap a trail → ≤3 nearest + zoom frame) + **distinct green trailhead
   marker + attribution** (#421). **Publish PRESERVES parking on republish** (#426).
 - **⚠️ Stale-geom cache bug FIXED (#424)** — root cause of recurring "ghost pin"
@@ -262,10 +372,12 @@ Snapshot of the active threads this session — see the PRs for detail.
 
 ## App Store release gate
 
-Items required (or strongly advised) before submitting to the App Store
-beyond TestFlight. Public TestFlight is currently live without any of
-these; they ONLY matter when you want to ship to the store. None block
-TF builds.
+✅ **This gate is CLEARED — v1.0 was submitted 2026-07-26 and is awaiting
+review.** The list below is kept as the record of what was required and how each
+item was satisfied; the two remaining unchecked boxes are noted inline. The old
+framing ("these only matter if you ever want to ship to the store") no longer
+applies — App Review compliance is live now, so anything that touches privacy,
+metadata, IAP, or account deletion has to stay true.
 
 ### Hard blockers (App Review will reject)
 
@@ -284,20 +396,23 @@ TF builds.
   false.
 - [x] **Privacy policy URL** — Hosted at trekdex.app/privacy-policy;
   in-app link updated + Terms of Service added in #205.
-- [ ] **App Privacy "nutrition label"** — Draft in
-  `docs/app-store-submission.md`. Now that PostHog analytics + feedback
-  ship, this is **Data Collection: Yes** — Product Interaction, Other
-  User Content, Email, Crash Data (not linked, not tracking). Still
-  needs to be ENTERED in App Store Connect (you).
-- [ ] **App Store metadata package** — Text (description, subtitle,
-  keywords, category, URLs, age rating) drafted in
-  `docs/app-store-submission.md`. **Screenshots are automated**: the
-  dispatch-only `ios-screenshots` workflow (#226–#239) boots a 6.9"
-  simulator, seeds an art-directed South Mountain demo state, drives
-  the 5 planned shots via UI test, and uploads the PNGs as an
-  artifact. Latest polish is **PR #255** (in flight — see "In flight"):
-  stats variation, shot-3 zoom + blue dot, shot-5 tiles. Once merged +
-  re-dispatched, paste the PNGs + text into ASC.
+- [x] **App Privacy "nutrition label"** — ENTERED in App Store Connect
+  2026-07-26. **Data Collection: Yes** — Email Address, Other User Content
+  (feedback), Product Interaction (PostHog), Crash Data. All *not linked, not
+  tracking*; purpose is App Functionality except Product Interaction =
+  Analytics. **Location is NOT collected** (GPS stays on device, map-fetch
+  coords are transient) — keep PostHog GeoIP OFF or that stops being true.
+  Answers must stay consistent with `PrivacyInfo.xcprivacy`.
+- [x] **App Store metadata package** — DONE and submitted. Description,
+  subtitle, keywords, promo text, category (Health & Fitness + Navigation),
+  age 4+, content rights (OpenStreetMap under ODbL), privacy policy + ToS
+  URLs, support/marketing URL, automatic release after approval. Text drafted
+  in `docs/app-store-submission.md`. **Screenshots are automated**: the
+  dispatch-only `ios-screenshots` workflow (#226–#239, polish in #255) boots a
+  6.9" simulator, seeds an art-directed South Mountain demo state, drives the 5
+  shots via UI test, uploads the PNGs as an artifact — 5 at 1320×2868, which ASC
+  scales to every other size. Going iPhone-only (#478) is what removed the iPad
+  13" screenshot requirement.
 - [x] ~~DUNS / organization enrollment~~ — **N/A (decided 2026-07-15): ship
   v1 under the existing INDIVIDUAL account.** No D-U-N-S / Org enrollment
   needed to submit; the only tradeoff is the seller name being the
@@ -480,9 +595,9 @@ TF builds.
 Everything below is external / on-device and can't be finished in the
 repo:
 
-- [ ] Enter the App Privacy nutrition label in App Store Connect —
-  now **Data Collection: Yes** (PostHog): Product Interaction, Other
-  User Content, Email, Crash Data. Draft in `docs/app-store-submission.md`.
+- [x] Enter the App Privacy nutrition label in App Store Connect — DONE
+  2026-07-26 (Email, Other User Content, Product Interaction, Crash Data; all
+  not-linked / not-tracking; Location NOT collected).
 - [x] **Privacy policy + ToS — DONE (user, 2026-07-19): fully up to date and
   live on the website.** Canonical source in-repo: `docs/privacy-policy.md` +
   `docs/terms-of-service.md` (#382) — analytics (PostHog + MetricKit + feedback/
@@ -490,21 +605,30 @@ repo:
   **Trekdex LLC** (real entity; Individual Apple account = store seller name is
   the personal legal name).
 - [ ] **Paid Applications Agreement + tax/banking in App Store Connect** —
-  REQUIRED now that the app ships a **three-tier tip jar IAP** (built in code,
-  inactive until store publish). Sign the agreement + complete banking/tax before
-  the tip-jar products can go live. (Was previously marked N/A under the "free,
-  no IAP" assumption — corrected 2026-07-19.)
-- [ ] Dispatch `ios-screenshots` (#255 already merged) for the final
-  capture set (verifies shot-3 blue dot + no empty stats month), then
-  upload the PNGs to ASC.
-- [ ] Crash/stability pass on device.
+  REQUIRED because the app ships a **three-tier tip jar IAP**. NOT VERIFIED
+  either way from here: 1.0 was submitted with the tip jar attached, which
+  normally means the agreement is in place, but nothing in the repo can confirm
+  it and no in-session note records signing it. **Check ASC → Business before
+  release** — if it is unsigned the products stay unavailable and the tip jar is
+  dead UI in a shipped app. (Was once marked N/A under a "free, no IAP"
+  assumption — corrected 2026-07-19.)
+- [x] Dispatch `ios-screenshots` for the final capture set, then upload the
+  PNGs to ASC — DONE for the 1.0 submission (5 shots at 1320×2868).
+- [ ] Crash/stability pass on device. Still the one genuinely open QA item —
+  an older-model iPhone pass would be the useful next step.
 - [x] **Payment card on the Apple account — UPDATED 2026-07-19 (user).** Keep it
   valid so the Individual membership doesn't lapse. (Org conversion deferred —
   shipping v1 under Individual, decided 2026-07-15.)
-- [ ] Dispatch **`ios-testflight`** for the submission-candidate build once
-  the Confidence Lab is re-gated to DEBUG, then submit that build in ASC.
-- [ ] Dispatch **Build Region Tiles** (`region=new-zealand`) — build-only
-  first, then add `R2_*` secrets and re-run with `publish=true`.
+- [x] Dispatch **`ios-testflight`** for the submission-candidate build, then
+  submit that build in ASC — DONE. The Confidence Lab was already `#if DEBUG`;
+  build `919c5c1f5` (iPhone-only) is what 1.0 was submitted with. Claude may
+  now auto-dispatch TestFlight after app-CODE merges on green CI (user OK'd
+  2026-07-26) — skip it for data-only and docs-only changes.
+- [~] ~~Dispatch **Build Region Tiles** (`region=new-zealand`)~~ — **N/A: the
+  workflow no longer exists.** `build-region-tiles.yml` was deleted in #366 as
+  dead System-2 pmtiles infrastructure superseded by trailforge; the
+  `data-pipeline/` tree is still in the repo but nothing dispatches it. Don't
+  resurrect this without deciding the pmtiles path is worth reviving.
 
 ## Shipped
 

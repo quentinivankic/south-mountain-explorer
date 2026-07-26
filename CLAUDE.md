@@ -215,8 +215,11 @@ exactly where the answer must be most stable.
   anything considered. (The 28% is partly artifact: boundary-clipped trails look
   free-ended.)
 - **Nearest parking lot as the anchor.** Built, CI-green, then REVERTED in the
-  same PR. Parking exists for AZ only — 106 of 8,973 areas — so it fired for ~1%
-  and coupled an elevation feature to the parking rollout.
+  same PR — because parking was AZ-only THEN (106 areas), so it fired for ~1% and
+  coupled an elevation feature to the parking rollout. **That condition is GONE:
+  parking now covers 6,204 of 9,060 areas (68%, verified 2026-07-26), so the
+  trailhead anchor is viable for most trails with a nearest-end fallback for the
+  rest. Now the strongest option — see "What would change the decision" below.**
 - **Direction of travel** (flip so "ahead" is always right). Dropped with the
   above: it mirrors the chart when you turn round on an out-and-back, and needed
   `@State` + an `onChange` to damp the flapping. Latched nearest-end is stable
@@ -227,9 +230,13 @@ exactly where the answer must be most stable.
   but asks the user a question they don't know they have — fine as an OVERRIDE,
   never as the default. Still the best candidate if the default proves wrong.
 
-**What would change the decision:** parking reaching national coverage (makes
-the trailhead anchor real), or complaints that browsed profiles read backwards
-(then add the pin/flip override, don't swap the default).
+**What would change the decision — and the FIRST trigger has now fired:** parking
+reaching national coverage (68% as of 2026-07-26) makes the trailhead anchor real.
+A parking-anchored orientation with a nearest-end fallback is now the strongest
+option and should be reconsidered — it was only ever rejected for AZ-only coverage,
+which no longer holds. **NOT yet implemented; recorded as an unblocked, open
+decision.** The other trigger: complaints that browsed profiles read backwards →
+add the pin/flip override, don't swap the default.
 
 App side: `Utilities/TrailProfile.swift` (snap / elevationFt / oriented), chart
 in `Views/Area/TrailElevationProfileView.swift`, expanded into the selected row

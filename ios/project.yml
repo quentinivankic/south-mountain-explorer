@@ -64,6 +64,9 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.southmountainexplorer.app
         SWIFT_STRICT_CONCURRENCY: complete
         ENABLE_USER_SCRIPT_SANDBOXING: NO
+        # iPhone-only (1). Universal would force iPad screenshots in App
+        # Store Connect and put the app on a device it isn't designed for.
+        TARGETED_DEVICE_FAMILY: "1"
       configs:
         Release:
           CODE_SIGN_STYLE: Manual

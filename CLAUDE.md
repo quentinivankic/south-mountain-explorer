@@ -195,8 +195,11 @@ trailhead, and drawing the array raw means half of all trails show a descent for
 what is really a climb. `gain_ft` sidesteps this by being direction-invariant
 (`max(ascent, descent)`); a CHART cannot.
 
-**DECIDED + SHIPPED in #445: orient by whichever trail end is nearest the
-user, always** (`TrailProfile.startIsNearer`) — no distance cutoff. The "you are
+**DECIDED + SHIPPED: orient by whichever trail end is nearest the
+user, always** (`TrailProfile.startIsNearer`) — no distance cutoff. It landed
+via **#447**, NOT #445 — cite #447. (#445 is still open and now hundreds of
+files behind `main`; it must never be merged. This is the same mis-scoped merge
+described in "Things Claude gets wrong" #6.) The "you are
 here" marker still needs 50 m, but ORIENTATION always has an answer. One code
 path, no fallback chain, degrades smoothly: arbitrary-ish at home, right while
 driving in, exact at the trailhead. Chosen because every alternative has a hole,
@@ -229,15 +232,22 @@ exactly where the answer must be most stable.
   (Grand Canyon). A guess wearing a rule's clothes.
 - **User drops a pin.** Works mechanically (a pin snaps exactly like a GPS fix),
   but asks the user a question they don't know they have — fine as an OVERRIDE,
-  never as the default. Still the best candidate if the default proves wrong.
+  never as the default. **The override half of this SHIPPED and is on `main`
+  (verified in code 2026-07-26)** — a Flip button on the chart
+  (`TrailElevationProfileView.onFlip`) writes a per-trail boolean through
+  `Utilities/ProfileDirectionStore.swift` (`StorageKeys.profileDirectionOverrides`),
+  read back when the row expands (`TrailListView`, ~line 587). So "add a flip
+  override" is DONE, not pending; only the default is still nearest-end.
 
 **What would change the decision — and the FIRST trigger has now fired:** parking
 reaching national coverage (68% as of 2026-07-26) makes the trailhead anchor real.
 A parking-anchored orientation with a nearest-end fallback is now the strongest
 option and should be reconsidered — it was only ever rejected for AZ-only coverage,
 which no longer holds. **NOT yet implemented; recorded as an unblocked, open
-decision.** The other trigger: complaints that browsed profiles read backwards →
-add the pin/flip override, don't swap the default.
+decision.** The other trigger — complaints that browsed profiles read backwards
+— is already covered: the per-trail flip override SHIPS (see the pin bullet
+above), so that trigger no longer implies new work, and it is not a reason to
+swap the default.
 
 App side: `Utilities/TrailProfile.swift` (snap / elevationFt / oriented), chart
 in `Views/Area/TrailElevationProfileView.swift`, expanded into the selected row

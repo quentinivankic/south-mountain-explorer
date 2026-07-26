@@ -41,3 +41,4 @@ __pycache__/
 # OUT of git because it crosses GitHub's 100 MB file size limit
 # at full-US scale.
 public/areas/counts-cache.json
+.codebase-memory/

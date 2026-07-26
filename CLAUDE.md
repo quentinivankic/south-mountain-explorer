@@ -72,9 +72,9 @@ OSM extract (Geofabrik/planet) → prefilter (hiking-only PBF) → aoi (bbox cut
   (cdn.trekdex.app) → app fetches geom/silhouettes with a bundled fallback.
 ```
 
-- **Coverage:** ~8,860 areas ship with clean trail geom (the iOS bundle set).
-  The master index has ~29,852 rows; the rest are seeded-but-unpublished or
-  non-hikeable.
+- **Coverage:** ~9,060 areas ship with clean trail geom (the iOS bundle set,
+  verified 2026-07-26). The master index has ~29,852 rows; the rest are
+  seeded-but-unpublished (incl. all ~375 Canada rows) or non-hikeable.
 - **`add-parking.py`** is a post-process that enriches geom with OSM/federal
   parking (see `parking-feature.md`). Publish PRESERVES parking on republish
   (`publish_areas.py` + `merge-published-geom.py` carry it forward).
@@ -247,14 +247,16 @@ mean one view with two unit systems and two meanings for x.
   federal points. On-selection display + distinct trailhead marker shipped.
   Stale-geom cache bug FIXED (#424 — corrections now propagate; was the root of
   recurring "ghost pin" reports).
-- **Coverage gap** (`coverage-gap-missing-areas.md` + the session task list):
-  810 substantial areas don't ship (Great Smoky Mtns, Banff, big National
-  Forests). Two causes: Canada never published (360), and US multi-state
-  boundaries clipped at state lines in per-state extracts (450). **Fix shipped
-  (#430/#432):** `publish_areas.py` fetches a multi-state area's boundary by
-  `osm_rel` id via Overpass when PBF assembly fails, only for trail-bearing
-  areas. Proven: GSMNP publishes 128 trails. **Remaining: re-publish the
-  affected states** (NC staged + dry-run clean), then Canada (separate scope).
+- **Coverage gap — US CLOSED, only Canada remains** (`coverage-gap-missing-areas.md`).
+  Verified in data 2026-07-26: **Great Smoky Mtns SHIPS** (`...-nc` 128 trails +
+  `...-tn` 131, both with geom on R2) and so do the other US multi-state areas —
+  the boundary-by-`osm_rel`-id fix (#430/#432) landed and the states were
+  re-published. **Do NOT claim marquee US areas are missing — verify the index/geom
+  first.** GSMNP ships as TWO state-clipped rows (same rel `2131838`) — an artifact,
+  not a gap. **Still missing: Canada** — 375 `-ca-*` rows sit in `index.json` with
+  trail counts (Banff 421, Jasper 199) but have ZERO published geom, and there's no
+  Canada publish path yet (`trailforge-publish-us.yml` is 51 US codes). Shipping
+  Canada is a real pipeline lift, not a re-run.
 - **System-1 purged** (#428): 7,304 pre-trailforge `cached_at` geom deleted
   (never shipped; caused "has trails but doesn't ship" confusion). Nothing
   regenerates them unless the old `build-trail-index.yml` runs — don't.

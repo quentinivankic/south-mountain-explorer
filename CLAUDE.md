@@ -267,10 +267,12 @@ mean one view with two unit systems and two meanings for x.
 - **System-1 purged** (#428): 7,304 pre-trailforge `cached_at` geom deleted
   (never shipped; caused "has trails but doesn't ship" confusion). Nothing
   regenerates them unless the old `build-trail-index.yml` runs — don't.
-- **DEFERRED — nested/duplicate areas** (task #37): e.g. "Saguaro" returns 4
-  overlapping areas (park + 2 districts + wilderness). Real fix = a containment
-  gate at publish (keep the iconic designation, drop redundant nested polygons).
-  (Related dedup B+D SHIPPED #475 — see auto-memory `nested-area-dedup`.)
+- **Nested/duplicate areas.** Identical twins + near-coextensive nests (ratio ≥0.75)
+  SHIPPED via alias sidecar (B+D, #475 — 186 twins + 19 nests hidden; see auto-memory
+  `nested-area-dedup`). REMAINING (task #37): sibling groupings B+D left — "Saguaro"
+  still returns 4 (park + 2 districts at 0.44/0.58 + wilderness 0.66, all under the
+  0.75 cut) and "Au Sable" 4 distinct units. Fix = search-GROUP siblings under one
+  iconic parent, NOT delete (they're real distinct polygons).
 - **Trail/area quality audit** (2026-07-26, tasks #21,#30-36; auto-memory
   `area-quality-grayling-audit`): investigated + quantified. TIGER roads-as-trails
   (3,561 flagged, auto-drop 256 + review), 0-length stubs (251, lossless), thru-route

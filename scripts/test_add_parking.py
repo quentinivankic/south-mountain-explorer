@@ -293,6 +293,30 @@ def test_boundary_fetch_failure_reports_not_ok(tmp_dir=None):
         assert rings == {} and n == 0 and ok is True, (rings, n, ok)
 
 
+def test_classify_write_treats_missing_key_and_empty_list_as_the_same_blank():
+    # REGRESSION (2026-07-26): an area with no `parking` key reads back as None
+    # and an area with no qualifying lots computes as []. `None != []`, so every
+    # area that was blank before and blank after was counted as "cleared" and
+    # reported as having LOST parking. The AZ/NM dry run claimed "would clear
+    # 55" / "would clear 45" when the real answer was 0 — those were exactly the
+    # areas that stayed blank (59-4 and 51-6). Nationally that is ~2,000 phantom
+    # losses, which buries a real regression.
+    assert ap._classify_write(None, []) is None
+    assert ap._classify_write([], []) is None
+
+    lot = {"lat": 1.0, "lon": 2.0}
+    other = {"lat": 3.0, "lon": 4.0}
+    # Blank -> has lots is an ADD, from either representation of blank.
+    assert ap._classify_write(None, [lot]) == "added"
+    assert ap._classify_write([], [lot]) == "added"
+    # Same lots either way round is not a change.
+    assert ap._classify_write([lot], [lot]) is None
+    # Different lots is an update, not an add.
+    assert ap._classify_write([lot], [other]) == "updated"
+    # A GENUINE clear still reports as cleared — that signal must survive.
+    assert ap._classify_write([lot], []) == "cleared"
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

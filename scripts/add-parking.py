@@ -673,6 +673,32 @@ def parking_for_geom(geom: dict, data: dict) -> list[dict]:
     return parking_for_area(geom, parse_parking(data), parse_trailheads(data))
 
 
+def _classify_write(had, clean: list[dict]) -> str | None:
+    """What this area's parking write is: "added" | "updated" | "cleared", or
+    None for no change at all.
+
+    An area with NO `parking` key reads back as `None`, and an area with no
+    qualifying lots computes as `[]`. Those mean the same thing — blank — so
+    they must compare EQUAL. Comparing the raw values did not: `None != []`,
+    so every area that was blank before and blank after fell through to
+    "cleared" and got reported as having LOST parking. The 2026-07-26 AZ/NM dry
+    run said "would clear 55" and "would clear 45" when the true answer was
+    zero — those were exactly the 59-4 and 51-6 areas that stayed blank. At
+    national scale that is ~2,000 phantom losses in the log, which would bury a
+    real regression instead of surfacing one.
+
+    A genuine clear (`had` non-empty, `clean` empty) still reports as cleared.
+    """
+    before = had or []
+    if before == clean:
+        return None
+    if clean and not before:
+        return "added"
+    if clean:
+        return "updated"
+    return "cleared"
+
+
 def _strip_internal(lots: list[dict]) -> list[dict]:
     """Geom-ready copy: drop the `_dist_m` metric field (keep lat/lon/name/
     fee/trailhead)."""
@@ -1023,14 +1049,15 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> 
             area_counts[f.stem] = len(kept)
             clean = _strip_internal(kept)
             had = geom.get("parking")
-            if had != clean:
+            outcome = _classify_write(had, clean)
+            if outcome:
                 # Classify BEFORE writing: clearing a stale key is a legitimate
                 # outcome (better than leaving pins for parking that no longer
                 # qualifies) but it must never be reported as if parking were
                 # added.
-                if clean and not had:
+                if outcome == "added":
                     added += 1
-                elif clean:
+                elif outcome == "updated":
                     updated += 1
                 else:
                     cleared += 1

@@ -1,16 +1,66 @@
 import Foundation
 
-/// Per-trail output of `measureCoverage`. `fraction` is the share of
-/// polyline nodes within `bufferMeters` of the recorded GPS path.
-/// `endpointsVisited` is true only when BOTH the first and last
-/// polyline nodes are within `bufferMeters` of the path — i.e. the
-/// hiker actually reached both ends, not just covered most of the
-/// length. Two-gate completion (fraction ≥ threshold AND
-/// `endpointsVisited`) is what stops "I walked 90% of a linear trail
-/// but turned around before the end" from firing the celebration.
+/// How much of a trail a GPS path covered, and whether that adds up to
+/// having walked the thing.
+///
+/// `fraction` is the share of polyline nodes within `bufferMeters` of the
+/// path. `longestSkippedRunM` is the longest CONTIGUOUS stretch of trail
+/// LENGTH whose nodes went uncovered. Completion is `fraction ≥ threshold`
+/// AND `longestSkippedRunM ≤ maxSkippedRunMeters` — see `completesTrail`.
+///
+/// `endpointsVisited` is retained for DIAGNOSTICS ONLY and no longer gates
+/// anything. It used to, and it was wrong: see `completesTrail`.
 struct CoverageScore: Equatable, Sendable {
     let fraction: Double
     let endpointsVisited: Bool
+    let longestSkippedRunM: Double
+}
+
+/// Share of a trail's nodes that must be covered. Bumped 0.90 → 0.95 in
+/// build 13 after device testing.
+let completionFractionThreshold = 0.95
+
+/// The longest stretch of trail you may skip and still be credited.
+///
+/// This REPLACED an "did you reach both endpoints" gate, which asked the
+/// right question the wrong way. That gate took the first node of the first
+/// segment and the last node of the last segment — meaningful only when a
+/// trail is one contiguous, correctly-ordered polyline. 11,191 of 92,297
+/// shipped trails are stored as several DISCONNECTED pieces in arbitrary
+/// OSM order, so for those it tested two arbitrary interior points. Pima
+/// West Loop Trail is a closed 1.5 mi loop plus a 19 m orphan fragment 127 m
+/// away; its "last node" sits on the orphan, so walking the entire loop could
+/// never complete it. Guadalupe Perimeter is five pieces whose nominal ends
+/// are a mile apart with no trail between them.
+///
+/// A skipped-run limit asks what the endpoint gate was really after — "you
+/// didn't miss a chunk" — without needing to know where a trail's ends are,
+/// so it behaves identically for loops, lines, branches and gapped trails.
+///
+/// 50 m, measured. Simulated over all 11,191 disconnected trails plus a 6,000
+/// random control, against hikers who walked the whole trail, walked only the
+/// reachable piece, and turned round 100 m / 250 m short:
+///
+///     rule          fixes (disconnected)   false completions (100 m short)
+///     endpoints             —                 454 disconnected / 180 ordinary
+///     no gate at all      +871                939 / 2,675   ← 46% of ordinary!
+///     skip ≤ 50 m         +240                185 /   270
+///     skip ≤ 100 m        +480                587 / 1,633
+///
+/// So 50 m fixes more than the endpoint gate did AND halves its false
+/// completions. The threshold must sit well BELOW the shortfall it should
+/// catch — at 100 m, stopping 100 m short leaves a ~100 m run that passes.
+/// It must also sit above `bufferMeters` (30 m), or ordinary GPS scatter
+/// across a couple of nodes would read as a skipped stretch and block a real
+/// completion. 50 m is the window between those two constraints.
+let maxSkippedRunMeters = 50.0
+
+extension CoverageScore {
+    /// The completion gate. One place, so every caller agrees.
+    var completesTrail: Bool {
+        fraction >= completionFractionThreshold
+            && longestSkippedRunM <= maxSkippedRunMeters
+    }
 }
 
 /// Score every trail in `trails` against the recorded GPS `path`. Pure
@@ -53,12 +103,32 @@ func measureCoverage(
     for trail in trails {
         var total = 0
         var covered = 0
+        // Longest contiguous stretch of trail LENGTH whose nodes went
+        // uncovered — measured per segment, in metres, because "how much did
+        // you skip" is a distance question and a node count is not. A segment
+        // that goes entirely uncovered contributes its whole length as one
+        // skipped run, which is what catches a disconnected fragment the hiker
+        // never reached.
+        var longestSkipped = 0.0
         for seg in trail.segments {
+            var run = 0.0
+            var previous: [Double]?
             for node in seg {
                 guard node.count >= 2 else { continue }
                 total += 1
-                if nodeVisited(node, withinMeters: bufferMeters) { covered += 1 }
+                let hit = nodeVisited(node, withinMeters: bufferMeters)
+                if hit { covered += 1 }
+                if let p = previous, !hit {
+                    run += haversineDistanceM(lat1: p[0], lon1: p[1],
+                                              lat2: node[0], lon2: node[1])
+                }
+                if hit {
+                    longestSkipped = max(longestSkipped, run)
+                    run = 0
+                }
+                previous = node
             }
+            longestSkipped = max(longestSkipped, run)
         }
         guard total > 0 else { continue }
         let frac = Double(covered) / Double(total)
@@ -79,7 +149,9 @@ func measureCoverage(
         } else {
             endpointsHit = false
         }
-        result[trail.id] = CoverageScore(fraction: frac, endpointsVisited: endpointsHit)
+        result[trail.id] = CoverageScore(fraction: frac,
+                                        endpointsVisited: endpointsHit,
+                                        longestSkippedRunM: longestSkipped)
     }
     return result
 }

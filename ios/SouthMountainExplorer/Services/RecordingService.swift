@@ -902,10 +902,12 @@ final class RecordingService {
         guard !cov.isEmpty else { return }
 
         var aggregate: [String: Double] = [:]
-        var endpointsHit: [String: Bool] = [:]
+        var endpointsHit: [String: Bool] = [:]   // diagnostics only
+        var completesByTid: [String: Bool] = [:]
         for (tid, score) in cov {
             aggregate[tid] = score.fraction
             if score.endpointsVisited { endpointsHit[tid] = true }
+            if score.completesTrail { completesByTid[tid] = true }
         }
 
         await CoverageService.shared.mergeCoverage(areaId: areaId, delta: aggregate)
@@ -978,7 +980,7 @@ final class RecordingService {
         )
 
         let nowComplete = aggregate.compactMap { (tid, v) in
-            v >= completeThreshold && (endpointsHit[tid] ?? false) ? tid : nil
+            v >= completeThreshold && (completesByTid[tid] ?? false) ? tid : nil
         }
         // Diagnostic log for trails this rebuild is marking complete
         // that weren't already in ProgressService. Captures the same
@@ -1020,10 +1022,7 @@ final class RecordingService {
                 let snapshot = measureCoverage(path: running, trails: trails, bufferMeters: bufferMeters)
                 var toCredit: [String] = []
                 for tid in pending {
-                    if let s = snapshot[tid],
-                       s.fraction >= completeThreshold,
-                       s.endpointsVisited
-                    {
+                    if let s = snapshot[tid], s.completesTrail {
                         toCredit.append(tid)
                     }
                 }
@@ -1088,7 +1087,7 @@ final class RecordingService {
                     path: postAnchor,
                     trails: trails,
                     bufferMeters: bufferMeters
-                )[tid], s.fraction >= completeThreshold, s.endpointsVisited else {
+                )[tid], s.completesTrail else {
                     continue
                 }
                 let alreadyClaimed = hike.completedTrailIds.contains(tid)
@@ -1275,9 +1274,7 @@ final class RecordingService {
                     trails: [trail],
                     bufferMeters: bufferMeters
                 )[tid]
-                let alreadyEligible: Bool = withoutScore.map {
-                    $0.fraction >= completeThreshold && $0.endpointsVisited
-                } ?? false
+                let alreadyEligible: Bool = withoutScore.map { $0.completesTrail } ?? false
                 // Symmetric check: does post-anchor WITH this hike's
                 // path actually cross the gate? If not, this hike
                 // didn't earn the credit under tipping semantics —
@@ -1297,9 +1294,7 @@ final class RecordingService {
                     trails: [trail],
                     bufferMeters: bufferMeters
                 )[tid]
-                let crossesWithH: Bool = withScore.map {
-                    $0.fraction >= completeThreshold && $0.endpointsVisited
-                } ?? false
+                let crossesWithH: Bool = withScore.map { $0.completesTrail } ?? false
                 if alreadyEligible || !crossesWithH {
                     suppressedHere.insert(tid)
                     let reason = alreadyEligible ? "alreadyTippedBeforeHike" : "doesNotTipWithHike"
@@ -1407,7 +1402,7 @@ final class RecordingService {
             // GPS finally pushed a multi-day coverage over the
             // 0.95 threshold — the "tipping hike" for first-time
             // completion.
-            let sessionComplete = score.fraction >= completeThreshold && score.endpointsVisited
+            let sessionComplete = score.completesTrail
             if sessionComplete && !priorComplete {
                 newlyCompleted.append(tid)
             }
@@ -1693,7 +1688,7 @@ final class RecordingService {
             postAnchor.append(contentsOf: currentPath)
 
             let scores = measureCoverage(path: postAnchor, trails: trails, bufferMeters: bufferMeters)
-            guard let s = scores[tid], s.fraction >= completeThreshold, s.endpointsVisited else {
+            guard let s = scores[tid], s.completesTrail else {
                 continue
             }
 
@@ -1710,9 +1705,7 @@ final class RecordingService {
             // — they just don't appear in any hike's revisit list,
             // which is the honest record.
             let withoutScores = measureCoverage(path: postAnchorWithoutCurrent, trails: trails, bufferMeters: bufferMeters)
-            let wasAlreadyEligible: Bool = withoutScores[tid].map {
-                $0.fraction >= completeThreshold && $0.endpointsVisited
-            } ?? false
+            let wasAlreadyEligible: Bool = withoutScores[tid].map { $0.completesTrail } ?? false
             if wasAlreadyEligible {
                 let priorFrac = withoutScores[tid]?.fraction ?? -1
                 log.notice("trailRevisitSuppressed tid=\(tid, privacy: .public) reason=alreadyTippedBeforeHike priorFraction=\(priorFrac) postFraction=\(s.fraction) currentPathPoints=\(currentPath.count) historyPathsSinceAnchor=\(postAnchorWithoutCurrent.count)")

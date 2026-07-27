@@ -287,11 +287,61 @@ def _fed_name(props: dict) -> str | None:
     return None
 
 
+class ArcGISUnavailable(Exception):
+    """The layer could not be read. NOT the same as "the layer has no features
+    here" — see `_features_or_raise`."""
+
+
+def _features_or_raise(data: dict) -> list:
+    """Pull `features` out of an ArcGIS geojson response, distinguishing an
+    honest empty answer from a failure dressed up as one.
+
+    ArcGIS answers a throttled, malformed or over-limit query with **HTTP 200**
+    and a body like `{"error": {"code": 429, "message": ...}}` — no `features`
+    key at all. The old code did `data.get("features") or []`, so that failure
+    read as "zero features in bbox" and the caller cheerfully cleared every pin
+    the layer had contributed last run. That is how the 2026-07-27 national roll
+    deleted Kootenai National Forest's 50 USFS trailheads while logging
+    `federal usfs: 0 features in bbox` and exiting 0.
+
+    A genuine empty result comes back as a well-formed FeatureCollection with
+    `"features": []`, so the key being PRESENT is the signal that the query ran.
+    """
+    err = data.get("error")
+    if err:
+        code = err.get("code") if isinstance(err, dict) else None
+        msg = err.get("message") if isinstance(err, dict) else err
+        raise ArcGISUnavailable(f"ArcGIS error {code}: {msg}")
+    if "features" not in data:
+        # Not an error object either — an unexpected shape. Still not zero.
+        raise ArcGISUnavailable(
+            f"response has no 'features' key (keys: {sorted(data)[:6]})")
+    return data["features"] or []
+
+
+def _arcgis_transient(exc: Exception) -> bool:
+    """Is retrying this worth the wait? A throttle or a gateway blip is
+    transient; a rejected query returns the same answer three times, and burning
+    the backoff ladder on it repeats the missing-shapely mistake of retrying a
+    deterministic local failure and then blaming the remote service."""
+    if isinstance(exc, ArcGISUnavailable):
+        m = str(exc)
+        return any(f"error {c}:" in m for c in (429, 500, 502, 503, 504)) \
+            or "no 'features' key" in m
+    return True                    # transport / timeout / bad JSON — worth a retry
+
+
 def fetch_arcgis(url: str, bbox: list[float], where: str) -> list[tuple[float, float, dict]]:
     """Query an ArcGIS REST feature/map layer for features intersecting `bbox`
     ([lonmin, latmin, lonmax, latmax]). Returns [(lat, lon, props)]; a polygon
-    feature is reduced to its ring centroid. Paginates via resultOffset. Raises
-    on transport failure (caller decides whether to skip that source)."""
+    feature is reduced to its ring centroid. Paginates via resultOffset.
+
+    Raises `ArcGISUnavailable` when the layer could not be read — including the
+    HTTP-200-with-error-body case, which must never be mistaken for an empty
+    result. Transient failures are retried on the shared backoff ladder first,
+    which is what the un-retried single attempt was missing: Idaho's USFS query
+    returned 0 on one run and 362 features twenty minutes later.
+    """
     xmin, ymin, xmax, ymax = bbox
     out: list[tuple[float, float, dict]] = []
     offset = 0
@@ -305,12 +355,28 @@ def fetch_arcgis(url: str, bbox: list[float], where: str) -> list[tuple[float, f
             "outFields": "*", "returnGeometry": "true", "f": "geojson",
             "resultOffset": offset, "resultRecordCount": _ARCGIS_MAXREC,
         })
-        req = urllib.request.Request(url + "/query?" + params,
-                                     headers={"User-Agent": "trekdex-parking/1.0"})
-        with urllib.request.urlopen(req, timeout=_ARCGIS_TIMEOUT,
-                                    context=_ARCGIS_SSL) as r:
-            data = json.loads(r.read())
-        feats = data.get("features") or []
+        feats = None
+        last: Exception | None = None
+        for i, backoff in enumerate([0] + RETRY_BACKOFFS_SECONDS):
+            if backoff:
+                time.sleep(backoff)
+            try:
+                req = urllib.request.Request(
+                    url + "/query?" + params,
+                    headers={"User-Agent": "trekdex-parking/1.0"})
+                with urllib.request.urlopen(req, timeout=_ARCGIS_TIMEOUT,
+                                            context=_ARCGIS_SSL) as r:
+                    feats = _features_or_raise(json.loads(r.read()))
+                break
+            except Exception as e:                              # noqa: BLE001
+                last = e
+                if not _arcgis_transient(e):
+                    print(f"    arcgis query rejected, not retrying ({e})",
+                          file=sys.stderr)
+                    break
+                print(f"    arcgis attempt {i + 1} failed ({e})", file=sys.stderr)
+        if feats is None:
+            raise ArcGISUnavailable(str(last))
         if not feats:
             break
         for ft in feats:
@@ -333,18 +399,27 @@ def fetch_arcgis(url: str, bbox: list[float], where: str) -> list[tuple[float, f
     return out
 
 
-def fetch_federal(bbox: list[float]) -> list[dict]:
+def fetch_federal(bbox: list[float]) -> tuple[list[dict], set[str]]:
     """Fetch every federal source's trailhead/parking features in `bbox`.
-    Returns candidate lots {lat, lon, source, name?, trailhead?}. A source that
-    fails to fetch is skipped (never fails the whole run) — OSM already shipped,
-    federal is a bonus fill."""
+
+    Returns `(lots, failed_source_keys)`. Each lot is
+    {lat, lon, source, name?, trailhead?}. A source that fails to fetch is
+    skipped rather than failing the whole run — OSM already shipped and federal
+    is a bonus fill — but its key comes back in the second element so the caller
+    can FAIL CLOSED and carry that source's existing pins forward. Without that
+    flag an unreachable layer is indistinguishable from an empty one, and the
+    difference is whether a wilderness keeps its trailheads or loses them.
+    """
     out: list[dict] = []
+    failed: set[str] = set()
     for s in _FED_SOURCES:
         try:
             feats = fetch_arcgis(s["url"], bbox, s["where"])
         except Exception as e:  # noqa: BLE001
-            print(f"  federal source {s['key']} fetch failed ({e}); skipped",
+            print(f"  federal source {s['key']} fetch FAILED ({e}); "
+                  f"existing {s['key']} pins will be kept, not cleared",
                   file=sys.stderr)
+            failed.add(s["key"])
             continue
         n = 0
         for lat, lon, props in feats:
@@ -357,7 +432,7 @@ def fetch_federal(bbox: list[float]) -> list[dict]:
             out.append(lot)
             n += 1
         print(f"  federal {s['key']}: {n} features in bbox")
-    return out
+    return out, failed
 
 
 def fetch_roads_near(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
@@ -398,13 +473,22 @@ def _road_gate_filter(fed: list[dict], road_nodes: list[tuple[float, float]],
             if min_dist_m(f["lat"], f["lon"], road_nodes) <= max_m]
 
 
-def road_gate(fed: list[dict], stats: dict | None = None) -> list[dict]:
+def road_gate(fed: list[dict], stats: dict | None = None) -> tuple[list[dict], bool]:
     """Drop federal points with no drivable road within `_ROAD_GATE_MAX_M` — a
     'trailhead' POINT is only usable parking if you can actually drive to it.
-    If the road fetch fails outright, drop ALL federal (never ship access we
-    couldn't verify) rather than degrade to unchecked points."""
+
+    Returns `(kept, ok)`. If the road fetch fails outright, ALL federal points
+    are dropped — never ship access we couldn't verify — and `ok` is False.
+
+    That flag exists because dropping everything looks identical to "none of
+    these points had a road", and the caller must not read a verification
+    OUTAGE as a reason to delete pins it already shipped. Same hazard as the
+    ArcGIS HTTP-200-with-error-body case, one step further down the pipe: the
+    fetch can succeed and this gate still wipe the lot. Overpass 504s freely,
+    so this is not hypothetical.
+    """
     if not fed:
-        return fed
+        return fed, True
     pts = [(f["lat"], f["lon"]) for f in fed]
     try:
         road_nodes = fetch_roads_near(pts)
@@ -413,14 +497,14 @@ def road_gate(fed: list[dict], stats: dict | None = None) -> list[dict]:
               "point(s) — cannot verify road access", file=sys.stderr)
         if stats is not None:
             stats["federal_road_unverified"] = stats.get("federal_road_unverified", 0) + len(fed)
-        return []
+        return [], False
     kept = _road_gate_filter(fed, road_nodes, _ROAD_GATE_MAX_M)
     dropped = len(fed) - len(kept)
     if stats is not None:
         stats["federal_road_dropped"] = stats.get("federal_road_dropped", 0) + dropped
     print(f"  federal road gate: kept {len(kept)}/{len(fed)} "
           f"(dropped {dropped} roadless)")
-    return kept
+    return kept, True
 
 
 def assign_federal(fed: list[dict], rings_by_area: dict[str, list],
@@ -1028,8 +1112,15 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> 
                          if not kept and rings_by_area.get(f.stem)}
             if blank_ids:
                 bbox = _bbox_of_geoms(files)
-                fed = fetch_federal(bbox) if bbox else []
-                fed = road_gate(fed, stats=stats) if fed else []
+                fed, fed_failed = fetch_federal(bbox) if bbox else ([], set())
+                if fed:
+                    fed, road_ok = road_gate(fed, stats=stats)
+                    if not road_ok:
+                        # The gate itself could not run, so EVERY source is
+                        # unverified this run — not "these points have no road".
+                        # Treat all of them as unavailable so existing pins are
+                        # carried forward rather than deleted.
+                        fed_failed |= {s["key"] for s in _FED_SOURCES}
                 fed_by_area = assign_federal(fed, rings_by_area, blank_ids) if fed else {}
                 n_area = n_pin = 0
                 for f, geom, kept in state_areas:
@@ -1042,6 +1133,31 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> 
                                          [lot["source"] for lot in add]))
                 print(f"  {code.upper()}: federal fill added {n_pin} pin(s) to "
                       f"{n_area} of {len(blank_ids)} blank area(s)")
+                if fed_failed:
+                    # FAIL CLOSED. A layer we could not read must not delete the
+                    # pins it gave us last time: carry them forward so pass 3
+                    # sees no change. Counted separately from the fill above so
+                    # "federal fill added N" stays an honest count of NEW pins.
+                    #
+                    # Only for areas that are blank in THIS run — if OSM now maps
+                    # parking for an area, OSM is authoritative and the old
+                    # federal pins are meant to go.
+                    n_carry = n_areas_carry = 0
+                    for f, geom, kept in state_areas:
+                        if f.stem not in blank_ids:
+                            continue
+                        old = [lot for lot in (geom.get("parking") or [])
+                               if lot.get("source") in fed_failed]
+                        if old:
+                            kept.extend(old)
+                            n_carry += len(old)
+                            n_areas_carry += 1
+                    print(f"::warning::{code.upper()}: federal source(s) "
+                          f"{sorted(fed_failed)} unavailable — kept {n_carry} "
+                          f"existing pin(s) across {n_areas_carry} area(s) rather "
+                          f"than clearing them. RE-RUN THIS STATE: any area the "
+                          f"source would newly fill is still missing.",
+                          file=sys.stderr)
 
         # Pass 3 — record + write (one write per changed file).
         for f, geom, kept in state_areas:

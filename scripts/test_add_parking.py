@@ -293,6 +293,69 @@ def test_boundary_fetch_failure_reports_not_ok(tmp_dir=None):
         assert rings == {} and n == 0 and ok is True, (rings, n, ok)
 
 
+def test_road_gate_reports_whether_it_could_run():
+    # A road-gate OUTAGE drops every federal point, which looks exactly like
+    # "none of these points had a road nearby". The caller has to be able to
+    # tell them apart, or a flaky Overpass deletes pins that already shipped.
+    orig_fetch = ap.fetch_roads_near
+    try:
+        ap.fetch_roads_near = lambda pts: [(0.0, 0.0)]
+        kept, ok = ap.road_gate([{"lat": 0.0, "lon": 0.0, "source": "usfs"}])
+        assert ok is True and len(kept) == 1, (kept, ok)
+
+        # Every point genuinely roadless -> gate RAN, so ok stays True.
+        ap.fetch_roads_near = lambda pts: [(40.0, -100.0)]
+        kept, ok = ap.road_gate([{"lat": 0.0, "lon": 0.0, "source": "usfs"}])
+        assert ok is True and kept == [], (kept, ok)
+
+        # Fetch blew up -> nothing verified, ok False.
+        def _boom(pts):
+            raise RuntimeError("504")
+        ap.fetch_roads_near = _boom
+        kept, ok = ap.road_gate([{"lat": 0.0, "lon": 0.0, "source": "usfs"}])
+        assert ok is False and kept == [], (kept, ok)
+    finally:
+        ap.fetch_roads_near = orig_fetch
+    # Nothing to gate is not a failure.
+    assert ap.road_gate([]) == ([], True)
+
+
+def test_features_or_raise_separates_an_empty_answer_from_a_failed_one():
+    # REGRESSION (2026-07-27): ArcGIS answers a throttled/rejected query with
+    # HTTP 200 and {"error": {...}} — no "features" key. The old
+    # `data.get("features") or []` read that as "0 features in bbox", so the
+    # caller cleared every pin the layer had contributed. That is how the
+    # national roll deleted Kootenai National Forest's 50 USFS trailheads while
+    # logging a clean "federal usfs: 0 features in bbox" and exiting 0.
+    # A genuine empty result IS a FeatureCollection with "features": [].
+    assert ap._features_or_raise({"type": "FeatureCollection", "features": []}) == []
+    assert ap._features_or_raise({"features": [{"a": 1}]}) == [{"a": 1}]
+
+    for bad in ({"error": {"code": 429, "message": "Too many requests"}},
+                {"error": {"code": 400, "message": "Invalid where clause"}},
+                {"error": "boom"},
+                {"type": "FeatureCollection"},          # unexpected shape
+                {}):
+        try:
+            ap._features_or_raise(bad)
+        except ap.ArcGISUnavailable:
+            pass
+        else:
+            raise AssertionError(f"should have raised for {bad}")
+
+
+def test_arcgis_transient_retries_throttles_but_not_rejected_queries():
+    # Same lesson as the missing-shapely ImportError: do not burn the 30/90/300
+    # backoff ladder on a deterministic failure and then blame the remote host.
+    assert ap._arcgis_transient(ap.ArcGISUnavailable("ArcGIS error 429: slow down"))
+    assert ap._arcgis_transient(ap.ArcGISUnavailable("ArcGIS error 503: busy"))
+    assert ap._arcgis_transient(ap.ArcGISUnavailable("response has no 'features' key"))
+    assert ap._arcgis_transient(TimeoutError("timed out"))
+    # A rejected query is not worth retrying — it answers the same every time.
+    assert not ap._arcgis_transient(
+        ap.ArcGISUnavailable("ArcGIS error 400: Invalid where clause"))
+
+
 def test_classify_write_treats_missing_key_and_empty_list_as_the_same_blank():
     # REGRESSION (2026-07-26): an area with no `parking` key reads back as None
     # and an area with no qualifying lots computes as []. `None != []`, so every

@@ -32,6 +32,7 @@ import to_app_json as conv          # noqa: E402
 import areas as areamod             # noqa: E402
 import model                        # noqa: E402 — merge_key for rescue dedupe
 import elevation                    # noqa: E402 — inline DEM gain + difficulty
+import degenerate                   # noqa: E402 — per-trail ~zero-length gate
 
 _DEFAULT_INDEX = os.path.join(os.path.dirname(__file__), "..", "..",
                               "ios", "SouthMountainExplorer", "Resources", "areas-index.json")
@@ -593,6 +594,19 @@ def main(argv=None) -> int:
             skipped.append((slug, "no trails touch this area")); continue
         row = conv.convert({"features": clipped}, slug, meta["name"], meta["state"],
                            meta["center"], meta["osm_rel"], kinds)
+        # Boundary clipping can reduce a trail that lies mostly OUTSIDE this area
+        # to a sliver or a single point — a named 0.00 mi row nobody can walk or
+        # complete. `_MIN_AREA_MI` below catches an area that is ENTIRELY that;
+        # this catches the individual trails inside an otherwise real area.
+        # Connectors are kept: a ~zero-length way with both ends on other trails
+        # IS the junction holding the network together. See serve/degenerate.py.
+        pruned, why = degenerate.prune(row["trails"])
+        if why:
+            row["trails"] = pruned
+            row["trail_count"] = len(pruned)
+            row["total_mi"] = degenerate.area_miles(pruned)
+            print(f"  {slug}: dropped {sum(why.values())} degenerate trail(s) "
+                  f"{dict(why)}")
         if row["total_mi"] < _MIN_AREA_MI:
             skipped.append((slug, f"degenerate clip ({row['total_mi']} mi total)"))
             continue

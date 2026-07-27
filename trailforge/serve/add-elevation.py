@@ -45,6 +45,11 @@ def main(argv=None) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--geom-dir", default=_GEOM)
     ap.add_argument("--state", help="2-letter code suffix filter, e.g. az (slug ends -az)")
+    ap.add_argument("--slug", help="comma-separated area slugs — the targeted form. "
+                    "--state is too coarse for a backfill: the areas missing "
+                    "elevation are scattered across MT/NC/UT/OR/ME/HI/…, and "
+                    "re-sampling whole states to reach 24 areas would re-write "
+                    "thousands of files for nothing")
     ap.add_argument("--zoom", type=int, default=elevation.DEM_ZOOM)
     ap.add_argument("--cache-dir", default=os.path.join(_HERE, "..", "data", "dem-cache"))
     ap.add_argument("--dry-run", action="store_true", help="compute + report, write nothing")
@@ -57,6 +62,18 @@ def main(argv=None) -> int:
     if args.state:
         suf = f"-{args.state.lower()}.json"
         files = [f for f in files if f.endswith(suf)]
+    if args.slug:
+        want = {s.strip() for s in args.slug.split(",") if s.strip()}
+        files = [f for f in files
+                 if os.path.splitext(os.path.basename(f))[0] in want]
+        got = {os.path.splitext(os.path.basename(f))[0] for f in files}
+        # Fail loudly on a typo'd slug rather than silently sampling fewer areas
+        # than asked for — a backfill that quietly skips its target is worse than
+        # one that refuses to start.
+        missing = want - got
+        if missing:
+            print(f"no geom for slug(s): {sorted(missing)}", file=sys.stderr)
+            return 1
     if not files:
         print("no matching geom files", file=sys.stderr)
         return 1

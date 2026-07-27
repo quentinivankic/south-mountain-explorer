@@ -60,6 +60,79 @@ struct TrailCoverageTests {
         let score = try #require(scores[trail.id])
         #expect(score.fraction == 1.0)
         #expect(score.endpointsVisited == true)
+        #expect(score.longestSkippedRunM == 0)
+        #expect(score.completesTrail == true)
+    }
+
+    // MARK: - The skipped-run gate (replaced the endpoint gate)
+
+    /// THE case the gate exists for. Walking most of a linear trail and
+    /// turning round must NOT complete it, and the fraction threshold alone
+    /// is not enough to stop that on a long trail: 5% of three miles is about
+    /// 800 ft you could skip. Deleting the gate outright was measured to
+    /// falsely complete 46% of ordinary trails at a 100 m shortfall.
+    @Test func turningRoundShortOfTheEndDoesNotComplete() throws {
+        // ~440 m long; walk all but the last ~110 m.
+        let trail = linearTrail(count: 400)
+        let path = walkingPath(for: trail, dropFromEnd: 100)
+        let score = try #require(measureCoverage(path: path, trails: [trail])[trail.id])
+
+        #expect(score.longestSkippedRunM > maxSkippedRunMeters)
+        #expect(score.completesTrail == false)
+    }
+
+    /// A closed loop with a small disconnected orphan beside it — Pima West
+    /// Loop Trail's exact shape. The orphan is close enough to fall inside the
+    /// 30 m coverage buffer, so `fraction` reads 1.0, but it used to be where
+    /// the "last node" lived, so the old endpoint gate blocked the trail
+    /// forever. Under the skipped-run gate the loop completes.
+    @Test func closedLoopWithTinyOrphanCompletesWhenTheLoopIsWalked() throws {
+        let loop = (0..<120).map { i -> [Double] in
+            let a = Double(i) / 120.0 * 2 * Double.pi
+            return [33.3 + 0.0015 * cos(a), -112.0 + 0.0018 * sin(a)]
+        }
+        // 4-node fragment ~20 m from the loop's edge and ~18 m long.
+        let orphan = (0..<4).map { i in [33.3 + 0.00168, -112.0 + Double(i) * 0.00006] }
+        let trail = Trail(id: "loop", name: "Pima West-like", distanceMi: 1.5,
+                          difficulty: .easy, segments: [loop, orphan])
+        let path = loop.enumerated().map { i, n in [n[0], n[1], 1_710_000_000 + Double(i)] }
+        let score = try #require(measureCoverage(path: path, trails: [trail])[trail.id])
+
+        #expect(score.fraction >= completionFractionThreshold)
+        #expect(score.longestSkippedRunM <= maxSkippedRunMeters)
+        #expect(score.completesTrail == true)
+    }
+
+    /// A skipped stretch in the MIDDLE has to count too — the old gate only
+    /// ever looked at the two ends, so a hiker who cut a long switchback still
+    /// got credited.
+    @Test func skippingAStretchInTheMiddleDoesNotComplete() throws {
+        let trail = linearTrail(count: 400)
+        let nodes = trail.segments[0]
+        // Walk the first and last thirds, skip ~150 m in between.
+        let walked = Array(nodes.prefix(130)) + Array(nodes.suffix(130))
+        let path = walked.enumerated().map { i, n in [n[0], n[1], 1_710_000_000 + Double(i)] }
+        let score = try #require(measureCoverage(path: path, trails: [trail])[trail.id])
+
+        #expect(score.longestSkippedRunM > maxSkippedRunMeters)
+        #expect(score.completesTrail == false)
+    }
+
+    /// A couple of noisy nodes must not read as a skipped stretch, or ordinary
+    /// GPS scatter would block real completions. This is why the threshold sits
+    /// above `bufferMeters` (30 m) rather than at it.
+    @Test func aFewScatteredMissedNodesStillComplete() throws {
+        let trail = linearTrail(count: 400)
+        let nodes = trail.segments[0]
+        // Drop two isolated nodes ~1.1 m apart each — well under 50 m.
+        var walked = nodes
+        walked.remove(at: 300)
+        walked.remove(at: 150)
+        let path = walked.enumerated().map { i, n in [n[0], n[1], 1_710_000_000 + Double(i)] }
+        let score = try #require(measureCoverage(path: path, trails: [trail])[trail.id])
+
+        #expect(score.longestSkippedRunM <= maxSkippedRunMeters)
+        #expect(score.completesTrail == true)
     }
 
     @Test func walkingMissingEndDoesNotSatisfyEndpointGate() throws {

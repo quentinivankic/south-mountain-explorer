@@ -293,6 +293,33 @@ def test_boundary_fetch_failure_reports_not_ok(tmp_dir=None):
         assert rings == {} and n == 0 and ok is True, (rings, n, ok)
 
 
+def test_road_gate_reports_whether_it_could_run():
+    # A road-gate OUTAGE drops every federal point, which looks exactly like
+    # "none of these points had a road nearby". The caller has to be able to
+    # tell them apart, or a flaky Overpass deletes pins that already shipped.
+    orig_fetch = ap.fetch_roads_near
+    try:
+        ap.fetch_roads_near = lambda pts: [(0.0, 0.0)]
+        kept, ok = ap.road_gate([{"lat": 0.0, "lon": 0.0, "source": "usfs"}])
+        assert ok is True and len(kept) == 1, (kept, ok)
+
+        # Every point genuinely roadless -> gate RAN, so ok stays True.
+        ap.fetch_roads_near = lambda pts: [(40.0, -100.0)]
+        kept, ok = ap.road_gate([{"lat": 0.0, "lon": 0.0, "source": "usfs"}])
+        assert ok is True and kept == [], (kept, ok)
+
+        # Fetch blew up -> nothing verified, ok False.
+        def _boom(pts):
+            raise RuntimeError("504")
+        ap.fetch_roads_near = _boom
+        kept, ok = ap.road_gate([{"lat": 0.0, "lon": 0.0, "source": "usfs"}])
+        assert ok is False and kept == [], (kept, ok)
+    finally:
+        ap.fetch_roads_near = orig_fetch
+    # Nothing to gate is not a failure.
+    assert ap.road_gate([]) == ([], True)
+
+
 def test_features_or_raise_separates_an_empty_answer_from_a_failed_one():
     # REGRESSION (2026-07-27): ArcGIS answers a throttled/rejected query with
     # HTTP 200 and {"error": {...}} — no "features" key. The old

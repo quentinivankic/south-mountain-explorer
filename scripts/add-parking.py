@@ -473,13 +473,22 @@ def _road_gate_filter(fed: list[dict], road_nodes: list[tuple[float, float]],
             if min_dist_m(f["lat"], f["lon"], road_nodes) <= max_m]
 
 
-def road_gate(fed: list[dict], stats: dict | None = None) -> list[dict]:
+def road_gate(fed: list[dict], stats: dict | None = None) -> tuple[list[dict], bool]:
     """Drop federal points with no drivable road within `_ROAD_GATE_MAX_M` — a
     'trailhead' POINT is only usable parking if you can actually drive to it.
-    If the road fetch fails outright, drop ALL federal (never ship access we
-    couldn't verify) rather than degrade to unchecked points."""
+
+    Returns `(kept, ok)`. If the road fetch fails outright, ALL federal points
+    are dropped — never ship access we couldn't verify — and `ok` is False.
+
+    That flag exists because dropping everything looks identical to "none of
+    these points had a road", and the caller must not read a verification
+    OUTAGE as a reason to delete pins it already shipped. Same hazard as the
+    ArcGIS HTTP-200-with-error-body case, one step further down the pipe: the
+    fetch can succeed and this gate still wipe the lot. Overpass 504s freely,
+    so this is not hypothetical.
+    """
     if not fed:
-        return fed
+        return fed, True
     pts = [(f["lat"], f["lon"]) for f in fed]
     try:
         road_nodes = fetch_roads_near(pts)
@@ -488,14 +497,14 @@ def road_gate(fed: list[dict], stats: dict | None = None) -> list[dict]:
               "point(s) — cannot verify road access", file=sys.stderr)
         if stats is not None:
             stats["federal_road_unverified"] = stats.get("federal_road_unverified", 0) + len(fed)
-        return []
+        return [], False
     kept = _road_gate_filter(fed, road_nodes, _ROAD_GATE_MAX_M)
     dropped = len(fed) - len(kept)
     if stats is not None:
         stats["federal_road_dropped"] = stats.get("federal_road_dropped", 0) + dropped
     print(f"  federal road gate: kept {len(kept)}/{len(fed)} "
           f"(dropped {dropped} roadless)")
-    return kept
+    return kept, True
 
 
 def assign_federal(fed: list[dict], rings_by_area: dict[str, list],
@@ -1104,7 +1113,14 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> 
             if blank_ids:
                 bbox = _bbox_of_geoms(files)
                 fed, fed_failed = fetch_federal(bbox) if bbox else ([], set())
-                fed = road_gate(fed, stats=stats) if fed else []
+                if fed:
+                    fed, road_ok = road_gate(fed, stats=stats)
+                    if not road_ok:
+                        # The gate itself could not run, so EVERY source is
+                        # unverified this run — not "these points have no road".
+                        # Treat all of them as unavailable so existing pins are
+                        # carried forward rather than deleted.
+                        fed_failed |= {s["key"] for s in _FED_SOURCES}
                 fed_by_area = assign_federal(fed, rings_by_area, blank_ids) if fed else {}
                 n_area = n_pin = 0
                 for f, geom, kept in state_areas:

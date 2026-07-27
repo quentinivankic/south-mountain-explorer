@@ -507,6 +507,87 @@ def road_gate(fed: list[dict], stats: dict | None = None) -> tuple[list[dict], b
     return kept, True
 
 
+FED_SAME_NAME_M = 500.0
+# Dedup radius for two federal pins that carry the SAME name. `PARKING_DEDUP_M`
+# (40 m) compares position only, which is right for unrelated lots and too tight
+# for one facility that an agency ships as several polygons: NPS gave Black
+# Canyon of the Gunnison Wilderness "East Portal Parking" 3x and
+# "So. Rim Visitor Ctr." 2x, each centroid 100-200 m apart.
+#
+# The radius is what makes this safe, and it was NOT obvious. Name alone is not
+# identity, because agency names are often placeholders: Saguaro Wilderness has
+# NINETEEN distinct NPS lots all called "Parking Lot", and Marjory Stoneman
+# Douglas Wilderness has eight "Pull-Out Parking". Deduping on name alone
+# collapsed Saguaro 24 -> 5 and destroyed 18 real, separate lots. Same name AND
+# within 500 m is one facility; same name a mile apart is a lazy label.
+
+
+def clean_federal_lots(lots: list[dict], trail_pts: list[tuple[float, float]] | None = None,
+                       same_name_m: float = FED_SAME_NAME_M) -> tuple[list[dict], dict]:
+    """Collapse same-named federal pins that are also close together. Returns
+    `(kept, {reason: n})`. `trail_pts` is accepted but unused — see below.
+
+    OSM lots are NEVER touched: authoritative, already boundary-containment
+    gated, and none of the observed defects were OSM.
+
+    ── A distance-to-trail cap was BUILT, MEASURED AND REJECTED (2026-07-27).
+    The idea was to drop a federal pin further than N metres from any trail in
+    its area, on the theory that such a pin must be misattributed — the
+    motivating case being "McClellan Butte Trailhead" landing 116 km from any
+    trail in palouse-to-cascades-state-park-wa. It does not work at any
+    threshold, because the metric measures OUR TRAIL COVERAGE, not the pin:
+
+        cap  2 km -> 217 pins from 48 areas, incl. kootenai-national-forest-id
+                     51 -> 4 and death-valley-national-park-nv 37 -> 0
+        cap 25 km ->  57 pins, STILL including Springer Mountain Trailhead (the
+                     southern terminus of the Appalachian Trail), Carver's Gap,
+                     Bridge of the Gods, Herman Creek and Eagle Creek
+
+    Those are real, famous trailheads. Kootenai is 2.2 million acres and we hold
+    a fraction of its trails; columbia-river-gorge ships ONE trail, so five real
+    trailheads read as impossibly far from it. The pins are better data than our
+    geometry, and a cap tight enough to catch the 116 km case deletes them.
+    Harmlessness argues the same way: the app only ever draws the <=3 nearest
+    lots within 805 m of the selected trail (`Area.nearestParking`), so a distant
+    pin is invisible, not wrong. Gross misattribution is better addressed by the
+    boundary containment gate that already exists at assign time.
+    Do not re-propose without a signal that measures the PIN.
+    """
+    stats: dict[str, int] = {}
+    if not lots:
+        return lots, stats
+
+    kept: list[dict] = []
+    named: list[dict] = []          # federal pins carrying a name
+    for lot in lots:
+        if not lot.get("source"):
+            kept.append(lot)                      # OSM — leave alone
+        elif (lot.get("name") or "").strip():
+            named.append(lot)
+        else:
+            kept.append(lot)                      # unnamed federal — nothing to match on
+
+    groups: dict[str, list[dict]] = {}
+    for lot in named:
+        groups.setdefault((lot.get("name") or "").strip().casefold(), []).append(lot)
+    for same in groups.values():
+        # Greedy: each pin joins an existing cluster within `same_name_m`, else
+        # starts its own. Distinct facilities that share a placeholder name stay
+        # distinct because they are far apart.
+        clusters: list[dict] = []
+        for lot in same:
+            hit = next((c for c in clusters
+                        if haversine_m(lot["lat"], lot["lon"], c["lat"], c["lon"])
+                        <= same_name_m), None)
+            if hit is None:
+                clusters.append(lot)
+            else:
+                hit["trailhead"] = hit.get("trailhead") or lot.get("trailhead")
+                stats["dup-name"] = stats.get("dup-name", 0) + 1
+        kept.extend(clusters)
+    return kept, stats
+
+
 def assign_federal(fed: list[dict], rings_by_area: dict[str, list],
                    blank_ids: set[str]) -> dict[str, list[dict]]:
     """Assign federal features to BLANK areas only (OSM stays authoritative
@@ -1123,14 +1204,23 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> 
                         fed_failed |= {s["key"] for s in _FED_SOURCES}
                 fed_by_area = assign_federal(fed, rings_by_area, blank_ids) if fed else {}
                 n_area = n_pin = 0
+                n_dedup = 0
                 for f, geom, kept in state_areas:
                     add = fed_by_area.get(f.stem)
                     if add:
+                        # One facility can arrive as several polygon centroids
+                        # (NPS "East Portal Parking" x3). Collapse before the
+                        # count so the reported fill is facilities, not polygons.
+                        add, why = clean_federal_lots(add)
+                        n_dedup += why.get("dup-name", 0)
                         kept.extend(add)
                         n_area += 1
                         n_pin += len(add)
                         fed_fill.append((f.stem, geom.get("name"),
                                          [lot["source"] for lot in add]))
+                if n_dedup:
+                    print(f"  {code.upper()}: collapsed {n_dedup} duplicate-named "
+                          f"federal pin(s) (same facility, several polygons)")
                 print(f"  {code.upper()}: federal fill added {n_pin} pin(s) to "
                       f"{n_area} of {len(blank_ids)} blank area(s)")
                 if fed_failed:

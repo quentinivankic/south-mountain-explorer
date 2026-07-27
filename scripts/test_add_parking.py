@@ -293,6 +293,61 @@ def test_boundary_fetch_failure_reports_not_ok(tmp_dir=None):
         assert rings == {} and n == 0 and ok is True, (rings, n, ok)
 
 
+def _fed(lat, lon, name=None, source="nps"):
+    lot = {"lat": lat, "lon": lon, "source": source}
+    if name:
+        lot["name"] = name
+    return lot
+
+
+def test_clean_federal_collapses_one_facility_shipped_as_several_polygons():
+    # REAL CASE: NPS gave black-canyon-of-the-gunnison-wilderness-co "East Portal
+    # Parking" three times, each polygon's centroid 100-200 m from the next —
+    # far enough to survive PARKING_DEDUP_M (40 m), which compares position and
+    # not identity.
+    lots = [_fed(38.52660, -107.64918, "East Portal Parking"),
+            _fed(38.52605, -107.64947, "East Portal Parking"),
+            _fed(38.52777, -107.64909, "East Portal Parking")]
+    kept, stats = ap.clean_federal_lots(lots)
+    assert len(kept) == 1, kept
+    assert stats == {"dup-name": 2}, stats
+
+
+def test_clean_federal_keeps_distinct_lots_that_share_a_placeholder_name():
+    # THE case that makes the radius load-bearing. Saguaro Wilderness has
+    # NINETEEN distinct NPS lots all called "Parking Lot"; deduping on name alone
+    # collapsed it 24 -> 5 and destroyed 18 real, separate places. Same name a
+    # mile apart is a lazy label, not one facility.
+    lots = [_fed(32.20 + i * 0.02, -111.0 - i * 0.02, "Parking Lot") for i in range(6)]
+    kept, stats = ap.clean_federal_lots(lots)
+    assert len(kept) == 6, kept
+    assert stats == {}, stats
+
+
+def test_clean_federal_never_touches_osm_lots():
+    # OSM is authoritative and already passed the boundary containment gate.
+    lots = [{"lat": 1.0, "lon": 1.0, "name": "Trailhead Lot"},
+            {"lat": 1.0001, "lon": 1.0001, "name": "Trailhead Lot"}]
+    kept, stats = ap.clean_federal_lots(lots)
+    assert len(kept) == 2 and stats == {}, (kept, stats)
+
+
+def test_clean_federal_keeps_unnamed_federal_pins():
+    # Nothing to match on, so they must survive untouched rather than being
+    # collapsed into one another.
+    lots = [_fed(1.0, 1.0), _fed(1.0001, 1.0001)]
+    kept, stats = ap.clean_federal_lots(lots)
+    assert len(kept) == 2 and stats == {}, (kept, stats)
+
+
+def test_clean_federal_carries_trailhead_corroboration_when_collapsing():
+    lots = [_fed(38.5266, -107.6491, "Portal", source="usfs"),
+            dict(_fed(38.5267, -107.6492, "Portal", source="usfs"), trailhead=True)]
+    kept, stats = ap.clean_federal_lots(lots)
+    assert len(kept) == 1 and kept[0].get("trailhead") is True, kept
+    assert stats == {"dup-name": 1}, stats
+
+
 def test_road_gate_reports_whether_it_could_run():
     # A road-gate OUTAGE drops every federal point, which looks exactly like
     # "none of these points had a road nearby". The caller has to be able to

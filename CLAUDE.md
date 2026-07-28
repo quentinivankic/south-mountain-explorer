@@ -33,7 +33,11 @@ trail in an area. SwiftUI, iOS 18+ deployment target.
 - **Parking pins** (`MapKitMapView` + `Models/Area.swift`): hidden while
   browsing; tapping a trail shows its ≤3 nearest lots (`Area.nearestParking`)
   and frames the zoom. Federal trailheads draw as a green hiker marker, OSM/NPS
-  lots as blue "P". See auto-memory `parking-feature.md`.
+  lots as blue "P". Candidates are the area's OWN `parking` merged with the
+  **global pool** (`Services/ParkingPoolService.swift`, `cdn.trekdex.app/parking.json`)
+  — no area has to "own" a lot. All three display paths (pins, camera frame, row
+  banner) go through `ParkingPoolService.merged(with:for:)`; wiring only one of
+  them names a lot with no pin under it. See auto-memory `parking-feature.md`.
 - **Backup:** Settings → Export bundles UserDefaults keys + `hike-history.json`
   + `activity-log.json` to one JSON via share sheet; Import restores. All five
   `@Observable` singletons have `resetAll()`/`reload()`. `DataBackupManager.swift`.
@@ -276,12 +280,25 @@ mean one view with two unit systems and two meanings for x.
 
 ## Active threads (updated 2026-07-26) — see auto-memory for depth
 
-- **Parking** (`parking-feature.md`): OSM containment-gated parking live for AZ.
-  Federal fallback = NPS parking + USFS trailheads (BLM DROPPED — its "trailhead"
-  layer is generic area-POI markers, not trailheads). Road-proximity gate on
-  federal points. On-selection display + distinct trailhead marker shipped.
-  Stale-geom cache bug FIXED (#424 — corrections now propagate; was the root of
-  recurring "ghost pin" reports).
+- **Parking** (`parking-feature.md`): OSM containment-gated parking is NATIONAL
+  (6,271 of ~9,060 areas). Federal fallback = NPS parking + USFS trailheads (BLM
+  DROPPED — its "trailhead" layer is generic area-POI markers, not trailheads).
+  Road-proximity gate on federal points. On-selection display + distinct trailhead
+  marker shipped. Stale-geom cache bug FIXED (#424).
+  **OWNERSHIP IS GONE (#500).** Containment stays a QUALITY filter and stops being
+  ownership: `scripts/build-parking-pool.py` emits every qualifying lot once to
+  `cdn.trekdex.app/parking.json` (29,196 lots, 0.33 MB gz, built fresh by
+  `sync-geom-to-r2`, never committed), and the app merges it with each area's own
+  lots. Measured: **6,390 trails (6.9%) gain a lot they didn't have, 1,027 of them
+  in areas that ship no parking at all**, across 1,965 areas — Haleakalā
+  Wilderness reaching the visitor-centre lot 25 m away that
+  `haleakal-national-park-hi` held, Badwater, Henrys Fork, Heaven's Gate. Every
+  sampled case was a real trailhead filed under the OVERLAPPING unit.
+  **This makes task #38 moot**, not answered: nobody has to judge whether
+  Chiricahua Wilderness or Coronado NF owns South Fork Trailhead. Open follow-up:
+  the pool is built FROM shipped geom, so it still inherits whatever assignment
+  dropped — emitting it from `add-parking.py` after the gates but BEFORE
+  assignment is the fix.
 - **Coverage gap — US CLOSED, only Canada remains** (`coverage-gap-missing-areas.md`).
   Verified in data 2026-07-26: **Great Smoky Mtns SHIPS** (`...-nc` 128 trails +
   `...-tn` 131, both with geom on R2) and so do the other US multi-state areas —

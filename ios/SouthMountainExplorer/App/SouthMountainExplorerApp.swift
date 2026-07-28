@@ -14,6 +14,7 @@ struct SouthMountainExplorerApp: App {
     private let activity = ActivityService.shared
     private let activityLog = ActivityLogService.shared
     private let trailSearch = TrailSearchService.shared
+    private let parkingPool = ParkingPoolService.shared
     private let trailShapes = TrailShapeService.shared
 
     init() {

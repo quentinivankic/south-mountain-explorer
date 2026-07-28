@@ -179,6 +179,20 @@ jobs:
             --cache-control "public, max-age=300" \
             --no-progress
 
+          # Global parking pool — every qualifying lot ONCE, owned by nobody, so
+          # a lot near a trail reaches the hiker whether or not the pipeline
+          # decided that area "owns" it (see scripts/build-parking-pool.py).
+          # ~0.33 MB gzipped, a quarter of the trail-search index. Geom `parking`
+          # keeps shipping unchanged, so old builds are unaffected.
+          echo "Building + syncing parking pool..."
+          python3 scripts/build-parking-pool.py --out /tmp/parking.json
+          aws s3 cp /tmp/parking.json \
+            s3://trekdex-areas/parking.json \
+            --endpoint-url "$ENDPOINT" \
+            --content-type "application/json" \
+            --cache-control "public, max-age=300" \
+            --no-progress
+
           # Per-trail thumbnail shapes — a bigger (~3 MB) companion the app
           # loads in the BACKGROUND (off the search path) to draw trail linework
           # for un-visited areas. Regenerated fresh from the geom every sync.

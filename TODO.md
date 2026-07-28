@@ -11,6 +11,28 @@ code / `gh pr list` before acting on anything below this line.
 
 ## In flight (2026-07-28) — the current picture
 
+- 📋 **OPEN TASKS NOW LIVE IN `TASKS.md`** (13 of them, full measurement history).
+  The in-session task list does not survive a new session — re-create them with
+  `TaskCreate` from that file. This TODO stays the historical record; `TASKS.md`
+  is the forward-looking one.
+- **Global parking pool SHIPPED (#500).** Containment stays a QUALITY filter and
+  stops being OWNERSHIP: `scripts/build-parking-pool.py` emits every qualifying
+  lot once to `cdn.trekdex.app/parking.json` (29,196 lots, 0.33 MB gz, built fresh
+  by `sync-geom-to-r2`, never committed) and the app merges it with each area's own
+  lots via `ParkingPoolService.merged(with:for:)`. All three display paths — pins,
+  camera frame, row banner — go through it; wiring only one names a lot with no pin
+  under it. Measured: 6,390 trails (6.9%) gain a lot, 1,027 of them in areas with
+  no parking at all, across 1,965 areas. Re-measured over ALL trails: **10,801
+  trails went from "nothing within 5 miles" to having something**; 13,416 still
+  have nothing, which the pool cannot fix because those lots are in neither OSM nor
+  the federal layers. Follow-up is task #44.
+- **An assertion guard is now enforced in `.claude/hooks/` (#505).** Gotcha #14
+  says run a counterfactual before asserting it; a `UserPromptSubmit` hook re-arms
+  that on every prompt and a `Stop` hook blocks a turn whose final message asserts
+  one with neither a verification citation nor a hedge. Calibrated against all 318
+  assistant messages of the session that produced it: 5 would block (1.6%). Fails
+  open, blocks at most once per turn. `python3 .claude/hooks/test_verify_counterfactuals.py`
+  → 8/8.
 - **v1.0 is SUBMITTED to the App Store** (2026-07-26) and awaiting review.
   iPhone-only (`TARGETED_DEVICE_FAMILY=1`, #478). Privacy answers, store copy and
   the screenshot recipe are in auto-memory `app-store-submission.md`. The

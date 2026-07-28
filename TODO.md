@@ -108,10 +108,29 @@ code / `gh pr list` before acting on anything below this line.
     while v1.0 is in review.
   - **#147** Live Activity and **#144** distance-to-next-turn — long-standing
     drafts, both still valid ideas.
-- **342 remote branches, 309 of them `claude/*`.** Nothing prunes them. Turning
-  on Settings → General → "Automatically delete head branches" stops the bleeding;
-  the existing pile needs a deliberate `git push origin --delete` sweep, restricted
-  to branches whose tips are already in `main`.
+- **Branch pile PRUNED 2026-07-28: 340 → 23.** `delete_branch_on_merge` is now
+  ON, so merged PR branches clean themselves up from here. The one-time sweep
+  deleted 317: **315 were the head of a MERGED PR**, 2 had a tip that is a plain
+  ancestor of `main`. Kept: 3 open-PR heads (#224, #147, #144), 15 heads of
+  CLOSED-unmerged PRs (work never landed — incl. `claude/parking-roll-prep`
+  from the just-closed #425), 4 branches with no PR at all and not in `main`
+  (`claude/build-7-decimation-history-migration`, `claude/icon-history-preview`,
+  `claude/pbf-pipeline-j1`, `claude/privacy-policy-doc` — unknown work, left
+  alone deliberately), and `main`.
+  **Nothing was lost, and the reason is worth knowing:** GitHub keeps
+  `refs/pull/<N>/head` forever, independent of the branch. Any deleted branch
+  with a PR is recoverable with
+  `git fetch origin refs/pull/<N>/head && git push origin FETCH_HEAD:refs/heads/<name>`.
+  Verified present for a sample spanning #154 → #465.
+- ⚠️ **`main`'s git history only goes back to 2026-07-08** — the root commit is
+  `1451d04cf` (17,373 files), and `git rev-list --count origin/main` is 312.
+  Everything merged before that date (roughly PRs #1–#280: the export/import
+  work, onboarding reset, trail search, the original assembler) is **NOT in
+  `main`'s commit history at all**, though its CONTENT is in that root tree.
+  This bites when auditing: a genuinely-merged old PR's merge commit will fail
+  `git merge-base --is-ancestor <sha> origin/main`, which looks exactly like
+  "never merged". It is not. Check `refs/pull/<N>/head` and the PR's
+  `mergedAt`, not ancestry, for anything older than 2026-07-08.
 
 ## Shipped 2026-07-20/26 (dedup, App Store submission, quality audit)
 

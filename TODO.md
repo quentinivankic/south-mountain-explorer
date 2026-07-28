@@ -86,10 +86,24 @@ code / `gh pr list` before acting on anything below this line.
     the dedup/alias work, `docs/adr/0002`, and most of `public/areas/geom`.
   - **#444** parking wilderness fix — superseded by #487, which re-applied the
     same 13-line hunk on current `main` without reverting later fixes.
+- **#425 CLOSED unmerged 2026-07-28** (parking gate-after-assign +
+  `roll-parking.sh`). Three independent reasons, any one sufficient. (a) It was
+  **broken against `main` and failed silently**: `road_gate` now returns
+  `(kept, ok)` — the fail-closed flag from #40 — but `road_gate_assigned` did
+  `{id(lot) for lot in road_gate(...)}`, iterating the TUPLE, matching no lot,
+  returning `{}` and dropping every federal lot. Its test passed anyway because
+  it stubbed `road_gate` with a list-returning lambda. Gotcha #7 exactly.
+  (b) Its **premise was already false when written**: the PR argued that gating
+  before assignment costs "hundreds of Overpass `around` queries", but
+  `road_gate` has batched 60 clauses per query since #423 — the branch's OWN
+  merge-base (`_ROAD_CHUNK = 60` at `212ce8434`). 500 points is 9 queries, not
+  500. (c) `roll-parking.sh` is **superseded** by `trailforge-parking.yml`'s
+  per-state matrix (#455), and the roll it prepped already completed.
+  **What survives:** `main` still gates BEFORE assigning
+  (`add-parking.py:1198` then `:1205`), so a ~9 → 1 query saving is real and
+  unclaimed — a fresh small PR off `origin/main` that respects the tuple, never
+  a rebase of `claude/parking-roll-prep` (83 commits behind, conflicts).
 - **Still open (verified 2026-07-26):**
-  - **#425** parking gate-after-assign + `roll-parking.sh` — **still unmerged.**
-    Neither piece is on `main` (`main` gates *before* assigning, and there is no
-    `scripts/roll-parking.sh`). Do NOT cite #425 as shipped.
   - **#224** app-icon punch-in — a product call that needs a fresh build; parked
     while v1.0 is in review.
   - **#147** Live Activity and **#144** distance-to-next-turn — long-standing
@@ -262,9 +276,11 @@ _Stale: that whole-US republish landed and the US coverage gap is CLOSED._
   Sub-decisions: **federal fallback — BLM DROPPED** (generic area-POI markers,
   not trailheads; verified bad on Kanab + Grand Canyon-Parashant, #427),
   **NPS+USFS kept**. **Road-proximity gate** (#423). ⚠️ The assign-then-gate
-  efficiency change (**#425**) was NEVER merged — `main` still road-gates BEFORE
-  assigning, and there is no `scripts/roll-parking.sh`. Do not cite it as
-  shipped. **iOS on-selection display** (#429 — parking hidden while
+  efficiency change (**#425**) was never merged and is now **CLOSED**
+  (2026-07-28) — `main` still road-gates BEFORE assigning, and there is no
+  `scripts/roll-parking.sh`. Do not cite it as shipped; see the closure note in
+  "In flight" for why, and for the one piece worth salvaging.
+  **iOS on-selection display** (#429 — parking hidden while
   browsing; tap a trail → ≤3 nearest + zoom frame) + **distinct green trailhead
   marker + attribution** (#421). **Publish PRESERVES parking on republish** (#426).
 - **⚠️ Stale-geom cache bug FIXED (#424)** — root cause of recurring "ghost pin"

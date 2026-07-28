@@ -34,6 +34,19 @@ import model                        # noqa: E402 — merge_key for rescue dedupe
 import elevation                    # noqa: E402 — inline DEM gain + difficulty
 import degenerate                   # noqa: E402 — per-trail ~zero-length gate
 
+def _load_nonhiking() -> dict:
+    """{areaId: {trailId: verdict}} from public/areas/nonhiking-trails.json.
+    Absent file is fine — the sidecar is additive."""
+    p = os.path.join(os.path.dirname(__file__), "..", "..",
+                     "public", "areas", "nonhiking-trails.json")
+    try:
+        return json.load(open(p))
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+_NONHIKING = _load_nonhiking()
+
 _DEFAULT_INDEX = os.path.join(os.path.dirname(__file__), "..", "..",
                               "ios", "SouthMountainExplorer", "Resources", "areas-index.json")
 
@@ -600,6 +613,27 @@ def main(argv=None) -> int:
         # this catches the individual trails inside an otherwise real area.
         # Connectors are kept: a ~zero-length way with both ends on other trails
         # IS the junction holding the network together. See serve/degenerate.py.
+        # Honour the non-hiking sidecar: trails the LANDOWNER says are not for
+        # walking (USFS snow routes). Applied here so a republish cannot
+        # resurrect them, and read from a file so publish needs no agency
+        # network call. Reversible — remove the entry and the trail comes back.
+        drop_ids = _NONHIKING.get(slug) or {}
+        if drop_ids:
+            before = len(row["trails"])
+            row["trails"] = [t for t in row["trails"] if t.get("id") not in drop_ids]
+            if len(row["trails"]) != before:
+                if not row["trails"]:
+                    # Never let the sidecar empty an area; that would remove it
+                    # from Browse on the strength of an external dataset.
+                    print(f"  {slug}: sidecar would empty the area — ignoring it")
+                    row["trails"] = conv.convert(
+                        {"features": clipped}, slug, meta["name"], meta["state"],
+                        meta["center"], meta["osm_rel"], kinds)["trails"]
+                else:
+                    row["trail_count"] = len(row["trails"])
+                    row["total_mi"] = degenerate.area_miles(row["trails"])
+                    print(f"  {slug}: dropped {before - len(row['trails'])} "
+                          f"non-hiking trail(s) per the sidecar")
         pruned, why = degenerate.prune(row["trails"])
         if why:
             row["trails"] = pruned

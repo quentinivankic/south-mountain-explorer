@@ -9,16 +9,40 @@ further down as HISTORY.** Those were accurate on their date and are kept for
 the lessons; their PR numbers and "NEXT" instructions are stale. Verify against
 code / `gh pr list` before acting on anything below this line.
 
-## In flight (2026-07-26) — the current picture
+## In flight (2026-07-28) — the current picture
 
 - **v1.0 is SUBMITTED to the App Store** (2026-07-26) and awaiting review.
-  iPhone-only (`TARGETED_DEVICE_FAMILY=1`, #478). Build `919c5c1f5` is both the
-  submission candidate and the current TestFlight build — there are no unshipped
-  Swift changes on `main`. Privacy answers, store copy, and the screenshot recipe
-  are in auto-memory `app-store-submission.md`.
-- **Trail / area QUALITY is the active engineering thread** — tasks #21, #30-37.
-  Re-measure any baseline with `python3 scripts/audit-trail-quality.py`; depth in
-  auto-memory `area-quality-grayling-audit.md`. Nothing in it is shipped yet.
+  iPhone-only (`TARGETED_DEVICE_FAMILY=1`, #478). Privacy answers, store copy and
+  the screenshot recipe are in auto-memory `app-store-submission.md`. The
+  submitted binary is `919c5c1f5`; **TestFlight has since moved on to
+  `83e8fbbd3`** (the completion-gate fix, #496) — a separate build that does not
+  disturb the one in review.
+- **Trail completion no longer needs you to touch both ends** (#496,
+  `83e8fbbd3`). The gate was `fraction >= 0.95 && endpointsVisited`, where the
+  "ends" were the first node of the first segment and the last node of the last —
+  meaningless for the **11,191 of 92,297** trails stored as several disconnected
+  pieces in arbitrary OSM order. Pima West Loop (a closed loop plus a 19 m orphan
+  127 m away) and Guadalupe Perimeter (five pieces, ends 1.4 km apart) were
+  permanently uncompletable. Now `fraction >= 0.95 && longestSkippedRunM <= 50`.
+  Measured against 11,191 disconnected trails + a 6,000 control and four walkers:
+  deleting the gate outright falsely completes **46% of ordinary trails** when a
+  hiker stops 100 m short, so it was replaced rather than removed. Rejected with
+  numbers in the commit: bare delete, topological free ends, and splitting
+  disconnected trails into one trail per component.
+- **Road-as-trail (#21) is PARTLY solved and the honest yield is small.** 18 ski
+  and snowmobile routes dropped (35.2 mi, 13 areas, #497). The **~2,780
+  road-classified trails remain unsolved**, and four approaches are ruled out with
+  evidence — see the task and auto-memory `curation-signal-lessons.md` before
+  proposing a fifth. The lesson generalises: OSM tags describe a way's FORM,
+  curation questions are about its PURPOSE, and the fix was to ask the landowner's
+  own inventory (`EDW_TrailNFSPublish_01`). Verdicts now live in the reviewable
+  sidecar `public/areas/nonhiking-trails.json`; put bridleways (#34) there too.
+- **Trail / area QUALITY is the active engineering thread** — #21 (partial), #31,
+  #33-#38 open; #30, #32 and #42 shipped. Re-measure any baseline with
+  `python3 scripts/audit-trail-quality.py`; depth in auto-memory
+  `area-quality-grayling-audit.md` and `curation-signal-lessons.md`.
+  Shipped trail count is now **92,279** (92,548 before #492 dropped 251
+  zero-length trails and #497 dropped 18 snow routes).
 - **Parking: national, with one real-but-modest bug fixed in code (#487,
   `519b58ad`).** 6,204 of 9,060 areas ship parking (39,082 lots, verified
   2026-07-26). `assign_federal` dropped a federal trailhead as "OSM covers it"

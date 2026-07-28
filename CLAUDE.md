@@ -173,6 +173,22 @@ through `_removal_verdict()` → `(category, sentence)`; dropped trails carry
   via the viewer. QA tooling in `trailforge/viewer/` (per-category "Removed"
   buckets, "Changed since last run" diff, ingest-filtered layer).
 
+**Landowner data beats tag inference for PURPOSE questions (2026-07-27, #497).**
+`public/areas/nonhiking-trails.json` is a reviewable sidecar of trails an agency
+says are not for walking: `{areaId: {trailId: {reason, evidence, share,
+terraShare}}}`, one entry per verdict, each carrying the agency asset that
+justified it. Built by `scripts/build-nonhiking-list.py` from a cached copy of
+`EDW_TrailNFSPublish_01`, applied to shipped geom by
+`scripts/sweep-nonhiking-trails.py`, and honoured by `publish_areas.py` so a
+republish can't resurrect the trails — the publisher reads the FILE, so it needs
+no agency network call. Same reversible shape as `aliases.json`. Both the sweep
+and the publisher REFUSE to empty an area from the sidecar: an external dataset
+must never be able to remove a park from Browse. **First use dropped only 18
+trails / 35.2 mi**, requiring three independent agreements (FS types it SNOW, FS
+NAMES it snow, and no TERRA trail shares the tread at ≤0.25) — the ~2,780
+suspected road-as-trail population is still UNSOLVED. Put future non-hiking
+verdicts here (bridleways, #34) rather than inventing a new mechanism.
+
 **Operating model:** trust the tested rule, review after the fact (not before).
 `is_quality()` + `red_flag()` auto-exclude at seed time;
 `audit-easement-ownership.py --all` is an after-the-fact report, not a gate. A
@@ -379,6 +395,37 @@ mean one view with two unit systems and two meanings for x.
    exiting 2 while printing a healthy report. When something contradicts the
    model, the model is usually wrong. Check before writing a "correction" — a
    false correction into this file is worse than the original error.
+10. **OSM tags describe a way's FORM. Curation questions are usually about its
+    PURPOSE. Those are different questions, and no predicate over the first
+    answers the second.** Learned the long way on 2026-07-27 (task #21, PR #497).
+    `highway=track` says "drivable land-access road"; `surface`, `tracktype`,
+    `tiger:cfcc` all describe the tread. None of them says whether a person
+    hikes it. Four separate approaches were built and measured before this
+    landed: TIGER `cfcc` gates, `foot` presence, Forest-Service name codes, and
+    an inverted "prove it's a hike" rule. All leaked, because the answer is not
+    in the tags. **When you need purpose, ask the landowner's own inventory** —
+    `EDW_TrailNFSPublish_01` carries `trail_type` (TERRA/SNOW/WATER) per trail,
+    on the same ArcGIS host `add-parking.py` already uses.
+11. **A blank attribute is NOT a negative.** Twice in one day, reading "no data"
+    as "no" would have deleted real trails: OSM absence-of-evidence, then the
+    Forest Service's own `hiker_pedestrian_managed`, whose blank on 2,346
+    matches covers **Eagle National Recreation Trail** (23.3 mi) and General
+    Crook Trail #140. (Those fields also hold seasonal DATE RANGES like
+    `05/15-09/15`, so they say WHEN, not WHETHER.) Same shape as the fail-open
+    parking bugs in #491: absent ≠ empty ≠ false.
+12. **The user's eyes invalidate a proposed signal faster than any measurement
+    you can run.** Asked to spot-check ~10 trails from each of four evidence
+    buckets, the user found real trails AND truck roads in every single bucket —
+    killing four candidate rules in one message, after a day of my measurements
+    had failed to. **When proposing a curation signal, produce a stratified
+    sample with map links and ask for eyeballs BEFORE building the rule.**
+13. **Every threshold I proposed first was wrong, and reading the dry-run ROWS
+    (not its summary) caught it each time.** Three in one day: a 2 km
+    parking distance cap that deleted Springer Mountain Trailhead; name-only pin
+    dedup that collapsed Saguaro's 19 distinct "Parking Lot" lots to one;
+    `trail_type=SNOW` alone, which flagged Howlock Mountain and Thielsen Creek —
+    real hikes that are groomed in winter. The counts looked fine in all three.
+    **Print named examples and read them, every time.**
 
 ---
 

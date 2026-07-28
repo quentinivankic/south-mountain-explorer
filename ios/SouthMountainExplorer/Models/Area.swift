@@ -236,25 +236,33 @@ extension Area {
     /// browsing). One source of truth for both the map pins and the zoom frame.
     func nearestParking(for trail: Trail, max: Int = 3,
                         thresholdMeters: Double = 805) -> [ParkingLot] {
-        guard let lots = parking, !lots.isEmpty else { return [] }
-        var ends: [(Double, Double)] = []
-        for seg in trail.segments {
-            if let f = seg.first, f.count >= 2 { ends.append((f[0], f[1])) }
-            if let l = seg.last, l.count >= 2 { ends.append((l[0], l[1])) }
-        }
+        Self.nearestParking(lots: parking, for: trail,
+                            max: max, thresholdMeters: thresholdMeters)
+    }
+
+    /// Static form so a caller holding a merged lot list — the area's own plus
+    /// the global pool — can rank it the same way. Pairs with the static
+    /// `nearestParkingWithFallback` below.
+    static func nearestParking(lots allLots: [ParkingLot]?, for trail: Trail,
+                               max: Int = 3,
+                               thresholdMeters: Double = 805) -> [ParkingLot] {
+        guard let lots = allLots, !lots.isEmpty else { return [] }
+        let ends = Area.trailEndpoints(trail)
         guard !ends.isEmpty else { return [] }
-        func meters(_ aLat: Double, _ aLon: Double, _ bLat: Double, _ bLon: Double) -> Double {
-            let R = 6_371_000.0
-            let dLat = (bLat - aLat) * .pi / 180, dLon = (bLon - aLon) * .pi / 180
-            let la1 = aLat * .pi / 180, la2 = bLat * .pi / 180
-            let h = sin(dLat / 2) * sin(dLat / 2)
-                + cos(la1) * cos(la2) * sin(dLon / 2) * sin(dLon / 2)
-            return 2 * R * asin(min(1, sqrt(h)))
-        }
         let ranked = lots.map { lot -> (ParkingLot, Double) in
-            (lot, ends.map { meters(lot.lat, lot.lon, $0.0, $0.1) }.min() ?? .infinity)
+            (lot, ends.map { Self.meters(lot.lat, lot.lon, $0.0, $0.1) }.min() ?? .infinity)
         }.sorted { $0.1 < $1.1 }
         return ranked.filter { $0.1 <= thresholdMeters }.prefix(max).map { $0.0 }
+    }
+
+    /// Great-circle metres. One copy — both ranking functions had their own.
+    static func meters(_ aLat: Double, _ aLon: Double, _ bLat: Double, _ bLon: Double) -> Double {
+        let R = 6_371_000.0
+        let dLat = (bLat - aLat) * .pi / 180, dLon = (bLon - aLon) * .pi / 180
+        let la1 = aLat * .pi / 180, la2 = bLat * .pi / 180
+        let h = sin(dLat / 2) * sin(dLat / 2)
+            + cos(la1) * cos(la2) * sin(dLon / 2) * sin(dLon / 2)
+        return 2 * R * asin(min(1, sqrt(h)))
     }
 
     /// The nearest parking for a trail, ALWAYS answering when the area has any.
@@ -280,28 +288,57 @@ extension Area {
                                         max: max, thresholdMeters: thresholdMeters)
     }
 
-    /// Static form so a view holding only the area's `parking` (not the whole
-    /// Area) can compute the same result — the trail-row parking banner uses it.
-    static func nearestParkingWithFallback(lots allLots: [ParkingLot]?, for trail: Trail,
-                                           max: Int = 3, thresholdMeters: Double = 805)
-        -> [(lot: ParkingLot, meters: Double, isNear: Bool)] {
-        guard let lots = allLots, !lots.isEmpty else { return [] }
+    /// Both ends of every segment — what "near this trail" is measured from.
+    /// Extracted because three parking paths and now the pool lookup all need the
+    /// same points, and they had each inlined their own copy.
+    static func trailEndpoints(_ trail: Trail) -> [(Double, Double)] {
         var ends: [(Double, Double)] = []
         for seg in trail.segments {
             if let f = seg.first, f.count >= 2 { ends.append((f[0], f[1])) }
             if let l = seg.last, l.count >= 2 { ends.append((l[0], l[1])) }
         }
-        guard !ends.isEmpty else { return [] }
-        func meters(_ aLat: Double, _ aLon: Double, _ bLat: Double, _ bLon: Double) -> Double {
-            let R = 6_371_000.0
-            let dLat = (bLat - aLat) * .pi / 180, dLon = (bLon - aLon) * .pi / 180
-            let la1 = aLat * .pi / 180, la2 = bLat * .pi / 180
-            let h = sin(dLat / 2) * sin(dLat / 2)
-                + cos(la1) * cos(la2) * sin(dLon / 2) * sin(dLon / 2)
-            return 2 * R * asin(min(1, sqrt(h)))
+        return ends
+    }
+
+    /// The area's own lots plus any from the global pool, deduped by position.
+    ///
+    /// Pure and caller-supplied on purpose: `Area` stays free of the MainActor
+    /// `ParkingPoolService`, and this stays unit-testable. Passing [] reproduces
+    /// today's behaviour exactly, which is what makes the pool additive — a
+    /// failed pool load costs nothing.
+    ///
+    /// Dedup is by POSITION at `PARKING_DEDUP_M`-scale precision, because the
+    /// pool is built from these same lots: without it every area's own pins would
+    /// appear twice the moment the pool loads.
+    static func mergingPool(_ own: [ParkingLot]?, _ pooled: [ParkingLot]) -> [ParkingLot] {
+        var out = own ?? []
+        guard !pooled.isEmpty else { return out }
+        var seen = Set<String>()
+        func key(_ l: ParkingLot) -> String {
+            // ~1 m grid. Finer than the 40 m build-time dedup on purpose: this is
+            // only catching the SAME lot arriving by two paths, not merging
+            // neighbours, which the pool builder already did.
+            String(format: "%.5f,%.5f", l.lat, l.lon)
         }
+        for l in out { seen.insert(key(l)) }
+        for l in pooled where !seen.contains(key(l)) {
+            seen.insert(key(l))
+            out.append(l)
+        }
+        return out
+    }
+
+    /// Static form so a caller holding only a lot LIST (not the whole Area) can
+    /// compute the same result — the trail-row banner uses it, and it is how the
+    /// pool's lots get considered alongside the area's own.
+    static func nearestParkingWithFallback(lots allLots: [ParkingLot]?, for trail: Trail,
+                                           max: Int = 3, thresholdMeters: Double = 805)
+        -> [(lot: ParkingLot, meters: Double, isNear: Bool)] {
+        guard let lots = allLots, !lots.isEmpty else { return [] }
+        let ends = Area.trailEndpoints(trail)
+        guard !ends.isEmpty else { return [] }
         let ranked = lots.map { lot -> (ParkingLot, Double) in
-            (lot, ends.map { meters(lot.lat, lot.lon, $0.0, $0.1) }.min() ?? .infinity)
+            (lot, ends.map { Self.meters(lot.lat, lot.lon, $0.0, $0.1) }.min() ?? .infinity)
         }.sorted { $0.1 < $1.1 }
         let near = ranked.filter { $0.1 <= thresholdMeters }
         if !near.isEmpty {

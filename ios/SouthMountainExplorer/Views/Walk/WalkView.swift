@@ -61,6 +61,10 @@ struct WalkView: View {
                     liveHaloSegments: [],
                     selectedTrailWalkedSegments: [],
                     selectedTrailId: $selectedTrailId,
+                    // Read in a View body so observation is registered — the walk
+                    // map draws parking for the selected trail too, and its own
+                    // per-tick updates don't invalidate the PIN signature.
+                    parkingPoolCount: ParkingPoolService.shared.lots.count,
                     visibleTrailIds: nil,
                     completedTrailIds: completedTrailIds,
                     cameraTarget: cameraTarget,

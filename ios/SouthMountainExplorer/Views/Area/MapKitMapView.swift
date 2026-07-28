@@ -110,6 +110,13 @@ struct MapKitMapView: UIViewRepresentable {
     /// Off by default — see StorageKeys.showAllParking for why the per-trail
     /// gate stays strict and this exists alongside it.
     var showAllParking: Bool = false
+    /// How many lots the global parking pool has loaded — an INPUT, not read
+    /// from the service here, so SwiftUI re-runs this representable when the pool
+    /// lands. The pool arrives asynchronously after the first render and never
+    /// touches `area.parking`, so without a stored input the pin signature would
+    /// be unchanged and the pins would never redraw to include pooled lots.
+    /// Defaults to 0 for the recording map, which updates every GPS tick anyway.
+    var parkingPoolCount: Int = 0
     /// nil = render every trail. Non-nil = only render trails whose
     /// id is in this set, plus the recording trail and the selected
     /// trail (which are exempt so the user can always see what
@@ -257,10 +264,21 @@ struct MapKitMapView: UIViewRepresentable {
         // Declutter: parking is HIDDEN while browsing; only the selected
         // trail's ≤3 nearest lots draw. So the signature includes the
         // selection — tapping a trail (or clearing it) rebuilds the pins.
+        let pool = ParkingPoolService.shared
         let parkingSig = Self.parkingSig(area.parking, selectedTrailId: selectedTrailId,
-                                         showAll: showAllParking)
+                                         showAll: showAllParking,
+                                         poolCount: parkingPoolCount)
         if parkingSig != coord.lastParkingSig {
-            coord.rebuildParkingAnnotations(on: mapView, from: area,
+            // Merge HERE, not in the Coordinator: `ParkingPoolService` is
+            // @MainActor and the Coordinator is deliberately non-isolated (see
+            // its doc comment), and doing it behind the signature check keeps the
+            // show-all case — which walks every trail's endpoints — off the
+            // per-update path.
+            let lots: [ParkingLot] = showAllParking
+                ? pool.merged(with: area.parking, forAnyOf: area.trails)
+                : (area.trails.first { $0.id == selectedTrailId }
+                    .map { pool.merged(with: area.parking, for: $0) } ?? [])
+            coord.rebuildParkingAnnotations(on: mapView, from: area, lots: lots,
                                             selectedTrailId: selectedTrailId,
                                             showAll: showAllParking)
             coord.lastParkingSig = parkingSig
@@ -480,7 +498,7 @@ struct MapKitMapView: UIViewRepresentable {
     /// updateUIView passes. -1 marks "no parking layer" (distinct from the
     /// `-2` sentinel that means "never evaluated").
     private static func parkingSig(_ lots: [ParkingLot]?, selectedTrailId: String?,
-                                   showAll: Bool) -> Int {
+                                   showAll: Bool, poolCount: Int) -> Int {
         var h = Hasher()
         // The flag is part of the signature: flipping it changes what is drawn
         // while the area and selection are unchanged, so without this the pins
@@ -489,6 +507,13 @@ struct MapKitMapView: UIViewRepresentable {
         // Selection is part of the signature: parking is drawn per-selected-trail
         // now, so changing (or clearing) the selection must rebuild the pins.
         h.combine(selectedTrailId)
+        // The pool lands ASYNCHRONOUSLY, after the first render, and it does not
+        // touch `area.parking` — so without its size here the signature would be
+        // unchanged and the pins would never redraw to include pooled lots. Comes
+        // in as an INPUT (see `parkingPoolCount`) so the re-render is guaranteed
+        // rather than dependent on observation reaching a representable. The pool
+        // loads once per launch, so this changes at most once.
+        h.combine(poolCount)
         guard let lots else { h.combine(-1); return h.finalize() }
         h.combine(lots.count)
         for lot in lots {
@@ -846,7 +871,13 @@ struct MapKitMapView: UIViewRepresentable {
         /// MKUserLocation dot when authorization does land.
         /// Replace the area's parking pins when the area changes. Called from
         /// the `updateUIView` area-changed block alongside the trail rebuild.
+        ///
+        /// `lots` is the CANDIDATE set, already merged with the global pool by the
+        /// caller — this method only ranks and draws. The merge happens up there
+        /// because `ParkingPoolService` is @MainActor and this Coordinator is
+        /// deliberately not (see the type's doc comment).
         func rebuildParkingAnnotations(on mapView: MKMapView, from area: Area,
+                                       lots candidates: [ParkingLot],
                                        selectedTrailId: String?,
                                        showAll: Bool = false) {
             let existing = mapView.annotations.compactMap { $0 as? ParkingAnnotation }
@@ -860,7 +891,7 @@ struct MapKitMapView: UIViewRepresentable {
             var farLots: Set<String> = []
             var farMeters: [String: Double] = [:]
             if showAll {
-                lots = area.parking ?? []
+                lots = candidates
                 mapLog.notice("parkingPins area=\(area.id, privacy: .public) ALL shown=\(lots.count)")
             } else {
                 // No selection → no parking (browsing stays uncluttered). With a
@@ -875,11 +906,18 @@ struct MapKitMapView: UIViewRepresentable {
                 // end we still answer with the closest lots in the area, marked
                 // as far. 45% of trails hit this and previously drew an empty
                 // map indistinguishable from "no parking exists here".
-                let ranked = area.nearestParkingWithFallback(for: trail)
+                // Ranked from the POOL-MERGED candidates, so a lot no area "owns"
+                // still draws. Must be the same merge the row banner uses, or the
+                // banner names a lot with no pin under it.
+                let ranked = Area.nearestParkingWithFallback(lots: candidates, for: trail)
                 lots = ranked.map(\.lot)
                 farLots = Set(ranked.filter { !$0.isNear }.map { "\($0.lot.lat),\($0.lot.lon)" })
-                farMeters = Dictionary(uniqueKeysWithValues:
-                    ranked.map { ("\($0.lot.lat),\($0.lot.lon)", $0.meters) })
+                // `uniquingKeysWith`, not `uniqueKeysWithValues`: that initialiser
+                // TRAPS on a duplicate key, and two lots at identical coordinates
+                // are possible in older geom (the case #41 collapsed). Keep the
+                // nearer distance.
+                farMeters = Dictionary(ranked.map { ("\($0.lot.lat),\($0.lot.lon)", $0.meters) },
+                                       uniquingKeysWith: min)
                 mapLog.notice("parkingPins area=\(area.id, privacy: .public) trail=\(selectedTrailId, privacy: .public) shown=\(lots.count) far=\(farLots.count)")
             }
             for lot in lots {

@@ -377,7 +377,12 @@ struct TrailRow: View {
     /// fallback lot — whose map pin sits off-screen because the camera frames
     /// the trail — so an empty-looking map doesn't read as "no parking here".
     private var nearestParkingInfo: (text: String, isNear: Bool)? {
-        let pk = Area.nearestParkingWithFallback(lots: areaParking, for: trail)
+        // The area's own lots PLUS the global pool — a lot 358 m outside a
+        // wilderness is useful to the hiker whether or not the pipeline decided
+        // that wilderness "owns" it. Same merge the map pins use.
+        let pk = Area.nearestParkingWithFallback(
+            lots: ParkingPoolService.shared.merged(with: areaParking, for: trail),
+            for: trail)
         guard let top = pk.first else { return nil }
         if top.isNear { return ("Parking at the trailhead", true) }
         let dist = UnitFormatter.distance(meters: top.meters, units: units)

@@ -200,6 +200,9 @@ struct TrailMapView: View {
                 selectedTrailWalkedSegments: selectedTrailWalkedSegments,
                 selectedTrailId: $selectedTrailId,
                 showAllParking: showAllParking,
+                // Read HERE, in a View body, so observation is registered and the
+                // map re-renders the moment the pool lands.
+                parkingPoolCount: ParkingPoolService.shared.lots.count,
                 visibleTrailIds: visibleTrailIds,
                 completedTrailIds: completedTrailIdsForArea,
                 cameraTarget: cameraTarget,
@@ -607,7 +610,13 @@ struct TrailMapView: View {
         // Frame the trail's ≤3 nearest lots too, so tapping a trail shows both
         // the route and where to park for it in one view (matches the pins the
         // map now draws for the selection).
-        for lot in area.nearestParking(for: trail) {
+        // Pooled too, so the camera frames the same lots the map pins — a pooled
+        // trailhead 400 m off would otherwise land just outside the view.
+        // NEAR-only on purpose: framing a far fallback lot miles away would zoom
+        // the trail itself down to nothing.
+        for lot in Area.nearestParking(
+            lots: ParkingPoolService.shared.merged(with: area.parking, for: trail),
+            for: trail) {
             pts.append((lot.lat, lot.lon))
         }
         let lats = pts.map { $0.0 }

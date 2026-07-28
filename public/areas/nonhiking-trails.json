@@ -1,0 +1,172 @@
+{
+ "ashley-national-forest-ut": {
+  "little-man-mine-fr-575": {
+   "distanceMi": 1.15,
+   "evidence": "BASSETT SPRINGS X-C SKI LOOP",
+   "name": "Little Man Mine - FR 575",
+   "reason": "usfs-snow-trail",
+   "share": 0.889,
+   "terraShare": 0.0
+  }
+ },
+ "black-hills-national-forest-sd": {
+  "raskob": {
+   "distanceMi": 1.88,
+   "evidence": "SNOW-7C",
+   "name": "Raskob",
+   "reason": "usfs-snow-trail",
+   "share": 0.812,
+   "terraShare": 0.0
+  }
+ },
+ "bridger-teton-national-forest-wy": {
+  "bull-hollow": {
+   "distanceMi": 2.49,
+   "evidence": "BULL HOLLOW SNOWMOBILE TRAIL",
+   "name": "Bull Hollow",
+   "reason": "usfs-snow-trail",
+   "share": 0.732,
+   "terraShare": 0.0
+  }
+ },
+ "chequamegon-nicolet-national-forest-eagle-river-florence-dis-wi": {
+  "forest-trail-3516": {
+   "distanceMi": 0.34,
+   "evidence": "FOREST COUNTY SNOWMOBILE",
+   "name": "Forest Trail 3516",
+   "reason": "usfs-snow-trail",
+   "share": 0.75,
+   "terraShare": 0.0
+  },
+  "nelson-landing": {
+   "distanceMi": 1.28,
+   "evidence": "FOREST COUNTY SNOWMOBILE",
+   "name": "Nelson Landing",
+   "reason": "usfs-snow-trail",
+   "share": 0.714,
+   "terraShare": 0.0
+  }
+ },
+ "chequamegon-nicolet-national-forest-lakewood-laona-district-wi": {
+  "connor-flanner-railroad": {
+   "distanceMi": 1.21,
+   "evidence": "SNOWMOBILE TRAIL LKLN FOREST",
+   "name": "Connor-Flanner Railroad",
+   "reason": "usfs-snow-trail",
+   "share": 1.0,
+   "terraShare": 0.0
+  },
+  "forest-trail-3543": {
+   "distanceMi": 0.9,
+   "evidence": "SNOWMOBILE TRAIL LKLN LANGLADE",
+   "name": "Forest Trail 3543",
+   "reason": "usfs-snow-trail",
+   "share": 0.923,
+   "terraShare": 0.0
+  }
+ },
+ "grand-mesa-national-forest-co": {
+  "crum-reservoir-trail": {
+   "distanceMi": 0.75,
+   "evidence": "GRIFFITH SKI LOOP",
+   "name": "Crum Reservoir Trail",
+   "reason": "usfs-snow-trail",
+   "share": 1.0,
+   "terraShare": 0.0
+  }
+ },
+ "green-mountain-national-forest-vt": {
+  "moosalamoo-area-ski-trail": {
+   "distanceMi": 1.23,
+   "evidence": "MOOSALAMOO AREA SKI",
+   "name": "Moosalamoo Area Ski Trail",
+   "reason": "usfs-snow-trail",
+   "share": 0.812,
+   "terraShare": 0.188
+  }
+ },
+ "hiawatha-national-forest-mi": {
+  "doing-oak-eh": {
+   "distanceMi": 0.74,
+   "evidence": "VALLEY SPUR SKI LOOP A",
+   "name": "Doing Oak eh",
+   "reason": "usfs-snow-trail",
+   "share": 0.941,
+   "terraShare": 0.118
+  },
+  "mckeever-a-loop": {
+   "distanceMi": 3.51,
+   "evidence": "MCKEEVER HILLS SKI",
+   "name": "McKeever A Loop",
+   "reason": "usfs-snow-trail",
+   "share": 0.986,
+   "terraShare": 0.0
+  },
+  "valley-spur-bike-loop-3-4": {
+   "distanceMi": 0.35,
+   "evidence": "VALLEY SPUR SKI LOOP Y",
+   "name": "Valley Spur Bike Loop 3 & 4",
+   "reason": "usfs-snow-trail",
+   "share": 1.0,
+   "terraShare": 0.0
+  }
+ },
+ "lincoln-national-forest-nm": {
+  "apache-campground": {
+   "distanceMi": 0.36,
+   "evidence": "SILVER CROSS-COUNTRY SKI",
+   "name": "Apache Campground",
+   "reason": "usfs-snow-trail",
+   "share": 0.8,
+   "terraShare": 0.2
+  }
+ },
+ "nez-perce-clearwater-national-forests-id": {
+  "packers-meadow-spur": {
+   "distanceMi": 1.16,
+   "evidence": "EAST FORK SNOWMOBILE TR #1",
+   "name": "Packers Meadow Spur",
+   "reason": "usfs-snow-trail",
+   "share": 0.829,
+   "terraShare": 0.0
+  }
+ },
+ "roosevelt-national-forest-co": {
+  "long-draw-ski-trail": {
+   "distanceMi": 1.07,
+   "evidence": "LONG DRAW SKI",
+   "name": "Long Draw Ski Trail",
+   "reason": "usfs-snow-trail",
+   "share": 0.794,
+   "terraShare": 0.0
+  }
+ },
+ "san-juan-national-forest-co": {
+  "blue-creek-winter-trail": {
+   "distanceMi": 11.74,
+   "evidence": "BLUE CREEK WINTER",
+   "name": "Blue Creek Winter Trail",
+   "reason": "usfs-snow-trail",
+   "share": 0.979,
+   "terraShare": 0.0
+  },
+  "first-notch-winter-trail": {
+   "distanceMi": 3.34,
+   "evidence": "FIRST NOTCH WINTER",
+   "name": "First Notch Winter Trail",
+   "reason": "usfs-snow-trail",
+   "share": 0.979,
+   "terraShare": 0.064
+  }
+ },
+ "uinta-wasatch-cache-national-forest-ut": {
+  "sage-draw-roadc": {
+   "distanceMi": 1.67,
+   "evidence": "LILY LAKE SKI (EAST FORK)",
+   "name": "Sage Draw Roadc",
+   "reason": "usfs-snow-trail",
+   "share": 1.0,
+   "terraShare": 0.0
+  }
+ }
+}

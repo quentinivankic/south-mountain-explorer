@@ -110,6 +110,13 @@ struct MapKitMapView: UIViewRepresentable {
     /// Off by default — see StorageKeys.showAllParking for why the per-trail
     /// gate stays strict and this exists alongside it.
     var showAllParking: Bool = false
+    /// How many lots the global parking pool has loaded — an INPUT, not read
+    /// from the service here, so SwiftUI re-runs this representable when the pool
+    /// lands. The pool arrives asynchronously after the first render and never
+    /// touches `area.parking`, so without a stored input the pin signature would
+    /// be unchanged and the pins would never redraw to include pooled lots.
+    /// Defaults to 0 for the recording map, which updates every GPS tick anyway.
+    var parkingPoolCount: Int = 0
     /// nil = render every trail. Non-nil = only render trails whose
     /// id is in this set, plus the recording trail and the selected
     /// trail (which are exempt so the user can always see what
@@ -260,7 +267,7 @@ struct MapKitMapView: UIViewRepresentable {
         let pool = ParkingPoolService.shared
         let parkingSig = Self.parkingSig(area.parking, selectedTrailId: selectedTrailId,
                                          showAll: showAllParking,
-                                         poolCount: pool.lots.count)
+                                         poolCount: parkingPoolCount)
         if parkingSig != coord.lastParkingSig {
             // Merge HERE, not in the Coordinator: `ParkingPoolService` is
             // @MainActor and the Coordinator is deliberately non-isolated (see
@@ -502,8 +509,10 @@ struct MapKitMapView: UIViewRepresentable {
         h.combine(selectedTrailId)
         // The pool lands ASYNCHRONOUSLY, after the first render, and it does not
         // touch `area.parking` — so without its size here the signature would be
-        // unchanged and the pins would never redraw to include pooled lots. The
-        // pool loads once per launch, so this changes at most once.
+        // unchanged and the pins would never redraw to include pooled lots. Comes
+        // in as an INPUT (see `parkingPoolCount`) so the re-render is guaranteed
+        // rather than dependent on observation reaching a representable. The pool
+        // loads once per launch, so this changes at most once.
         h.combine(poolCount)
         guard let lots else { h.combine(-1); return h.finalize() }
         h.combine(lots.count)

@@ -88,6 +88,10 @@ struct ContentView: View {
         // Warm the trail-shape thumbnails in the background at launch (while
         // the user is in onboarding / browsing), off the search critical path.
         .task { await TrailShapeService.shared.loadIfNeeded() }
+        // Same for the global parking pool (0.33 MB, ETag-revalidated). Warmed at
+        // the TAB level, not in AreaView, because WalkView draws parking too and a
+        // user can reach a walk without opening an area first.
+        .task { await ParkingPoolService.shared.loadIfNeeded() }
         // Banner tap for an in-progress WALK reopens the walk screen
         // (which restores from the recording's own nearby-area list)
         // instead of the primary area's AreaView.

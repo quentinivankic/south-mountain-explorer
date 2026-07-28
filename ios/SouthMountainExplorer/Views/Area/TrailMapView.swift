@@ -200,6 +200,9 @@ struct TrailMapView: View {
                 selectedTrailWalkedSegments: selectedTrailWalkedSegments,
                 selectedTrailId: $selectedTrailId,
                 showAllParking: showAllParking,
+                // Read HERE, in a View body, so observation is registered and the
+                // map re-renders the moment the pool lands.
+                parkingPoolCount: ParkingPoolService.shared.lots.count,
                 visibleTrailIds: visibleTrailIds,
                 completedTrailIds: completedTrailIdsForArea,
                 cameraTarget: cameraTarget,

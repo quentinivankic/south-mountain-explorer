@@ -457,10 +457,6 @@ struct AreaView: View {
             }
         }
         .task(id: areaId) {
-            // Warm the global parking pool the first time any area opens. Best
-            // effort and off the critical path: until it lands, parking falls
-            // back to the area's own lots exactly as before.
-            Task { await ParkingPoolService.shared.loadIfNeeded() }
             // Floor the loading view at 1.5 s so the silhouette reveal
             // animation always completes — even when the area's data is
             // already on disk and lands in microseconds.

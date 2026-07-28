@@ -4,7 +4,25 @@ Source of truth for a fresh session. Read it first. It's a concise map, not
 a changelog — **verify specific claims against the code before trusting them**,
 and see the auto-memory files (`MEMORY.md` index) for deep detail on active
 threads (App Store submission, trail/area quality, dedup, parking, coverage gap).
-Updated 2026-07-26.
+Updated 2026-07-28.
+
+> ### Start here in a NEW session
+>
+> 1. **`TASKS.md` holds the 13 open tasks** with their full measurement history —
+>    national counts, named counter-examples, and approaches already ruled out
+>    with evidence. The in-session task list (`TaskList`/`TaskGet`) is
+>    session-scoped and does NOT survive; **re-create the tasks with `TaskCreate`
+>    from `TASKS.md`**, and write any new decision back into that file.
+> 2. **`.claude/hooks/` is ENFORCEMENT, not documentation.** A `UserPromptSubmit`
+>    hook re-arms gotcha #14 on every prompt and a `Stop` hook blocks a turn that
+>    asserts a counterfactual with neither a verification citation nor a hedge.
+>    They fail open and block at most once per turn. Tests:
+>    `python3 .claude/hooks/test_verify_counterfactuals.py` (8/8).
+> 3. ⚠️ **`main`'s git history only reaches back to 2026-07-08** (root commit
+>    `1451d04cf`, 312 commits). Anything merged before that is absent from the
+>    commit history while its CONTENT sits in that root tree, so a genuinely
+>    merged old PR fails `git merge-base --is-ancestor` and looks unmerged.
+>    For anything older, check `refs/pull/<N>/head` and `mergedAt`, not ancestry.
 
 ---
 
@@ -278,7 +296,7 @@ mean one view with two unit systems and two meanings for x.
 
 ---
 
-## Active threads (updated 2026-07-26) — see auto-memory for depth
+## Active threads (updated 2026-07-28) — see auto-memory for depth
 
 - **Parking** (`parking-feature.md`): OSM containment-gated parking is NATIONAL
   (6,271 of ~9,060 areas). Federal fallback = NPS parking + USFS trailheads (BLM
@@ -295,10 +313,16 @@ mean one view with two unit systems and two meanings for x.
   `haleakal-national-park-hi` held, Badwater, Henrys Fork, Heaven's Gate. Every
   sampled case was a real trailhead filed under the OVERLAPPING unit.
   **This makes task #38 moot**, not answered: nobody has to judge whether
-  Chiricahua Wilderness or Coronado NF owns South Fork Trailhead. Open follow-up:
-  the pool is built FROM shipped geom, so it still inherits whatever assignment
-  dropped — emitting it from `add-parking.py` after the gates but BEFORE
-  assignment is the fix.
+  Chiricahua Wilderness or Coronado NF owns South Fork Trailhead.
+  **Open follow-up is task #44 in `TASKS.md`, fully specced:** the pool is built
+  FROM shipped geom, so it still inherits whatever assignment dropped. Emitting it
+  from `add-parking.py` after the gates but BEFORE assignment recovers **2,348
+  more lots** (USFS discards 87% of its trailheads to ownership, NPS 95%) —
+  Peralta, String Lake, Two Medicine Lake, five Yellowstone trailheads. NPS must be
+  filtered to trailhead-NAMED only; its `LOTTYPE`/`OPENTOPUBLIC` attributes are
+  empty and a distance cut was measured and refuted. Read #44 before touching it.
+  A re-measure with the real gates was attempted 2026-07-28 and did NOT finish —
+  public Overpass 504'd through three road-gate retries. Nothing was written.
 - **Coverage gap — US CLOSED, only Canada remains** (`coverage-gap-missing-areas.md`).
   Verified in data 2026-07-26: **Great Smoky Mtns SHIPS** (`...-nc` 128 trails +
   `...-tn` 131, both with geom on R2) and so do the other US multi-state areas —
@@ -338,6 +362,15 @@ mean one view with two unit systems and two meanings for x.
   `ios/**`, `public/areas/index.json`, and the workflow file. ~8-13 min.
   **Wait for green before merging** these. Trailforge/scripts paths have NO CI
   gate — dry-run + eyeball is the gate there.
+- **NO workflow runs the Python tests** (verified 2026-07-28: nothing in
+  `.github/workflows/` invokes pytest or any `test_*.py`). There are 9 such files
+  under `scripts/` and `trailforge/`; each runs standalone and passes —
+  `python3 scripts/test_add_parking.py` gives `30 passed`. Adding a job is cheap,
+  but note it was MEASURED not to catch the #425 class of bug: a test that stubs
+  the seam it integrates against passes regardless. See gotcha #14.
+- **Branches:** `delete_branch_on_merge` is ON as of 2026-07-28, and the backlog
+  was pruned 340 → 23. Deleted branches with a PR stay recoverable forever via
+  `git fetch origin refs/pull/<N>/head`.
 - **Merge authority:** the user authorized merging PRs autonomously once CI is
   green (squash + delete branch). Still eyeball a dry-run for no-CI-gate PRs.
   Claude MAY also dispatch TestFlight after app-code merges (user OK'd 2026-07-26)
@@ -464,6 +497,9 @@ mean one view with two unit systems and two meanings for x.
 ---
 
 ## Where to look
+- **Open tasks → `TASKS.md`** (13, with full measurement history; re-create them
+  with `TaskCreate` at session start — the live list does not persist)
+- **Assertion guard → `.claude/hooks/`** + `.claude/settings.json` (enforces #14)
 - Tabs / entry → `App/ContentView.swift`
 - Recording → `Services/RecordingService.swift`; Coverage →
   `Services/CoverageService.swift`; Completion → `Services/ProgressService.swift`

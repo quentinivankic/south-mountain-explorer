@@ -443,6 +443,23 @@ mean one view with two unit systems and two meanings for x.
     `trail_type=SNOW` alone, which flagged Howlock Mountain and Thielsen Creek —
     real hikes that are groomed in winter. The counts looked fine in all three.
     **Print named examples and read them, every time.**
+14. **A counterfactual is a claim, not a comment. Run it before you write it.**
+    The user's standing complaint, 2026-07-28: *"I am so tired of you saying to
+    do X with conviction, I ask you to test it, then magically X isn't the right
+    way."* The defect is not being wrong — it is stating an untested inference in
+    the same voice as a measured fact, which leaves the user to challenge every
+    sentence to find out which ones hold. Any claim shaped like **"X would have
+    caught Y"**, **"X is the bottleneck"**, or **"this is the right approach"**
+    is testable, usually in under two minutes. Test it and cite the command; if
+    it truly cannot be tested cheaply, write "I think" and name what would settle
+    it. **Burned the same day:** asserted that a CI job running the repo's
+    existing Python tests would have caught #425's broken `road_gate_assigned`.
+    Grafting the function onto current `main` and running the suite gave
+    **31 passed** — CI sails past it, because #425's own test stubs `road_gate`,
+    the exact seam it integrates against. The corollary DID survive testing and
+    is the useful rule: **stub the network boundary, not the function you are
+    integrating against.** Swapping the stub to `fetch_roads_near` fails
+    instantly, while the gate still logs `kept 1/2` on its way to returning `{}`.
 
 ---
 

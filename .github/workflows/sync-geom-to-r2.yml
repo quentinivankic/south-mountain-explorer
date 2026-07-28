@@ -55,12 +55,24 @@ on:
       - 'public/areas/geom/**'
       - 'public/areas/silhouettes/**'
       - 'ios/SouthMountainExplorer/Resources/areas-index.json'
+      # The derived companions are BUILT here, never committed, so a change to
+      # a builder must republish it — otherwise the new logic sits on main
+      # while R2 keeps serving the old output until some unrelated geom push
+      # happens to fire this workflow.
+      - 'scripts/build-parking-pool.py'
+      - 'scripts/build-trail-search-index.py'
+      - 'scripts/build-trail-shapes.py'
+      - '.github/workflows/sync-geom-to-r2.yml'
   pull_request:
     types: [closed]
     paths:
       - 'public/areas/geom/**'
       - 'public/areas/silhouettes/**'
       - 'ios/SouthMountainExplorer/Resources/areas-index.json'
+      - 'scripts/build-parking-pool.py'
+      - 'scripts/build-trail-search-index.py'
+      - 'scripts/build-trail-shapes.py'
+      - '.github/workflows/sync-geom-to-r2.yml'
   schedule:
     # Daily reconcile backstop (07:23 UTC) — converges R2 to the repo even
     # if a merge landed without firing the push/PR triggers. Off-minute on

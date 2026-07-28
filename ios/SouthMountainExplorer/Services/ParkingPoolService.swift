@@ -72,39 +72,31 @@ final class ParkingPoolService {
     /// Deduped by POSITION while scanning, so a facility that several trail
     /// endpoints all reach stays one pin at its shortest distance — and the scan
     /// only ever touches the cells around the given points, never the whole pool.
-    func lots(near points: [(Double, Double)], within meters: Double) -> [(ParkingLot, Double)] {
+    func lots(near points: [(Double, Double)],
+              within meters: Double) -> [(lot: ParkingLot, meters: Double)] {
         guard !cells.isEmpty, !points.isEmpty else { return [] }
         let span = Int(meters / (Self.cellSize * 111_320)) + 1
-        var best: [Position: (ParkingLot, Double)] = [:]
+        var best: [Position: (lot: ParkingLot, meters: Double)] = [:]
         for (lat, lon) in points {
             let ci = Int(lat / Self.cellSize), cj = Int(lon / Self.cellSize)
             for i in (ci - span)...(ci + span) {
                 for j in (cj - span)...(cj + span) {
                     for lot in cells[Cell(i: i, j: j)] ?? [] {
-                        let d = Self.meters(lat, lon, lot.lat, lot.lon)
+                        let d = Area.meters(lat, lon, lot.lat, lot.lon)
                         guard d <= meters else { continue }
                         let key = Position(lat: lot.lat, lon: lot.lon)
-                        if let prior = best[key], prior.1 <= d { continue }
-                        best[key] = (lot, d)
+                        if let prior = best[key], prior.meters <= d { continue }
+                        best[key] = (lot: lot, meters: d)
                     }
                 }
             }
         }
-        return best.values.sorted { $0.1 < $1.1 }
+        return best.values.sorted { $0.meters < $1.meters }
     }
 
     private struct Position: Hashable {
         let lat: Double
         let lon: Double
-    }
-
-    static func meters(_ aLat: Double, _ aLon: Double, _ bLat: Double, _ bLon: Double) -> Double {
-        let R = 6_371_000.0
-        let dLat = (bLat - aLat) * .pi / 180, dLon = (bLon - aLon) * .pi / 180
-        let la1 = aLat * .pi / 180, la2 = bLat * .pi / 180
-        let h = sin(dLat / 2) * sin(dLat / 2)
-            + cos(la1) * cos(la2) * sin(dLon / 2) * sin(dLon / 2)
-        return 2 * R * asin(min(1, sqrt(h)))
     }
 
     private func install(_ parsed: [ParkingLot]) {
@@ -151,6 +143,36 @@ final class ParkingPoolService {
         } catch {
             log.notice("parking pool: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    /// The area's own lots plus every pooled lot within `meters` of this trail.
+    ///
+    /// The one place the pool is read for display, because THREE paths have to
+    /// agree about the same trail: the map pins (`MapKitMapView`), the camera
+    /// frame (`TrailMapView`), and the expanded row's banner (`TrailListView`).
+    /// Wiring the pool into only one of them would have the banner name a lot the
+    /// map never draws — which is the bug the pool exists to fix, moved one layer
+    /// up.
+    func merged(with own: [ParkingLot]?, for trail: Trail,
+                within meters: Double = 805) -> [ParkingLot] {
+        let pooled = lots(near: Area.trailEndpoints(trail), within: meters).map(\.lot)
+        return Area.mergingPool(own, pooled)
+    }
+
+    /// Same merge across EVERY trail in the area — backs the "show all parking"
+    /// toggle. Without it, turning "show all" on would HIDE a pooled lot the
+    /// selected-trail view had just drawn, which reads as a bug whichever way
+    /// round you hit it.
+    ///
+    /// The scan is cell-indexed and bounded by the trails' own endpoints, so a
+    /// 400-trail area costs a few thousand dictionary lookups, not a pass over
+    /// 29k lots.
+    func merged(with own: [ParkingLot]?, forAnyOf trails: [Trail],
+                within meters: Double = 805) -> [ParkingLot] {
+        guard !cells.isEmpty else { return own ?? [] }
+        let pooled = lots(near: trails.flatMap { Area.trailEndpoints($0) },
+                          within: meters).map(\.lot)
+        return Area.mergingPool(own, pooled)
     }
 
     /// `[[lat, lon, name, source, trailheadFlag, feeFlag]]`. A malformed row is skipped,

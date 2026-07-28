@@ -34,6 +34,49 @@ struct ParkingPoolTests {
         #expect(ends.last?.0 == 34.1)
     }
 
+    /// A trail with nothing usable must return empty and RETURN — three ranking
+    /// paths call this and each guards on `isEmpty`.
+    @Test func endpointsOfAnEmptyTrailAreEmpty() {
+        #expect(Area.trailEndpoints(trail([])).isEmpty)
+        #expect(Area.trailEndpoints(trail([[[33.0]]])).isEmpty)
+    }
+
+    // MARK: - Ranking the merged list
+
+    /// The pin path (`nearestParking`) and the banner path
+    /// (`nearestParkingWithFallback`) must agree on the NEAR set for the same
+    /// merged list, or the banner names a lot with no pin under it — the very bug
+    /// the pool exists to fix, one layer up.
+    @Test func pinPathAndBannerPathAgreeOnTheNearSet() {
+        let t = trail([[[33.300, -112.050], [33.310, -112.050]]])
+        let merged = [lot(33.3005, -112.0501, name: "At the trailhead"),
+                      lot(33.3102, -112.0502, name: "Other end"),
+                      lot(33.5000, -112.5000, name: "Miles off")]
+        let pins = Area.nearestParking(lots: merged, for: t)
+        let banner = Area.nearestParkingWithFallback(lots: merged, for: t)
+            .filter { $0.isNear }.map { $0.lot }
+        #expect(pins.count == 2)
+        #expect(pins.map(\.name) == banner.map(\.name))
+    }
+
+    /// Near-only, so framing the camera on the result can't zoom the trail down
+    /// to nothing chasing a lot miles away.
+    @Test func staticNearestParkingDropsLotsOutsideTheGate() {
+        let t = trail([[[33.300, -112.050], [33.310, -112.050]]])
+        let far = [lot(33.5000, -112.5000, name: "Miles off")]
+        #expect(Area.nearestParking(lots: far, for: t).isEmpty)
+        // The fallback path still answers for the same input — that difference is
+        // deliberate, not an inconsistency.
+        #expect(Area.nearestParkingWithFallback(lots: far, for: t).count == 1)
+        #expect(Area.nearestParkingWithFallback(lots: far, for: t).first?.isNear == false)
+    }
+
+    @Test func staticNearestParkingHandlesNoLots() {
+        let t = trail([[[33.300, -112.050], [33.310, -112.050]]])
+        #expect(Area.nearestParking(lots: nil, for: t).isEmpty)
+        #expect(Area.nearestParking(lots: [], for: t).isEmpty)
+    }
+
     // MARK: - Merge
 
     /// The pool is built FROM the areas' own lots, so without dedup every pin

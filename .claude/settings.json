@@ -1,0 +1,39 @@
+{
+  "$comment": [
+    "Project-scoped hooks, committed on purpose. CLAUDE.md gotcha #14 is the",
+    "explanation; these two files are the enforcement. Prose is advisory and",
+    "dilutes as context grows, so the rule it records is carried by a hook that",
+    "fires on every turn at constant cost instead.",
+    "counterfactual-reminder.sh  re-arms the rule on every prompt.",
+    "verify-counterfactuals.py   blocks a turn that asserts a counterfactual",
+    "                            with neither a verification citation nor a",
+    "                            hedge. Fails OPEN on any error and blocks at",
+    "                            most once per turn, so it cannot wedge work.",
+    "Tests: python3 .claude/hooks/test_verify_counterfactuals.py",
+    "Permissions live in settings.local.json and are untouched by this file."
+  ],
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/counterfactual-reminder.sh\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/verify-counterfactuals.py\""
+          }
+        ]
+      }
+    ]
+  }
+}

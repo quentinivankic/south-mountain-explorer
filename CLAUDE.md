@@ -8,7 +8,7 @@ Updated 2026-07-28.
 
 > ### Start here in a NEW session
 >
-> 1. **`TASKS.md` holds the 12 open tasks** with their full measurement history —
+> 1. **`TASKS.md` holds the 13 open tasks** with their full measurement history —
 >    national counts, named counter-examples, and approaches already ruled out
 >    with evidence. The in-session task list (`TaskList`/`TaskGet`) is
 >    session-scoped and does NOT survive; **re-create the tasks with `TaskCreate`

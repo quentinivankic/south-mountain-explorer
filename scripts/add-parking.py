@@ -1305,7 +1305,8 @@ def print_federal_fill(fed_fill: list[tuple[str, str, list[str]]]) -> None:
 
 
 def process(state_codes: list[str], dry_run: bool, use_federal: bool = True,
-            pool_sidecar: str | None = None, local=None) -> bool:
+            pool_sidecar: str | None = None, local=None,
+            local_boundaries: bool = False) -> bool:
     """`local` is a `_local_osm.LocalOSM` when the homelab cache should answer
     the three queries this used to send to Overpass. Everything downstream of the
     fetch is identical either way — the containment maths, the trailhead
@@ -1359,8 +1360,19 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True,
         trailheads = parse_trailheads(data)
         print(f"  {code.upper()}: {len(lots)} parking + {len(trailheads)} trailheads statewide")
 
+        # BOUNDARIES STAY ON OVERPASS BY DEFAULT, and that is a measured
+        # decision, not an oversight. The boundary query is the CHEAPEST of the
+        # three (2.4 s for VT, 6.1 s for CO, against 34.7 s and 175.6 s for the
+        # road gate), so moving it local buys almost nothing — and it costs
+        # accuracy: osmium's assembled rings carry fewer vertices than shapely's
+        # (Four Peaks Wilderness 4,815 points vs 6,595 over the same bbox), and
+        # a coarser edge cuts corners. Cane Spring Trailhead sits 7.6 m from a
+        # Four Peaks trail and falls OUTSIDE the local ring, so the area cleared
+        # its only lot. Eight of Arizona's ten clears in the national dry run
+        # were this, all wilderness areas.
         rings_by_area, n_bnd, bnd_ok = (
-            _state_boundaries_local(files, local) if local is not None
+            _state_boundaries_local(files, local)
+            if (local is not None and local_boundaries)
             else _state_boundaries(files))
         print(f"  {code.upper()}: {n_bnd}/{len(files)} area boundaries loaded "
               f"(containment gate; rest proximity-only)")
@@ -1564,6 +1576,12 @@ def main() -> None:
                          "Defaults to $TREKDEX_OSM_DIR/cache. Overpass was "
                          "measured at 87%% of a state's runtime (VT) and 71%% "
                          "(CO), and is the reason the CI roll caps at 8 jobs.")
+    ap.add_argument("--local-boundaries", action="store_true",
+                    help="ALSO take area boundaries from the local cache. OFF "
+                         "by default: the boundary query is the cheapest of the "
+                         "three (2.4-6.1 s) and osmium's rings are coarser than "
+                         "shapely's, which cleared 8 Arizona wilderness areas "
+                         "whose only lot sits metres inside the real edge.")
     ap.add_argument("--pool-sidecar", metavar="PATH",
                     help="also emit road-gated federal trailheads to this "
                          "sidecar, BEFORE ownership assignment, for the global "
@@ -1591,7 +1609,8 @@ def main() -> None:
         print(f"local OSM cache: {local.dir}")
 
     golden_ok = process(codes, args.dry_run, use_federal=not args.no_federal,
-                        pool_sidecar=args.pool_sidecar, local=local)
+                        pool_sidecar=args.pool_sidecar, local=local,
+                        local_boundaries=args.local_boundaries)
     if not golden_ok:
         sys.exit(2)
 

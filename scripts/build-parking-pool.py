@@ -20,11 +20,17 @@ Proximity alone would not do — it cannot tell "inside the park" from "across t
 road", which is why Thunderbird went 26 lots to 12 (a neighbour's lot 26 m from a
 perimeter trail). The gate stays; only the adjudication goes.
 
-WHAT THIS DOES NOT FIX YET. Built from shipped geom, so it inherits whatever
-ownership already dropped. Widening it to the pre-ownership set means emitting
-the pool from `add-parking.py` at fetch time, after the containment and road
-gates but before assignment. That is the follow-up; this file is the shape and
-the distribution path.
+THE PRE-OWNERSHIP SET (task #44). Shipped geom alone inherits whatever ownership
+already dropped — 87% of USFS trailheads and 95% of NPS lots, because some
+OVERLAPPING unit already had parking. `add-parking.py --pool-sidecar` writes
+those points out at fetch time, after the containment and road gates but before
+assignment, and `--extra` folds them in here. Measured 2026-07-29: 1,462 lots
+(strict) that shipped geom cannot see, reaching 919 trails inside the 805 m
+display gate across 167 areas.
+
+The sidecar is COMMITTED, unlike this file's output. It has to be: it is produced
+by the parking roll, which has network and shapely, and consumed by
+sync-geom-to-r2, which installs neither.
 
 Emitted fresh into R2 by sync-geom-to-r2 alongside trail-search.json, never
 committed, so it cannot drift from the geom. Geom `parking` keeps shipping
@@ -64,6 +70,11 @@ def main(argv=None) -> int:
                     help="iOS bundle areas-index.json — the shipped area set")
     ap.add_argument("--geom-dir", default=_GEOM)
     ap.add_argument("--out", required=True, help="output path (R2-served, not committed)")
+    ap.add_argument("--extra", action="append", default=[], metavar="PATH",
+                    help="pool sidecar from add-parking.py --pool-sidecar: "
+                         "road-gated federal trailheads captured BEFORE "
+                         "ownership assignment. Repeatable. Missing file is "
+                         "not an error — the pool is still valid without it.")
     args = ap.parse_args(argv)
 
     shipped = {r[0] for r in json.load(open(args.bundle)) if r}
@@ -73,6 +84,58 @@ def main(argv=None) -> int:
     C = 0.0025
     kept: list[dict] = []
     seen_areas = dropped = 0
+
+    def consider(lot: dict) -> bool:
+        """Add one lot to the pool unless a lot within DEDUP_M is already there.
+        Returns True if it became a new entry. Shared by the geom pass and the
+        sidecar pass so the sidecar cannot introduce a second copy of a lot that
+        already ships."""
+        nonlocal dropped
+        la, lo = lot.get("lat"), lot.get("lon")
+        if la is None or lo is None:
+            return False
+        ci, cj = int(la / C), int(lo / C)
+        dupe = None
+        for i in (ci - 1, ci, ci + 1):
+            for j in (cj - 1, cj, cj + 1):
+                for other in cells.get((i, j), ()):
+                    if hav(la, lo, other["lat"], other["lon"]) <= DEDUP_M:
+                        dupe = other
+                        break
+                if dupe:
+                    break
+            if dupe:
+                break
+        if dupe is not None:
+            dropped += 1
+            # Merge rather than discard: a name or trailhead flag present on
+            # only one copy is real information about the same facility.
+            if not dupe.get("name") and lot.get("name"):
+                dupe["name"] = lot["name"]
+            if lot.get("trailhead"):
+                dupe["trailhead"] = True
+            if not dupe.get("source") and lot.get("source"):
+                dupe["source"] = lot["source"]
+            if dupe.get("fee") is None and lot.get("fee") is not None:
+                dupe["fee"] = bool(lot["fee"])
+            return False
+        rec = {"lat": round(la, 6), "lon": round(lo, 6)}
+        if lot.get("name"):
+            rec["name"] = lot["name"]
+        if lot.get("source"):
+            rec["source"] = lot["source"]
+        if lot.get("trailhead"):
+            rec["trailhead"] = True
+        if lot.get("fee") is not None:
+            rec["fee"] = bool(lot["fee"])
+        cells.setdefault((ci, cj), []).append(rec)
+        kept.append(rec)
+        return True
+
+    # Shipped geom FIRST, deliberately. A lot that already ships keeps its exact
+    # position and identity, and a sidecar lot within 40 m merges INTO it rather
+    # than displacing it — so adding the sidecar can only ever add pins, never
+    # move one the app already draws.
     for f in sorted(os.listdir(args.geom_dir)):
         if not f.endswith(".json"):
             continue
@@ -87,45 +150,30 @@ def main(argv=None) -> int:
         if lots:
             seen_areas += 1
         for lot in lots:
-            la, lo = lot.get("lat"), lot.get("lon")
-            if la is None or lo is None:
-                continue
-            ci, cj = int(la / C), int(lo / C)
-            dupe = None
-            for i in (ci - 1, ci, ci + 1):
-                for j in (cj - 1, cj, cj + 1):
-                    for other in cells.get((i, j), ()):
-                        if hav(la, lo, other["lat"], other["lon"]) <= DEDUP_M:
-                            dupe = other
-                            break
-                    if dupe:
-                        break
-                if dupe:
-                    break
-            if dupe is not None:
-                dropped += 1
-                # Merge rather than discard: a name or trailhead flag present on
-                # only one copy is real information about the same facility.
-                if not dupe.get("name") and lot.get("name"):
-                    dupe["name"] = lot["name"]
-                if lot.get("trailhead"):
-                    dupe["trailhead"] = True
-                if not dupe.get("source") and lot.get("source"):
-                    dupe["source"] = lot["source"]
-                if dupe.get("fee") is None and lot.get("fee") is not None:
-                    dupe["fee"] = bool(lot["fee"])
-                continue
-            rec = {"lat": round(la, 6), "lon": round(lo, 6)}
-            if lot.get("name"):
-                rec["name"] = lot["name"]
-            if lot.get("source"):
-                rec["source"] = lot["source"]
-            if lot.get("trailhead"):
-                rec["trailhead"] = True
-            if lot.get("fee") is not None:
-                rec["fee"] = bool(lot["fee"])
-            cells.setdefault((ci, cj), []).append(rec)
-            kept.append(rec)
+            consider(lot)
+
+    from_geom = len(kept)
+    extra_seen = extra_new = 0
+    for path in args.extra:
+        if not os.path.exists(path):
+            print(f"  sidecar {path}: not present — skipping")
+            continue
+        try:
+            doc = json.load(open(path))
+        except Exception as e:             # noqa: BLE001
+            print(f"  sidecar {path}: unreadable ({e}) — skipping")
+            continue
+        states = doc.get("states") if isinstance(doc, dict) else None
+        if not isinstance(states, dict):
+            print(f"  sidecar {path}: no 'states' object — skipping")
+            continue
+        for code in sorted(states):
+            for lot in states[code] or []:
+                extra_seen += 1
+                if consider(lot):
+                    extra_new += 1
+        print(f"  sidecar {path}: {len(states)} state(s), "
+              f"{extra_seen} lot(s) read, {extra_new} new so far")
 
     # Positional array, like index.json and trail-search.json: [lat, lon, name,
     # source, trailhead, fee]. Trailing nulls are cheap and the app decodes by
@@ -147,6 +195,10 @@ def main(argv=None) -> int:
     feed = sum(1 for r in out if r[5] is not None)
     print(f"parking pool: {len(out)} lots from {seen_areas} area(s), "
           f"{dropped} duplicate copies merged")
+    if args.extra:
+        print(f"  from shipped geom {from_geom}  "
+              f"+ pre-ownership sidecar {extra_new} NEW "
+              f"(of {extra_seen} read; the rest already ship)")
     print(f"  named {named}  federal {fed}  trailhead-flagged {th}  fee known {feed}")
     print(f"  wrote {args.out} ({size / 1e6:.2f} MB raw)")
     return 0

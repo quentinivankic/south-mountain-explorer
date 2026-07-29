@@ -435,6 +435,70 @@ def test_classify_write_treats_missing_key_and_empty_list_as_the_same_blank():
     assert ap._classify_write([lot], []) == "cleared"
 
 
+# --------------------------------------------------- pool sidecar (task #44)
+
+def test_pool_keeps_every_usfs_point_because_the_layer_is_trailhead_only():
+    # EDW_RecreationOpportunities_01 is filtered SERVER-SIDE to
+    # MARKERACTIVITY='Trailhead', so a USFS point needs no name to qualify —
+    # requiring one would drop real trailheads for a naming convention.
+    fed = [{"lat": 33.4, "lon": -111.5, "source": "usfs", "trailhead": True},
+           {"lat": 33.5, "lon": -111.6, "source": "usfs", "name": "Peralta"}]
+    assert len(ap.pool_candidates(fed)) == 2
+
+
+def test_pool_admits_only_nps_lots_that_name_themselves_trailheads():
+    # The named casualties are the point: NPS ships staff housing and clinic
+    # parking in the same layer as Bright Angel, and no attribute separates
+    # them. Judged by the user on real rows from Grand Canyon.
+    fed = [{"lat": 36.05, "lon": -112.14, "source": "nps",
+            "name": "Bright Angel Trailhead Parking"},
+           {"lat": 36.06, "lon": -112.13, "source": "nps",
+            "name": "Trail Head Parking"},          # spaced spelling still counts
+           {"lat": 36.05, "lon": -112.12, "source": "nps",
+            "name": "Clinic Parking B"},
+           {"lat": 36.05, "lon": -112.11, "source": "nps",
+            "name": "Muav Court Parking E"},
+           {"lat": 36.05, "lon": -112.10, "source": "nps"}]        # unnamed
+    got = ap.pool_candidates(fed)
+    assert [f["name"] for f in got] == ["Bright Angel Trailhead Parking",
+                                        "Trail Head Parking"]
+    # An admitted NPS lot is flagged as a trailhead — that is what the name said.
+    assert all(f["trailhead"] for f in got)
+
+
+def test_pool_candidates_does_not_mutate_the_caller_list():
+    # `fed` is reused for assign_federal right after, so a flag set here would
+    # leak into ownership assignment.
+    fed = [{"lat": 36.05, "lon": -112.14, "source": "nps", "name": "X Trailhead"}]
+    ap.pool_candidates(fed)
+    assert "trailhead" not in fed[0]
+
+
+def test_sidecar_merge_replaces_only_the_states_this_run_touched():
+    # `--state az` must not delete fifty other states' contributions.
+    existing = {"AZ": [{"lat": 1, "lon": 1}], "CA": [{"lat": 2, "lon": 2}]}
+    merged, refused = ap.merge_pool_sidecar(existing, {"AZ": [{"lat": 9, "lon": 9}]})
+    assert merged["AZ"] == [{"lat": 9, "lon": 9}]
+    assert merged["CA"] == [{"lat": 2, "lon": 2}]
+    assert refused == []
+
+
+def test_sidecar_refuses_to_empty_a_state_that_currently_has_lots():
+    # Same fail-closed rule as the sweeps: an empty answer for a state that had
+    # lots is far more likely a fetch that returned nothing than a real change.
+    existing = {"AZ": [{"lat": 1, "lon": 1}]}
+    merged, refused = ap.merge_pool_sidecar(existing, {"AZ": []})
+    assert merged["AZ"] == [{"lat": 1, "lon": 1}]
+    assert refused == ["AZ"]
+
+
+def test_sidecar_allows_a_brand_new_state_to_arrive_empty():
+    # Nothing to lose, so an empty first answer is not suspicious.
+    merged, refused = ap.merge_pool_sidecar({}, {"WY": []})
+    assert merged["WY"] == []
+    assert refused == []
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

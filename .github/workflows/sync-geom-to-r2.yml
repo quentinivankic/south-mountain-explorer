@@ -54,6 +54,11 @@ on:
     paths:
       - 'public/areas/geom/**'
       - 'public/areas/silhouettes/**'
+      # The pre-ownership parking sidecar (task #44). A parking roll can change
+      # ONLY this file — a state whose areas all already had OSM parking still
+      # contributes federal trailheads to the pool — and without this path such
+      # a roll would commit the sidecar and never rebuild the pool from it.
+      - 'public/areas/parking-pool.json'
       - 'ios/SouthMountainExplorer/Resources/areas-index.json'
       # The derived companions are BUILT here, never committed, so a change to
       # a builder must republish it — otherwise the new logic sits on main
@@ -68,6 +73,11 @@ on:
     paths:
       - 'public/areas/geom/**'
       - 'public/areas/silhouettes/**'
+      # The pre-ownership parking sidecar (task #44). A parking roll can change
+      # ONLY this file — a state whose areas all already had OSM parking still
+      # contributes federal trailheads to the pool — and without this path such
+      # a roll would commit the sidecar and never rebuild the pool from it.
+      - 'public/areas/parking-pool.json'
       - 'ios/SouthMountainExplorer/Resources/areas-index.json'
       - 'scripts/build-parking-pool.py'
       - 'scripts/build-trail-search-index.py'
@@ -196,8 +206,14 @@ jobs:
           # decided that area "owns" it (see scripts/build-parking-pool.py).
           # ~0.33 MB gzipped, a quarter of the trail-search index. Geom `parking`
           # keeps shipping unchanged, so old builds are unaffected.
+          # --extra folds in the PRE-OWNERSHIP sidecar the parking roll commits
+          # (task #44): road-gated federal trailheads that ownership assignment
+          # would have thrown away because an overlapping unit already had
+          # parking. A missing sidecar is not an error — the pool is still valid
+          # without it, it is just the narrower shipped-geom set.
           echo "Building + syncing parking pool..."
-          python3 scripts/build-parking-pool.py --out /tmp/parking.json
+          python3 scripts/build-parking-pool.py --out /tmp/parking.json \
+            --extra public/areas/parking-pool.json
           aws s3 cp /tmp/parking.json \
             s3://trekdex-areas/parking.json \
             --endpoint-url "$ENDPOINT" \

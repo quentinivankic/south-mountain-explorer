@@ -104,12 +104,20 @@ jobs:
       - name: Install shapely (boundary containment gate)
         run: python3 -m pip install --upgrade shapely
 
+      # --pool-sidecar also emits the road-gated federal trailheads BEFORE
+      # ownership assignment (task #44). Ownership discards 87% of USFS
+      # trailheads and 95% of NPS lots because an OVERLAPPING unit already had
+      # parking; the pool has no owner, so it keeps them. It also makes the
+      # federal fetch run for states with no blank areas, which previously
+      # contributed nothing at all.
       - name: Add parking for "${{ matrix.state }}"
         run: |
           FLAG=""
           if [ "${{ inputs.dry_run }}" = "true" ]; then FLAG="--dry-run"; fi
+          mkdir -p out/pool
           echo "==== ${{ matrix.state }} ===="
-          python3 scripts/add-parking.py --state "${{ matrix.state }}" $FLAG
+          python3 scripts/add-parking.py --state "${{ matrix.state }}" $FLAG \
+            --pool-sidecar "out/pool/${{ matrix.state }}.json"
 
       # add-parking.py enriches geom IN PLACE, so the changed files are exactly
       # what git reports dirty. Collect only those into the artifact — one state
@@ -137,6 +145,18 @@ jobs:
         with:
           name: parking-${{ matrix.state }}
           path: out/geom
+          if-no-files-found: ignore
+          retention-days: 1
+
+      # Separate artifact from the geom one: the fan-in applies geom by copying
+      # every *.json it finds under artifacts/, so a sidecar sitting in the same
+      # tree would be copied into public/areas/geom/ as if it were an area.
+      - name: Upload state pool sidecar
+        if: ${{ !inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: pool-${{ matrix.state }}
+          path: out/pool
           if-no-files-found: ignore
           retention-days: 1
 
@@ -183,15 +203,30 @@ jobs:
           while IFS= read -r f; do
             cp "$f" "public/areas/geom/$(basename "$f")"
             n=$((n + 1))
-          done < <(find artifacts -type f -name '*.json')
+          done < <(find artifacts -path 'artifacts/parking-*' -type f -name '*.json')
           echo "applied $n enriched geom file(s)"
+
+      # Fan-in for the pre-ownership sidecar. Additive like the geom merge: only
+      # states present in the partials are replaced, and a state that comes back
+      # empty while it holds lots is refused rather than emptied.
+      - name: Merge pool sidecars (task #44)
+        run: |
+          set -e
+          shopt -s nullglob
+          parts=(artifacts/pool-*/*.json)
+          if [ ${#parts[@]} -eq 0 ]; then
+            echo "::warning::no pool sidecars in the artifacts — the parking pool keeps its previous pre-ownership set"
+            exit 0
+          fi
+          python3 scripts/merge-parking-pool-sidecars.py \
+            --into public/areas/parking-pool.json "${parts[@]}"
 
       - name: Commit enriched geom (one commit)
         run: |
           set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/areas/geom/
+          git add public/areas/geom/ public/areas/parking-pool.json
           if git diff --cached --quiet; then
             echo "No parking changes to commit."; exit 0
           fi

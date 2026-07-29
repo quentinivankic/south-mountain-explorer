@@ -56,6 +56,7 @@ import argparse
 import importlib.util
 import json
 import math
+import re
 import ssl
 import sys
 import time
@@ -588,6 +589,49 @@ def clean_federal_lots(lots: list[dict], trail_pts: list[tuple[float, float]] | 
     return kept, stats
 
 
+# NPS ships every PUBLIC lot in a park unit, including staff housing, clinic and
+# visitor-centre parking. USFS does not have that problem — its layer is filtered
+# server-side to MARKERACTIVITY='Trailhead' — so this applies to NPS only.
+#
+# The NAME is the only usable signal, and this was measured the hard way (task
+# #44): `LOTTYPE` is blank on all 805 AZ+NM lots, `OPENTOPUBLIC` is "Unknown" on
+# 803 of them, and every judged lot — good and bad — is byte-identical on those
+# attributes. A DISTANCE cut to the nearest OSM-corroborated lot was proposed on
+# a perfect-looking sample of 8 and REFUTED on 6,570: real trailheads and staff
+# lots appear in every band, from "Lower Residence Parking B" at 8 m to "Wawona
+# Trailhead Parking" at 428 m. Do not re-propose one.
+#
+# So this is an INCLUSION rule, and that is the point: its failure mode is
+# missing a real trailhead, never shipping a clinic. It accepts that the unnamed
+# middle ("Parking Lot", "SOUTH BEACH PARKING") is unusable.
+_NPS_TRAILHEAD_RE = re.compile(r"\btrail\s*head\b", re.I)
+
+
+def pool_candidates(fed: list[dict]) -> list[dict]:
+    """The federal points that belong in the GLOBAL POOL, chosen BEFORE any
+    ownership decision (task #44).
+
+    `assign_federal` gives a point to at most one blank area, which discards 87%
+    of USFS trailheads and 95% of NPS lots — Peralta, String Lake, Two Medicine
+    Lake and five Yellowstone trailheads among them — purely because some
+    OVERLAPPING unit already had parking. The pool has no owner, so it does not
+    have to make that call; it only has to be sure the point is a trailhead.
+
+    Callers must apply the containment and road gates FIRST. This adds the one
+    filter the pool needs beyond them: USFS is already trailhead-only at source,
+    NPS is not, so NPS has to name itself. See `_NPS_TRAILHEAD_RE`.
+    """
+    out: list[dict] = []
+    for f in fed:
+        if f.get("source") == "nps":
+            name = f.get("name") or ""
+            if not _NPS_TRAILHEAD_RE.search(name):
+                continue
+            f = dict(f, trailhead=True)
+        out.append(f)
+    return out
+
+
 def assign_federal(fed: list[dict], rings_by_area: dict[str, list],
                    blank_ids: set[str]) -> dict[str, list[dict]]:
     """Assign federal features to BLANK areas only (OSM stays authoritative
@@ -873,6 +917,76 @@ def _strip_internal(lots: list[dict]) -> list[dict]:
     return clean
 
 
+# ------------------------------------------------------------ pool sidecar
+
+POOL_SIDECAR_VERSION = 1
+
+
+def load_pool_sidecar(path: str | Path) -> dict[str, list[dict]]:
+    """Read the committed pool sidecar as {STATE: [lot, ...]}. Missing or
+    unreadable file reads as empty — the sidecar is additive, so starting from
+    nothing is a valid first run."""
+    p = Path(path)
+    if not p.exists():
+        return {}
+    try:
+        doc = json.loads(p.read_text())
+    except Exception:                       # noqa: BLE001
+        return {}
+    states = doc.get("states") if isinstance(doc, dict) else None
+    if not isinstance(states, dict):
+        return {}
+    return {k.upper(): v for k, v in states.items() if isinstance(v, list)}
+
+
+def merge_pool_sidecar(existing: dict[str, list[dict]],
+                       fresh: dict[str, list[dict]]) -> tuple[dict[str, list[dict]], list[str]]:
+    """Replace only the states this run actually processed, and REFUSE to let a
+    state go from lots to none.
+
+    Per-state replacement is what makes a single-state re-run safe: `--state az`
+    must not delete the other fifty states' contributions. The refusal is the
+    same fail-closed rule the sweeps use — an empty answer for a state that had
+    lots is far more likely to be a fetch that quietly returned nothing than a
+    real change, and the cost of being wrong is pins vanishing from the map.
+
+    Returns `(merged, refused_state_codes)`.
+    """
+    merged = dict(existing)
+    refused: list[str] = []
+    for code, lots in fresh.items():
+        code = code.upper()
+        if not lots and existing.get(code):
+            refused.append(code)
+            continue
+        merged[code] = lots
+    return merged, refused
+
+
+def write_pool_sidecar(path: str | Path, fresh: dict[str, list[dict]],
+                       dry_run: bool) -> dict[str, int]:
+    """Merge `fresh` into the sidecar at `path` and write it. Returns counts for
+    the report. Writes nothing on a dry run."""
+    existing = load_pool_sidecar(path)
+    merged, refused = merge_pool_sidecar(existing, fresh)
+    for code in refused:
+        print(f"::warning::pool sidecar: {code} produced 0 lots but currently "
+              f"has {len(existing[code])} — keeping the existing entry rather "
+              "than emptying it. Re-run that state.", file=sys.stderr)
+    total = sum(len(v) for v in merged.values())
+    if not dry_run:
+        doc = {"version": POOL_SIDECAR_VERSION,
+               "states": {k: merged[k] for k in sorted(merged)}}
+        Path(path).write_text(json.dumps(doc, separators=(",", ":"),
+                                         sort_keys=False))
+    verb = "would hold" if dry_run else "holds"
+    print(f"\npool sidecar: {verb} {total} lot(s) across {len(merged)} state(s) "
+          f"({len(fresh)} refreshed this run)")
+    for code in sorted(fresh):
+        print(f"  {code}: {len(fresh[code])}")
+    return {"total": total, "states": len(merged), "refused": len(refused)}
+
+
 # ---------------------------------------------------------------- reporting
 
 def _histogram(dists: list[float]) -> str:
@@ -1118,8 +1232,13 @@ def print_federal_fill(fed_fill: list[tuple[str, str, list[str]]]) -> None:
         print(f"    {name or aid:45} {dict(by)}")
 
 
-def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> bool:
+def process(state_codes: list[str], dry_run: bool, use_federal: bool = True,
+            pool_sidecar: str | None = None) -> bool:
     groups = geom_by_state()
+    # {STATE: [lot, ...]} for the global pool — populated only when a sidecar
+    # path was asked for, and replaced per state so a single-state run cannot
+    # wipe the other fifty.
+    pool_by_state: dict[str, list[dict]] = {}
     per_area: list[tuple[str, list[dict]]] = []
     area_counts: dict[str, int] = {}
     stats: dict[str, int] = {}
@@ -1191,9 +1310,16 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> 
         if use_federal and bnd_ok:
             blank_ids = {f.stem for f, _, kept in state_areas
                          if not kept and rings_by_area.get(f.stem)}
-            if blank_ids:
+            # The fetch used to be gated on `blank_ids` alone, which is exactly
+            # why a state where OSM already mapped every area contributed NOTHING
+            # to the pool — there was no blank area to fill, so no federal call
+            # was ever made. The pool has no owner and therefore no such
+            # precondition, so wanting a sidecar is reason enough to fetch.
+            want_pool = pool_sidecar is not None
+            if blank_ids or want_pool:
                 bbox = _bbox_of_geoms(files)
                 fed, fed_failed = fetch_federal(bbox) if bbox else ([], set())
+                road_ok = True
                 if fed:
                     fed, road_ok = road_gate(fed, stats=stats)
                     if not road_ok:
@@ -1202,6 +1328,32 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> 
                         # Treat all of them as unavailable so existing pins are
                         # carried forward rather than deleted.
                         fed_failed |= {s["key"] for s in _FED_SOURCES}
+
+                # POOL EMIT — here, BEFORE assign_federal, is the whole point of
+                # task #44. The containment gate ran when the boundaries loaded
+                # (`bnd_ok` above) and the road gate ran just now, so these
+                # points have passed every QUALITY check; the only thing they
+                # have not been put through is the ownership question, which the
+                # pool does not ask.
+                #
+                # Skipped entirely when a source failed or the gate could not
+                # run: an unverified point must not enter a pool that every area
+                # in the country reads.
+                if want_pool:
+                    if fed_failed or not road_ok:
+                        print(f"::warning::{code.upper()}: pool sidecar SKIPPED "
+                              f"— source(s) {sorted(fed_failed) or 'ok'}, road "
+                              f"gate ok={road_ok}. Existing entry kept.",
+                              file=sys.stderr)
+                    else:
+                        cands = pool_candidates(fed)
+                        cands, why = clean_federal_lots(cands)
+                        pool_by_state[code.upper()] = _strip_internal(cands)
+                        print(f"  {code.upper()}: pool sidecar {len(cands)} lot(s) "
+                              f"from {len(fed)} gated federal point(s) "
+                              f"({why.get('dup-name', 0)} same-name collapsed)")
+
+            if blank_ids:
                 fed_by_area = assign_federal(fed, rings_by_area, blank_ids) if fed else {}
                 n_area = n_pin = 0
                 n_dedup = 0
@@ -1274,6 +1426,9 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True) -> 
                         geom.pop("parking", None)
                     f.write_text(json.dumps(geom))
 
+    if pool_sidecar is not None:
+        write_pool_sidecar(pool_sidecar, pool_by_state, dry_run)
+
     print_report(per_area, dry_run)
     print_federal_fill(fed_fill)
     if stats.get("containment_dropped"):
@@ -1310,6 +1465,11 @@ def main() -> None:
     ap.add_argument("--no-federal", action="store_true",
                     help="skip the tier-2 federal (BLM/NPS/USFS) fill of "
                          "OSM-blank areas; OSM parking only")
+    ap.add_argument("--pool-sidecar", metavar="PATH",
+                    help="also emit road-gated federal trailheads to this "
+                         "sidecar, BEFORE ownership assignment, for the global "
+                         "parking pool (task #44). Makes the federal fetch run "
+                         "for every state, not only states with blank areas.")
     args = ap.parse_args()
 
     if args.all:
@@ -1318,7 +1478,11 @@ def main() -> None:
         if args.state.upper() not in STATE_NAMES:
             raise SystemExit(f"Unknown state code: {args.state}")
         codes = [args.state]
-    golden_ok = process(codes, args.dry_run, use_federal=not args.no_federal)
+    if args.pool_sidecar and args.no_federal:
+        raise SystemExit("--pool-sidecar needs the federal sources; "
+                         "it cannot be combined with --no-federal")
+    golden_ok = process(codes, args.dry_run, use_federal=not args.no_federal,
+                        pool_sidecar=args.pool_sidecar)
     if not golden_ok:
         sys.exit(2)
 

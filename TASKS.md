@@ -106,6 +106,42 @@ ship.
 **SCOPE:** pool only. NPS pins already written into blank areas stay — they are
 the only parking those areas have.
 
+**BUILT 2026-07-29.** `add-parking.py --pool-sidecar PATH` emits the road-gated
+federal trailheads between `road_gate` and `assign_federal`, through the new pure
+`pool_candidates()` (USFS all, NPS only where the NAME says trailhead) and the
+existing `clean_federal_lots` same-name collapse. All three snags are addressed:
+
+- **the fetch was conditional** — it ran only when a state had blank areas, so a
+  state OSM had fully mapped contributed nothing. `--pool-sidecar` is now reason
+  enough to fetch, independent of `blank_ids`;
+- **the dedup was per-area** — the sidecar is collapsed per state on the way out,
+  and `build-parking-pool.py --extra` folds it through the SAME global 40 m dedup
+  the pool already ran, geom first so a shipped lot keeps its exact position;
+- **the workflow is a per-state matrix** — each state uploads a `pool-<STATE>`
+  artifact and `scripts/merge-parking-pool-sidecars.py` fans them in, additively,
+  replacing only the states present.
+
+Measured on the real gated set: pool **29,196 -> 30,808 (+1,612 new)**, with
+**0 existing positions lost and 0 names changed**.
+
+DRY RUN, Vermont, every row read (the counts alone would have hidden this):
+
+    KEEP [usfs] Clark Brook Trailhead / Cooley Glen-Emily Proctor Trailhead /
+                East Dorset Trailhead / Skylight Pond Trailhead
+    KEEP [usfs] Chatfield Loop / Lye Brook Wilderness / Michigan Brook Road /
+                Mountain Top      <- no "trailhead" in the name, and RIGHT to
+                                     keep: USFS is trailhead-only at source, so
+                                     name-filtering it would delete real ones
+    drop [nps]  CARETAKERS PARKING / COLLECTIONS STORAGE PARKING /
+                DANCE HALL PARKING / RV AND OVERFLOW PARKING /
+                Visitor Parking / Accessible Parking
+
+Ownership gave that state 3 pins across 2 areas; the pool gets 8. The sidecar
+`public/areas/parking-pool.json` is COMMITTED (the roll has network and shapely;
+`sync-geom-to-r2` installs neither) and was added to that workflow's push paths,
+because a roll can change ONLY the sidecar and would otherwise never rebuild the
+pool.
+
 **IMPLEMENTATION:** emit the road-gated `fed` list between `road_gate`
 (~`add-parking.py:1198`) and `assign_federal` (~`:1205`), `source=="usfs"` plus
 NPS matching the trailhead regex. Snags: (a) the federal fetch only runs when a

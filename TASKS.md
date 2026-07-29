@@ -11,11 +11,11 @@ and a new session should re-create them with `TaskCreate` from this file.
 Numbers are the original task ids. Gaps (#19–#20, #22–#25, #27–#30, #32,
 #38–#43, #45, #48) are completed work — see git log and `TODO.md`.
 
-Last synced from the live task list: **2026-07-28**.
+Last synced from the live task list: **2026-07-29**.
 
 | # | Task | Kind |
 |---|---|---|
-| [44](#44) | Emit the parking pool BEFORE ownership | data · specced, ready |
+| [44](#44) | Emit the parking pool BEFORE ownership | data · MEASURED, ready to build |
 | [35](#35) | Fragmentation quality score | data · measured |
 | [21](#21) | Road-as-trail: ~2,780 still unsolved | data · 4 approaches ruled out |
 | [31](#31) | Split thru-routes into road-bounded sections | data · measured |
@@ -34,17 +34,43 @@ Last synced from the live task list: **2026-07-28**.
 <a name="44"></a>
 ## #44 — Emit the parking pool BEFORE ownership (USFS all, NPS trailhead-named only)
 
-MEASURED NATIONALLY 2026-07-28, zero Overpass calls. Emit the pool from
-`add-parking.py` after the containment + road gates but BEFORE `assign_federal`.
+Emit the pool from `add-parking.py` after the containment + road gates but
+BEFORE `assign_federal`.
 
-⭐ **NATIONAL NUMBER: 2,348 lots the pool would gain.**
+⭐ **MEASURED END TO END 2026-07-29, every real gate applied, zero Overpass
+calls. The answer is 1,462-1,636 new lots, NOT the 2,348 first reported.**
 
-    USFS  2,525 candidates -> 331 ship, 2,194 DISCARDED (87%)  [nonblank 1,998, orphan 196]
-    NPS     162 candidates ->   8 ship,   154 DISCARDED (95%)  [nonblank 145, orphan 9]
+    road-gate survivors                                    2,596 / 2,689
+    STRICT (inside a polygon we hold)   2,390 -> 2,383 after same-name collapse
+    LOOSE  (orphans kept as well)       2,596 -> 2,589 after same-name collapse
+
+    STRICT   1,462 genuinely NEW lots   (921 already in the shipping pool)
+    LOOSE    1,636 genuinely NEW lots   (953 already in the shipping pool)
+
+    trails gaining a lot inside the 805 m display gate
+      STRICT   919 trails (1.0% of 92,279) across 167 areas
+      LOOSE    959 trails (1.0% of 92,279) across 172 areas
+      biggest single move: +610 trails into the "parking under 100 m" band
+
+**2,348 WAS A CEILING, not an answer** — it counted every point the ownership
+rule discards with the road gate switched off and no dedup against the pool that
+already ships. Roughly a third of it is already in the pool or dies at the gate.
+Keep the ceiling in mind when someone quotes it: the deliverable is ~1.0% of
+trails, not 2.5% of lots.
 
 Corpus: 9,060 shipped areas, 2,771 with a usable boundary polygon, 2,899 blank
-pre-fill. Road gate NOT applied in that pass — it shrinks both sides, so the 87%
-ratio is unbiased.
+pre-fill.
+
+**ARE THESE REAL TRAILHEADS OR CAR PARKS AT A MALL?** Asked 2026-07-29 and worth
+re-asking. They cannot be mall lots because they never come from OSM's generic
+`amenity=parking`: USFS comes from `EDW_RecreationOpportunities_01` filtered
+SERVER-SIDE to `MARKERACTIVITY='Trailhead'`, NPS from `NPS_Public_ParkingLots`
+cut to names matching /trailhead/, and both then have to sit inside an area
+boundary with a drivable road within 250 m. Composition of the 1,639 LOOSE
+pre-collapse set: **1,583 USFS + 56 NPS; 1,468 carry "trailhead" in the name and
+171 do not, none unnamed.** A 22-row stratified sample weighted onto that 171 was
+put to the user with map links; the user accepted the set without needing to walk
+it. If this is ever re-litigated, that 171 is the bucket to look at.
 
 **NAMED CASUALTIES** (all real, all filed under an overlapping unit): Peralta
 Trailhead (main Superstition access), South Fork, Carr Canyon, Miller Canyon,
@@ -109,15 +135,71 @@ Debian pyosmium has NO `osmium.area` module, so assemble polygons with the CLI:
 then map area id → relation id as `(id-1)//2` for odd ids. Verified 2,771/2,771.
 Only the ArcGIS point layers still need the network.
 
-**STATUS 2026-07-28:** a full re-measure with the real gates was attempted and
-**did not finish** — public Overpass returned HTTP 504 through three retries of the
-road gate, and the run was stopped. Nothing was written. The harness is
-`~/.claude/jobs/*/tmp/measure44_real.py` (imports `add-parking.py` so the gates are
-production code, caches gate survivors to `m44-gated.json` so a re-run costs no
-network). Two bugs were found and fixed in it: the ArcGIS bbox wants
-`[lonmin, latmin, lonmax, latmax]` and returns 0 features WITHOUT raising if you
-get it wrong, and the grid search span must come from the caller's cap or every
-distance band past ~835 m silently reads zero. Re-run when Overpass recovers.
+**STATUS 2026-07-29: the measurement is DONE and the road gate no longer needs
+Overpass at all.** The 2026-07-28 attempt died on HTTP 504 through three retries;
+so did the 2026-07-29 retry, on the first of 45 chunks, with both mirrors
+(`overpass-api.de`, `overpass.kumi.systems`) failing together for 26 minutes. The
+gate was answered from the local extract instead and the run finished offline.
+
+**THE ROAD GATE RUNS LOCALLY — the data was already downloaded.**
+`/mnt/raid/trekdex/osm/us-access.osm.pbf` is cut from `us-latest` by
+`trailforge/extract/prefilter-access.sh`, whose own comment says it exists so
+"the road gate and this extract agree about what counts as reachable by car".
+Nothing had ever wired the gate to it: `fetch_roads_near` only builds an Overpass
+query. `fetch-us-extract.sh --update` regenerates the derived extracts on every
+base update, so the local copy does not silently go stale.
+
+Recipe (~13 min, no network, no rate limit):
+
+    osmium tags-filter us-access.osm.pbf w/highway=<_DRIVABLE_HW + _link variants>
+      -> 126 s, 345,187,352 nodes / 39,930,095 drivable ways
+    osmium cat -f opl | scan node coords against a 0.0025-deg cell dict
+      -> 629 s, 130,714 nodes in a candidate neighbourhood
+
+Cut by TAG, not by polygon: in a roads-only file every node IS a road node, so
+no way membership has to be rebuilt. `_road_gate_filter` still does the
+arithmetic, per candidate against its own 3x3 cells.
+
+**VERIFIED against the thing it replaces:** 60 candidates sampled every 44th
+across the national list, gated both ways — Overpass returned 15,701 road nodes —
+**agreement 60/60**, both keeping 58 of 60.
+
+⛔ **`osmium extract -p` HONOURS ONLY THE FIRST POLYGON, SILENTLY.** This is why
+the first local answer was wrong (2,544 instead of 2,596), and osmium 1.16.0 exits
+0 every time:
+
+| polygon file | result |
+|---|---|
+| bare `{"type":"Polygon"}` | errors loudly: `Expected 'type' value to be 'Feature'` |
+| `Feature` + `Polygon`, box A | 112 nodes, 7 ways |
+| `Feature` + `Polygon`, box B | 408 nodes, 20 ways |
+| `FeatureCollection` [A, B] | 112 / 7 — B ignored |
+| `FeatureCollection` [B, A] | 408 / 20 — A ignored |
+| `Feature` + `MultiPolygon` [A, B] | **0 nodes, 0 ways** |
+
+A 2,689-box `MultiPolygon` cut therefore produced a 6.3 MB file holding 15,873
+drivable ways that LOOKED like a plausible national cut. It was caught only
+because the 60-point Overpass comparison disagreed on ONE row — `#978 M.F. Bull
+River Trailhead` — and chasing that row found zero local road nodes within 2 km
+of it while `National Forest Development Road 2722` has one 58 m away, present in
+`us-access.osm.pbf` the whole time. 98.3% agreement looked like rounding; it was
+a broken method. The repo is NOT affected: `trailforge/extract/aoi.sh` uses
+`osmium extract --strategy=smart --bbox`, not `--polygon`.
+
+**FOR THE BUILD:** `trailforge-parking.yml` runs on `ubuntu-latest` with no local
+extract, so a local road gate is a HOMELAB acceleration, not a CI one — production
+`fetch_roads_near` must keep its Overpass path. `road_gate` already separates the
+fetch from the pure `_road_gate_filter` and already returns an `ok` flag so an
+outage is never read as "no roads here", so a local source is one new fetch
+function behind a flag, with no change to the gate's semantics.
+
+The harness is `~/.claude/jobs/*/tmp/measure44_real.py` (imports `add-parking.py`
+so the gates are production code, caches gate survivors to `m44-gated.json` so a
+re-run costs no network — seed that file from the local gate and the whole
+measurement runs offline in ~18 min). Two bugs were found and fixed in it: the
+ArcGIS bbox wants `[lonmin, latmin, lonmax, latmax]` and returns 0 features
+WITHOUT raising if you get it wrong, and the grid search span must come from the
+caller's cap or every distance band past ~835 m silently reads zero.
 
 ⚠️ **BIGGER GAP FOUND WHILE MEASURING, not on this list:** only **2,794 of 9,060**
 shipped areas carry an `osm_relation_id` at all. For the other 6,266 there is no

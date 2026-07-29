@@ -2,7 +2,7 @@
 
 **Why this file exists.** The task list Claude keeps in-session (`TaskList` /
 `TaskGet`) does NOT survive into a new session — it is session-scoped state, and
-a fresh session starts with nothing. These 13 tasks carry hard-won measurement
+a fresh session starts with nothing. These 12 tasks carry hard-won measurement
 in their descriptions: national counts, named counter-examples, and approaches
 already ruled out with evidence. Losing them means re-deriving all of it, or
 worse, re-proposing something already disproved. So they live here, in the repo,
@@ -15,7 +15,6 @@ Last synced from the live task list: **2026-07-29**.
 
 | # | Task | Kind |
 |---|---|---|
-| [44](#44) | Emit the parking pool BEFORE ownership | data · MEASURED, ready to build |
 | [35](#35) | Fragmentation quality score | data · measured |
 | [21](#21) | Road-as-trail: ~2,780 still unsolved | data · 4 approaches ruled out |
 | [31](#31) | Split thru-routes into road-bounded sections | data · measured |
@@ -32,249 +31,38 @@ Last synced from the live task list: **2026-07-29**.
 ---
 
 <a name="44"></a>
-## #44 — Emit the parking pool BEFORE ownership (USFS all, NPS trailhead-named only)
+## #44 — CLOSED 2026-07-29. Pool emitted before ownership, rolled nationally.
 
-Emit the pool from `add-parking.py` after the containment + road gates but
-BEFORE `assign_federal`.
+Shipped in three PRs and one roll:
 
-⭐ **MEASURED END TO END 2026-07-29, every real gate applied, zero Overpass
-calls. The answer is 1,462-1,636 new lots, NOT the 2,348 first reported.**
+- **#508** — `add-parking.py --pool-sidecar` emits the road-gated federal points
+  between `road_gate` and `assign_federal`; `build-parking-pool.py --extra` folds
+  them in; `merge-parking-pool-sidecars.py` fans in the per-state artifacts.
+- **#509** — the roll runs off the homelab's extracts. Overpass was 87% of a
+  state's runtime (VT) and 71% (CO), and the road gate alone was 34.7 s / 175.6 s
+  of that. `build-local-osm-cache.py` builds parking + road-gate caches; ONE
+  network call remains (ArcGIS, which has no local copy). VT went 5 min -> 34 s.
+- **#510** — boundaries stay on Overpass. The local rings are coarser (Four Peaks
+  4,815 points vs 6,595 over the same bbox) and a cut corner dropped Cane Spring
+  Trailhead, 7.6 m from a trail, clearing 8 Arizona wilderness areas. Boundaries
+  were also the CHEAPEST call (2.4-6.1 s), so moving them bought nothing.
+- **#511** — the national roll, five parallel shards on the homelab, 51 states,
+  no 504s and no skipped states.
 
-    road-gate survivors                                    2,596 / 2,689
-    STRICT (inside a polygon we hold)   2,390 -> 2,383 after same-name collapse
-    LOOSE  (orphans kept as well)       2,596 -> 2,589 after same-name collapse
+⭐ **RESULT: the R2 pool went 29,196 -> 30,840 lots (+1,661 pre-ownership).**
+Oregon 708, Washington 464, Idaho 349, Colorado 292, Montana 235, California 228
+— national forest wrapped around wilderness, exactly the case ownership could
+never resolve. geom: added 50, updated 607, cleared 13. Every named casualty
+this task was opened for is now in the pool and verified on R2: **Peralta
+Trailhead, String Lake Trailhead Parking, Two Medicine Lake Trailhead Parking.**
 
-    STRICT   1,462 genuinely NEW lots   (921 already in the shipping pool)
-    LOOSE    1,636 genuinely NEW lots   (953 already in the shipping pool)
+Predicted 1,462-1,636; delivered 1,661 (the national ArcGIS bbox includes AK/HI,
+which the CONUS measurement did not).
 
-    trails gaining a lot inside the 805 m display gate
-      STRICT   919 trails (1.0% of 92,279) across 167 areas
-      LOOSE    959 trails (1.0% of 92,279) across 172 areas
-      biggest single move: +610 trails into the "parking under 100 m" band
-
-**2,348 WAS A CEILING, not an answer** — it counted every point the ownership
-rule discards with the road gate switched off and no dedup against the pool that
-already ships. Roughly a third of it is already in the pool or dies at the gate.
-Keep the ceiling in mind when someone quotes it: the deliverable is ~1.0% of
-trails, not 2.5% of lots.
-
-Corpus: 9,060 shipped areas, 2,771 with a usable boundary polygon, 2,899 blank
-pre-fill.
-
-**ARE THESE REAL TRAILHEADS OR CAR PARKS AT A MALL?** Asked 2026-07-29 and worth
-re-asking. They cannot be mall lots because they never come from OSM's generic
-`amenity=parking`: USFS comes from `EDW_RecreationOpportunities_01` filtered
-SERVER-SIDE to `MARKERACTIVITY='Trailhead'`, NPS from `NPS_Public_ParkingLots`
-cut to names matching /trailhead/, and both then have to sit inside an area
-boundary with a drivable road within 250 m. Composition of the 1,639 LOOSE
-pre-collapse set: **1,583 USFS + 56 NPS; 1,468 carry "trailhead" in the name and
-171 do not, none unnamed.** A 22-row stratified sample weighted onto that 171 was
-put to the user with map links; the user accepted the set without needing to walk
-it. If this is ever re-litigated, that 171 is the bucket to look at.
-
-**NAMED CASUALTIES** (all real, all filed under an overlapping unit): Peralta
-Trailhead (main Superstition access), South Fork, Carr Canyon, Miller Canyon,
-String Lake (Grand Teton), Two Medicine Lake (Glacier), Bighorn Pass / Cascade
-Lake / Gneiss Creek / Soda Butte / Wram Creek (Yellowstone), Kehoe Beach (Point
-Reyes), Alamo Boundary (Bandelier), Rattlesnake Creek (Dixie NF).
-
-⛔ **NPS MUST BE FILTERED TO TRAILHEAD-NAMED ONLY.** The user judged a sample and
-confirmed Grand Canyon "Clinic Parking B", "Muav Court Parking E", "Paiute Circle
-Parking", "Entrance Sign Parking" are staff-housing/facility lots that must never
-ship.
-
-1. **Landowner attributes DO NOT WORK here**, unlike USFS `trail_type`. The NPS
-   layer HAS `LOTTYPE` and `OPENTOPUBLIC` and they are EMPTY: `LOTTYPE` blank on
-   all 805 AZ+NM lots, `OPENTOPUBLIC="Unknown"` on 803/805, `PUBLICDISPLAY`
-   identical on all. Every judged lot, good and bad, is byte-identical.
-   **Don't re-check this layer.**
-2. ⛔ **OSM-CORROBORATION DISTANCE FAILED** — and it was proposed on n=8 before
-   the corpus refuted it. Perfect separation on 8 (good 8/8/9/34 m, bad
-   163/184/>300/>300 m) did NOT survive 6,570 nationwide: real trailheads AND
-   staff lots in EVERY band. 0–40 m holds "Lower Residence Parking B" (staff
-   housing, 8 m); 400–1000 m holds "Wawona Trailhead Parking" (Yosemite, 428 m);
-   100–200 m holds Two Medicine Lake and Lightning Spring, both real.
-   **DO NOT RE-PROPOSE A DISTANCE CUT.**
-3. ✅ **WHAT SURVIVES: NPS NAMES its trailheads.** 162 of 6,570 (2.5%) match
-   `/\btrail\s*head\b/i` and the sample is clean — Bright Angel, Widforss, Cinder
-   Cone, Wawona, Laguna (Point Reyes), Osceola Ditch, Alpine Pond. This is an
-   INCLUSION rule: failure mode is missing lots, never adding a clinic. It accepts
-   that the 90% unnamed middle ("Parking Lot", "SOUTH BEACH PARKING") is unusable,
-   which loses real ones like "Appalachian Trail Parking - Skyline Dr". 457 of
-   6,570 (7%) match staff/facility vocabulary — a scale check only, NOT a rule.
-
-**SCOPE:** pool only. NPS pins already written into blank areas stay — they are
-the only parking those areas have.
-
-**THE ROLL RUNS ON THE HOMELAB NOW (2026-07-29).** Overpass was never the
-compute cost, it was the whole cost: measured per state, **87% of Vermont's run
-and 71% of Colorado's** was Overpass wait, and the road gate alone was 34.7 s of
-43.1 s (VT) and 175.6 s of 212.7 s (CO). The CI matrix caps at 8 jobs purely to
-avoid stampeding it, which is where "~4 hours nationally" came from.
-
-`scripts/build-local-osm-cache.py` builds three artifacts under
-`$TREKDEX_OSM_DIR/cache/` and `add-parking.py --local-cache` reads them, so a
-roll makes ONE network call (ArcGIS, for the federal layer, which has no local
-copy):
-
-    parking.jsonl          1,466,888 features   from us-access.osm.pbf  (166 s)
-    boundaries.geojsonseq  2,771 polygons       from us-latest.osm.pbf  (~12 min)
-    road-gate.json         9,303 verdicts       from us-access.osm.pbf  (705 s)
-
-VERIFIED against the Overpass path it replaces, Vermont, boundaries held
-constant: **227 lots (Overpass) vs 229 (local)**, differing in exactly two areas
-— Clarksburg State Park and Mountain Meadow Preserve, both ON THE MASSACHUSETTS
-BORDER, where local finds a lot inside the area's own boundary that the
-state-scoped `area["ISO3166-2"]` query never returned. Boundaries: same 29 areas,
-and containment agrees on **167,508 of 167,533 point tests (99.985%)**; the 25
-differences are areas where osmium assembles MORE outer rings than shapely
-polygonize did (Green Mountain NF: 70 vs 47). VT wall clock **33.8 s**.
-
-⚠️ Three traps, all of which exited 0 and looked plausible:
-- `osmium export --geometry-types=point,polygon` returned 49,429 features from a
-  subset holding 1,392,662 parking WAYS — `amenity=parking` is not on osmium's
-  area-tag list, so add `linestring`;
-- with linestring AND polygon a closed way comes out TWICE under different ids
-  (`w<id>` and `a<2*id>`), which doubled the cache to 2,850,284;
-- a cached way handed to `parse_parking` as bare `lat`/`lon` reads as having NO
-  position, because `_point()` wants `center` for anything that is not a node.
-  That quietly cut Vermont's 8,074 cached lots to the 430 that were nodes.
-
-**BUILT 2026-07-29.** `add-parking.py --pool-sidecar PATH` emits the road-gated
-federal trailheads between `road_gate` and `assign_federal`, through the new pure
-`pool_candidates()` (USFS all, NPS only where the NAME says trailhead) and the
-existing `clean_federal_lots` same-name collapse. All three snags are addressed:
-
-- **the fetch was conditional** — it ran only when a state had blank areas, so a
-  state OSM had fully mapped contributed nothing. `--pool-sidecar` is now reason
-  enough to fetch, independent of `blank_ids`;
-- **the dedup was per-area** — the sidecar is collapsed per state on the way out,
-  and `build-parking-pool.py --extra` folds it through the SAME global 40 m dedup
-  the pool already ran, geom first so a shipped lot keeps its exact position;
-- **the workflow is a per-state matrix** — each state uploads a `pool-<STATE>`
-  artifact and `scripts/merge-parking-pool-sidecars.py` fans them in, additively,
-  replacing only the states present.
-
-Measured on the real gated set: pool **29,196 -> 30,808 (+1,612 new)**, with
-**0 existing positions lost and 0 names changed**.
-
-DRY RUN, Vermont, every row read (the counts alone would have hidden this):
-
-    KEEP [usfs] Clark Brook Trailhead / Cooley Glen-Emily Proctor Trailhead /
-                East Dorset Trailhead / Skylight Pond Trailhead
-    KEEP [usfs] Chatfield Loop / Lye Brook Wilderness / Michigan Brook Road /
-                Mountain Top      <- no "trailhead" in the name, and RIGHT to
-                                     keep: USFS is trailhead-only at source, so
-                                     name-filtering it would delete real ones
-    drop [nps]  CARETAKERS PARKING / COLLECTIONS STORAGE PARKING /
-                DANCE HALL PARKING / RV AND OVERFLOW PARKING /
-                Visitor Parking / Accessible Parking
-
-Ownership gave that state 3 pins across 2 areas; the pool gets 8. The sidecar
-`public/areas/parking-pool.json` is COMMITTED (the roll has network and shapely;
-`sync-geom-to-r2` installs neither) and was added to that workflow's push paths,
-because a roll can change ONLY the sidecar and would otherwise never rebuild the
-pool.
-
-**IMPLEMENTATION:** emit the road-gated `fed` list between `road_gate`
-(~`add-parking.py:1198`) and `assign_federal` (~`:1205`), `source=="usfs"` plus
-NPS matching the trailhead regex. Snags: (a) the federal fetch only runs when a
-state has blank areas, so states with none contribute nothing; (b)
-`clean_federal_lots` dedup runs per-area after assignment and the pool needs it
-globally; (c) `trailforge-parking.yml` is a per-state matrix → per-state artifacts
-plus a fan-in like `merge-published-geom.py`.
-
-`build-parking-pool.py` must stay dependency-free: `sync-geom-to-r2.yml` installs
-NOTHING (verified — no `pip install`, no `setup-python`), while
-`trailforge-parking.yml` installs shapely and has network. So the natural shape is
-a committed sidecar written during the parking roll and merged by the pool builder,
-following `aliases.json` / `nonhiking-trails.json`.
-
-**MEASURING IS LOCAL AND CHEAP:**
-
-    us-parking.osm.pbf     115 MB, 425 s, one osmium tags-filter pass over
-                           us-latest.osm.pbf. 1,456,699 amenity=parking +
-                           10,435 highway=trailhead. Replaces the Overpass
-                           parking query.
-    us-boundaries.osm.pbf   43 MB, 423 s, `osmium getid -r -t --id-file relids.txt`
-                           over the 2,794 area relation ids -> 2,854 relations.
-                           Replaces the per-state Overpass boundary fetch.
-
-Debian pyosmium has NO `osmium.area` module, so assemble polygons with the CLI:
-`osmium export ... -f geojsonseq --geometry-types=polygon --add-unique-id=type_id`,
-then map area id → relation id as `(id-1)//2` for odd ids. Verified 2,771/2,771.
-Only the ArcGIS point layers still need the network.
-
-**STATUS 2026-07-29: the measurement is DONE and the road gate no longer needs
-Overpass at all.** The 2026-07-28 attempt died on HTTP 504 through three retries;
-so did the 2026-07-29 retry, on the first of 45 chunks, with both mirrors
-(`overpass-api.de`, `overpass.kumi.systems`) failing together for 26 minutes. The
-gate was answered from the local extract instead and the run finished offline.
-
-**THE ROAD GATE RUNS LOCALLY — the data was already downloaded.**
-`/mnt/raid/trekdex/osm/us-access.osm.pbf` is cut from `us-latest` by
-`trailforge/extract/prefilter-access.sh`, whose own comment says it exists so
-"the road gate and this extract agree about what counts as reachable by car".
-Nothing had ever wired the gate to it: `fetch_roads_near` only builds an Overpass
-query. `fetch-us-extract.sh --update` regenerates the derived extracts on every
-base update, so the local copy does not silently go stale.
-
-Recipe (~13 min, no network, no rate limit):
-
-    osmium tags-filter us-access.osm.pbf w/highway=<_DRIVABLE_HW + _link variants>
-      -> 126 s, 345,187,352 nodes / 39,930,095 drivable ways
-    osmium cat -f opl | scan node coords against a 0.0025-deg cell dict
-      -> 629 s, 130,714 nodes in a candidate neighbourhood
-
-Cut by TAG, not by polygon: in a roads-only file every node IS a road node, so
-no way membership has to be rebuilt. `_road_gate_filter` still does the
-arithmetic, per candidate against its own 3x3 cells.
-
-**VERIFIED against the thing it replaces:** 60 candidates sampled every 44th
-across the national list, gated both ways — Overpass returned 15,701 road nodes —
-**agreement 60/60**, both keeping 58 of 60.
-
-⛔ **`osmium extract -p` HONOURS ONLY THE FIRST POLYGON, SILENTLY.** This is why
-the first local answer was wrong (2,544 instead of 2,596), and osmium 1.16.0 exits
-0 every time:
-
-| polygon file | result |
-|---|---|
-| bare `{"type":"Polygon"}` | errors loudly: `Expected 'type' value to be 'Feature'` |
-| `Feature` + `Polygon`, box A | 112 nodes, 7 ways |
-| `Feature` + `Polygon`, box B | 408 nodes, 20 ways |
-| `FeatureCollection` [A, B] | 112 / 7 — B ignored |
-| `FeatureCollection` [B, A] | 408 / 20 — A ignored |
-| `Feature` + `MultiPolygon` [A, B] | **0 nodes, 0 ways** |
-
-A 2,689-box `MultiPolygon` cut therefore produced a 6.3 MB file holding 15,873
-drivable ways that LOOKED like a plausible national cut. It was caught only
-because the 60-point Overpass comparison disagreed on ONE row — `#978 M.F. Bull
-River Trailhead` — and chasing that row found zero local road nodes within 2 km
-of it while `National Forest Development Road 2722` has one 58 m away, present in
-`us-access.osm.pbf` the whole time. 98.3% agreement looked like rounding; it was
-a broken method. The repo is NOT affected: `trailforge/extract/aoi.sh` uses
-`osmium extract --strategy=smart --bbox`, not `--polygon`.
-
-**FOR THE BUILD:** `trailforge-parking.yml` runs on `ubuntu-latest` with no local
-extract, so a local road gate is a HOMELAB acceleration, not a CI one — production
-`fetch_roads_near` must keep its Overpass path. `road_gate` already separates the
-fetch from the pure `_road_gate_filter` and already returns an `ok` flag so an
-outage is never read as "no roads here", so a local source is one new fetch
-function behind a flag, with no change to the gate's semantics.
-
-The harness is `~/.claude/jobs/*/tmp/measure44_real.py` (imports `add-parking.py`
-so the gates are production code, caches gate survivors to `m44-gated.json` so a
-re-run costs no network — seed that file from the local gate and the whole
-measurement runs offline in ~18 min). Two bugs were found and fixed in it: the
-ArcGIS bbox wants `[lonmin, latmin, lonmax, latmax]` and returns 0 features
-WITHOUT raising if you get it wrong, and the grid search span must come from the
-caller's cap or every distance band past ~835 m silently reads zero.
-
-⚠️ **BIGGER GAP FOUND WHILE MEASURING, not on this list:** only **2,794 of 9,060**
-shipped areas carry an `osm_relation_id` at all. For the other 6,266 there is no
-boundary polygon, so containment can never be evaluated and no buffer or gate can
-ever fill them. That dwarfs the 2,348 lots #44 recovers.
+**STILL OPEN, and bigger than this was:** only 2,909 of 9,060 shipped areas carry
+an `osm_relation_id` at all. The other 6,151 have no boundary polygon, so
+containment can never be evaluated for them and no gate or buffer can ever fill
+them. Not on this list yet.
 
 ---
 

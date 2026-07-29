@@ -373,10 +373,19 @@ def main(argv=None) -> int:
     print("assembling park boundaries from the PBF…", file=sys.stderr)
     from shapely.ops import unary_union
     geoms = {}
+    # name -> the OSM object its boundary was assembled from. Kept alongside the
+    # geometry so a published area can record WHICH polygon it was cut to. A
+    # relation wins over a way when both carry the name: the app can only use a
+    # relation id, and the containment gate can use either.
+    boundary_src: dict[str, tuple[str, int]] = {}
     for b in areamod.merge_areas(args.hiking):
         if b.get("name"):
             g = _union_from_rings(b["rings"])
             if g is not None:
+                if b.get("osm_id"):
+                    prev = boundary_src.get(b["name"])
+                    if prev is None or (prev[0] == "way" and b["osm_type"] == "relation"):
+                        boundary_src[b["name"]] = (b["osm_type"], int(b["osm_id"]))
                 # OSM often carries MORE THAN ONE boundary relation under the
                 # same name (a park split into several relations/multipolygons).
                 # A plain dict assignment keeps only the last and silently clips
@@ -518,10 +527,12 @@ def main(argv=None) -> int:
     # Park boundaries (each unioned with its loose siblings) computed ONCE and
     # shared by the route pre-pass and the per-area loop, in deterministic order.
     area_unions = {}                        # slug -> (union, bounds)
+    primary_name_for = {}                   # slug -> the boundary name it clipped to
     for slug, meta in sorted(az.items()):
         primary = next((nm for nm in geoms if nm.casefold() == meta["name"].casefold()), None)
         if primary is None:
             skipped.append((slug, "no boundary in PBF")); continue
+        primary_name_for[slug] = primary
         u = unary_union([geoms[n] for n in siblings(primary)])
         area_unions[slug] = (u, u.bounds)
 
@@ -605,8 +616,14 @@ def main(argv=None) -> int:
                 m["slugs"].append(slug)
         if not clipped:
             skipped.append((slug, "no trails touch this area")); continue
+        # The way id of the polygon this area was actually clipped to, when the
+        # seed gave us no relation. Matched by the same name the clip used, so it
+        # names the SAME boundary rather than a look-alike elsewhere.
+        src = boundary_src.get(primary_name_for.get(slug) or "")
+        way_id = src[1] if (src and src[0] == "way") else None
         row = conv.convert({"features": clipped}, slug, meta["name"], meta["state"],
-                           meta["center"], meta["osm_rel"], kinds)
+                           meta["center"], meta["osm_rel"], kinds,
+                           osm_way=way_id)
         # Boundary clipping can reduce a trail that lies mostly OUTSIDE this area
         # to a sliver or a single point — a named 0.00 mi row nobody can walk or
         # complete. `_MIN_AREA_MI` below catches an area that is ENTIRELY that;

@@ -239,21 +239,46 @@ def _rings_from_union(u, buffer_m: float) -> list[list[tuple[float, float]]]:
     return rings
 
 
-def fetch_state_boundaries(rel_ids: list[int]) -> dict[int, list]:
-    """ONE batched Overpass `out geom` query for a state's area boundary
-    relations -> {rel_id: [outer rings]}. shapely assembles the (possibly
-    unordered / split) member ways into rings; a relation that won't polygonize
+def fetch_state_boundaries(rel_ids: list[int],
+                           way_ids: list[int] | None = None) -> dict:
+    """ONE batched Overpass `out geom` query for a state's area boundaries ->
+    {("relation"|"way", id): [outer rings]}. shapely assembles the (possibly
+    unordered / split) member ways into rings; a boundary that won't polygonize
     is simply omitted (that area falls back to proximity-only). Needs shapely
-    (homelab / CI have it); a missing shapely raises and the caller degrades."""
-    from shapely.geometry import LineString
+    (homelab / CI have it); a missing shapely raises and the caller degrades.
+
+    WAYS matter as much as relations here. OSM stores plenty of parks as a single
+    closed way, and `seed-areas.py` deliberately records no id for those (a way
+    id in `osm_relation_id` would point the app's Overpass fallback at the wrong
+    polygon), which left 6,151 of 9,060 shipped areas with no boundary and their
+    parking on proximity alone. A closed way needs no assembly — its geometry IS
+    the ring.
+    """
+    from shapely.geometry import LineString, Polygon
     from shapely.ops import polygonize, unary_union
 
-    ids = ";".join(f"rel({r})" for r in rel_ids if r)
-    if not ids:
+    clauses = [f"rel({r})" for r in rel_ids if r]
+    clauses += [f"way({w})" for w in (way_ids or []) if w]
+    if not clauses:
         return {}
+    ids = ";".join(clauses)
     data = fetch_overpass(f"[out:json][timeout:600];({ids};);out geom;")
-    per_rel: dict[int, list] = {}
+    per_rel: dict = {}
     for el in data.get("elements", []):
+        if el.get("type") == "way":
+            g = el.get("geometry") or []
+            if len(g) < 4:
+                continue
+            try:
+                poly = Polygon([(p["lon"], p["lat"]) for p in g])
+            except Exception:  # noqa: BLE001
+                continue
+            if not poly.is_valid:
+                poly = poly.buffer(0)
+            rings = _rings_from_union(poly, _BOUNDARY_BUFFER_M)
+            if rings:
+                per_rel[("way", el["id"])] = rings
+            continue
         if el.get("type") != "relation":
             continue
         lines = []
@@ -274,7 +299,7 @@ def fetch_state_boundaries(rel_ids: list[int]) -> dict[int, list]:
             u = u.buffer(0)
         rings = _rings_from_union(u, _BOUNDARY_BUFFER_M)
         if rings:
-            per_rel[el["id"]] = rings
+            per_rel[("relation", el["id"])] = rings
     return per_rel
 
 
@@ -1110,14 +1135,17 @@ def _state_boundaries(files: list[Path]) -> tuple[dict[str, list], int, bool]:
     proximity-only and Thunderbird ballooned 14 -> 26 lots; only the golden
     check caught it, and golden covers just 7 AZ areas — a nationwide real run
     would have shipped the bleed everywhere else)."""
-    rel_of: dict[str, int] = {}
+    rel_of: dict[str, tuple[str, int]] = {}
     for f in files:
         try:
-            rid = json.loads(f.read_text()).get("osm_relation_id")
+            g = json.loads(f.read_text())
         except Exception:  # noqa: BLE001
             continue
-        if rid:
-            rel_of[f.stem] = rid
+        # A relation id wins when both are present: the app can use it too.
+        if g.get("osm_relation_id"):
+            rel_of[f.stem] = ("relation", int(g["osm_relation_id"]))
+        elif g.get("osm_way_id"):
+            rel_of[f.stem] = ("way", int(g["osm_way_id"]))
     if not rel_of:
         # Genuinely nothing to fetch — proximity-only is the best possible
         # here, not a degradation.
@@ -1125,14 +1153,16 @@ def _state_boundaries(files: list[Path]) -> tuple[dict[str, list], int, bool]:
     # The boundary query is one heavy batched `out geom` over every rel id, so
     # it 504s more than the parking query does. Retry with the same backoff
     # ladder as fetch_state before declaring the containment gate unavailable.
-    rel_ids = sorted(set(rel_of.values()))
+    keys = sorted(set(rel_of.values()))
+    rel_ids = [i for t, i in keys if t == "relation"]
+    way_ids = [i for t, i in keys if t == "way"]
     per_rel = None
     local_cause = None
     for i, backoff in enumerate([0] + RETRY_BACKOFFS_SECONDS):
         if backoff:
             time.sleep(backoff)
         try:
-            per_rel = fetch_state_boundaries(rel_ids)
+            per_rel = fetch_state_boundaries(rel_ids, way_ids)
             break
         except ImportError as e:
             # NOT transient — retrying a missing module just burns the whole
@@ -1156,16 +1186,22 @@ def _state_boundaries(files: list[Path]) -> tuple[dict[str, list], int, bool]:
     return rings_by_area, len(rings_by_area), True
 
 
-def _rel_of(files: list[Path]) -> dict[str, int]:
-    """{area slug: osm_relation_id} for the areas that name one."""
-    out: dict[str, int] = {}
+def _rel_of(files: list[Path]) -> dict[str, tuple[str, int]]:
+    """{area slug: ("relation"|"way", id)} for the areas that name a boundary.
+
+    A relation wins when both are present — the app's live fallback can only use
+    a relation id, so it is the better thing to have recorded.
+    """
+    out: dict[str, tuple[str, int]] = {}
     for f in files:
         try:
-            rid = json.loads(f.read_text()).get("osm_relation_id")
+            g = json.loads(f.read_text())
         except Exception:  # noqa: BLE001
             continue
-        if rid:
-            out[f.stem] = int(rid)
+        if g.get("osm_relation_id"):
+            out[f.stem] = ("relation", int(g["osm_relation_id"]))
+        elif g.get("osm_way_id"):
+            out[f.stem] = ("way", int(g["osm_way_id"]))
     return out
 
 
@@ -1185,8 +1221,8 @@ def _state_boundaries_local(files: list[Path], local) -> tuple[dict[str, list], 
     except Exception as e:  # noqa: BLE001
         print(f"  local boundary cache FAILED ({e})", file=sys.stderr)
         return {}, 0, False
-    rings_by_area = {aid: per_rel[rid] for aid, rid in rel_of.items()
-                     if rid in per_rel}
+    rings_by_area = {aid: per_rel[key] for aid, key in rel_of.items()
+                     if key in per_rel}
     return rings_by_area, len(rings_by_area), True
 
 

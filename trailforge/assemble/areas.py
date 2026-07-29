@@ -50,8 +50,14 @@ def merge_areas(pbf_path: str) -> list[dict[str, Any]]:
     """Park polygons for per-area merge scoping (SPEC §6b), as plain rings so
     model.py can point-test them without shapely.
 
-    Returns [{"name", "bbox": (x0,y0,x1,y1), "rings": [[(x,y),...], ...]}].
-    Requires a SORTED PBF (osmium/prefilter output always is).
+    Returns [{"name", "bbox": (x0,y0,x1,y1), "rings": [[(x,y),...], ...],
+    "osm_id", "osm_type"}]. Requires a SORTED PBF (osmium/prefilter output
+    always is).
+
+    `osm_id`/`osm_type` come from `a.orig_id()` and `a.from_way()` — the way or
+    relation the area was assembled from. The assembler has always known this and
+    always discarded it, which is why 6,151 of 9,060 shipped areas have no
+    boundary id and fall back to proximity-only parking (measured 2026-07-29).
     """
     import osmium
     import shapely.wkb
@@ -75,7 +81,9 @@ def merge_areas(pbf_path: str) -> list[dict[str, Any]]:
             rings = [[(x, y) for x, y in p.exterior.coords]
                      for p in polys if p.geom_type == "Polygon"]
             if rings:
-                out.append({"name": name, "bbox": geom.bounds, "rings": rings})
+                out.append({"name": name, "bbox": geom.bounds, "rings": rings,
+                            "osm_id": a.orig_id(),
+                            "osm_type": "way" if a.from_way() else "relation"})
 
     Handler().apply_file(pbf_path, locations=True)
     return out

@@ -92,17 +92,18 @@ def test_road_gate_reports_unknown_points_instead_of_guessing():
         assert [f["lat"] for f in unknown] == [45.5]
 
 
-def test_boundaries_map_odd_area_ids_back_to_relations():
-    # osmium area ids encode the source: odd = relation, (id-1)//2. Even ids are
-    # closed WAYS, which are not what osm_relation_id names.
+def test_boundaries_map_area_ids_back_to_their_way_or_relation():
+    # osmium area ids encode the source: odd = relation, (id-1)//2; even = closed
+    # way, id//2. BOTH are boundaries — a park stored as one closed way is why
+    # 6,151 areas had no boundary id at all.
     ring = [[-73.0, 44.0], [-72.0, 44.0], [-72.0, 45.0], [-73.0, 45.0], [-73.0, 44.0]]
     with tempfile.TemporaryDirectory() as d:
         c = _cache(Path(d), boundaries=[
             {"id": "a2469", "geometry": {"type": "Polygon", "coordinates": [ring]}},
             {"id": "a2468", "geometry": {"type": "Polygon", "coordinates": [ring]}}])
-        got = c.boundaries([1234, 1235])
-        assert list(got) == [1234]                    # (2469 - 1) // 2
-        assert got[1234][0][0] == (-73.0, 44.0)       # (lon, lat), as point_in_rings wants
+        got = c.boundaries([("relation", 1234), ("way", 1234), ("way", 999)])
+        assert sorted(got) == [("relation", 1234), ("way", 1234)]
+        assert got[("relation", 1234)][0][0] == (-73.0, 44.0)   # (lon, lat)
 
 
 def test_canonical_id_collapses_the_polygon_copy_onto_its_way():

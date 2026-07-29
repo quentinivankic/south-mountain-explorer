@@ -13,9 +13,9 @@ WHAT IT BUILDS, under `$TREKDEX_OSM_DIR/cache/`:
   parking.jsonl        every amenity=parking + highway=trailhead feature in the
                        US, as {lat, lon, type, tags}. Replaces the per-state
                        `area["ISO3166-2"]` query. From us-access.osm.pbf.
-  boundaries.geojsonseq   area boundary polygons for every osm_relation_id in
-                       shipped geom. Replaces the batched `out geom` boundary
-                       query. From us-latest.osm.pbf.
+  boundaries.geojsonseq   area boundary polygons for every boundary id in
+                       shipped geom, relation OR closed way. Replaces the
+                       batched `out geom` boundary query. From us-latest.osm.pbf.
   road-gate.json       the road gate's verdict for every federal candidate
                        point nationally. Replaces the chunked `around:250`
                        queries — the single most expensive call in the roll.
@@ -235,16 +235,25 @@ def build_parking() -> None:
 
 
 # ------------------------------------------------------------ 2. boundaries
-def shipped_relation_ids() -> list[int]:
-    ids = []
+def shipped_boundary_ids() -> list[str]:
+    """osmium `getid` selectors for every boundary shipped geom names.
+
+    Both kinds: `r<id>` for relation-sourced areas and `w<id>` for the ones
+    stored as a single closed way. Ways are the majority — 3,547 of the areas
+    backfilled on 2026-07-29 — and leaving them out is what left those areas
+    with no containment gate at all.
+    """
+    ids: set[str] = set()
     for f in sorted(GEOM.glob("*.json")):
         try:
-            rid = json.loads(f.read_text()).get("osm_relation_id")
+            g = json.loads(f.read_text())
         except Exception:                   # noqa: BLE001
             continue
-        if rid:
-            ids.append(int(rid))
-    return sorted(set(ids))
+        if g.get("osm_relation_id"):
+            ids.add(f"r{int(g['osm_relation_id'])}")
+        elif g.get("osm_way_id"):
+            ids.add(f"w{int(g['osm_way_id'])}")
+    return sorted(ids)
 
 
 def build_boundaries() -> None:
@@ -255,10 +264,12 @@ def build_boundaries() -> None:
     odd ids are relations, relation_id = (area_id - 1) // 2 — which is how the
     export maps back to `osm_relation_id`.
     """
-    rel_ids = shipped_relation_ids()
-    log(f"{len(rel_ids):,} relation ids in shipped geom")
+    sel = shipped_boundary_ids()
+    n_rel = sum(1 for x in sel if x[0] == "r")
+    log(f"{len(sel):,} boundary ids in shipped geom "
+        f"({n_rel:,} relations, {len(sel) - n_rel:,} ways)")
     idfile = CACHE_DIR / "relids.txt"
-    idfile.write_text("".join(f"r{r}\n" for r in rel_ids))
+    idfile.write_text("".join(f"{x}\n" for x in sel))
 
     subset = CACHE_DIR / "boundaries.osm.pbf"
     if subset.exists() and subset.stat().st_size > 0:

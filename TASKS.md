@@ -2,7 +2,7 @@
 
 **Why this file exists.** The task list Claude keeps in-session (`TaskList` /
 `TaskGet`) does NOT survive into a new session — it is session-scoped state, and
-a fresh session starts with nothing. These 12 tasks carry hard-won measurement
+a fresh session starts with nothing. These 13 tasks carry hard-won measurement
 in their descriptions: national counts, named counter-examples, and approaches
 already ruled out with evidence. Losing them means re-deriving all of it, or
 worse, re-proposing something already disproved. So they live here, in the repo,
@@ -15,6 +15,7 @@ Last synced from the live task list: **2026-07-29**.
 
 | # | Task | Kind |
 |---|---|---|
+| [51](#51) | Boundary ids: 1,848 areas still have none | data · 80% done |
 | [35](#35) | Fragmentation quality score | data · measured |
 | [21](#21) | Road-as-trail: ~2,780 still unsolved | data · 4 approaches ruled out |
 | [31](#31) | Split thru-routes into road-bounded sections | data · measured |
@@ -63,6 +64,43 @@ which the CONUS measurement did not).
 an `osm_relation_id` at all. The other 6,151 have no boundary polygon, so
 containment can never be evaluated for them and no gate or buffer can ever fill
 them. Not on this list yet.
+
+---
+
+<a name="51"></a>
+## #51 — Boundary ids: 4,303 recovered, 1,848 areas still have none
+
+**MOSTLY DONE 2026-07-29 (PR #513).** `add-parking.py`'s containment gate needs a
+boundary polygon, looked up by id, and only **2,909 of 9,060** shipped areas had
+one. The rest fell back to proximity, which cannot tell "inside the park" from
+"across the road".
+
+Cause: `seed-areas.py` records the id only for RELATIONS, because the app
+computes an Overpass area id as `osmId + 3_600_000_000` — the relation-only
+offset — so a way id there would point its live fallback at the wrong polygon.
+Way-sourced areas got None and nothing else wrote it down.
+
+FIXED BOTH WAYS: `assemble/areas.py` now returns `a.orig_id()`/`a.from_way()`
+(it always had them) and `to_app_json` writes a SEPARATE `osm_way_id`; and
+`scripts/backfill-area-boundary-ids.py` recovered the existing set by matching
+park polygons from the local extract on name + position + **≥90% trail
+coverage**. Coverage **32% -> 80%** (2,916 ways + 1,387 relations added).
+Vermont's loaded boundaries went 29/103 -> 82/103.
+
+**WHAT IS LEFT:**
+
+1. **1,848 areas still have no boundary.** 1,713 were REJECTED by the 90% trail
+   gate (the matched polygon holds too little of the area), 130 matched a name in
+   the wrong place, 5 matched no name at all. The rejects are the interesting
+   set: publish clips to a UNION of same-named siblings, so a single polygon can
+   legitimately hold only part. Recording the whole SET of ids, rather than one,
+   would recover most of them.
+2. ⚠️ **THE ROLL HAS NOT BEEN RE-RUN, and doing so REMOVES parking.** With a real
+   boundary the gate drops lots that proximity had been admitting. Vermont's dry
+   run: 4 areas cleared, e.g. Cady Hill Forest's three lots sitting 179-556 m out
+   and outside the boundary; Breadloaf Wilderness loses two USFS trailheads that
+   the global pool still carries. That is the gate working, but it is a
+   user-visible removal and needs a decision before a national roll.
 
 ---
 

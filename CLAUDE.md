@@ -512,6 +512,28 @@ mean one view with two unit systems and two meanings for x.
   `serve/publish_areas.py`); seeding/parking → `scripts/`
 - Workflows → `.github/workflows/`
 
+## How to work here (agreed 2026-07-29)
+
+The user's standing complaint after a stretch where six PRs landed invisibly:
+*"you run forever and I have no idea what you're doing, whether it's the right
+move or not, or if you're just stuck."* The work was fine; the silence was the
+defect. So:
+
+1. **Narrate every step** as it happens, not a summary at the end.
+2. **Never estimate a duration.** *"You're historically bad at estimating time
+   needed for something"* — and it is true: "10-20 min" for a road gate that never
+   finished, "~4 h" for a national roll. **Measure ONE unit and report the
+   observed rate** (one state took 34 s, so 51 is about half an hour), or say it
+   is unknown and name the first checkpoint.
+3. **Check in every 15 minutes**, even mid-task.
+4. **Anything over ~20 minutes: state the cost and WAIT** for a go/skip.
+5. **Do not chain scope.** Land the smallest useful increment and report. Doing a
+   backfill, then a sweep, then a roll in one turn is how a session goes dark.
+6. **Never poll a log in a loop** — it burns wall clock and shows the user
+   nothing. Background the job and wait on its completion.
+
+Full detail in auto-memory `working-visibility-contract.md`.
+
 ## When in doubt
 Already authorized (don't ask): merging PRs on green CI, and dispatching
 TestFlight (see the TestFlight note above for when). Still ask before: touching

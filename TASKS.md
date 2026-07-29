@@ -106,6 +106,40 @@ ship.
 **SCOPE:** pool only. NPS pins already written into blank areas stay — they are
 the only parking those areas have.
 
+**THE ROLL RUNS ON THE HOMELAB NOW (2026-07-29).** Overpass was never the
+compute cost, it was the whole cost: measured per state, **87% of Vermont's run
+and 71% of Colorado's** was Overpass wait, and the road gate alone was 34.7 s of
+43.1 s (VT) and 175.6 s of 212.7 s (CO). The CI matrix caps at 8 jobs purely to
+avoid stampeding it, which is where "~4 hours nationally" came from.
+
+`scripts/build-local-osm-cache.py` builds three artifacts under
+`$TREKDEX_OSM_DIR/cache/` and `add-parking.py --local-cache` reads them, so a
+roll makes ONE network call (ArcGIS, for the federal layer, which has no local
+copy):
+
+    parking.jsonl          1,466,888 features   from us-access.osm.pbf  (166 s)
+    boundaries.geojsonseq  2,771 polygons       from us-latest.osm.pbf  (~12 min)
+    road-gate.json         9,303 verdicts       from us-access.osm.pbf  (705 s)
+
+VERIFIED against the Overpass path it replaces, Vermont, boundaries held
+constant: **227 lots (Overpass) vs 229 (local)**, differing in exactly two areas
+— Clarksburg State Park and Mountain Meadow Preserve, both ON THE MASSACHUSETTS
+BORDER, where local finds a lot inside the area's own boundary that the
+state-scoped `area["ISO3166-2"]` query never returned. Boundaries: same 29 areas,
+and containment agrees on **167,508 of 167,533 point tests (99.985%)**; the 25
+differences are areas where osmium assembles MORE outer rings than shapely
+polygonize did (Green Mountain NF: 70 vs 47). VT wall clock **33.8 s**.
+
+⚠️ Three traps, all of which exited 0 and looked plausible:
+- `osmium export --geometry-types=point,polygon` returned 49,429 features from a
+  subset holding 1,392,662 parking WAYS — `amenity=parking` is not on osmium's
+  area-tag list, so add `linestring`;
+- with linestring AND polygon a closed way comes out TWICE under different ids
+  (`w<id>` and `a<2*id>`), which doubled the cache to 2,850,284;
+- a cached way handed to `parse_parking` as bare `lat`/`lon` reads as having NO
+  position, because `_point()` wants `center` for anything that is not a node.
+  That quietly cut Vermont's 8,074 cached lots to the 430 that were nodes.
+
 **BUILT 2026-07-29.** `add-parking.py --pool-sidecar PATH` emits the road-gated
 federal trailheads between `road_gate` and `assign_federal`, through the new pure
 `pool_candidates()` (USFS all, NPS only where the NAME says trailhead) and the

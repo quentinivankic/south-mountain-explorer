@@ -1156,6 +1156,78 @@ def _state_boundaries(files: list[Path]) -> tuple[dict[str, list], int, bool]:
     return rings_by_area, len(rings_by_area), True
 
 
+def _rel_of(files: list[Path]) -> dict[str, int]:
+    """{area slug: osm_relation_id} for the areas that name one."""
+    out: dict[str, int] = {}
+    for f in files:
+        try:
+            rid = json.loads(f.read_text()).get("osm_relation_id")
+        except Exception:  # noqa: BLE001
+            continue
+        if rid:
+            out[f.stem] = int(rid)
+    return out
+
+
+def _state_boundaries_local(files: list[Path], local) -> tuple[dict[str, list], int, bool]:
+    """`_state_boundaries` answered from the local extract instead of Overpass.
+
+    Same return shape and the same failure semantics: a cache that cannot answer
+    returns ok=False rather than an empty gate, because "no boundaries" and "the
+    containment gate is unavailable" must never look alike — that confusion is
+    what let a transient 504 balloon Thunderbird from 14 lots to 26.
+    """
+    rel_of = _rel_of(files)
+    if not rel_of:
+        return {}, 0, True
+    try:
+        per_rel = local.boundaries(sorted(set(rel_of.values())))
+    except Exception as e:  # noqa: BLE001
+        print(f"  local boundary cache FAILED ({e})", file=sys.stderr)
+        return {}, 0, False
+    rings_by_area = {aid: per_rel[rid] for aid, rid in rel_of.items()
+                     if rid in per_rel}
+    return rings_by_area, len(rings_by_area), True
+
+
+def _gate_key(f: dict) -> str:
+    return f"{f['lat']:.6f},{f['lon']:.6f}"
+
+
+def road_gate_local(fed: list[dict], local,
+                    stats: dict | None = None) -> tuple[list[dict], bool]:
+    """The road gate, answered from the cache built by build-local-osm-cache.py.
+
+    Identical contract to `road_gate`, including the `ok` flag. Points the cache
+    has never seen fall back to Overpass for exactly those points rather than
+    being guessed either way — a cache older than the current ArcGIS answer is
+    the expected case after the Forest Service publishes, and guessing would
+    either invent road access or delete a real trailhead.
+    """
+    if not fed:
+        return fed, True
+    try:
+        kept, unknown = local.road_gate(fed, _gate_key)
+    except Exception as e:  # noqa: BLE001
+        print(f"  local road-gate cache FAILED ({e}); falling back to Overpass",
+              file=sys.stderr)
+        return road_gate(fed, stats=stats)
+    if unknown:
+        print(f"  road gate: {len(unknown)} point(s) not in the cache "
+              f"(built before this ArcGIS answer) — asking Overpass for those",
+              file=sys.stderr)
+        extra, ok = road_gate(unknown, stats=stats)
+        if not ok:
+            return [], False
+        kept = kept + extra
+    dropped = len(fed) - len(kept)
+    if stats is not None:
+        stats["federal_road_dropped"] = stats.get("federal_road_dropped", 0) + dropped
+    print(f"  federal road gate (local): kept {len(kept)}/{len(fed)} "
+          f"(dropped {dropped} roadless)")
+    return kept, True
+
+
 def print_containment_diag(cont_diag: list[tuple[str, int, list]]) -> None:
     """Measure the wilderness-trailhead problem: lots that passed the
     proximity/trailhead check but were dropped for sitting OUTSIDE the boundary.
@@ -1233,7 +1305,11 @@ def print_federal_fill(fed_fill: list[tuple[str, str, list[str]]]) -> None:
 
 
 def process(state_codes: list[str], dry_run: bool, use_federal: bool = True,
-            pool_sidecar: str | None = None) -> bool:
+            pool_sidecar: str | None = None, local=None) -> bool:
+    """`local` is a `_local_osm.LocalOSM` when the homelab cache should answer
+    the three queries this used to send to Overpass. Everything downstream of the
+    fetch is identical either way — the containment maths, the trailhead
+    corroboration and the gates are the single tested copy."""
     groups = geom_by_state()
     # {STATE: [lot, ...]} for the global pool — populated only when a sidecar
     # path was asked for, and replaced per state so a single-state run cannot
@@ -1262,16 +1338,30 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True,
         files = groups.get(name, []) if name else []
         if not files:
             continue
-        print(f"{code.upper()}: 1 Overpass query for {len(files)} areas...")
-        data = fetch_state(code)
-        if data is None:
-            print(f"  {code.upper()}: SKIPPED (overpass unavailable)", file=sys.stderr)
-            continue
+        if local is not None:
+            print(f"{code.upper()}: local extract for {len(files)} areas...")
+            bbox = _bbox_of_geoms(files)
+            try:
+                data = local.parking_elements(bbox) if bbox else {"elements": []}
+            except Exception as e:  # noqa: BLE001
+                # Same treatment as an Overpass outage: skip the state rather
+                # than write a state's worth of parking from a cache that could
+                # not answer.
+                print(f"  {code.upper()}: SKIPPED (local cache: {e})", file=sys.stderr)
+                continue
+        else:
+            print(f"{code.upper()}: 1 Overpass query for {len(files)} areas...")
+            data = fetch_state(code)
+            if data is None:
+                print(f"  {code.upper()}: SKIPPED (overpass unavailable)", file=sys.stderr)
+                continue
         lots = parse_parking(data)
         trailheads = parse_trailheads(data)
         print(f"  {code.upper()}: {len(lots)} parking + {len(trailheads)} trailheads statewide")
 
-        rings_by_area, n_bnd, bnd_ok = _state_boundaries(files)
+        rings_by_area, n_bnd, bnd_ok = (
+            _state_boundaries_local(files, local) if local is not None
+            else _state_boundaries(files))
         print(f"  {code.upper()}: {n_bnd}/{len(files)} area boundaries loaded "
               f"(containment gate; rest proximity-only)")
         if not bnd_ok:
@@ -1321,7 +1411,9 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True,
                 fed, fed_failed = fetch_federal(bbox) if bbox else ([], set())
                 road_ok = True
                 if fed:
-                    fed, road_ok = road_gate(fed, stats=stats)
+                    fed, road_ok = (road_gate_local(fed, local, stats=stats)
+                                    if local is not None
+                                    else road_gate(fed, stats=stats))
                     if not road_ok:
                         # The gate itself could not run, so EVERY source is
                         # unverified this run — not "these points have no road".
@@ -1465,6 +1557,13 @@ def main() -> None:
     ap.add_argument("--no-federal", action="store_true",
                     help="skip the tier-2 federal (BLM/NPS/USFS) fill of "
                          "OSM-blank areas; OSM parking only")
+    ap.add_argument("--local-cache", nargs="?", const="", metavar="DIR",
+                    help="answer the parking, boundary and road-gate queries "
+                         "from the homelab's OSM extracts instead of Overpass "
+                         "(build it with scripts/build-local-osm-cache.py). "
+                         "Defaults to $TREKDEX_OSM_DIR/cache. Overpass was "
+                         "measured at 87%% of a state's runtime (VT) and 71%% "
+                         "(CO), and is the reason the CI roll caps at 8 jobs.")
     ap.add_argument("--pool-sidecar", metavar="PATH",
                     help="also emit road-gated federal trailheads to this "
                          "sidecar, BEFORE ownership assignment, for the global "
@@ -1481,8 +1580,18 @@ def main() -> None:
     if args.pool_sidecar and args.no_federal:
         raise SystemExit("--pool-sidecar needs the federal sources; "
                          "it cannot be combined with --no-federal")
+
+    local = None
+    if args.local_cache is not None:
+        # Import here so a run without --local-cache has no new dependency and
+        # GitHub Actions, which has no extracts, is unaffected.
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from _local_osm import LocalOSM
+        local = LocalOSM(cache_dir=args.local_cache or None)
+        print(f"local OSM cache: {local.dir}")
+
     golden_ok = process(codes, args.dry_run, use_federal=not args.no_federal,
-                        pool_sidecar=args.pool_sidecar)
+                        pool_sidecar=args.pool_sidecar, local=local)
     if not golden_ok:
         sys.exit(2)
 

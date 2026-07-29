@@ -54,7 +54,17 @@ def difficulty(sac: str | None, vis: str | None, miles: float,
 def convert(fc: dict, area_id: str, name: str, state: str,
             center: tuple[float, float], osm_rel: int | None,
             include_kinds: set[str],
-            id_by_mergekey: dict[str, str] | None = None) -> dict:
+            id_by_mergekey: dict[str, str] | None = None,
+            osm_way: int | None = None) -> dict:
+    """`osm_way` is the id of the closed WAY an area's boundary was assembled
+    from, when it did not come from a relation.
+
+    It is a SEPARATE field, deliberately. The app computes an Overpass area id as
+    `osmId + 3_600_000_000` — the relation-only offset — so a way id written into
+    `osm_relation_id` would silently point its live fallback at a different
+    polygon. Splitting them lets the pipeline keep the id (which the containment
+    gate needs) without changing what the app reads.
+    """
     trails = []
     slug_counts: dict[str, int] = {}
     used_canonical: set[str] = set()
@@ -107,7 +117,7 @@ def convert(fc: dict, area_id: str, name: str, state: str,
         })
     bbox = ([round(minlon, 6), round(minlat, 6), round(maxlon, 6), round(maxlat, 6)]
             if trails else None)
-    return {
+    row = {
         "id": area_id, "name": name, "state": state,
         "center_lat": center[0], "center_lon": center[1], "zoom": 13,
         "bbox": bbox, "trails": trails,
@@ -115,6 +125,11 @@ def convert(fc: dict, area_id: str, name: str, state: str,
         "total_mi": round(sum(t["distanceMi"] for t in trails), 1),
         "osm_relation_id": osm_rel,
     }
+    # Only when there is no relation: a relation id is strictly better, since
+    # both the app and the containment gate can use it.
+    if osm_way and not osm_rel:
+        row["osm_way_id"] = int(osm_way)
+    return row
 
 
 def diff(new_row: dict, live: dict) -> None:

@@ -120,8 +120,10 @@ class LocalOSM:
         """{relation_id: [outer ring as [(lon, lat), ...], ...]}.
 
         osmium area ids encode the source: odd = built from a relation, with
-        relation_id = (area_id - 1) // 2. Even ids are closed WAYS, which are not
-        what `osm_relation_id` names, so they are skipped.
+        relation_id = (area_id - 1) // 2; even = built from a closed WAY, with
+        way_id = area_id // 2. Both are kept and tagged, because a park stored as
+        a single closed way is just as valid a boundary as a multipolygon
+        relation — that is 3,547 of the areas this cache exists to serve.
         """
         if self._polys is not None:
             return self._polys
@@ -145,8 +147,7 @@ class LocalOSM:
                     n = int(aid[1:])
                 except ValueError:
                     continue
-                if n % 2 == 0:
-                    continue
+                key = ("way", n // 2) if n % 2 == 0 else ("relation", (n - 1) // 2)
                 g = d.get("geometry") or {}
                 rings: list[list[tuple[float, float]]] = []
                 if g.get("type") == "Polygon":
@@ -155,15 +156,16 @@ class LocalOSM:
                     rings = [[(c[0], c[1]) for c in poly[0]]
                              for poly in g["coordinates"]]
                 if rings:
-                    polys.setdefault((n - 1) // 2, []).extend(rings)
+                    polys.setdefault(key, []).extend(rings)
         if not polys:
             raise LocalCacheError(f"{path} yielded no polygons")
         self._polys = polys
         return polys
 
-    def boundaries(self, rel_ids: list[int]) -> dict[int, list]:
+    def boundaries(self, keys: list) -> dict:
+        """{("relation"|"way", id): rings} for the keys the cache holds."""
         polys = self._load_polys()
-        return {r: polys[r] for r in rel_ids if r in polys}
+        return {k: polys[k] for k in keys if k in polys}
 
     # ------------------------------------------------------------- road gate
     def road_gate_verdicts(self) -> dict[str, int]:

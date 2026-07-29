@@ -531,6 +531,12 @@ defect. So:
    backfill, then a sweep, then a roll in one turn is how a session goes dark.
 6. **Never poll a log in a loop** — it burns wall clock and shows the user
    nothing. Background the job and wait on its completion.
+7. **A 20-minute geometry job is a BUG, not a big dataset.** The parking/boundary
+   data is ~1.4M points and ~9k polygons — seconds of work. Every measurement
+   that took 10-25 min did so because it was written as O(points × areas × ring-
+   segments) pure-Python loops instead of a spatial index. Use
+   `scripts/_geo_index.py` (shapely `STRtree`); compute the invariant once and
+   derive thresholds from it. Full detail: auto-memory `always-spatial-index.md`.
 
 Full detail in auto-memory `working-visibility-contract.md`.
 

@@ -23,11 +23,13 @@ struct GpsIngestTests {
     }
 
     @Test func steadyMoveCreditsRealDistance() {
+        // 10 m step (above the 3 m jitter floor) over 2 s — a normal walking
+        // sample: kept, credited as real distance, same run.
         let prev = pt(0, 0)
-        let d = GpsIngest.decide(prev: prev, lat: pt(2.8, 2000)[0], lon: -112.0,
+        let d = GpsIngest.decide(prev: prev, lat: pt(10, 2000)[0], lon: -112.0,
                                  tsMs: 2000, priorCount: 10)
         #expect(d.keep)
-        #expect(abs(d.addMeters - 2.8) < 0.2)
+        #expect(abs(d.addMeters - 10) < 0.5)
         #expect(!d.startsNewRun)
     }
 

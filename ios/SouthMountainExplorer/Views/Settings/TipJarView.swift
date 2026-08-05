@@ -26,7 +26,7 @@ struct TipJarView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     if store.isSupporter {
-                        Label("Thanks for supporting TrekDex ♥", systemImage: "heart.fill")
+                        Label("Thanks for supporting TrekDex", systemImage: "heart.fill")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.pink)
                             .padding(.top, 2)

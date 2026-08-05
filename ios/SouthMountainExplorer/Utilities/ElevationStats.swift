@@ -18,6 +18,10 @@ struct ElevationStats: Equatable {
     struct Sample: Equatable {
         let distanceMeters: Double
         let altitudeMeters: Double
+        /// Which continuous run this sample belongs to. Samples in different
+        /// runs are plotted as separate line series so the profile doesn't
+        /// draw a slope across a recording gap (screen locked / lost signal).
+        let run: Int
     }
 }
 
@@ -43,56 +47,67 @@ func elevationStats(path: [GpsPoint]) -> ElevationStats? {
     // gap in the elevation series. For a typical hike with mostly-
     // valid altitudes this is essentially every point.
     var cumulativeDistance: Double = 0
-    var raw: [(distance: Double, altitude: Double)] = []
+    var runIdx = 0
+    var raw: [(distance: Double, altitude: Double, run: Int)] = []
     for i in 0..<path.count {
         let p = path[i]
         guard p.count >= 2 else { continue }
         if i > 0 {
             let prev = path[i - 1]
             if prev.count >= 2 {
-                cumulativeDistance += haversineDistanceM(
-                    lat1: prev[0], lon1: prev[1],
-                    lat2: p[0], lon2: p[1]
-                )
+                if GpsIngest.isGap(prev: prev, p: p) {
+                    // Recording gap (screen locked / lost signal): start a new
+                    // run and nudge x by a small separator instead of crediting
+                    // the straight-line jump — that jump isn't distance the
+                    // hiker walked and would inflate the axis and draw a false
+                    // slope. The chart breaks the line between runs.
+                    runIdx += 1
+                    cumulativeDistance += GpsIngest.runSeparatorMeters
+                } else {
+                    cumulativeDistance += haversineDistanceM(
+                        lat1: prev[0], lon1: prev[1],
+                        lat2: p[0], lon2: p[1]
+                    )
+                }
             }
         }
         if let altitude = p.altitudeMeters {
-            // Only keep samples that actually advance along the hike.
-            // The recorder's jitter filter is bypassed for the first
-            // few fixes (see appendPoint), so standing at the trailhead
-            // yields several points at the same spot — equal cumulative
-            // distances. Equal-x samples used to reach the chart, where
-            // they broke mark identity (`id: \.distanceMeters`) and
-            // drew stray straight segments across the profile.
-            if let last = raw.last, cumulativeDistance - last.distance < 0.5 {
+            // Only keep samples that actually advance along the hike, so
+            // standing at the trailhead (several fixes at one spot) doesn't
+            // stack equal-x samples. De-dupe WITHIN a run only — the first
+            // sample of a new run must always survive.
+            if let last = raw.last, last.run == runIdx,
+               cumulativeDistance - last.distance < 0.5 {
                 continue
             }
-            raw.append((cumulativeDistance, altitude))
+            raw.append((cumulativeDistance, altitude, runIdx))
         }
     }
     guard !raw.isEmpty else { return nil }
 
-    // Smooth altitudes via a centered moving average. Edges use a
-    // shrinking window (so the first and last samples still appear).
+    // Smooth altitudes via a centered moving average, clamped to the current
+    // run so the average never blends across a gap. Edges use a shrinking
+    // window (so the first and last samples of each run still appear).
     var samples: [ElevationStats.Sample] = []
     samples.reserveCapacity(raw.count)
     for i in 0..<raw.count {
         let half = smoothingWindow / 2
-        let lo = max(0, i - half)
-        let hi = min(raw.count - 1, i + half)
+        var lo = max(0, i - half)
+        var hi = min(raw.count - 1, i + half)
+        while lo < i && raw[lo].run != raw[i].run { lo += 1 }
+        while hi > i && raw[hi].run != raw[i].run { hi -= 1 }
         var sum = 0.0
         for j in lo...hi { sum += raw[j].altitude }
         let avg = sum / Double(hi - lo + 1)
-        samples.append(.init(distanceMeters: raw[i].distance, altitudeMeters: avg))
+        samples.append(.init(distanceMeters: raw[i].distance, altitudeMeters: avg, run: raw[i].run))
     }
 
-    // Ascent / descent: sum positive / negative deltas of the
-    // smoothed series. Pre-smoothing, GPS noise routinely produces
-    // "1500 ft of climb" on a flat walk; the moving average gets
-    // that down to single-digit feet for flat ground.
+    // Ascent / descent: sum positive / negative deltas of the smoothed
+    // series, but never count the altitude change ACROSS a gap — that
+    // happened while not recording and isn't climb the hiker did on trail.
     var ascent: Double = 0
     var descent: Double = 0
-    for i in 1..<samples.count {
+    for i in 1..<samples.count where samples[i].run == samples[i - 1].run {
         let d = samples[i].altitudeMeters - samples[i - 1].altitudeMeters
         if d > 0 { ascent += d } else { descent += -d }
     }

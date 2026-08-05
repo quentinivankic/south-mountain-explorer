@@ -34,6 +34,15 @@ struct StatsView: View {
             .trailMeshBackground()
             .navigationTitle("Stats")
             .task { await loadHikes() }
+            .task {
+                // Hydrate geometry for the (few) areas with completions so the
+                // per-area count is computed the authoritative fingerprint way
+                // — matching the checkmarks — instead of the raw completions
+                // dictionary. @Observable recomputes the rows once cached.
+                for areaId in progress.completions.filter({ !$0.value.isEmpty }).keys {
+                    _ = await areas.area(id: areaId)
+                }
+            }
             .refreshable { await loadHikes() }
         }
     }
@@ -180,10 +189,17 @@ struct StatsView: View {
                 trailCompletions.values.compactMap(parseISODate)
                 + hikes.filter { $0.touchedAreaIds.contains(areaId) }.map(\.startedAt)
             ).max() ?? .distantPast
+            // Count the fingerprint-authoritative way (matching the checkmarks
+            // and the Area page) when the area's geometry is loaded; the raw
+            // completions count can include a stale trail id from a data update.
+            // The .task below hydrates completed areas so this path is taken.
+            let completed = areas.cachedArea(id: areaId)
+                .map { progress.completionCount(in: areaId, trails: $0.trails) }
+                ?? trailCompletions.count
             rows.append(AreaCompletionRowModel(
                 id: areaId,
                 name: summary.name,
-                completed: trailCompletions.count,
+                completed: completed,
                 total: total,
                 mostRecent: mostRecent
             ))

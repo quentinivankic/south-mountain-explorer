@@ -58,7 +58,10 @@ struct ElevationProfileView: View {
 
             LineMark(
                 x: .value("Distance", sample.distanceMeters),
-                y: .value("Altitude", sample.altitudeMeters)
+                y: .value("Altitude", sample.altitudeMeters),
+                // Separate series per continuous run so the line breaks at a
+                // recording gap instead of drawing a slope across it.
+                series: .value("Segment", sample.run)
             )
             .foregroundStyle(.green)
             .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))

@@ -84,13 +84,18 @@ struct HikeDetailView: View {
                 }
             }
 
-            if hike.path.count > 1 {
-                let pathCoords = hike.path.map {
-                    CLLocationCoordinate2D(latitude: $0[0], longitude: $0[1])
+            // One polyline per continuous run, so a recording gap (screen
+            // locked / lost signal mid-hike) leaves a break instead of a
+            // straight line snapped across where the hiker actually walked.
+            ForEach(Array(GpsIngest.continuousRuns(hike.path).enumerated()), id: \.offset) { _, run in
+                if run.count > 1 {
+                    let runCoords = run.map {
+                        CLLocationCoordinate2D(latitude: $0[0], longitude: $0[1])
+                    }
+                    MapPolyline(coordinates: runCoords)
+                        .stroke(.blue,
+                                style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
                 }
-                MapPolyline(coordinates: pathCoords)
-                    .stroke(.blue,
-                            style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
             }
         }
         // Satellite imagery, flat. `.standard(elevation: .realistic)`

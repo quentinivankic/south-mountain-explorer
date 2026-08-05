@@ -1394,7 +1394,17 @@ final class RecordingService {
         for (tid, score) in sessionCoverage {
             let m = max(prior[tid] ?? 0, score.fraction)
             merged[tid] = m
-            let priorComplete = (prior[tid] ?? 0) >= completeThreshold
+            // Gate on the OFFICIAL, endpoint-gated completion record — NOT the
+            // raw coverage fraction. A trail can sit at fraction >= threshold
+            // from an earlier hike that incidentally paralleled it without ever
+            // reaching its endpoints, so it never actually completed. Using the
+            // fraction here made `priorComplete` true, which blocked the hike
+            // that FINALLY completed it (endpoints reached → `completesTrail`)
+            // from `newlyCompleted` — so the post-hike summary showed nothing,
+            // while the later history rebuild credited it correctly. Same
+            // fraction-vs-official trap already fixed for the start-of-hike
+            // snapshot in `startRecording`; mergeCoverage now matches.
+            let priorComplete = progressService.isComplete(areaId: areaId, trailId: tid)
             // Both gates required: enough of the trail covered AND
             // the hiker actually reached both endpoints. Since
             // `sessionCoverage` is the UNION of every prior hike's

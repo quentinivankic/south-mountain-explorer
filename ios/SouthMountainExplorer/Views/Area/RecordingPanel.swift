@@ -217,7 +217,10 @@ struct RecordingSummarySheet: View {
     }
 
     private var areaTrailCount: Int { trails.count }
-    private var areaCompletedCount: Int { progress.completionCount(in: finished.areaId) }
+    // Fingerprint-authoritative count (matches the per-row checkmarks), not the
+    // raw completions dictionary — the raw count can retain a stale trail id
+    // after a data update, showing one more than the checkmarks / Area page.
+    private var areaCompletedCount: Int { progress.completionCount(in: finished.areaId, trails: trails) }
     private var areaCompletionFraction: Double {
         guard areaTrailCount > 0 else { return 0 }
         return Double(areaCompletedCount) / Double(areaTrailCount)

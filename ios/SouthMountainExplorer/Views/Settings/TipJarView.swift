@@ -20,7 +20,10 @@ struct TipJarView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Text("TrekDex is currently free, but will include a paid tier in the future to support ongoing costs. The free tier will always include the core features of the app.")
-                        .font(.footnote)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text("Tips are one-time and can be given as often as you like. Thank you for hiking with TrekDex.")
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                     if store.isSupporter {
                         Label("Thanks for supporting TrekDex ♥", systemImage: "heart.fill")
@@ -54,8 +57,6 @@ struct TipJarView: View {
                         tipRow(product)
                     }
                 }
-            } footer: {
-                Text("Tips are one-time and can be given as often as you like. Thank you for hiking with TrekDex.")
             }
         }
         .navigationTitle("Leave a Tip")
@@ -67,7 +68,7 @@ struct TipJarView: View {
         .alert("Thank you! ♥", isPresented: $showThanks) {
             Button("You're welcome to hike on") { store.lastThanksProductName = nil }
         } message: {
-            Text("Your support genuinely helps keep TrekDex growing.")
+            Text("Your support helps keep TrekDex growing.")
         }
     }
 
@@ -76,14 +77,7 @@ struct TipJarView: View {
             Task { await store.tip(product) }
         } label: {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(product.displayName)
-                    if !product.description.isEmpty {
-                        Text(product.description)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                Text(product.displayName)
                 Spacer()
                 if store.purchasingID == product.id {
                     ProgressView()

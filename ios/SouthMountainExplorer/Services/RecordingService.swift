@@ -443,31 +443,28 @@ final class RecordingService {
             trails: trails,
             bufferMeters: sinceCompletionBufferMeters
         )
-        let (mergeNew, mergeRevisited, _) = await mergeCoverage(
+        // Run the stop-time mergeCoverage for its SIDE EFFECTS only — it marks
+        // any trail finished in the final segment complete, resets its
+        // since-completion bucket, and fires the completion notification. Its
+        // returned newly/revisited split is deliberately NOT used to classify
+        // this record (see newlyCompletedTrailIds): a live-tick mergeCoverage
+        // may have marked a trail complete mid-hike, which makes this final
+        // split read it as already-complete and report newlyCompleted=0.
+        _ = await mergeCoverage(
             areaId: rec.areaId,
             sessionCoverage: sessionCoverage,
             trails: trails,
             combinedPath: combinedPath
         )
-        // mergeCoverage's intra-session writes mean its returned
-        // newly/revisited split is racy at stop time — a trail
-        // completed mid-hike lands in `mergeRevisited` because by the
-        // time the final mergeCoverage runs, prior coverage already
-        // shows it complete. Reclassify against the snapshot taken at
-        // startRecording so the FinishedRecording fields reflect
-        // "did this recording bring the trail to completion?" not
-        // "was the trail complete a moment ago?".
+        // "Newly completed by THIS hike" = the union now completes the trail AND
+        // it was NOT complete at the start of the hike. Stable regardless of
+        // when the intra-session write happened to fire.
         let priorSnapshot = rec.priorCompleteTrailIds ?? []
-        let allCompleted = Set(mergeNew + mergeRevisited)
-        var newlyCompleted: [String] = []
+        let newlyCompleted = Self.newlyCompletedTrailIds(
+            sessionCoverage: sessionCoverage,
+            priorComplete: priorSnapshot
+        )
         var revisited: [String] = []
-        for tid in allCompleted {
-            if priorSnapshot.contains(tid) {
-                revisited.append(tid)
-            } else {
-                newlyCompleted.append(tid)
-            }
-        }
 
         // Symmetric-with-initial-completion revisit check. For each
         // trail the user has previously completed (per
@@ -669,25 +666,23 @@ final class RecordingService {
             guard !trails.isEmpty else { continue }
             let combinedPath = combinedPathForArea(areaId, currentPath: rec.path, history: history)
             let sessionCoverage = measureCoverage(path: combinedPath, trails: trails, bufferMeters: bufferMeters)
-            let (mergeNew, mergeRevisited, _) = await mergeCoverage(
+            // Side effects only — the returned split isn't used to classify
+            // (see stopRecording's primary path and newlyCompletedTrailIds).
+            _ = await mergeCoverage(
                 areaId: areaId,
                 sessionCoverage: sessionCoverage,
                 trails: trails,
                 combinedPath: combinedPath
             )
-            // Snapshot reclassification, per area — same rationale as
-            // stopRecording's (mergeCoverage's split is racy vs its own
-            // intra-session writes).
+            // Newly-completed from session coverage vs the start-of-walk
+            // snapshot, so a trail finished mid-walk (already marked complete by
+            // a live-tick mergeCoverage) is still counted rather than dropped.
             let priorSnapshot = priorByArea[areaId] ?? []
-            var newly: [String] = []
+            let newly = Self.newlyCompletedTrailIds(
+                sessionCoverage: sessionCoverage,
+                priorComplete: priorSnapshot
+            )
             var revisited: [String] = []
-            for tid in Set(mergeNew + mergeRevisited) {
-                if priorSnapshot.contains(tid) {
-                    revisited.append(tid)
-                } else {
-                    newly.append(tid)
-                }
-            }
             let pending = computeRevisits(
                 areaId: areaId,
                 currentPath: rec.path,
@@ -1382,6 +1377,23 @@ final class RecordingService {
         }
         if let data = try? JSONEncoder().encode(allHistory) {
             try? data.write(to: Self.historyFileURL)
+        }
+    }
+
+    /// Trails this recording brought to completion: the session-coverage union
+    /// completes them AND they were not already complete at the START of the
+    /// recording. Derived from coverage + the start-of-hike snapshot rather than
+    /// mergeCoverage's stop-time newly/revisited split ON PURPOSE — a live-tick
+    /// mergeCoverage can mark a trail complete mid-hike, which then makes the
+    /// stop-time split read it as "already complete" and report zero new
+    /// completions while `computeRevisits` mislabels the trail a revisit. Pure +
+    /// nonisolated so it can be unit-tested directly.
+    nonisolated static func newlyCompletedTrailIds(
+        sessionCoverage: [String: CoverageScore],
+        priorComplete: Set<String>
+    ) -> [String] {
+        sessionCoverage.compactMap { tid, score in
+            (score.completesTrail && !priorComplete.contains(tid)) ? tid : nil
         }
     }
 

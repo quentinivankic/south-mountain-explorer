@@ -22,11 +22,17 @@ enum DebugDiagSync {
     private static let secret = "N2PDhRlPdI0fdxzaGzEak2h1mPn9rGCQ"
     /// Don't re-upload on every rapid foreground bounce (share sheets etc.).
     private static let minInterval: TimeInterval = 45
-    private static var lastUpload = Date.distantPast
+    /// Main-actor isolated: the throttle is only ever read/written from the
+    /// scene-phase handler, which runs on the main actor. Isolating it satisfies
+    /// Swift 6 strict concurrency (a bare mutable static is a global-state error)
+    /// without a `nonisolated(unsafe)` opt-out.
+    @MainActor private static var lastUpload = Date.distantPast
 
     /// Upload the current backup bundle if this is a TestFlight build, the
     /// toggle is on, and we haven't uploaded in the last `minInterval`. Safe to
-    /// call on every foreground.
+    /// call on every foreground. Main-actor isolated; called from ContentView's
+    /// scene-phase change, which is already on the main actor.
+    @MainActor
     static func uploadIfEnabled() {
         guard BuildEnv.isTestFlight else { return }
         guard UserDefaults.standard.bool(forKey: StorageKeys.debugDiagAutoSync) else { return }

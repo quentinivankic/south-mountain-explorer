@@ -37,10 +37,15 @@ struct HikeRow: View {
     }
 
     private var revisitedCount: Int {
-        if let r = hike.multiAreaRevisited {
-            return r.values.map(\.count).reduce(0, +)
+        // Invariant: a trail this hike newly completed is never also
+        // "previously completed" — count via displayRevisitedTrailIds so an
+        // overlapping stored record can't inflate the revisit badge.
+        if hike.multiAreaRevisited != nil {
+            return hike.touchedAreaIds
+                .map { hike.displayRevisitedTrailIds(in: $0).count }
+                .reduce(0, +)
         }
-        return hike.revisitedTrailIds.count
+        return hike.displayRevisitedTrailIds.count
     }
 
     var body: some View {

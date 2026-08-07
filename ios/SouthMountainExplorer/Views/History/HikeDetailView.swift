@@ -29,7 +29,7 @@ struct HikeDetailView: View {
                         .padding(.horizontal)
                 }
 
-                if !hike.revisitedTrailIds.isEmpty {
+                if !hike.displayRevisitedTrailIds.isEmpty {
                     revisitedTrailsSection
                         .padding(.horizontal)
                 }
@@ -240,13 +240,13 @@ struct HikeDetailView: View {
 
     private var revisitedTrailsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("\(hike.revisitedTrailIds.count) previously completed",
+            Label("\(hike.displayRevisitedTrailIds.count) previously completed",
                   systemImage: "arrow.clockwise.circle.fill")
                 .font(.headline)
                 .foregroundStyle(.cyan)
 
             VStack(alignment: .leading, spacing: 8) {
-                ForEach(hike.revisitedTrailIds, id: \.self) { trailId in
+                ForEach(hike.displayRevisitedTrailIds, id: \.self) { trailId in
                     HStack {
                         Image(systemName: "arrow.clockwise")
                             .foregroundStyle(.cyan)

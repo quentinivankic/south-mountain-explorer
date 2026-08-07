@@ -1323,7 +1323,14 @@ final class RecordingService {
             log.notice("revisitCleanup area=\(areaId, privacy: .public) suppressed=\(totalSuppressed) hikesAffected=\(suppressByHikeId.count)")
         }
 
-        if creditedByHikeId.isEmpty && revisitCreditByHikeId.isEmpty && suppressByHikeId.isEmpty { return }
+        // Also run when any of this area's records has an overlap between its
+        // completed and revisited arrays — a trail can't be both, and such a
+        // record needs healing even if this pass produced no new credits.
+        let anyOverlap = areaHistory.contains {
+            !Set($0.revisitedTrailIds).isDisjoint(with: $0.completedTrailIds)
+        }
+        if creditedByHikeId.isEmpty, revisitCreditByHikeId.isEmpty,
+           suppressByHikeId.isEmpty, !anyOverlap { return }
 
         // Persist: rewrite the full history file with the credited
         // entries patched in. Re-load to avoid clobbering hikes from
@@ -1342,13 +1349,22 @@ final class RecordingService {
             let newCompletions = creditedByHikeId[allHistory[i].id]
             let newRevisits = revisitCreditByHikeId[allHistory[i].id]
             let suppressedRevisits = suppressByHikeId[allHistory[i].id]
-            if newCompletions == nil, newRevisits == nil, suppressedRevisits == nil { continue }
+            let hadOverlap = !Set(allHistory[i].revisitedTrailIds)
+                .isDisjoint(with: allHistory[i].completedTrailIds)
+            if newCompletions == nil, newRevisits == nil, suppressedRevisits == nil,
+               !hadOverlap { continue }
             let mergedCompleted = newCompletions.map { extras in
                 Array(Set(allHistory[i].completedTrailIds).union(extras))
             } ?? allHistory[i].completedTrailIds
             var mergedRevisitedSet = Set(allHistory[i].revisitedTrailIds)
             if let extras = newRevisits { mergedRevisitedSet.formUnion(extras) }
             if let suppress = suppressedRevisits { mergedRevisitedSet.subtract(suppress) }
+            // Invariant: a trail this hike completed is never also "previously
+            // completed" here (see SavedRecording.displayRevisitedTrailIds).
+            // The stop-time split is disjoint, but a rebuild that credits a
+            // first-time completion above without clearing the stop-time revisit
+            // tag would otherwise leave the two arrays overlapping.
+            mergedRevisitedSet.subtract(mergedCompleted)
             let mergedRevisited = Array(mergedRevisitedSet)
             let old = allHistory[i]
             allHistory[i] = SavedRecording(

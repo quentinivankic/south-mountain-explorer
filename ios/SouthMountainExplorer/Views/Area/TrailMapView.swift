@@ -311,18 +311,12 @@ struct TrailMapView: View {
             guard let id = newId,
                   let trail = area.trails.first(where: { $0.id == id }) else {
                 // Deselecting (tap on empty map, or a banner clears the
-                // selection). When the user is just browsing — not
-                // recording, and the camera isn't locked to their
-                // location — pull back to the whole-area overview so the
-                // map matches "nothing selected." During a recording or
-                // an active follow mode we leave the camera where it is:
-                // yanking it off the user's position on a deselect (e.g.
-                // the retarget banner's dismiss) would be disorienting,
-                // which is why an unconditional recenter was avoided
-                // before.
-                if activeRecording == nil && trackingMode == .free {
-                    centerOnArea()
-                }
+                // selection). Leave the camera exactly where it is. Auto-
+                // zooming back to the whole-area overview on every deselect
+                // was disorienting — the user is usually still looking at the
+                // spot they just tapped. The intentional area framings (initial
+                // load, the one-shot inset reframe) still run centerOnArea; a
+                // plain deselect no longer moves the map.
                 return
             }
             centerOn(trail: trail)

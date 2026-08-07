@@ -169,12 +169,11 @@ struct ContentView: View {
         // / .background fires when the app loses foreground (incl. when
         // killed). endSession is a no-op if no start has been recorded.
         .onChange(of: scenePhase, initial: true) { _, newPhase in
-            #if DEBUG
-            // DEBUG-only: auto-upload the backup bundle to the private tailnet
-            // endpoint on foreground when the Developer toggle is on. No-op
-            // otherwise. Never in release (DebugDiagSync is `#if DEBUG`).
+            // Auto-upload the backup bundle to the private tailnet endpoint on
+            // foreground when the Developer toggle is on. Self-gating: a no-op
+            // unless this is a TestFlight build AND the toggle is set (see
+            // DebugDiagSync), so it never runs in an App Store production install.
             if newPhase == .active { DebugDiagSync.uploadIfEnabled() }
-            #endif
             // Activity-log de-dupe: only log on real transitions
             // (active ↔ background). `initial: true` fires on
             // cold launch with whatever scene phase we land in,

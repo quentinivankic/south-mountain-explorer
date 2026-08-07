@@ -237,4 +237,23 @@ struct SavedRecording: Codable, Identifiable, Sendable {
         if let r = multiAreaRevisited { return r[area] ?? [] }
         return area == areaId ? revisitedTrailIds : []
     }
+
+    /// Trails to display as "previously completed" for this hike: the
+    /// revisited set with anything this SAME hike newly completed removed.
+    /// A trail cannot be both at once — but the later `rebuildCoverageFromHistory`
+    /// can credit a first-time completion (adding to `completedTrailIds`)
+    /// without clearing the stop-time revisit tag, leaving the two stored
+    /// arrays overlapping. Every display + count reads THIS, never the raw
+    /// `revisitedTrailIds`, so an overlap can't show a freshly-finished trail
+    /// as "previously completed."
+    var displayRevisitedTrailIds: [String] {
+        let completed = Set(completedTrailIds)
+        return revisitedTrailIds.filter { !completed.contains($0) }
+    }
+
+    /// Walk-aware per-area form of `displayRevisitedTrailIds`.
+    func displayRevisitedTrailIds(in area: String) -> [String] {
+        let completed = Set(completedTrailIds(in: area))
+        return revisitedTrailIds(in: area).filter { !completed.contains($0) }
+    }
 }

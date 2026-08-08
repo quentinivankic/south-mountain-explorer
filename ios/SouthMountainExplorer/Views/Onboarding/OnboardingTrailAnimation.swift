@@ -26,12 +26,18 @@ struct OnboardingTrailAnimation: View {
             Canvas { ctx, size in
                 guard !trails.isEmpty, bounds.width > 0, bounds.height > 0 else { return }
 
-                // Fractional "cursor": how many trails are lit right now.
+                // A cursor advancing through the trails in order. Each trail's
+                // cyan is DRAWN along its length (trimmedPath 0 to progress) as
+                // the cursor passes it, and consecutive draws overlap by
+                // `drawSpan` trails so it reads as a continuous pen stroke rather
+                // than each trail snapping on whole in a single frame.
+                let count = Double(trails.count)
+                let drawSpan = 4.0
                 let phase = timeline.date.timeIntervalSinceReferenceDate
                     .truncatingRemainder(dividingBy: cycle)
-                let litFrac = phase < lightDuration
-                    ? (phase / lightDuration) * Double(trails.count)
-                    : Double(trails.count)
+                let cursor = phase < lightDuration
+                    ? (phase / lightDuration) * (count + drawSpan)
+                    : count + drawSpan   // hold: every trail fully drawn
 
                 // Fit the content bbox into the canvas: uniform scale, centered.
                 let scale = min(size.width / bounds.width, size.height / bounds.height)
@@ -49,18 +55,19 @@ struct OnboardingTrailAnimation: View {
                         path.move(to: project(first))
                         for p in seg.dropFirst() { path.addLine(to: project(p)) }
                     }
-                    // 0 before the cursor reaches this trail, ramping to 1 as it
-                    // passes — a soft one-by-one sweep rather than a hard snap.
-                    let lit = max(0, min(1, litFrac - Double(i)))
-                    let color = lit <= 0
-                        ? base
-                        : Color.completedTrail.opacity(0.35 + 0.65 * lit)
-                    ctx.stroke(
-                        path,
-                        with: .color(color),
-                        style: StrokeStyle(lineWidth: lit > 0 ? 2.2 : 1.6,
-                                           lineCap: .round, lineJoin: .round)
-                    )
+                    // Faint full trail, always visible, so the park shape reads
+                    // from the first frame.
+                    ctx.stroke(path, with: .color(base),
+                               style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
+                    // Cyan drawn from the trail's start to `progress` of its
+                    // total length, so it paints ALONG the trail rather than
+                    // popping in all at once.
+                    let progress = max(0, min(1, (cursor - Double(i)) / drawSpan))
+                    if progress > 0 {
+                        let drawn = path.trimmedPath(from: 0, to: CGFloat(progress))
+                        ctx.stroke(drawn, with: .color(Color.completedTrail),
+                                   style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+                    }
                 }
             }
         }

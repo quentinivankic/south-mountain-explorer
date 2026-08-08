@@ -60,26 +60,17 @@ struct OnboardingView: View {
     // MARK: - Pages
 
     private var welcomePage: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "mountain.2.fill")
-                .font(.system(size: 110))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.cyan, .blue, .indigo],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .symbolEffect(.bounce, value: selectedPage)
+        VStack(spacing: 28) {
+            // Hero: South Mountain's trails lighting cyan one by one. The
+            // sentence leads with the brand, so no separate "TrekDex" wordmark.
+            OnboardingTrailAnimation()
+                .frame(maxWidth: .infinity)
+                .frame(height: 200)
 
-            Text("TrekDex")
-                .font(.largeTitle.weight(.bold))
-
-            Text("Find every trail in your favorite parks.")
-                .font(.title3)
-                .foregroundStyle(.secondary)
+            Text("TrekDex helps you track and complete every trail in your favorite park")
+                .font(.title2.weight(.semibold))
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+                .padding(.horizontal, 28)
         }
         .padding(.horizontal, 24)
     }

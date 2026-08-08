@@ -43,6 +43,7 @@ struct SettingsView: View {
     @AppStorage(StorageKeys.theme) private var theme: AppTheme = .system
     @AppStorage(StorageKeys.trailMesh) private var trailMesh = true
     @AppStorage(StorageKeys.debugHUD) private var showDebugHUD: Bool = false
+    @AppStorage(StorageKeys.debugDiagAutoSync) private var autoSyncDiag: Bool = false
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     /// URL of the most recent diagnostics bundle. Non-nil while
@@ -384,6 +385,14 @@ struct SettingsView: View {
                             category: "settings", action: "debugHUD",
                             context: ["value": String(newValue)]
                         )
+                    }
+                    // Shown only in TestFlight/dev builds (BuildEnv.isTestFlight),
+                    // hidden in an App Store production install. The uploader it
+                    // drives is itself TestFlight- and toggle-gated.
+                    if BuildEnv.isTestFlight {
+                        Toggle(isOn: $autoSyncDiag) {
+                            Label("Auto-sync Diagnostics", systemImage: "arrow.triangle.2.circlepath.icloud")
+                        }
                     }
                     Button {
                         ActivityLogService.shared.log(category: "diag", action: "send")

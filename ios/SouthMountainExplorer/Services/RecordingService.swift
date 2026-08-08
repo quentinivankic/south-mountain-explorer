@@ -30,14 +30,11 @@ private let bufferMeters = 30.0
 /// "I drifted across this trail" semantics rather than "this
 /// trail crossed mine, count it all."
 private let sinceCompletionBufferMeters = 10.0
-private let jitterMeters = 3.0
-private let badFixMeters = 200.0
-
 /// Interval between samples of `LocationService.liveLocation` while
 /// a recording is active. 2 s is a comfortable hiking cadence —
-/// frequent enough that GPS jitter is averaged out by the
-/// `jitterMeters` filter, infrequent enough to keep battery use
-/// reasonable on a multi-hour hike.
+/// frequent enough that GPS jitter is averaged out by the jitter
+/// filter (`GpsIngest.jitterMeters`), infrequent enough to keep
+/// battery use reasonable on a multi-hour hike.
 private let gpsPollingInterval: Duration = .seconds(2)
 
 /// Closest haversine distance in meters from any sample in `path`
@@ -1422,7 +1419,17 @@ final class RecordingService {
         for (tid, score) in sessionCoverage {
             let m = max(prior[tid] ?? 0, score.fraction)
             merged[tid] = m
-            let priorComplete = (prior[tid] ?? 0) >= completeThreshold
+            // Gate on the OFFICIAL, endpoint-gated completion record — NOT the
+            // raw coverage fraction. A trail can sit at fraction >= threshold
+            // from an earlier hike that incidentally paralleled it without ever
+            // reaching its endpoints, so it never actually completed. Using the
+            // fraction here made `priorComplete` true, which blocked the hike
+            // that FINALLY completed it (endpoints reached → `completesTrail`)
+            // from `newlyCompleted` — so the post-hike summary showed nothing,
+            // while the later history rebuild credited it correctly. Same
+            // fraction-vs-official trap already fixed for the start-of-hike
+            // snapshot in `startRecording`; mergeCoverage now matches.
+            let priorComplete = progressService.isComplete(areaId: areaId, trailId: tid)
             // Both gates required: enough of the trail covered AND
             // the hiker actually reached both endpoints. Since
             // `sessionCoverage` is the UNION of every prior hike's
@@ -1508,13 +1515,14 @@ final class RecordingService {
         let lon = Double(String(format: "%.6f", coord.longitude))!
         let ts = Date().timeIntervalSince1970 * 1000
 
-        if let last = rec.path.last {
-            let d = haversineDistanceM(lat1: last[0], lon1: last[1], lat2: lat, lon2: lon)
-            if rec.path.count > 5 {
-                if d < jitterMeters || d > badFixMeters { return }
-            } else if d > badFixMeters { return }
-            rec.distanceMi += d / 1609.344
-        }
+        // Ingest via the pure GpsIngest rules: reject impossible-speed bad
+        // fixes and stationary jitter, but treat a long time gap (screen
+        // locked / lost signal) as a discontinuity that adds no straight-line
+        // distance and starts a new run. See GpsIngest for the full rationale.
+        let decision = GpsIngest.decide(prev: rec.path.last, lat: lat, lon: lon,
+                                        tsMs: ts, priorCount: rec.path.count)
+        guard decision.keep else { return }
+        rec.distanceMi += decision.addMeters / 1609.344
 
         // 4-element point when altitude was available, else 3-element
         // for back-compat. Mixed-format paths are handled by every

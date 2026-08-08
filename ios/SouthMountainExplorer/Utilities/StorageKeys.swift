@@ -17,6 +17,11 @@ enum StorageKeys {
     /// Off by default; flipped from Settings → Developer.
     static let debugHUD = "summit:debug-hud"
 
+    /// DEBUG-only: when on, the app auto-uploads its backup bundle to the
+    /// developer's private Tailscale endpoint on foreground (see DebugDiagSync).
+    /// The key is harmless in release (the uploader is `#if DEBUG`-only).
+    static let debugDiagAutoSync = "summit:debug-diag-autosync"
+
     /// Map style for `MapKitMapView`. Raw value matches
     /// `MapStylePreference` enum (`standard` / `satellite` / `hybrid`).
     /// Default `standard` — same as the prior hardcoded `mv.mapType`.

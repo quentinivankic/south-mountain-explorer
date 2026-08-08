@@ -1051,20 +1051,17 @@ struct MapKitMapView: UIViewRepresentable {
                     r.strokeColor = UIColor.systemPurple.withAlphaComponent(0.55)
                     r.lineWidth = 2
                 } else if liveTrailSnappedIds.contains(ObjectIdentifier(pl)) {
-                    // Live counted-segments — TRAIL-POLYLINE-
-                    // SNAPPED runs (same 10m / ≥2-consecutive-
-                    // covered-nodes rule as the post-completion
-                    // orange overlay). systemPink at high alpha
-                    // so it visibly stacks above the systemPurple
-                    // trail base — earlier we used systemPurple
-                    // here too, which made "the trail you're
-                    // recording on" (purple base) and "the
-                    // portion you've actually walked" (this
-                    // overlay) read as a single purple smear.
-                    // Pink stays in the warm/highlight family but
-                    // is clearly distinct from the base hue.
-                    r.strokeColor = UIColor.systemPink.withAlphaComponent(0.95)
-                    r.lineWidth = 6
+                    // Live coverage: the TRAIL-POLYLINE-SNAPPED runs you've
+                    // actually walked this recording (10m snap, ≥2 consecutive
+                    // covered nodes). Drawn in the completed cyan at the normal
+                    // 3pt trail width (applyTrailStyle's un-selected base) so the
+                    // covered stretch reads as the trail line itself turning
+                    // cyan rather than a separate follower stripe. On the thick
+                    // recording trail the purple shows at the edges under it —
+                    // accepted tradeoff (chosen over widening or thinning the
+                    // active trail). Was a wider systemPink stripe.
+                    r.strokeColor = Self.completedTrail
+                    r.lineWidth = 3
                 } else if selectedTrailWalkedIds.contains(ObjectIdentifier(pl)) {
                     // Walked-since-completion on the selected trail.
                     // System orange, opaque, narrower than the

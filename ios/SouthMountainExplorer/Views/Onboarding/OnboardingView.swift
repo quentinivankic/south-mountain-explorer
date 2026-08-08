@@ -21,10 +21,7 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             TabView(selection: $selectedPage) {
                 welcomePage.tag(0)
-                page(icon: "map.fill",
-                     title: "Discover",
-                     body: "Browse hiking areas with map previews, search, and trail counts. The Stats tab tracks your overall progress as you build out a hiking history.")
-                    .tag(1)
+                discoverPage.tag(1)
                 page(icon: "record.circle.fill",
                      title: "Record",
                      body: "GPS-track your hikes — works in the background while your phone's in your pocket. Live elevation and pace update as you climb.")
@@ -71,6 +68,27 @@ struct OnboardingView: View {
                 .font(.title2.weight(.semibold))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 28)
+        }
+        .padding(.horizontal, 24)
+    }
+
+    /// "Discover" page: a gallery of real park silhouettes in place of a stock
+    /// SF Symbol, keeping the same title and body copy.
+    private var discoverPage: some View {
+        VStack(spacing: 20) {
+            OnboardingAreaGallery()
+                .frame(maxWidth: 460)
+                .padding(.horizontal, 8)
+
+            Text("Discover")
+                .font(.largeTitle.weight(.bold))
+
+            Text("Browse hiking areas with map previews, search, and trail counts. The Stats tab tracks your overall progress as you build out a hiking history.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+                .frame(maxWidth: 480)
         }
         .padding(.horizontal, 24)
     }

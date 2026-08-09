@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// Uploads the full backup bundle — hike-history, activity-log, and the
 /// completion/coverage state — to the developer's PRIVATE Tailscale endpoint
@@ -41,6 +42,10 @@ enum DebugDiagSync {
         lastUpload = now
         Task.detached(priority: .background) {
             guard let body = try? DataBackupManager.collectExport() else { return }
+            // Keep the app alive to finish the upload if the user backgrounds or
+            // locks the screen right after foregrounding, so iOS does not suspend
+            // the app mid-POST and leave the server with an incomplete body.
+            let bg = await UIApplication.shared.beginBackgroundTask(withName: "diag-upload")
             var req = URLRequest(url: endpoint)
             req.httpMethod = "POST"
             req.setValue(secret, forHTTPHeaderField: "X-Diag-Secret")
@@ -48,6 +53,9 @@ enum DebugDiagSync {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             req.httpBody = body
             _ = try? await URLSession.shared.data(for: req)
+            if bg != .invalid {
+                await UIApplication.shared.endBackgroundTask(bg)
+            }
         }
     }
 }

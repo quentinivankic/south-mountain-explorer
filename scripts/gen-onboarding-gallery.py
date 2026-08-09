@@ -23,6 +23,10 @@ OUT = "ios/SouthMountainExplorer/Resources/onboarding-discover-gallery.json"
 RDP_EPS = 0.012          # simplify harder than page 1: cards are small
 MARGIN = 0.06
 
+# Per-trail difficulty → one-letter code the app colours (green / orange / red /
+# gray), matching MapKitMapView's difficultyColor so the cards read like the map.
+DIFF = {"Easy": "e", "Moderate": "m", "Hard": "h"}
+
 
 def rdp(points, eps):
     if len(points) < 3:
@@ -45,10 +49,11 @@ def bake(area_id):
     geom = json.load(open(f"public/areas/geom/{area_id}.json"))
     clat, clon = geom["center_lat"], geom["center_lon"]
     cosf = math.cos(math.radians(clat))
-    segs = []
+    segs = []  # (difficulty_code, [(px, py), ...])
     minx = miny = math.inf
     maxx = maxy = -math.inf
     for tr in geom["trails"]:
+        dcode = DIFF.get(tr.get("difficulty"), "u")
         for seg in tr.get("segments", []):
             pts = []
             for node in seg:
@@ -60,19 +65,19 @@ def bake(area_id):
                 minx, maxx = min(minx, px), max(maxx, px)
                 miny, maxy = min(miny, py), max(maxy, py)
             if len(pts) >= 2:
-                segs.append(pts)
+                segs.append((dcode, pts))
     spanx = (maxx - minx) or 1e-9
     spany = (maxy - miny) or 1e-9
     scale = (1.0 - 2 * MARGIN) / max(spanx, spany)
     offx = (1.0 - spanx * scale) / 2.0
     offy = (1.0 - spany * scale) / 2.0
     lines = []
-    for pts in segs:
+    for dcode, pts in segs:
         npts = [[round(offx + (p[0] - minx) * scale, 4),
                  round(offy + (p[1] - miny) * scale, 4)] for p in pts]
         npts = rdp(npts, RDP_EPS)
         if len(npts) >= 2:
-            lines.append(npts)
+            lines.append({"d": dcode, "p": npts})
     return lines
 
 

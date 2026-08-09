@@ -706,17 +706,22 @@ struct TrailMapView: View {
 
     /// Compute trail-polyline-snapped runs covered by the in-progress
     /// recording's GPS path. Runs `trailNodeRuns` (10m buffer, runs of
-    /// ≥ 2 consecutive covered nodes) over every trail in the area and
-    /// concatenates the results. Returns polylines that follow the
-    /// trail geometry precisely, not the GPS scatter — used for the
-    /// purple "you're walking this segment" rendering during a
-    /// recording.
+    /// >= 2 consecutive covered nodes) over the area's trails and
+    /// concatenates the results, so the live cyan "you're walking this
+    /// segment" overlay follows the trail geometry rather than the GPS
+    /// scatter.
+    ///
+    /// Snaps onto `area.trails`, the DECIMATED render geometry the map
+    /// actually draws, NOT the dense `rawTrails`. The two diverge by up to
+    /// the decimation epsilon on curves, so snapping to raw emitted nodes
+    /// that sit OFF the drawn trail line (the "cyan not snapping to the
+    /// trail" report). Same fix, and same reason, as trailSnappedHaloRuns.
     private func liveTrailSnappedRuns(path: [GpsPoint]) -> [[CLLocationCoordinate2D]] {
         var gpsGrid = SpatialGrid()
         for p in path where p.count >= 2 {
             gpsGrid.insert(p)
         }
-        let sourceTrails = area.rawTrails ?? area.trails
+        let sourceTrails = area.trails
         var all: [[CLLocationCoordinate2D]] = []
         for trail in sourceTrails {
             all.append(contentsOf: trailNodeRuns(coveredBy: gpsGrid, in: trail))

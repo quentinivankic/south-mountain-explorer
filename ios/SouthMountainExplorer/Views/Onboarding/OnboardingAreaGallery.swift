@@ -2,13 +2,15 @@ import SwiftUI
 
 /// "Discover" hero: a 2x2 gallery of real park silhouettes (Zion, Grand Canyon,
 /// Joshua Tree, Griffith Park), baked to a small JSON resource by
-/// scripts/gen-onboarding-gallery.py. Shows the app's own trail data instead of
-/// a stock SF Symbol. Static and offline.
+/// scripts/gen-onboarding-gallery.py. Each trail is drawn in its difficulty
+/// colour — green easy, orange moderate, red hard, gray unknown — matching
+/// MapKitMapView so the cards read like the app's own map. Static and offline.
 struct OnboardingAreaGallery: View {
+    private struct Line { let points: [CGPoint]; let color: Color }
     private struct Area: Identifiable {
         let id: String
         let label: String
-        let lines: [[CGPoint]]
+        let lines: [Line]
         let bounds: CGRect
     }
     private let areas: [Area]
@@ -24,16 +26,30 @@ struct OnboardingAreaGallery: View {
         LazyVGrid(columns: columns, spacing: 12) {
             ForEach(areas) { area in
                 VStack(spacing: 6) {
-                    Silhouette(lines: area.lines, bounds: area.bounds)
-                        .stroke(Color.completedTrail,
-                                style: StrokeStyle(lineWidth: 1.3, lineCap: .round, lineJoin: .round))
-                        .padding(8)
-                        .frame(height: 78)
-                        .frame(maxWidth: .infinity)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.gray.opacity(0.12))
-                        )
+                    Canvas { ctx, size in
+                        guard area.bounds.width > 0, area.bounds.height > 0 else { return }
+                        let scale = min(size.width / area.bounds.width, size.height / area.bounds.height)
+                        let ox = (size.width - area.bounds.width * scale) / 2 - area.bounds.minX * scale
+                        let oy = (size.height - area.bounds.height * scale) / 2 - area.bounds.minY * scale
+                        for line in area.lines {
+                            guard let first = line.points.first else { continue }
+                            var p = Path()
+                            p.move(to: CGPoint(x: first.x * scale + ox, y: first.y * scale + oy))
+                            for pt in line.points.dropFirst() {
+                                p.addLine(to: CGPoint(x: pt.x * scale + ox, y: pt.y * scale + oy))
+                            }
+                            ctx.stroke(p, with: .color(line.color),
+                                       style: StrokeStyle(lineWidth: 1.3, lineCap: .round, lineJoin: .round))
+                        }
+                    }
+                    .padding(8)
+                    .frame(height: 78)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.gray.opacity(0.12))
+                    )
+
                     Text(area.label)
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(.secondary)
@@ -44,32 +60,21 @@ struct OnboardingAreaGallery: View {
         .accessibilityHidden(true)
     }
 
-    // MARK: - Shape
-
-    private struct Silhouette: Shape {
-        let lines: [[CGPoint]]
-        let bounds: CGRect
-        func path(in rect: CGRect) -> Path {
-            guard bounds.width > 0, bounds.height > 0 else { return Path() }
-            let scale = min(rect.width / bounds.width, rect.height / bounds.height)
-            let ox = rect.minX + (rect.width - bounds.width * scale) / 2 - bounds.minX * scale
-            let oy = rect.minY + (rect.height - bounds.height * scale) / 2 - bounds.minY * scale
-            var p = Path()
-            for line in lines {
-                guard let first = line.first else { continue }
-                p.move(to: CGPoint(x: first.x * scale + ox, y: first.y * scale + oy))
-                for pt in line.dropFirst() {
-                    p.addLine(to: CGPoint(x: pt.x * scale + ox, y: pt.y * scale + oy))
-                }
-            }
-            return p
-        }
-    }
-
     // MARK: - Load
 
-    private struct RawArea: Decodable { let id: String; let label: String; let lines: [[[Double]]] }
+    private struct RawLine: Decodable { let d: String; let p: [[Double]] }
+    private struct RawArea: Decodable { let id: String; let label: String; let lines: [RawLine] }
     private struct Payload: Decodable { let areas: [RawArea] }
+
+    /// Difficulty code → colour. Mirrors MapKitMapView.difficultyColor.
+    private static func color(_ d: String) -> Color {
+        switch d {
+        case "e": return Color(.systemGreen)
+        case "m": return Color(.systemOrange)
+        case "h": return Color(.systemRed)
+        default:  return Color(.systemGray)
+        }
+    }
 
     private static func load() -> [Area] {
         guard
@@ -81,14 +86,15 @@ struct OnboardingAreaGallery: View {
         return payload.areas.map { raw in
             var minX = CGFloat.infinity, minY = CGFloat.infinity
             var maxX = -CGFloat.infinity, maxY = -CGFloat.infinity
-            let lines: [[CGPoint]] = raw.lines.map { line in
-                line.compactMap { pair -> CGPoint? in
+            let lines: [Line] = raw.lines.map { rl in
+                let pts: [CGPoint] = rl.p.compactMap { pair in
                     guard pair.count >= 2 else { return nil }
                     let x = CGFloat(pair[0]), y = CGFloat(pair[1])
                     minX = min(minX, x); minY = min(minY, y)
                     maxX = max(maxX, x); maxY = max(maxY, y)
                     return CGPoint(x: x, y: y)
                 }
+                return Line(points: pts, color: color(rl.d))
             }
             let bounds = minX.isFinite && maxX > minX && maxY > minY
                 ? CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)

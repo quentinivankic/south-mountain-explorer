@@ -236,12 +236,14 @@ struct TrailListView: View {
                         }
                     }
                 }
-                // The parent panel uses .ignoresSafeArea(.bottom) so it
-                // can extend flush to the screen edge. That means the
-                // last row would land in the home-indicator zone without
-                // padding to push it back up. ~50pt covers the home
-                // indicator area on every modern iPhone with margin.
-                .padding(.bottom, 50)
+                // No manual bottom padding. This 50pt existed for the old
+                // hand-rolled panel, which used .ignoresSafeArea(.bottom) and so
+                // had to push its last row out of the home-indicator zone. The
+                // trail list is now a native sheet (presentationDetents), and
+                // UIKit already insets its scroll content for the home
+                // indicator — so the extra 50pt just left dead space, and the
+                // list stopped short of the sheet's bottom edge instead of
+                // running under it.
             }
             .onChange(of: selectedTrailId) { _, newId in
                 guard let newId else { return }

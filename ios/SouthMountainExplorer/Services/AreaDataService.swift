@@ -287,6 +287,23 @@ final class AreaDataService {
     /// Summary for an area id, without scanning the whole index.
     func summary(id: String) -> AreaSummary? { summariesById[id] }
 
+    /// Memoized `Area.computedSilhouette`.
+    ///
+    /// Building it walks every trail x every segment x every point and allocates
+    /// a fresh line array. AreaCard read it TWICE per card body (once for the
+    /// difficulty mix, once to draw), and every card's body depends on the
+    /// user's location — which republishes on each GPS fix — so it was rebuilt
+    /// for every visible card, repeatedly, while scrolling Explore. The geometry
+    /// is immutable for a loaded area, so build it once per area id.
+    private var silhouetteCache: [String: AreaSilhouette] = [:]
+
+    func computedSilhouette(for area: Area) -> AreaSilhouette {
+        if let hit = silhouetteCache[area.id] { return hit }
+        let built = area.computedSilhouette
+        silhouetteCache[area.id] = built
+        return built
+    }
+
     func nearby(lat: Double, lon: Double, limit: Int = 20) -> [AreaSummary] {
         // Decorate-sort-undecorate: haversine ONCE per area instead of twice per
         // comparison inside the comparator. On a ~29,850-row index that is

@@ -268,7 +268,7 @@ struct HikeDetailView: View {
     }
 
     private func trailName(for trailId: String) -> String {
-        area?.trails.first { $0.id == trailId }?.name ?? trailId
+        area?.trails.first { $0.id == trailId }?.name ?? "Unnamed trail"
     }
 
     private var durationString: String {

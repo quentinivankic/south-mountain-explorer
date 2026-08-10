@@ -541,7 +541,7 @@ struct WalkSummarySheet: View {
     }
 
     private func trailName(_ trailId: String, in area: Area) -> String {
-        (area.rawTrails ?? area.trails).first { $0.id == trailId }?.name ?? trailId
+        (area.rawTrails ?? area.trails).first { $0.id == trailId }?.name ?? "Unnamed trail"
     }
 
     private var totalCompleted: Int {

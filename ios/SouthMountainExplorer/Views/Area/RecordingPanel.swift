@@ -21,6 +21,14 @@ struct RecordingPanel: View {
     @State private var liveEtaLabel: String? = nil
     @State private var isStopping = false
     @State private var showStopConfirm = false
+
+    /// True when the recording has produced nothing worth persisting — under
+    /// ~80 m of movement or too few GPS fixes to draw a route. Saving one of
+    /// these wrote a 0.0 mi hike with an empty map into history permanently.
+    private var hasNothingToSave: Bool {
+        guard let rec else { return true }
+        return rec.distanceMi < 0.05 || rec.path.count < 5
+    }
     @State private var showDiscardConfirm = false
 
     private var rec: ActiveRecording? { recording.activeRecording }
@@ -120,16 +128,26 @@ struct RecordingPanel: View {
         .padding(.horizontal, 16)
         .onAppear { startTimer() }
         .onDisappear { timer?.invalidate() }
+        // Nothing worth keeping yet: offer Discard instead of Save, so a
+        // start-then-immediately-stop doesn't drop a 0.0 mi hike into history
+        // that then shows up as "Pick Up Where You Left Off" with an empty map.
         .confirmationDialog(
-            "Stop this hike?",
+            hasNothingToSave ? "Nothing to save yet" : "Stop this hike?",
             isPresented: $showStopConfirm,
             titleVisibility: .visible
         ) {
-            Button("Stop & Save", role: .destructive) { stopRecording() }
-            Button("Stop & Discard", role: .destructive) { showDiscardConfirm = true }
-            Button("Keep Recording", role: .cancel) { }
+            if hasNothingToSave {
+                Button("Discard", role: .destructive) { discardRecording() }
+                Button("Keep Recording", role: .cancel) { }
+            } else {
+                Button("Stop & Save", role: .destructive) { stopRecording() }
+                Button("Stop & Discard", role: .destructive) { showDiscardConfirm = true }
+                Button("Keep Recording", role: .cancel) { }
+            }
         } message: {
-            Text(stopMessage)
+            Text(hasNothingToSave
+                 ? "We haven't got enough GPS to trace a route, so there's nothing to add to your history yet."
+                 : stopMessage)
         }
         .confirmationDialog(
             "Discard this hike?",
@@ -400,7 +418,7 @@ struct RecordingSummarySheet: View {
         HStack {
             Image(systemName: icon)
                 .foregroundStyle(tint)
-            Text(trail?.name ?? trailId)
+            Text(trail?.name ?? "Unnamed trail")
                 .font(.body)
             Spacer()
             if let trail {

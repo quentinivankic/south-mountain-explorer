@@ -250,7 +250,7 @@ struct StatsView: View {
     /// O(1) via the service's id index. This was `summaries.first { ... }` — a
     /// linear scan of ~29,850 rows, called twice per row inside `ForEach(hikes)`.
     private func areaName(for areaId: String) -> String {
-        areas.summary(id: areaId)?.name ?? areaId
+        areas.summary(id: areaId)?.name ?? "Unknown area"
     }
 
     private func trailName(for hike: SavedRecording) -> String? {

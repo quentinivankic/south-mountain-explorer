@@ -201,9 +201,12 @@ final class ScreenshotTests: XCTestCase {
         }
         tapElement(row)
 
-        let picker = app.segmentedControls["area-view-picker"]
-        if picker.waitForExistence(timeout: 60) { return true }
-        dumpTree(app, "picker-missing-after-area-push")
+        // The Trails/Dex segmented control was replaced by a swipeable pager,
+        // so wait on the trail search field instead as the "area sheet is up"
+        // signal.
+        let search = app.textFields["Search trails"]
+        if search.waitForExistence(timeout: 60) { return true }
+        dumpTree(app, "area-sheet-missing-after-area-push")
         return false
     }
 
@@ -221,17 +224,16 @@ final class ScreenshotTests: XCTestCase {
         settle(2)
     }
 
-    /// Tap a segment of the Trails/Dex segmented control. Segments render
-    /// as buttons; try the control's child first, then a bare button
-    /// lookup as a fallback across iOS versions.
+    /// Move between the Trails and Dex pages. These were a segmented control;
+    /// they are now pages of a swipeable TabView, so drive them with a
+    /// horizontal swipe across the sheet area (lower third of the screen).
     private func tapSegment(_ app: XCUIApplication, _ label: String) {
-        let inControl = app.segmentedControls["area-view-picker"].buttons[label]
-        if inControl.waitForExistence(timeout: 5) {
-            tapElement(inControl)
-            return
-        }
-        let bare = app.buttons[label]
-        if bare.waitForExistence(timeout: 5) { tapElement(bare) }
+        let toDex = (label == "Dex")
+        let y = 0.8
+        let from = app.coordinate(withNormalizedOffset: CGVector(dx: toDex ? 0.85 : 0.15, dy: y))
+        let to = app.coordinate(withNormalizedOffset: CGVector(dx: toDex ? 0.15 : 0.85, dy: y))
+        from.press(forDuration: 0.05, thenDragTo: to)
+        settle(2)
     }
 
     /// Tap with a coordinate fallback so a hit-test quirk can't

@@ -68,14 +68,15 @@ struct AreaView: View {
     /// `.task(id: areaId)` and ends 1.5 s later.
     @State private var minLoadingTimeElapsed = false
 
-    /// Height of the SMALL detent, chosen on-device via the Developer picker.
-    /// Defaults to 260pt: the header stack measures ~92pt through the title and
-    /// stats, ~136pt with the Trails/Dex tabs, ~192pt through the control row,
-    /// and ~250pt including the search field — so 260 is the first size that
-    /// clears every control without clipping one. (The detent this replaced was
-    /// 150pt, which cut through the control row and hid the Record Hike button,
-    /// which is what made it feel cramped.)
-    @AppStorage(StorageKeys.smallDetentHeight) private var smallDetentHeight: Double = 260
+    /// Height of the SMALL detent: everything above the trail rows, and no rows.
+    ///
+    /// The sheet got much shorter when the map controls moved out onto the map
+    /// and the Trails/Dex segmented control became a swipe — together those were
+    /// ~100pt of the old header. What's left above the rows is the drag
+    /// indicator (~20), the name + stats block (~72), the page dots (~30) and
+    /// the search field (~58) ≈ 180pt. Still adjustable on-device via the
+    /// Developer picker while the new layout settles.
+    @AppStorage(StorageKeys.smallDetentHeight) private var smallDetentHeight: Double = 190
 
     /// Trail-list sheet detents — three stops.
     ///   - small: map-forward, but sized so every control stays whole. The old
@@ -304,6 +305,19 @@ struct AreaView: View {
                     trackingMode: $trackingMode
                 )
                 .ignoresSafeArea()
+
+                // Map controls FLOAT over the map, anchored just above the
+                // sheet's top edge, and ride up and down with it. They used to
+                // be the sheet's first row, which spent scarce vertical space
+                // on controls that act on the MAP, not the list. Sitting on the
+                // map is also where they belong: this is the same placement
+                // Apple Maps uses.
+                controlBar(area: area)
+                    .padding(.bottom, effectiveBottomInset + 12)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+                    .ignoresSafeArea(.keyboard)
+                    .animation(.interactiveSpring(response: 0.35, dampingFraction: 0.85),
+                               value: effectiveBottomInset)
 
             } else if isLoading || (area != nil && !minLoadingTimeElapsed) {
                 loadingState
@@ -972,71 +986,69 @@ struct AreaView: View {
             .padding(.top, 10)
             .padding(.bottom, 12)
 
-            // Trails | Dex segment selector. Always visible so the
-            // user can flip between the trail list and the achievements
-            // grid regardless of which is showing.
-            Picker("View", selection: $sheetTab) {
-                Text("Trails").tag(AreaSheetTab.trails)
-                Text("Dex").tag(AreaSheetTab.dex)
-            }
-            .pickerStyle(.segmented)
-            .accessibilityIdentifier("area-view-picker")
-            .padding(.horizontal, 20)
-            .padding(.bottom, 12)
+            // Trails / Dex are now PAGES you swipe between, not a segmented
+            // control. The control cost a full row of vertical space in a sheet
+            // whose whole problem is vertical space, and a horizontal swipe is
+            // the same gesture the two-page layout already implies. The page
+            // dots keep the second page discoverable.
             .onChange(of: sheetTab) { _, tab in
                 if tab == .dex {
                     AnalyticsService.shared.capture(.dexOpened(areaId: area.id))
                 }
             }
 
-            switch sheetTab {
-            case .trails:
-                controlBar(area: area)
-                    .padding(.bottom, 12)
-
-                // Tracking-mode toast. A subtle solid capsule, NOT glass —
-                // it floats inside the glass sheet, so a material backdrop
-                // would be the same glass-on-glass muddiness we removed
-                // from the icon buttons. Tinted with the accent so it
-                // reads as a transient status note.
-                if let toast = trackingModeToast {
-                    Text(toast)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(Color.accentColor, in: Capsule())
-                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                        .padding(.bottom, 10)
-                }
-
-                if isRecording {
-                    recordingBanners(area: area)
-                    RecordingPanel(area: area) { finished in
-                        finishedRecording = finished
-                        showSummary = finished != nil
-                        // Refresh the cyan coverage halo with the
-                        // just-finished hike's path.
-                        Task { await loadPastPaths() }
+            // Swipe horizontally between Trails and the Dex. `.page` style with
+            // always-visible dots, so the second page is discoverable without
+            // spending a row on a segmented control.
+            TabView(selection: $sheetTab) {
+                VStack(spacing: 0) {
+                    // Tracking-mode toast. A subtle solid capsule, NOT glass —
+                    // it floats inside the glass sheet, so a material backdrop
+                    // would be the same glass-on-glass muddiness we removed
+                    // from the icon buttons. Tinted with the accent so it
+                    // reads as a transient status note.
+                    if let toast = trackingModeToast {
+                        Text(toast)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 7)
+                            .background(Color.accentColor, in: Capsule())
+                            .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                            .padding(.bottom, 10)
                     }
-                    .padding(.bottom, 4)
+
+                    if isRecording {
+                        recordingBanners(area: area)
+                        RecordingPanel(area: area) { finished in
+                            finishedRecording = finished
+                            showSummary = finished != nil
+                            // Refresh the cyan coverage halo with the
+                            // just-finished hike's path.
+                            Task { await loadPastPaths() }
+                        }
+                        .padding(.bottom, 4)
+                    }
+
+                    TrailListView(
+                        area: area,
+                        selectedTrailId: $selectedTrailId,
+                        statusFilter: $statusFilter,
+                        difficultyFilter: $difficultyFilter,
+                        lengthFilter: $lengthFilter,
+                        routeFilter: $routeFilter,
+                        searchQuery: $trailSearchQuery,
+                        filteredTrails: filtered,
+                        onRecordTrail: { trail in tryStartRecording(trailId: trail.id) }
+                    )
                 }
+                .tag(AreaSheetTab.trails)
 
-                TrailListView(
-                    area: area,
-                    selectedTrailId: $selectedTrailId,
-                    statusFilter: $statusFilter,
-                    difficultyFilter: $difficultyFilter,
-                    lengthFilter: $lengthFilter,
-                    routeFilter: $routeFilter,
-                    searchQuery: $trailSearchQuery,
-                    filteredTrails: filtered,
-                    onRecordTrail: { trail in tryStartRecording(trailId: trail.id) }
-                )
-
-            case .dex:
                 DexView(area: area)
+                    .tag(AreaSheetTab.dex)
             }
+            .tabViewStyle(.page(indexDisplayMode: .always))
+            .indexViewStyle(.page(backgroundDisplayMode: .interactive))
         }
         // Nested modal sheets — must live inside the always-on trail-
         // list sheet so SwiftUI lets them present on top instead of
@@ -1218,7 +1230,7 @@ struct AreaView: View {
                 Image(systemName: trackingMode.symbol)
                     .font(.body.weight(.semibold))
                     .frame(width: 44, height: 44)
-                    .background(Color(.tertiarySystemFill), in: Circle())
+                    .compatibleGlass(in: .circle)
             }
             .accessibilityLabel(trackingMode.accessibilityLabel)
 
@@ -1233,7 +1245,7 @@ struct AreaView: View {
                 Image(systemName: "location.fill.viewfinder")
                     .font(.body.weight(.semibold))
                     .frame(width: 44, height: 44)
-                    .background(Color(.tertiarySystemFill), in: Circle())
+                    .compatibleGlass(in: .circle)
             }
             .accessibilityLabel("Recenter on my location")
             .accessibilityIdentifier("area-recenter-button")
@@ -1259,7 +1271,7 @@ struct AreaView: View {
                     // sheet, the glass capsule was the last lingering
                     // glass-on-opaque element and read inconsistently
                     // next to the flat icon buttons.
-                    .background(Color(.tertiarySystemFill), in: Capsule())
+                    .compatibleGlass(in: .capsule)
                 }
             }
         }

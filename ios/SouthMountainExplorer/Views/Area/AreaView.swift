@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 import OSLog
 
 /// Logger for `AreaView` lifecycle and decision events — area
@@ -168,6 +169,7 @@ struct AreaView: View {
     @State private var difficultyFilter: TrailDifficultyFilter = .all
     @State private var lengthFilter: TrailLengthFilter = .all
     @State private var routeFilter: TrailRouteFilter = .all
+    @State private var trailSort: TrailSort = .standard
     /// Free-text search over trail names. Lives alongside the
     /// existing filter state so the filtered-trails computed
     /// property can fold it into a single pass.
@@ -186,6 +188,51 @@ struct AreaView: View {
     /// truth shared between TrailListView (which renders the rows) and
     /// TrailMapView (which renders the polylines).
     private func computeFilteredTrails(_ area: Area) -> [Trail] {
+        Self.sorted(filterTrails(area), by: trailSort,
+                    from: location.userLocation,
+                    coverage: coverage.coverage(for: areaId))
+    }
+
+    /// Order the filtered set. Each comparator's key is computed ONCE per trail
+    /// (decorate-sort-undecorate) rather than inside the comparator — the
+    /// nearest sort would otherwise run its distance math O(n log n) times.
+    private static func sorted(_ trails: [Trail],
+                               by sort: TrailSort,
+                               from userLocation: CLLocationCoordinate2D?,
+                               coverage: [String: Double]) -> [Trail] {
+        switch sort {
+        case .standard:
+            return trails
+        case .alphabetical:
+            return trails.map { ($0, $0.name.lowercased()) }
+                .sorted { $0.1 < $1.1 }.map(\.0)
+        case .shortest:
+            return trails.sorted { $0.distanceMi < $1.distanceMi }
+        case .longest:
+            return trails.sorted { $0.distanceMi > $1.distanceMi }
+        case .progress:
+            return trails.map { ($0, coverage[$0.id] ?? 0) }
+                .sorted { $0.1 > $1.1 }.map(\.0)
+        case .nearest:
+            // No fix: leave the order alone rather than inventing one.
+            guard let loc = userLocation else { return trails }
+            return trails.map { trail -> (Trail, Double) in
+                var best = Double.greatestFiniteMagnitude
+                for seg in trail.segments {
+                    for p in seg where p.count >= 2 {
+                        let d = haversineDistanceM(lat1: loc.latitude, lon1: loc.longitude,
+                                                   lat2: p[0], lon2: p[1])
+                        if d < best { best = d }
+                    }
+                }
+                return (trail, best)
+            }
+            .sorted { $0.1 < $1.1 }
+            .map(\.0)
+        }
+    }
+
+    private func filterTrails(_ area: Area) -> [Trail] {
         area.trails.filter { trail in
             // Only ask about completion when the status filter actually needs
             // it. This used to run for `.all` too and throw the answer away —
@@ -239,6 +286,7 @@ struct AreaView: View {
         let difficultyFilter: TrailDifficultyFilter
         let lengthFilter: TrailLengthFilter
         let routeFilter: TrailRouteFilter
+        let sort: TrailSort
         let searchQuery: String
     }
 
@@ -249,6 +297,7 @@ struct AreaView: View {
             difficultyFilter: difficultyFilter,
             lengthFilter: lengthFilter,
             routeFilter: routeFilter,
+            sort: trailSort,
             searchQuery: trailSearchQuery
         )
     }
@@ -1037,6 +1086,7 @@ struct AreaView: View {
                         difficultyFilter: $difficultyFilter,
                         lengthFilter: $lengthFilter,
                         routeFilter: $routeFilter,
+                        sort: $trailSort,
                         searchQuery: $trailSearchQuery,
                         filteredTrails: filtered,
                         onRecordTrail: { trail in tryStartRecording(trailId: trail.id) }

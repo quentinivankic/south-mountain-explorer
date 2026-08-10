@@ -114,8 +114,8 @@ func elevationStats(path: [GpsPoint]) -> ElevationStats? {
             let window = raw[lo...hi].map(\.altitude).sorted()
             despiked[i].altitude = window[window.count / 2]
         }
+        raw = despiked
     }
-    let raw = despiked
 
     // Smooth altitudes via a centered moving average, clamped to the current
     // run so the average never blends across a gap. Edges use a shrinking

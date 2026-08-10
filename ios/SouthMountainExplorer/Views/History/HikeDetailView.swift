@@ -33,6 +33,11 @@ struct HikeDetailView: View {
                     revisitedTrailsSection
                         .padding(.horizontal)
                 }
+
+                if !partialTrails.isEmpty {
+                    partialTrailsSection
+                        .padding(.horizontal)
+                }
             }
             .padding(.vertical)
         }
@@ -66,8 +71,36 @@ struct HikeDetailView: View {
         }
     }
 
+    /// Camera framed on the RECORDED PATH, not the whole park.
+    ///
+    /// This map also draws the area's trails faintly for context, and with no
+    /// explicit camera SwiftUI auto-fits every piece of content — so a 2 mi hike
+    /// in an 18 mi park rendered as a hairline in a park-wide view. Framing the
+    /// path's own bounding box (with ~25% margin, floored so a very short hike
+    /// isn't absurdly zoomed) puts the hike front and centre.
+    private var hikeCamera: MapCameraPosition {
+        let coords = hike.path.compactMap { p -> (lat: Double, lon: Double)? in
+            guard p.count >= 2 else { return nil }
+            return (p[0], p[1])
+        }
+        guard let first = coords.first else { return .automatic }
+        var minLat = first.lat, maxLat = first.lat
+        var minLon = first.lon, maxLon = first.lon
+        for c in coords {
+            minLat = min(minLat, c.lat); maxLat = max(maxLat, c.lat)
+            minLon = min(minLon, c.lon); maxLon = max(maxLon, c.lon)
+        }
+        let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2,
+                                            longitude: (minLon + maxLon) / 2)
+        let span = MKCoordinateSpan(
+            latitudeDelta: min(max((maxLat - minLat) * 1.25, 0.004), 180),
+            longitudeDelta: min(max((maxLon - minLon) * 1.25, 0.004), 360)
+        )
+        return .region(MKCoordinateRegion(center: center, span: span))
+    }
+
     private var hikeMap: some View {
-        Map {
+        Map(initialPosition: hikeCamera) {
             // Show area trails faintly underneath the recorded path so the
             // hike has visual context.
             if let area {
@@ -243,6 +276,50 @@ struct HikeDetailView: View {
         }
     }
 
+    /// Trails this hike put real distance on without finishing them.
+    ///
+    /// A 4 mi walk along a 15 mi trail completes nothing and revisits nothing,
+    /// so the detail screen used to show NO trail sections at all — as if the
+    /// hike touched no trails. The post-hike summary already surfaces this from
+    /// `FinishedRecording.coverageDelta`, but that value isn't persisted, so
+    /// recompute it here from the saved path once the area's geometry loads.
+    /// Same 5% floor as the summary (below that is GPS noise).
+    private var partialTrails: [(id: String, name: String, coverage: Double)] {
+        guard let area else { return [] }
+        let exclude = Set(hike.completedTrailIds).union(hike.displayRevisitedTrailIds)
+        return measureCoverageByLength(path: hike.path, trails: area.trails)
+            .filter { tid, c in c >= 0.05 && !exclude.contains(tid) }
+            .map { (id: $0.key, name: trailName(for: $0.key), coverage: $0.value) }
+            .sorted { $0.coverage > $1.coverage }
+    }
+
+    private var partialTrailsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("\(partialTrails.count) trail\(partialTrails.count == 1 ? "" : "s") progressed",
+                  systemImage: "chart.bar.fill")
+                .font(.headline)
+                .foregroundStyle(.orange)
+
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(partialTrails, id: \.id) { item in
+                    HStack {
+                        Image(systemName: "figure.hiking")
+                            .foregroundStyle(.orange)
+                        Text(item.name)
+                            .font(.body)
+                        Spacer()
+                        Text("\(Int(item.coverage * 100))%")
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+    }
+
     private var revisitedTrailsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label("\(hike.displayRevisitedTrailIds.count) previously completed",
@@ -268,7 +345,7 @@ struct HikeDetailView: View {
     }
 
     private func trailName(for trailId: String) -> String {
-        area?.trails.first { $0.id == trailId }?.name ?? trailId
+        area?.trails.first { $0.id == trailId }?.name ?? "Unnamed trail"
     }
 
     private var durationString: String {

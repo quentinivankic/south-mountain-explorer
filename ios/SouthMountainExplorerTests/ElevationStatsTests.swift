@@ -40,19 +40,27 @@ struct ElevationStatsTests {
     }
 
     @Test func steadyClimbAccumulatesAscent() throws {
-        // 21 points climbing 5m per sample = 100m raw gain. The
-        // 5-sample centered moving average shrinks to 3 samples at
-        // each endpoint, so the smoothed first sample is avg(0,5,10)=5
-        // and the smoothed last is avg(90,95,100)=95. Total smoothed
-        // ascent = 95 - 5 = 90m on the nose, max=95, min=5.
+        // 21 points climbing 5m per sample = 100m raw gain.
+        //
+        // Two passes shape the result. The median spike-rejection pass leaves
+        // interior samples of a ramp untouched (the median of a symmetric
+        // window IS the centre value) but pulls the ends inward, because near
+        // an endpoint the window is one-sided. The 5-sample moving average then
+        // shrinks to 3 samples at each end. Net: first smoothed sample 8.33,
+        // last 93.33, so ascent = 85m, and no descent on a pure climb.
+        //
+        // The endpoint pull is the deliberate cost of despiking: it trims ~5m
+        // from a synthetic 100m ramp, while removing 13.6m of FAKE ascent from
+        // the real recording that motivated the filter (a GPS reacquisition
+        // spike of ~29m). Interior accuracy is unchanged.
         let p = path(altitudes: wrap((0..<21).map { Double($0) * 5 }))
         let stats = try #require(elevationStats(path: p))
-        #expect(abs(stats.totalAscentMeters - 90) < 1,
-                "smoothed ascent ~90m, got \(stats.totalAscentMeters)")
+        #expect(abs(stats.totalAscentMeters - 85) < 1,
+                "smoothed ascent ~85m, got \(stats.totalAscentMeters)")
         #expect(stats.totalDescentMeters < 1,
                 "no descent on a pure climb, got \(stats.totalDescentMeters)")
-        #expect(abs(stats.maxAltitudeMeters - 95) < 1)
-        #expect(abs(stats.minAltitudeMeters - 5) < 1)
+        #expect(abs(stats.maxAltitudeMeters - 93.33) < 1)
+        #expect(abs(stats.minAltitudeMeters - 8.33) < 1)
         #expect(stats.samples.count == 21)
     }
 

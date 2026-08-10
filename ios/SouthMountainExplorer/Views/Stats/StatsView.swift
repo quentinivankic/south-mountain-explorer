@@ -26,6 +26,9 @@ struct StatsView: View {
     /// EVERY hike, walking each one's entire GPS path, while `areaCompletionRows`
     /// re-scanned history and re-counted completions per area. Recomputed only
     /// when the inputs actually change (see `refreshDerived`).
+    /// Hike whose detail screen was last opened, so returning restores to that
+    /// row rather than the top of the list.
+    @State private var lastViewedHikeId: String? = nil
     @State private var summary: StatsSummary = .empty
     @State private var buckets: [MonthBucket] = []
     @State private var areaRows: [AreaCompletionRowModel] = []
@@ -87,6 +90,7 @@ struct StatsView: View {
     }
 
     private var statsList: some View {
+        ScrollViewReader { proxy in
         List {
             Section {
                 StatsSummaryCard(summary: summary)
@@ -134,6 +138,10 @@ struct StatsView: View {
                             trailName: trailName(for: hike)
                         )
                     }
+                    // Remember which hike was opened so coming back can put the
+                    // user on that row instead of at the top of the page.
+                    .simultaneousGesture(TapGesture().onEnded { lastViewedHikeId = hike.id })
+                    .id(hike.id)
                     .accessibilityIdentifier("hike-row-\(hike.id)")
                 }
                 .onDelete { indexSet in
@@ -142,6 +150,13 @@ struct StatsView: View {
             }
         }
         .listStyle(.insetGrouped)
+        // Coming back from a hike's detail used to land at the top of the page.
+        // Restore to the row that was opened.
+        .onAppear {
+            guard let id = lastViewedHikeId else { return }
+            proxy.scrollTo(id, anchor: .center)
+        }
+        }
     }
 
     // MARK: - Data shaping
@@ -250,7 +265,7 @@ struct StatsView: View {
     /// O(1) via the service's id index. This was `summaries.first { ... }` — a
     /// linear scan of ~29,850 rows, called twice per row inside `ForEach(hikes)`.
     private func areaName(for areaId: String) -> String {
-        areas.summary(id: areaId)?.name ?? areaId
+        areas.summary(id: areaId)?.name ?? "Unknown area"
     }
 
     private func trailName(for hike: SavedRecording) -> String? {
@@ -261,7 +276,11 @@ struct StatsView: View {
     }
 
     private func loadHikes() async {
-        isLoading = true
+        // Only show the spinner on the FIRST load. Flipping isLoading on a
+        // refresh swaps the whole List out for a ProgressView and back, which
+        // destroys the list and its scroll position.
+        let firstLoad = hikes.isEmpty
+        if firstLoad { isLoading = true }
         hikes = await recording.loadHistory()
         isLoading = false
     }

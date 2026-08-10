@@ -126,7 +126,7 @@ final class AreaDataService {
         //    through the same tuple shape, so callers downstream
         //    don't care which source was used.
         if let data = AreaIndexService.shared.currentIndexData(),
-           let parsed = decodeIndex(from: data) {
+           let parsed = await decodeIndexOffMain(from: data) {
             summaries = parsed
             clearLegacyIndexCache()
         } else if let cached = loadSummariesFromDisk() {
@@ -147,7 +147,7 @@ final class AreaDataService {
             let updated = await AreaIndexService.shared.revalidate()
             guard updated, let self else { return }
             if let data = AreaIndexService.shared.currentIndexData(),
-               let parsed = self.decodeIndex(from: data) {
+               let parsed = await self.decodeIndexOffMain(from: data) {
                 self.summaries = parsed
             }
         }
@@ -171,6 +171,22 @@ final class AreaDataService {
     private func decodeIndex(from url: URL) -> [AreaSummary]? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         return decodeIndex(from: data)
+    }
+
+    /// Decode the index OFF the main actor.
+    ///
+    /// The published index is ~29,850 rows, and this ran on the main thread
+    /// during launch — a JSON decode of every row plus the visible-summary
+    /// filter, blocking first paint. `AreaSummary` is Sendable, so the work can
+    /// hop off and the result come back.
+    private func decodeIndexOffMain(from data: Data) async -> [AreaSummary]? {
+        let hidden = Set(aliasMap.keys)
+        return await Task.detached(priority: .userInitiated) {
+            guard let tuples = try? JSONDecoder().decode([[JSONValue]].self, from: data) else {
+                return nil
+            }
+            return Self.visibleSummaries(from: tuples, hidden: hidden)
+        }.value
     }
 
     private func decodeIndex(from data: Data) -> [AreaSummary]? {

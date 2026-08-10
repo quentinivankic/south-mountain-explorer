@@ -52,6 +52,16 @@ struct AreaView: View {
     @State private var area: Area? = nil
     @State private var isLoading = true
     @State private var loadError: String? = nil
+    /// Bumped by the failure screen's Try Again button to re-run the load task.
+    @State private var loadAttempt = 0
+
+    /// Whether the load failed for lack of a connection, so the failure screen
+    /// can say so plainly instead of echoing a system string.
+    private var isOfflineError: Bool {
+        guard let e = loadError?.lowercased() else { return false }
+        return e.contains("offline") || e.contains("internet")
+            || e.contains("network") || e.contains("connection")
+    }
     /// Loading view always plays for at least 1.5 s so the silhouette
     /// reveal animation finishes even when real data lands in under
     /// half a second. Flipped by a task timer that starts on
@@ -289,9 +299,22 @@ struct AreaView: View {
             } else if isLoading || (area != nil && !minLoadingTimeElapsed) {
                 loadingState
             } else {
-                ContentUnavailableView("Area Unavailable",
-                    systemImage: "xmark.octagon",
-                    description: Text(loadError ?? "Could not load trail data. Check your connection."))
+                // Human copy + a way out. This used to render the raw error
+                // straight through — including engineer-facing strings like
+                // "Fetch already in progress but returned no data." — with no
+                // retry, so a failed load meant closing and reopening.
+                ContentUnavailableView {
+                    Label(isOfflineError ? "You're offline" : "Couldn't load this park",
+                          systemImage: isOfflineError
+                            ? "wifi.slash" : "exclamationmark.triangle")
+                } description: {
+                    Text(isOfflineError
+                         ? "This park's trails aren't downloaded yet. Reconnect and try again."
+                         : "Something went wrong fetching the trails. Try again in a moment.")
+                } actions: {
+                    Button("Try Again") { loadAttempt += 1 }
+                        .buttonStyle(.borderedProminent)
+                }
             }
         }
         .sheet(isPresented: trailSheetPresented) {
@@ -426,7 +449,12 @@ struct AreaView: View {
             .padding(.top, 8)
             .safeAreaPadding(.top)
         }
-        .task {
+        // Keyed on `loadAttempt` so the Try Again button can re-run the whole
+        // load. Before this the area loaded exactly once and a failure was a
+        // dead end — the only exit was closing and reopening the screen.
+        .task(id: loadAttempt) {
+            isLoading = true
+            loadError = nil
             // Telemetry: log "user opened this area" so we can later
             // surface "you haven't visited X in a while" reminders.
             activity.recordAreaOpened(areaId)

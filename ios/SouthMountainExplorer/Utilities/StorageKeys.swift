@@ -17,6 +17,12 @@ enum StorageKeys {
     /// Off by default; flipped from Settings → Developer.
     static let debugHUD = "summit:debug-hud"
 
+    /// TestFlight-only: height in points of the area sheet's SMALL detent, so
+    /// the size can be compared on a real device instead of from a description.
+    /// 0 means "use the default". Temporary — once a size is chosen it gets
+    /// hardcoded and this key, and its Developer picker, are deleted.
+    static let smallDetentHeight = "summit:small-detent-height"
+
     /// DEBUG-only: when on, the app auto-uploads its backup bundle to the
     /// developer's private Tailscale endpoint on foreground (see DebugDiagSync).
     /// The key is harmless in release (the uploader is `#if DEBUG`-only).

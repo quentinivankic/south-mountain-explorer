@@ -19,6 +19,22 @@ struct StatsView: View {
     @State private var hikes: [SavedRecording] = []
     @State private var isLoading = false
 
+    /// CACHED derived data. These were computed inline in `statsList`, so every
+    /// body evaluation re-ran them — and `aggregate` calls `elevationStats` for
+    /// EVERY hike, walking each one's entire GPS path, while `areaCompletionRows`
+    /// re-scanned history and re-counted completions per area. Recomputed only
+    /// when the inputs actually change (see `refreshDerived`).
+    @State private var summary: StatsSummary = .empty
+    @State private var buckets: [MonthBucket] = []
+    @State private var areaRows: [AreaCompletionRowModel] = []
+
+    /// Recompute the cached values. Cheap relative to doing it per render.
+    private func refreshDerived() {
+        summary = aggregate(hikes: hikes)
+        buckets = monthBuckets(hikes: hikes)
+        areaRows = areaCompletionRows()
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -44,7 +60,20 @@ struct StatsView: View {
                 }
             }
             .refreshable { await loadHikes() }
+            // Recompute the cached aggregates when the hikes change or an area
+            // finishes hydrating, instead of on every body evaluation.
+            .task(id: derivedKey) { refreshDerived() }
         }
+    }
+
+    /// Inputs the cached aggregates depend on.
+    private var derivedKey: String {
+        [
+            String(hikes.count),
+            hikes.first?.id ?? "-",
+            String(progress.completions.count),
+            String(areas.summaries.count),
+        ].joined(separator: "|")
     }
 
     private var emptyState: some View {
@@ -58,14 +87,14 @@ struct StatsView: View {
     private var statsList: some View {
         List {
             Section {
-                StatsSummaryCard(summary: aggregate(hikes: hikes))
+                StatsSummaryCard(summary: summary)
                     .listRowInsets(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             }
 
             Section("Hikes per Month") {
-                HikesPerMonthChart(buckets: monthBuckets(hikes: hikes))
+                HikesPerMonthChart(buckets: buckets)
                     .frame(height: 160)
                     .padding(.vertical, 8)
                     .listRowBackground(Color.clear)
@@ -83,10 +112,9 @@ struct StatsView: View {
                 Text("Personal records, streaks, and yearly trends.")
             }
 
-            let rows = areaCompletionRows()
-            if !rows.isEmpty {
+            if !areaRows.isEmpty {
                 Section("Area Progress") {
-                    ForEach(rows) { row in
+                    ForEach(areaRows) { row in
                         AreaCompletionRow(row: row)
                             .accessibilityIdentifier("area-progress-\(row.id)")
                     }
@@ -260,6 +288,12 @@ struct StatsSummary: Equatable {
     let totalAscentMeters: Double
     let totalSeconds: Int
     let areasWithCompletion: Int
+
+    /// Placeholder shown until the cached aggregate is first computed.
+    static let empty = StatsSummary(
+        hikeCount: 0, totalMiles: 0, totalAscentMeters: 0,
+        totalSeconds: 0, areasWithCompletion: 0
+    )
 }
 
 private struct StatsSummaryCard: View {

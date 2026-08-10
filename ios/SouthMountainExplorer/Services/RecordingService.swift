@@ -90,9 +90,22 @@ final class RecordingService {
 
     private let persistKey = StorageKeys.activeRecording
 
-    private static var historyFileURL: URL {
+    /// nonisolated so the off-main history decode can reach it.
+    nonisolated private static var historyFileURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("hike-history.json")
+    }
+
+    /// Read + decode the history file. `nonisolated` and `static` so it can run
+    /// OFF the main actor — the file holds every GPS point of every hike, so
+    /// this decode grows with use, and it used to run on the main thread at app
+    /// launch, on every Stats open, and on every pull-to-refresh.
+    /// `SavedRecording` is Sendable, so handing the result back is safe.
+    nonisolated static func decodeHistory() -> [SavedRecording] {
+        guard let data = try? Data(contentsOf: historyFileURL),
+              let decoded = try? JSONDecoder().decode([SavedRecording].self, from: data)
+        else { return [] }
+        return decoded
     }
 
     private init() {
@@ -1667,11 +1680,11 @@ final class RecordingService {
         }
     }
 
+    /// Synchronous history read, for the main-actor paths that genuinely need
+    /// the value inline (save/merge/rebuild). UI paths must use `loadHistory()`,
+    /// which decodes off the main actor.
     private func loadHistorySync() -> [SavedRecording] {
-        guard let data = try? Data(contentsOf: Self.historyFileURL),
-              let decoded = try? JSONDecoder().decode([SavedRecording].self, from: data)
-        else { return [] }
-        return decoded
+        Self.decodeHistory()
     }
 
     /// Build a single GPS path that's the union of every prior hike's path
@@ -1821,8 +1834,14 @@ final class RecordingService {
         return anchor
     }
 
+    /// Genuinely asynchronous: the read + decode runs off the main actor. It
+    /// used to just call the sync version, so despite being `async` it blocked
+    /// the main thread for the whole decode — on launch, on Stats open, and on
+    /// pull-to-refresh, growing with every hike recorded.
     func loadHistory() async -> [SavedRecording] {
-        loadHistorySync()
+        await Task.detached(priority: .userInitiated) {
+            Self.decodeHistory()
+        }.value
     }
 
     func deleteRecording(id: String) async {

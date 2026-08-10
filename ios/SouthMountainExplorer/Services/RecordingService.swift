@@ -510,22 +510,35 @@ final class RecordingService {
         var multiRevisited: [String: [String]] = [:]
         if rec.mode != .walk {
             for (aid, ntrails) in await neighborAreasCrossed(by: rec.path, excluding: rec.areaId) {
-                // "Was it complete BEFORE this hike?" — snapshot before the
-                // per-area mergeCoverage mutates CoverageService.
-                // Officially-completed neighbours before this hike — not bare
-                // fraction (see the startRecording note for why).
-                let priorComplete = Set(ProgressService.shared.completedTrails(in: aid).keys)
+                // Neighbour trails complete BEFORE this hike started, by
+                // completion date. A neighbour trail finished mid-hike (which a
+                // live tick may already have marked complete, if the user viewed
+                // this area during the recording) must still count as newly
+                // completed, not a revisit — so filter the completed set to
+                // dates earlier than the hike's start. Areas crossed aren't
+                // known at startRecording, so there is no start snapshot to lean
+                // on; the completion dates ARE that snapshot.
+                let iso = ISO8601DateFormatter()
+                let priorComplete = Set(
+                    ProgressService.shared.completedTrails(in: aid)
+                        .filter { iso.date(from: $0.value).map { $0 < rec.startedAt } ?? true }
+                        .keys
+                )
                 let nCombined = combinedPathForArea(aid, currentPath: rec.path)
                 let nSession = measureCoverage(path: nCombined, trails: ntrails, bufferMeters: bufferMeters)
-                let (nMergeNew, nMergeRev, _) = await mergeCoverage(
+                // Side effects only (mark complete, merge coverage, notify); the
+                // returned split is NOT used to classify — same reason as the
+                // primary path, a mid-hike completion is absent from mergeNew.
+                _ = await mergeCoverage(
                     areaId: aid, sessionCoverage: nSession, trails: ntrails, combinedPath: nCombined
                 )
-                var neighborNewly: [String] = []
+                // Newly completed = this hike's coverage completes it AND it was
+                // not complete at the start (newlyCompletedTrailIds), mirroring
+                // stopRecording's primary path.
+                let neighborNewly = Self.newlyCompletedTrailIds(
+                    sessionCoverage: nSession, priorComplete: priorComplete
+                )
                 var neighborRevisited: [String] = []
-                for tid in Set(nMergeNew + nMergeRev) {
-                    if priorComplete.contains(tid) { neighborRevisited.append(tid) }
-                    else { neighborNewly.append(tid) }
-                }
                 neighborRevisited.append(contentsOf: computeRevisits(
                     areaId: aid, currentPath: rec.path, trails: ntrails,
                     alreadyClassified: Set(neighborNewly).union(neighborRevisited)

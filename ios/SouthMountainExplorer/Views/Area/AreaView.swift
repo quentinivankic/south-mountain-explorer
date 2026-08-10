@@ -68,16 +68,25 @@ struct AreaView: View {
     /// `.task(id: areaId)` and ends 1.5 s later.
     @State private var minLoadingTimeElapsed = false
 
-    /// Trail-list sheet detents — TWO stops, deliberately.
+    /// Height of the SMALL detent, chosen on-device via the Developer picker.
+    /// Defaults to 260pt: the header stack measures ~92pt through the title and
+    /// stats, ~136pt with the Trails/Dex tabs, ~192pt through the control row,
+    /// and ~250pt including the search field — so 260 is the first size that
+    /// clears every control without clipping one. (The detent this replaced was
+    /// 150pt, which cut through the control row and hid the Record Hike button,
+    /// which is what made it feel cramped.)
+    @AppStorage(StorageKeys.smallDetentHeight) private var smallDetentHeight: Double = 260
+
+    /// Trail-list sheet detents — three stops.
+    ///   - small: map-forward, but sized so every control stays whole. The old
+    ///     150pt version cut through the control row and hid Record Hike, which
+    ///     is why it felt cramped; the height is now measured against the header
+    ///     stack (see `smallDetentHeight`).
     ///   - medium: the default. A device-relative fraction so it shows a
     ///     comparable number of trail rows on a small iPhone SE and a
     ///     Pro Max, rather than a fixed 340pt that's "half the list"
     ///     on one and "three rows" on the other.
     ///   - large: system `.large` (~almost full screen).
-    ///
-    /// A third 150pt "peek" detent used to sit below these. It was removed
-    /// because a third stop made the sheet land somewhere unintended mid-drag
-    /// and took two gestures to get between list and map.
     static let mediumDetent: PresentationDetent = .fraction(0.5)
 
     /// Currently-active detent of the trail-list sheet. Drives
@@ -337,13 +346,8 @@ struct AreaView: View {
             // SETTLES (at most once per release), not per drag tick.
             if let area {
                 sheetContent(area: area)
-                    // TWO detents only — the default half-height and full
-                    // screen. The 150pt peek detent was removed: it added a
-                    // third stop the sheet could land on mid-drag, so getting
-                    // between "list" and "map" took two gestures and often
-                    // settled somewhere the user didn't want.
                     .presentationDetents(
-                        [Self.mediumDetent, .large],
+                        [.height(smallDetentHeight), Self.mediumDetent, .large],
                         selection: $sheetDetent
                     )
                     .presentationDragIndicator(.visible)

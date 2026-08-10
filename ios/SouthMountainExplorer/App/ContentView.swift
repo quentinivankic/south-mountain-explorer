@@ -16,7 +16,6 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @AppStorage(StorageKeys.onboarded) private var onboarded = false
-    @AppStorage(StorageKeys.theme) private var theme: AppTheme = .system
 
     @State private var showStopConfirm = false
     @State private var showDiscardConfirm = false
@@ -64,7 +63,12 @@ struct ContentView: View {
         }
         // iOS 26 — tab bar automatically gets Liquid Glass styling
         .tabViewStyle(.sidebarAdaptable)
-        .preferredColorScheme(theme.colorScheme)
+        // Dark mode only for now. The app's map, cyan completion colour and
+        // silhouette art are all tuned for a dark ground, so the light variant
+        // was the weaker half of a choice nobody needed to make. The Settings
+        // Theme picker is gone with it; AppTheme + StorageKeys.theme remain so
+        // existing stored values decode harmlessly.
+        .preferredColorScheme(.dark)
         .safeAreaInset(edge: .top, spacing: 0) {
             if let rec = recording.activeRecording {
                 ActiveRecordingBanner(

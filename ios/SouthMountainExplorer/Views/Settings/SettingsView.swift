@@ -40,7 +40,6 @@ private let progressHoldDuration: Duration = .seconds(1.5)
 struct SettingsView: View {
     @Environment(AuthService.self) private var auth
 
-    @AppStorage(StorageKeys.theme) private var theme: AppTheme = .system
     @AppStorage(StorageKeys.trailMesh) private var trailMesh = true
     @AppStorage(StorageKeys.debugHUD) private var showDebugHUD: Bool = false
     @AppStorage(StorageKeys.debugDiagAutoSync) private var autoSyncDiag: Bool = false
@@ -85,15 +84,6 @@ struct SettingsView: View {
     /// Same idea for the "Download Nearby Areas" radius prefetch button.
     @State private var nearbyProgress: (Int, Int)? = nil
     @State private var showNearbyCellularConfirm = false
-
-    /// Trail Confidence Lab reveal (see the Build-row tap gesture). Session
-    /// state — re-tap each launch; keeps the dev tool out of Release UI
-    /// unless deliberately summoned. DEBUG-only: the authoring lab must not
-    /// ship in the App Store user build (spec §8).
-    #if DEBUG
-    @State private var labTapCount = 0
-    @State private var showTrailLab = false
-    #endif
 
     var body: some View {
         NavigationStack {
@@ -158,20 +148,10 @@ struct SettingsView: View {
                 // "Appearance" and "Display" used to be two sections that meant
                 // the same thing (theme + backdrop in one, units in the other).
                 // One section, three rows.
+                // No Theme picker: the app is dark-mode only for now (see
+                // ContentView's preferredColorScheme), so offering a choice that
+                // does nothing would be worse than offering none.
                 Section("Appearance") {
-                    Picker("Theme", selection: $theme) {
-                        ForEach(AppTheme.allCases) { theme in
-                            Text(theme.label).tag(theme)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .onChange(of: theme) { _, newValue in
-                        ActivityLogService.shared.log(
-                            category: "settings", action: "theme",
-                            context: ["value": newValue.rawValue]
-                        )
-                        AnalyticsService.shared.capture(.themeChanged(value: newValue.rawValue))
-                    }
                     Picker("Units", selection: $units) {
                         ForEach(UnitsPreference.allCases) { unit in
                             Text(unit.label).tag(unit)
@@ -413,36 +393,12 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
-                    // Trail-confidence authoring lab (spec §4.3). A dev tool,
-                    // hidden behind a 7-tap gesture on the Build row (below).
-                    // DEBUG-only so it never ships in the App Store user build
-                    // (§8: the shipped user build carries no confidence UI).
-                    #if DEBUG
-                    if showTrailLab {
-                        NavigationLink {
-                            TrailConfidenceLabView()
-                        } label: {
-                            Label("Trail Confidence Lab", systemImage: "slider.horizontal.3")
-                        }
-                    }
-                    #endif
                 }
                 }
 
                 Section("About") {
                     LabeledContent("Version", value: appVersion)
                     LabeledContent("Build", value: buildNumber)
-                        // Hidden reveal for the Trail Confidence Lab: tap Build
-                        // 7× to surface it in the Developer section. DEBUG-only
-                        // — the reveal must not exist in the App Store build.
-                        #if DEBUG
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            guard !showTrailLab else { return }
-                            labTapCount += 1
-                            if labTapCount >= 7 { showTrailLab = true }
-                        }
-                        #endif
                     if let url = privacyPolicyURL {
                         Link(destination: url) {
                             Label("Privacy Policy", systemImage: "hand.raised")

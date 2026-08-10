@@ -129,20 +129,23 @@ struct HomeView: View {
                     if let pickup = continueArea {
                         continueSection(area: pickup)
                     }
-                    if !unvisitedAreas.isEmpty {
-                        areaSection(title: "Try Something New", items: unvisitedAreas)
+                    // "Try Something New" is ordered by distance, so without a
+                    // location fix it degrades to raw index order — which is
+                    // sorted by state, i.e. ten Alabama parks headlining the
+                    // app for every first-run user who declines the location
+                    // prompt. Show the location CTA instead of a meaningless list.
+                    if location.userLocation != nil {
+                        if !unvisitedAreas.isEmpty {
+                            areaSection(title: "Try Something New", items: unvisitedAreas)
+                        }
+                    } else {
+                        emptyState
                     }
                     if !favorites.favoriteAreas.isEmpty {
                         areaSection(title: "Saved Areas", items: favorites.favoriteAreas)
                     }
                     if location.userLocation != nil {
                         nearYouSection
-                    }
-                    if continueArea == nil
-                        && unvisitedAreas.isEmpty
-                        && favorites.favoriteAreas.isEmpty
-                        && nearbyAreas.isEmpty {
-                        emptyState
                     }
                 }
                 .padding()
@@ -284,7 +287,7 @@ struct HomeView: View {
                     Spacer()
                 }
                 if farFromCoverage {
-                    Text("We currently cover Phoenix, AZ and Fredericia, Denmark. More areas coming soon.")
+                    Text("Nothing within 50 miles of you — here are the closest parks we have.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -361,14 +364,17 @@ struct HomeView: View {
             Image(systemName: "mountain.2")
                 .font(.system(size: 56))
                 .foregroundStyle(.secondary)
-            Text("Discover Trails")
+            Text("Trails near you")
                 .font(.title2)
                 .fontWeight(.semibold)
-            Text("Enable location to find trails near you, or browse the full catalog.")
+            Text("Turn on location and we'll show parks within driving distance. Otherwise, search thousands of parks in Browse.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-            Button("Browse All Areas") { showAllAreasMap = true }
-                .buttonStyle(.borderedProminent)
+            VStack(spacing: 10) {
+                Button("Enable Location") { location.requestPermission() }
+                    .buttonStyle(.borderedProminent)
+                Button("Browse All Areas") { showAllAreasMap = true }
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)

@@ -17,7 +17,9 @@ struct StatsView: View {
     @Environment(AreaDataService.self) private var areas
 
     @State private var hikes: [SavedRecording] = []
-    @State private var isLoading = false
+    /// Starts true so the first frame shows the spinner, not a flash of
+    /// "No Hikes Yet" before .task has loaded history.
+    @State private var isLoading = true
 
     /// CACHED derived data. These were computed inline in `statsList`, so every
     /// body evaluation re-ran them — and `aggregate` calls `elevationStats` for

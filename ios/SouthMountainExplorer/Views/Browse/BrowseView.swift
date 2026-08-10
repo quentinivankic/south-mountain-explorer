@@ -234,6 +234,21 @@ struct BrowseView: View {
                         }
                     }
                     .listStyle(.plain)
+                    // A query that matches nothing used to render a bare empty
+                    // List — no message at all.
+                    .overlay {
+                        if results.isEmpty && trailResults.isEmpty {
+                            if !query.isEmpty {
+                                ContentUnavailableView.search(text: query)
+                            } else {
+                                ContentUnavailableView(
+                                    "No parks loaded",
+                                    systemImage: "antenna.radiowaves.left.and.right.slash",
+                                    description: Text("Pull to refresh, or check your connection.")
+                                )
+                            }
+                        }
+                    }
                     .searchable(text: $query, prompt: "Search trails and parks")
                     .searchFocused($searchFocused)
                     .task { await trailSearch.loadIfNeeded() }
@@ -250,13 +265,18 @@ struct BrowseView: View {
                             }
                         }
                         Divider()
-                        // Drive-time cap. Disabled-styled (still tappable, but
-                        // no-op) when location is unavailable so the user
-                        // understands why the filter wouldn't apply.
+                        // Actually disabled without a location fix. The comment
+                        // here used to claim it was "disabled-styled" but no
+                        // .disabled() existed, so picking "< 30 min" changed the
+                        // toolbar icon and silently filtered nothing.
                         Picker("Drive time", selection: $driveTime) {
                             ForEach(BrowseDriveTime.allCases) { option in
                                 Label(option.label, systemImage: "car").tag(option)
                             }
+                        }
+                        .disabled(location.userLocation == nil)
+                        if location.userLocation == nil {
+                            Text("Turn on location to filter by drive time.")
                         }
                     } label: {
                         Image(systemName: driveTime == .any

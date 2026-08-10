@@ -207,12 +207,20 @@ struct StatsView: View {
         return rows.sorted { $0.mostRecent > $1.mostRecent }
     }
 
+    /// Hoisted out of `parseISODate`, which allocated a fresh formatter on every
+    /// call — once per completed trail, per area, per body evaluation.
+    /// ISO8601DateFormatter is among the most expensive Foundation objects to
+    /// construct; `date(from:)` is read-only so one shared instance is fine.
+    private static let isoParser = ISO8601DateFormatter()
+
     private func parseISODate(_ s: String) -> Date? {
-        ISO8601DateFormatter().date(from: s)
+        Self.isoParser.date(from: s)
     }
 
+    /// O(1) via the service's id index. This was `summaries.first { ... }` — a
+    /// linear scan of ~29,850 rows, called twice per row inside `ForEach(hikes)`.
     private func areaName(for areaId: String) -> String {
-        areas.summaries.first { $0.id == areaId }?.name ?? areaId
+        areas.summary(id: areaId)?.name ?? areaId
     }
 
     private func trailName(for hike: SavedRecording) -> String? {

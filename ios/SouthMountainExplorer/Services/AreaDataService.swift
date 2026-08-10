@@ -29,7 +29,16 @@ private let cdnBaseURL = "https://cdn.trekdex.app"
 final class AreaDataService {
     static let shared = AreaDataService()
 
-    private(set) var summaries: [AreaSummary] = []
+    private(set) var summaries: [AreaSummary] = [] {
+        didSet {
+            // Keep the O(1) lookup index in step with the array. Built once per
+            // index load instead of callers linear-scanning ~29,850 rows.
+            summariesById = Dictionary(
+                summaries.map { ($0.id, $0) },
+                uniquingKeysWith: { first, _ in first }
+            )
+        }
+    }
     private(set) var isLoadingIndex = false
 
     private var areaCache: [String: Area] = [:]
@@ -269,13 +278,24 @@ final class AreaDataService {
         return Array(ids)
     }
 
+    /// O(1) id → summary lookup. The index is ~29,850 rows, and callers used to
+    /// do `summaries.first { $0.id == ... }` per lookup — a full linear scan
+    /// each time, sometimes once PER FAVORITE per view body. Rebuilt whenever
+    /// `summaries` changes (see `didSet`).
+    private(set) var summariesById: [String: AreaSummary] = [:]
+
+    /// Summary for an area id, without scanning the whole index.
+    func summary(id: String) -> AreaSummary? { summariesById[id] }
+
     func nearby(lat: Double, lon: Double, limit: Int = 20) -> [AreaSummary] {
+        // Decorate-sort-undecorate: haversine ONCE per area instead of twice per
+        // comparison inside the comparator. On a ~29,850-row index that is
+        // ~29,850 calls instead of the ~890,000 the comparator form cost.
         summaries
-            .sorted { a, b in
-                haversineDistanceMi(lat1: lat, lon1: lon, lat2: a.centerLat, lon2: a.centerLon)
-                < haversineDistanceMi(lat1: lat, lon1: lon, lat2: b.centerLat, lon2: b.centerLon)
-            }
-            .prefix(limit).map { $0 }
+            .map { (area: $0, d: haversineDistanceMi(lat1: lat, lon1: lon, lat2: $0.centerLat, lon2: $0.centerLon)) }
+            .sorted { $0.d < $1.d }
+            .prefix(limit)
+            .map(\.area)
     }
 
     /// Pull favorites and the user's 10 most-recently-opened areas down

@@ -17,9 +17,12 @@ struct InsightsView: View {
     /// fun stat — the same framing AllTrails-style year-in-reviews use.
     private let everestMeters = 8849.0
 
-    private var insights: StatsInsights {
-        StatsInsights.compute(hikes: hikes)
-    }
+    /// CACHED. This was a computed property, and `body` reads it FIFTEEN times
+    /// per evaluation — each read re-ran `StatsInsights.compute`, whose default
+    /// `ascentFor` runs the full `elevationStats` pipeline over every hike's
+    /// entire GPS path, plus per-hike Calendar interval math. That meant
+    /// 15 x (all hikes x all GPS points) per render of this screen.
+    @State private var insights: StatsInsights = .empty
 
     var body: some View {
         List {
@@ -31,6 +34,8 @@ struct InsightsView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Insights")
         .navigationBarTitleDisplayMode(.inline)
+        // Compute once per hike-set change instead of on every body evaluation.
+        .task(id: hikes.count) { insights = StatsInsights.compute(hikes: hikes) }
     }
 
     // MARK: - Streaks

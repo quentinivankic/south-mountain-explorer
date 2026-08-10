@@ -44,46 +44,75 @@ struct HomeView: View {
     @State private var history: [SavedRecording] = []
     @State private var lengthFilter: LengthFilter = .all
 
-    private var visitedAreaIds: Set<String> {
-        Set(history.map { $0.areaId })
-    }
+    // MARK: - Cached section content
+    //
+    // These were computed properties read by `body`. Because `body` also reads
+    // `location.userLocation` — which LocationService republishes on EVERY GPS
+    // fix (~1 Hz while tracking, no distance filter) — the whole set re-ran at
+    // GPS rate, and several were read 2-4 times per pass. `unvisitedAreas`
+    // alone sorted ~29,850 areas calling haversine INSIDE the comparator, i.e.
+    // ~890,000 haversine calls per evaluation, to keep 10 rows. That is the
+    // main reason Explore felt sticky. They are now plain state, recomputed
+    // only when a real input changes (see `refreshSections`).
 
-    private var continueArea: AreaSummary? {
-        guard let last = history.first else { return nil }
-        return areas.summaries.first { $0.id == last.areaId }
-    }
-
-    private var nearbyAreas: [AreaSummary] {
-        guard let loc = location.userLocation else { return [] }
-        // Pull a wider pool so the length filter still has 10 candidates after filtering.
-        let pool = areas.nearby(lat: loc.latitude, lon: loc.longitude, limit: 30)
-        return Array(pool.filter { lengthFilter.matches($0.totalMi) }.prefix(10))
-    }
-
-    /// Distance in miles to the closest covered area, or nil if location unknown.
-    private var nearestDistanceMi: Double? {
-        guard let loc = location.userLocation else { return nil }
-        return areas.summaries
-            .map { haversine($0, lat: loc.latitude, lon: loc.longitude) }
-            .min()
-    }
-
+    @State private var continueArea: AreaSummary? = nil
+    @State private var nearbyAreas: [AreaSummary] = []
+    @State private var unvisitedAreas: [AreaSummary] = []
     /// User is far enough from coverage that we should set expectations.
-    private var farFromCoverage: Bool {
-        (nearestDistanceMi ?? 0) > 50
+    @State private var farFromCoverage = false
+
+    /// Inputs the cached sections depend on. `.task(id:)` recomputes only when
+    /// this changes. The location is rounded to ~1 km so ordinary GPS jitter
+    /// doesn't retrigger the work.
+    private var sectionsKey: String {
+        let locKey = location.userLocation
+            .map { String(format: "%.2f,%.2f", $0.latitude, $0.longitude) } ?? "-"
+        return [
+            locKey,
+            String(areas.summaries.count),
+            String(history.count),
+            history.first?.areaId ?? "-",
+            lengthFilter.rawValue,
+        ].joined(separator: "|")
     }
 
-    private var unvisitedAreas: [AreaSummary] {
-        let visited = visitedAreaIds
-        let candidates = areas.summaries.filter { !visited.contains($0.id) }
-        guard let loc = location.userLocation else {
-            return Array(candidates.prefix(10))
+    private func refreshSections() {
+        let loc = location.userLocation
+
+        continueArea = history.first.flatMap { areas.summary(id: $0.areaId) }
+
+        if let loc {
+            let pool = areas.nearby(lat: loc.latitude, lon: loc.longitude, limit: 30)
+            nearbyAreas = Array(pool.filter { lengthFilter.matches($0.totalMi) }.prefix(10))
+        } else {
+            nearbyAreas = []
         }
-        let sorted = candidates.sorted {
-            haversine($0, lat: loc.latitude, lon: loc.longitude)
-            < haversine($1, lat: loc.latitude, lon: loc.longitude)
+
+        // Nearest covered area: one pass, no intermediate 29,850-element array.
+        if let loc {
+            var nearest = Double.greatestFiniteMagnitude
+            for s in areas.summaries {
+                let d = haversine(s, lat: loc.latitude, lon: loc.longitude)
+                if d < nearest { nearest = d }
+            }
+            farFromCoverage = nearest != .greatestFiniteMagnitude && nearest > 50
+        } else {
+            farFromCoverage = false
         }
-        return Array(sorted.prefix(10))
+
+        let visited = Set(history.map { $0.areaId })
+        let candidates = areas.summaries.lazy.filter { !visited.contains($0.id) }
+        if let loc {
+            // Decorate-sort-undecorate: haversine once per area, not twice per
+            // comparison.
+            unvisitedAreas = candidates
+                .map { (area: $0, d: haversine($0, lat: loc.latitude, lon: loc.longitude)) }
+                .sorted { $0.d < $1.d }
+                .prefix(10)
+                .map(\.area)
+        } else {
+            unvisitedAreas = Array(candidates.prefix(10))
+        }
     }
 
     var body: some View {
@@ -190,6 +219,9 @@ struct HomeView: View {
         }
         .onChange(of: location.userLocation?.latitude) { _, _ in prefetchVisibleAreas() }
         .onChange(of: lengthFilter) { _, _ in prefetchVisibleAreas() }
+        // Recompute the cached sections only when a real input changes, instead
+        // of implicitly on every body evaluation (which happens at GPS rate).
+        .task(id: sectionsKey) { refreshSections() }
         .sheet(isPresented: $showLocationPrompt) {
             LocationPromptView()
         }
@@ -378,7 +410,7 @@ struct HomeView: View {
     /// Falls back to any area when every area has been visited (or
     /// when there's no history yet — then "unvisited" is everything).
     private func surpriseMe() {
-        let visited = visitedAreaIds
+        let visited = Set(history.map { $0.areaId })
         let unvisited = areas.summaries.filter { !visited.contains($0.id) }
         let pool = unvisited.isEmpty ? areas.summaries : unvisited
         guard let pick = pool.randomElement() else { return }

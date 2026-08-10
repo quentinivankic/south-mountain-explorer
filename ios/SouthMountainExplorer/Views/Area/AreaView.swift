@@ -167,11 +167,14 @@ struct AreaView: View {
     /// TrailMapView (which renders the polylines).
     private func computeFilteredTrails(_ area: Area) -> [Trail] {
         area.trails.filter { trail in
-            let isComplete = progress.isComplete(trail, areaId: areaId)
+            // Only ask about completion when the status filter actually needs
+            // it. This used to run for `.all` too and throw the answer away —
+            // and since it recomputes on every trail-search keystroke, that was
+            // a full completion sweep of the area per character typed.
             switch statusFilter {
             case .all: break
-            case .incomplete: if isComplete { return false }
-            case .complete:   if !isComplete { return false }
+            case .incomplete: if progress.isComplete(trail, areaId: areaId) { return false }
+            case .complete:   if !progress.isComplete(trail, areaId: areaId) { return false }
             }
             if !difficultyFilter.matches(trail.difficulty) { return false }
             if !lengthFilter.matches(trail.distanceMi) { return false }
@@ -1248,7 +1251,14 @@ private struct LoadingSilhouetteCanvas: View {
     /// strokes blending. Within a difficulty, longest spines lead so the reveal
     /// still fills big-to-small.
     private static func priority(_ d: String) -> Int { d == "h" ? 2 : (d == "m" ? 1 : 0) }
-    private var orderedLines: [SilhouetteLine] {
+    /// Sorted ONCE per silhouette, not per animation frame. This was a computed
+    /// property read inside the Canvas closure of a 60 fps TimelineView, so it
+    /// re-allocated and re-sorted the line list every frame — up to ~1,300 lines
+    /// on the largest areas, during the loading reveal that is meant to look
+    /// smooth.
+    @State private var orderedLines: [SilhouetteLine] = []
+
+    private func computeOrderedLines() -> [SilhouetteLine] {
         silhouette.l.filter { $0.p.count >= 2 }.sorted {
             let pa = Self.priority($0.d), pb = Self.priority($1.d)
             return pa == pb ? $0.p.count > $1.p.count : pa < pb
@@ -1344,6 +1354,9 @@ private struct LoadingSilhouetteCanvas: View {
             }
             .opacity(colorScheme == .dark ? 0.9 : 0.82)
         }
-        .onAppear { startDate = Date() }
+        .onAppear {
+            startDate = Date()
+            orderedLines = computeOrderedLines()
+        }
     }
 }

@@ -48,7 +48,14 @@ struct ElevationProfileView: View {
             AreaMark(
                 x: .value("Distance", sample.distanceMeters),
                 yStart: .value("Floor", yAxis.domain.lowerBound),
-                yEnd: .value("Altitude", sample.altitudeMeters)
+                yEnd: .value("Altitude", sample.altitudeMeters),
+                // Break the FILL at recording gaps too. The LineMark below
+                // already breaks per run, but this had no series — so the fill
+                // was one continuous shape spanning every gap, drawing a
+                // near-vertical cliff between the end of one run and the start
+                // of the next (the runs sit only ~5 m apart on the x-axis).
+                // That's what read as sharp notches in the profile.
+                series: .value("Segment", sample.run)
             )
             .foregroundStyle(
                 LinearGradient(

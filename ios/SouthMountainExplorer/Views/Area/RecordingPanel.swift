@@ -33,6 +33,27 @@ struct RecordingPanel: View {
 
     private var rec: ActiveRecording? { recording.activeRecording }
 
+    /// Seconds without a fix before we call the signal lost. Long enough that
+    /// ordinary sampling jitter (and the deliberate 2 s poll) never trips it.
+    private let staleFixSeconds: TimeInterval = 45
+
+    /// Acquiring / lost / fine. `nil` means fine, so nothing renders.
+    /// Recomputed off `elapsed`, which the 1 s timer already drives.
+    private var gpsStatus: (text: String, icon: String, tint: Color)? {
+        guard rec != nil else { return nil }
+        guard let last = location.lastFixDate else {
+            return ("Waiting for GPS…", "location.slash", .orange)
+        }
+        if Date().timeIntervalSince(last) > staleFixSeconds {
+            return ("GPS signal lost", "location.slash.fill", .red)
+        }
+        // Have a fix, but not enough points to draw anything yet.
+        if (rec?.path.count ?? 0) < 2 {
+            return ("Waiting for GPS…", "location", .orange)
+        }
+        return nil
+    }
+
     /// Human-readable ETA to the end of the recording's active
     /// trail, or `nil` when one of the gating conditions in
     /// `TrailETA` short-circuits the math (loop trail, off-trail
@@ -54,6 +75,20 @@ struct RecordingPanel: View {
 
     var body: some View {
         VStack(spacing: 12) {
+            // GPS status. Without this the panel just showed 0.0 mi and a
+            // ticking clock while the receiver was still acquiring or had lost
+            // signal, with nothing to say so — the recording looked broken and
+            // the user had no idea whether to wait or restart.
+            if let status = gpsStatus {
+                Label(status.text, systemImage: status.icon)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(status.tint, in: Capsule())
+                    .transition(.opacity)
+            }
+
             // Live elevation strip. Only renders once `elevationStats`
             // has enough altitude samples to be meaningful (returns
             // nil otherwise, e.g. the first 30s of a recording or any

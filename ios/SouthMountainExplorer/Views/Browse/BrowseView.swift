@@ -81,22 +81,37 @@ struct BrowseView: View {
     @State private var driveTime: BrowseDriveTime = .any
     @FocusState private var searchFocused: Bool
 
+    /// CACHED results of the sort/filter pipeline and the trail-name search.
+    ///
+    /// These used to be computed properties read by `body`, which meant the
+    /// whole pipeline — including an alphabetical sort of ~29,850 areas using
+    /// locale-aware compare — re-ran on EVERY body evaluation, i.e. on every
+    /// keystroke and every unrelated state change, on the main thread. That is
+    /// what made Browse feel sticky. Now they are plain state, recomputed only
+    /// when an actual input changes (see `refreshResults`).
+    @State private var results: [AreaSummary] = []
+    @State private var trailResults: [AreaDataService.TrailSearchHit] = []
+    /// areaId → area name, built ONCE per summaries load instead of once per
+    /// keystroke (it was a 29,850-entry Dictionary rebuilt inside the search
+    /// path). Rebuilt in `refreshResults` when the summaries count changes.
+    @State private var areaNameCache: [String: String] = [:]
+    @State private var areaNameCacheCount = -1
+
     /// Trail-name matches for the current query, across every area with
     /// a full payload available locally (favorites, prefetched nearby,
     /// previously opened — trail names don't exist in the lightweight
     /// index). Capped so a one-letter query doesn't dump thousands of
     /// rows above the area results.
-    private var trailResults: [AreaDataService.TrailSearchHit] {
+    private func computeTrailResults() -> [AreaDataService.TrailSearchHit] {
         guard !query.isEmpty else { return [] }
         let q = query.lowercased()
         // Global index (every trail) when loaded; else fall back to the local
         // loaded-areas search, so search never regresses below today's.
         let global = trailSearch.search(query, limit: 25)
         if !global.isEmpty {
-            let areaNames = Dictionary(areas.summaries.map { ($0.id, $0.name) },
-                                       uniquingKeysWith: { first, _ in first })
+            // areaNameCache is built once per summaries load, NOT per keystroke.
             return global.compactMap { e in
-                guard let areaName = areaNames[e.areaId] else { return nil }
+                guard let areaName = areaNameCache[e.areaId] else { return nil }
                 return AreaDataService.TrailSearchHit(
                     trailId: e.trailId, trailName: e.trailName, searchKey: e.searchKey,
                     difficulty: e.difficulty, distanceMi: e.distanceMi,
@@ -111,26 +126,70 @@ struct BrowseView: View {
     /// hiding everything would be more surprising than showing the unfiltered
     /// list), then sort. Nearest falls back to alphabetic when location is
     /// unavailable rather than producing an arbitrary order.
-    private var results: [AreaSummary] {
+    private func computeResults() -> [AreaSummary] {
         var pool = query.isEmpty ? areas.summaries : areas.search(query)
         if let cap = driveTime.maxMiles, let loc = location.userLocation {
             pool = pool.filter { haversine($0, loc) <= cap }
         }
         switch sort {
         case .alphabetic:
-            return pool.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            return Self.sortedAlphabetically(pool)
         case .nearest:
             guard let loc = location.userLocation else {
-                return pool.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+                return Self.sortedAlphabetically(pool)
             }
-            return pool.sorted {
-                haversine($0, loc) < haversine($1, loc)
-            }
+            // Decorate-sort-undecorate: haversine ONCE per area (~29,850 calls)
+            // instead of once per comparison inside the comparator (~430,000 for
+            // a list this size). Same order, a fraction of the work.
+            return pool.map { (area: $0, d: haversine($0, loc)) }
+                .sorted { $0.d < $1.d }
+                .map(\.area)
         case .mostTrails:
             return pool.sorted { ($0.trailCount ?? 0) > ($1.trailCount ?? 0) }
         case .longest:
             return pool.sorted { ($0.totalMi ?? 0) > ($1.totalMi ?? 0) }
         }
+    }
+
+    /// Alphabetical sort with the case-folded key computed ONCE per element.
+    /// `localizedCaseInsensitiveCompare` inside a comparator runs O(n log n)
+    /// times and each call is expensive (it bridges to NSString and consults the
+    /// current locale); precomputing the key makes the comparisons plain string
+    /// compares.
+    private static func sortedAlphabetically(_ pool: [AreaSummary]) -> [AreaSummary] {
+        pool.map { (area: $0, key: $0.name.lowercased()) }
+            .sorted { $0.key < $1.key }
+            .map(\.area)
+    }
+
+    /// Every input the cached pipeline depends on, in one value. `.task(id:)`
+    /// re-runs `refreshResults` only when this changes — so an unrelated body
+    /// evaluation no longer re-sorts the whole area list.
+    private var refreshKey: String {
+        // Coarse location key (~1 km): a few metres of GPS drift must not
+        // trigger a full re-sort of the list.
+        let locKey = location.userLocation
+            .map { String(format: "%.2f,%.2f", $0.latitude, $0.longitude) } ?? "-"
+        return [
+            query,
+            sort.rawValue,
+            driveTime.rawValue,
+            locKey,
+            String(areas.summaries.count),
+            String(trailSearch.entries.count),
+        ].joined(separator: "|")
+    }
+
+    /// Recompute the cached pipeline. Called when an input actually changes,
+    /// instead of implicitly on every body evaluation.
+    private func refreshResults() {
+        if areaNameCacheCount != areas.summaries.count {
+            areaNameCache = Dictionary(areas.summaries.map { ($0.id, $0.name) },
+                                       uniquingKeysWith: { first, _ in first })
+            areaNameCacheCount = areas.summaries.count
+        }
+        results = computeResults()
+        trailResults = computeTrailResults()
     }
 
     var body: some View {
@@ -230,13 +289,17 @@ struct BrowseView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .browseSearchTabTapped)) { _ in
             Task { @MainActor in
-                // Let the tab-switch transition settle first — grabbing
-                // focus mid-transition gets dropped by the system, which
-                // would make the first tap into the tab do nothing.
-                try? await Task.sleep(for: .milliseconds(350))
+                // Let the tab-switch transition settle before grabbing focus —
+                // focus requested mid-transition gets dropped by the system,
+                // which would make the first tap into the tab do nothing.
+                // Trimmed 350ms -> 120ms: the original was a conservative guess
+                // and it read as "the keyboard takes a beat to appear."
+                try? await Task.sleep(for: .milliseconds(120))
                 searchFocused = true
             }
         }
+        // Recompute the cached pipeline only when an input actually changes.
+        .task(id: refreshKey) { refreshResults() }
     }
 
     private func haversine(_ a: AreaSummary, _ loc: CLLocationCoordinate2D) -> Double {

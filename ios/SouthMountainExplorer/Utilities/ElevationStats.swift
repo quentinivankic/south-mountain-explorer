@@ -32,6 +32,12 @@ struct ElevationStats: Equatable {
 /// (1 sample / 2 s × 5 = 10 s windows ≈ ~12 m of horizontal travel).
 private let smoothingWindow = 5
 
+/// Window for the median spike-rejection pass that runs BEFORE smoothing. Five
+/// samples means a spike has to persist for three consecutive fixes to survive,
+/// which a GPS-reacquisition artefact does not (measured: it decayed over
+/// three), while a real climb does.
+private let medianWindow = 5
+
 /// Compute elevation stats for a GPS path. Returns nil when no point
 /// in the path carries altitude data (e.g., a pre-feature hike or
 /// every fix had bad vertical accuracy).
@@ -84,6 +90,32 @@ func elevationStats(path: [GpsPoint]) -> ElevationStats? {
         }
     }
     guard !raw.isEmpty else { return nil }
+
+    // SPIKE REJECTION, before any averaging. When GPS reacquires after a
+    // dropout the first fixes routinely report a wildly wrong altitude that
+    // corrects itself within a couple of samples. Measured on a real recording:
+    // a 26.9 s dropout was followed by 463.3 m -> 492.7 m -> 480.1 m ->
+    // 465.4 m, a ~29 m spike that decayed over three samples.
+    //
+    // A moving AVERAGE cannot remove that — it just smears the error across the
+    // window and still credits the fake climb to total ascent. A median ignores
+    // an outlier entirely as long as it's a minority of the window, while
+    // leaving a genuine sustained slope untouched. So: median first, mean after.
+    // Clamped to the run, like the averaging pass below.
+    var despiked = raw
+    if raw.count >= 3 {
+        let half = medianWindow / 2
+        for i in 0..<raw.count {
+            var lo = max(0, i - half)
+            var hi = min(raw.count - 1, i + half)
+            while lo < i && raw[lo].run != raw[i].run { lo += 1 }
+            while hi > i && raw[hi].run != raw[i].run { hi -= 1 }
+            guard hi - lo >= 2 else { continue }   // too few neighbours to judge
+            let window = raw[lo...hi].map(\.altitude).sorted()
+            despiked[i].altitude = window[window.count / 2]
+        }
+    }
+    let raw = despiked
 
     // Smooth altitudes via a centered moving average, clamped to the current
     // run so the average never blends across a gap. Edges use a shrinking

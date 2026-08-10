@@ -193,15 +193,21 @@ struct AllAreasMapView: View {
         let lons = areas.summaries.map { $0.centerLon }
         guard let minLat = lats.min(), let maxLat = lats.max(),
               let minLon = lons.min(), let maxLon = lons.max() else { return }
+        // The index spans the antimeridian: its westmost area is Kure Atoll (HI,
+        // lon -178.33) and its eastmost is on Attu (AK, lon +173.30). The naive
+        // maxLon - minLon is 351.6 degrees, and x1.4 gives a longitudeDelta of
+        // 492 — past MKCoordinateSpan's 360 limit, which traps. Go through the
+        // same antimeridian-safe helper the area map uses, then clamp both
+        // deltas, exactly as applyCameraTarget does.
+        let lon = TrailMapView.lonCenterAndSpan(minLon: minLon, maxLon: maxLon)
+        let latDelta = min(max((maxLat - minLat) * 1.4, 0.05), 180)
+        let lonDelta = min(max(lon.span * 1.4, 0.05), 360)
         let region = MKCoordinateRegion(
             center: CLLocationCoordinate2D(
                 latitude: (minLat + maxLat) / 2,
-                longitude: (minLon + maxLon) / 2
+                longitude: lon.center
             ),
-            span: MKCoordinateSpan(
-                latitudeDelta: max((maxLat - minLat) * 1.4, 0.05),
-                longitudeDelta: max((maxLon - minLon) * 1.4, 0.05)
-            )
+            span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lonDelta)
         )
         position = .region(region)
     }

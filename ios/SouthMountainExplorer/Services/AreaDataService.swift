@@ -238,7 +238,13 @@ final class AreaDataService {
         let key = ids.count
         if key == trailHitsCacheKey { return trailHitsCache }
 
-        let names = Dictionary(uniqueKeysWithValues: summaries.map { ($0.id, $0.name) })
+        // `uniquingKeysWith`, never `uniqueKeysWithValues`: the latter TRAPS on a
+        // duplicate key, and `summaries` comes from the remotely-published
+        // index — so one duplicated area id in a CDN publish would crash every
+        // installed client the moment they typed in Browse search, with no app
+        // update able to fix it. Same reasoning as `summariesById`.
+        let names = Dictionary(summaries.map { ($0.id, $0.name) },
+                               uniquingKeysWith: { first, _ in first })
         var hits: [TrailSearchHit] = []
         for areaId in ids {
             guard let areaName = names[areaId],
@@ -968,7 +974,9 @@ final class AreaDataService {
     /// (whose area is no longer in the index) fall back to the id.
     /// Sorted by name for stable UI rendering.
     func downloadedAreas() -> [DownloadedArea] {
-        let summariesById = Dictionary(uniqueKeysWithValues: summaries.map { ($0.id, $0) })
+        // uniquingKeysWith — a duplicate id in the published index must not trap.
+        let summariesById = Dictionary(summaries.map { ($0.id, $0) },
+                                       uniquingKeysWith: { first, _ in first })
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: cacheDir,
             includingPropertiesForKeys: [.fileSizeKey]

@@ -824,7 +824,12 @@ final class RecordingService {
     /// silently dead). All time math below converts ms → s explicitly.
     nonisolated static func paceMetersPerSec(path: [GpsPoint],
                                              windowSeconds: TimeInterval) -> Double? {
-        guard path.count >= 5, let lastTs = path.last?[2] else { return nil }
+        // `path.last?[2]` guards only the EMPTY-path case; once last is non-nil
+        // the [2] subscript is unguarded and traps on a short point (an imported
+        // or truncated backup can carry one). Check the arity explicitly, as the
+        // loop below already does.
+        guard path.count >= 5, let last = path.last, last.count >= 3 else { return nil }
+        let lastTs = last[2]
         let cutoffMs = lastTs - windowSeconds * 1000
         // Collect tail samples within the time window (timestamps in ms).
         var tail: [GpsPoint] = []
@@ -1247,7 +1252,15 @@ final class RecordingService {
         // moves the anchor back for hike C's evaluation. Idempotent.
         var suppressByHikeId: [String: Set<String>] = [:]
         var simulated: [SavedRecording] = []
-        let trailsById = Dictionary(uniqueKeysWithValues: trails.map { ($0.id, $0) })
+        // uniquingKeysWith, NOT uniqueKeysWithValues — the latter traps on a
+        // duplicate key. Trail ids are canonicalized on load (a trailing
+        // "-<digits>" is stripped), so two distinct ids can collapse to the same
+        // canonical id, and areas without published geom build ids from slugged
+        // OSM names on device. A trap here would fire every time the user
+        // reopened that area, with no way out but deleting the app. The
+        // publisher already guards this data-side; this is the app-side half.
+        let trailsById = Dictionary(trails.map { ($0.id, $0) },
+                                    uniquingKeysWith: { first, _ in first })
         for hike in areaHistory.sorted(by: { $0.startedAt < $1.startedAt }) {
             // Fold in any credits this rebuild just added so the
             // simulated history reflects the post-rebuild state, not

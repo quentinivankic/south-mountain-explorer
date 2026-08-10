@@ -23,8 +23,11 @@ struct ElevationProfileView: View {
     /// renders something sensible.
     private var xDomain: ClosedRange<Double> {
         let maxSample = stats.samples.last?.distanceMeters ?? 0
-        let upper = max(totalDistanceMeters, maxSample, 1)
-        return 0...upper
+        // max() propagates NaN, and a NaN upper bound traps the ClosedRange
+        // precondition — so drop non-finite candidates before comparing.
+        let candidates = [totalDistanceMeters, maxSample, 1].filter { $0.isFinite }
+        let upper = candidates.max() ?? 1
+        return 0...max(upper, 1)
     }
 
     var body: some View {

@@ -237,10 +237,16 @@ struct StatsView: View {
     }
 
     private func deleteHikes(at indexSet: IndexSet) async {
-        for i in indexSet {
-            await recording.deleteRecording(id: hikes[i].id)
-        }
+        // Snapshot the ids and update the array BEFORE awaiting. `hikes` is
+        // reassigned by loadHikes() from both .task and .refreshable, so a
+        // refresh landing while this loop was suspended could shrink the array
+        // and make the next hikes[i] — or remove(atOffsets:) with now-stale
+        // offsets — trap.
+        let ids = indexSet.compactMap { hikes.indices.contains($0) ? hikes[$0].id : nil }
         hikes.remove(atOffsets: indexSet)
+        for id in ids {
+            await recording.deleteRecording(id: id)
+        }
     }
 }
 

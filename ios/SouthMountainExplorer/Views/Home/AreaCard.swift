@@ -234,7 +234,9 @@ struct AreaCard: View {
             [.purple, .blue],
             [.teal, .green],
         ]
-        let index = abs(area.id.hashValue) % palette.count
+        // .magnitude, not abs(): abs(Int.min) traps on overflow, and hashValue
+        // is per-process seeded so it can land there.
+        let index = Int(area.id.hashValue.magnitude % UInt(palette.count))
         return palette[index]
     }
 }

@@ -287,7 +287,7 @@ struct BrowseView: View {
                 }
             }
         }
-        .sheet(item: $selectedArea) { area in
+        .fullScreenCover(item: $selectedArea) { area in
             NavigationStack {
                 AreaView(
                     areaId: area.id,

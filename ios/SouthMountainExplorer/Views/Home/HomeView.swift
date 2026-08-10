@@ -237,7 +237,7 @@ struct HomeView: View {
         .fullScreenCover(isPresented: $showWalk) {
             WalkView()
         }
-        .sheet(item: $selectedArea) { area in
+        .fullScreenCover(item: $selectedArea) { area in
             AreaView(areaId: area.id, areaName: area.name)
         }
         .onChange(of: selectedArea?.id) { _, newId in

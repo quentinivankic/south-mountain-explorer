@@ -166,7 +166,7 @@ struct AllAreasMapView: View {
                 rebuildClusters()
             }
         }
-        .sheet(item: $selectedArea) { area in
+        .fullScreenCover(item: $selectedArea) { area in
             AreaView(areaId: area.id, areaName: area.name)
         }
     }

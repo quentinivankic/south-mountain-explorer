@@ -311,12 +311,20 @@ struct MapKitMapView: UIViewRepresentable {
         }
 
         // 4) Recording overlay — live updates whenever the path grows.
-        // Re-added every tick so it sits on top of the live halo
-        // (both at .aboveLabels; insertion order = z-order).
+        // Rebuild ONLY when the path actually grew (or the recording changed).
+        // Every other overlay here is diffed by a change hash; this one wasn't,
+        // so each updateUIView — which fires for ANY parent state change, e.g. a
+        // sheet detent or toast, not just new GPS — walked the whole path,
+        // allocated a fresh MKPolyline, and forced a full layer redraw. Cost
+        // grew with hike length, so long hikes got progressively choppier.
         if let rec = activeRecording, rec.path.count > 1 {
-            coord.updateRecordingOverlay(on: mapView, path: rec.path)
+            if coord.lastRecordingPathCount != rec.path.count {
+                coord.updateRecordingOverlay(on: mapView, path: rec.path)
+                coord.lastRecordingPathCount = rec.path.count
+            }
         } else if coord.recordingOverlay != nil {
             coord.removeRecordingOverlay(from: mapView)
+            coord.lastRecordingPathCount = 0
         }
 
         // 4) Re-style trail renderers when selection / recording /
@@ -592,6 +600,9 @@ struct MapKitMapView: UIViewRepresentable {
         var lastCameraTick: Int = -1
         var lastHaloHashes: [Int] = []
         var lastLiveTrailSnappedHash: Int = 0
+        /// Point count of the recording path last rendered, so the recording
+        /// overlay is only rebuilt when the path actually grew.
+        var lastRecordingPathCount: Int = 0
         /// Signature of the parking set last drawn. Parking arrives with the
         /// area but can also land in a later in-place update (same area.id), so
         /// gating the pin rebuild only on area.id change would miss it. -1 =

@@ -1,5 +1,6 @@
 import CoreLocation
 import Observation
+import UIKit
 
 @MainActor
 @Observable
@@ -51,7 +52,23 @@ final class LocationService: NSObject {
         }
     }
 
+    /// True once the user has actively refused (or is restricted by policy).
+    /// `requestWhenInUseAuthorization()` is a no-op in this state, so callers
+    /// must send the user to Settings instead of silently doing nothing.
+    var isDenied: Bool {
+        authorizationStatus == .denied || authorizationStatus == .restricted
+    }
+
     func requestPermission() {
+        // Already refused: the system prompt will never appear again, so open
+        // the app's Settings page rather than leaving the button dead. Every
+        // location button in the app used to be a silent no-op in this state.
+        if isDenied {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+            return
+        }
         // When-In-Use only. Background hike recording works under this
         // authorization because it happens during an explicit,
         // user-started session with `UIBackgroundModes: [location]` +

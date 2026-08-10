@@ -40,7 +40,10 @@ struct AreaCard: View {
     /// service publishes the loaded data.
     private var effectiveSilhouette: AreaSilhouette? {
         if let cached = cachedArea, !cached.trails.isEmpty {
-            let computed = cached.computedSilhouette
+            // Memoized by AreaDataService — this used to rebuild the whole
+            // silhouette from trail geometry on every read, and it is read
+            // twice per card body.
+            let computed = areas.computedSilhouette(for: cached)
             if !computed.l.isEmpty { return computed }
         }
         return silhouettes.cachedSilhouette(for: area.id)
@@ -231,7 +234,9 @@ struct AreaCard: View {
             [.purple, .blue],
             [.teal, .green],
         ]
-        let index = abs(area.id.hashValue) % palette.count
+        // .magnitude, not abs(): abs(Int.min) traps on overflow, and hashValue
+        // is per-process seeded so it can land there.
+        let index = Int(area.id.hashValue.magnitude % UInt(palette.count))
         return palette[index]
     }
 }
@@ -293,6 +298,22 @@ private struct SilhouetteCanvas: View {
     let lineWidth: CGFloat
     let opacity: Double
 
+    /// Draw order (harder difficulty on top), sorted ONCE at init instead of
+    /// inside the Canvas closure on every redraw. In dark mode each card renders
+    /// two of these (glow + main), so the per-draw sort ran twice per card.
+    private let ordered: [SilhouetteLine]
+
+    init(silhouette: AreaSilhouette, lineWidth: CGFloat, opacity: Double) {
+        self.silhouette = silhouette
+        self.lineWidth = lineWidth
+        self.opacity = opacity
+        self.ordered = silhouette.l.sorted {
+            let pa = $0.d == "h" ? 2 : ($0.d == "m" ? 1 : 0)
+            let pb = $1.d == "h" ? 2 : ($1.d == "m" ? 1 : 0)
+            return pa < pb
+        }
+    }
+
     var body: some View {
         Canvas { context, size in
             guard let bbox = silhouette.bbox else { return }
@@ -313,13 +334,8 @@ private struct SilhouetteCanvas: View {
             let xOffset = pad + (drawW - canvasW) / 2
             let yOffset = pad + (drawH - canvasH) / 2
 
-            // Where trails cross, the harder color wins (red > orange > green)
-            // instead of whichever happened to draw last.
-            let ordered = silhouette.l.sorted {
-                let pa = $0.d == "h" ? 2 : ($0.d == "m" ? 1 : 0)
-                let pb = $1.d == "h" ? 2 : ($1.d == "m" ? 1 : 0)
-                return pa < pb
-            }
+            // `ordered` is sorted once at init (harder color wins where trails
+            // cross), not per redraw.
             for line in ordered {
                 guard line.p.count >= 2 else { continue }
                 var path = Path()

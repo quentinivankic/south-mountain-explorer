@@ -36,7 +36,26 @@ final class ProgressService {
     /// fingerprint set hasn't indexed the source twin yet.
     func isComplete(_ trail: Trail, areaId: String) -> Bool {
         if completions[areaId]?[trail.id] != nil { return true }
-        return completedFingerprints.contains(trail.completionFingerprint)
+        return completedFingerprints.contains(fingerprint(for: trail, areaId: areaId))
+    }
+
+    /// Memoized `Trail.completionFingerprint`.
+    ///
+    /// The fingerprint is a SHA-256 over a string built with one
+    /// `String(format:)` per coordinate — on a big national-forest area that is
+    /// ~240,000 formatted numbers for a single full-area pass. `isComplete`
+    /// short-circuits on the id hit, so every trail that is NOT complete (the
+    /// common case) fell through to this, and callers ran it per row and per
+    /// body evaluation. A trail's geometry never changes for the lifetime of a
+    /// loaded area, so the value is cached by (areaId, trailId).
+    private var fingerprintCache: [String: String] = [:]
+
+    private func fingerprint(for trail: Trail, areaId: String) -> String {
+        let key = "\(areaId)\u{1}\(trail.id)"
+        if let hit = fingerprintCache[key] { return hit }
+        let fp = trail.completionFingerprint
+        fingerprintCache[key] = fp
+        return fp
     }
 
     /// Backfill the fingerprint index from an area's now-loaded geometry: every

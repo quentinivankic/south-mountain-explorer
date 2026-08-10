@@ -88,10 +88,15 @@ struct HikeDetailView: View {
             // locked / lost signal mid-hike) leaves a break instead of a
             // straight line snapped across where the hiker actually walked.
             ForEach(Array(GpsIngest.continuousRuns(hike.path).enumerated()), id: \.offset) { _, run in
-                if run.count > 1 {
-                    let runCoords = run.map {
-                        CLLocationCoordinate2D(latitude: $0[0], longitude: $0[1])
-                    }
+                // compactMap with an arity guard: `run.count > 1` counts POINTS,
+                // not each point's element count, and continuousRuns passes
+                // points through verbatim. A short point (from an imported or
+                // truncated history file) would make $0[0]/$0[1] trap here.
+                let runCoords = run.compactMap { p -> CLLocationCoordinate2D? in
+                    guard p.count >= 2 else { return nil }
+                    return CLLocationCoordinate2D(latitude: p[0], longitude: p[1])
+                }
+                if runCoords.count > 1 {
                     MapPolyline(coordinates: runCoords)
                         .stroke(.blue,
                                 style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))

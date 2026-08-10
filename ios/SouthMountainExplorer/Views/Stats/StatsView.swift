@@ -17,7 +17,25 @@ struct StatsView: View {
     @Environment(AreaDataService.self) private var areas
 
     @State private var hikes: [SavedRecording] = []
-    @State private var isLoading = false
+    /// Starts true so the first frame shows the spinner, not a flash of
+    /// "No Hikes Yet" before .task has loaded history.
+    @State private var isLoading = true
+
+    /// CACHED derived data. These were computed inline in `statsList`, so every
+    /// body evaluation re-ran them — and `aggregate` calls `elevationStats` for
+    /// EVERY hike, walking each one's entire GPS path, while `areaCompletionRows`
+    /// re-scanned history and re-counted completions per area. Recomputed only
+    /// when the inputs actually change (see `refreshDerived`).
+    @State private var summary: StatsSummary = .empty
+    @State private var buckets: [MonthBucket] = []
+    @State private var areaRows: [AreaCompletionRowModel] = []
+
+    /// Recompute the cached values. Cheap relative to doing it per render.
+    private func refreshDerived() {
+        summary = aggregate(hikes: hikes)
+        buckets = monthBuckets(hikes: hikes)
+        areaRows = areaCompletionRows()
+    }
 
     var body: some View {
         NavigationStack {
@@ -44,7 +62,20 @@ struct StatsView: View {
                 }
             }
             .refreshable { await loadHikes() }
+            // Recompute the cached aggregates when the hikes change or an area
+            // finishes hydrating, instead of on every body evaluation.
+            .task(id: derivedKey) { refreshDerived() }
         }
+    }
+
+    /// Inputs the cached aggregates depend on.
+    private var derivedKey: String {
+        [
+            String(hikes.count),
+            hikes.first?.id ?? "-",
+            String(progress.completions.count),
+            String(areas.summaries.count),
+        ].joined(separator: "|")
     }
 
     private var emptyState: some View {
@@ -58,14 +89,14 @@ struct StatsView: View {
     private var statsList: some View {
         List {
             Section {
-                StatsSummaryCard(summary: aggregate(hikes: hikes))
+                StatsSummaryCard(summary: summary)
                     .listRowInsets(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             }
 
             Section("Hikes per Month") {
-                HikesPerMonthChart(buckets: monthBuckets(hikes: hikes))
+                HikesPerMonthChart(buckets: buckets)
                     .frame(height: 160)
                     .padding(.vertical, 8)
                     .listRowBackground(Color.clear)
@@ -83,10 +114,9 @@ struct StatsView: View {
                 Text("Personal records, streaks, and yearly trends.")
             }
 
-            let rows = areaCompletionRows()
-            if !rows.isEmpty {
+            if !areaRows.isEmpty {
                 Section("Area Progress") {
-                    ForEach(rows) { row in
+                    ForEach(areaRows) { row in
                         AreaCompletionRow(row: row)
                             .accessibilityIdentifier("area-progress-\(row.id)")
                     }
@@ -207,12 +237,20 @@ struct StatsView: View {
         return rows.sorted { $0.mostRecent > $1.mostRecent }
     }
 
+    /// Hoisted out of `parseISODate`, which allocated a fresh formatter on every
+    /// call — once per completed trail, per area, per body evaluation.
+    /// ISO8601DateFormatter is among the most expensive Foundation objects to
+    /// construct; `date(from:)` is read-only so one shared instance is fine.
+    private static let isoParser = ISO8601DateFormatter()
+
     private func parseISODate(_ s: String) -> Date? {
-        ISO8601DateFormatter().date(from: s)
+        Self.isoParser.date(from: s)
     }
 
+    /// O(1) via the service's id index. This was `summaries.first { ... }` — a
+    /// linear scan of ~29,850 rows, called twice per row inside `ForEach(hikes)`.
     private func areaName(for areaId: String) -> String {
-        areas.summaries.first { $0.id == areaId }?.name ?? areaId
+        areas.summary(id: areaId)?.name ?? areaId
     }
 
     private func trailName(for hike: SavedRecording) -> String? {
@@ -229,10 +267,16 @@ struct StatsView: View {
     }
 
     private func deleteHikes(at indexSet: IndexSet) async {
-        for i in indexSet {
-            await recording.deleteRecording(id: hikes[i].id)
-        }
+        // Snapshot the ids and update the array BEFORE awaiting. `hikes` is
+        // reassigned by loadHikes() from both .task and .refreshable, so a
+        // refresh landing while this loop was suspended could shrink the array
+        // and make the next hikes[i] — or remove(atOffsets:) with now-stale
+        // offsets — trap.
+        let ids = indexSet.compactMap { hikes.indices.contains($0) ? hikes[$0].id : nil }
         hikes.remove(atOffsets: indexSet)
+        for id in ids {
+            await recording.deleteRecording(id: id)
+        }
     }
 }
 
@@ -246,6 +290,12 @@ struct StatsSummary: Equatable {
     let totalAscentMeters: Double
     let totalSeconds: Int
     let areasWithCompletion: Int
+
+    /// Placeholder shown until the cached aggregate is first computed.
+    static let empty = StatsSummary(
+        hikeCount: 0, totalMiles: 0, totalAscentMeters: 0,
+        totalSeconds: 0, areasWithCompletion: 0
+    )
 }
 
 private struct StatsSummaryCard: View {

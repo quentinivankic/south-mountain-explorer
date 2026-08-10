@@ -40,7 +40,6 @@ private let progressHoldDuration: Duration = .seconds(1.5)
 struct SettingsView: View {
     @Environment(AuthService.self) private var auth
 
-    @AppStorage(StorageKeys.theme) private var theme: AppTheme = .system
     @AppStorage(StorageKeys.trailMesh) private var trailMesh = true
     @AppStorage(StorageKeys.debugHUD) private var showDebugHUD: Bool = false
     @AppStorage(StorageKeys.debugDiagAutoSync) private var autoSyncDiag: Bool = false
@@ -85,15 +84,6 @@ struct SettingsView: View {
     /// Same idea for the "Download Nearby Areas" radius prefetch button.
     @State private var nearbyProgress: (Int, Int)? = nil
     @State private var showNearbyCellularConfirm = false
-
-    /// Trail Confidence Lab reveal (see the Build-row tap gesture). Session
-    /// state — re-tap each launch; keeps the dev tool out of Release UI
-    /// unless deliberately summoned. DEBUG-only: the authoring lab must not
-    /// ship in the App Store user build (spec §8).
-    #if DEBUG
-    @State private var labTapCount = 0
-    @State private var showTrailLab = false
-    #endif
 
     var body: some View {
         NavigationStack {
@@ -155,30 +145,13 @@ struct SettingsView: View {
                     }
                 }
 
+                // "Appearance" and "Display" used to be two sections that meant
+                // the same thing (theme + backdrop in one, units in the other).
+                // One section, three rows.
+                // No Theme picker: the app is dark-mode only for now (see
+                // ContentView's preferredColorScheme), so offering a choice that
+                // does nothing would be worse than offering none.
                 Section("Appearance") {
-                    Picker("Theme", selection: $theme) {
-                        ForEach(AppTheme.allCases) { theme in
-                            Text(theme.label).tag(theme)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .onChange(of: theme) { _, newValue in
-                        ActivityLogService.shared.log(
-                            category: "settings", action: "theme",
-                            context: ["value": newValue.rawValue]
-                        )
-                        AnalyticsService.shared.capture(.themeChanged(value: newValue.rawValue))
-                    }
-                    Toggle("Trail backdrop", isOn: $trailMesh)
-                        .onChange(of: trailMesh) { _, newValue in
-                            ActivityLogService.shared.log(
-                                category: "settings", action: "trailMesh",
-                                context: ["value": String(newValue)]
-                            )
-                        }
-                }
-
-                Section("Display") {
                     Picker("Units", selection: $units) {
                         ForEach(UnitsPreference.allCases) { unit in
                             Text(unit.label).tag(unit)
@@ -191,9 +164,19 @@ struct SettingsView: View {
                         )
                         AnalyticsService.shared.capture(.unitsChanged(value: newValue.rawValue))
                     }
+                    Toggle("Trail backdrop", isOn: $trailMesh)
+                        .onChange(of: trailMesh) { _, newValue in
+                            ActivityLogService.shared.log(
+                                category: "settings", action: "trailMesh",
+                                context: ["value": String(newValue)]
+                            )
+                        }
                 }
 
-                Section("Trail Data") {
+                // Named for what it does (keep maps usable without a signal),
+                // not "Trail Data" — which read as a near-duplicate of the
+                // "Data" section below that handles backup/reset.
+                Section("Offline Maps") {
                     Button {
                         showRefreshConfirm = true
                     } label: {
@@ -222,7 +205,7 @@ struct SettingsView: View {
                         }
                         Button("Cancel", role: .cancel) { }
                     } message: {
-                        Text("Clears cached trail data so fresh data is fetched the next time you open each area. Hike history is preserved. Trail completions stay tied to specific trails — if a trail's underlying ID changes upstream, that completion is dropped automatically when you reopen the area.")
+                        Text("Fetches fresh trail data next time you open each area. Your hikes and completions are kept.")
                     }
 
                     Button {
@@ -262,7 +245,7 @@ struct SettingsView: View {
                         }
                         Button("Cancel", role: .cancel) { }
                     } message: {
-                        Text("Saves trail data for your favorited and recently-opened areas so you can open them without a signal. Skips anything that's already up to date.")
+                        Text("Saves your favorite and recent areas for use without a signal.")
                     }
 
                     Button {
@@ -294,7 +277,7 @@ struct SettingsView: View {
                         Button("Download") { runNearbyDownload() }
                         Button("Cancel", role: .cancel) { }
                     } message: {
-                        Text("Sweeps a 50-mile radius around your current location. May use significant cellular data depending on how many areas are nearby.")
+                        Text("Saves every area within 50 miles. Can use a lot of cellular data.")
                     }
 
                     NavigationLink {
@@ -304,7 +287,7 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("Data") {
+                Section("Your Data") {
                     Button {
                         runDataExport()
                     } label: {
@@ -343,15 +326,14 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("Feedback") {
+                // One section: "Feedback" and "Support TrekDex" were two
+                // separate single-row sections saying the same thing.
+                Section("Support") {
                     NavigationLink {
                         FeedbackView()
                     } label: {
                         Label("Send Feedback", systemImage: "envelope")
                     }
-                }
-
-                Section("Support TrekDex") {
                     NavigationLink {
                         TipJarView()
                     } label: {
@@ -363,7 +345,7 @@ struct SettingsView: View {
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
                         Label("Back up your hikes", systemImage: "icloud.and.arrow.up")
-                        Text("Hike history and trail completions live on this device. Enable iCloud Backup (iOS Settings → your Apple ID → iCloud → iCloud Backup) so your progress survives reinstalls and new devices. Cloud sync is coming in a future update.")
+                        Text("Your hikes live on this device. Turn on iCloud Backup in iOS Settings so they survive a reinstall or a new phone. Cloud sync is coming later.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -372,10 +354,14 @@ struct SettingsView: View {
                     Text("Backup")
                 }
 
-                // Developer-mode controls. Not gated by a flag — small
-                // enough that the cost of always-on visibility is low,
-                // and the user explicitly opted in by installing
-                // TestFlight builds.
+                // TESTFLIGHT/DEV ONLY. These are developer tools — a debug HUD,
+                // a diagnostics uploader, an authoring lab — and the whole
+                // section used to render for App Store users, who have no use
+                // for any of it. Testers installed a beta on purpose, so they
+                // still get it. Uses the same runtime gate as DebugDiagSync
+                // (a `#if DEBUG` would compile out of the Release archive that
+                // TestFlight actually ships).
+                if BuildEnv.isTestFlight {
                 Section("Developer") {
                     Toggle(isOn: $showDebugHUD) {
                         Label("Show Debug HUD", systemImage: "speedometer")
@@ -386,13 +372,8 @@ struct SettingsView: View {
                             context: ["value": String(newValue)]
                         )
                     }
-                    // Shown only in TestFlight/dev builds (BuildEnv.isTestFlight),
-                    // hidden in an App Store production install. The uploader it
-                    // drives is itself TestFlight- and toggle-gated.
-                    if BuildEnv.isTestFlight {
-                        Toggle(isOn: $autoSyncDiag) {
-                            Label("Auto-sync Diagnostics", systemImage: "arrow.triangle.2.circlepath.icloud")
-                        }
+                    Toggle(isOn: $autoSyncDiag) {
+                        Label("Auto-sync Diagnostics", systemImage: "arrow.triangle.2.circlepath.icloud")
                     }
                     Button {
                         ActivityLogService.shared.log(category: "diag", action: "send")
@@ -412,35 +393,12 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
-                    // Trail-confidence authoring lab (spec §4.3). A dev tool,
-                    // hidden behind a 7-tap gesture on the Build row (below).
-                    // DEBUG-only so it never ships in the App Store user build
-                    // (§8: the shipped user build carries no confidence UI).
-                    #if DEBUG
-                    if showTrailLab {
-                        NavigationLink {
-                            TrailConfidenceLabView()
-                        } label: {
-                            Label("Trail Confidence Lab", systemImage: "slider.horizontal.3")
-                        }
-                    }
-                    #endif
+                }
                 }
 
                 Section("About") {
                     LabeledContent("Version", value: appVersion)
                     LabeledContent("Build", value: buildNumber)
-                        // Hidden reveal for the Trail Confidence Lab: tap Build
-                        // 7× to surface it in the Developer section. DEBUG-only
-                        // — the reveal must not exist in the App Store build.
-                        #if DEBUG
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            guard !showTrailLab else { return }
-                            labTapCount += 1
-                            if labTapCount >= 7 { showTrailLab = true }
-                        }
-                        #endif
                     if let url = privacyPolicyURL {
                         Link(destination: url) {
                             Label("Privacy Policy", systemImage: "hand.raised")

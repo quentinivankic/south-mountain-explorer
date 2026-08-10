@@ -58,16 +58,16 @@ struct AreaView: View {
     /// `.task(id: areaId)` and ends 1.5 s later.
     @State private var minLoadingTimeElapsed = false
 
-    /// Trail-list sheet detents.
-    ///   - small: peek — drag indicator + title + control row, mostly
-    ///     map. Fixed point value (the header content is a fixed
-    ///     height regardless of device).
-    ///   - medium: default. A device-relative fraction so it shows a
+    /// Trail-list sheet detents — TWO stops, deliberately.
+    ///   - medium: the default. A device-relative fraction so it shows a
     ///     comparable number of trail rows on a small iPhone SE and a
     ///     Pro Max, rather than a fixed 340pt that's "half the list"
     ///     on one and "three rows" on the other.
     ///   - large: system `.large` (~almost full screen).
-    static let smallDetent: PresentationDetent = .height(150)
+    ///
+    /// A third 150pt "peek" detent used to sit below these. It was removed
+    /// because a third stop made the sheet land somewhere unintended mid-drag
+    /// and took two gestures to get between list and map.
     static let mediumDetent: PresentationDetent = .fraction(0.5)
 
     /// Currently-active detent of the trail-list sheet. Drives
@@ -167,11 +167,14 @@ struct AreaView: View {
     /// TrailMapView (which renders the polylines).
     private func computeFilteredTrails(_ area: Area) -> [Trail] {
         area.trails.filter { trail in
-            let isComplete = progress.isComplete(trail, areaId: areaId)
+            // Only ask about completion when the status filter actually needs
+            // it. This used to run for `.all` too and throw the answer away —
+            // and since it recomputes on every trail-search keystroke, that was
+            // a full completion sweep of the area per character typed.
             switch statusFilter {
             case .all: break
-            case .incomplete: if isComplete { return false }
-            case .complete:   if !isComplete { return false }
+            case .incomplete: if progress.isComplete(trail, areaId: areaId) { return false }
+            case .complete:   if !progress.isComplete(trail, areaId: areaId) { return false }
             }
             if !difficultyFilter.matches(trail.difficulty) { return false }
             if !lengthFilter.matches(trail.distanceMi) { return false }
@@ -311,8 +314,13 @@ struct AreaView: View {
             // SETTLES (at most once per release), not per drag tick.
             if let area {
                 sheetContent(area: area)
+                    // TWO detents only — the default half-height and full
+                    // screen. The 150pt peek detent was removed: it added a
+                    // third stop the sheet could land on mid-drag, so getting
+                    // between "list" and "map" took two gestures and often
+                    // settled somewhere the user didn't want.
                     .presentationDetents(
-                        [Self.smallDetent, Self.mediumDetent, .large],
+                        [Self.mediumDetent, .large],
                         selection: $sheetDetent
                     )
                     .presentationDragIndicator(.visible)
@@ -1243,7 +1251,14 @@ private struct LoadingSilhouetteCanvas: View {
     /// strokes blending. Within a difficulty, longest spines lead so the reveal
     /// still fills big-to-small.
     private static func priority(_ d: String) -> Int { d == "h" ? 2 : (d == "m" ? 1 : 0) }
-    private var orderedLines: [SilhouetteLine] {
+    /// Sorted ONCE per silhouette, not per animation frame. This was a computed
+    /// property read inside the Canvas closure of a 60 fps TimelineView, so it
+    /// re-allocated and re-sorted the line list every frame — up to ~1,300 lines
+    /// on the largest areas, during the loading reveal that is meant to look
+    /// smooth.
+    @State private var orderedLines: [SilhouetteLine] = []
+
+    private func computeOrderedLines() -> [SilhouetteLine] {
         silhouette.l.filter { $0.p.count >= 2 }.sorted {
             let pa = Self.priority($0.d), pb = Self.priority($1.d)
             return pa == pb ? $0.p.count > $1.p.count : pa < pb
@@ -1339,6 +1354,9 @@ private struct LoadingSilhouetteCanvas: View {
             }
             .opacity(colorScheme == .dark ? 0.9 : 0.82)
         }
-        .onAppear { startDate = Date() }
+        .onAppear {
+            startDate = Date()
+            orderedLines = computeOrderedLines()
+        }
     }
 }

@@ -10,6 +10,15 @@ struct RecordingPanel: View {
 
     @State private var elapsed: TimeInterval = 0
     @State private var timer: Timer? = nil
+    /// Live elevation strip data, refreshed on the 1 s timer tick rather than
+    /// recomputed inside `body`. `elevationStats` is a three-pass walk over the
+    /// ENTIRE recorded path (haversine per point, plus two array allocations),
+    /// and body re-evaluates on every GPS sample and every path append — so the
+    /// panel got measurably slower the longer the hike ran.
+    @State private var liveElevation: ElevationStats? = nil
+    /// Same treatment for the ETA label, which flattened the active trail's
+    /// dense geometry and ran three haversine passes per body evaluation.
+    @State private var liveEtaLabel: String? = nil
     @State private var isStopping = false
     @State private var showStopConfirm = false
     @State private var showDiscardConfirm = false
@@ -23,7 +32,7 @@ struct RecordingPanel: View {
     /// trail id at all). Recomputed on every body eval, which
     /// re-fires whenever location.liveLocation or the recording
     /// path changes — both already publish via @Observable.
-    private var etaLabel: String? {
+    private func computeEtaLabel() -> String? {
         guard let rec, let trailId = rec.trailId else { return nil }
         guard let trail = (area.rawTrails ?? area.trails).first(where: { $0.id == trailId }) else {
             return nil
@@ -43,7 +52,7 @@ struct RecordingPanel: View {
             // hike taken on a device whose GPS isn't returning
             // altitude). Compact 70pt height — full chart treatment
             // lives in HikeDetailView post-hike.
-            if let rec, let stats = elevationStats(path: rec.path) {
+            if let rec, let stats = liveElevation {
                 ElevationProfileView(
                     stats: stats,
                     totalDistanceMeters: rec.distanceMi * 1609.344
@@ -85,7 +94,7 @@ struct RecordingPanel: View {
                 // gating). For area-mode recordings (no trailId) or
                 // loop trails the column simply doesn't appear — better
                 // than a permanent "—" that just takes space.
-                if let etaLabel {
+                if let etaLabel = liveEtaLabel {
                     statColumn(label: "ETA", value: etaLabel)
                 }
 
@@ -174,6 +183,10 @@ struct RecordingPanel: View {
             Task { @MainActor in
                 if let rec = recording.activeRecording {
                     elapsed = Date().timeIntervalSince(rec.startedAt)
+                    // Refresh the expensive derived values here, once per
+                    // second, instead of from `body` on every GPS sample.
+                    liveElevation = elevationStats(path: rec.path)
+                    liveEtaLabel = computeEtaLabel()
                 }
             }
         }

@@ -76,7 +76,13 @@ struct TrailElevationProfileView: View {
         return totalMeters * Double(index) / Double(count - 1)
     }
 
-    private var totalMeters: Double { max(totalDistanceMi * 1609.344, 1) }
+    /// `max(x, 1)` does NOT sanitize a NaN — Swift's max returns the NaN — and
+    /// a NaN upper bound makes `0...totalMeters` trap on its lower <= upper
+    /// precondition. Check finiteness explicitly.
+    private var totalMeters: Double {
+        let m = totalDistanceMi * 1609.344
+        return m.isFinite ? max(m, 1) : 1
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {

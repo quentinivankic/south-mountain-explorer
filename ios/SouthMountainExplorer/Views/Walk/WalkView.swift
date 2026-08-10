@@ -487,8 +487,11 @@ struct WalkRecordingPanel: View {
             // Dense geometry per area so the completion gate's fraction
             // denominator is the raw node count (same reason
             // RecordingPanel feeds rawTrails to stopRecording).
+            // uniquingKeysWith — a duplicate area id must not trap mid-stop and
+            // lose the walk the user just recorded.
             let trailsByArea = Dictionary(
-                uniqueKeysWithValues: walkAreas.map { ($0.id, $0.rawTrails ?? $0.trails) }
+                walkAreas.map { ($0.id, $0.rawTrails ?? $0.trails) },
+                uniquingKeysWith: { first, _ in first }
             )
             let finished = await recording.stopWalk(trailsByArea: trailsByArea)
             onStop(finished)

@@ -90,9 +90,22 @@ final class RecordingService {
 
     private let persistKey = StorageKeys.activeRecording
 
-    private static var historyFileURL: URL {
+    /// nonisolated so the off-main history decode can reach it.
+    nonisolated private static var historyFileURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("hike-history.json")
+    }
+
+    /// Read + decode the history file. `nonisolated` and `static` so it can run
+    /// OFF the main actor — the file holds every GPS point of every hike, so
+    /// this decode grows with use, and it used to run on the main thread at app
+    /// launch, on every Stats open, and on every pull-to-refresh.
+    /// `SavedRecording` is Sendable, so handing the result back is safe.
+    nonisolated static func decodeHistory() -> [SavedRecording] {
+        guard let data = try? Data(contentsOf: historyFileURL),
+              let decoded = try? JSONDecoder().decode([SavedRecording].self, from: data)
+        else { return [] }
+        return decoded
     }
 
     private init() {
@@ -824,7 +837,12 @@ final class RecordingService {
     /// silently dead). All time math below converts ms → s explicitly.
     nonisolated static func paceMetersPerSec(path: [GpsPoint],
                                              windowSeconds: TimeInterval) -> Double? {
-        guard path.count >= 5, let lastTs = path.last?[2] else { return nil }
+        // `path.last?[2]` guards only the EMPTY-path case; once last is non-nil
+        // the [2] subscript is unguarded and traps on a short point (an imported
+        // or truncated backup can carry one). Check the arity explicitly, as the
+        // loop below already does.
+        guard path.count >= 5, let last = path.last, last.count >= 3 else { return nil }
+        let lastTs = last[2]
         let cutoffMs = lastTs - windowSeconds * 1000
         // Collect tail samples within the time window (timestamps in ms).
         var tail: [GpsPoint] = []
@@ -1247,7 +1265,15 @@ final class RecordingService {
         // moves the anchor back for hike C's evaluation. Idempotent.
         var suppressByHikeId: [String: Set<String>] = [:]
         var simulated: [SavedRecording] = []
-        let trailsById = Dictionary(uniqueKeysWithValues: trails.map { ($0.id, $0) })
+        // uniquingKeysWith, NOT uniqueKeysWithValues — the latter traps on a
+        // duplicate key. Trail ids are canonicalized on load (a trailing
+        // "-<digits>" is stripped), so two distinct ids can collapse to the same
+        // canonical id, and areas without published geom build ids from slugged
+        // OSM names on device. A trap here would fire every time the user
+        // reopened that area, with no way out but deleting the app. The
+        // publisher already guards this data-side; this is the app-side half.
+        let trailsById = Dictionary(trails.map { ($0.id, $0) },
+                                    uniquingKeysWith: { first, _ in first })
         for hike in areaHistory.sorted(by: { $0.startedAt < $1.startedAt }) {
             // Fold in any credits this rebuild just added so the
             // simulated history reflects the post-rebuild state, not
@@ -1654,11 +1680,11 @@ final class RecordingService {
         }
     }
 
+    /// Synchronous history read, for the main-actor paths that genuinely need
+    /// the value inline (save/merge/rebuild). UI paths must use `loadHistory()`,
+    /// which decodes off the main actor.
     private func loadHistorySync() -> [SavedRecording] {
-        guard let data = try? Data(contentsOf: Self.historyFileURL),
-              let decoded = try? JSONDecoder().decode([SavedRecording].self, from: data)
-        else { return [] }
-        return decoded
+        Self.decodeHistory()
     }
 
     /// Build a single GPS path that's the union of every prior hike's path
@@ -1808,8 +1834,14 @@ final class RecordingService {
         return anchor
     }
 
+    /// Genuinely asynchronous: the read + decode runs off the main actor. It
+    /// used to just call the sync version, so despite being `async` it blocked
+    /// the main thread for the whole decode — on launch, on Stats open, and on
+    /// pull-to-refresh, growing with every hike recorded.
     func loadHistory() async -> [SavedRecording] {
-        loadHistorySync()
+        await Task.detached(priority: .userInitiated) {
+            Self.decodeHistory()
+        }.value
     }
 
     func deleteRecording(id: String) async {

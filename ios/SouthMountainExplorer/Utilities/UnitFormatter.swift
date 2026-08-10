@@ -128,7 +128,10 @@ enum UnitFormatter {
         // Cap at 99:59 — anything slower than that is essentially
         // "stopped" and a 3-digit minute count would overflow the
         // stat-column width.
-        let total = min(Int(secondsPerUnit.rounded()), 99 * 60 + 59)
+        // Clamp BEFORE the Int conversion — Int(_:) traps on NaN/infinite or
+        // out-of-range Doubles, so applying min() afterwards never protected it.
+        let capped = secondsPerUnit.rounded()
+        let total = capped.isFinite ? Int(min(max(capped, 0), 5999)) : 5999
         let m = total / 60
         let s = total % 60
         return String(format: "%d:%02d", m, s)

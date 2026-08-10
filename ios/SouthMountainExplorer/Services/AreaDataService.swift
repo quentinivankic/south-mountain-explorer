@@ -29,7 +29,16 @@ private let cdnBaseURL = "https://cdn.trekdex.app"
 final class AreaDataService {
     static let shared = AreaDataService()
 
-    private(set) var summaries: [AreaSummary] = []
+    private(set) var summaries: [AreaSummary] = [] {
+        didSet {
+            // Keep the O(1) lookup index in step with the array. Built once per
+            // index load instead of callers linear-scanning ~29,850 rows.
+            summariesById = Dictionary(
+                summaries.map { ($0.id, $0) },
+                uniquingKeysWith: { first, _ in first }
+            )
+        }
+    }
     private(set) var isLoadingIndex = false
 
     private var areaCache: [String: Area] = [:]
@@ -229,7 +238,13 @@ final class AreaDataService {
         let key = ids.count
         if key == trailHitsCacheKey { return trailHitsCache }
 
-        let names = Dictionary(uniqueKeysWithValues: summaries.map { ($0.id, $0.name) })
+        // `uniquingKeysWith`, never `uniqueKeysWithValues`: the latter TRAPS on a
+        // duplicate key, and `summaries` comes from the remotely-published
+        // index — so one duplicated area id in a CDN publish would crash every
+        // installed client the moment they typed in Browse search, with no app
+        // update able to fix it. Same reasoning as `summariesById`.
+        let names = Dictionary(summaries.map { ($0.id, $0.name) },
+                               uniquingKeysWith: { first, _ in first })
         var hits: [TrailSearchHit] = []
         for areaId in ids {
             guard let areaName = names[areaId],
@@ -269,13 +284,41 @@ final class AreaDataService {
         return Array(ids)
     }
 
+    /// O(1) id → summary lookup. The index is ~29,850 rows, and callers used to
+    /// do `summaries.first { $0.id == ... }` per lookup — a full linear scan
+    /// each time, sometimes once PER FAVORITE per view body. Rebuilt whenever
+    /// `summaries` changes (see `didSet`).
+    private(set) var summariesById: [String: AreaSummary] = [:]
+
+    /// Summary for an area id, without scanning the whole index.
+    func summary(id: String) -> AreaSummary? { summariesById[id] }
+
+    /// Memoized `Area.computedSilhouette`.
+    ///
+    /// Building it walks every trail x every segment x every point and allocates
+    /// a fresh line array. AreaCard read it TWICE per card body (once for the
+    /// difficulty mix, once to draw), and every card's body depends on the
+    /// user's location — which republishes on each GPS fix — so it was rebuilt
+    /// for every visible card, repeatedly, while scrolling Explore. The geometry
+    /// is immutable for a loaded area, so build it once per area id.
+    private var silhouetteCache: [String: AreaSilhouette] = [:]
+
+    func computedSilhouette(for area: Area) -> AreaSilhouette {
+        if let hit = silhouetteCache[area.id] { return hit }
+        let built = area.computedSilhouette
+        silhouetteCache[area.id] = built
+        return built
+    }
+
     func nearby(lat: Double, lon: Double, limit: Int = 20) -> [AreaSummary] {
+        // Decorate-sort-undecorate: haversine ONCE per area instead of twice per
+        // comparison inside the comparator. On a ~29,850-row index that is
+        // ~29,850 calls instead of the ~890,000 the comparator form cost.
         summaries
-            .sorted { a, b in
-                haversineDistanceMi(lat1: lat, lon1: lon, lat2: a.centerLat, lon2: a.centerLon)
-                < haversineDistanceMi(lat1: lat, lon1: lon, lat2: b.centerLat, lon2: b.centerLon)
-            }
-            .prefix(limit).map { $0 }
+            .map { (area: $0, d: haversineDistanceMi(lat1: lat, lon1: lon, lat2: $0.centerLat, lon2: $0.centerLon)) }
+            .sorted { $0.d < $1.d }
+            .prefix(limit)
+            .map(\.area)
     }
 
     /// Pull favorites and the user's 10 most-recently-opened areas down
@@ -931,7 +974,9 @@ final class AreaDataService {
     /// (whose area is no longer in the index) fall back to the id.
     /// Sorted by name for stable UI rendering.
     func downloadedAreas() -> [DownloadedArea] {
-        let summariesById = Dictionary(uniqueKeysWithValues: summaries.map { ($0.id, $0) })
+        // uniquingKeysWith — a duplicate id in the published index must not trap.
+        let summariesById = Dictionary(summaries.map { ($0.id, $0) },
+                                       uniquingKeysWith: { first, _ in first })
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: cacheDir,
             includingPropertiesForKeys: [.fileSizeKey]

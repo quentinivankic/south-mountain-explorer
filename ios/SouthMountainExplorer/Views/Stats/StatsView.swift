@@ -130,7 +130,12 @@ struct StatsView: View {
             Section("Recent Hikes") {
                 ForEach(hikes) { hike in
                     NavigationLink {
+                        // Record the opened hike HERE, not via a gesture on the
+                        // row. A .simultaneousGesture(TapGesture()) on a
+                        // NavigationLink competes with the link's own tap
+                        // handling, which made rows need a long press to open.
                         HikeDetailView(hike: hike, areaName: areaName(for: hike.areaId))
+                            .onAppear { lastViewedHikeId = hike.id }
                     } label: {
                         HikeRow(
                             hike: hike,
@@ -138,9 +143,6 @@ struct StatsView: View {
                             trailName: trailName(for: hike)
                         )
                     }
-                    // Remember which hike was opened so coming back can put the
-                    // user on that row instead of at the top of the page.
-                    .simultaneousGesture(TapGesture().onEnded { lastViewedHikeId = hike.id })
                     .id(hike.id)
                     .accessibilityIdentifier("hike-row-\(hike.id)")
                 }

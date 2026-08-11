@@ -120,14 +120,24 @@ struct TrailElevationProfileView: View {
         }
     }
 
-    /// Which contiguous run a sample belongs to. Charts connects marks within a
-    /// series, so bumping the series at each gap is what breaks the line there.
-    private func runIndex(for sampleIndex: Int) -> Int {
-        orientedGaps.reduce(0) { $0 + (sampleIndex >= $1.index ? 1 : 0) }
-    }
-
     private var chart: some View {
         let samples = view.samples
+        // Run index per sample, computed ONCE in a single pass.
+        //
+        // This used to be `runIndex(for:)`, called twice per sample (AreaMark +
+        // LineMark), and each call re-read `orientedGaps` — a COMPUTED property
+        // that rebuilds its array every access. So a render did 2N array
+        // rebuilds plus 2N reduces. At the old 64-point cap that was 128
+        // rebuilds; raising profile density to 256 points would have made it
+        // 512. One prefix-sum pass instead, so denser profiles cost only the
+        // marks themselves.
+        let gapIndices = orientedGaps.map(\.index).sorted()
+        var runs = [Int](repeating: 0, count: samples.count)
+        var g = 0
+        for i in 0..<samples.count {
+            while g < gapIndices.count && i >= gapIndices[g] { g += 1 }
+            runs[i] = g
+        }
         return Chart {
             // Positional identity for the same reason ElevationProfileView
             // uses it: repeated elevation values must not collide into one
@@ -143,7 +153,7 @@ struct TrailElevationProfileView: View {
                     // `series` splits the marks into independent runs at each
                     // gap, so Charts stops connecting across a discontinuity
                     // instead of drawing a line you cannot walk.
-                    series: .value("Run", runIndex(for: item.offset))
+                    series: .value("Run", runs[item.offset])
                 )
                 .foregroundStyle(
                     LinearGradient(colors: [.green.opacity(0.6), .green.opacity(0.05)],
@@ -154,7 +164,7 @@ struct TrailElevationProfileView: View {
                 LineMark(
                     x: .value("Distance", x),
                     y: .value("Elevation", y),
-                    series: .value("Run", runIndex(for: item.offset))
+                    series: .value("Run", runs[item.offset])
                 )
                 .foregroundStyle(.green)
                 .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))

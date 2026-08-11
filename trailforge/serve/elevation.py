@@ -74,14 +74,36 @@ def densify(coords: list[tuple[float, float]],
     return out
 
 
-def smooth(vals: list[float], window: int = 5) -> list[float]:
+def smooth(vals: list[float], window: int = 5,
+           reflect: bool = False) -> list[float]:
     """Centered moving average. MANDATORY before summing gain — raw 30 m DEM
     elevation is noisy and naive up-tick summing massively inflates gain
-    (§6e: 4,000 ft on a rolling 3 mi trail). Same idea as AllTrails/Strava."""
+    (§6e: 4,000 ft on a rolling 3 mi trail). Same idea as AllTrails/Strava.
+
+    `reflect` mirrors the series at both ends instead of shrinking the window
+    there. A shrinking window averages an endpoint against only its interior
+    neighbours, which drags it toward the middle and FLATTENS the first and last
+    step of a slope — on a synthetic linear ramp the end intervals came out at
+    half the true rise. That understates how steep a trail is right where you
+    start and finish it. Reflection reproduces a ramp exactly.
+
+    Off by default so `gain_ft` keeps its long-standing, tuned behaviour; the
+    profile opts in, since the chart is what shows the distortion."""
     n = len(vals)
     if n == 0 or window <= 1:
         return list(vals)
     half = window // 2
+    if reflect and n > 1:
+        # ANTISYMMETRIC reflection: pad with 2*edge - neighbour, i.e. continue
+        # the slope through the endpoint rather than mirroring the values back.
+        # Plain mirroring preserves a hump but NOT a ramp — it folds the climb
+        # back on itself and pulls the endpoint further off than the shrinking
+        # window did. Reflecting through the endpoint reproduces a constant
+        # slope exactly, which is the case that was visibly wrong.
+        pad_lo = [2 * vals[0] - vals[min(i, n - 1)] for i in range(half, 0, -1)]
+        pad_hi = [2 * vals[-1] - vals[max(n - 1 - i, 0)] for i in range(1, half + 1)]
+        src = pad_lo + list(vals) + pad_hi
+        return [sum(src[i:i + window]) / window for i in range(n)]
     out = []
     for i in range(n):
         lo, hi = max(0, i - half), min(n, i + half + 1)
@@ -233,8 +255,26 @@ def _chain_segments(sampled: list[tuple[list, list]]) -> list[tuple[list, list]]
     return best[1]
 
 
+# Samples per mile in the shipped elevation profile.
+#
+# Was 8/mile (cap 64), which read as "smoothed out" on a real device — and it
+# was, measurably. Checked against 25 recorded GPS tracks, denoised and treated
+# as ground truth: resampling them at 8/mile preserved only 62% of the real
+# elevation change, with ~5.7 ft median error. At 32/mile it is 91% and ~1.6 ft.
+#
+# 32 is the right stopping point, not a round number. The DEM underneath is
+# 30 m (~98 ft) and is already walked at that spacing — `n` only controls the
+# FINAL downsample, so denser profiles cost no extra publish time, just bytes.
+# 32/mile lands at ~165 ft between samples, comfortably above the source
+# resolution; 48 or 64 would interpolate detail the DEM never had.
+#
+# Cost, measured over 60 sampled areas: +1-3 KB gzipped on a typical area
+# (~2 KB today), and about +0.2 MB across the sample. The worst case is
+# Bridger-Teton at +111 KB on an already-1.1 MB file.
+_POINTS_PER_MILE = 32
+
 def profile_and_gaps(sampled: list[tuple[list, list]],
-                     max_points: int = 64) -> tuple[list[int], list[list[int]]]:
+                     max_points: int = 256) -> tuple[list[int], list[list[int]]]:
     """Evenly-spaced elevation series in FEET along the trail, for the app's
     elevation-profile chart. Returns [] when there's nothing to sample.
 
@@ -247,10 +287,9 @@ def profile_and_gaps(sampled: list[tuple[list, list]],
 
     Evenly spaced by DISTANCE, so the app maps position -> index with a plain
     `fraction * (count - 1)` and needs no distance array of its own. Point
-    count scales with length (~8/mile, floor 8, cap `max_points`): a 0.4 mi
-    connector doesn't need 64 samples and a 30 mi epic doesn't get to bloat
-    every geom file. Smoothed before downsampling for the same reason
-    `gain_ft` smooths — raw 30 m DEM is noisy enough to draw visible teeth.
+    count scales with length (`_POINTS_PER_MILE`, floor 8, cap `max_points`).
+    Smoothed before downsampling for the same reason `gain_ft` smooths — raw
+    30 m DEM is noisy enough to draw visible teeth.
     """
     # Order the segments end-to-end BEFORE flattening, then walk them.
     #
@@ -299,9 +338,10 @@ def profile_and_gaps(sampled: list[tuple[list, list]],
     total = dists[-1]
     if total <= 0:
         return [], []
-    elevs = smooth(elevs)
+    # reflect=True: keep the ends of the ramp honest — see smooth().
+    elevs = smooth(elevs, reflect=True)
     miles = total / 1609.344
-    n = min(max_points, max(8, round(miles * 8)))
+    n = min(max_points, max(8, round(miles * _POINTS_PER_MILE)))
     out: list[int] = []
     j = 0
     for k in range(n):
@@ -326,7 +366,7 @@ def profile_and_gaps(sampled: list[tuple[list, list]],
     return out, gaps
 
 
-def profile_ft(sampled: list[tuple[list, list]], max_points: int = 64) -> list[int]:
+def profile_ft(sampled: list[tuple[list, list]], max_points: int = 256) -> list[int]:
     """Back-compat wrapper: the series alone, without seam positions."""
     return profile_and_gaps(sampled, max_points)[0]
 

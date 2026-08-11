@@ -659,6 +659,13 @@ struct AreaView: View {
             .first?.keyWindow?.safeAreaInsets.top) ?? 47
     }
 
+    /// Bottom safe-area inset (home indicator).
+    static var bottomSafeInset: CGFloat {
+        (UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.keyWindow?.safeAreaInsets.bottom) ?? 34
+    }
+
     /// Height of the visible sheet, measured from the BOTTOM of the screen.
     /// Drives both the map's user-dot shift and the floating control bar's
     /// position, so being wrong here puts the controls in the wrong place.
@@ -677,7 +684,12 @@ struct AreaView: View {
         } else if sheetDetent == Self.mediumDetent {
             return maxDetent * 0.5   // mirrors .fraction(0.5)
         } else {
-            return smallDetentHeight // exact: we set this detent in points
+            // A fixed `.height()` detent measures the sheet's CONTENT height;
+            // the sheet then also covers the home indicator beneath it, so the
+            // visible sheet is taller than the number we asked for. Measured on
+            // device: the controls sat about one home-indicator too low and
+            // clipped behind the sheet at this stop. Add it back.
+            return smallDetentHeight + Self.bottomSafeInset
         }
     }
 
@@ -1129,6 +1141,12 @@ struct AreaView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .always))
             .indexViewStyle(.page(backgroundDisplayMode: .interactive))
+            // Pull the pager down into the home-indicator strip. Putting
+            // .ignoresSafeArea on the sheet's outer content did NOT reach here —
+            // the list still stopped short of the bottom and the page dots, which
+            // sit at the pager's bottom edge, floated ~30pt up. Negative padding
+            // on the pager itself is what actually closes the gap.
+            .padding(.bottom, -Self.bottomSafeInset)
         }
         // Nested modal sheets — must live inside the always-on trail-
         // list sheet so SwiftUI lets them present on top instead of

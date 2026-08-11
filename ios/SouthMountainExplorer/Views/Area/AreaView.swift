@@ -1,5 +1,6 @@
 import SwiftUI
 import CoreLocation
+import UIKit
 import OSLog
 
 /// Logger for `AreaView` lifecycle and decision events — area
@@ -362,8 +363,13 @@ struct AreaView: View {
                 // map is also where they belong: this is the same placement
                 // Apple Maps uses.
                 controlBar(area: area)
-                    .padding(.bottom, effectiveBottomInset + 12)
+                    .padding(.bottom, effectiveBottomInset + 10)
                     .frame(maxHeight: .infinity, alignment: .bottom)
+                    // Measure from the TRUE screen bottom, the same origin the
+                    // sheet heights use. Without this the overlay is inset by
+                    // the home indicator (~34pt) and the padding double-counts
+                    // it, lifting the controls off the sheet's edge.
+                    .ignoresSafeArea(edges: .bottom)
                     .ignoresSafeArea(.keyboard)
                     .animation(.interactiveSpring(response: 0.35, dampingFraction: 0.85),
                                value: effectiveBottomInset)
@@ -409,6 +415,11 @@ struct AreaView: View {
             // SETTLES (at most once per release), not per drag tick.
             if let area {
                 sheetContent(area: area)
+                    // Run the sheet's content to the physical bottom edge. It
+                    // was inset by the home indicator, which both left a gap
+                    // below the list and pushed the page dots — which sit at the
+                    // bottom of the pager — visibly up off the edge.
+                    .ignoresSafeArea(.container, edges: .bottom)
                     .presentationDetents(
                         [.height(smallDetentHeight), Self.mediumDetent, .large],
                         selection: $sheetDetent
@@ -638,17 +649,36 @@ struct AreaView: View {
     /// Heights resolved against UIScreen rather than threading a
     /// GeometryReader value up. iPad multitasking would skew this,
     /// but the app's iPhone-only, so close enough.
+    /// Top safe-area inset of the active window (Dynamic Island / notch).
+    /// Needed because a sheet's `.fraction` detents are a fraction of the
+    /// sheet's MAXIMUM height, which is the screen minus this inset — not a
+    /// fraction of the whole screen.
+    private static var topSafeInset: CGFloat {
+        (UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.keyWindow?.safeAreaInsets.top) ?? 47
+    }
+
+    /// Height of the visible sheet, measured from the BOTTOM of the screen.
+    /// Drives both the map's user-dot shift and the floating control bar's
+    /// position, so being wrong here puts the controls in the wrong place.
+    ///
+    /// Two bugs lived here: the small case was hardcoded to 150 after the small
+    /// detent became `smallDetentHeight` (so the controls sat ~40pt low and
+    /// clipped behind the sheet), and the medium case used half the FULL screen
+    /// when `.fraction(0.5)` means half the sheet's maximum height — which
+    /// overestimated it, floating the controls too far above the sheet.
     private var effectiveBottomInset: CGFloat {
         let screenH = UIScreen.main.bounds.height
-        let sheetHeight: CGFloat
+        // What UIKit treats as the sheet's full height at `.large`.
+        let maxDetent = screenH - Self.topSafeInset - 10
         if sheetDetent == .large {
-            sheetHeight = screenH * 0.9
+            return maxDetent
         } else if sheetDetent == Self.mediumDetent {
-            sheetHeight = screenH * 0.5  // mirrors .fraction(0.5)
+            return maxDetent * 0.5   // mirrors .fraction(0.5)
         } else {
-            sheetHeight = 150  // small / peek detent
+            return smallDetentHeight // exact: we set this detent in points
         }
-        return sheetHeight
     }
 
     /// Loading state. Paints the bundled silhouette so the wait feels

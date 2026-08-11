@@ -54,6 +54,34 @@ enum TrailLengthFilter: String, CaseIterable, Identifiable {
     }
 }
 
+/// Order of the trail list. There was no sort at all before this — trails
+/// rendered in whatever order the publisher stored them, which makes "which one
+/// should I do next" hard to answer in a park with 77 of them.
+enum TrailSort: String, CaseIterable, Identifiable {
+    case standard, nearest, shortest, longest, progress, alphabetical
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .standard:     return "Default"
+        case .nearest:      return "Nearest to me"
+        case .shortest:     return "Shortest"
+        case .longest:      return "Longest"
+        case .progress:     return "Most progress"
+        case .alphabetical: return "A–Z"
+        }
+    }
+    var systemImage: String {
+        switch self {
+        case .standard:     return "list.bullet"
+        case .nearest:      return "location"
+        case .shortest:     return "arrow.down.right.and.arrow.up.left"
+        case .longest:      return "arrow.up.left.and.arrow.down.right"
+        case .progress:     return "chart.bar"
+        case .alphabetical: return "textformat.abc"
+        }
+    }
+}
+
 enum TrailRouteFilter: String, CaseIterable, Identifiable {
     case all, loop, linear
     var id: String { rawValue }
@@ -80,6 +108,7 @@ struct TrailListView: View {
     @Binding var difficultyFilter: TrailDifficultyFilter
     @Binding var lengthFilter: TrailLengthFilter
     @Binding var routeFilter: TrailRouteFilter
+    @Binding var sort: TrailSort
     /// Free-text trail-name search. Filtered in `AreaView.computeFilteredTrails`
     /// alongside the other dimensions; this view owns the input UI.
     @Binding var searchQuery: String
@@ -316,6 +345,18 @@ struct TrailListView: View {
             } label: {
                 Label("Route: \(routeFilter.label)", systemImage: "arrow.triangle.2.circlepath")
             }
+            Divider()
+            // Sort lives in the same menu as the filters, so ordering the list
+            // costs no vertical space in the sheet.
+            Menu {
+                Picker("Sort", selection: $sort) {
+                    ForEach(TrailSort.allCases) { s in
+                        Label(s.label, systemImage: s.systemImage).tag(s)
+                    }
+                }
+            } label: {
+                Label("Sort: \(sort.label)", systemImage: "arrow.up.arrow.down")
+            }
             if activeFilterCount > 0 {
                 Divider()
                 Button(role: .destructive) {
@@ -373,6 +414,20 @@ struct TrailRow: View {
     @State private var profileStartIsNearer = true
 
     private var isComplete: Bool { progress.isComplete(trail, areaId: areaId) }
+
+    /// Trailing control glyph. Checkmark normally; a record light once the row
+    /// is selected, so the control keeps its size and the row never reflows.
+    private var recordControlSymbol: String {
+        if isRecordingThis { return "record.circle.fill" }
+        if isSelected { return "record.circle" }
+        return isComplete ? "checkmark.circle.fill" : "checkmark.circle"
+    }
+
+    private var recordControlStyle: AnyShapeStyle {
+        if isRecordingThis { return AnyShapeStyle(Color.red) }
+        if isSelected { return AnyShapeStyle(Color.accentColor) }
+        return isComplete ? AnyShapeStyle(Color.cyan) : AnyShapeStyle(.tertiary)
+    }
 
     /// Where to park for this trail, phrased for the expanded row. nil when the
     /// area has no parking at all. Crucially STATES the distance for a far
@@ -477,8 +532,11 @@ struct TrailRow: View {
                         Text("·")
                         Text(trail.difficulty.rawValue)
                             .foregroundStyle(difficultyColor)
-                        Text("·")
-                        Label(trail.routeType.label, systemImage: trail.routeType.systemImage)
+                        // Loop/Linear removed from the row: the trail's own
+                        // shape thumbnail on the left already shows whether it
+                        // closes on itself, so the label was restating the
+                        // picture and crowding the caption line. Still available
+                        // as a FILTER in the menu.
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -503,23 +561,17 @@ struct TrailRow: View {
                         Task { await progress.toggleTrail(areaId: areaId, trailId: trail.id) }
                     }
                 } label: {
-                    if isSelected {
-                        Label(isRecordingThis ? "Recording" : "Record",
-                              systemImage: "record.circle")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Capsule().fill(isRecordingThis ? Color.red : Color.accentColor))
-                    } else {
-                        // Outlined checkmark hints the action; fills in cyan when complete.
-                        // Wrap both branches in AnyShapeStyle so the ternary has a single
-                        // type — .cyan is a Color, .tertiary is a HierarchicalShapeStyle,
-                        // and Swift can't unify them otherwise.
-                        Image(systemName: isComplete ? "checkmark.circle.fill" : "checkmark.circle")
-                            .font(.title3)
-                            .foregroundStyle(isComplete ? AnyShapeStyle(Color.cyan) : AnyShapeStyle(.tertiary))
-                    }
+                    // SAME SIZE in both states — an icon, never a labelled
+                    // capsule. Selecting a row used to swap the checkmark for a
+                    // wide "Record" pill, which reflowed the whole row and
+                    // shoved the trail name around on every selection. Now the
+                    // checkmark simply becomes a record light: red and filled
+                    // while recording this trail, accent-coloured when it's the
+                    // selected trail and ready to start.
+                    Image(systemName: recordControlSymbol)
+                        .font(.title3)
+                        .foregroundStyle(recordControlStyle)
+                        .symbolEffect(.pulse, isActive: isRecordingThis)
                 }
                 .buttonStyle(.plain)
             }

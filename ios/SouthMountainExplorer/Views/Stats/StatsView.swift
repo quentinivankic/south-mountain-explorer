@@ -1,8 +1,7 @@
 import SwiftUI
-import Charts
 
 /// Stats tab. Replaces the History tab — same data, augmented with
-/// cumulative totals, a 12-month bar chart, and per-area completion
+/// cumulative totals, records and streaks, and per-area completion
 /// rows so the user sees engagement at a glance instead of having
 /// to scroll a hike list to recall what they've done.
 ///
@@ -15,6 +14,7 @@ struct StatsView: View {
     @Environment(RecordingService.self) private var recording
     @Environment(ProgressService.self) private var progress
     @Environment(AreaDataService.self) private var areas
+    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     @State private var hikes: [SavedRecording] = []
     /// Starts true so the first frame shows the spinner, not a flash of
@@ -30,14 +30,13 @@ struct StatsView: View {
     /// row rather than the top of the list.
     @State private var lastViewedHikeId: String? = nil
     @State private var summary: StatsSummary = .empty
-    @State private var buckets: [MonthBucket] = []
     @State private var areaRows: [AreaCompletionRowModel] = []
 
     /// Recompute the cached values. Cheap relative to doing it per render.
     private func refreshDerived() {
         summary = aggregate(hikes: hikes)
-        buckets = monthBuckets(hikes: hikes)
         areaRows = areaCompletionRows()
+        insights = StatsInsights.compute(hikes: hikes)
     }
 
     var body: some View {
@@ -99,24 +98,13 @@ struct StatsView: View {
                     .listRowSeparator(.hidden)
             }
 
-            Section("Hikes per Month") {
-                HikesPerMonthChart(buckets: buckets)
-                    .frame(height: 160)
-                    .padding(.vertical, 8)
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-            }
-
-            Section {
-                NavigationLink {
-                    InsightsView(hikes: hikes)
-                } label: {
-                    Label("Insights", systemImage: "chart.bar.xaxis")
-                }
-                .accessibilityIdentifier("insights-link")
-            } footer: {
-                Text("Personal records, streaks, and yearly trends.")
-            }
+            // Insights used to live behind a NavigationLink. Its content is
+            // what people come to Stats for, so it's inlined here and the
+            // separate screen is gone — along with the hikes-per-month chart,
+            // which restated the same history the sections below do.
+            streaksSection
+            recordsSection
+            byYearSection
 
             if !areaRows.isEmpty {
                 Section("Area Progress") {
@@ -161,6 +149,113 @@ struct StatsView: View {
         }
     }
 
+    // MARK: - Insights (inlined; the separate Insights screen is gone)
+
+    /// Computed once per hike-set change, like the other aggregates — this
+    /// walks every hike's full GPS path via elevationStats.
+    @State private var insights: StatsInsights = .empty
+
+    private var streaksSection: some View {
+        Section("Streaks") {
+            HStack(spacing: 0) {
+                insightMetric("\(insights.currentWeekStreak)", "Week streak", "flame.fill")
+                insightMetric("\(insights.longestWeekStreak)", "Longest", "trophy.fill")
+                insightMetric("\(insights.totalDaysOut)", "Days out", "figure.hiking")
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        }
+    }
+
+    private func insightMetric(_ value: String, _ label: String, _ icon: String) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon).foregroundStyle(.tint)
+            Text(value).font(.title3.bold().monospacedDigit())
+            Text(label).font(.caption2).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var recordsSection: some View {
+        Section("Personal Records") {
+            if let r = insights.longestHike {
+                insightRow("Longest hike", "arrow.left.and.right",
+                           UnitFormatter.distance(miles: r.value, units: units), r.date)
+            }
+            if let r = insights.biggestClimb {
+                insightRow("Biggest climb", "mountain.2.fill",
+                           UnitFormatter.elevation(meters: r.value, units: units), r.date)
+            }
+            if let r = insights.longestDuration {
+                // "Longest time" was ambiguous about what was being timed.
+                insightRow("Longest activity time", "clock.fill",
+                           Self.hoursMinutes(seconds: Int(r.value)), r.date)
+            }
+            if let r = insights.fastestPace {
+                insightRow("Fastest pace", "hare.fill",
+                           UnitFormatter.pace(metersPerSecond: 1609.344 / r.value, units: units), r.date)
+            }
+            if let r = insights.mostMilesInADay {
+                // Names the unit: this row is distance, not hike count.
+                insightRow("Most distance in a day", "sun.max.fill",
+                           UnitFormatter.distance(miles: r.value, units: units), r.periodStart)
+            }
+            if let r = insights.mostHikesInAMonth {
+                let n = Int(r.value)
+                insightRow("Best month", "calendar",
+                           n == 1 ? "1 hike" : "\(n) hikes", r.periodStart, monthOnly: true)
+            }
+        }
+    }
+
+    private func insightRow(_ title: String, _ icon: String, _ value: String,
+                            _ date: Date, monthOnly: Bool = false) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundStyle(.tint)
+                .frame(width: 22)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                Text(monthOnly
+                     ? date.formatted(.dateTime.month(.wide).year())
+                     : date.formatted(date: .abbreviated, time: .omitted))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text(value)
+                .font(.body.weight(.semibold))
+                .monospacedDigit()
+        }
+    }
+
+    @ViewBuilder
+    private var byYearSection: some View {
+        if !insights.byYear.isEmpty {
+            Section("By Year") {
+                ForEach(insights.byYear) { y in
+                    HStack {
+                        Text(String(y.year)).font(.body.weight(.medium))
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 1) {
+                            Text(UnitFormatter.distance(miles: y.miles, units: units))
+                                .monospacedDigit()
+                            Text("^[\(y.hikeCount) hike](inflect: true) · \(UnitFormatter.elevation(meters: y.ascentMeters, units: units))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// h:mm for a duration in seconds.
+    private static func hoursMinutes(seconds: Int) -> String {
+        let h = seconds / 3600, m = (seconds % 3600) / 60
+        return h > 0 ? "\(h)h \(m)m" : "\(m)m"
+    }
+
     // MARK: - Data shaping
 
     /// Aggregate totals across the user's entire hike history. Cheap
@@ -186,31 +281,6 @@ struct StatsView: View {
             totalSeconds: seconds,
             areasWithCompletion: areasWithCompletion
         )
-    }
-
-    /// Last 12 months including the current one, with hike-count + miles
-    /// bucketed by start date. Buckets ordered oldest → newest for the
-    /// Swift Charts X axis.
-    private func monthBuckets(hikes: [SavedRecording]) -> [MonthBucket] {
-        let cal = Calendar.current
-        let now = Date()
-        var buckets: [Date: MonthBucket] = [:]
-        // Pre-seed twelve buckets so an empty month renders as a zero
-        // bar instead of disappearing from the X axis — keeps the
-        // chart's time axis consistent across renders.
-        for i in 0..<12 {
-            if let monthStart = cal.date(byAdding: .month, value: -i, to: now)
-                .flatMap({ cal.dateInterval(of: .month, for: $0)?.start }) {
-                buckets[monthStart] = MonthBucket(month: monthStart, hikeCount: 0, miles: 0)
-            }
-        }
-        for hike in hikes {
-            guard let monthStart = cal.dateInterval(of: .month, for: hike.startedAt)?.start,
-                  buckets[monthStart] != nil else { continue }
-            buckets[monthStart]?.hikeCount += 1
-            buckets[monthStart]?.miles += hike.distanceMi
-        }
-        return buckets.values.sorted { $0.month < $1.month }
     }
 
     /// Per-area engagement rows: every area with at least one completed
@@ -386,39 +456,6 @@ private struct StatsSummaryCard: View {
         let m = (seconds % 3600) / 60
         if h > 0 { return "\(h)h \(m)m" }
         return "\(m)m"
-    }
-}
-
-// MARK: - Hikes-per-month chart
-
-private struct MonthBucket: Identifiable, Equatable {
-    var id: Date { month }
-    let month: Date
-    var hikeCount: Int
-    var miles: Double
-}
-
-private struct HikesPerMonthChart: View {
-    let buckets: [MonthBucket]
-
-    var body: some View {
-        Chart {
-            ForEach(buckets) { b in
-                BarMark(
-                    x: .value("Month", b.month, unit: .month),
-                    y: .value("Hikes", b.hikeCount)
-                )
-                .foregroundStyle(Color.accentColor)
-            }
-        }
-        .chartXAxis {
-            AxisMarks(values: .stride(by: .month, count: 2)) { value in
-                AxisValueLabel(format: .dateTime.month(.abbreviated), centered: true)
-            }
-        }
-        .chartYAxis {
-            AxisMarks(values: .automatic(desiredCount: 3))
-        }
     }
 }
 

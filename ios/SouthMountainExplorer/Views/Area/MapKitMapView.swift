@@ -138,6 +138,13 @@ struct MapKitMapView: UIViewRepresentable {
     /// MapTrackingMode into this and the headed-camera math, which
     /// is applied via cameraTarget when the mode flips.
     let userTrackingMode: MKUserTrackingMode
+    /// Compass heading in degrees from true north, or nil when unavailable.
+    ///
+    /// Apple's stock blue dot only draws a facing cone while the camera is in
+    /// `.followWithHeading`; in free-pan or plain follow it's a bare dot, so on
+    /// a trail you can't tell which way you're pointed without moving. We draw
+    /// our own dot and rotate it by this, so direction is always visible.
+    let userHeading: Double?
 
     /// Screenshot-only synthetic user dot. When non-nil, a system-look
     /// blue location dot is pinned at this coordinate. Exists because
@@ -389,6 +396,9 @@ struct MapKitMapView: UIViewRepresentable {
         if mapView.userTrackingMode != userTrackingMode {
             mapView.setUserTrackingMode(userTrackingMode, animated: true)
         }
+        // Keep the facing cone pointed the right way on every heading update.
+        coord.pendingHeading = userHeading
+        coord.applyHeadingRotation(on: mapView)
     }
 
     // MARK: - Camera helpers
@@ -600,6 +610,34 @@ struct MapKitMapView: UIViewRepresentable {
         var lastCameraTick: Int = -1
         var lastHaloHashes: [Int] = []
         var lastLiveTrailSnappedHash: Int = 0
+        /// The live user-location view, so heading updates can rotate it
+        /// without waiting for MapKit to re-request the annotation view.
+        weak var userDotView: MKAnnotationView?
+        /// Heading last applied, so we skip no-op transform writes.
+        var lastAppliedHeading: Double = .nan
+
+        /// Point the dot at the real bearing.
+        ///
+        /// Rotate by heading MINUS the map's own camera heading: in
+        /// follow-with-heading the map itself turns so that your bearing is up,
+        /// and rotating the dot by the raw heading there would double-count the
+        /// rotation and leave it pointing sideways.
+        func applyHeadingRotation(on mapView: MKMapView) {
+            guard let view = userDotView else { return }
+            guard let heading = pendingHeading else {
+                view.transform = .identity
+                return
+            }
+            let relative = heading - mapView.camera.heading
+            guard !relative.isNaN else { return }
+            if !lastAppliedHeading.isNaN,
+               abs(relative - lastAppliedHeading) < 0.5 { return }
+            lastAppliedHeading = relative
+            view.transform = CGAffineTransform(rotationAngle: CGFloat(relative * .pi / 180))
+        }
+
+        /// Latest heading handed down from the SwiftUI layer.
+        var pendingHeading: Double?
         /// Point count of the recording path last rendered, so the recording
         /// overlay is only rebuilt when the path actually grew.
         var lastRecordingPathCount: Int = 0
@@ -869,6 +907,10 @@ struct MapKitMapView: UIViewRepresentable {
         /// re-snap to the user dot (preserving the user's pinched zoom
         /// — see TrailMapView.updateTrackedPosition).
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            // The cone is drawn relative to the map's own rotation, so it has to
+            // be re-applied whenever the map turns — otherwise rotating the map
+            // by hand leaves the dot pointing at the old bearing.
+            applyHeadingRotation(on: mapView)
             if pendingProgrammaticRegionChanges > 0 {
                 pendingProgrammaticRegionChanges -= 1
                 return
@@ -987,6 +1029,20 @@ struct MapKitMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            // Our own user dot, so the facing cone is always drawn. Apple's
+            // shows it only in .followWithHeading.
+            if annotation is MKUserLocation {
+                let id = "user-heading-dot"
+                let view = mapView.dequeueReusableAnnotationView(withIdentifier: id)
+                    ?? MKAnnotationView(annotation: annotation, reuseIdentifier: id)
+                view.annotation = annotation
+                view.image = Self.userHeadingDotImage
+                view.zPriority = .max
+                view.canShowCallout = false
+                userDotView = view
+                applyHeadingRotation(on: mapView)
+                return view
+            }
             if annotation is DemoUserDotAnnotation {
                 let id = "demo-user-dot"
                 let view = mapView.dequeueReusableAnnotationView(withIdentifier: id)
@@ -1024,6 +1080,53 @@ struct MapKitMapView: UIViewRepresentable {
         /// System-look location dot: soft shadow, white ring,
         /// systemBlue center. Drawn once — 26pt matches the visual
         /// weight of MKMapView's real dot at screenshot zoom.
+        /// The user dot WITH a facing cone. Drawn pointing straight up (north);
+        /// `applyHeadingRotation` spins the whole view to the real bearing.
+        /// The cone sits behind the dot so the dot still reads as the position
+        /// and the cone as "which way you're looking", the same language Apple
+        /// Maps uses in its heading mode.
+        static let userHeadingDotImage: UIImage = {
+            let size = CGSize(width: 44, height: 44)
+            return UIGraphicsImageRenderer(size: size).image { ctx in
+                let c = ctx.cgContext
+                let mid = CGPoint(x: size.width / 2, y: size.height / 2)
+
+                // Facing cone: a wedge fading out away from the dot.
+                let reach: CGFloat = 20
+                let half: CGFloat = .pi / 7          // ~26 deg each side
+                let cone = UIBezierPath()
+                cone.move(to: mid)
+                cone.addArc(withCenter: mid, radius: reach,
+                            startAngle: -.pi / 2 - half, endAngle: -.pi / 2 + half,
+                            clockwise: true)
+                cone.close()
+                c.saveGState()
+                c.addPath(cone.cgPath)
+                c.clip()
+                let colors = [UIColor.systemBlue.withAlphaComponent(0.55).cgColor,
+                              UIColor.systemBlue.withAlphaComponent(0.0).cgColor] as CFArray
+                if let g = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                      colors: colors, locations: [0, 1]) {
+                    c.drawLinearGradient(g,
+                                         start: mid,
+                                         end: CGPoint(x: mid.x, y: mid.y - reach),
+                                         options: [])
+                }
+                c.restoreGState()
+
+                // The dot itself: white ring around a blue core, matching the
+                // demo dot so the two read as the same object.
+                let dot = CGRect(x: mid.x - 9, y: mid.y - 9, width: 18, height: 18)
+                c.setShadow(offset: .zero, blur: 4,
+                            color: UIColor.black.withAlphaComponent(0.35).cgColor)
+                UIColor.white.setFill()
+                c.fillEllipse(in: dot)
+                c.setShadow(offset: .zero, blur: 0, color: nil)
+                UIColor.systemBlue.setFill()
+                c.fillEllipse(in: dot.insetBy(dx: 3, dy: 3))
+            }
+        }()
+
         static let demoUserDotImage: UIImage = {
             let size = CGSize(width: 26, height: 26)
             return UIGraphicsImageRenderer(size: size).image { ctx in

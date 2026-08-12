@@ -13,12 +13,19 @@ struct ActiveRecordingBanner: View {
     let trailName: String?
     let distanceMi: Double
     let startedAt: Date
+    /// Asked once a second, on the timer this view already runs, for the next
+    /// bend in the trail being followed. A closure rather than a value because
+    /// answering it means projecting two GPS points onto the whole trail
+    /// polyline — fine at 1 Hz, wasteful on every SwiftUI body evaluation.
+    /// Returns nil in roam mode, off-trail, or when there's no bend ahead.
+    var nextTurn: (() -> TurnAhead?)? = nil
     let onTap: () -> Void
     let onStop: () -> Void
 
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
     @State private var elapsed: TimeInterval = 0
     @State private var timer: Timer? = nil
+    @State private var turn: TurnAhead? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -43,6 +50,20 @@ struct ActiveRecordingBanner: View {
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                        // The next bend, when there is one to name. Takes its
+                        // own line rather than joining the stats: it's the one
+                        // thing here you act on, and it should not be read as
+                        // another counter.
+                        if let turn, turn.distanceMeters <= Self.announceWithinMeters {
+                            Label(
+                                "Bear \(turn.side.word) in \(UnitFormatter.shortDistance(meters: turn.distanceMeters, units: units))",
+                                systemImage: turn.side.systemImage
+                            )
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.tint)
+                            .lineLimit(1)
+                            .transition(.opacity)
+                        }
                     }
 
                     Spacer(minLength: 8)
@@ -88,14 +109,25 @@ struct ActiveRecordingBanner: View {
         return String(format: "%02d:%02d", m, s)
     }
 
+    /// Beyond this the bend is real but not news. A quarter mile is the range
+    /// over which "bear left soon" is something you'd say to someone walking
+    /// with you; past it the line would sit there unchanged for ten minutes.
+    private static let announceWithinMeters: Double = 402
+
     private func startTimer() {
         elapsed = Date().timeIntervalSince(startedAt)
+        turn = nextTurn?()
         // The Timer fire closure is @Sendable / nonisolated; hop back to the
         // main actor before touching @State to keep Swift 6 strict
         // concurrency happy.
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             Task { @MainActor in
                 elapsed = Date().timeIntervalSince(startedAt)
+                // Recomputed here, not in `body`, so the polyline projection
+                // runs once a second instead of on every render.
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    turn = nextTurn?()
+                }
             }
         }
     }

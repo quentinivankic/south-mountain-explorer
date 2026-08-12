@@ -55,6 +55,29 @@ enum UnitFormatter {
         distance(meters: miles * 1609.344, units: units)
     }
 
+    /// A short distance in the unit a walker would actually say out loud:
+    /// feet or metres, rounded to the nearest 10, switching to miles or
+    /// kilometres only once the number gets long.
+    ///
+    /// `distance(meters:)` is wrong for this. It renders 130 m as "0.08 mi",
+    /// which is unreadable at a glance and useless for "the turn is coming
+    /// up". Used by the next-turn banner.
+    static func shortDistance(meters: Double, units: UnitsPreference) -> String {
+        switch units {
+        case .imperial:
+            let ft = meters * 3.28084
+            if ft < 1000 {
+                return "\(Int((ft / 10).rounded()) * 10) ft"
+            }
+            return String(format: "%.1f mi", meters / 1609.344)
+        case .metric:
+            if meters < 1000 {
+                return "\(Int((meters / 10).rounded()) * 10) m"
+            }
+            return String(format: "%.1f km", meters / 1000)
+        }
+    }
+
     /// Elevation values in meters → user-preferred display string.
     /// Integer rounding because elevation noise + GPS precision
     /// don't justify decimals at trail scale.

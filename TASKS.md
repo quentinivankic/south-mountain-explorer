@@ -2,16 +2,18 @@
 
 **Why this file exists.** The task list Claude keeps in-session (`TaskList` /
 `TaskGet`) does NOT survive into a new session — it is session-scoped state, and
-a fresh session starts with nothing. These 13 tasks carry hard-won measurement
+a fresh session starts with nothing. These 14 tasks carry hard-won measurement
 in their descriptions: national counts, named counter-examples, and approaches
 already ruled out with evidence. Losing them means re-deriving all of it, or
 worse, re-proposing something already disproved. So they live here, in the repo,
 and a new session should re-create them with `TaskCreate` from this file.
 
+(15 open tasks as of 2026-08-02.)
+
 Numbers are the original task ids. Gaps (#19–#20, #22–#25, #27–#30, #32,
 #38–#43, #45, #48) are completed work — see git log and `TODO.md`.
 
-Last synced from the live task list: **2026-07-29**.
+Last synced from the live task list: **2026-08-02**.
 
 | # | Task | Kind |
 |---|---|---|
@@ -28,6 +30,104 @@ Last synced from the live task list: **2026-07-29**.
 | [47](#47) | Crash and stability pass on device | QA |
 | [49](#49) | Live Activity + distance-to-next-turn | app |
 | [50](#50) | Paid Applications Agreement | user-side |
+| [53](#53) | Adjudicate parking by aerial + vision, per lot | data · tooling built, 6 areas done |
+| [54](#54) | Trailhead spurs trimmed by `_trim_to_parks` — trails end short of the trailhead | data · pipeline |
+
+---
+
+<a name="53"></a>
+## #53 — Adjudicate parking by aerial + vision. Tooling built; 6 areas done.
+
+**State 2026-08-01: the method is built and exercised on 6 areas; nothing ships
+yet.** Durable home (job tmp is ephemeral): **`/mnt/raid/trekdex/parking-adjud/`**
+— `README.md` (full pipeline + lessons), `tools/`, `data/` (dossiers, serves,
+verdicts, `groundtruth.json`), `artifacts/`, `osm/`. Auto-memory
+`parking-vision-adjudication` mirrors the lessons.
+
+**Verdict = 3 axes, KEEP needs all:** EXISTS (real lot, not a pullout — vision;
+a surveyed `amenity=parking` stays unless imagery positively contradicts it),
+PUBLIC (not `access=private/no/customers`), SERVES (a trail we ship, within
+overflow range). Serves = the app's `nearestParkingWithFallback` (nearest 3
+within 805 m of trail endpoints, else nearest 2 within a **5 km fallback cap**),
+run area-agnostically. DROP only = private / not-real-parking / non-public
+facility lot / >1 mile walk. **Overflow is real: a public lot the app surfaces is
+a KEEP even if it mainly serves a ball field — facility-adjacency is NOT a drop
+or a flag.** OSM context (`context_classify.py`) drives the DROP side
+(apartment/resort/church/commercial by edge-adjacency), never public overflow.
+Imagery: **NAIP primary** (ESRI throttles under burst); zoom to ~0.14 m/px, draw
+the polygon, feed the tags to the judge (the #1596 miss came from a wide frame +
+hidden tags).
+
+**Results (keep / drop, 0 reviews left):** Zion 40/17 · Griffith 43/14 · Phoenix
+Mtns Preserve 28/25 · Pinnacle Peak 11/6 · Usery 21/7 (Camelback/Echo Canyon judged
+too, 16/6, folded into Preserve via bbox overlap — not published separately).
+Griffith+Zion generalization measured **0 confident-wrong** vs the user's own calls.
+
+**NEXT:** (1) reversible `public/areas/parking-verdicts.json` sidecar keyed by
+**OSM id** (fids are run-local), shape of `nonhiking-trails.json`, honoured by the
+pool builder, can't empty an area. (2) Graduate `dossier.py`+`context_classify.py`+
+`judge_protocol.md` into `scripts/`; sub-agents inherit `judge_protocol.md` for
+scale. (3) Feed trailhead coverage-gaps (Narrows, Right Fork, Zion #190 spur) to
+the trail work.
+
+---
+
+<a name="54"></a>
+## #54 — Trailhead access spurs get trimmed by `_trim_to_parks`; trails end short of their trailhead
+
+**FOUND + CONFIRMED IN CODE 2026-08-02**, from the NE parking review (Grafton Loop East
+trailhead, review lot #1). Shipped trail geom often stops 1–2 km short of the real
+trailhead — and it is NOT missing OSM data.
+
+**Evidence (Grafton Loop Trail):** OSM runs continuously to the trailhead lot — nearest
+point **9 m**. Of 97 OSM vertices in the trailhead corridor, our shipped geom keeps 6 and
+drops a contiguous run of 91 (~1.5 km), stopping at the last in-park point 1,267 m from the
+lot. (Reproduce: `osmium tags-filter <ctx.pbf> w/name="Grafton Loop Trail"` vs the shipped
+`grafton-notch-state-park-me.json`.)
+
+**Mechanism:** `trailforge/serve/publish_areas.py::_trim_to_parks` (the "DC-Ray fix", PR
+#338) clamps every trail to the UNION of park boundaries and TRIMS any dangling end that
+dead-ends outside all parks (in→gap→in cross-park connectors are kept whole). It exists to
+strip residential dead-ends (a connector running into a neighbourhood). A trailhead access
+spur dead-ends at a lot on the approach road just OUTSIDE the park, so it looks exactly like
+a residential dangle and gets cut.
+
+**Why it matters:** trailheads sit outside park polygons by nature (roadside pull-offs), so
+this SYSTEMATICALLY severs the last stretch to the real trailhead. It is the root cause of
+"trailhead parking reads as 1–2 km from any trail" and why the parking serves-gate needs its
+5 km fallback (#53). The trail-clip and the parking coverage-gap are the same bug from two
+sides.
+
+**ANALYSIS — validated 2026-08-02; the naive in-trim fix does NOT hold up:**
+- Systematic, confirmed on 2 independent cases: Grafton Loop Trail (OSM reaches the lot at
+  9 m, ours stops 1,267 m short) and Pumpelly Trail / Monadnock (OSM 141 m, ours 2,206 m).
+- Blast radius bounded: 2,924 of 40,339 geom parking lots (7%) sit in the 805 m–3 km
+  fallback band — an UPPER bound on affected lots (many are far for unrelated reasons).
+- `highway=trailhead` is too sparse to anchor the fix: Grafton's real trailhead has NO such
+  node (the only one in the whole area is 10.9 km away). The parking lot at the spur end is
+  the signal that actually fires — the trailhead-node half wouldn't even fix the motivator.
+- BUT parking data does not exist at trim time — `_trim_to_parks` runs in `publish_areas.py`;
+  parking is added LATER by `add-parking.py`. So this is NOT a predicate tweak in the trim;
+  it needs new data plumbing or a different layer.
+- `_trim_to_parks` is load-bearing: #338 built it because residential tails made trails FAIL
+  the majority-length test and get SILENTLY dropped — loosening it risks that regression.
+- Harm is modest: the parking serves-gate ALREADY surfaces the trailhead lot via its 5 km
+  fallback, so the app-facing "where do I park" is met. The trail-side loss is cosmetic-ish
+  (trail starts short; elevation/orientation/spur-completion).
+
+**RECOMMENDATION:** do NOT modify `_trim_to_parks` inline as first proposed. Either
+**(A, preferred)** keep this as a coverage-gap punch-list and make NO pipeline change — the
+parking fallback already covers the app need and the harm is small; or **(B, if we fix it)**
+build it as a post-process in `add-parking.py`, where the parking data lives: when a
+fallback-only trailhead lot has OSM trail geometry connecting it to a shipped trail's free
+end, re-attach that spur, anchored on the PARKING lot (not the sparse trailhead node), and
+preserve the majority-test guard. B is real work (needs the OSM spur geometry publish
+discarded) and must be measured against the #338 DC-Ray Connector + the 2,924-lot candidate
+set first. Repro for the two confirmed cases: `osmium tags-filter <ctx.pbf> w/name="<trail>"`
+vs the shipped geom endpoints.
+
+See auto-memory `parking-vision-adjudication` lesson #7. Related: #53 (parking), #35
+(fragmentation), #51 (boundaries).
 
 ---
 
@@ -273,7 +373,23 @@ AUDIT (measure the divergence, then decide):
   members = 49.5 mi (~10% + different edges); the relation also pulls in 2.0 mi
   Shore-to-Shore + 6.7 mi unnamed connectors + road-named tracks
 - national: number of route-relation trails where name-stitch geometry vs relation
-  off-road members diverge by >10% — baseline TBD
+  off-road members diverge by >10% — still TBD (needs the OSM relation re-read)
+- **geom-side symptom baseline MEASURED 2026-08-02** (`scripts/audit-namestitch-teleport.py`,
+  off shipped geom, no network, ~35 s): **1,647 shipped trails teleport** — split into
+  ≥2 spatially-disjoint chunks whose two biggest are ≥1 km apart (1,119 ≥2 km, 722 ≥4 km).
+  **840 of those are INVISIBLE to #31's profileGaps measure** (they are separate segments
+  with no in-segment gap), so this is additive, not a re-count. 990 distinct names, 332
+  appearing in >1 area (route-duplication overlap with #31). **621 have generic/color/
+  short names — the high-confidence welds:** smoking gun **"Yellow" in adirondack-park,
+  two chunks 111 km apart**; "Sawmill", "White Rocks Trail" likewise. CAVEAT: the flag is
+  the union of real welds AND genuinely long routes with missing-data gaps (#35, Mokelumne
+  Coast to Crest 174 km) — geom can't split those two; that IS the relation-vs-name-stitch
+  decision below.
+- ⚠️ the motivating "Crawford Notch name-stitch bug" (a parking by-product) was a
+  MISDIAGNOSIS — verified 2026-08-02, the Tuckerman Ravine Trail is one continuous ~4 km
+  line (max vertex gap 128 m); it was the parking dossier's region buffer pulling real
+  Mt-Washington trailheads into crawford's per-area run, not a trail bug. See auto-memory
+  `parking-vision-adjudication` lesson #9.
 - decision to record: relation-first (curated intent) vs name-stitch (pure name) vs
   hybrid; then re-audit divergence → ~0 under the chosen rule
 

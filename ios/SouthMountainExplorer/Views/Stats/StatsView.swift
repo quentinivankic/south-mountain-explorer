@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Stats tab. Replaces the History tab — same data, augmented with
-/// cumulative totals, a 12-month bar chart, and per-area completion
+/// cumulative totals, records and streaks, and per-area completion
 /// rows so the user sees engagement at a glance instead of having
 /// to scroll a hike list to recall what they've done.
 ///
@@ -283,10 +283,6 @@ struct StatsView: View {
         )
     }
 
-    /// Last 12 months including the current one, with hike-count + miles
-    /// bucketed by start date. Buckets ordered oldest → newest for the
-    /// Swift Charts X axis.
-
     /// Per-area engagement rows: every area with at least one completed
     /// trail OR at least one recorded hike. Hike-only areas show as
     /// "0 / N" — a brand-new area should appear from the very first
@@ -462,8 +458,6 @@ private struct StatsSummaryCard: View {
         return "\(m)m"
     }
 }
-
-// MARK: - Hikes-per-month chart
 
 // MARK: - Area completion rows
 

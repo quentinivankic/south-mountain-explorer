@@ -1086,11 +1086,14 @@ struct MapKitMapView: UIViewRepresentable {
         /// and the cone as "which way you're looking", the same language Apple
         /// Maps uses in its heading mode.
         static let userHeadingDotImage: UIImage = {
-            // Canvas sized for the cone, not the dot. At 44pt with a 20pt reach
-            // the cone only cleared the 18pt dot by ~11pt and faded to fully
-            // transparent before its tip, so almost none of it was actually
-            // visible — reported as "super small and hard to see".
-            let size = CGSize(width: 84, height: 84)
+            // Canvas sized for the cone, not the dot. This has been tuned from
+            // both ends on device: at 44pt with a 20pt reach the cone barely
+            // cleared the 18pt dot and faded to nothing before its tip ("super
+            // small and hard to see"); at 84pt with a 38pt reach it read as
+            // "gigantic". 60pt with a 26pt reach sits between them — the cone
+            // still clears the dot by 17pt, which is what makes it legible at
+            // any zoom, without becoming the loudest thing on the map.
+            let size = CGSize(width: 60, height: 60)
             return UIGraphicsImageRenderer(size: size).image { ctx in
                 let c = ctx.cgContext
                 let mid = CGPoint(x: size.width / 2, y: size.height / 2)
@@ -1098,8 +1101,11 @@ struct MapKitMapView: UIViewRepresentable {
                 // Facing cone: a wedge fading out away from the dot. Reaches
                 // ~3x the dot's radius so there is real cone to see, and stops
                 // at 0.2 alpha rather than 0 so the tip doesn't vanish.
-                let reach: CGFloat = 38
-                let half: CGFloat = .pi / 5.5        // ~33 deg each side
+                let reach: CGFloat = 26
+                // Slightly narrower too. Visibility comes from the opacity and
+                // the white edge below, not from the wedge's width, so this is
+                // the cheapest place to take size back.
+                let half: CGFloat = .pi / 6.5        // ~28 deg each side
                 let cone = UIBezierPath()
                 cone.move(to: mid)
                 cone.addArc(withCenter: mid, radius: reach,

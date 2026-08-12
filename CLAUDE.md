@@ -299,6 +299,13 @@ mean one view with two unit systems and two meanings for x.
 
 ## Active threads (updated 2026-07-28) — see auto-memory for depth
 
+- **Parking — the per-lot VISION verdict is the truth (decided 2026-08-12).**
+  Any change that would REMOVE a pin defers to task #53's adjudication, not to a
+  geometric gate. #51's containment roll is BLOCKED for this reason: verified in
+  `add-parking.py::pool_candidates`, the containment gate runs BEFORE the global
+  pool is emitted, so a lot it rejects vanishes from the whole app, not just from
+  one area. Trailheads sit outside park polygons by nature (roadside pull-offs) —
+  the same fact behind #54. Durable home `/mnt/raid/trekdex/parking-adjud/`.
 - **Parking** (`parking-feature.md`): OSM containment-gated parking is NATIONAL
   (6,271 of ~9,060 areas). Federal fallback = NPS parking + USFS trailheads (BLM
   DROPPED — its "trailhead" layer is generic area-POI markers, not trailheads).

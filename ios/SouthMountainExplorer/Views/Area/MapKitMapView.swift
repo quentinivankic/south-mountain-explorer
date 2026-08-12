@@ -1086,14 +1086,20 @@ struct MapKitMapView: UIViewRepresentable {
         /// and the cone as "which way you're looking", the same language Apple
         /// Maps uses in its heading mode.
         static let userHeadingDotImage: UIImage = {
-            let size = CGSize(width: 44, height: 44)
+            // Canvas sized for the cone, not the dot. At 44pt with a 20pt reach
+            // the cone only cleared the 18pt dot by ~11pt and faded to fully
+            // transparent before its tip, so almost none of it was actually
+            // visible — reported as "super small and hard to see".
+            let size = CGSize(width: 84, height: 84)
             return UIGraphicsImageRenderer(size: size).image { ctx in
                 let c = ctx.cgContext
                 let mid = CGPoint(x: size.width / 2, y: size.height / 2)
 
-                // Facing cone: a wedge fading out away from the dot.
-                let reach: CGFloat = 20
-                let half: CGFloat = .pi / 7          // ~26 deg each side
+                // Facing cone: a wedge fading out away from the dot. Reaches
+                // ~3x the dot's radius so there is real cone to see, and stops
+                // at 0.2 alpha rather than 0 so the tip doesn't vanish.
+                let reach: CGFloat = 38
+                let half: CGFloat = .pi / 5.5        // ~33 deg each side
                 let cone = UIBezierPath()
                 cone.move(to: mid)
                 cone.addArc(withCenter: mid, radius: reach,
@@ -1103,8 +1109,8 @@ struct MapKitMapView: UIViewRepresentable {
                 c.saveGState()
                 c.addPath(cone.cgPath)
                 c.clip()
-                let colors = [UIColor.systemBlue.withAlphaComponent(0.55).cgColor,
-                              UIColor.systemBlue.withAlphaComponent(0.0).cgColor] as CFArray
+                let colors = [UIColor.systemBlue.withAlphaComponent(0.95).cgColor,
+                              UIColor.systemBlue.withAlphaComponent(0.20).cgColor] as CFArray
                 if let g = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
                                       colors: colors, locations: [0, 1]) {
                     c.drawLinearGradient(g,
@@ -1113,6 +1119,15 @@ struct MapKitMapView: UIViewRepresentable {
                                          options: [])
                 }
                 c.restoreGState()
+
+                // Thin white edge so the cone reads against dark satellite
+                // imagery, where a translucent blue wedge alone disappears.
+                c.setShadow(offset: .zero, blur: 3,
+                            color: UIColor.black.withAlphaComponent(0.4).cgColor)
+                UIColor.white.withAlphaComponent(0.9).setStroke()
+                cone.lineWidth = 1.5
+                cone.stroke()
+                c.setShadow(offset: .zero, blur: 0, color: nil)
 
                 // The dot itself: white ring around a blue core, matching the
                 // demo dot so the two read as the same object.

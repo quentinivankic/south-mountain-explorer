@@ -14,9 +14,16 @@ private let farFromAreaThresholdMi = 5.0
 
 /// Segments of the area sheet. `trails` is the original trail
 /// list + map controls; `dex` is the achievements grid.
-private enum AreaSheetTab: Hashable {
+private enum AreaSheetTab: Hashable, CaseIterable {
     case trails
     case dex
+
+    var pageName: String {
+        switch self {
+        case .trails: return "Trails"
+        case .dex: return "Dex"
+        }
+    }
 }
 
 struct AreaView: View {
@@ -75,10 +82,11 @@ struct AreaView: View {
     /// The sheet got much shorter when the map controls moved out onto the map
     /// and the Trails/Dex segmented control became a swipe — together those were
     /// ~100pt of the old header. What's left above the rows is the drag
-    /// indicator (~20), the name + stats block (~72), the page dots (~30) and
-    /// the search field (~58) ≈ 180pt. Still adjustable on-device via the
+    /// indicator (~20), the name + stats block (~72), the page dots (~21, now
+    /// a header row of their own rather than an overlay) and the search field
+    /// (~58) ≈ 171pt, plus breathing room. Still adjustable on-device via the
     /// Developer picker while the new layout settles.
-    @AppStorage(StorageKeys.smallDetentHeight) private var smallDetentHeight: Double = 190
+    @AppStorage(StorageKeys.smallDetentHeight) private var smallDetentHeight: Double = 205
 
     /// Trail-list sheet detents — three stops.
     ///   - small: map-forward, but sized so every control stays whole. The old
@@ -1040,6 +1048,33 @@ struct AreaView: View {
         return parts.joined(separator: " · ")
     }
 
+    /// Which of the two pages you're on, drawn in the sheet header instead of
+    /// by the pager's own index. Tappable, so the Dex is reachable without
+    /// knowing the swipe is there.
+    private var pageDots: some View {
+        HStack(spacing: 8) {
+            ForEach(AreaSheetTab.allCases, id: \.self) { tab in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) { sheetTab = tab }
+                } label: {
+                    Circle()
+                        .fill(sheetTab == tab ? Color.primary.opacity(0.7)
+                                              : Color.primary.opacity(0.2))
+                        .frame(width: 7, height: 7)
+                        // Dots are a 7pt target; pad the tappable area out to
+                        // something a thumb can actually hit.
+                        .padding(6)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(tab.pageName)
+                .accessibilityAddTraits(sheetTab == tab ? [.isSelected] : [])
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Page")
+    }
+
     @ViewBuilder
     private func sheetContent(area: Area) -> some View {
         VStack(spacing: 0) {
@@ -1071,6 +1106,9 @@ struct AreaView: View {
                 // "© OpenStreetMap contributors" credit lives in
                 // Settings → About (with the licence link), which
                 // satisfies the ODbL. Keeping the header uncluttered.
+
+                pageDots
+                    .padding(.top, 2)
             }
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 20)
@@ -1134,19 +1172,31 @@ struct AreaView: View {
                         onRecordTrail: { trail in tryStartRecording(trailId: trail.id) }
                     )
                 }
+                // THIS is what closes the bottom gap, and it has to be HERE.
+                //
+                // A `.page` TabView is a UIPageViewController: every page is
+                // hosted in its own controller, and that controller re-applies
+                // the window's home-indicator inset to the page. So the sheet
+                // root ignoring its bottom safe area never reached the trail
+                // list — the list kept ending ~34pt above the sheet's bottom
+                // edge, which is the gap that survived two previous fixes.
+                // Ignoring it on the page itself is the only placement that
+                // acts on the inset the page was actually given.
+                .ignoresSafeArea(.container, edges: .bottom)
                 .tag(AreaSheetTab.trails)
 
                 DexView(area: area)
+                    .ignoresSafeArea(.container, edges: .bottom)
                     .tag(AreaSheetTab.dex)
             }
-            .tabViewStyle(.page(indexDisplayMode: .always))
-            .indexViewStyle(.page(backgroundDisplayMode: .interactive))
-            // Pull the pager down into the home-indicator strip. Putting
-            // .ignoresSafeArea on the sheet's outer content did NOT reach here —
-            // the list still stopped short of the bottom and the page dots, which
-            // sit at the pager's bottom edge, floated ~30pt up. Negative padding
-            // on the pager itself is what actually closes the gap.
-            .padding(.bottom, -Self.bottomSafeInset)
+            // Built-in index off — its page control positions itself inside the
+            // pager's safe area, so it floated above the sheet's bottom edge and
+            // moved every time the inset math changed. `pageDots` in the header
+            // replaces it: fixed spot, visible at every detent, never on top of
+            // a trail row. The previous `-bottomSafeInset` padding is gone with
+            // it — it was compensating for the page control, and it dragged the
+            // whole pager (and its last rows) off-screen along the way.
+            .tabViewStyle(.page(indexDisplayMode: .never))
         }
         // Nested modal sheets — must live inside the always-on trail-
         // list sheet so SwiftUI lets them present on top instead of

@@ -844,14 +844,54 @@ struct TrailMapView: View {
     /// `rebuildCoverageFromHistory`, so the bar's "% remaining"
     /// and the orange overlay agree on what counts as "drifted
     /// across this trail" post-completion.
+    /// Spacing the coverage overlay advances in. The cyan can only move forward
+    /// when a node it walks gets covered, so node spacing IS the granularity of
+    /// visible progress. Measured on South Mountain's shipped geometry: after
+    /// the 5 m render decimation the drawable nodes sit a median 38 m apart,
+    /// 86 m at p90 and up to 367 m — so you could walk a hundred metres and see
+    /// nothing change, which reads as "it stopped tracking me".
+    ///
+    /// Interpolating along the DECIMATED line (not falling back to the raw one)
+    /// keeps every emitted point exactly on the polyline the map draws, so this
+    /// buys granularity without reintroducing the off-the-line drift that came
+    /// from snapping to raw geometry.
+    private static let coverageStepMeters: Double = 6.0
+
+    /// Insert points along a segment so no two consecutive ones are further
+    /// apart than `coverageStepMeters`. Points already closer than that are
+    /// left alone.
+    private func densified(_ seg: [GpsPoint]) -> [(lat: Double, lon: Double)] {
+        var out: [(lat: Double, lon: Double)] = []
+        var prev: (lat: Double, lon: Double)? = nil
+        for node in seg where node.count >= 2 {
+            let p = (lat: node[0], lon: node[1])
+            if let a = prev {
+                let d = haversineDistanceM(lat1: a.lat, lon1: a.lon, lat2: p.lat, lon2: p.lon)
+                if d > Self.coverageStepMeters {
+                    let steps = Int(d / Self.coverageStepMeters)
+                    if steps > 1 {
+                        for k in 1..<steps {
+                            let t = Double(k) / Double(steps)
+                            out.append((lat: a.lat + (p.lat - a.lat) * t,
+                                        lon: a.lon + (p.lon - a.lon) * t))
+                        }
+                    }
+                }
+            }
+            out.append(p)
+            prev = p
+        }
+        return out
+    }
+
     private func trailNodeRuns(coveredBy gpsGrid: SpatialGrid, in trail: Trail,
                                bufferM: Double = 10.0) -> [[CLLocationCoordinate2D]] {
         var runs: [[CLLocationCoordinate2D]] = []
         for seg in trail.segments {
             var current: [CLLocationCoordinate2D] = []
-            for node in seg where node.count >= 2 {
-                let lat = node[0]
-                let lon = node[1]
+            for node in densified(seg) {
+                let lat = node.lat
+                let lon = node.lon
                 if gpsGrid.hasNeighbor(lat: lat, lon: lon, withinMeters: bufferM) {
                     current.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
                 } else if !current.isEmpty {

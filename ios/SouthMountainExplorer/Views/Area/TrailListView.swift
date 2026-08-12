@@ -115,7 +115,19 @@ struct TrailListView: View {
     /// Pre-filtered trail set computed in AreaView so the map view can see
     /// the same set without TrailListView having to fan it back out.
     let filteredTrails: [Trail]
+    /// False while the sheet is at its smallest stop with a trail selected —
+    /// the search row gives up its space to the expanded row. AreaView owns the
+    /// decision because it owns the detent.
+    var showsSearchBar: Bool = true
     var onRecordTrail: ((Trail) -> Void)? = nil
+
+    // Height reports for AreaView's smallest-sheet-stop arithmetic. It sizes
+    // the stop to the blocks that must be whole, and these are the blocks that
+    // live down here. Measured rather than derived from font metrics, so the
+    // stop stays right at any Dynamic Type size.
+    var onSearchBarHeight: ((CGFloat) -> Void)? = nil
+    var onCollapsedRowHeight: ((CGFloat) -> Void)? = nil
+    var onSelectedRowHeight: ((CGFloat) -> Void)? = nil
 
     @Environment(ProgressService.self) private var progress
     @Environment(CoverageService.self) private var coverage
@@ -145,51 +157,56 @@ struct TrailListView: View {
             // name + summary read as one block. The filter menu pairs
             // naturally with the search field, the way iOS settings
             // / mail toolbars do.
-            HStack(spacing: 10) {
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField("Search trails", text: $searchQuery)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .focused($searchFocused)
-                        .submitLabel(.search)
-                    if !searchQuery.isEmpty {
-                        Button {
-                            searchQuery = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
+            if showsSearchBar {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 10) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "magnifyingglass")
                                 .foregroundStyle(.secondary)
+                            TextField("Search trails", text: $searchQuery)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .focused($searchFocused)
+                                .submitLabel(.search)
+                            if !searchQuery.isEmpty {
+                                Button {
+                                    searchQuery = ""
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
-                        .buttonStyle(.plain)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(.quaternary.opacity(0.5))
+                        )
+
+                        filterMenu
                     }
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(.quaternary.opacity(0.5))
-                )
-
-                filterMenu
-            }
-            .padding(.horizontal)
-            .padding(.top, 8)
-            .padding(.bottom, 10)
-
-            // "Showing X of Y" hint — only when a filter is active.
-            // Visible feedback that the list is narrowed; the rest of
-            // the summary info (trail count / completion) lives in
-            // the sheet header above.
-            if activeFilterCount > 0 {
-                Text("Showing \(filteredTrails.count) of \(area.trails.count)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
                     .padding(.horizontal)
-                    .padding(.bottom, 6)
-            }
+                    .padding(.top, 8)
+                    .padding(.bottom, 10)
 
-            Divider()
+                    // "Showing X of Y" hint — only when a filter is active.
+                    // Visible feedback that the list is narrowed; the rest of
+                    // the summary info (trail count / completion) lives in
+                    // the sheet header above.
+                    if activeFilterCount > 0 {
+                        Text("Showing \(filteredTrails.count) of \(area.trails.count)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+                            .padding(.bottom, 6)
+                    }
+
+                    Divider()
+                }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { onSearchBarHeight?($0) }
+            }
 
             // ScrollViewReader so we can scroll the just-selected
             // trail's row into view when the user taps a trail on
@@ -249,7 +266,7 @@ struct TrailListView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 40)
                     } else {
-                        ForEach(filteredTrails) { trail in
+                        ForEach(Array(filteredTrails.enumerated()), id: \.element.id) { index, trail in
                             TrailRow(
                                 trail: trail,
                                 areaId: area.id,
@@ -261,6 +278,17 @@ struct TrailListView: View {
                             // ScrollViewReader can target it via
                             // proxy.scrollTo when selection changes.
                             .id(trail.id)
+                            // Feed AreaView the two row heights its smallest
+                            // sheet stop is sized from. The collapsed reference
+                            // comes from row 0, or row 1 when row 0 is the one
+                            // that's expanded.
+                            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+                                if trail.id == selectedTrailId {
+                                    onSelectedRowHeight?(h)
+                                } else if index <= 1 {
+                                    onCollapsedRowHeight?(h)
+                                }
+                            }
                             Divider().padding(.leading)
                         }
                     }
@@ -280,7 +308,7 @@ struct TrailListView: View {
                 // rows that are on-screen, so scrollTo must trigger
                 // both the scroll AND lazy-row materialization.
                 withAnimation(.easeInOut(duration: 0.25)) {
-                    proxy.scrollTo(newId, anchor: .center)
+                    proxy.scrollTo(newId, anchor: .top)
                 }
             }
             .onAppear {
@@ -293,12 +321,13 @@ struct TrailListView: View {
                 Task {
                     await Task.yield()
                     withAnimation(.easeInOut(duration: 0.25)) {
-                        proxy.scrollTo(tid, anchor: .center)
+                        proxy.scrollTo(tid, anchor: .top)
                     }
                 }
             }
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: showsSearchBar)
     }
 
     private var filterMenu: some View {

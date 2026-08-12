@@ -44,7 +44,6 @@ struct SettingsView: View {
     @AppStorage(StorageKeys.debugHUD) private var showDebugHUD: Bool = false
     @AppStorage(StorageKeys.debugDiagAutoSync) private var autoSyncDiag: Bool = false
     /// Temporary, TestFlight-only: see the Developer picker below.
-    @AppStorage(StorageKeys.smallDetentHeight) private var smallDetentHeight: Double = 190
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     /// URL of the most recent diagnostics bundle. Non-nil while
@@ -376,17 +375,6 @@ struct SettingsView: View {
                     }
                     Toggle(isOn: $autoSyncDiag) {
                         Label("Auto-sync Diagnostics", systemImage: "arrow.triangle.2.circlepath.icloud")
-                    }
-                    // TEMPORARY: pick the area sheet's small-detent height on the
-                    // device, so the sizes can be compared physically rather than
-                    // from a description. Once one wins it gets hardcoded and
-                    // this picker (and StorageKeys.smallDetentHeight) go away.
-                    Picker(selection: $smallDetentHeight) {
-                        Text("170 — tight").tag(170.0)
-                        Text("190 — default").tag(190.0)
-                        Text("220 — roomy").tag(220.0)
-                    } label: {
-                        Label("Area sheet: small size", systemImage: "rectangle.bottomthird.inset.filled")
                     }
                     Button {
                         ActivityLogService.shared.log(category: "diag", action: "send")

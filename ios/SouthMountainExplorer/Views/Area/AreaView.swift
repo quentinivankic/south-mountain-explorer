@@ -77,22 +77,36 @@ struct AreaView: View {
     /// `.task(id: areaId)` and ends 1.5 s later.
     @State private var minLoadingTimeElapsed = false
 
-    /// Height of the SMALL detent: everything above the trail rows, and no rows.
-    ///
-    /// The sheet got much shorter when the map controls moved out onto the map
-    /// and the Trails/Dex segmented control became a swipe — together those were
-    /// ~100pt of the old header. What's left above the rows is the drag
-    /// indicator (~20), the name + stats block (~72), the page dots (~21, now
-    /// a header row of their own rather than an overlay) and the search field
-    /// (~58) ≈ 171pt, plus breathing room. Still adjustable on-device via the
-    /// Developer picker while the new layout settles.
-    @AppStorage(StorageKeys.smallDetentHeight) private var smallDetentHeight: Double = 205
+    // MARK: - Measured blocks behind the smallest sheet stop
+    //
+    // The smallest stop used to be one constant for every situation, so it was
+    // wrong in most of them: an expanded trail row adds a 96pt elevation chart
+    // and a parking line, and RecordingPanel grows and shrinks on its own as the
+    // GPS capsule and the live elevation strip come and go. The stop is now the
+    // sum of the blocks that have to be WHOLE right now.
+    //
+    // Every number below is measured from the laid-out view, never derived from
+    // font metrics — that keeps it right at any Dynamic Type size and on any
+    // device. The values here are only seeds for the first frame.
+
+    /// Area name + summary line + page dots, with the name and summary showing.
+    @State private var headerHeightFull: CGFloat = 91
+    /// The same header with the name and summary hidden — page dots alone.
+    @State private var headerHeightCompact: CGFloat = 43
+    /// Search field + filter menu + the "Showing X of Y" hint + divider.
+    @State private var searchBarHeight: CGFloat = 55
+    /// Retarget/suggestion banner + RecordingPanel.
+    @State private var recordingBlockHeight: CGFloat = 96
+    /// An ordinary, unexpanded trail row.
+    @State private var collapsedRowHeight: CGFloat = 62
+    /// The selected row with its chart and parking line expanded into it.
+    @State private var selectedRowHeight: CGFloat = 190
+    /// Set when swiping to the Dex raised the sheet, so swiping back can lower
+    /// it again — and so a sheet the USER raised is never lowered behind them.
+    @State private var raisedSheetForDex = false
 
     /// Trail-list sheet detents — three stops.
-    ///   - small: map-forward, but sized so every control stays whole. The old
-    ///     150pt version cut through the control row and hid Record Hike, which
-    ///     is why it felt cramped; the height is now measured against the header
-    ///     stack (see `smallDetentHeight`).
+    ///   - smallest: `minSheetHeight` — only as tall as the current state needs.
     ///   - medium: the default. A device-relative fraction so it shows a
     ///     comparable number of trail rows on a small iPhone SE and a
     ///     Pro Max, rather than a fixed 340pt that's "half the list"
@@ -429,9 +443,30 @@ struct AreaView: View {
                     // bottom of the pager — visibly up off the edge.
                     .ignoresSafeArea(.container, edges: .bottom)
                     .presentationDetents(
-                        [.height(smallDetentHeight), Self.mediumDetent, .large],
+                        [minDetent, Self.mediumDetent, .large],
                         selection: $sheetDetent
                     )
+                    // `.height(190)` and `.height(240)` are DIFFERENT detents,
+                    // so a smallest stop that changes height would leave the
+                    // selection binding pointing at a stop that no longer
+                    // exists and strand the sheet. Re-point it, but only when
+                    // the user was actually sitting on the old minimum —
+                    // someone parked at full screen is never yanked down
+                    // because they selected a trail.
+                    .onChange(of: minSheetHeight) { old, new in
+                        if sheetDetent == .height(old) {
+                            sheetDetent = .height(new)
+                        } else if sheetDetent == Self.mediumDetent,
+                                  new > maxDetentHeight * 0.5 {
+                            // The half stop is no longer tall enough for what
+                            // has to be whole — a recording panel showing its
+                            // live elevation strip clears it on a small phone.
+                            // "Big enough for the recording panel" is the point
+                            // of the smallest stop, so go there even though it
+                            // means growing the sheet.
+                            sheetDetent = .height(new)
+                        }
+                    }
                     .presentationDragIndicator(.visible)
                     .presentationBackgroundInteraction(.enabled(upThrough: Self.mediumDetent))
                     .presentationContentInteraction(.scrolls)
@@ -592,6 +627,10 @@ struct AreaView: View {
             // previous hike shouldn't suppress the same trail forever.
             if !recordingNow {
                 dismissedSuggestionIds.removeAll()
+                // Drop the panel's high-water mark with it, so the next hike
+                // starts from a fresh measurement rather than inheriting the
+                // tallest the last one ever got.
+                recordingBlockHeight = 96
             }
         }
         .task(id: isRecording) {
@@ -674,30 +713,69 @@ struct AreaView: View {
             .first?.keyWindow?.safeAreaInsets.bottom) ?? 34
     }
 
+    /// What UIKit treats as the sheet's full height at `.large`.
+    private var maxDetentHeight: CGFloat {
+        UIScreen.main.bounds.height - Self.topSafeInset - 10
+    }
+
+    /// The sheet's smallest stop: tall enough for exactly what's on screen right
+    /// now, and no taller.
+    ///
+    ///   - a trail is selected → its whole expanded row, chart and all, and the
+    ///     area name, summary line and search bar stand down to pay for it
+    ///   - a recording is running → the whole of RecordingPanel
+    ///   - neither → the header, the search bar, and about two and a half rows,
+    ///     the half row being the cue that the list scrolls
+    ///
+    /// Deliberately keyed on the STATE (is something selected, are we
+    /// recording), never on what the sheet currently has rendered. Reading the
+    /// rendered layout would make the stop's height depend on a decision that
+    /// itself depends on the stop, and the sheet would settle twice on every
+    /// drag down.
+    private var minSheetHeight: CGFloat {
+        let selected = selectedTrailId != nil
+        var h: CGFloat = 8   // slack, so nothing sits flush against the edge
+        h += selected ? headerHeightCompact : headerHeightFull
+        if !selected { h += searchBarHeight }
+        if isRecording { h += recordingBlockHeight }
+        h += selected ? selectedRowHeight : collapsedRowHeight * 2.5
+        // Floor and ceiling: a measurement that came back nonsense must not be
+        // able to collapse the sheet to nothing or swallow the map. The
+        // "smallest" stop stays a minority of the screen whatever it contains.
+        return min(max(h.rounded(), 140), (maxDetentHeight * 0.72).rounded())
+    }
+
+    private var minDetent: PresentationDetent { .height(minSheetHeight) }
+
+    /// At the smallest stop with a trail selected, the area name, the summary
+    /// line and the search bar give up their space to the expanded row — the row
+    /// already names the trail, so they were restating it. Drag the sheet up and
+    /// they come back.
+    private var hideChromeForSelection: Bool {
+        selectedTrailId != nil && sheetDetent == minDetent
+    }
+
     /// Height of the visible sheet, measured from the BOTTOM of the screen.
     /// Drives both the map's user-dot shift and the floating control bar's
     /// position, so being wrong here puts the controls in the wrong place.
     ///
     /// Two bugs lived here: the small case was hardcoded to 150 after the small
-    /// detent became `smallDetentHeight` (so the controls sat ~40pt low and
-    /// clipped behind the sheet), and the medium case used half the FULL screen
-    /// when `.fraction(0.5)` means half the sheet's maximum height — which
+    /// detent stopped being 150 (so the controls sat ~40pt low and clipped
+    /// behind the sheet), and the medium case used half the FULL screen when
+    /// `.fraction(0.5)` means half the sheet's maximum height — which
     /// overestimated it, floating the controls too far above the sheet.
     private var effectiveBottomInset: CGFloat {
-        let screenH = UIScreen.main.bounds.height
-        // What UIKit treats as the sheet's full height at `.large`.
-        let maxDetent = screenH - Self.topSafeInset - 10
         if sheetDetent == .large {
-            return maxDetent
+            return maxDetentHeight
         } else if sheetDetent == Self.mediumDetent {
-            return maxDetent * 0.5   // mirrors .fraction(0.5)
+            return maxDetentHeight * 0.5   // mirrors .fraction(0.5)
         } else {
             // A fixed `.height()` detent measures the sheet's CONTENT height;
             // the sheet then also covers the home indicator beneath it, so the
             // visible sheet is taller than the number we asked for. Measured on
             // device: the controls sat about one home-indicator too low and
             // clipped behind the sheet at this stop. Add it back.
-            return smallDetentHeight + Self.bottomSafeInset
+            return minSheetHeight + Self.bottomSafeInset
         }
     }
 
@@ -1086,21 +1164,26 @@ struct AreaView: View {
             // up here so the user gets the whole "where am I, what's
             // here" pitch in one block.
             VStack(spacing: 4) {
-                Text(areaName)
-                    .font(.title3.weight(.semibold))
-                    .lineLimit(1)
+                // Name and summary stand down at the smallest stop while a
+                // trail is selected — see `hideChromeForSelection`. The page
+                // dots stay: they're the only thing saying the Dex is there.
+                if !hideChromeForSelection {
+                    Text(areaName)
+                        .font(.title3.weight(.semibold))
+                        .lineLimit(1)
 
-                // Single summary line: trails · total distance (unit-aware)
-                // · completion. `areaTrailIds` is the cached Set from
-                // recomputeFiltered() — avoids a per-eval O(N) rebuild.
-                // Whole line turns green at 100% as an area-complete cue.
-                let completed = progress.completionCount(in: area.id, trails: area.trails)
-                let areaComplete = area.resolvedTrailCount > 0 && completed >= area.resolvedTrailCount
-                Text(areaSummaryLine(area: area, completed: completed))
-                    .font(.subheadline)
-                    .foregroundStyle(areaComplete ? .green : .secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    // Single summary line: trails · total distance (unit-aware)
+                    // · completion. `areaTrailIds` is the cached Set from
+                    // recomputeFiltered() — avoids a per-eval O(N) rebuild.
+                    // Whole line turns green at 100% as an area-complete cue.
+                    let completed = progress.completionCount(in: area.id, trails: area.trails)
+                    let areaComplete = area.resolvedTrailCount > 0 && completed >= area.resolvedTrailCount
+                    Text(areaSummaryLine(area: area, completed: completed))
+                        .font(.subheadline)
+                        .foregroundStyle(areaComplete ? .green : .secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
 
                 // OSM attribution is NOT repeated here — the required
                 // "© OpenStreetMap contributors" credit lives in
@@ -1114,6 +1197,14 @@ struct AreaView: View {
             .padding(.horizontal, 20)
             .padding(.top, 10)
             .padding(.bottom, 12)
+            // Both variants get remembered, so `minSheetHeight` can ask for the
+            // COMPACT header while the FULL one is on screen (a selected trail
+            // at the half stop) without either measurement chasing the other.
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+                if hideChromeForSelection { headerHeightCompact = h }
+                else { headerHeightFull = h }
+            }
+            .animation(.easeInOut(duration: 0.2), value: hideChromeForSelection)
 
             // Trails / Dex are now PAGES you swipe between, not a segmented
             // control. The control cost a full row of vertical space in a sheet
@@ -1123,6 +1214,17 @@ struct AreaView: View {
             .onChange(of: sheetTab) { _, tab in
                 if tab == .dex {
                     AnalyticsService.shared.capture(.dexOpened(areaId: area.id))
+                    // The Dex is a grid of tiles — "as tall as it needs to be"
+                    // has no small answer for it, so swiping over raises the
+                    // sheet to the half stop. Only from the smallest stop:
+                    // a sheet the user opened up themselves is left alone.
+                    if sheetDetent == minDetent {
+                        raisedSheetForDex = true
+                        sheetDetent = Self.mediumDetent
+                    }
+                } else if raisedSheetForDex {
+                    raisedSheetForDex = false
+                    sheetDetent = minDetent
                 }
             }
 
@@ -1148,15 +1250,25 @@ struct AreaView: View {
                     }
 
                     if isRecording {
-                        recordingBanners(area: area)
-                        RecordingPanel(area: area) { finished in
-                            finishedRecording = finished
-                            showSummary = finished != nil
-                            // Refresh the cyan coverage halo with the
-                            // just-finished hike's path.
-                            Task { await loadPastPaths() }
+                        VStack(spacing: 0) {
+                            recordingBanners(area: area)
+                            RecordingPanel(area: area) { finished in
+                                finishedRecording = finished
+                                showSummary = finished != nil
+                                // Refresh the cyan coverage halo with the
+                                // just-finished hike's path.
+                                Task { await loadPastPaths() }
+                            }
+                            .padding(.bottom, 4)
                         }
-                        .padding(.bottom, 4)
+                        // Only ever GROW while a hike is running. The panel
+                        // gains and loses the GPS capsule and the live
+                        // elevation strip as the hike goes on, and letting the
+                        // stop shrink back would bob the sheet under the user's
+                        // thumb mid-hike. Reset when the recording ends.
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+                            if h > recordingBlockHeight { recordingBlockHeight = h }
+                        }
                     }
 
                     TrailListView(
@@ -1169,7 +1281,11 @@ struct AreaView: View {
                         sort: $trailSort,
                         searchQuery: $trailSearchQuery,
                         filteredTrails: filtered,
-                        onRecordTrail: { trail in tryStartRecording(trailId: trail.id) }
+                        showsSearchBar: !hideChromeForSelection,
+                        onRecordTrail: { trail in tryStartRecording(trailId: trail.id) },
+                        onSearchBarHeight: { searchBarHeight = $0 },
+                        onCollapsedRowHeight: { collapsedRowHeight = $0 },
+                        onSelectedRowHeight: { selectedRowHeight = $0 }
                     )
                 }
                 // THIS is what closes the bottom gap, and it has to be HERE.

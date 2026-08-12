@@ -1,5 +1,4 @@
 import SwiftUI
-import CoreLocation
 
 /// Tab identity for the root TabView's selection binding. Exists so
 /// ContentView can observe tab taps — the Browse tab focuses its search
@@ -79,7 +78,6 @@ struct ContentView: View {
                     trailName: trailName(forAreaId: rec.areaId, trailId: rec.trailId),
                     distanceMi: rec.distanceMi,
                     startedAt: rec.startedAt,
-                    nextTurn: { nextTurnAhead() },
                     onTap: {
                         if rec.mode == .walk {
                             showWalkCover = true
@@ -276,37 +274,6 @@ struct ContentView: View {
     private func trailName(forAreaId areaId: String, trailId: String?) -> String? {
         guard let trailId else { return nil }
         return areas.cachedArea(id: areaId)?.trails.first { $0.id == trailId }?.name
-    }
-
-    /// The next bend on the trail being followed, or nil.
-    ///
-    /// Only trail-mode recordings get an answer: a roam recording has no
-    /// polyline to be ahead on. The last two recorded fixes supply position and
-    /// direction of travel — the recording path rather than
-    /// `LocationService.liveLocation`, because those two points have already
-    /// been through `GpsIngest`'s speed and accuracy gates, so a wild fix can't
-    /// invent a turn.
-    ///
-    /// Uses `rawTrails` where present, the same choice coverage and the
-    /// suggestion engine make: the render geometry is decimated at 5 m, which
-    /// rounds off exactly the vertices a bend is made of.
-    private func nextTurnAhead() -> TurnAhead? {
-        guard let rec = recording.activeRecording,
-              rec.mode == .trail,
-              let trailId = rec.trailId,
-              let area = areas.cachedArea(id: rec.areaId),
-              let trail = (area.rawTrails ?? area.trails).first(where: { $0.id == trailId })
-        else { return nil }
-        let path = rec.path
-        guard path.count >= 2 else { return nil }
-        let last = path[path.count - 1]
-        let prior = path[path.count - 2]
-        guard last.count >= 2, prior.count >= 2 else { return nil }
-        return PolylineMath.nextTurn(
-            from: CLLocationCoordinate2D(latitude: last[0], longitude: last[1]),
-            priorPoint: CLLocationCoordinate2D(latitude: prior[0], longitude: prior[1]),
-            along: trail.flattenedCoords
-        )
     }
 
     private func stopActiveRecording() async {

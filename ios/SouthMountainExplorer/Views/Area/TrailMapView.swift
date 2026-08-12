@@ -216,6 +216,7 @@ struct TrailMapView: View {
                 // handlers below imperatively re-frame on each location
                 // / heading update.
                 userTrackingMode: .none,
+                userHeading: location.liveHeading,
                 demoUserDot: demoUserDot,
                 onUserGestureRegionChange: {
                     // User gesture-driven region change (pinch / pan).
@@ -254,6 +255,10 @@ struct TrailMapView: View {
             }
         }
         .onAppear {
+            // Compass on as soon as the map is up, so the dot's facing cone is
+            // right from the first frame rather than only after the user cycles
+            // into a follow mode.
+            location.startHeadingUpdates()
             // Snap every past hike's GPS onto the trail network so the
             // cyan "walked here" overlay follows the trail polylines
             // exactly and overlapping passes collapse into one line
@@ -413,17 +418,22 @@ struct TrailMapView: View {
 
     // MARK: - Camera control
 
+    /// Heading now runs in EVERY tracking mode, because the user dot draws a
+    /// facing cone at all times (see MapKitMapView.userHeading) — not just when
+    /// the camera rotates with you. It used to be stopped in .free and .follow,
+    /// which would leave that cone pointing nowhere in the two modes you spend
+    /// most of a hike in. The compass is cheap next to the GPS fix that's
+    /// already running.
     private func applyTrackingMode(_ mode: MapTrackingMode) {
         switch mode {
         case .free:
-            location.stopHeadingUpdates()
+            location.startHeadingUpdates()
             centerOnUser()
         case .follow:
             // Ensure live location is pumping (idempotent — no-op if
-            // already running, e.g. during a recording). Heading
-            // isn't needed for plain follow.
+            // already running, e.g. during a recording).
             location.startLiveTracking()
-            location.stopHeadingUpdates()
+            location.startHeadingUpdates()
             updateTrackedPosition(resetZoom: true)
         case .followHeading:
             location.startLiveTracking()

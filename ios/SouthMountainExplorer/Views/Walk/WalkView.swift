@@ -71,6 +71,7 @@ struct WalkView: View {
                     cameraTick: cameraTick,
                     showsUserLocation: true,
                     userTrackingMode: .none,
+                    userHeading: location.liveHeading,
                     onUserGestureRegionChange: nil
                 )
                 .ignoresSafeArea()

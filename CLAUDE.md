@@ -4,7 +4,7 @@ Source of truth for a fresh session. Read it first. It's a concise map, not
 a changelog — **verify specific claims against the code before trusting them**,
 and see the auto-memory files (`MEMORY.md` index) for deep detail on active
 threads (App Store submission, trail/area quality, dedup, parking, coverage gap).
-Updated 2026-07-28.
+Updated 2026-08-12.
 
 > ### Start here in a NEW session
 >
@@ -33,7 +33,8 @@ Browse parks/preserves, record GPS-tracked hikes, track completion of every
 trail in an area. SwiftUI, iOS 18+ deployment target.
 
 - **Tabs:** Explore · Browse · **Stats** · Settings (`App/ContentView.swift`).
-  Stats/Insights dashboards exist (`Views/Stats/`).
+  Stats holds the dashboards (`Views/Stats/`); the separate Insights screen
+  was folded into it (#550) and `InsightsView.swift` is gone.
 - **Recording:** trail-mode + roam-mode; app-kill recovery via
   `restoreActiveRecording` (12 h) from `StorageKeys.activeRecording`; GPS path
   → `Documents/hike-history.json` (schema v2, cold-launch migration); 2 s poll;

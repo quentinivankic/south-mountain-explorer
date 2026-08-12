@@ -2,18 +2,21 @@
 
 **Why this file exists.** The task list Claude keeps in-session (`TaskList` /
 `TaskGet`) does NOT survive into a new session — it is session-scoped state, and
-a fresh session starts with nothing. These 14 tasks carry hard-won measurement
+a fresh session starts with nothing. These tasks carry hard-won measurement
 in their descriptions: national counts, named counter-examples, and approaches
 already ruled out with evidence. Losing them means re-deriving all of it, or
 worse, re-proposing something already disproved. So they live here, in the repo,
 and a new session should re-create them with `TaskCreate` from this file.
 
-(15 open tasks as of 2026-08-02.)
+(17 open tasks as of 2026-08-12.)
 
 Numbers are the original task ids. Gaps (#19–#20, #22–#25, #27–#30, #32,
 #38–#43, #45, #48) are completed work — see git log and `TODO.md`.
 
-Last synced from the live task list: **2026-08-02**.
+Last synced from the live task list: **2026-08-12**. That sync found #52
+present only in the session task list and nowhere in this file — exactly the loss
+this file exists to prevent. It is written up below with what is actually known,
+which is not much.
 
 | # | Task | Kind |
 |---|---|---|
@@ -32,6 +35,8 @@ Last synced from the live task list: **2026-08-02**.
 | [50](#50) | Paid Applications Agreement | user-side |
 | [53](#53) | Adjudicate parking by aerial + vision, per lot | data · tooling built, 6 areas done |
 | [54](#54) | Trailhead spurs trimmed by `_trim_to_parks` — trails end short of the trailhead | data · pipeline |
+| [52](#52) | One car park mapped as many OSM polygons ships as many pins | data · unmeasured |
+| [55](#55) | Device-test the rebuilt area sheet | QA · needs a TestFlight build |
 
 ---
 
@@ -515,3 +520,59 @@ are unfinished in App Store Connect. Not a blocker for the free v1.0 currently i
 review, but it blocks any future paid tier or in-app purchase — nothing can be
 sold until the agreement is active and the tax forms clear. Only the account
 holder can do this.
+
+
+---
+
+<a name="52"></a>
+## #52 — One car park mapped as many OSM polygons ships as many pins
+
+**Recorded 2026-08-12 with an explicit hole in it.** This task existed only in a
+session-scoped task list — one line, no measurement, no named example. The
+session that raised it is gone, so what follows is what the code says, not what
+was originally measured. Treat every number here as absent, not as zero.
+
+The phenomenon: OSM often maps a single car park as several adjacent polygons
+(separate aisles, separate surface patches, a mapper splitting on a kerb). Each
+polygon centroids to its own pin, so one lot can draw as three or four "P"s.
+
+Partial mitigation already shipped: `scripts/build-parking-pool.py` dedupes at
+`DEDUP_M = 40.0` m when building the global pool, matching `PARKING_DEDUP_M` on
+the `add-parking.py` side. So pins closer than 40 m already collapse. What is NOT
+known is how much survives that: a long lot split lengthwise can easily place two
+centroids more than 40 m apart while being one car park.
+
+**Before doing anything here, measure it** — count areas where two pool lots sit
+within, say, 150 m AND their OSM polygons share an edge or are separated only by
+a service road. Union-find on shared geometry is the honest test; a distance
+threshold alone will merge genuinely separate lots at a trailhead complex, which
+is the same over-merge trap named in `parking-vision-adjudication`.
+
+---
+
+<a name="55"></a>
+## #55 — Device-test the rebuilt area sheet
+
+Three PRs landed on 2026-08-12 and none of them has been on a phone yet, because
+the TestFlight build is deliberately being held to bundle them:
+
+- **#551** — the sheet's bottom gap. A `.page` `TabView` hosts each page in its
+  own view controller and re-applies the home-indicator inset there, so the list
+  stopped short of the bottom no matter what the sheet root did. Fixed by
+  ignoring the bottom safe area on the PAGE. The pager's built-in dots went with
+  it; they now live in the sheet header.
+- **#552** — the smallest stop is now the sum of the blocks that must be whole:
+  a selected trail's whole expanded row (and the area name, summary and search
+  bar stand down to pay for it), or the whole recording panel, or the header plus
+  about 2.5 rows. All measured via `onGeometryChange`; `StorageKeys
+  .smallDetentHeight` and its Developer picker are deleted.
+- **#553** — GPX export failures raise an alert instead of doing nothing, and the
+  elevation badge's up-arrow became an up-and-down arrow (`gainFt` is
+  `max(ascent, descent)`, so the up-arrow claimed a climb on trails that only
+  descend).
+
+What needs eyes: the sheet growing when a trail is selected and shrinking when
+deselected, the chrome coming back at the half stop, the recording panel staying
+whole when its live elevation strip appears mid-hike, and the Dex raise. All of
+it is SwiftUI layout reasoned about from the code — no simulator runs on the
+homelab, so CI green means it compiles, nothing more.

@@ -440,11 +440,22 @@ struct AreaView: View {
             // SETTLES (at most once per release), not per drag tick.
             if let area {
                 sheetContent(area: area)
-                    // Run the sheet's content to the physical bottom edge. It
-                    // was inset by the home indicator, which both left a gap
-                    // below the list and pushed the page dots — which sit at the
-                    // bottom of the pager — visibly up off the edge.
-                    .ignoresSafeArea(.container, edges: .bottom)
+                    // LAYER 1 of 3, and the one the previous four attempts kept
+                    // missing the consequence of.
+                    //
+                    // If the sheet's root content stops at the safe area, its
+                    // frame ends ~34pt above the screen. Nothing inside can grow
+                    // past a parent that already ended — so the page-level fix
+                    // in #551 was a no-op whenever THIS one failed, because a
+                    // page has no safe area left to ignore once its parent has
+                    // already been cut short. Both are needed; neither is
+                    // sufficient.
+                    //
+                    // `.container` narrowed this to one safe-area region.
+                    // Dropping the region argument ignores ALL of them at the
+                    // bottom edge, which is what was wanted. Bottom edge only,
+                    // so the header can never slide under the notch at .large.
+                    .ignoresSafeArea(edges: .bottom)
                     .presentationDetents(
                         [minDetent, Self.mediumDetent, .large],
                         selection: $sheetDetent
@@ -709,13 +720,6 @@ struct AreaView: View {
             .first?.keyWindow?.safeAreaInsets.top) ?? 47
     }
 
-    /// Bottom safe-area inset (home indicator).
-    static var bottomSafeInset: CGFloat {
-        (UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first?.keyWindow?.safeAreaInsets.bottom) ?? 34
-    }
-
     /// What UIKit treats as the sheet's full height at `.large`.
     private var maxDetentHeight: CGFloat {
         UIScreen.main.bounds.height - Self.topSafeInset - 10
@@ -742,6 +746,19 @@ struct AreaView: View {
         if !selected { h += searchBarHeight }
         if isRecording { h += recordingBlockHeight }
         h += selected ? selectedRowHeight : collapsedRowHeight * 2.5
+        if selected {
+            // Never let selecting a trail SHRINK the sheet. Standing down the
+            // name, summary and search bar frees more space than the expanded
+            // row needs, so the arithmetic alone made the sheet drop when you
+            // tapped a row — and the floating map controls, anchored to its top
+            // edge, dropped with it. Holding the idle height instead spends the
+            // freed space on more visible rows, which is the better trade
+            // anyway: the ground does not move under the thing you just tapped.
+            let idle = 8 + headerHeightFull + searchBarHeight
+                + (isRecording ? recordingBlockHeight : 0)
+                + collapsedRowHeight * 2.5
+            h = max(h, idle)
+        }
         // Floor and ceiling: a measurement that came back nonsense must not be
         // able to collapse the sheet to nothing or swallow the map. The
         // "smallest" stop stays a minority of the screen whatever it contains.
@@ -773,12 +790,16 @@ struct AreaView: View {
         } else if sheetDetent == Self.mediumDetent {
             return maxDetentHeight * 0.5   // mirrors .fraction(0.5)
         } else {
-            // A fixed `.height()` detent measures the sheet's CONTENT height;
-            // the sheet then also covers the home indicator beneath it, so the
-            // visible sheet is taller than the number we asked for. Measured on
-            // device: the controls sat about one home-indicator too low and
-            // clipped behind the sheet at this stop. Add it back.
-            return minSheetHeight + Self.bottomSafeInset
+            // Just the detent height. This USED to add `bottomSafeInset`, from a
+            // device reading taken when the sheet's content stopped at the safe
+            // area and the visible panel really was taller than the number asked
+            // for. Now that the content bleeds through the bottom safe area, the
+            // detent height IS the visible height, and the extra 34pt floated the
+            // controls a home-indicator too far above the sheet — reported as
+            // "further away at the lowest setting". The medium and large cases
+            // never had the extra and were never reported as wrong, which is the
+            // corroboration.
+            return minSheetHeight
         }
     }
 
@@ -1303,11 +1324,14 @@ struct AreaView: View {
                 // edge, which is the gap that survived two previous fixes.
                 // Ignoring it on the page itself is the only placement that
                 // acts on the inset the page was actually given.
-                .ignoresSafeArea(.container, edges: .bottom)
+                // LAYER 2 of 3: a `.page` TabView hosts each page in its own
+                // view controller, which RE-APPLIES the window inset inside the
+                // page. Layer 1 cannot reach through that.
+                .ignoresSafeArea(edges: .bottom)
                 .tag(AreaSheetTab.trails)
 
                 DexView(area: area)
-                    .ignoresSafeArea(.container, edges: .bottom)
+                    .ignoresSafeArea(edges: .bottom)
                     .tag(AreaSheetTab.dex)
             }
             // Built-in index off — its page control positions itself inside the
@@ -1526,12 +1550,20 @@ struct AreaView: View {
             // owns the stop/save flow there).
             if !isRecording {
                 Button {
-                    tryStartRecording()
+                    // Start the SELECTED trail when there is one. This passed
+                    // nil unconditionally, so the big obvious button always
+                    // started a ROAM recording — the trail you had just tapped
+                    // was ignored, the map never lit it up as the active trail,
+                    // and the hike saved with no trail name against it. Tapping
+                    // a trail then tapping Record can only mean one thing.
+                    tryStartRecording(trailId: selectedTrailId)
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "record.circle")
                             .font(.body.weight(.semibold))
-                        Text("Record Hike")
+                        // Name what will be recorded, so the button says which
+                        // of the two things it is about to do.
+                        Text(selectedTrailId == nil ? "Record Hike" : "Record Trail")
                             .fontWeight(.semibold)
                     }
                     .padding(.horizontal, 20)

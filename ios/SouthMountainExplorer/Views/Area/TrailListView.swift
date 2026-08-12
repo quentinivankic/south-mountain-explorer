@@ -214,6 +214,13 @@ struct TrailListView: View {
             // alphabetical list left the row off-screen and the
             // selection was effectively invisible.
             ScrollViewReader { proxy in
+                // LAYER 3 of 3 for the sheet's bottom edge. A scroll view whose
+                // frame reaches into the home-indicator strip still adds that
+                // strip as a CONTENT inset, so scrolled to the end the last row
+                // parks ~34pt up with sheet background under it — which reads as
+                // "the menu doesn't go all the way down" even when the sheet
+                // itself does. This is a different mechanism from the two in
+                // AreaView, and it is the only one that lives on the scroll view.
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         if filteredTrails.isEmpty {
@@ -293,6 +300,10 @@ struct TrailListView: View {
                         }
                     }
                 }
+                // ON THE SCROLL VIEW ITSELF, not on the reader around it — this
+                // is the modifier that stops UIKit adding the home-indicator
+                // strip as a bottom CONTENT inset. See the LAYER 3 note above.
+                .ignoresSafeArea(edges: .bottom)
                 // No manual bottom padding. This 50pt existed for the old
                 // hand-rolled panel, which used .ignoresSafeArea(.bottom) and so
                 // had to push its last row out of the home-indicator zone. The

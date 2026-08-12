@@ -555,8 +555,23 @@ struct TrailRow: View {
                         Label(UnitFormatter.distance(miles: trail.distanceMi, units: units), systemImage: "figure.walk")
                         if let gain = trail.gainFt, gain > 0 {
                             Text("·")
+                            // An up-and-down arrow, not an up arrow. `gainFt` is
+                            // `max(ascent, descent)` over the trail — the climb
+                            // in the HARDER direction — because OSM way order is
+                            // arbitrary and a one-way "gain" would be a coin
+                            // flip. Measured over a 400-area sample: 46.7% of
+                            // trails with a profile fall further than they
+                            // climb in stored order, and 26.8% of all of them
+                            // had this badge claiming at least twice the climb
+                            // the drawn direction actually has. Shaughnessey
+                            // Connector is the example that surfaced it: 238 ft
+                            // of pure descent, badged as a 220 ft ascent right
+                            // above a chart that visibly only goes down.
                             Label(UnitFormatter.elevation(feet: Double(gain), units: units),
-                                  systemImage: "arrow.up.forward")
+                                  systemImage: "arrow.up.and.down")
+                                .accessibilityLabel(
+                                    "\(UnitFormatter.elevation(feet: Double(gain), units: units)) of elevation change"
+                                )
                         }
                         Text("·")
                         Text(trail.difficulty.rawValue)

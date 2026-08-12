@@ -22,6 +22,8 @@ struct TrailDetailSheet: View {
     @Environment(RecordingService.self) private var recording
 
     @State private var gpxShareURL: IdentifiedURL? = nil
+    /// Set when a GPX export throws — see `exportFailureAlert`.
+    @State private var exportFailure: String? = nil
     /// Hike history filtered to those that touched this trail.
     /// Loaded asynchronously by `.task(id: trail.id)` — empty
     /// until the load lands. Re-filters when the sheet re-targets
@@ -90,6 +92,7 @@ struct TrailDetailSheet: View {
         .sheet(item: $gpxShareURL) { wrapped in
             ShareSheet(items: [wrapped.url])
         }
+        .exportFailureAlert($exportFailure)
     }
 
     /// One-line summary of how often + how recently the user
@@ -159,7 +162,8 @@ struct TrailDetailSheet: View {
             let url = try GpxExport.temporaryFile(trail: trail, areaName: areaName)
             gpxShareURL = IdentifiedURL(url: url)
         } catch {
-            // Silent — share sheet won't appear; user can retry.
+            exportFailure = ExportFailure.message(for: error,
+                                                  what: "\u{201C}\(trail.name)\u{201D}")
         }
     }
 

@@ -170,6 +170,9 @@ struct AreaView: View {
     /// Half-sheet that presents the area-wide multi-track GPX
     /// share. Wraps URL because URL itself isn't Identifiable.
     @State private var areaGpxShareURL: IdentifiedURL? = nil
+    /// Set when a GPX export throws, so the tap gets an answer instead of
+    /// nothing at all. See `exportFailureAlert`.
+    @State private var exportFailure: String? = nil
 
     // Trail-list filters live up here so the map and the list share the
     // same source of truth — flipping a filter hides the corresponding
@@ -899,7 +902,8 @@ struct AreaView: View {
             let url = try GpxExport.temporaryFile(area: area)
             areaGpxShareURL = IdentifiedURL(url: url)
         } catch {
-            // Silent — share sheet won't appear; user can retry.
+            exportFailure = ExportFailure.message(for: error,
+                                                  what: "this park's trails")
         }
     }
 
@@ -916,7 +920,8 @@ struct AreaView: View {
             let url = try GpxExport.temporaryFile(trail: trail, areaName: area?.name)
             areaGpxShareURL = IdentifiedURL(url: url)
         } catch {
-            // Silent — share sheet won't appear; user can retry.
+            exportFailure = ExportFailure.message(for: error,
+                                                  what: "\u{201C}\(trail.name)\u{201D}")
         }
     }
 
@@ -1204,6 +1209,7 @@ struct AreaView: View {
         .sheet(item: $areaGpxShareURL) { wrapped in
             ShareSheet(items: [wrapped.url])
         }
+        .exportFailureAlert($exportFailure)
         .sheet(item: $reportingTrail) { trail in
             ReportTrailView(trail: trail, areaId: areaId, areaName: areaName)
         }

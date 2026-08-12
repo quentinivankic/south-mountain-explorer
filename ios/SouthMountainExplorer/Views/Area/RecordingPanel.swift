@@ -277,6 +277,8 @@ struct RecordingSummarySheet: View {
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     @State private var gpxShareURL: IdentifiedURL? = nil
+    /// Set when a GPX export throws — see `exportFailureAlert`.
+    @State private var exportFailure: String? = nil
 
     private func trailName(for id: String) -> String {
         trails.first { $0.id == id }?.name ?? id
@@ -438,6 +440,7 @@ struct RecordingSummarySheet: View {
         .sheet(item: $gpxShareURL) { wrapped in
             ShareSheet(items: [wrapped.url])
         }
+        .exportFailureAlert($exportFailure)
     }
 
     /// Single completed-trail row, used for both "New Completions"
@@ -475,7 +478,8 @@ struct RecordingSummarySheet: View {
             let url = try GpxExport.temporaryFile(trail: trail, areaName: areaName)
             gpxShareURL = IdentifiedURL(url: url)
         } catch {
-            // Silent — share sheet won't appear; user can retry.
+            exportFailure = ExportFailure.message(for: error,
+                                                  what: "\u{201C}\(trail.name)\u{201D}")
         }
     }
 

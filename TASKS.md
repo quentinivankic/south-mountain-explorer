@@ -20,7 +20,7 @@ which is not much.
 
 | # | Task | Kind |
 |---|---|---|
-| [51](#51) | Boundary ids: 1,848 areas still have none | data · 80% done |
+| [51](#51) | Boundary ids: 2,226 areas still have none | data · roll BLOCKED by #53 |
 | [35](#35) | Fragmentation quality score | data · measured |
 | [21](#21) | Road-as-trail: ~2,780 still unsolved | data · 4 approaches ruled out |
 | [31](#31) | Split thru-routes into road-bounded sections | data · measured |
@@ -31,9 +31,9 @@ which is not much.
 | [26](#26) | Mid-hike "complete the area" routing mode | app · large |
 | [46](#46) | Ship Canada | pipeline · large |
 | [47](#47) | Crash and stability pass on device | QA |
-| [49](#49) | Live Activity + distance-to-next-turn | app |
+| [49](#49) | Live Activity (the turn banner SHIPPED in #555) | app |
 | [50](#50) | Paid Applications Agreement | user-side |
-| [53](#53) | Adjudicate parking by aerial + vision, per lot | data · tooling built, 6 areas done |
+| [53](#53) | Adjudicate parking by aerial + vision, per lot | **data · THE TRUTH for parking; 11 areas done** |
 | [54](#54) | Trailhead spurs trimmed by `_trim_to_parks` — trails end short of the trailhead | data · pipeline |
 | [52](#52) | One car park mapped as many OSM polygons ships as many pins | data · unmeasured |
 | [55](#55) | Device-test the rebuilt area sheet | QA · needs a TestFlight build |
@@ -41,7 +41,32 @@ which is not much.
 ---
 
 <a name="53"></a>
-## #53 — Adjudicate parking by aerial + vision. Tooling built; 6 areas done.
+## #53 — Adjudicate parking by aerial + vision. Tooling built; 11 areas done.
+
+> ### DECIDED 2026-08-12: this is the source of truth for parking KEEP/DROP.
+>
+> The user chose the per-lot vision verdict over any geometric gate, and wants to
+> resume within a couple of days. Everything else that proposes to remove parking
+> defers to it — see the blocker now on [#51](#51) and the note on [#52](#52).
+>
+> **Why, in one fact.** The vision protocol's own SERVES axis is the app's rule
+> (nearest lots within 805 m of a trail's endpoints, 5 km fallback), NOT
+> containment — because trailheads sit OUTSIDE park polygons by nature. They are
+> roadside pull-offs on the approach road. That is the same fact that makes
+> `_trim_to_parks` sever access spurs in [#54](#54).
+>
+> **Where it lives, verified 2026-08-12:** `/mnt/raid/trekdex/parking-adjud/` —
+> `README.md`, `tools/` (17 files incl. `judge_protocol.md`), `data/` (82 files,
+> 99 MB, 14 verdict stores), `artifacts/`, `osm/`. Read the README first.
+>
+> ⚠️ **The root disk is at 94% with 5.7 GB free.** A disk-full has already
+> truncated a verdict file once. Check `df -h /` before a run, and keep every pbf
+> on `/mnt/raid`.
+>
+> **Resume path:** the reversible `public/areas/parking-verdicts.json` sidecar
+> keyed by OSM id, shaped like `nonhiking-trails.json`, honoured by the pool
+> builder, and unable to empty an area. Then graduate `dossier.py`,
+> `context_classify.py` and `judge_protocol.md` into `scripts/`.
 
 **State 2026-08-01: the method is built and exercised on 6 areas; nothing ships
 yet.** Durable home (job tmp is ephemeral): **`/mnt/raid/trekdex/parking-adjud/`**
@@ -200,7 +225,28 @@ Vermont's loaded boundaries went 29/103 -> 82/103.
    set: publish clips to a UNION of same-named siblings, so a single polygon can
    legitimately hold only part. Recording the whole SET of ids, rather than one,
    would recover most of them.
-2. ⚠️ **THE ROLL HAS NOT BEEN RE-RUN, and doing so REMOVES parking.** With a real
+2. ⚠️ **BLOCKED 2026-08-12 — do NOT re-run the roll.** The user decided the
+   per-lot vision verdict ([#53](#53)) is the truth for parking, and this roll is
+   the competing instrument. It would apply containment nationally, which is the
+   criterion the vision runs measured as WRONG for trailheads: they are roadside
+   pull-offs outside the park polygon by nature. Cady Hill Forest's three lots sit
+   179-556 m outside its boundary, which is the shape of a real trailhead.
+
+   **And there is no safety net.** Verified in code 2026-08-12:
+   `add-parking.py::pool_candidates` states that callers apply the containment and
+   road gates FIRST, so a lot the gate rejects never reaches
+   `public/areas/parking-pool.json` and never reaches the global pool either. The
+   pin disappears from the whole app, not just from that area.
+
+   **The two halves are separable and half is still worth doing.** Recovering the
+   boundary ids helps trail clipping and any future gate, and changes no parking
+   on its own. Measured 2026-08-12 over shipped geom: 6,848 of 9,074 areas carry a
+   boundary id (75.5%); 2,226 do not; 1,437 of those ship 9,420 lots admitted by
+   proximity alone. Those 9,420 are what a re-run puts at risk.
+
+   Original note kept below for the numbers.
+
+3. ⚠️ **THE ROLL HAS NOT BEEN RE-RUN, and doing so REMOVES parking.** With a real
    boundary the gate drops lots that proximity had been admitting. Vermont's dry
    run: 4 areas cleared, e.g. Cady Hill Forest's three lots sitting 179-556 m out
    and outside the boundary; Breadloaf Wilderness loses two USFS trailheads that
@@ -503,8 +549,13 @@ Two long-standing drafts, both still valid ideas, neither built.
 
 - **#147** — a Live Activity / Dynamic Island presence during an active recording
   showing distance, time and coverage so the hiker doesn't have to unlock.
-- **#144** — an in-map banner giving distance to the next turn on the followed
-  trail.
+- **#144** — ~~an in-map banner giving distance to the next turn~~ **SHIPPED
+  2026-08-12 as #555**, rebuilt on current main rather than merged: PR #144 sat
+  380 commits behind and proposed a single-vertex angle detector, which was
+  measured over a random 120-area sample and is unusable — at 25 degrees the
+  median gap between consecutive "turns" is 27 m. A sustained heading change over
+  50 m at 60 degrees gives 150 m instead. `PolylineMath.nextTurn`, 11 tests. Close
+  #144; only the Live Activity half of this task is left.
 
 Both are app-code features needing a TestFlight build; neither is blocked by
 anything. Parked, not rejected. Both PRs are still open on GitHub with their
@@ -531,6 +582,10 @@ holder can do this.
 session-scoped task list — one line, no measurement, no named example. The
 session that raised it is gone, so what follows is what the code says, not what
 was originally measured. Treat every number here as absent, not as zero.
+
+**Deferring to [#53](#53) as of 2026-08-12.** Any merge that REMOVES a pin is a
+parking KEEP/DROP call, and the per-lot vision verdict is the truth for those. A
+pure de-duplication that draws one pin where two described one lot is fine.
 
 The phenomenon: OSM often maps a single car park as several adjacent polygons
 (separate aisles, separate surface patches, a mapper splitting on a kerb). Each

@@ -381,32 +381,6 @@ struct AreaView: View {
                 )
                 .ignoresSafeArea()
 
-                // Fills the strip the sheet leaves at the bottom of the screen.
-                //
-                // Built against the iOS 26 SDK, a presented sheet is drawn as a
-                // floating card INSET from the display edges — the user's
-                // screenshot of build 283 shows map through that inset and
-                // around the sheet's rounded bottom corners. The sheet's frame
-                // is the OS's to decide and nothing inside it can push it
-                // outward, which is why five attempts at the safe area failed.
-                //
-                // Drawing the sheet ourselves DID close it (build 284) and was
-                // worse in every other way: the drag went rough, the surface
-                // read pure black, and the floating controls clipped behind it.
-                // So the sheet stays, and this paints the strip it cannot reach
-                // in the sheet's own background colour. The sheet floats over
-                // this, so only the gap shows, and the rounded bottom corners
-                // now sit on matching colour instead of on the map.
-                //
-                // 80pt is generous on purpose: the inset is the OS's number, not
-                // ours, and over-covering costs nothing because everything above
-                // the sheet's bottom edge is hidden behind the sheet anyway.
-                Color(.systemBackground)
-                    .frame(height: 80)
-                    .frame(maxHeight: .infinity, alignment: .bottom)
-                    .ignoresSafeArea()
-                    .allowsHitTesting(false)
-
                 // Map controls FLOAT over the map, anchored just above the
                 // sheet's top edge, and ride up and down with it. They used to
                 // be the sheet's first row, which spent scarce vertical space
@@ -512,16 +486,36 @@ struct AreaView: View {
                     .presentationBackgroundInteraction(.enabled(upThrough: Self.mediumDetent))
                     .presentationContentInteraction(.scrolls)
                     .presentationCornerRadius(20)
-                    // Opaque system background at EVERY detent. By
-                    // default the sheet is translucent (glass) at the
-                    // small / medium detents and only goes opaque at
-                    // .large — which is why the controls read as
-                    // "glass on glass" until you expand it. Forcing
-                    // the solid background everywhere removes the
-                    // sheet's own glass layer entirely, so the inner
-                    // controls sit on a plain surface (the look the
-                    // user wanted at all heights, not just full-screen).
-                    .presentationBackground(Color(.systemBackground))
+                    // Opaque system background at EVERY detent. By default the
+                    // sheet is translucent (glass) at the small / medium detents
+                    // and only goes opaque at .large, which read as "glass on
+                    // glass"; this forces the solid surface everywhere.
+                    //
+                    // THE `.ignoresSafeArea()` IS THE POINT, and its absence is
+                    // the bottom gap this screen has had for six builds.
+                    //
+                    // `presentationBackground` REPLACES the sheet's own
+                    // background view with this one. The shape-style form gets
+                    // laid out inside the sheet's safe area, so the fill stopped
+                    // one home indicator short of the screen and you saw
+                    // straight through the sheet to whatever was behind it.
+                    //
+                    // The proof is the user's own black bar. #560 painted a
+                    // black rectangle on the map underneath the sheet; the strip
+                    // that had been showing MAP then showed BLACK. A hole that
+                    // changes colour with what is behind it is a hole in the
+                    // background, not a short frame — and every fix before this
+                    // one worked on the sheet's CONTENT, which was never where
+                    // the hole was.
+                    //
+                    // Corroboration in-repo: this is the only sheet in the app
+                    // that overrides `presentationBackground`, and the only one
+                    // ever reported as stopping short. TrailDetailSheet,
+                    // HomeView's and AreaCompletionView's sheets all take the
+                    // default full-bleed background and reach the bottom.
+                    .presentationBackground {
+                        Color(.systemBackground).ignoresSafeArea()
+                    }
                     .interactiveDismissDisabled()
             }
         }
@@ -747,6 +741,13 @@ struct AreaView: View {
             .first?.keyWindow?.safeAreaInsets.top) ?? 47
     }
 
+    /// Bottom safe-area inset (home indicator).
+    static var bottomSafeInset: CGFloat {
+        (UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.keyWindow?.safeAreaInsets.bottom) ?? 34
+    }
+
     /// What UIKit treats as the sheet's full height at `.large`.
     private var maxDetentHeight: CGFloat {
         UIScreen.main.bounds.height - Self.topSafeInset - 10
@@ -817,16 +818,22 @@ struct AreaView: View {
         } else if sheetDetent == Self.mediumDetent {
             return maxDetentHeight * 0.5   // mirrors .fraction(0.5)
         } else {
-            // Just the detent height. This USED to add `bottomSafeInset`, from a
-            // device reading taken when the sheet's content stopped at the safe
-            // area and the visible panel really was taller than the number asked
-            // for. Now that the content bleeds through the bottom safe area, the
-            // detent height IS the visible height, and the extra 34pt floated the
-            // controls a home-indicator too far above the sheet — reported as
-            // "further away at the lowest setting". The medium and large cases
-            // never had the extra and were never reported as wrong, which is the
-            // corroboration.
-            return minSheetHeight
+            // A fixed `.height()` detent sets the sheet's CONTENT height; the
+            // sheet then also covers the home indicator below it, so the panel
+            // you see is that much taller than the number asked for.
+            //
+            // #558 removed this term, reasoning from the "controls sit further
+            // away at the lowest stop" report. That was the wrong end: MEASURED
+            // off a build-285 screenshot, the panel's top edge sits ~309pt above
+            // the bottom while this returned ~272pt, and the Record pill pinned
+            // 10pt above that landed INSIDE the sheet and was cut in half. The
+            // shortfall is one home indicator.
+            //
+            // The medium and large cases are left alone deliberately. Their
+            // fractions are already taken of a height measured from the screen
+            // bottom, and there is no measurement of them to act on — guessing
+            // at those is what produced this in the first place.
+            return minSheetHeight + Self.bottomSafeInset
         }
     }
 

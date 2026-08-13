@@ -321,6 +321,19 @@ struct TrailListView: View {
                 withAnimation(.easeInOut(duration: 0.25)) {
                     proxy.scrollTo(newId, anchor: .top)
                 }
+                // Then again once the layout has settled. Selecting a row makes
+                // it TALLER (the chart and parking line expand into it) and the
+                // panel changes height underneath at the same moment, so the
+                // offset computed a moment ago is stale by the time both land —
+                // which is how the selected row ended up with its title tucked
+                // under the page dots. Same deferred-one-hop trick the deep-link
+                // path below already uses.
+                Task {
+                    await Task.yield()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        proxy.scrollTo(newId, anchor: .top)
+                    }
+                }
             }
             .onAppear {
                 // Opened from a Browse trail-search result: AreaView sets

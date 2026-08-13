@@ -486,16 +486,36 @@ struct AreaView: View {
                     .presentationBackgroundInteraction(.enabled(upThrough: Self.mediumDetent))
                     .presentationContentInteraction(.scrolls)
                     .presentationCornerRadius(20)
-                    // Opaque system background at EVERY detent. By
-                    // default the sheet is translucent (glass) at the
-                    // small / medium detents and only goes opaque at
-                    // .large — which is why the controls read as
-                    // "glass on glass" until you expand it. Forcing
-                    // the solid background everywhere removes the
-                    // sheet's own glass layer entirely, so the inner
-                    // controls sit on a plain surface (the look the
-                    // user wanted at all heights, not just full-screen).
-                    .presentationBackground(Color(.systemBackground))
+                    // Opaque system background at EVERY detent. By default the
+                    // sheet is translucent (glass) at the small / medium detents
+                    // and only goes opaque at .large, which read as "glass on
+                    // glass"; this forces the solid surface everywhere.
+                    //
+                    // THE `.ignoresSafeArea()` IS THE POINT, and its absence is
+                    // the bottom gap this screen has had for six builds.
+                    //
+                    // `presentationBackground` REPLACES the sheet's own
+                    // background view with this one. The shape-style form gets
+                    // laid out inside the sheet's safe area, so the fill stopped
+                    // one home indicator short of the screen and you saw
+                    // straight through the sheet to whatever was behind it.
+                    //
+                    // The proof is the user's own black bar. #560 painted a
+                    // black rectangle on the map underneath the sheet; the strip
+                    // that had been showing MAP then showed BLACK. A hole that
+                    // changes colour with what is behind it is a hole in the
+                    // background, not a short frame — and every fix before this
+                    // one worked on the sheet's CONTENT, which was never where
+                    // the hole was.
+                    //
+                    // Corroboration in-repo: this is the only sheet in the app
+                    // that overrides `presentationBackground`, and the only one
+                    // ever reported as stopping short. TrailDetailSheet,
+                    // HomeView's and AreaCompletionView's sheets all take the
+                    // default full-bleed background and reach the bottom.
+                    .presentationBackground {
+                        Color(.systemBackground).ignoresSafeArea()
+                    }
                     .interactiveDismissDisabled()
             }
         }

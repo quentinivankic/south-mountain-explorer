@@ -104,6 +104,17 @@ struct AreaView: View {
     /// Set when swiping to the Dex raised the sheet, so swiping back can lower
     /// it again — and so a sheet the USER raised is never lowered behind them.
     @State private var raisedSheetForDex = false
+    /// The sheet's REAL top edge, in points up from the physical screen bottom,
+    /// reported by the sheet's own content rather than derived from what a
+    /// detent is believed to mean.
+    ///
+    /// Every version of this before was a model of UIKit's behaviour: does
+    /// `.height(x)` include the home indicator, is `.fraction(0.5)` half of the
+    /// screen or half of the sheet's maximum. Each model was wrong in a
+    /// different place, and the floating controls sat at a different distance
+    /// from the sheet at each stop because each stop used a different guess.
+    /// A measurement has no stops to get individually wrong.
+    @State private var measuredSheetTop: CGFloat? = nil
 
     /// Trail-list sheet detents — three stops.
     ///   - smallest: `minSheetHeight` — only as tall as the current state needs.

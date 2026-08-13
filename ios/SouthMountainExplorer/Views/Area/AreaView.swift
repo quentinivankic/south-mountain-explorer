@@ -105,12 +105,14 @@ struct AreaView: View {
     /// it again — and so a sheet the USER raised is never lowered behind them.
     @State private var raisedSheetForDex = false
 
-    /// Where the trail panel is parked. Three stops, unchanged in meaning from
-    /// the detents they replace: smallest is `minSheetHeight`, medium is half
-    /// the panel's maximum, large is nearly full screen.
-    enum PanelStop: CaseIterable {
-        case min, medium, large
-    }
+    /// Trail-list sheet detents — three stops.
+    ///   - smallest: `minSheetHeight` — only as tall as the current state needs.
+    ///   - medium: the default. A device-relative fraction so it shows a
+    ///     comparable number of trail rows on a small iPhone SE and a
+    ///     Pro Max, rather than a fixed 340pt that's "half the list"
+    ///     on one and "three rows" on the other.
+    ///   - large: system `.large` (~almost full screen).
+    static let mediumDetent: PresentationDetent = .fraction(0.5)
 
     /// Currently-active detent of the trail-list sheet. Drives
     /// `effectiveBottomInset` so the map's user-dot shift compensates
@@ -122,10 +124,7 @@ struct AreaView: View {
     /// in UIKit, so SwiftUI's body never re-evaluates for the gesture
     /// itself — only when the detent SETTLES (at most once per
     /// release).
-    @State private var panelStop: PanelStop = .medium
-    /// Live drag translation while the user has hold of the grab handle.
-    /// Negative dragging UP. Zero at rest.
-    @State private var panelDrag: CGFloat = 0
+    @State private var sheetDetent: PresentationDetent = AreaView.mediumDetent
     /// Which segment of the area sheet is showing — trail list or Dex.
     @State private var sheetTab: AreaSheetTab = .trails
     @State private var selectedTrailId: String? = nil
@@ -377,15 +376,36 @@ struct AreaView: View {
                     centerOnSwitchedTrailTick: centerOnSwitchedTrailTick,
                     selectedTrailId: $selectedTrailId,
                     visibleTrailIds: visibleTrailIds,
-                    // The SETTLED height, not the live one. Feeding the drag
-                    // into this would call MapKitMapView.updateUIView on every
-                    // frame of every drag, which is the cost that made the old
-                    // hand-rolled panel drop frames. The floating controls take
-                    // the live value because they are cheap; the map waits.
-                    bottomInset: panelHeight(panelStop),
+                    bottomInset: effectiveBottomInset,
                     trackingMode: $trackingMode
                 )
                 .ignoresSafeArea()
+
+                // Fills the strip the sheet leaves at the bottom of the screen.
+                //
+                // Built against the iOS 26 SDK, a presented sheet is drawn as a
+                // floating card INSET from the display edges — the user's
+                // screenshot of build 283 shows map through that inset and
+                // around the sheet's rounded bottom corners. The sheet's frame
+                // is the OS's to decide and nothing inside it can push it
+                // outward, which is why five attempts at the safe area failed.
+                //
+                // Drawing the sheet ourselves DID close it (build 284) and was
+                // worse in every other way: the drag went rough, the surface
+                // read pure black, and the floating controls clipped behind it.
+                // So the sheet stays, and this paints the strip it cannot reach
+                // in the sheet's own background colour. The sheet floats over
+                // this, so only the gap shows, and the rounded bottom corners
+                // now sit on matching colour instead of on the map.
+                //
+                // 80pt is generous on purpose: the inset is the OS's number, not
+                // ours, and over-covering costs nothing because everything above
+                // the sheet's bottom edge is hidden behind the sheet anyway.
+                Color(.systemBackground)
+                    .frame(height: 80)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
 
                 // Map controls FLOAT over the map, anchored just above the
                 // sheet's top edge, and ride up and down with it. They used to
@@ -397,17 +417,14 @@ struct AreaView: View {
                     .padding(.bottom, effectiveBottomInset + 10)
                     .frame(maxHeight: .infinity, alignment: .bottom)
                     // Measure from the TRUE screen bottom, the same origin the
-                    // panel height uses. Without this the overlay is inset by
+                    // sheet heights use. Without this the overlay is inset by
                     // the home indicator (~34pt) and the padding double-counts
-                    // it, lifting the controls off the panel's edge.
+                    // it, lifting the controls off the sheet's edge.
                     .ignoresSafeArea(edges: .bottom)
                     .ignoresSafeArea(.keyboard)
                     .animation(.interactiveSpring(response: 0.35, dampingFraction: 0.85),
-                               value: panelStop)
+                               value: effectiveBottomInset)
 
-                // The trail panel. Drawn HERE, in this view's own hierarchy,
-                // rather than presented as a system sheet — see `trailPanel`.
-                trailPanel(area: area)
 
             } else if isLoading || (area != nil && !minLoadingTimeElapsed) {
                 loadingState
@@ -428,6 +445,84 @@ struct AreaView: View {
                     Button("Try Again") { loadAttempt += 1 }
                         .buttonStyle(.borderedProminent)
                 }
+            }
+        }
+        .sheet(isPresented: trailSheetPresented) {
+            // Trail-list sheet. Presented as soon as the area has
+            // loaded (so we never flash an empty sheet during the
+            // loading silhouette animation) and never dismissed
+            // afterward — `interactiveDismissDisabled` blocks the
+            // swipe-to-dismiss, so the user can't accidentally
+            // close it. They can drag down to the small peek detent for a
+            // near-full-map view instead.
+            //
+            // This replaces the previous hand-rolled bottom panel
+            // (DragGesture + per-frame @State + Material backdrop
+            // re-rendering at varying size) — that custom path was
+            // dropping frames every drag because the resize cascaded
+            // into AreaView.body re-evals, MapKitMapView.updateUIView
+            // calls, and Material blur rerenders. UISheetPresentation-
+            // Controller handles all of that natively in UIKit /
+            // Core Animation; SwiftUI only re-renders when the detent
+            // SETTLES (at most once per release), not per drag tick.
+            if let area {
+                sheetContent(area: area)
+                    // LAYER 1 of 3, and the one the previous four attempts kept
+                    // missing the consequence of.
+                    //
+                    // If the sheet's root content stops at the safe area, its
+                    // frame ends ~34pt above the screen. Nothing inside can grow
+                    // past a parent that already ended — so the page-level fix
+                    // in #551 was a no-op whenever THIS one failed, because a
+                    // page has no safe area left to ignore once its parent has
+                    // already been cut short. Both are needed; neither is
+                    // sufficient.
+                    //
+                    // `.container` narrowed this to one safe-area region.
+                    // Dropping the region argument ignores ALL of them at the
+                    // bottom edge, which is what was wanted. Bottom edge only,
+                    // so the header can never slide under the notch at .large.
+                    .ignoresSafeArea(edges: .bottom)
+                    .presentationDetents(
+                        [minDetent, Self.mediumDetent, .large],
+                        selection: $sheetDetent
+                    )
+                    // `.height(190)` and `.height(240)` are DIFFERENT detents,
+                    // so a smallest stop that changes height would leave the
+                    // selection binding pointing at a stop that no longer
+                    // exists and strand the sheet. Re-point it, but only when
+                    // the user was actually sitting on the old minimum —
+                    // someone parked at full screen is never yanked down
+                    // because they selected a trail.
+                    .onChange(of: minSheetHeight) { old, new in
+                        if sheetDetent == .height(old) {
+                            sheetDetent = .height(new)
+                        } else if sheetDetent == Self.mediumDetent,
+                                  new > maxDetentHeight * 0.5 {
+                            // The half stop is no longer tall enough for what
+                            // has to be whole — a recording panel showing its
+                            // live elevation strip clears it on a small phone.
+                            // "Big enough for the recording panel" is the point
+                            // of the smallest stop, so go there even though it
+                            // means growing the sheet.
+                            sheetDetent = .height(new)
+                        }
+                    }
+                    .presentationDragIndicator(.visible)
+                    .presentationBackgroundInteraction(.enabled(upThrough: Self.mediumDetent))
+                    .presentationContentInteraction(.scrolls)
+                    .presentationCornerRadius(20)
+                    // Opaque system background at EVERY detent. By
+                    // default the sheet is translucent (glass) at the
+                    // small / medium detents and only goes opaque at
+                    // .large — which is why the controls read as
+                    // "glass on glass" until you expand it. Forcing
+                    // the solid background everywhere removes the
+                    // sheet's own glass layer entirely, so the inner
+                    // controls sit on a plain surface (the look the
+                    // user wanted at all heights, not just full-screen).
+                    .presentationBackground(Color(.systemBackground))
+                    .interactiveDismissDisabled()
             }
         }
         .navigationBarHidden(true)
@@ -623,6 +718,16 @@ struct AreaView: View {
         }
     }
 
+    /// Binding that gates the trail-list sheet's presentation on the
+    /// area being loaded. Read-only — `interactiveDismissDisabled`
+    /// blocks user-initiated dismissal so the setter is a no-op.
+    private var trailSheetPresented: Binding<Bool> {
+        Binding(
+            get: { self.area != nil && self.minLoadingTimeElapsed },
+            set: { _ in }
+        )
+    }
+
     /// The `bottomInset` we pass to TrailMapView. Computed from the
     /// trail-list sheet's currently-settled detent, so the map's
     /// user-dot shift always clears the visible sheet area. Detent
@@ -687,26 +792,14 @@ struct AreaView: View {
         return min(max(h.rounded(), 140), (maxDetentHeight * 0.72).rounded())
     }
 
-    /// Settled height of a stop, measured up from the physical screen bottom.
-    private func panelHeight(_ stop: PanelStop) -> CGFloat {
-        switch stop {
-        case .min:    return minSheetHeight
-        case .medium: return maxDetentHeight * 0.5
-        case .large:  return maxDetentHeight
-        }
-    }
-
-    /// Height the panel is drawn at right now, drag included.
-    private var livePanelHeight: CGFloat {
-        min(max(panelHeight(panelStop) - panelDrag, minSheetHeight), maxDetentHeight)
-    }
+    private var minDetent: PresentationDetent { .height(minSheetHeight) }
 
     /// At the smallest stop with a trail selected, the area name, the summary
     /// line and the search bar give up their space to the expanded row — the row
     /// already names the trail, so they were restating it. Drag the sheet up and
     /// they come back.
     private var hideChromeForSelection: Bool {
-        selectedTrailId != nil && panelStop == .min
+        selectedTrailId != nil && sheetDetent == minDetent
     }
 
     /// Height of the visible sheet, measured from the BOTTOM of the screen.
@@ -718,9 +811,24 @@ struct AreaView: View {
     /// behind the sheet), and the medium case used half the FULL screen when
     /// `.fraction(0.5)` means half the sheet's maximum height — which
     /// overestimated it, floating the controls too far above the sheet.
-    /// Where the panel's top edge is, for the floating map controls. Follows
-    /// the drag live, so the controls stay pinned to the edge the whole way.
-    private var effectiveBottomInset: CGFloat { livePanelHeight }
+    private var effectiveBottomInset: CGFloat {
+        if sheetDetent == .large {
+            return maxDetentHeight
+        } else if sheetDetent == Self.mediumDetent {
+            return maxDetentHeight * 0.5   // mirrors .fraction(0.5)
+        } else {
+            // Just the detent height. This USED to add `bottomSafeInset`, from a
+            // device reading taken when the sheet's content stopped at the safe
+            // area and the visible panel really was taller than the number asked
+            // for. Now that the content bleeds through the bottom safe area, the
+            // detent height IS the visible height, and the extra 34pt floated the
+            // controls a home-indicator too far above the sheet — reported as
+            // "further away at the lowest setting". The medium and large cases
+            // never had the extra and were never reported as wrong, which is the
+            // corroboration.
+            return minSheetHeight
+        }
+    }
 
     /// Loading state. Paints the bundled silhouette so the wait feels
     /// like the screen has already arrived. After the 2 s reveal
@@ -1098,100 +1206,11 @@ struct AreaView: View {
         .accessibilityLabel("Page")
     }
 
-    /// The trail panel, drawn in this view's own hierarchy instead of presented
-    /// as a system `.sheet`.
-    ///
-    /// **Why it is no longer a sheet, after five failed attempts at the same
-    /// bug.** The app is built against the iOS 26 SDK, where a presented sheet
-    /// is drawn as a floating card INSET from the display edges. The user's
-    /// screenshot shows exactly that: map visible below the panel and around its
-    /// rounded bottom corners. Every previous fix worked on the safe area INSIDE
-    /// the sheet, and none of them could ever have helped, because the gap is
-    /// the sheet's own frame not reaching the screen edge. Nothing placed inside
-    /// a frame can push that frame outward.
-    ///
-    /// So the panel stops being a presentation. Drawn here it is an ordinary
-    /// view: full width, flush to the physical bottom, rounded on the top two
-    /// corners only, and immune to whatever Apple does to sheet chrome next.
-    ///
-    /// What is given up, and why it is affordable:
-    ///   - `presentationBackgroundInteraction` — the map is simply not covered
-    ///     by the panel, so it is always interactive where it is visible.
-    ///   - `presentationContentInteraction(.scrolls)` — the drag lives on the
-    ///     grab handle and the header block, so a drag on the list scrolls the
-    ///     list and never fights the panel. That is a deliberate narrowing.
-    ///   - `presentationDetents` snapping — reimplemented in `panelDragGesture`,
-    ///     which snaps to the nearest stop using the gesture's PREDICTED end so
-    ///     a flick carries the way a sheet's does.
-    private func trailPanel(area: Area) -> some View {
-        VStack(spacing: 0) {
-            // Grab handle plus the header block share the drag. Everything
-            // below them scrolls.
-            VStack(spacing: 0) {
-                Capsule()
-                    .fill(Color.secondary.opacity(0.55))
-                    .frame(width: 36, height: 5)
-                    .padding(.top, 8)
-                    .padding(.bottom, 2)
-                panelHeader(area: area)
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-            .gesture(panelDragGesture)
-
-            panelPages(area: area)
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: livePanelHeight, alignment: .top)
-        .background(
-            UnevenRoundedRectangle(topLeadingRadius: 20, topTrailingRadius: 20,
-                                   style: .continuous)
-                .fill(Color(.systemBackground))
-                .ignoresSafeArea(edges: .bottom)
-        )
-        // Deliberately NOT clipped to that shape. A clip is applied to the view
-        // as it stands at that point in the chain, so it would cut away exactly
-        // the strip below the safe-area line that the next modifier is there to
-        // reach — which is the bug this whole change exists to kill. The
-        // background alone gives the rounded top corners; nothing renders over
-        // them, because the header occupies the top of the panel.
-        //
-        // This is the ONE mechanism that puts the panel's bottom on the
-        // physical screen edge. It also consumes the bottom safe area for every
-        // descendant, so the list inside adds no content inset of its own.
-        .ignoresSafeArea(edges: .bottom)
-        .ignoresSafeArea(.keyboard)
-    }
-
-    /// Drag the panel between its three stops. Snaps on release to whichever
-    /// stop the gesture's predicted end is nearest, so a flick travels like a
-    /// sheet's rather than stopping dead where the finger left off.
-    private var panelDragGesture: some Gesture {
-        DragGesture(minimumDistance: 2)
-            .onChanged { value in
-                panelDrag = value.translation.height
-            }
-            .onEnded { value in
-                let target = panelHeight(panelStop) - value.predictedEndTranslation.height
-                let nearest = PanelStop.allCases.min {
-                    abs(panelHeight($0) - target) < abs(panelHeight($1) - target)
-                } ?? .medium
-                withAnimation(.interactiveSpring(response: 0.35, dampingFraction: 0.85)) {
-                    panelStop = nearest
-                    panelDrag = 0
-                }
-            }
-    }
-
-    /// Area name, summary line and page dots. Split out of the old sheet
-    /// content so it can share the panel's drag gesture with the grab handle —
-    /// dragging anywhere in this block moves the panel, dragging the list below
-    /// scrolls the list.
     @ViewBuilder
-    private func panelHeader(area: Area) -> some View {
-        Group {
-            // Title + summary block — centered under the grab
-            // handle, reads as one header. The trail count /
+    private func sheetContent(area: Area) -> some View {
+        VStack(spacing: 0) {
+            // Title + summary block — centered under the drag
+            // indicator, reads as one header. The trail count /
             // completion line used to live in TrailListView's own
             // summary header; with the area name now sitting above
             // it, the two read as redundant stacked headers — moved
@@ -1229,8 +1248,7 @@ struct AreaView: View {
             }
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 20)
-            // The grab handle above already supplies the top breathing room.
-            .padding(.top, 4)
+            .padding(.top, 10)
             .padding(.bottom, 12)
             // Both variants get remembered, so `minSheetHeight` can ask for the
             // COMPACT header while the FULL one is on screen (a selected trail
@@ -1251,28 +1269,17 @@ struct AreaView: View {
                     AnalyticsService.shared.capture(.dexOpened(areaId: area.id))
                     // The Dex is a grid of tiles — "as tall as it needs to be"
                     // has no small answer for it, so swiping over raises the
-                    // panel to the half stop. Only from the smallest stop:
-                    // a panel the user opened up themselves is left alone.
-                    if panelStop == .min {
+                    // sheet to the half stop. Only from the smallest stop:
+                    // a sheet the user opened up themselves is left alone.
+                    if sheetDetent == minDetent {
                         raisedSheetForDex = true
-                        withAnimation(.interactiveSpring(response: 0.35, dampingFraction: 0.85)) {
-                            panelStop = .medium
-                        }
+                        sheetDetent = Self.mediumDetent
                     }
                 } else if raisedSheetForDex {
                     raisedSheetForDex = false
-                    withAnimation(.interactiveSpring(response: 0.35, dampingFraction: 0.85)) {
-                        panelStop = .min
-                    }
+                    sheetDetent = minDetent
                 }
             }
-        }
-    }
-
-    /// The two swipeable pages, plus every modal this screen can raise.
-    @ViewBuilder
-    private func panelPages(area: Area) -> some View {
-        VStack(spacing: 0) {
 
             // Swipe horizontally between Trails and the Dex. `.page` style with
             // always-visible dots, so the second page is discoverable without
@@ -1280,7 +1287,7 @@ struct AreaView: View {
             TabView(selection: $sheetTab) {
                 VStack(spacing: 0) {
                     // Tracking-mode toast. A subtle solid capsule, NOT glass —
-                    // it floats inside the panel, so a material backdrop
+                    // it floats inside the glass sheet, so a material backdrop
                     // would be the same glass-on-glass muddiness we removed
                     // from the icon buttons. Tinted with the accent so it
                     // reads as a transient status note.
@@ -1363,10 +1370,9 @@ struct AreaView: View {
             // whole pager (and its last rows) off-screen along the way.
             .tabViewStyle(.page(indexDisplayMode: .never))
         }
-        // Modals hang off the panel. They used to be nested inside the
-        // always-on sheet because SwiftUI allows one presentation per ancestor
-        // and that sheet held the slot; with the panel no longer a
-        // presentation, the slot is free and nothing here competes.
+        // Nested modal sheets — must live inside the always-on trail-
+        // list sheet so SwiftUI lets them present on top instead of
+        // conflicting with each other.
         .sheet(item: $areaGpxShareURL) { wrapped in
             ShareSheet(items: [wrapped.url])
         }
@@ -1387,13 +1393,16 @@ struct AreaView: View {
             AreaCompletionView(area: area)
                 .presentationDetents([.large])
         }
-        // Confirmation dialogs stay here with the modals above. Attaching
-        // them to AreaView's body was what broke recording once: SwiftUI
-        // found the always-on trail sheet owning the presentation slot,
-        // dismissed it to show the dialog, then re-presented it because its
-        // binding stayed true, clobbering the dialog — it flashed for ~0.1s
-        // and recording could never start. The sheet is gone now, but keeping
-        // dialogs and modals on one host is still the clearer arrangement.
+        // Confirmation dialogs ALSO nest inside the sheet — same
+        // one-presentation-per-ancestor rule that put the modal sheets
+        // here. With them attached to AreaView's body, tapping "Record
+        // Hike" set `showFarWarning = true`, SwiftUI tried to present
+        // the dialog from AreaView, found the trail-list sheet already
+        // owning that slot, and bounced — dismissing the sheet to
+        // present the dialog, then re-presenting the sheet (because
+        // its binding stays true), which clobbered the dialog. Net:
+        // dialog flashed for ~0.1s then vanished, and recording could
+        // never start.
         .confirmationDialog(
             "You're already recording at \(conflictAreaName)",
             isPresented: $showConflictAlert,
@@ -1429,7 +1438,7 @@ struct AreaView: View {
     }
 
     /// Retarget vs suggestion banner, only shown while a recording is
-    /// active. Extracted so `panelPages` reads cleanly — the
+    /// active. Extracted so `sheetContent` reads cleanly — the
     /// inline form has ~70 lines of logging / dismiss closures that
     /// dwarf the rest of the sheet layout.
     @ViewBuilder

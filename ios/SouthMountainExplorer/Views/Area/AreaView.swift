@@ -104,6 +104,17 @@ struct AreaView: View {
     /// Set when swiping to the Dex raised the sheet, so swiping back can lower
     /// it again — and so a sheet the USER raised is never lowered behind them.
     @State private var raisedSheetForDex = false
+    /// The sheet's REAL top edge, in points up from the physical screen bottom,
+    /// reported by the sheet's own content rather than derived from what a
+    /// detent is believed to mean.
+    ///
+    /// Every version of this before was a model of UIKit's behaviour: does
+    /// `.height(x)` include the home indicator, is `.fraction(0.5)` half of the
+    /// screen or half of the sheet's maximum. Each model was wrong in a
+    /// different place, and the floating controls sat at a different distance
+    /// from the sheet at each stop because each stop used a different guess.
+    /// A measurement has no stops to get individually wrong.
+    @State private var measuredSheetTop: CGFloat? = nil
 
     /// Trail-list sheet detents — three stops.
     ///   - smallest: `minSheetHeight` — only as tall as the current state needs.
@@ -441,6 +452,21 @@ struct AreaView: View {
             // SETTLES (at most once per release), not per drag tick.
             if let area {
                 sheetContent(area: area)
+                    // Report where the sheet ACTUALLY starts, so the floating
+                    // map controls can be pinned to a fact instead of to a
+                    // model of what a detent means. `.global` here is the
+                    // window, so screen height minus this is the panel's height
+                    // as drawn — at every stop and mid-drag, with no per-stop
+                    // arithmetic to get individually wrong.
+                    .onGeometryChange(for: CGFloat.self) { proxy in
+                        UIScreen.main.bounds.height - proxy.frame(in: .global).minY
+                    } action: { top in
+                        // Ignore sub-point noise so this can't thrash the map's
+                        // bottomInset on every frame of a drag.
+                        if abs((measuredSheetTop ?? -1) - top) >= 1 {
+                            measuredSheetTop = top
+                        }
+                    }
                     // LAYER 1 of 3, and the one the previous four attempts kept
                     // missing the consequence of.
                     //
@@ -812,29 +838,25 @@ struct AreaView: View {
     /// behind the sheet), and the medium case used half the FULL screen when
     /// `.fraction(0.5)` means half the sheet's maximum height — which
     /// overestimated it, floating the controls too far above the sheet.
+    /// Where the sheet's top edge is, in points up from the physical screen
+    /// bottom. Drives the map's user-dot shift and pins the floating controls.
+    ///
+    /// **Measured, not modelled.** Every earlier version computed this from what
+    /// a detent was believed to mean — whether `.height(x)` includes the home
+    /// indicator, whether `.fraction(0.5)` is half the screen or half the
+    /// sheet's maximum — with a separate guess per stop. Each guess was wrong by
+    /// a different amount, which is exactly why the controls sat at a different
+    /// distance from the sheet depending on how big the sheet was. The sheet's
+    /// own content now reports where it actually starts (`measuredSheetTop`),
+    /// so all three stops are right for the same reason.
+    ///
+    /// The computed values stay as the seed for the first frame, before the
+    /// sheet has laid out and had a chance to say.
     private var effectiveBottomInset: CGFloat {
-        if sheetDetent == .large {
-            return maxDetentHeight
-        } else if sheetDetent == Self.mediumDetent {
-            return maxDetentHeight * 0.5   // mirrors .fraction(0.5)
-        } else {
-            // A fixed `.height()` detent sets the sheet's CONTENT height; the
-            // sheet then also covers the home indicator below it, so the panel
-            // you see is that much taller than the number asked for.
-            //
-            // #558 removed this term, reasoning from the "controls sit further
-            // away at the lowest stop" report. That was the wrong end: MEASURED
-            // off a build-285 screenshot, the panel's top edge sits ~309pt above
-            // the bottom while this returned ~272pt, and the Record pill pinned
-            // 10pt above that landed INSIDE the sheet and was cut in half. The
-            // shortfall is one home indicator.
-            //
-            // The medium and large cases are left alone deliberately. Their
-            // fractions are already taken of a height measured from the screen
-            // bottom, and there is no measurement of them to act on — guessing
-            // at those is what produced this in the first place.
-            return minSheetHeight + Self.bottomSafeInset
-        }
+        if let measured = measuredSheetTop { return measured }
+        if sheetDetent == .large { return maxDetentHeight }
+        if sheetDetent == Self.mediumDetent { return maxDetentHeight * 0.5 }
+        return minSheetHeight + Self.bottomSafeInset
     }
 
     /// Loading state. Paints the bundled silhouette so the wait feels

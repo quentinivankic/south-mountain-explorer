@@ -525,6 +525,25 @@ struct TrailRow: View {
     /// sitting a few metres off.
     private static let onTrailMeters = 50.0
 
+    /// Orientation from the nearest car park: is the stored START the end you
+    /// would set off from? nil when no lot is close enough to an endpoint, or
+    /// when the lot is no closer to one end than the other.
+    ///
+    /// Ranked ABOVE the user's own position because where you are standing is
+    /// only a proxy for where you will set off from, and the car park is the
+    /// thing itself. Browsing from home the proxy is near enough a coin flip —
+    /// Mormon Trail opened from its southeast end, 1,588 m from the only lot,
+    /// while its northwest end sits 32 m from that lot.
+    ///
+    /// Uses the same merged set as the pins and the parking line below: the
+    /// area's own lots plus the global pool.
+    private var startIsNearerParking: Bool? {
+        TrailProfile.startIsNearerParking(
+            segments: trail.segments,
+            lots: ParkingPoolService.shared.merged(with: areaParking, for: trail)
+        )
+    }
+
     /// Orientation to latch when the profile opens: is the stored START the
     /// trail end nearer the user? nil when we have no location at all, in
     /// which case stored order stands and no direction is implied.
@@ -713,6 +732,9 @@ struct TrailRow: View {
             // there's no geometry to compute one from.
             if let saved = ProfileDirectionStore.override(trailId: trail.id) {
                 profileStartIsNearer = saved
+            } else if let byParking = startIsNearerParking {
+                // The trailhead beats the sofa. See `startIsNearerParking`.
+                profileStartIsNearer = byParking
             } else if let s = startIsNearerNow {
                 profileStartIsNearer = s
             }

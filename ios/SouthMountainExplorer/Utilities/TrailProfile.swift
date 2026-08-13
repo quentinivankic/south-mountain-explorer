@@ -156,6 +156,60 @@ enum TrailProfile {
         return meters(me, first) <= meters(me, last)
     }
 
+    /// Which end of the trail the nearest PARKING is at, or nil when parking
+    /// cannot answer it.
+    ///
+    /// This outranks `startIsNearer`. Where you are standing is a proxy for
+    /// where you will set off from; the trailhead car park IS where you will set
+    /// off from. Browsing from home the proxy is close to a coin flip, and it
+    /// gets the answer wrong on exactly the trails people look up in advance.
+    /// Mormon Trail in South Mountain is the reported case: its northwest end is
+    /// 32 m from a lot and its southeast end is 1,588 m from that same lot, yet
+    /// the chart opened from the southeast because that end happened to be
+    /// nearer the user's sofa.
+    ///
+    /// **Only answers when parking is decisive.** The lot has to be within
+    /// `withinMeters` of an endpoint, and the far endpoint has to be at least
+    /// `decisiveRatio` times further than the near one. Measured over a random
+    /// 500-area sample of shipped geom: 47% of trails in parking-carrying areas
+    /// have a lot inside the app's own 805 m endpoint radius, the median nearest
+    /// lot is 127 m away, and the far/near ratio has a median of 5.07 — usually
+    /// emphatic. But 28.4% come in under 2x, which is a lot sitting mid-trail or
+    /// a loop whose two ends coincide. Those get no answer here and fall back to
+    /// the user's position, which is the honest outcome rather than a coin flip
+    /// dressed up as data.
+    ///
+    /// 805 m is not a new number: it is the endpoint radius
+    /// `Area.nearestParking` already uses to decide a lot belongs to a trail.
+    static func startIsNearerParking(segments: [[[Double]]],
+                                     lots: [ParkingLot],
+                                     withinMeters: Double = 805,
+                                     decisiveRatio: Double = 2) -> Bool? {
+        let pts = polyline(segments)
+        guard let first = pts.first, let last = pts.last, pts.count >= 2 else { return nil }
+
+        var bestNear = Double.greatestFiniteMagnitude
+        var bestStart = 0.0
+        var bestEnd = 0.0
+        for lot in lots {
+            let p = Point(lat: lot.lat, lon: lot.lon)
+            let ds = meters(p, first)
+            let de = meters(p, last)
+            let near = min(ds, de)
+            if near < bestNear {
+                bestNear = near
+                bestStart = ds
+                bestEnd = de
+            }
+        }
+        guard bestNear <= withinMeters else { return nil }
+
+        let near = max(min(bestStart, bestEnd), 1)
+        let far = max(bestStart, bestEnd)
+        guard far / near >= decisiveRatio else { return nil }
+        return bestStart < bestEnd
+    }
+
     /// Compass label for the trail END the chart starts from, e.g. "west end".
     ///
     /// Replaces the earlier "nearest end" wording, which described the ALGORITHM

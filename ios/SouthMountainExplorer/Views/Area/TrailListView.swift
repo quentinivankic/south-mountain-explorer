@@ -292,7 +292,13 @@ struct TrailListView: View {
                             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
                                 if trail.id == selectedTrailId {
                                     onSelectedRowHeight?(h)
-                                } else if index <= 1 {
+                                } else if index == 0 {
+                                    // Row 0 ONLY. This was `index <= 1`, so two
+                                    // rows both reported — and rows are not all
+                                    // the same height, since only some carry a
+                                    // progress bar. The value flip-flopped
+                                    // between them on every re-layout, moving
+                                    // the sheet's smallest stop with it.
                                     onCollapsedRowHeight?(h)
                                 }
                             }

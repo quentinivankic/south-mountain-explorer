@@ -483,10 +483,7 @@ struct AreaView: View {
                     // bottom edge, which is what was wanted. Bottom edge only,
                     // so the header can never slide under the notch at .large.
                     .ignoresSafeArea(edges: .bottom)
-                    .presentationDetents(
-                        [minDetent, Self.mediumDetent, .large],
-                        selection: $sheetDetent
-                    )
+                    .presentationDetents(sheetDetentSet, selection: $sheetDetent)
                     // `.height(190)` and `.height(240)` are DIFFERENT detents,
                     // so a smallest stop that changes height would leave the
                     // selection binding pointing at a stop that no longer
@@ -495,21 +492,24 @@ struct AreaView: View {
                     // someone parked at full screen is never yanked down
                     // because they selected a trail.
                     .onChange(of: minSheetHeight) { old, new in
+                        // ONLY when the user was sitting on the old minimum.
+                        // There used to be a second branch that yanked them off
+                        // the HALF stop whenever the minimum grew past it —
+                        // which made the half stop unreachable rather than
+                        // making the sheet bigger. `mediumIsDistinct` handles
+                        // that case properly now, by dropping the half stop from
+                        // the set instead of stealing it while it is in use.
                         if sheetDetent == .height(old) {
-                            sheetDetent = .height(new)
-                        } else if sheetDetent == Self.mediumDetent,
-                                  new > maxDetentHeight * 0.5 {
-                            // The half stop is no longer tall enough for what
-                            // has to be whole — a recording panel showing its
-                            // live elevation strip clears it on a small phone.
-                            // "Big enough for the recording panel" is the point
-                            // of the smallest stop, so go there even though it
-                            // means growing the sheet.
                             sheetDetent = .height(new)
                         }
                     }
                     .presentationDragIndicator(.visible)
-                    .presentationBackgroundInteraction(.enabled(upThrough: Self.mediumDetent))
+                    // Gate on a stop that is actually IN the set — naming an
+                    // absent detent here would be asking UIKit about a stop it
+                    // does not have.
+                    .presentationBackgroundInteraction(
+                        .enabled(upThrough: mediumIsDistinct ? Self.mediumDetent : minDetent)
+                    )
                     .presentationContentInteraction(.scrolls)
                     .presentationCornerRadius(20)
                     // Opaque system background at EVERY detent. By default the
@@ -816,10 +816,34 @@ struct AreaView: View {
         // Floor and ceiling: a measurement that came back nonsense must not be
         // able to collapse the sheet to nothing or swallow the map. The
         // "smallest" stop stays a minority of the screen whatever it contains.
-        return min(max(h.rounded(), 140), (maxDetentHeight * 0.72).rounded())
+        // Quantised to 4pt. Every input is a live measurement, and the rows are
+        // not all the same height, so an unrounded value drifts by a point or
+        // two on any re-layout. Each drift used to be a NEW `.height()` detent,
+        // which re-pointed the selection and tugged the sheet back to its
+        // smallest stop — part of why the stops stopped working.
+        let clamped = min(max(h, 140), maxDetentHeight * 0.72)
+        return (clamped / 4).rounded() * 4
     }
 
     private var minDetent: PresentationDetent { .height(minSheetHeight) }
+
+    /// Is the half stop far enough above the smallest one to be its own stop?
+    ///
+    /// `minSheetHeight` is measured and can grow past half the sheet — a
+    /// recording panel with its live elevation strip up will do it on a small
+    /// phone. When it does, "min" and "medium" are the same size or inverted,
+    /// and a set holding both leaves the user with one place to drag to. THAT
+    /// is the bug where the menu ended up with a single size.
+    private var mediumIsDistinct: Bool {
+        maxDetentHeight * 0.5 > minSheetHeight + 60
+    }
+
+    /// Always ordered, always distinct. Three stops when there is room for
+    /// three, two when the smallest has grown into the middle one's space.
+    private var sheetDetentSet: Set<PresentationDetent> {
+        mediumIsDistinct ? [minDetent, Self.mediumDetent, .large]
+                         : [minDetent, .large]
+    }
 
     /// At the smallest stop with a trail selected, the area name, the summary
     /// line and the search bar give up their space to the expanded row — the row

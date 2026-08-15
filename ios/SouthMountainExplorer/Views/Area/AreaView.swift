@@ -812,6 +812,13 @@ struct AreaView: View {
             // with a trail selected. Drag up for any of that.
             h += headerHeightFull
             h += recordingBlockHeight
+            // Headroom, so the panel is whole rather than exactly flush. The
+            // measurement is a high-water mark that lags the panel's own growth
+            // — the GPS capsule and the live elevation strip both appear after
+            // the hike starts — and a stop sized to the last known height clips
+            // the next one. Half a row also leaves the list somewhere to be, so
+            // it is visibly a list you can drag up rather than a hard edge.
+            h += collapsedRowHeight * 0.5
         } else if selected {
             h += headerHeightCompact
             h += selectedRowHeight
@@ -1400,6 +1407,12 @@ struct AreaView: View {
                         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
                             if h > recordingBlockHeight { recordingBlockHeight = h }
                         }
+                        // The panel must never be the thing that gets squeezed.
+                        // `fixedSize` on the vertical axis says "this is my
+                        // height, take the shortfall somewhere else" — and the
+                        // somewhere else is the scroll view below, which is the
+                        // only flexible thing in the stack.
+                        .fixedSize(horizontal: false, vertical: true)
                     }
 
                     TrailListView(
@@ -1419,6 +1432,13 @@ struct AreaView: View {
                         onSelectedRowHeight: { selectedRowHeight = $0 }
                     )
                 }
+                // Pin the page's content to the TOP. A VStack whose content is
+                // taller than its frame centres the overflow by default, which
+                // is why the recording panel came back with its chart CUT OFF
+                // AT THE TOP rather than the list being shortened at the
+                // bottom. Top alignment sends every shortfall downward, into
+                // the one thing that can absorb it.
+                .frame(maxHeight: .infinity, alignment: .top)
                 // THIS is what closes the bottom gap, and it has to be HERE.
                 //
                 // A `.page` TabView is a UIPageViewController: every page is

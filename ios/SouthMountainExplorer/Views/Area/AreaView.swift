@@ -92,15 +92,24 @@ struct AreaView: View {
     /// Area name + summary line + page dots, with the name and summary showing.
     @State private var headerHeightFull: CGFloat = 91
     /// The same header with the name and summary hidden — page dots alone.
-    @State private var headerHeightCompact: CGFloat = 43
+    @State private var headerHeightCompact: CGFloat = 50
     /// Search field + filter menu + the "Showing X of Y" hint + divider.
     @State private var searchBarHeight: CGFloat = 55
-    /// Retarget/suggestion banner + RecordingPanel.
-    @State private var recordingBlockHeight: CGFloat = 96
+    /// Retarget banner + RecordingPanel.
+    ///
+    /// Seeds err TALL on purpose. Every one of these is used until its real
+    /// measurement lands, and the two failure directions are not equal: a seed
+    /// that is too tall gives one slightly roomy frame nobody notices, while a
+    /// seed that is too short CLIPS — the thing this screen has been reported
+    /// for over and over. So this is seeded at the panel's size WITH its live
+    /// elevation strip, not without.
+    @State private var recordingBlockHeight: CGFloat = 170
     /// An ordinary, unexpanded trail row.
     @State private var collapsedRowHeight: CGFloat = 62
     /// The selected row with its chart and parking line expanded into it.
-    @State private var selectedRowHeight: CGFloat = 190
+    /// Seeded for a LONG name that wraps to two lines plus a parking line, not
+    /// for the average row — see the note on `recordingBlockHeight`.
+    @State private var selectedRowHeight: CGFloat = 240
     /// Set when swiping to the Dex raised the sheet, so swiping back can lower
     /// it again — and so a sheet the USER raised is never lowered behind them.
     @State private var raisedSheetForDex = false
@@ -401,8 +410,14 @@ struct AreaView: View {
                     // it, lifting the controls off the sheet's edge.
                     .ignoresSafeArea(edges: .bottom)
                     .ignoresSafeArea(.keyboard)
+                    // Keyed on the STOP, not on the inset. The inset became a
+                    // live measurement of the sheet's real top edge, so a spring
+                    // keyed to it is retriggered on every frame of a drag — the
+                    // controls chase a target that keeps moving instead of
+                    // tracking the sheet. On the stop it animates once, when the
+                    // sheet settles, and follows the drag exactly in between.
                     .animation(.interactiveSpring(response: 0.35, dampingFraction: 0.85),
-                               value: effectiveBottomInset)
+                               value: sheetDetent)
 
 
             } else if isLoading || (area != nil && !minLoadingTimeElapsed) {
@@ -1316,15 +1331,66 @@ struct AreaView: View {
                     AnalyticsService.shared.capture(.dexOpened(areaId: area.id))
                     // The Dex is a grid of tiles — "as tall as it needs to be"
                     // has no small answer for it, so swiping over raises the
-                    // sheet to the half stop. Only from the smallest stop:
-                    // a sheet the user opened up themselves is left alone.
-                    if sheetDetent == minDetent {
+                    // sheet to the half stop.
+                    //
+                    // Two guards. Only from the smallest stop, so a sheet the
+                    // user opened themselves is left alone. And only when the
+                    // half stop is actually IN the set — it is dropped whenever
+                    // the minimum has grown near it, which is exactly what a
+                    // recording panel does, and pointing the selection at a stop
+                    // the sheet does not have strands it.
+                    if sheetDetent == minDetent, mediumIsDistinct {
                         raisedSheetForDex = true
                         sheetDetent = Self.mediumDetent
                     }
                 } else if raisedSheetForDex {
                     raisedSheetForDex = false
-                    sheetDetent = minDetent
+                    // Only undo the raise if they are STILL where it put them.
+                    // Swipe to the Dex from the smallest stop, drag up to full
+                    // screen, swipe back — this used to drop you to the minimum
+                    // regardless, throwing away a size you chose yourself.
+                    if sheetDetent == Self.mediumDetent {
+                        sheetDetent = minDetent
+                    }
+                }
+            }
+
+            // The recording block sits ABOVE the pager, not inside the Trails
+            // page, because a hike is not a property of which page you happen
+            // to be looking at. Inside the page it vanished the moment you
+            // swiped to the Dex — taking the stop button with it — while the
+            // sheet stayed sized for a panel that was no longer drawn.
+            if isRecording {
+                VStack(spacing: 0) {
+                    recordingBanners(area: area)
+                    RecordingPanel(area: area) { finished in
+                        finishedRecording = finished
+                        showSummary = finished != nil
+                        // Refresh the cyan coverage halo with the
+                        // just-finished hike's path.
+                        Task { await loadPastPaths() }
+                    }
+                    .padding(.bottom, 4)
+                }
+                // ORDER MATTERS HERE, and getting it backwards is why the panel
+                // kept coming back clipped after #565. SwiftUI applies modifiers
+                // bottom-up, so with the measurement written first it measured
+                // the panel BEFORE `fixedSize` protected it — the SQUEEZED
+                // panel. That height then sized the sheet's smallest stop, which
+                // gave the panel exactly the room it was already being squeezed
+                // into, which kept it squeezed. A loop that could never open on
+                // its own.
+                //
+                // fixedSize first: the panel states its ideal height and refuses
+                // compression. Then measure, and what comes back is the height
+                // it actually wants.
+                .fixedSize(horizontal: false, vertical: true)
+                // Only ever GROW while a hike is running. The panel gains and
+                // loses the GPS capsule and the live elevation strip as the hike
+                // goes on, and letting the stop shrink back would bob the sheet
+                // under the user's thumb mid-hike. Reset when the hike ends.
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+                    if h > recordingBlockHeight { recordingBlockHeight = h }
                 }
             }
 
@@ -1347,43 +1413,6 @@ struct AreaView: View {
                             .background(Color.accentColor, in: Capsule())
                             .transition(.opacity.combined(with: .scale(scale: 0.9)))
                             .padding(.bottom, 10)
-                    }
-
-                    if isRecording {
-                        VStack(spacing: 0) {
-                            recordingBanners(area: area)
-                            RecordingPanel(area: area) { finished in
-                                finishedRecording = finished
-                                showSummary = finished != nil
-                                // Refresh the cyan coverage halo with the
-                                // just-finished hike's path.
-                                Task { await loadPastPaths() }
-                            }
-                            .padding(.bottom, 4)
-                        }
-                        // ORDER MATTERS HERE, and getting it backwards is why
-                        // the panel kept coming back clipped after #565.
-                        //
-                        // SwiftUI applies modifiers bottom-up, so with the
-                        // measurement written first it measured the panel BEFORE
-                        // `fixedSize` protected it — i.e. it measured the
-                        // SQUEEZED panel. That height then sized the sheet's
-                        // smallest stop, which gave the panel exactly the room it
-                        // was already being squeezed into, which kept it
-                        // squeezed. A loop that could never open up on its own.
-                        //
-                        // fixedSize first: the panel states its ideal height and
-                        // refuses compression. Then measure, and what comes back
-                        // is the height it actually wants.
-                        .fixedSize(horizontal: false, vertical: true)
-                        // Only ever GROW while a hike is running. The panel
-                        // gains and loses the GPS capsule and the live
-                        // elevation strip as the hike goes on, and letting the
-                        // stop shrink back would bob the sheet under the user's
-                        // thumb mid-hike. Reset when the recording ends.
-                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
-                            if h > recordingBlockHeight { recordingBlockHeight = h }
-                        }
                     }
 
                     TrailListView(

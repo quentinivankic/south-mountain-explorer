@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 struct RecordingPanel: View {
     let area: Area
@@ -19,6 +20,10 @@ struct RecordingPanel: View {
     /// Same treatment for the ETA label, which flattened the active trail's
     /// dense geometry and ran three haversine passes per body evaluation.
     @State private var liveEtaLabel: String? = nil
+    /// "Back N min" — time to retrace the route walked so far. Refreshed on the
+    /// same 1 s tick as the rest; unlike the ETA it needs no trail, so a roam
+    /// recording gets it too.
+    @State private var liveReturnLabel: String? = nil
     @State private var isStopping = false
     @State private var showStopConfirm = false
 
@@ -68,8 +73,30 @@ struct RecordingPanel: View {
         }
         guard let coord = location.liveLocation ?? location.userLocation else { return nil }
         let pace = recording.smoothedPaceMetersPerSec()
-        guard let seconds = TrailETA.compute(currentLocation: coord, trail: trail, paceMetersPerSec: pace)
+        // The previous recorded fix gives direction of travel. Taken from the
+        // RECORDING path, not from LocationService, so it has already been
+        // through GpsIngest's speed and accuracy gates and a wild fix cannot
+        // reverse the estimate.
+        var prior: CLLocationCoordinate2D? = nil
+        if rec.path.count >= 2 {
+            let p = rec.path[rec.path.count - 2]
+            if p.count >= 2 { prior = CLLocationCoordinate2D(latitude: p[0], longitude: p[1]) }
+        }
+        guard let seconds = TrailETA.compute(currentLocation: coord,
+                                             priorLocation: prior,
+                                             trail: trail,
+                                             paceMetersPerSec: pace)
         else { return nil }
+        return TrailETA.formatLabel(seconds)
+    }
+
+    /// Time to retrace the route walked so far, back to where the hike started.
+    private func computeReturnLabel() -> String? {
+        guard let rec else { return nil }
+        guard let seconds = TrailETA.returnToStart(
+            walkedMeters: rec.distanceMi * 1609.344,
+            paceMetersPerSec: recording.smoothedPaceMetersPerSec()
+        ) else { return nil }
         return TrailETA.formatLabel(seconds)
     }
 
@@ -105,24 +132,12 @@ struct RecordingPanel: View {
             }
 
             HStack(spacing: 12) {
-                // Recording indicator
-                VStack(spacing: 2) {
-                    Image(systemName: "record.circle.fill")
-                        .foregroundStyle(.red)
-                        .font(.title2)
-                        .symbolEffect(.pulse)
-                    Text("REC")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.red)
-                }
-
-                Divider().frame(height: 40)
-
-                // Stats. Each column takes an equal share of the middle
-                // (statColumn is maxWidth: .infinity) and values shrink to
-                // fit rather than truncate — three columns (Distance /
-                // Duration / Pace, + ETA in trail mode) were clipping to
-                // "0.05…" / "25:4…" at fixed width.
+                // The REC badge is gone, and with it a whole column of width.
+                // It said "you are recording" on a panel that only EXISTS while
+                // you are recording, under a top banner already showing a
+                // pulsing record dot, beside a big red stop button. Three
+                // statements of the same fact; the other two are better placed.
+                // The room it freed is what lets three stat columns breathe.
                 statColumn(label: "Distance", value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units))
                 statColumn(label: "Duration", value: formattedElapsed)
                 // Live pace from the 60-second smoothed window. Renders
@@ -132,14 +147,6 @@ struct RecordingPanel: View {
                 statColumn(label: "Pace",
                            value: UnitFormatter.pace(metersPerSecond: recording.smoothedPaceMetersPerSec() ?? 0,
                                                      units: units))
-                // ETA only renders when the recording is bound to a
-                // trail AND the math has enough signal (see TrailETA's
-                // gating). For area-mode recordings (no trailId) or
-                // loop trails the column simply doesn't appear — better
-                // than a permanent "—" that just takes space.
-                if let etaLabel = liveEtaLabel {
-                    statColumn(label: "ETA", value: etaLabel)
-                }
 
                 // Stop button
                 Button {
@@ -156,6 +163,8 @@ struct RecordingPanel: View {
                 }
                 .disabled(isStopping)
             }
+
+            estimatesLine
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
@@ -193,6 +202,37 @@ struct RecordingPanel: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("This hike won't be saved to history and your trail coverage won't update. This can't be undone.")
+        }
+    }
+
+    /// "When am I done" and "when am I back", on one caption line beneath the
+    /// counters rather than as two more columns.
+    ///
+    /// Five equal columns squeezed between a badge and a 56pt button is how the
+    /// panel got cramped in the first place. These two are a different KIND of
+    /// number from distance and duration — estimates, not measurements — so they
+    /// read better set apart and quieter than they would fighting for width in
+    /// the same row. Each appears only when it has an answer, and the whole line
+    /// disappears when neither does, which is the panel's compact state.
+    @ViewBuilder
+    private var estimatesLine: some View {
+        if liveEtaLabel != nil || liveReturnLabel != nil {
+            HStack(spacing: 16) {
+                if let eta = liveEtaLabel {
+                    Label("Finish \(eta)", systemImage: "flag.checkered")
+                        .accessibilityLabel("About \(eta) to the end of the trail")
+                }
+                if let back = liveReturnLabel {
+                    Label("Back \(back)", systemImage: "arrow.uturn.left")
+                        .accessibilityLabel("About \(back) to return to where you started")
+                }
+                Spacer(minLength: 0)
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .transition(.opacity)
         }
     }
 
@@ -240,6 +280,7 @@ struct RecordingPanel: View {
                     // second, instead of from `body` on every GPS sample.
                     liveElevation = elevationStats(path: rec.path)
                     liveEtaLabel = computeEtaLabel()
+                    liveReturnLabel = computeReturnLabel()
                 }
             }
         }

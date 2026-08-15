@@ -168,4 +168,73 @@ struct TrailETATests {
         // 91 seconds → 1.52 min → rounds to 2
         #expect(TrailETA.formatLabel(91) == "2 min")
     }
+
+    // MARK: - direction of travel
+
+    /// A straight 1 km line running north. Walking north the end is ahead;
+    /// walking south the START is ahead, and v1 got that backwards on every
+    /// trail whose OSM way happened to run against the hiker.
+    private static func northLine() -> Trail {
+        var nodes: [[Double]] = []
+        for i in 0...10 {
+            nodes.append([33.30 + Double(i) * 100 / 111_000.0, -112.0])
+        }
+        return Trail(id: "n", name: "North Line", distanceMi: 0.62,
+                     difficulty: .easy, segments: [nodes])
+    }
+
+    private static func onLine(_ metersNorth: Double) -> CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: 33.30 + metersNorth / 111_000.0, longitude: -112.0)
+    }
+
+    @Test func eta_measuresTowardTheEndWhenWalkingThatWay() throws {
+        // 300 m along a ~1000 m line at 1 m/s, moving north: ~700 s left.
+        let eta = try #require(TrailETA.compute(
+            currentLocation: Self.onLine(300),
+            priorLocation: Self.onLine(290),
+            trail: Self.northLine(),
+            paceMetersPerSec: 1))
+        #expect(abs(eta - 700) < 25)
+    }
+
+    @Test func eta_measuresTowardTheStartWhenWalkingBack() throws {
+        // Same spot, now moving SOUTH: the end ahead is the start, ~300 s.
+        let eta = try #require(TrailETA.compute(
+            currentLocation: Self.onLine(300),
+            priorLocation: Self.onLine(310),
+            trail: Self.northLine(),
+            paceMetersPerSec: 1))
+        #expect(abs(eta - 300) < 25)
+    }
+
+    @Test func eta_withoutAPriorFixKeepsTheOldForwardAssumption() throws {
+        let eta = try #require(TrailETA.compute(
+            currentLocation: Self.onLine(300),
+            trail: Self.northLine(),
+            paceMetersPerSec: 1))
+        #expect(abs(eta - 700) < 25)
+    }
+
+    @Test func eta_ignoresMovementTooSmallToBeTravel() throws {
+        // 1 m of jitter must not flip the direction while someone stands still.
+        let eta = try #require(TrailETA.compute(
+            currentLocation: Self.onLine(300),
+            priorLocation: Self.onLine(301),
+            trail: Self.northLine(),
+            paceMetersPerSec: 1))
+        #expect(abs(eta - 700) < 25)
+    }
+
+    // MARK: - returnToStart
+
+    @Test func returnToStart_isTheDistanceWalkedOverPace() throws {
+        let seconds = try #require(TrailETA.returnToStart(walkedMeters: 1200, paceMetersPerSec: 1.2))
+        #expect(abs(seconds - 1000) < 0.001)
+    }
+
+    @Test func returnToStart_silentBeforeYouHaveMovedOrHaveAPace() {
+        #expect(TrailETA.returnToStart(walkedMeters: 0, paceMetersPerSec: 1.2) == nil)
+        #expect(TrailETA.returnToStart(walkedMeters: 1200, paceMetersPerSec: nil) == nil)
+        #expect(TrailETA.returnToStart(walkedMeters: 1200, paceMetersPerSec: 0) == nil)
+    }
 }

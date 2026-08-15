@@ -191,21 +191,36 @@ struct TrailListView: View {
                     .padding(.top, 8)
                     .padding(.bottom, 10)
 
-                    // "Showing X of Y" hint — only when a filter is active.
-                    // Visible feedback that the list is narrowed; the rest of
-                    // the summary info (trail count / completion) lives in
-                    // the sheet header above.
-                    if activeFilterCount > 0 {
-                        Text("Showing \(filteredTrails.count) of \(area.trails.count)")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal)
-                            .padding(.bottom, 6)
-                    }
-
                     Divider()
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { onSearchBarHeight?($0) }
+            }
+
+            // "Showing X of Y" is OUTSIDE the search-bar block, deliberately.
+            //
+            // It used to be inside, so hiding the search bar at the smallest
+            // stop hid this too — and then a filtered list looked like the whole
+            // list, with nothing on screen explaining the missing trails and no
+            // control to clear them without dragging the sheet up. Whatever else
+            // stands down, a list that is lying about its contents has to say so.
+            if activeFilterCount > 0 {
+                HStack(spacing: 8) {
+                    Text("Showing \(filteredTrails.count) of \(area.trails.count)")
+                    Button("Clear") {
+                        statusFilter = .all
+                        difficultyFilter = .all
+                        lengthFilter = .all
+                        routeFilter = .all
+                        searchQuery = ""
+                    }
+                    .font(.caption2.weight(.semibold))
+                    Spacer(minLength: 0)
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
+                .padding(.vertical, 5)
+                if !showsSearchBar { Divider() }
             }
 
             // ScrollViewReader so we can scroll the just-selected

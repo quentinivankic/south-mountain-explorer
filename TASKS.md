@@ -8,12 +8,12 @@ already ruled out with evidence. Losing them means re-deriving all of it, or
 worse, re-proposing something already disproved. So they live here, in the repo,
 and a new session should re-create them with `TaskCreate` from this file.
 
-(17 open tasks as of 2026-08-12.)
+(18 open tasks as of 2026-08-15.)
 
 Numbers are the original task ids. Gaps (#19–#20, #22–#25, #27–#30, #32,
 #38–#43, #45, #48) are completed work — see git log and `TODO.md`.
 
-Last synced from the live task list: **2026-08-12**. That sync found #52
+Last synced from the live task list: **2026-08-15**. That sync found #52
 present only in the session task list and nowhere in this file — exactly the loss
 this file exists to prevent. It is written up below with what is actually known,
 which is not much.
@@ -37,6 +37,7 @@ which is not much.
 | [54](#54) | Trailhead spurs trimmed by `_trim_to_parks` — trails end short of the trailhead | data · pipeline |
 | [52](#52) | One car park mapped as many OSM polygons ships as many pins | data · unmeasured |
 | [55](#55) | Device-test the rebuilt area sheet | QA · needs a TestFlight build |
+| [56](#56) | Difficulty calls short brutal climbs Moderate | data · needs a non-threshold answer |
 
 ---
 
@@ -631,3 +632,56 @@ deselected, the chrome coming back at the half stop, the recording panel staying
 whole when its live elevation strip appears mid-hike, and the Dex raise. All of
 it is SwiftUI layout reasoned about from the code — no simulator runs on the
 homelab, so CI green means it compiles, nothing more.
+
+
+---
+
+<a name="56"></a>
+## #56 — Difficulty calls the hardest short climbs "Moderate"
+
+**Reported 2026-08-15: Echo Canyon Trail on Camelback reads Moderate.** It is
+about the hardest hike in the Phoenix valley short of a 20-miler.
+
+**Why, measured.** `difficulty_label` in `trailforge/serve/elevation.py` has two
+tests and Echo Canyon fails both.
+
+- NPS rating `sqrt(2 * gain * miles)`: Echo Canyon scores **51.9**, Hard needs
+  **80**. The formula scales with the square root of DISTANCE, so a short brutal
+  climb structurally cannot reach it. This is the real defect; the floor below is
+  a patch over it.
+- Steepness floor: Echo Canyon is 1,390 ft in 0.97 mi = **1,433 ft/mi**, the
+  floor is **1,500 ft/mi**. Misses by 4.5%.
+
+**The floor never caught the trail it was written for.** Its docstring says it
+exists because Acadia's Precipice Trail — iron rungs bolted to a cliff — was
+reading Easy. Precipice is 966 ft in 0.67 mi = **1,442 ft/mi** and misses 1,500
+as well. The floor moved it Easy -> Moderate and stopped.
+
+**DO NOT just lower the number.** The user's standing position, restated on
+2026-08-15: *"you know i don't like thresholds numbers so we need to be smarter."*
+For the record, dropping the floor to 1,400 was measured over all **92,400**
+trails carrying a DEM gain and re-rates **127 of them (0.14%)** — Echo Canyon,
+Precipice, Mount Colden, Manamana, Henry Stimson. That is the SIZE of the
+problem, not the fix.
+
+**Directions worth exploring, none of them chosen:**
+
+- **Rank, not magnitude.** "Hard" as a percentile of steepness rather than a
+  ft/mi cut. Says something true relative to what exists, and never needs
+  retuning as coverage grows.
+- **Fit to known trails.** Build a ground-truth list the user can grade from
+  memory — Echo Canyon hard, Piestewa moderate, Precipice hard — and choose
+  whatever function reproduces it. Same shape as the parking groundtruth in
+  `parking-vision-adjudication`.
+- **Use the profile, not the average.** `profileFt` ships at 32 samples/mile, so
+  SUSTAINED steepness over a window is computable. A trail with one savage pitch
+  and a trail evenly graded to the same average are not the same hike, and an
+  average grade cannot tell them apart.
+- Per CLAUDE.md #12, put a stratified sample in front of the user's eyes before
+  building whichever rule wins.
+
+**Architectural note that decides how the fix ships.** The label is baked into
+geom at publish, so changing it today means republishing all 50 states. Both
+inputs (`gainFt`, `distanceMi`) and now `profileFt` already ship to the app, so
+the label COULD be computed on the phone. Then this is a build rather than a
+national roll, and the next revision costs one line instead of a re-publish.

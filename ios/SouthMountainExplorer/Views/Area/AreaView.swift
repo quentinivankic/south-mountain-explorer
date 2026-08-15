@@ -796,11 +796,25 @@ struct AreaView: View {
     private var minSheetHeight: CGFloat {
         let selected = selectedTrailId != nil
         var h: CGFloat = 8   // slack, so nothing sits flush against the edge
-        h += selected ? headerHeightCompact : headerHeightFull
-        if !selected { h += searchBarHeight }
-        if isRecording { h += recordingBlockHeight }
-        h += selected ? selectedRowHeight : collapsedRowHeight * 2.5
-        if selected {
+
+        if isRecording {
+            // RECORDING WINS, and it wins by SUBTRACTION.
+            //
+            // The requirement is "at the smallest stop I should see the
+            // recording panel" — that is a floor, not a list of things to stack.
+            // This used to add the panel ON TOP of the browsing minimum, so a
+            // hike opened the sheet over half the screen: header, panel, search
+            // bar and two and a half trail rows, when the only thing being asked
+            // for was the panel. The map is what you want while walking.
+            //
+            // So: the header, because the page dots are the only way to the Dex,
+            // and the panel. No search bar, no rows, and no expanded row even
+            // with a trail selected. Drag up for any of that.
+            h += headerHeightFull
+            h += recordingBlockHeight
+        } else if selected {
+            h += headerHeightCompact
+            h += selectedRowHeight
             // Never let selecting a trail SHRINK the sheet. Standing down the
             // name, summary and search bar frees more space than the expanded
             // row needs, so the arithmetic alone made the sheet drop when you
@@ -808,14 +822,17 @@ struct AreaView: View {
             // edge, dropped with it. Holding the idle height instead spends the
             // freed space on more visible rows, which is the better trade
             // anyway: the ground does not move under the thing you just tapped.
-            let idle = 8 + headerHeightFull + searchBarHeight
-                + (isRecording ? recordingBlockHeight : 0)
-                + collapsedRowHeight * 2.5
-            h = max(h, idle)
+            h = max(h, 8 + headerHeightFull + searchBarHeight + collapsedRowHeight * 2.5)
+        } else {
+            h += headerHeightFull
+            h += searchBarHeight
+            h += collapsedRowHeight * 2.5
         }
+
         // Floor and ceiling: a measurement that came back nonsense must not be
         // able to collapse the sheet to nothing or swallow the map. The
         // "smallest" stop stays a minority of the screen whatever it contains.
+        //
         // Quantised to 4pt. Every input is a live measurement, and the rows are
         // not all the same height, so an unrounded value drifts by a point or
         // two on any re-layout. Each drift used to be a NEW `.height()` detent,
@@ -851,6 +868,14 @@ struct AreaView: View {
     /// they come back.
     private var hideChromeForSelection: Bool {
         selectedTrailId != nil && sheetDetent == minDetent
+    }
+
+    /// The search bar stands down at the smallest stop while a trail is selected
+    /// OR while a hike is recording. Selecting pays for the expanded row;
+    /// recording pays for the map, and searching for another trail is not what
+    /// you are doing thirty seconds into a hike. Drag up and it is back.
+    private var hideSearchBarAtMinStop: Bool {
+        sheetDetent == minDetent && (selectedTrailId != nil || isRecording)
     }
 
     /// Height of the visible sheet, measured from the BOTTOM of the screen.
@@ -1387,7 +1412,7 @@ struct AreaView: View {
                         sort: $trailSort,
                         searchQuery: $trailSearchQuery,
                         filteredTrails: filtered,
-                        showsSearchBar: !hideChromeForSelection,
+                        showsSearchBar: !hideSearchBarAtMinStop,
                         onRecordTrail: { trail in tryStartRecording(trailId: trail.id) },
                         onSearchBarHeight: { searchBarHeight = $0 },
                         onCollapsedRowHeight: { collapsedRowHeight = $0 },

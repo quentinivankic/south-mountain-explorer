@@ -190,8 +190,6 @@ struct TrailListView: View {
                     .padding(.horizontal)
                     .padding(.top, 8)
                     .padding(.bottom, 10)
-
-                    Divider()
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { onSearchBarHeight?($0) }
             }
@@ -220,8 +218,14 @@ struct TrailListView: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal)
                 .padding(.vertical, 5)
-                if !showsSearchBar { Divider() }
             }
+
+            // A rule between whatever is above and the list, ALWAYS. The search
+            // bar used to carry the only one, so while recording — search bar
+            // hidden — the list ran straight out of the recording panel with no
+            // edge, and a partly-scrolled first row read as a broken element
+            // rather than as a list you can scroll.
+            Divider()
 
             // ScrollViewReader so we can scroll the just-selected
             // trail's row into view when the user taps a trail on
@@ -334,8 +338,28 @@ struct TrailListView: View {
                 // list stopped short of the sheet's bottom edge instead of
                 // running under it.
             }
-            .onChange(of: selectedTrailId) { _, newId in
-                guard let newId else { return }
+            .onChange(of: selectedTrailId) { oldId, newId in
+                guard let newId else {
+                    // DESELECT. The row that was open just shrank by the height
+                    // of its chart and parking line, and the scroll offset does
+                    // not shrink with it — so the list is left parked partway
+                    // through a row, which reads as a trail name sliced in half
+                    // at the top of the list. Nothing used to run on this path
+                    // at all.
+                    //
+                    // Re-anchor to the row that WAS selected: it puts the list
+                    // back on a row boundary and leaves you looking at the trail
+                    // you were just reading about, which is where you were.
+                    if let oldId {
+                        Task {
+                            await Task.yield()
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                proxy.scrollTo(oldId, anchor: .top)
+                            }
+                        }
+                    }
+                    return
+                }
                 // Animate the row into view. LazyVStack only realizes
                 // rows that are on-screen, so scrollTo must trigger
                 // both the scroll AND lazy-row materialization.

@@ -141,12 +141,6 @@ struct AreaView: View {
     @State private var selectedTrailId: String? = nil
     /// Trail being reported via the overflow menu — drives the report sheet.
     @State private var reportingTrail: Trail? = nil
-    /// Per-recording-session set of trail ids the user has
-    /// dismissed from the suggestion banner. Prevents the same
-    /// "Add Bajada Trail" pill from re-appearing five seconds
-    /// after the user × it. Cleared whenever the active recording
-    /// goes nil (a new recording starts fresh).
-    @State private var dismissedSuggestionIds: Set<String> = []
     @State private var finishedRecording: FinishedRecording? = nil
     @State private var showSummary = false
     @State private var showAreaComplete = false
@@ -683,11 +677,7 @@ struct AreaView: View {
             minLoadingTimeElapsed = true
         }
         .onChange(of: isRecording) { _, recordingNow in
-            // Each new recording session starts with a clean slate of
-            // suggestion dismissals — the user's "× this" from a
-            // previous hike shouldn't suppress the same trail forever.
             if !recordingNow {
-                dismissedSuggestionIds.removeAll()
                 // Drop the panel's high-water mark with it, so the next hike
                 // starts from a fresh measurement rather than inheriting the
                 // tallest the last one ever got.
@@ -1037,34 +1027,6 @@ struct AreaView: View {
         return area.trails.first(where: { $0.id == selectedId })
     }
 
-    /// Top suggestion from `TrailSuggestionEngine`, filtered by
-    /// the user's per-session dismissals, or nil if no candidate
-    /// qualifies. Recomputed each body eval — the engine runs in
-    /// O(trail count × ~100 nodes) which is cheap at the scales
-    /// the app sees (~200 trails per area max).
-    ///
-    /// Uses the raw (pre-decimation) trail set when available so
-    /// the projection math sees the same dense node geometry the
-    /// halo / coverage paths use. Decimated trails would over-
-    /// estimate the detour distance by up to the decimation
-    /// epsilon (5 m).
-    private func suggestionCandidate(area: Area) -> TrailSuggestion? {
-        guard let activeRec = recording.activeRecording,
-              let coord = location.liveLocation ?? location.userLocation
-        else { return nil }
-        let trails = area.rawTrails ?? area.trails
-        let coverageByTrailId = coverage.coverage(for: area.id)
-        let pace = recording.smoothedPaceMetersPerSec()
-        let candidates = TrailSuggestionEngine.candidates(
-            userLocation: coord,
-            currentTrailId: activeRec.trailId,
-            trails: trails,
-            coverageByTrailId: coverageByTrailId,
-            paceMetersPerSec: pace,
-            maxResults: 5  // request a few so we can skip dismissed ones
-        )
-        return candidates.first(where: { !dismissedSuggestionIds.contains($0.trail.id) })
-    }
 
     /// Pull recorded hike history once and use it for both:
     ///   - the cyan coverage halo (`pastHikes` → path slice)
@@ -1399,6 +1361,21 @@ struct AreaView: View {
                             }
                             .padding(.bottom, 4)
                         }
+                        // ORDER MATTERS HERE, and getting it backwards is why
+                        // the panel kept coming back clipped after #565.
+                        //
+                        // SwiftUI applies modifiers bottom-up, so with the
+                        // measurement written first it measured the panel BEFORE
+                        // `fixedSize` protected it — i.e. it measured the
+                        // SQUEEZED panel. That height then sized the sheet's
+                        // smallest stop, which gave the panel exactly the room it
+                        // was already being squeezed into, which kept it
+                        // squeezed. A loop that could never open up on its own.
+                        //
+                        // fixedSize first: the panel states its ideal height and
+                        // refuses compression. Then measure, and what comes back
+                        // is the height it actually wants.
+                        .fixedSize(horizontal: false, vertical: true)
                         // Only ever GROW while a hike is running. The panel
                         // gains and loses the GPS capsule and the live
                         // elevation strip as the hike goes on, and letting the
@@ -1407,12 +1384,6 @@ struct AreaView: View {
                         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
                             if h > recordingBlockHeight { recordingBlockHeight = h }
                         }
-                        // The panel must never be the thing that gets squeezed.
-                        // `fixedSize` on the vertical axis says "this is my
-                        // height, take the shortfall somewhere else" — and the
-                        // somewhere else is the scroll view below, which is the
-                        // only flexible thing in the stack.
-                        .fixedSize(horizontal: false, vertical: true)
                     }
 
                     TrailListView(
@@ -1564,38 +1535,13 @@ struct AreaView: View {
                 },
                 onDismiss: { selectedTrailId = nil }
             )
-        } else if let suggestion = suggestionCandidate(area: area) {
-            SuggestionBanner(
-                suggestion: suggestion,
-                onSwitch: {
-                    ActivityLogService.shared.log(
-                        category: "recording",
-                        action: "retarget",
-                        context: ["source": "suggestionBanner", "trailId": suggestion.trail.id]
-                    )
-                    recording.retargetTrail(suggestion.trail.id)
-                    selectedTrailId = suggestion.trail.id
-                    centerOnSwitchedTrailTick &+= 1
-                },
-                onDismiss: {
-                    log.notice("suggestion dismiss trail=\(suggestion.trail.name, privacy: .public)")
-                    dismissedSuggestionIds.insert(suggestion.trail.id)
-                }
-            )
-            // Diagnostics: log when the banner mounts and unmounts
-            // so a Send Diagnostics bundle can explain why the user
-            // did or didn't see it at a given moment. SwiftUI calls
-            // .onAppear exactly once per identity, and the banner's
-            // identity is the suggestion trail id (it remounts when
-            // the candidate changes).
-            .onAppear {
-                log.notice("suggestion mount trail=\(suggestion.trail.name, privacy: .public) detour=\(Int(suggestion.detourMeters))m remaining=\(Int(suggestion.remainingMeters))m extraSec=\(Int(suggestion.extraSeconds))")
-            }
-            .onDisappear {
-                log.notice("suggestion unmount trail=\(suggestion.trail.name, privacy: .public)")
-            }
-            .id(suggestion.trail.id)
         }
+        // The heuristic SUGGESTION banner is gone. It popped up mid-hike
+        // proposing short detours onto nearby trails — unasked, while the hiker
+        // was walking, on the one screen where an interruption also grows the
+        // sheet and takes the map. The retarget banner above stays: that one
+        // only appears because you TAPPED a different trail, so it is answering
+        // a question you just asked rather than starting a conversation.
     }
 
     /// Show a brief "Following your direction" / similar pill above

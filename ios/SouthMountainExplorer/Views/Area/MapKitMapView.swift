@@ -732,19 +732,18 @@ struct MapKitMapView: UIViewRepresentable {
             } else {
                 baseColor = Self.difficultyColor(difficulty)
             }
-            // Dim non-highlighted trails ONLY while browsing a selection —
-            // never mid-hike. During an active recording the tracked trail is
-            // already purple and 10pt, so it stands out without help; dimming
-            // the rest just makes the surrounding network hard to read in
-            // bright sun (user report from a real hike). Show every trail at
-            // full colour then. Browse-time selection still dims so the blue
-            // selection pops against the tangle.
-            let dimmed = recordingTrailId == nil && selectedTrailId != nil && !isSelected
-            // Tightened dim alpha 0.5 → 0.35 so the selected trail's
-            // bright blue pops harder against the surrounding tangle.
-            let alpha: CGFloat = dimmed ? 0.35 : 1.0
-
-            renderer.strokeColor = baseColor.withAlphaComponent(alpha)
+            // NOTHING is dimmed, ever. Selecting a trail used to drop every
+            // other trail to 0.35 alpha so the blue selection would pop, and
+            // that was the wrong trade twice over: it made the surrounding
+            // network hard to read in bright sun mid-hike (which is why the
+            // recording case was already exempted), and it hides the very
+            // context you selected a trail in order to understand — what
+            // connects to it, what crosses it, what you could add on.
+            //
+            // The selection does not need the rest of the map turned down to be
+            // findable. It is iOS blue against difficulty colours and 9pt
+            // against 3pt, which is three times the width of anything near it.
+            renderer.strokeColor = baseColor
             // Selected width bumped 6 → 9 so the selection still reads
             // as obviously distinct even when paralleling a completed
             // trail at full opacity (they overlap, both visible — width

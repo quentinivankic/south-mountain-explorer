@@ -256,6 +256,32 @@ final class RecordingService {
     // MARK: - Start / Stop
 
     func startRecording(areaId: String, mode: RecordingMode, trailId: String? = nil) {
+        // NEVER overwrite a live recording. This assignment is destructive —
+        // `activeRecording` holds the entire GPS path — and on 2026-08-16 it
+        // silently threw away 25 minutes and 457 fixes of a real hike, because
+        // AreaView's preflight only treated a DIFFERENT area as a conflict and
+        // let same-area-different-trail fall straight through to here.
+        //
+        // The caller's own preflight is the right place to decide what a second
+        // start MEANS, and it now retargets instead. This guard is the floor
+        // under that decision: every legitimate path to a new recording stops
+        // the old one first, so an active recording here is a bug upstream, and
+        // refusing costs a start while proceeding costs the hike.
+        if let live = activeRecording {
+            log.error("startRecording REFUSED — a recording is already live areaId=\(live.areaId, privacy: .public) trailId=\(live.trailId ?? "nil", privacy: .public) points=\(live.path.count). Stop it first.")
+            ActivityLogService.shared.log(
+                category: "recording",
+                action: "startRefusedWhileActive",
+                context: [
+                    "liveAreaId": live.areaId,
+                    "liveTrailId": live.trailId ?? "nil",
+                    "livePoints": String(live.path.count),
+                    "requestedAreaId": areaId,
+                    "requestedTrailId": trailId ?? "nil",
+                ]
+            )
+            return
+        }
         // Snapshot which trails are ALREADY complete in this area at
         // recording-start. Used by stopRecording to classify each
         // covered trail as "newly completed" (not in snapshot) vs

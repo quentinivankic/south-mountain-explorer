@@ -130,4 +130,32 @@ struct RetargetActiveRecordingTests {
         let out = try #require(RecordingService.retargeted(legacy, newTrailId: "javelina-canyon-trail"))
         #expect(out.priorCompleteTrailIds == nil)
     }
+
+    // MARK: - the path a retarget must never destroy
+
+    /// The 2026-08-16 data loss, as a test.
+    ///
+    /// Recording Mormon Loop, tapped a different trail's Record button, and the
+    /// hike was gone — 25 minutes and 457 fixes. The cause was that starting a
+    /// second recording in the SAME area overwrote `activeRecording`, and that
+    /// property holds the entire GPS path. `retargeted` is what should run
+    /// instead, and the property that matters is that the path survives.
+    @Test func retarget_keepsEveryFixAndTheStartTime() throws {
+        let out = try #require(
+            RecordingService.retargeted(Self.baseRecording, newTrailId: "mormon-loop-trail")
+        )
+        #expect(out.trailId == "mormon-loop-trail")
+        #expect(out.path.count == Self.baseRecording.path.count)
+        #expect(out.path == Self.baseRecording.path)
+        #expect(out.startedAt == Self.baseRecording.startedAt)
+        #expect(out.distanceMi == Self.baseRecording.distanceMi)
+    }
+
+    /// Retargeting to the trail already being recorded is a no-op, not a
+    /// restart. AreaView leans on this: tapping Record on the trail you are
+    /// already on must not touch the recording.
+    @Test func retarget_toTheSameTrailChangesNothing() {
+        let out = RecordingService.retargeted(Self.baseRecording, newTrailId: "alta")
+        #expect(out == nil || out?.path == Self.baseRecording.path)
+    }
 }

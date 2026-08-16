@@ -1122,6 +1122,39 @@ struct AreaView: View {
             return
         }
 
+        // A recording ALREADY RUNNING IN THIS AREA is not a conflict — it is a
+        // change of mind about which trail you are on. Retarget it and keep
+        // every metre already walked.
+        //
+        // This case used to fall straight through to `startRecordingNow`, which
+        // overwrote `activeRecording` and with it the whole GPS path. On
+        // 2026-08-16 that discarded 25 minutes and 457 fixes of a real hike:
+        // recording Mormon Loop, tapped a different trail's record button, and
+        // the hike was gone. The preflight below only ever treated a DIFFERENT
+        // area as a conflict, so same-area-different-trail had nothing standing
+        // in front of it.
+        //
+        // Retargeting is what the "Switch active trail" banner already does, and
+        // it is unambiguously what tapping Record on another trail means: I am
+        // on THIS trail now. Nothing is thrown away, so nothing needs asking.
+        if let active = recording.activeRecording,
+           active.areaId == areaId, active.mode != .walk {
+            if let trailId, trailId != active.trailId {
+                ActivityLogService.shared.log(
+                    category: "recording",
+                    action: "retarget",
+                    context: ["source": "recordButton", "trailId": trailId]
+                )
+                recording.retargetTrail(trailId)
+                selectedTrailId = trailId
+                centerOnSwitchedTrailTick &+= 1
+                showTrackingModeToast("Now tracking this trail")
+            }
+            // Same trail, or the roam button while already recording: nothing
+            // to do. Certainly not a restart.
+            return
+        }
+
         // Item 1 — concurrent recording prevention. An active WALK
         // always conflicts, even when its primary area happens to be
         // this one: starting an area recording here would silently

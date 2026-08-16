@@ -101,11 +101,23 @@ final class RecordingService {
     /// this decode grows with use, and it used to run on the main thread at app
     /// launch, on every Stats open, and on every pull-to-refresh.
     /// `SavedRecording` is Sendable, so handing the result back is safe.
+    /// Newest first, ALWAYS — sorted here rather than trusted from the file.
+    ///
+    /// Nothing sorted this before, so "Recent Hikes" showed whatever order
+    /// `hike-history.json` happened to be in. That order is not a guarantee: a
+    /// restored backup carries whatever order its writer used, and on
+    /// 2026-08-16 an imported file sorted oldest-first put May at the top of the
+    /// list and August at the bottom. Sorting at the single point every caller
+    /// comes through costs one pass over a few dozen records and makes the file's
+    /// order irrelevant.
+    ///
+    /// Callers that need oldest-first for a chronological credit pass already
+    /// sort explicitly and are unaffected.
     nonisolated static func decodeHistory() -> [SavedRecording] {
         guard let data = try? Data(contentsOf: historyFileURL),
               let decoded = try? JSONDecoder().decode([SavedRecording].self, from: data)
         else { return [] }
-        return decoded
+        return decoded.sorted { $0.startedAt > $1.startedAt }
     }
 
     private init() {

@@ -14,12 +14,20 @@ private let farFromAreaThresholdMi = 5.0
 
 /// Segments of the area sheet. `trails` is the original trail
 /// list + map controls; `dex` is the achievements grid.
+/// Pages of the area sheet, left to right. `allCases` order IS the page order.
+///
+/// Record sits on the LEFT and owns the hike: the start button before one, the
+/// recording panel during. That placement is what lets the trail list stay
+/// reachable mid-hike — swipe right — which is the thing a floating panel with
+/// no menu behind it could not do.
 private enum AreaSheetTab: Hashable, CaseIterable {
+    case record
     case trails
     case dex
 
     var pageName: String {
         switch self {
+        case .record: return "Record"
         case .trails: return "Trails"
         case .dex: return "Dex"
         }
@@ -95,20 +103,18 @@ struct AreaView: View {
     @State private var headerHeightCompact: CGFloat = 50
     /// Search field + filter menu + the "Showing X of Y" hint + divider.
     @State private var searchBarHeight: CGFloat = 55
-    /// Retarget banner + RecordingPanel.
-    ///
-    /// Seeds err TALL on purpose. Every one of these is used until its real
-    /// measurement lands, and the two failure directions are not equal: a seed
-    /// that is too tall gives one slightly roomy frame nobody notices, while a
-    /// seed that is too short CLIPS — the thing this screen has been reported
-    /// for over and over. So this is seeded at the panel's size WITH its live
-    /// elevation strip, not without.
-    @State private var recordingBlockHeight: CGFloat = 170
+    /// The Record page: the start button when idle, the recording panel during
+    /// a hike. Seeded tall for the same reason the others are — see below.
+    @State private var recordPageHeight: CGFloat = 170
+    // Seeds err TALL on purpose. Every measured value here is used until its
+    // real one lands, and the two failure directions are not equal: too tall is
+    // one slightly roomy frame nobody notices, too short CLIPS — which is what
+    // this screen has been reported for over and over.
     /// An ordinary, unexpanded trail row.
     @State private var collapsedRowHeight: CGFloat = 62
     /// The selected row with its chart and parking line expanded into it.
     /// Seeded for a LONG name that wraps to two lines plus a parking line, not
-    /// for the average row — see the note on `recordingBlockHeight`.
+    /// for the average row — see the note on the seeds above.
     @State private var selectedRowHeight: CGFloat = 240
     /// Set when swiping to the Dex raised the sheet, so swiping back can lower
     /// it again — and so a sheet the USER raised is never lowered behind them.
@@ -692,11 +698,15 @@ struct AreaView: View {
             minLoadingTimeElapsed = true
         }
         .onChange(of: isRecording) { _, recordingNow in
-            if !recordingNow {
-                // Drop the panel's high-water mark with it, so the next hike
-                // starts from a fresh measurement rather than inheriting the
-                // tallest the last one ever got.
-                recordingBlockHeight = 96
+            if recordingNow {
+                // Started: put the user on the page that owns the hike. Tapping
+                // Record from a trail row lands you here too, which is why the
+                // row's button no longer needs to explain where the panel went.
+                withAnimation(.easeInOut(duration: 0.3)) { sheetTab = .record }
+            } else {
+                // Finished: the Record page has nothing left to say, so hand the
+                // screen back to the trail list.
+                withAnimation(.easeInOut(duration: 0.3)) { sheetTab = .trails }
             }
         }
         .task(id: isRecording) {
@@ -799,57 +809,49 @@ struct AreaView: View {
     /// itself depends on the stop, and the sheet would settle twice on every
     /// drag down.
     private var minSheetHeight: CGFloat {
-        let selected = selectedTrailId != nil
         var h: CGFloat = 8   // slack, so nothing sits flush against the edge
 
-        if isRecording {
-            // RECORDING WINS, and it wins by SUBTRACTION.
-            //
-            // The requirement is "at the smallest stop I should see the
-            // recording panel" — that is a floor, not a list of things to stack.
-            // This used to add the panel ON TOP of the browsing minimum, so a
-            // hike opened the sheet over half the screen: header, panel, search
-            // bar and two and a half trail rows, when the only thing being asked
-            // for was the panel. The map is what you want while walking.
-            //
-            // So: the header, because the page dots are the only way to the Dex,
-            // and the panel. No search bar, no rows, and no expanded row even
-            // with a trail selected. Drag up for any of that.
+        // The smallest stop fits WHATEVER PAGE YOU ARE ON. Each page holds
+        // different things, so one height for all three either crops the tall
+        // one or wastes the map on the short one.
+        switch sheetTab {
+        case .record:
+            // Just the header and the page. Recording, that is the panel and
+            // nothing else — no search bar, no trail rows — which is the whole
+            // point of giving the hike its own page.
             h += headerHeightFull
-            h += recordingBlockHeight
-            // Headroom, so the panel is whole rather than exactly flush. The
-            // measurement is a high-water mark that lags the panel's own growth
-            // — the GPS capsule and the live elevation strip both appear after
-            // the hike starts — and a stop sized to the last known height clips
-            // the next one. Half a row also leaves the list somewhere to be, so
-            // it is visibly a list you can drag up rather than a hard edge.
-            h += collapsedRowHeight * 0.5
-        } else if selected {
-            h += headerHeightCompact
-            h += selectedRowHeight
-            // Never let selecting a trail SHRINK the sheet. Standing down the
-            // name, summary and search bar frees more space than the expanded
-            // row needs, so the arithmetic alone made the sheet drop when you
-            // tapped a row — and the floating map controls, anchored to its top
-            // edge, dropped with it. Holding the idle height instead spends the
-            // freed space on more visible rows, which is the better trade
-            // anyway: the ground does not move under the thing you just tapped.
-            h = max(h, 8 + headerHeightFull + searchBarHeight + collapsedRowHeight * 2.5)
-        } else {
+            h += recordPageHeight
+            h += collapsedRowHeight * 0.25   // a little air under the panel
+
+        case .dex:
+            // Handled by raising to the half stop on swipe; this is only the
+            // floor if that raise does not apply.
             h += headerHeightFull
-            h += searchBarHeight
             h += collapsedRowHeight * 2.5
+
+        case .trails:
+            let selected = selectedTrailId != nil
+            h += selected ? headerHeightCompact : headerHeightFull
+            if !selected { h += searchBarHeight }
+            h += selected ? selectedRowHeight : collapsedRowHeight * 2.5
+            if selected {
+                // Never let selecting a trail SHRINK the sheet. Standing down
+                // the name, summary and search bar frees more space than the
+                // expanded row needs, so the arithmetic alone made the sheet
+                // drop when you tapped a row — and the floating map controls,
+                // anchored to its top edge, dropped with it.
+                h = max(h, 8 + headerHeightFull + searchBarHeight + collapsedRowHeight * 2.5)
+            }
         }
 
         // Floor and ceiling: a measurement that came back nonsense must not be
-        // able to collapse the sheet to nothing or swallow the map. The
-        // "smallest" stop stays a minority of the screen whatever it contains.
+        // able to collapse the sheet to nothing or swallow the map.
         //
         // Quantised to 4pt. Every input is a live measurement, and the rows are
         // not all the same height, so an unrounded value drifts by a point or
         // two on any re-layout. Each drift used to be a NEW `.height()` detent,
         // which re-pointed the selection and tugged the sheet back to its
-        // smallest stop — part of why the stops stopped working.
+        // smallest stop.
         let clamped = min(max(h, 140), maxDetentHeight * 0.72)
         return (clamped / 4).rounded() * 4
     }
@@ -1301,6 +1303,79 @@ struct AreaView: View {
         .accessibilityLabel("Page")
     }
 
+    /// The Record page — the left-hand page, and the one that owns the hike.
+    ///
+    /// Before a hike it is a single button. During one it is the recording
+    /// panel and nothing else. Putting it on a page rather than floating it over
+    /// the map is what keeps the trail list reachable mid-walk: swipe right.
+    @ViewBuilder
+    private func recordPage(area: Area) -> some View {
+        VStack(spacing: 0) {
+            if isRecording {
+                recordingBanners(area: area)
+                RecordingPanel(area: area) { finished in
+                    finishedRecording = finished
+                    showSummary = finished != nil
+                    // Refresh the cyan coverage halo with the just-finished
+                    // hike's path.
+                    Task { await loadPastPaths() }
+                }
+                .padding(.bottom, 4)
+            } else {
+                startHikeControl(area: area)
+            }
+            Spacer(minLength: 0)
+        }
+        // ORDER MATTERS. SwiftUI applies modifiers bottom-up, so measuring
+        // before `fixedSize` measures the SQUEEZED page — and that height then
+        // sizes the stop to keep it squeezed, a loop that cannot open on its
+        // own. It cost several builds on the recording panel; same rule here.
+        .fixedSize(horizontal: false, vertical: true)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+            // Grows freely while a hike runs, because the panel gains its GPS
+            // capsule and elevation strip as it goes. Settles back when idle.
+            if isRecording {
+                if h > recordPageHeight { recordPageHeight = h }
+            } else {
+                recordPageHeight = h
+            }
+        }
+    }
+
+    /// Start button. What it will record is stated on the button itself, so
+    /// there is no way to press it and be surprised.
+    @ViewBuilder
+    private func startHikeControl(area: Area) -> some View {
+        let selected = selectedTrailId.flatMap { id in area.trails.first { $0.id == id } }
+        VStack(spacing: 8) {
+            Button {
+                tryStartRecording(trailId: selected?.id)
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "record.circle")
+                        .font(.title3.weight(.semibold))
+                    Text(selected == nil ? "Start a Hike" : "Record This Trail")
+                        .font(.headline)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .compatibleGlass(in: .capsule)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("area-record-button")
+
+            Text(selected.map { "Tracking \($0.name) — coverage counts toward completing it." }
+                 ?? "No trail selected. This records a roam hike: everything you walk still counts toward the trails it covers.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 4)
+        .padding(.bottom, 12)
+    }
+
     @ViewBuilder
     private func sheetContent(area: Area) -> some View {
         VStack(spacing: 0) {
@@ -1388,49 +1463,14 @@ struct AreaView: View {
                 }
             }
 
-            // The recording block sits ABOVE the pager, not inside the Trails
-            // page, because a hike is not a property of which page you happen
-            // to be looking at. Inside the page it vanished the moment you
-            // swiped to the Dex — taking the stop button with it — while the
-            // sheet stayed sized for a panel that was no longer drawn.
-            if isRecording {
-                VStack(spacing: 0) {
-                    recordingBanners(area: area)
-                    RecordingPanel(area: area) { finished in
-                        finishedRecording = finished
-                        showSummary = finished != nil
-                        // Refresh the cyan coverage halo with the
-                        // just-finished hike's path.
-                        Task { await loadPastPaths() }
-                    }
-                    .padding(.bottom, 4)
-                }
-                // ORDER MATTERS HERE, and getting it backwards is why the panel
-                // kept coming back clipped after #565. SwiftUI applies modifiers
-                // bottom-up, so with the measurement written first it measured
-                // the panel BEFORE `fixedSize` protected it — the SQUEEZED
-                // panel. That height then sized the sheet's smallest stop, which
-                // gave the panel exactly the room it was already being squeezed
-                // into, which kept it squeezed. A loop that could never open on
-                // its own.
-                //
-                // fixedSize first: the panel states its ideal height and refuses
-                // compression. Then measure, and what comes back is the height
-                // it actually wants.
-                .fixedSize(horizontal: false, vertical: true)
-                // Only ever GROW while a hike is running. The panel gains and
-                // loses the GPS capsule and the live elevation strip as the hike
-                // goes on, and letting the stop shrink back would bob the sheet
-                // under the user's thumb mid-hike. Reset when the hike ends.
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
-                    if h > recordingBlockHeight { recordingBlockHeight = h }
-                }
-            }
-
             // Swipe horizontally between Trails and the Dex. `.page` style with
             // always-visible dots, so the second page is discoverable without
             // spending a row on a segmented control.
             TabView(selection: $sheetTab) {
+                recordPage(area: area)
+                    .ignoresSafeArea(edges: .bottom)
+                    .tag(AreaSheetTab.record)
+
                 VStack(spacing: 0) {
                     // Tracking-mode toast. A subtle solid capsule, NOT glass —
                     // it floats inside the glass sheet, so a material backdrop
@@ -1679,36 +1719,10 @@ struct AreaView: View {
 
             Spacer()
 
-            // Record button — hidden during recording (RecordingPanel
-            // owns the stop/save flow there).
-            if !isRecording {
-                Button {
-                    // Start the SELECTED trail when there is one. This passed
-                    // nil unconditionally, so the big obvious button always
-                    // started a ROAM recording — the trail you had just tapped
-                    // was ignored, the map never lit it up as the active trail,
-                    // and the hike saved with no trail name against it. Tapping
-                    // a trail then tapping Record can only mean one thing.
-                    tryStartRecording(trailId: selectedTrailId)
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "record.circle")
-                            .font(.body.weight(.semibold))
-                        // Name what will be recorded, so the button says which
-                        // of the two things it is about to do.
-                        Text(selectedTrailId == nil ? "Record Hike" : "Record Trail")
-                            .fontWeight(.semibold)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
-                    // Flat fill to match the tracking / recenter
-                    // control buttons — no glass. On the now-opaque
-                    // sheet, the glass capsule was the last lingering
-                    // glass-on-opaque element and read inconsistently
-                    // next to the flat icon buttons.
-                    .compatibleGlass(in: .capsule)
-                }
-            }
+            // The Record button used to live here, floating over the map. It is
+            // gone: the Record page owns starting a hike now, so there is one
+            // place to do it instead of two, and the map keeps only the controls
+            // that act on the MAP.
         }
         .padding(.horizontal, 20)
     }

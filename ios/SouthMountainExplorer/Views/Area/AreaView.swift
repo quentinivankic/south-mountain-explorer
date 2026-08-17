@@ -10,8 +10,6 @@ import OSLog
 /// state.
 private let log = Logger(subsystem: "com.trekdex.app", category: "area")
 
-private let farFromAreaThresholdMi = 5.0
-
 /// Segments of the area sheet. `trails` is the original trail
 /// list + map controls; `dex` is the achievements grid.
 /// Pages of the area sheet, left to right. `allCases` order IS the page order.
@@ -116,9 +114,6 @@ struct AreaView: View {
     /// Seeded for a LONG name that wraps to two lines plus a parking line, not
     /// for the average row — see the note on the seeds above.
     @State private var selectedRowHeight: CGFloat = 240
-    /// Set when swiping to the Dex raised the sheet, so swiping back can lower
-    /// it again — and so a sheet the USER raised is never lowered behind them.
-    @State private var raisedSheetForDex = false
     /// The sheet's REAL top edge, in points up from the physical screen bottom,
     /// reported by the sheet's own content rather than derived from what a
     /// detent is believed to mean.
@@ -190,8 +185,6 @@ struct AreaView: View {
     // Pre-flight checks before kicking off a recording.
     @State private var showConflictAlert = false
     @State private var conflictAreaName: String = ""
-    @State private var showFarWarning = false
-    @State private var farDistanceMi: Double = 0
     /// Captured by tryStartRecording when a confirmation dialog interrupts
     /// the start. The dialog's "proceed" button reads this so a trail-mode
     /// request survives the round-trip — without it, "Start Anyway" /
@@ -811,37 +804,33 @@ struct AreaView: View {
     private var minSheetHeight: CGFloat {
         var h: CGFloat = 8   // slack, so nothing sits flush against the edge
 
-        // The smallest stop fits WHATEVER PAGE YOU ARE ON. Each page holds
-        // different things, so one height for all three either crops the tall
-        // one or wastes the map on the short one.
+        // TWO heights, each of which can be explained, rather than three that
+        // differ for no reason the user can see.
+        //
+        // Record is short because it holds one thing. Trails and Dex are the
+        // same because they are both browse pages, so swiping between them does
+        // not resize the sheet under your thumb — which is what made the heights
+        // look arbitrary.
+        let browseMinimum: CGFloat = {
+            var b = headerHeightFull + searchBarHeight + collapsedRowHeight * 2.5
+            if sheetTab == .trails, selectedTrailId != nil {
+                // A selected trail stands the name, summary and search bar down
+                // and needs its whole expanded row instead — but never less than
+                // the browse height, so the ground does not move when you tap.
+                b = max(b, headerHeightCompact + selectedRowHeight)
+            }
+            return b
+        }()
+
         switch sheetTab {
         case .record:
-            // Just the header and the page. Recording, that is the panel and
-            // nothing else — no search bar, no trail rows — which is the whole
-            // point of giving the hike its own page.
+            // Exactly the header and the page. Nothing added: an extra quarter
+            // of a row of "air" here is what made the page holding the LEAST
+            // content the tallest of the three.
             h += headerHeightFull
             h += recordPageHeight
-            h += collapsedRowHeight * 0.25   // a little air under the panel
-
-        case .dex:
-            // Handled by raising to the half stop on swipe; this is only the
-            // floor if that raise does not apply.
-            h += headerHeightFull
-            h += collapsedRowHeight * 2.5
-
-        case .trails:
-            let selected = selectedTrailId != nil
-            h += selected ? headerHeightCompact : headerHeightFull
-            if !selected { h += searchBarHeight }
-            h += selected ? selectedRowHeight : collapsedRowHeight * 2.5
-            if selected {
-                // Never let selecting a trail SHRINK the sheet. Standing down
-                // the name, summary and search bar frees more space than the
-                // expanded row needs, so the arithmetic alone made the sheet
-                // drop when you tapped a row — and the floating map controls,
-                // anchored to its top edge, dropped with it.
-                h = max(h, 8 + headerHeightFull + searchBarHeight + collapsedRowHeight * 2.5)
-            }
+        case .trails, .dex:
+            h += browseMinimum
         }
 
         // Floor and ceiling: a measurement that came back nonsense must not be
@@ -1173,21 +1162,11 @@ struct AreaView: View {
             return
         }
 
-        // Item 3 — far-from-area warning. We only check when we actually
-        // have a fresh user location; otherwise let the user proceed and
-        // the recording will pick up coords once GPS catches up.
-        if let userLoc = location.userLocation {
-            let distMi = haversineDistanceMi(
-                lat1: userLoc.latitude, lon1: userLoc.longitude,
-                lat2: area.centerLat,    lon2: area.centerLon
-            )
-            if distMi > farFromAreaThresholdMi {
-                pendingRecordTrailId = trailId
-                farDistanceMi = distMi
-                showFarWarning = true
-                return
-            }
-        }
+        // The "you're N miles from this area" confirmation is GONE. It stood
+        // between the user and starting a hike on the strength of a distance to
+        // the area's CENTRE — which is miles from the trailhead in any large
+        // park — and its answer was always Start Anyway. A dialog everyone
+        // dismisses is not a safeguard, it is a tax on the common case.
 
         startRecordingNow(trailId: trailId)
     }
@@ -1324,7 +1303,10 @@ struct AreaView: View {
             } else {
                 startHikeControl(area: area)
             }
-            Spacer(minLength: 0)
+            // No Spacer. One sat here and the page measured taller than its
+            // own content, which is how the Record page ended up the TALLEST of
+            // the three while holding the least — a panel and then a band of
+            // empty sheet under it.
         }
         // ORDER MATTERS. SwiftUI applies modifiers bottom-up, so measuring
         // before `fixedSize` measures the SQUEEZED page — and that height then
@@ -1437,29 +1419,13 @@ struct AreaView: View {
             .onChange(of: sheetTab) { _, tab in
                 if tab == .dex {
                     AnalyticsService.shared.capture(.dexOpened(areaId: area.id))
-                    // The Dex is a grid of tiles — "as tall as it needs to be"
-                    // has no small answer for it, so swiping over raises the
-                    // sheet to the half stop.
-                    //
-                    // Two guards. Only from the smallest stop, so a sheet the
-                    // user opened themselves is left alone. And only when the
-                    // half stop is actually IN the set — it is dropped whenever
-                    // the minimum has grown near it, which is exactly what a
-                    // recording panel does, and pointing the selection at a stop
-                    // the sheet does not have strands it.
-                    if sheetDetent == minDetent, mediumIsDistinct {
-                        raisedSheetForDex = true
-                        sheetDetent = Self.mediumDetent
-                    }
-                } else if raisedSheetForDex {
-                    raisedSheetForDex = false
-                    // Only undo the raise if they are STILL where it put them.
-                    // Swipe to the Dex from the smallest stop, drag up to full
-                    // screen, swipe back — this used to drop you to the minimum
-                    // regardless, throwing away a size you chose yourself.
-                    if sheetDetent == Self.mediumDetent {
-                        sheetDetent = minDetent
-                    }
+                    // No height change on swipe. The Dex used to raise the sheet
+                    // to the half stop because it was a grid with no small
+                    // answer; it now shares the browse height with Trails, so
+                    // there is nothing to raise. That raise was also the source
+                    // of two separate bugs — pointing the selection at a stop
+                    // the sheet did not have while recording, and yanking the
+                    // user down from full screen on the way back.
                 }
             }
 
@@ -1567,7 +1533,7 @@ struct AreaView: View {
         // Confirmation dialogs ALSO nest inside the sheet — same
         // one-presentation-per-ancestor rule that put the modal sheets
         // here. With them attached to AreaView's body, tapping "Record
-        // Hike" set `showFarWarning = true`, SwiftUI tried to present
+        // Hike" set a dialog flag, SwiftUI tried to present
         // the dialog from AreaView, found the trail-list sheet already
         // owning that slot, and bounced — dismissing the sheet to
         // present the dialog, then re-presenting the sheet (because
@@ -1589,22 +1555,6 @@ struct AreaView: View {
             }
         } message: {
             Text("Starting a new hike here will save and end your hike at \(conflictAreaName).")
-        }
-        .confirmationDialog(
-            "You're \(UnitFormatter.distance(miles: farDistanceMi, units: units)) from \(areaName)",
-            isPresented: $showFarWarning,
-            titleVisibility: .visible
-        ) {
-            Button("Start Anyway", role: .destructive) {
-                let trailId = pendingRecordTrailId
-                pendingRecordTrailId = nil
-                startRecordingNow(trailId: trailId)
-            }
-            Button("Cancel", role: .cancel) {
-                pendingRecordTrailId = nil
-            }
-        } message: {
-            Text("Recording from this far away will track GPS but won't update trail coverage in this area.")
         }
     }
 

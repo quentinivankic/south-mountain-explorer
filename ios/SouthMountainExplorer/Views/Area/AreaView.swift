@@ -801,7 +801,16 @@ struct AreaView: View {
         // not resize the sheet under your thumb — which is what made the heights
         // look arbitrary.
         let browseMinimum: CGFloat = {
-            var b = headerHeightFull + searchBarHeight + collapsedRowHeight * 2.5
+            // WHOLE rows. This was 2.5, deliberately, so the half-cut row at the
+            // bottom would signal "there is more, scroll me". It signalled
+            // "broken" instead, and was reported as clipping every time — a
+            // trail name with its distance and difficulty sliced off does not
+            // read as an affordance. Three rows end exactly at the sheet's edge
+            // and the fourth is simply not drawn.
+            // Each row carries a 1pt Divider under it that the row's own
+            // measurement does not include, so three rows need three dividers'
+            // worth of room or the third one loses its last point to the edge.
+            var b = headerHeightFull + searchBarHeight + collapsedRowHeight * 3 + 3
             if sheetTab == .trails, selectedTrailId != nil {
                 // A selected trail stands the name, summary and search bar down
                 // and needs its whole expanded row instead — but never less than

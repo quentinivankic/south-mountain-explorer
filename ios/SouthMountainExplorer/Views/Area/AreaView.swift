@@ -394,30 +394,16 @@ struct AreaView: View {
                 )
                 .ignoresSafeArea()
 
-                // Map controls FLOAT over the map, anchored just above the
-                // sheet's top edge, and ride up and down with it. They used to
-                // be the sheet's first row, which spent scarce vertical space
-                // on controls that act on the MAP, not the list. Sitting on the
-                // map is also where they belong: this is the same placement
-                // Apple Maps uses.
-                controlBar(area: area)
-                    .padding(.bottom, effectiveBottomInset + 10)
-                    .frame(maxHeight: .infinity, alignment: .bottom)
-                    // Measure from the TRUE screen bottom, the same origin the
-                    // sheet heights use. Without this the overlay is inset by
-                    // the home indicator (~34pt) and the padding double-counts
-                    // it, lifting the controls off the sheet's edge.
-                    .ignoresSafeArea(edges: .bottom)
-                    .ignoresSafeArea(.keyboard)
-                    // Keyed on the STOP, not on the inset. The inset became a
-                    // live measurement of the sheet's real top edge, so a spring
-                    // keyed to it is retriggered on every frame of a drag — the
-                    // controls chase a target that keeps moving instead of
-                    // tracking the sheet. On the stop it animates once, when the
-                    // sheet settles, and follows the drag exactly in between.
-                    .animation(.interactiveSpring(response: 0.35, dampingFraction: 0.85),
-                               value: sheetDetent)
-
+                // The camera controls used to float over the map here,
+                // anchored to the sheet's top edge and riding up and down with
+                // it. They live on the Record page now.
+                //
+                // That anchoring was its own running defect: the controls sat at
+                // a different distance from the sheet at each stop, clipped
+                // behind it, and dropped when a trail was selected — because
+                // their position was derived from a model of what a detent
+                // means. On a page they are simply laid out, and there is no
+                // distance to compute.
 
             } else if isLoading || (area != nil && !minLoadingTimeElapsed) {
                 loadingState
@@ -891,16 +877,16 @@ struct AreaView: View {
     /// `.fraction(0.5)` means half the sheet's maximum height — which
     /// overestimated it, floating the controls too far above the sheet.
     /// Where the sheet's top edge is, in points up from the physical screen
-    /// bottom. Drives the map's user-dot shift and pins the floating controls.
+    /// bottom. Its ONE remaining job is the map's user-dot shift, so the dot
+    /// clears the sheet — the floating controls it also used to pin are gone,
+    /// and with them every complaint about how far they sat from the menu.
     ///
     /// **Measured, not modelled.** Every earlier version computed this from what
     /// a detent was believed to mean — whether `.height(x)` includes the home
     /// indicator, whether `.fraction(0.5)` is half the screen or half the
-    /// sheet's maximum — with a separate guess per stop. Each guess was wrong by
-    /// a different amount, which is exactly why the controls sat at a different
-    /// distance from the sheet depending on how big the sheet was. The sheet's
-    /// own content now reports where it actually starts (`measuredSheetTop`),
-    /// so all three stops are right for the same reason.
+    /// sheet's maximum — with a separate guess per stop, each wrong by a
+    /// different amount. The sheet's own content reports where it actually
+    /// starts (`measuredSheetTop`), so every stop is right for one reason.
     ///
     /// The computed values stay as the seed for the first frame, before the
     /// sheet has laid out and had a chance to say.
@@ -1290,6 +1276,25 @@ struct AreaView: View {
     @ViewBuilder
     private func recordPage(area: Area) -> some View {
         VStack(spacing: 0) {
+            // Camera controls. They belong on this page for the same reason the
+            // start button does: this is the page you are on while the map is
+            // the thing you are looking at.
+            controlBar(area: area)
+                .padding(.bottom, 10)
+
+            // Names the tracking mode you just cycled into, for ~2 s, so the
+            // three-state cycle teaches itself without a permanent label.
+            if let toast = trackingModeToast {
+                Text(toast)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(Color.accentColor, in: Capsule())
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    .padding(.bottom, 10)
+            }
+
             if isRecording {
                 recordingBanners(area: area)
                 RecordingPanel(area: area) { finished in
@@ -1438,22 +1443,6 @@ struct AreaView: View {
                     .tag(AreaSheetTab.record)
 
                 VStack(spacing: 0) {
-                    // Tracking-mode toast. A subtle solid capsule, NOT glass —
-                    // it floats inside the glass sheet, so a material backdrop
-                    // would be the same glass-on-glass muddiness we removed
-                    // from the icon buttons. Tinted with the accent so it
-                    // reads as a transient status note.
-                    if let toast = trackingModeToast {
-                        Text(toast)
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 7)
-                            .background(Color.accentColor, in: Capsule())
-                            .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                            .padding(.bottom, 10)
-                    }
-
                     TrailListView(
                         area: area,
                         selectedTrailId: $selectedTrailId,
@@ -1619,12 +1608,6 @@ struct AreaView: View {
 
     private func controlBar(area: Area) -> some View {
         HStack(spacing: 14) {
-            // Note: the previous "map.fill / list.bullet" toggle was
-            // removed when the trail list moved to a native sheet —
-            // dragging the sheet down to the small peek detent now serves
-            // the same "show me more map" affordance, matching how
-            // Apple Maps and other system-sheet UIs handle it.
-
             // Camera tracking cycle — Apple Maps style. Cycles
             // free → follow → follow-with-heading → free. Icon
             // reflects the current mode. Toast under the controlBar

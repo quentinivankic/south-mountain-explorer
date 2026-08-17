@@ -101,8 +101,11 @@ struct AreaView: View {
     @State private var headerHeightCompact: CGFloat = 50
     /// Search field + filter menu + the "Showing X of Y" hint + divider.
     @State private var searchBarHeight: CGFloat = 55
-    /// The Record page: the start button when idle, the recording panel during
-    /// a hike. Seeded tall for the same reason the others are — see below.
+    /// The Record page's LIVE height: camera controls plus either the start
+    /// button or the recording panel. Seeded roughly and corrected on the first
+    /// layout pass — unlike the browse measurements this one is never a
+    /// high-water mark, because the page must be allowed to get shorter again
+    /// when the panel's GPS capsule goes away.
     @State private var recordPageHeight: CGFloat = 170
     // Seeds err TALL on purpose. Every measured value here is used until its
     // real one lands, and the two failure directions are not equal: too tall is
@@ -798,7 +801,16 @@ struct AreaView: View {
         // not resize the sheet under your thumb — which is what made the heights
         // look arbitrary.
         let browseMinimum: CGFloat = {
-            var b = headerHeightFull + searchBarHeight + collapsedRowHeight * 2.5
+            // WHOLE rows. This was 2.5, deliberately, so the half-cut row at the
+            // bottom would signal "there is more, scroll me". It signalled
+            // "broken" instead, and was reported as clipping every time — a
+            // trail name with its distance and difficulty sliced off does not
+            // read as an affordance. Three rows end exactly at the sheet's edge
+            // and the fourth is simply not drawn.
+            // Each row carries a 1pt Divider under it that the row's own
+            // measurement does not include, so three rows need three dividers'
+            // worth of room or the third one loses its last point to the edge.
+            var b = headerHeightFull + searchBarHeight + collapsedRowHeight * 3 + 3
             if sheetTab == .trails, selectedTrailId != nil {
                 // A selected trail stands the name, summary and search bar down
                 // and needs its whole expanded row instead — but never less than
@@ -1319,13 +1331,16 @@ struct AreaView: View {
         // own. It cost several builds on the recording panel; same rule here.
         .fixedSize(horizontal: false, vertical: true)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
-            // Grows freely while a hike runs, because the panel gains its GPS
-            // capsule and elevation strip as it goes. Settles back when idle.
-            if isRecording {
-                if h > recordPageHeight { recordPageHeight = h }
-            } else {
-                recordPageHeight = h
-            }
+            // The LIVE height, not a high-water mark.
+            //
+            // It used to only ever grow while a hike ran, so the sheet would not
+            // bob when the GPS capsule came and went. The cost was worse than
+            // the bob: once the capsule had appeared even briefly, the stop kept
+            // its height forever and the page sat under a band of empty sheet —
+            // the recording page ending up TALLER than the trail list while
+            // holding less. "Minimum height necessary" cannot be served by a
+            // number that only goes up.
+            if abs(recordPageHeight - h) >= 2 { recordPageHeight = h }
         }
     }
 

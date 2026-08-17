@@ -101,8 +101,11 @@ struct AreaView: View {
     @State private var headerHeightCompact: CGFloat = 50
     /// Search field + filter menu + the "Showing X of Y" hint + divider.
     @State private var searchBarHeight: CGFloat = 55
-    /// The Record page: the start button when idle, the recording panel during
-    /// a hike. Seeded tall for the same reason the others are — see below.
+    /// The Record page's LIVE height: camera controls plus either the start
+    /// button or the recording panel. Seeded roughly and corrected on the first
+    /// layout pass — unlike the browse measurements this one is never a
+    /// high-water mark, because the page must be allowed to get shorter again
+    /// when the panel's GPS capsule goes away.
     @State private var recordPageHeight: CGFloat = 170
     // Seeds err TALL on purpose. Every measured value here is used until its
     // real one lands, and the two failure directions are not equal: too tall is
@@ -1319,13 +1322,16 @@ struct AreaView: View {
         // own. It cost several builds on the recording panel; same rule here.
         .fixedSize(horizontal: false, vertical: true)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
-            // Grows freely while a hike runs, because the panel gains its GPS
-            // capsule and elevation strip as it goes. Settles back when idle.
-            if isRecording {
-                if h > recordPageHeight { recordPageHeight = h }
-            } else {
-                recordPageHeight = h
-            }
+            // The LIVE height, not a high-water mark.
+            //
+            // It used to only ever grow while a hike ran, so the sheet would not
+            // bob when the GPS capsule came and went. The cost was worse than
+            // the bob: once the capsule had appeared even briefly, the stop kept
+            // its height forever and the page sat under a band of empty sheet —
+            // the recording page ending up TALLER than the trail list while
+            // holding less. "Minimum height necessary" cannot be served by a
+            // number that only goes up.
+            if abs(recordPageHeight - h) >= 2 { recordPageHeight = h }
         }
     }
 

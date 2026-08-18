@@ -615,6 +615,7 @@ is the same over-merge trap named in `parking-vision-adjudication`.
 |---|---|---|---|
 | 296 | `32094303980` | `7c71eee6c` (#577) | last build with no crash reported. Clips. |
 | 297 | `32096437543` | `a0070fcaf` (#578) | **crashes on tapping a trail and on dragging the sheet to its smallest stop** |
+| 298 | `32152746550` | `cef6913e8` (#579) | carries the fix. `Upload succeeded` 2026-08-18 15:19 UTC, `CFBundleVersion 298`. **Awaiting device verdict.** |
 
 TestFlight keeps prior builds, so the recovery on 2026-08-18 was the user
 installing 296 from Previous Builds — no upload, no wait. Worth remembering as

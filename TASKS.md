@@ -615,7 +615,27 @@ is the same over-merge trap named in `parking-vision-adjudication`.
 |---|---|---|---|
 | 296 | `32094303980` | `7c71eee6c` (#577) | last build with no crash reported. Clips. |
 | 297 | `32096437543` | `a0070fcaf` (#578) | **crashes on tapping a trail and on dragging the sheet to its smallest stop** |
-| 298 | `32152746550` | `cef6913e8` (#579) | carries the fix. `Upload succeeded` 2026-08-18 15:19 UTC, `CFBundleVersion 298`. **Awaiting device verdict.** |
+| 298 | `32152746550` | `cef6913e8` (#579) | no crash reported. **Still clipped** — screenshot showed the search field scrolled out of the list and a sliced first row. |
+| 299 | `32180071659` | `1cc53e921` (#580) | chrome fixed above the scroll view, search field never hides. `Upload succeeded` 2026-08-18 20:11 UTC, `CFBundleVersion 299`. **Awaiting device verdict.** |
+
+**What the 298 screenshot settled.** The sheet was at its smallest stop and sized
+correctly — header, rule, then "National Trail" cut across its title, and no
+search field anywhere. The sum was right; the search field had been scrolled out
+of the top of the list and the row had taken its place. So the clipping was never
+a sizing bug at that point. It was a scroll offset.
+
+Both arrangements this screen has had are wrong, in opposite directions:
+
+| Arrangement | Failure |
+|---|---|
+| Everything FIXED | The stop is a SUM the layout must keep exactly. Every missing term is something visibly squeezed out — three were missing before anyone counted. |
+| Everything SCROLLS (#577) | The search field is scroll CONTENT, so any stale offset scrolls it away and parks the cut edge partway through row 0. |
+
+#580 does neither: the chrome is fixed above a scrolling list, so the sum is only
+`header + chrome` and the scroll view absorbs every shortfall by scrolling. The
+search field also stopped hiding — it used to stand down at the smallest stop to
+buy ~44pt, which gave one measurement two heights to carry and made the user ask
+whether the search bar was "straight up going away".
 
 TestFlight keeps prior builds, so the recovery on 2026-08-18 was the user
 installing 296 from Previous Builds — no upload, no wait. Worth remembering as

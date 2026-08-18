@@ -170,8 +170,13 @@ struct AreaView: View {
     ///
     /// The oscillation ran for as long as the view was alive, and selecting a
     /// trail is what started it: that is the moment `hideChromeForSelection`
-    /// first goes true. Two builds of "clipping" and the tap-a-trail freeze were
-    /// this.
+    /// first goes true.
+    ///
+    /// It is NOT on its own what crashed build 297 — `git show` on both build
+    /// shas has the identical comparison, and 296 did not crash. What it does is
+    /// make the sheet re-measure over and over, which is the load the re-entrant
+    /// `scrollTo` in the commit before this one then dies under. Amplifier, not
+    /// trigger.
     ///
     /// Tracked as its own boolean, it changes only when the USER moves the
     /// sheet. A measurement can no longer reach it, so there is no cycle left to

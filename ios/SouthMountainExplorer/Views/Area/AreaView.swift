@@ -893,7 +893,13 @@ struct AreaView: View {
                 // A selected trail stands the name, summary and search bar down
                 // and needs its whole expanded row instead — but never less than
                 // the browse height, so the ground does not move when you tap.
-                b = max(b, headerHeightCompact + selectedRowHeight)
+                // `listChromeHeight` is in this term too, and leaving it out
+                // was a term missing from a sum — the exact failure this screen
+                // keeps having. The search field is FIXED above the list now, so
+                // it occupies its height whether or not a trail is selected;
+                // a stop that forgets it is a stop the expanded row cannot fit
+                // into.
+                b = max(b, headerHeightCompact + listChromeHeight + selectedRowHeight)
             }
             return b
         }()
@@ -964,14 +970,6 @@ struct AreaView: View {
     /// they come back.
     private var hideChromeForSelection: Bool {
         selectedTrailId != nil && atMinStop
-    }
-
-    /// The search bar stands down at the smallest stop while a trail is selected
-    /// OR while a hike is recording. Selecting pays for the expanded row;
-    /// recording pays for the map, and searching for another trail is not what
-    /// you are doing thirty seconds into a hike. Drag up and it is back.
-    private var hideSearchBarAtMinStop: Bool {
-        atMinStop && (selectedTrailId != nil || isRecording)
     }
 
     /// Height of the visible sheet, measured from the BOTTOM of the screen.
@@ -1616,22 +1614,14 @@ struct AreaView: View {
                         sort: $trailSort,
                         searchQuery: $trailSearchQuery,
                         filteredTrails: filtered,
-                        showsSearchBar: !hideSearchBarAtMinStop,
                         onRecordTrail: { trail in tryStartRecording(trailId: trail.id) },
                         onChromeHeight: { h in
-                            // Only the FULL chrome — search bar showing — is
-                            // allowed to land here, because that is the variant
-                            // `minSheetHeight` sizes the browse stop from.
+                            // ONE height now, because the search field no longer
+                            // hides. It used to be two — measured with the field
+                            // and measured without it — landing in one variable
+                            // that the arithmetic read as "with". Deselect, and
+                            // the field came back into a sheet sized without it.
                             //
-                            // Without this guard the same variable held two
-                            // different things. Select a trail at the smallest
-                            // stop and the search bar stands down, so the chrome
-                            // measures ~44pt shorter and overwrites the value;
-                            // deselect and the search bar comes back into a
-                            // sheet still sized without it. THAT is the search
-                            // bar disappearing under the header — reported over
-                            // and over, and never a rendering problem at all.
-                            guard !hideSearchBarAtMinStop else { return }
                             // Deadband, same as every other measurement: a
                             // sub-2pt wobble must not mint a new detent height
                             // mid-drag.

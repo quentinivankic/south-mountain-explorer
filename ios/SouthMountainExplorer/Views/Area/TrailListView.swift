@@ -115,10 +115,6 @@ struct TrailListView: View {
     /// Pre-filtered trail set computed in AreaView so the map view can see
     /// the same set without TrailListView having to fan it back out.
     let filteredTrails: [Trail]
-    /// False while the sheet is at its smallest stop with a trail selected —
-    /// the search row gives up its space to the expanded row. AreaView owns the
-    /// decision because it owns the detent.
-    var showsSearchBar: Bool = true
     var onRecordTrail: ((Trail) -> Void)? = nil
 
     // Height reports for AreaView's smallest-sheet-stop arithmetic. Measured
@@ -155,244 +151,253 @@ struct TrailListView: View {
     }
 
     var body: some View {
-        // EVERYTHING ON THIS PAGE SCROLLS, and that is the fix.
+        // THE CHROME IS FIXED AND ONLY THE ROWS SCROLL, and that split is the
+        // whole point of this layout.
         //
-        // The search field and the "Showing X of Y" row used to sit ABOVE the
-        // scroll view, fixed. That made the sheet's smallest stop a promise it
-        // had to keep exactly, because the stop is a SUM — header + search bar +
-        // three rows — and any term missing from that sum is a thing that gets
-        // squeezed out of the layout. The filter hint was never in the sum at
-        // all, so an active filter made this page taller than the stop believed
-        // and something had to give. The dividers were only added after they had
-        // already cost a row its last point. Every miss showed up as something
-        // sliced, and every fix added one more term to a sum that could always
-        // be missing another.
+        // Both previous arrangements failed, in opposite directions:
         //
-        // Inside a scroll view none of that can happen. Content taller than its
-        // frame is not a bug in a scroll view, it is the definition of one. If
-        // the stop is a few points short you scroll a few points instead of
-        // losing the search field behind the header. Mail and Settings scroll
-        // their search fields away for exactly this reason.
+        //   Everything FIXED   - the smallest sheet stop is a SUM the layout has
+        //                        to keep exactly, and every term missing from it
+        //                        is something visibly squeezed out. Three terms
+        //                        were missing before anyone counted.
+        //   Everything SCROLLS - the search field becomes scroll CONTENT, so any
+        //                        stale offset scrolls it out of sight and leaves
+        //                        the cut edge partway through the first row.
+        //                        That is the reported screenshot exactly: a
+        //                        sheet sized to include a search field that has
+        //                        been scrolled away, with a trail name sliced in
+        //                        half sitting where it should be.
+        //
+        // Fixed chrome over a scrolling list has neither failure. The sum is now
+        // only `header + chrome`, both measured as whole composed blocks, and
+        // the scroll view underneath is greedy — it absorbs every shortfall by
+        // scrolling rather than by clipping. The search field sits ABOVE the
+        // scroll view's top edge, where no content offset can reach it.
         ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    // Chrome measured as ONE COMPOSED BLOCK, never summed from
-                    // parts. A sum can be missing a term — it twice was. A
-                    // measurement of the real thing cannot be.
+            VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 0) {
+                    // The search field NEVER stands down.
+                    //
+                    // It used to hide at the smallest stop while a trail was
+                    // selected, to buy that stop ~44pt. Two costs, both paid:
+                    // the block above the rows had two different heights that
+                    // one measurement had to carry, and the user's own reading
+                    // of it was "is the search bar straight up going away?".
+                    // A control that vanishes is not a saving.
+                    // Always present means one height, one measurement, and
+                    // nothing above the rows that can appear or disappear.
                     VStack(alignment: .leading, spacing: 0) {
-                        if showsSearchBar {
-                            VStack(alignment: .leading, spacing: 0) {
-                                HStack(spacing: 10) {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "magnifyingglass")
-                                            .foregroundStyle(.secondary)
-                                        TextField("Search trails", text: $searchQuery)
-                                            .textInputAutocapitalization(.never)
-                                            .autocorrectionDisabled()
-                                            .focused($searchFocused)
-                                            .submitLabel(.search)
-                                        if !searchQuery.isEmpty {
-                                            Button {
-                                                searchQuery = ""
-                                            } label: {
-                                                Image(systemName: "xmark.circle.fill")
-                                                    .foregroundStyle(.secondary)
-                                            }
-                                            .buttonStyle(.plain)
-                                        }
-                                    }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .fill(.quaternary.opacity(0.5))
-                                    )
-
-                                    filterMenu
-                                }
-                                .padding(.horizontal)
-                                .padding(.top, 8)
-                                .padding(.bottom, 10)
-                            }
-                        }
-                        if activeFilterCount > 0 {
+                        HStack(spacing: 10) {
                             HStack(spacing: 8) {
-                                Text("Showing \(filteredTrails.count) of \(area.trails.count)")
-                                Button("Clear") {
-                                    statusFilter = .all
-                                    difficultyFilter = .all
-                                    lengthFilter = .all
-                                    routeFilter = .all
-                                    searchQuery = ""
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundStyle(.secondary)
+                                TextField("Search trails", text: $searchQuery)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                                    .focused($searchFocused)
+                                    .submitLabel(.search)
+                                if !searchQuery.isEmpty {
+                                    Button {
+                                        searchQuery = ""
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
-                                .font(.caption2.weight(.semibold))
-                                Spacer(minLength: 0)
                             }
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal)
-                            .padding(.vertical, 5)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(.quaternary.opacity(0.5))
+                            )
+
+                            filterMenu
                         }
-
-                        Divider()
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                        .padding(.bottom, 10)
                     }
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { onChromeHeight?($0) }
-                    // Scroll target for "put the list back to its resting
-                    // state" — see the deselect handler.
-                    .id("list-chrome")
-
-                    if filteredTrails.isEmpty {
-                    VStack(spacing: 6) {
-                        Image(systemName: activeFilterCount > 0
-                              ? "line.3.horizontal.decrease.circle"
-                              : "exclamationmark.triangle")
-                            .font(.title2)
-                            .foregroundStyle(.tertiary)
-                        if activeFilterCount > 0 {
-                            if !trimmedQuery.isEmpty && activeFilterCount == 1 {
-                                // Pure-search miss: spell out the
-                                // query so the user immediately
-                                // sees what they typed.
-                                Text("No trails named \u{201C}\(trimmedQuery)\u{201D}.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 24)
-                            } else {
-                                Text("No trails match these filters.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Button("Clear filters") {
+                    if activeFilterCount > 0 {
+                        HStack(spacing: 8) {
+                            Text("Showing \(filteredTrails.count) of \(area.trails.count)")
+                            Button("Clear") {
                                 statusFilter = .all
                                 difficultyFilter = .all
                                 lengthFilter = .all
                                 routeFilter = .all
                                 searchQuery = ""
                             }
-                            .font(.caption)
-                        } else {
-                            // Reached when the area's trail data fetch
-                            // came back empty (rare — usually an Overpass
-                            // hiccup). The defensive guard in
-                            // AreaDataService prevents overwriting good
-                            // cached data with empty, so this state
-                            // should self-resolve on next open.
-                            Text("Trail data didn't load.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            Text("Try closing and reopening this area, or use Settings → Refresh Trail Data.")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 24)
+                            .font(.caption2.weight(.semibold))
+                            Spacer(minLength: 0)
                         }
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                        .padding(.vertical, 5)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 40)
-                } else {
-                    ForEach(Array(filteredTrails.enumerated()), id: \.element.id) { index, trail in
-                        TrailRow(
-                            trail: trail,
-                            areaId: area.id,
-                            areaParking: area.parking,
-                            selectedTrailId: $selectedTrailId,
-                            onRecordTrail: onRecordTrail
-                        )
-                        // Tag each row with the trail id so
-                        // ScrollViewReader can target it via
-                        // proxy.scrollTo when selection changes.
-                        .id(trail.id)
-                        // Feed AreaView the two row heights its smallest
-                        // sheet stop is sized from. The collapsed reference
-                        // comes from row 0, or row 1 when row 0 is the one
-                        // that's expanded.
-                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
-                            if trail.id == selectedTrailId {
-                                onSelectedRowHeight?(h)
-                            } else if index == 0 {
-                                // Row 0 ONLY. This was `index <= 1`, so two
-                                // rows both reported — and rows are not all
-                                // the same height, since only some carry a
-                                // progress bar. The value flip-flopped
-                                // between them on every re-layout, moving
-                                // the sheet's smallest stop with it.
-                                onCollapsedRowHeight?(h)
+
+                    Divider()
+                }
+                // Measured as ONE COMPOSED BLOCK — search field, filter hint
+                // and rule together — never summed from parts.
+                //
+                // `fixedSize` comes BEFORE the measurement, because modifiers
+                // apply bottom-up: measuring first would report the height this
+                // block was SQUEEZED into, and that height would then size the
+                // sheet to keep it squeezed.
+                .fixedSize(horizontal: false, vertical: true)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { onChromeHeight?($0) }
+
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        if filteredTrails.isEmpty {
+                        VStack(spacing: 6) {
+                            Image(systemName: activeFilterCount > 0
+                                  ? "line.3.horizontal.decrease.circle"
+                                  : "exclamationmark.triangle")
+                                .font(.title2)
+                                .foregroundStyle(.tertiary)
+                            if activeFilterCount > 0 {
+                                if !trimmedQuery.isEmpty && activeFilterCount == 1 {
+                                    // Pure-search miss: spell out the
+                                    // query so the user immediately
+                                    // sees what they typed.
+                                    Text("No trails named \u{201C}\(trimmedQuery)\u{201D}.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal, 24)
+                                } else {
+                                    Text("No trails match these filters.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Button("Clear filters") {
+                                    statusFilter = .all
+                                    difficultyFilter = .all
+                                    lengthFilter = .all
+                                    routeFilter = .all
+                                    searchQuery = ""
+                                }
+                                .font(.caption)
+                            } else {
+                                // Reached when the area's trail data fetch
+                                // came back empty (rare — usually an Overpass
+                                // hiccup). The defensive guard in
+                                // AreaDataService prevents overwriting good
+                                // cached data with empty, so this state
+                                // should self-resolve on next open.
+                                Text("Trail data didn't load.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                Text("Try closing and reopening this area, or use Settings → Refresh Trail Data.")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 24)
                             }
                         }
-                        Divider().padding(.leading)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                    } else {
+                        ForEach(Array(filteredTrails.enumerated()), id: \.element.id) { index, trail in
+                            TrailRow(
+                                trail: trail,
+                                areaId: area.id,
+                                areaParking: area.parking,
+                                selectedTrailId: $selectedTrailId,
+                                onRecordTrail: onRecordTrail
+                            )
+                            // Tag each row with the trail id so
+                            // ScrollViewReader can target it via
+                            // proxy.scrollTo when selection changes.
+                            .id(trail.id)
+                            // Feed AreaView the two row heights its smallest
+                            // sheet stop is sized from. The collapsed reference
+                            // comes from row 0, or row 1 when row 0 is the one
+                            // that's expanded.
+                            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+                                if trail.id == selectedTrailId {
+                                    onSelectedRowHeight?(h)
+                                } else if index == 0 {
+                                    // Row 0 ONLY. This was `index <= 1`, so two
+                                    // rows both reported — and rows are not all
+                                    // the same height, since only some carry a
+                                    // progress bar. The value flip-flopped
+                                    // between them on every re-layout, moving
+                                    // the sheet's smallest stop with it.
+                                    onCollapsedRowHeight?(h)
+                                }
+                            }
+                            Divider().padding(.leading)
+                        }
+                    }
                     }
                 }
-                }
-            }
-            // ON THE SCROLL VIEW, which is what stops UIKit adding the
-            // home-indicator strip as a bottom CONTENT inset. It was on the
-            // LazyVStack — the scroll view's CONTENT — where it did nothing
-            // about the scroll view's own inset.
-            .ignoresSafeArea(edges: .bottom)
-            .onChange(of: selectedTrailId) { _, newId in
-                guard let newId else {
-                    // DESELECT. The row that was open just shrank by the height
-                    // of its chart and parking line, and the scroll offset does
-                    // not shrink with it — so the list is left parked partway
-                    // through a row, which reads as a trail name sliced in half
-                    // at the top of the list. Nothing used to run on this path
-                    // at all.
-                    //
-                    // Re-anchor to the row that WAS selected: it puts the list
-                    // back on a row boundary and leaves you looking at the trail
-                    // you were just reading about, which is where you were.
-                    // Scroll the CHROME back, not the old row. With the search
-                    // bar inside the scroll content, `scrollTo(row, anchor:
-                    // .top)` pins the row to the scroll view's very top — which
-                    // scrolls the search bar clean out of view and parks the
-                    // cut edge on whatever sits above the row. Deselecting
-                    // should return the page to its resting state: search bar
-                    // visible, whole rows below it.
+                // ON THE SCROLL VIEW, which is what stops UIKit adding the
+                // home-indicator strip as a bottom CONTENT inset. It was on the
+                // LazyVStack — the scroll view's CONTENT — where it did nothing
+                // about the scroll view's own inset.
+                .ignoresSafeArea(edges: .bottom)
+                .onChange(of: selectedTrailId) { _, newId in
+                    guard let newId else {
+                        // DESELECT. The row that was open just shrank by the
+                        // height of its chart and parking line, and the scroll
+                        // offset does not shrink with it — so the list is left
+                        // parked partway through a row, which reads as a trail
+                        // name sliced in half at the top of the list.
+                        // Back to the top of the LIST. The chrome is no longer
+                        // inside this scroll view, so there is nothing above the
+                        // first row to return to — and nothing a stale offset
+                        // could hide, which is what this used to be fixing.
+                        if let firstId = filteredTrails.first?.id {
+                            Task {
+                                await Task.yield()
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    proxy.scrollTo(firstId, anchor: .top)
+                                }
+                            }
+                        }
+                        return
+                    }
+                    // Animate the row into view. LazyVStack only realizes
+                    // rows that are on-screen, so scrollTo must trigger
+                    // both the scroll AND lazy-row materialization.
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        proxy.scrollTo(newId, anchor: .top)
+                    }
+                    // Then again once the layout has settled. Selecting a row makes
+                    // it TALLER (the chart and parking line expand into it) and the
+                    // panel changes height underneath at the same moment, so the
+                    // offset computed a moment ago is stale by the time both land —
+                    // which is how the selected row ended up with its title tucked
+                    // under the page dots. Same deferred-one-hop trick the deep-link
+                    // path below already uses.
                     Task {
                         await Task.yield()
                         withAnimation(.easeInOut(duration: 0.2)) {
-                            proxy.scrollTo("list-chrome", anchor: .top)
+                            proxy.scrollTo(newId, anchor: .top)
                         }
                     }
-                    return
                 }
-                // Animate the row into view. LazyVStack only realizes
-                // rows that are on-screen, so scrollTo must trigger
-                // both the scroll AND lazy-row materialization.
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    proxy.scrollTo(newId, anchor: .top)
-                }
-                // Then again once the layout has settled. Selecting a row makes
-                // it TALLER (the chart and parking line expand into it) and the
-                // panel changes height underneath at the same moment, so the
-                // offset computed a moment ago is stale by the time both land —
-                // which is how the selected row ended up with its title tucked
-                // under the page dots. Same deferred-one-hop trick the deep-link
-                // path below already uses.
-                Task {
-                    await Task.yield()
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        proxy.scrollTo(newId, anchor: .top)
-                    }
-                }
-            }
-            .onAppear {
-                // Opened from a Browse trail-search result: AreaView sets
-                // selectedTrailId BEFORE this list mounts, so .onChange above
-                // never fires for it. Scroll the pre-selected row into view on
-                // appear, deferred one hop so the LazyVStack has laid out
-                // enough to resolve the target id.
-                guard let tid = selectedTrailId else { return }
-                Task {
-                    await Task.yield()
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        proxy.scrollTo(tid, anchor: .top)
+                .onAppear {
+                    // Opened from a Browse trail-search result: AreaView sets
+                    // selectedTrailId BEFORE this list mounts, so .onChange above
+                    // never fires for it. Scroll the pre-selected row into view on
+                    // appear, deferred one hop so the LazyVStack has laid out
+                    // enough to resolve the target id.
+                    guard let tid = selectedTrailId else { return }
+                    Task {
+                        await Task.yield()
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            proxy.scrollTo(tid, anchor: .top)
+                        }
                     }
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: showsSearchBar)
     }
 
     private var filterMenu: some View {

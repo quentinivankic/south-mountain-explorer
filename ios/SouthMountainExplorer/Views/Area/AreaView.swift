@@ -1301,6 +1301,7 @@ struct AreaView: View {
         // grown — the GPS capsule appearing, the elevation strip arriving — and
         // the stop has not caught up yet. Without this that frame clips; with it
         // the page is briefly scrollable by a few points and then settles.
+        ScrollViewReader { proxy in
         ScrollView {
         VStack(spacing: 0) {
             // Camera controls. They belong on this page for the same reason the
@@ -1308,6 +1309,7 @@ struct AreaView: View {
             // the thing you are looking at.
             controlBar(area: area)
                 .padding(.bottom, 10)
+                .id("record-top")
 
             // Names the tracking mode you just cycled into, for ~2 s, so the
             // three-state cycle teaches itself without a permanent label.
@@ -1359,12 +1361,25 @@ struct AreaView: View {
             // the recording page ending up TALLER than the trail list while
             // holding less. "Minimum height necessary" cannot be served by a
             // number that only goes up.
+            let shrank = h < recordPageHeight - 2
             if abs(recordPageHeight - h) >= 2 { recordPageHeight = h }
+            // Reset the offset whenever the content SHRINKS. While the toast is
+            // up the content is taller than the stop, so the page is briefly
+            // scrollable; a drag can leave it a few points down, and when the
+            // toast goes that stray offset survives — which clips the camera
+            // buttons at the top for no visible reason. Content that fits again
+            // has exactly one sensible offset, so snap back to it.
+            if shrank {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    proxy.scrollTo("record-top", anchor: .top)
+                }
+            }
         }
         }
         // No bounce when the content already fits, so a page that is not
         // scrollable does not behave as though it is.
         .scrollBounceBehavior(.basedOnSize)
+        }
     }
 
     /// Start button. What it will record is stated on the button itself, so
@@ -1453,6 +1468,12 @@ struct AreaView: View {
                 else { headerHeightFull = h }
             }
             .animation(.easeInOut(duration: 0.2), value: hideChromeForSelection)
+
+            // The line the pages scroll under. The pager's top edge clips
+            // whatever is scrolled past it, and with no rule there the cut
+            // floats in black and reads as a defect. Every scrolling screen in
+            // iOS marks this edge; ours was the only one that did not.
+            Divider()
 
             // Trails / Dex are now PAGES you swipe between, not a segmented
             // control. The control cost a full row of vertical space in a sheet

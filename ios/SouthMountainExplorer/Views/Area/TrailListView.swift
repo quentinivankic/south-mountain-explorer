@@ -237,6 +237,9 @@ struct TrailListView: View {
                         Divider()
                     }
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { onChromeHeight?($0) }
+                    // Scroll target for "put the list back to its resting
+                    // state" — see the deselect handler.
+                    .id("list-chrome")
 
                     if filteredTrails.isEmpty {
                     VStack(spacing: 6) {
@@ -327,7 +330,7 @@ struct TrailListView: View {
             // LazyVStack — the scroll view's CONTENT — where it did nothing
             // about the scroll view's own inset.
             .ignoresSafeArea(edges: .bottom)
-            .onChange(of: selectedTrailId) { oldId, newId in
+            .onChange(of: selectedTrailId) { _, newId in
                 guard let newId else {
                     // DESELECT. The row that was open just shrank by the height
                     // of its chart and parking line, and the scroll offset does
@@ -339,12 +342,17 @@ struct TrailListView: View {
                     // Re-anchor to the row that WAS selected: it puts the list
                     // back on a row boundary and leaves you looking at the trail
                     // you were just reading about, which is where you were.
-                    if let oldId {
-                        Task {
-                            await Task.yield()
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                proxy.scrollTo(oldId, anchor: .top)
-                            }
+                    // Scroll the CHROME back, not the old row. With the search
+                    // bar inside the scroll content, `scrollTo(row, anchor:
+                    // .top)` pins the row to the scroll view's very top — which
+                    // scrolls the search bar clean out of view and parks the
+                    // cut edge on whatever sits above the row. Deselecting
+                    // should return the page to its resting state: search bar
+                    // visible, whole rows below it.
+                    Task {
+                        await Task.yield()
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            proxy.scrollTo("list-chrome", anchor: .top)
                         }
                     }
                     return

@@ -99,8 +99,14 @@ struct AreaView: View {
     @State private var headerHeightFull: CGFloat = 91
     /// The same header with the name and summary hidden — page dots alone.
     @State private var headerHeightCompact: CGFloat = 50
-    /// Search field + filter menu + the "Showing X of Y" hint + divider.
-    @State private var searchBarHeight: CGFloat = 55
+    /// The whole block above the trail rows — search field, filter hint,
+    /// divider — measured as one composed value rather than summed from parts.
+    ///
+    /// It was `searchBarHeight` and measured only the search field, so the
+    /// filter hint was absent from the stop's arithmetic entirely: turn on a
+    /// filter and the page was taller than the sheet believed. That is the
+    /// failure mode a sum has and a measurement does not.
+    @State private var listChromeHeight: CGFloat = 60
     /// The Record page's LIVE height: camera controls plus either the start
     /// button or the recording panel. Seeded roughly and corrected on the first
     /// layout pass — unlike the browse measurements this one is never a
@@ -810,7 +816,7 @@ struct AreaView: View {
             // Each row carries a 1pt Divider under it that the row's own
             // measurement does not include, so three rows need three dividers'
             // worth of room or the third one loses its last point to the edge.
-            var b = headerHeightFull + searchBarHeight + collapsedRowHeight * 3 + 3
+            var b = headerHeightFull + listChromeHeight + collapsedRowHeight * 3 + 3
             if sheetTab == .trails, selectedTrailId != nil {
                 // A selected trail stands the name, summary and search bar down
                 // and needs its whole expanded row instead — but never less than
@@ -1287,6 +1293,15 @@ struct AreaView: View {
     /// the map is what keeps the trail list reachable mid-walk: swipe right.
     @ViewBuilder
     private func recordPage(area: Area) -> some View {
+        // Scrolls, like the other two pages, so this one cannot clip either.
+        //
+        // Its height is a live measurement and the stop is sized from it, so in
+        // the steady state the content fits exactly and the scroll view is
+        // invisible. The frame it protects is the one where the panel has just
+        // grown — the GPS capsule appearing, the elevation strip arriving — and
+        // the stop has not caught up yet. Without this that frame clips; with it
+        // the page is briefly scrollable by a few points and then settles.
+        ScrollView {
         VStack(spacing: 0) {
             // Camera controls. They belong on this page for the same reason the
             // start button does: this is the page you are on while the map is
@@ -1330,6 +1345,10 @@ struct AreaView: View {
         // sizes the stop to keep it squeezed, a loop that cannot open on its
         // own. It cost several builds on the recording panel; same rule here.
         .fixedSize(horizontal: false, vertical: true)
+        // Measures the CONTENT, inside the scroll view. On the scroll view
+        // itself this would report the slot it was given — a greedy view always
+        // reports the space it filled — and the stop would be sized from its own
+        // previous value, which is a loop with no ground under it.
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
             // The LIVE height, not a high-water mark.
             //
@@ -1342,6 +1361,10 @@ struct AreaView: View {
             // number that only goes up.
             if abs(recordPageHeight - h) >= 2 { recordPageHeight = h }
         }
+        }
+        // No bounce when the content already fits, so a page that is not
+        // scrollable does not behave as though it is.
+        .scrollBounceBehavior(.basedOnSize)
     }
 
     /// Start button. What it will record is stated on the button itself, so
@@ -1470,7 +1493,7 @@ struct AreaView: View {
                         filteredTrails: filtered,
                         showsSearchBar: !hideSearchBarAtMinStop,
                         onRecordTrail: { trail in tryStartRecording(trailId: trail.id) },
-                        onSearchBarHeight: { searchBarHeight = $0 },
+                        onChromeHeight: { listChromeHeight = $0 },
                         onCollapsedRowHeight: { collapsedRowHeight = $0 },
                         onSelectedRowHeight: { selectedRowHeight = $0 }
                     )

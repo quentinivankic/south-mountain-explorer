@@ -607,31 +607,95 @@ is the same over-merge trap named in `parking-vision-adjudication`.
 ---
 
 <a name="55"></a>
-## #55 — Device-test the rebuilt area sheet
+## #55 — Device-test the rebuilt area sheet, after the crash fix
 
-Three PRs landed on 2026-08-12 and none of them has been on a phone yet, because
-the TestFlight build is deliberately being held to bundle them:
+**Where it stands: the user is on build 296 and 297 is unusable.**
 
-- **#551** — the sheet's bottom gap. A `.page` `TabView` hosts each page in its
-  own view controller and re-applies the home-indicator inset there, so the list
-  stopped short of the bottom no matter what the sheet root did. Fixed by
-  ignoring the bottom safe area on the PAGE. The pager's built-in dots went with
-  it; they now live in the sheet header.
-- **#552** — the smallest stop is now the sum of the blocks that must be whole:
-  a selected trail's whole expanded row (and the area name, summary and search
-  bar stand down to pay for it), or the whole recording panel, or the header plus
-  about 2.5 rows. All measured via `onGeometryChange`; `StorageKeys
-  .smallDetentHeight` and its Developer picker are deleted.
-- **#553** — GPX export failures raise an alert instead of doing nothing, and the
-  elevation badge's up-arrow became an up-and-down arrow (`gainFt` is
-  `max(ascent, descent)`, so the up-arrow claimed a climb on trails that only
-  descend).
+| Build | Run | Commit | Verdict |
+|---|---|---|---|
+| 296 | `32094303980` | `7c71eee6c` (#577) | last build with no crash reported. Clips. |
+| 297 | `32096437543` | `a0070fcaf` (#578) | **crashes on tapping a trail and on dragging the sheet to its smallest stop** |
 
-What needs eyes: the sheet growing when a trail is selected and shrinking when
-deselected, the chrome coming back at the half stop, the recording panel staying
-whole when its live elevation strip appears mid-hike, and the Dex raise. All of
-it is SwiftUI layout reasoned about from the code — no simulator runs on the
-homelab, so CI green means it compiles, nothing more.
+TestFlight keeps prior builds, so the recovery on 2026-08-18 was the user
+installing 296 from Previous Builds — no upload, no wait. Worth remembering as
+the standard answer to "a build is broken and I need to leave now".
+
+**The defect, verified by reading the code on 2026-08-18 — not by running it.**
+The smallest stop's height was an input to the decisions that produced the
+measurements it was computed from:
+
+```
+hideChromeForSelection = selectedTrailId != nil && sheetDetent == minDetent
+minDetent              = .height(minSheetHeight)
+minSheetHeight         = ... headerHeightFull / headerHeightCompact ...
+```
+
+and `hideChromeForSelection` chooses which of those two the header measures
+itself into. A measurement moved `minSheetHeight`, which made `minDetent` a new
+value, which made `sheetDetent == minDetent` false for a pass, which switched the
+header variant, which measured again. Selecting a trail is when that flag first
+goes true — hence the tap. `hideSearchBarAtMinStop` closed the same loop through
+the trail list's chrome. **This is why deadbands kept not working**: the two
+variants differ by ~40pt, so every pass clears any threshold worth having.
+
+Fixed on branch `fix/crash-at-min-stop` (PR #579), five changes:
+
+1. `atMinStop`, a stored boolean written only from `onChange(of: sheetDetent)`,
+   replaces every `sheetDetent == minDetent` comparison. It names the min stop by
+   ruling out `.fraction`/`.large`, so no measurement can reach it.
+2. The stop's height commits 140 ms after the last change instead of following
+   every animation frame. A row expanding 62pt to 240pt over 0.2 s was minting a
+   new `.height()` detent per frame while UIKit animated the sheet.
+3. `onCollapsedRowHeight` / `onSelectedRowHeight` get the 2pt deadband every
+   other measurement already had — they were the only two writing raw.
+4. The chrome height only accepts a measurement taken with the search bar
+   showing. One variable held two layouts; the arithmetic assumed the bar was
+   there. **That is the search-bar-under-the-header clip, all along.**
+5. The detent re-point tests `atMinStop`, not `sheetDetent == .height(old)` —
+   the old test silently missed when two measurements landed between body
+   evaluations, stranding the selection on a stop absent from the set.
+
+**The cycle is NOT what crashed 297, and the check that showed it is worth
+repeating.** `git show 7c71eee6c:...AreaView.swift` and `git show a0070fcaf:...`
+both contain `selectedTrailId != nil && sheetDetent == minDetent`, byte for byte
+— so the cycle shipped in 296, which does not crash. It is the amplifier, not the
+trigger.
+
+The trigger is the only layout-time mutation #578 added: `proxy.scrollTo` running
+synchronously inside `onGeometryChange`'s action on the Record page. `git diff
+7c71eee6c a0070fcaf` is 36 lines and that is the whole of what is new. Deferring
+it through a `Task` is the first commit on `fix/crash-at-min-stop`.
+
+Why a TRAIL TAP reaches a scroll handler on the Record page — this part is
+reasoning, not measurement, and there is no simulator here to settle it: the
+Record page is a sibling in a `.page` `TabView`, which is a
+`UIPageViewController` and keeps adjacent pages mounted. Tapping a trail resizes
+the sheet, every mounted page re-measures, the Record page reports a smaller
+height, and the handler scrolls during layout. Both reported gestures — tap a
+trail, drag to the smallest stop — are exactly the two that resize the sheet
+most.
+
+**So: neither fix is claimed to be verified.** The re-entrant scroll is verified
+to be new in 297 and verified to be illegal; the tap path to it is inference. A
+device settles it.
+
+**What needs eyes on the next build**, in order:
+
+1. Tap a trail. It must not crash — that is the whole point.
+2. Drag the sheet to its smallest stop. Same.
+3. With a trail selected at the smallest stop, deselect it. **The search bar must
+   come back without sliding under the header** — this is the clip that has been
+   reported over and over.
+4. The sheet grows when a trail is selected and shrinks when deselected, and it
+   settles once rather than stepping.
+5. The chrome comes back at the half stop.
+6. The recording panel stays whole when its live elevation strip appears mid-hike
+   (needs a real hike).
+7. Still unconfirmed from before all of this: the bottom gap. Seven attempts, and
+   no build has ever come back with a verdict on it.
+
+Everything here is SwiftUI layout reasoned about from source. CI green means it
+compiles and the unit tests pass; it says nothing about layout.
 
 
 ---

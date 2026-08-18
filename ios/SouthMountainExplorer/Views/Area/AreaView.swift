@@ -155,6 +155,37 @@ struct AreaView: View {
     /// itself — only when the detent SETTLES (at most once per
     /// release).
     @State private var sheetDetent: PresentationDetent = AreaView.mediumDetent
+    /// Is the user parked on the smallest stop?
+    ///
+    /// **Not** `sheetDetent == minDetent`, and that distinction is the entire
+    /// reason this exists. `minDetent` is `.height(minSheetHeight)`, and
+    /// `minSheetHeight` is computed from measurements that this flag ROUTES —
+    /// which stop is showing decides whether the header measures its full or
+    /// its compact variant, and whether the chrome measures with the search bar
+    /// or without. So comparing against `minDetent` closed a loop:
+    ///
+    ///   measure -> minSheetHeight changes -> minDetent is a NEW value ->
+    ///   `sheetDetent == minDetent` goes false for a pass -> the header
+    ///   switches variant -> measures -> minSheetHeight changes -> ...
+    ///
+    /// The oscillation ran for as long as the view was alive, and selecting a
+    /// trail is what started it: that is the moment `hideChromeForSelection`
+    /// first goes true.
+    ///
+    /// It is NOT on its own what crashed build 297 — `git show` on both build
+    /// shas has the identical comparison, and 296 did not crash. What it does is
+    /// make the sheet re-measure over and over, which is the load the re-entrant
+    /// `scrollTo` in the commit before this one then dies under. Amplifier, not
+    /// trigger.
+    ///
+    /// Tracked as its own boolean, it changes only when the USER moves the
+    /// sheet. A measurement can no longer reach it, so there is no cycle left to
+    /// damp — this is a fix, not another deadband.
+    @State private var atMinStop = false
+    /// See `minSheetHeight`. Seeded at the old constant so the first frame is
+    /// sane before anything has been measured.
+    @State private var committedMinHeight: CGFloat = 205
+    @State private var minHeightCommit: Task<Void, Never>? = nil
     /// Which segment of the area sheet is showing — trail list or Dex.
     @State private var sheetTab: AreaSheetTab = .trails
     @State private var selectedTrailId: String? = nil
@@ -494,18 +525,59 @@ struct AreaView: View {
                     // the user was actually sitting on the old minimum —
                     // someone parked at full screen is never yanked down
                     // because they selected a trail.
-                    .onChange(of: minSheetHeight) { old, new in
-                        // ONLY when the user was sitting on the old minimum.
-                        // There used to be a second branch that yanked them off
-                        // the HALF stop whenever the minimum grew past it —
-                        // which made the half stop unreachable rather than
-                        // making the sheet bigger. `mediumIsDistinct` handles
-                        // that case properly now, by dropping the half stop from
-                        // the set instead of stealing it while it is in use.
-                        if sheetDetent == .height(old) {
-                            sheetDetent = .height(new)
+                    .onChange(of: minSheetHeight) { _, new in
+                        // ONLY when the user was sitting on the minimum. There
+                        // used to be a second branch that yanked them off the
+                        // HALF stop whenever the minimum grew past it — which
+                        // made the half stop unreachable rather than making the
+                        // sheet bigger. `mediumIsDistinct` handles that case
+                        // properly now, by dropping the half stop from the set
+                        // instead of stealing it while it is in use.
+                        //
+                        // The test was `sheetDetent == .height(old)`, which
+                        // fails whenever two measurements land between one body
+                        // evaluation and the next: `old` is then a height the
+                        // selection never held, so the re-point is skipped and
+                        // `sheetDetent` is left naming a stop that is no longer
+                        // in `sheetDetentSet` at all. A boolean cannot miss.
+                        if atMinStop { sheetDetent = .height(new) }
+                    }
+                    // The one place `atMinStop` is written, and it deliberately
+                    // does NOT consult `minSheetHeight`.
+                    //
+                    // The smallest stop is the only `.height()` in the set —
+                    // medium is a `.fraction` and large is `.large` — so "are we
+                    // on the minimum" is answerable by ruling those two out,
+                    // without comparing against a height that the answer would
+                    // then go on to change.
+                    .onChange(of: sheetDetent, initial: true) { _, detent in
+                        atMinStop = detent != Self.mediumDetent && detent != .large
+                    }
+                    // Commit the smallest stop's height once the layout has
+                    // stopped moving, never mid-animation. Each new value
+                    // cancels the pending commit, so a 0.2 s row expansion
+                    // resizes the sheet ONCE — at the end — instead of on every
+                    // frame of it.
+                    //
+                    // The commit also lands outside the layout pass by
+                    // construction, which is the other half of what has been
+                    // going wrong here: a height written while layout is being
+                    // resolved forces the pass to start over.
+                    .onChange(of: desiredMinSheetHeight, initial: true) { _, wanted in
+                        // CANCEL BEFORE THE EQUALITY CHECK, not after. Guarding
+                        // first leaves a pending commit alive: go 200 -> 240 ->
+                        // back to 200 inside the window and the early return
+                        // skips the cancel, so the sheet lands on 240 and
+                        // nothing ever fires again to correct it.
+                        minHeightCommit?.cancel()
+                        guard wanted != committedMinHeight else { return }
+                        minHeightCommit = Task { @MainActor in
+                            try? await Task.sleep(for: .milliseconds(140))
+                            guard !Task.isCancelled else { return }
+                            committedMinHeight = wanted
                         }
                     }
+                    .onDisappear { minHeightCommit?.cancel() }
                     .presentationDragIndicator(.visible)
                     // Gate on a stop that is actually IN the set — naming an
                     // absent detent here would be asking UIKit about a stop it
@@ -796,7 +868,7 @@ struct AreaView: View {
     /// rendered layout would make the stop's height depend on a decision that
     /// itself depends on the stop, and the sheet would settle twice on every
     /// drag down.
-    private var minSheetHeight: CGFloat {
+    private var desiredMinSheetHeight: CGFloat {
         var h: CGFloat = 8   // slack, so nothing sits flush against the edge
 
         // TWO heights, each of which can be explained, rather than three that
@@ -849,6 +921,23 @@ struct AreaView: View {
         return (clamped / 4).rounded() * 4
     }
 
+    /// The height the smallest stop is actually PINNED at — `desiredMin`
+    /// once it has stopped moving.
+    ///
+    /// Everything that sizes the sheet reads this and not the computed value,
+    /// because the computed one moves on every frame of an animation. Tapping a
+    /// trail expands its row from ~62pt to ~240pt over 0.2 s, and each frame of
+    /// that is a different `.height()` detent: about a dozen `presentationDetents`
+    /// mutations, each re-pointing the selection, while UIKit is already
+    /// animating the sheet. The same is true of the header standing down and the
+    /// search bar leaving.
+    ///
+    /// A deadband cannot help here — the frames are genuinely far apart, so
+    /// every one of them clears any threshold worth having. What is wrong is
+    /// asking the sheet to resize DURING an animation at all. It settles once,
+    /// afterwards, which is the only moment the number means anything.
+    private var minSheetHeight: CGFloat { committedMinHeight }
+
     private var minDetent: PresentationDetent { .height(minSheetHeight) }
 
     /// Is the half stop far enough above the smallest one to be its own stop?
@@ -874,7 +963,7 @@ struct AreaView: View {
     /// already names the trail, so they were restating it. Drag the sheet up and
     /// they come back.
     private var hideChromeForSelection: Bool {
-        selectedTrailId != nil && sheetDetent == minDetent
+        selectedTrailId != nil && atMinStop
     }
 
     /// The search bar stands down at the smallest stop while a trail is selected
@@ -882,7 +971,7 @@ struct AreaView: View {
     /// recording pays for the map, and searching for another trail is not what
     /// you are doing thirty seconds into a hike. Drag up and it is back.
     private var hideSearchBarAtMinStop: Bool {
-        sheetDetent == minDetent && (selectedTrailId != nil || isRecording)
+        atMinStop && (selectedTrailId != nil || isRecording)
     }
 
     /// Height of the visible sheet, measured from the BOTTOM of the screen.
@@ -1370,8 +1459,20 @@ struct AreaView: View {
             // buttons at the top for no visible reason. Content that fits again
             // has exactly one sensible offset, so snap back to it.
             if shrank {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    proxy.scrollTo("record-top", anchor: .top)
+                // DEFERRED out of the layout pass — this is the crash fix.
+                //
+                // `onGeometryChange`'s action runs while layout is being
+                // resolved. `scrollTo` forces a synchronous scroll, which forces
+                // ANOTHER layout, which fires this action again — re-entrant
+                // layout, exactly the kind of cycle that dies in AttributeGraph.
+                // Dragging the sheet to its smallest stop is precisely when
+                // every height on this screen changes at once, which is why the
+                // crash appeared on that gesture. Hopping through a Task lets
+                // the current layout pass FINISH before the scroll starts.
+                Task { @MainActor in
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo("record-top", anchor: .top)
+                    }
                 }
             }
         }
@@ -1464,8 +1565,11 @@ struct AreaView: View {
             // COMPACT header while the FULL one is on screen (a selected trail
             // at the half stop) without either measurement chasing the other.
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
-                if hideChromeForSelection { headerHeightCompact = h }
-                else { headerHeightFull = h }
+                if hideChromeForSelection {
+                    if abs(headerHeightCompact - h) >= 2 { headerHeightCompact = h }
+                } else {
+                    if abs(headerHeightFull - h) >= 2 { headerHeightFull = h }
+                }
             }
             .animation(.easeInOut(duration: 0.2), value: hideChromeForSelection)
 
@@ -1514,9 +1618,36 @@ struct AreaView: View {
                         filteredTrails: filtered,
                         showsSearchBar: !hideSearchBarAtMinStop,
                         onRecordTrail: { trail in tryStartRecording(trailId: trail.id) },
-                        onChromeHeight: { listChromeHeight = $0 },
-                        onCollapsedRowHeight: { collapsedRowHeight = $0 },
-                        onSelectedRowHeight: { selectedRowHeight = $0 }
+                        onChromeHeight: { h in
+                            // Only the FULL chrome — search bar showing — is
+                            // allowed to land here, because that is the variant
+                            // `minSheetHeight` sizes the browse stop from.
+                            //
+                            // Without this guard the same variable held two
+                            // different things. Select a trail at the smallest
+                            // stop and the search bar stands down, so the chrome
+                            // measures ~44pt shorter and overwrites the value;
+                            // deselect and the search bar comes back into a
+                            // sheet still sized without it. THAT is the search
+                            // bar disappearing under the header — reported over
+                            // and over, and never a rendering problem at all.
+                            guard !hideSearchBarAtMinStop else { return }
+                            // Deadband, same as every other measurement: a
+                            // sub-2pt wobble must not mint a new detent height
+                            // mid-drag.
+                            if abs(listChromeHeight - h) >= 2 { listChromeHeight = h }
+                        },
+                        // Both of these feed `minSheetHeight`, so both need the
+                        // deadband the others have. Writing them unconditionally
+                        // re-evaluated the body on EVERY layout pass, and any
+                        // wobble across a 4pt quantisation boundary alternated
+                        // the sheet between two stop heights forever.
+                        onCollapsedRowHeight: { h in
+                            if abs(collapsedRowHeight - h) >= 2 { collapsedRowHeight = h }
+                        },
+                        onSelectedRowHeight: { h in
+                            if abs(selectedRowHeight - h) >= 2 { selectedRowHeight = h }
+                        }
                     )
                 }
                 // Pin the page's content to the TOP. A VStack whose content is

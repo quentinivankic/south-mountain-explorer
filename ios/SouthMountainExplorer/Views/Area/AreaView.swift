@@ -564,8 +564,13 @@ struct AreaView: View {
                     // going wrong here: a height written while layout is being
                     // resolved forces the pass to start over.
                     .onChange(of: desiredMinSheetHeight, initial: true) { _, wanted in
-                        guard wanted != committedMinHeight else { return }
+                        // CANCEL BEFORE THE EQUALITY CHECK, not after. Guarding
+                        // first leaves a pending commit alive: go 200 -> 240 ->
+                        // back to 200 inside the window and the early return
+                        // skips the cancel, so the sheet lands on 240 and
+                        // nothing ever fires again to correct it.
                         minHeightCommit?.cancel()
+                        guard wanted != committedMinHeight else { return }
                         minHeightCommit = Task { @MainActor in
                             try? await Task.sleep(for: .milliseconds(140))
                             guard !Task.isCancelled else { return }

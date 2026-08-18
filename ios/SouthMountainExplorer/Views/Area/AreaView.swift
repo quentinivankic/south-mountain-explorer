@@ -1370,8 +1370,20 @@ struct AreaView: View {
             // buttons at the top for no visible reason. Content that fits again
             // has exactly one sensible offset, so snap back to it.
             if shrank {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    proxy.scrollTo("record-top", anchor: .top)
+                // DEFERRED out of the layout pass — this is the crash fix.
+                //
+                // `onGeometryChange`'s action runs while layout is being
+                // resolved. `scrollTo` forces a synchronous scroll, which forces
+                // ANOTHER layout, which fires this action again — re-entrant
+                // layout, exactly the kind of cycle that dies in AttributeGraph.
+                // Dragging the sheet to its smallest stop is precisely when
+                // every height on this screen changes at once, which is why the
+                // crash appeared on that gesture. Hopping through a Task lets
+                // the current layout pass FINISH before the scroll starts.
+                Task { @MainActor in
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo("record-top", anchor: .top)
+                    }
                 }
             }
         }
@@ -1514,7 +1526,12 @@ struct AreaView: View {
                         filteredTrails: filtered,
                         showsSearchBar: !hideSearchBarAtMinStop,
                         onRecordTrail: { trail in tryStartRecording(trailId: trail.id) },
-                        onChromeHeight: { listChromeHeight = $0 },
+                        onChromeHeight: { h in
+                            // Deadband, same as every other measurement: a
+                            // sub-2pt wobble must not mint a new detent height
+                            // mid-drag.
+                            if abs(listChromeHeight - h) >= 2 { listChromeHeight = h }
+                        },
                         onCollapsedRowHeight: { collapsedRowHeight = $0 },
                         onSelectedRowHeight: { selectedRowHeight = $0 }
                     )

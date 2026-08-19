@@ -389,15 +389,16 @@ struct TrailListView: View {
                     withAnimation(.easeInOut(duration: 0.25)) {
                         proxy.scrollTo(newId, anchor: .top)
                     }
-                    // Then again once the layout has settled. Selecting a row makes
-                    // it TALLER (the chart and parking line expand into it) and the
-                    // panel changes height underneath at the same moment, so the
-                    // offset computed a moment ago is stale by the time both land —
-                    // which is how the selected row ended up with its title tucked
-                    // under the page dots. Same deferred-one-hop trick the deep-link
-                    // path below already uses.
+                    // Then again once the SHEET has finished resizing. The stop
+                    // commits 140 ms after the selection (AreaView's
+                    // minHeightCommit), so a one-hop yield lands BEFORE the
+                    // viewport is its final size and the offset it computes is
+                    // stale — audit run 32204672482 photographed the result
+                    // (sheet-05: the selected row still mid-list, its chart cut
+                    // at the screen edge). 260 ms clears the commit plus the
+                    // start of the detent animation.
                     Task {
-                        await Task.yield()
+                        try? await Task.sleep(for: .milliseconds(260))
                         withAnimation(.easeInOut(duration: 0.2)) {
                             proxy.scrollTo(newId, anchor: .top)
                         }

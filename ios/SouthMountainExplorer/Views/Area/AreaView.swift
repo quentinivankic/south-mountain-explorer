@@ -1638,20 +1638,22 @@ struct AreaView: View {
                 // bottom. Top alignment sends every shortfall downward, into
                 // the one thing that can absorb it.
                 .frame(maxHeight: .infinity, alignment: .top)
-                // THIS is what closes the bottom gap, and it has to be HERE.
+                // NO page-level ignoresSafeArea here any more — the trail
+                // list's own ScrollView carries it, which reaches the screen
+                // bottom on its own (verified by photograph: audit run
+                // 32204672482, rows flush to the edge in every min-stop shot).
                 //
-                // A `.page` TabView is a UIPageViewController: every page is
-                // hosted in its own controller, and that controller re-applies
-                // the window's home-indicator inset to the page. So the sheet
-                // root ignoring its bottom safe area never reached the trail
-                // list — the list kept ending ~34pt above the sheet's bottom
-                // edge, which is the gap that survived two previous fixes.
-                // Ignoring it on the page itself is the only placement that
-                // acts on the inset the page was actually given.
-                // LAYER 2 of 3: a `.page` TabView hosts each page in its own
-                // view controller, which RE-APPLIES the window inset inside the
-                // page. Layer 1 cannot reach through that.
-                .ignoresSafeArea(edges: .bottom)
+                // Removing the page-level one is an EXPERIMENT aimed at the one
+                // remaining defect that run photographed: after deselecting a
+                // trail, this page's content sat 16pt high inside a correctly
+                // positioned sheet (search-field y=730 vs 746 idle, same
+                // area-name y=651 — the frame log makes it exact). The header
+                // outside the pager tracked the sheet's resize; the page inside
+                // did not. The suspicion — untested until the next capture —
+                // is that the page-level safe-area expansion is what goes stale
+                // when the sheet SHRINKS. If the next photos still show the
+                // shift, this wasn't it; put the modifier back and look at the
+                // pager's own layout instead.
                 .tag(AreaSheetTab.trails)
 
                 DexView(area: area)

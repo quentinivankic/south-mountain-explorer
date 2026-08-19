@@ -19,6 +19,10 @@ final class AreaSheetAuditTests: XCTestCase {
 
     private let areaRowId = "area-progress-south-mountain-park-and-preserve-az"
 
+    /// search-field origin.y per state tag, so the test can ASSERT the layout
+    /// rather than only photograph it. Filled by `logFrames`.
+    private var searchY: [String: CGFloat] = [:]
+
     override func setUp() {
         super.setUp()
         continueAfterFailure = true
@@ -97,6 +101,38 @@ final class AreaSheetAuditTests: XCTestCase {
         settle(3)
         capture(app, "sheet-08-min-record-page")
         logFrames(app, "min-record-page")
+
+        assertLayoutInvariants()
+    }
+
+    /// Turn the audit into a GATE, not just a gallery. Photographs need a human;
+    /// these two facts do not, and both encode a bug that shipped to a phone.
+    private func assertLayoutInvariants() {
+        // 1. Deselecting must return the page to where idle had it. Audit run
+        //    32204672482 measured min-idle search-field y=746 against
+        //    min-trail-deselected y=730 — a 16pt lift inside a sheet whose own
+        //    position was identical, which reads as the search field tucked
+        //    under the header's divider.
+        if let idle = searchY["min-idle"], let after = searchY["min-trail-deselected"] {
+            XCTAssertEqual(
+                after, idle, accuracy: 2,
+                "Deselect left the trails page \(Int(idle - after))pt higher than idle "
+                + "(idle y=\(Int(idle)), deselected y=\(Int(after))). "
+                + "The sheet returns to its idle height, so the page inside it must too."
+            )
+        } else {
+            XCTFail("Missing search-field measurements: \(searchY.keys.sorted())")
+        }
+
+        // 2. Scrolling must not move the search field at all — it is FIXED
+        //    above the scroll view, so any movement means it became scroll
+        //    content again.
+        if let before = searchY["min-idle"],
+           let scrolled = searchY["min-after-scroll-up"],
+           let back = searchY["min-after-scroll-back"] {
+            XCTAssertEqual(scrolled, before, accuracy: 1, "Search field moved when the list scrolled")
+            XCTAssertEqual(back, before, accuracy: 1, "Search field moved when the list scrolled back")
+        }
     }
 
     // MARK: - Sheet + list gestures
@@ -199,6 +235,8 @@ final class AreaSheetAuditTests: XCTestCase {
         print("AUDIT[\(tag)] ---- frames ----")
         line("area-name", app.staticTexts["South Mountain Park and Preserve"].firstMatch)
         line("search-field", app.textFields["Search trails"].firstMatch)
+        let sf = app.textFields["Search trails"].firstMatch
+        if sf.exists { searchY[tag] = sf.frame.minY }
         if let extra = extraText {
             line("selected-row-title", app.staticTexts[extra].firstMatch)
         }

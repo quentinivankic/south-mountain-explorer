@@ -16,6 +16,11 @@ name: iOS – App Store screenshots
 
 on:
   workflow_dispatch:
+    inputs:
+      test_class:
+        description: "UI test class to run (empty = all). AreaSheetAuditTests photographs the area sheet's states for layout debugging."
+        required: false
+        default: ""
 
 jobs:
   screenshots:
@@ -154,6 +159,13 @@ jobs:
         working-directory: ios
         run: |
           rm -rf ScreenshotResults.xcresult
+          # Optional narrowing to one test class (e.g. AreaSheetAuditTests,
+          # the layout-debugging capture) so an audit run doesn't also pay
+          # for the five App Store screenshots.
+          ONLY_ARGS=()
+          if [ -n "${{ inputs.test_class }}" ]; then
+            ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/${{ inputs.test_class }}")
+          fi
           xcodebuild test \
             -project SouthMountainExplorer.xcodeproj \
             -scheme SouthMountainExplorerUITests \
@@ -161,6 +173,7 @@ jobs:
             -destination "id=$SIM_UDID" \
             -derivedDataPath "$PWD/DerivedData" \
             -resultBundlePath "$PWD/ScreenshotResults.xcresult" \
+            "${ONLY_ARGS[@]}" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO

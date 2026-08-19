@@ -607,116 +607,69 @@ is the same over-merge trap named in `parking-vision-adjudication`.
 ---
 
 <a name="55"></a>
-## #55 — Device-test the rebuilt area sheet, after the crash fix
+## #55 — Area sheet: FIXED WITH VISUAL PROOF, awaiting the device verdict
 
-**Where it stands: the user is on build 296 and 297 is unusable.**
+**The loop that ended it.** Builds 296-299 all shipped area-sheet "fixes" that
+were reasoned from source and never seen — `which xcodebuild swift` exits 1 on
+the homelab. The user's phone was the test harness for seven-plus rounds. It is
+not any more:
 
-| Build | Run | Commit | Verdict |
-|---|---|---|---|
-| 296 | `32094303980` | `7c71eee6c` (#577) | last build with no crash reported. Clips. |
-| 297 | `32096437543` | `a0070fcaf` (#578) | **crashes on tapping a trail and on dragging the sheet to its smallest stop** |
-| 298 | `32152746550` | `cef6913e8` (#579) | no crash reported. **Still clipped** — screenshot showed the search field scrolled out of the list and a sliced first row. |
-| 299 | `32180071659` | `1cc53e921` (#580) | chrome fixed above the scroll view, search field never hides. `Upload succeeded` 2026-08-18 20:11 UTC, `CFBundleVersion 299`. **Awaiting device verdict.** |
+```
+gh workflow run ios-screenshots.yml --ref <branch> -f test_class=AreaSheetAuditTests
+gh run download <id> -n appstore-screenshots     # then actually LOOK at the PNGs
+gh run view <id> --log | grep AUDIT              # element frames, y / maxY / screenH
+```
 
-**What the 298 screenshot settled.** The sheet was at its smallest stop and sized
-correctly — header, rule, then "National Trail" cut across its title, and no
-search field anywhere. The sum was right; the search field had been scrolled out
-of the top of the list and the row had taken its place. So the clipping was never
-a sizing bug at that point. It was a scroll offset.
+`ios/SouthMountainExplorerUITests/AreaSheetAuditTests.swift` photographs eight
+states and asserts two invariants. ~19 min per run, measured over four runs.
 
-Both arrangements this screen has had are wrong, in opposite directions:
-
-| Arrangement | Failure |
+| Build / run | Verdict |
 |---|---|
-| Everything FIXED | The stop is a SUM the layout must keep exactly. Every missing term is something visibly squeezed out — three were missing before anyone counted. |
-| Everything SCROLLS (#577) | The search field is scroll CONTENT, so any stale offset scrolls it away and parks the cut edge partway through row 0. |
+| 296 `7c71eee6c` | last build with no crash. Clipped. |
+| 297 `a0070fcaf` | crashed on trail tap and on drag-to-min |
+| 298 `cef6913e8` | crash gone. Still clipped. |
+| 299 `1cc53e921` | still clipped — user screenshot showed a sliced first row |
+| audit 32201804788 | FAILED before reaching the sheet — Stats' Area Progress row moved below the fold when #550 inlined Insights. Fixed by scrolling to it. |
+| audit 32203094649 | found 3 defects |
+| audit 32204672482 | min stop + scroll clean; 2 defects left |
+| audit 32206102097 | **all 8 states clean** |
 
-#580 does neither: the chrome is fixed above a scrolling list, so the sum is only
-`header + chrome` and the scroll view absorbs every shortfall by scrolling. The
-search field also stopped hiding — it used to stand down at the smallest stop to
-buy ~44pt, which gave one measurement two heights to carry and made the user ask
-whether the search bar was "straight up going away".
+**What the photographs found — none of it guessed:**
 
-TestFlight keeps prior builds, so the recovery on 2026-08-18 was the user
-installing 296 from Previous Builds — no upload, no wait. Worth remembering as
-the standard answer to "a build is broken and I need to leave now".
+1. **Sliced fourth row at the min stop.** The sheet stands one home-indicator
+   band taller than the detent height asks for, and the browse pages let the
+   list run into it. The band is now subtracted from the browse stop. Record
+   keeps it as air — finite content, photographed clean.
+2. **Scrolling parked a headless `4.08 mi · 515 ft` caption under the search
+   field** — the "clipping behind the header" report, verbatim. Rows and their
+   dividers are one cell now, marked `.scrollTargetLayout()`, with
+   `.scrollTargetBehavior(.viewAligned)`: a flick settles on a whole row. The
+   hand-tuned `+3` divider fudge is gone, because the cell measurement includes
+   the divider.
+3. **The trails page sat 16pt high after deselect.** `min-idle` search-field
+   `y=746` vs `min-trail-deselected` `y=730`, with `area-name y=651` in both —
+   the sheet was right, the page inside was not. The page-level
+   `.ignoresSafeArea(edges: .bottom)` went stale on sheet SHRINK. Removed; the
+   list's own ScrollView carries the ignore. Run 32206102097: both read `y=730`.
+4. **The selected row's chart was cut.** The re-scroll ran one hop after
+   selection, but the stop commits 140 ms later (`minHeightCommit`), so it used
+   the old viewport. Now 260 ms.
+5. **The header stopped hiding.** Hiding the park name at the min stop was the
+   same "control that vanishes" mistake as the search bar's, and gave one
+   measurement two heights to carry.
 
-**The defect, verified by reading the code on 2026-08-18 — not by running it.**
-The smallest stop's height was an input to the decisions that produced the
-measurements it was computed from:
+**Refuted along the way, recorded so it is not re-proposed:** header churn as the
+cause of defect 3 (run 32204672482 shows the header already static and the shift
+surviving), and the layout-cycle fix in #579 as the cause of the 297 crash (`git
+show` finds the identical cycle in 296, which does not crash).
 
-```
-hideChromeForSelection = selectedTrailId != nil && sheetDetent == minDetent
-minDetent              = .height(minSheetHeight)
-minSheetHeight         = ... headerHeightFull / headerHeightCompact ...
-```
+**Still unverified:** how `.viewAligned` snapping feels in the hand, and whether
+the partial bottom row at the medium/half stops reads as clipping — it is
+ordinary scrolling-list behaviour, and the min stop is the one sized to fit
+exactly.
 
-and `hideChromeForSelection` chooses which of those two the header measures
-itself into. A measurement moved `minSheetHeight`, which made `minDetent` a new
-value, which made `sheetDetent == minDetent` false for a pass, which switched the
-header variant, which measured again. Selecting a trail is when that flag first
-goes true — hence the tap. `hideSearchBarAtMinStop` closed the same loop through
-the trail list's chrome. **This is why deadbands kept not working**: the two
-variants differ by ~40pt, so every pass clears any threshold worth having.
-
-Fixed on branch `fix/crash-at-min-stop` (PR #579), five changes:
-
-1. `atMinStop`, a stored boolean written only from `onChange(of: sheetDetent)`,
-   replaces every `sheetDetent == minDetent` comparison. It names the min stop by
-   ruling out `.fraction`/`.large`, so no measurement can reach it.
-2. The stop's height commits 140 ms after the last change instead of following
-   every animation frame. A row expanding 62pt to 240pt over 0.2 s was minting a
-   new `.height()` detent per frame while UIKit animated the sheet.
-3. `onCollapsedRowHeight` / `onSelectedRowHeight` get the 2pt deadband every
-   other measurement already had — they were the only two writing raw.
-4. The chrome height only accepts a measurement taken with the search bar
-   showing. One variable held two layouts; the arithmetic assumed the bar was
-   there. **That is the search-bar-under-the-header clip, all along.**
-5. The detent re-point tests `atMinStop`, not `sheetDetent == .height(old)` —
-   the old test silently missed when two measurements landed between body
-   evaluations, stranding the selection on a stop absent from the set.
-
-**The cycle is NOT what crashed 297, and the check that showed it is worth
-repeating.** `git show 7c71eee6c:...AreaView.swift` and `git show a0070fcaf:...`
-both contain `selectedTrailId != nil && sheetDetent == minDetent`, byte for byte
-— so the cycle shipped in 296, which does not crash. It is the amplifier, not the
-trigger.
-
-The trigger is the only layout-time mutation #578 added: `proxy.scrollTo` running
-synchronously inside `onGeometryChange`'s action on the Record page. `git diff
-7c71eee6c a0070fcaf` is 36 lines and that is the whole of what is new. Deferring
-it through a `Task` is the first commit on `fix/crash-at-min-stop`.
-
-Why a TRAIL TAP reaches a scroll handler on the Record page — this part is
-reasoning, not measurement, and there is no simulator here to settle it: the
-Record page is a sibling in a `.page` `TabView`, which is a
-`UIPageViewController` and keeps adjacent pages mounted. Tapping a trail resizes
-the sheet, every mounted page re-measures, the Record page reports a smaller
-height, and the handler scrolls during layout. Both reported gestures — tap a
-trail, drag to the smallest stop — are exactly the two that resize the sheet
-most.
-
-**So: neither fix is claimed to be verified.** The re-entrant scroll is verified
-to be new in 297 and verified to be illegal; the tap path to it is inference. A
-device settles it.
-
-**What needs eyes on the next build**, in order:
-
-1. Tap a trail. It must not crash — that is the whole point.
-2. Drag the sheet to its smallest stop. Same.
-3. With a trail selected at the smallest stop, deselect it. **The search bar must
-   come back without sliding under the header** — this is the clip that has been
-   reported over and over.
-4. The sheet grows when a trail is selected and shrinks when deselected, and it
-   settles once rather than stepping.
-5. The chrome comes back at the half stop.
-6. The recording panel stays whole when its live elevation strip appears mid-hike
-   (needs a real hike).
-7. Still unconfirmed from before all of this: the bottom gap. Seven attempts, and
-   no build has ever come back with a verdict on it.
-
-Everything here is SwiftUI layout reasoned about from source. CI green means it
-compiles and the unit tests pass; it says nothing about layout.
+**Rule going forward:** no TestFlight build for a UI change until the simulator
+has photographed it. One capture run costs ~19 min; a bad build costs a hike.
 
 
 ---

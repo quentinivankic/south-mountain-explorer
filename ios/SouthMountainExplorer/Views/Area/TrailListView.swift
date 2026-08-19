@@ -303,13 +303,23 @@ struct TrailListView: View {
                         .padding(.vertical, 40)
                     } else {
                         ForEach(Array(filteredTrails.enumerated()), id: \.element.id) { index, trail in
-                            TrailRow(
-                                trail: trail,
-                                areaId: area.id,
-                                areaParking: area.parking,
-                                selectedTrailId: $selectedTrailId,
-                                onRecordTrail: onRecordTrail
-                            )
+                            // Row AND its divider as one cell, so the snapping
+                            // and the measurement both see the true repeating
+                            // unit. The divider used to be a sibling, invisible
+                            // to the row's measurement — which is why the stop's
+                            // arithmetic carried a hand-tuned "+3" for three
+                            // dividers. Measured together, there is no term left
+                            // to forget.
+                            VStack(spacing: 0) {
+                                TrailRow(
+                                    trail: trail,
+                                    areaId: area.id,
+                                    areaParking: area.parking,
+                                    selectedTrailId: $selectedTrailId,
+                                    onRecordTrail: onRecordTrail
+                                )
+                                Divider().padding(.leading)
+                            }
                             // Tag each row with the trail id so
                             // ScrollViewReader can target it via
                             // proxy.scrollTo when selection changes.
@@ -331,16 +341,27 @@ struct TrailListView: View {
                                     onCollapsedRowHeight?(h)
                                 }
                             }
-                            Divider().padding(.leading)
                         }
                     }
                     }
+                    // Marks each row-cell as a snap target for the behavior
+                    // on the scroll view below.
+                    .scrollTargetLayout()
                 }
                 // ON THE SCROLL VIEW, which is what stops UIKit adding the
                 // home-indicator strip as a bottom CONTENT inset. It was on the
                 // LazyVStack — the scroll view's CONTENT — where it did nothing
                 // about the scroll view's own inset.
                 .ignoresSafeArea(edges: .bottom)
+                // A flick settles with a WHOLE row at the top, never a sliced
+                // one. The audit run photographed the alternative
+                // (sheet-03-min-after-scroll-up, run 32203094649): a headless
+                // "4.08 mi · 515 ft" caption parked directly under the search
+                // field, which is exactly the "clipping behind the header"
+                // report. A three-row viewport cannot afford a half row at its
+                // top edge; the bottom edge runs under the home indicator,
+                // where a mid-scroll slice is how every stock list looks.
+                .scrollTargetBehavior(.viewAligned)
                 .onChange(of: selectedTrailId) { _, newId in
                     guard let newId else {
                         // DESELECT. The row that was open just shrank by the
@@ -368,15 +389,16 @@ struct TrailListView: View {
                     withAnimation(.easeInOut(duration: 0.25)) {
                         proxy.scrollTo(newId, anchor: .top)
                     }
-                    // Then again once the layout has settled. Selecting a row makes
-                    // it TALLER (the chart and parking line expand into it) and the
-                    // panel changes height underneath at the same moment, so the
-                    // offset computed a moment ago is stale by the time both land —
-                    // which is how the selected row ended up with its title tucked
-                    // under the page dots. Same deferred-one-hop trick the deep-link
-                    // path below already uses.
+                    // Then again once the SHEET has finished resizing. The stop
+                    // commits 140 ms after the selection (AreaView's
+                    // minHeightCommit), so a one-hop yield lands BEFORE the
+                    // viewport is its final size and the offset it computes is
+                    // stale — audit run 32204672482 photographed the result
+                    // (sheet-05: the selected row still mid-list, its chart cut
+                    // at the screen edge). 260 ms clears the commit plus the
+                    // start of the detent animation.
                     Task {
-                        await Task.yield()
+                        try? await Task.sleep(for: .milliseconds(260))
                         withAnimation(.easeInOut(duration: 0.2)) {
                             proxy.scrollTo(newId, anchor: .top)
                         }

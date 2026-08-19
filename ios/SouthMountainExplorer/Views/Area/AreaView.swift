@@ -97,8 +97,6 @@ struct AreaView: View {
 
     /// Area name + summary line + page dots, with the name and summary showing.
     @State private var headerHeightFull: CGFloat = 91
-    /// The same header with the name and summary hidden — page dots alone.
-    @State private var headerHeightCompact: CGFloat = 50
     /// The whole block above the trail rows — search field, filter hint,
     /// divider — measured as one composed value rather than summed from parts.
     ///
@@ -159,18 +157,13 @@ struct AreaView: View {
     ///
     /// **Not** `sheetDetent == minDetent`, and that distinction is the entire
     /// reason this exists. `minDetent` is `.height(minSheetHeight)`, and
-    /// `minSheetHeight` is computed from measurements that this flag ROUTES —
-    /// which stop is showing decides whether the header measures its full or
-    /// its compact variant, and whether the chrome measures with the search bar
-    /// or without. So comparing against `minDetent` closed a loop:
+    /// `minSheetHeight` is computed from live measurements — so comparing
+    /// against `minDetent` made every measurement able to flip any decision
+    /// keyed on "are we at the smallest stop", which closed a loop:
     ///
     ///   measure -> minSheetHeight changes -> minDetent is a NEW value ->
     ///   `sheetDetent == minDetent` goes false for a pass -> the header
     ///   switches variant -> measures -> minSheetHeight changes -> ...
-    ///
-    /// The oscillation ran for as long as the view was alive, and selecting a
-    /// trail is what started it: that is the moment `hideChromeForSelection`
-    /// first goes true.
     ///
     /// It is NOT on its own what crashed build 297 — `git show` on both build
     /// shas has the identical comparison, and 296 did not crash. What it does is
@@ -869,7 +862,7 @@ struct AreaView: View {
     /// itself depends on the stop, and the sheet would settle twice on every
     /// drag down.
     private var desiredMinSheetHeight: CGFloat {
-        var h: CGFloat = 8   // slack, so nothing sits flush against the edge
+        var h: CGFloat = 0
 
         // TWO heights, each of which can be explained, rather than three that
         // differ for no reason the user can see.
@@ -879,27 +872,25 @@ struct AreaView: View {
         // not resize the sheet under your thumb — which is what made the heights
         // look arbitrary.
         let browseMinimum: CGFloat = {
-            // WHOLE rows. This was 2.5, deliberately, so the half-cut row at the
-            // bottom would signal "there is more, scroll me". It signalled
-            // "broken" instead, and was reported as clipping every time — a
-            // trail name with its distance and difficulty sliced off does not
-            // read as an affordance. Three rows end exactly at the sheet's edge
-            // and the fourth is simply not drawn.
-            // Each row carries a 1pt Divider under it that the row's own
-            // measurement does not include, so three rows need three dividers'
-            // worth of room or the third one loses its last point to the edge.
-            var b = headerHeightFull + listChromeHeight + collapsedRowHeight * 3 + 3
+            // WHOLE rows. `collapsedRowHeight` measures the row TOGETHER WITH
+            // its divider now (they are one cell in the list), so three rows
+            // is exactly this — no hand-tuned divider fudge left to drift.
+            //
+            // The band subtraction at the end of this property is what makes
+            // "three rows" true on screen: the audit photographed a sheet
+            // that stood ~34pt taller than the number asked for
+            // (sheet-02-min-idle, run 32203094649 — Alta Trail's title and
+            // stats showing sliced at the screen edge as a partial FOURTH
+            // row). The sheet's visible height is the detent height PLUS the
+            // home-indicator band, so the band must be paid for here or it
+            // shows the top of one row too many, cut.
+            var b = headerHeightFull + listChromeHeight + collapsedRowHeight * 3
             if sheetTab == .trails, selectedTrailId != nil {
-                // A selected trail stands the name, summary and search bar down
-                // and needs its whole expanded row instead — but never less than
-                // the browse height, so the ground does not move when you tap.
-                // `listChromeHeight` is in this term too, and leaving it out
-                // was a term missing from a sum — the exact failure this screen
-                // keeps having. The search field is FIXED above the list now, so
-                // it occupies its height whether or not a trail is selected;
-                // a stop that forgets it is a stop the expanded row cannot fit
-                // into.
-                b = max(b, headerHeightCompact + listChromeHeight + selectedRowHeight)
+                // A selected trail needs its whole expanded row — but never
+                // less than the browse height, so the ground does not move
+                // when you tap. The header and search bar stay; hiding either
+                // was photographed as breakage, not saving.
+                b = max(b, headerHeightFull + listChromeHeight + selectedRowHeight)
             }
             return b
         }()
@@ -909,10 +900,16 @@ struct AreaView: View {
             // Exactly the header and the page. Nothing added: an extra quarter
             // of a row of "air" here is what made the page holding the LEAST
             // content the tallest of the three.
+            //
+            // No band subtraction on this page, deliberately. Record holds
+            // FINITE content sized to fit, so the home-indicator band under it
+            // is air (the audit shows it clean: sheet-08-min-record-page). The
+            // browse pages hold a LIST that keeps going, so for them the band
+            // shows a sliced next row unless it is paid for.
             h += headerHeightFull
             h += recordPageHeight
         case .trails, .dex:
-            h += browseMinimum
+            h += browseMinimum - Self.bottomSafeInset
         }
 
         // Floor and ceiling: a measurement that came back nonsense must not be
@@ -924,7 +921,10 @@ struct AreaView: View {
         // which re-pointed the selection and tugged the sheet back to its
         // smallest stop.
         let clamped = min(max(h, 140), maxDetentHeight * 0.72)
-        return (clamped / 4).rounded() * 4
+        // Round UP, never to nearest: rounding down took up to 2pt from the
+        // bottom row's divider. Up gives the band a couple of points of row
+        // padding instead, which is blank by construction.
+        return (clamped / 4).rounded(.up) * 4
     }
 
     /// The height the smallest stop is actually PINNED at — `desiredMin`
@@ -962,14 +962,6 @@ struct AreaView: View {
     private var sheetDetentSet: Set<PresentationDetent> {
         mediumIsDistinct ? [minDetent, Self.mediumDetent, .large]
                          : [minDetent, .large]
-    }
-
-    /// At the smallest stop with a trail selected, the area name, the summary
-    /// line and the search bar give up their space to the expanded row — the row
-    /// already names the trail, so they were restating it. Drag the sheet up and
-    /// they come back.
-    private var hideChromeForSelection: Bool {
-        selectedTrailId != nil && atMinStop
     }
 
     /// Height of the visible sheet, measured from the BOTTOM of the screen.
@@ -1526,26 +1518,30 @@ struct AreaView: View {
             // up here so the user gets the whole "where am I, what's
             // here" pitch in one block.
             VStack(spacing: 4) {
-                // Name and summary stand down at the smallest stop while a
-                // trail is selected — see `hideChromeForSelection`. The page
-                // dots stay: they're the only thing saying the Dex is there.
-                if !hideChromeForSelection {
-                    Text(areaName)
-                        .font(.title3.weight(.semibold))
-                        .lineLimit(1)
+                // The name and summary NEVER stand down. They used to hide at
+                // the smallest stop while a trail was selected, to buy the
+                // expanded row ~40pt — and the audit photographed the price
+                // (sheet-06-min-trail-deselected, run 32203094649): the header
+                // growing back on deselect while the sheet resized under it
+                // left the search field tucked under the divider. A header
+                // with one height cannot do that, and hiding the park's name
+                // was the same "control that vanishes" mistake as the search
+                // bar's — twice reported as breakage, never read as intent.
+                Text(areaName)
+                    .font(.title3.weight(.semibold))
+                    .lineLimit(1)
 
-                    // Single summary line: trails · total distance (unit-aware)
-                    // · completion. `areaTrailIds` is the cached Set from
-                    // recomputeFiltered() — avoids a per-eval O(N) rebuild.
-                    // Whole line turns green at 100% as an area-complete cue.
-                    let completed = progress.completionCount(in: area.id, trails: area.trails)
-                    let areaComplete = area.resolvedTrailCount > 0 && completed >= area.resolvedTrailCount
-                    Text(areaSummaryLine(area: area, completed: completed))
-                        .font(.subheadline)
-                        .foregroundStyle(areaComplete ? .green : .secondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
+                // Single summary line: trails · total distance (unit-aware)
+                // · completion. `areaTrailIds` is the cached Set from
+                // recomputeFiltered() — avoids a per-eval O(N) rebuild.
+                // Whole line turns green at 100% as an area-complete cue.
+                let completed = progress.completionCount(in: area.id, trails: area.trails)
+                let areaComplete = area.resolvedTrailCount > 0 && completed >= area.resolvedTrailCount
+                Text(areaSummaryLine(area: area, completed: completed))
+                    .font(.subheadline)
+                    .foregroundStyle(areaComplete ? .green : .secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
                 // OSM attribution is NOT repeated here — the required
                 // "© OpenStreetMap contributors" credit lives in
@@ -1563,13 +1559,8 @@ struct AreaView: View {
             // COMPACT header while the FULL one is on screen (a selected trail
             // at the half stop) without either measurement chasing the other.
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
-                if hideChromeForSelection {
-                    if abs(headerHeightCompact - h) >= 2 { headerHeightCompact = h }
-                } else {
-                    if abs(headerHeightFull - h) >= 2 { headerHeightFull = h }
-                }
+                if abs(headerHeightFull - h) >= 2 { headerHeightFull = h }
             }
-            .animation(.easeInOut(duration: 0.2), value: hideChromeForSelection)
 
             // The line the pages scroll under. The pager's top edge clips
             // whatever is scrolled past it, and with no rule there the cut
@@ -1647,20 +1638,22 @@ struct AreaView: View {
                 // bottom. Top alignment sends every shortfall downward, into
                 // the one thing that can absorb it.
                 .frame(maxHeight: .infinity, alignment: .top)
-                // THIS is what closes the bottom gap, and it has to be HERE.
+                // NO page-level ignoresSafeArea here any more — the trail
+                // list's own ScrollView carries it, which reaches the screen
+                // bottom on its own (verified by photograph: audit run
+                // 32204672482, rows flush to the edge in every min-stop shot).
                 //
-                // A `.page` TabView is a UIPageViewController: every page is
-                // hosted in its own controller, and that controller re-applies
-                // the window's home-indicator inset to the page. So the sheet
-                // root ignoring its bottom safe area never reached the trail
-                // list — the list kept ending ~34pt above the sheet's bottom
-                // edge, which is the gap that survived two previous fixes.
-                // Ignoring it on the page itself is the only placement that
-                // acts on the inset the page was actually given.
-                // LAYER 2 of 3: a `.page` TabView hosts each page in its own
-                // view controller, which RE-APPLIES the window inset inside the
-                // page. Layer 1 cannot reach through that.
-                .ignoresSafeArea(edges: .bottom)
+                // Removing the page-level one is an EXPERIMENT aimed at the one
+                // remaining defect that run photographed: after deselecting a
+                // trail, this page's content sat 16pt high inside a correctly
+                // positioned sheet (search-field y=730 vs 746 idle, same
+                // area-name y=651 — the frame log makes it exact). The header
+                // outside the pager tracked the sheet's resize; the page inside
+                // did not. The suspicion — untested until the next capture —
+                // is that the page-level safe-area expansion is what goes stale
+                // when the sheet SHRINKS. If the next photos still show the
+                // shift, this wasn't it; put the modifier back and look at the
+                // pager's own layout instead.
                 .tag(AreaSheetTab.trails)
 
                 DexView(area: area)

@@ -235,10 +235,21 @@ final class AreaSheetAuditTests: XCTestCase {
     }
 
     private func openAreaFromStats(_ app: XCUIApplication) -> Bool {
+        // The Area Progress section sits BELOW Streaks, Records and By Year
+        // since #550 inlined Insights into Stats, and List rows do not exist
+        // in the accessibility tree until they scroll on-screen — the first
+        // audit run failed exactly here, with the row absent from the dumped
+        // tree (run 32201804788). Swipe the list up until the row exists.
         let row = app.descendants(matching: .any)[areaRowId].firstMatch
-        guard row.waitForExistence(timeout: 20) else {
+        var swipes = 0
+        while !row.exists && swipes < 12 {
+            app.swipeUp()
+            swipes += 1
+            settle(1)
+        }
+        guard row.waitForExistence(timeout: 10) else {
             dumpTree(app, "area-progress-row-missing")
-            XCTFail("Area Progress row not found")
+            XCTFail("Area Progress row not found after \(swipes) swipes")
             return false
         }
         tapElement(row)

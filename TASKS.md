@@ -633,6 +633,8 @@ states and asserts two invariants. ~19 min per run, measured over four runs.
 | audit 32203094649 | found 3 defects |
 | audit 32204672482 | min stop + scroll clean; 2 defects left |
 | audit 32206102097 | **all 8 states clean** |
+| audit 32207386856 | assertions live and PASSING — `testAuditAreaSheetStates passed (249s)`; search-field `y=730` in idle, scrolled, scrolled-back and deselected |
+| 300 `c7350e61f` | carries all of it. `Upload succeeded` 2026-08-19 02:34 UTC, `CFBundleVersion 300`. **Awaiting the device verdict.** |
 
 **What the photographs found — none of it guessed:**
 

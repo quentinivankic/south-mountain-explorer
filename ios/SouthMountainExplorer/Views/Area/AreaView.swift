@@ -181,6 +181,9 @@ struct AreaView: View {
     @State private var minHeightCommit: Task<Void, Never>? = nil
     /// Which segment of the area sheet is showing — trail list or Dex.
     @State private var sheetTab: AreaSheetTab = .trails
+    /// The pager's own read of which page is under the thumb. Bridged to
+    /// `sheetTab` (see the pager) — everything else keeps using `sheetTab`.
+    @State private var pagerPosition: AreaSheetTab? = .trails
     @State private var selectedTrailId: String? = nil
     /// Trail being reported via the overflow menu — drives the report sheet.
     @State private var reportingTrail: Trail? = nil
@@ -1586,88 +1589,111 @@ struct AreaView: View {
                 }
             }
 
-            // Swipe horizontally between Trails and the Dex. `.page` style with
-            // always-visible dots, so the second page is discoverable without
-            // spending a row on a segmented control.
-            TabView(selection: $sheetTab) {
-                recordPage(area: area)
-                    .ignoresSafeArea(edges: .bottom)
-                    .tag(AreaSheetTab.record)
+            // Swipe horizontally between Record, Trails and the Dex.
+            //
+            // This was `TabView(selection:)` with the `.page` style — a
+            // UIPageViewController. That controller is the component BOTH
+            // stale-layout bugs lived inside: content it hosted kept its old
+            // frame while the sheet resized around it, measured twice from
+            // photographs (the 16pt lift after deselect in run 32203094649,
+            // and the search bar clipped after swiping back from the Record
+            // page, reported on build 300 — the swipe where the sheet GROWS
+            // under the settling pager, since Record's stop is shorter than
+            // Trails'). The deselect case was patched by removing a
+            // page-level safe-area ignore; the swipe case survived that, so
+            // the controller itself goes.
+            //
+            // A horizontal ScrollView with `.paging` IS the same gesture, but
+            // every page is laid out by SwiftUI in this hierarchy — there is
+            // no hosted controller left to go stale. `pageDots` in the header
+            // stays the indicator, exactly as before.
+            ScrollView(.horizontal) {
+                HStack(spacing: 0) {
+                    recordPage(area: area)
+                        .ignoresSafeArea(edges: .bottom)
+                        .containerRelativeFrame(.horizontal)
+                        .id(AreaSheetTab.record)
 
-                VStack(spacing: 0) {
-                    TrailListView(
-                        area: area,
-                        selectedTrailId: $selectedTrailId,
-                        statusFilter: $statusFilter,
-                        difficultyFilter: $difficultyFilter,
-                        lengthFilter: $lengthFilter,
-                        routeFilter: $routeFilter,
-                        sort: $trailSort,
-                        searchQuery: $trailSearchQuery,
-                        filteredTrails: filtered,
-                        onRecordTrail: { trail in tryStartRecording(trailId: trail.id) },
-                        onChromeHeight: { h in
-                            // ONE height now, because the search field no longer
-                            // hides. It used to be two — measured with the field
-                            // and measured without it — landing in one variable
-                            // that the arithmetic read as "with". Deselect, and
-                            // the field came back into a sheet sized without it.
-                            //
-                            // Deadband, same as every other measurement: a
-                            // sub-2pt wobble must not mint a new detent height
-                            // mid-drag.
-                            if abs(listChromeHeight - h) >= 2 { listChromeHeight = h }
-                        },
-                        // Both of these feed `minSheetHeight`, so both need the
-                        // deadband the others have. Writing them unconditionally
-                        // re-evaluated the body on EVERY layout pass, and any
-                        // wobble across a 4pt quantisation boundary alternated
-                        // the sheet between two stop heights forever.
-                        onCollapsedRowHeight: { h in
-                            if abs(collapsedRowHeight - h) >= 2 { collapsedRowHeight = h }
-                        },
-                        onSelectedRowHeight: { h in
-                            if abs(selectedRowHeight - h) >= 2 { selectedRowHeight = h }
-                        }
-                    )
+                    VStack(spacing: 0) {
+                        TrailListView(
+                            area: area,
+                            selectedTrailId: $selectedTrailId,
+                            statusFilter: $statusFilter,
+                            difficultyFilter: $difficultyFilter,
+                            lengthFilter: $lengthFilter,
+                            routeFilter: $routeFilter,
+                            sort: $trailSort,
+                            searchQuery: $trailSearchQuery,
+                            filteredTrails: filtered,
+                            onRecordTrail: { trail in tryStartRecording(trailId: trail.id) },
+                            onChromeHeight: { h in
+                                // ONE height now, because the search field no longer
+                                // hides. It used to be two — measured with the field
+                                // and measured without it — landing in one variable
+                                // that the arithmetic read as "with". Deselect, and
+                                // the field came back into a sheet sized without it.
+                                //
+                                // Deadband, same as every other measurement: a
+                                // sub-2pt wobble must not mint a new detent height
+                                // mid-drag.
+                                if abs(listChromeHeight - h) >= 2 { listChromeHeight = h }
+                            },
+                            // Both of these feed `minSheetHeight`, so both need the
+                            // deadband the others have. Writing them unconditionally
+                            // re-evaluated the body on EVERY layout pass, and any
+                            // wobble across a 4pt quantisation boundary alternated
+                            // the sheet between two stop heights forever.
+                            onCollapsedRowHeight: { h in
+                                if abs(collapsedRowHeight - h) >= 2 { collapsedRowHeight = h }
+                            },
+                            onSelectedRowHeight: { h in
+                                if abs(selectedRowHeight - h) >= 2 { selectedRowHeight = h }
+                            }
+                        )
+                    }
+                    // Pin the page's content to the TOP. A VStack whose content is
+                    // taller than its frame centres the overflow by default, which
+                    // is why the recording panel came back with its chart CUT OFF
+                    // AT THE TOP rather than the list being shortened at the
+                    // bottom. Top alignment sends every shortfall downward, into
+                    // the one thing that can absorb it.
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    // NO page-level ignoresSafeArea here — the trail list's own
+                    // ScrollView carries it, which reaches the screen bottom on
+                    // its own (photographed: run 32204672482, rows flush to the
+                    // edge in every min-stop shot). Removing it also cured the
+                    // 16pt lift after deselect (run 32206102097, search-field
+                    // y=730 in idle and deselected alike).
+                    .containerRelativeFrame(.horizontal)
+                    .id(AreaSheetTab.trails)
+
+                    DexView(area: area)
+                        .ignoresSafeArea(edges: .bottom)
+                        .containerRelativeFrame(.horizontal)
+                        .id(AreaSheetTab.dex)
                 }
-                // Pin the page's content to the TOP. A VStack whose content is
-                // taller than its frame centres the overflow by default, which
-                // is why the recording panel came back with its chart CUT OFF
-                // AT THE TOP rather than the list being shortened at the
-                // bottom. Top alignment sends every shortfall downward, into
-                // the one thing that can absorb it.
-                .frame(maxHeight: .infinity, alignment: .top)
-                // NO page-level ignoresSafeArea here any more — the trail
-                // list's own ScrollView carries it, which reaches the screen
-                // bottom on its own (verified by photograph: audit run
-                // 32204672482, rows flush to the edge in every min-stop shot).
-                //
-                // Removing the page-level one is an EXPERIMENT aimed at the one
-                // remaining defect that run photographed: after deselecting a
-                // trail, this page's content sat 16pt high inside a correctly
-                // positioned sheet (search-field y=730 vs 746 idle, same
-                // area-name y=651 — the frame log makes it exact). The header
-                // outside the pager tracked the sheet's resize; the page inside
-                // did not. The suspicion — untested until the next capture —
-                // is that the page-level safe-area expansion is what goes stale
-                // when the sheet SHRINKS. If the next photos still show the
-                // shift, this wasn't it; put the modifier back and look at the
-                // pager's own layout instead.
-                .tag(AreaSheetTab.trails)
-
-                DexView(area: area)
-                    .ignoresSafeArea(edges: .bottom)
-                    .tag(AreaSheetTab.dex)
+                .scrollTargetLayout()
             }
-            // Built-in index off — its page control positions itself inside the
-            // pager's safe area, so it floated above the sheet's bottom edge and
-            // moved every time the inset math changed. `pageDots` in the header
-            // replaces it: fixed spot, visible at every detent, never on top of
-            // a trail row. The previous `-bottomSafeInset` padding is gone with
-            // it — it was compensating for the page control, and it dragged the
-            // whole pager (and its last rows) off-screen along the way.
-            .tabViewStyle(.page(indexDisplayMode: .never))
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $pagerPosition)
+            .scrollIndicators(.hidden)
+            // Opens on Trails: the binding seeds it, and the anchor agrees —
+            // with three equal pages, `.center` IS the middle page, so even a
+            // first layout that consults only the anchor starts in the right
+            // place.
+            .defaultScrollAnchor(.center)
+            // Two-way bridge. The pager writes `pagerPosition` as the user
+            // swipes; everything else in this file keeps writing `sheetTab`
+            // (record-start, celebration, the dots). Each side follows the
+            // other, guarded so neither loops.
+            .onChange(of: pagerPosition) { _, p in
+                if let p, p != sheetTab { sheetTab = p }
+            }
+            .onChange(of: sheetTab) { _, tab in
+                if pagerPosition != tab {
+                    withAnimation(.easeInOut(duration: 0.25)) { pagerPosition = tab }
+                }
+            }
         }
         // Nested modal sheets — must live inside the always-on trail-
         // list sheet so SwiftUI lets them present on top instead of

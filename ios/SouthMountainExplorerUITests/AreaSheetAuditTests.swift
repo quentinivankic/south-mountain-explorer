@@ -102,6 +102,27 @@ final class AreaSheetAuditTests: XCTestCase {
         capture(app, "sheet-08-min-record-page")
         logFrames(app, "min-record-page")
 
+        // ---- 8. Swipe BACK to Trails: the state the device found -----------
+        // Reported on build 300, 2026-08-19: "when i swipe away from lowest
+        // record trail page to the trail list page. clips the search bar."
+        // The record stop is shorter than the trails stop, so this swipe
+        // RESIZES the sheet while the pager is settling — the exact overlap
+        // none of the first eight states exercised.
+        swipePage(app, toward: .left)
+        settle(3)
+        capture(app, "sheet-09-min-back-to-trails")
+        logFrames(app, "min-back-to-trails")
+
+        // And the other border: Trails -> Dex -> Trails at the min stop.
+        swipePage(app, toward: .left)
+        settle(2)
+        capture(app, "sheet-10-min-dex")
+        logFrames(app, "min-dex")
+        swipePage(app, toward: .right)
+        settle(3)
+        capture(app, "sheet-11-min-dex-back-to-trails")
+        logFrames(app, "min-dex-back-to-trails")
+
         assertLayoutInvariants()
     }
 
@@ -132,6 +153,28 @@ final class AreaSheetAuditTests: XCTestCase {
            let back = searchY["min-after-scroll-back"] {
             XCTAssertEqual(scrolled, before, accuracy: 1, "Search field moved when the list scrolled")
             XCTAssertEqual(back, before, accuracy: 1, "Search field moved when the list scrolled back")
+        }
+
+        // 3. Returning to Trails by SWIPE must land the search field where
+        //    idle has it — from the Record side (the sheet GROWS under the
+        //    settling pager: the build-300 device report) and from the Dex
+        //    side (same height, pure page transition).
+        if let idle = searchY["min-idle"] {
+            if let fromRecord = searchY["min-back-to-trails"] {
+                XCTAssertEqual(
+                    fromRecord, idle, accuracy: 2,
+                    "Swiping back from Record left the search field \(Int(idle - fromRecord))pt "
+                    + "from idle (idle y=\(Int(idle)), after y=\(Int(fromRecord)))"
+                )
+            } else {
+                XCTFail("No search-field measurement after swiping back from Record")
+            }
+            if let fromDex = searchY["min-dex-back-to-trails"] {
+                XCTAssertEqual(
+                    fromDex, idle, accuracy: 2,
+                    "Swiping back from Dex left the search field \(Int(idle - fromDex))pt from idle"
+                )
+            }
         }
     }
 

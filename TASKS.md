@@ -634,7 +634,15 @@ states and asserts two invariants. ~19 min per run, measured over four runs.
 | audit 32204672482 | min stop + scroll clean; 2 defects left |
 | audit 32206102097 | **all 8 states clean** |
 | audit 32207386856 | assertions live and PASSING — `testAuditAreaSheetStates passed (249s)`; search-field `y=730` in idle, scrolled, scrolled-back and deselected |
-| 300 `c7350e61f` | carries all of it. `Upload succeeded` 2026-08-19 02:34 UTC, `CFBundleVersion 300`. **Awaiting the device verdict.** |
+| 300 `c7350e61f` | device verdict: **still clips** — swiping from the lowest Record page to Trails clips the search bar. A state the first 8 audit shots never covered. |
+| audit 32322221425 | repro on 300's code, new swipe states: **FAILS as the device does** — "Swiping back from Record left the search field -16pt from idle (idle y=730, after y=746)". On the old pager IDLE is the mis-laid state. |
+| audit 32322403707 | the SwiftUI pager (#582): passes, `y=746` in every trails state, `passed (267.5s)` |
+| 301 `71ad99084` | the pager rebuild. `TabView(.page)`/UIPageViewController REMOVED — two stale-frame bugs lived in it; replaced with `ScrollView(.horizontal)` + `.paging` + two-way `pagerPosition`/`sheetTab` bridge. `Upload succeeded` 2026-08-20 ~02:5x UTC, `Build number set to 301`. **Awaiting the device verdict.** |
+
+**Device-verdict checklist for 301:** the reported swipe (lowest Record page ->
+Trails), the Dex round trip, tap/deselect a trail, flick the list, and — new
+risk from the rebuild — whether the paging swipe FEELS like it did (it is a
+SwiftUI `.paging` scroll now, not a UIPageViewController).
 
 **What the photographs found — none of it guessed:**
 

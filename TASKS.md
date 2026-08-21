@@ -712,6 +712,85 @@ trails carrying a DEM gain and re-rates **127 of them (0.14%)** — Echo Canyon,
 Precipice, Mount Colden, Manamana, Henry Stimson. That is the SIZE of the
 problem, not the fix.
 
+**MEASURED 2026-08-21 — the axis is settled, the cut is not.**
+
+The claim that steepness is the missing signal is no longer a guess. OSM's
+`sac_scale` is an independent human grade of TERRAIN (strolling -> difficult
+alpine), assigned by mappers with no knowledge of our formula. Joining it to our
+own geom gives a ground truth we did not author.
+
+Method (durable home `/mnt/raid/trekdex/difficulty/`, scripts `sac_vs_grade.py`
++ `build_sheet.py` kept there): `osmium tags-filter us-hiking.osm.pbf w/sac_scale`
+-> `osmium export -f geojsonseq` -> 37,908 tagged linestrings -> shapely `STRtree`,
+per-area local metric frame, a trail matches when >=50% of <=40 sampled vertices
+sit within 20 m of one tagged way. **9,837 shipped trails matched; 7,790 also
+carry `profileFt`.** Runtime 3m18s for the whole country.
+
+⭐ **Median steepness rises at every rung of the terrain ladder. The rating we
+ship does not.**
+
+| SAC grade | n | median ft/mi | median NPS rating |
+|---|---|---|---|
+| strolling | 16 | 106 | 15 |
+| hiking | 3,635 | 218 | 34 |
+| mountain_hiking | 3,147 | 425 | 69 |
+| demanding_mountain_hiking | 631 | 664 | 85 |
+| alpine_hiking | 260 | 788 | **71** |
+| demanding_alpine_hiking | 86 | 1,069 | **77** |
+| difficult_alpine_hiking | 15 | 1,709 | 133 |
+
+The rating REVERSES at `alpine_hiking` because hard terrain runs short (median
+1.82 mi, then 1.49 mi) and `sqrt` of distance rewards length. Separating alpine+
+from everything else: **average grade AUC 0.857, sustained-quarter-mile 0.856,
+NPS rating 0.625, distance 0.455** — distance is worse than a coin flip, i.e. the
+harder trails are slightly SHORTER.
+
+⛔ **The sustained-window idea is NOT supported — recorded so it is not
+re-proposed.** Average grade matched or beat the 0.25 mi and 0.5 mi sustained
+windows in every length bucket, including the one where dilution should have hurt
+it most (over 6 mi: avg 0.662, sus.25 0.613, sus.5 0.621). The earlier note that
+`profileFt` would separate "one savage pitch" from "evenly graded" is untested at
+best and contradicted here. Keep `gain/miles`; it is already what the code
+computes.
+
+⭐ **So the defect is the CUT, not the formula's grade term.** Measured over all
+92,400 trails carrying a DEM gain: the shipped Hard floor of 1,500 ft/mi sits at
+the **99.4th percentile** and the Moderate floor of 1,000 at the **97.5th**. Echo
+Canyon (1,433) and Precipice (1,442) are both p99.3 — top 0.7% of American trails
+for steepness — and both read Moderate. A floor set almost at the ceiling can
+only ever rescue a handful of trails, which is exactly the 127 the earlier
+1,400 experiment moved.
+
+For scale, the same SAC ground truth puts the natural breaks far lower: the best
+single cut for T2+ vs T1 is 325 ft/mi (p67, J=0.407) and for alpine+ vs the rest
+575 ft/mi (p87, J=0.527).
+
+**More failures, both directions, from shipped geom:**
+
+- Reads Easy, is not: **Mormon Trail** 536 ft/mi (p85), **Beehive Trail** in
+  Acadia 629 ft/mi (p90) — iron rungs on a cliff — **Telegraph Pass** 437 (p78),
+  **Wind Cave** 500 (p83).
+- Reads Hard, is a rolling walk: **Pass Mountain** 154 ft/mi (p40), **Peralta
+  Canyon** 232 (p54), **Bell Rock Pathway** 88 ft/mi (p26) reads Moderate.
+- Reads Moderate, is brutal: **Hieroglyphic** 1,248 (p99), **Cholla** 1,063 (p98),
+  **Piestewa Summit 300** 1,043 (p98).
+
+**IN FRONT OF THE USER NOW (CLAUDE.md #12).** A 31-trail grading sheet, sorted
+steepest first, showing miles / gain / ft-per-mile / national steepness rank /
+current rating / shipped label, with the 11 plain disagreements tinted:
+https://claude.ai/code/artifact/c058bd3a-55ab-449a-bfe8-4bac08959991
+Their grades come back as text and the cut gets FITTED to them, not picked.
+
+**Standards checked, since "is there a standard" was the question.** Shenandoah's
+`sqrt(2*gain*miles)` with bands 50/100/150/200 is the one we already use, and
+applied canonically it still ranks Echo Canyon (p73 by rating) BELOW Holbert
+(p84) — so adopting the standard properly does not fix this. Norway's DNT colour
+grading caps length AND ascent instead of trading them, which is the right shape,
+but Echo Canyon's 424 m of ascent still lands in blue/medium. SAC is the only
+standard that calls it hard, and it does so on TERRAIN — present on just 0.29% of
+US hiking ways (37,140 of 12,891,980, measured with `osmium tags-filter`), so it
+can stay an override and can never be the primary.
+
 **Directions worth exploring, none of them chosen:**
 
 - **Rank, not magnitude.** "Hard" as a percentile of steepness rather than a
@@ -721,10 +800,8 @@ problem, not the fix.
   memory — Echo Canyon hard, Piestewa moderate, Precipice hard — and choose
   whatever function reproduces it. Same shape as the parking groundtruth in
   `parking-vision-adjudication`.
-- **Use the profile, not the average.** `profileFt` ships at 32 samples/mile, so
-  SUSTAINED steepness over a window is computable. A trail with one savage pitch
-  and a trail evenly graded to the same average are not the same hike, and an
-  average grade cannot tell them apart.
+- ⛔ ~~**Use the profile, not the average.**~~ **REFUTED 2026-08-21** against the
+  SAC ground truth above — the sustained window never beat plain `gain/miles`.
 - Per CLAUDE.md #12, put a stratified sample in front of the user's eyes before
   building whichever rule wins.
 

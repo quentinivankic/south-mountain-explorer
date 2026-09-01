@@ -865,6 +865,9 @@ alert and asserts the overlay clears afterwards.
 | `33509976324` | overlay fix alone: onboarding SHOWS, then HomeView's sheet slides over it and eats the Continue button ("page 1 had neither CTA") |
 | `33512537301` | all three parts: `sawLocationPrompt=true`, `pagesWalked=5`, `passed (150.6s)` |
 
+**SHIPPED as TestFlight build 302** (run `33517633592`, "Build number set to
+302", "Upload succeeded", 2026-09-01 ~14:20 UTC).
+
 **Device checklist:** delete the app on the 13 mini, install fresh, and confirm
 five pages, the system alert at the end, and that "Not now" also lands you on
 Explore. Cosmetic and deliberately not chased: "Not now" sits ~10 pt above the

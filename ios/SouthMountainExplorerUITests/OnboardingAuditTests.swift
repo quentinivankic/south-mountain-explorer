@@ -4,6 +4,8 @@ import XCTest
 ///
 /// Reported 2026-09-01 from a clean install on a spare iPhone 13 mini: the
 /// onboarding walkthrough and the location permission prompt never appeared.
+/// Onboarding lost a fight between three `.fullScreenCover`s on one TabView,
+/// and nothing had ever asked for location during onboarding at all.
 /// Every existing UI test launches with `--uitest-seed`, and that seeding sets
 /// `StorageKeys.onboarded = true` (`UITestSupport.swift`), so the whole suite
 /// has been blind to first launch by construction.
@@ -54,12 +56,33 @@ final class OnboardingAuditTests: XCTestCase {
 
         guard onboardingVisible else { return }
 
-        // ---- walk the four pages -------------------------------------------
-        for page in 1...4 {
+        // ---- walk every page, ending on the location ask -------------------
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        var sawLocationPrompt = false
+        var pagesWalked = 0
+
+        for page in 1...6 {
             capture(app, String(format: "onboard-%02d-page-%d", page + 1, page))
-            let next = app.buttons["Continue"].firstMatch
+            let enable = app.buttons["Enable Location"].firstMatch
             let finish = app.buttons["Get Started"].firstMatch
-            if finish.exists && finish.isHittable {
+            let next = app.buttons["Continue"].firstMatch
+
+            if enable.exists && enable.isHittable {
+                pagesWalked = page
+                print("AUDIT[onboarding] page \(page): Enable Location — tapping")
+                enable.tap()
+                // The system alert is owned by springboard, not the app.
+                let alert = springboard.alerts.firstMatch
+                if alert.waitForExistence(timeout: 15) {
+                    sawLocationPrompt = true
+                    print("AUDIT[permission] alert label=\(alert.label)")
+                    capture(app, "onboard-08-location-prompt")
+                    let allow = alert.buttons["Allow While Using App"]
+                    if allow.exists { allow.tap() } else { alert.buttons.element(boundBy: 0).tap() }
+                }
+                break
+            } else if finish.exists && finish.isHittable {
+                pagesWalked = page
                 print("AUDIT[onboarding] page \(page): Get Started — finishing")
                 finish.tap()
                 break
@@ -72,26 +95,23 @@ final class OnboardingAuditTests: XCTestCase {
             }
         }
 
-        settle(5)
-        capture(app, "onboard-06-after-get-started")
-        dumpTree(app, "after-get-started")
+        settle(6)
+        capture(app, "onboard-09-after-onboarding")
+        dumpTree(app, "after-onboarding")
 
-        // ---- did anything ever ask for location? ---------------------------
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        let systemAlerts = springboard.alerts
-        let sawLocationPrompt = systemAlerts.count > 0
-            && systemAlerts.element(boundBy: 0).label.lowercased().contains("location")
-        print("AUDIT[permission] springboardAlerts=\(systemAlerts.count) "
-              + "sawLocationPrompt=\(sawLocationPrompt) "
-              + "firstAlertLabel=\(systemAlerts.count > 0 ? systemAlerts.element(boundBy: 0).label : "<none>")")
-        if sawLocationPrompt {
-            capture(app, "onboard-07-location-prompt")
-        }
+        print("AUDIT[permission] pagesWalked=\(pagesWalked) sawLocationPrompt=\(sawLocationPrompt)")
+        XCTAssertTrue(sawLocationPrompt,
+                      "Onboarding finished without ever asking for location. The "
+                      + "last page's CTA should be 'Enable Location' and should "
+                      + "raise the system alert.")
 
-        // Recorded, not asserted: `OnboardingView.swift` contains no reference
-        // to LocationService, so onboarding is not expected to ask. The print
-        // above is the evidence either way, and the assertion belongs in
-        // whatever fix decides where the ask should live.
+        // Onboarding must actually go away once it is done, and the tabs must
+        // be usable — an overlay that never clears is the opposite failure.
+        XCTAssertFalse(app.buttons["Continue"].firstMatch.exists,
+                       "Onboarding was still on screen after finishing")
+        let exploreAfter = app.tabBars.buttons["Explore"].firstMatch
+        XCTAssertTrue(exploreAfter.waitForExistence(timeout: 15),
+                      "Tab bar was not reachable after onboarding finished")
     }
 
     // MARK: - Helpers

@@ -38,7 +38,6 @@ struct HomeView: View {
     @Environment(RecordingService.self) private var recording
 
     @State private var selectedArea: AreaSummary? = nil
-    @State private var showLocationPrompt = false
     @State private var showAllAreasMap = false
     @State private var showWalk = false
     @State private var history: [SavedRecording] = []
@@ -202,19 +201,16 @@ struct HomeView: View {
             }
         }
         .onAppear {
-            // In UI-test seed mode, never present the location prompt.
-            // The CI simulator has no location permission, so this sheet
-            // came up on every screenshot run — and it silently hijacked
-            // the whole test: it floats over the tab bar (swallowing the
-            // test's tab taps) and, as HomeView's presented sheet, blocks
-            // every other sheet/cover in the app from presenting.
-            var promptForLocation = !location.isAuthorized
-            #if DEBUG
-            if UITestSupport.isSeedRequested { promptForLocation = false }
-            #endif
-            if promptForLocation {
-                showLocationPrompt = true
-            } else if location.isAuthorized {
+            // The location ask lives at the END OF ONBOARDING now, not here.
+            // This used to auto-present LocationPromptView on every appear
+            // without permission, and it fought whatever else wanted to
+            // present: on a clean install, run 33509976324 photographed it
+            // sliding over the onboarding walkthrough and swallowing the
+            // Continue button. Its own comment already recorded that it
+            // "blocks every other sheet/cover in the app from presenting".
+            // Anyone who declines still has the "Enable Location" button in
+            // the empty state below, which is visible rather than modal.
+            if location.isAuthorized {
                 location.startLiveTracking()
             }
             Task { history = await recording.loadHistory() }
@@ -225,9 +221,6 @@ struct HomeView: View {
         // Recompute the cached sections only when a real input changes, instead
         // of implicitly on every body evaluation (which happens at GPS rate).
         .task(id: sectionsKey) { refreshSections() }
-        .sheet(isPresented: $showLocationPrompt) {
-            LocationPromptView()
-        }
         .sheet(isPresented: $showAllAreasMap) {
             AllAreasMapView()
         }
@@ -431,45 +424,5 @@ struct HomeView: View {
             + cos(lat * .pi / 180) * cos(a.centerLat * .pi / 180)
             * sin(dLon / 2) * sin(dLon / 2)
         return R * 2 * atan2(sqrt(h), sqrt(1 - h))
-    }
-}
-
-struct LocationPromptView: View {
-    @Environment(LocationService.self) private var location
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 24) {
-                Image(systemName: "location.circle.fill")
-                    .font(.system(size: 72))
-                    .foregroundStyle(.green)
-                    .symbolEffect(.pulse)
-
-                Text("Find Trails Near You")
-                    .font(.title)
-                    .fontWeight(.bold)
-
-                Text("Share your location to discover nearby trails and see your position on the map while hiking.")
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
-
-                VStack(spacing: 12) {
-                    Button("Allow Location Access") {
-                        location.requestPermission()
-                        dismiss()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .frame(maxWidth: .infinity)
-
-                    Button("Not Now") { dismiss() }
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(32)
-            .presentationDetents([.medium])
-            .presentationDragIndicator(.visible)
-        }
     }
 }

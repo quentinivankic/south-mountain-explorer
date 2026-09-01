@@ -35,6 +35,28 @@ struct ContentView: View {
     @State private var showWalkCover = false
 
     var body: some View {
+        // Onboarding is an OVERLAY, not a presentation. It used to be a third
+        // `.fullScreenCover` stacked on the same TabView as the walk cover and
+        // the jump-to-area cover, and it never appeared on a clean install —
+        // reproduced on a fresh simulator by `OnboardingAuditTests`, which
+        // logged `onboardingVisible=false` with the app sitting on Explore.
+        // SwiftUI arbitrates between presentations attached to one view; a
+        // plain conditional does not, so this branch cannot be out-voted.
+        ZStack {
+            tabs
+                .accessibilityHidden(!onboarded)
+
+            if !onboarded {
+                OnboardingView(onFinish: { onboarded = true })
+                    .background(Color(.systemBackground).ignoresSafeArea())
+                    .transition(.opacity)
+                    .zIndex(1)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: onboarded)
+    }
+
+    private var tabs: some View {
         // Custom selection binding so we see EVERY tap on a tab icon —
         // including re-taps of the already-selected tab, which write the
         // same value through the setter. Tapping the Browse (search) icon
@@ -140,15 +162,6 @@ struct ContentView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("This hike won't be saved to history and your trail coverage won't update. This can't be undone.")
-        }
-        .fullScreenCover(isPresented: Binding(
-            // A writable binding so the dismiss() call inside OnboardingView
-            // actually flips `onboarded`. .constant(!onboarded) silently
-            // ignores writes, leaving the cover stuck open.
-            get: { !onboarded },
-            set: { stillShowing in onboarded = !stillShowing }
-        )) {
-            OnboardingView()
         }
         .task {
             await rebuildCompletionsFromHistory()

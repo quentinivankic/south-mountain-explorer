@@ -47,9 +47,9 @@ final class OnboardingAuditTests: XCTestCase {
         XCTAssertTrue(
             onboardingVisible,
             "FIRST LAUNCH SHOWED NO ONBOARDING. `summit:onboarded` defaults to "
-            + "false and ContentView presents OnboardingView in a fullScreenCover, "
-            + "so the walkthrough should be up. See the dumped tree for what "
-            + "presented instead."
+            + "false and ContentView renders OnboardingView whenever it is false, "
+            + "so the walkthrough should be up. See the dumped tree for where the "
+            + "app landed instead."
         )
 
         guard onboardingVisible else { return }

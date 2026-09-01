@@ -12,7 +12,11 @@ import SwiftUI
 /// they have to go. Re-presented after Reset All Progress (the
 /// `onboarded` AppStorage flag is cleared in DataBackupManager).
 struct OnboardingView: View {
-    @Environment(\.dismiss) private var dismiss
+    /// Called when the walkthrough finishes. Onboarding is rendered as a
+    /// top-level overlay rather than presented (see `ContentView`), so there
+    /// is no cover to close — the host flips its own flag.
+    let onFinish: () -> Void
+
     @State private var selectedPage = 0
 
     private static let pageCount = 4
@@ -38,7 +42,7 @@ struct OnboardingView: View {
                 if selectedPage < Self.pageCount - 1 {
                     withAnimation { selectedPage += 1 }
                 } else {
-                    dismiss()
+                    onFinish()
                 }
             } label: {
                 Text(selectedPage < Self.pageCount - 1 ? "Continue" : "Get Started")
@@ -51,7 +55,7 @@ struct OnboardingView: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 32)
         }
-        .interactiveDismissDisabled()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Pages

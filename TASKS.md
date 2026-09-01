@@ -38,6 +38,7 @@ which is not much.
 | [52](#52) | One car park mapped as many OSM polygons ships as many pins | data · unmeasured |
 | [55](#55) | Device-test the rebuilt area sheet | QA · needs a TestFlight build |
 | [56](#56) | Difficulty calls short brutal climbs Moderate | data · needs a non-threshold answer |
+| [57](#57) | First launch showed no onboarding and no location ask — FIXED, awaiting device | QA · shipped 2026-09-01 |
 
 ---
 
@@ -810,3 +811,62 @@ geom at publish, so changing it today means republishing all 50 states. Both
 inputs (`gainFt`, `distanceMi`) and now `profileFt` already ship to the app, so
 the label COULD be computed on the phone. Then this is a build rather than a
 national roll, and the next revision costs one line instead of a re-publish.
+
+---
+
+<a name="57"></a>
+## #57 — First launch showed neither onboarding nor the location ask (FIXED)
+
+**Reported 2026-09-01** from a clean install on a spare iPhone 13 mini. Not that
+phone: reproduced on a fresh CI simulator, so it hit every new install from the
+public TestFlight link.
+
+**Why nothing appeared.** `ContentView` stacked THREE `.fullScreenCover`
+modifiers on one `TabView` (walk, jump-to-area, onboarding) and
+`HomeView.onAppear` auto-presented a fourth thing, `LocationPromptView`,
+whenever permission was missing. SwiftUI arbitrates among presentations
+attached to one view, and on first launch none of them won. Run
+`33506899768`:
+
+```
+AUDIT[first-launch] onboardingVisible=false continueExists=false
+                    getStartedExists=false tabBarCount=1 firstTab=Explore
+```
+
+— app sitting on Explore, no cover and no sheet in the dumped tree.
+
+⭐ **The hazard was already written down and half-fixed.** `LocationPromptView`'s
+own comment said it "floats over the tab bar" and "blocks every other
+sheet/cover in the app from presenting" — and the response had been to suppress
+it for SEEDED UI tests only, which left the shipping path exactly as broken.
+
+**Fixed in #584, three parts:**
+
+1. Onboarding is a `ZStack` branch on `!onboarded`, not a presentation, so
+   nothing can out-vote it. `OnboardingView` takes an `onFinish` closure rather
+   than `@Environment(\.dismiss)` (which only works when presented) and fills
+   its container now that no cover supplies the frame.
+2. The location ask is onboarding's fifth page — the user chose that placement
+   over asking on first use. Either answer to the system alert finishes
+   onboarding through the authorization callback; "Not now" skips it.
+3. `HomeView` no longer auto-presents a location sheet, and `LocationPromptView`
+   is deleted. Explore's empty state keeps its visible "Enable Location" button.
+
+**Why it survived to a shipping build, and the hole that is now closed.** Every
+UI test launched with `--uitest-seed`, and that seeding sets
+`StorageKeys.onboarded = true` — the suite was blind to first launch BY
+CONSTRUCTION. `ios/SouthMountainExplorerUITests/OnboardingAuditTests.swift`
+launches with no arguments, walks all five pages, taps through the springboard
+alert and asserts the overlay clears afterwards.
+
+| Run | Result |
+|---|---|
+| `33506899768` | repro: `onboardingVisible=false`, app on Explore |
+| `33509976324` | overlay fix alone: onboarding SHOWS, then HomeView's sheet slides over it and eats the Continue button ("page 1 had neither CTA") |
+| `33512537301` | all three parts: `sawLocationPrompt=true`, `pagesWalked=5`, `passed (150.6s)` |
+
+**Device checklist:** delete the app on the 13 mini, install fresh, and confirm
+five pages, the system alert at the end, and that "Not now" also lands you on
+Explore. Cosmetic and deliberately not chased: "Not now" sits ~10 pt above the
+home indicator — legible in the capture, tighter than ideal, and a change costs
+another ~30 min capture run.

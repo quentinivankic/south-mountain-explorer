@@ -193,10 +193,22 @@ final class ScreenshotTests: XCTestCase {
     /// picker is on screen. Dumps the accessibility tree on any wait
     /// failure so the CI log shows exactly what rendered instead.
     private func openAreaFromStats(_ app: XCUIApplication) -> Bool {
+        // The Area Progress section sits BELOW Streaks, Records and By Year
+        // since #550 inlined Insights into Stats, and List rows do not exist
+        // in the accessibility tree until they scroll on-screen. AreaSheetAuditTests
+        // hit exactly this and got the swipe loop (run 32201804788); this copy of
+        // the navigation never did, so the App Store capture would fail the same
+        // way the moment it ran.
         let row = app.descendants(matching: .any)[areaRowId].firstMatch
-        guard row.waitForExistence(timeout: 20) else {
+        var swipes = 0
+        while !row.exists && swipes < 12 {
+            app.swipeUp()
+            swipes += 1
+            settle(1)
+        }
+        guard row.waitForExistence(timeout: 10) else {
             dumpTree(app, "area-progress-row-missing")
-            XCTFail("Area Progress row not found")
+            XCTFail("Area Progress row not found after \(swipes) swipes")
             return false
         }
         tapElement(row)

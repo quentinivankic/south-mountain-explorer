@@ -24,6 +24,13 @@ enum UITestSupport {
 
     private static var args: [String] { ProcessInfo.processInfo.arguments }
     static var isSeedRequested: Bool { args.contains("--uitest-seed") }
+    /// `--uitest-fresh`: wipe this app's UserDefaults so the launch behaves like
+    /// a first install. Needed because test CLASSES in one run share one
+    /// installation: a seeded class sets `summit:onboarded = true` and every
+    /// later class inherits it, which is exactly how OnboardingAuditTests
+    /// passed alone (run 33512537301) and failed in the full suite
+    /// (run 34065141359).
+    static var isFreshRequested: Bool { args.contains("--uitest-fresh") }
     static var isRecordingRequested: Bool { args.contains("--uitest-recording") }
 
     /// `--uitest-completed <n>`: seed n completed trails (the first n real IDs
@@ -44,6 +51,7 @@ enum UITestSupport {
     /// `@Observable` singletons (App.init is already main-actor-isolated).
     @MainActor
     static func handleLaunch() {
+        if isFreshRequested { resetPersistedState() }
         guard isSeedRequested else { return }
         seedHistoricalState()
         // Re-read every service's in-memory copy from what we just wrote.
@@ -63,6 +71,25 @@ enum UITestSupport {
     }
 
     // MARK: - Historical state
+
+    /// Remove every persisted default for this app, then the on-disk files a
+    /// previous test class may have written. Runs from `App.init` before any
+    /// `@AppStorage` is read.
+    @MainActor
+    private static func resetPersistedState() {
+        if let domain = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: domain)
+            UserDefaults.standard.synchronize()
+        }
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        for name in ["hike-history.json", "activity-log.json"] {
+            try? FileManager.default.removeItem(at: docs.appendingPathComponent(name))
+        }
+        ProgressService.shared.reload()
+        CoverageService.shared.reload()
+        FavoritesService.shared.reload()
+        RecordingService.shared.reload()
+    }
 
     private static func seedHistoricalState() {
         let ud = UserDefaults.standard

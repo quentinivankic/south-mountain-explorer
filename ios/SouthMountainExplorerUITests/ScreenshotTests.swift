@@ -106,8 +106,10 @@ final class ScreenshotTests: XCTestCase {
 
         // Shot 5 — a finished hike's detail (route map + elevation), pushed
         // from the Recent Hikes list.
-        let featuredRow = app.descendants(matching: .any)["hike-row-demo-national-trail-2"].firstMatch
-        if featuredRow.waitForExistence(timeout: 10) {
+        // Recent Hikes moved down the Stats screen when #550 inlined Insights,
+        // and #572 reordered it newest-first. Either way the row has to be on
+        // screen before it exists at all — run 34065141359 failed right here.
+        if let featuredRow = scrollToIdentifier(app, "hike-row-demo-national-trail-2") {
             tapElement(featuredRow)
             // Long dwell: the hike-detail map is satellite imagery
             // (`.imagery`). At 5 s the right edge was still a blank gray
@@ -192,23 +194,34 @@ final class ScreenshotTests: XCTestCase {
     /// for the trail sheet's Trails/Dex picker. Returns true when the
     /// picker is on screen. Dumps the accessibility tree on any wait
     /// failure so the CI log shows exactly what rendered instead.
-    private func openAreaFromStats(_ app: XCUIApplication) -> Bool {
-        // The Area Progress section sits BELOW Streaks, Records and By Year
-        // since #550 inlined Insights into Stats, and List rows do not exist
-        // in the accessibility tree until they scroll on-screen. AreaSheetAuditTests
-        // hit exactly this and got the swipe loop (run 32201804788); this copy of
-        // the navigation never did, so the App Store capture would fail the same
-        // way the moment it ran.
-        let row = app.descendants(matching: .any)[areaRowId].firstMatch
-        var swipes = 0
-        while !row.exists && swipes < 12 {
+    /// Scroll the current screen until `identifier` exists, then return it.
+    /// Tries down first, then back up, because a previous shot may have left
+    /// the screen scrolled past the target. Returns nil if it never appears.
+    private func scrollToIdentifier(_ app: XCUIApplication,
+                                    _ identifier: String,
+                                    maxSwipes: Int = 12) -> XCUIElement? {
+        let el = app.descendants(matching: .any)[identifier].firstMatch
+        if el.exists { return el }
+        for _ in 0..<maxSwipes {
             app.swipeUp()
-            swipes += 1
             settle(1)
+            if el.exists { return el }
         }
-        guard row.waitForExistence(timeout: 10) else {
+        for _ in 0..<(maxSwipes * 2) {
+            app.swipeDown()
+            settle(1)
+            if el.exists { return el }
+        }
+        return nil
+    }
+
+    private func openAreaFromStats(_ app: XCUIApplication) -> Bool {
+        // Stats is long and List rows do not exist in the accessibility tree
+        // until they scroll on-screen, so every row this test taps has to be
+        // scrolled to first. See `scrollToIdentifier`.
+        guard let row = scrollToIdentifier(app, areaRowId) else {
             dumpTree(app, "area-progress-row-missing")
-            XCTFail("Area Progress row not found after \(swipes) swipes")
+            XCTFail("Area Progress row not found after scrolling Stats")
             return false
         }
         tapElement(row)

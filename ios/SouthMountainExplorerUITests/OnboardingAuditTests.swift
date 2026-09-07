@@ -10,8 +10,9 @@ import XCTest
 /// `StorageKeys.onboarded = true` (`UITestSupport.swift`), so the whole suite
 /// has been blind to first launch by construction.
 ///
-/// This class launches with NO arguments, so `summit:onboarded` stays at its
-/// `false` default and the app takes the same path a new install does.
+/// This class launches with `--uitest-fresh` and no seeding, so
+/// `summit:onboarded` is absent and the app takes the same path a new install
+/// does. The wipe matters because test classes share one installation.
 ///
 /// Run via `ios-screenshots.yml` with `test_class: OnboardingAuditTests`.
 final class OnboardingAuditTests: XCTestCase {
@@ -25,7 +26,11 @@ final class OnboardingAuditTests: XCTestCase {
 
     func testFirstLaunchShowsOnboarding() {
         let app = XCUIApplication()
-        app.launchArguments = []          // deliberately empty — see class doc
+        // `--uitest-fresh` wipes UserDefaults, because test classes in one run
+        // share an installation: AreaSheetAuditTests launches with
+        // `--uitest-seed`, which sets `summit:onboarded = true`, and this class
+        // sorts after it. No seeding argument here — this is first launch.
+        app.launchArguments = ["--uitest-fresh"]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 60),
                       "App never reached the foreground")

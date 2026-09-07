@@ -38,7 +38,8 @@ which is not much.
 | [52](#52) | One car park mapped as many OSM polygons ships as many pins | data · unmeasured |
 | [55](#55) | Device-test the rebuilt area sheet | QA · needs a TestFlight build |
 | [56](#56) | Difficulty calls short brutal climbs Moderate | data · needs a non-threshold answer |
-| [57](#57) | First launch showed no onboarding and no location ask — FIXED, awaiting device | QA · shipped 2026-09-01 |
+| [57](#57) | First launch showed no onboarding and no location ask | QA · CLOSED, verified on device |
+| [58](#58) | App Store submission for the next version — what is left | release · user-side |
 
 ---
 
@@ -815,7 +816,7 @@ national roll, and the next revision costs one line instead of a re-publish.
 ---
 
 <a name="57"></a>
-## #57 — First launch showed neither onboarding nor the location ask (FIXED)
+## #57 — CLOSED 2026-09-06. First launch showed neither onboarding nor the location ask.
 
 **Reported 2026-09-01** from a clean install on a spare iPhone 13 mini. Not that
 phone: reproduced on a fresh CI simulator, so it hit every new install from the
@@ -868,8 +869,57 @@ alert and asserts the overlay clears afterwards.
 **SHIPPED as TestFlight build 302** (run `33517633592`, "Build number set to
 302", "Upload succeeded", 2026-09-01 ~14:20 UTC).
 
-**Device checklist:** delete the app on the 13 mini, install fresh, and confirm
+✅ **VERIFIED ON DEVICE 2026-09-06** — the user installed build 302 clean on the
+spare iPhone 13 mini and reported it good.
+
+**Device checklist (kept for the next clean-install regression):** delete the app, install fresh, and confirm
 five pages, the system alert at the end, and that "Not now" also lands you on
 Explore. Cosmetic and deliberately not chased: "Not now" sits ~10 pt above the
 home indicator — legible in the capture, tighter than ideal, and a change costs
 another ~30 min capture run.
+
+---
+
+<a name="58"></a>
+## #58 — Next App Store submission: what is left
+
+**Where it stands 2026-09-07.** 1.0.1 is the approved version. 49 app-code
+commits sit on `main` past `013e01772`, the last TestFlight build that carried
+1.0.1. Build 302 is on a phone and the first-launch fix is verified there.
+
+**DONE:**
+
+- **Release notes drafted** — `docs/release-notes.md`, paste-ready. Every line
+  checked with `git merge-base --is-ancestor <commit> 013e01772` rather than by
+  reading commit dates. Three items were cut for already having shipped: live
+  coverage in cyan (#528), the elevation Flip button (#462, older than v1.0),
+  and "one tap opens a hike" (#539, a regression born and fixed inside this
+  cycle — `013e01772`'s `StatsView.swift` has no `simultaneousGesture`).
+- **Fresh App Store screenshots exist** — run `34066640963`, five shots.
+- **The UI suite runs whole again** (#585). It never had before: running all
+  three classes together, the seeded class set `StorageKeys.onboarded = true`
+  and `OnboardingAuditTests` inherited it, and `ScreenshotTests` could not
+  reach Recent Hikes. `--uitest-fresh` + a `scrollToIdentifier` helper fixed
+  both; `34066640963` has all three passing.
+
+**LEFT, and the first two are the user's calls:**
+
+1. ⚠️ **Which build was submitted as 1.0.1 — only App Store Connect knows.**
+   Four builds carried that version (261 `24ffd7cac`, 262 `56e75553d`, 263
+   `e37809f5c`, 264 `013e01772`). The notes assume 264, which UNDER-claims. If
+   it was 261 or 262, three items come back: the cyan walked route, the animated
+   welcome hero, the Discover silhouette gallery.
+2. **Version number.** 1.0.2 lets build 302 go as-is. 1.1 is more honest for 49
+   commits of feature work and costs one more build carrying only a changed
+   version string.
+3. **Screenshot content.** Shots 01 and 03 are near-identical — same panel, same
+   trail list — and the NEW Record page appears in none of the five, though it
+   is the headline feature. `ScreenshotTests` would need a new shot that swipes
+   to the Record page.
+4. ⭐ **Every trail in the listing screenshot reads "Hard"** — National 15.1 mi,
+   Desert Classic 12.6 mi / 948 ft, Ma-Ha-Tuak 7.08 mi / 931 ft, Alta, Guadalupe.
+   That is [#56](#56) showing up in the store listing, which is an argument for
+   fixing difficulty BEFORE submitting rather than after. The 31-trail grading
+   sheet is still waiting on the user's calls.
+5. **Stability pass, [#47](#47)** — record, pause, resume, app-kill recovery,
+   backgrounding a long hike, area switching, export/import. Device-only.

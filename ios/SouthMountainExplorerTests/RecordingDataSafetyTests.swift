@@ -392,12 +392,15 @@ struct RecordingDataSafetyTests {
             fileURL: directory.appendingPathComponent("hike-history.json")
         )
         let active = makeActive(mode: .walk, recordingId: "stable-walk-id")
+        defaults.set(try JSONEncoder().encode(active), forKey: StorageKeys.activeRecording)
+        let location = FakeLocationController()
         let service = RecordingService(
             historyStore: store,
             userDefaults: defaults,
-            locationService: FakeLocationController(),
-            initialActiveRecording: active
+            locationService: location,
+            restoreStoredState: true
         )
+        #expect(location.startCount == 1, "restoring the active walk acquires recording demand")
 
         let walkResult = try await service.stopWalk(trailsByArea: [:])
         let finished = try #require(walkResult)
@@ -405,9 +408,36 @@ struct RecordingDataSafetyTests {
         #expect(finished.mode == .walk)
         #expect(service.activeRecording == nil)
         #expect(defaults.data(forKey: StorageKeys.activeRecording) == nil)
+        #expect(location.stopCount == 1, "a successful save releases recording demand once")
         let history = try store.load()
         #expect(history.count == 1)
         #expect(history[0].id == "stable-walk-id")
         #expect(history[0].mode == .walk)
+    }
+
+    @Test func discardReleasesRecordingDemandAndClearsRecoveryState() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let active = makeActive(recordingId: "discarded-recording-id")
+        defaults.set(try JSONEncoder().encode(active), forKey: StorageKeys.activeRecording)
+        let location = FakeLocationController()
+        let service = RecordingService(
+            historyStore: RecordingHistoryStore(
+                fileURL: directory.appendingPathComponent("hike-history.json")
+            ),
+            userDefaults: defaults,
+            locationService: location,
+            restoreStoredState: true
+        )
+        #expect(location.startCount == 1, "restoring the active hike acquires recording demand")
+
+        service.discardRecording()
+
+        #expect(location.stopCount == 1)
+        #expect(service.activeRecording == nil)
+        #expect(defaults.data(forKey: StorageKeys.activeRecording) == nil)
+        #expect(service.errorMessage == nil)
     }
 }

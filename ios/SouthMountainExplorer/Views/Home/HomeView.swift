@@ -151,12 +151,10 @@ struct HomeView: View {
             }
             .refreshable {
                 // Pull-to-refresh: re-load history (so a hike completed
-                // mid-session shows up in Pick Up / Try Something New),
-                // re-poke the location service so Near You can recompute.
+                // mid-session shows up in Pick Up / Try Something New) and
+                // request one fresh fix without owning continuous GPS.
                 history = await recording.loadHistory()
-                if location.isAuthorized {
-                    location.startLiveTracking()
-                }
+                location.requestFreshFix()
             }
             .trailMeshBackground()
             .navigationTitle("Explore")
@@ -201,20 +199,21 @@ struct HomeView: View {
             }
         }
         .onAppear {
-            // The location ask lives at the END OF ONBOARDING now, not here.
-            // This used to auto-present LocationPromptView on every appear
-            // without permission, and it fought whatever else wanted to
-            // present: on a clean install, run 33509976324 photographed it
-            // sliding over the onboarding walkthrough and swallowing the
-            // Continue button. Its own comment already recorded that it
-            // "blocks every other sheet/cover in the app from presenting".
-            // Anyone who declines still has the "Enable Location" button in
-            // the empty state below, which is visible rather than modal.
-            if location.isAuthorized {
-                location.startLiveTracking()
-            }
+            // The location ask lives at the end of onboarding. Home never owns
+            // continuous GPS; its scene/auth handlers below request neutral
+            // one-shot fixes for distance-ranked content.
             Task { history = await recording.loadHistory() }
             prefetchVisibleAreas()
+        }
+        .onChange(of: location.isApplicationActive, initial: true) { _, active in
+            guard active, location.isAuthorized else { return }
+            location.requestFreshFix()
+        }
+        .onChange(of: location.authorizationStatus) { _, _ in
+            // Home may already be mounted underneath onboarding when the grant
+            // arrives, so fetch immediately rather than waiting for re-appear.
+            guard location.isApplicationActive, location.isAuthorized else { return }
+            location.requestFreshFix()
         }
         .onChange(of: location.userLocation?.latitude) { _, _ in prefetchVisibleAreas() }
         .onChange(of: lengthFilter) { _, _ in prefetchVisibleAreas() }

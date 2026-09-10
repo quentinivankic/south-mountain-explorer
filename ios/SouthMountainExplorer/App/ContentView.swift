@@ -21,6 +21,7 @@ private struct AreaJumpRoute: Identifiable {
 struct ContentView: View {
     @Environment(AuthService.self) private var auth
     @Environment(RecordingService.self) private var recording
+    @Environment(LocationService.self) private var location
     @Environment(AreaDataService.self) private var areas
     @Environment(ProgressService.self) private var progress
     @Environment(ActivityService.self) private var activity
@@ -210,6 +211,9 @@ struct ContentView: View {
         // / .background fires when the app loses foreground (incl. when
         // killed). endSession is a no-op if no start has been recorded.
         .onChange(of: scenePhase, initial: true) { _, newPhase in
+            // Foreground GPS/heading demand is scene-gated centrally; an
+            // explicit recording remains active through inactive/background.
+            location.setApplicationActive(newPhase == .active)
             // Activity-log de-dupe: only log on real transitions
             // (active ↔ background). `initial: true` fires on
             // cold launch with whatever scene phase we land in,

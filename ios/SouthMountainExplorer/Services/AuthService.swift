@@ -25,7 +25,6 @@ final class AuthService: NSObject {
         let nonce = randomNonce()
         let provider = ASAuthorizationAppleIDProvider()
         let request = provider.createRequest()
-        request.requestedScopes = [.fullName, .email]
         request.nonce = sha256(nonce)
 
         do {

@@ -399,7 +399,16 @@ struct RecordingDataSafetyTests {
             initialActiveRecording: active
         )
 
-        let walkResult = try await service.stopWalk(trailsByArea: [:])
+        let requiredTrail = Trail(
+            id: "safe-trail",
+            name: "Safe Trail",
+            distanceMi: 1,
+            difficulty: .easy,
+            segments: [[[33.3, -112.0], [33.31, -112.0]]]
+        )
+        let walkResult = try await service.stopWalk(
+            trailsByArea: [active.areaId: [requiredTrail]]
+        )
         let finished = try #require(walkResult)
 
         #expect(finished.mode == .walk)

@@ -33,6 +33,10 @@ struct WalkView: View {
     @State private var showSummary = false
     @State private var finishedWalk: FinishedRecording? = nil
     @State private var startConflictMessage: String? = nil
+    /// Stable candidate scope for retries. Active walks overwrite this from
+    /// their persisted area IDs so current location can never change credit.
+    @State private var candidateAreaIds: [String] = []
+    @State private var isLoadInFlight = false
 
     private enum LoadState: Equatable {
         case locating
@@ -40,6 +44,7 @@ struct WalkView: View {
         case ready
         case noLocation
         case noAreas
+        case loadFailed
     }
 
     /// Credit radius. Areas whose CENTER is within this many miles of
@@ -83,7 +88,7 @@ struct WalkView: View {
             statusOverlay
 
             VStack(spacing: 12) {
-                if isWalking {
+                if isWalking, loadState == .ready {
                     WalkRecordingPanel(walkAreas: loadedAreas) { finished in
                         finishedWalk = finished
                         if finished != nil {
@@ -185,8 +190,10 @@ struct WalkView: View {
         case .noLocation:
             statusCard(
                 "Location needed",
-                detail: "A walk records where you go, so TrekDex needs your location. Enable it in Settings → Privacy → Location Services.",
-                spinner: false
+                detail: "TrekDex needs your current location to find nearby trail areas.",
+                spinner: false,
+                actionTitle: noLocationActionTitle,
+                action: recoverLocation
             )
         case .noAreas:
             statusCard(
@@ -194,12 +201,26 @@ struct WalkView: View {
                 detail: "No trail areas within \(Int(Self.radiusMi)) miles. You can still record inside any area from its page.",
                 spinner: false
             )
+        case .loadFailed:
+            statusCard(
+                "Couldn't load nearby trails",
+                detail: "TrekDex found nearby areas but couldn't load their trail data.",
+                spinner: false,
+                actionTitle: "Retry",
+                action: retryAreaLoad
+            )
         case .ready:
             EmptyView()
         }
     }
 
-    private func statusCard(_ title: String, detail: String?, spinner: Bool) -> some View {
+    private func statusCard(
+        _ title: String,
+        detail: String?,
+        spinner: Bool,
+        actionTitle: String? = nil,
+        action: (() -> Void)? = nil
+    ) -> some View {
         VStack(spacing: 10) {
             if spinner { ProgressView() }
             Text(title).font(.headline)
@@ -209,12 +230,40 @@ struct WalkView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
+            if let actionTitle, let action {
+                Button(actionTitle, action: action)
+                    .buttonStyle(.borderedProminent)
+            }
         }
         .padding(24)
         .frame(maxWidth: 300)
         .compatibleGlass(in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        .allowsHitTesting(false)
+        .allowsHitTesting(action != nil)
+    }
+
+    private var noLocationActionTitle: String {
+        switch location.authorizationStatus {
+        case .notDetermined: return "Enable Location"
+        case .denied, .restricted: return "Open Settings"
+        case .authorizedAlways, .authorizedWhenInUse: return "Retry"
+        @unknown default: return "Retry"
+        }
+    }
+
+    private func recoverLocation() {
+        switch location.authorizationStatus {
+        case .notDetermined, .denied, .restricted:
+            location.requestPermission()
+        case .authorizedAlways, .authorizedWhenInUse:
+            Task { @MainActor in await load() }
+        @unknown default:
+            Task { @MainActor in await load() }
+        }
+    }
+
+    private func retryAreaLoad() {
+        Task { @MainActor in await load(reuseCandidateIds: true) }
     }
 
     // MARK: - Data
@@ -229,69 +278,87 @@ struct WalkView: View {
         return ids
     }
 
-    private func load() async {
-        // Ask for a genuinely fresh fix on open. The last-known
-        // location is restored from UserDefaults at launch, so without
-        // this the walk screen builds its area list around wherever you
-        // last used the app — the "moved far on a train, still shows the
-        // old trails until a full relaunch" bug.
-        let openedAt = Date()
-        if location.isAuthorized {
+    private func load(reuseCandidateIds: Bool = false) async {
+        guard !isLoadInFlight else { return }
+        isLoadInFlight = true
+        defer { isLoadInFlight = false }
+
+        var areaIds: [String] = []
+        let restoringActiveWalk = recording.activeRecording?.mode == .walk
+
+        // An active walk owns its credit scope. Never replace those IDs with a
+        // query around wherever the user happens to be during a retry.
+        if let active = recording.activeRecording, active.mode == .walk {
+            let persistedIds = active.nearbyAreaIds ?? []
+            areaIds = orderedUnique(persistedIds.isEmpty ? [active.areaId] : persistedIds)
+            if !areaIds.contains(active.areaId) {
+                areaIds.append(active.areaId)
+            }
+            candidateAreaIds = areaIds
+        } else if reuseCandidateIds, !candidateAreaIds.isEmpty {
+            areaIds = candidateAreaIds
+        } else {
+            candidateAreaIds = []
+            loadState = .locating
+
+            guard location.isAuthorized else {
+                loadState = .noLocation
+                return
+            }
+
+            // Ask for a genuinely fresh fix on open. The last-known location is
+            // restored from UserDefaults and may represent a previous trip.
+            let openedAt = Date()
             location.startLiveTracking()
             location.requestFreshFix()
-        }
 
-        // Resuming an in-progress walk (banner tap / app relaunch):
-        // rebuild from the recording's own area list, not a fresh
-        // nearby query — the user may be miles from the start point.
-        let resumeIds = (recording.activeRecording?.mode == .walk)
-            ? recording.activeRecording?.nearbyAreaIds
-            : nil
-
-        var areaIds: [String] = resumeIds ?? []
-        var center: CLLocationCoordinate2D? = nil
-
-        if areaIds.isEmpty {
-            // Wait (up to ~7s) for a fix that arrived AFTER we opened —
-            // `lastFixDate` distinguishes a live fix from the stale
-            // restored one. Only then read liveLocation.
-            var attempts = 0
-            while attempts < 14 {
+            var center: CLLocationCoordinate2D? = nil
+            for _ in 0..<14 {
                 if let fixDate = location.lastFixDate,
                    fixDate >= openedAt.addingTimeInterval(-2),
                    let loc = location.liveLocation {
                     center = loc
                     break
                 }
-                try? await Task.sleep(for: .milliseconds(500))
-                attempts += 1
+                do {
+                    try await Task.sleep(for: .milliseconds(500))
+                } catch {
+                    return
+                }
             }
-            // Fall back to any known location (offline / indoor / denied
-            // fresh fix) rather than blocking the screen entirely.
+
+            // Preserve the existing offline/indoor fallback when authorization
+            // remains valid but a fresh one-shot fix does not arrive.
             if center == nil { center = location.userLocation ?? location.liveLocation }
             guard let loc = center else {
                 loadState = .noLocation
                 return
             }
-            areaIds = areas.nearby(lat: loc.latitude, lon: loc.longitude, limit: 40)
-                .filter { summary in
-                    MapMath.haversineMeters(
-                        lat1: loc.latitude, lon1: loc.longitude,
-                        lat2: summary.centerLat, lon2: summary.centerLon
-                    ) / 1609.344 <= Self.radiusMi
-                }
-                .prefix(Self.maxAreas)
-                .map(\.id)
+
+            await areas.loadIndex()
+            areaIds = orderedUnique(
+                areas.nearby(lat: loc.latitude, lon: loc.longitude, limit: 40)
+                    .filter { summary in
+                        MapMath.haversineMeters(
+                            lat1: loc.latitude, lon1: loc.longitude,
+                            lat2: summary.centerLat, lon2: summary.centerLon
+                        ) / 1609.344 <= Self.radiusMi
+                    }
+                    .prefix(Self.maxAreas)
+                    .map(\.id)
+            )
+            candidateAreaIds = areaIds
         }
 
+        // Empty candidate scope means the location/index query found no areas.
+        // A non-empty scope whose payloads all fail is a different recovery case.
         guard !areaIds.isEmpty else {
             loadState = .noAreas
             return
         }
 
-        // Fetch geometries sequentially with progress — each decode
-        // runs on the main actor, so a tight 12-way fan-out would jank.
-        // Warm caches (favorites / previously opened) return instantly.
+        // Fetch geometries sequentially with progress — each decode runs on the
+        // main actor, so a tight fan-out would jank. Partial success is usable.
         var loaded: [Area] = []
         for (i, id) in areaIds.enumerated() {
             loadState = .loading(done: i, total: areaIds.count)
@@ -299,14 +366,33 @@ struct WalkView: View {
                 loaded.append(area)
             }
         }
-        guard !loaded.isEmpty else {
-            loadState = .noAreas
+
+        // A resumed Walk must restore its entire persisted credit scope before
+        // exposing Stop & Save. Partial geometry is useful for a new Walk, but
+        // saving an existing one with a subset would lose area credits forever.
+        if restoringActiveWalk, loaded.count != areaIds.count {
+            loadedAreas = []
+            mergedArea = nil
+            loadState = .loadFailed
             return
         }
+
+        guard !loaded.isEmpty else {
+            loadedAreas = []
+            mergedArea = nil
+            loadState = .loadFailed
+            return
+        }
+
         loadedAreas = loaded
         mergedArea = Self.merged(from: loaded)
         loadState = .ready
         centerOnUser()
+    }
+
+    private func orderedUnique(_ ids: [String]) -> [String] {
+        var seen: Set<String> = []
+        return ids.filter { seen.insert($0).inserted }
     }
 
     /// One synthetic Area for the map layer only. Stable id — the map
@@ -440,7 +526,7 @@ struct WalkRecordingPanel: View {
             isPresented: $showStopConfirm,
             titleVisibility: .visible
         ) {
-            Button("Stop & Save", role: .destructive) { stopWalk() }
+            Button("Stop & Save") { stopWalk() }
             Button("Stop & Discard", role: .destructive) { showDiscardConfirm = true }
             Button("Keep Walking", role: .cancel) { }
         } message: {

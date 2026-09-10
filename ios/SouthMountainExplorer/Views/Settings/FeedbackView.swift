@@ -55,7 +55,7 @@ struct FeedbackView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } footer: {
-                Text("Add your email only if you'd like a reply — otherwise your feedback is sent without it.")
+                Text("Add your email only if you'd like a reply — otherwise it isn't included with your feedback.")
             }
 
             Section {
@@ -68,7 +68,7 @@ struct FeedbackView: View {
         .alert("Thanks for the feedback!", isPresented: $submitted) {
             Button("OK") { dismiss() }
         } message: {
-            Text("We read every note.")
+            Text("Thanks for taking the time to share your thoughts.")
         }
     }
 

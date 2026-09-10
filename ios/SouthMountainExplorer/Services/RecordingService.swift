@@ -92,9 +92,15 @@ enum RecordingStartResult: Equatable, Sendable {
 
 enum RecordingOperationError: Error, LocalizedError, Sendable, Equatable {
     case stopAlreadyInProgress
+    case missingWalkAreaData
 
     var errorDescription: String? {
-        "This recording is already being saved. Wait for that attempt to finish."
+        switch self {
+        case .stopAlreadyInProgress:
+            return "This recording is already being saved. Wait for that attempt to finish."
+        case .missingWalkAreaData:
+            return "TrekDex must load every area's trail data before it can safely save this walk. Check your connection and retry."
+        }
     }
 }
 
@@ -794,6 +800,25 @@ final class RecordingService {
     func stopWalk(trailsByArea: [String: [Trail]]) async throws -> FinishedRecording? {
         guard var rec = activeRecording, rec.mode == .walk else { return nil }
         guard !isStopping else { throw RecordingOperationError.stopAlreadyInProgress }
+
+        // A Walk's persisted area IDs are its immutable credit scope. Saving
+        // with only a subset would permanently clear the checkpoint while
+        // dropping coverage for every missing area, so fail before pausing
+        // observation or writing history unless every required geometry exists.
+        var requiredAreaIds = rec.nearbyAreaIds ?? []
+        if requiredAreaIds.isEmpty {
+            requiredAreaIds = [rec.areaId]
+        } else if !requiredAreaIds.contains(rec.areaId) {
+            requiredAreaIds.append(rec.areaId)
+        }
+        let hasAllRequiredGeometry = requiredAreaIds.allSatisfy { areaId in
+            guard let trails = trailsByArea[areaId] else { return false }
+            return !trails.isEmpty
+        }
+        guard hasAllRequiredGeometry else {
+            throw RecordingOperationError.missingWalkAreaData
+        }
+
         if rec.recordingId == nil {
             rec.recordingId = UUID().uuidString
             activeRecording = rec

@@ -18,6 +18,29 @@ private struct AreaJumpRoute: Identifiable {
     let trailName: String?
 }
 
+/// One root presentation route for a successfully saved recording. It owns the
+/// exact area context used for stop computation so the summary never has to
+/// rehydrate data after the active checkpoint has been cleared.
+private enum RootRecordingSummaryRoute: Identifiable {
+    case hike(
+        id: UUID,
+        finished: FinishedRecording,
+        areaName: String,
+        trails: [Trail]
+    )
+    case walk(
+        id: UUID,
+        finished: FinishedRecording,
+        areas: [Area]
+    )
+
+    var id: UUID {
+        switch self {
+        case .hike(let id, _, _, _), .walk(let id, _, _): return id
+        }
+    }
+}
+
 struct ContentView: View {
     @Environment(AuthService.self) private var auth
     @Environment(RecordingService.self) private var recording
@@ -31,6 +54,10 @@ struct ContentView: View {
     @State private var showStopConfirm = false
     @State private var showDiscardConfirm = false
     @State private var saveFailureMessage: String? = nil
+    @State private var recordingSummaryRoute: RootRecordingSummaryRoute? = nil
+    /// RecordingService does not enter its own stopping state until after area
+    /// hydration. This root guard closes that pre-hydration duplicate-tap gap.
+    @State private var isRootStopInFlight = false
     @State private var areaJumpRoute: AreaJumpRoute? = nil
     /// Last activity-log state we emitted for the app — "active"
     /// or "background". Used to de-dupe scene-phase transitions
@@ -150,21 +177,33 @@ struct ContentView: View {
                 .id(route.id)
             }
         }
+        .sheet(item: $recordingSummaryRoute) { route in
+            switch route {
+            case let .hike(_, finished, areaName, trails):
+                RecordingSummarySheet(
+                    finished: finished,
+                    areaName: areaName,
+                    trails: trails
+                )
+            case let .walk(_, finished, loadedAreas):
+                WalkSummarySheet(finished: finished, walkAreas: loadedAreas)
+            }
+        }
         .confirmationDialog(
-            "Stop this hike?",
+            "Stop this \(activeActivityName)?",
             isPresented: $showStopConfirm,
             titleVisibility: .visible
         ) {
-            Button("Stop & Save", role: .destructive) {
+            Button("Stop & Save") {
                 Task { await stopActiveRecording() }
             }
             Button("Stop & Discard", role: .destructive) {
                 showDiscardConfirm = true
             }
-            Button("Keep Recording", role: .cancel) { }
+            Button(keepActivityLabel, role: .cancel) { }
         }
         .confirmationDialog(
-            "Discard this hike?",
+            "Discard this \(activeActivityName)?",
             isPresented: $showDiscardConfirm,
             titleVisibility: .visible
         ) {
@@ -173,17 +212,17 @@ struct ContentView: View {
             }
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("This hike won't be saved to history and your trail coverage won't update. This can't be undone.")
+            Text("This \(activeActivityName) won't be saved to history and your trail coverage won't update. This can't be undone.")
         }
         .alert(
-            "Couldn't Save Recording",
+            activeRecordingIsWalk ? "Couldn't Save Walk" : "Couldn't Save Hike",
             isPresented: Binding(
                 get: { saveFailureMessage != nil },
                 set: { if !$0 { saveFailureMessage = nil } }
             )
         ) {
             Button("Retry Save") { Task { await stopActiveRecording() } }
-            Button("Keep Recording", role: .cancel) { }
+            Button(keepActivityLabel, role: .cancel) { }
         } message: {
             Text(saveFailureMessage ?? "Your active recording is still safe and location observation has resumed.")
         }
@@ -316,40 +355,111 @@ struct ContentView: View {
         return areas.cachedArea(id: areaId)?.trails.first { $0.id == trailId }?.name
     }
 
+    private var activeRecordingIsWalk: Bool {
+        recording.activeRecording?.mode == .walk
+    }
+
+    private var activeActivityName: String {
+        activeRecordingIsWalk ? "walk" : "hike"
+    }
+
+    private var keepActivityLabel: String {
+        activeRecordingIsWalk ? "Keep Walking" : "Keep Recording"
+    }
+
+    private func loadedArea(id: String) async -> Area? {
+        if let cached = areas.cachedArea(id: id) { return cached }
+        return await areas.area(id: id)
+    }
+
+    private func activeSessionMatches(_ captured: ActiveRecording) -> Bool {
+        guard let current = recording.activeRecording else { return false }
+        return current.recordingId == captured.recordingId
+            && current.startedAt == captured.startedAt
+            && current.areaId == captured.areaId
+            && current.mode == captured.mode
+    }
+
     private func stopActiveRecording() async {
-        guard let rec = recording.activeRecording, !recording.isStopping else { return }
+        guard !isRootStopInFlight,
+              recordingSummaryRoute == nil,
+              let rec = recording.activeRecording,
+              !recording.isStopping
+        else { return }
+
+        // This must flip before the first area-loading await. RecordingService's
+        // own guard starts later, once stopRecording/stopWalk is entered.
+        isRootStopInFlight = true
+        saveFailureMessage = nil
+        defer { isRootStopInFlight = false }
+
         do {
-            // Walks stop through the multi-area path: gather every nearby
-            // area's dense geometry so each one gets its coverage credit.
             if rec.mode == .walk {
-                var trailsByArea: [String: [Trail]] = [:]
-                for areaId in rec.nearbyAreaIds ?? [rec.areaId] {
-                    // if/else, not `??` — its autoclosure can't host an await.
-                    let area: Area?
-                    if let cached = areas.cachedArea(id: areaId) {
-                        area = cached
-                    } else {
-                        area = await areas.area(id: areaId)
-                    }
-                    if let area {
-                        trailsByArea[areaId] = area.rawTrails ?? area.trails
-                    }
+                // Stable de-dupe preserves the recording's captured area order.
+                // Ensure legacy/incomplete checkpoints still include primary.
+                var sourceIds = rec.nearbyAreaIds ?? []
+                if sourceIds.isEmpty {
+                    sourceIds = [rec.areaId]
+                } else if !sourceIds.contains(rec.areaId) {
+                    sourceIds.append(rec.areaId)
                 }
-                _ = try await recording.stopWalk(trailsByArea: trailsByArea)
+                var seen: Set<String> = []
+                let areaIds = sourceIds.filter { seen.insert($0).inserted }
+
+                var loadedAreas: [Area] = []
+                for areaId in areaIds {
+                    guard let area = await loadedArea(id: areaId) else {
+                        saveFailureMessage = "TrekDex couldn't load all nearby trail data. Check your connection and retry saving your walk."
+                        return
+                    }
+                    loadedAreas.append(area)
+                }
+
+                // Hydration suspended above; never let this task stop a session
+                // that replaced the one whose confirmation the user accepted.
+                guard activeSessionMatches(rec) else {
+                    saveFailureMessage = "The active recording changed before TrekDex could save it. Review the current recording and try again."
+                    return
+                }
+
+                let trailsByArea = Dictionary(
+                    loadedAreas.map { ($0.id, $0.rawTrails ?? $0.trails) },
+                    uniquingKeysWith: { first, _ in first }
+                )
+                guard let finished = try await recording.stopWalk(trailsByArea: trailsByArea) else {
+                    return
+                }
+
+                // Let the confirmation dismissal finish before presenting the
+                // summary. This is the same proven delay as WalkView's stop path.
+                try? await Task.sleep(for: .milliseconds(400))
+                recordingSummaryRoute = .walk(
+                    id: UUID(),
+                    finished: finished,
+                    areas: loadedAreas
+                )
                 return
             }
-            // Pull trails from cache so coverage merges still work; fall back to
-            // an async fetch if the area hasn't been opened this session.
-            // (Split into an if/else because `??` takes an autoclosure that
-            // can't host an `await`.)
-            let trails: [Trail]
-            if let cached = areas.cachedArea(id: rec.areaId) {
-                trails = cached.rawTrails ?? cached.trails
-            } else {
-                let loaded = await areas.area(id: rec.areaId)
-                trails = loaded?.rawTrails ?? loaded?.trails ?? []
+
+            guard let area = await loadedArea(id: rec.areaId) else {
+                saveFailureMessage = "TrekDex couldn't load this area's trail data. Check your connection and retry saving your hike."
+                return
             }
-            _ = try await recording.stopRecording(trails: trails)
+            guard activeSessionMatches(rec) else {
+                saveFailureMessage = "The active recording changed before TrekDex could save it. Review the current recording and try again."
+                return
+            }
+            guard let finished = try await recording.stopRecording(
+                trails: area.rawTrails ?? area.trails
+            ) else { return }
+
+            try? await Task.sleep(for: .milliseconds(400))
+            recordingSummaryRoute = .hike(
+                id: UUID(),
+                finished: finished,
+                areaName: area.name,
+                trails: area.trails
+            )
         } catch {
             saveFailureMessage = error.localizedDescription
         }

@@ -42,7 +42,6 @@ struct SettingsView: View {
 
     @AppStorage(StorageKeys.trailMesh) private var trailMesh = true
     @AppStorage(StorageKeys.debugHUD) private var showDebugHUD: Bool = false
-    @AppStorage(StorageKeys.debugDiagAutoSync) private var autoSyncDiag: Bool = false
     /// Temporary, TestFlight-only: see the Developer picker below.
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
@@ -355,13 +354,7 @@ struct SettingsView: View {
                     Text("Backup")
                 }
 
-                // TESTFLIGHT/DEV ONLY. These are developer tools — a debug HUD,
-                // a diagnostics uploader, an authoring lab — and the whole
-                // section used to render for App Store users, who have no use
-                // for any of it. Testers installed a beta on purpose, so they
-                // still get it. Uses the same runtime gate as DebugDiagSync
-                // (a `#if DEBUG` would compile out of the Release archive that
-                // TestFlight actually ships).
+                // TESTFLIGHT/DEV ONLY: hidden from App Store production installs.
                 if BuildEnv.isTestFlight {
                 Section("Developer") {
                     Toggle(isOn: $showDebugHUD) {
@@ -372,9 +365,6 @@ struct SettingsView: View {
                             category: "settings", action: "debugHUD",
                             context: ["value": String(newValue)]
                         )
-                    }
-                    Toggle(isOn: $autoSyncDiag) {
-                        Label("Auto-sync Diagnostics", systemImage: "arrow.triangle.2.circlepath.icloud")
                     }
                     Button {
                         ActivityLogService.shared.log(category: "diag", action: "send")

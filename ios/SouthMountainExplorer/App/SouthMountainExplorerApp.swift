@@ -18,6 +18,8 @@ struct SouthMountainExplorerApp: App {
     private let trailShapes = TrailShapeService.shared
 
     init() {
+        // Remove only the retired automatic-diagnostics preference on upgrade.
+        StorageKeys.removeRetiredDebugDiagAutoSyncPreference()
         // DEBUG-only: seed a deterministic demo state for the App Store
         // screenshot UI test before anything reads persisted state.
         // Compiled out of Release/TestFlight — see UITestSupport.

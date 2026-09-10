@@ -17,11 +17,6 @@ enum StorageKeys {
     /// Off by default; flipped from Settings → Developer.
     static let debugHUD = "summit:debug-hud"
 
-    /// DEBUG-only: when on, the app auto-uploads its backup bundle to the
-    /// developer's private Tailscale endpoint on foreground (see DebugDiagSync).
-    /// The key is harmless in release (the uploader is `#if DEBUG`-only).
-    static let debugDiagAutoSync = "summit:debug-diag-autosync"
-
     /// Map style for `MapKitMapView`. Raw value matches
     /// `MapStylePreference` enum (`standard` / `satellite` / `hybrid`).
     /// Default `standard` — same as the prior hardcoded `mv.mapType`.
@@ -119,6 +114,17 @@ enum StorageKeys {
     /// shuffle introduced by the pre-build-6 mergeCoverage bug. Bump
     /// if a future migration touches the same fields.
     static let hikeHistoryMigrationVersion = "summit:history-migration-version"
+
+    /// Exact tombstone for the one preference owned by the retired automatic
+    /// diagnostics uploader. Do not broaden this into a namespace sweep: future
+    /// developer preferences must survive this migration.
+    private static let retiredDebugDiagAutoSyncKey = "summit:debug-diag-autosync"
+
+    static func removeRetiredDebugDiagAutoSyncPreference(
+        from defaults: UserDefaults = .standard
+    ) {
+        defaults.removeObject(forKey: retiredDebugDiagAutoSyncKey)
+    }
 
     /// Keys wiped by the "Reset All Progress" action in Settings.
     /// Theme, units, telemetry, and prefetch cooldowns stay

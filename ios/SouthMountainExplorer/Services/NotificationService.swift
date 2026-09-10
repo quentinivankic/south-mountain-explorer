@@ -75,12 +75,12 @@ extension NotificationService: UNUserNotificationCenterDelegate {
         guard
             (info["kind"] as? String) == "trailComplete",
             let areaId = info["areaId"] as? String,
-            let trailId = info["trailId"] as? String,
-            let trailName = info["trailName"] as? String
+            let trailId = info["trailId"] as? String
         else {
             completionHandler()
             return
         }
+        let trailName = info["trailName"] as? String
         // Post on the main actor so SwiftUI subscribers see it on the
         // expected thread, then signal the system. completionHandler is
         // task-isolated (the delegate method is nonisolated), so calling
@@ -89,14 +89,17 @@ extension NotificationService: UNUserNotificationCenterDelegate {
         // post is synchronous from the caller's perspective and the
         // system only needs the handler called within ~30s.
         Task { @MainActor in
+            var payload: [AnyHashable: Any] = [
+                "areaId": areaId,
+                "trailId": trailId
+            ]
+            // Older/local callers may not have a name. Preserve the deep link;
+            // AreaView then permits only a unique exact-ID match.
+            if let trailName { payload["trailName"] = trailName }
             NotificationCenter.default.post(
                 name: NotificationService.celebrateNotification,
                 object: nil,
-                userInfo: [
-                    "areaId": areaId,
-                    "trailId": trailId,
-                    "trailName": trailName
-                ]
+                userInfo: payload
             )
         }
         completionHandler()

@@ -2,8 +2,7 @@ import Foundation
 
 /// Runtime build-channel detection.
 ///
-/// Exists so developer-only affordances (currently the diagnostics auto-sync,
-/// see `DebugDiagSync`) can be active in TestFlight while staying inert in an
+/// Allows developer-only controls in TestFlight while keeping them inert in an
 /// App Store production install — WITHOUT using `#if DEBUG`, which is compiled
 /// out of the Release archive that TestFlight actually ships (`ios-testflight.yml`
 /// archives `-configuration Release`). A `#if DEBUG` feature therefore simply

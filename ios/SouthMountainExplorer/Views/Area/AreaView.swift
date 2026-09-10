@@ -44,6 +44,9 @@ struct AreaView: View {
     /// trail is pre-selected once the area loads, so the map highlights
     /// it and the trail list scrolls it into view.
     var initialSelectedTrailId: String? = nil
+    /// Exact display name paired with the requested raw ID. Optional so
+    /// existing local/deep-link callers that only know an ID keep working.
+    var initialSelectedTrailName: String? = nil
 
     @Environment(AreaDataService.self) private var areas
     @Environment(AreaSilhouetteService.self) private var silhouettes
@@ -227,6 +230,7 @@ struct AreaView: View {
     /// "Stop & Start Here" silently downgraded to .roam mode and the
     /// recording-trail highlight never engaged.
     @State private var pendingRecordTrailId: String? = nil
+    @State private var recordingSaveFailureMessage: String? = nil
     /// Name of the trail to celebrate over the map. Auto-clears after a
     /// short delay so the overlay doesn't sit forever.
     @State private var celebrationTrailName: String? = nil
@@ -737,12 +741,21 @@ struct AreaView: View {
             if let name = initialCelebrationTrailName {
                 showCelebration(name: name)
             }
-            // Trail-search deep link: highlight the searched trail once
-            // the trail data is in. Only on first load (selection nil)
-            // so a user's own subsequent selection isn't overridden.
-            if let tid = initialSelectedTrailId, selectedTrailId == nil,
-               result.area?.trails.contains(where: { $0.id == tid }) == true {
-                selectedTrailId = tid
+            // Trail-search/notification deep link: resolve against the trails
+            // the area actually loaded. Exact ID+name wins; a unique exact name
+            // safely bridges a raw-ID/canonical-ID mismatch; ambiguous data
+            // leaves selection nil. Only run on first load so a user's own
+            // subsequent selection isn't overridden.
+            if let requestedId = initialSelectedTrailId,
+               selectedTrailId == nil,
+               let loadedArea = result.area {
+                selectedTrailId = TrailSelectionResolver.resolve(
+                    requestedRawTrailId: requestedId,
+                    requestedTrailName: initialSelectedTrailName,
+                    candidates: loadedArea.trails.map {
+                        TrailSelectionCandidate(id: $0.id, name: $0.name)
+                    }
+                )
             }
         }
         .task(id: areaId) {
@@ -1216,13 +1229,13 @@ struct AreaView: View {
         // on THIS trail now. Nothing is thrown away, so nothing needs asking.
         if let active = recording.activeRecording,
            active.areaId == areaId, active.mode != .walk {
-            if let trailId, trailId != active.trailId {
+            if let trailId, trailId != active.trailId,
+               recording.retargetTrail(trailId) {
                 ActivityLogService.shared.log(
                     category: "recording",
                     action: "retarget",
                     context: ["source": "recordButton", "trailId": trailId]
                 )
-                recording.retargetTrail(trailId)
                 selectedTrailId = trailId
                 centerOnSwitchedTrailTick &+= 1
                 showTrackingModeToast("Now tracking this trail")
@@ -1262,7 +1275,15 @@ struct AreaView: View {
     /// "proceed" buttons after preflight resolves.
     private func startRecordingNow(trailId: String?) {
         let mode: RecordingMode = trailId == nil ? .roam : .trail
-        recording.startRecording(areaId: areaId, mode: mode, trailId: trailId)
+        let result = recording.startRecording(areaId: areaId, mode: mode, trailId: trailId)
+        guard result == .started else {
+            pendingRecordTrailId = trailId
+            conflictAreaName = recording.activeRecording?.mode == .walk
+                ? "your walk"
+                : "another hike"
+            showConflictAlert = true
+            return
+        }
         // Mirror the trail-row tap flow exactly (direct assignment, no
         // withAnimation wrapper) so TrailMapView's existing selected-trail
         // styling kicks in on top of the purple recording-trail render.
@@ -1272,40 +1293,48 @@ struct AreaView: View {
     }
 
     private func stopOtherRecordingThenStart(trailId: String?) async {
-        guard let active = recording.activeRecording else { return }
-        // A walk stops through the multi-area path so every nearby area
-        // gets its coverage credit before this area's recording starts.
-        if active.mode == .walk {
-            var trailsByArea: [String: [Trail]] = [:]
-            for aid in active.nearbyAreaIds ?? [active.areaId] {
-                // if/else, not `??` — its autoclosure can't host an await.
-                let a: Area?
-                if let cached = areas.cachedArea(id: aid) {
-                    a = cached
+        guard let active = recording.activeRecording, !recording.isStopping else { return }
+        do {
+            // A walk stops through the multi-area path so every nearby area
+            // gets its coverage credit before this area's recording starts.
+            if active.mode == .walk {
+                var trailsByArea: [String: [Trail]] = [:]
+                for aid in active.nearbyAreaIds ?? [active.areaId] {
+                    // if/else, not `??` — its autoclosure can't host an await.
+                    let a: Area?
+                    if let cached = areas.cachedArea(id: aid) {
+                        a = cached
+                    } else {
+                        a = await areas.area(id: aid)
+                    }
+                    if let a {
+                        trailsByArea[aid] = a.rawTrails ?? a.trails
+                    }
+                }
+                guard try await recording.stopWalk(trailsByArea: trailsByArea) != nil else { return }
+            } else {
+                // Split out of `??` because `??` takes an autoclosure that can't
+                // host an `await`.
+                let trails: [Trail]
+                // Prefer raw trails for stopRecording so coverage finalization
+                // uses the dense node set — see the live-coverage call above.
+                if let cached = areas.cachedArea(id: active.areaId) {
+                    trails = cached.rawTrails ?? cached.trails
                 } else {
-                    a = await areas.area(id: aid)
+                    let loaded = await areas.area(id: active.areaId)
+                    trails = loaded?.rawTrails ?? loaded?.trails ?? []
                 }
-                if let a {
-                    trailsByArea[aid] = a.rawTrails ?? a.trails
-                }
+                guard try await recording.stopRecording(trails: trails) != nil else { return }
             }
-            _ = await recording.stopWalk(trailsByArea: trailsByArea)
+            pendingRecordTrailId = nil
+            recordingSaveFailureMessage = nil
             startRecordingNow(trailId: trailId)
-            return
+        } catch {
+            // Keep the requested destination so Retry Save can finish the old
+            // recording and only then start here.
+            pendingRecordTrailId = trailId
+            recordingSaveFailureMessage = error.localizedDescription
         }
-        // Split out of `??` because `??` takes an autoclosure that can't
-        // host an `await`.
-        let trails: [Trail]
-        // Prefer raw trails for stopRecording so coverage finalization
-        // uses the dense node set — see the live-coverage call above.
-        if let cached = areas.cachedArea(id: active.areaId) {
-            trails = cached.rawTrails ?? cached.trails
-        } else {
-            let loaded = await areas.area(id: active.areaId)
-            trails = loaded?.rawTrails ?? loaded?.trails ?? []
-        }
-        _ = await recording.stopRecording(trails: trails)
-        startRecordingNow(trailId: trailId)
     }
 
     /// Content of the trail-list sheet (always-presented, native
@@ -1735,7 +1764,6 @@ struct AreaView: View {
         ) {
             Button("Stop That Hike & Start Here", role: .destructive) {
                 let trailId = pendingRecordTrailId
-                pendingRecordTrailId = nil
                 Task { await stopOtherRecordingThenStart(trailId: trailId) }
             }
             Button("Cancel", role: .cancel) {
@@ -1743,6 +1771,23 @@ struct AreaView: View {
             }
         } message: {
             Text("Starting a new hike here will save and end your hike at \(conflictAreaName).")
+        }
+        .alert(
+            "Couldn't Save Current Recording",
+            isPresented: Binding(
+                get: { recordingSaveFailureMessage != nil },
+                set: { if !$0 { recordingSaveFailureMessage = nil } }
+            )
+        ) {
+            Button("Retry Save") {
+                let trailId = pendingRecordTrailId
+                Task { await stopOtherRecordingThenStart(trailId: trailId) }
+            }
+            Button("Keep Current Recording", role: .cancel) {
+                pendingRecordTrailId = nil
+            }
+        } message: {
+            Text(recordingSaveFailureMessage ?? "The current recording is still safe, location observation resumed, and no new hike was started.")
         }
     }
 
@@ -1759,12 +1804,12 @@ struct AreaView: View {
             RetargetTrailBanner(
                 selectedTrail: retargetTrail,
                 onSwitch: {
+                    guard recording.retargetTrail(retargetTrail.id) else { return }
                     ActivityLogService.shared.log(
                         category: "recording",
                         action: "retarget",
                         context: ["source": "retargetBanner", "trailId": retargetTrail.id]
                     )
-                    recording.retargetTrail(retargetTrail.id)
                     // Re-assigning selectedTrailId to its current
                     // value is a SwiftUI no-op, so bump
                     // centerOnSwitchedTrailTick separately to force

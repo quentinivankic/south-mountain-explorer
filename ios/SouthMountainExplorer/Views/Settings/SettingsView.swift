@@ -1,5 +1,4 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// Privacy policy, hosted at trekdex.app. Pinned here so the Privacy
 /// Policy row in Settings → About links to the authoritative copy.
@@ -42,7 +41,6 @@ struct SettingsView: View {
 
     @AppStorage(StorageKeys.trailMesh) private var trailMesh = true
     @AppStorage(StorageKeys.debugHUD) private var showDebugHUD: Bool = false
-    @AppStorage(StorageKeys.debugDiagAutoSync) private var autoSyncDiag: Bool = false
     /// Temporary, TestFlight-only: see the Developer picker below.
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
@@ -66,14 +64,6 @@ struct SettingsView: View {
     /// the exported JSON file URL. Cleared on dismiss.
     @State private var exportShareURL: IdentifiedURL? = nil
     @State private var exportError: String? = nil
-    /// Import — fileImporter is shown when this is true; user-picked
-    /// file lands in `importPendingURL` for the confirmation dialog;
-    /// `importSuccess` flips true after a successful import so the
-    /// "relaunch the app" alert can present.
-    @State private var showDataImporter = false
-    @State private var importPendingURL: URL? = nil
-    @State private var importError: String? = nil
-    @State private var importSuccess = false
     @State private var showRefreshConfirm = false
     @State private var trailDataRefreshed = false
     /// Active "Download for Offline" progress as `(completed, total)`.
@@ -300,17 +290,6 @@ struct SettingsView: View {
                             .foregroundStyle(.red)
                     }
 
-                    Button {
-                        showDataImporter = true
-                    } label: {
-                        Label("Import Data…", systemImage: "square.and.arrow.down")
-                    }
-                    if let err = importError {
-                        Text(err)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
-
                     Button(role: .destructive) {
                         showResetConfirm = true
                     } label: {
@@ -355,13 +334,7 @@ struct SettingsView: View {
                     Text("Backup")
                 }
 
-                // TESTFLIGHT/DEV ONLY. These are developer tools — a debug HUD,
-                // a diagnostics uploader, an authoring lab — and the whole
-                // section used to render for App Store users, who have no use
-                // for any of it. Testers installed a beta on purpose, so they
-                // still get it. Uses the same runtime gate as DebugDiagSync
-                // (a `#if DEBUG` would compile out of the Release archive that
-                // TestFlight actually ships).
+                // TESTFLIGHT/DEV ONLY: hidden from App Store production installs.
                 if BuildEnv.isTestFlight {
                 Section("Developer") {
                     Toggle(isOn: $showDebugHUD) {
@@ -372,9 +345,6 @@ struct SettingsView: View {
                             category: "settings", action: "debugHUD",
                             context: ["value": String(newValue)]
                         )
-                    }
-                    Toggle(isOn: $autoSyncDiag) {
-                        Label("Auto-sync Diagnostics", systemImage: "arrow.triangle.2.circlepath.icloud")
                     }
                     Button {
                         ActivityLogService.shared.log(category: "diag", action: "send")
@@ -433,41 +403,6 @@ struct SettingsView: View {
         .sheet(item: $exportShareURL) { wrapped in
             ShareSheet(items: [wrapped.url])
         }
-        .fileImporter(
-            isPresented: $showDataImporter,
-            allowedContentTypes: [.json],
-            allowsMultipleSelection: false
-        ) { result in
-            switch result {
-            case .success(let urls):
-                if let url = urls.first { importPendingURL = url }
-            case .failure(let error):
-                importError = "Couldn't open file: \(error.localizedDescription)"
-            }
-        }
-        .confirmationDialog(
-            "Replace all current data with this backup?",
-            isPresented: Binding(
-                get: { importPendingURL != nil },
-                set: { if !$0 { importPendingURL = nil } }
-            ),
-            titleVisibility: .visible,
-            presenting: importPendingURL
-        ) { url in
-            Button("Replace", role: .destructive) {
-                runDataImport(from: url)
-            }
-            Button("Cancel", role: .cancel) {
-                importPendingURL = nil
-            }
-        } message: { _ in
-            Text("Every completion, coverage value, hike, and favourite on this device will be replaced by the contents of the backup file. Cannot be undone.")
-        }
-        .alert("Import complete", isPresented: $importSuccess) {
-            Button("OK") {}
-        } message: {
-            Text("Quit and relaunch the app to see the restored data — the app caches some state in memory at launch.")
-        }
     }
 
     /// Kick off a manual "Download Nearby" run with `force: true` so it
@@ -525,31 +460,6 @@ struct SettingsView: View {
             AnalyticsService.shared.capture(.dataExported())
         } catch {
             exportError = "Export failed: \(error.localizedDescription)"
-        }
-    }
-
-    /// Read the picked file and replace the entire app state with its
-    /// contents. UI surfaces the "please relaunch" alert on success
-    /// since the @MainActor singletons cache state in memory at init.
-    private func runDataImport(from url: URL) {
-        importError = nil
-        importPendingURL = nil
-        // Picked files are sandboxed — must startAccessingSecurityScoped
-        // before reading or the read returns "permission denied" even
-        // though Files chose it.
-        let didStart = url.startAccessingSecurityScopedResource()
-        defer { if didStart { url.stopAccessingSecurityScopedResource() } }
-        do {
-            let data = try Data(contentsOf: url)
-            try DataBackupManager.performImport(from: data)
-            ActivityLogService.shared.log(
-                category: "settings", action: "importData",
-                context: ["bytes": "\(data.count)"]
-            )
-            AnalyticsService.shared.capture(.dataImported())
-            importSuccess = true
-        } catch {
-            importError = error.localizedDescription
         }
     }
 

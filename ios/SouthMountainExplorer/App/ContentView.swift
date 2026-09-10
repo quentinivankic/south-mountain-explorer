@@ -7,6 +7,17 @@ enum AppTab: Hashable {
     case explore, browse, stats, settings
 }
 
+/// One presentation event for an AreaView opened outside normal Browse
+/// navigation. A fresh identity forces SwiftUI to discard any prior area's
+/// local state when consecutive notification taps arrive while the cover is
+/// already presented.
+private struct AreaJumpRoute: Identifiable {
+    let id = UUID()
+    let areaId: String
+    let trailId: String?
+    let trailName: String?
+}
+
 struct ContentView: View {
     @Environment(AuthService.self) private var auth
     @Environment(RecordingService.self) private var recording
@@ -19,16 +30,13 @@ struct ContentView: View {
 
     @State private var showStopConfirm = false
     @State private var showDiscardConfirm = false
-    @State private var jumpToAreaId: String? = nil
+    @State private var saveFailureMessage: String? = nil
+    @State private var areaJumpRoute: AreaJumpRoute? = nil
     /// Last activity-log state we emitted for the app — "active"
     /// or "background". Used to de-dupe scene-phase transitions
     /// (.inactive AND .background both map to background, and the
     /// system can fire several of them per share-sheet present).
     @State private var lastLoggedAppState: String? = nil
-    /// Set when the user taps a trail-completion push notification. The
-    /// AreaView opened by `jumpToAreaId` reads this to play a one-shot
-    /// celebration overlay, then clears itself.
-    @State private var celebrationTrailName: String? = nil
     @State private var selectedTab: AppTab = .explore
     /// Banner-tap route for an in-progress walk (walks reopen WalkView,
     /// not the primary area's AreaView).
@@ -104,7 +112,13 @@ struct ContentView: View {
                         if rec.mode == .walk {
                             showWalkCover = true
                         } else {
-                            jumpToAreaId = rec.areaId
+                            // Active-recording navigation is area-only; a
+                            // notification trail identity must never leak in.
+                            areaJumpRoute = AreaJumpRoute(
+                                areaId: rec.areaId,
+                                trailId: nil,
+                                trailName: nil
+                            )
                         }
                     },
                     onStop: { showStopConfirm = true }
@@ -124,18 +138,16 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $showWalkCover) {
             WalkView()
         }
-        .fullScreenCover(isPresented: Binding(
-            get: { jumpToAreaId != nil },
-            set: { if !$0 { jumpToAreaId = nil; celebrationTrailName = nil } }
-        )) {
-            if let id = jumpToAreaId {
-                NavigationStack {
-                    AreaView(
-                        areaId: id,
-                        areaName: areaName(for: id),
-                        initialCelebrationTrailName: celebrationTrailName
-                    )
-                }
+        .fullScreenCover(item: $areaJumpRoute) { route in
+            NavigationStack {
+                AreaView(
+                    areaId: route.areaId,
+                    areaName: areaName(for: route.areaId),
+                    initialCelebrationTrailName: route.trailName,
+                    initialSelectedTrailId: route.trailId,
+                    initialSelectedTrailName: route.trailName
+                )
+                .id(route.id)
             }
         }
         .confirmationDialog(
@@ -163,6 +175,18 @@ struct ContentView: View {
         } message: {
             Text("This hike won't be saved to history and your trail coverage won't update. This can't be undone.")
         }
+        .alert(
+            "Couldn't Save Recording",
+            isPresented: Binding(
+                get: { saveFailureMessage != nil },
+                set: { if !$0 { saveFailureMessage = nil } }
+            )
+        ) {
+            Button("Retry Save") { Task { await stopActiveRecording() } }
+            Button("Keep Recording", role: .cancel) { }
+        } message: {
+            Text(saveFailureMessage ?? "Your active recording is still safe and location observation has resumed.")
+        }
         .task {
             await rebuildCompletionsFromHistory()
             // Background prefetch of favorites + recent areas so the
@@ -186,11 +210,6 @@ struct ContentView: View {
         // / .background fires when the app loses foreground (incl. when
         // killed). endSession is a no-op if no start has been recorded.
         .onChange(of: scenePhase, initial: true) { _, newPhase in
-            // Auto-upload the backup bundle to the private tailnet endpoint on
-            // foreground when the Developer toggle is on. Self-gating: a no-op
-            // unless this is a TestFlight build AND the toggle is set (see
-            // DebugDiagSync), so it never runs in an App Store production install.
-            if newPhase == .active { DebugDiagSync.uploadIfEnabled() }
             // Activity-log de-dupe: only log on real transitions
             // (active ↔ background). `initial: true` fires on
             // cold launch with whatever scene phase we land in,
@@ -238,10 +257,18 @@ struct ContentView: View {
             guard
                 let info = msg.userInfo,
                 let areaId = info["areaId"] as? String,
-                let trailName = info["trailName"] as? String
+                let trailId = info["trailId"] as? String
             else { return }
-            celebrationTrailName = trailName
-            jumpToAreaId = areaId
+            let trailName = info["trailName"] as? String
+            // Name is present on current local notifications but optional for
+            // older/local callers. Without it the resolver permits only a
+            // unique exact-ID match. Every event gets a fresh route identity,
+            // so a second tap cannot reuse the prior AreaView's selection.
+            areaJumpRoute = AreaJumpRoute(
+                areaId: areaId,
+                trailId: trailId,
+                trailName: trailName
+            )
         }
     }
 
@@ -290,36 +317,41 @@ struct ContentView: View {
     }
 
     private func stopActiveRecording() async {
-        guard let rec = recording.activeRecording else { return }
-        // Walks stop through the multi-area path: gather every nearby
-        // area's dense geometry so each one gets its coverage credit.
-        if rec.mode == .walk {
-            var trailsByArea: [String: [Trail]] = [:]
-            for areaId in rec.nearbyAreaIds ?? [rec.areaId] {
-                // if/else, not `??` — its autoclosure can't host an await.
-                let area: Area?
-                if let cached = areas.cachedArea(id: areaId) {
-                    area = cached
-                } else {
-                    area = await areas.area(id: areaId)
+        guard let rec = recording.activeRecording, !recording.isStopping else { return }
+        do {
+            // Walks stop through the multi-area path: gather every nearby
+            // area's dense geometry so each one gets its coverage credit.
+            if rec.mode == .walk {
+                var trailsByArea: [String: [Trail]] = [:]
+                for areaId in rec.nearbyAreaIds ?? [rec.areaId] {
+                    // if/else, not `??` — its autoclosure can't host an await.
+                    let area: Area?
+                    if let cached = areas.cachedArea(id: areaId) {
+                        area = cached
+                    } else {
+                        area = await areas.area(id: areaId)
+                    }
+                    if let area {
+                        trailsByArea[areaId] = area.rawTrails ?? area.trails
+                    }
                 }
-                if let area {
-                    trailsByArea[areaId] = area.rawTrails ?? area.trails
-                }
+                _ = try await recording.stopWalk(trailsByArea: trailsByArea)
+                return
             }
-            _ = await recording.stopWalk(trailsByArea: trailsByArea)
-            return
+            // Pull trails from cache so coverage merges still work; fall back to
+            // an async fetch if the area hasn't been opened this session.
+            // (Split into an if/else because `??` takes an autoclosure that
+            // can't host an `await`.)
+            let trails: [Trail]
+            if let cached = areas.cachedArea(id: rec.areaId) {
+                trails = cached.rawTrails ?? cached.trails
+            } else {
+                let loaded = await areas.area(id: rec.areaId)
+                trails = loaded?.rawTrails ?? loaded?.trails ?? []
+            }
+            _ = try await recording.stopRecording(trails: trails)
+        } catch {
+            saveFailureMessage = error.localizedDescription
         }
-        // Pull trails from cache so coverage merges still work; fall back to
-        // an async fetch if the area hasn't been opened this session.
-        // (Split into an if/else because `??` takes an autoclosure that
-        // can't host an `await`.)
-        let trails: [Trail]
-        if let cached = areas.cachedArea(id: rec.areaId) {
-            trails = cached.trails
-        } else {
-            trails = (await areas.area(id: rec.areaId))?.trails ?? []
-        }
-        _ = await recording.stopRecording(trails: trails)
     }
 }

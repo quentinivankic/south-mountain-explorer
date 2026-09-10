@@ -33,6 +33,10 @@ struct WalkView: View {
     @State private var showSummary = false
     @State private var finishedWalk: FinishedRecording? = nil
     @State private var startConflictMessage: String? = nil
+    /// Walk owns both GPS and compass only while this full-screen surface is
+    /// visible. RecordingService independently keeps GPS alive after dismissal.
+    @State private var foregroundLocationDemand = ForegroundLocationDemandToken()
+    @State private var headingDemand = HeadingDemandToken()
 
     private enum LoadState: Equatable {
         case locating
@@ -70,7 +74,7 @@ struct WalkView: View {
                     completedTrailIds: completedTrailIds,
                     cameraTarget: cameraTarget,
                     cameraTick: cameraTick,
-                    showsUserLocation: true,
+                    showsUserLocation: location.isAuthorized && location.isApplicationActive,
                     userTrackingMode: .none,
                     userHeading: location.liveHeading,
                     onUserGestureRegionChange: nil
@@ -111,6 +115,16 @@ struct WalkView: View {
         .overlay(alignment: .topLeading) { closeButton }
         .overlay(alignment: .topTrailing) {
             if mergedArea != nil { recenterButton }
+        }
+        .onAppear {
+            location.acquireForegroundLocationDemand(foregroundLocationDemand)
+            // Walk's camera stays north-up, but compass demand rotates the
+            // facing marker so direction is explicit while standing still.
+            location.acquireHeadingDemand(headingDemand)
+        }
+        .onDisappear {
+            location.releaseForegroundLocationDemand(foregroundLocationDemand)
+            location.releaseHeadingDemand(headingDemand)
         }
         .task { await load() }
         .sheet(isPresented: $showSummary, onDismiss: { dismiss() }) {
@@ -237,7 +251,6 @@ struct WalkView: View {
         // old trails until a full relaunch" bug.
         let openedAt = Date()
         if location.isAuthorized {
-            location.startLiveTracking()
             location.requestFreshFix()
         }
 
@@ -257,13 +270,18 @@ struct WalkView: View {
             // restored one. Only then read liveLocation.
             var attempts = 0
             while attempts < 14 {
+                guard !Task.isCancelled else { return }
                 if let fixDate = location.lastFixDate,
                    fixDate >= openedAt.addingTimeInterval(-2),
                    let loc = location.liveLocation {
                     center = loc
                     break
                 }
-                try? await Task.sleep(for: .milliseconds(500))
+                do {
+                    try await Task.sleep(for: .milliseconds(500))
+                } catch {
+                    return
+                }
                 attempts += 1
             }
             // Fall back to any known location (offline / indoor / denied

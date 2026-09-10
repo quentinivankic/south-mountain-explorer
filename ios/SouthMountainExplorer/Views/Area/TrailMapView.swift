@@ -101,6 +101,11 @@ struct TrailMapView: View {
     @Environment(ProgressService.self) private var progress
     @Environment(LocationService.self) private var location
 
+    /// Stable value tokens make repeated SwiftUI appearances idempotent while
+    /// keeping this map's visible-lifetime demand independent from other maps.
+    @State private var foregroundLocationDemand = ForegroundLocationDemandToken()
+    @State private var headingDemand = HeadingDemandToken()
+
     /// Trail-snapped runs for the cyan lifetime "walked here" halo
     /// (`trailSnappedHaloRuns`), wrapped in a single outer group.
     /// Rebuilt on appear and whenever `pastHikes.count` or the set of
@@ -207,7 +212,7 @@ struct TrailMapView: View {
                 completedTrailIds: completedTrailIdsForArea,
                 cameraTarget: cameraTarget,
                 cameraTick: cameraTick,
-                showsUserLocation: true,
+                showsUserLocation: location.isAuthorized && location.isApplicationActive,
                 // We always pass `.none` here: the bottom-inset shift
                 // means we need custom camera math for tracking modes
                 // (MKMapView's built-in tracking centers the dot at the
@@ -255,10 +260,10 @@ struct TrailMapView: View {
             }
         }
         .onAppear {
-            // Compass on as soon as the map is up, so the dot's facing cone is
-            // right from the first frame rather than only after the user cycles
-            // into a follow mode.
-            location.startHeadingUpdates()
+            location.acquireForegroundLocationDemand(foregroundLocationDemand)
+            location.acquireHeadingDemand(headingDemand)
+            // Compass demand is held for the whole visible lifetime so the
+            // user dot's facing cone remains useful in every camera mode.
             // Snap every past hike's GPS onto the trail network so the
             // cyan "walked here" overlay follows the trail polylines
             // exactly and overlapping passes collapse into one line
@@ -395,6 +400,8 @@ struct TrailMapView: View {
             if trackingMode == .followHeading { updateTrackedPosition() }
         }
         .onDisappear {
+            location.releaseForegroundLocationDemand(foregroundLocationDemand)
+            location.releaseHeadingDemand(headingDemand)
             // Tear down the FPS sampler when leaving the area so the
             // CADisplayLink isn't sitting in the main run loop on
             // every other screen for no benefit. Idempotent — safe
@@ -418,26 +425,16 @@ struct TrailMapView: View {
 
     // MARK: - Camera control
 
-    /// Heading now runs in EVERY tracking mode, because the user dot draws a
-    /// facing cone at all times (see MapKitMapView.userHeading) — not just when
-    /// the camera rotates with you. It used to be stopped in .free and .follow,
-    /// which would leave that cone pointing nowhere in the two modes you spend
-    /// most of a hike in. The compass is cheap next to the GPS fix that's
-    /// already running.
+    /// Tracking mode changes camera behavior only. The map's visible-lifetime
+    /// location and heading ownership is acquired/released by onAppear and
+    /// onDisappear, so cycling this button cannot create extra manager demand.
     private func applyTrackingMode(_ mode: MapTrackingMode) {
         switch mode {
         case .free:
-            location.startHeadingUpdates()
             centerOnUser()
         case .follow:
-            // Ensure live location is pumping (idempotent — no-op if
-            // already running, e.g. during a recording).
-            location.startLiveTracking()
-            location.startHeadingUpdates()
             updateTrackedPosition(resetZoom: true)
         case .followHeading:
-            location.startLiveTracking()
-            location.startHeadingUpdates()
             updateTrackedPosition(resetZoom: true)
         }
     }

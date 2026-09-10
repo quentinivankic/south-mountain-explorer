@@ -232,6 +232,7 @@ struct MapKitMapView: UIViewRepresentable {
         let tap = UITapGestureRecognizer(target: context.coordinator,
                                          action: #selector(Coordinator.handleTap(_:)))
         tap.delegate = context.coordinator
+        context.coordinator.tapRecognizer = tap
         mv.addGestureRecognizer(tap)
         return mv
     }
@@ -401,6 +402,22 @@ struct MapKitMapView: UIViewRepresentable {
         coord.applyHeadingRotation(on: mapView)
     }
 
+    static func dismantleUIView(_ mapView: MKMapView, coordinator: Coordinator) {
+        // MKMapView is a second Core Location client independent of
+        // LocationService. Release it deterministically when SwiftUI removes
+        // the representable rather than waiting for UIKit deallocation.
+        mapView.setUserTrackingMode(.none, animated: false)
+        mapView.showsUserLocation = false
+        if let tap = coordinator.tapRecognizer {
+            tap.delegate = nil
+            mapView.removeGestureRecognizer(tap)
+        }
+        mapView.delegate = nil
+        coordinator.tapRecognizer = nil
+        coordinator.userDotView = nil
+        coordinator.mapView = nil
+    }
+
     // MARK: - Camera helpers
 
     private static func applyCameraTarget(_ target: MapTarget,
@@ -568,6 +585,9 @@ struct MapKitMapView: UIViewRepresentable {
     final class Coordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
         var parent: MapKitMapView
         weak var mapView: MKMapView?
+        /// The recognizer installed by this representable (never MapKit's
+        /// private gestures), retained by MKMapView and removed on dismantle.
+        weak var tapRecognizer: UITapGestureRecognizer?
 
         // Trail state. Each trail is one MKMultiPolyline (one overlay,
         // one renderer), so styling updates are O(1) per affected

@@ -48,6 +48,13 @@ struct DiagnosticsTests {
         #expect(obj["device"] is String)
         #expect(obj["collectedAt"] is String)
         #expect(obj["logs"] is [Any])
+        #expect(obj["activityLog"] is [Any])
+
+        // Manual diagnostics can still contain sensitive log content. This
+        // boundary only asserts that it does not embed the full backup schema
+        // used by Export All Data.
+        #expect(obj["files"] == nil)
+        #expect(obj["userDefaults"] == nil)
 
         // collectedAt parses as ISO8601 — sanity check we wrote a
         // real timestamp, not a placeholder.

@@ -1,45 +1,29 @@
 import Foundation
 
-/// Bundle every piece of user-owned app data into a single JSON file
-/// you can save to Files, and restore from that same file later.
+/// Bundles every supported piece of user-owned app data into a schema-v1 JSON
+/// file that can be saved through the share sheet.
 ///
-/// Use this to safely test the new-user experience: Export your data
-/// to Files → tap Reset All Progress → delete + reinstall (or just
-/// poke around the fresh state) → Import the saved JSON → everything
-/// back exactly as it was.
-///
-/// Covered:
-///   - All `StorageKeys.*` UserDefaults entries (progress, coverage,
-///     favourites, prefs, telemetry).
-///   - `Documents/hike-history.json` — the recorded hikes themselves.
-///   - `Documents/activity-log.json` — the diag-bundle activity stream.
-///
-/// NOT covered (regenerable, not user-owned):
-///   - `Caches/areas/...` — area data, re-fetched from R2 on demand.
-///   - The bundled `areas-index.json` — read-only, ships with the app.
+/// Export remains available. Restore is deliberately disabled until import can
+/// provide durable, restart-safe recovery without risking current app data.
 enum DataBackupManager {
 
-    /// Bumped if a future format change makes older exports
-    /// incompatible. Import rejects mismatched versions with a clear
-    /// message rather than silently corrupting state.
+    /// Kept stable so existing schema-v1 exports remain readable by future
+    /// restore work.
     static let schemaVersion = 1
 
     private static let documentsDir: URL = {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }()
 
-    /// Files in Documents/ that hold real user data. The activity log
-    /// is included so a backup-then-restore truly restores everything,
-    /// including the audit trail the Send Diagnostics bundle samples.
+    /// User-owned Documents files included in each export.
     private static let documentFilenames: [String] = [
         "hike-history.json",
         "activity-log.json",
     ]
 
-    /// UserDefaults keys we round-trip. Intentionally broader than
-    /// `StorageKeys.resetAllKeys` — a backup-then-restore should look
-    /// like nothing happened, so we also preserve prefs (theme, units)
-    /// and engagement telemetry (areaOpenedAt, appSessions).
+    /// UserDefaults keys included in each export. This is intentionally broader
+    /// than `StorageKeys.resetAllKeys` so preferences and local telemetry are
+    /// retained in the backup format for future restore work.
     private static let backupKeys: [String] = [
         StorageKeys.onboarded,
         StorageKeys.theme,
@@ -99,15 +83,27 @@ enum DataBackupManager {
     /// Gather everything into a single JSON blob ready to write to a
     /// file the user can save via the share sheet.
     static func collectExport() throws -> Data {
+        try collectExport(
+            userDefaults: .standard,
+            documentsDirectory: documentsDir
+        )
+    }
+
+    /// Isolated export seam for tests and future tooling. Callers can provide a
+    /// temporary defaults suite and directory without touching host Documents.
+    static func collectExport(
+        userDefaults: UserDefaults,
+        documentsDirectory: URL
+    ) throws -> Data {
         var defaults: [String: StoredValue] = [:]
         for key in backupKeys {
-            guard let raw = UserDefaults.standard.object(forKey: key) else { continue }
+            guard let raw = userDefaults.object(forKey: key) else { continue }
             defaults[key] = classify(raw)
         }
 
         var files: [String: String] = [:]
         for filename in documentFilenames {
-            let url = documentsDir.appendingPathComponent(filename)
+            let url = documentsDirectory.appendingPathComponent(filename)
             // A MISSING file is a legitimate empty state — a user who
             // has never recorded a hike simply has no hike-history.json,
             // and that should export cleanly. But a file that EXISTS and
@@ -175,95 +171,27 @@ enum DataBackupManager {
 
     // MARK: - Import
 
-    enum ImportError: LocalizedError {
-        case unsupportedVersion(Int)
-        case decodeFailed(String)
-        case activeRecordingInProgress
+    enum ImportError: LocalizedError, Equatable {
+        case importTemporarilyUnavailable
 
         var errorDescription: String? {
             switch self {
-            case .unsupportedVersion(let v):
-                return "Backup is version \(v); this app expects version \(DataBackupManager.schemaVersion). Make a fresh export from a build that matches."
-            case .decodeFailed(let detail):
-                return "Couldn't read the backup file: \(detail)"
-            case .activeRecordingInProgress:
-                return "Stop the active recording before importing — importing while recording would lose the in-progress hike."
+            case .importTemporarilyUnavailable:
+                return "Import is temporarily unavailable while restore safety is being improved. Your existing data was not changed. Export All Data remains available."
             }
         }
     }
 
-    /// Replace every backup-covered piece of state with what's in
-    /// `data`. Atomic in the sense that we wipe ALL backup keys + files
-    /// first, then restore, so a restored install matches the export
-    /// snapshot exactly (no stale keys from the destination linger).
-    ///
-    /// Throws if the JSON doesn't decode, the schema version differs,
-    /// or a recording is currently in progress (importing then would
-    /// silently discard the user's mid-hike state).
+    /// Pure availability seam: every payload receives the same fail-closed
+    /// result without decoding it or consulting current app state.
+    static func importRejection(for _: Data) -> ImportError {
+        .importTemporarilyUnavailable
+    }
+
+    /// Restore is fail-closed until it can be made restart-atomic. This throws
+    /// before reading or mutating UserDefaults, Documents, or live services.
     @MainActor
     static func performImport(from data: Data) throws {
-        if RecordingService.shared.activeRecording != nil {
-            throw ImportError.activeRecordingInProgress
-        }
-
-        let exp: Export
-        do {
-            exp = try JSONDecoder().decode(Export.self, from: data)
-        } catch {
-            throw ImportError.decodeFailed(error.localizedDescription)
-        }
-
-        guard exp.version == schemaVersion else {
-            throw ImportError.unsupportedVersion(exp.version)
-        }
-
-        // Wipe first so any keys/files in the destination that aren't
-        // in the export don't survive the restore.
-        for key in backupKeys {
-            UserDefaults.standard.removeObject(forKey: key)
-        }
-        for filename in documentFilenames {
-            try? FileManager.default.removeItem(
-                at: documentsDir.appendingPathComponent(filename)
-            )
-        }
-
-        // Restore UserDefaults.
-        for (key, value) in exp.userDefaults {
-            switch value {
-            case .data(let b64):
-                if let d = Data(base64Encoded: b64) {
-                    UserDefaults.standard.set(d, forKey: key)
-                }
-            case .string(let s):
-                UserDefaults.standard.set(s, forKey: key)
-            case .bool(let b):
-                UserDefaults.standard.set(b, forKey: key)
-            case .int(let i):
-                UserDefaults.standard.set(i, forKey: key)
-            case .double(let dv):
-                UserDefaults.standard.set(dv, forKey: key)
-            }
-        }
-
-        // Restore Documents files.
-        for (filename, b64) in exp.files {
-            guard let d = Data(base64Encoded: b64) else { continue }
-            let url = documentsDir.appendingPathComponent(filename)
-            try? d.write(to: url, options: .atomic)
-        }
-
-        // Re-hydrate every @Observable singleton from the freshly-
-        // restored UserDefaults + Documents files. Each service
-        // loaded its in-memory copy at init and would otherwise
-        // keep showing pre-import state — checkmarks, coverage
-        // bars, favorites, active recording banner — until next
-        // launch, which would feel just as broken as the pre-fix
-        // Reset All Progress bug.
-        ProgressService.shared.reload()
-        CoverageService.shared.reload()
-        FavoritesService.shared.reload()
-        RecordingService.shared.reload()
-        ActivityLogService.shared.reload()
+        throw importRejection(for: data)
     }
 }

@@ -58,8 +58,9 @@ trail in an area. SwiftUI, iOS 18+ deployment target.
   banner) go through `ParkingPoolService.merged(with:for:)`; wiring only one of
   them names a lot with no pin under it. See auto-memory `parking-feature.md`.
 - **Backup:** Settings → Export bundles UserDefaults keys + `hike-history.json`
-  + `activity-log.json` to one JSON via share sheet; Import restores. All five
-  `@Observable` singletons have `resetAll()`/`reload()`. `DataBackupManager.swift`.
+  + `activity-log.json` to one schema-v1 JSON via share sheet. Import is
+  temporarily fail-closed before state access; schema-v1 remains decodable for
+  future restart-safe restore work. `DataBackupManager.swift`.
 - **iOS 18 + Liquid Glass:** `.glassEffect` call sites route through
   `Utilities/GlassCompat.swift` (`#available(iOS 26)` → real glass, else
   `.regularMaterial`). Use `.compatibleGlass*`, never `.glassEffect` directly,

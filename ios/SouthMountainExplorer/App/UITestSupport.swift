@@ -13,10 +13,9 @@ import Foundation
 ///   `--uitest-seed`       seed historical hikes + completions + coverage
 ///   `--uitest-recording`  additionally inject a live active recording
 ///
-/// All seeding writes the same UserDefaults keys / `hike-history.json`
-/// a real Import would, then re-hydrates the `@Observable` singletons
-/// exactly like `DataBackupManager.performImport` does — so the app
-/// sees genuine state, not a bespoke demo path.
+/// All seeding writes the same UserDefaults keys and `hike-history.json`
+/// path used by normal app persistence, then re-hydrates the `@Observable`
+/// singletons so the app sees genuine state, not a bespoke demo path.
 enum UITestSupport {
     /// The flagship area — the app is named after it and it's the
     /// densest US area (48 trails), so it screenshots best.
@@ -55,8 +54,7 @@ enum UITestSupport {
         guard isSeedRequested else { return }
         seedHistoricalState()
         // Re-read every service's in-memory copy from what we just wrote.
-        // Mirrors DataBackupManager.performImport's reload block — the
-        // singletons were already constructed (as stored properties of
+        // The singletons were already constructed (as stored properties of
         // the App) and loaded empty state before init()'s body ran.
         ProgressService.shared.reload()
         CoverageService.shared.reload()

@@ -2,59 +2,140 @@ import Foundation
 import Testing
 @testable import SouthMountainExplorer
 
-/// Tests for the export-time data-safety guard. The danger being
-/// guarded against: an export that silently omits the user's
-/// irreplaceable `hike-history.json`, letting them "back up", reset,
-/// and only then discover the recordings were never in the file.
-///
-/// `.serialized`: both tests mutate the SAME real file path
-/// (Documents/hike-history.json) — one plants a directory there, the
-/// other removes it. Swift Testing runs a suite's tests in parallel by
-/// default, so without serialization they race on that shared
-/// filesystem state and one intermittently fails (the export sees the
-/// other test's mid-flight setup/teardown). Serializing makes them run
-/// one at a time. No other suite touches this path, so intra-suite
-/// serialization is sufficient.
-@Suite(.serialized)
+/// Fail-closed import coverage plus export checks isolated from host Documents.
+@Suite
+@MainActor
 struct DataBackupManagerTests {
 
-    private var documentsDir: URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    private enum FixtureError: Error {
+        case userDefaultsSuiteUnavailable
     }
 
-    /// Export must FAIL LOUDLY when a backup file exists but can't be
-    /// read. Simulated by planting a DIRECTORY at hike-history.json's
-    /// path: `FileManager.fileExists` returns true for it, but
-    /// `Data(contentsOf:)` throws — exactly the "exists but unreadable"
-    /// shape the guard exists to catch.
-    @Test func exportThrowsWhenHistoryFileExistsButUnreadable() throws {
-        let url = documentsDir.appendingPathComponent("hike-history.json")
-        // Preserve anything the test host already has at that path.
-        let saved = try? Data(contentsOf: url)
-        try? FileManager.default.removeItem(at: url)
-        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-        defer {
-            try? FileManager.default.removeItem(at: url)
-            if let saved { try? saved.write(to: url) }
+    private final class Fixture {
+        let root: URL
+        let documents: URL
+        let defaults: UserDefaults
+        private let suiteName: String
+
+        init() throws {
+            suiteName = "DataBackupManagerTests.\(UUID().uuidString)"
+            guard let suiteDefaults = UserDefaults(suiteName: suiteName) else {
+                throw FixtureError.userDefaultsSuiteUnavailable
+            }
+            defaults = suiteDefaults
+            defaults.removePersistentDomain(forName: suiteName)
+
+            root = FileManager.default.temporaryDirectory
+                .appendingPathComponent("DataBackupManagerTests-\(UUID().uuidString)", isDirectory: true)
+            documents = root.appendingPathComponent("Documents", isDirectory: true)
+            try FileManager.default.createDirectory(
+                at: documents,
+                withIntermediateDirectories: true
+            )
         }
+
+        func cleanup() {
+            defaults.removePersistentDomain(forName: suiteName)
+            try? FileManager.default.removeItem(at: root)
+        }
+    }
+
+    private var literalSchemaV1Backup: Data {
+        Data("""
+        {"version":1,"exportedAt":"2025-06-01T12:00:00Z","appBuild":"legacy","userDefaults":{"summit:onboarded":{"bool":{"_0":true}}},"files":{}}
+        """.utf8)
+    }
+
+    @Test func importAlwaysFailsClosedBeforeCurrentStateChanges() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanup() }
+
+        fixture.defaults.set("metric", forKey: StorageKeys.units)
+        let originalHistory = Data("existing-history".utf8)
+        let historyURL = fixture.documents.appendingPathComponent("hike-history.json")
+        try originalHistory.write(to: historyURL)
+
+        for payload in [Data("not-json".utf8), literalSchemaV1Backup] {
+            #expect(
+                DataBackupManager.importRejection(for: payload)
+                    == .importTemporarilyUnavailable
+            )
+
+            var capturedError: DataBackupManager.ImportError?
+            do {
+                try DataBackupManager.performImport(from: payload)
+            } catch let error as DataBackupManager.ImportError {
+                capturedError = error
+            }
+
+            #expect(capturedError == .importTemporarilyUnavailable)
+            #expect(
+                capturedError?.localizedDescription
+                    == "Import is temporarily unavailable while restore safety is being improved. Your existing data was not changed. Export All Data remains available."
+            )
+            #expect(fixture.defaults.string(forKey: StorageKeys.units) == "metric")
+            #expect(try Data(contentsOf: historyURL) == originalHistory)
+        }
+    }
+
+    @Test func schemaV1BackupRemainsReadable() throws {
+        let export = try JSONDecoder().decode(
+            DataBackupManager.Export.self,
+            from: literalSchemaV1Backup
+        )
+
+        #expect(export.version == 1)
+        let onboarded = try #require(export.userDefaults[StorageKeys.onboarded])
+        switch onboarded {
+        case .bool(let value):
+            #expect(value)
+        default:
+            #expect(Bool(false), "schema-v1 bool value changed representation")
+        }
+    }
+
+    @Test func exportRemainsAvailableUsingIsolatedState() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanup() }
+
+        fixture.defaults.set("metric", forKey: StorageKeys.units)
+        let history = Data("isolated-history".utf8)
+        try history.write(
+            to: fixture.documents.appendingPathComponent("hike-history.json")
+        )
+
+        let data = try DataBackupManager.collectExport(
+            userDefaults: fixture.defaults,
+            documentsDirectory: fixture.documents
+        )
+        let export = try JSONDecoder().decode(DataBackupManager.Export.self, from: data)
+
+        #expect(export.version == DataBackupManager.schemaVersion)
+        let units = try #require(export.userDefaults[StorageKeys.units])
+        switch units {
+        case .string(let value):
+            #expect(value == "metric")
+        default:
+            #expect(Bool(false), "units should retain its schema-v1 string representation")
+        }
+        let encodedHistory = try #require(export.files["hike-history.json"])
+        #expect(Data(base64Encoded: encodedHistory) == history)
+    }
+
+    @Test func exportStillFailsLoudlyForUnreadableHistory() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanup() }
+
+        try FileManager.default.createDirectory(
+            at: fixture.documents.appendingPathComponent("hike-history.json"),
+            withIntermediateDirectories: true
+        )
 
         #expect(throws: DataBackupManager.ExportError.self) {
-            _ = try DataBackupManager.collectExport()
+            _ = try DataBackupManager.collectExport(
+                userDefaults: fixture.defaults,
+                documentsDirectory: fixture.documents
+            )
         }
-    }
-
-    /// A MISSING backup file is a legitimate empty state (a user who
-    /// has never recorded a hike has no hike-history.json) and must
-    /// export cleanly rather than throwing.
-    @Test func exportSucceedsWhenHistoryFileMissing() throws {
-        let url = documentsDir.appendingPathComponent("hike-history.json")
-        let saved = try? Data(contentsOf: url)
-        // Remove a real file OR a leftover directory from the test above.
-        try? FileManager.default.removeItem(at: url)
-        defer { if let saved { try? saved.write(to: url) } }
-
-        // Should not throw with the file absent — a thrown error fails
-        // this (throwing) test.
-        _ = try DataBackupManager.collectExport()
     }
 }

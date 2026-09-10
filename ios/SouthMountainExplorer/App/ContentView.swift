@@ -7,6 +7,17 @@ enum AppTab: Hashable {
     case explore, browse, stats, settings
 }
 
+/// One presentation event for an AreaView opened outside normal Browse
+/// navigation. A fresh identity forces SwiftUI to discard any prior area's
+/// local state when consecutive notification taps arrive while the cover is
+/// already presented.
+private struct AreaJumpRoute: Identifiable {
+    let id = UUID()
+    let areaId: String
+    let trailId: String?
+    let trailName: String?
+}
+
 struct ContentView: View {
     @Environment(AuthService.self) private var auth
     @Environment(RecordingService.self) private var recording
@@ -19,16 +30,12 @@ struct ContentView: View {
 
     @State private var showStopConfirm = false
     @State private var showDiscardConfirm = false
-    @State private var jumpToAreaId: String? = nil
+    @State private var areaJumpRoute: AreaJumpRoute? = nil
     /// Last activity-log state we emitted for the app — "active"
     /// or "background". Used to de-dupe scene-phase transitions
     /// (.inactive AND .background both map to background, and the
     /// system can fire several of them per share-sheet present).
     @State private var lastLoggedAppState: String? = nil
-    /// Set when the user taps a trail-completion push notification. The
-    /// AreaView opened by `jumpToAreaId` reads this to play a one-shot
-    /// celebration overlay, then clears itself.
-    @State private var celebrationTrailName: String? = nil
     @State private var selectedTab: AppTab = .explore
     /// Banner-tap route for an in-progress walk (walks reopen WalkView,
     /// not the primary area's AreaView).
@@ -104,7 +111,13 @@ struct ContentView: View {
                         if rec.mode == .walk {
                             showWalkCover = true
                         } else {
-                            jumpToAreaId = rec.areaId
+                            // Active-recording navigation is area-only; a
+                            // notification trail identity must never leak in.
+                            areaJumpRoute = AreaJumpRoute(
+                                areaId: rec.areaId,
+                                trailId: nil,
+                                trailName: nil
+                            )
                         }
                     },
                     onStop: { showStopConfirm = true }
@@ -124,18 +137,16 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $showWalkCover) {
             WalkView()
         }
-        .fullScreenCover(isPresented: Binding(
-            get: { jumpToAreaId != nil },
-            set: { if !$0 { jumpToAreaId = nil; celebrationTrailName = nil } }
-        )) {
-            if let id = jumpToAreaId {
-                NavigationStack {
-                    AreaView(
-                        areaId: id,
-                        areaName: areaName(for: id),
-                        initialCelebrationTrailName: celebrationTrailName
-                    )
-                }
+        .fullScreenCover(item: $areaJumpRoute) { route in
+            NavigationStack {
+                AreaView(
+                    areaId: route.areaId,
+                    areaName: areaName(for: route.areaId),
+                    initialCelebrationTrailName: route.trailName,
+                    initialSelectedTrailId: route.trailId,
+                    initialSelectedTrailName: route.trailName
+                )
+                .id(route.id)
             }
         }
         .confirmationDialog(
@@ -238,10 +249,18 @@ struct ContentView: View {
             guard
                 let info = msg.userInfo,
                 let areaId = info["areaId"] as? String,
-                let trailName = info["trailName"] as? String
+                let trailId = info["trailId"] as? String
             else { return }
-            celebrationTrailName = trailName
-            jumpToAreaId = areaId
+            let trailName = info["trailName"] as? String
+            // Name is present on current local notifications but optional for
+            // older/local callers. Without it the resolver permits only a
+            // unique exact-ID match. Every event gets a fresh route identity,
+            // so a second tap cannot reuse the prior AreaView's selection.
+            areaJumpRoute = AreaJumpRoute(
+                areaId: areaId,
+                trailId: trailId,
+                trailName: trailName
+            )
         }
     }
 

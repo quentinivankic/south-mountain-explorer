@@ -73,10 +73,12 @@ struct BrowseView: View {
 
     @State private var query = ""
     @State private var selectedArea: AreaSummary? = nil
-    /// Trail id to pre-select in the area sheet — set when the sheet is
-    /// opened from a trail search result, nil when opened from an area
-    /// row. Cleared on sheet dismiss.
+    /// Raw trail identity to pre-select in the area sheet — set when the
+    /// sheet is opened from a trail search result, nil when opened from an
+    /// area row. The name travels with the raw ID because the current area
+    /// load can canonicalize that ID before selection is resolved.
     @State private var pendingTrailId: String? = nil
+    @State private var pendingTrailName: String? = nil
     @State private var sort: BrowseSort = .alphabetic
     @State private var driveTime: BrowseDriveTime = .any
     @FocusState private var searchFocused: Bool
@@ -206,6 +208,7 @@ struct BrowseView: View {
                                 ForEach(trailHits) { hit in
                                     Button {
                                         pendingTrailId = hit.trailId
+                                        pendingTrailName = hit.trailName
                                         selectedArea = areas.summaries.first { $0.id == hit.areaId }
                                     } label: {
                                         TrailHitRow(hit: hit)
@@ -218,6 +221,7 @@ struct BrowseView: View {
                             ForEach(results) { area in
                                 Button {
                                     pendingTrailId = nil
+                                    pendingTrailName = nil
                                     selectedArea = area
                                 } label: {
                                     BrowseRow(area: area)
@@ -292,7 +296,8 @@ struct BrowseView: View {
                 AreaView(
                     areaId: area.id,
                     areaName: area.name,
-                    initialSelectedTrailId: pendingTrailId
+                    initialSelectedTrailId: pendingTrailId,
+                    initialSelectedTrailName: pendingTrailName
                 )
             }
         }
@@ -305,6 +310,7 @@ struct BrowseView: View {
                 )
             } else {
                 pendingTrailId = nil
+                pendingTrailName = nil
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .browseSearchTabTapped)) { _ in

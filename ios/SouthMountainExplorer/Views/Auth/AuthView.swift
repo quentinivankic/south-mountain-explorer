@@ -17,15 +17,14 @@ struct AuthView: View {
                         .foregroundStyle(.green)
                     Text("TrekDex")
                         .font(.title2.bold())
-                    Text("Sign in to record hikes and\ntrack your trail progress.")
+                    Text("Sign in is optional. Record hikes and\ntrack trail progress without an account.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
 
                 VStack(spacing: 12) {
-                    SignInWithAppleButton(.signIn) { request in
-                        request.requestedScopes = [.fullName, .email]
+                    SignInWithAppleButton(.signIn) { _ in
                     } onCompletion: { _ in
                         // Handled in AuthService
                     }

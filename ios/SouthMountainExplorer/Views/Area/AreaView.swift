@@ -719,6 +719,9 @@ struct AreaView: View {
                         .compatibleGlass(in: .circle)
                         .foregroundStyle(favorites.isFavorite(areaId) ? .red : .primary)
                 }
+                .accessibilityLabel(
+                    favorites.isFavorite(areaId) ? "Remove from Saved Areas" : "Save Area"
+                )
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)

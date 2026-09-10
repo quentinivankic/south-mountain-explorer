@@ -153,6 +153,21 @@ final class AreaDataService {
         }
     }
 
+    /// Await a real CDN revalidation even when the launch-time index is already
+    /// populated. Pull-to-refresh uses this path; `loadIndex()` remains the
+    /// guarded offline-first initializer.
+    @discardableResult
+    func refreshIndex() async -> Bool {
+        let updated = await AreaIndexService.shared.revalidate()
+        guard updated,
+              let data = AreaIndexService.shared.currentIndexData(),
+              let parsed = await decodeIndexOffMain(from: data)
+        else { return false }
+        summaries = parsed
+        clearLegacyIndexCache()
+        return true
+    }
+
     private func clearLegacyIndexCache() {
         try? FileManager.default.removeItem(at: indexDiskURL)
         try? FileManager.default.removeItem(at: summariesDiskURL)

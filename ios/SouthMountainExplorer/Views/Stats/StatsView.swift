@@ -1,5 +1,16 @@
 import SwiftUI
 
+private struct PendingHikeDeletion: Identifiable {
+    let id = UUID()
+    let recordings: [SavedRecording]
+    let recordingIDs: Set<String>
+
+    init(recordings: [SavedRecording]) {
+        self.recordings = recordings
+        self.recordingIDs = Set(recordings.map(\.id))
+    }
+}
+
 /// Stats tab. Replaces the History tab — same data, augmented with
 /// cumulative totals, records and streaks, and per-area completion
 /// rows so the user sees engagement at a glance instead of having
@@ -21,6 +32,12 @@ struct StatsView: View {
     /// "No Hikes Yet" before .task has loaded history.
     @State private var isLoading = true
     @State private var historyErrorMessage: String? = nil
+    @State private var pendingDeletion: PendingHikeDeletion? = nil
+    @State private var deletionErrorMessage: String? = nil
+    @State private var isDeletingHikes = false
+    /// Invalidates an older history read if a later read or verified deletion
+    /// wins while that read is suspended in the persistence layer.
+    @State private var historyLoadGeneration = 0
 
     /// CACHED derived data. These were computed inline in `statsList`, so every
     /// body evaluation re-ran them — and `aggregate` calls `elevationStats` for
@@ -70,6 +87,36 @@ struct StatsView: View {
             // Recompute the cached aggregates when the hikes change or an area
             // finishes hydrating, instead of on every body evaluation.
             .task(id: derivedKey) { refreshDerived() }
+        }
+        .confirmationDialog(
+            pendingDeletion?.recordings.count == 1 ? "Delete this hike?" : "Delete these hikes?",
+            isPresented: Binding(
+                get: { pendingDeletion != nil },
+                set: { if !$0 { pendingDeletion = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: pendingDeletion
+        ) { deletion in
+            Button(
+                deletion.recordings.count == 1 ? "Delete Hike" : "Delete \(deletion.recordings.count) Hikes",
+                role: .destructive
+            ) {
+                confirmDeletion(deletion)
+            }
+            Button("Cancel", role: .cancel) { pendingDeletion = nil }
+        } message: { _ in
+            Text("This removes the selected history and stats rows. Earned trail coverage and completions remain.")
+        }
+        .alert(
+            "Couldn't Delete Hike History",
+            isPresented: Binding(
+                get: { deletionErrorMessage != nil },
+                set: { if !$0 { deletionErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(deletionErrorMessage ?? "The selected rows are still shown because TrekDex couldn't verify the deletion.")
         }
     }
 
@@ -147,10 +194,9 @@ struct StatsView: View {
                     }
                     .id(hike.id)
                     .accessibilityIdentifier("hike-row-\(hike.id)")
+                    .deleteDisabled(isDeletingHikes)
                 }
-                .onDelete { indexSet in
-                    Task { await deleteHikes(at: indexSet) }
-                }
+                .onDelete(perform: stageDeletion)
             }
         }
         .listStyle(.insetGrouped)
@@ -365,9 +411,12 @@ struct StatsView: View {
         // Only show the spinner on the FIRST load. Flipping isLoading on a
         // refresh swaps the whole List out for a ProgressView and back, which
         // destroys the list and its scroll position.
+        historyLoadGeneration &+= 1
+        let generation = historyLoadGeneration
         let firstLoad = hikes.isEmpty
         if firstLoad { isLoading = true }
         let loaded = await recording.loadHistory()
+        guard generation == historyLoadGeneration else { return }
         if let error = recording.historyErrorMessage {
             historyErrorMessage = error
         } else {
@@ -377,19 +426,38 @@ struct StatsView: View {
         isLoading = false
     }
 
-    private func deleteHikes(at indexSet: IndexSet) async {
-        // Delete the selected ids in one verified history transaction. The UI
-        // updates only after persistence succeeds, so a corrupt/unwritable file
-        // never makes a hike appear deleted when it is still on disk.
-        let ids = Set(indexSet.compactMap { hikes.indices.contains($0) ? hikes[$0].id : nil })
-        guard !ids.isEmpty else { return }
-        do {
-            try await recording.deleteRecordings(ids: ids)
-            hikes.removeAll { ids.contains($0.id) }
-            historyErrorMessage = nil
-        } catch {
-            historyErrorMessage = error.localizedDescription
+    /// Resolve swipe offsets immediately, while they still refer to the rows the
+    /// user saw. No asynchronous work begins until the immutable request exists.
+    private func stageDeletion(at indexSet: IndexSet) {
+        guard pendingDeletion == nil, !isDeletingHikes else { return }
+        let selected = indexSet.sorted().compactMap { index in
+            hikes.indices.contains(index) ? hikes[index] : nil
         }
+        guard !selected.isEmpty else { return }
+        pendingDeletion = PendingHikeDeletion(recordings: selected)
+    }
+
+    private func confirmDeletion(_ deletion: PendingHikeDeletion) {
+        guard !isDeletingHikes else { return }
+        pendingDeletion = nil
+        isDeletingHikes = true
+        Task { @MainActor in
+            await deleteHikes(deletion)
+        }
+    }
+
+    private func deleteHikes(_ deletion: PendingHikeDeletion) async {
+        // The request owns stable recording IDs captured before any Task. Keep
+        // every row visible until the store's verified transaction succeeds.
+        do {
+            try await recording.deleteRecordings(ids: deletion.recordingIDs)
+            historyLoadGeneration &+= 1
+            hikes.removeAll { deletion.recordingIDs.contains($0.id) }
+            deletionErrorMessage = nil
+        } catch {
+            deletionErrorMessage = "The selected rows are still shown because TrekDex couldn't verify the deletion. \(error.localizedDescription)"
+        }
+        isDeletingHikes = false
     }
 }
 

@@ -238,6 +238,15 @@ struct BrowseView: View {
                         }
                     }
                     .listStyle(.plain)
+                    .refreshable {
+                        await areas.refreshIndex()
+                        // The service can replace the index with the same row
+                        // count (for corrected names, distances, or centers).
+                        // Count-only invalidation would leave both cached rows
+                        // and trail-result area names stale after a real refresh.
+                        areaNameCacheCount = -1
+                        refreshResults()
+                    }
                     // A query that matches nothing used to render a bare empty
                     // List — no message at all.
                     .overlay {
@@ -390,6 +399,7 @@ struct BrowseRow: View {
                 Image(systemName: "heart.fill")
                     .foregroundStyle(.red)
                     .font(.caption)
+                    .accessibilityLabel("Saved Area")
             }
 
             Image(systemName: "chevron.right")

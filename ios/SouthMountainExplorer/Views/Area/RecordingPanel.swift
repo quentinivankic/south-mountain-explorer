@@ -185,7 +185,7 @@ struct RecordingPanel: View {
                 Button("Discard", role: .destructive) { discardRecording() }
                 Button("Keep Recording", role: .cancel) { }
             } else {
-                Button("Stop & Save", role: .destructive) { stopRecording() }
+                Button("Stop & Save") { stopRecording() }
                 Button("Stop & Discard", role: .destructive) { showDiscardConfirm = true }
                 Button("Keep Recording", role: .cancel) { }
             }

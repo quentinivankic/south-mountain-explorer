@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 /// Privacy policy, hosted at trekdex.app. Pinned here so the Privacy
 /// Policy row in Settings → About links to the authoritative copy.
@@ -36,8 +37,32 @@ private let refreshButtonReenableDelay: Duration = .seconds(3)
 /// idle state immediately.
 private let progressHoldDuration: Duration = .seconds(1.5)
 
+private enum NearbyLocationAlert: String, Identifiable {
+    case accessDenied
+    case unavailable
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .accessDenied: return "Location Access Needed"
+        case .unavailable: return "Location Unavailable"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .accessDenied:
+            return "Allow TrekDex to use your location in Settings, then try the nearby download again."
+        case .unavailable:
+            return "TrekDex couldn't get your current location. Move somewhere with a clearer view of the sky and try again."
+        }
+    }
+}
+
 struct SettingsView: View {
     @Environment(AuthService.self) private var auth
+    @Environment(LocationService.self) private var location
 
     @AppStorage(StorageKeys.trailMesh) private var trailMesh = true
     @AppStorage(StorageKeys.debugHUD) private var showDebugHUD: Bool = false
@@ -75,6 +100,15 @@ struct SettingsView: View {
     /// Same idea for the "Download Nearby Areas" radius prefetch button.
     @State private var nearbyProgress: (Int, Int)? = nil
     @State private var showNearbyCellularConfirm = false
+    /// Covers permission/fresh-fix preparation before download progress begins.
+    /// Set synchronously before any Task so repeated taps cannot launch duplicates.
+    @State private var isPreparingNearbyDownload = false
+    @State private var waitingForNearbyPermission = false
+    @State private var nearbyLocationAlert: NearbyLocationAlert? = nil
+
+    private var nearbyDownloadBusy: Bool {
+        isPreparingNearbyDownload || nearbyProgress != nil
+    }
 
     var body: some View {
         NavigationStack {
@@ -125,7 +159,7 @@ struct SettingsView: View {
                             }
                             Button("Cancel", role: .cancel) { }
                         } message: {
-                            Text("This removes Sign in with Apple from TrekDex. Your hikes, trail progress, and badges stay on this device — to erase those too, use Reset All Progress under Data.")
+                            Text("This removes Sign in with Apple from TrekDex. Your hikes, trail progress, and badges stay on this device — to erase those too, use Erase Hikes & Progress under Your Data.")
                         }
                     } else {
                         Button {
@@ -210,7 +244,7 @@ struct SettingsView: View {
                     }
                     .disabled(downloadProgress != nil)
                     .confirmationDialog(
-                        "Download favorites and recent areas for offline use?",
+                        "Download Saved Areas and recently viewed areas for offline use?",
                         isPresented: $showDownloadConfirm,
                         titleVisibility: .visible
                     ) {
@@ -236,30 +270,21 @@ struct SettingsView: View {
                         }
                         Button("Cancel", role: .cancel) { }
                     } message: {
-                        Text("Saves your favorite and recent areas for use without a signal.")
+                        Text("Saves your Saved Areas and recently viewed areas for use without a signal.")
                     }
 
                     Button {
-                        guard LocationService.shared.userLocation != nil else {
-                            // No location yet — kick off the permission
-                            // prompt; user can tap again once they've
-                            // granted access and a fix has come in.
-                            LocationService.shared.requestPermission()
-                            return
-                        }
-                        if NetworkService.shared.isExpensive {
-                            showNearbyCellularConfirm = true
-                        } else {
-                            runNearbyDownload()
-                        }
+                        beginNearbyDownload()
                     } label: {
                         if let p = nearbyProgress {
                             Label("Downloading \(p.0) of \(p.1)…", systemImage: "location.circle")
+                        } else if isPreparingNearbyDownload {
+                            Label("Finding Location…", systemImage: "location.circle")
                         } else {
                             Label("Download Nearby Areas", systemImage: "location.circle")
                         }
                     }
-                    .disabled(nearbyProgress != nil)
+                    .disabled(nearbyDownloadBusy)
                     .confirmationDialog(
                         "You're on a cellular network. Download anyway?",
                         isPresented: $showNearbyCellularConfirm,
@@ -293,16 +318,19 @@ struct SettingsView: View {
                     Button(role: .destructive) {
                         showResetConfirm = true
                     } label: {
-                        Label("Reset All Progress", systemImage: "trash")
+                        Label("Erase Hikes & Progress", systemImage: "trash")
                     }
                     .confirmationDialog(
-                        "This will delete all trail completions, coverage data, and favourites from this device.",
+                        "Erase Hikes & Progress?",
                         isPresented: $showResetConfirm,
                         titleVisibility: .visible
                     ) {
-                        Button("Reset Everything", role: .destructive) {
+                        Button("Erase Hikes & Progress", role: .destructive) {
                             Task { await resetAll() }
                         }
+                        Button("Cancel", role: .cancel) { }
+                    } message: {
+                        Text("Removes saved and in-progress hikes and walks, completions, coverage and badges, Saved Areas, cached downloads, the local activity log, and onboarding. Apple sign-in and display preferences are kept.")
                     }
                 }
 
@@ -351,7 +379,7 @@ struct SettingsView: View {
                         runDiagnosticsExport()
                     } label: {
                         HStack {
-                            Label("Send Diagnostics", systemImage: "doc.text.magnifyingglass")
+                            Label("Share Diagnostics…", systemImage: "doc.text.magnifyingglass")
                             Spacer()
                             if diagnosticsExporting {
                                 ProgressView()
@@ -403,6 +431,28 @@ struct SettingsView: View {
         .sheet(item: $exportShareURL) { wrapped in
             ShareSheet(items: [wrapped.url])
         }
+        .alert(
+            nearbyLocationAlert?.title ?? "Location",
+            isPresented: Binding(
+                get: { nearbyLocationAlert != nil },
+                set: { if !$0 { nearbyLocationAlert = nil } }
+            ),
+            presenting: nearbyLocationAlert
+        ) { alert in
+            switch alert {
+            case .accessDenied:
+                Button("Open Settings") { location.requestPermission() }
+                Button("Cancel", role: .cancel) { }
+            case .unavailable:
+                Button("Retry") { beginNearbyDownload() }
+                Button("Cancel", role: .cancel) { }
+            }
+        } message: { alert in
+            Text(alert.message)
+        }
+        .onChange(of: location.authorizationStatus) { _, status in
+            handleNearbyAuthorizationChange(status)
+        }
     }
 
     /// Kick off a manual "Download Nearby" run with `force: true` so it
@@ -429,13 +479,111 @@ struct SettingsView: View {
         }
     }
 
+    private func beginNearbyDownload() {
+        guard !nearbyDownloadBusy else { return }
+
+        switch location.authorizationStatus {
+        case .denied, .restricted:
+            nearbyLocationAlert = .accessDenied
+        case .notDetermined:
+            isPreparingNearbyDownload = true
+            waitingForNearbyPermission = true
+            location.requestPermission()
+        case .authorizedAlways, .authorizedWhenInUse:
+            isPreparingNearbyDownload = true
+            Task { @MainActor in
+                await requestNearbyLocationFix()
+            }
+        @unknown default:
+            nearbyLocationAlert = .accessDenied
+        }
+    }
+
+    private func handleNearbyAuthorizationChange(_ status: CLAuthorizationStatus) {
+        guard waitingForNearbyPermission else { return }
+
+        switch status {
+        case .authorizedAlways, .authorizedWhenInUse:
+            waitingForNearbyPermission = false
+            Task { @MainActor in
+                await requestNearbyLocationFix()
+            }
+        case .denied, .restricted:
+            waitingForNearbyPermission = false
+            isPreparingNearbyDownload = false
+            nearbyLocationAlert = .accessDenied
+        case .notDetermined:
+            break
+        @unknown default:
+            waitingForNearbyPermission = false
+            isPreparingNearbyDownload = false
+            nearbyLocationAlert = .accessDenied
+        }
+    }
+
+    private func requestNearbyLocationFix() async {
+        guard isPreparingNearbyDownload, location.isAuthorized else {
+            isPreparingNearbyDownload = false
+            return
+        }
+
+        let requestedAt = Date()
+        // Always require a post-tap fix before choosing the 50-mile radius.
+        // requestLocation() is one-shot, so this recovery flow does not acquire
+        // continuous tracking ownership that Settings would then have to release.
+        location.requestFreshFix()
+        for _ in 0..<14 {
+            guard !Task.isCancelled else {
+                isPreparingNearbyDownload = false
+                return
+            }
+            if location.isDenied {
+                isPreparingNearbyDownload = false
+                nearbyLocationAlert = .accessDenied
+                return
+            }
+            if let fixDate = location.lastFixDate,
+               fixDate >= requestedAt,
+               location.liveLocation != nil {
+                continueNearbyDownload()
+                return
+            }
+            do {
+                try await Task.sleep(for: .milliseconds(500))
+            } catch {
+                isPreparingNearbyDownload = false
+                return
+            }
+        }
+
+        isPreparingNearbyDownload = false
+        nearbyLocationAlert = .unavailable
+    }
+
+    private func continueNearbyDownload() {
+        guard isPreparingNearbyDownload else { return }
+        isPreparingNearbyDownload = false
+        if NetworkService.shared.isExpensive {
+            showNearbyCellularConfirm = true
+        } else {
+            runNearbyDownload()
+        }
+    }
+
     private func runNearbyDownload() {
-        Task {
-            nearbyProgress = (0, 0)
-            await AreaDataService.shared.runNearbyPrefetchIfAppropriate(force: true) { completed, total in
+        guard nearbyProgress == nil else { return }
+        isPreparingNearbyDownload = false
+        nearbyProgress = (0, 0)
+        Task { @MainActor in
+            let started = await AreaDataService.shared.runNearbyPrefetchIfAppropriate(force: true) { completed, total in
                 await MainActor.run {
                     nearbyProgress = (completed, total)
                 }
+            }
+            guard started else {
+                nearbyProgress = nil
+                nearbyLocationAlert = .unavailable
+                return
             }
             try? await Task.sleep(for: progressHoldDuration)
             nearbyProgress = nil

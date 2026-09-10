@@ -192,6 +192,9 @@ struct AreaCard: View {
                     .padding(10)
                     .compatibleGlass(in: .circle)
             }
+            .accessibilityLabel(
+                favorites.isFavorite(area.id) ? "Remove from Saved Areas" : "Save Area"
+            )
             // Equal insets so the heart sits symmetrically in the
             // corner. (An earlier top-biased 10/18 split read as
             // "closer to the top than the right" on device; the taller

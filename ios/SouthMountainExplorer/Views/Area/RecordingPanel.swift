@@ -26,6 +26,7 @@ struct RecordingPanel: View {
     @State private var liveReturnLabel: String? = nil
     @State private var isStopping = false
     @State private var showStopConfirm = false
+    @State private var saveFailureMessage: String? = nil
 
     /// True when the recording has produced nothing worth persisting — under
     /// ~80 m of movement or too few GPS fixes to draw a route. Saving one of
@@ -161,7 +162,7 @@ struct RecordingPanel: View {
                             .foregroundStyle(.red)
                     }
                 }
-                .disabled(isStopping)
+                .disabled(isStopping || recording.isStopping)
             }
 
             estimatesLine
@@ -202,6 +203,18 @@ struct RecordingPanel: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("This hike won't be saved to history and your trail coverage won't update. This can't be undone.")
+        }
+        .alert(
+            "Couldn't Save Hike",
+            isPresented: Binding(
+                get: { saveFailureMessage != nil },
+                set: { if !$0 { saveFailureMessage = nil } }
+            )
+        ) {
+            Button("Retry Save") { stopRecording() }
+            Button("Keep Recording", role: .cancel) { }
+        } message: {
+            Text(saveFailureMessage ?? "Your active recording is still safe and location observation has resumed.")
         }
     }
 
@@ -287,14 +300,22 @@ struct RecordingPanel: View {
     }
 
     private func stopRecording() {
+        guard !isStopping, !recording.isStopping else { return }
         isStopping = true
         timer?.invalidate()
         Task {
-            // Use raw trails for coverage finalization so the
-            // fraction denominator is the dense pre-decimation node
-            // count (see AreaView's applyLiveCoverage caller).
-            let finished = await recording.stopRecording(trails: area.rawTrails ?? area.trails)
-            onStop(finished)
+            do {
+                // Use raw trails for coverage finalization so the
+                // fraction denominator is the dense pre-decimation node
+                // count (see AreaView's applyLiveCoverage caller).
+                let finished = try await recording.stopRecording(
+                    trails: area.rawTrails ?? area.trails
+                )
+                if let finished { onStop(finished) }
+            } catch {
+                saveFailureMessage = error.localizedDescription
+                startTimer()
+            }
             isStopping = false
         }
     }

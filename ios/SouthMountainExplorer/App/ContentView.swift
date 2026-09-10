@@ -19,6 +19,7 @@ struct ContentView: View {
 
     @State private var showStopConfirm = false
     @State private var showDiscardConfirm = false
+    @State private var saveFailureMessage: String? = nil
     @State private var jumpToAreaId: String? = nil
     /// Last activity-log state we emitted for the app — "active"
     /// or "background". Used to de-dupe scene-phase transitions
@@ -163,6 +164,18 @@ struct ContentView: View {
         } message: {
             Text("This hike won't be saved to history and your trail coverage won't update. This can't be undone.")
         }
+        .alert(
+            "Couldn't Save Recording",
+            isPresented: Binding(
+                get: { saveFailureMessage != nil },
+                set: { if !$0 { saveFailureMessage = nil } }
+            )
+        ) {
+            Button("Retry Save") { Task { await stopActiveRecording() } }
+            Button("Keep Recording", role: .cancel) { }
+        } message: {
+            Text(saveFailureMessage ?? "Your active recording is still safe and location observation has resumed.")
+        }
         .task {
             await rebuildCompletionsFromHistory()
             // Background prefetch of favorites + recent areas so the
@@ -290,36 +303,41 @@ struct ContentView: View {
     }
 
     private func stopActiveRecording() async {
-        guard let rec = recording.activeRecording else { return }
-        // Walks stop through the multi-area path: gather every nearby
-        // area's dense geometry so each one gets its coverage credit.
-        if rec.mode == .walk {
-            var trailsByArea: [String: [Trail]] = [:]
-            for areaId in rec.nearbyAreaIds ?? [rec.areaId] {
-                // if/else, not `??` — its autoclosure can't host an await.
-                let area: Area?
-                if let cached = areas.cachedArea(id: areaId) {
-                    area = cached
-                } else {
-                    area = await areas.area(id: areaId)
+        guard let rec = recording.activeRecording, !recording.isStopping else { return }
+        do {
+            // Walks stop through the multi-area path: gather every nearby
+            // area's dense geometry so each one gets its coverage credit.
+            if rec.mode == .walk {
+                var trailsByArea: [String: [Trail]] = [:]
+                for areaId in rec.nearbyAreaIds ?? [rec.areaId] {
+                    // if/else, not `??` — its autoclosure can't host an await.
+                    let area: Area?
+                    if let cached = areas.cachedArea(id: areaId) {
+                        area = cached
+                    } else {
+                        area = await areas.area(id: areaId)
+                    }
+                    if let area {
+                        trailsByArea[areaId] = area.rawTrails ?? area.trails
+                    }
                 }
-                if let area {
-                    trailsByArea[areaId] = area.rawTrails ?? area.trails
-                }
+                _ = try await recording.stopWalk(trailsByArea: trailsByArea)
+                return
             }
-            _ = await recording.stopWalk(trailsByArea: trailsByArea)
-            return
+            // Pull trails from cache so coverage merges still work; fall back to
+            // an async fetch if the area hasn't been opened this session.
+            // (Split into an if/else because `??` takes an autoclosure that
+            // can't host an `await`.)
+            let trails: [Trail]
+            if let cached = areas.cachedArea(id: rec.areaId) {
+                trails = cached.rawTrails ?? cached.trails
+            } else {
+                let loaded = await areas.area(id: rec.areaId)
+                trails = loaded?.rawTrails ?? loaded?.trails ?? []
+            }
+            _ = try await recording.stopRecording(trails: trails)
+        } catch {
+            saveFailureMessage = error.localizedDescription
         }
-        // Pull trails from cache so coverage merges still work; fall back to
-        // an async fetch if the area hasn't been opened this session.
-        // (Split into an if/else because `??` takes an autoclosure that
-        // can't host an `await`.)
-        let trails: [Trail]
-        if let cached = areas.cachedArea(id: rec.areaId) {
-            trails = cached.trails
-        } else {
-            trails = (await areas.area(id: rec.areaId))?.trails ?? []
-        }
-        _ = await recording.stopRecording(trails: trails)
     }
 }

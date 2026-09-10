@@ -36,17 +36,13 @@ struct PastHike: Sendable {
 enum RecordingMode: String, Codable, Sendable {
     case roam
     case trail
-    /// Area-less "start anywhere" recording: the map shows every trail
-    /// from the ~12 nearest areas, and at stop time coverage/completions
-    /// are credited to EVERY area the path touched. Persisted only in
-    /// `ActiveRecording` (transient); `SavedRecording` never stores a
-    /// mode — a saved walk is identified by `multiAreaCompletions !=
-    /// nil`, because an old build decoding an unknown enum raw value
-    /// would fail the whole history array (see SavedRecording docs).
+    /// Area-less "start anywhere" recording. Saved history also carries this
+    /// value, but `SavedRecording` decodes the raw string defensively so an
+    /// unknown future mode can never make the whole history unreadable.
     case walk
 }
 
-struct ActiveRecording: Codable, Sendable {
+struct ActiveRecording: Codable, Sendable, Equatable {
     let areaId: String
     let mode: RecordingMode
     let trailId: String?
@@ -76,6 +72,10 @@ struct ActiveRecording: Codable, Sendable {
     /// analogue of `priorCompleteTrailIds`, consumed by `stopWalk`'s
     /// per-area newly-completed vs revisited classification.
     var priorCompleteByArea: [String: Set<String>]? = nil
+    /// Stable identity for this recording session. New recordings receive one
+    /// before their first recovery checkpoint; restored legacy recordings are
+    /// assigned one before stop so retries cannot create duplicate history rows.
+    var recordingId: String? = nil
 }
 
 struct FinishedRecording: Sendable {
@@ -106,7 +106,7 @@ struct FinishedRecording: Sendable {
     var multiAreaRevisited: [String: [String]]? = nil
 }
 
-struct SavedRecording: Codable, Identifiable, Sendable {
+struct SavedRecording: Codable, Identifiable, Sendable, Equatable {
     let id: String
     let areaId: String
     let startedAt: Date
@@ -128,14 +128,10 @@ struct SavedRecording: Codable, Identifiable, Sendable {
     /// (`areaId` above), so walk-aware consumers read one uniform dict;
     /// `completedTrailIds` stays primary-area-only for legacy consumers.
     ///
-    /// Back-compat notes (why this is a dict field and NOT a persisted
-    /// mode enum): old builds ignore unknown JSON keys, so they read a
-    /// walk as a plain hike — but an unknown RecordingMode raw value
-    /// would throw, and `loadHistorySync` decodes the WHOLE history
-    /// array with `try?`, so one bad record would blank History and the
-    /// next save would truncate hike-history.json. Also: an old build
-    /// that rewrites the history file drops this key from every record
-    /// (Codable re-encode) — accepted, matches every optional field here.
+    /// Back-compat notes: old builds ignore unknown JSON keys, so they read a
+    /// walk as a plain hike. This field remains optional for those builds, while
+    /// the current reader also refuses to rewrite any history array that cannot
+    /// be decoded in full.
     let multiAreaCompletions: [String: [String]]?
     /// Walk mode: revisited trails per area, same shape as
     /// `multiAreaCompletions`. `nil` for non-walk records.
@@ -152,6 +148,20 @@ struct SavedRecording: Codable, Identifiable, Sendable {
 
     /// True when this record was captured by the area-less walk mode.
     var isWalk: Bool { mode == .walk }
+
+    /// Shared fields that identify the exact active checkpoint represented by
+    /// this finalized row. Any mismatch must be treated as two recoverable
+    /// copies, never as authorization to clear the active path.
+    func matchesCheckpoint(_ active: ActiveRecording) -> Bool {
+        let roundedActiveDistance = (active.distanceMi * 100).rounded() / 100
+        return areaId == active.areaId
+            && mode == active.mode
+            && trailId == active.trailId
+            && startedAt == active.startedAt
+            && id == active.recordingId
+            && path == active.path
+            && distanceMi == roundedActiveDistance
+    }
 
     enum CodingKeys: String, CodingKey {
         case id, areaId, startedAt, endedAt, distanceMi, durationSeconds, completedTrailIds, path, trailId, revisitedTrailIds, multiAreaCompletions, multiAreaRevisited, mode

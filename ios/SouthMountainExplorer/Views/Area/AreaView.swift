@@ -434,6 +434,24 @@ struct AreaView: View {
                 )
                 .ignoresSafeArea()
 
+                // iOS 26 presents the native sheet as a floating card: its
+                // custom presentation background is opaque, but the host itself
+                // still stops 8pt above the screen and rounds away as much as
+                // 20pt at the lower corners. Because the map is full-bleed, that
+                // host margin shows through at the physical bottom edge.
+                //
+                // Bridge only that measured lower curve behind the sheet. The
+                // explicit secondary-system color matches the sheet's resolved
+                // surface (unlike the old 80pt system-background workaround,
+                // which resolved to pure black outside the presentation host).
+                // This view is outside the sheet's measured content, so it cannot
+                // change detents, scrolling, or the map's camera inset.
+                Color(.secondarySystemBackground)
+                    .frame(height: 20)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+
                 // The camera controls used to float over the map here,
                 // anchored to the sheet's top edge and riding up and down with
                 // it. They live on the Record page now.

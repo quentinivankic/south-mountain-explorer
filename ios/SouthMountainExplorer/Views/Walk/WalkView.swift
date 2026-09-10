@@ -32,6 +32,7 @@ struct WalkView: View {
     @State private var cameraTick = 0
     @State private var showSummary = false
     @State private var finishedWalk: FinishedRecording? = nil
+    @State private var startConflictMessage: String? = nil
 
     private enum LoadState: Equatable {
         case locating
@@ -116,6 +117,17 @@ struct WalkView: View {
             if let finished = finishedWalk {
                 WalkSummarySheet(finished: finished, walkAreas: loadedAreas)
             }
+        }
+        .alert(
+            "Recording Already Active",
+            isPresented: Binding(
+                get: { startConflictMessage != nil },
+                set: { if !$0 { startConflictMessage = nil } }
+            )
+        ) {
+            Button("Keep Existing Recording", role: .cancel) { }
+        } message: {
+            Text(startConflictMessage ?? "Stop the current recording before starting a walk.")
         }
     }
 
@@ -341,10 +353,14 @@ struct WalkView: View {
         guard let nearest = loadedAreas.first else { return }
         // loadedAreas preserves nearby()'s distance ordering, so the
         // first loaded area is the primary the walk files under.
-        recording.startWalk(
+        let result = recording.startWalk(
             primaryAreaId: nearest.id,
             nearbyAreaIds: loadedAreas.map(\.id)
         )
+        if result == .alreadyActive {
+            let activeMode = recording.activeRecording?.mode == .walk ? "walk" : "hike"
+            startConflictMessage = "Your current \(activeMode) is still recording and was not changed. Stop or discard it before starting another walk."
+        }
     }
 }
 
@@ -364,6 +380,7 @@ struct WalkRecordingPanel: View {
     @State private var isStopping = false
     @State private var showStopConfirm = false
     @State private var showDiscardConfirm = false
+    @State private var saveFailureMessage: String? = nil
 
     private var rec: ActiveRecording? { recording.activeRecording }
 
@@ -409,7 +426,7 @@ struct WalkRecordingPanel: View {
                             .foregroundStyle(.red)
                     }
                 }
-                .disabled(isStopping)
+                .disabled(isStopping || recording.isStopping)
             }
         }
         .padding(.horizontal, 20)
@@ -438,6 +455,18 @@ struct WalkRecordingPanel: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("This walk won't be saved to history and your trail coverage won't update. This can't be undone.")
+        }
+        .alert(
+            "Couldn't Save Walk",
+            isPresented: Binding(
+                get: { saveFailureMessage != nil },
+                set: { if !$0 { saveFailureMessage = nil } }
+            )
+        ) {
+            Button("Retry Save") { stopWalk() }
+            Button("Keep Walking", role: .cancel) { }
+        } message: {
+            Text(saveFailureMessage ?? "Your active walk is still safe and location observation has resumed.")
         }
     }
 
@@ -482,20 +511,26 @@ struct WalkRecordingPanel: View {
     }
 
     private func stopWalk() {
+        guard !isStopping, !recording.isStopping else { return }
         isStopping = true
         timer?.invalidate()
         Task {
-            // Dense geometry per area so the completion gate's fraction
-            // denominator is the raw node count (same reason
-            // RecordingPanel feeds rawTrails to stopRecording).
-            // uniquingKeysWith — a duplicate area id must not trap mid-stop and
-            // lose the walk the user just recorded.
-            let trailsByArea = Dictionary(
-                walkAreas.map { ($0.id, $0.rawTrails ?? $0.trails) },
-                uniquingKeysWith: { first, _ in first }
-            )
-            let finished = await recording.stopWalk(trailsByArea: trailsByArea)
-            onStop(finished)
+            do {
+                // Dense geometry per area so the completion gate's fraction
+                // denominator is the raw node count (same reason
+                // RecordingPanel feeds rawTrails to stopRecording).
+                // uniquingKeysWith — a duplicate area id must not trap mid-stop and
+                // lose the walk the user just recorded.
+                let trailsByArea = Dictionary(
+                    walkAreas.map { ($0.id, $0.rawTrails ?? $0.trails) },
+                    uniquingKeysWith: { first, _ in first }
+                )
+                let finished = try await recording.stopWalk(trailsByArea: trailsByArea)
+                if let finished { onStop(finished) }
+            } catch {
+                saveFailureMessage = error.localizedDescription
+                startTimer()
+            }
             isStopping = false
         }
     }

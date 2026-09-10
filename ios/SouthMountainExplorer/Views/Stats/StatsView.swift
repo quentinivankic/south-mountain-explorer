@@ -20,6 +20,7 @@ struct StatsView: View {
     /// Starts true so the first frame shows the spinner, not a flash of
     /// "No Hikes Yet" before .task has loaded history.
     @State private var isLoading = true
+    @State private var historyErrorMessage: String? = nil
 
     /// CACHED derived data. These were computed inline in `statsList`, so every
     /// body evaluation re-ran them — and `aggregate` calls `elevationStats` for
@@ -45,6 +46,8 @@ struct StatsView: View {
                 if isLoading {
                     ProgressView("Loading…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let historyErrorMessage {
+                    historyErrorState(historyErrorMessage)
                 } else if hikes.isEmpty {
                     emptyState
                 } else {
@@ -86,6 +89,17 @@ struct StatsView: View {
             systemImage: "chart.line.uptrend.xyaxis",
             description: Text("Start recording a hike from any trail area and your stats will appear here.")
         )
+    }
+
+    private func historyErrorState(_ message: String) -> some View {
+        ContentUnavailableView {
+            Label("Couldn't Read Hike History", systemImage: "exclamationmark.triangle.fill")
+        } description: {
+            Text(message)
+        } actions: {
+            Button("Try Again") { Task { await loadHikes() } }
+                .buttonStyle(.borderedProminent)
+        }
     }
 
     private var statsList: some View {
@@ -353,20 +367,28 @@ struct StatsView: View {
         // destroys the list and its scroll position.
         let firstLoad = hikes.isEmpty
         if firstLoad { isLoading = true }
-        hikes = await recording.loadHistory()
+        let loaded = await recording.loadHistory()
+        if let error = recording.historyErrorMessage {
+            historyErrorMessage = error
+        } else {
+            hikes = loaded
+            historyErrorMessage = nil
+        }
         isLoading = false
     }
 
     private func deleteHikes(at indexSet: IndexSet) async {
-        // Snapshot the ids and update the array BEFORE awaiting. `hikes` is
-        // reassigned by loadHikes() from both .task and .refreshable, so a
-        // refresh landing while this loop was suspended could shrink the array
-        // and make the next hikes[i] — or remove(atOffsets:) with now-stale
-        // offsets — trap.
-        let ids = indexSet.compactMap { hikes.indices.contains($0) ? hikes[$0].id : nil }
-        hikes.remove(atOffsets: indexSet)
-        for id in ids {
-            await recording.deleteRecording(id: id)
+        // Delete the selected ids in one verified history transaction. The UI
+        // updates only after persistence succeeds, so a corrupt/unwritable file
+        // never makes a hike appear deleted when it is still on disk.
+        let ids = Set(indexSet.compactMap { hikes.indices.contains($0) ? hikes[$0].id : nil })
+        guard !ids.isEmpty else { return }
+        do {
+            try await recording.deleteRecordings(ids: ids)
+            hikes.removeAll { ids.contains($0.id) }
+            historyErrorMessage = nil
+        } catch {
+            historyErrorMessage = error.localizedDescription
         }
     }
 }

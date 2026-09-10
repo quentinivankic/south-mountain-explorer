@@ -78,86 +78,119 @@ private func trailEndpointDistances(
 }
 
 @MainActor
+protocol RecordingLocationControlling: AnyObject {
+    var liveLocation: CLLocationCoordinate2D? { get }
+    var liveAltitude: Double? { get }
+    func startBackgroundTracking()
+    func stopBackgroundTracking()
+}
+
+enum RecordingStartResult: Equatable, Sendable {
+    case started
+    case alreadyActive
+}
+
+enum RecordingOperationError: Error, LocalizedError, Sendable, Equatable {
+    case stopAlreadyInProgress
+
+    var errorDescription: String? {
+        "This recording is already being saved. Wait for that attempt to finish."
+    }
+}
+
+@MainActor
 @Observable
 final class RecordingService {
     static let shared = RecordingService()
 
     private(set) var activeRecording: ActiveRecording? = nil
     private(set) var errorMessage: String? = nil
+    private(set) var historyErrorMessage: String? = nil
+    private(set) var isStopping = false
 
-    private let locationService = LocationService.shared
+    private let locationService: any RecordingLocationControlling
+    private let historyStore: RecordingHistoryStore
+    private let userDefaults: UserDefaults
     private var locationObserver: Task<Void, Never>? = nil
 
     private let persistKey = StorageKeys.activeRecording
 
-    /// nonisolated so the off-main history decode can reach it.
-    nonisolated private static var historyFileURL: URL {
+    nonisolated static var defaultHistoryFileURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("hike-history.json")
     }
 
-    /// Read + decode the history file. `nonisolated` and `static` so it can run
-    /// OFF the main actor — the file holds every GPS point of every hike, so
-    /// this decode grows with use, and it used to run on the main thread at app
-    /// launch, on every Stats open, and on every pull-to-refresh.
-    /// `SavedRecording` is Sendable, so handing the result back is safe.
-    /// Newest first, ALWAYS — sorted here rather than trusted from the file.
-    ///
-    /// Nothing sorted this before, so "Recent Hikes" showed whatever order
-    /// `hike-history.json` happened to be in. That order is not a guarantee: a
-    /// restored backup carries whatever order its writer used, and on
-    /// 2026-08-16 an imported file sorted oldest-first put May at the top of the
-    /// list and August at the bottom. Sorting at the single point every caller
-    /// comes through costs one pass over a few dozen records and makes the file's
-    /// order irrelevant.
-    ///
-    /// Callers that need oldest-first for a chronological credit pass already
-    /// sort explicitly and are unaffected.
-    nonisolated static func decodeHistory() -> [SavedRecording] {
-        guard let data = try? Data(contentsOf: historyFileURL),
-              let decoded = try? JSONDecoder().decode([SavedRecording].self, from: data)
-        else { return [] }
-        return decoded.sorted { $0.startedAt > $1.startedAt }
+    private convenience init() {
+        self.init(
+            historyStore: RecordingHistoryStore(fileURL: Self.defaultHistoryFileURL),
+            userDefaults: .standard,
+            locationService: LocationService.shared,
+            migrateHistory: true,
+            restoreStoredState: true
+        )
     }
 
-    private init() {
-        migrateHistoryClassificationIfNeeded()
-        restoreActiveRecording()
+    /// Injectable initializer used by focused persistence tests. Production uses
+    /// the private convenience initializer above and the real Documents file.
+    init(
+        historyStore: RecordingHistoryStore,
+        userDefaults: UserDefaults,
+        locationService: any RecordingLocationControlling,
+        initialActiveRecording: ActiveRecording? = nil,
+        migrateHistory: Bool = false,
+        restoreStoredState: Bool = false
+    ) {
+        self.historyStore = historyStore
+        self.userDefaults = userDefaults
+        self.locationService = locationService
+        if migrateHistory { migrateHistoryClassificationIfNeeded() }
+        if let initialActiveRecording {
+            activeRecording = initialActiveRecording
+            persist()
+        } else if restoreStoredState {
+            restoreActiveRecording()
+        }
     }
 
-    /// Restore an in-progress recording from UserDefaults on launch.
-    /// Public TestFlight users will occasionally have iOS kill the
-    /// app mid-hike (memory pressure, force-quit, watchdog) — without
-    /// this restore path they lose every GPS sample since the start
-    /// of the hike.
-    ///
-    /// Drops the persisted recording silently if:
-    ///   - decode fails (corrupted file) — bail clean, start fresh.
-    ///   - `startedAt` is more than `maxResumeAge` ago — the user
-    ///     forgot they had a recording running and wouldn't expect
-    ///     it to come back to life. 12h covers a full hiking day +
-    ///     overnight; longer than that is almost certainly stale.
-    ///
-    /// On a clean restore, ALSO restarts background location updates
-    /// (`startBackgroundTracking`) — without this the activeRecording
-    /// is back in memory but no new GPS samples flow into it.
+    /// Restore the single in-progress checkpoint from UserDefaults. If its
+    /// stable identifier already names an exactly matching history row, the
+    /// append completed before a prior process died and the duplicate active
+    /// checkpoint can be cleared. Every other state is preserved and resumes
+    /// observation; history remains authoritative for rebuilding coverage.
     private func restoreActiveRecording() {
-        guard let data = UserDefaults.standard.data(forKey: persistKey) else { return }
+        errorMessage = nil
+        guard let data = userDefaults.data(forKey: persistKey) else { return }
         guard let restored = try? JSONDecoder().decode(ActiveRecording.self, from: data) else {
-            // Decode failure — leave a breadcrumb and clear the bad
-            // blob so we don't try again on every cold launch.
-            log.error("restoreActiveRecording: decode failed, dropping persisted state")
-            UserDefaults.standard.removeObject(forKey: persistKey)
+            // Preserve undecodable recovery bytes for diagnostics/manual recovery
+            // rather than silently deleting the only copy of an in-progress hike.
+            errorMessage = "Your in-progress recording couldn't be restored. Its recovery data was left untouched."
+            log.error("restoreActiveRecording: decode failed, preserving persisted state")
             return
         }
-        let age = Date().timeIntervalSince(restored.startedAt)
-        let maxResumeAge: TimeInterval = 12 * 60 * 60
-        guard age < maxResumeAge else {
-            log.notice("restoreActiveRecording: skipping stale recording age=\(Int(age))s areaId=\(restored.areaId, privacy: .public)")
-            UserDefaults.standard.removeObject(forKey: persistKey)
-            return
-        }
+
         activeRecording = restored
+        if let recordingId = restored.recordingId {
+            do {
+                if let existing = try historyStore.record(id: recordingId) {
+                    if existing.matchesCheckpoint(restored) {
+                        activeRecording = nil
+                        userDefaults.removeObject(forKey: persistKey)
+                        historyErrorMessage = nil
+                        log.notice("restoreActiveRecording: cleared already-saved checkpoint id=\(recordingId, privacy: .public)")
+                        return
+                    }
+                    errorMessage = "A different saved hike already uses this recording identifier. Both copies were preserved; saving will remain blocked until the history conflict is repaired."
+                    log.error("restoreActiveRecording: identifier conflict id=\(recordingId, privacy: .public); resuming active checkpoint")
+                } else {
+                    historyErrorMessage = nil
+                }
+            } catch {
+                recordHistoryFailure(error, context: "active recovery reconciliation")
+                errorMessage = error.localizedDescription
+            }
+        }
+
+        let age = Date().timeIntervalSince(restored.startedAt)
         log.notice("restoreActiveRecording: resumed areaId=\(restored.areaId, privacy: .public) trailId=\(restored.trailId ?? "nil", privacy: .public) pathPoints=\(restored.path.count) age=\(Int(age))s")
         ActivityLogService.shared.log(
             category: "recording",
@@ -169,10 +202,6 @@ final class RecordingService {
                 "ageSeconds": String(Int(age)),
             ]
         )
-        // Re-arm background GPS so new samples actually flow into the
-        // restored path. Without this call the recording sits in
-        // memory but goes nowhere — the user would tap Stop and save
-        // a hike that ended at the moment of the app kill.
         locationService.startBackgroundTracking()
         beginObservingLocation()
     }
@@ -205,12 +234,18 @@ final class RecordingService {
     /// Both passes are idempotent. Version marker prevents re-walking
     /// the file on every cold launch.
     private func migrateHistoryClassificationIfNeeded() {
-        let ud = UserDefaults.standard
+        let ud = userDefaults
         let key = StorageKeys.hikeHistoryMigrationVersion
         let currentVersion = ud.integer(forKey: key)
         guard currentVersion < 2 else { return }
 
-        let history = loadHistorySync()
+        let history: [SavedRecording]
+        do {
+            history = try loadHistorySync()
+        } catch {
+            recordHistoryFailure(error, context: "history migration read")
+            return
+        }
         if !history.isEmpty {
             let sorted = history.sorted { $0.startedAt < $1.startedAt }
             var everComplete: Set<String> = []
@@ -250,8 +285,11 @@ final class RecordingService {
                 ))
                 everComplete.formUnion(union)
             }
-            if let data = try? JSONEncoder().encode(rebuilt) {
-                try? data.write(to: Self.historyFileURL)
+            do {
+                try historyStore.replace(rebuilt)
+            } catch {
+                recordHistoryFailure(error, context: "history migration write")
+                return
             }
         }
 
@@ -267,7 +305,8 @@ final class RecordingService {
 
     // MARK: - Start / Stop
 
-    func startRecording(areaId: String, mode: RecordingMode, trailId: String? = nil) {
+    @discardableResult
+    func startRecording(areaId: String, mode: RecordingMode, trailId: String? = nil) -> RecordingStartResult {
         // NEVER overwrite a live recording. This assignment is destructive —
         // `activeRecording` holds the entire GPS path — and on 2026-08-16 it
         // silently threw away 25 minutes and 457 fixes of a real hike, because
@@ -292,7 +331,7 @@ final class RecordingService {
                     "requestedTrailId": trailId ?? "nil",
                 ]
             )
-            return
+            return .alreadyActive
         }
         // Snapshot which trails are ALREADY complete in this area at
         // recording-start. Used by stopRecording to classify each
@@ -317,7 +356,8 @@ final class RecordingService {
             startedAt: Date(),
             path: [],
             distanceMi: 0,
-            priorCompleteTrailIds: Set(priorComplete)
+            priorCompleteTrailIds: Set(priorComplete),
+            recordingId: UUID().uuidString
         )
         errorMessage = nil
         persist()
@@ -338,6 +378,7 @@ final class RecordingService {
         // started a hike. The OS only asks once per install, so the
         // request is a no-op on subsequent calls.
         Task { await NotificationService.shared.ensurePermission() }
+        return .started
     }
 
     /// Discard the in-progress recording AND every saved hike. Called
@@ -348,9 +389,18 @@ final class RecordingService {
     /// from-history path would re-credit all the trail completions
     /// we just wiped in ProgressService.
     func resetAll() {
+        guard !isStopping else {
+            errorMessage = RecordingOperationError.stopAlreadyInProgress.localizedDescription
+            return
+        }
         discardRecording()
-        try? FileManager.default.removeItem(at: Self.historyFileURL)
-        log.notice("resetAll: cleared activeRecording and removed hike-history.json")
+        do {
+            try historyStore.removeFileIfPresent()
+            historyErrorMessage = nil
+            log.notice("resetAll: cleared activeRecording and removed hike-history.json")
+        } catch {
+            recordHistoryFailure(error, context: "reset history")
+        }
     }
 
     /// Re-read the persisted active recording from UserDefaults.
@@ -377,13 +427,12 @@ final class RecordingService {
     #endif
 
     func discardRecording() {
+        guard !isStopping else { return }
         let prev = activeRecording
-        locationObserver?.cancel()
-        locationObserver = nil
-        locationService.stopBackgroundTracking()
+        pauseLocationObservation()
         activeRecording = nil
         errorMessage = nil
-        UserDefaults.standard.removeObject(forKey: persistKey)
+        userDefaults.removeObject(forKey: persistKey)
         log.notice("discardRecording areaId=\(prev?.areaId ?? "nil", privacy: .public) duration=\(prev.map { Date().timeIntervalSince($0.startedAt) } ?? 0)s pathPoints=\(prev?.path.count ?? 0)")
         ActivityLogService.shared.log(
             category: "recording",
@@ -417,16 +466,22 @@ final class RecordingService {
     /// id matches the current one (a same-id "retarget" would be
     /// pointless and the suggestion engine's filter rules already
     /// exclude that case).
-    func retargetTrail(_ newTrailId: String) {
+    @discardableResult
+    func retargetTrail(_ newTrailId: String) -> Bool {
+        guard !isStopping else {
+            errorMessage = "Wait for the current save attempt to finish before changing trails."
+            return false
+        }
         guard let rec = activeRecording,
               let updated = Self.retargeted(rec, newTrailId: newTrailId)
         else {
             log.debug("retargetTrail no-op newTrailId=\(newTrailId, privacy: .public) current=\(self.activeRecording?.trailId ?? "nil", privacy: .public)")
-            return
+            return false
         }
         log.notice("retargetTrail oldMode=\(rec.mode.rawValue, privacy: .public) oldTrailId=\(rec.trailId ?? "nil", privacy: .public) newTrailId=\(newTrailId, privacy: .public)")
         activeRecording = updated
         persist()
+        return true
     }
 
     /// Pure-function form of `retargetTrail` so tests can exercise
@@ -457,17 +512,27 @@ final class RecordingService {
             startedAt: rec.startedAt,
             path: rec.path,
             distanceMi: rec.distanceMi,
-            priorCompleteTrailIds: rec.priorCompleteTrailIds
+            priorCompleteTrailIds: rec.priorCompleteTrailIds,
+            recordingId: rec.recordingId
         )
     }
 
-    func stopRecording(trails: [Trail]) async -> FinishedRecording? {
-        guard let rec = activeRecording else { return nil }
-        locationObserver?.cancel()
-        locationObserver = nil
-        locationService.stopBackgroundTracking()
+    func stopRecording(trails: [Trail]) async throws -> FinishedRecording? {
+        guard var rec = activeRecording else { return nil }
+        guard !isStopping else { throw RecordingOperationError.stopAlreadyInProgress }
+        if rec.recordingId == nil {
+            rec.recordingId = UUID().uuidString
+            activeRecording = rec
+            persist()
+        }
 
+        isStopping = true
+        pauseLocationObservation()
         let endedAt = Date()
+        defer { isStopping = false }
+
+        do {
+            let history = try loadHistorySync()
         // Coverage is computed against the UNION of every prior hike's GPS
         // path in this area + the path that just finished. Per-hike-fraction
         // merging would lose progress when two hikes cover different halves
@@ -478,7 +543,11 @@ final class RecordingService {
         // cumulative fraction. We still compute the per-hike delta
         // separately for the post-stop "Trails with new partial coverage
         // from this hike" summary in `RecordingPanel`.
-        let combinedPath = combinedPathForArea(rec.areaId, currentPath: rec.path)
+        let combinedPath = combinedPathForArea(
+            rec.areaId,
+            currentPath: rec.path,
+            history: history
+        )
         let sessionCoverage = measureCoverage(path: combinedPath, trails: trails, bufferMeters: bufferMeters)
         // `perHikeDelta` feeds the Stop & Save summary's "Made
         // Progress" list. Use length-based at 10m (same math as the
@@ -494,19 +563,21 @@ final class RecordingService {
             trails: trails,
             bufferMeters: sinceCompletionBufferMeters
         )
-        // Run the stop-time mergeCoverage for its SIDE EFFECTS only — it marks
-        // any trail finished in the final segment complete, resets its
-        // since-completion bucket, and fires the completion notification. Its
-        // returned newly/revisited split is deliberately NOT used to classify
-        // this record (see newlyCompletedTrailIds): a live-tick mergeCoverage
-        // may have marked a trail complete mid-hike, which makes this final
-        // split read it as already-complete and report newlyCompleted=0.
-        _ = await mergeCoverage(
+        // Keep stop-time effects in memory only. History is the durable source
+        // of truth; after a verified append these nonthrowing effects run before
+        // the active checkpoint is cleared, and launch-time rebuild can repair a
+        // crash between those steps.
+        var coverageEffects: [(
+            areaId: String,
+            sessionCoverage: [String: CoverageScore],
+            trails: [Trail],
+            combinedPath: [GpsPoint]
+        )] = [(
             areaId: rec.areaId,
             sessionCoverage: sessionCoverage,
             trails: trails,
             combinedPath: combinedPath
-        )
+        )]
         // "Newly completed by THIS hike" = the union now completes the trail AND
         // it was NOT complete at the start of the hike. Stable regardless of
         // when the intra-session write happened to fire.
@@ -544,7 +615,8 @@ final class RecordingService {
             areaId: rec.areaId,
             currentPath: rec.path,
             trails: trails,
-            alreadyClassified: alreadyClassified
+            alreadyClassified: alreadyClassified,
+            fullHistory: history
         )
         revisited.append(contentsOf: pendingRevisits)
 
@@ -575,14 +647,18 @@ final class RecordingService {
                         .filter { iso.date(from: $0.value).map { $0 < rec.startedAt } ?? true }
                         .keys
                 )
-                let nCombined = combinedPathForArea(aid, currentPath: rec.path)
-                let nSession = measureCoverage(path: nCombined, trails: ntrails, bufferMeters: bufferMeters)
-                // Side effects only (mark complete, merge coverage, notify); the
-                // returned split is NOT used to classify — same reason as the
-                // primary path, a mid-hike completion is absent from mergeNew.
-                _ = await mergeCoverage(
-                    areaId: aid, sessionCoverage: nSession, trails: ntrails, combinedPath: nCombined
+                let nCombined = combinedPathForArea(
+                    aid,
+                    currentPath: rec.path,
+                    history: history
                 )
+                let nSession = measureCoverage(path: nCombined, trails: ntrails, bufferMeters: bufferMeters)
+                coverageEffects.append((
+                    areaId: aid,
+                    sessionCoverage: nSession,
+                    trails: ntrails,
+                    combinedPath: nCombined
+                ))
                 // Newly completed = this hike's coverage completes it AND it was
                 // not complete at the start (newlyCompletedTrailIds), mirroring
                 // stopRecording's primary path.
@@ -592,7 +668,8 @@ final class RecordingService {
                 var neighborRevisited: [String] = []
                 neighborRevisited.append(contentsOf: computeRevisits(
                     areaId: aid, currentPath: rec.path, trails: ntrails,
-                    alreadyClassified: Set(neighborNewly).union(neighborRevisited)
+                    alreadyClassified: Set(neighborNewly).union(neighborRevisited),
+                    fullHistory: history
                 ))
                 // Record the touch as a key even with no completions, so
                 // this neighbor lands in touchedAreaIds and a cold-launch /
@@ -629,30 +706,15 @@ final class RecordingService {
             multiAreaRevisited: hasMultiArea ? multiRevisited : nil
         )
 
-        saveToHistory(finished)
-        log.notice("stopRecording areaId=\(rec.areaId, privacy: .public) trailId=\(rec.trailId ?? "nil", privacy: .public) duration=\(finished.durationSeconds)s distanceMi=\(rec.distanceMi) newlyCompleted=\(newlyCompleted.count) revisited=\(revisited.count)")
-        ActivityLogService.shared.log(
-            category: "recording",
-            action: "stop",
-            context: [
-                "areaId": rec.areaId,
-                "trailId": rec.trailId ?? "nil",
-                "mode": rec.mode.rawValue,
-                "distanceMi": String(format: "%.2f", rec.distanceMi),
-                "durationSeconds": String(finished.durationSeconds),
-                "newlyCompleted": String(newlyCompleted.count),
-                "revisited": String(revisited.count),
-            ]
+        return try await saveFinishedRecording(
+            finished,
+            recordingId: rec.recordingId!,
+            coverageEffects: coverageEffects
         )
-        AnalyticsService.shared.capture(.hikeSaved(
-            areaId: rec.areaId,
-            distanceMi: rec.distanceMi,
-            durationSeconds: finished.durationSeconds,
-            mode: rec.mode.rawValue))
-
-        activeRecording = nil
-        UserDefaults.standard.removeObject(forKey: persistKey)
-        return finished
+        } catch {
+            handleStopFailure(error, operation: "stopRecording")
+            throw error
+        }
     }
 
     // MARK: - Walk mode (area-less, multi-area)
@@ -665,7 +727,24 @@ final class RecordingService {
     /// Prior-complete snapshots are taken per area, for the same
     /// mid-session-write race `startRecording`'s single-area snapshot
     /// exists to defuse.
-    func startWalk(primaryAreaId: String, nearbyAreaIds: [String]) {
+    @discardableResult
+    func startWalk(primaryAreaId: String, nearbyAreaIds: [String]) -> RecordingStartResult {
+        if let live = activeRecording {
+            log.error("startWalk REFUSED — a recording is already live areaId=\(live.areaId, privacy: .public) mode=\(live.mode.rawValue, privacy: .public) points=\(live.path.count). Stop it first.")
+            ActivityLogService.shared.log(
+                category: "recording",
+                action: "startRefusedWhileActive",
+                context: [
+                    "liveAreaId": live.areaId,
+                    "liveMode": live.mode.rawValue,
+                    "livePoints": String(live.path.count),
+                    "requestedAreaId": primaryAreaId,
+                    "requestedMode": RecordingMode.walk.rawValue,
+                ]
+            )
+            return .alreadyActive
+        }
+
         var priorByArea: [String: Set<String>] = [:]
         for aid in nearbyAreaIds {
             // Officially-completed only (see the startRecording note) — not
@@ -683,7 +762,8 @@ final class RecordingService {
             distanceMi: 0,
             priorCompleteTrailIds: priorByArea[primaryAreaId] ?? [],
             nearbyAreaIds: nearbyAreaIds,
-            priorCompleteByArea: priorByArea
+            priorCompleteByArea: priorByArea,
+            recordingId: UUID().uuidString
         )
         errorMessage = nil
         persist()
@@ -702,6 +782,7 @@ final class RecordingService {
         locationService.startBackgroundTracking()
         beginObservingLocation()
         Task { await NotificationService.shared.ensurePermission() }
+        return .started
     }
 
     /// Stop & save a WALK: the same measure → merge → classify → revisit
@@ -710,34 +791,46 @@ final class RecordingService {
     /// in `multiAreaCompletions` / `multiAreaRevisited` (primary
     /// included; the flat arrays mirror the primary's for legacy
     /// consumers).
-    func stopWalk(trailsByArea: [String: [Trail]]) async -> FinishedRecording? {
-        guard let rec = activeRecording, rec.mode == .walk else { return nil }
-        locationObserver?.cancel()
-        locationObserver = nil
-        locationService.stopBackgroundTracking()
-        let endedAt = Date()
+    func stopWalk(trailsByArea: [String: [Trail]]) async throws -> FinishedRecording? {
+        guard var rec = activeRecording, rec.mode == .walk else { return nil }
+        guard !isStopping else { throw RecordingOperationError.stopAlreadyInProgress }
+        if rec.recordingId == nil {
+            rec.recordingId = UUID().uuidString
+            activeRecording = rec
+            persist()
+        }
 
+        isStopping = true
+        pauseLocationObservation()
+        let endedAt = Date()
+        defer { isStopping = false }
+
+        do {
         // Decode history once and share it across the per-area passes —
         // combinedPathForArea/computeRevisits would otherwise re-decode
         // the whole file roughly twice per area.
-        let history = loadHistorySync()
+        let history = try loadHistorySync()
         let priorByArea = rec.priorCompleteByArea ?? [:]
         var multiCompleted: [String: [String]] = [:]
         var multiRevisited: [String: [String]] = [:]
         var primaryDelta: [String: Double] = [:]
+        var coverageEffects: [(
+            areaId: String,
+            sessionCoverage: [String: CoverageScore],
+            trails: [Trail],
+            combinedPath: [GpsPoint]
+        )] = []
 
         for (areaId, trails) in trailsByArea {
             guard !trails.isEmpty else { continue }
             let combinedPath = combinedPathForArea(areaId, currentPath: rec.path, history: history)
             let sessionCoverage = measureCoverage(path: combinedPath, trails: trails, bufferMeters: bufferMeters)
-            // Side effects only — the returned split isn't used to classify
-            // (see stopRecording's primary path and newlyCompletedTrailIds).
-            _ = await mergeCoverage(
+            coverageEffects.append((
                 areaId: areaId,
                 sessionCoverage: sessionCoverage,
                 trails: trails,
                 combinedPath: combinedPath
-            )
+            ))
             // Newly-completed from session coverage vs the start-of-walk
             // snapshot, so a trail finished mid-walk (already marked complete by
             // a live-tick mergeCoverage) is still counted rather than dropped.
@@ -785,32 +878,15 @@ final class RecordingService {
             multiAreaRevisited: multiRevisited
         )
 
-        saveToHistory(finished)
-        let totalNew = multiCompleted.values.map(\.count).reduce(0, +)
-        let totalRev = multiRevisited.values.map(\.count).reduce(0, +)
-        log.notice("stopWalk primaryAreaId=\(rec.areaId, privacy: .public) areas=\(trailsByArea.count) duration=\(finished.durationSeconds)s distanceMi=\(rec.distanceMi) newlyCompleted=\(totalNew) revisited=\(totalRev)")
-        ActivityLogService.shared.log(
-            category: "recording",
-            action: "stop",
-            context: [
-                "areaId": rec.areaId,
-                "mode": RecordingMode.walk.rawValue,
-                "areas": String(trailsByArea.count),
-                "distanceMi": String(format: "%.2f", rec.distanceMi),
-                "durationSeconds": String(finished.durationSeconds),
-                "newlyCompleted": String(totalNew),
-                "revisited": String(totalRev),
-            ]
+        return try await saveFinishedRecording(
+            finished,
+            recordingId: rec.recordingId!,
+            coverageEffects: coverageEffects
         )
-        AnalyticsService.shared.capture(.hikeSaved(
-            areaId: rec.areaId,
-            distanceMi: rec.distanceMi,
-            durationSeconds: finished.durationSeconds,
-            mode: RecordingMode.walk.rawValue))
-
-        activeRecording = nil
-        UserDefaults.standard.removeObject(forKey: persistKey)
-        return finished
+        } catch {
+            handleStopFailure(error, operation: "stopWalk")
+            throw error
+        }
     }
 
     /// Recompute coverage from the in-progress path and merge any deltas into
@@ -831,7 +907,18 @@ final class RecordingService {
         // area so live completions fire even when this session is
         // completing the half of a trail that was already partly walked
         // on a previous day.
-        let combinedPath = combinedPathForArea(rec.areaId, currentPath: rec.path)
+        let history: [SavedRecording]
+        do {
+            history = try loadHistorySync()
+        } catch {
+            recordHistoryFailure(error, context: "live coverage read")
+            return
+        }
+        let combinedPath = combinedPathForArea(
+            rec.areaId,
+            currentPath: rec.path,
+            history: history
+        )
         let sessionCoverage = measureCoverage(path: combinedPath, trails: trails, bufferMeters: bufferMeters)
         _ = await mergeCoverage(
             areaId: rec.areaId,
@@ -930,7 +1017,14 @@ final class RecordingService {
         // (docs/adr/0002) rebuild THIS canonical area's coverage too — their
         // GPS paths snap onto the identical trail geometry.
         let areas = AreaDataService.shared.areaAndTwins(areaId)
-        let areaHistory = loadHistorySync()
+        let fullHistory: [SavedRecording]
+        do {
+            fullHistory = try loadHistorySync()
+        } catch {
+            recordHistoryFailure(error, context: "coverage rebuild read")
+            return
+        }
+        let areaHistory = fullHistory
             .filter { !$0.touchedAreaIds.isDisjoint(with: areas) }
             .map { hike -> SavedRecording in
                 guard hike.isWalk else { return hike }
@@ -1408,8 +1502,9 @@ final class RecordingService {
         // entries patched in. Re-load to avoid clobbering hikes from
         // other areas that may have been written between our initial
         // load and now.
-        var allHistory = loadHistorySync()
-        for i in allHistory.indices {
+        do {
+            try historyStore.update { allHistory in
+                for i in allHistory.indices {
             // Never rewrite WALK records here: the credits/suppressions
             // were computed against this area's projection of the walk,
             // and merging them into the walk's flat arrays (which are
@@ -1449,11 +1544,16 @@ final class RecordingService {
                 completedTrailIds: mergedCompleted,
                 path: old.path,
                 trailId: old.trailId,
-                revisitedTrailIds: mergedRevisited
+                revisitedTrailIds: mergedRevisited,
+                multiAreaCompletions: old.multiAreaCompletions,
+                multiAreaRevisited: old.multiAreaRevisited,
+                mode: old.mode
             )
-        }
-        if let data = try? JSONEncoder().encode(allHistory) {
-            try? data.write(to: Self.historyFileURL)
+                }
+            }
+            historyErrorMessage = nil
+        } catch {
+            recordHistoryFailure(error, context: "coverage repair write")
         }
     }
 
@@ -1570,7 +1670,14 @@ final class RecordingService {
 
     // MARK: - GPS point ingestion
 
+    private func pauseLocationObservation() {
+        locationObserver?.cancel()
+        locationObserver = nil
+        locationService.stopBackgroundTracking()
+    }
+
     private func beginObservingLocation() {
+        guard activeRecording != nil else { return }
         locationObserver?.cancel()
         locationObserver = Task { [weak self] in
             while !Task.isCancelled {
@@ -1587,7 +1694,7 @@ final class RecordingService {
     }
 
     private func appendPoint(_ coord: CLLocationCoordinate2D, altitude: Double? = nil) {
-        guard var rec = activeRecording else { return }
+        guard !isStopping, var rec = activeRecording else { return }
         let lat = Double(String(format: "%.6f", coord.latitude))!
         let lon = Double(String(format: "%.6f", coord.longitude))!
         let ts = Date().timeIntervalSince1970 * 1000
@@ -1695,34 +1802,133 @@ final class RecordingService {
         return false
     }
 
-    private func saveToHistory(_ rec: FinishedRecording) {
-        var history = loadHistorySync()
+    private func saveFinishedRecording(
+        _ finished: FinishedRecording,
+        recordingId: String,
+        coverageEffects: [(
+            areaId: String,
+            sessionCoverage: [String: CoverageScore],
+            trails: [Trail],
+            combinedPath: [GpsPoint]
+        )]
+    ) async throws -> FinishedRecording {
         let saved = SavedRecording(
-            id: UUID().uuidString,
-            areaId: rec.areaId,
-            startedAt: rec.startedAt,
-            endedAt: rec.endedAt,
-            distanceMi: (rec.distanceMi * 100).rounded() / 100,
-            durationSeconds: rec.durationSeconds,
-            completedTrailIds: rec.newlyCompletedTrailIds,
-            path: rec.path,
-            trailId: rec.trailId,
-            revisitedTrailIds: rec.revisitedTrailIds,
-            multiAreaCompletions: rec.multiAreaCompletions,
-            multiAreaRevisited: rec.multiAreaRevisited,
-            mode: rec.mode
+            id: recordingId,
+            areaId: finished.areaId,
+            startedAt: finished.startedAt,
+            endedAt: finished.endedAt,
+            distanceMi: (finished.distanceMi * 100).rounded() / 100,
+            durationSeconds: finished.durationSeconds,
+            completedTrailIds: finished.newlyCompletedTrailIds,
+            path: finished.path,
+            trailId: finished.trailId,
+            revisitedTrailIds: finished.revisitedTrailIds,
+            multiAreaCompletions: finished.multiAreaCompletions,
+            multiAreaRevisited: finished.multiAreaRevisited,
+            mode: finished.mode
         )
-        history.insert(saved, at: 0)
-        if let data = try? JSONEncoder().encode(history) {
-            try? data.write(to: Self.historyFileURL)
+        guard let active = activeRecording, saved.matchesCheckpoint(active) else {
+            throw RecordingHistoryStoreError.identifierConflict(recordingId)
         }
+
+        let store = historyStore
+        let persisted = try await Task.detached(priority: .userInitiated) {
+            try store.prepend(saved)
+        }.value
+        guard persisted == saved else {
+            throw RecordingHistoryStoreError.identifierConflict(recordingId)
+        }
+
+        // History is authoritative. These effects are intentionally
+        // nonthrowing and idempotent; run every one before clearing the only
+        // active recovery checkpoint. If the process dies here, launch clears
+        // an exact duplicate and history rebuild repairs any missing effects.
+        for effect in coverageEffects {
+            _ = await mergeCoverage(
+                areaId: effect.areaId,
+                sessionCoverage: effect.sessionCoverage,
+                trails: effect.trails,
+                combinedPath: effect.combinedPath
+            )
+        }
+        // The detached append and nonthrowing effects both suspend the main
+        // actor. Mutators are blocked while `isStopping`, and this final exact
+        // check makes cleanup fail closed if any unexpected path changes anyway.
+        guard let current = activeRecording, saved.matchesCheckpoint(current) else {
+            throw RecordingHistoryStoreError.identifierConflict(recordingId)
+        }
+        recordSuccessfulStop(finished)
+
+        // Reviewer blocker: no active state or persisted recovery bytes are
+        // cleared until every synchronous/nonthrowing post-save effect above
+        // has finished.
+        activeRecording = nil
+        userDefaults.removeObject(forKey: persistKey)
+        errorMessage = nil
+        historyErrorMessage = nil
+        return finished
     }
 
-    /// Synchronous history read, for the main-actor paths that genuinely need
-    /// the value inline (save/merge/rebuild). UI paths must use `loadHistory()`,
-    /// which decodes off the main actor.
-    private func loadHistorySync() -> [SavedRecording] {
-        Self.decodeHistory()
+    private func recordSuccessfulStop(_ finished: FinishedRecording) {
+        let totalNew = finished.multiAreaCompletions?.values.map(\.count).reduce(0, +)
+            ?? finished.newlyCompletedTrailIds.count
+        let totalRevisited = finished.multiAreaRevisited?.values.map(\.count).reduce(0, +)
+            ?? finished.revisitedTrailIds.count
+        log.notice("stopSaved areaId=\(finished.areaId, privacy: .public) trailId=\(finished.trailId ?? "nil", privacy: .public) mode=\(finished.mode.rawValue, privacy: .public) duration=\(finished.durationSeconds)s distanceMi=\(finished.distanceMi) newlyCompleted=\(totalNew) revisited=\(totalRevisited)")
+        ActivityLogService.shared.log(
+            category: "recording",
+            action: "stop",
+            context: [
+                "areaId": finished.areaId,
+                "trailId": finished.trailId ?? "nil",
+                "mode": finished.mode.rawValue,
+                "distanceMi": String(format: "%.2f", finished.distanceMi),
+                "durationSeconds": String(finished.durationSeconds),
+                "newlyCompleted": String(totalNew),
+                "revisited": String(totalRevisited),
+            ]
+        )
+        AnalyticsService.shared.capture(.hikeSaved(
+            areaId: finished.areaId,
+            distanceMi: finished.distanceMi,
+            durationSeconds: finished.durationSeconds,
+            mode: finished.mode.rawValue
+        ))
+    }
+
+    private func handleStopFailure(_ error: Error, operation: String) {
+        errorMessage = error.localizedDescription
+        if let historyError = error as? RecordingHistoryStoreError {
+            switch historyError {
+            case .unreadable, .corrupt:
+                historyErrorMessage = historyError.localizedDescription
+            default:
+                break
+            }
+        }
+        log.error("\(operation, privacy: .public) failed; active recording preserved and observation resumed: \(error.localizedDescription, privacy: .public)")
+        ActivityLogService.shared.log(
+            category: "recording",
+            action: "saveFailed",
+            context: [
+                "operation": operation,
+                "error": error.localizedDescription,
+            ]
+        )
+        locationService.startBackgroundTracking()
+        beginObservingLocation()
+    }
+
+    private func recordHistoryFailure(_ error: Error, context: String) {
+        historyErrorMessage = error.localizedDescription
+        log.error("\(context, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+    }
+
+    /// Synchronous history read for service-internal calculations. Only a
+    /// genuinely missing file returns an empty array; unreadable/corrupt files
+    /// throw and abort the caller before any rewrite or coverage mutation.
+    private func loadHistorySync() throws -> [SavedRecording] {
+        try historyStore.load()
     }
 
     /// Build a single GPS path that's the union of every prior hike's path
@@ -1731,19 +1937,18 @@ final class RecordingService {
     /// the union of all visits, not the max of per-hike fractions — that
     /// max-merge would lose progress when two hikes cover different
     /// halves of the same trail.
-    /// `history` lets multi-area callers (stopWalk) decode the history
-    /// file once and share it across per-area passes instead of paying
-    /// a full JSON decode per area.
+    /// The caller supplies a successfully decoded history snapshot so corrupt or
+    /// unreadable storage can never be substituted with an empty path union.
     private func combinedPathForArea(
         _ areaId: String,
         currentPath: [GpsPoint] = [],
-        history: [SavedRecording]? = nil
+        history: [SavedRecording]
     ) -> [GpsPoint] {
         var combined = currentPath
         // touchedAreaIds (not areaId ==): a WALK saved under a primary
         // area still contributes its GPS path to every area it credited,
         // so later hikes there build on the walk's coverage.
-        for hike in (history ?? loadHistorySync()) where hike.touchedAreaIds.contains(areaId) {
+        for hike in history where hike.touchedAreaIds.contains(areaId) {
             combined.append(contentsOf: hike.path)
         }
         return combined
@@ -1763,20 +1968,18 @@ final class RecordingService {
     ///
     /// Returns only trails *not* already in `alreadyClassified`, so
     /// it composes safely after the strict `mergeCoverage` pass.
-    /// Pure-ish: depends on `loadHistorySync()` + `ProgressService`,
-    /// but takes the current hike's path explicitly so the same
-    /// shape is testable by hand-feeding history + completion dates
-    /// to `Self.computeRevisits(...)` if needed in the future.
+    /// The decoded history snapshot is required so a read failure cannot be
+    /// converted into an empty revisit baseline.
     private func computeRevisits(
         areaId: String,
         currentPath: [GpsPoint],
         trails: [Trail],
         alreadyClassified: Set<String>,
-        fullHistory: [SavedRecording]? = nil
+        fullHistory: [SavedRecording]
     ) -> [String] {
         // touchedAreaIds so walks credited in this area anchor and
         // contribute paths here, not just hikes saved under it.
-        let history = (fullHistory ?? loadHistorySync()).filter { $0.touchedAreaIds.contains(areaId) }
+        let history = fullHistory.filter { $0.touchedAreaIds.contains(areaId) }
         let completionDates = ProgressService.shared.completedTrails(in: areaId)
         guard !completionDates.isEmpty else { return [] }
 
@@ -1877,16 +2080,33 @@ final class RecordingService {
     /// the main thread for the whole decode — on launch, on Stats open, and on
     /// pull-to-refresh, growing with every hike recorded.
     func loadHistory() async -> [SavedRecording] {
-        await Task.detached(priority: .userInitiated) {
-            Self.decodeHistory()
-        }.value
+        let store = historyStore
+        do {
+            let history = try await Task.detached(priority: .userInitiated) {
+                try store.load()
+            }.value
+            historyErrorMessage = nil
+            return history
+        } catch {
+            recordHistoryFailure(error, context: "history load")
+            return []
+        }
     }
 
-    func deleteRecording(id: String) async {
-        var history = loadHistorySync()
-        history.removeAll { $0.id == id }
-        if let data = try? JSONEncoder().encode(history) {
-            try? data.write(to: Self.historyFileURL)
+    func deleteRecording(id: String) async throws {
+        try await deleteRecordings(ids: [id])
+    }
+
+    func deleteRecordings(ids: Set<String>) async throws {
+        let store = historyStore
+        do {
+            try await Task.detached(priority: .userInitiated) {
+                try store.delete(ids: ids)
+            }.value
+            historyErrorMessage = nil
+        } catch {
+            recordHistoryFailure(error, context: "history delete")
+            throw error
         }
     }
 
@@ -1895,6 +2115,6 @@ final class RecordingService {
     private func persist() {
         guard let rec = activeRecording,
               let data = try? JSONEncoder().encode(rec) else { return }
-        UserDefaults.standard.set(data, forKey: persistKey)
+        userDefaults.set(data, forKey: persistKey)
     }
 }

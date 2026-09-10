@@ -4,7 +4,7 @@ import UIKit
 
 @MainActor
 @Observable
-final class LocationService: NSObject {
+final class LocationService: NSObject, RecordingLocationControlling {
     static let shared = LocationService()
 
     private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined

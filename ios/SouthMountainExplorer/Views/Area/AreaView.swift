@@ -44,6 +44,9 @@ struct AreaView: View {
     /// trail is pre-selected once the area loads, so the map highlights
     /// it and the trail list scrolls it into view.
     var initialSelectedTrailId: String? = nil
+    /// Exact display name paired with the requested raw ID. Optional so
+    /// existing local/deep-link callers that only know an ID keep working.
+    var initialSelectedTrailName: String? = nil
 
     @Environment(AreaDataService.self) private var areas
     @Environment(AreaSilhouetteService.self) private var silhouettes
@@ -738,12 +741,21 @@ struct AreaView: View {
             if let name = initialCelebrationTrailName {
                 showCelebration(name: name)
             }
-            // Trail-search deep link: highlight the searched trail once
-            // the trail data is in. Only on first load (selection nil)
-            // so a user's own subsequent selection isn't overridden.
-            if let tid = initialSelectedTrailId, selectedTrailId == nil,
-               result.area?.trails.contains(where: { $0.id == tid }) == true {
-                selectedTrailId = tid
+            // Trail-search/notification deep link: resolve against the trails
+            // the area actually loaded. Exact ID+name wins; a unique exact name
+            // safely bridges a raw-ID/canonical-ID mismatch; ambiguous data
+            // leaves selection nil. Only run on first load so a user's own
+            // subsequent selection isn't overridden.
+            if let requestedId = initialSelectedTrailId,
+               selectedTrailId == nil,
+               let loadedArea = result.area {
+                selectedTrailId = TrailSelectionResolver.resolve(
+                    requestedRawTrailId: requestedId,
+                    requestedTrailName: initialSelectedTrailName,
+                    candidates: loadedArea.trails.map {
+                        TrailSelectionCandidate(id: $0.id, name: $0.name)
+                    }
+                )
             }
         }
         .task(id: areaId) {

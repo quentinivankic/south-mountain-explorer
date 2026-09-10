@@ -118,14 +118,24 @@ struct AreaView: View {
     /// A measurement has no stops to get individually wrong.
     @State private var measuredSheetTop: CGFloat? = nil
 
-    /// Trail-list sheet detents — three stops.
-    ///   - smallest: `minSheetHeight` — only as tall as the current state needs.
-    ///   - medium: the default. A device-relative fraction so it shows a
-    ///     comparable number of trail rows on a small iPhone SE and a
-    ///     Pro Max, rather than a fixed 340pt that's "half the list"
-    ///     on one and "three rows" on the other.
-    ///   - large: system `.large` (~almost full screen).
-    static let mediumDetent: PresentationDetent = .fraction(0.5)
+    /// Trail-list sheet detents — exactly TWO stops.
+    ///   - fit: `minSheetHeight` — precisely as tall as the current context
+    ///     needs to show its whole content (measured live), no taller.
+    ///   - full: system `.large` (~almost full screen, covers the map).
+    ///
+    /// There is deliberately no middle stop. Three stops meant the bottom two
+    /// sat arbitrarily close on real devices, and the middle one silently
+    /// disappeared whenever the measured fit height grew past it — the sheet
+    /// sometimes had three stops and sometimes two, for no reason the user
+    /// could see. Two stops with honest jobs replaces that: peek at the data,
+    /// or take the whole screen.
+    /// Seed for `committedMinHeight` AND the initial detent selection — the
+    /// two must agree on the first frame or the selection points at a stop
+    /// that is not in the set. Seeded at the TYPICAL idle fit (header +
+    /// toolbar + chrome + three rows − band) so the open animation rises to
+    /// roughly the right place in one stage instead of visibly retargeting
+    /// once real measurements land ~140 ms in.
+    static let seedMinHeight: CGFloat = 412
 
     /// Currently-active detent of the trail-list sheet. Drives
     /// `effectiveBottomInset` so the map's user-dot shift compensates
@@ -137,7 +147,10 @@ struct AreaView: View {
     /// in UIKit, so SwiftUI's body never re-evaluates for the gesture
     /// itself — only when the detent SETTLES (at most once per
     /// release).
-    @State private var sheetDetent: PresentationDetent = AreaView.mediumDetent
+    ///
+    /// Opens at the fit stop: the map is the star of this screen, and the
+    /// sheet's opening job is context, not takeover.
+    @State private var sheetDetent: PresentationDetent = .height(AreaView.seedMinHeight)
     /// Is the user parked on the smallest stop?
     ///
     /// **Not** `sheetDetent == minDetent`, and that distinction is the entire
@@ -160,9 +173,9 @@ struct AreaView: View {
     /// sheet. A measurement can no longer reach it, so there is no cycle left to
     /// damp — this is a fix, not another deadband.
     @State private var atMinStop = false
-    /// See `minSheetHeight`. Seeded at the old constant so the first frame is
-    /// sane before anything has been measured.
-    @State private var committedMinHeight: CGFloat = 205
+    /// See `minSheetHeight`. Seeded at the shared constant so the first frame
+    /// is sane before anything has been measured.
+    @State private var committedMinHeight: CGFloat = AreaView.seedMinHeight
     @State private var minHeightCommit: Task<Void, Never>? = nil
     /// Collection is a deliberate secondary destination, not a hidden page.
     @State private var showCollection = false
@@ -498,16 +511,15 @@ struct AreaView: View {
                             measuredSheetTop = top
                         }
                     }
-                    // LAYER 1 of 3, and the one the previous four attempts kept
-                    // missing the consequence of.
+                    // THE SHEET-LEVEL safe-area ignore, and the one earlier
+                    // attempts kept missing the consequence of.
                     //
                     // If the sheet's root content stops at the safe area, its
                     // frame ends ~34pt above the screen. Nothing inside can grow
-                    // past a parent that already ended — so the page-level fix
-                    // in #551 was a no-op whenever THIS one failed, because a
-                    // page has no safe area left to ignore once its parent has
-                    // already been cut short. Both are needed; neither is
-                    // sufficient.
+                    // past a parent that already ended — the trail list's own
+                    // bottom-edge ignore is a no-op whenever THIS one fails,
+                    // because a child has no safe area left to ignore once its
+                    // parent has already been cut short.
                     //
                     // `.container` narrowed this to one safe-area region.
                     // Dropping the region argument ignores ALL of them at the
@@ -523,13 +535,9 @@ struct AreaView: View {
                     // someone parked at full screen is never yanked down
                     // because they selected a trail.
                     .onChange(of: minSheetHeight) { _, new in
-                        // ONLY when the user was sitting on the minimum. There
-                        // used to be a second branch that yanked them off the
-                        // HALF stop whenever the minimum grew past it — which
-                        // made the half stop unreachable rather than making the
-                        // sheet bigger. `mediumIsDistinct` handles that case
-                        // properly now, by dropping the half stop from the set
-                        // instead of stealing it while it is in use.
+                        // ONLY when the user was sitting on the fit stop —
+                        // someone parked at full is never yanked down because
+                        // content resized underneath them.
                         //
                         // The test was `sheetDetent == .height(old)`, which
                         // fails whenever two measurements land between one body
@@ -542,13 +550,12 @@ struct AreaView: View {
                     // The one place `atMinStop` is written, and it deliberately
                     // does NOT consult `minSheetHeight`.
                     //
-                    // The smallest stop is the only `.height()` in the set —
-                    // medium is a `.fraction` and large is `.large` — so "are we
-                    // on the minimum" is answerable by ruling those two out,
-                    // without comparing against a height that the answer would
-                    // then go on to change.
+                    // The fit stop is the only non-`.large` member of the set,
+                    // so "are we on the fit stop" is answerable by ruling out
+                    // `.large`, without comparing against a height that the
+                    // answer would then go on to change.
                     .onChange(of: sheetDetent, initial: true) { _, detent in
-                        atMinStop = detent != Self.mediumDetent && detent != .large
+                        atMinStop = detent != .large
                     }
                     // Commit the smallest stop's height once the layout has
                     // stopped moving, never mid-animation. Each new value
@@ -580,12 +587,12 @@ struct AreaView: View {
                     // absent detent here would be asking UIKit about a stop it
                     // does not have.
                     .presentationBackgroundInteraction(
-                        .enabled(upThrough: mediumIsDistinct ? Self.mediumDetent : minDetent)
+                        .enabled(upThrough: minDetent)
                     )
                     .presentationContentInteraction(.scrolls)
                     .presentationCornerRadius(20)
                     // Opaque system background at EVERY detent. By default the
-                    // sheet is translucent (glass) at the small / medium detents
+                    // sheet is translucent (glass) at non-large detents
                     // and only goes opaque at .large, which read as "glass on
                     // glass"; this forces the solid surface everywhere.
                     //
@@ -851,21 +858,37 @@ struct AreaView: View {
         UIScreen.main.bounds.height - Self.topSafeInset - 10
     }
 
-    /// Smallest sheet stop for the current context. Browsing keeps the action
-    /// toolbar plus two whole trail rows visible; an active recording uses its
-    /// live measured dashboard height.
+    /// The FIT stop: precisely as tall as the current context's whole content,
+    /// measured live, never taller.
+    ///
+    ///   - recording → the complete live dashboard (camera controls, banners,
+    ///     panel). The trail list waits below, revealed by dragging to full.
+    ///   - trail selected → the ENTIRE expanded card — name, stats, elevation
+    ///     chart, parking line — so selecting a trail nudges the sheet up by
+    ///     exactly what the card needs, whatever its size.
+    ///   - browsing → the action toolbar plus three whole rows, the third row
+    ///     being the cue that the list continues.
+    ///
+    /// Every term is a live measurement, so content that grows (a long name
+    /// wrapping, the GPS capsule appearing, the elevation strip arriving)
+    /// grows the stop with it. The band subtraction pays for the home-indicator
+    /// strip in every case so the last visible thing is whole, not sliced.
     private var desiredMinSheetHeight: CGFloat {
         let h: CGFloat
         if isRecording {
-            h = headerHeightFull + recordingHeight
-        } else {
-            let ordinaryRows = collapsedRowHeight * 2
-            let rows = selectedTrailId == nil ? ordinaryRows : max(ordinaryRows, selectedRowHeight)
-            h = headerHeightFull + idleToolbarHeight + listChromeHeight + rows
+            h = headerHeightFull + recordingHeight - Self.bottomSafeInset
+        } else if selectedTrailId != nil {
+            let card = max(selectedRowHeight, collapsedRowHeight * 3)
+            h = headerHeightFull + idleToolbarHeight + listChromeHeight + card
                 - Self.bottomSafeInset
+        } else {
+            h = headerHeightFull + idleToolbarHeight + listChromeHeight
+                + collapsedRowHeight * 3 - Self.bottomSafeInset
         }
 
-        let clamped = min(max(h, 140), maxDetentHeight * 0.72)
+        // Floor guards a nonsense measurement; the ceiling leaves the fit stop
+        // meaningfully below full even for the tallest selected card.
+        let clamped = min(max(h, 140), maxDetentHeight * 0.85)
         return (clamped / 4).rounded(.up) * 4
     }
 
@@ -888,51 +911,28 @@ struct AreaView: View {
 
     private var minDetent: PresentationDetent { .height(minSheetHeight) }
 
-    /// Is the half stop far enough above the smallest one to be its own stop?
-    ///
-    /// `minSheetHeight` is measured and can grow past half the sheet — a
-    /// recording panel with its live elevation strip up will do it on a small
-    /// phone. When it does, "min" and "medium" are the same size or inverted,
-    /// and a set holding both leaves the user with one place to drag to. THAT
-    /// is the bug where the menu ended up with a single size.
-    private var mediumIsDistinct: Bool {
-        maxDetentHeight * 0.5 > minSheetHeight + 60
-    }
-
-    /// Always ordered, always distinct. Three stops when there is room for
-    /// three, two when the smallest has grown into the middle one's space.
+    /// Exactly two stops, always. The fit stop is measured so it can never
+    /// collide with a fraction stop, which is how the old middle detent
+    /// sometimes vanished and made the sheet's stop count unpredictable.
     private var sheetDetentSet: Set<PresentationDetent> {
-        mediumIsDistinct ? [minDetent, Self.mediumDetent, .large]
-                         : [minDetent, .large]
+        [minDetent, .large]
     }
 
-    /// Height of the visible sheet, measured from the BOTTOM of the screen.
-    /// Drives both the map's user-dot shift and the floating control bar's
-    /// position, so being wrong here puts the controls in the wrong place.
-    ///
-    /// Two bugs lived here: the small case was hardcoded to 150 after the small
-    /// detent stopped being 150 (so the controls sat ~40pt low and clipped
-    /// behind the sheet), and the medium case used half the FULL screen when
-    /// `.fraction(0.5)` means half the sheet's maximum height — which
-    /// overestimated it, floating the controls too far above the sheet.
     /// Where the sheet's top edge is, in points up from the physical screen
-    /// bottom. Its ONE remaining job is the map's user-dot shift, so the dot
-    /// clears the sheet — the floating controls it also used to pin are gone,
-    /// and with them every complaint about how far they sat from the menu.
+    /// bottom. Its ONE job is the map's user-dot shift, so the dot clears the
+    /// visible sheet.
     ///
-    /// **Measured, not modelled.** Every earlier version computed this from what
-    /// a detent was believed to mean — whether `.height(x)` includes the home
-    /// indicator, whether `.fraction(0.5)` is half the screen or half the
-    /// sheet's maximum — with a separate guess per stop, each wrong by a
-    /// different amount. The sheet's own content reports where it actually
-    /// starts (`measuredSheetTop`), so every stop is right for one reason.
+    /// **Measured, not modelled.** Every earlier version computed this from
+    /// what a detent was believed to mean — whether `.height(x)` includes the
+    /// home indicator, and similar per-stop guesses, each wrong by a different
+    /// amount. The sheet's own content reports where it actually starts
+    /// (`measuredSheetTop`), so every stop is right for one reason.
     ///
     /// The computed values stay as the seed for the first frame, before the
     /// sheet has laid out and had a chance to say.
     private var effectiveBottomInset: CGFloat {
         if let measured = measuredSheetTop { return measured }
         if sheetDetent == .large { return maxDetentHeight }
-        if sheetDetent == Self.mediumDetent { return maxDetentHeight * 0.5 }
         return minSheetHeight + Self.bottomSafeInset
     }
 
@@ -1296,40 +1296,24 @@ struct AreaView: View {
         return parts.joined(separator: " · ")
     }
 
-    /// The active recording context. It owns the sheet while a hike is running,
-    /// so the live dashboard can never be swiped out of view; the trail list
-    /// returns on its own once the hike is saved or discarded.
+    /// The live recording dashboard: camera controls, retarget banner, and the
+    /// recording panel, measured as one block. It is pinned ABOVE the trail
+    /// list rather than replacing it, so the fit stop shows exactly the
+    /// dashboard while dragging to full reveals the list underneath — the list
+    /// stays reachable mid-hike, and the dashboard can never be swiped away.
+    ///
+    /// Measured LIVE, not high-water: the GPS capsule and elevation strip come
+    /// and go, and the fit stop follows in both directions. The list below is
+    /// flexible, so a grown panel briefly borrows from the (invisible at fit)
+    /// list region instead of clipping while the 140 ms commit catches up —
+    /// which is what let the old ScrollView + scroll-reset machinery retire.
     @ViewBuilder
-    private func recordingContext(area: Area) -> some View {
-        // Scrolls so a growing panel cannot clip.
-        //
-        // Its height is a live measurement and the stop is sized from it, so in
-        // the steady state the content fits exactly and the scroll view is
-        // invisible. The frame it protects is the one where the panel has just
-        // grown — the GPS capsule appearing, the elevation strip arriving — and
-        // the stop has not caught up yet. Without this that frame clips; with it
-        // the content is briefly scrollable by a few points and then settles.
-        ScrollViewReader { proxy in
-        ScrollView {
+    private func recordingDashboard(area: Area) -> some View {
         VStack(spacing: 0) {
             // Camera controls stay reachable mid-hike: the map is the thing you
             // are looking at while the dashboard runs.
             controlBar(area: area)
                 .padding(.bottom, 10)
-                .id("record-top")
-
-            // Names the tracking mode you just cycled into, for ~2 s, so the
-            // three-state cycle teaches itself without a permanent label.
-            if let toast = trackingModeToast {
-                Text(toast)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(Color.accentColor, in: Capsule())
-                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                    .padding(.bottom, 10)
-            }
 
             recordingBanners(area: area)
             RecordingPanel(area: area) { finished in
@@ -1343,56 +1327,60 @@ struct AreaView: View {
             // No Spacer. One sat here and the content measured taller than
             // itself, leaving a band of empty sheet under the panel.
         }
-        // ORDER MATTERS. SwiftUI applies modifiers bottom-up, so measuring
-        // before `fixedSize` measures the SQUEEZED page — and that height then
-        // sizes the stop to keep it squeezed, a loop that cannot open on its
-        // own. It cost several builds on the recording panel; same rule here.
-        .fixedSize(horizontal: false, vertical: true)
-        // Measures the CONTENT, inside the scroll view. On the scroll view
-        // itself this would report the slot it was given — a greedy view always
-        // reports the space it filled — and the stop would be sized from its own
-        // previous value, which is a loop with no ground under it.
+        .padding(.top, 8)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
-            // The LIVE height, not a high-water mark.
-            //
-            // It used to only ever grow while a hike ran, so the sheet would not
-            // bob when the GPS capsule came and went. The cost was worse than
-            // the bob: once the capsule had appeared even briefly, the stop kept
-            // its height forever and the page sat under a band of empty sheet —
-            // the recording page ending up TALLER than the trail list while
-            // holding less. "Minimum height necessary" cannot be served by a
-            // number that only goes up.
-            let shrank = h < recordingHeight - 2
             if abs(recordingHeight - h) >= 2 { recordingHeight = h }
-            // Reset the offset whenever the content SHRINKS. While the toast is
-            // up the content is taller than the stop, so the page is briefly
-            // scrollable; a drag can leave it a few points down, and when the
-            // toast goes that stray offset survives — which clips the camera
-            // buttons at the top for no visible reason. Content that fits again
-            // has exactly one sensible offset, so snap back to it.
-            if shrank {
-                // DEFERRED out of the layout pass — this is the crash fix.
-                //
-                // `onGeometryChange`'s action runs while layout is being
-                // resolved. `scrollTo` forces a synchronous scroll, which forces
-                // ANOTHER layout, which fires this action again — re-entrant
-                // layout, exactly the kind of cycle that dies in AttributeGraph.
-                // Dragging the sheet to its smallest stop is precisely when
-                // every height on this screen changes at once, which is why the
-                // crash appeared on that gesture. Hopping through a Task lets
-                // the current layout pass FINISH before the scroll starts.
-                Task { @MainActor in
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        proxy.scrollTo("record-top", anchor: .top)
-                    }
-                }
+        }
+        // Names the tracking mode you just cycled into, for ~2 s. An overlay,
+        // not flow content: a transient pill must not resize the fit stop.
+        .overlay(alignment: .top) {
+            if let toast = trackingModeToast {
+                trackingToastPill(toast)
+                    .padding(.top, 58)
             }
         }
-        }
-        // No bounce when the content already fits, so a page that is not
-        // scrollable does not behave as though it is.
-        .scrollBounceBehavior(.basedOnSize)
-        }
+    }
+
+    /// The transient tracking-mode pill, shared by both contexts.
+    private func trackingToastPill(_ label: String) -> some View {
+        Text(label)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(Color.accentColor, in: Capsule())
+            .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            .allowsHitTesting(false)
+    }
+
+    /// The searchable, filterable trail list, rendered by both contexts.
+    /// Filters, search text, and the selection are AreaView-owned bindings, so
+    /// they survive a recording starting or ending around the list; the list's
+    /// own scroll offset does not (the context branches give it fresh
+    /// structural identity), and its on-appear scroll-to-selection covers that.
+    @ViewBuilder
+    private func trailList(area: Area) -> some View {
+        TrailListView(
+            area: area,
+            selectedTrailId: $selectedTrailId,
+            statusFilter: $statusFilter,
+            difficultyFilter: $difficultyFilter,
+            lengthFilter: $lengthFilter,
+            routeFilter: $routeFilter,
+            sort: $trailSort,
+            searchQuery: $trailSearchQuery,
+            filteredTrails: filtered,
+            onRecordTrail: { trail in tryStartRecording(trailId: trail.id) },
+            onChromeHeight: { h in
+                if abs(listChromeHeight - h) >= 2 { listChromeHeight = h }
+            },
+            onCollapsedRowHeight: { h in
+                if abs(collapsedRowHeight - h) >= 2 { collapsedRowHeight = h }
+            },
+            onSelectedRowHeight: { h in
+                if abs(selectedRowHeight - h) >= 2 { selectedRowHeight = h }
+            }
+        )
     }
 
     /// The idle context's primary actions: start a hike and open the
@@ -1489,9 +1477,8 @@ struct AreaView: View {
             .padding(.horizontal, 20)
             .padding(.top, 10)
             .padding(.bottom, 12)
-            // Both variants get remembered, so `minSheetHeight` can ask for the
-            // COMPACT header while the FULL one is on screen (a selected trail
-            // at the half stop) without either measurement chasing the other.
+            // Measured with a deadband like every other block the fit stop
+            // must contain, so a sub-2pt wobble cannot thrash the detent.
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
                 if abs(headerHeightFull - h) >= 2 { headerHeightFull = h }
             }
@@ -1502,16 +1489,23 @@ struct AreaView: View {
             // iOS marks this edge; ours was the only one that did not.
             Divider()
 
-            // One context at a time: an active recording owns the sheet;
-            // otherwise the area stays in its searchable Trails context.
+            // One trail list, always present. What sits ABOVE it is the
+            // context: the live recording dashboard while a hike runs, or the
+            // camera-controls + Start/Collection toolbar while browsing. The
+            // fit stop sizes to that block, so mid-hike the list waits just
+            // below the dashboard — drag to full to browse it, and the
+            // dashboard stays pinned where it cannot be swiped away.
             if isRecording {
-                recordingContext(area: area)
-                    .ignoresSafeArea(edges: .bottom)
+                VStack(spacing: 0) {
+                    recordingDashboard(area: area)
+                    trailList(area: area)
+                }
+                .frame(maxHeight: .infinity, alignment: .top)
             } else {
                 VStack(spacing: 0) {
                     // Camera controls plus the labeled Start/Collection row.
-                    // Measured as one block so the smallest stop always shows
-                    // the whole toolbar — these actions were pages behind an
+                    // Measured as one block so the fit stop always shows the
+                    // whole toolbar — these actions were pages behind an
                     // undiscoverable horizontal swipe.
                     VStack(spacing: 10) {
                         controlBar(area: area)
@@ -1523,43 +1517,16 @@ struct AreaView: View {
                         if abs(idleToolbarHeight - h) >= 2 { idleToolbarHeight = h }
                     }
 
-                    TrailListView(
-                        area: area,
-                        selectedTrailId: $selectedTrailId,
-                        statusFilter: $statusFilter,
-                        difficultyFilter: $difficultyFilter,
-                        lengthFilter: $lengthFilter,
-                        routeFilter: $routeFilter,
-                        sort: $trailSort,
-                        searchQuery: $trailSearchQuery,
-                        filteredTrails: filtered,
-                        onRecordTrail: { trail in tryStartRecording(trailId: trail.id) },
-                        onChromeHeight: { h in
-                            if abs(listChromeHeight - h) >= 2 { listChromeHeight = h }
-                        },
-                        onCollapsedRowHeight: { h in
-                            if abs(collapsedRowHeight - h) >= 2 { collapsedRowHeight = h }
-                        },
-                        onSelectedRowHeight: { h in
-                            if abs(selectedRowHeight - h) >= 2 { selectedRowHeight = h }
+                    trailList(area: area)
+                        // The tracking-mode toast floats over the list instead
+                        // of living in the measured toolbar, so a 2 s pill
+                        // cannot resize the sheet's fit stop twice per tap.
+                        .overlay(alignment: .top) {
+                            if let toast = trackingModeToast {
+                                trackingToastPill(toast)
+                                    .padding(.top, 6)
+                            }
                         }
-                    )
-                    // The tracking-mode toast floats over the list instead of
-                    // living in the measured toolbar, so a 2 s pill cannot
-                    // resize the sheet's smallest stop twice per tap.
-                    .overlay(alignment: .top) {
-                        if let toast = trackingModeToast {
-                            Text(toast)
-                                .font(.caption.weight(.medium))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 7)
-                                .background(Color.accentColor, in: Capsule())
-                                .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                                .padding(.top, 6)
-                                .allowsHitTesting(false)
-                        }
-                    }
                 }
                 .frame(maxHeight: .infinity, alignment: .top)
             }

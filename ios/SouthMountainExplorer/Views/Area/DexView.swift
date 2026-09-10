@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// The "Dex" — a Pokédex-style achievement page for one area. Lives as
-/// the second segment of the area sheet (Trails | Dex). Every badge is
-/// derived on the fly by `AchievementEngine` from recorded hikes +
-/// trail completions, so it fills in retroactively and needs no
-/// storage of its own.
+/// The "Dex" — a Pokédex-style achievement page for one area. Presented
+/// as the Collection: an explicit nested sheet opened from the area
+/// sheet's action row. Every badge is derived on the fly by
+/// `AchievementEngine` from recorded hikes + trail completions, so it
+/// fills in retroactively and needs no storage of its own.
 struct DexView: View {
     let area: Area
 

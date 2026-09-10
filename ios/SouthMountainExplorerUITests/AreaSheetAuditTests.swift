@@ -94,34 +94,22 @@ final class AreaSheetAuditTests: XCTestCase {
         capture(app, "sheet-07-half-after-deselect")
         logFrames(app, "half-after-deselect")
 
-        // ---- 7. Back to min, swipe to the Record page ---------------------
+        // ---- 7. Back to min, open the Collection from its explicit button --
+        // The horizontal pager is gone; the Collection is a labeled action in
+        // the sheet toolbar, presented as its own nested sheet.
         dragSheet(app, toBottom: true)
         settle(2)
-        swipePage(app, toward: .right)   // Record page sits LEFT of Trails
+        openCollection(app)
         settle(3)
-        capture(app, "sheet-08-min-record-page")
-        logFrames(app, "min-record-page")
+        capture(app, "sheet-08-collection-open")
+        logFrames(app, "collection-open")
 
-        // ---- 8. Swipe BACK to Trails: the state the device found -----------
-        // Reported on build 300, 2026-08-19: "when i swipe away from lowest
-        // record trail page to the trail list page. clips the search bar."
-        // The record stop is shorter than the trails stop, so this swipe
-        // RESIZES the sheet while the pager is settling — the exact overlap
-        // none of the first eight states exercised.
-        swipePage(app, toward: .left)
+        // ---- 8. Close the Collection: the sheet underneath must be exactly
+        // the idle min-stop layout it was before the presentation.
+        closeCollection(app)
         settle(3)
-        capture(app, "sheet-09-min-back-to-trails")
-        logFrames(app, "min-back-to-trails")
-
-        // And the other border: Trails -> Dex -> Trails at the min stop.
-        swipePage(app, toward: .left)
-        settle(2)
-        capture(app, "sheet-10-min-dex")
-        logFrames(app, "min-dex")
-        swipePage(app, toward: .right)
-        settle(3)
-        capture(app, "sheet-11-min-dex-back-to-trails")
-        logFrames(app, "min-dex-back-to-trails")
+        capture(app, "sheet-09-collection-closed")
+        logFrames(app, "collection-closed")
 
         assertLayoutInvariants()
     }
@@ -155,25 +143,18 @@ final class AreaSheetAuditTests: XCTestCase {
             XCTAssertEqual(back, before, accuracy: 1, "Search field moved when the list scrolled back")
         }
 
-        // 3. Returning to Trails by SWIPE must land the search field where
-        //    idle has it — from the Record side (the sheet GROWS under the
-        //    settling pager: the build-300 device report) and from the Dex
-        //    side (same height, pure page transition).
+        // 3. Dismissing the Collection must return the sheet to exactly the
+        //    idle layout — the nested presentation may not disturb the detent
+        //    or the fixed chrome underneath it.
         if let idle = searchY["min-idle"] {
-            if let fromRecord = searchY["min-back-to-trails"] {
+            if let closed = searchY["collection-closed"] {
                 XCTAssertEqual(
-                    fromRecord, idle, accuracy: 2,
-                    "Swiping back from Record left the search field \(Int(idle - fromRecord))pt "
-                    + "from idle (idle y=\(Int(idle)), after y=\(Int(fromRecord)))"
+                    closed, idle, accuracy: 2,
+                    "Closing the Collection left the search field \(Int(idle - closed))pt "
+                    + "from idle (idle y=\(Int(idle)), after y=\(Int(closed)))"
                 )
             } else {
-                XCTFail("No search-field measurement after swiping back from Record")
-            }
-            if let fromDex = searchY["min-dex-back-to-trails"] {
-                XCTAssertEqual(
-                    fromDex, idle, accuracy: 2,
-                    "Swiping back from Dex left the search field \(Int(idle - fromDex))pt from idle"
-                )
+                XCTFail("No search-field measurement after closing the Collection")
             }
         }
     }
@@ -219,16 +200,27 @@ final class AreaSheetAuditTests: XCTestCase {
         else { b.press(forDuration: 0.05, thenDragTo: a) }
     }
 
-    private enum PageDirection { case left, right }
+    /// Open the area Collection via its explicit toolbar button — the
+    /// horizontal pager is gone, so the destination is a labeled tap.
+    private func openCollection(_ app: XCUIApplication) {
+        let button = app.buttons["area-collection-button"].firstMatch
+        guard button.waitForExistence(timeout: 20) else {
+            dumpTree(app, "collection-button-missing")
+            XCTFail("Collection button not found in area sheet")
+            return
+        }
+        tapElement(button)
+    }
 
-    /// Swipe horizontally across the sheet's page region.
-    private func swipePage(_ app: XCUIApplication, toward: PageDirection) {
-        let y = 0.85
-        let fromX = toward == .right ? 0.15 : 0.85
-        let toX = toward == .right ? 0.85 : 0.15
-        let from = app.coordinate(withNormalizedOffset: CGVector(dx: fromX, dy: y))
-        let to = app.coordinate(withNormalizedOffset: CGVector(dx: toX, dy: y))
-        from.press(forDuration: 0.05, thenDragTo: to)
+    /// Dismiss the Collection sheet via its Done button.
+    private func closeCollection(_ app: XCUIApplication) {
+        let done = app.buttons["Done"].firstMatch
+        guard done.waitForExistence(timeout: 10) else {
+            dumpTree(app, "collection-done-missing")
+            XCTFail("Collection Done button not found")
+            return
+        }
+        tapElement(done)
     }
 
     /// Tap the first visible trail row and return its name so the caller

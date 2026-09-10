@@ -123,11 +123,11 @@ final class ScreenshotTests: XCTestCase {
             XCTFail("Featured hike row not found for hike-detail shot")
         }
 
-        // Shot 2 — the Dex badge grid, now with 70/77 completed so the
+        // Shot 2 — the Collection badge grid, now with 70/77 completed so the
         // milestones + difficulty badges read richly earned.
         if openAreaFromStats(app) {
             settle(8)
-            tapSegment(app, "Dex")
+            openCollection(app)
             settle(3)
             capture(app, "02-dex")
         } else {
@@ -139,8 +139,8 @@ final class ScreenshotTests: XCTestCase {
         // ---- Launch C: same seed + a live active recording ----
         // The recording is injected in-memory without starting GPS, so no
         // location-permission alert can appear. Reach the area the same
-        // proven way: Stats tab → Area Progress row push. The Trails
-        // segment shows the live RecordingPanel because
+        // proven way: Stats tab → Area Progress row push. The sheet shows
+        // the live RecordingPanel because
         // recording.activeRecording.areaId matches the pushed area.
         app.terminate()
         app.launchArguments = ["--uitest-seed", "--uitest-recording"]
@@ -191,8 +191,8 @@ final class ScreenshotTests: XCTestCase {
     }
 
     /// Push AreaView via the Stats tab's "Area Progress" row and wait
-    /// for the trail sheet's Trails/Dex picker. Returns true when the
-    /// picker is on screen. Dumps the accessibility tree on any wait
+    /// for the area sheet's context-neutral chrome. Returns true when the
+    /// sheet is on screen. Dumps the accessibility tree on any wait
     /// failure so the CI log shows exactly what rendered instead.
     /// Scroll the current screen until `identifier` exists, then return it.
     /// Tries down first, then back up, because a previous shot may have left
@@ -226,11 +226,12 @@ final class ScreenshotTests: XCTestCase {
         }
         tapElement(row)
 
-        // The Trails/Dex segmented control was replaced by a swipeable pager,
-        // so wait on the trail search field instead as the "area sheet is up"
-        // signal.
-        let search = app.textFields["Search trails"]
-        if search.waitForExistence(timeout: 60) { return true }
+        // Context-neutral "area sheet is up" signal: the camera recenter
+        // button renders in BOTH sheet contexts — the idle toolbar and the
+        // live recording dashboard — unlike the search field, which is
+        // idle-only and never exists during the Launch C recording shot.
+        let recenter = app.buttons["area-recenter-button"].firstMatch
+        if recenter.waitForExistence(timeout: 60) { return true }
         dumpTree(app, "area-sheet-missing-after-area-push")
         return false
     }
@@ -249,15 +250,17 @@ final class ScreenshotTests: XCTestCase {
         settle(2)
     }
 
-    /// Move between the Trails and Dex pages. These were a segmented control;
-    /// they are now pages of a swipeable TabView, so drive them with a
-    /// horizontal swipe across the sheet area (lower third of the screen).
-    private func tapSegment(_ app: XCUIApplication, _ label: String) {
-        let toDex = (label == "Dex")
-        let y = 0.8
-        let from = app.coordinate(withNormalizedOffset: CGVector(dx: toDex ? 0.85 : 0.15, dy: y))
-        let to = app.coordinate(withNormalizedOffset: CGVector(dx: toDex ? 0.15 : 0.85, dy: y))
-        from.press(forDuration: 0.05, thenDragTo: to)
+    /// Open the area Collection (badge grid) via its explicit toolbar
+    /// button — the horizontal pager is gone, so the destination is a
+    /// labeled tap that presents a nested sheet.
+    private func openCollection(_ app: XCUIApplication) {
+        let button = app.buttons["area-collection-button"].firstMatch
+        guard button.waitForExistence(timeout: 20) else {
+            dumpTree(app, "collection-button-missing")
+            XCTFail("Collection button not found in area sheet")
+            return
+        }
+        tapElement(button)
         settle(2)
     }
 

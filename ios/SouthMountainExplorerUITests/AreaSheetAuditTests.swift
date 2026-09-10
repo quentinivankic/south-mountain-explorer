@@ -51,9 +51,9 @@ final class AreaSheetAuditTests: XCTestCase {
         // beyond the search field's appearance so rows exist to photograph.
         settle(8)
 
-        // ---- 1. As opened: the medium stop --------------------------------
-        capture(app, "sheet-01-medium-initial")
-        logFrames(app, "medium-initial")
+        // ---- 1. As opened: the fit stop (the sheet's opening detent) ------
+        capture(app, "sheet-01-fit-initial")
+        logFrames(app, "fit-initial")
 
         // ---- 2. The smallest stop: the state in every bug report ----------
         dragSheet(app, toBottom: true)
@@ -88,11 +88,11 @@ final class AreaSheetAuditTests: XCTestCase {
         capture(app, "sheet-06-min-trail-deselected")
         logFrames(app, "min-trail-deselected")
 
-        // ---- 6. Drag up to the half stop ----------------------------------
+        // ---- 6. Drag up to the full stop (the only other stop now) --------
         dragSheet(app, toBottom: false)
         settle(3)
-        capture(app, "sheet-07-half-after-deselect")
-        logFrames(app, "half-after-deselect")
+        capture(app, "sheet-07-full-after-deselect")
+        logFrames(app, "full-after-deselect")
 
         // ---- 7. Back to min, open the Collection from its explicit button --
         // The horizontal pager is gone; the Collection is a labeled action in
@@ -181,7 +181,10 @@ final class AreaSheetAuditTests: XCTestCase {
             from = app.coordinate(withNormalizedOffset: .zero)
                 .withOffset(CGVector(dx: app.frame.width / 2, dy: anchorY))
         }
-        let targetY = toBottom ? app.frame.height - 8 : app.frame.height * 0.5
+        // The sheet has exactly two stops (fit + full), so the upward drag
+        // must release well above the fit stop's top edge or UIKit snaps
+        // back to fit instead of advancing to full.
+        let targetY = toBottom ? app.frame.height - 8 : app.frame.height * 0.2
         let to = app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: app.frame.width / 2, dy: targetY))
         from.press(forDuration: 0.1, thenDragTo: to)

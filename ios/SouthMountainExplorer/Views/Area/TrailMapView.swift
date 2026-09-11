@@ -79,6 +79,12 @@ struct TrailMapView: View {
     /// already pointing at it and `.onChange(of: selectedTrailId)`
     /// would not fire).
     let centerOnSwitchedTrailTick: Int
+    /// Bump from `AreaView` once the sheet has settled at a new stop with a
+    /// trail selected. Re-frames that trail — alone, no user location — in
+    /// whatever map area the sheet now leaves visible, so a selection made
+    /// from the tall browse stop lands framed in the larger area the sheet
+    /// opens up when it drops to fit.
+    let fitSelectedTrailTick: Int
     @Binding var selectedTrailId: String?
     @AppStorage(StorageKeys.showAllParking) private var showAllParking = false
     /// nil = render every trail. Non-nil = only render trails whose id is
@@ -153,6 +159,7 @@ struct TrailMapView: View {
         pastHikes: [PastHike],
         recenterTick: Int,
         centerOnSwitchedTrailTick: Int,
+        fitSelectedTrailTick: Int = 0,
         selectedTrailId: Binding<String?>,
         visibleTrailIds: Set<String>? = nil,
         bottomInset: CGFloat = 0,
@@ -163,6 +170,7 @@ struct TrailMapView: View {
         self.pastHikes = pastHikes
         self.recenterTick = recenterTick
         self.centerOnSwitchedTrailTick = centerOnSwitchedTrailTick
+        self.fitSelectedTrailTick = fitSelectedTrailTick
         self._selectedTrailId = selectedTrailId
         self.visibleTrailIds = visibleTrailIds
         self.bottomInset = bottomInset
@@ -350,6 +358,17 @@ struct TrailMapView: View {
                 return
             }
             centerOnUserAndTrail(trail)
+        }
+        .onChange(of: fitSelectedTrailTick) { _, _ in
+            // The sheet settled at a new stop with a trail selected: frame
+            // that trail in the map area now visible above it. Reads the
+            // CURRENT bottomInset, which is why AreaView waits for the sheet's
+            // motion to land before bumping this.
+            guard let id = selectedTrailId,
+                  let trail = area.trails.first(where: { $0.id == id }) else {
+                return
+            }
+            centerOn(trail: trail)
         }
         .onChange(of: recenterTick) { _, _ in
             // Manual recenter — always a one-shot center on user with

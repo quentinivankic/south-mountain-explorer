@@ -79,9 +79,9 @@ struct AreaView: View {
     /// Area name + summary line, both single-line by design.
     @State private var headerHeightFull: CGFloat = 91
     // The list's search-and-filter chrome no longer has a height here: it
-    // renders ONLY at the full stop (see `trailList`), so it is absent from
+    // renders ONLY at the browse stop (see `trailList`), so it is absent from
     // the fit arithmetic entirely — and a text field the keyboard could grab
-    // no longer exists at the stop the keyboard used to yank to full.
+    // no longer exists at the stop the keyboard used to yank taller.
     /// The recording context's LIVE height: camera controls plus the live
     /// recording panel. Seeded roughly and corrected on the first layout pass —
     /// unlike the browse measurements this one is never a high-water mark,
@@ -114,17 +114,20 @@ struct AreaView: View {
     /// A measurement has no stops to get individually wrong.
     @State private var measuredSheetTop: CGFloat? = nil
 
-    /// Trail-list sheet detents — exactly TWO stops.
+    /// Trail-list sheet detents — exactly TWO stops, and the MAP IS VISIBLE
+    /// AT BOTH. There is no full-screen stop: this is a map screen, and a
+    /// menu that can cover the map defeats the reason the screen exists.
     ///   - fit: `minSheetHeight` — precisely as tall as the current context
-    ///     needs to show its whole content (measured live), no taller.
-    ///   - full: system `.large` (~almost full screen, covers the map).
+    ///     needs to show its whole content, no taller.
+    ///   - browse: `browseHeight` — a tall list stop capped so roughly the top
+    ///     40% of the screen always stays map. Search and filters live here.
     ///
     /// There is deliberately no middle stop. Three stops meant the bottom two
     /// sat arbitrarily close on real devices, and the middle one silently
     /// disappeared whenever the measured fit height grew past it — the sheet
     /// sometimes had three stops and sometimes two, for no reason the user
     /// could see. Two stops with honest jobs replaces that: peek at the data,
-    /// or take the whole screen.
+    /// or browse the list — with the map still in view above it.
     /// Seed for `committedMinHeight` AND the initial detent selection — the
     /// two must agree on the first frame or the selection points at a stop
     /// that is not in the set. Seeded at the TYPICAL idle fit (header +
@@ -173,7 +176,7 @@ struct AreaView: View {
     /// sheet. A measurement can no longer reach it, so there is no cycle left to
     /// damp — this is a fix, not another deadband.
     /// Seeded TRUE because the sheet opens at the fit stop — a false seed let
-    /// the full-only chrome flash for the first frame of every area open.
+    /// the browse-only chrome flash for the first frame of every area open.
     @State private var atMinStop = true
     /// See `minSheetHeight`. Seeded at the shared constant so the first frame
     /// is sane before anything has been measured.
@@ -181,9 +184,26 @@ struct AreaView: View {
     @State private var minHeightCommit: Task<Void, Never>? = nil
     /// Collection is a deliberate secondary destination, not a hidden page.
     @State private var showCollection = false
-    /// Bumped by the toolbar search button after expanding to full, so the
+    /// Bumped by the toolbar search button after expanding to browse, so the
     /// just-mounted search field grabs focus and the keyboard is ready.
     @State private var searchFocusTick = 0
+    /// Set when selecting a trail from the browse stop dropped the sheet to
+    /// fit so the map could show the trail. Deselecting then returns the sheet
+    /// to browse — unless the user has dragged it themselves since, which
+    /// clears this and leaves the sheet where they put it.
+    @State private var collapsedForSelection = false
+    /// Bumped after the sheet settles with a trail selected, so the map
+    /// re-frames that trail in whatever area the sheet now leaves visible.
+    @State private var fitSelectedTrailTick = 0
+    @State private var selectedTrailRefit: Task<Void, Never>? = nil
+    /// Bumped on any deselect that does NOT raise the sheet to browse, so the
+    /// list snaps away from the stale half-row offset a shrunken card leaves
+    /// behind. Not bumped when the deselect returns the sheet to browse — there
+    /// the offset is the user's place in the list, not an artefact. AreaView
+    /// owns this decision outright so no cross-view observer ordering is
+    /// involved: one tick, one observer, and "keep the offset" is simply the
+    /// absence of a tick.
+    @State private var scrollListToTopTick = 0
     @State private var selectedTrailId: String? = nil
     /// Trail being reported via the overflow menu — drives the report sheet.
     @State private var reportingTrail: Trail? = nil
@@ -424,6 +444,7 @@ struct AreaView: View {
                     pastHikes: pastHikes,
                     recenterTick: recenterTick,
                     centerOnSwitchedTrailTick: centerOnSwitchedTrailTick,
+                    fitSelectedTrailTick: fitSelectedTrailTick,
                     selectedTrailId: $selectedTrailId,
                     visibleTrailIds: visibleTrailIds,
                     bottomInset: effectiveBottomInset,
@@ -532,7 +553,7 @@ struct AreaView: View {
                     // `.container` narrowed this to one safe-area region.
                     // Dropping the region argument ignores ALL of them at the
                     // bottom edge, which is what was wanted. Bottom edge only,
-                    // so the header can never slide under the notch at .large.
+                    // so the header can never slide under the notch.
                     .ignoresSafeArea(edges: .bottom)
                     .presentationDetents(sheetDetentSet, selection: $sheetDetent)
                     // `.height(190)` and `.height(240)` are DIFFERENT detents,
@@ -540,11 +561,11 @@ struct AreaView: View {
                     // selection binding pointing at a stop that no longer
                     // exists and strand the sheet. Re-point it, but only when
                     // the user was actually sitting on the old minimum —
-                    // someone parked at full screen is never yanked down
+                    // someone parked at browse is never yanked down
                     // because they selected a trail.
                     .onChange(of: minSheetHeight) { _, new in
                         // ONLY when the user was sitting on the fit stop —
-                        // someone parked at full is never yanked down because
+                        // someone parked at browse is never yanked down because
                         // content resized underneath them.
                         //
                         // The test was `sheetDetent == .height(old)`, which
@@ -558,12 +579,30 @@ struct AreaView: View {
                     // The one place `atMinStop` is written, and it deliberately
                     // does NOT consult `minSheetHeight`.
                     //
-                    // The fit stop is the only non-`.large` member of the set,
-                    // so "are we on the fit stop" is answerable by ruling out
-                    // `.large`, without comparing against a height that the
-                    // answer would then go on to change.
-                    .onChange(of: sheetDetent, initial: true) { _, detent in
-                        atMinStop = detent != .large
+                    // The browse stop's height is a per-device constant, so
+                    // "are we on the fit stop" is answerable by ruling browse
+                    // out, without comparing against the measured fit height
+                    // that the answer would then go on to change.
+                    .onChange(of: sheetDetent, initial: true) { old, detent in
+                        atMinStop = detent != browseDetent
+                        guard old != detent else { return }
+                        // The user dragged to browse themselves: deselecting
+                        // later must not move the sheet on them.
+                        if detent == browseDetent { collapsedForSelection = false }
+                        // The visible map just changed size. If a trail is
+                        // selected, re-frame it in the new visible area once
+                        // the sheet's motion has landed.
+                        if selectedTrailId != nil, !isRecording {
+                            scheduleSelectedTrailRefit()
+                        }
+                    }
+                    .onDisappear { selectedTrailRefit?.cancel() }
+                    // The browse stop's height is derived from live screen
+                    // geometry. A rotation while parked there would otherwise
+                    // leave the selection naming a stop no longer in the set —
+                    // a stranding `.large` could never suffer.
+                    .onChange(of: browseHeight) { _, _ in
+                        if !atMinStop { sheetDetent = browseDetent }
                     }
                     // Commit the smallest stop's height once the layout has
                     // stopped moving, never mid-animation. Each new value
@@ -591,18 +630,20 @@ struct AreaView: View {
                     }
                     .onDisappear { minHeightCommit?.cancel() }
                     .presentationDragIndicator(.visible)
-                    // Gate on a stop that is actually IN the set — naming an
-                    // absent detent here would be asking UIKit about a stop it
-                    // does not have.
-                    .presentationBackgroundInteraction(
-                        .enabled(upThrough: minDetent)
-                    )
+                    // The map is visible at BOTH stops, so it stays interactive
+                    // (and undimmed) at both — including panning the visible
+                    // strip above a browse-height list. Unconditional, not
+                    // `upThrough: browseDetent`: that form undims by HEIGHT,
+                    // and a recording dashboard at a large text size can
+                    // legitimately outgrow the browse stop — which would have
+                    // dimmed and deadened the map for the whole hike.
+                    .presentationBackgroundInteraction(.enabled)
                     .presentationContentInteraction(.scrolls)
                     .presentationCornerRadius(20)
                     // Opaque system background at EVERY detent. By default the
-                    // sheet is translucent (glass) at non-large detents
-                    // and only goes opaque at .large, which read as "glass on
-                    // glass"; this forces the solid surface everywhere.
+                    // sheet is translucent (glass) at non-large detents, which
+                    // read as "glass on glass" over the map; this forces the
+                    // solid surface everywhere.
                     //
                     // THE `.ignoresSafeArea()` IS THE POINT, and its absence is
                     // the bottom gap this screen has had for six builds.
@@ -823,6 +864,63 @@ struct AreaView: View {
                 showAreaComplete = true
             }
         }
+        .onChange(of: selectedTrailId) { old, new in
+            handleSelectionHandoff(from: old, to: new)
+        }
+    }
+
+    /// The list → map handoff. Tapping a trail is a question about WHERE it
+    /// is, and the answer is on the map — so selecting from the browse stop
+    /// drops the sheet to the fit stop (the whole card stays visible) and the
+    /// camera frames the trail in the map area that opens up. Deselecting
+    /// returns the sheet to browse if that drop is why it is at fit, so a
+    /// peek-at-the-map never costs the user their place in the list.
+    ///
+    /// Mid-hike the dashboard owns the fit stop and the card would not be
+    /// visible there, so a selection leaves the sheet alone: the map strip
+    /// above browse still frames the trail, and the floating retarget banner
+    /// answers the tap.
+    private func handleSelectionHandoff(from old: String?, to new: String?) {
+        if new == nil {
+            // EVERY deselect consumes the flag — including one made mid-hike
+            // by dismissing the retarget banner — so a drop made from browse
+            // before a recording can never raise the sheet unprompted after
+            // an unrelated select/deselect later.
+            let shouldReturn = collapsedForSelection && !isRecording && atMinStop
+            collapsedForSelection = false
+            if shouldReturn {
+                // The sheet grows to browse around the list, so the user's
+                // place in it is kept: no scroll-to-top tick.
+                sheetDetent = browseDetent
+            } else {
+                // Staying at fit: the card just shrank under a fixed offset,
+                // so snap the list back to a whole first row.
+                scrollListToTopTick &+= 1
+            }
+            return
+        }
+        guard !isRecording, old == nil, sheetDetent == browseDetent else { return }
+        collapsedForSelection = true
+        // Commit the selected-card fit NOW and select it in the same update,
+        // so the sheet animates straight to the card's height instead of
+        // dropping to the old fit and rising again 140 ms later when the
+        // debounced commit would have landed.
+        minHeightCommit?.cancel()
+        committedMinHeight = desiredMinSheetHeight
+        sheetDetent = .height(committedMinHeight)
+    }
+
+    /// Re-frame the selected trail once the sheet's motion has landed. One
+    /// pending re-frame at a time: a selection from browse changes the detent
+    /// twice within ~350 ms (the drop, then the measured card's re-point), and
+    /// without the cancel the camera visibly moved in stages.
+    private func scheduleSelectedTrailRefit() {
+        selectedTrailRefit?.cancel()
+        selectedTrailRefit = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled else { return }
+            fitSelectedTrailTick &+= 1
+        }
     }
 
     /// Binding that gates the trail-list sheet's presentation on the
@@ -861,16 +959,28 @@ struct AreaView: View {
             .first?.keyWindow?.safeAreaInsets.bottom) ?? 34
     }
 
-    /// What UIKit treats as the sheet's full height at `.large`.
+    /// What UIKit would treat as the sheet's maximum height — the reference
+    /// the browse stop is a fraction of. Never offered as a stop itself.
     private var maxDetentHeight: CGFloat {
         UIScreen.main.bounds.height - Self.topSafeInset - 10
     }
+
+    /// The browse stop's `.height()` value. Its visible extent (this plus the
+    /// home-indicator band) is ~66% of the sheet's maximum, which leaves the
+    /// top ~40% of every supported iPhone as map. A per-device constant, so
+    /// comparing a detent against `browseDetent` is stable — unlike the fit
+    /// stop, whose height is measured.
+    private var browseHeight: CGFloat {
+        ((maxDetentHeight * 0.66 - Self.bottomSafeInset) / 4).rounded(.down) * 4
+    }
+
+    private var browseDetent: PresentationDetent { .height(browseHeight) }
 
     /// The FIT stop: precisely as tall as the current context's whole content,
     /// never taller.
     ///
     ///   - recording → the complete live dashboard (camera controls, panel).
-    ///     The trail list waits below, revealed by dragging to full.
+    ///     The trail list waits below, revealed by dragging to browse.
     ///   - trail selected → the ENTIRE expanded card — name, stats, elevation
     ///     chart, parking line — so selecting a trail nudges the sheet up by
     ///     exactly what the card needs, whatever its size.
@@ -881,28 +991,39 @@ struct AreaView: View {
     /// BY DESIGN for the duration of its context: the dashboard's slots are
     /// permanently reserved, the retarget banner floats over the map instead
     /// of joining this flow, the toast is an overlay, and the list's
-    /// search/filter chrome exists only at full. Nothing at the fit stop can
+    /// search/filter chrome exists only at browse. Nothing at the fit stop can
     /// arrive late and resize it — which retires the whole clipping class the
     /// measure-and-chase versions of this property produced. The band
     /// subtraction pays for the home-indicator strip; `fitBottomAir` leaves a
     /// visible breath between the last row and the physical edge.
     private var desiredMinSheetHeight: CGFloat {
         let h: CGFloat
+        let ceiling: CGFloat
         if isRecording {
             h = headerHeightFull + recordingHeight - Self.bottomSafeInset
                 + Self.fitBottomAir
+            // The dashboard is pinned above the list and CANNOT scroll, so its
+            // ceiling must be one it can always meet — a small phone at a
+            // large text size needs more than the browse-based cap allows.
+            // Clipping the stop button off the bottom is the worse failure.
+            ceiling = maxDetentHeight * 0.85
         } else if selectedTrailId != nil {
             let card = max(selectedRowHeight, collapsedRowHeight * 3)
             h = headerHeightFull + idleToolbarHeight + card
                 - Self.bottomSafeInset + Self.fitBottomAir
+            ceiling = browseHeight - 40
         } else {
             h = headerHeightFull + idleToolbarHeight + collapsedRowHeight * 3
                 - Self.bottomSafeInset + Self.fitBottomAir
+            ceiling = browseHeight - 40
         }
 
-        // Floor guards a nonsense measurement; the ceiling leaves the fit stop
-        // meaningfully below full even for the tallest selected card.
-        let clamped = min(max(h, 140), maxDetentHeight * 0.85)
+        // Floor guards a nonsense measurement. The browse-based ceiling keeps
+        // the fit stop a clear step below browse — so the two stops never blur
+        // together and the map's strip is never smaller than at browse, even
+        // under the tallest selected card. A card taller than the ceiling
+        // scrolls within the sheet rather than eating the map.
+        let clamped = min(max(h, 140), ceiling)
         return (clamped / 4).rounded(.up) * 4
     }
 
@@ -925,11 +1046,12 @@ struct AreaView: View {
 
     private var minDetent: PresentationDetent { .height(minSheetHeight) }
 
-    /// Exactly two stops, always. The fit stop is measured so it can never
-    /// collide with a fraction stop, which is how the old middle detent
-    /// sometimes vanished and made the sheet's stop count unpredictable.
+    /// Exactly two stops, always, and neither covers the map. The fit stop is
+    /// capped 40pt below browse, so the two can never blur together — which is
+    /// how the old middle detent sometimes vanished and made the sheet's stop
+    /// count unpredictable.
     private var sheetDetentSet: Set<PresentationDetent> {
-        [minDetent, .large]
+        [minDetent, browseDetent]
     }
 
     /// Where the sheet's top edge is, in points up from the physical screen
@@ -946,7 +1068,7 @@ struct AreaView: View {
     /// sheet has laid out and had a chance to say.
     private var effectiveBottomInset: CGFloat {
         if let measured = measuredSheetTop { return measured }
-        if sheetDetent == .large { return maxDetentHeight }
+        if sheetDetent == browseDetent { return browseHeight + Self.bottomSafeInset }
         return minSheetHeight + Self.bottomSafeInset
     }
 
@@ -1289,7 +1411,7 @@ struct AreaView: View {
     ///   5. Retarget / suggestion banner (only while recording)
     ///   6. RecordingPanel (only while recording)
     ///   7. TrailListView (fills remaining; scrolls within at the
-    ///      `.large` detent)
+    ///      browse stop)
     ///
     /// All nested modal flows (GPX share, recording summary, area-
     /// completion celebration) live INSIDE this content so SwiftUI
@@ -1313,7 +1435,7 @@ struct AreaView: View {
     /// The live recording dashboard: camera controls, retarget banner, and the
     /// recording panel, measured as one block. It is pinned ABOVE the trail
     /// list rather than replacing it, so the fit stop shows exactly the
-    /// dashboard while dragging to full reveals the list underneath — the list
+    /// dashboard while dragging to browse reveals the list underneath — the list
     /// stays reachable mid-hike, and the dashboard can never be swiped away.
     ///
     /// Measured LIVE, not high-water: the GPS capsule and elevation strip come
@@ -1386,11 +1508,12 @@ struct AreaView: View {
             sort: $trailSort,
             searchQuery: $trailSearchQuery,
             filteredTrails: filtered,
-            // Search and filters exist only at the full stop. At fit there is
+            // Search and filters exist only at the browse stop. At fit there is
             // no text field for the keyboard to grab, so focusing search can
-            // never yank the sheet — when you can type, you are already full.
+            // never yank the sheet — when you can type, you are already at browse.
             showsChrome: !atMinStop,
             focusSearchTick: searchFocusTick,
+            scrollToTopTick: scrollListToTopTick,
             onRecordTrail: { trail in tryStartRecording(trailId: trail.id) },
             onCollapsedRowHeight: { h in
                 if abs(collapsedRowHeight - h) >= 2 { collapsedRowHeight = h }
@@ -1429,14 +1552,14 @@ struct AreaView: View {
             .accessibilityIdentifier("area-record-button")
             .accessibilityLabel(selected.map { "Record \($0.name)" } ?? "Start a hike")
 
-            // Search lives at the full stop; this button is the intentional
+            // Search lives at the browse stop; this button is the intentional
             // way there — expand, then focus once the chrome has mounted.
             // While a search or filter is ACTIVE, the icon swaps to a filled
             // filter glyph in the accent color: the fit stop hides the chrome,
             // so this constant-size badge is how a filtered 3-row list says
             // it's filtered.
             Button {
-                sheetDetent = .large
+                sheetDetent = browseDetent
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(400))
                     searchFocusTick &+= 1
@@ -1539,7 +1662,7 @@ struct AreaView: View {
             // context: the live recording dashboard while a hike runs, or the
             // camera-controls + Start/Collection toolbar while browsing. The
             // fit stop sizes to that block, so mid-hike the list waits just
-            // below the dashboard — drag to full to browse it, and the
+            // below the dashboard — drag up to browse it, and the
             // dashboard stays pinned where it cannot be swiped away.
             if isRecording {
                 VStack(spacing: 0) {
@@ -1669,17 +1792,16 @@ struct AreaView: View {
     /// dwarf the rest of the sheet layout.
     /// The retarget banner, floating over the MAP just above the sheet — not
     /// in the sheet's flow, where its arrival used to resize the dashboard the
-    /// fit stop is sized from. It renders only at the fit stop while
-    /// recording: that is where the map (and the tapped trail) is visible. At
-    /// full, the selected row's own record button performs the same retarget
-    /// through `tryStartRecording`, so nothing is lost.
+    /// fit stop is sized from. The map is visible at both stops, so the banner
+    /// rides the sheet's top edge at either; the selected row's record button
+    /// at browse performs the same retarget through `tryStartRecording`.
     ///
     /// The heuristic SUGGESTION banner stays gone. This one only appears
     /// because you TAPPED a different trail, so it is answering a question you
     /// just asked rather than starting a conversation.
     @ViewBuilder
     private func floatingRetargetBanner(area: Area) -> some View {
-        if isRecording, atMinStop, let retargetTrail = retargetCandidate(area: area) {
+        if isRecording, let retargetTrail = retargetCandidate(area: area) {
             RetargetTrailBanner(
                 selectedTrail: retargetTrail,
                 onSwitch: {

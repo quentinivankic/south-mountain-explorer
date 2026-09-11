@@ -117,20 +117,25 @@ struct TrailListView: View {
     let filteredTrails: [Trail]
     /// Whether the search-and-filter chrome renders above the rows. The fit
     /// stop passes false: a text field there let the keyboard yank the sheet
-    /// to full the moment it was tapped, and the chrome was one more measured
-    /// term the fit arithmetic could get wrong. At full — the only place
+    /// taller the moment it was tapped, and the chrome was one more measured
+    /// term the fit arithmetic could get wrong. At browse — the only place
     /// typing makes sense — the chrome is present and the keyboard has
     /// nothing to expand.
     var showsChrome: Bool = true
-    /// Bumped by AreaView's search button after it expands the sheet to full,
-    /// so the search field is focused and the keyboard is ready on arrival.
+    /// Bumped by AreaView's search button after it expands the sheet to
+    /// browse, so the search field is focused and the keyboard is ready.
     var focusSearchTick: Int = 0
+    /// Bumped by AreaView on a deselect that leaves the sheet at the fit stop,
+    /// where the shrunken card would otherwise leave a stale half-row offset.
+    /// AreaView decides; this view only obeys. A deselect that raises the sheet
+    /// to browse sends no tick, so the user's place in the list is kept.
+    var scrollToTopTick: Int = 0
     var onRecordTrail: ((Trail) -> Void)? = nil
 
     // Height reports for AreaView's fit-stop arithmetic. Measured rather than
     // derived from font metrics, so the stop stays right at any Dynamic Type
     // size. (The chrome's height is no longer reported: it renders only at
-    // the full stop, where the fit arithmetic doesn't apply.)
+    // the browse stop, where the fit arithmetic doesn't apply.)
     var onCollapsedRowHeight: ((CGFloat) -> Void)? = nil
     var onSelectedRowHeight: ((CGFloat) -> Void)? = nil
 
@@ -181,7 +186,7 @@ struct TrailListView: View {
             VStack(spacing: 0) {
                 if showsChrome {
                 VStack(alignment: .leading, spacing: 0) {
-                    // The chrome renders only at the full stop (see
+                    // The chrome renders only at the browse stop (see
                     // `showsChrome`), where it is stable for the whole stay:
                     // it never appears or disappears WITHIN a stop, so no
                     // fit-stop arithmetic depends on it anymore.
@@ -351,7 +356,7 @@ struct TrailListView: View {
                 // about the scroll view's own inset.
                 .ignoresSafeArea(edges: .bottom)
                 // A scroll gesture puts the keyboard away — with the search
-                // field only present at full, the list is the whole screen
+                // field only present at browse, the list fills the sheet
                 // when typing ends and the drag is the natural exit.
                 .scrollDismissesKeyboard(.immediately)
                 // A flick settles with a WHOLE row at the top, never a sliced
@@ -363,27 +368,31 @@ struct TrailListView: View {
                 // top edge; the bottom edge runs under the home indicator,
                 // where a mid-scroll slice is how every stock list looks.
                 .scrollTargetBehavior(.viewAligned)
-                .onChange(of: selectedTrailId) { _, newId in
-                    guard let newId else {
-                        // DESELECT. The row that was open just shrank by the
-                        // height of its chart and parking line, and the scroll
-                        // offset does not shrink with it — so the list is left
-                        // parked partway through a row, which reads as a trail
-                        // name sliced in half at the top of the list.
-                        // Back to the top of the LIST. The chrome is no longer
-                        // inside this scroll view, so there is nothing above the
-                        // first row to return to — and nothing a stale offset
-                        // could hide, which is what this used to be fixing.
-                        if let firstId = filteredTrails.first?.id {
-                            Task {
-                                await Task.yield()
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    proxy.scrollTo(firstId, anchor: .top)
-                                }
+                .onChange(of: scrollToTopTick) { _, _ in
+                    // DESELECT AT THE FIT STOP (AreaView's call — see
+                    // `scrollToTopTick`). The row that was open just shrank by
+                    // the height of its chart and parking line, and the scroll
+                    // offset does not shrink with it — so the list is left
+                    // parked partway through a row, which reads as a trail
+                    // name sliced in half at the top of the list. Back to the
+                    // top of the LIST: the chrome is not inside this scroll
+                    // view, so there is nothing above the first row to return
+                    // to — and nothing a stale offset could hide.
+                    if let firstId = filteredTrails.first?.id {
+                        Task {
+                            await Task.yield()
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                proxy.scrollTo(firstId, anchor: .top)
                             }
                         }
-                        return
                     }
+                }
+                .onChange(of: selectedTrailId) { _, newId in
+                    // A deselect does nothing here on its own: whether the list
+                    // snaps to the top is AreaView's decision, delivered via
+                    // `scrollToTopTick` — so a deselect that raises the sheet
+                    // to browse keeps the user's place in the list.
+                    guard let newId else { return }
                     // Animate the row into view. LazyVStack only realizes
                     // rows that are on-screen, so scrollTo must trigger
                     // both the scroll AND lazy-row materialization.

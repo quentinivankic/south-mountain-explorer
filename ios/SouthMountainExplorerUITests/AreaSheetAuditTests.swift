@@ -21,7 +21,7 @@ final class AreaSheetAuditTests: XCTestCase {
 
     /// Layout anchors per state tag, so the test can ASSERT the layout rather
     /// than only photograph it. Filled by `logFrames`. The search field is no
-    /// longer the anchor — it exists ONLY at the full stop now — so the fit
+    /// longer the anchor — it exists ONLY at the browse stop now — so the fit
     /// stop is measured by its always-present toolbar (the Start button) and
     /// the first visible trail-row title.
     private var toolbarY: [String: CGFloat] = [:]
@@ -93,23 +93,68 @@ final class AreaSheetAuditTests: XCTestCase {
         logFrames(app, "min-trail-deselected")
 
         // The fit stop must NOT render the search field — its absence is what
-        // makes the keyboard unable to yank the sheet to full.
+        // makes the keyboard unable to yank the sheet taller.
         XCTAssertFalse(
             app.textFields["Search trails"].firstMatch.exists,
-            "The search field rendered at the fit stop; it must exist only at full"
+            "The search field rendered at the fit stop; it must exist only at browse"
         )
 
-        // ---- 6. Drag up to the full stop (the only other stop now) --------
+        // ---- 6. Drag up to the browse stop (the only other stop) ----------
         dragSheet(app, toBottom: false)
         settle(3)
-        capture(app, "sheet-07-full-after-deselect")
-        logFrames(app, "full-after-deselect")
+        capture(app, "sheet-07-browse-after-deselect")
+        logFrames(app, "browse-after-deselect")
 
-        // At full the search-and-filter chrome must be present.
+        // At browse the search-and-filter chrome must be present.
         XCTAssertTrue(
             app.textFields["Search trails"].firstMatch.waitForExistence(timeout: 10),
-            "The search field is missing at the full stop, where the chrome lives"
+            "The search field is missing at the browse stop, where the chrome lives"
         )
+
+        // The map must stay visible even at the tallest stop: the area name
+        // heads the sheet, so its top edge is the sheet's top edge, and it
+        // must sit well below the top of the screen.
+        let nameAtBrowse = app.staticTexts["South Mountain Park and Preserve"].firstMatch
+        if nameAtBrowse.exists {
+            let mapFraction = nameAtBrowse.frame.minY / app.frame.height
+            XCTAssertGreaterThan(
+                mapFraction, 0.25,
+                "Browse stop covers the map: sheet top at \(Int(mapFraction * 100))% of screen height"
+            )
+        } else {
+            dumpTree(app, "area-name-missing-at-browse")
+            XCTFail("Area name not found at the browse stop; cannot verify the map stays visible")
+        }
+
+        // ---- 6b. Select from browse: the sheet hands off to the map -------
+        // Tapping a trail is a question about WHERE it is, so selecting from
+        // the tall stop drops the sheet to fit and the trail is framed above.
+        let browseRowName = tapFirstTrailRow(app)
+        settle(3)
+        capture(app, "sheet-07b-selected-from-browse")
+        logFrames(app, "selected-from-browse", extraText: browseRowName)
+        if let name = browseRowName {
+            if let atBrowse = toolbarY["browse-after-deselect"],
+               let afterSelect = toolbarY["selected-from-browse"] {
+                // Larger minY = lower on screen = the sheet dropped. The design
+                // guarantees at least a 40pt step between the stops; allow a
+                // couple of points for measurement so an exact 40 passes.
+                XCTAssertGreaterThanOrEqual(
+                    afterSelect - atBrowse, 38,
+                    "Selecting from browse did not drop the sheet toward the fit stop "
+                    + "(browse y=\(Int(atBrowse)), selected y=\(Int(afterSelect)))"
+                )
+            } else {
+                XCTFail("Missing toolbar measurements for the select-from-browse handoff: \(toolbarY.keys.sorted())")
+            }
+            // Deselect returns to browse, since the drop was for the selection.
+            tapElement(app.staticTexts[name].firstMatch)
+            settle(3)
+            capture(app, "sheet-07c-deselected-back-to-browse")
+            logFrames(app, "deselected-back-to-browse")
+        } else {
+            XCTFail("No trail row found at the browse stop to select")
+        }
 
         // ---- 7. Back to min, open the Collection from its explicit button --
         // The horizontal pager is gone; the Collection is a labeled action in
@@ -163,7 +208,20 @@ final class AreaSheetAuditTests: XCTestCase {
             XCTAssertEqual(back, before, accuracy: 1, "Toolbar moved when the list scrolled back")
         }
 
-        // 3. Dismissing the Collection must return the sheet to exactly the
+        // 3. Deselecting after a select-from-browse must return the sheet to
+        //    the browse stop — the drop was for the selection, and undoing it
+        //    must not cost the user their place in the list.
+        if let browse = toolbarY["browse-after-deselect"],
+           let back = toolbarY["deselected-back-to-browse"] {
+            XCTAssertEqual(
+                back, browse, accuracy: 2,
+                "Deselect did not return the sheet to browse (browse y=\(Int(browse)), after y=\(Int(back)))"
+            )
+        } else {
+            XCTFail("Missing toolbar measurements for deselect-returns-to-browse: \(toolbarY.keys.sorted())")
+        }
+
+        // 4. Dismissing the Collection must return the sheet to exactly the
         //    idle layout — the nested presentation may not disturb the detent
         //    or the fixed chrome underneath it.
         if let idle = toolbarY["min-idle"] {
@@ -201,9 +259,10 @@ final class AreaSheetAuditTests: XCTestCase {
             from = app.coordinate(withNormalizedOffset: .zero)
                 .withOffset(CGVector(dx: app.frame.width / 2, dy: anchorY))
         }
-        // The sheet has exactly two stops (fit + full), so the upward drag
+        // The sheet has exactly two stops (fit + browse), so the upward drag
         // must release well above the fit stop's top edge or UIKit snaps
-        // back to fit instead of advancing to full.
+        // back to fit instead of advancing to browse. Releasing above the
+        // browse stop's top edge snaps to browse (the topmost stop).
         let targetY = toBottom ? app.frame.height - 8 : app.frame.height * 0.2
         let to = app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: app.frame.width / 2, dy: targetY))
@@ -212,7 +271,7 @@ final class AreaSheetAuditTests: XCTestCase {
 
     /// Scroll the trail list itself: a short vertical drag INSIDE the row
     /// region, well below the toolbar so it hits scroll content. (The search
-    /// field lives only at the full stop now, so the always-present Start
+    /// field lives only at the browse stop now, so the always-present Start
     /// button is the fit stop's row-band anchor.)
     private func swipeList(_ app: XCUIApplication, up: Bool) {
         let start = app.buttons["area-record-button"].firstMatch
@@ -302,7 +361,7 @@ final class AreaSheetAuditTests: XCTestCase {
             line("selected-row-title", app.staticTexts[extra].firstMatch)
         }
         // The first few trail-title-looking texts, to see row boundaries —
-        // banded below the toolbar (fit) or the search field (full).
+        // banded below the toolbar (fit) or the search field (browse).
         let search = app.textFields["Search trails"].firstMatch
         let bandTop = search.exists ? search.frame.maxY
             : (start.exists ? start.frame.maxY : screen.height * 0.6)
@@ -360,7 +419,7 @@ final class AreaSheetAuditTests: XCTestCase {
         }
         tapElement(row)
         // Context-neutral readiness: the recenter button renders in every
-        // sheet context; the search field exists only at the full stop now.
+        // sheet context; the search field exists only at the browse stop now.
         let recenter = app.buttons["area-recenter-button"].firstMatch
         if recenter.waitForExistence(timeout: 60) { return true }
         dumpTree(app, "area-sheet-missing-after-area-push")

@@ -76,16 +76,12 @@ struct AreaView: View {
     // font metrics — that keeps it right at any Dynamic Type size and on any
     // device. The values here are only seeds for the first frame.
 
-    /// Area name + summary line + page dots, with the name and summary showing.
+    /// Area name + summary line, both single-line by design.
     @State private var headerHeightFull: CGFloat = 91
-    /// The whole block above the trail rows — search field, filter hint,
-    /// divider — measured as one composed value rather than summed from parts.
-    ///
-    /// It was `searchBarHeight` and measured only the search field, so the
-    /// filter hint was absent from the stop's arithmetic entirely: turn on a
-    /// filter and the page was taller than the sheet believed. That is the
-    /// failure mode a sum has and a measurement does not.
-    @State private var listChromeHeight: CGFloat = 60
+    // The list's search-and-filter chrome no longer has a height here: it
+    // renders ONLY at the full stop (see `trailList`), so it is absent from
+    // the fit arithmetic entirely — and a text field the keyboard could grab
+    // no longer exists at the stop the keyboard used to yank to full.
     /// The recording context's LIVE height: camera controls plus the live
     /// recording panel. Seeded roughly and corrected on the first layout pass —
     /// unlike the browse measurements this one is never a high-water mark,
@@ -132,10 +128,14 @@ struct AreaView: View {
     /// Seed for `committedMinHeight` AND the initial detent selection — the
     /// two must agree on the first frame or the selection points at a stop
     /// that is not in the set. Seeded at the TYPICAL idle fit (header +
-    /// toolbar + chrome + three rows − band) so the open animation rises to
+    /// toolbar + three rows − band + air) so the open animation rises to
     /// roughly the right place in one stage instead of visibly retargeting
     /// once real measurements land ~140 ms in.
-    static let seedMinHeight: CGFloat = 412
+    static let seedMinHeight: CGFloat = 360
+
+    /// Air between the fit stop's last visible content and the physical
+    /// screen bottom. Flush-to-the-edge read as clipping on device.
+    static let fitBottomAir: CGFloat = 6
 
     /// Currently-active detent of the trail-list sheet. Drives
     /// `effectiveBottomInset` so the map's user-dot shift compensates
@@ -172,13 +172,18 @@ struct AreaView: View {
     /// Tracked as its own boolean, it changes only when the USER moves the
     /// sheet. A measurement can no longer reach it, so there is no cycle left to
     /// damp — this is a fix, not another deadband.
-    @State private var atMinStop = false
+    /// Seeded TRUE because the sheet opens at the fit stop — a false seed let
+    /// the full-only chrome flash for the first frame of every area open.
+    @State private var atMinStop = true
     /// See `minSheetHeight`. Seeded at the shared constant so the first frame
     /// is sane before anything has been measured.
     @State private var committedMinHeight: CGFloat = AreaView.seedMinHeight
     @State private var minHeightCommit: Task<Void, Never>? = nil
     /// Collection is a deliberate secondary destination, not a hidden page.
     @State private var showCollection = false
+    /// Bumped by the toolbar search button after expanding to full, so the
+    /// just-mounted search field grabs focus and the keyboard is ready.
+    @State private var searchFocusTick = 0
     @State private var selectedTrailId: String? = nil
     /// Trail being reported via the overflow menu — drives the report sheet.
     @State private var reportingTrail: Trail? = nil
@@ -425,6 +430,9 @@ struct AreaView: View {
                     trackingMode: $trackingMode
                 )
                 .ignoresSafeArea()
+
+                floatingRetargetBanner(area: area)
+                    .animation(.easeInOut(duration: 0.25), value: selectedTrailId)
 
                 // iOS 26 presents the native sheet as a floating card: its
                 // custom presentation background is opaque, but the host itself
@@ -859,31 +867,37 @@ struct AreaView: View {
     }
 
     /// The FIT stop: precisely as tall as the current context's whole content,
-    /// measured live, never taller.
+    /// never taller.
     ///
-    ///   - recording → the complete live dashboard (camera controls, banners,
-    ///     panel). The trail list waits below, revealed by dragging to full.
+    ///   - recording → the complete live dashboard (camera controls, panel).
+    ///     The trail list waits below, revealed by dragging to full.
     ///   - trail selected → the ENTIRE expanded card — name, stats, elevation
     ///     chart, parking line — so selecting a trail nudges the sheet up by
     ///     exactly what the card needs, whatever its size.
     ///   - browsing → the action toolbar plus three whole rows, the third row
     ///     being the cue that the list continues.
     ///
-    /// Every term is a live measurement, so content that grows (a long name
-    /// wrapping, the GPS capsule appearing, the elevation strip arriving)
-    /// grows the stop with it. The band subtraction pays for the home-indicator
-    /// strip in every case so the last visible thing is whole, not sliced.
+    /// The terms are measurements, but everything they measure is now FIXED
+    /// BY DESIGN for the duration of its context: the dashboard's slots are
+    /// permanently reserved, the retarget banner floats over the map instead
+    /// of joining this flow, the toast is an overlay, and the list's
+    /// search/filter chrome exists only at full. Nothing at the fit stop can
+    /// arrive late and resize it — which retires the whole clipping class the
+    /// measure-and-chase versions of this property produced. The band
+    /// subtraction pays for the home-indicator strip; `fitBottomAir` leaves a
+    /// visible breath between the last row and the physical edge.
     private var desiredMinSheetHeight: CGFloat {
         let h: CGFloat
         if isRecording {
             h = headerHeightFull + recordingHeight - Self.bottomSafeInset
+                + Self.fitBottomAir
         } else if selectedTrailId != nil {
             let card = max(selectedRowHeight, collapsedRowHeight * 3)
-            h = headerHeightFull + idleToolbarHeight + listChromeHeight + card
-                - Self.bottomSafeInset
+            h = headerHeightFull + idleToolbarHeight + card
+                - Self.bottomSafeInset + Self.fitBottomAir
         } else {
-            h = headerHeightFull + idleToolbarHeight + listChromeHeight
-                + collapsedRowHeight * 3 - Self.bottomSafeInset
+            h = headerHeightFull + idleToolbarHeight + collapsedRowHeight * 3
+                - Self.bottomSafeInset + Self.fitBottomAir
         }
 
         // Floor guards a nonsense measurement; the ceiling leaves the fit stop
@@ -1315,7 +1329,9 @@ struct AreaView: View {
             controlBar(area: area)
                 .padding(.bottom, 10)
 
-            recordingBanners(area: area)
+            // The retarget banner is NOT in this flow anymore — it floats over
+            // the map (see the overlay in `body`), so a banner appearing can
+            // never resize the dashboard the fit stop is sized from.
             RecordingPanel(area: area) { finished in
                 finishedRecording = finished
                 showSummary = finished != nil
@@ -1370,10 +1386,12 @@ struct AreaView: View {
             sort: $trailSort,
             searchQuery: $trailSearchQuery,
             filteredTrails: filtered,
+            // Search and filters exist only at the full stop. At fit there is
+            // no text field for the keyboard to grab, so focusing search can
+            // never yank the sheet — when you can type, you are already full.
+            showsChrome: !atMinStop,
+            focusSearchTick: searchFocusTick,
             onRecordTrail: { trail in tryStartRecording(trailId: trail.id) },
-            onChromeHeight: { h in
-                if abs(listChromeHeight - h) >= 2 { listChromeHeight = h }
-            },
             onCollapsedRowHeight: { h in
                 if abs(collapsedRowHeight - h) >= 2 { collapsedRowHeight = h }
             },
@@ -1410,6 +1428,34 @@ struct AreaView: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("area-record-button")
             .accessibilityLabel(selected.map { "Record \($0.name)" } ?? "Start a hike")
+
+            // Search lives at the full stop; this button is the intentional
+            // way there — expand, then focus once the chrome has mounted.
+            // While a search or filter is ACTIVE, the icon swaps to a filled
+            // filter glyph in the accent color: the fit stop hides the chrome,
+            // so this constant-size badge is how a filtered 3-row list says
+            // it's filtered.
+            Button {
+                sheetDetent = .large
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(400))
+                    searchFocusTick &+= 1
+                }
+            } label: {
+                Image(systemName: hasActiveFilter
+                      ? "line.3.horizontal.decrease.circle.fill"
+                      : "magnifyingglass")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(hasActiveFilter ? Color.accentColor : .primary)
+                    .padding(.horizontal, 13)
+                    .padding(.vertical, 12)
+                    .compatibleGlass(in: .capsule)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("area-search-button")
+            .accessibilityLabel(hasActiveFilter
+                                ? "Search and filters — filters active"
+                                : "Search trails")
 
             Button {
                 showCollection = true
@@ -1621,12 +1667,19 @@ struct AreaView: View {
     /// active. Extracted so `sheetContent` reads cleanly — the
     /// inline form has ~70 lines of logging / dismiss closures that
     /// dwarf the rest of the sheet layout.
+    /// The retarget banner, floating over the MAP just above the sheet — not
+    /// in the sheet's flow, where its arrival used to resize the dashboard the
+    /// fit stop is sized from. It renders only at the fit stop while
+    /// recording: that is where the map (and the tapped trail) is visible. At
+    /// full, the selected row's own record button performs the same retarget
+    /// through `tryStartRecording`, so nothing is lost.
+    ///
+    /// The heuristic SUGGESTION banner stays gone. This one only appears
+    /// because you TAPPED a different trail, so it is answering a question you
+    /// just asked rather than starting a conversation.
     @ViewBuilder
-    private func recordingBanners(area: Area) -> some View {
-        // Retarget banner takes priority: the user has manually
-        // tapped a trail different from the one the recording is
-        // targeted at, a stronger signal than a heuristic suggestion.
-        if let retargetTrail = retargetCandidate(area: area) {
+    private func floatingRetargetBanner(area: Area) -> some View {
+        if isRecording, atMinStop, let retargetTrail = retargetCandidate(area: area) {
             RetargetTrailBanner(
                 selectedTrail: retargetTrail,
                 onSwitch: {
@@ -1646,13 +1699,10 @@ struct AreaView: View {
                 },
                 onDismiss: { selectedTrailId = nil }
             )
+            // No horizontal padding here — the banner carries its own 16pt.
+            .padding(.bottom, effectiveBottomInset + 10)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
-        // The heuristic SUGGESTION banner is gone. It popped up mid-hike
-        // proposing short detours onto nearby trails — unasked, while the hiker
-        // was walking, on the one screen where an interruption also grows the
-        // sheet and takes the map. The retarget banner above stays: that one
-        // only appears because you TAPPED a different trail, so it is answering
-        // a question you just asked rather than starting a conversation.
     }
 
     /// Show a brief "Following your direction" / similar pill above

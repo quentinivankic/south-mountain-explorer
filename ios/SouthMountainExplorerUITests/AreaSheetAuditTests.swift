@@ -19,9 +19,13 @@ final class AreaSheetAuditTests: XCTestCase {
 
     private let areaRowId = "area-progress-south-mountain-park-and-preserve-az"
 
-    /// search-field origin.y per state tag, so the test can ASSERT the layout
-    /// rather than only photograph it. Filled by `logFrames`.
-    private var searchY: [String: CGFloat] = [:]
+    /// Layout anchors per state tag, so the test can ASSERT the layout rather
+    /// than only photograph it. Filled by `logFrames`. The search field is no
+    /// longer the anchor — it exists ONLY at the full stop now — so the fit
+    /// stop is measured by its always-present toolbar (the Start button) and
+    /// the first visible trail-row title.
+    private var toolbarY: [String: CGFloat] = [:]
+    private var firstRowY: [String: CGFloat] = [:]
 
     override func setUp() {
         super.setUp()
@@ -80,7 +84,7 @@ final class AreaSheetAuditTests: XCTestCase {
         capture(app, "sheet-05-min-trail-selected")
         logFrames(app, "min-trail-selected", extraText: firstRowName)
 
-        // ---- 5. Deselect: the search bar must come back whole -------------
+        // ---- 5. Deselect: the toolbar and rows must return to idle --------
         if let name = firstRowName {
             tapElement(app.staticTexts[name].firstMatch)
             settle(3)
@@ -88,11 +92,24 @@ final class AreaSheetAuditTests: XCTestCase {
         capture(app, "sheet-06-min-trail-deselected")
         logFrames(app, "min-trail-deselected")
 
+        // The fit stop must NOT render the search field — its absence is what
+        // makes the keyboard unable to yank the sheet to full.
+        XCTAssertFalse(
+            app.textFields["Search trails"].firstMatch.exists,
+            "The search field rendered at the fit stop; it must exist only at full"
+        )
+
         // ---- 6. Drag up to the full stop (the only other stop now) --------
         dragSheet(app, toBottom: false)
         settle(3)
         capture(app, "sheet-07-full-after-deselect")
         logFrames(app, "full-after-deselect")
+
+        // At full the search-and-filter chrome must be present.
+        XCTAssertTrue(
+            app.textFields["Search trails"].firstMatch.waitForExistence(timeout: 10),
+            "The search field is missing at the full stop, where the chrome lives"
+        )
 
         // ---- 7. Back to min, open the Collection from its explicit button --
         // The horizontal pager is gone; the Collection is a labeled action in
@@ -115,46 +132,49 @@ final class AreaSheetAuditTests: XCTestCase {
     }
 
     /// Turn the audit into a GATE, not just a gallery. Photographs need a human;
-    /// these two facts do not, and both encode a bug that shipped to a phone.
+    /// these facts do not, and each encodes a bug that shipped to a phone.
     private func assertLayoutInvariants() {
-        // 1. Deselecting must return the page to where idle had it. Audit run
-        //    32204672482 measured min-idle search-field y=746 against
-        //    min-trail-deselected y=730 — a 16pt lift inside a sheet whose own
-        //    position was identical, which reads as the search field tucked
-        //    under the header's divider.
-        if let idle = searchY["min-idle"], let after = searchY["min-trail-deselected"] {
+        // 1. Deselecting must return the page to where idle had it — same
+        //    toolbar position, same first-row position. Audit run 32204672482
+        //    photographed the 16pt lift this catches.
+        if let idle = toolbarY["min-idle"], let after = toolbarY["min-trail-deselected"] {
             XCTAssertEqual(
                 after, idle, accuracy: 2,
-                "Deselect left the trails page \(Int(idle - after))pt higher than idle "
+                "Deselect left the toolbar \(Int(idle - after))pt from idle "
                 + "(idle y=\(Int(idle)), deselected y=\(Int(after))). "
-                + "The sheet returns to its idle height, so the page inside it must too."
+                + "The sheet returns to its idle height, so the chrome inside it must too."
             )
         } else {
-            XCTFail("Missing search-field measurements: \(searchY.keys.sorted())")
+            XCTFail("Missing toolbar measurements: \(toolbarY.keys.sorted())")
+        }
+        if let idle = firstRowY["min-idle"], let after = firstRowY["min-trail-deselected"] {
+            XCTAssertEqual(
+                after, idle, accuracy: 2,
+                "Deselect left the first row \(Int(idle - after))pt from idle"
+            )
         }
 
-        // 2. Scrolling must not move the search field at all — it is FIXED
-        //    above the scroll view, so any movement means it became scroll
-        //    content again.
-        if let before = searchY["min-idle"],
-           let scrolled = searchY["min-after-scroll-up"],
-           let back = searchY["min-after-scroll-back"] {
-            XCTAssertEqual(scrolled, before, accuracy: 1, "Search field moved when the list scrolled")
-            XCTAssertEqual(back, before, accuracy: 1, "Search field moved when the list scrolled back")
+        // 2. Scrolling the rows must not move the toolbar — it is FIXED above
+        //    the scroll view, so any movement means it became scroll content.
+        if let before = toolbarY["min-idle"],
+           let scrolled = toolbarY["min-after-scroll-up"],
+           let back = toolbarY["min-after-scroll-back"] {
+            XCTAssertEqual(scrolled, before, accuracy: 1, "Toolbar moved when the list scrolled")
+            XCTAssertEqual(back, before, accuracy: 1, "Toolbar moved when the list scrolled back")
         }
 
         // 3. Dismissing the Collection must return the sheet to exactly the
         //    idle layout — the nested presentation may not disturb the detent
         //    or the fixed chrome underneath it.
-        if let idle = searchY["min-idle"] {
-            if let closed = searchY["collection-closed"] {
+        if let idle = toolbarY["min-idle"] {
+            if let closed = toolbarY["collection-closed"] {
                 XCTAssertEqual(
                     closed, idle, accuracy: 2,
-                    "Closing the Collection left the search field \(Int(idle - closed))pt "
+                    "Closing the Collection left the toolbar \(Int(idle - closed))pt "
                     + "from idle (idle y=\(Int(idle)), after y=\(Int(closed)))"
                 )
             } else {
-                XCTFail("No search-field measurement after closing the Collection")
+                XCTFail("No toolbar measurement after closing the Collection")
             }
         }
     }
@@ -173,10 +193,10 @@ final class AreaSheetAuditTests: XCTestCase {
         if name.exists, name.isHittable {
             from = name.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         } else {
-            // Sheet top estimated from whatever chrome is visible.
-            let search = app.textFields["Search trails"].firstMatch
-            let anchorY = search.exists
-                ? search.frame.minY - 30
+            // Sheet top estimated from the always-present toolbar.
+            let start = app.buttons["area-record-button"].firstMatch
+            let anchorY = start.exists
+                ? start.frame.minY - 60
                 : app.frame.height * 0.62
             from = app.coordinate(withNormalizedOffset: .zero)
                 .withOffset(CGVector(dx: app.frame.width / 2, dy: anchorY))
@@ -191,10 +211,12 @@ final class AreaSheetAuditTests: XCTestCase {
     }
 
     /// Scroll the trail list itself: a short vertical drag INSIDE the row
-    /// region, well below the search field so it hits scroll content.
+    /// region, well below the toolbar so it hits scroll content. (The search
+    /// field lives only at the full stop now, so the always-present Start
+    /// button is the fit stop's row-band anchor.)
     private func swipeList(_ app: XCUIApplication, up: Bool) {
-        let search = app.textFields["Search trails"].firstMatch
-        let topY = search.exists ? search.frame.maxY + 60 : app.frame.height * 0.8
+        let start = app.buttons["area-record-button"].firstMatch
+        let topY = start.exists ? start.frame.maxY + 30 : app.frame.height * 0.8
         let a = app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: app.frame.width / 2, dy: topY + 90))
         let b = app.coordinate(withNormalizedOffset: .zero)
@@ -228,14 +250,14 @@ final class AreaSheetAuditTests: XCTestCase {
 
     /// Tap the first visible trail row and return its name so the caller
     /// can tap it again to deselect. Rows are identified by their trail
-    /// name static text sitting below the search field.
+    /// name static text sitting below the fit stop's action toolbar.
     private func tapFirstTrailRow(_ app: XCUIApplication) -> String? {
-        let search = app.textFields["Search trails"].firstMatch
-        guard search.exists else {
-            dumpTree(app, "no-search-field-before-row-tap")
+        let start = app.buttons["area-record-button"].firstMatch
+        guard start.exists else {
+            dumpTree(app, "no-toolbar-before-row-tap")
             return nil
         }
-        let rowBandTop = search.frame.maxY + 4
+        let rowBandTop = start.frame.maxY + 4
         // Find the topmost static text below the chrome that looks like a
         // trail title (skips distance/difficulty captions by height).
         let texts = app.staticTexts.allElementsBoundByIndex
@@ -272,23 +294,31 @@ final class AreaSheetAuditTests: XCTestCase {
         }
         print("AUDIT[\(tag)] ---- frames ----")
         line("area-name", app.staticTexts["South Mountain Park and Preserve"].firstMatch)
+        line("start-button", app.buttons["area-record-button"].firstMatch)
         line("search-field", app.textFields["Search trails"].firstMatch)
-        let sf = app.textFields["Search trails"].firstMatch
-        if sf.exists { searchY[tag] = sf.frame.minY }
+        let start = app.buttons["area-record-button"].firstMatch
+        if start.exists { toolbarY[tag] = start.frame.minY }
         if let extra = extraText {
             line("selected-row-title", app.staticTexts[extra].firstMatch)
         }
-        // The first few trail-title-looking texts, to see row boundaries.
+        // The first few trail-title-looking texts, to see row boundaries —
+        // banded below the toolbar (fit) or the search field (full).
         let search = app.textFields["Search trails"].firstMatch
-        let bandTop = search.exists ? search.frame.maxY : screen.height * 0.6
+        let bandTop = search.exists ? search.frame.maxY
+            : (start.exists ? start.frame.maxY : screen.height * 0.6)
         var printed = 0
+        var firstTitleY: CGFloat? = nil
         for t in app.staticTexts.allElementsBoundByIndex {
             let f = t.frame
             guard f.minY > bandTop, f.height >= 18 else { continue }
             print("AUDIT[\(tag)] text \"\(t.label.prefix(28))\": y=\(Int(f.minY)) maxY=\(Int(f.maxY))")
+            if firstTitleY == nil, !t.label.contains(" mi"), !t.label.contains(" ft") {
+                firstTitleY = f.minY
+            }
             printed += 1
             if printed >= 8 { break }
         }
+        if let y = firstTitleY { firstRowY[tag] = y }
         print("AUDIT[\(tag)] ---- end frames ----")
     }
 
@@ -329,8 +359,10 @@ final class AreaSheetAuditTests: XCTestCase {
             return false
         }
         tapElement(row)
-        let search = app.textFields["Search trails"]
-        if search.waitForExistence(timeout: 60) { return true }
+        // Context-neutral readiness: the recenter button renders in every
+        // sheet context; the search field exists only at the full stop now.
+        let recenter = app.buttons["area-recenter-button"].firstMatch
+        if recenter.waitForExistence(timeout: 60) { return true }
         dumpTree(app, "area-sheet-missing-after-area-push")
         return false
     }

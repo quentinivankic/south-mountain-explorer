@@ -115,18 +115,22 @@ struct TrailListView: View {
     /// Pre-filtered trail set computed in AreaView so the map view can see
     /// the same set without TrailListView having to fan it back out.
     let filteredTrails: [Trail]
+    /// Whether the search-and-filter chrome renders above the rows. The fit
+    /// stop passes false: a text field there let the keyboard yank the sheet
+    /// to full the moment it was tapped, and the chrome was one more measured
+    /// term the fit arithmetic could get wrong. At full — the only place
+    /// typing makes sense — the chrome is present and the keyboard has
+    /// nothing to expand.
+    var showsChrome: Bool = true
+    /// Bumped by AreaView's search button after it expands the sheet to full,
+    /// so the search field is focused and the keyboard is ready on arrival.
+    var focusSearchTick: Int = 0
     var onRecordTrail: ((Trail) -> Void)? = nil
 
-    // Height reports for AreaView's smallest-sheet-stop arithmetic. Measured
-    // rather than derived from font metrics, so the stop stays right at any
-    // Dynamic Type size.
-    //
-    // `onChromeHeight` replaces the old `onSearchBarHeight`: it reports the
-    // WHOLE block above the rows — search field, filter hint, divider — as one
-    // composed measurement. The old name measured only the search field, so the
-    // filter hint was silently absent from the stop's arithmetic and any active
-    // filter made the page taller than the sheet believed it was.
-    var onChromeHeight: ((CGFloat) -> Void)? = nil
+    // Height reports for AreaView's fit-stop arithmetic. Measured rather than
+    // derived from font metrics, so the stop stays right at any Dynamic Type
+    // size. (The chrome's height is no longer reported: it renders only at
+    // the full stop, where the fit arithmetic doesn't apply.)
     var onCollapsedRowHeight: ((CGFloat) -> Void)? = nil
     var onSelectedRowHeight: ((CGFloat) -> Void)? = nil
 
@@ -175,17 +179,12 @@ struct TrailListView: View {
         // scroll view's top edge, where no content offset can reach it.
         ScrollViewReader { proxy in
             VStack(spacing: 0) {
+                if showsChrome {
                 VStack(alignment: .leading, spacing: 0) {
-                    // The search field NEVER stands down.
-                    //
-                    // It used to hide at the smallest stop while a trail was
-                    // selected, to buy that stop ~44pt. Two costs, both paid:
-                    // the block above the rows had two different heights that
-                    // one measurement had to carry, and the user's own reading
-                    // of it was "is the search bar straight up going away?".
-                    // A control that vanishes is not a saving.
-                    // Always present means one height, one measurement, and
-                    // nothing above the rows that can appear or disappear.
+                    // The chrome renders only at the full stop (see
+                    // `showsChrome`), where it is stable for the whole stay:
+                    // it never appears or disappears WITHIN a stop, so no
+                    // fit-stop arithmetic depends on it anymore.
                     VStack(alignment: .leading, spacing: 0) {
                         HStack(spacing: 10) {
                             HStack(spacing: 8) {
@@ -240,15 +239,13 @@ struct TrailListView: View {
 
                     Divider()
                 }
-                // Measured as ONE COMPOSED BLOCK — search field, filter hint
-                // and rule together — never summed from parts.
-                //
-                // `fixedSize` comes BEFORE the measurement, because modifiers
-                // apply bottom-up: measuring first would report the height this
-                // block was SQUEEZED into, and that height would then size the
-                // sheet to keep it squeezed.
+                // `fixedSize` so the chrome is never squeezed by a short
+                // proposal — it renders whole or not at all.
                 .fixedSize(horizontal: false, vertical: true)
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { onChromeHeight?($0) }
+                .onChange(of: focusSearchTick) { _, _ in
+                    searchFocused = true
+                }
+                }
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
@@ -353,6 +350,10 @@ struct TrailListView: View {
                 // LazyVStack — the scroll view's CONTENT — where it did nothing
                 // about the scroll view's own inset.
                 .ignoresSafeArea(edges: .bottom)
+                // A scroll gesture puts the keyboard away — with the search
+                // field only present at full, the list is the whole screen
+                // when typing ends and the drag is the natural exit.
+                .scrollDismissesKeyboard(.immediately)
                 // A flick settles with a WHOLE row at the top, never a sliced
                 // one. The audit run photographed the alternative
                 // (sheet-03-min-after-scroll-up, run 32203094649): a headless

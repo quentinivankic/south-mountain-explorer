@@ -43,21 +43,21 @@ struct RecordingPanel: View {
     /// ordinary sampling jitter (and the deliberate 2 s poll) never trips it.
     private let staleFixSeconds: TimeInterval = 45
 
-    /// Acquiring / lost / fine. `nil` means fine, so nothing renders.
-    /// Recomputed off `elapsed`, which the 1 s timer already drives.
-    private var gpsStatus: (text: String, icon: String, tint: Color)? {
-        guard rec != nil else { return nil }
+    /// Acquiring / lost / good. ALWAYS a value: signal quality is permanent
+    /// dashboard state on a one-line slot, never a capsule that pops in and
+    /// resizes the card. Recomputed off `elapsed`, which the 1 s timer drives.
+    private var gpsStatus: (text: String, tint: Color) {
         guard let last = location.lastFixDate else {
-            return ("Waiting for GPS…", "location.slash", .orange)
+            return ("Waiting for GPS…", .orange)
         }
         if Date().timeIntervalSince(last) > staleFixSeconds {
-            return ("GPS signal lost", "location.slash.fill", .red)
+            return ("GPS signal lost", .red)
         }
         // Have a fix, but not enough points to draw anything yet.
         if (rec?.path.count ?? 0) < 2 {
-            return ("Waiting for GPS…", "location", .orange)
+            return ("Waiting for GPS…", .orange)
         }
-        return nil
+        return ("GPS good", .green)
     }
 
     /// Human-readable ETA to the end of the recording's active
@@ -102,35 +102,49 @@ struct RecordingPanel: View {
     }
 
     var body: some View {
+        // EVERY slot in this card is permanently reserved. The dashboard sizes
+        // the sheet's fit stop, so a block that pops in mid-hike (GPS capsule,
+        // elevation strip, ETA line — all former offenders) resizes the sheet
+        // under the user's thumb and clips for a beat while the stop catches
+        // up. Reserved slots make the card's height a fact, not a feed.
         VStack(spacing: 12) {
-            // GPS status. Without this the panel just showed 0.0 mi and a
-            // ticking clock while the receiver was still acquiring or had lost
-            // signal, with nothing to say so — the recording looked broken and
-            // the user had no idea whether to wait or restart.
-            if let status = gpsStatus {
-                Label(status.text, systemImage: status.icon)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(status.tint, in: Capsule())
-                    .transition(.opacity)
+            // GPS signal quality — one quiet permanent line, not a colored
+            // capsule that appears and disappears. Signal state is the one
+            // thing a hiker should always be able to glance at mid-hike.
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(gpsStatus.tint)
+                    .frame(width: 7, height: 7)
+                Text(gpsStatus.text)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
             }
+            .accessibilityElement(children: .combine)
 
-            // Live elevation strip. Only renders once `elevationStats`
-            // has enough altitude samples to be meaningful (returns
-            // nil otherwise, e.g. the first 30s of a recording or any
-            // hike taken on a device whose GPS isn't returning
-            // altitude). Compact 70pt height — full chart treatment
-            // lives in HikeDetailView post-hike.
-            if let rec, let stats = liveElevation {
-                ElevationProfileView(
-                    stats: stats,
-                    totalDistanceMeters: rec.distanceMi * 1609.344
-                )
-                .frame(height: 70)
-                .transition(.opacity)
+            // Live elevation strip — the 70pt slot is ALWAYS reserved. Before
+            // there are enough altitude samples (the first minutes of a hike,
+            // or hardware that returns no altitude) it holds a quiet
+            // placeholder instead of not existing.
+            Group {
+                if let rec, let stats = liveElevation {
+                    ElevationProfileView(
+                        stats: stats,
+                        totalDistanceMeters: rec.distanceMi * 1609.344
+                    )
+                } else {
+                    Text("Elevation appears after a few minutes")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(.quaternary.opacity(0.3))
+                        )
+                }
             }
+            .frame(height: 70)
 
             HStack(spacing: 12) {
                 // The REC badge is gone, and with it a whole column of width.
@@ -149,18 +163,21 @@ struct RecordingPanel: View {
                            value: UnitFormatter.pace(metersPerSecond: recording.smoothedPaceMetersPerSec() ?? 0,
                                                      units: units))
 
-                // Stop button
+                // Stop button — both states framed identically so tapping
+                // Stop cannot wobble the card's height while it saves.
                 Button {
                     showStopConfirm = true
                 } label: {
-                    if isStopping {
-                        ProgressView()
-                            .frame(width: 56, height: 56)
-                    } else {
-                        Image(systemName: "stop.circle.fill")
-                            .font(.system(size: 44))
-                            .foregroundStyle(.red)
+                    Group {
+                        if isStopping {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "stop.circle.fill")
+                                .font(.system(size: 44))
+                                .foregroundStyle(.red)
+                        }
                     }
+                    .frame(width: 56, height: 56)
                 }
                 .disabled(isStopping || recording.isStopping)
             }
@@ -226,27 +243,30 @@ struct RecordingPanel: View {
     /// number from distance and duration — estimates, not measurements — so they
     /// read better set apart and quieter than they would fighting for width in
     /// the same row. Each appears only when it has an answer, and the whole line
-    /// disappears when neither does, which is the panel's compact state.
-    @ViewBuilder
+    /// disappears when neither does — WHICH IS EXACTLY WHY the line's height
+    /// is now permanently reserved: estimates arriving a few minutes into a
+    /// hike must not resize the card the sheet's fit stop is sized from. The
+    /// slot renders a blank line of the same font until it has an answer.
     private var estimatesLine: some View {
-        if liveEtaLabel != nil || liveReturnLabel != nil {
-            HStack(spacing: 16) {
-                if let eta = liveEtaLabel {
-                    Label("Finish \(eta)", systemImage: "flag.checkered")
-                        .accessibilityLabel("About \(eta) to the end of the trail")
-                }
-                if let back = liveReturnLabel {
-                    Label("Back \(back)", systemImage: "arrow.uturn.left")
-                        .accessibilityLabel("About \(back) to return to where you started")
-                }
-                Spacer(minLength: 0)
+        HStack(spacing: 16) {
+            if let eta = liveEtaLabel {
+                Label("Finish \(eta)", systemImage: "flag.checkered")
+                    .accessibilityLabel("About \(eta) to the end of the trail")
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-            .transition(.opacity)
+            if let back = liveReturnLabel {
+                Label("Back \(back)", systemImage: "arrow.uturn.left")
+                    .accessibilityLabel("About \(back) to return to where you started")
+            }
+            if liveEtaLabel == nil && liveReturnLabel == nil {
+                Text(" ")
+                    .accessibilityHidden(true)
+            }
+            Spacer(minLength: 0)
         }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
     }
 
     private var stopMessage: String {

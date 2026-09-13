@@ -44,6 +44,10 @@ import argparse
 import json
 import math
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _parking_verdicts as verdicts_mod  # noqa: E402  — pure Python, no shapely
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _GEOM = os.path.join(_ROOT, "public", "areas", "geom")
@@ -75,9 +79,19 @@ def main(argv=None) -> int:
                          "road-gated federal trailheads captured BEFORE "
                          "ownership assignment. Repeatable. Missing file is "
                          "not an error — the pool is still valid without it.")
+    ap.add_argument("--verdicts", default=verdicts_mod.DEFAULT_PATH, metavar="PATH",
+                    help="per-lot KEEP/DROP verdicts from the vision adjudication "
+                         "(task #53). A lot a verdict DROPs is kept out of the pool; "
+                         "see scripts/_parking_verdicts.py for how a lot is matched. "
+                         "Missing file is not an error.")
+    ap.add_argument("--add-keeps", action="store_true",
+                    help="also ADD every judged-KEEP lot that no pool lot covers — a "
+                         "real public lot the geometric gates never let through. "
+                         "Off by default; without it the candidates are only listed.")
     args = ap.parse_args(argv)
 
     shipped = {r[0] for r in json.load(open(args.bundle)) if r}
+    verdicts = verdicts_mod.load(args.verdicts)
 
     # Bucket by a ~275 m cell so dedup compares neighbours, not all 39k lots.
     cells: dict[tuple[int, int], list[dict]] = {}
@@ -136,6 +150,14 @@ def main(argv=None) -> int:
     # position and identity, and a sidecar lot within 40 m merges INTO it rather
     # than displacing it — so adding the sidecar can only ever add pins, never
     # move one the app already draws.
+    #
+    # The verdicts are applied HERE, per area, and not inside consider(): the
+    # refuse-to-empty guard needs to know an area's whole lot list. A verdict
+    # sidecar must never remove the last lot serving an area — leaving a real
+    # trailhead unmarked is a smaller harm than telling a hiker a park has
+    # nowhere to park (the nonhiking-trails.json rule, applied to parking).
+    verdict_dropped = 0
+    refused: list[tuple[str, int]] = []
     for f in sorted(os.listdir(args.geom_dir)):
         if not f.endswith(".json"):
             continue
@@ -149,6 +171,13 @@ def main(argv=None) -> int:
         lots = g.get("parking") or []
         if lots:
             seen_areas += 1
+        if verdicts is not None and lots:
+            doomed = [lot for lot in lots if verdicts.drop_for(lot) is not None]
+            if doomed and len(doomed) == len(lots):
+                refused.append((slug, len(doomed)))
+                doomed = []
+            verdict_dropped += len(doomed)
+            lots = [lot for lot in lots if not any(lot is d for d in doomed)]
         for lot in lots:
             consider(lot)
 
@@ -170,10 +199,42 @@ def main(argv=None) -> int:
         for code in sorted(states):
             for lot in states[code] or []:
                 extra_seen += 1
+                # Federal points carry no OSM identity, but a judged footprint
+                # can still cover one; the DROP applies to them as well.
+                if verdicts is not None and verdicts.drop_for(lot) is not None:
+                    verdict_dropped += 1
+                    continue
                 if consider(lot):
                     extra_new += 1
         print(f"  sidecar {path}: {len(states)} state(s), "
               f"{extra_seen} lot(s) read, {extra_new} new so far")
+
+    keep_candidates: list[dict] = []
+    keeps_added = 0
+    if verdicts is not None:
+        # Every judged-KEEP lot that nothing in the pool covers is a public lot
+        # the vision confirmed and the geometric gates never let through
+        # (trailheads sit outside park polygons by nature). Listed always,
+        # added only on --add-keeps, so the list gets read before it ships.
+        def covered(e: dict) -> bool:
+            ci, cj = int(e["lat"] / C), int(e["lon"] / C)
+            for i in (ci - 1, ci, ci + 1):
+                for j in (cj - 1, cj, cj + 1):
+                    for other in cells.get((i, j), ()):
+                        if verdicts_mod.covers(e, other["lat"], other["lon"]) is not None:
+                            return True
+            return False
+
+        for e in sorted(verdicts.by_verdict("KEEP"), key=lambda e: e["_key"]):
+            if covered(e):
+                continue
+            keep_candidates.append(e)
+            if args.add_keeps:
+                lot = {"lat": e["lat"], "lon": e["lon"]}
+                if e.get("name"):
+                    lot["name"] = e["name"]
+                if consider(lot):
+                    keeps_added += 1
 
     # Positional array, like index.json and trail-search.json: [lat, lon, name,
     # source, trailhead, fee]. Trailing nulls are cheap and the app decodes by
@@ -199,6 +260,16 @@ def main(argv=None) -> int:
         print(f"  from shipped geom {from_geom}  "
               f"+ pre-ownership sidecar {extra_new} NEW "
               f"(of {extra_seen} read; the rest already ship)")
+    if verdicts is not None:
+        print(f"  verdicts: {verdict_dropped} judged-DROP lot(s) kept out of the pool"
+              + (f", refused to empty {len(refused)} area(s): "
+                 + ", ".join(f"{s} ({n})" for s, n in refused) if refused else ""))
+        print(f"  verdicts: {len(keep_candidates)} judged-KEEP lot(s) nothing in the pool "
+              f"covers — {'ADDED ' + str(keeps_added) if args.add_keeps else 'not added (no --add-keeps)'}")
+        for e in keep_candidates[:12]:
+            print(f"     {e['_key']:22} {str(e.get('name'))[:36]:38} {e.get('area')}")
+        if len(keep_candidates) > 12:
+            print(f"     ... {len(keep_candidates) - 12} more")
     print(f"  named {named}  federal {fed}  trailhead-flagged {th}  fee known {feed}")
     print(f"  wrote {args.out} ({size / 1e6:.2f} MB raw)")
     return 0

@@ -79,7 +79,7 @@ final class ScreenshotTests: XCTestCase {
             // Standard-map basemap tiles can take a while on a cold CI
             // simulator — an 8 s dwell loaded them in some runs but left a
             // bare gray grid in others. 18 s makes the basemap reliable (the
-            // one-shot inset re-frame has settled the park framing well before
+            // opening-framing refit has settled the park framing well before
             // this).
             settle(18)
             capture(app, "01-completion-map")

@@ -87,7 +87,12 @@ def main(argv=None) -> int:
     ap.add_argument("--add-keeps", action="store_true",
                     help="also ADD every judged-KEEP lot that no pool lot covers — a "
                          "real public lot the geometric gates never let through. "
-                         "Off by default; without it the candidates are only listed.")
+                         "Adds the `certain` and `strong` verdicts; `leaning` ones are "
+                         "listed but held unless --add-leaning-keeps. Without the flag "
+                         "the candidates are only listed.")
+    ap.add_argument("--add-leaning-keeps", action="store_true",
+                    help="with --add-keeps, also add KEEPs the judge marked `leaning` "
+                         "(plausible but soft — a pull-out with no cars in frame).")
     args = ap.parse_args(argv)
 
     shipped = {r[0] for r in json.load(open(args.bundle)) if r}
@@ -210,12 +215,16 @@ def main(argv=None) -> int:
               f"{extra_seen} lot(s) read, {extra_new} new so far")
 
     keep_candidates: list[dict] = []
-    keeps_added = 0
+    keeps_added = keeps_merged = 0
+    keeps_held: list[dict] = []
     if verdicts is not None:
         # Every judged-KEEP lot that nothing in the pool covers is a public lot
         # the vision confirmed and the geometric gates never let through
-        # (trailheads sit outside park polygons by nature). Listed always,
-        # added only on --add-keeps, so the list gets read before it ships.
+        # (trailheads sit outside park polygons by nature — 300 to 1,300 m from
+        # where our trail geometry starts, past the roll's 250 m gate). Listed
+        # always; added on --add-keeps. The user read the first list of 66
+        # (2026-09-13) and chose to ship the certain + strong ones and hold
+        # the leaning ones — hence the confidence split.
         def covered(e: dict) -> bool:
             ci, cj = int(e["lat"] / C), int(e["lon"] / C)
             for i in (ci - 1, ci, ci + 1):
@@ -229,12 +238,27 @@ def main(argv=None) -> int:
             if covered(e):
                 continue
             keep_candidates.append(e)
-            if args.add_keeps:
-                lot = {"lat": e["lat"], "lon": e["lon"]}
-                if e.get("name"):
-                    lot["name"] = e["name"]
-                if consider(lot):
-                    keeps_added += 1
+            if not args.add_keeps:
+                continue
+            # Allowlist, not a denylist: a verdict with no confidence or a word
+            # this code does not know is held with the leaning ones rather than
+            # shipped by default. The rule this feature rests on is that a pin
+            # is added because someone read the list, so unknown fails closed.
+            conf = e.get("confidence")
+            if conf not in ("certain", "strong") and not (conf == "leaning" and args.add_leaning_keeps):
+                keeps_held.append(e)
+                continue
+            # Pool-only, owned by nobody, like every other pool lot: position and
+            # name. No trailhead / fee flags — the verdict did not judge those.
+            lot = {"lat": e["lat"], "lon": e["lon"]}
+            if e.get("name"):
+                lot["name"] = e["name"]
+            if consider(lot):
+                keeps_added += 1
+            else:
+                # Two judged KEEPs within DEDUP_M of each other (an overflow
+                # pad beside its main lot) become one pin, as any two lots do.
+                keeps_merged += 1
 
     # Positional array, like index.json and trail-search.json: [lat, lon, name,
     # source, trailhead, fee]. Trailing nulls are cheap and the app decodes by
@@ -264,12 +288,20 @@ def main(argv=None) -> int:
         print(f"  verdicts: {verdict_dropped} judged-DROP lot(s) kept out of the pool"
               + (f", refused to empty {len(refused)} area(s): "
                  + ", ".join(f"{s} ({n})" for s, n in refused) if refused else ""))
-        print(f"  verdicts: {len(keep_candidates)} judged-KEEP lot(s) nothing in the pool "
-              f"covers — {'ADDED ' + str(keeps_added) if args.add_keeps else 'not added (no --add-keeps)'}")
-        for e in keep_candidates[:12]:
-            print(f"     {e['_key']:22} {str(e.get('name'))[:36]:38} {e.get('area')}")
-        if len(keep_candidates) > 12:
-            print(f"     ... {len(keep_candidates) - 12} more")
+        if args.add_keeps:
+            print(f"  verdicts: {len(keep_candidates)} judged-KEEP lot(s) nothing in the pool "
+                  f"covered — ADDED {keeps_added}"
+                  + (f", {keeps_merged} merged into a neighbouring pin" if keeps_merged else "")
+                  + (f", {len(keeps_held)} leaning held (no --add-leaning-keeps)" if keeps_held else ""))
+            for e in keeps_held:
+                print(f"     held  {e['_key']:22} {str(e.get('name'))[:36]:38} {e.get('area')}")
+        else:
+            print(f"  verdicts: {len(keep_candidates)} judged-KEEP lot(s) nothing in the pool "
+                  f"covers — not added (no --add-keeps)")
+            for e in keep_candidates[:12]:
+                print(f"     {e['_key']:22} {str(e.get('name'))[:36]:38} {e.get('area')}")
+            if len(keep_candidates) > 12:
+                print(f"     ... {len(keep_candidates) - 12} more")
     print(f"  named {named}  federal {fed}  trailhead-flagged {th}  fee known {feed}")
     print(f"  wrote {args.out} ({size / 1e6:.2f} MB raw)")
     return 0

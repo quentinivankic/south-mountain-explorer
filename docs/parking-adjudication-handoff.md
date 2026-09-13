@@ -1251,9 +1251,10 @@ overconfident successor.
 3. ~~**Build the sidecar and its consumer**~~ — **done 2026-09-13.** 292 judged lots
    landed through `public/areas/parking-verdicts.json`; the pool moved 30,840 →
    30,832 (8 DROPs were on the map; 74 never were) and the sweep removed the same
-   8 from geom. **Open from it:** 66 judged-KEEP lots the pool lacks —
-   `build-parking-pool.py` lists them each run; `--add-keeps` ships them once
-   the user has read the list.
+   8 from geom. The 66 judged-KEEP lots the pool lacked were read the same
+   day: the 53 `certain` + `strong` ones now ship (`--add-keeps` in the R2 sync,
+   pool 30,885); the 13 `leaning` ones are held and listed on every run until
+   `--add-leaning-keeps`.
 4. **Graduate `dossier.py`, `context_classify.py`, `foot_route_area.py` and
    `judge_protocol.md` into `scripts/`**, the way
    `scripts/build-nonhiking-list.py` and `scripts/sweep-nonhiking-trails.py` were

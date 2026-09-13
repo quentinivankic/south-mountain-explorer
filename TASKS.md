@@ -89,9 +89,13 @@ which is not much.
 > facility lot, cul-de-sac or roadside sliver with the user's call in its
 > evidence. **The bigger finding runs the other way: 66 judged-KEEP lots are
 > not in the pool at all** — real public lots the vision confirmed that the
-> containment gate never let through. The pool builder lists them on every
-> run; `--add-keeps` adds them. Not enabled yet: the list wants the user's
-> eyes first (lesson: stratified sample before a rule).
+> containment gate never let through. The user read the list the same day
+> and chose: **`--add-keeps` is ON in `sync-geom-to-r2.yml`** for the 14
+> `certain` + 39 `strong` verdicts (53 pins added, pool 30,832 → 30,885 —
+> Webster Jackson, Crawford Path, Davis Path, Zealand, Nancy Pond, Long Trail
+> Parking Lot, Moose Cave, Grafton Loop East, Pumpelly, Steinwachs, Mount Major,
+> East Mesa, Chamberlain's Ranch among them); the 13 `leaning` KEEPs are held
+> and printed on every run until `--add-leaning-keeps`.
 >
 > Homelab US extract refreshed from sequence 2331 (2026-07-26) the same day
 > (`fetch-us-extract.sh --update`).

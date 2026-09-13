@@ -1278,6 +1278,41 @@ Tiles regenerate from a dossier with `z2render.py`; extracts regenerate with
 `osmium extract`. Nothing here is irreplaceable, but re-cutting the US extract is
 hours, so do not delete it casually.
 
+### What is deliberately NOT in the repo, and why
+
+Asked and answered with two tests rather than an assumption.
+
+**Rendered tiles (91 MB, 139 files) — excluded because they are reproducible.**
+✅ Re-fetched one August NAIP frame at the same bbox on 2026-09-13 and compared:
+**mean absolute difference 0.0 / 255** over a plain 300×300 corner. NAIP returns
+the same pixels for the same request. The overlays on top are drawn by committed
+code (`z2render.py`) from committed data (dossier rings, shipped geom), so a tile
+is a pure function of things the repo already holds.
+
+✅ Proved it on the hardest case — an Arizona tile whose original was lost when
+the job tmp was wiped. Rebuilt `pinnacle-peak-park-az` fid 0 from the committed
+dossier plus `public/areas/geom` plus one NAIP fetch: the mapped lot outlined in
+red with cars visible in it, the yellow shipped trail at the corner. A judgeable
+frame, reconstructed from the repo.
+
+Cost to regenerate: about a second per tile, paced for NAIP. The 80 New England
+frames are roughly two minutes.
+
+**Review artifacts (35 MB of HTML) — excluded because they are derived.**
+`padjart2.py` and `ne_review2.py` build them from tiles plus verdicts, both of
+which the repo can produce. The New England one is published instead, so nobody
+has to run anything to look at it (section 6).
+
+**OSM extracts (182 MB regional + 1.2 GB Colorado) — excluded because they are
+large and regenerable.** `osmium extract --bbox=...` from the national file
+rebuilds any of them. Keeping multi-GB pbfs in git would slow every one of the
+twelve workflows that check this repo out, for no gain.
+
+**Everything else is in.** Tools, judge protocol, dossiers, serves gates,
+contexts, walks, every verdict store, the ground truth, the coverage gaps, the
+quality report, the Colorado area list, and the original raid README kept
+verbatim at `scripts/parking-adjud/ORIGINAL-README.md` for provenance.
+
 ### What a NON-homelab agent can and cannot do
 
 **Can**, from the repo alone: read every verdict and its evidence, re-score

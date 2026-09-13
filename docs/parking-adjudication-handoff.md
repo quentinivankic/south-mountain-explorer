@@ -36,7 +36,7 @@ whole point and section 3 explains why it was fought for.
 | Blocking | Nothing external. This is unblocked work. |
 | It blocks | TASKS **#51**'s containment roll and **#52**'s polygon merge 📋 |
 
-**The single most important open decision is in section 12 (the ID problem). Read
+**The single most important open decision is in section 14 (the ID problem). Read
 that before designing anything.**
 
 ---
@@ -61,7 +61,7 @@ The argument that settled it:
   proximity alone**. Those are what a containment re-run puts at risk. 📋
 
 Same fact is the root cause of TASKS **#54** (`_trim_to_parks` severing trailhead
-access spurs) — see section 14.
+access spurs) — see lesson 7 in section 5, and the coverage gaps in section 7.
 
 ---
 
@@ -257,7 +257,7 @@ trails split into ≥2 chunks ≥1 km apart. Smoking gun: "Yellow" in
 
 ---
 
-## 5b. The vision half, concretely
+## 6. The vision half, concretely
 
 Sections 4 and 5 give the rules. This is what actually happens at the screen.
 
@@ -333,7 +333,7 @@ https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/e
   frame, or which prior carried it. The `evidence` strings in the banked verdicts
   are the style to copy — they are specific and falsifiable, e.g.
   `"Z3: painted stalls + 2 cars; NAIP: 5 cars"`.
-- Then write the JSON object from section 11 and nothing else.
+- Then write the JSON object from section 13 and nothing else.
 
 ### The fan-out that is proven to work
 
@@ -360,7 +360,212 @@ cd scripts/parking-adjud && PADJ_TMP=$PWD/data python3 tools/merge_ne.py
 
 ---
 
-## 6. Killed ideas — do not re-propose without new evidence
+## 7. The adjudication itself — what was actually decided, and by whom
+
+The sections above are the method. This is the corpus: **296 verdicts with their
+reasoning**, ✅ counted from the four committed stores, split 213 KEEP / 83 DROP,
+by confidence 74 certain / 175 strong / 47 leaning, by prior 189 surveyed / 107
+bare.
+
+**101 of those 296 cite the user's own call in the evidence string.** ✅ This is
+not a model that was left to run — it was steered, lot by lot, and the steering
+is recorded in the data rather than lost to a chat log. `grep -l "user" ` over
+`scripts/parking-adjud/data/*verdict*.json` finds them.
+
+### The user's ground truth — the test set ✅
+
+`data/groundtruth.json`, two areas:
+
+| Area | Rows | Composition | Source |
+|---|---|---|---|
+| Zion | 39 | 19 KEEP + 20 DROP, **all `certain`** | `src: user` on every row |
+| Griffith | 28 | 15 KEEP strong, 2 KEEP leaning, 4 DROP strong, 7 REVIEW leaning | model reads, held for comparison |
+
+The Zion set is the one that matters: 39 lots the user personally called, with
+no hedging. `score2.py` scores against it, and the passing bar is **zero
+confident-wrong** — a KEEP on a certain/strong DROP row, or the reverse. Not 100%
+agreement; `leaning` rows may land REVIEW freely, because forcing a call on a
+genuinely ambiguous lot is how you get a confident mistake.
+
+Zion verdicts carry `"user ground-truth KEEP"` / `"user ground-truth DROP"`
+literally in the `exists` evidence, so the encoded calls are auditable one by one.
+
+### The cases that became rules
+
+Each of these is a real lot in the committed data. They are what the abstract
+lessons in section 5 actually mean.
+
+**The Phoenician resort cluster — `node/1924424411`, `node/1924424479`,
+`node/1925612531`.** Three lots at a Scottsdale resort, all `prior=surveyed`, all
+DROP on PUBLIC.
+
+```
+exists: yes — underground garage under The Phoenician resort
+public: no  — resort
+serves: no  — Cholla walk 2926 m
+```
+
+This is the clean PUBLIC drop: the lot is unambiguously real, and that is
+irrelevant. Note both axes failing independently — a resort garage 2.9 km from
+Cholla Trail fails PUBLIC *and* SERVES. Neither alone was leaned on.
+
+**`way/809362789` — a private estate.** `prior=surveyed`, and the tags say
+nothing about access:
+
+```
+exists: yes — Z2: lot inside a private estate/resort compound (mansion, pools, walls)
+public: no  — private estate
+serves: no  — estate explains it; Perl Charles walk 1540 m
+```
+
+The tag was blank. Vision supplied "mansion, pools, walls". This is the case
+that shows why PUBLIC is not a pure tag rule — but also why the *evidence string*
+has to name what was seen, or the call is unreviewable.
+
+**`node/2103033767` and Zion `#109` — the only two EXISTS drops in the whole
+corpus.** ✅ Out of 83 drops, exactly two were "this is not a place to park":
+
+```
+[AZ]   exists: no — Z2: bare dirt patch at a road fork, no delineated lot or cars
+[ZION] exists: no — Z2: smooth bare tan patch beside the road next to a residence,
+                    reads as a dry pond, no cars/stalls
+       resolve_hint: NAIP / ground check whether the bare patch is a graded lot
+                     or a stock pond
+```
+
+**That ratio is the burden of proof working.** EXISTS almost never fails, because
+a surveyed prior only flips on a positive contradiction, and "I can't see it"
+never counts. If a future run starts dropping lots on EXISTS at any volume,
+something has gone wrong with lesson 4.
+
+**Griffith `#946` — the case that produced the 45 m adjacency rule.** A pad
+inside the broad `leisure=park` boundary but 11 m from a `leisure=pitch`:
+
+```
+serves: no — Baseball-field parking right beside it (leisure=pitch) — user call;
+             the pad serves the field, not the trail
+```
+
+Containment-only classification called it a park lot. Edge-distance to the
+nearest FACILITY area caught it. Hence `context_classify.py`'s ≤45 m rule and its
+demotion of `leisure=park` to weak.
+
+**`way/1367192203` and the Gilford school lots — where the FACILITY label is
+overruled.** Three striped school lots, context FACILITY:
+
+```
+public: yes — public (government) school campus, fee=no, capacity:disabled=4,
+              no access=private; not a private/commercial facility
+serves: yes — Mt. Rowe Trail 302 m, fallback false; walk 662 m;
+              Mt. Rowe trailhead sits on the school grounds (dual-use)
+```
+
+A FACILITY classification is an input, not a verdict. Government-owned and
+publicly accessible beats the label. Compare directly against the Phoenician:
+same "next to a big building" shape, opposite call, and the difference is
+ownership plus whether a trail starts there.
+
+**`way/36079469` at Bolton Valley, and `way/219690843` "Main Parking Lot" at
+Gunstock.** Both ski resorts, both KEEP:
+
+```
+public: yes — resort base-area day-use lot; no access=private/customers tag;
+              facility-adjacency (context FACILITY residential) is not by itself a drop
+serves: yes — Brook Run 313 m non-fallback; walk 781 m (<1609)
+```
+
+Lesson 2 stated as an operating rule by an agent that had internalised it.
+
+**Mount Major `#7` "Segway Training" — the ski-resort lot that DID drop.** Worth
+holding beside the two above, because the difference is the whole skill: its
+mapped footprint sits **on a Gunstock resort building**, and its only serve was a
+1 km fallback through ski terrain. Facility adjacency did not drop it. Being a
+building, with no real trail connection, did. 📋
+
+**Mad River Glen — the debatable one, flagged to the user rather than buried.**
+
+```
+exists: yes — large gravel/dirt ski-area base parking lot clearly visible
+public: yes — no access restriction tag
+serves: no  — walk 2224 m (>1609) with only a fallback serve to Catamount Trail
+              at 1679 m; no trailhead node, name does not match a serving trail,
+              context FACILITY
+```
+
+A real, public, obvious ski lot dropped purely on distance. The agent called it
+and **surfaced it as debatable** instead of letting it pass silently. That is the
+behaviour to reproduce: a DROP that a reasonable person might reverse gets named
+in the report.
+
+**The I-89 rest areas and the Cog Railway materials yard.** Three surveyed-prior
+drops in Camel's Hump and Crawford Notch, all dropped on SERVES distance and
+explicitly **not** on canopy — the check that lesson 8 was respected:
+
+```
+Rest Area I-89 (North Bound): interstate rest-area parking with marked angled
+  stalls and parked cars visible — public yes — serves no, 2509 m fallback only
+Cog Railway: large graded yard at the base, but the footprint is a materials /
+  laydown yard with rows of stacked piles, not clean trailhead parking
+```
+
+**Chamberlain's Ranch — the deliberate 4 km exception.** The user called it KEEP
+at **4,172 m** to The Narrows Top Down. It is why the fallback cap landed at
+5,000 m rather than lower: the cap had to keep this one and still drop the 6.8 km+
+other-area trailheads. It also appears in `coverage_gaps.json` as "only a far
+fallback", because the Narrows river route is unmapped.
+
+### The coverage gaps — the by-product punch-list ✅
+
+`data/coverage_gaps.json`, 12 entries, all Zion. Eleven read "serves no trail we
+ship"; one is Chamberlain's. These are **trail** data problems found by parking
+work:
+
+```
+#24  Right Fork Trailhead                    nearest: The Subway Bottom-Up Approach
+#112 Orderville Corral Trailhead (Non-4x4)   nearest: Upper Orderville Canyon Trail
+#148 Applecross North Trailhead Parking      nearest: East Rim Trail
+#110 Birch Hollow Trailhead Parking          nearest: East Mesa Trail
+#38  Gooseberry Mesa - Windmill Trailhead    nearest: (none)
+#99  The Corral Trailhead - Applecross       nearest: (none)
+#140 JEM Trailhead Parking                   nearest: (none)
+#160 Gooseberry Trailhead Parking            nearest: (none)
+#161 Gooseberry Mesa - White Trailhead       nearest: (none)
+#193 Sheep Bridge Trailhead Parking          nearest: (none)
+#206 Wire Mesa Trailhead Parking             nearest: (none)
+#96  Chamberlain's Ranch Trailhead Parking   only a far fallback (4176 m)
+```
+
+The New England run found four more, marked inline with `"coverage_gap": true`
+on the verdict — Monadnock Old Toll Road, Jaquith Rail Trail, Pumpelly Trail
+Parking, and Grafton Loop Trailhead East ✅. Those four are the evidence behind
+lesson 7 and behind TASKS #54: each is a named trailhead whose lot is right
+there and whose *trail* stops a kilometre or two short.
+
+```
+Pumpelly Trail Parking — the named Pumpelly trailhead; our Pumpelly geom ends
+  2.2 km short — coverage gap
+Grafton Loop Trailhead East — served only via 1265 m fallback because our Grafton
+  Loop Trail geom is clipped ~1.6 km short of its eastern trailhead
+```
+
+### What each morphology taught
+
+Three deliberately different places, same protocol, no re-tuning:
+
+| Run | Character | What it stressed |
+|---|---|---|
+| **Zion Wilderness** | desert, sparse, huge distances | the fallback cap; the difference between a trailhead and open ground |
+| **Griffith Park, LA** | urban, 8× denser, 24 overlapping areas | the access tag as the heaviest filter (952 private/customers auto-dropped region-wide); facility adjacency; the genuinely ambiguous urban roadside, which is the only review-heavy zone |
+| **New England, 5 areas** | sparse, roadside, forested | leaf-on canopy hiding real lots; trimmed trailhead spurs; the sub-agent fan-out |
+
+Griffith was chosen specifically as a hostile contrast to Zion, and scoring both
+against the user's calls gave **0 confident-wrong with no re-tuning** 📋. That is
+the evidence the rules are not Zion-overfit, and it is the bar any change to them
+should have to clear again.
+
+---
+
+## 8. Killed ideas — do not re-propose without new evidence
 
 - **Area-first framing** (judge a lot against one area, draw a boundary). WRONG —
   parking is area-agnostic since #500. Superseded by the parking-first,
@@ -378,10 +583,10 @@ cd scripts/parking-adjud && PADJ_TMP=$PWD/data python3 tools/merge_ne.py
 
 ---
 
-## 7. The pipeline — running one area end to end
+## 9. The pipeline — running one area end to end
 
 Needs `osmium`, `shapely`, `Pillow` and the OSM extracts — so this half is
-homelab-only. See section 17 for what a non-homelab agent can still do.
+homelab-only. See section 19 for what a non-homelab agent can still do.
 
 ```bash
 cd scripts/parking-adjud
@@ -427,7 +632,7 @@ Cross-area helpers:
 
 ---
 
-## 8. Paths — fixed, and what was wrong before
+## 10. Paths — fixed, and what was wrong before
 
 **This is no longer a blocker.** It is recorded because the failure shape recurs.
 
@@ -481,7 +686,7 @@ on `/mnt/raid` is still right — they are huge and belong with the other extrac
 📌 The auto-memory lists "filter cyan to hiking-relevant ways" as a TODO. **Already
 done** ✅ — `ne_review2.py::_hike_ok`, wired into the render path.
 
-## 9. Tool reference
+## 11. Tool reference
 
 All in `scripts/parking-adjud/tools/` (also still at `/mnt/raid/trekdex/parking-adjud/tools/`, now the stale copy).
 
@@ -506,7 +711,7 @@ All in `scripts/parking-adjud/tools/` (also still at `/mnt/raid/trekdex/parking-
 
 ---
 
-## 10. Data reference
+## 12. Data reference
 
 All in `scripts/parking-adjud/data/` — 74 files, 8.2 MB ✅. The rendered tiles are NOT in the repo; they stay at `/mnt/raid/trekdex/parking-adjud/data/<slug>_ladder/`.
 
@@ -554,7 +759,7 @@ Zion; plus `ne_region.osm.pbf`, `ne_parking.osm.pbf`, `phx_metro.osm.pbf`,
 
 ---
 
-## 11. The verdict schema
+## 13. The verdict schema
 
 One JSON object per lot, no prose outside it. From `tools/judge_protocol.md`:
 
@@ -582,7 +787,7 @@ The New England run added two optional fields, both useful — keep them:
 
 ---
 
-## 12. ⚠️ THE ID PROBLEM — read before designing the sidecar
+## 14. ⚠️ THE ID PROBLEM — read before designing the sidecar
 
 The plan of record is a reversible `public/areas/parking-verdicts.json` **keyed by
 OSM id**, shaped like `nonhiking-trails.json`, honoured by the pool builder, and
@@ -632,7 +837,7 @@ what shipped geom contains.
 
 ---
 
-## 13. The consumer side — what the sidecar must respect
+## 15. The consumer side — what the sidecar must respect
 
 ### The global pool
 
@@ -733,7 +938,7 @@ to remove. Do the same.
 
 ---
 
-## 14. What is banked
+## 16. What is banked
 
 ✅ counted directly from the stores this session:
 
@@ -773,7 +978,7 @@ correct. User-approved 2026-08-02: *"all looks good"*.
 
 ---
 
-## 15. The Colorado batch — prepared, never run
+## 17. The Colorado batch — prepared, never run
 
 `/mnt/raid/trekdex/parking-adjud/co/` (1.2 GB) ✅.
 
@@ -793,11 +998,11 @@ Rocky Mountain NP 79, San Juan NF 77, Cherry Creek SP 73.
 
 ---
 
-## 16. First actions for the next agent
+## 18. First actions for the next agent
 
-1. ~~Repoint `TMP` in the tools~~ — **done 2026-09-13**, section 8. The tools and
+1. ~~Repoint `TMP` in the tools~~ — **done 2026-09-13**, section 10. The tools and
    data are in the repo and run from it.
-2. **Settle the ID question** (section 12). It determines the sidecar's shape,
+2. **Settle the ID question** (section 14). It determines the sidecar's shape,
    and everything downstream depends on it. Write the decision into `TASKS.md` #53.
 3. **Build the sidecar and its consumer**, copying `nonhiking-trails.json`'s shape
    and the refuse-to-empty guard. Land the 299 banked verdicts through it as the
@@ -813,7 +1018,7 @@ Rocky Mountain NP 79, San Juan NF 77, Cherry Creek SP 73.
 
 ---
 
-## 17. Where everything lives
+## 19. Where everything lives
 
 ### In the repo — travels with git, works on any machine
 
@@ -857,7 +1062,7 @@ build the sidecar and its consumer, and change any of the logic.
 foot-network walks, or render a tile — all of those need the multi-GB extracts
 and, for tiles, network access to NAIP.
 
-So: **the sidecar work (section 16 steps 2 and 3) is portable. Adjudicating new
+So: **the sidecar work (section 18 steps 2 and 3) is portable. Adjudicating new
 areas is not.**
 
 ### Elsewhere in the repo

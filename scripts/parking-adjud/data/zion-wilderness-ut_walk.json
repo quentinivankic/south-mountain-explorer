@@ -1,0 +1,1700 @@
+{
+"0": {
+"walk_m": 2866,
+"conn": "at/via trail or footway",
+"trail": "East Rim Trail",
+"snap_m": 8
+},
+"1": {
+"walk_m": 3910,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 25
+},
+"2": {
+"walk_m": 3632,
+"conn": "road, no sidewalk",
+"trail": "Canyon Overlook Trail",
+"snap_m": 3
+},
+"3": {
+"walk_m": 15,
+"conn": "road, no sidewalk",
+"trail": "The Subway Bottom-Up Approach",
+"snap_m": 7
+},
+"4": {
+"walk_m": 242,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 22
+},
+"5": {
+"walk_m": 48,
+"conn": "at/via trail or footway",
+"trail": "Weeping Rock Trail",
+"snap_m": 5
+},
+"6": {
+"walk_m": 29,
+"conn": "at/via trail or footway",
+"trail": "East Rim Trail",
+"snap_m": 8
+},
+"7": {
+"walk_m": 1277,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 22
+},
+"8": {
+"walk_m": 4065,
+"conn": "road, no sidewalk",
+"trail": "Canyon Overlook Trail",
+"snap_m": 3
+},
+"9": {
+"walk_m": 12,
+"conn": "road, no sidewalk",
+"trail": "Canyon Overlook Trail",
+"snap_m": 3
+},
+"10": {
+"walk_m": 4183,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 31
+},
+"11": {
+"walk_m": 180,
+"conn": "road, no sidewalk",
+"trail": "Canyon Overlook Trail",
+"snap_m": 6
+},
+"12": {
+"walk_m": 1685,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 6
+},
+"13": {
+"walk_m": 2628,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 9
+},
+"14": {
+"walk_m": 2511,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 20
+},
+"15": {
+"walk_m": 1028,
+"conn": "road, no sidewalk",
+"trail": "La Verkin Creek Trail",
+"snap_m": 13
+},
+"16": {
+"walk_m": 241,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 25
+},
+"17": {
+"walk_m": 541,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 7
+},
+"18": {
+"walk_m": 546,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 11
+},
+"19": {
+"walk_m": 1631,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 8
+},
+"20": {
+"walk_m": 1721,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 8
+},
+"21": {
+"walk_m": 3204,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 32
+},
+"22": {
+"walk_m": 30,
+"conn": "road, no sidewalk",
+"trail": "Wildcat Canyon Trail",
+"snap_m": 8
+},
+"23": {
+"walk_m": 328,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 2
+},
+"24": {
+"walk_m": 2112,
+"conn": "road, no sidewalk",
+"trail": "The Subway Bottom-Up Approach",
+"snap_m": 3
+},
+"25": {
+"walk_m": 7957,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 50
+},
+"26": {
+"walk_m": 7957,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 20
+},
+"27": {
+"walk_m": 8023,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 17
+},
+"28": {
+"walk_m": 8105,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 22
+},
+"29": {
+"walk_m": 8232,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 21
+},
+"30": {
+"walk_m": 8140,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 18
+},
+"31": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"32": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"33": {
+"walk_m": 8213,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 9
+},
+"34": {
+"walk_m": 8091,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 28
+},
+"35": {
+"walk_m": 8104,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 18
+},
+"36": {
+"walk_m": 6131,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 10
+},
+"37": {
+"walk_m": 4337,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 21
+},
+"38": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"39": {
+"walk_m": 8800,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 38
+},
+"40": {
+"walk_m": 8294,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 12
+},
+"41": {
+"walk_m": 95,
+"conn": "at/via trail or footway",
+"trail": "Grotto Trail",
+"snap_m": 5
+},
+"42": {
+"walk_m": 650,
+"conn": "road, no sidewalk",
+"trail": "Archaeology Trail",
+"snap_m": 9
+},
+"43": {
+"walk_m": 4398,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 17
+},
+"44": {
+"walk_m": 1443,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 12
+},
+"45": {
+"walk_m": 3471,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 27
+},
+"46": {
+"walk_m": 1616,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 5
+},
+"47": {
+"walk_m": 1292,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 6
+},
+"48": {
+"walk_m": 360,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 3
+},
+"49": {
+"walk_m": 815,
+"conn": "road, no sidewalk",
+"trail": "Canyon Overlook Trail",
+"snap_m": 6
+},
+"50": {
+"walk_m": 608,
+"conn": "road, no sidewalk",
+"trail": "Canyon Overlook Trail",
+"snap_m": 3
+},
+"51": {
+"walk_m": 3121,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 9
+},
+"52": {
+"walk_m": 3029,
+"conn": "at/via trail or footway",
+"trail": "East Rim Trail",
+"snap_m": 16
+},
+"53": {
+"walk_m": 3092,
+"conn": "at/via trail or footway",
+"trail": "East Rim Trail",
+"snap_m": 5
+},
+"54": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": 13
+},
+"55": {
+"walk_m": 497,
+"conn": "road, no sidewalk",
+"trail": "South Fork of Taylor Creek Trail",
+"snap_m": 27
+},
+"56": {
+"walk_m": 533,
+"conn": "road, no sidewalk",
+"trail": "Taylor Creek Trail",
+"snap_m": 17
+},
+"57": {
+"walk_m": 2638,
+"conn": "road, no sidewalk",
+"trail": "Taylor Creek Trail",
+"snap_m": 10
+},
+"58": {
+"walk_m": 910,
+"conn": "road, no sidewalk",
+"trail": "Taylor Creek Trail",
+"snap_m": 10
+},
+"59": {
+"walk_m": 579,
+"conn": "road, no sidewalk",
+"trail": "Timber Creek Overlook",
+"snap_m": 9
+},
+"60": {
+"walk_m": 411,
+"conn": "road, no sidewalk",
+"trail": "Timber Creek Overlook",
+"snap_m": 2
+},
+"61": {
+"walk_m": 201,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 6
+},
+"62": {
+"walk_m": 289,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 12
+},
+"63": {
+"walk_m": 254,
+"conn": "at/via trail or footway",
+"trail": "East Rim Trail",
+"snap_m": 14
+},
+"64": {
+"walk_m": 1320,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 2
+},
+"65": {
+"walk_m": 336,
+"conn": "at/via trail or footway",
+"trail": "East Rim Trail",
+"snap_m": 4
+},
+"66": {
+"walk_m": 531,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 9
+},
+"67": {
+"walk_m": 2201,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 5
+},
+"68": {
+"walk_m": 2317,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 5
+},
+"69": {
+"walk_m": 3272,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 4
+},
+"70": {
+"walk_m": 3625,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 5
+},
+"71": {
+"walk_m": 3243,
+"conn": "road, no sidewalk",
+"trail": "Canyon Overlook Trail",
+"snap_m": 4
+},
+"72": {
+"walk_m": 2902,
+"conn": "road, no sidewalk",
+"trail": "Canyon Overlook Trail",
+"snap_m": 3
+},
+"73": {
+"walk_m": 2678,
+"conn": "road, no sidewalk",
+"trail": "Canyon Overlook Trail",
+"snap_m": 29
+},
+"74": {
+"walk_m": 549,
+"conn": "road, no sidewalk",
+"trail": "Canyon Overlook Trail",
+"snap_m": 15
+},
+"75": {
+"walk_m": 279,
+"conn": "road, no sidewalk",
+"trail": "Canyon Overlook Trail",
+"snap_m": 4
+},
+"76": {
+"walk_m": 2973,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 2
+},
+"77": {
+"walk_m": 858,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 3
+},
+"78": {
+"walk_m": 270,
+"conn": "road, no sidewalk",
+"trail": "Grotto Trail",
+"snap_m": 12
+},
+"79": {
+"walk_m": 625,
+"conn": "at/via trail or footway",
+"trail": "Angels Landing Trail",
+"snap_m": 4
+},
+"80": {
+"walk_m": 779,
+"conn": "at/via trail or footway",
+"trail": "Angels Landing Trail",
+"snap_m": 4
+},
+"81": {
+"walk_m": 828,
+"conn": "at/via trail or footway",
+"trail": "Weeping Rock Trail",
+"snap_m": 32
+},
+"82": {
+"walk_m": 297,
+"conn": "at/via trail or footway",
+"trail": "Weeping Rock Trail",
+"snap_m": 3
+},
+"83": {
+"walk_m": 519,
+"conn": "at/via trail or footway",
+"trail": "Weeping Rock Trail",
+"snap_m": 7
+},
+"84": {
+"walk_m": 85,
+"conn": "at/via trail or footway",
+"trail": "Riverside Walk",
+"snap_m": 7
+},
+"85": {
+"walk_m": 261,
+"conn": "at/via trail or footway",
+"trail": "Pa'rus Trail",
+"snap_m": 10
+},
+"86": {
+"walk_m": 174,
+"conn": "road, no sidewalk",
+"trail": "Watchman Trail",
+"snap_m": 84
+},
+"87": {
+"walk_m": 2055,
+"conn": "road, no sidewalk",
+"trail": "Canyon Overlook Trail",
+"snap_m": 4
+},
+"88": {
+"walk_m": 3996,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 2
+},
+"89": {
+"walk_m": 5050,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 3
+},
+"90": {
+"walk_m": 2901,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 15
+},
+"91": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"92": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"93": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"94": {
+"walk_m": 16,
+"conn": "road, no sidewalk",
+"trail": "Stave Spring Trail",
+"snap_m": 5
+},
+"95": {
+"walk_m": 284,
+"conn": "at/via trail or footway",
+"trail": "Upper Orderville Canyon Trail",
+"snap_m": 1
+},
+"96": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"97": {
+"walk_m": 920,
+"conn": "at/via trail or footway",
+"trail": "Riverside Walk",
+"snap_m": 5
+},
+"98": {
+"walk_m": 645,
+"conn": "at/via trail or footway",
+"trail": "Riverside Walk",
+"snap_m": 6
+},
+"99": {
+"walk_m": 3406,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 3
+},
+"100": {
+"walk_m": 2573,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 20
+},
+"101": {
+"walk_m": 165,
+"conn": "road, no sidewalk",
+"trail": "Lower Emerald Pool Trail",
+"snap_m": 13
+},
+"102": {
+"walk_m": 1078,
+"conn": "road, no sidewalk",
+"trail": "East Mesa Trail",
+"snap_m": 25
+},
+"103": {
+"walk_m": 25,
+"conn": "at/via trail or footway",
+"trail": "Grotto Trail",
+"snap_m": 14
+},
+"104": {
+"walk_m": 27,
+"conn": "at/via trail or footway",
+"trail": "Angels Landing Trail",
+"snap_m": 12
+},
+"105": {
+"walk_m": 1060,
+"conn": "at/via trail or footway",
+"trail": "Weeping Rock Trail",
+"snap_m": 17
+},
+"106": {
+"walk_m": 943,
+"conn": "at/via trail or footway",
+"trail": "Weeping Rock Trail",
+"snap_m": 5
+},
+"107": {
+"walk_m": 2677,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 4
+},
+"108": {
+"walk_m": 53,
+"conn": "road, no sidewalk",
+"trail": "Hop Valley Trail",
+"snap_m": 14
+},
+"109": {
+"walk_m": 1713,
+"conn": "at/via trail or footway",
+"trail": "Chinle Trail",
+"snap_m": 12
+},
+"110": {
+"walk_m": 3945,
+"conn": "at/via trail or footway",
+"trail": "Upper Orderville Canyon Trail",
+"snap_m": 29
+},
+"111": {
+"walk_m": 147,
+"conn": "road, no sidewalk",
+"trail": "East Mesa Trail",
+"snap_m": 20
+},
+"112": {
+"walk_m": 7243,
+"conn": "road, no sidewalk",
+"trail": "East Mesa Trail",
+"snap_m": 12
+},
+"113": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"114": {
+"walk_m": 1966,
+"conn": "road, no sidewalk",
+"trail": "Taylor Creek Trail",
+"snap_m": 7
+},
+"115": {
+"walk_m": 1266,
+"conn": "road, no sidewalk",
+"trail": "Taylor Creek Trail",
+"snap_m": 6
+},
+"116": {
+"walk_m": 6,
+"conn": "road, no sidewalk",
+"trail": "West Rim Trail",
+"snap_m": 3
+},
+"117": {
+"walk_m": 27,
+"conn": "road, no sidewalk",
+"trail": "Campground and Overlook Connector Trail",
+"snap_m": 2
+},
+"118": {
+"walk_m": 274,
+"conn": "road, no sidewalk",
+"trail": "La Verkin Creek Trail",
+"snap_m": 15
+},
+"119": {
+"walk_m": 112,
+"conn": "at/via trail or footway",
+"trail": "La Verkin Creek Trail",
+"snap_m": 5
+},
+"120": {
+"walk_m": 63,
+"conn": "at/via trail or footway",
+"trail": "Taylor Creek Trail",
+"snap_m": 3
+},
+"121": {
+"walk_m": 100,
+"conn": "road, no sidewalk",
+"trail": "South Fork of Taylor Creek Trail",
+"snap_m": 23
+},
+"122": {
+"walk_m": 723,
+"conn": "road, no sidewalk",
+"trail": "La Verkin Creek Trail",
+"snap_m": 5
+},
+"123": {
+"walk_m": 83,
+"conn": "road, no sidewalk",
+"trail": "Timber Creek Overlook",
+"snap_m": 14
+},
+"124": {
+"walk_m": 3196,
+"conn": "road, no sidewalk",
+"trail": "Taylor Creek Trail",
+"snap_m": 56
+},
+"125": {
+"walk_m": 600,
+"conn": "road, no sidewalk",
+"trail": "Tabernacle Dome Access Trail",
+"snap_m": 50
+},
+"126": {
+"walk_m": 0,
+"conn": "at/via trail or footway",
+"trail": "Tabernacle Dome Access Trail",
+"snap_m": 8
+},
+"127": {
+"walk_m": 246,
+"conn": "at/via trail or footway",
+"trail": "Human History Museum Trail",
+"snap_m": 4
+},
+"128": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"129": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"130": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"131": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"132": {
+"walk_m": 2179,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 12
+},
+"133": {
+"walk_m": 2125,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 16
+},
+"134": {
+"walk_m": 1995,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 13
+},
+"135": {
+"walk_m": 2664,
+"conn": "road, no sidewalk",
+"trail": "Chinle Trail",
+"snap_m": 9
+},
+"136": {
+"walk_m": 270,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 6
+},
+"137": {
+"walk_m": 150,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 23
+},
+"138": {
+"walk_m": 3282,
+"conn": "road, no sidewalk",
+"trail": "Taylor Creek Trail",
+"snap_m": 13
+},
+"139": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"140": {
+"walk_m": 4338,
+"conn": "at/via trail or footway",
+"trail": "Coalpits Wash Trail",
+"snap_m": 8
+},
+"141": {
+"walk_m": 1992,
+"conn": "road, no sidewalk",
+"trail": "Wildcat Canyon Trail",
+"snap_m": 7
+},
+"142": {
+"walk_m": 1511,
+"conn": "road, no sidewalk",
+"trail": "Wildcat Canyon Trail",
+"snap_m": 5
+},
+"143": {
+"walk_m": 116,
+"conn": "road, no sidewalk",
+"trail": "Connector Trail",
+"snap_m": 16
+},
+"144": {
+"walk_m": 2013,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 4
+},
+"145": {
+"walk_m": 2250,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 19
+},
+"146": {
+"walk_m": 1110,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 27
+},
+"147": {
+"walk_m": 5201,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 14
+},
+"148": {
+"walk_m": 2191,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 22
+},
+"149": {
+"walk_m": 511,
+"conn": "road, no sidewalk",
+"trail": "Lower Emerald Pool Trail",
+"snap_m": 9
+},
+"150": {
+"walk_m": 1227,
+"conn": "at/via trail or footway",
+"trail": "Lower Emerald Pool Trail",
+"snap_m": 42
+},
+"151": {
+"walk_m": 1511,
+"conn": "at/via trail or footway",
+"trail": "Pa'rus Trail",
+"snap_m": 8
+},
+"152": {
+"walk_m": 1082,
+"conn": "at/via trail or footway",
+"trail": "Pa'rus Trail",
+"snap_m": 8
+},
+"153": {
+"walk_m": 99,
+"conn": "at/via trail or footway",
+"trail": "Pa'rus Trail",
+"snap_m": 6
+},
+"154": {
+"walk_m": 137,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 5
+},
+"155": {
+"walk_m": 239,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 14
+},
+"156": {
+"walk_m": 698,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 7
+},
+"157": {
+"walk_m": 861,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 4
+},
+"158": {
+"walk_m": 416,
+"conn": "road, no sidewalk",
+"trail": "Human History Museum Trail",
+"snap_m": 4
+},
+"159": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"160": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"161": {
+"walk_m": 728,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 14
+},
+"162": {
+"walk_m": 5505,
+"conn": "at/via trail or footway",
+"trail": "Coalpits Wash Trail",
+"snap_m": 8
+},
+"163": {
+"walk_m": 1431,
+"conn": "road, no sidewalk",
+"trail": "Tabernacle Dome Access Trail",
+"snap_m": 11
+},
+"164": {
+"walk_m": 184,
+"conn": "road, no sidewalk",
+"trail": "Wildcat Canyon Trail",
+"snap_m": 6
+},
+"165": {
+"walk_m": 1540,
+"conn": "road, no sidewalk",
+"trail": "Wildcat Canyon Trail",
+"snap_m": 6
+},
+"166": {
+"walk_m": 8039,
+"conn": "road, no sidewalk",
+"trail": "Barney's Trail",
+"snap_m": 35
+},
+"167": {
+"walk_m": 8119,
+"conn": "road, no sidewalk",
+"trail": "Barney's Trail",
+"snap_m": 29
+},
+"168": {
+"walk_m": 167,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 8
+},
+"169": {
+"walk_m": 202,
+"conn": "road, no sidewalk",
+"trail": "Archaeology Trail",
+"snap_m": 5
+},
+"170": {
+"walk_m": 298,
+"conn": "road, no sidewalk",
+"trail": "Archaeology Trail",
+"snap_m": 4
+},
+"171": {
+"walk_m": 448,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 7
+},
+"172": {
+"walk_m": 586,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 7
+},
+"173": {
+"walk_m": 362,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 7
+},
+"174": {
+"walk_m": 1768,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 6
+},
+"175": {
+"walk_m": 1769,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 11
+},
+"176": {
+"walk_m": 1706,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 6
+},
+"177": {
+"walk_m": 96,
+"conn": "road, no sidewalk",
+"trail": "Watchman Trail",
+"snap_m": 7
+},
+"178": {
+"walk_m": 1556,
+"conn": "road, no sidewalk",
+"trail": "The Subway Bottom-Up Approach",
+"snap_m": 3
+},
+"179": {
+"walk_m": 0,
+"conn": "at/via trail or footway",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 38
+},
+"180": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"181": {
+"walk_m": 377,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 16
+},
+"182": {
+"walk_m": 500,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 14
+},
+"183": {
+"walk_m": 404,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 11
+},
+"184": {
+"walk_m": 290,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 9
+},
+"185": {
+"walk_m": 2085,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 3
+},
+"186": {
+"walk_m": 4375,
+"conn": "road, no sidewalk",
+"trail": "Coalpits Wash Trail",
+"snap_m": 10
+},
+"187": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"188": {
+"walk_m": 6,
+"conn": "road, no sidewalk",
+"trail": "Watchman Trail",
+"snap_m": 41
+},
+"189": {
+"walk_m": 487,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 9
+},
+"190": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"191": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"192": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"193": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"194": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"195": {
+"walk_m": 562,
+"conn": "at/via trail or footway",
+"trail": "Riverside Walk",
+"snap_m": 5
+},
+"196": {
+"walk_m": 2932,
+"conn": "road, no sidewalk",
+"trail": "East Rim Trail",
+"snap_m": 7
+},
+"197": {
+"walk_m": 4264,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 24
+},
+"198": {
+"walk_m": 3613,
+"conn": "road, no sidewalk",
+"trail": "The Subway Bottom-Up Approach",
+"snap_m": 19
+},
+"199": {
+"walk_m": 1430,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 2
+},
+"200": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"201": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"202": {
+"walk_m": 4873,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 23
+},
+"203": {
+"walk_m": 97,
+"conn": "at/via trail or footway",
+"trail": "Pa'rus Trail",
+"snap_m": 3
+},
+"204": {
+"walk_m": 25,
+"conn": "road, no sidewalk",
+"trail": "South Fork of Taylor Creek Trail",
+"snap_m": 3
+},
+"205": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"206": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"207": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+},
+"208": {
+"walk_m": 2069,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 28
+},
+"209": {
+"walk_m": 4025,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 6
+},
+"210": {
+"walk_m": 4237,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 24
+},
+"211": {
+"walk_m": 4351,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 11
+},
+"212": {
+"walk_m": 4254,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 8
+},
+"213": {
+"walk_m": 4114,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 10
+},
+"214": {
+"walk_m": 4069,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 29
+},
+"215": {
+"walk_m": 4172,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 5
+},
+"216": {
+"walk_m": 3531,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 8
+},
+"217": {
+"walk_m": 3449,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 16
+},
+"218": {
+"walk_m": 3461,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 23
+},
+"219": {
+"walk_m": 763,
+"conn": "road, no sidewalk",
+"trail": "Sheep Bridge Hiking Trail",
+"snap_m": 68
+},
+"220": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": 12
+},
+"221": {
+"walk_m": 1021,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 6
+},
+"222": {
+"walk_m": 857,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 8
+},
+"223": {
+"walk_m": 937,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 17
+},
+"224": {
+"walk_m": 1002,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 11
+},
+"225": {
+"walk_m": 1071,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 8
+},
+"226": {
+"walk_m": 1943,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 18
+},
+"227": {
+"walk_m": 2067,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 19
+},
+"228": {
+"walk_m": 424,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 26
+},
+"229": {
+"walk_m": 396,
+"conn": "road, no sidewalk",
+"trail": "Watchman Trail",
+"snap_m": 2
+},
+"230": {
+"walk_m": 496,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 7
+},
+"231": {
+"walk_m": 3167,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 11
+},
+"232": {
+"walk_m": 3047,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 20
+},
+"233": {
+"walk_m": 3689,
+"conn": "road, no sidewalk",
+"trail": "Chinle Trail",
+"snap_m": 11
+},
+"234": {
+"walk_m": 3679,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 12
+},
+"235": {
+"walk_m": 2838,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 10
+},
+"236": {
+"walk_m": 2850,
+"conn": "road, no sidewalk",
+"trail": "Chinle Trail",
+"snap_m": 9
+},
+"237": {
+"walk_m": 2891,
+"conn": "road, no sidewalk",
+"trail": "Chinle Trail",
+"snap_m": 8
+},
+"238": {
+"walk_m": 622,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 8
+},
+"239": {
+"walk_m": 879,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 10
+},
+"240": {
+"walk_m": 1252,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 12
+},
+"241": {
+"walk_m": 1467,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 14
+},
+"242": {
+"walk_m": 1618,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 11
+},
+"243": {
+"walk_m": 1738,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 20
+},
+"244": {
+"walk_m": 1730,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 10
+},
+"245": {
+"walk_m": 1864,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 5
+},
+"246": {
+"walk_m": 2017,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 14
+},
+"247": {
+"walk_m": 2109,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 4
+},
+"248": {
+"walk_m": 2241,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 15
+},
+"249": {
+"walk_m": 2436,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 3
+},
+"250": {
+"walk_m": 2398,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 31
+},
+"251": {
+"walk_m": 2436,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 1
+},
+"252": {
+"walk_m": 2442,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 11
+},
+"253": {
+"walk_m": 2883,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 13
+},
+"254": {
+"walk_m": 3002,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 24
+},
+"255": {
+"walk_m": 3001,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 18
+},
+"256": {
+"walk_m": 3673,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 88
+},
+"257": {
+"walk_m": 3178,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 27
+},
+"258": {
+"walk_m": 3067,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 87
+},
+"259": {
+"walk_m": 3199,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 7
+},
+"260": {
+"walk_m": 2811,
+"conn": "road, no sidewalk",
+"trail": "Chinle Trail",
+"snap_m": 1
+},
+"261": {
+"walk_m": 2104,
+"conn": "at/via trail or footway",
+"trail": "Chinle Trail",
+"snap_m": 61
+},
+"262": {
+"walk_m": 2553,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 17
+},
+"263": {
+"walk_m": 2432,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 13
+},
+"264": {
+"walk_m": 2478,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 26
+},
+"265": {
+"walk_m": 2384,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 6
+},
+"266": {
+"walk_m": 2258,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 13
+},
+"267": {
+"walk_m": 2107,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 7
+},
+"268": {
+"walk_m": 2054,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 12
+},
+"269": {
+"walk_m": 2003,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 8
+},
+"270": {
+"walk_m": 1948,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 6
+},
+"271": {
+"walk_m": 1814,
+"conn": "road, no sidewalk",
+"trail": "Watchman Trail",
+"snap_m": 3
+},
+"272": {
+"walk_m": 1814,
+"conn": "road, no sidewalk",
+"trail": "Watchman Trail",
+"snap_m": 5
+},
+"273": {
+"walk_m": 2046,
+"conn": "road, no sidewalk",
+"trail": "Watchman Trail",
+"snap_m": 15
+},
+"274": {
+"walk_m": 1821,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 14
+},
+"275": {
+"walk_m": 1507,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 7
+},
+"276": {
+"walk_m": 1377,
+"conn": "mixed road+path",
+"trail": "Watchman Trail",
+"snap_m": 17
+},
+"277": {
+"walk_m": 1430,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 9
+},
+"278": {
+"walk_m": 1489,
+"conn": "at/via trail or footway",
+"trail": "Watchman Trail",
+"snap_m": 11
+},
+"279": {
+"walk_m": 62,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 3
+},
+"280": {
+"walk_m": 158,
+"conn": "road, no sidewalk",
+"trail": "Pa'rus Trail",
+"snap_m": 5
+},
+"281": {
+"walk_m": 0,
+"conn": "at/via trail or footway",
+"trail": "Archaeology Trail",
+"snap_m": 46
+},
+"282": {
+"walk_m": null,
+"conn": "no route",
+"trail": null,
+"snap_m": null
+}
+}

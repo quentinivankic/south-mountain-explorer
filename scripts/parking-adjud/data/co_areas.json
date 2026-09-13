@@ -1,0 +1,3395 @@
+[
+ {
+  "slug": "white-river-national-forest-co",
+  "name": "White River National Forest",
+  "bbox": [
+   -107.648751,
+   38.990881,
+   -105.798376,
+   40.134092
+  ],
+  "lots": 227,
+  "trails": 833,
+  "rel": 3724941
+ },
+ {
+  "slug": "roosevelt-national-forest-co",
+  "name": "Roosevelt National Forest",
+  "bbox": [
+   -106.126692,
+   39.894829,
+   -105.19338,
+   40.988452
+  ],
+  "lots": 146,
+  "trails": 485,
+  "rel": 395767
+ },
+ {
+  "slug": "pike-national-forest-co",
+  "name": "Pike National Forest",
+  "bbox": [
+   -106.201929,
+   38.711399,
+   -104.864817,
+   39.602985
+  ],
+  "lots": 82,
+  "trails": 265,
+  "rel": 393066
+ },
+ {
+  "slug": "rocky-mountain-national-park-co",
+  "name": "Rocky Mountain National Park",
+  "bbox": [
+   -105.945145,
+   40.129974,
+   -105.459963,
+   40.570889
+  ],
+  "lots": 79,
+  "trails": 166,
+  "rel": 390960
+ },
+ {
+  "slug": "san-juan-national-forest-co",
+  "name": "San Juan National Forest",
+  "bbox": [
+   -108.574891,
+   37.105352,
+   -106.671256,
+   37.888988
+  ],
+  "lots": 77,
+  "trails": 298,
+  "rel": 396404
+ },
+ {
+  "slug": "cherry-creek-state-park-co",
+  "name": "Cherry Creek State Park",
+  "bbox": [
+   -104.875639,
+   39.602253,
+   -104.816319,
+   39.656132
+  ],
+  "lots": 73,
+  "trails": 21,
+  "rel": null
+ },
+ {
+  "slug": "uncompahgre-national-forest-co",
+  "name": "Uncompahgre National Forest",
+  "bbox": [
+   -108.799641,
+   37.778098,
+   -107.303831,
+   38.785123
+  ],
+  "lots": 58,
+  "trails": 222,
+  "rel": 396418
+ },
+ {
+  "slug": "san-isabel-national-forest-co",
+  "name": "San Isabel National Forest",
+  "bbox": [
+   -106.597428,
+   37.343958,
+   -104.958062,
+   39.373118
+  ],
+  "lots": 57,
+  "trails": 189,
+  "rel": 396343
+ },
+ {
+  "slug": "arapaho-national-forest-co",
+  "name": "Arapaho National Forest",
+  "bbox": [
+   -106.143425,
+   39.553267,
+   -105.361371,
+   40.401966
+  ],
+  "lots": 56,
+  "trails": 220,
+  "rel": 396026
+ },
+ {
+  "slug": "gunnison-national-forest-co",
+  "name": "Gunnison National Forest",
+  "bbox": [
+   -107.673777,
+   37.872898,
+   -106.192111,
+   39.303502
+  ],
+  "lots": 49,
+  "trails": 249,
+  "rel": 5579230
+ },
+ {
+  "slug": "grand-mesa-national-forest-co",
+  "name": "Grand Mesa National Forest",
+  "bbox": [
+   -108.79485,
+   38.829847,
+   -107.59861,
+   39.263977
+  ],
+  "lots": 37,
+  "trails": 59,
+  "rel": 5435635
+ },
+ {
+  "slug": "palmer-park-co",
+  "name": "Palmer Park",
+  "bbox": [
+   -104.788092,
+   38.867943,
+   -104.757419,
+   38.889195
+  ],
+  "lots": 34,
+  "trails": 27,
+  "rel": null
+ },
+ {
+  "slug": "chatfield-state-park-co",
+  "name": "Chatfield State Park",
+  "bbox": [
+   -105.092892,
+   39.492802,
+   -105.037368,
+   39.567305
+  ],
+  "lots": 33,
+  "trails": 23,
+  "rel": null
+ },
+ {
+  "slug": "golden-gate-canyon-state-park-co",
+  "name": "Golden Gate Canyon State Park",
+  "bbox": [
+   -105.449423,
+   39.820441,
+   -105.347608,
+   39.880575
+  ],
+  "lots": 31,
+  "trails": 22,
+  "rel": null
+ },
+ {
+  "slug": "blm-royal-gorge-field-office-co",
+  "name": "BLM - Royal Gorge Field Office",
+  "bbox": [
+   -106.271941,
+   38.238306,
+   -103.266136,
+   40.787643
+  ],
+  "lots": 29,
+  "trails": 140,
+  "rel": 9239483
+ },
+ {
+  "slug": "wetlands-preserve-co",
+  "name": "Wetlands Preserve",
+  "bbox": [
+   -104.853681,
+   39.606262,
+   -104.816319,
+   39.656132
+  ],
+  "lots": 27,
+  "trails": 8,
+  "rel": null
+ },
+ {
+  "slug": "lake-pueblo-state-park-co",
+  "name": "Lake Pueblo State Park",
+  "bbox": [
+   -104.812744,
+   38.22951,
+   -104.706828,
+   38.296165
+  ],
+  "lots": 27,
+  "trails": 47,
+  "rel": null
+ },
+ {
+  "slug": "james-m-robb-colorado-river-state-park-co",
+  "name": "James M. Robb - Colorado River State Park",
+  "bbox": [
+   -108.747712,
+   39.056719,
+   -108.296279,
+   39.171586
+  ],
+  "lots": 25,
+  "trails": 12,
+  "rel": 10813970
+ },
+ {
+  "slug": "cozens-ranch-open-space-co",
+  "name": "Cozens Ranch Open Space",
+  "bbox": [
+   -105.812135,
+   39.934824,
+   -105.792474,
+   39.946369
+  ],
+  "lots": 24,
+  "trails": 6,
+  "rel": null
+ },
+ {
+  "slug": "william-frederick-hayden-park-co",
+  "name": "William Frederick Hayden Park",
+  "bbox": [
+   -105.192968,
+   39.681007,
+   -105.147679,
+   39.71502
+  ],
+  "lots": 23,
+  "trails": 16,
+  "rel": null
+ },
+ {
+  "slug": "rio-grande-national-forest-co",
+  "name": "Rio Grande National Forest",
+  "bbox": [
+   -107.536306,
+   36.993837,
+   -105.485512,
+   38.418461
+  ],
+  "lots": 23,
+  "trails": 129,
+  "rel": 396319
+ },
+ {
+  "slug": "black-canyon-of-the-gunnison-wilderness-co",
+  "name": "Black Canyon of the Gunnison Wilderness",
+  "bbox": [
+   -107.791971,
+   38.528011,
+   -107.648418,
+   38.595352
+  ],
+  "lots": 21,
+  "trails": 11,
+  "rel": 16848662
+ },
+ {
+  "slug": "north-cheyenne-canon-park-co",
+  "name": "North Cheyenne Ca\u00f1on Park",
+  "bbox": [
+   -104.913374,
+   38.782889,
+   -104.864229,
+   38.803093
+  ],
+  "lots": 19,
+  "trails": 18,
+  "rel": null
+ },
+ {
+  "slug": "blm-gunnison-field-office-co",
+  "name": "BLM - Gunnison Field Office",
+  "bbox": [
+   -107.638999,
+   37.872898,
+   -106.822879,
+   38.914493
+  ],
+  "lots": 19,
+  "trails": 55,
+  "rel": 9386905
+ },
+ {
+  "slug": "colorado-national-monument-co",
+  "name": "Colorado National Monument",
+  "bbox": [
+   -108.750908,
+   38.984633,
+   -108.621622,
+   39.111275
+  ],
+  "lots": 19,
+  "trails": 24,
+  "rel": 5453168
+ },
+ {
+  "slug": "mueller-state-park-co",
+  "name": "Mueller State Park",
+  "bbox": [
+   -105.214598,
+   38.867249,
+   -105.159504,
+   38.921781
+  ],
+  "lots": 18,
+  "trails": 40,
+  "rel": null
+ },
+ {
+  "slug": "garden-of-the-gods-park-co",
+  "name": "Garden of the Gods Park",
+  "bbox": [
+   -104.893688,
+   38.86089,
+   -104.869352,
+   38.891544
+  ],
+  "lots": 18,
+  "trails": 24,
+  "rel": 2907014
+ },
+ {
+  "slug": "bear-valley-open-space-co",
+  "name": "Bear Valley Open Space",
+  "bbox": [
+   -105.120512,
+   39.659917,
+   -105.081796,
+   39.668095
+  ],
+  "lots": 18,
+  "trails": 11,
+  "rel": null
+ },
+ {
+  "slug": "vega-state-park-co",
+  "name": "Vega State Park",
+  "bbox": [
+   -107.813932,
+   39.211988,
+   -107.782366,
+   39.233911
+  ],
+  "lots": 17,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "red-rocks-park-co",
+  "name": "Red Rocks Park",
+  "bbox": [
+   -105.210549,
+   39.656557,
+   -105.192649,
+   39.690234
+  ],
+  "lots": 17,
+  "trails": 6,
+  "rel": 9520443
+ },
+ {
+  "slug": "mcinnis-canyons-national-conservation-area-co",
+  "name": "McInnis Canyons National Conservation Area",
+  "bbox": [
+   -109.040324,
+   39.026038,
+   -108.731681,
+   39.222972
+  ],
+  "lots": 16,
+  "trails": 54,
+  "rel": 5900670
+ },
+ {
+  "slug": "rocky-mountain-arsenal-national-wildlife-refuge-co",
+  "name": "Rocky Mountain Arsenal National Wildlife Refuge",
+  "bbox": [
+   -104.901314,
+   39.798529,
+   -104.791022,
+   39.869839
+  ],
+  "lots": 13,
+  "trails": 22,
+  "rel": 3312187
+ },
+ {
+  "slug": "great-sand-dunes-national-park-co",
+  "name": "Great Sand Dunes National Park",
+  "bbox": [
+   -105.565916,
+   37.732135,
+   -105.498169,
+   37.827472
+  ],
+  "lots": 13,
+  "trails": 10,
+  "rel": 5725308
+ },
+ {
+  "slug": "st-vrain-state-park-co",
+  "name": "\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200bSt. Vrain State Park",
+  "bbox": [
+   -104.99822,
+   40.162109,
+   -104.980755,
+   40.174663
+  ],
+  "lots": 12,
+  "trails": 3,
+  "rel": null
+ },
+ {
+  "slug": "stratton-open-space-co",
+  "name": "Stratton Open Space",
+  "bbox": [
+   -104.889359,
+   38.79299,
+   -104.856888,
+   38.804532
+  ],
+  "lots": 12,
+  "trails": 13,
+  "rel": null
+ },
+ {
+  "slug": "mesa-verde-national-park-co",
+  "name": "Mesa Verde National Park",
+  "bbox": [
+   -108.541652,
+   37.165442,
+   -108.418289,
+   37.316599
+  ],
+  "lots": 12,
+  "trails": 19,
+  "rel": 5749837
+ },
+ {
+  "slug": "black-canyon-of-the-gunnison-national-park-co",
+  "name": "Black Canyon of the Gunnison National Park",
+  "bbox": [
+   -107.791971,
+   38.528011,
+   -107.648418,
+   38.595352
+  ],
+  "lots": 12,
+  "trails": 18,
+  "rel": 395552
+ },
+ {
+  "slug": "gunnison-gorge-national-conservation-area-co",
+  "name": "Gunnison Gorge National Conservation Area",
+  "bbox": [
+   -107.910295,
+   38.532482,
+   -107.785188,
+   38.784529
+  ],
+  "lots": 12,
+  "trails": 31,
+  "rel": 5900825
+ },
+ {
+  "slug": "jackson-lake-state-park-co",
+  "name": "Jackson Lake State Park",
+  "bbox": [
+   -104.094811,
+   40.370452,
+   -104.080799,
+   40.401649
+  ],
+  "lots": 11,
+  "trails": 4,
+  "rel": null
+ },
+ {
+  "slug": "pawnee-national-grassland-co",
+  "name": "Pawnee National Grassland",
+  "bbox": [
+   -104.343435,
+   40.643219,
+   -103.974989,
+   40.821969
+  ],
+  "lots": 11,
+  "trails": 4,
+  "rel": 11565548
+ },
+ {
+  "slug": "ute-valley-park-co",
+  "name": "Ute Valley Park",
+  "bbox": [
+   -104.863447,
+   38.908014,
+   -104.8268,
+   38.928445
+  ],
+  "lots": 11,
+  "trails": 17,
+  "rel": null
+ },
+ {
+  "slug": "cheyenne-mountain-state-park-co",
+  "name": "Cheyenne Mountain State Park",
+  "bbox": [
+   -104.861202,
+   38.716858,
+   -104.818436,
+   38.741616
+  ],
+  "lots": 11,
+  "trails": 19,
+  "rel": null
+ },
+ {
+  "slug": "crawford-state-park-co",
+  "name": "Crawford State Park",
+  "bbox": [
+   -107.606179,
+   38.672111,
+   -107.595117,
+   38.686991
+  ],
+  "lots": 11,
+  "trails": 6,
+  "rel": null
+ },
+ {
+  "slug": "sylvan-lake-state-park-co",
+  "name": "Sylvan Lake State Park",
+  "bbox": [
+   -106.754918,
+   39.470764,
+   -106.66917,
+   39.543825
+  ],
+  "lots": 11,
+  "trails": 6,
+  "rel": 10814091
+ },
+ {
+  "slug": "bear-creek-regional-park-co",
+  "name": "Bear Creek Regional Park",
+  "bbox": [
+   -104.883768,
+   38.817451,
+   -104.840566,
+   38.829725
+  ],
+  "lots": 11,
+  "trails": 8,
+  "rel": null
+ },
+ {
+  "slug": "arapaho-national-recreation-area-co",
+  "name": "Arapaho National Recreation Area",
+  "bbox": [
+   -105.860926,
+   39.934997,
+   -105.633537,
+   40.22254
+  ],
+  "lots": 10,
+  "trails": 18,
+  "rel": 5900186
+ },
+ {
+  "slug": "collegiate-peaks-wilderness-co",
+  "name": "Collegiate Peaks Wilderness",
+  "bbox": [
+   -106.776046,
+   38.814794,
+   -106.223845,
+   39.140849
+  ],
+  "lots": 10,
+  "trails": 48,
+  "rel": 2631643
+ },
+ {
+  "slug": "ofallon-park-co",
+  "name": "O'Fallon Park",
+  "bbox": [
+   -105.290127,
+   39.63533,
+   -105.269712,
+   39.666493
+  ],
+  "lots": 10,
+  "trails": 5,
+  "rel": null
+ },
+ {
+  "slug": "stagecoach-state-park-co",
+  "name": "Stagecoach State Park",
+  "bbox": [
+   -106.884192,
+   40.267884,
+   -106.825276,
+   40.288671
+  ],
+  "lots": 9,
+  "trails": 9,
+  "rel": null
+ },
+ {
+  "slug": "canyons-of-the-ancients-national-monument-co",
+  "name": "Canyons of the Ancients National Monument",
+  "bbox": [
+   -109.033492,
+   37.341666,
+   -108.775189,
+   37.585092
+  ],
+  "lots": 9,
+  "trails": 10,
+  "rel": 5389886
+ },
+ {
+  "slug": "bayou-gulch-regional-park-co",
+  "name": "Bayou Gulch Regional Park",
+  "bbox": [
+   -104.742161,
+   39.426646,
+   -104.728218,
+   39.434527
+  ],
+  "lots": 9,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "boulder-open-space-and-mountain-parks-co",
+  "name": "Boulder Open Space and Mountain Parks",
+  "bbox": [
+   -105.323384,
+   39.913975,
+   -105.184887,
+   40.105486
+  ],
+  "lots": 9,
+  "trails": 138,
+  "rel": 9848271
+ },
+ {
+  "slug": "crow-valley-recreation-area-co",
+  "name": "Crow Valley Recreation Area",
+  "bbox": [
+   -104.343435,
+   40.643219,
+   -104.337562,
+   40.6442
+  ],
+  "lots": 9,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "staunton-state-park-co",
+  "name": "Staunton State Park",
+  "bbox": [
+   -105.430327,
+   39.494019,
+   -105.365129,
+   39.539751
+  ],
+  "lots": 9,
+  "trails": 25,
+  "rel": 3149555
+ },
+ {
+  "slug": "bear-creek-lake-park-co",
+  "name": "Bear Creek Lake Park",
+  "bbox": [
+   -105.179311,
+   39.63872,
+   -105.133462,
+   39.660177
+  ],
+  "lots": 9,
+  "trails": 12,
+  "rel": null
+ },
+ {
+  "slug": "state-forest-state-park-co",
+  "name": "State Forest State Park",
+  "bbox": [
+   -106.126692,
+   40.450076,
+   -105.847541,
+   40.870192
+  ],
+  "lots": 9,
+  "trails": 23,
+  "rel": 10804937
+ },
+ {
+  "slug": "curecanti-national-recreation-area-co",
+  "name": "Curecanti National Recreation Area",
+  "bbox": [
+   -107.581586,
+   38.384659,
+   -107.009644,
+   38.526982
+  ],
+  "lots": 8,
+  "trails": 12,
+  "rel": 395555
+ },
+ {
+  "slug": "lory-state-park-co",
+  "name": "Lory State Park",
+  "bbox": [
+   -105.206599,
+   40.552061,
+   -105.167104,
+   40.594246
+  ],
+  "lots": 8,
+  "trails": 24,
+  "rel": 10593312
+ },
+ {
+  "slug": "ranch-creek-open-space-co",
+  "name": "Ranch Creek Open Space",
+  "bbox": [
+   -105.022776,
+   39.911502,
+   -105.02029,
+   39.913902
+  ],
+  "lots": 8,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "walker-ranch-park-co",
+  "name": "Walker Ranch Park",
+  "bbox": [
+   -105.36456,
+   39.928064,
+   -105.314825,
+   39.981327
+  ],
+  "lots": 8,
+  "trails": 6,
+  "rel": null
+ },
+ {
+  "slug": "eldorado-canyon-state-park-co",
+  "name": "Eldorado Canyon State Park",
+  "bbox": [
+   -105.341414,
+   39.921297,
+   -105.280766,
+   39.944437
+  ],
+  "lots": 8,
+  "trails": 11,
+  "rel": 8890542
+ },
+ {
+  "slug": "trinidad-lake-state-park-co",
+  "name": "Trinidad Lake State Park",
+  "bbox": [
+   -104.622119,
+   37.123321,
+   -104.560529,
+   37.149697
+  ],
+  "lots": 7,
+  "trails": 5,
+  "rel": null
+ },
+ {
+  "slug": "steamboat-lake-state-park-co",
+  "name": "Steamboat Lake State Park",
+  "bbox": [
+   -106.973569,
+   40.79641,
+   -106.947286,
+   40.814678
+  ],
+  "lots": 7,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "clear-creek-canyon-park-co",
+  "name": "Clear Creek Canyon Park",
+  "bbox": [
+   -105.382841,
+   39.7281,
+   -105.240493,
+   39.771038
+  ],
+  "lots": 7,
+  "trails": 5,
+  "rel": null
+ },
+ {
+  "slug": "indian-peaks-wilderness-co",
+  "name": "Indian Peaks Wilderness",
+  "bbox": [
+   -105.842141,
+   39.934997,
+   -105.526035,
+   40.22254
+  ],
+  "lots": 7,
+  "trails": 42,
+  "rel": 4495545
+ },
+ {
+  "slug": "lathrop-state-park-co",
+  "name": "Lathrop State Park",
+  "bbox": [
+   -104.858301,
+   37.602383,
+   -104.828981,
+   37.621116
+  ],
+  "lots": 7,
+  "trails": 4,
+  "rel": null
+ },
+ {
+  "slug": "barr-lake-state-park-co",
+  "name": "Barr Lake State Park",
+  "bbox": [
+   -104.786199,
+   39.925252,
+   -104.736919,
+   39.960905
+  ],
+  "lots": 7,
+  "trails": 10,
+  "rel": null
+ },
+ {
+  "slug": "flat-tops-wilderness-co",
+  "name": "Flat Tops Wilderness",
+  "bbox": [
+   -107.563099,
+   39.817431,
+   -107.010879,
+   40.140521
+  ],
+  "lots": 6,
+  "trails": 63,
+  "rel": 5445284
+ },
+ {
+  "slug": "prairie-gateway-open-space-co",
+  "name": "Prairie Gateway Open Space",
+  "bbox": [
+   -104.901268,
+   39.807194,
+   -104.884564,
+   39.812943
+  ],
+  "lots": 6,
+  "trails": 3,
+  "rel": null
+ },
+ {
+  "slug": "bear-creek-canon-park-co",
+  "name": "Bear Creek Ca\u00f1on Park",
+  "bbox": [
+   -104.913948,
+   38.795774,
+   -104.882997,
+   38.825751
+  ],
+  "lots": 6,
+  "trails": 7,
+  "rel": null
+ },
+ {
+  "slug": "corwina-park-co",
+  "name": "Corwina Park",
+  "bbox": [
+   -105.284819,
+   39.63533,
+   -105.269712,
+   39.666493
+  ],
+  "lots": 6,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "castlewood-canyon-state-park-co",
+  "name": "Castlewood Canyon State Park",
+  "bbox": [
+   -104.769327,
+   39.321788,
+   -104.721601,
+   39.359676
+  ],
+  "lots": 6,
+  "trails": 14,
+  "rel": null
+ },
+ {
+  "slug": "rocky-mountain-wilderness-co",
+  "name": "Rocky Mountain Wilderness",
+  "bbox": [
+   -105.890254,
+   40.129974,
+   -105.459963,
+   40.570889
+  ],
+  "lots": 6,
+  "trails": 132,
+  "rel": 16849460
+ },
+ {
+  "slug": "manitou-section-16-open-space-co",
+  "name": "Manitou Section 16 Open Space",
+  "bbox": [
+   -104.9114,
+   38.82284,
+   -104.879248,
+   38.853243
+  ],
+  "lots": 6,
+  "trails": 16,
+  "rel": null
+ },
+ {
+  "slug": "bayou-gulch-open-space-co",
+  "name": "Bayou Gulch Open Space",
+  "bbox": [
+   -104.775272,
+   39.405973,
+   -104.723351,
+   39.4358
+  ],
+  "lots": 6,
+  "trails": 4,
+  "rel": null
+ },
+ {
+  "slug": "eagles-nest-wilderness-co",
+  "name": "Eagles Nest Wilderness",
+  "bbox": [
+   -106.409224,
+   39.504206,
+   -106.081911,
+   39.839827
+  ],
+  "lots": 6,
+  "trails": 37,
+  "rel": 5444888
+ },
+ {
+  "slug": "dedisse-park-co",
+  "name": "Dedisse Park",
+  "bbox": [
+   -105.339792,
+   39.632943,
+   -105.330911,
+   39.637865
+  ],
+  "lots": 5,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "austin-bluffs-open-space-pulpit-rock-co",
+  "name": "Austin Bluffs Open Space - Pulpit Rock",
+  "bbox": [
+   -104.814378,
+   38.911535,
+   -104.803312,
+   38.917776
+  ],
+  "lots": 5,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "red-rock-canyon-open-space-co",
+  "name": "Red Rock Canyon Open Space",
+  "bbox": [
+   -104.896276,
+   38.831853,
+   -104.872954,
+   38.853361
+  ],
+  "lots": 5,
+  "trails": 27,
+  "rel": 13578473
+ },
+ {
+  "slug": "north-sterling-state-park-co",
+  "name": "North Sterling State Park",
+  "bbox": [
+   -103.302453,
+   40.753131,
+   -103.265466,
+   40.787643
+  ],
+  "lots": 5,
+  "trails": 10,
+  "rel": null
+ },
+ {
+  "slug": "lookout-mountain-preserve-and-nature-center-co",
+  "name": "Lookout Mountain Preserve and Nature Center",
+  "bbox": [
+   -105.25165,
+   39.724208,
+   -105.243941,
+   39.736755
+  ],
+  "lots": 5,
+  "trails": 4,
+  "rel": null
+ },
+ {
+  "slug": "blm-tres-rios-field-office-co",
+  "name": "BLM - Tres Rios Field Office",
+  "bbox": [
+   -108.896183,
+   37.222796,
+   -107.520137,
+   38.086206
+  ],
+  "lots": 5,
+  "trails": 72,
+  "rel": 9388961
+ },
+ {
+  "slug": "betasso-preserve-co",
+  "name": "Betasso Preserve",
+  "bbox": [
+   -105.352052,
+   40.007616,
+   -105.326935,
+   40.036171
+  ],
+  "lots": 5,
+  "trails": 7,
+  "rel": 8906953
+ },
+ {
+  "slug": "san-luis-hills-wilderness-study-area-co",
+  "name": "San Luis Hills Wilderness Study Area",
+  "bbox": [
+   -106.501495,
+   37.5775,
+   -106.137527,
+   38.282881
+  ],
+  "lots": 5,
+  "trails": 28,
+  "rel": null
+ },
+ {
+  "slug": "ridgway-state-park-co",
+  "name": "Ridgway State Park",
+  "bbox": [
+   -107.760202,
+   38.202443,
+   -107.724447,
+   38.244876
+  ],
+  "lots": 5,
+  "trails": 12,
+  "rel": null
+ },
+ {
+  "slug": "colorado-river-valley-field-office-co",
+  "name": "Colorado River Valley Field Office",
+  "bbox": [
+   -107.995258,
+   39.247768,
+   -106.060245,
+   39.822413
+  ],
+  "lots": 5,
+  "trails": 127,
+  "rel": 9387055
+ },
+ {
+  "slug": "south-valley-park-co",
+  "name": "South Valley Park",
+  "bbox": [
+   -105.159573,
+   39.547826,
+   -105.138427,
+   39.568288
+  ],
+  "lots": 5,
+  "trails": 6,
+  "rel": 9155815
+ },
+ {
+  "slug": "florissant-fossil-beds-national-monument-co",
+  "name": "Florissant Fossil Beds National Monument",
+  "bbox": [
+   -105.305984,
+   38.899055,
+   -105.246801,
+   38.929992
+  ],
+  "lots": 4,
+  "trails": 10,
+  "rel": 5749060
+ },
+ {
+  "slug": "great-sand-dunes-wilderness-co",
+  "name": "Great Sand Dunes Wilderness",
+  "bbox": [
+   -105.565916,
+   37.753439,
+   -105.498169,
+   37.827472
+  ],
+  "lots": 4,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "matthewswinters-park-co",
+  "name": "Matthews/Winters Park",
+  "bbox": [
+   -105.219535,
+   39.654291,
+   -105.19193,
+   39.699469
+  ],
+  "lots": 4,
+  "trails": 9,
+  "rel": 9847344
+ },
+ {
+  "slug": "windy-saddle-park-co",
+  "name": "Windy Saddle Park",
+  "bbox": [
+   -105.269956,
+   39.72519,
+   -105.232511,
+   39.750725
+  ],
+  "lots": 4,
+  "trails": 5,
+  "rel": 13986695
+ },
+ {
+  "slug": "temple-canyon-park-co",
+  "name": "Temple Canyon Park",
+  "bbox": [
+   -105.326137,
+   38.402507,
+   -105.298613,
+   38.414538
+  ],
+  "lots": 4,
+  "trails": 5,
+  "rel": null
+ },
+ {
+  "slug": "mount-falcon-park-co",
+  "name": "Mount Falcon Park",
+  "bbox": [
+   -105.241127,
+   39.624055,
+   -105.196574,
+   39.648641
+  ],
+  "lots": 4,
+  "trails": 9,
+  "rel": null
+ },
+ {
+  "slug": "hidden-mesa-open-space-co",
+  "name": "Hidden Mesa Open Space",
+  "bbox": [
+   -104.803111,
+   39.39944,
+   -104.76261,
+   39.413203
+  ],
+  "lots": 4,
+  "trails": 3,
+  "rel": null
+ },
+ {
+  "slug": "deer-creek-canyon-park-co",
+  "name": "Deer Creek Canyon Park",
+  "bbox": [
+   -105.176624,
+   39.52168,
+   -105.117057,
+   39.547072
+  ],
+  "lots": 4,
+  "trails": 9,
+  "rel": null
+ },
+ {
+  "slug": "genesee-mountain-park-co",
+  "name": "Genesee Mountain Park",
+  "bbox": [
+   -105.331959,
+   39.697225,
+   -105.270929,
+   39.739216
+  ],
+  "lots": 4,
+  "trails": 7,
+  "rel": null
+ },
+ {
+  "slug": "greenland-open-space-co",
+  "name": "Greenland Open Space",
+  "bbox": [
+   -104.900771,
+   39.129695,
+   -104.85317,
+   39.181009
+  ],
+  "lots": 4,
+  "trails": 3,
+  "rel": null
+ },
+ {
+  "slug": "gateway-natural-area-co",
+  "name": "Gateway Natural Area",
+  "bbox": [
+   -105.246349,
+   40.698134,
+   -105.238636,
+   40.702235
+  ],
+  "lots": 4,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "van-bibber-park-co",
+  "name": "Van Bibber Park",
+  "bbox": [
+   -105.16519,
+   39.794682,
+   -105.139222,
+   39.798141
+  ],
+  "lots": 4,
+  "trails": 3,
+  "rel": 13901922
+ },
+ {
+  "slug": "horsetooth-mountain-open-space-co",
+  "name": "Horsetooth Mountain Open Space",
+  "bbox": [
+   -105.199155,
+   40.522795,
+   -105.161854,
+   40.560636
+  ],
+  "lots": 4,
+  "trails": 22,
+  "rel": 10588718
+ },
+ {
+  "slug": "north-table-mountain-park-co",
+  "name": "North Table Mountain Park",
+  "bbox": [
+   -105.22992,
+   39.766201,
+   -105.191984,
+   39.7982
+  ],
+  "lots": 3,
+  "trails": 13,
+  "rel": 7086486
+ },
+ {
+  "slug": "navajo-state-park-co",
+  "name": "Navajo State Park",
+  "bbox": [
+   -107.475219,
+   37.000374,
+   -107.405052,
+   37.055904
+  ],
+  "lots": 3,
+  "trails": 6,
+  "rel": 8252761
+ },
+ {
+  "slug": "white-ranch-park-co",
+  "name": "White Ranch Park",
+  "bbox": [
+   -105.293791,
+   39.798925,
+   -105.24839,
+   39.838448
+  ],
+  "lots": 3,
+  "trails": 12,
+  "rel": null
+ },
+ {
+  "slug": "reynolds-park-co",
+  "name": "Reynolds Park",
+  "bbox": [
+   -105.260433,
+   39.408579,
+   -105.172068,
+   39.468676
+  ],
+  "lots": 3,
+  "trails": 9,
+  "rel": null
+ },
+ {
+  "slug": "apex-park-co",
+  "name": "Apex Park",
+  "bbox": [
+   -105.251094,
+   39.710747,
+   -105.209824,
+   39.722119
+  ],
+  "lots": 3,
+  "trails": 12,
+  "rel": 7071257
+ },
+ {
+  "slug": "austin-bluffs-open-space-austin-bluffs-park-co",
+  "name": "Austin Bluffs Open Space - Austin Bluffs Park",
+  "bbox": [
+   -104.797563,
+   38.891466,
+   -104.788332,
+   38.895744
+  ],
+  "lots": 3,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "paint-mines-interpretive-park-co",
+  "name": "Paint Mines Interpretive Park",
+  "bbox": [
+   -104.273915,
+   39.012784,
+   -104.259301,
+   39.023856
+  ],
+  "lots": 3,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "lost-creek-wilderness-co",
+  "name": "Lost Creek Wilderness",
+  "bbox": [
+   -105.686591,
+   39.157792,
+   -105.354421,
+   39.436183
+  ],
+  "lots": 3,
+  "trails": 14,
+  "rel": 5717969
+ },
+ {
+  "slug": "pine-valley-ranch-park-co",
+  "name": "Pine Valley Ranch Park",
+  "bbox": [
+   -105.370787,
+   39.382298,
+   -105.339959,
+   39.41211
+  ],
+  "lots": 3,
+  "trails": 8,
+  "rel": null
+ },
+ {
+  "slug": "black-ridge-canyons-wilderness-co",
+  "name": "Black Ridge Canyons Wilderness",
+  "bbox": [
+   -109.008342,
+   39.026038,
+   -108.756921,
+   39.153402
+  ],
+  "lots": 3,
+  "trails": 19,
+  "rel": 5453266
+ },
+ {
+  "slug": "beaver-ranch-park-co",
+  "name": "Beaver Ranch Park",
+  "bbox": [
+   -105.307217,
+   39.49601,
+   -105.28442,
+   39.50907
+  ],
+  "lots": 3,
+  "trails": 6,
+  "rel": null
+ },
+ {
+  "slug": "john-martin-reservoir-state-park-co",
+  "name": "John Martin Reservoir State Park",
+  "bbox": [
+   -102.962181,
+   38.066974,
+   -102.92499,
+   38.085167
+  ],
+  "lots": 3,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "elkhead-state-park-co",
+  "name": "Elkhead State Park",
+  "bbox": [
+   -107.388455,
+   40.557614,
+   -107.358736,
+   40.583412
+  ],
+  "lots": 3,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "centennial-cone-park-co",
+  "name": "Centennial Cone Park",
+  "bbox": [
+   -105.385286,
+   39.737154,
+   -105.318332,
+   39.771729
+  ],
+  "lots": 3,
+  "trails": 5,
+  "rel": null
+ },
+ {
+  "slug": "sarvis-creek-wilderness-co",
+  "name": "Sarvis Creek Wilderness",
+  "bbox": [
+   -106.800018,
+   40.213164,
+   -106.614458,
+   40.294735
+  ],
+  "lots": 3,
+  "trails": 3,
+  "rel": 5737640
+ },
+ {
+  "slug": "mount-evans-wilderness-co",
+  "name": "Mount Evans Wilderness",
+  "bbox": [
+   -105.7128,
+   39.481416,
+   -105.430265,
+   39.677869
+  ],
+  "lots": 3,
+  "trails": 21,
+  "rel": 5718244
+ },
+ {
+  "slug": "fishers-peak-state-park-co",
+  "name": "Fishers Peak State Park",
+  "bbox": [
+   -104.52191,
+   37.10229,
+   -104.459284,
+   37.119354
+  ],
+  "lots": 3,
+  "trails": 9,
+  "rel": null
+ },
+ {
+  "slug": "chimney-rock-national-monument-co",
+  "name": "Chimney Rock National Monument",
+  "bbox": [
+   -107.312428,
+   37.176861,
+   -107.300544,
+   37.191873
+  ],
+  "lots": 3,
+  "trails": 3,
+  "rel": 5749729
+ },
+ {
+  "slug": "cucumber-gulch-preserve-co",
+  "name": "Cucumber Gulch Preserve",
+  "bbox": [
+   -106.06499,
+   39.482171,
+   -106.063645,
+   39.486011
+  ],
+  "lots": 3,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "red-mountain-open-space-co",
+  "name": "Red Mountain Open Space",
+  "bbox": [
+   -105.206577,
+   40.949656,
+   -105.153279,
+   41.006962
+  ],
+  "lots": 3,
+  "trails": 11,
+  "rel": 5742657
+ },
+ {
+  "slug": "lair-o-the-bear-park-co",
+  "name": "Lair o' the Bear Park",
+  "bbox": [
+   -105.269495,
+   39.663811,
+   -105.252335,
+   39.668584
+  ],
+  "lots": 2,
+  "trails": 5,
+  "rel": null
+ },
+ {
+  "slug": "clear-creek-canyon-park-mvcc-co",
+  "name": "Clear Creek Canyon Park (MVCC)",
+  "bbox": [
+   -105.331959,
+   39.714922,
+   -105.270929,
+   39.739216
+  ],
+  "lots": 2,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "hovenweep-national-monument-co",
+  "name": "Hovenweep National Monument",
+  "bbox": [
+   -109.033492,
+   37.407587,
+   -109.024351,
+   37.409318
+  ],
+  "lots": 2,
+  "trails": 1,
+  "rel": 11085438
+ },
+ {
+  "slug": "leon-wurl-wildlife-sanctuary-co",
+  "name": "Leon Wurl Wildlife Sanctuary",
+  "bbox": [
+   -105.165392,
+   39.97856,
+   -105.159641,
+   39.982281
+  ],
+  "lots": 2,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "john-griffin-park-co",
+  "name": "John Griffin Park",
+  "bbox": [
+   -105.229397,
+   38.435013,
+   -105.201343,
+   38.440087
+  ],
+  "lots": 2,
+  "trails": 2,
+  "rel": 10848184
+ },
+ {
+  "slug": "flying-j-ranch-park-co",
+  "name": "Flying J Ranch Park",
+  "bbox": [
+   -105.33372,
+   39.535133,
+   -105.312817,
+   39.551406
+  ],
+  "lots": 2,
+  "trails": 5,
+  "rel": null
+ },
+ {
+  "slug": "buffalo-peaks-wilderness-co",
+  "name": "Buffalo Peaks Wilderness",
+  "bbox": [
+   -106.27666,
+   38.955147,
+   -106.079871,
+   39.122721
+  ],
+  "lots": 2,
+  "trails": 8,
+  "rel": 5446407
+ },
+ {
+  "slug": "spruce-meadows-open-space-co",
+  "name": "Spruce Meadows Open Space",
+  "bbox": [
+   -104.877063,
+   39.161403,
+   -104.858371,
+   39.202864
+  ],
+  "lots": 2,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "mud-lake-open-space-co",
+  "name": "Mud Lake Open Space",
+  "bbox": [
+   -105.519806,
+   39.972932,
+   -105.508477,
+   39.982417
+  ],
+  "lots": 2,
+  "trails": 3,
+  "rel": null
+ },
+ {
+  "slug": "gunnison-gorge-wilderness-co",
+  "name": "Gunnison Gorge Wilderness",
+  "bbox": [
+   -107.870031,
+   38.561865,
+   -107.80746,
+   38.784529
+  ],
+  "lots": 2,
+  "trails": 7,
+  "rel": 5478418
+ },
+ {
+  "slug": "fountain-creek-regional-park-co",
+  "name": "Fountain Creek Regional Park",
+  "bbox": [
+   -104.729833,
+   38.723178,
+   -104.727027,
+   38.725741
+  ],
+  "lots": 2,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "spruce-mountain-open-space-co",
+  "name": "Spruce Mountain Open Space",
+  "bbox": [
+   -104.900239,
+   39.155355,
+   -104.858371,
+   39.202864
+  ],
+  "lots": 2,
+  "trails": 5,
+  "rel": null
+ },
+ {
+  "slug": "south-san-juan-wilderness-co",
+  "name": "South San Juan Wilderness",
+  "bbox": [
+   -106.851527,
+   37.08858,
+   -106.37641,
+   37.400406
+  ],
+  "lots": 2,
+  "trails": 32,
+  "rel": 396585
+ },
+ {
+  "slug": "comanche-national-grassland-co",
+  "name": "Comanche National Grassland",
+  "bbox": [
+   -103.77503,
+   37.009234,
+   -102.754157,
+   37.824523
+  ],
+  "lots": 2,
+  "trails": 8,
+  "rel": 396142
+ },
+ {
+  "slug": "eleven-mile-state-park-co",
+  "name": "Eleven Mile State Park",
+  "bbox": [
+   -105.496689,
+   38.918045,
+   -105.482597,
+   38.930865
+  ],
+  "lots": 2,
+  "trails": 4,
+  "rel": null
+ },
+ {
+  "slug": "hunterfryingpan-wilderness-co",
+  "name": "Hunter\u2013Fryingpan Wilderness",
+  "bbox": [
+   -106.760333,
+   39.12166,
+   -106.509746,
+   39.303412
+  ],
+  "lots": 2,
+  "trails": 18,
+  "rel": 5443819
+ },
+ {
+  "slug": "browns-canyon-national-monument-co",
+  "name": "Browns Canyon National Monument",
+  "bbox": [
+   -106.067039,
+   38.636443,
+   -105.995761,
+   38.752407
+  ],
+  "lots": 2,
+  "trails": 6,
+  "rel": 5749022
+ },
+ {
+  "slug": "west-elk-wilderness-co",
+  "name": "West Elk Wilderness",
+  "bbox": [
+   -107.516662,
+   38.545343,
+   -107.055452,
+   38.860932
+  ],
+  "lots": 2,
+  "trails": 40,
+  "rel": 5438132
+ },
+ {
+  "slug": "weminuche-wilderness-co",
+  "name": "Weminuche Wilderness",
+  "bbox": [
+   -107.726881,
+   37.377127,
+   -106.802554,
+   37.783722
+  ],
+  "lots": 2,
+  "trails": 74,
+  "rel": 396584
+ },
+ {
+  "slug": "alderferthree-sisters-park-co",
+  "name": "Alderfer/Three Sisters Park",
+  "bbox": [
+   -105.368277,
+   39.60965,
+   -105.342425,
+   39.640306
+  ],
+  "lots": 2,
+  "trails": 22,
+  "rel": 3145183
+ },
+ {
+  "slug": "elk-meadow-park-co",
+  "name": "Elk Meadow Park",
+  "bbox": [
+   -105.397131,
+   39.647277,
+   -105.355893,
+   39.683858
+  ],
+  "lots": 2,
+  "trails": 13,
+  "rel": 7078503
+ },
+ {
+  "slug": "meyer-ranch-park-co",
+  "name": "Meyer Ranch Park",
+  "bbox": [
+   -105.282615,
+   39.533958,
+   -105.272209,
+   39.546163
+  ],
+  "lots": 2,
+  "trails": 4,
+  "rel": 9847382
+ },
+ {
+  "slug": "niver-creek-open-space-co",
+  "name": "Niver Creek Open Space",
+  "bbox": [
+   -104.996411,
+   39.85721,
+   -104.988086,
+   39.859944
+  ],
+  "lots": 2,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "homestead-ranch-regional-park-co",
+  "name": "Homestead Ranch Regional Park",
+  "bbox": [
+   -104.532169,
+   39.072868,
+   -104.515672,
+   39.079148
+  ],
+  "lots": 2,
+  "trails": 1,
+  "rel": 2927638
+ },
+ {
+  "slug": "clear-creek-canyon-park-jcos-co",
+  "name": "Clear Creek Canyon Park (JCOS)",
+  "bbox": [
+   -105.382841,
+   39.7281,
+   -105.240493,
+   39.771038
+  ],
+  "lots": 2,
+  "trails": 5,
+  "rel": 14360257
+ },
+ {
+  "slug": "mckay-lake-open-space-co",
+  "name": "McKay Lake Open Space",
+  "bbox": [
+   -105.015841,
+   39.950398,
+   -105.00718,
+   39.957417
+  ],
+  "lots": 2,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "little-park-co",
+  "name": "Little Park",
+  "bbox": [
+   -105.252383,
+   39.662409,
+   -105.249262,
+   39.663716
+  ],
+  "lots": 2,
+  "trails": 1,
+  "rel": 7512785
+ },
+ {
+  "slug": "dinosaur-national-monument-co",
+  "name": "Dinosaur National Monument",
+  "bbox": [
+   -109.019854,
+   40.291553,
+   -108.523708,
+   40.723188
+  ],
+  "lots": 2,
+  "trails": 6,
+  "rel": 5749153
+ },
+ {
+  "slug": "two-ponds-national-wildlife-refuge-co",
+  "name": "Two Ponds National Wildlife Refuge",
+  "bbox": [
+   -105.104476,
+   39.838644,
+   -105.100642,
+   39.840277
+  ],
+  "lots": 2,
+  "trails": 1,
+  "rel": 5903847
+ },
+ {
+  "slug": "high-chaparral-open-space-co",
+  "name": "High Chaparral Open Space",
+  "bbox": [
+   -104.727241,
+   38.901609,
+   -104.720551,
+   38.909923
+  ],
+  "lots": 2,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "westminster-hills-open-space-co",
+  "name": "Westminster Hills Open Space",
+  "bbox": [
+   -105.165331,
+   39.877597,
+   -105.129342,
+   39.891478
+  ],
+  "lots": 2,
+  "trails": 4,
+  "rel": 3918545
+ },
+ {
+  "slug": "comanche-peak-wilderness-co",
+  "name": "Comanche Peak Wilderness",
+  "bbox": [
+   -105.8072,
+   40.43145,
+   -105.459729,
+   40.692829
+  ],
+  "lots": 2,
+  "trails": 32,
+  "rel": 5735483
+ },
+ {
+  "slug": "dominguez-escalante-national-conservation-area-co",
+  "name": "Dominguez-Escalante National Conservation Area",
+  "bbox": [
+   -108.619274,
+   38.658441,
+   -108.267427,
+   38.935036
+  ],
+  "lots": 2,
+  "trails": 8,
+  "rel": 5900738
+ },
+ {
+  "slug": "north-slope-recreation-area-co",
+  "name": "North Slope Recreation Area",
+  "bbox": [
+   -105.102604,
+   38.900468,
+   -104.991495,
+   38.934713
+  ],
+  "lots": 2,
+  "trails": 11,
+  "rel": 10705838
+ },
+ {
+  "slug": "south-table-mountain-park-co",
+  "name": "South Table Mountain Park",
+  "bbox": [
+   -105.207868,
+   39.740027,
+   -105.159604,
+   39.762684
+  ],
+  "lots": 2,
+  "trails": 16,
+  "rel": 7088454
+ },
+ {
+  "slug": "sangre-de-cristo-wilderness-co",
+  "name": "Sangre de Cristo Wilderness",
+  "bbox": [
+   -105.933619,
+   37.591572,
+   -105.437272,
+   38.406076
+  ],
+  "lots": 2,
+  "trails": 53,
+  "rel": 396666
+ },
+ {
+  "slug": "rifle-falls-state-park-co",
+  "name": "Rifle Falls State Park",
+  "bbox": [
+   -107.699948,
+   39.670347,
+   -107.697956,
+   39.675961
+  ],
+  "lots": 2,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "cache-la-poudre-wilderness-co",
+  "name": "Cache La Poudre Wilderness",
+  "bbox": [
+   -105.468163,
+   40.671592,
+   -105.452778,
+   40.682761
+  ],
+  "lots": 1,
+  "trails": 3,
+  "rel": null
+ },
+ {
+  "slug": "promntory-point-open-space-co",
+  "name": "Promntory Point Open Space",
+  "bbox": [
+   -104.841608,
+   38.838948,
+   -104.840658,
+   38.8405
+  ],
+  "lots": 1,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "mount-massive-wilderness-co",
+  "name": "Mount Massive Wilderness",
+  "bbox": [
+   -106.541069,
+   39.12421,
+   -106.403365,
+   39.26026
+  ],
+  "lots": 1,
+  "trails": 11,
+  "rel": 5443863
+ },
+ {
+  "slug": "yampa-river-state-park-co",
+  "name": "Yampa River State Park",
+  "bbox": [
+   -107.314802,
+   40.488925,
+   -107.307603,
+   40.491833
+  ],
+  "lots": 1,
+  "trails": 1,
+  "rel": 10815944
+ },
+ {
+  "slug": "coyote-ridge-natural-area-co",
+  "name": "Coyote Ridge Natural Area",
+  "bbox": [
+   -105.138109,
+   40.45852,
+   -105.11671,
+   40.48495
+  ],
+  "lots": 1,
+  "trails": 3,
+  "rel": null
+ },
+ {
+  "slug": "boyd-lake-state-park-co",
+  "name": "Boyd Lake State Park",
+  "bbox": [
+   -105.044668,
+   40.422166,
+   -105.041019,
+   40.424855
+  ],
+  "lots": 1,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "byers-peak-wilderness-co",
+  "name": "Byers Peak Wilderness",
+  "bbox": [
+   -106.024813,
+   39.793143,
+   -105.936259,
+   39.902712
+  ],
+  "lots": 1,
+  "trails": 8,
+  "rel": 5733551
+ },
+ {
+  "slug": "lagerman-agricultural-preserve-co",
+  "name": "Lagerman Agricultural Preserve",
+  "bbox": [
+   -105.206477,
+   40.130941,
+   -105.178527,
+   40.149265
+  ],
+  "lots": 1,
+  "trails": 3,
+  "rel": 14344829
+ },
+ {
+  "slug": "schepp-open-space-co",
+  "name": "Schepp Open Space",
+  "bbox": [
+   -105.265475,
+   38.420479,
+   -105.254519,
+   38.430678
+  ],
+  "lots": 1,
+  "trails": 4,
+  "rel": null
+ },
+ {
+  "slug": "mancos-state-park-co",
+  "name": "Mancos State Park",
+  "bbox": [
+   -108.279301,
+   37.398514,
+   -108.227569,
+   37.454841
+  ],
+  "lots": 1,
+  "trails": 5,
+  "rel": null
+ },
+ {
+  "slug": "columbine-open-space-co",
+  "name": "Columbine Open Space",
+  "bbox": [
+   -104.895131,
+   39.27499,
+   -104.890099,
+   39.289054
+  ],
+  "lots": 1,
+  "trails": 3,
+  "rel": null
+ },
+ {
+  "slug": "lizard-head-wilderness-co",
+  "name": "Lizard Head Wilderness",
+  "bbox": [
+   -108.100884,
+   37.785283,
+   -107.897104,
+   37.886084
+  ],
+  "lots": 1,
+  "trails": 14,
+  "rel": 396588
+ },
+ {
+  "slug": "dawson-butte-ranch-open-space-co",
+  "name": "Dawson Butte Ranch Open Space",
+  "bbox": [
+   -104.942367,
+   39.282759,
+   -104.919125,
+   39.296922
+  ],
+  "lots": 1,
+  "trails": 6,
+  "rel": 10662232
+ },
+ {
+  "slug": "bluestem-prairie-open-space-co",
+  "name": "Bluestem Prairie Open Space",
+  "bbox": [
+   -104.694363,
+   38.741622,
+   -104.68465,
+   38.754198
+  ],
+  "lots": 1,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "hildebrand-ranch-park-co",
+  "name": "Hildebrand Ranch Park",
+  "bbox": [
+   -105.152683,
+   39.52168,
+   -105.09853,
+   39.552371
+  ],
+  "lots": 1,
+  "trails": 3,
+  "rel": 10736197
+ },
+ {
+  "slug": "bf-rockafellow-ecology-park-co",
+  "name": "B.F. Rockafellow Ecology Park",
+  "bbox": [
+   -105.269236,
+   38.413496,
+   -105.260017,
+   38.420023
+  ],
+  "lots": 1,
+  "trails": 4,
+  "rel": null
+ },
+ {
+  "slug": "dalla-mountain-park-co",
+  "name": "Dalla Mountain Park",
+  "bbox": [
+   -107.89105,
+   37.299014,
+   -107.85918,
+   37.328012
+  ],
+  "lots": 1,
+  "trails": 12,
+  "rel": 8252760
+ },
+ {
+  "slug": "sondermann-park-co",
+  "name": "Sondermann Park",
+  "bbox": [
+   -104.853413,
+   38.856826,
+   -104.838101,
+   38.869076
+  ],
+  "lots": 1,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "black-forest-section-16-co",
+  "name": "Black Forest Section 16",
+  "bbox": [
+   -104.681589,
+   38.998561,
+   -104.663537,
+   39.012834
+  ],
+  "lots": 1,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "lincoln-mountain-open-space-co",
+  "name": "Lincoln Mountain Open Space",
+  "bbox": [
+   -104.765795,
+   39.173572,
+   -104.73769,
+   39.187544
+  ],
+  "lots": 1,
+  "trails": 5,
+  "rel": null
+ },
+ {
+  "slug": "wildlife-sanctuary-co",
+  "name": "Wildlife Sanctuary",
+  "bbox": [
+   -105.109267,
+   39.759038,
+   -105.103041,
+   39.760962
+  ],
+  "lots": 1,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "cathedral-spires-park-co",
+  "name": "Cathedral Spires Park",
+  "bbox": [
+   -105.258127,
+   39.412953,
+   -105.251909,
+   39.420994
+  ],
+  "lots": 1,
+  "trails": 2,
+  "rel": 13948349
+ },
+ {
+  "slug": "pence-park-co",
+  "name": "Pence Park",
+  "bbox": [
+   -105.290783,
+   39.631167,
+   -105.279273,
+   39.636096
+  ],
+  "lots": 1,
+  "trails": 2,
+  "rel": 9847343
+ },
+ {
+  "slug": "little-book-cliffs-wilderness-study-area-co",
+  "name": "Little Book Cliffs Wilderness Study Area",
+  "bbox": [
+   -108.46366,
+   39.136613,
+   -108.333873,
+   39.2359
+  ],
+  "lots": 1,
+  "trails": 16,
+  "rel": 5907889
+ },
+ {
+  "slug": "big-dry-creek-open-space-co",
+  "name": "Big Dry Creek Open Space",
+  "bbox": [
+   -105.078482,
+   39.877602,
+   -105.006738,
+   39.924691
+  ],
+  "lots": 1,
+  "trails": 7,
+  "rel": 14078221
+ },
+ {
+  "slug": "james-peak-wilderness-co",
+  "name": "James Peak Wilderness",
+  "bbox": [
+   -105.77209,
+   39.796322,
+   -105.644164,
+   39.939655
+  ],
+  "lots": 1,
+  "trails": 14,
+  "rel": 5733525
+ },
+ {
+  "slug": "great-sand-dunes-national-preserve-co",
+  "name": "Great Sand Dunes National Preserve",
+  "bbox": [
+   -105.565916,
+   37.728044,
+   -105.437272,
+   37.94258
+  ],
+  "lots": 1,
+  "trails": 8,
+  "rel": 5725309
+ },
+ {
+  "slug": "camp-hale-continental-divide-national-monument-co",
+  "name": "Camp Hale - Continental Divide National Monument",
+  "bbox": [
+   -106.343683,
+   39.360807,
+   -106.042041,
+   39.573948
+  ],
+  "lots": 1,
+  "trails": 32,
+  "rel": 16765213
+ },
+ {
+  "slug": "floyd-hill-open-space-co",
+  "name": "Floyd Hill Open Space",
+  "bbox": [
+   -105.417213,
+   39.722709,
+   -105.40967,
+   39.730188
+  ],
+  "lots": 1,
+  "trails": 4,
+  "rel": null
+ },
+ {
+  "slug": "handies-peak-wilderness-study-area-co",
+  "name": "Handies Peak Wilderness Study Area",
+  "bbox": [
+   -107.558233,
+   37.872898,
+   -107.43152,
+   37.933252
+  ],
+  "lots": 1,
+  "trails": 3,
+  "rel": 5909471
+ },
+ {
+  "slug": "sky-mountain-park-co",
+  "name": "Sky Mountain Park",
+  "bbox": [
+   -106.920336,
+   39.219468,
+   -106.877335,
+   39.244112
+  ],
+  "lots": 1,
+  "trails": 6,
+  "rel": null
+ },
+ {
+  "slug": "mesa-valley-open-space-co",
+  "name": "Mesa Valley Open Space",
+  "bbox": [
+   -104.853413,
+   38.856826,
+   -104.838101,
+   38.869076
+  ],
+  "lots": 1,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "caribou-ranch-open-space-co",
+  "name": "Caribou Ranch Open Space",
+  "bbox": [
+   -105.539601,
+   39.982417,
+   -105.51865,
+   40.022319
+  ],
+  "lots": 1,
+  "trails": 4,
+  "rel": 8890557
+ },
+ {
+  "slug": "prairie-ridge-natural-area-co",
+  "name": "Prairie Ridge Natural Area",
+  "bbox": [
+   -105.13471,
+   40.451287,
+   -105.117273,
+   40.482031
+  ],
+  "lots": 1,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "gateway-mesa-open-space-co",
+  "name": "Gateway Mesa Open Space",
+  "bbox": [
+   -104.80371,
+   39.384237,
+   -104.789777,
+   39.394181
+  ],
+  "lots": 1,
+  "trails": 3,
+  "rel": null
+ },
+ {
+  "slug": "rocky-flats-national-wildlife-refuge-co",
+  "name": "Rocky Flats National Wildlife Refuge",
+  "bbox": [
+   -105.231014,
+   39.870617,
+   -105.174817,
+   39.913319
+  ],
+  "lots": 1,
+  "trails": 7,
+  "rel": 2264458
+ },
+ {
+  "slug": "blodgett-peak-open-space-co",
+  "name": "Blodgett Peak Open Space",
+  "bbox": [
+   -104.896727,
+   38.943841,
+   -104.881933,
+   38.953422
+  ],
+  "lots": 1,
+  "trails": 5,
+  "rel": 2902993
+ },
+ {
+  "slug": "overend-mountain-park-co",
+  "name": "Overend Mountain Park",
+  "bbox": [
+   -107.906277,
+   37.278591,
+   -107.885212,
+   37.29757
+  ],
+  "lots": 1,
+  "trails": 22,
+  "rel": null
+ },
+ {
+  "slug": "powderhorn-wilderness-co",
+  "name": "Powderhorn Wilderness",
+  "bbox": [
+   -107.193727,
+   38.029289,
+   -107.070543,
+   38.076865
+  ],
+  "lots": 1,
+  "trails": 3,
+  "rel": null
+ },
+ {
+  "slug": "glendale-farm-open-space-co",
+  "name": "Glendale Farm Open Space",
+  "bbox": [
+   -104.870059,
+   39.485544,
+   -104.864096,
+   39.492716
+  ],
+  "lots": 1,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "browns-park-national-wildlife-refuge-co",
+  "name": "Browns Park National Wildlife Refuge",
+  "bbox": [
+   -109.023943,
+   40.779153,
+   -108.891901,
+   40.862841
+  ],
+  "lots": 1,
+  "trails": 3,
+  "rel": 5902643
+ },
+ {
+  "slug": "hartman-rocks-co",
+  "name": "Hartman Rocks",
+  "bbox": [
+   -106.990717,
+   38.449562,
+   -106.941669,
+   38.515253
+  ],
+  "lots": 1,
+  "trails": 8,
+  "rel": null
+ },
+ {
+  "slug": "highline-lake-state-park-co",
+  "name": "Highline Lake State Park",
+  "bbox": [
+   -108.847748,
+   39.266096,
+   -108.829715,
+   39.285986
+  ],
+  "lots": 1,
+  "trails": 7,
+  "rel": null
+ },
+ {
+  "slug": "hungry-horse-open-space-co",
+  "name": "Hungry Horse Open Space",
+  "bbox": [
+   -104.770369,
+   39.449552,
+   -104.770205,
+   39.454026
+  ],
+  "lots": 1,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "rabbit-mountain-open-space-co",
+  "name": "Rabbit Mountain Open Space",
+  "bbox": [
+   -105.224102,
+   40.235864,
+   -105.202527,
+   40.260764
+  ],
+  "lots": 1,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "red-canyon-park-co",
+  "name": "Red Canyon Park",
+  "bbox": [
+   -105.260903,
+   38.583655,
+   -105.236853,
+   38.595421
+  ],
+  "lots": 1,
+  "trails": 4,
+  "rel": null
+ },
+ {
+  "slug": "bald-mountain-scenic-area-co",
+  "name": "Bald Mountain Scenic Area",
+  "bbox": [
+   -105.345224,
+   40.04555,
+   -105.341307,
+   40.048565
+  ],
+  "lots": 1,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "maroon-bellssnowmass-wilderness-co",
+  "name": "Maroon Bells\u2013Snowmass Wilderness",
+  "bbox": [
+   -107.259832,
+   38.959734,
+   -106.803443,
+   39.290946
+  ],
+  "lots": 1,
+  "trails": 47,
+  "rel": 5443064
+ },
+ {
+  "slug": "mount-galbraith-park-co",
+  "name": "Mount Galbraith Park",
+  "bbox": [
+   -105.258446,
+   39.761635,
+   -105.237622,
+   39.773611
+  ],
+  "lots": 1,
+  "trails": 4,
+  "rel": null
+ },
+ {
+  "slug": "native-legend-open-space-co",
+  "name": "Native Legend Open Space",
+  "bbox": [
+   -104.905213,
+   39.401187,
+   -104.895715,
+   39.406367
+  ],
+  "lots": 0,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "needle-rock-instant-study-area-co",
+  "name": "Needle Rock Instant Study Area",
+  "bbox": [
+   -107.550402,
+   38.72458,
+   -107.544314,
+   38.726676
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": 5912814
+ },
+ {
+  "slug": "buckingham-park-co",
+  "name": "Buckingham Park",
+  "bbox": [
+   -105.302746,
+   40.109274,
+   -105.301389,
+   40.114889
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": 9848263
+ },
+ {
+  "slug": "devils-backbone-open-space-co",
+  "name": "Devils Backbone Open Space",
+  "bbox": [
+   -105.163543,
+   40.408845,
+   -105.151661,
+   40.443302
+  ],
+  "lots": 0,
+  "trails": 4,
+  "rel": 5582030
+ },
+ {
+  "slug": "browns-canyon-wilderness-study-area-co",
+  "name": "Browns Canyon Wilderness Study Area",
+  "bbox": [
+   -106.067039,
+   38.70984,
+   -106.01137,
+   38.752407
+  ],
+  "lots": 0,
+  "trails": 5,
+  "rel": 5916900
+ },
+ {
+  "slug": "beaver-creek-wilderness-study-area-co",
+  "name": "Beaver Creek Wilderness Study Area",
+  "bbox": [
+   -105.024,
+   38.577967,
+   -105.000317,
+   38.599783
+  ],
+  "lots": 0,
+  "trails": 3,
+  "rel": 5917142
+ },
+ {
+  "slug": "arapaho-national-wildlife-refuge-co",
+  "name": "Arapaho National Wildlife Refuge",
+  "bbox": [
+   -106.280722,
+   40.607227,
+   -106.278413,
+   40.609814
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": 5902670
+ },
+ {
+  "slug": "holy-cross-wilderness-co",
+  "name": "Holy Cross Wilderness",
+  "bbox": [
+   -106.6575,
+   39.284642,
+   -106.410891,
+   39.603394
+  ],
+  "lots": 0,
+  "trails": 33,
+  "rel": 5444739
+ },
+ {
+  "slug": "mayhofer-section-15-open-space-co",
+  "name": "Mayhofer Section 15 Open Space",
+  "bbox": [
+   -105.101208,
+   39.96525,
+   -105.099895,
+   39.965256
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "elephant-butte-park-co",
+  "name": "Elephant Butte Park",
+  "bbox": [
+   -105.368277,
+   39.633772,
+   -105.35534,
+   39.638298
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "redcloud-peak-wilderness-study-area-co",
+  "name": "Redcloud Peak Wilderness Study Area",
+  "bbox": [
+   -107.460466,
+   37.917363,
+   -107.334086,
+   37.948933
+  ],
+  "lots": 0,
+  "trails": 3,
+  "rel": 5909427
+ },
+ {
+  "slug": "rim-rock-open-space-co",
+  "name": "Rim Rock Open Space",
+  "bbox": [
+   -105.16551,
+   40.443205,
+   -105.135829,
+   40.51965
+  ],
+  "lots": 0,
+  "trails": 6,
+  "rel": 11738876
+ },
+ {
+  "slug": "slumgullion-earthflow-co",
+  "name": "Slumgullion Earthflow",
+  "bbox": [
+   -107.279505,
+   37.982671,
+   -107.255187,
+   38.030038
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "carolyn-holmberg-preserve-at-rock-creek-farm-co",
+  "name": "Carolyn Holmberg Preserve at Rock Creek Farm",
+  "bbox": [
+   -105.104287,
+   39.948401,
+   -105.103197,
+   39.949709
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "spanish-peaks-wilderness-co",
+  "name": "Spanish Peaks Wilderness",
+  "bbox": [
+   -105.073853,
+   37.348534,
+   -104.992921,
+   37.387381
+  ],
+  "lots": 0,
+  "trails": 3,
+  "rel": 5724976
+ },
+ {
+  "slug": "sharptail-ridge-open-space-co",
+  "name": "Sharptail Ridge Open Space",
+  "bbox": [
+   -105.057683,
+   39.412754,
+   -105.041726,
+   39.454652
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "marolt-open-space-co",
+  "name": "Marolt Open Space",
+  "bbox": [
+   -106.839575,
+   39.192459,
+   -106.832971,
+   39.194557
+  ],
+  "lots": 0,
+  "trails": 3,
+  "rel": null
+ },
+ {
+  "slug": "raggeds-wilderness-co",
+  "name": "Raggeds Wilderness",
+  "bbox": [
+   -107.269022,
+   38.877271,
+   -107.048632,
+   39.067682
+  ],
+  "lots": 0,
+  "trails": 18,
+  "rel": 5437152
+ },
+ {
+  "slug": "the-pineries-open-space-co",
+  "name": "The Pineries Open Space",
+  "bbox": [
+   -104.652339,
+   39.020868,
+   -104.617773,
+   39.042176
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "neota-wilderness-co",
+  "name": "Neota Wilderness",
+  "bbox": [
+   -105.872882,
+   40.481314,
+   -105.82088,
+   40.565995
+  ],
+  "lots": 0,
+  "trails": 3,
+  "rel": 5735507
+ },
+ {
+  "slug": "rawah-wilderness-co",
+  "name": "Rawah Wilderness",
+  "bbox": [
+   -106.126692,
+   40.588768,
+   -105.85457,
+   40.870192
+  ],
+  "lots": 0,
+  "trails": 19,
+  "rel": 5735668
+ },
+ {
+  "slug": "fossil-ridge-wilderness-co",
+  "name": "Fossil Ridge Wilderness",
+  "bbox": [
+   -106.737156,
+   38.650154,
+   -106.574354,
+   38.769163
+  ],
+  "lots": 0,
+  "trails": 7,
+  "rel": 5438206
+ },
+ {
+  "slug": "lac-amora-open-space-co",
+  "name": "Lac Amora Open Space",
+  "bbox": [
+   -105.109272,
+   39.935129,
+   -105.107888,
+   39.935914
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "roxborough-state-park-co",
+  "name": "Roxborough State Park",
+  "bbox": [
+   -105.120618,
+   39.405105,
+   -105.041726,
+   39.454652
+  ],
+  "lots": 0,
+  "trails": 14,
+  "rel": 10706307
+ },
+ {
+  "slug": "dolores-river-canyon-wilderness-study-area-co",
+  "name": "Dolores River Canyon Wilderness Study Area",
+  "bbox": [
+   -108.906578,
+   38.173311,
+   -108.887247,
+   38.316962
+  ],
+  "lots": 0,
+  "trails": 2,
+  "rel": 5908317
+ },
+ {
+  "slug": "button-rock-preserve-co",
+  "name": "Button Rock Preserve",
+  "bbox": [
+   -105.410144,
+   40.21014,
+   -105.351429,
+   40.228257
+  ],
+  "lots": 0,
+  "trails": 6,
+  "rel": null
+ },
+ {
+  "slug": "nelson-ranch-open-space-co",
+  "name": "Nelson Ranch Open Space",
+  "bbox": [
+   -105.101723,
+   39.388083,
+   -105.043839,
+   39.412524
+  ],
+  "lots": 0,
+  "trails": 2,
+  "rel": null
+ },
+ {
+  "slug": "bergen-peak-state-wildlife-area-co",
+  "name": "Bergen Peak State Wildlife Area",
+  "bbox": [
+   -105.397131,
+   39.65864,
+   -105.370864,
+   39.66764
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "mount-sneffels-wilderness-co",
+  "name": "Mount Sneffels Wilderness",
+  "bbox": [
+   -107.955116,
+   37.97168,
+   -107.784693,
+   38.055249
+  ],
+  "lots": 0,
+  "trails": 5,
+  "rel": 396587
+ },
+ {
+  "slug": "riverdale-regional-park-co",
+  "name": "Riverdale Regional Park",
+  "bbox": [
+   -104.888484,
+   39.912524,
+   -104.875012,
+   39.914357
+  ],
+  "lots": 0,
+  "trails": 4,
+  "rel": null
+ },
+ {
+  "slug": "ptarmigan-peak-wilderness-co",
+  "name": "Ptarmigan Peak Wilderness",
+  "bbox": [
+   -106.119856,
+   39.637615,
+   -105.984273,
+   39.816635
+  ],
+  "lots": 0,
+  "trails": 5,
+  "rel": 5444903
+ },
+ {
+  "slug": "blair-bridge-open-space-co",
+  "name": "Blair Bridge Open Space",
+  "bbox": [
+   -104.874868,
+   38.888234,
+   -104.874284,
+   38.891646
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": 11384568
+ },
+ {
+  "slug": "hermosa-creek-wilderness-co",
+  "name": "Hermosa Creek Wilderness",
+  "bbox": [
+   -108.038759,
+   37.451624,
+   -107.887324,
+   37.64969
+  ],
+  "lots": 0,
+  "trails": 6,
+  "rel": 5608655
+ },
+ {
+  "slug": "canyon-pintado-co",
+  "name": "Canyon Pintado",
+  "bbox": [
+   -108.775584,
+   40.00053,
+   -108.764886,
+   40.007992
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "pueblo-mountain-park-co",
+  "name": "Pueblo Mountain Park",
+  "bbox": [
+   -105.013645,
+   38.040824,
+   -104.996355,
+   38.052777
+  ],
+  "lots": 0,
+  "trails": 7,
+  "rel": null
+ },
+ {
+  "slug": "baca-national-wildlife-refuge-co",
+  "name": "Baca National Wildlife Refuge",
+  "bbox": [
+   -105.786593,
+   37.958624,
+   -105.767639,
+   37.970435
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": 5902863
+ },
+ {
+  "slug": "sweitzer-state-park-co",
+  "name": "Sweitzer State Park",
+  "bbox": [
+   -108.040382,
+   38.712372,
+   -108.022585,
+   38.717073
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "never-summer-wilderness-co",
+  "name": "Never Summer Wilderness",
+  "bbox": [
+   -105.969313,
+   40.326697,
+   -105.865566,
+   40.438685
+  ],
+  "lots": 0,
+  "trails": 8,
+  "rel": 5734662
+ },
+ {
+  "slug": "mount-zirkel-wilderness-co",
+  "name": "Mount Zirkel Wilderness",
+  "bbox": [
+   -106.84516,
+   40.545298,
+   -106.585332,
+   40.982375
+  ],
+  "lots": 0,
+  "trails": 39,
+  "rel": 5737712
+ },
+ {
+  "slug": "south-table-mountain-park-conservation-easement-co",
+  "name": "South Table Mountain Park Conservation Easement",
+  "bbox": [
+   -105.187171,
+   39.740386,
+   -105.159604,
+   39.754402
+  ],
+  "lots": 0,
+  "trails": 6,
+  "rel": 9847503
+ },
+ {
+  "slug": "la-garita-wilderness-co",
+  "name": "La Garita Wilderness",
+  "bbox": [
+   -107.170323,
+   37.813445,
+   -106.730745,
+   38.074587
+  ],
+  "lots": 0,
+  "trails": 12,
+  "rel": 5440842
+ },
+ {
+  "slug": "the-palisade-wilderness-study-area-co",
+  "name": "The Palisade Wilderness Study Area",
+  "bbox": [
+   -108.92802,
+   38.721113,
+   -108.921992,
+   38.73943
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": 5908194
+ },
+ {
+  "slug": "alamosa-national-wildlife-refuge-co",
+  "name": "Alamosa National Wildlife Refuge",
+  "bbox": [
+   -105.846261,
+   37.456971,
+   -105.845151,
+   37.459866
+  ],
+  "lots": 0,
+  "trails": 3,
+  "rel": null
+ },
+ {
+  "slug": "pearl-lake-state-park-co",
+  "name": "Pearl Lake State Park",
+  "bbox": [
+   -106.887382,
+   40.777966,
+   -106.8837,
+   40.788433
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "pike-hill-open-space-co",
+  "name": "Pike Hill Open Space",
+  "bbox": [
+   -105.101723,
+   39.388083,
+   -105.047911,
+   39.407354
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "greenhorn-mountain-wilderness-co",
+  "name": "Greenhorn Mountain Wilderness",
+  "bbox": [
+   -105.041575,
+   37.863738,
+   -104.958062,
+   37.918558
+  ],
+  "lots": 0,
+  "trails": 2,
+  "rel": 5725057
+ },
+ {
+  "slug": "woodmen-valley-open-space-co",
+  "name": "Woodmen Valley Open Space",
+  "bbox": [
+   -104.86937,
+   38.943605,
+   -104.859505,
+   38.946209
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": null
+ },
+ {
+  "slug": "dominguez-canyon-wilderness-co",
+  "name": "Dominguez Canyon Wilderness",
+  "bbox": [
+   -108.549904,
+   38.658441,
+   -108.267427,
+   38.82722
+  ],
+  "lots": 0,
+  "trails": 4,
+  "rel": 5468983
+ },
+ {
+  "slug": "black-forest-regional-park-co",
+  "name": "Black Forest Regional Park",
+  "bbox": [
+   -104.733508,
+   39.027224,
+   -104.728803,
+   39.031632
+  ],
+  "lots": 0,
+  "trails": 1,
+  "rel": 2999218
+ },
+ {
+  "slug": "plains-conservation-center-co",
+  "name": "Plains Conservation Center",
+  "bbox": [
+   -104.747147,
+   39.66217,
+   -104.735057,
+   39.680179
+  ],
+  "lots": 0,
+  "trails": 3,
+  "rel": null
+ },
+ {
+  "slug": "piedra-special-management-area-co",
+  "name": "Piedra Special Management Area",
+  "bbox": [
+   -107.532679,
+   37.304663,
+   -107.344016,
+   37.406869
+  ],
+  "lots": 0,
+  "trails": 3,
+  "rel": 5923911
+ },
+ {
+  "slug": "uncompahgre-wilderness-co",
+  "name": "Uncompahgre Wilderness",
+  "bbox": [
+   -107.671808,
+   37.977289,
+   -107.303831,
+   38.24514
+  ],
+  "lots": 0,
+  "trails": 32,
+  "rel": 396589
+ },
+ {
+  "slug": "the-south-hogback-open-space-co",
+  "name": "The South Hogback Open Space",
+  "bbox": [
+   -105.148983,
+   39.551603,
+   -105.129438,
+   39.577207
+  ],
+  "lots": 0,
+  "trails": 3,
+  "rel": null
+ },
+ {
+  "slug": "vasquez-peak-wilderness-co",
+  "name": "Vasquez Peak Wilderness",
+  "bbox": [
+   -105.901864,
+   39.722826,
+   -105.769492,
+   39.837466
+  ],
+  "lots": 0,
+  "trails": 4,
+  "rel": 5733548
+ },
+ {
+  "slug": "denver-mountain-parks-co",
+  "name": "Denver Mountain Parks",
+  "bbox": [
+   -105.449027,
+   39.538363,
+   -105.318869,
+   39.673871
+  ],
+  "lots": 0,
+  "trails": 4,
+  "rel": 9847366
+ }
+]

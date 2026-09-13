@@ -1,0 +1,1700 @@
+{
+"0": {
+"category": "SUPPORT",
+"evidence": "in tourism=camp_site 'Zion Ponderosa Ranch Resort'",
+"fac_area_m": null,
+"fac_label": null
+},
+"1": {
+"category": "FACILITY",
+"evidence": "41 m from landuse=commercial",
+"fac_area_m": 41,
+"fac_label": "landuse=commercial"
+},
+"2": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"3": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"4": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Zion Canyon Village'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"5": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"6": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"7": {
+"category": "FACILITY",
+"evidence": "22 m from shop=gift 'Virgin Trading Post / Fort Zion'",
+"fac_area_m": 22,
+"fac_label": "shop=gift"
+},
+"8": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"9": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"10": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"11": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"12": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"13": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"14": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"15": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"16": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Zion Canyon Village'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"17": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'Cliffrose Lodge & Gardens'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"18": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'Cliffrose Lodge & Gardens'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"19": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"20": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"21": {
+"category": "FACILITY",
+"evidence": "40 m from landuse=commercial",
+"fac_area_m": 40,
+"fac_label": "landuse=commercial"
+},
+"22": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"23": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Zion Canyon Village'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"24": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"25": {
+"category": "PARK",
+"evidence": "in leisure=park 'Red Bull Rampage Bike Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"26": {
+"category": "PARK",
+"evidence": "in leisure=park 'Red Bull Rampage Bike Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"27": {
+"category": "PARK",
+"evidence": "in leisure=park 'Red Bull Rampage Bike Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"28": {
+"category": "PARK",
+"evidence": "in leisure=park 'Red Bull Rampage Bike Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"29": {
+"category": "PARK",
+"evidence": "in leisure=park 'Red Bull Rampage Bike Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"30": {
+"category": "PARK",
+"evidence": "in leisure=park 'Red Bull Rampage Bike Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"31": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"32": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"33": {
+"category": "PARK",
+"evidence": "in leisure=park 'Red Bull Rampage Bike Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"34": {
+"category": "PARK",
+"evidence": "in leisure=park 'Red Bull Rampage Bike Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"35": {
+"category": "PARK",
+"evidence": "in leisure=park 'Red Bull Rampage Bike Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"36": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"37": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"38": {
+"category": "SUPPORT",
+"evidence": "16 m from tourism=information",
+"fac_area_m": null,
+"fac_label": null
+},
+"39": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"40": {
+"category": "PARK",
+"evidence": "in leisure=park 'Red Bull Rampage Bike Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"41": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": 72,
+"fac_label": "tourism=hotel"
+},
+"42": {
+"category": "SUPPORT",
+"evidence": "in amenity=shelter",
+"fac_area_m": null,
+"fac_label": null
+},
+"43": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"44": {
+"category": "FACILITY",
+"evidence": "16 m from leisure=pitch",
+"fac_area_m": 16,
+"fac_label": "leisure=pitch"
+},
+"45": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"46": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"47": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"48": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"49": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"50": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"51": {
+"category": "FACILITY",
+"evidence": "93 m from leisure=sports_centre",
+"fac_area_m": 66,
+"fac_label": "leisure=pitch"
+},
+"52": {
+"category": "FACILITY",
+"evidence": "57 m from leisure=sports_centre",
+"fac_area_m": null,
+"fac_label": null
+},
+"53": {
+"category": "FACILITY",
+"evidence": "24 m from leisure=pitch",
+"fac_area_m": 24,
+"fac_label": "leisure=pitch"
+},
+"54": {
+"category": "FACILITY",
+"evidence": "31 m from amenity=place_of_worship Zion Community Church 'Zion Community Church'",
+"fac_area_m": null,
+"fac_label": null
+},
+"55": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"56": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"57": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"58": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"59": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"60": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"61": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"62": {
+"category": "FACILITY",
+"evidence": "77 m from landuse=commercial 'Zion Canyon Village'",
+"fac_area_m": 77,
+"fac_label": "landuse=commercial"
+},
+"63": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"64": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"65": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"66": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"67": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"68": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"69": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"70": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"71": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"72": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"73": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"74": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"75": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"76": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"77": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"78": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"79": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"80": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"81": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"82": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"83": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"84": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"85": {
+"category": "SUPPORT",
+"evidence": "in tourism=camp_site 'South Campground'",
+"fac_area_m": null,
+"fac_label": null
+},
+"86": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"87": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"88": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"89": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"90": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"91": {
+"category": "SUPPORT",
+"evidence": "35 m from tourism=information",
+"fac_area_m": null,
+"fac_label": null
+},
+"92": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"93": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"94": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"95": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"96": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"97": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"98": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"99": {
+"category": "FACILITY",
+"evidence": "46 m from landuse=residential",
+"fac_area_m": 46,
+"fac_label": "landuse=residential"
+},
+"100": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"101": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": 104,
+"fac_label": "tourism=motel"
+},
+"102": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"103": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"104": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"105": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"106": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"107": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"108": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"109": {
+"category": "FACILITY",
+"evidence": "52 m from landuse=residential",
+"fac_area_m": 52,
+"fac_label": "landuse=residential"
+},
+"110": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"111": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"112": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"113": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Spring Creek Canyon Wilderness Study Area'",
+"fac_area_m": null,
+"fac_label": null
+},
+"114": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"115": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"116": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"117": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"118": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"119": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"120": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"121": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"122": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"123": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"124": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"125": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"126": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"127": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"128": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"129": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"130": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"131": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"132": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"133": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"134": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"135": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"136": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Zion Canyon Village'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"137": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Zion Canyon Village'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"138": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"139": {
+"category": "SUPPORT",
+"evidence": "39 m from tourism=information",
+"fac_area_m": null,
+"fac_label": null
+},
+"140": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"141": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"142": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"143": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"144": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"145": {
+"category": "FACILITY",
+"evidence": "38 m from amenity=theatre 'O.C. Tanner Amphitheatre'",
+"fac_area_m": 38,
+"fac_label": "amenity=theatre"
+},
+"146": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"147": {
+"category": "SUPPORT",
+"evidence": "37 m from tourism=information",
+"fac_area_m": null,
+"fac_label": null
+},
+"148": {
+"category": "FACILITY",
+"evidence": "11 m from amenity=fast_food 'Co-Op Cafe'",
+"fac_area_m": 11,
+"fac_label": "amenity=fast_food"
+},
+"149": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"150": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"151": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"152": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"153": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"154": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"155": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"156": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"157": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"158": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"159": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"160": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"161": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"162": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'Open Sky Zion'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"163": {
+"category": "SUPPORT",
+"evidence": "in tourism=camp_site 'Lambs Knoll Campground'",
+"fac_area_m": null,
+"fac_label": null
+},
+"164": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"165": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"166": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"167": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"168": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": 52,
+"fac_label": "landuse=residential"
+},
+"169": {
+"category": "SUPPORT",
+"evidence": "in tourism=camp_site 'Watchman Campground'",
+"fac_area_m": null,
+"fac_label": null
+},
+"170": {
+"category": "SUPPORT",
+"evidence": "in tourism=camp_site 'Watchman Campground'",
+"fac_area_m": null,
+"fac_label": null
+},
+"171": {
+"category": "SUPPORT",
+"evidence": "in tourism=camp_site 'Watchman Campground'",
+"fac_area_m": 112,
+"fac_label": "tourism=hotel"
+},
+"172": {
+"category": "SUPPORT",
+"evidence": "25 m from leisure=park 'Falls Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"173": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"174": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"175": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"176": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"177": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"178": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"179": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Sheep Bridge Nature Preserve'",
+"fac_area_m": null,
+"fac_label": null
+},
+"180": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"181": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"182": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"183": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"184": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"185": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"186": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"187": {
+"category": "SUPPORT",
+"evidence": "29 m from tourism=information",
+"fac_area_m": null,
+"fac_label": null
+},
+"188": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"189": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"190": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"191": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"192": {
+"category": "SUPPORT",
+"evidence": "29 m from tourism=information",
+"fac_area_m": null,
+"fac_label": null
+},
+"193": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"194": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"195": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"196": {
+"category": "FACILITY",
+"evidence": "16 m from leisure=pitch",
+"fac_area_m": 16,
+"fac_label": "leisure=pitch"
+},
+"197": {
+"category": "FACILITY",
+"evidence": "31 m from leisure=track",
+"fac_area_m": 31,
+"fac_label": "leisure=track"
+},
+"198": {
+"category": "FACILITY",
+"evidence": "29 m from tourism=motel 'Under Canvas Zion'",
+"fac_area_m": null,
+"fac_label": null
+},
+"199": {
+"category": "FACILITY",
+"evidence": "56 m from leisure=pitch",
+"fac_area_m": 56,
+"fac_label": "leisure=pitch"
+},
+"200": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"201": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"202": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=motel 'Autocamp Zion'",
+"fac_area_m": 0,
+"fac_label": "tourism=motel"
+},
+"203": {
+"category": "SUPPORT",
+"evidence": "in tourism=camp_site 'South Campground'",
+"fac_area_m": 94,
+"fac_label": "amenity=theatre"
+},
+"204": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"205": {
+"category": "SUPPORT",
+"evidence": "41 m from tourism=information",
+"fac_area_m": null,
+"fac_label": null
+},
+"206": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Sheep Bridge Nature Preserve'",
+"fac_area_m": null,
+"fac_label": null
+},
+"207": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Hurricane Cliffs Recreation Area'",
+"fac_area_m": null,
+"fac_label": null
+},
+"208": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"209": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"210": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"211": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"212": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"213": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"214": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"215": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"216": {
+"category": "SUPPORT",
+"evidence": "in tourism=caravan_site 'Zion River Resort RV Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"217": {
+"category": "SUPPORT",
+"evidence": "in tourism=caravan_site 'Zion River Resort RV Park'",
+"fac_area_m": 191,
+"fac_label": "landuse=residential"
+},
+"218": {
+"category": "SUPPORT",
+"evidence": "in tourism=caravan_site 'Zion River Resort RV Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"219": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"220": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"221": {
+"category": "SUPPORT",
+"evidence": "in tourism=camp_site 'Zion Canyon Campground and RV Resort'",
+"fac_area_m": 46,
+"fac_label": "landuse=retail"
+},
+"222": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"223": {
+"category": "FACILITY",
+"evidence": "5 m from landuse=commercial",
+"fac_area_m": 5,
+"fac_label": "landuse=commercial"
+},
+"224": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"225": {
+"category": "FACILITY",
+"evidence": "31 m from landuse=commercial",
+"fac_area_m": 31,
+"fac_label": "landuse=commercial"
+},
+"226": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"227": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=motel 'Bumbleberry Inn'",
+"fac_area_m": 0,
+"fac_label": "tourism=motel"
+},
+"228": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Zion Canyon Village'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"229": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Zion Canyon Village'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"230": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"231": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"232": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"233": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"234": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Canyon Cottonwoods'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"235": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"236": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"237": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"238": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'Cliffrose Lodge & Gardens'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"239": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"240": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"241": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"242": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"243": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"244": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"245": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"246": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"247": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"248": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"249": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"250": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"251": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"252": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"253": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"254": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"255": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"256": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"257": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"258": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"259": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"260": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"261": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"262": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"263": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"264": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"265": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"266": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"267": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"268": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"269": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"270": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"271": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Red Hawk Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"272": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Red Hawk Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"273": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Redhawk at Springdale'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"274": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Springdale School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"275": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"276": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"277": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"278": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"279": {
+"category": "SUPPORT",
+"evidence": "in tourism=camp_site 'South Campground'",
+"fac_area_m": null,
+"fac_label": null
+},
+"280": {
+"category": "SUPPORT",
+"evidence": "in tourism=camp_site 'South Campground'",
+"fac_area_m": null,
+"fac_label": null
+},
+"281": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Zion National Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"282": {
+"category": "SUPPORT",
+"evidence": "91 m from leisure=park 'Fort Harmony Monument'",
+"fac_area_m": null,
+"fac_label": null
+}
+}

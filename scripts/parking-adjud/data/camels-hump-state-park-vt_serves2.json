@@ -1,0 +1,347 @@
+{
+"0": {
+"served": false
+},
+"1": {
+"served": true,
+"trail": "Camels Hump View Trail",
+"dist_m": 16,
+"fallback": false,
+"n": 2
+},
+"2": {
+"served": true,
+"trail": "Woodward Ski Trail",
+"dist_m": 2509,
+"fallback": true,
+"n": 3
+},
+"3": {
+"served": true,
+"trail": "Long Trail",
+"dist_m": 11,
+"fallback": false,
+"n": 1
+},
+"4": {
+"served": true,
+"trail": "Forest City Trail",
+"dist_m": 188,
+"fallback": false,
+"n": 1
+},
+"5": {
+"served": true,
+"trail": "Preston Pond Loop Cutoff",
+"dist_m": 609,
+"fallback": false,
+"n": 3
+},
+"6": {
+"served": false
+},
+"7": {
+"served": true,
+"trail": "Jerusalem Trail",
+"dist_m": 52,
+"fallback": false,
+"n": 1
+},
+"8": {
+"served": true,
+"trail": "Jake",
+"dist_m": 731,
+"fallback": false,
+"n": 1
+},
+"9": {
+"served": true,
+"trail": "Preston Pond Loop",
+"dist_m": 425,
+"fallback": false,
+"n": 5
+},
+"10": {
+"served": false
+},
+"11": {
+"served": false
+},
+"12": {
+"served": false
+},
+"13": {
+"served": false
+},
+"14": {
+"served": false
+},
+"15": {
+"served": false
+},
+"16": {
+"served": true,
+"trail": "Burrows Trail",
+"dist_m": 0,
+"fallback": false,
+"n": 5
+},
+"17": {
+"served": false
+},
+"18": {
+"served": true,
+"trail": "Catamount Trail",
+"dist_m": 1679,
+"fallback": true,
+"n": 2
+},
+"19": {
+"served": true,
+"trail": "Catamount Trail",
+"dist_m": 2737,
+"fallback": true,
+"n": 1
+},
+"20": {
+"served": true,
+"trail": "Brook Run",
+"dist_m": 313,
+"fallback": false,
+"n": 10
+},
+"21": {
+"served": false
+},
+"22": {
+"served": false
+},
+"23": {
+"served": false
+},
+"24": {
+"served": false
+},
+"25": {
+"served": false
+},
+"26": {
+"served": false
+},
+"27": {
+"served": false
+},
+"28": {
+"served": false
+},
+"29": {
+"served": false
+},
+"30": {
+"served": false
+},
+"31": {
+"served": false
+},
+"32": {
+"served": false
+},
+"33": {
+"served": false
+},
+"34": {
+"served": false
+},
+"35": {
+"served": false
+},
+"36": {
+"served": false
+},
+"37": {
+"served": false
+},
+"38": {
+"served": false
+},
+"39": {
+"served": false
+},
+"40": {
+"served": false
+},
+"41": {
+"served": false
+},
+"42": {
+"served": false
+},
+"43": {
+"served": false
+},
+"44": {
+"served": false
+},
+"45": {
+"served": false
+},
+"46": {
+"served": false
+},
+"47": {
+"served": false
+},
+"48": {
+"served": false
+},
+"49": {
+"served": false
+},
+"50": {
+"served": false
+},
+"51": {
+"served": false
+},
+"52": {
+"served": false
+},
+"53": {
+"served": true,
+"trail": "Long Trail",
+"dist_m": 9,
+"fallback": false,
+"n": 2
+},
+"54": {
+"served": false
+},
+"55": {
+"served": false
+},
+"56": {
+"served": false
+},
+"57": {
+"served": false
+},
+"58": {
+"served": false
+},
+"59": {
+"served": false
+},
+"60": {
+"served": true,
+"trail": "Monroe Trail",
+"dist_m": 3,
+"fallback": false,
+"n": 5
+},
+"61": {
+"served": false
+},
+"62": {
+"served": false
+},
+"63": {
+"served": false
+},
+"64": {
+"served": false
+},
+"65": {
+"served": false
+},
+"66": {
+"served": false
+},
+"67": {
+"served": false
+},
+"68": {
+"served": false
+},
+"69": {
+"served": true,
+"trail": "Telemark",
+"dist_m": 613,
+"fallback": false,
+"n": 9
+},
+"70": {
+"served": false
+},
+"71": {
+"served": true,
+"trail": "Long Trail Temporary Realignment",
+"dist_m": 344,
+"fallback": false,
+"n": 1
+},
+"72": {
+"served": false
+},
+"73": {
+"served": false
+},
+"74": {
+"served": true,
+"trail": "Long Trail",
+"dist_m": 0,
+"fallback": false,
+"n": 1
+},
+"75": {
+"served": false
+},
+"76": {
+"served": true,
+"trail": "Monroe Trail",
+"dist_m": 132,
+"fallback": false,
+"n": 3
+},
+"77": {
+"served": false
+},
+"78": {
+"served": false
+},
+"79": {
+"served": true,
+"trail": "Woodward Ski Trail",
+"dist_m": 2655,
+"fallback": true,
+"n": 3
+},
+"80": {
+"served": false
+},
+"81": {
+"served": false
+},
+"82": {
+"served": true,
+"trail": "Old VAST Trail",
+"dist_m": 83,
+"fallback": false,
+"n": 4
+},
+"83": {
+"served": true,
+"trail": "Bog Wall Rock Climbing Path",
+"dist_m": 794,
+"fallback": false,
+"n": 1
+},
+"84": {
+"served": false
+},
+"85": {
+"served": false
+},
+"86": {
+"served": false
+}
+}

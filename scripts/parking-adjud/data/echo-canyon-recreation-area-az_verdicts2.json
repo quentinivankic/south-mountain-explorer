@@ -1,0 +1,647 @@
+{
+"0": {
+"osm": [
+"node/367811485"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "unclear",
+"evidence": "paved cul-de-sac / turnaround at a residential street end, no delineated lot"
+},
+"public": {
+"call": "yes",
+"evidence": "public street"
+},
+"serves": {
+"call": "no",
+"evidence": "Residential street cul-de-sac; the nearby trails have real dedicated parking \u2014 skip (user call)"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01",
+"fid": 0
+},
+"1": {
+"osm": [
+"node/1924424411"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "underground garage under The Phoenician resort"
+},
+"public": {
+"call": "no",
+"evidence": "resort"
+},
+"serves": {
+"call": "no",
+"evidence": "Cholla walk 2926 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "underground"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 1
+},
+"2": {
+"osm": [
+"node/1924424479"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surface lot inside The Phoenician resort"
+},
+"public": {
+"call": "no",
+"evidence": "resort"
+},
+"serves": {
+"call": "no",
+"evidence": "Cholla walk 2706 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "underground"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 2
+},
+"3": {
+"osm": [
+"node/1925612531"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "parking=garage in the Phoenician resort cluster"
+},
+"public": {
+"call": "no",
+"evidence": "resort"
+},
+"serves": {
+"call": "no",
+"evidence": "Cholla walk 2960 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "garage"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 3
+},
+"12": {
+"osm": [
+"way/33859439"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved lot ~14 stalls by the park road"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Trail 200 walk 159 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "14"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 12
+},
+"13": {
+"osm": [
+"way/33859444"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved loop lot, stalls + cars + restrooms"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Nature Trail 304 walk 120 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "29"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 13
+},
+"14": {
+"osm": [
+"way/33859468"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "small marked pull-in (cap 3) between developed North Mtn lots"
+},
+"public": {
+"call": "yes",
+"evidence": "park road"
+},
+"serves": {
+"call": "yes",
+"evidence": "Trail 200 walk 33 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "3"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 14
+},
+"15": {
+"osm": [
+"way/33869431"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "small paved pull-in on the North Mtn trailhead access road"
+},
+"public": {
+"call": "yes",
+"evidence": "park road"
+},
+"serves": {
+"call": "yes",
+"evidence": "Nature Trail 304 walk 141 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "8"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 15
+},
+"16": {
+"osm": [
+"way/33869541"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved lot, stalls + many cars + ramada at mountain base"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Freedom Trail 302 walk 61 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 16
+},
+"17": {
+"osm": [
+"way/33869560"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved roadside lot, stalls + cars at mountain base"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Alternate Summit Trail walk 128 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 17
+},
+"21": {
+"osm": [
+"way/35799524"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved lot, stalls + cars + ramada at road junction"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Quartz Ridge Trail walk 0 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 21
+},
+"29": {
+"osm": [
+"way/63919564"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "large paved lot, stalls+cars next to an office/rec building by the freeway"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "no",
+"evidence": "Office/rec building lot by the freeway; serves the building, walk 1353 m \u2014 user: not trail parking"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01",
+"fid": 29
+},
+"30": {
+"osm": [
+"way/63919565"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "large paved lot, stalls+cars beside a red-tile-roof building"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "no",
+"evidence": "Rec/community-building lot (red-tile roof), walk 1195 m \u2014 serves the building"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01",
+"fid": 30
+},
+"129": {
+"osm": [
+"way/200784364"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "small paved lot ~5 cars on Tatum Blvd"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Tatum Blvd Trailhead node; walk 14 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"fee": "no",
+"capacity": "5"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 129
+},
+"130": {
+"osm": [
+"way/204619034"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "large paved lot full of cars, marked stalls at mountain base"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Summit Trail walk 329 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 130
+},
+"131": {
+"osm": [
+"way/204619042"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved lot, marked stalls full of cars (Piestewa Summit overflow)"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Summit Trail walk 229 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 131
+},
+"367": {
+"osm": [
+"way/750104583"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "small paved access spur where the street meets the desert trail"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Rattle Saddle Trail; dirt trail leads from the spur"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 367
+},
+"473": {
+"osm": [
+"relation/14155619"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "large paved+dirt lot full of cars, stalls, vault toilet"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "L.V. Yates Trail walk 36 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 473
+},
+"476": {
+"osm": [
+"way/1074008087"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "large developed trailhead lot, angled stalls + cars + ramadas"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Freedom Trail 302 walk 133 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 476
+},
+"608": {
+"osm": [
+"way/1228497102"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "paved loop trailhead lot, stalls + cars + ramadas, trail through it"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Trail 200 walk 38 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 608
+},
+"609": {
+"osm": [
+"relation/16782160"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved loop lot, stalls + cars + restrooms, trail from it"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Nature Trail 304 walk 30 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "25"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 609
+},
+"621": {
+"osm": [
+"way/1279726433"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "large paved lot full of cars, marked stalls + ramadas at mountain base"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Dreamy Draw / North Mtn trailhead walk 112 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 621
+}
+}

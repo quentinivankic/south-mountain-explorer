@@ -1,0 +1,2774 @@
+{
+"node/1924424411": {
+"osm": [
+"node/1924424411"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "underground garage under The Phoenician resort"
+},
+"public": {
+"call": "no",
+"evidence": "resort"
+},
+"serves": {
+"call": "no",
+"evidence": "Cholla walk 2926 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "underground"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/33859439": {
+"osm": [
+"way/33859439"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved lot ~14 stalls by the park road"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Trail 200 walk 159 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "14"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/33859444": {
+"osm": [
+"way/33859444"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved loop lot, stalls + cars + restrooms"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Nature Trail 304 walk 120 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "29"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/33859468": {
+"osm": [
+"way/33859468"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "small marked pull-in (cap 3) between developed North Mtn lots"
+},
+"public": {
+"call": "yes",
+"evidence": "park road"
+},
+"serves": {
+"call": "yes",
+"evidence": "Trail 200 walk 33 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "3"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/35799524": {
+"osm": [
+"way/35799524"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved lot, stalls + cars + ramada at road junction"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Quartz Ridge Trail walk 0 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/200784364": {
+"osm": [
+"way/200784364"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "small paved lot ~5 cars on Tatum Blvd"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Tatum Blvd Trailhead node; walk 14 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"fee": "no",
+"capacity": "5"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/204619034": {
+"osm": [
+"way/204619034"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "large paved lot full of cars, marked stalls at mountain base"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Summit Trail walk 329 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"relation/14155619": {
+"osm": [
+"relation/14155619"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "large paved+dirt lot full of cars, stalls, vault toilet"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "L.V. Yates Trail walk 36 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"node/1924424479": {
+"osm": [
+"node/1924424479"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surface lot inside The Phoenician resort"
+},
+"public": {
+"call": "no",
+"evidence": "resort"
+},
+"serves": {
+"call": "no",
+"evidence": "Cholla walk 2706 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "underground"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"node/1925612531": {
+"osm": [
+"node/1925612531"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "parking=garage in the Phoenician resort cluster"
+},
+"public": {
+"call": "no",
+"evidence": "resort"
+},
+"serves": {
+"call": "no",
+"evidence": "Cholla walk 2960 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "garage"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/33869431": {
+"osm": [
+"way/33869431"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "small paved pull-in on the North Mtn trailhead access road"
+},
+"public": {
+"call": "yes",
+"evidence": "park road"
+},
+"serves": {
+"call": "yes",
+"evidence": "Nature Trail 304 walk 141 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "8"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/33869541": {
+"osm": [
+"way/33869541"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved lot, stalls + many cars + ramada at mountain base"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Freedom Trail 302 walk 61 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/33869560": {
+"osm": [
+"way/33869560"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved roadside lot, stalls + cars at mountain base"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Alternate Summit Trail walk 128 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/63919564": {
+"osm": [
+"way/63919564"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "large paved lot, stalls+cars next to an office/rec building by the freeway"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "no",
+"evidence": "Office/rec building lot by the freeway; serves the building, walk 1353 m \u2014 user: not trail parking"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01"
+},
+"way/63919565": {
+"osm": [
+"way/63919565"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "large paved lot, stalls+cars beside a red-tile-roof building"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "no",
+"evidence": "Rec/community-building lot (red-tile roof), walk 1195 m \u2014 serves the building"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01"
+},
+"way/204619042": {
+"osm": [
+"way/204619042"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved lot, marked stalls full of cars (Piestewa Summit overflow)"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Summit Trail walk 229 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"node/367811485": {
+"osm": [
+"node/367811485"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "unclear",
+"evidence": "paved cul-de-sac / turnaround at a residential street end, no delineated lot"
+},
+"public": {
+"call": "yes",
+"evidence": "public street"
+},
+"serves": {
+"call": "no",
+"evidence": "Residential street cul-de-sac; the nearby trails have real dedicated parking \u2014 skip (user call)"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01"
+},
+"way/750104583": {
+"osm": [
+"way/750104583"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "small paved access spur where the street meets the desert trail"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Rattle Saddle Trail; dirt trail leads from the spur"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1074008087": {
+"osm": [
+"way/1074008087"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "large developed trailhead lot, angled stalls + cars + ramadas"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Freedom Trail 302 walk 133 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1228497102": {
+"osm": [
+"way/1228497102"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "paved loop trailhead lot, stalls + cars + ramadas, trail through it"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Trail 200 walk 38 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"relation/16782160": {
+"osm": [
+"relation/16782160"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved loop lot, stalls + cars + restrooms, trail from it"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Nature Trail 304 walk 30 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "25"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1279726433": {
+"osm": [
+"way/1279726433"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "large paved lot full of cars, marked stalls + ramadas at mountain base"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Dreamy Draw / North Mtn trailhead walk 112 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/32506280": {
+"osm": [
+"way/32506280"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "large paved visitor-center lot (empty), ramadas + trails adjacent"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Penny Howe Barrier-Free Trail walk 11 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"relation/113745": {
+"osm": [
+"relation/113745"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "huge developed loop lot with cars, ramadas, garden islands"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Charles Christiansen #100 walk 139 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/33261703": {
+"osm": [
+"way/33261703"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "small paved strip in front of a resort/office building on the boulevard"
+},
+"public": {
+"call": "no",
+"evidence": "commercial building"
+},
+"serves": {
+"call": "no",
+"evidence": "Perl Charles walk 992 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/34722635": {
+"osm": [
+"way/34722635"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "long paved lot with cars along the park drive (cap 66)"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Nature Trail #60 walk 492 m; dual-use"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"capacity": "66"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/664947947": {
+"osm": [
+"way/664947947"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "lot full of cars inside a dense apartment/condo complex"
+},
+"public": {
+"call": "yes",
+"evidence": "residents"
+},
+"serves": {
+"call": "no",
+"evidence": "complex explains it; Perl Charles walk 1586 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/845238009": {
+"osm": [
+"way/845238009"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "large striped lot beside an octagonal church building"
+},
+"public": {
+"call": "yes",
+"evidence": "church"
+},
+"serves": {
+"call": "no",
+"evidence": "church parking; Shadow Mountain #312 walk 1649 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"relation/20013297": {
+"osm": [
+"relation/20013297"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "paved neighborhood-trailhead strip with parked cars"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Shaw Butte #306, trailhead node, walk 279 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "asphalt",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1248693338": {
+"osm": [
+"way/1248693338"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "two large paved lots beside a golf course + equestrian arena, empty"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "no",
+"evidence": "Golf-course + equestrian-arena VENUE parking (Z1), walk 393 m \u2014 venue, not trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01"
+},
+"way/32506240": {
+"osm": [
+"way/32506240"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved lot, marked stalls + cars at mountain base, trail leads up"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Trail 44 North walk 42 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "24"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/32894821": {
+"osm": [
+"way/32894821"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: dirt/paved trailhead lot with cars, trail from it"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Trail 150 Summit walk 36 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/34722639": {
+"osm": [
+"way/34722639"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved lot, stalls + cars in the park, trailhead node"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Nature Trail #60 walk 325 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/66535152": {
+"osm": [
+"way/66535152"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large paved/dirt park lot with cars, tennis+ramada adjacent"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Trail 308 Access walk 101 m; dual-use"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/350186770": {
+"osm": [
+"way/350186770"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved lot (cap 44, fee=no) embedded in a commercial/industrial complex"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "no",
+"evidence": "Lot embedded in a commercial/industrial complex, walk 382 m \u2014 business parking (user)"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"fee": "no",
+"capacity": "44"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01"
+},
+"way/592892570": {
+"osm": [
+"way/592892570"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved lot with cars beside a community/rec building"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "no",
+"evidence": "Community/rec-center lot, walk 703 m \u2014 serves the building"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01"
+},
+"way/755198834": {
+"osm": [
+"way/755198834"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: small strip at the edge of a large office/school complex lot"
+},
+"public": {
+"call": "yes",
+"evidence": "commercial/school"
+},
+"serves": {
+"call": "no",
+"evidence": "buildings explain it; Christiansen walk 655 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "5"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/809362789": {
+"osm": [
+"way/809362789"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: lot inside a private estate/resort compound (mansion, pools, walls)"
+},
+"public": {
+"call": "no",
+"evidence": "private estate"
+},
+"serves": {
+"call": "no",
+"evidence": "estate explains it; Perl Charles walk 1540 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/845238008": {
+"osm": [
+"way/845238008"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved lots in the octagonal-church parking complex (solar-covered)"
+},
+"public": {
+"call": "yes",
+"evidence": "church"
+},
+"serves": {
+"call": "no",
+"evidence": "church parking; Shadow Mountain walk 1505 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/32506278": {
+"osm": [
+"way/32506278"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large paved lot with marked stalls by the visitor-center building, trails adjacent"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Penny Howe walk 100 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "asphalt",
+"capacity": "62"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/32506308": {
+"osm": [
+"way/32506308"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: small dirt/paved trailhead pull-in where the trail meets the road (cap 12)"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "North Mountain S trail walk 13 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"capacity": "12"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/34744582": {
+"osm": [
+"way/34744582"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: marked-stall lot between a commercial warehouse and an apartment complex"
+},
+"public": {
+"call": "yes",
+"evidence": "commercial/residential"
+},
+"serves": {
+"call": "no",
+"evidence": "buildings explain it; Christiansen walk 634 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/82154210": {
+"osm": [
+"way/82154210"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large empty lot beside a warehouse/industrial building"
+},
+"public": {
+"call": "yes",
+"evidence": "business"
+},
+"serves": {
+"call": "no",
+"evidence": "warehouse explains it; Trail 25/25A walk 1004 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/304258844": {
+"osm": [
+"way/304258844"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved marked-stall lot in the North Mountain trailhead loop (pads, ramadas)"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Trail 44 walk 155 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"capacity": "10"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/692057844": {
+"osm": [
+"way/692057844"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: parking wrapping a church/community-center building"
+},
+"public": {
+"call": "yes",
+"evidence": "church/community"
+},
+"serves": {
+"call": "no",
+"evidence": "building explains it; Shadow Mountain #312 walk 575 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1249366350": {
+"osm": [
+"way/1249366350"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: small marked-stall lot beside an estate, at the Trail 100B crossing"
+},
+"public": {
+"call": "yes",
+"evidence": "open"
+},
+"serves": {
+"call": "no",
+"evidence": "Business parking beside the estate \u2014 not trail parking (user call)"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01"
+},
+"way/1249366351": {
+"osm": [
+"way/1249366351"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: marked-stall lot fronting a commercial/office strip by the freeway"
+},
+"public": {
+"call": "yes",
+"evidence": "commercial"
+},
+"serves": {
+"call": "no",
+"evidence": "businesses explain it; Trail 100B walk 107 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/32506311": {
+"osm": [
+"way/32506311"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: small dirt/paved trailhead pad with a ramada, trails radiating"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Trail 44A walk 20 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"capacity": "4"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/692057846": {
+"osm": [
+"way/692057846"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: marked-stall strip in the same church/community-center complex as #1060"
+},
+"public": {
+"call": "yes",
+"evidence": "church/community"
+},
+"serves": {
+"call": "no",
+"evidence": "building explains it; walk to trail via #1060 complex"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "16"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/864644609": {
+"osm": [
+"way/864644609"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: small lot behind commercial/office buildings in a business park"
+},
+"public": {
+"call": "yes",
+"evidence": "business"
+},
+"serves": {
+"call": "no",
+"evidence": "businesses explain it; Shadow Mountain #310 walk 358 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1248691350": {
+"osm": [
+"way/1248691350"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: packed lot beside a large institutional/church building"
+},
+"public": {
+"call": "yes",
+"evidence": "institution"
+},
+"serves": {
+"call": "no",
+"evidence": "building explains it; Hairpin Alley walk 543 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1248691368": {
+"osm": [
+"way/1248691368"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: marked-stall lot at the Pointe/Tapatio resort where a dirt trail starts at the edge"
+},
+"public": {
+"call": "yes",
+"evidence": "resort"
+},
+"serves": {
+"call": "no",
+"evidence": "Pointe/Tapatio Cliffs resort parking \u2014 resort, not trail parking (user)"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01"
+},
+"way/1248691369": {
+"osm": [
+"way/1248691369"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large tiered parking lot at the Pointe/Tapatio Cliffs resort"
+},
+"public": {
+"call": "yes",
+"evidence": "resort"
+},
+"serves": {
+"call": "no",
+"evidence": "Pointe/Tapatio resort parking structure \u2014 resort parking (user: clearly not parking for us)"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01"
+},
+"way/29473680": {
+"osm": [
+"way/29473680"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large paved lot full of cars, marked stalls + ramadas/restrooms, trail leads SW"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "trailhead node; walk 124 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/77954807": {
+"osm": [
+"way/77954807"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: solar-covered parking structure next to a large resort/institutional building"
+},
+"public": {
+"call": "yes",
+"evidence": "facility"
+},
+"serves": {
+"call": "no",
+"evidence": "building explains it; walk 579 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/857002207": {
+"osm": [
+"way/857002207"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: striped surface lot in a commercial/apartment complex"
+},
+"public": {
+"call": "yes",
+"evidence": "commercial"
+},
+"serves": {
+"call": "no",
+"evidence": "complex explains it; walk 1704 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "concrete",
+"parking": "multi-storey"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/909184913": {
+"osm": [
+"way/909184913"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: the main Pinnacle Peak trailhead lot, angled stalls + cars, trail runs from it"
+},
+"public": {
+"call": "yes",
+"evidence": "operator=City of Scottsdale"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 0 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "asphalt",
+"parking": "surface",
+"operator": "City of Scottsdale"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/909225500": {
+"osm": [
+"way/909225500"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: a row of the park's large designed multi-row parking (matches #21 style)"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Pinnacle Peak Park lot; trail 147 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/909225501": {
+"osm": [
+"way/909225501"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: the park's large multi-row angled parking in the desert"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Pinnacle Peak Park lot; trail nearby"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1104530306": {
+"osm": [
+"way/1104530306"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: dirt pull-through lot with cars beside a school/institutional building + sports fields"
+},
+"public": {
+"call": "yes",
+"evidence": "institution"
+},
+"serves": {
+"call": "no",
+"evidence": "institution explains it; walk 2473 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1512238640": {
+"osm": [
+"way/1512238640"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: tiny road-shoulder sliver at a desert-road junction, no cars, no lot"
+},
+"public": {
+"call": "no",
+"evidence": "open roadside"
+},
+"serves": {
+"call": "no",
+"evidence": "no parking surface; walk 2315 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/589544689": {
+"osm": [
+"way/589544689"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large graded trailer/overflow trailhead lot with a restroom, trail leads E"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "'Trailer Parking'; walk 38 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"name": "Trailer Parking",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/589544692": {
+"osm": [
+"way/589544692",
+"way/589544693"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: two long angled-stall rows of the park's designed lot, trail at the edge"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "pebblestone park lot; walk 59 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "pebblestone",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/674139912": {
+"osm": [
+"way/674139912"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: tiny spot (cap 2) inside the Four Seasons Troon North resort complex"
+},
+"public": {
+"call": "no",
+"evidence": "resort"
+},
+"serves": {
+"call": "no",
+"evidence": "resort explains it; walk 705 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "2"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/674139913": {
+"osm": [
+"way/674139913"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: small lot beside the Four Seasons resort building"
+},
+"public": {
+"call": "no",
+"evidence": "resort"
+},
+"serves": {
+"call": "no",
+"evidence": "resort parking; walk 752 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/909184915": {
+"osm": [
+"way/909184915"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large graded dirt overflow lot beside the main paved Pinnacle Peak lot"
+},
+"public": {
+"call": "yes",
+"evidence": "operator=City of Scottsdale"
+},
+"serves": {
+"call": "yes",
+"evidence": "park overflow; walk 148 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "ground",
+"parking": "surface",
+"operator": "City of Scottsdale"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1375691333": {
+"osm": [
+"way/1375691333"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large graded overflow lot with faint stall lines (power lines cross above)"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "park overflow parking; walk 351 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1375691352": {
+"osm": [
+"way/1375691352"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: graded dirt overflow loop beside the main paved park lot (cars in the main lot)"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "park overflow; walk 76 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/909225499": {
+"osm": [
+"way/909225499"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: long angled-stall rows of the park's designed lot (matches #21/#51)"
+},
+"public": {
+"call": "yes",
+"evidence": "operator=City of Scottsdale"
+},
+"serves": {
+"call": "yes",
+"evidence": "park lot; walk 187 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface",
+"operator": "City of Scottsdale"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1375691351": {
+"osm": [
+"way/1375691351"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large developed park lot with marked stalls, cars, ramada (14,710 m2)"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "main Pinnacle Peak lot; walk 182 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"node/2103033767": {
+"osm": [
+"node/2103033767"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "no",
+"evidence": "Z2: bare dirt patch at a road fork, no delineated lot or cars"
+},
+"public": {
+"call": "no",
+"evidence": "open"
+},
+"serves": {
+"call": "no",
+"evidence": "walk 1343 m; no parking surface"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/152827585": {
+"osm": [
+"way/152827585"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: long striped lot beside a softball/ballfield complex"
+},
+"public": {
+"call": "yes",
+"evidence": "sports complex"
+},
+"serves": {
+"call": "no",
+"evidence": "ballfields explain it; walk 2638 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/153208069": {
+"osm": [
+"way/153208069"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: graded facility yard with buildings + a shooting/archery range"
+},
+"public": {
+"call": "yes",
+"evidence": "facility"
+},
+"serves": {
+"call": "no",
+"evidence": "range facility; walk 858 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/328697962": {
+"osm": [
+"way/328697962"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved lot with cars beside the Salt River (tubers in the water)"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=yes river day-use"
+},
+"serves": {
+"call": "no",
+"evidence": "serves Salt River tubing/rec, not the hiking trail; walk 2121 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"fee": "yes"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/559846875": {
+"osm": [
+"way/559846875"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large developed loop lot in a master-planned community with a greenbelt/golf"
+},
+"public": {
+"call": "yes",
+"evidence": "community park"
+},
+"serves": {
+"call": "no",
+"evidence": "community lot; walk 3668 m from the Usery trail"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "asphalt",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1424044543": {
+"osm": [
+"way/1424044543"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: developed park lot with marked stalls + ramada at the road end, trails around"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Usery staging lot; walk 494 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1151071352": {
+"osm": [
+"way/1151071352"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large named picnic-area parking with ramadas, trails running through it"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Usery Picnic Area Parking; walk 0 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"name": "Usery Mountain Regional Park Picnic Area Parking",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"node/1667554634": {
+"osm": [
+"node/1667554634"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: angled-stall roadside lot along Usery Pass Rd (one of a series)"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "park roadside parking; walk 215 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"node/1667554683": {
+"osm": [
+"node/1667554683"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: angled-stall roadside lot with cars along the park road"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "park roadside parking; walk 178 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"node/8220926855": {
+"osm": [
+"node/8220926855"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: dirt trailhead pull-in with 2 cars; trail starts SE"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "endpoint 32 m; trail starts here"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "unpaved",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"node/11036403636": {
+"osm": [
+"node/11036403636"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "unclear",
+"evidence": "Z2: bare dirt widening beside the highway at a trail crossing, no stalls/cars"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "no",
+"evidence": "Bare highway dirt pull-off, no delineated lot; Usery has a full dedicated lot system \u2014 skip"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "street_side"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01"
+},
+"node/11036403637": {
+"osm": [
+"node/11036403637"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "unclear",
+"evidence": "Z2: bare dirt widening beside the highway, no delineated lot"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "no",
+"evidence": "Bare highway dirt pull-off, no delineated lot \u2014 skip"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "street_side"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01"
+},
+"way/951300277": {
+"osm": [
+"way/951300277"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large graded dirt lot along the road by the river, named Hawer Trail Parking"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Hawer Trail Parking; walk 266 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"name": "Hawer Trail Parking",
+"access": "yes",
+"surface": "unpaved",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1265321875": {
+"osm": [
+"way/1265321875"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: graded dirt staging lot with vehicles, trail from it"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Usery OHV Staging Area; walk 19 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"name": "Usery OHV Staging Area",
+"access": "yes",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1155218980": {
+"osm": [
+"way/1155218980"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved angled-stall lot with a car beside the road, trail crosses"
+},
+"public": {
+"call": "yes",
+"evidence": "Maricopa County"
+},
+"serves": {
+"call": "yes",
+"evidence": "operator Maricopa County; walk 119 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "asphalt",
+"parking": "surface",
+"fee": "no",
+"operator": "Maricopa County"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"node/1145832434": {
+"osm": [
+"node/1145832434"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surveyed park lot (edge 21 m) \u2014 matches the confirmed Usery roadside/staging pattern"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 0 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "street_side"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"node/8184567299": {
+"osm": [
+"node/8184567299"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surveyed park lot (edge 22 m) \u2014 matches the confirmed Usery roadside/staging pattern"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 45 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "unpaved",
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1151086151": {
+"osm": [
+"way/1151086151"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surveyed park lot (edge 108 m) \u2014 matches the confirmed Usery roadside/staging pattern"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 207 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1151086152": {
+"osm": [
+"way/1151086152"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surveyed park lot (edge 0 m) \u2014 matches the confirmed Usery roadside/staging pattern"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 32 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1265321873": {
+"osm": [
+"way/1265321873"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surveyed park lot (edge 482 m) \u2014 matches the confirmed Usery roadside/staging pattern"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 239 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1265321874": {
+"osm": [
+"way/1265321874"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surveyed park lot (edge 32 m) \u2014 matches the confirmed Usery roadside/staging pattern"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 47 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1498956986": {
+"osm": [
+"way/1498956986"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surveyed park lot (edge 153 m) \u2014 matches the confirmed Usery roadside/staging pattern"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 179 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "sand",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"node/1667554709": {
+"osm": [
+"node/1667554709"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "trailhead-node-coincident access point (edge 83 m), park roadside parking"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "trail meets it"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"node/10247080492": {
+"osm": [
+"node/10247080492"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "trailhead-node-coincident access point (edge 16 m), park roadside parking"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "trail meets it"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"node/10247080494": {
+"osm": [
+"node/10247080494",
+"node/10247080495"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "trailhead-node-coincident access point (edge 10 m), park roadside parking"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "trail meets it"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"node/10247080497": {
+"osm": [
+"node/10247080497"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "trailhead-node-coincident access point (edge 26 m), park roadside parking"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "trail meets it"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1151071356": {
+"osm": [
+"way/1151071356"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "trailhead-node-coincident access point (edge 102 m), park roadside parking"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "trail meets it"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+},
+"way/1538443669": {
+"osm": [
+"way/1538443669"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "named Wolverine OHV Staging Area (USFS operator) \u2014 a real staging lot"
+},
+"public": {
+"call": "yes",
+"evidence": "United States Forest Service"
+},
+"serves": {
+"call": "yes",
+"evidence": "Wolverine OHV Staging"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"name": "Wolverine OHV Staging Area",
+"parking": "surface",
+"operator": "United States Forest Service"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx"
+}
+}

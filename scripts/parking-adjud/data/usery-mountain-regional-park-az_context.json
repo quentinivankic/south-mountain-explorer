@@ -1,0 +1,1814 @@
+{
+"0": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"1": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"2": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"3": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"4": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"5": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"6": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=sports_centre 'Rodeo Park Event Center'",
+"fac_area_m": 0,
+"fac_label": "leisure=sports_centre"
+},
+"7": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"8": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"9": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"10": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"11": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"12": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"13": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"14": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"15": {
+"category": "FACILITY",
+"evidence": "41 m from leisure=pitch",
+"fac_area_m": 41,
+"fac_label": "leisure=pitch"
+},
+"16": {
+"category": "FACILITY",
+"evidence": "24 m from leisure=pitch",
+"fac_area_m": 24,
+"fac_label": "leisure=pitch"
+},
+"17": {
+"category": "FACILITY",
+"evidence": "54 m from leisure=pitch",
+"fac_area_m": 54,
+"fac_label": "leisure=pitch"
+},
+"18": {
+"category": "FACILITY",
+"evidence": "30 m from leisure=pitch",
+"fac_area_m": 30,
+"fac_label": "leisure=pitch"
+},
+"19": {
+"category": "FACILITY",
+"evidence": "43 m from leisure=pitch",
+"fac_area_m": 43,
+"fac_label": "leisure=pitch"
+},
+"20": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"21": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"22": {
+"category": "FACILITY",
+"evidence": "68 m from amenity=police 'Apache Junction Police Department'",
+"fac_area_m": 68,
+"fac_label": "amenity=police"
+},
+"23": {
+"category": "FACILITY",
+"evidence": "46 m from shop=books 'Chapter Two'",
+"fac_area_m": 46,
+"fac_label": "shop=books"
+},
+"24": {
+"category": "FACILITY",
+"evidence": "36 m from shop=books 'Chapter Two'",
+"fac_area_m": 36,
+"fac_label": "shop=books"
+},
+"25": {
+"category": "FACILITY",
+"evidence": "60 m from landuse=residential 'Sunhaven RV Resort'",
+"fac_area_m": 60,
+"fac_label": "landuse=residential"
+},
+"26": {
+"category": "FACILITY",
+"evidence": "70 m from leisure=pitch",
+"fac_area_m": 70,
+"fac_label": "leisure=pitch"
+},
+"27": {
+"category": "SUPPORT",
+"evidence": "42 m from leisure=picnic_table",
+"fac_area_m": null,
+"fac_label": null
+},
+"28": {
+"category": "FACILITY",
+"evidence": "24 m from amenity=police 'Apache Junction Police Department'",
+"fac_area_m": 24,
+"fac_label": "amenity=police"
+},
+"29": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"30": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=college 'Central Arizona College Superstition Mountain Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=college"
+},
+"31": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=college 'Central Arizona College Superstition Mountain Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=college"
+},
+"32": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=college 'Central Arizona College Superstition Mountain Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=college"
+},
+"33": {
+"category": "FACILITY",
+"evidence": "109 m from amenity=restaurant 'Droosserts'",
+"fac_area_m": null,
+"fac_label": null
+},
+"34": {
+"category": "FACILITY",
+"evidence": "11 m from building=commercial",
+"fac_area_m": 11,
+"fac_label": "building=commercial"
+},
+"35": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Arroyo Hermoso Mexican Village'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"36": {
+"category": "FACILITY",
+"evidence": "65 m from landuse=residential 'Sunhaven RV Resort'",
+"fac_area_m": 65,
+"fac_label": "landuse=residential"
+},
+"37": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Arroyo Hermoso Mexican Village'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"38": {
+"category": "FACILITY",
+"evidence": "28 m from office=government 'Social Security Administration'",
+"fac_area_m": 28,
+"fac_label": "office=government"
+},
+"39": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Arroyo Hermoso Mexican Village'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"40": {
+"category": "FACILITY",
+"evidence": "0 m from shop=convenience 'Circle K'",
+"fac_area_m": 0,
+"fac_label": "shop=convenience"
+},
+"41": {
+"category": "FACILITY",
+"evidence": "39 m from amenity=kindergarten 'Head Start'",
+"fac_area_m": 39,
+"fac_label": "amenity=kindergarten"
+},
+"42": {
+"category": "FACILITY",
+"evidence": "12 m from shop=country_store 'The Stock Shop'",
+"fac_area_m": 12,
+"fac_label": "shop=country_store"
+},
+"43": {
+"category": "FACILITY",
+"evidence": "32 m from office=government 'Social Security Administration'",
+"fac_area_m": 32,
+"fac_label": "office=government"
+},
+"44": {
+"category": "FACILITY",
+"evidence": "0 m from shop=convenience 'Shell'",
+"fac_area_m": 0,
+"fac_label": "shop=convenience"
+},
+"45": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Four Peaks Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"46": {
+"category": "FACILITY",
+"evidence": "10 m from shop=storage_rental 'Green Nugget RV Storage'",
+"fac_area_m": 10,
+"fac_label": "shop=storage_rental"
+},
+"47": {
+"category": "FACILITY",
+"evidence": "23 m from amenity=school 'Four Peaks Elementary School'",
+"fac_area_m": 23,
+"fac_label": "amenity=school"
+},
+"48": {
+"category": "FACILITY",
+"evidence": "32 m from leisure=pitch 'Laurie Armstrong's Field of Dreams'",
+"fac_area_m": 32,
+"fac_label": "leisure=pitch"
+},
+"49": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"50": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"51": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Cactus Canyon Junior High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"52": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Apache Junction High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"53": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Apache Junction High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"54": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Apache Junction High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"55": {
+"category": "FACILITY",
+"evidence": "45 m from leisure=pitch",
+"fac_area_m": 45,
+"fac_label": "leisure=pitch"
+},
+"56": {
+"category": "FACILITY",
+"evidence": "0 m from office=educational_institution 'Apache Junction Unified School District'",
+"fac_area_m": 0,
+"fac_label": "office=educational_institution"
+},
+"57": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Mountain Heights Academy'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"58": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Mountain Heights Academy'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"59": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Cactus Canyon Junior High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"60": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Apache Junction High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"61": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Apache Junction High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"62": {
+"category": "FACILITY",
+"evidence": "0 m from office=educational_institution 'Apache Junction Unified School District'",
+"fac_area_m": 0,
+"fac_label": "office=educational_institution"
+},
+"63": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Cactus Canyon Junior High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"64": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Apache Junction High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"65": {
+"category": "FACILITY",
+"evidence": "32 m from amenity=school 'Apache Junction High School'",
+"fac_area_m": 32,
+"fac_label": "amenity=school"
+},
+"66": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Apache Junction High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"67": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Palmas Del Sol East Mobile Home Park'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"68": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'Apache Creek Golf Club'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"69": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"70": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"71": {
+"category": "FACILITY",
+"evidence": "67 m from amenity=clinic 'Horizon Health & Wellness'",
+"fac_area_m": 67,
+"fac_label": "amenity=clinic"
+},
+"72": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"73": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Apache Trail High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"74": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"75": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"76": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"77": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"78": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"79": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"80": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"81": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"82": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"83": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"84": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"85": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"86": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"87": {
+"category": "FACILITY",
+"evidence": "74 m from amenity=place_of_worship Centerstage Church 'Centerstage Church'",
+"fac_area_m": 50,
+"fac_label": "landuse=commercial"
+},
+"88": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"89": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"90": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"91": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"92": {
+"category": "FACILITY",
+"evidence": "48 m from leisure=pitch",
+"fac_area_m": 48,
+"fac_label": "leisure=pitch"
+},
+"93": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"94": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Sun Valley Mobile Home Park'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"95": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'John Philip Sousa Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"96": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'HonorHealth Four Peaks Medical Center'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"97": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'HonorHealth Four Peaks Medical Center'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"98": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'HonorHealth Four Peaks Medical Center'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"99": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'HonorHealth Four Peaks Medical Center'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"100": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'HonorHealth Four Peaks Medical Center'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"101": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'HonorHealth Four Peaks Medical Center'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"102": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Skyline High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"103": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'HonorHealth Four Peaks Medical Center'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"104": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'HonorHealth Four Peaks Medical Center'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"105": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'HonorHealth Four Peaks Medical Center'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"106": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Skyline High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"107": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Skyline High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"108": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'HonorHealth Four Peaks Medical Center'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"109": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'HonorHealth Four Peaks Medical Center'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"110": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Skyline High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"111": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"112": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"113": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"114": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"115": {
+"category": "FACILITY",
+"evidence": "29 m from landuse=residential",
+"fac_area_m": 29,
+"fac_label": "landuse=residential"
+},
+"116": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"117": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"118": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"119": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"120": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Mountain Bridge South'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"121": {
+"category": "FACILITY",
+"evidence": "58 m from landuse=residential 'Holiday Palms Mobile Home Park'",
+"fac_area_m": 58,
+"fac_label": "landuse=residential"
+},
+"122": {
+"category": "FACILITY",
+"evidence": "27 m from amenity=place_of_worship Church of God 'Church of God'",
+"fac_area_m": 27,
+"fac_label": "amenity=place_of_worship Church of God"
+},
+"123": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Red Mountain High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"124": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Red Mountain High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"125": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Red Mountain High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"126": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Fremont Junior High'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"127": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Red Mountain High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"128": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Imagine Prep Superstition'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"129": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Imagine Prep Superstition'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"130": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=marketplace 'Mesa Market Place Swap Meet'",
+"fac_area_m": 0,
+"fac_label": "amenity=marketplace"
+},
+"131": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Superstition Gateway West'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"132": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Superstition Gateway West'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"133": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Superstition Gateway West'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"134": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"135": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"136": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"137": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"138": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=university 'Mesa Community College - Red Mountain Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=university"
+},
+"139": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=university 'Mesa Community College - Red Mountain Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=university"
+},
+"140": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=university 'Mesa Community College - Red Mountain Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=university"
+},
+"141": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=university 'Mesa Community College - Red Mountain Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=university"
+},
+"142": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=university 'Mesa Community College - Red Mountain Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=university"
+},
+"143": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=university 'Mesa Community College - Red Mountain Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=university"
+},
+"144": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=university 'Mesa Community College - Red Mountain Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=university"
+},
+"145": {
+"category": "FACILITY",
+"evidence": "21 m from shop=greengrocer 'Superstition Ranch Market'",
+"fac_area_m": 21,
+"fac_label": "shop=greengrocer"
+},
+"146": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Jacobs Ranch'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"147": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Superstition Villa'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"148": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=college 'Central Arizona College Superstition Mountain Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=college"
+},
+"149": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Mesa Sunset RV Homes Community'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"150": {
+"category": "FACILITY",
+"evidence": "23 m from leisure=pitch",
+"fac_area_m": 23,
+"fac_label": "leisure=pitch"
+},
+"151": {
+"category": "PARK",
+"evidence": "in leisure=park 'Raccoon Bluff Day Use Area' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"152": {
+"category": "PARK",
+"evidence": "in leisure=park 'Raccoon Bluff Day Use Area' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"153": {
+"category": "FACILITY",
+"evidence": "35 m from landuse=residential",
+"fac_area_m": 35,
+"fac_label": "landuse=residential"
+},
+"154": {
+"category": "FACILITY",
+"evidence": "18 m from building=industrial",
+"fac_area_m": 18,
+"fac_label": "building=industrial"
+},
+"155": {
+"category": "FACILITY",
+"evidence": "19 m from building=industrial",
+"fac_area_m": 19,
+"fac_label": "building=industrial"
+},
+"156": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"157": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'AJ Apartments: Courtyard'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"158": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Superstition Springs'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"159": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Mesa Pavilions North'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"160": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Mesa Pavilions North'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"161": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Mesa Pavilions North'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"162": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Mesa Pavilions North'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"163": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Mesa Pavilions South'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"164": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Mesa Pavilions South'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"165": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Mesa Pavilions South'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"166": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"167": {
+"category": "FACILITY",
+"evidence": "0 m from shop=furniture 'Scandinavian Designs'",
+"fac_area_m": 0,
+"fac_label": "shop=furniture"
+},
+"168": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Superstition Springs'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"169": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Superstition Springs'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"170": {
+"category": "FACILITY",
+"evidence": "0 m from shop=wholesale 'Costco'",
+"fac_area_m": 0,
+"fac_label": "shop=wholesale"
+},
+"171": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"172": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"173": {
+"category": "FACILITY",
+"evidence": "0 m from office=company 'Bridgecrest'",
+"fac_area_m": 0,
+"fac_label": "office=company"
+},
+"174": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Clearview Commons at Superstition Springs'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"175": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"176": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"177": {
+"category": "FACILITY",
+"evidence": "67 m from amenity=school 'Zaharis Elementary School'",
+"fac_area_m": 67,
+"fac_label": "amenity=school"
+},
+"178": {
+"category": "FACILITY",
+"evidence": "11 m from landuse=retail",
+"fac_area_m": 11,
+"fac_label": "landuse=retail"
+},
+"179": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Old West Marketplace'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"180": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Old West Marketplace'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"181": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Old West Marketplace'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"182": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Old West Marketplace'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"183": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Old West Marketplace'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"184": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Old West Marketplace'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"185": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Old West Marketplace'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"186": {
+"category": "FACILITY",
+"evidence": "18 m from landuse=commercial",
+"fac_area_m": 18,
+"fac_label": "landuse=commercial"
+},
+"187": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"188": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"189": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Countryside RV Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"190": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Countryside RV Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"191": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"192": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"193": {
+"category": "FACILITY",
+"evidence": "1 m from shop=tyres 'Old West Tire'",
+"fac_area_m": 1,
+"fac_label": "shop=tyres"
+},
+"194": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"195": {
+"category": "FACILITY",
+"evidence": "14 m from shop=tyres 'Felix Tire Shop'",
+"fac_area_m": 14,
+"fac_label": "shop=tyres"
+},
+"196": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Red Mountain Plaza'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"197": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Lipovic Plaza'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"198": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Lipovic Plaza'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"199": {
+"category": "FACILITY",
+"evidence": "33 m from amenity=bar 'The Trough'",
+"fac_area_m": 33,
+"fac_label": "amenity=bar"
+},
+"200": {
+"category": "FACILITY",
+"evidence": "9 m from shop=money_lender 'TitleMax'",
+"fac_area_m": 9,
+"fac_label": "shop=money_lender"
+},
+"201": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"202": {
+"category": "FACILITY",
+"evidence": "5 m from shop=furniture 'Kerby's Furniture'",
+"fac_area_m": 5,
+"fac_label": "shop=furniture"
+},
+"203": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=marketplace 'Apache Trail Swap Meet'",
+"fac_area_m": 0,
+"fac_label": "amenity=marketplace"
+},
+"204": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"205": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Apache Junction Townhomes'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"206": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Quail Creek'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"207": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Sunhaven RV Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"208": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Apache Gardens Mobile Home Park'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"209": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"210": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Superstition Plaza'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"211": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=water_park 'Freemont Aquatic Complex'",
+"fac_area_m": 0,
+"fac_label": "leisure=water_park"
+},
+"212": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Arizona Goldfield'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"213": {
+"category": "FACILITY",
+"evidence": "34 m from landuse=residential",
+"fac_area_m": 34,
+"fac_label": "landuse=residential"
+},
+"214": {
+"category": "FACILITY",
+"evidence": "26 m from amenity=place_of_worship East Mesa Baptist Church 'East Mesa Baptist Church'",
+"fac_area_m": 26,
+"fac_label": "amenity=place_of_worship East Mesa Baptist Church"
+},
+"215": {
+"category": "FACILITY",
+"evidence": "111 m from office=accountant 'TPG Tax & Accounting PC'",
+"fac_area_m": 57,
+"fac_label": "landuse=retail"
+},
+"216": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"217": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"218": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"219": {
+"category": "FACILITY",
+"evidence": "39 m from landuse=residential",
+"fac_area_m": 39,
+"fac_label": "landuse=residential"
+},
+"220": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=university 'Mesa Community College - Red Mountain Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=university"
+},
+"221": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"222": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"223": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"224": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"225": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"226": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"227": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"228": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"229": {
+"category": "SUPPORT",
+"evidence": "53 m from amenity=toilets",
+"fac_area_m": null,
+"fac_label": null
+},
+"230": {
+"category": "SUPPORT",
+"evidence": "32 m from amenity=toilets",
+"fac_area_m": null,
+"fac_label": null
+},
+"231": {
+"category": "SUPPORT",
+"evidence": "32 m from amenity=toilets",
+"fac_area_m": null,
+"fac_label": null
+},
+"232": {
+"category": "SUPPORT",
+"evidence": "27 m from amenity=toilets",
+"fac_area_m": null,
+"fac_label": null
+},
+"233": {
+"category": "SUPPORT",
+"evidence": "25 m from amenity=toilets",
+"fac_area_m": null,
+"fac_label": null
+},
+"234": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Desert Heights'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"235": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Desert Heights'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"236": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"237": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"238": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"239": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"240": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"241": {
+"category": "FACILITY",
+"evidence": "15 m from amenity=police 'Maricopa County Sheriff's Office substation'",
+"fac_area_m": 15,
+"fac_label": "amenity=police"
+},
+"242": {
+"category": "FACILITY",
+"evidence": "6 m from amenity=police 'Maricopa County Sheriff's Office substation'",
+"fac_area_m": 6,
+"fac_label": "amenity=police"
+},
+"243": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"244": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=pitch",
+"fac_area_m": 0,
+"fac_label": "leisure=pitch"
+},
+"245": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"246": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"247": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"248": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"249": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"250": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"251": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"252": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"253": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"254": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"255": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"256": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"257": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"258": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"259": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"260": {
+"category": "FACILITY",
+"evidence": "13 m from amenity=place_of_worship Church of God 'Church of God'",
+"fac_area_m": 13,
+"fac_label": "amenity=place_of_worship Church of God"
+},
+"261": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"262": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"263": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"264": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=fire_station 'Rural Metro Fire Station No. 857'",
+"fac_area_m": 0,
+"fac_label": "amenity=fire_station"
+},
+"265": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"266": {
+"category": "FACILITY",
+"evidence": "6 m from landuse=commercial",
+"fac_area_m": 6,
+"fac_label": "landuse=commercial"
+},
+"267": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"268": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"269": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"270": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"271": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"272": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Viewpoint Golf Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"273": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"274": {
+"category": "SUPPORT",
+"evidence": "in tourism=picnic_site 'Granite Reef'",
+"fac_area_m": null,
+"fac_label": null
+},
+"275": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"276": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"277": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Silver Spur Village'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"278": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"279": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"280": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"281": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Power Road Park and Ride'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"282": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"283": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"284": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"285": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"286": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"287": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"288": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"289": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"290": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"291": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Mountain Vista Marketplace'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"292": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Mountain Vista Marketplace'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"293": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Mountain Vista Marketplace'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"294": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'The Shoppes at Parkwood Ranch'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"295": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'The Shoppes at Parkwood Ranch'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"296": {
+"category": "FACILITY",
+"evidence": "0 m from shop=garden_centre",
+"fac_area_m": 0,
+"fac_label": "shop=garden_centre"
+},
+"297": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Usery Mountain Regional Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"298": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Springs at Red Mountain'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"299": {
+"category": "FACILITY",
+"evidence": "9 m from landuse=residential",
+"fac_area_m": 9,
+"fac_label": "landuse=residential"
+},
+"300": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"301": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+}
+}

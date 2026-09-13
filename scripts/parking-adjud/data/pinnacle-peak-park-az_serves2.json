@@ -1,0 +1,324 @@
+{
+"0": {
+"served": true,
+"trail": "Pinacle Peak Trail",
+"dist_m": 51,
+"fallback": false,
+"n": 1
+},
+"1": {
+"served": false
+},
+"2": {
+"served": false
+},
+"3": {
+"served": false
+},
+"4": {
+"served": false
+},
+"5": {
+"served": false
+},
+"6": {
+"served": false
+},
+"7": {
+"served": true,
+"trail": "Saguaro Trail",
+"dist_m": 2022,
+"fallback": true,
+"n": 1
+},
+"8": {
+"served": false
+},
+"9": {
+"served": false
+},
+"10": {
+"served": false
+},
+"11": {
+"served": false
+},
+"12": {
+"served": false
+},
+"13": {
+"served": false
+},
+"14": {
+"served": false
+},
+"15": {
+"served": false
+},
+"16": {
+"served": false
+},
+"17": {
+"served": true,
+"trail": "Legend Trail Parkway Connector",
+"dist_m": 3403,
+"fallback": true,
+"n": 1
+},
+"18": {
+"served": true,
+"trail": "Pino Trail",
+"dist_m": 1055,
+"fallback": true,
+"n": 7
+},
+"19": {
+"served": false
+},
+"20": {
+"served": true,
+"trail": "Feldspar Trail",
+"dist_m": 469,
+"fallback": false,
+"n": 3
+},
+"21": {
+"served": true,
+"trail": "Marcus Landslide Trail",
+"dist_m": 27,
+"fallback": false,
+"n": 4
+},
+"22": {
+"served": false
+},
+"23": {
+"served": false
+},
+"24": {
+"served": false
+},
+"25": {
+"served": false
+},
+"26": {
+"served": false
+},
+"27": {
+"served": false
+},
+"28": {
+"served": false
+},
+"29": {
+"served": true,
+"trail": "Pinacle Peak Trail",
+"dist_m": 487,
+"fallback": false,
+"n": 1
+},
+"30": {
+"served": true,
+"trail": "Pinacle Peak Trail",
+"dist_m": 510,
+"fallback": false,
+"n": 1
+},
+"31": {
+"served": false
+},
+"32": {
+"served": false
+},
+"33": {
+"served": false
+},
+"34": {
+"served": false
+},
+"35": {
+"served": false
+},
+"36": {
+"served": false
+},
+"37": {
+"served": false
+},
+"38": {
+"served": false
+},
+"39": {
+"served": false
+},
+"40": {
+"served": false
+},
+"41": {
+"served": false
+},
+"42": {
+"served": false
+},
+"43": {
+"served": false
+},
+"44": {
+"served": false
+},
+"45": {
+"served": false
+},
+"46": {
+"served": false
+},
+"47": {
+"served": false
+},
+"48": {
+"served": false
+},
+"49": {
+"served": false
+},
+"50": {
+"served": true,
+"trail": "Pino Trail",
+"dist_m": 1342,
+"fallback": true,
+"n": 6
+},
+"51": {
+"served": true,
+"trail": "Sunset Vista Trail",
+"dist_m": 0,
+"fallback": false,
+"n": 46
+},
+"52": {
+"served": true,
+"trail": "Sunset Vista Trail",
+"dist_m": 84,
+"fallback": false,
+"n": 45
+},
+"53": {
+"served": true,
+"trail": "Mesquite Canyon Trail",
+"dist_m": 189,
+"fallback": false,
+"n": 5
+},
+"54": {
+"served": true,
+"trail": "Tom's Thumb Trail",
+"dist_m": 73,
+"fallback": false,
+"n": 5
+},
+"55": {
+"served": true,
+"trail": "Tom's Thumb Trail",
+"dist_m": 79,
+"fallback": false,
+"n": 3
+},
+"56": {
+"served": false
+},
+"57": {
+"served": false
+},
+"58": {
+"served": false
+},
+"59": {
+"served": false
+},
+"60": {
+"served": false
+},
+"61": {
+"served": false
+},
+"62": {
+"served": false
+},
+"63": {
+"served": false
+},
+"64": {
+"served": false
+},
+"65": {
+"served": false
+},
+"66": {
+"served": false
+},
+"67": {
+"served": true,
+"trail": "Jomax",
+"dist_m": 2537,
+"fallback": true,
+"n": 2
+},
+"68": {
+"served": false
+},
+"69": {
+"served": false
+},
+"70": {
+"served": false
+},
+"71": {
+"served": false
+},
+"72": {
+"served": false
+},
+"73": {
+"served": false
+},
+"74": {
+"served": false
+},
+"75": {
+"served": false
+},
+"76": {
+"served": false
+},
+"77": {
+"served": true,
+"trail": "Latigo Trail",
+"dist_m": 314,
+"fallback": false,
+"n": 7
+},
+"78": {
+"served": true,
+"trail": "Axle Grease",
+"dist_m": 67,
+"fallback": false,
+"n": 18
+},
+"79": {
+"served": true,
+"trail": "Rawhyde Wash Trail",
+"dist_m": 106,
+"fallback": false,
+"n": 17
+},
+"80": {
+"served": true,
+"trail": "Jomax",
+"dist_m": 2403,
+"fallback": true,
+"n": 2
+},
+"81": {
+"served": false
+}
+}

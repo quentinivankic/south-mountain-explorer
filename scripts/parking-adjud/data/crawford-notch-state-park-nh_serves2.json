@@ -1,0 +1,282 @@
+{
+"0": {
+"served": false
+},
+"1": {
+"served": false
+},
+"2": {
+"served": true,
+"trail": "Ethan Pond Trail",
+"dist_m": 11,
+"fallback": false,
+"n": 7
+},
+"3": {
+"served": true,
+"trail": "Webster-Jackson Trail",
+"dist_m": 407,
+"fallback": false,
+"n": 3
+},
+"4": {
+"served": true,
+"trail": "Webster-Jackson Trail",
+"dist_m": 578,
+"fallback": false,
+"n": 2
+},
+"5": {
+"served": true,
+"trail": "Crawford Cliff Trail",
+"dist_m": 714,
+"fallback": false,
+"n": 1
+},
+"6": {
+"served": true,
+"trail": "Mount Franklin Trail",
+"dist_m": 2750,
+"fallback": true,
+"n": 2
+},
+"7": {
+"served": false
+},
+"8": {
+"served": true,
+"trail": "Crawford Cliff Trail",
+"dist_m": 585,
+"fallback": false,
+"n": 1
+},
+"9": {
+"served": false
+},
+"10": {
+"served": true,
+"trail": "Tuckerman Ravine Trail",
+"dist_m": 3,
+"fallback": false,
+"n": 16
+},
+"11": {
+"served": false
+},
+"12": {
+"served": false
+},
+"13": {
+"served": true,
+"trail": "Great Gulf Trail",
+"dist_m": 193,
+"fallback": false,
+"n": 2
+},
+"14": {
+"served": false
+},
+"15": {
+"served": true,
+"trail": "Crawford Cliff Trail",
+"dist_m": 501,
+"fallback": false,
+"n": 1
+},
+"16": {
+"served": true,
+"trail": "Kedron Flume Trail",
+"dist_m": 66,
+"fallback": false,
+"n": 5
+},
+"17": {
+"served": true,
+"trail": "Zeacliff Trail",
+"dist_m": 4822,
+"fallback": true,
+"n": 2
+},
+"18": {
+"served": false
+},
+"19": {
+"served": true,
+"trail": "Frankenstein Cliff Trail",
+"dist_m": 0,
+"fallback": false,
+"n": 8
+},
+"20": {
+"served": true,
+"trail": "Frankenstein Cliff Trail",
+"dist_m": 232,
+"fallback": false,
+"n": 8
+},
+"21": {
+"served": false
+},
+"22": {
+"served": true,
+"trail": "Davis Path",
+"dist_m": 400,
+"fallback": false,
+"n": 8
+},
+"23": {
+"served": true,
+"trail": "Nancy Pond Trail",
+"dist_m": 2554,
+"fallback": true,
+"n": 3
+},
+"24": {
+"served": false
+},
+"25": {
+"served": false
+},
+"26": {
+"served": false
+},
+"27": {
+"served": false
+},
+"28": {
+"served": false
+},
+"29": {
+"served": true,
+"trail": "Kedron Flume Trail",
+"dist_m": 86,
+"fallback": false,
+"n": 7
+},
+"30": {
+"served": true,
+"trail": "Kedron Flume Trail",
+"dist_m": 17,
+"fallback": false,
+"n": 8
+},
+"31": {
+"served": false
+},
+"32": {
+"served": true,
+"trail": "Webster-Jackson Trail",
+"dist_m": 517,
+"fallback": false,
+"n": 6
+},
+"33": {
+"served": true,
+"trail": "Mt. Willard Section House Trail",
+"dist_m": 740,
+"fallback": false,
+"n": 5
+},
+"34": {
+"served": false
+},
+"35": {
+"served": false
+},
+"36": {
+"served": false
+},
+"37": {
+"served": true,
+"trail": "Mount Franklin Trail",
+"dist_m": 2796,
+"fallback": true,
+"n": 2
+},
+"38": {
+"served": false
+},
+"39": {
+"served": false
+},
+"40": {
+"served": false
+},
+"41": {
+"served": false
+},
+"42": {
+"served": true,
+"trail": "Tuckerman Ravine Trail",
+"dist_m": 9,
+"fallback": false,
+"n": 14
+},
+"43": {
+"served": true,
+"trail": "Trinity Heights Connector",
+"dist_m": 63,
+"fallback": false,
+"n": 17
+},
+"44": {
+"served": true,
+"trail": "Nelson Crag Trail",
+"dist_m": 110,
+"fallback": false,
+"n": 1
+},
+"45": {
+"served": false
+},
+"46": {
+"served": true,
+"trail": "Great Gulf Trail",
+"dist_m": 340,
+"fallback": false,
+"n": 1
+},
+"47": {
+"served": true,
+"trail": "Great Gulf Trail",
+"dist_m": 316,
+"fallback": false,
+"n": 2
+},
+"48": {
+"served": false
+},
+"49": {
+"served": true,
+"trail": "Frankenstein Cliff Trail",
+"dist_m": 332,
+"fallback": false,
+"n": 8
+},
+"50": {
+"served": false
+},
+"51": {
+"served": false
+},
+"52": {
+"served": false
+},
+"53": {
+"served": true,
+"trail": "Maggie's Run",
+"dist_m": 25,
+"fallback": false,
+"n": 4
+},
+"54": {
+"served": false
+},
+"55": {
+"served": true,
+"trail": "Mount Willard Trail",
+"dist_m": 742,
+"fallback": false,
+"n": 1
+}
+}

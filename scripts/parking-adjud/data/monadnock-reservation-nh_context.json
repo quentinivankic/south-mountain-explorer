@@ -1,0 +1,482 @@
+{
+"0": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Gap Mountain Reservation'",
+"fac_area_m": null,
+"fac_label": null
+},
+"1": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"2": {
+"category": "PARK",
+"evidence": "in leisure=park 'Dublin Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"3": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Gap Mountain Reservation'",
+"fac_area_m": null,
+"fac_label": null
+},
+"4": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"5": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"6": {
+"category": "PARK",
+"evidence": "in leisure=park 'Monadnock State Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"7": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Monadnock Reservation'",
+"fac_area_m": null,
+"fac_label": null
+},
+"8": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Gap Mountain Reservation'",
+"fac_area_m": null,
+"fac_label": null
+},
+"9": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Conant Middle High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"10": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Conant Middle High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"11": {
+"category": "FACILITY",
+"evidence": "45 m from leisure=pitch 'Community Field'",
+"fac_area_m": 45,
+"fac_label": "leisure=pitch"
+},
+"12": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Yankee Publishing Inc'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"13": {
+"category": "FACILITY",
+"evidence": "6 m from amenity=fire_station 'Dublin Town Fire Department'",
+"fac_area_m": 6,
+"fac_label": "amenity=fire_station"
+},
+"14": {
+"category": "FACILITY",
+"evidence": "34 m from landuse=commercial 'Yankee Publishing Inc'",
+"fac_area_m": 34,
+"fac_label": "landuse=commercial"
+},
+"15": {
+"category": "FACILITY",
+"evidence": "10 m from amenity=police 'Dublin Police Department'",
+"fac_area_m": 10,
+"fac_label": "amenity=police"
+},
+"16": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=place_of_worship Dublin Community Church 'Dublin Community Church'",
+"fac_area_m": 0,
+"fac_label": "amenity=place_of_worship Dublin Community Church"
+},
+"17": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Dublin Consolidated School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"18": {
+"category": "FACILITY",
+"evidence": "46 m from shop=supermarket 'Dublin General Store'",
+"fac_area_m": 46,
+"fac_label": "shop=supermarket"
+},
+"19": {
+"category": "PARK",
+"evidence": "in leisure=park 'Monadnock State Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"20": {
+"category": "PARK",
+"evidence": "in leisure=park 'Monadnock State Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"21": {
+"category": "FACILITY",
+"evidence": "28 m from amenity=pub 'Lab 'n Lager'",
+"fac_area_m": 28,
+"fac_label": "amenity=pub"
+},
+"22": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Bradley-Draper Memorial Forest'",
+"fac_area_m": null,
+"fac_label": null
+},
+"23": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Dublin School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"24": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Beech Hill Trails'",
+"fac_area_m": 140,
+"fac_label": "amenity=school"
+},
+"25": {
+"category": "FACILITY",
+"evidence": "19 m from landuse=residential 'Forest Park Tenants Co-Op'",
+"fac_area_m": 19,
+"fac_label": "landuse=residential"
+},
+"26": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Wells Memorial School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"27": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Conant Middle High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"28": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Conant Middle High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"29": {
+"category": "FACILITY",
+"evidence": "17 m from amenity=community_centre",
+"fac_area_m": 17,
+"fac_label": "amenity=community_centre"
+},
+"30": {
+"category": "SUPPORT",
+"evidence": "14 m from tourism=information",
+"fac_area_m": null,
+"fac_label": null
+},
+"31": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Monadnock Reservation'",
+"fac_area_m": null,
+"fac_label": null
+},
+"32": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Jaffrey Grade School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"33": {
+"category": "FACILITY",
+"evidence": "39 m from amenity=theatre 'Kennedy Memorial Ampitheatre'",
+"fac_area_m": 39,
+"fac_label": "amenity=theatre"
+},
+"34": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"35": {
+"category": "FACILITY",
+"evidence": "7 m from office=government 'Jaffrey Town Water Department'",
+"fac_area_m": 7,
+"fac_label": "office=government"
+},
+"36": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"37": {
+"category": "FACILITY",
+"evidence": "25 m from amenity=place_of_worship United Church of Jaffrey 'United Church of Jaffrey'",
+"fac_area_m": 25,
+"fac_label": "amenity=place_of_worship United Church of Jaffrey"
+},
+"38": {
+"category": "FACILITY",
+"evidence": "49 m from building=church 'St. Patricks Church'",
+"fac_area_m": 49,
+"fac_label": "building=church"
+},
+"39": {
+"category": "FACILITY",
+"evidence": "17 m from shop=variety_store 'Dollar General'",
+"fac_area_m": 17,
+"fac_label": "shop=variety_store"
+},
+"40": {
+"category": "FACILITY",
+"evidence": "102 m from shop=alcohol 'New Hampshire Liquor & Wine Outlet'",
+"fac_area_m": 73,
+"fac_label": "shop=variety_store"
+},
+"41": {
+"category": "FACILITY",
+"evidence": "38 m from landuse=industrial",
+"fac_area_m": 38,
+"fac_label": "landuse=industrial"
+},
+"42": {
+"category": "FACILITY",
+"evidence": "113 m from shop=rental 'U-Haul'",
+"fac_area_m": 53,
+"fac_label": "landuse=industrial"
+},
+"43": {
+"category": "FACILITY",
+"evidence": "61 m from amenity=school 'Conant Middle High School'",
+"fac_area_m": 61,
+"fac_label": "amenity=school"
+},
+"44": {
+"category": "FACILITY",
+"evidence": "75 m from amenity=school 'Conant Middle High School'",
+"fac_area_m": 75,
+"fac_label": "amenity=school"
+},
+"45": {
+"category": "FACILITY",
+"evidence": "62 m from shop=antiques 'Seaver &McLellan'",
+"fac_area_m": 85,
+"fac_label": "shop=chemist"
+},
+"46": {
+"category": "FACILITY",
+"evidence": "36 m from amenity=fast_food 'Athens Pizza'",
+"fac_area_m": 36,
+"fac_label": "amenity=fast_food"
+},
+"47": {
+"category": "FACILITY",
+"evidence": "21 m from shop=car_parts 'Sanel NAPA'",
+"fac_area_m": 21,
+"fac_label": "shop=car_parts"
+},
+"48": {
+"category": "FACILITY",
+"evidence": "45 m from shop=car_parts 'Sanel NAPA'",
+"fac_area_m": 45,
+"fac_label": "shop=car_parts"
+},
+"49": {
+"category": "FACILITY",
+"evidence": "47 m from amenity=fuel 'Mobil'",
+"fac_area_m": 47,
+"fac_label": "amenity=fuel"
+},
+"50": {
+"category": "FACILITY",
+"evidence": "109 m from amenity=fast_food 'Dunkin''",
+"fac_area_m": null,
+"fac_label": null
+},
+"51": {
+"category": "FACILITY",
+"evidence": "2 m from amenity=restaurant 'Jaffrey Pizza Barn'",
+"fac_area_m": 2,
+"fac_label": "amenity=restaurant"
+},
+"52": {
+"category": "FACILITY",
+"evidence": "28 m from amenity=theatre 'The Park Theatre'",
+"fac_area_m": 28,
+"fac_label": "amenity=theatre"
+},
+"53": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"54": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"55": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"56": {
+"category": "FACILITY",
+"evidence": "50 m from amenity=clinic 'Monad Health Direct'",
+"fac_area_m": 50,
+"fac_label": "amenity=clinic"
+},
+"57": {
+"category": "FACILITY",
+"evidence": "10 m from amenity=clinic 'Monad Health Direct'",
+"fac_area_m": 10,
+"fac_label": "amenity=clinic"
+},
+"58": {
+"category": "FACILITY",
+"evidence": "88 m from shop=chemist 'Rite Aid'",
+"fac_area_m": 88,
+"fac_label": "shop=chemist"
+},
+"59": {
+"category": "FACILITY",
+"evidence": "71 m from leisure=pitch",
+"fac_area_m": 71,
+"fac_label": "leisure=pitch"
+},
+"60": {
+"category": "FACILITY",
+"evidence": "29 m from leisure=pitch",
+"fac_area_m": 29,
+"fac_label": "leisure=pitch"
+},
+"61": {
+"category": "FACILITY",
+"evidence": "50 m from landuse=residential",
+"fac_area_m": 50,
+"fac_label": "landuse=residential"
+},
+"62": {
+"category": "FACILITY",
+"evidence": "24 m from building=retail",
+"fac_area_m": 24,
+"fac_label": "building=retail"
+},
+"63": {
+"category": "FACILITY",
+"evidence": "34 m from building=retail",
+"fac_area_m": 34,
+"fac_label": "building=retail"
+},
+"64": {
+"category": "FACILITY",
+"evidence": "77 m from amenity=fast_food 'Dunkin''",
+"fac_area_m": 104,
+"fac_label": "landuse=industrial"
+},
+"65": {
+"category": "FACILITY",
+"evidence": "59 m from amenity=fast_food 'Dunkin''",
+"fac_area_m": 55,
+"fac_label": "landuse=industrial"
+},
+"66": {
+"category": "FACILITY",
+"evidence": "107 m from amenity=fast_food 'Dunkin''",
+"fac_area_m": 45,
+"fac_label": "amenity=car_wash"
+},
+"67": {
+"category": "PARK",
+"evidence": "in leisure=park 'Humiston Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"68": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"69": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"70": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"71": {
+"category": "FACILITY",
+"evidence": "79 m from amenity=place_of_worship Saint Denis Church 'Saint Denis Church'",
+"fac_area_m": null,
+"fac_label": null
+},
+"72": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'The Shattuck Golf Club'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"73": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'The Shattuck Golf Club'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"74": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'The Shattuck Golf Club'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"75": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'The Shattuck Golf Club'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"76": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"77": {
+"category": "FACILITY",
+"evidence": "1 m from shop=antiques 'The Cozy Cottage'",
+"fac_area_m": 1,
+"fac_label": "shop=antiques"
+},
+"78": {
+"category": "FACILITY",
+"evidence": "2 m from building=commercial",
+"fac_area_m": 2,
+"fac_label": "building=commercial"
+},
+"79": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+}
+}

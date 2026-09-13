@@ -42,3 +42,6 @@ __pycache__/
 # at full-US scale.
 public/areas/counts-cache.json
 .codebase-memory/
+
+# parking adjudication scratch (regenerable)
+scripts/parking-adjud/work/

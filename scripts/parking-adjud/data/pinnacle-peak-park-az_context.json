@@ -1,0 +1,494 @@
+{
+"0": {
+"category": "SUPPORT",
+"evidence": "78 m from amenity=toilets",
+"fac_area_m": 230,
+"fac_label": "leisure=golf_course"
+},
+"1": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 465,
+"fac_label": "leisure=golf_course"
+},
+"2": {
+"category": "FACILITY",
+"evidence": "83 m from amenity=restaurant 'Liberty Station'",
+"fac_area_m": 79,
+"fac_label": "shop=supermarket"
+},
+"3": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"4": {
+"category": "FACILITY",
+"evidence": "49 m from office=company 'Arizona Garage Door Repair Guru'",
+"fac_area_m": 262,
+"fac_label": "leisure=golf_course"
+},
+"5": {
+"category": "FACILITY",
+"evidence": "67 m from amenity=cafe 'The Morning Joint (Mojo)'",
+"fac_area_m": 60,
+"fac_label": "leisure=golf_course"
+},
+"6": {
+"category": "FACILITY",
+"evidence": "41 m from leisure=golf_course 'The Country Club at DC Ranch'",
+"fac_area_m": 41,
+"fac_label": "leisure=golf_course"
+},
+"7": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Copper Ridge Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"8": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 200,
+"fac_label": "leisure=golf_course"
+},
+"9": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Copper Ridge Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"10": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Copper Ridge Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"11": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 414,
+"fac_label": "leisure=golf_course"
+},
+"12": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"13": {
+"category": "FACILITY",
+"evidence": "55 m from leisure=pitch",
+"fac_area_m": 55,
+"fac_label": "leisure=pitch"
+},
+"14": {
+"category": "FACILITY",
+"evidence": "62 m from landuse=residential 'Edge at Grayhawk'",
+"fac_area_m": 62,
+"fac_label": "landuse=residential"
+},
+"15": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Ridge'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"16": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Arizona Silverado'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"17": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'Whisper Rock Golf Club'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"18": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"19": {
+"category": "FACILITY",
+"evidence": "85 m from leisure=golf_course 'Pinnacle Peak Country Club'",
+"fac_area_m": 85,
+"fac_label": "leisure=golf_course"
+},
+"20": {
+"category": "PARK",
+"evidence": "in leisure=park 'Tom's Thumb Trailhead' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"21": {
+"category": "PARK",
+"evidence": "in leisure=park 'Tom's Thumb Trailhead' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"22": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"23": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"24": {
+"category": "FACILITY",
+"evidence": "12 m from building=retail",
+"fac_area_m": 12,
+"fac_label": "building=retail"
+},
+"25": {
+"category": "FACILITY",
+"evidence": "25 m from building=retail",
+"fac_area_m": 25,
+"fac_label": "building=retail"
+},
+"26": {
+"category": "FACILITY",
+"evidence": "13 m from building=retail",
+"fac_area_m": 13,
+"fac_label": "building=retail"
+},
+"27": {
+"category": "FACILITY",
+"evidence": "34 m from building=retail",
+"fac_area_m": 34,
+"fac_label": "building=retail"
+},
+"28": {
+"category": "FACILITY",
+"evidence": "7 m from shop=storage_rental 'Extra Space Storage'",
+"fac_area_m": 7,
+"fac_label": "shop=storage_rental"
+},
+"29": {
+"category": "FACILITY",
+"evidence": "0 m from building=commercial",
+"fac_area_m": 0,
+"fac_label": "building=commercial"
+},
+"30": {
+"category": "FACILITY",
+"evidence": "20 m from building=commercial",
+"fac_area_m": 20,
+"fac_label": "building=commercial"
+},
+"31": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"32": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"33": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"34": {
+"category": "FACILITY",
+"evidence": "62 m from shop=convenience 'Pinnacle Peak General Store'",
+"fac_area_m": 52,
+"fac_label": "amenity=fuel"
+},
+"35": {
+"category": "FACILITY",
+"evidence": "105 m from shop=convenience 'Pinnacle Peak General Store'",
+"fac_area_m": 53,
+"fac_label": "building=commercial"
+},
+"36": {
+"category": "FACILITY",
+"evidence": "13 m from amenity=fuel 'Shell'",
+"fac_area_m": 13,
+"fac_label": "amenity=fuel"
+},
+"37": {
+"category": "FACILITY",
+"evidence": "38 m from amenity=bank 'Chase'",
+"fac_area_m": 38,
+"fac_label": "amenity=bank"
+},
+"38": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"39": {
+"category": "FACILITY",
+"evidence": "46 m from leisure=pitch",
+"fac_area_m": 46,
+"fac_label": "leisure=pitch"
+},
+"40": {
+"category": "FACILITY",
+"evidence": "26 m from leisure=pitch",
+"fac_area_m": 26,
+"fac_label": "leisure=pitch"
+},
+"41": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"42": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=place_of_worship Highlands Church 'Highlands Church'",
+"fac_area_m": 0,
+"fac_label": "amenity=place_of_worship Highlands Church"
+},
+"43": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=place_of_worship Highlands Church 'Highlands Church'",
+"fac_area_m": 0,
+"fac_label": "amenity=place_of_worship Highlands Church"
+},
+"44": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=place_of_worship Highlands Church 'Highlands Church'",
+"fac_area_m": 0,
+"fac_label": "amenity=place_of_worship Highlands Church"
+},
+"45": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=place_of_worship Highlands Church 'Highlands Church'",
+"fac_area_m": 0,
+"fac_label": "amenity=place_of_worship Highlands Church"
+},
+"46": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=place_of_worship Highlands Church 'Highlands Church'",
+"fac_area_m": 0,
+"fac_label": "amenity=place_of_worship Highlands Church"
+},
+"47": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=place_of_worship Highlands Church 'Highlands Church'",
+"fac_area_m": 0,
+"fac_label": "amenity=place_of_worship Highlands Church"
+},
+"48": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=place_of_worship Highlands Church 'Highlands Church'",
+"fac_area_m": 0,
+"fac_label": "amenity=place_of_worship Highlands Church"
+},
+"49": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=place_of_worship Highlands Church 'Highlands Church'",
+"fac_area_m": 0,
+"fac_label": "amenity=place_of_worship Highlands Church"
+},
+"50": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'The Pinnacle of Scottsdale'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"51": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"52": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"53": {
+"category": "PARK",
+"evidence": "in leisure=park 'Tom's Thumb Trailhead' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"54": {
+"category": "PARK",
+"evidence": "in leisure=park 'Tom's Thumb Trailhead' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"55": {
+"category": "PARK",
+"evidence": "in leisure=park 'Tom's Thumb Trailhead' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"56": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Arizona Silverado'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"57": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Arizona Silverado'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"58": {
+"category": "PARK",
+"evidence": "in leisure=park 'Thompson Peak Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"59": {
+"category": "FACILITY",
+"evidence": "12 m from building=commercial",
+"fac_area_m": 12,
+"fac_label": "building=commercial"
+},
+"60": {
+"category": "FACILITY",
+"evidence": "8 m from building=commercial",
+"fac_area_m": 8,
+"fac_label": "building=commercial"
+},
+"61": {
+"category": "FACILITY",
+"evidence": "22 m from building=commercial",
+"fac_area_m": 22,
+"fac_label": "building=commercial"
+},
+"62": {
+"category": "FACILITY",
+"evidence": "5 m from building=commercial",
+"fac_area_m": 5,
+"fac_label": "building=commercial"
+},
+"63": {
+"category": "FACILITY",
+"evidence": "17 m from landuse=retail 'La Mirada'",
+"fac_area_m": 17,
+"fac_label": "landuse=retail"
+},
+"64": {
+"category": "FACILITY",
+"evidence": "26 m from landuse=retail 'La Mirada'",
+"fac_area_m": 26,
+"fac_label": "landuse=retail"
+},
+"65": {
+"category": "FACILITY",
+"evidence": "29 m from landuse=retail 'La Mirada'",
+"fac_area_m": 29,
+"fac_label": "landuse=retail"
+},
+"66": {
+"category": "FACILITY",
+"evidence": "45 m from amenity=fire_station 'Fire Station 614'",
+"fac_area_m": 77,
+"fac_label": "landuse=residential"
+},
+"67": {
+"category": "PARK",
+"evidence": "in leisure=park 'George \"Doc\" Cavalliere Park' \u2014 generic park, weak",
+"fac_area_m": 146,
+"fac_label": "landuse=residential"
+},
+"68": {
+"category": "FACILITY",
+"evidence": "39 m from amenity=school 'Grayhawk Elementary School'",
+"fac_area_m": 39,
+"fac_label": "amenity=school"
+},
+"69": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Copper Ridge Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"70": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"71": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"72": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"73": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"74": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"75": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"76": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'The Summit at Scottsdale'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"77": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"78": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"79": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"80": {
+"category": "PARK",
+"evidence": "in leisure=park 'George \"Doc\" Cavalliere Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"81": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+}
+}

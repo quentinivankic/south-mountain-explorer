@@ -1,0 +1,1613 @@
+{
+"5": {
+"fid": 5,
+"osm": [
+"relation/14415744"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "11 m to Weeping Rock Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"95": {
+"fid": 95,
+"osm": [
+"way/1119286254"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "259 m to Upper Orderville Canyon Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {
+"name": "Orderville Canyon 4x4 Trailhead Parking"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"127": {
+"fid": 127,
+"osm": [
+"relation/16219466"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "38 m to Human History Museum Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"126": {
+"fid": 126,
+"osm": [
+"relation/16218326"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "0 m to Tabernacle Dome Access Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {
+"surface": "unpaved"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"117": {
+"fid": 117,
+"osm": [
+"way/1193038620"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "0 m to Campground and Overlook Connector Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"84": {
+"fid": 84,
+"osm": [
+"relation/14974818"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "13 m to Riverside Walk; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"123": {
+"fid": 123,
+"osm": [
+"relation/14603224"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "0 m to Timber Creek Overlook; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"78": {
+"fid": 78,
+"osm": [
+"way/1098993123"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "132 m to Grotto Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {
+"parking": "street_side"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"11": {
+"fid": 11,
+"osm": [
+"way/388764251"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "138 m to Canyon Overlook Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"60": {
+"fid": 60,
+"osm": [
+"way/1096394556"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "205 m to Timber Creek Overlook; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"154": {
+"fid": 154,
+"osm": [
+"way/1278680813"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "91 m to Pa'rus Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"149": {
+"fid": 149,
+"osm": [
+"way/1278680808"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "220 m to Sand Bench Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"153": {
+"fid": 153,
+"osm": [
+"way/1278680812"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "50 m to Pa'rus Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"96": {
+"fid": 96,
+"osm": [
+"way/1119446654"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "4172 m to The Narrows Top Down; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {
+"name": "Chamberlain's Ranch Trailhead Parking"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"6": {
+"fid": 6,
+"osm": [
+"way/258951699"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "0 m to East Rim Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {
+"name": "East Rim Trailhead Parking"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"94": {
+"fid": 94,
+"osm": [
+"way/1119286251"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "0 m to Stave Spring Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {
+"name": "Stave Spring Trailhead Parking",
+"surface": "unpaved"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"22": {
+"fid": 22,
+"osm": [
+"way/638145909"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "0 m to Wildcat Canyon Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {
+"name": "Wildcat Trailhead Parking"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"3": {
+"fid": 3,
+"osm": [
+"way/168428113"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "0 m to The Subway Bottom-Up Approach; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {
+"name": "Left Fork Trailhead Parking",
+"surface": "gravel",
+"parking": "surface"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"119": {
+"fid": 119,
+"osm": [
+"relation/16215941"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "user ground-truth KEEP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "yes",
+"evidence": "72 m to La Verkin Creek Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {
+"name": "Lee Pass Trailhead parking"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"58": {
+"fid": 58,
+"osm": [
+"way/1096394553"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "n/a",
+"evidence": "user ground-truth DROP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "no",
+"evidence": "513 m to Taylor Creek Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"56": {
+"fid": 56,
+"osm": [
+"way/1096394548"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "n/a",
+"evidence": "user ground-truth DROP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "no",
+"evidence": "337 m to Taylor Creek Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"98": {
+"fid": 98,
+"osm": [
+"way/1119685275"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "n/a",
+"evidence": "user ground-truth DROP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "no",
+"evidence": "305 m to Riverside Walk; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"195": {
+"fid": 195,
+"osm": [
+"way/1394394213"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "n/a",
+"evidence": "user ground-truth DROP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "no",
+"evidence": "314 m to Riverside Walk; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"59": {
+"fid": 59,
+"osm": [
+"way/1096394555"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "n/a",
+"evidence": "user ground-truth DROP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "no",
+"evidence": "300 m to Timber Creek Overlook; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"81": {
+"fid": 81,
+"osm": [
+"way/1098993126"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "n/a",
+"evidence": "user ground-truth DROP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "no",
+"evidence": "375 m to Angels Landing Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"82": {
+"fid": 82,
+"osm": [
+"way/1098993127"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "n/a",
+"evidence": "user ground-truth DROP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "no",
+"evidence": "243 m to Weeping Rock Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"83": {
+"fid": 83,
+"osm": [
+"way/1098993128"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "n/a",
+"evidence": "user ground-truth DROP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "no",
+"evidence": "417 m to Weeping Rock Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"97": {
+"fid": 97,
+"osm": [
+"way/1119685274"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "n/a",
+"evidence": "user ground-truth DROP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "no",
+"evidence": "504 m to Observation Point; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"125": {
+"fid": 125,
+"osm": [
+"relation/16218325"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "n/a",
+"evidence": "user ground-truth DROP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "no",
+"evidence": "569 m to Tabernacle Dome Access Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"140": {
+"fid": 140,
+"osm": [
+"way/1237906356"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "n/a",
+"evidence": "user ground-truth DROP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "no",
+"evidence": "3418 m to Coalpits Wash Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"194": {
+"fid": 194,
+"osm": [
+"way/1388674771"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "n/a",
+"evidence": "user ground-truth DROP"
+},
+"public": {
+"call": "yes",
+"evidence": "user call"
+},
+"serves": {
+"call": "no",
+"evidence": "2229 m to Huber Wash Trail; user-adjudicated"
+},
+"frames_used": [
+"user"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "sand",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "user-groundtruth"
+},
+"54": {
+"fid": 54,
+"osm": [
+"way/1088043992"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z1: mapped lot is a house parcel in a Rockville/Springdale residential block"
+},
+"public": {
+"call": "no",
+"evidence": "private residence"
+},
+"serves": {
+"call": "no",
+"evidence": "fallback-only 1442 m to Chinle; a home lot, not trailhead parking"
+},
+"frames_used": [
+"z1"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"15": {
+"fid": 15,
+"osm": [
+"way/445220490"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved pull-in on Kolob Terrace Rd with 2-3 cars parked"
+},
+"public": {
+"call": "yes",
+"evidence": "open roadside"
+},
+"serves": {
+"call": "yes",
+"evidence": "fallback 4313 m to Kolob Arch, walk 1028 m; cars present \u2014 connector-trail pull-in"
+},
+"frames_used": [
+"z1",
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": "user call: sibling Kolob scenic-road pullouts (#56/#58) were dropped",
+"src": "opus-protocol"
+},
+"55": {
+"fid": 55,
+"osm": [
+"way/1096394547"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: dirt pull-in on Kolob Canyons Rd with 3-4 cars parked"
+},
+"public": {
+"call": "yes",
+"evidence": "open roadside"
+},
+"serves": {
+"call": "yes",
+"evidence": "La Verkin Creek Trail 268 m, walk 497 m; cars present"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": "user call: sibling Kolob pullouts #56/#58 dropped \u2014 cars are present here",
+"src": "opus-protocol"
+},
+"63": {
+"fid": 63,
+"osm": [
+"relation/14639170"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved lot at the Canyon Overlook tunnel-east with cars and an RV"
+},
+"public": {
+"call": "yes",
+"evidence": "park lot"
+},
+"serves": {
+"call": "yes",
+"evidence": "East Rim Trail 176 m; Canyon Overlook trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"65": {
+"fid": 65,
+"osm": [
+"way/1098988837"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved pull-in strip at the tunnel-east with parked cars"
+},
+"public": {
+"call": "yes",
+"evidence": "park roadside"
+},
+"serves": {
+"call": "yes",
+"evidence": "East Rim / Canyon Overlook 203 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"75": {
+"fid": 75,
+"osm": [
+"way/1098988854"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: cars parked along both sides of the road (Canyon Overlook \u2014 always full)"
+},
+"public": {
+"call": "yes",
+"evidence": "park roadside"
+},
+"serves": {
+"call": "yes",
+"evidence": "Canyon Overlook Trail 224 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"79": {
+"fid": 79,
+"osm": [
+"way/1098993124"
+],
+"verdict": "REVIEW",
+"prior": "bare",
+"exists": {
+"call": "unclear",
+"evidence": "Z2: thin road-edge sliver by the Virgin River, no cars, no delineated bay"
+},
+"public": {
+"call": "yes",
+"evidence": "open roadside"
+},
+"serves": {
+"call": "unclear",
+"evidence": "bare prior; near a footbridge but no parking evidence on this capture"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": "cars on another date / user knowledge of the pull-off",
+"src": "opus-protocol"
+},
+"104": {
+"fid": 104,
+"osm": [
+"relation/15342749"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: two developed paved lots with marked stalls and cars in the canyon"
+},
+"public": {
+"call": "yes",
+"evidence": "developed park area"
+},
+"serves": {
+"call": "yes",
+"evidence": "canyon trailhead/picnic parking; trails run through"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"108": {
+"fid": 108,
+"osm": [
+"relation/15714293"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: dirt trailhead turnaround loop with a vault toilet"
+},
+"public": {
+"call": "yes",
+"evidence": "open trailhead"
+},
+"serves": {
+"call": "yes",
+"evidence": "trail meets the loop; developed backcountry trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"109": {
+"fid": 109,
+"osm": [
+"way/1161825968"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "no",
+"evidence": "Z2: smooth bare tan patch beside the road next to a residence, reads as a dry pond, no cars/stalls"
+},
+"public": {
+"call": "unclear",
+"evidence": "by a private residence"
+},
+"serves": {
+"call": "no",
+"evidence": "no parking surface evident; the old coverage-gap point (trail not shipped here)"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "gravel",
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": "NAIP / ground check whether the bare patch is a graded lot or a stock pond",
+"src": "opus-protocol"
+},
+"111": {
+"fid": 111,
+"osm": [
+"relation/15715130"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: dispersed dirt pull-offs with several cars parked among trees"
+},
+"public": {
+"call": "yes",
+"evidence": "open trailhead"
+},
+"serves": {
+"call": "yes",
+"evidence": "dispersed trailhead parking, multiple cars present"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"name": "East Mesa Trailhead Parking;East Mesa / Observation Point Trailhead Parking",
+"access": "yes",
+"surface": "dirt",
+"parking": "surface",
+"fee": "no",
+"capacity": "17"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"113": {
+"fid": 113,
+"osm": [
+"way/1174123222"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large dirt/gravel trailhead lot with an RV and cars; the trail starts at the lot"
+},
+"public": {
+"call": "yes",
+"evidence": "open trailhead"
+},
+"serves": {
+"call": "yes",
+"evidence": "East Mesa Trailhead, walk 156 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"86": {
+"fid": 86,
+"osm": [
+"relation/14641575",
+"relation/14641576"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: very large gravel lot full of RVs/buses and cars (Zion visitor-center/south-entrance)"
+},
+"public": {
+"call": "yes",
+"evidence": "public NPS lot"
+},
+"serves": {
+"call": "yes",
+"evidence": "Watchman Trail starts 22 m away (walk 174 m); dual-use visitor-center + trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "gravel",
+"parking": "surface",
+"description": "RVs and long vehicles over 19 ft."
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"116": {
+"fid": 116,
+"osm": [
+"way/1193038615"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: dirt trailhead pull-in with 2 cars at a road junction; the trail starts here"
+},
+"public": {
+"call": "yes",
+"evidence": "open trailhead"
+},
+"serves": {
+"call": "yes",
+"evidence": "trail begins at the lot"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"118": {
+"fid": 118,
+"osm": [
+"way/1199351854"
+],
+"verdict": "REVIEW",
+"prior": "bare",
+"exists": {
+"call": "unclear",
+"evidence": "Z2: thin road-edge sliver in open scrub, no cars, no delineated bay"
+},
+"public": {
+"call": "yes",
+"evidence": "open roadside"
+},
+"serves": {
+"call": "unclear",
+"evidence": "bare prior; could be a used pull-off but no evidence on this capture"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": "cars on another date, or user knowledge of the pull-off",
+"src": "opus-protocol"
+},
+"120": {
+"fid": 120,
+"osm": [
+"relation/16218278"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large paved lot full of ~40 cars, marked stalls"
+},
+"public": {
+"call": "yes",
+"evidence": "park lot"
+},
+"serves": {
+"call": "yes",
+"evidence": "trail leads up from the lot; developed trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"121": {
+"fid": 121,
+"osm": [
+"relation/14603223"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved switchback lot with cars and a vault toilet"
+},
+"public": {
+"call": "yes",
+"evidence": "park lot"
+},
+"serves": {
+"call": "yes",
+"evidence": "developed trailhead lot, trail leads off"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"143": {
+"fid": 143,
+"osm": [
+"way/1237933013"
+],
+"verdict": "REVIEW",
+"prior": "bare",
+"exists": {
+"call": "unclear",
+"evidence": "Z2: tiny road-side sliver, no cars"
+},
+"public": {
+"call": "yes",
+"evidence": "open roadside"
+},
+"serves": {
+"call": "unclear",
+"evidence": "bare prior, trail ~100 m S; no evidence of a used pull-off on this capture"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": "cars on another date / user knowledge",
+"src": "opus-protocol"
+},
+"164": {
+"fid": 164,
+"osm": [
+"way/1296244470"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: surveyed shoulder strip at the Wildcat trailhead junction; a dirt lot with cars sits just SE"
+},
+"public": {
+"call": "yes",
+"evidence": "open"
+},
+"serves": {
+"call": "yes",
+"evidence": "Wildcat Canyon Trail; overflow/shoulder for the trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"172": {
+"fid": 172,
+"osm": [
+"way/1304562884"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: graded dirt lot with a car parked, by the Virgin River"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Sheep Bridge Hiking Trail 353 m; graded lot, car present"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"173": {
+"fid": 173,
+"osm": [
+"way/1304562885"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: graded tan dirt pad at a dirt-road junction (empty on capture)"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Sheep Bridge Hiking Trail 152 m; surveyed graded lot"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"179": {
+"fid": 179,
+"osm": [
+"relation/17973975"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: developed gravel loop lot with a central island and a car; the trail wraps it"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Sheep Bridge Hiking Trail edge 0 m, walk 0 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "gravel",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"190": {
+"fid": 190,
+"osm": [
+"relation/19016901"
+],
+"verdict": "REVIEW",
+"prior": "bare",
+"exists": {
+"call": "unclear",
+"evidence": "Z2: sandy lollipop turnaround loop in scrub, no cars, bare prior"
+},
+"public": {
+"call": "yes",
+"evidence": "open"
+},
+"serves": {
+"call": "unclear",
+"evidence": "Hurricane Rim Trail, no foot route; could be a trailhead turnaround or a wash"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": "NAIP / cars on another date",
+"src": "opus-protocol"
+},
+"204": {
+"fid": 204,
+"osm": [
+"way/1472145913"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved shoulder strip beside a developed trailhead lot (cars + building)"
+},
+"public": {
+"call": "yes",
+"evidence": "open roadside"
+},
+"serves": {
+"call": "yes",
+"evidence": "South Fork of Taylor Creek trail 1 m; overflow for the developed lot"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol"
+},
+"206": {
+"fid": 206,
+"osm": [
+"relation/20431022"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: dirt trailhead clearing at a road junction with a small structure (toilet)"
+},
+"public": {
+"call": "yes",
+"evidence": "open trailhead"
+},
+"serves": {
+"call": "yes",
+"evidence": "Hurricane Rim Trail; developed dirt pull-out"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": "cars on another date",
+"src": "opus-protocol"
+},
+"281": {
+"fid": 281,
+"osm": [
+"way/1541036490"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: visitor-center gravel RV/overflow lot, rows of buses + a car lot"
+},
+"public": {
+"call": "yes",
+"evidence": "public NPS lot"
+},
+"serves": {
+"call": "yes",
+"evidence": "Archaeology Trail starts here (walk 0 m); dual-use visitor-center + trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "gravel"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol"
+}
+}

@@ -1,0 +1,524 @@
+{
+"0": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"1": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Camel's Hump State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"2": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"3": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Camel's Hump State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"4": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"5": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"6": {
+"category": "SUPPORT",
+"evidence": "102 m from tourism=information",
+"fac_area_m": null,
+"fac_label": null
+},
+"7": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Camels Hump State Forest'",
+"fac_area_m": null,
+"fac_label": null
+},
+"8": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"9": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Preston Pond Conservation Area'",
+"fac_area_m": null,
+"fac_label": null
+},
+"10": {
+"category": "SUPPORT",
+"evidence": "29 m from leisure=picnic_table",
+"fac_area_m": null,
+"fac_label": null
+},
+"11": {
+"category": "FACILITY",
+"evidence": "14 m from leisure=sports_centre 'Chittenden County Fish and Game Club'",
+"fac_area_m": 14,
+"fac_label": "leisure=sports_centre"
+},
+"12": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"13": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"14": {
+"category": "FACILITY",
+"evidence": "32 m from building=residential",
+"fac_area_m": 85,
+"fac_label": "landuse=residential"
+},
+"15": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"16": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Camel's Hump State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"17": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Camel's Hump State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"18": {
+"category": "FACILITY",
+"evidence": "74 m from building=residential",
+"fac_area_m": null,
+"fac_label": null
+},
+"19": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"20": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"21": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Harwood Union Middle & High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"22": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Harwood Union Middle & High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"23": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Harwood Union Middle & High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"24": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"25": {
+"category": "FACILITY",
+"evidence": "28 m from building=retail",
+"fac_area_m": 28,
+"fac_label": "building=retail"
+},
+"26": {
+"category": "FACILITY",
+"evidence": "31 m from tourism=hotel 'Inn at Round Barn Farm'",
+"fac_area_m": 31,
+"fac_label": "tourism=hotel"
+},
+"27": {
+"category": "FACILITY",
+"evidence": "69 m from building=commercial",
+"fac_area_m": 53,
+"fac_label": "building=commercial"
+},
+"28": {
+"category": "FACILITY",
+"evidence": "45 m from amenity=cinema 'Big Picture Theater & Cafe'",
+"fac_area_m": 45,
+"fac_label": "amenity=cinema"
+},
+"29": {
+"category": "FACILITY",
+"evidence": "41 m from building=commercial",
+"fac_area_m": 41,
+"fac_label": "building=commercial"
+},
+"30": {
+"category": "FACILITY",
+"evidence": "44 m from landuse=residential",
+"fac_area_m": 44,
+"fac_label": "landuse=residential"
+},
+"31": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"32": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"33": {
+"category": "FACILITY",
+"evidence": "35 m from building=school 'Yestermorrow'",
+"fac_area_m": 35,
+"fac_label": "building=school"
+},
+"34": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"35": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"36": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"37": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"38": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"39": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"40": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"41": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"42": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"43": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"44": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"45": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 115,
+"fac_label": "amenity=school"
+},
+"46": {
+"category": "FACILITY",
+"evidence": "33 m from leisure=ice_rink 'Skatium'",
+"fac_area_m": 33,
+"fac_label": "leisure=ice_rink"
+},
+"47": {
+"category": "FACILITY",
+"evidence": "116 m from shop=supermarket 'Shaw's'",
+"fac_area_m": null,
+"fac_label": null
+},
+"48": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"49": {
+"category": "FACILITY",
+"evidence": "53 m from shop=alcohol 'Mad River Distillers at Mad River Taste Place'",
+"fac_area_m": 73,
+"fac_label": "landuse=residential"
+},
+"50": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"51": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Waitsfield Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"52": {
+"category": "FACILITY",
+"evidence": "0 m from building=retail",
+"fac_area_m": 0,
+"fac_label": "building=retail"
+},
+"53": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Camel's Hump State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"54": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Brewster Pierce Memorial School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"55": {
+"category": "FACILITY",
+"evidence": "26 m from building=retail",
+"fac_area_m": 26,
+"fac_label": "building=retail"
+},
+"56": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"57": {
+"category": "FACILITY",
+"evidence": "44 m from building=warehouse",
+"fac_area_m": 44,
+"fac_label": "building=warehouse"
+},
+"58": {
+"category": "FACILITY",
+"evidence": "59 m from building=warehouse",
+"fac_area_m": 59,
+"fac_label": "building=warehouse"
+},
+"59": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"60": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Camel's Hump State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"61": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"62": {
+"category": "FACILITY",
+"evidence": "53 m from amenity=restaurant 'American Flatbread'",
+"fac_area_m": 45,
+"fac_label": "building=retail"
+},
+"63": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"64": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"65": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"66": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"67": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"68": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"69": {
+"category": "FACILITY",
+"evidence": "60 m from building=residential",
+"fac_area_m": 49,
+"fac_label": "tourism=hotel"
+},
+"70": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"71": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"72": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"73": {
+"category": "FACILITY",
+"evidence": "46 m from building=commercial",
+"fac_area_m": 46,
+"fac_label": "building=commercial"
+},
+"74": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Camel's Hump State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"75": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"76": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Camel's Hump State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"77": {
+"category": "FACILITY",
+"evidence": "19 m from building=industrial",
+"fac_area_m": 19,
+"fac_label": "building=industrial"
+},
+"78": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"79": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"80": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"81": {
+"category": "FACILITY",
+"evidence": "48 m from building=commercial",
+"fac_area_m": 48,
+"fac_label": "building=commercial"
+},
+"82": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Preston Pond Conservation Area'",
+"fac_area_m": null,
+"fac_label": null
+},
+"83": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"84": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"85": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"86": {
+"category": "FACILITY",
+"evidence": "81 m from amenity=restaurant 'Madbush Fall Restaurant'",
+"fac_area_m": null,
+"fac_label": null
+}
+}

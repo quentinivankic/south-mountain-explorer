@@ -16,8 +16,15 @@ scripts/parking-adjud/
   work/      created on demand; scratch for a run (git-ignored)
 ```
 
-Aerial tiles are NOT in the repo — ~91 MB of PNG, regenerable with `z2render.py`.
-They stay at `/mnt/raid/trekdex/parking-adjud/data/<slug>_ladder/`.
+Aerial tiles are NOT in the repo — 91 MB, 139 files. They are reproducible:
+NAIP returns identical pixels for the same bbox (measured 0.0/255 difference
+against an August frame), and the overlays are drawn by `z2render.py` from the
+committed dossier and geom. A lost Arizona tile was rebuilt from the repo alone
+as proof. About a second per tile. Surviving originals are at
+`/mnt/raid/trekdex/parking-adjud/data/<slug>_ladder/`.
+
+The review artifacts (35 MB of HTML) and the OSM extracts (1.4 GB) are out for
+the same reason — derived or regenerable. See section 21 of the handoff.
 
 ## Paths — all four are environment variables
 

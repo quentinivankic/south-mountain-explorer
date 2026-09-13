@@ -33,6 +33,7 @@ whole point and section 3 explains why it was fought for.
 | `public/areas/parking-verdicts.json` | **DOES NOT EXIST** ✅ (`ls`); nothing in the repo references it except `TASKS.md` ✅ (`grep -rn`) |
 | Colorado batch | Inputs prepared, **never run** — 261 areas / 2,090 lots ✅ (`co_areas.json`) |
 | Data | **In the repo** at `scripts/parking-adjud/data/` — 74 files, 8.2 MB ✅. Aerial tiles stay on the homelab (~91 MB, regenerable) |
+| Scoring against the user's calls | **0 confident-wrong** on both Zion and Griffith ✅, re-run 2026-09-13 |
 | Blocking | Nothing external. This is unblocked work. |
 | It blocks | TASKS **#51**'s containment roll and **#52**'s polygon merge 📋 |
 
@@ -360,6 +361,24 @@ cd scripts/parking-adjud && PADJ_TMP=$PWD/data python3 tools/merge_ne.py
 
 ---
 
+### See it, rather than read about it
+
+The New England review page — all 80 lots, two NAIP frames each, the OSM
+context, the serves gate and the verdict, in the sage two-frame design
+`ne_review2.py` produces:
+
+**https://claude.ai/code/artifact/c0649b34-6616-4ade-8901-2273d8f5faaf**
+
+Self-contained: 80 embedded images, no external requests ✅. This is what
+judging actually looks like. Read five lots there before judging anything.
+
+The per-area Arizona artifacts (`padjart2.py` output — map plus per-axis cards)
+are on the homelab at `/mnt/raid/trekdex/parking-adjud/artifacts/`: Phoenix
+Mountains Preserve 8.6 MB, Pinnacle Peak 6.1 MB, Usery Mountain 6.0 MB. Publish
+them the same way if you want them in front of someone.
+
+---
+
 ## 7. The adjudication itself — what was actually decided, and by whom
 
 The sections above are the method. This is the corpus: **296 verdicts with their
@@ -559,9 +578,10 @@ Three deliberately different places, same protocol, no re-tuning:
 | **New England, 5 areas** | sparse, roadside, forested | leaf-on canopy hiding real lots; trimmed trailhead spurs; the sub-agent fan-out |
 
 Griffith was chosen specifically as a hostile contrast to Zion, and scoring both
-against the user's calls gave **0 confident-wrong with no re-tuning** 📋. That is
-the evidence the rules are not Zion-overfit, and it is the bar any change to them
-should have to clear again.
+against the user's calls gives **0 confident-wrong with no re-tuning** — ✅ still
+true when re-run from the committed data on 2026-09-13. That is the evidence the
+rules are not Zion-overfit, and it is the bar any change to them has to clear
+again.
 
 ---
 
@@ -656,9 +676,13 @@ fallback:
 | `PADJ_US` | `/mnt/raid/trekdex/osm/us-access.osm.pbf` | What per-area context is cut from |
 | `PADJ_OSM` | `/mnt/raid/trekdex/parking-adjud/osm` | Per-area `_ctx.osm.pbf` extracts |
 
+`score2.py` resolves `groundtruth.json` the same way, defaulting to the sibling
+`data/` directory, so it scores with no environment set at all.
+
 Verified ✅: all 14 python tools compile, both shell drivers pass `bash -n`, no
-file anywhere under `tools/` still names the dead directory, and `merge_ne.py`
-runs against the committed `data/` and reproduces the New England review.
+file anywhere under `tools/` still names the dead directory, `merge_ne.py` runs
+against the committed `data/` and reproduces the New England review, and
+`score2.py` scores both ground-truth areas at 0 confident-wrong.
 
 ```bash
 cd scripts/parking-adjud && PADJ_TMP=$PWD/data python3 tools/merge_ne.py
@@ -839,6 +863,75 @@ what shipped geom contains.
 
 ## 15. The consumer side — what the sidecar must respect
 
+### A concrete proposal, with real entries
+
+Nobody has written this file yet, so here is a starting shape with three actual
+verdicts from the committed stores dropped into it. Argue with it — but argue
+against something specific rather than starting from a blank page. Every value
+below is real: the ids and evidence come from the stores, the coordinates from
+the dossiers ✅.
+
+```jsonc
+// public/areas/parking-verdicts.json
+{
+  "version": 1,
+  // Keyed by OSM id IF the id question (section 14) resolves that way.
+  // Every entry carries the evidence that justified it, so a wrong call is one
+  // line to remove — the nonhiking-trails.json discipline.
+  "lots": {
+    "node/1924424411": {
+      "verdict": "DROP",
+      "reason": "not-public",
+      "lat": 33.5071, "lon": -111.9520,          // so a positional join works too
+      "name": null,
+      "evidence": "underground garage under The Phoenician resort; access: resort",
+      "serves": "Cholla walk 2926 m",
+      "confidence": "strong",
+      "judged": "2026-08-01",
+      "src": "vision+user"
+    },
+    "way/1507563904": {
+      "verdict": "KEEP",
+      "reason": "named-trailhead",
+      "lat": 42.9009, "lon": -72.0765,
+      "name": "Pumpelly Trail Parking",
+      "evidence": "Z2: roadside pull-off on Dublin Lake Rd (tiny, informal)",
+      "serves": "the named Pumpelly trailhead; our geom ends 2.2 km short",
+      "confidence": "strong",
+      "coverage_gap": true,                        // feeds TASKS #54's punch-list
+      "judged": "2026-08-02",
+      "src": "opus-ne"
+    },
+    "way/167025471": {
+      "verdict": "KEEP",
+      "reason": "dual-use",
+      "lat": 44.2694, "lon": -71.3029,
+      "name": null,
+      "evidence": "two large graded summit parking areas, rows of parked cars (Mount Washington summit)",
+      "serves": "Tuckerman Ravine Trail at 3 m, walk 98 m",
+      "confidence": "certain",
+      "judged": "2026-08-02",
+      "src": "opus-ne"
+    }
+  }
+}
+```
+
+Only DROP entries change anything. KEEP entries are still worth storing — they
+are the record of what was checked, they stop a lot being re-judged, and they
+make the file auditable rather than a list of deletions with no context.
+
+Suggested `reason` vocabulary, taken from the drops that actually exist:
+`not-public` (resort / private estate / commercial), `not-a-lot` (vision, the
+rare EXISTS failure), `too-far` (>1609 m walk with no trailhead signal),
+`facility-only` (serves the building, not the trail).
+
+**Wire it into `build-parking-pool.py`'s `consider()`**, which is the one
+function every lot passes through — geom lots and sidecar lots alike. A DROP
+there removes the lot from the pool once, for every area, which is the same
+single choke point the containment gate has. Add the empty-area guard beside it.
+
+
 ### The global pool
 
 `scripts/build-parking-pool.py` builds `cdn.trekdex.app/parking.json`. Run fresh
@@ -965,9 +1058,14 @@ Per-area results as recorded in the README 📋:
 Camelback/Echo Canyon's buffered bbox overlaps the Preserve, so its lots are
 mostly the same physical lots — judged, but not published as a separate artifact.
 
-**Generalization result:** Griffith + Zion scored **0 confident-wrong** against
-the user's own calls, same protocol, no re-tuning, across a desert wilderness and
-a dense city 📋 (`score2.py`, 2026-08-01).
+**Generalization result:** Griffith + Zion score **0 confident-wrong** against the
+user's own calls, same protocol, no re-tuning, across a desert wilderness and a
+dense city. ✅ **Re-run 2026-09-13 from the committed data and still 0:**
+
+```
+zion:     rows=39 matched-agree=31 review=0 unmatched=[]   CONFIDENT-WRONG: 0
+griffith: rows=28 matched-agree=20 review=0 unmatched=[]   CONFIDENT-WRONG: 0
+```
 
 **The New England batch is the proof the fan-out works.** 67 of the 80 lots were
 judged by **4 parallel per-area sub-agents**, each handed `judge_protocol.md`,
@@ -998,7 +1096,93 @@ Rocky Mountain NP 79, San Juan NF 77, Cherry Creek SP 73.
 
 ---
 
-## 18. First actions for the next agent
+## 18. Checking you have not broken it
+
+Two things to run before and after any change to the rules or the stores.
+
+**1. The stores still parse and the totals still hold.** ✅ (this is the command
+that produced the numbers in section 7)
+
+```bash
+cd scripts/parking-adjud/data && python3 -c "
+import json,collections
+S=['phx_verdicts_osm.json','ne_verdicts_osm.json',
+   'zion-wilderness-ut_verdicts2.json','griffith-park-ca_verdicts2.json']
+V=[v for f in S for v in json.load(open(f)).values() if isinstance(v,dict) and v.get('verdict')]
+print(len(V), dict(collections.Counter(x['verdict'] for x in V)))"
+# expect: 296 {'DROP': 83, 'KEEP': 213}
+```
+
+**2. Nothing is confidently wrong against the user's own calls.** This is the
+real bar, and it is the one that proved the rules are not Zion-overfit.
+
+```bash
+cd scripts/parking-adjud
+PADJ_TMP=$PWD/data python3 tools/score2.py zion \
+  data/zion-wilderness-ut_verdicts2.json data/zion-wilderness-ut_dossier.json
+PADJ_TMP=$PWD/data python3 tools/score2.py griffith \
+  data/griffith-park-ca_verdicts2.json data/griffith-park-ca_dossier.json
+```
+
+Actual output, ✅ run 2026-09-13:
+
+```
+zion:     rows=39 matched-agree=31 review=0 unmatched=[]
+CONFIDENT-WRONG: 0  <-- must be 0
+griffith: rows=28 matched-agree=20 review=0 unmatched=[]
+CONFIDENT-WRONG: 0  <-- must be 0
+```
+
+`matched-agree` sitting below the row count is expected — the remainder are
+`leaning` ground-truth rows the protocol answered differently without
+contradicting a confident call. **The exit code is 1 if any confident-wrong
+appears**, so this works as a gate.
+
+A third, cheap sanity check: `PADJ_TMP=$PWD/data python3 tools/merge_ne.py`
+re-validates the four New England drafts and reprints every DROP with its
+evidence. It should report **no schema issues** and 55 keep / 9 drop / 3 review ✅.
+
+---
+
+## 19. What could still be wrong
+
+Written deliberately, because a handoff that only lists what is known produces an
+overconfident successor.
+
+- **The protocol has been tested on three morphologies, not four.** Desert
+  wilderness, dense city, sparse eastern forest. **Colorado is alpine and
+  national-forest and has never been run.** Expect the first CO area to teach
+  something — run one and read every row before fanning out. Treat an unchanged
+  rule set surviving CO as a result worth recording, not as the expected outcome.
+- **The >1 mile over-keep test rests on a small sample.** It measured 0 across
+  the 6 original areas 📋. Six areas is not a national claim, and lesson 7 already
+  carved out the named-trailhead exception after New England showed it was
+  needed. Watch it in the next batch.
+- **40 m clustering may merge lots that a hiker experiences as separate.**
+  `dossier.py` unions members within 40 m and gives them one fid and one verdict.
+  At a big trailhead complex — the Saguaro "19 distinct Parking Lot" case that
+  killed name-only dedup — that is exactly the wrong merge. Nobody has measured
+  how often it happens.
+- **Urban roadside is the only genuinely review-heavy zone**, and it was called
+  an honest ambiguity rather than a bug 📋. Griffith produced 6 reviews out of 57
+  public-served lots — dirt park roads, roadside-with-a-few-cars, a library lot,
+  street corners. A national run will hit far more of these than the tested areas
+  suggest.
+- **The leaf-off NAIP layer for the northeast was recommended and never
+  sourced.** Lesson 8's workaround is to mark REVIEW, which does not scale: a
+  batch that produces reviews nobody resolves is a batch that produced nothing.
+- **Confidence is self-reported.** 47 of 296 verdicts are `leaning` ✅. Nobody has
+  checked whether `leaning` calls are actually less accurate than `strong` ones.
+  If they are not, the tier is decoration; if they are, `leaning` DROPs deserve a
+  second look before they ship.
+- **The sub-agent fan-out was verified once, by hand, on one batch.** All 12 NE
+  drops were re-checked and 4 tiles re-read 📋. That is a spot check, not a
+  measured error rate. Keep spot-checking every batch; do not let the fan-out
+  become unsupervised because it worked once.
+
+---
+
+## 20. First actions for the next agent
 
 1. ~~Repoint `TMP` in the tools~~ — **done 2026-09-13**, section 10. The tools and
    data are in the repo and run from it.
@@ -1018,7 +1202,7 @@ Rocky Mountain NP 79, San Juan NF 77, Cherry Creek SP 73.
 
 ---
 
-## 19. Where everything lives
+## 21. Where everything lives
 
 ### In the repo — travels with git, works on any machine
 

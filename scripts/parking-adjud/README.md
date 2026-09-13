@@ -32,6 +32,9 @@ defaults, so nothing is pinned to one machine:
 | `PADJ_US` | `/mnt/raid/trekdex/osm/us-access.osm.pbf` | What per-area context is cut from. |
 | `PADJ_OSM` | `/mnt/raid/trekdex/parking-adjud/osm` | Per-area `_ctx.osm.pbf` extracts. |
 
+`score2.py` reads `groundtruth.json` from `PADJ_TMP` too, defaulting to the
+sibling `data/` directory, so it scores without any environment set at all.
+
 To work against the committed data, point `PADJ_TMP` at `data/`:
 
 ```bash

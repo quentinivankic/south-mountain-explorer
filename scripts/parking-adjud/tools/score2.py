@@ -8,11 +8,18 @@ current facilities by coordinate (fids are run-local).
 
 Usage: python3 score2.py <area:zion|griffith> <verdicts.json> <dossier.json>"""
 import json, math, sys
+# --- portable paths (added when these tools were graduated into the repo) -----
+# PADJ_TMP holds groundtruth.json. Default: the sibling data/ directory.
+import os as _os
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+PADJ_TMP = _os.environ.get("PADJ_TMP") or _os.path.join(_HERE, "..", "data")
+GROUNDTRUTH = _os.path.join(PADJ_TMP, "groundtruth.json")
+# -----------------------------------------------------------------------------
 def hav(a,b,c,d):
     R=6371000;p=math.radians;dl=p(c-a);dn=p(d-b)
     return 2*R*math.asin(math.sqrt(math.sin(dl/2)**2+math.cos(p(a))*math.cos(p(c))*math.sin(dn/2)**2))
 def main(area,vf,df):
-    G=json.load(open("groundtruth.json"))[area]
+    G=json.load(open(GROUNDTRUTH))[area]
     V=json.load(open(vf)); dos=json.load(open(df))
     facs=dos["facilities"]
     def near_fac(la,lo):

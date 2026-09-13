@@ -223,11 +223,13 @@ jobs:
           # without it, it is just the narrower shipped-geom set.
           echo "Building + syncing parking pool..."
           # --verdicts keeps every lot the vision adjudication DROPped out of
-          # the pool (task #53). Judged-KEEP lots the pool lacks are listed in
-          # the log, not added — that is the deliberate --add-keeps step.
+          # the pool (task #53). --add-keeps ships the judged-KEEP lots the pool
+          # lacks (certain + strong; leaning ones are listed as held) — turned on
+          # 2026-09-13 after the first list of 66 was read.
           python3 scripts/build-parking-pool.py --out /tmp/parking.json \
             --extra public/areas/parking-pool.json \
-            --verdicts public/areas/parking-verdicts.json
+            --verdicts public/areas/parking-verdicts.json \
+            --add-keeps
           aws s3 cp /tmp/parking.json \
             s3://trekdex-areas/parking.json \
             --endpoint-url "$ENDPOINT" \

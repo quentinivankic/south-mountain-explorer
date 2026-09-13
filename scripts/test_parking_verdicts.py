@@ -305,6 +305,32 @@ def test_pool_lists_uncovered_keeps_and_adds_them_only_when_asked(tmp_path, caps
     assert "1 judged-KEEP lot(s) nothing in the pool covers" in out and "Hidden Trailhead" in out
     lots = _run_pool(tmp_path, geom, bundle, doc, "--add-keeps")
     assert len(lots) == 2 and any(r[2] == "Hidden Trailhead" for r in lots)
+    assert "ADDED 1" in capsys.readouterr().out
+
+
+def test_pool_add_keeps_holds_leaning_verdicts_unless_asked_and_merges_close_pairs(tmp_path, capsys):
+    geom, bundle = _geom_dir(tmp_path, {"a": [{"lat": LAT, "lon": LON}]})
+    strong = _offset(LAT, LON, north_m=500)
+    twin = _offset(strong[0], strong[1], east_m=25)              # 25 m from `strong`: one pin
+    soft = _offset(LAT, LON, north_m=1000)
+    unrated = _offset(LAT, LON, north_m=1500)
+    doc = _doc(_entry("way/2", "KEEP", lat=strong[0], lon=strong[1], name="Main Lot"),
+               _entry("way/3", "KEEP", lat=twin[0], lon=twin[1], name="Overflow Pad"),
+               _entry("node/4", "KEEP", lat=soft[0], lon=soft[1], name="Maybe Pull-off",
+                      confidence="leaning"),
+               _entry("node/5", "KEEP", lat=unrated[0], lon=unrated[1], name="Unrated",
+                      confidence=None))
+    lots = _run_pool(tmp_path, geom, bundle, doc, "--add-keeps")
+    out = capsys.readouterr().out
+    assert len(lots) == 2                                          # a's lot + Main Lot
+    assert not any(r[2] in ("Maybe Pull-off", "Unrated") for r in lots)
+    assert "ADDED 1, 1 merged into a neighbouring pin, 2 leaning held" in out
+    assert "held  node/4" in out and "held  node/5" in out
+    # The leaning flag releases the leaning verdict only; an unrated one stays
+    # held — unknown confidence fails closed.
+    lots = _run_pool(tmp_path, geom, bundle, doc, "--add-keeps", "--add-leaning-keeps")
+    assert len(lots) == 3 and any(r[2] == "Maybe Pull-off" for r in lots)
+    assert not any(r[2] == "Unrated" for r in lots)
 
 
 def test_pool_without_a_sidecar_is_unchanged(tmp_path):

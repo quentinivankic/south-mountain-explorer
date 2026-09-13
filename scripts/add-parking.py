@@ -67,6 +67,7 @@ from pathlib import Path
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(_SCRIPTS_DIR))
 from _seed_constants import STATE_NAMES  # noqa: E402
+import _parking_verdicts  # noqa: E402  — the KEEP/DROP sidecar and its matcher
 
 # seed-areas.py has a hyphen, so it can't be a plain import target.
 _spec = importlib.util.spec_from_file_location(
@@ -757,10 +758,20 @@ def _point(el: dict) -> tuple[float | None, float | None]:
 
 
 def parse_parking(data: dict) -> list[dict]:
-    """Overpass response -> candidate lots. Each: {lat, lon, name?, fee?,
+    """Overpass response -> candidate lots. Each: {lat, lon, osm?, name?, fee?,
     _self_th}. `_self_th` (stripped before write) marks a lot whose own
     element is also tagged highway=trailhead. Filters non-public access and
-    on-street parking."""
+    on-street parking.
+
+    `osm` is the element's `type/id` ("way/912577538") and it SHIPS in geom.
+    It is the identity the parking-verdicts sidecar is keyed by: a judged id
+    matches exactly; a lot without one (everything rolled before this field
+    existed) or with an id the sidecar has not judged is matched by footprint
+    and position instead — see `scripts/_parking_verdicts.py`. The app's
+    `ParkingLot` decoder ignores keys it does not declare, so the field costs
+    nothing on old builds. One-time effect: the first roll after this reports
+    every area with OSM parking as "updated", because the new key makes the
+    stored and recomputed lists compare unequal even when no lot moved."""
     out: list[dict] = []
     for el in data.get("elements", []):
         tags = el.get("tags", {})
@@ -774,12 +785,34 @@ def parse_parking(data: dict) -> list[dict]:
         if tags.get("parking") in _STREET_PARKING:
             continue
         entry: dict = {"lat": lat, "lon": lon, "_self_th": tags.get("highway") == "trailhead"}
+        if el.get("type") and el.get("id") is not None:
+            entry["osm"] = f"{el['type']}/{el['id']}"
         if tags.get("name"):
             entry["name"] = tags["name"]
         if tags.get("fee") in ("yes", "no"):
             entry["fee"] = tags["fee"] == "yes"
         out.append(entry)
     return out
+
+
+def apply_verdicts(lots: list[dict], verdicts) -> tuple[list[dict], list[tuple[dict, dict]]]:
+    """Remove every lot the parking-verdicts sidecar DROPs. Returns (kept,
+    [(lot, verdict), ...]). `verdicts` is a `_parking_verdicts.Verdicts` (or
+    None, in which case nothing is removed). Runs on the state-wide candidate
+    list, before any area sees it, so a judged-DROP lot cannot reach any area's
+    geom or the pre-ownership pool sidecar. The match is by OSM id here — every
+    freshly parsed lot carries one — with position as the fallback the shared
+    matcher always provides."""
+    if verdicts is None:
+        return lots, []
+    kept, gone = [], []
+    for lot in lots:
+        e = verdicts.drop_for(lot)
+        if e is None:
+            kept.append(lot)
+        else:
+            gone.append((lot, e))
+    return kept, gone
 
 
 def parse_trailheads(data: dict) -> list[tuple[float, float]]:
@@ -1342,11 +1375,16 @@ def print_federal_fill(fed_fill: list[tuple[str, str, list[str]]]) -> None:
 
 def process(state_codes: list[str], dry_run: bool, use_federal: bool = True,
             pool_sidecar: str | None = None, local=None,
-            local_boundaries: bool = False) -> bool:
+            local_boundaries: bool = False, verdicts_path: str | None = None) -> bool:
     """`local` is a `_local_osm.LocalOSM` when the homelab cache should answer
     the three queries this used to send to Overpass. Everything downstream of the
     fetch is identical either way — the containment maths, the trailhead
-    corroboration and the gates are the single tested copy."""
+    corroboration and the gates are the single tested copy.
+
+    `verdicts_path` is the parking-verdicts sidecar (default: the committed
+    one). Its DROPs are removed from the state-wide candidates before any area
+    is assigned; a missing file is not an error."""
+    verdicts = _parking_verdicts.load(verdicts_path)
     groups = geom_by_state()
     # {STATE: [lot, ...]} for the global pool — populated only when a sidecar
     # path was asked for, and replaced per state so a single-state run cannot
@@ -1395,6 +1433,15 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True,
         lots = parse_parking(data)
         trailheads = parse_trailheads(data)
         print(f"  {code.upper()}: {len(lots)} parking + {len(trailheads)} trailheads statewide")
+        # The vision adjudication's DROPs (task #53) are the source of truth
+        # for removing a lot; honouring them here is what keeps a re-roll from
+        # bringing a judged-out lot straight back.
+        lots, judged_out = apply_verdicts(lots, verdicts)
+        if judged_out:
+            print(f"  {code.upper()}: {len(judged_out)} lot(s) removed by parking-verdicts.json")
+            for lot, e in judged_out[:8]:
+                print(f"     {lot.get('osm', '?'):22} {str(lot.get('name'))[:30]:32} "
+                      f"[{e.get('reason')}] {e['_key']}")
 
         # BOUNDARIES STAY ON OVERPASS BY DEFAULT, and that is a measured
         # decision, not an oversight. The boundary query is the CHEAPEST of the
@@ -1468,6 +1515,13 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True,
                         # Treat all of them as unavailable so existing pins are
                         # carried forward rather than deleted.
                         fed_failed |= {s["key"] for s in _FED_SOURCES}
+                    # Federal points have no OSM id, but a judged footprint can
+                    # still cover one; the DROP applies to them before either
+                    # the pool emit or assignment sees them.
+                    fed, judged_fed = apply_verdicts(fed, verdicts)
+                    if judged_fed:
+                        print(f"  {code.upper()}: {len(judged_fed)} federal point(s) "
+                              f"removed by parking-verdicts.json")
 
                 # POOL EMIT — here, BEFORE assign_federal, is the whole point of
                 # task #44. The containment gate ran when the boundaries loaded
@@ -1618,6 +1672,10 @@ def main() -> None:
                          "three (2.4-6.1 s) and osmium's rings are coarser than "
                          "shapely's, which cleared 8 Arizona wilderness areas "
                          "whose only lot sits metres inside the real edge.")
+    ap.add_argument("--verdicts", metavar="PATH", default=_parking_verdicts.DEFAULT_PATH,
+                    help="parking-verdicts sidecar (task #53); its DROPs are removed "
+                         "before assignment so a roll never resurrects a judged-out "
+                         "lot. Missing file is not an error.")
     ap.add_argument("--pool-sidecar", metavar="PATH",
                     help="also emit road-gated federal trailheads to this "
                          "sidecar, BEFORE ownership assignment, for the global "
@@ -1646,7 +1704,8 @@ def main() -> None:
 
     golden_ok = process(codes, args.dry_run, use_federal=not args.no_federal,
                         pool_sidecar=args.pool_sidecar, local=local,
-                        local_boundaries=args.local_boundaries)
+                        local_boundaries=args.local_boundaries,
+                        verdicts_path=args.verdicts)
     if not golden_ok:
         sys.exit(2)
 

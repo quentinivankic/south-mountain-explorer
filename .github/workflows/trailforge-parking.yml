@@ -116,8 +116,13 @@ jobs:
           if [ "${{ inputs.dry_run }}" = "true" ]; then FLAG="--dry-run"; fi
           mkdir -p out/pool
           echo "==== ${{ matrix.state }} ===="
+          # --verdicts: the vision adjudication's DROPs (task #53) come off the
+          # candidate list before assignment, so a roll never brings a
+          # judged-out lot back. Same default the script uses; explicit here so
+          # the roll's inputs are all visible in one place.
           python3 scripts/add-parking.py --state "${{ matrix.state }}" $FLAG \
-            --pool-sidecar "out/pool/${{ matrix.state }}.json"
+            --pool-sidecar "out/pool/${{ matrix.state }}.json" \
+            --verdicts public/areas/parking-verdicts.json
 
       # add-parking.py enriches geom IN PLACE, so the changed files are exactly
       # what git reports dirty. Collect only those into the artifact — one state

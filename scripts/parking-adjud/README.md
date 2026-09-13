@@ -93,6 +93,28 @@ python3 tools/padjart2.py         $SLUG "Display Name"
 `tools/run_ne.sh <slug>` and `tools/run_co.sh <slug>` are the batch drivers; both
 now resolve their own directory rather than a hardcoded path.
 
+## Shipping verdicts (runs anywhere, no extracts needed)
+
+The stores in `data/` are the source; `public/areas/parking-verdicts.json` is
+the committed sidecar the pipeline reads. After a store changes:
+
+```bash
+python3 scripts/build-parking-verdicts.py          # stores -> sidecar (deterministic)
+python3 scripts/sweep-parking-verdicts.py --dry-run # which shipped lots the DROPs hit
+python3 scripts/sweep-parking-verdicts.py           # remove them from published geom
+python3 scripts/build-parking-pool.py --out /tmp/parking.json \
+  --extra public/areas/parking-pool.json            # pool honours the DROPs, lists
+                                                    # judged KEEPs it lacks (--add-keeps adds)
+```
+
+Commit the sidecar and the swept geom together; `sync-geom-to-r2.yml` rebuilds
+the pool from them. `add-parking.py` reads the sidecar too, so a parking roll
+cannot bring a judged-out lot back. How a shipped lot is matched to a verdict
+(a judged `osm` id exactly — lots rolled after 2026-09-13 carry one — else by
+footprint: ring bbox-centre, inside a ring, within 10 m of an edge, within
+20 m of the position) is one function in `scripts/_parking_verdicts.py`; the
+decision behind it is in `TASKS.md` #53.
+
 ## Known state
 
 - `serves_relative.py` reads a pre-protocol `zion_ctx.json` that no longer

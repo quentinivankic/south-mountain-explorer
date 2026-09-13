@@ -59,6 +59,11 @@ on:
       # contributes federal trailheads to the pool — and without this path such
       # a roll would commit the sidecar and never rebuild the pool from it.
       - 'public/areas/parking-pool.json'
+      # The per-lot KEEP/DROP verdicts from the vision adjudication (task #53).
+      # A verdict change must rebuild the pool it gates; so must a change to
+      # the matcher every consumer shares.
+      - 'public/areas/parking-verdicts.json'
+      - 'scripts/_parking_verdicts.py'
       - 'ios/SouthMountainExplorer/Resources/areas-index.json'
       # The derived companions are BUILT here, never committed, so a change to
       # a builder must republish it — otherwise the new logic sits on main
@@ -78,6 +83,11 @@ on:
       # contributes federal trailheads to the pool — and without this path such
       # a roll would commit the sidecar and never rebuild the pool from it.
       - 'public/areas/parking-pool.json'
+      # The per-lot KEEP/DROP verdicts from the vision adjudication (task #53).
+      # A verdict change must rebuild the pool it gates; so must a change to
+      # the matcher every consumer shares.
+      - 'public/areas/parking-verdicts.json'
+      - 'scripts/_parking_verdicts.py'
       - 'ios/SouthMountainExplorer/Resources/areas-index.json'
       - 'scripts/build-parking-pool.py'
       - 'scripts/build-trail-search-index.py'
@@ -212,8 +222,12 @@ jobs:
           # parking. A missing sidecar is not an error — the pool is still valid
           # without it, it is just the narrower shipped-geom set.
           echo "Building + syncing parking pool..."
+          # --verdicts keeps every lot the vision adjudication DROPped out of
+          # the pool (task #53). Judged-KEEP lots the pool lacks are listed in
+          # the log, not added — that is the deliberate --add-keeps step.
           python3 scripts/build-parking-pool.py --out /tmp/parking.json \
-            --extra public/areas/parking-pool.json
+            --extra public/areas/parking-pool.json \
+            --verdicts public/areas/parking-verdicts.json
           aws s3 cp /tmp/parking.json \
             s3://trekdex-areas/parking.json \
             --endpoint-url "$ENDPOINT" \

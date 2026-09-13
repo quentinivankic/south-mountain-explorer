@@ -34,6 +34,7 @@ whole point and section 3 explains why it was fought for.
 | Colorado batch | Inputs prepared, **never run** — 261 areas / 2,090 lots ✅ (`co_areas.json`) |
 | Data | **In the repo** at `scripts/parking-adjud/data/` — 74 files, 8.2 MB ✅. Aerial tiles stay on the homelab (~91 MB, regenerable) |
 | Scoring against the user's calls | **0 confident-wrong** on both Zion and Griffith ✅, re-run 2026-09-13 |
+| Pipeline | ✅ Re-run end to end 2026-09-13 on `grafton-notch-state-park-me` from the repo copy; reproduced the committed result exactly |
 | Blocking | Nothing external. This is unblocked work. |
 | It blocks | TASKS **#51**'s containment roll and **#52**'s polygon merge 📋 |
 
@@ -642,6 +643,44 @@ python3 tools/z2render.py          # Z2 only, or ladder_tiles.py for Z1/Z2/Z3
 python3 tools/padjart2.py $SLUG "Display Name"
 ```
 
+### Measured, end to end, on a real area ✅
+
+`grafton-notch-state-park-me` (6 served lots) re-run from the repo copy on
+2026-09-13, against its existing `_ctx.osm.pbf`:
+
+| Step | With the NATIONAL parking pbf | With a REGIONAL parking pbf |
+|---|---|---|
+| `dossier.py` | **6 m 50 s** | **14.7 s** |
+| `foot_route_area.py` | 9.1 s | 9.1 s |
+| `context_classify.py` | ~2 s | ~2 s |
+
+⭐ **Set `PADJ_PARKING_PBF` to a regional extract. It is 28× faster and it is the
+whole difference between a batch being feasible and not.** `dossier.py` scans the
+entire parking pbf for every area, so pointing it at the 120 MB national file
+costs seven minutes per area; a state or region extract costs fifteen seconds.
+This is why the Colorado prep built `colorado_parking.osm.pbf` (4.2 MB) — at the
+national rate its 261 areas would be about 30 hours of dossier building alone.
+
+```bash
+osmium tags-filter -o region_parking.osm.pbf <region>.osm.pbf \
+  n/amenity=parking w/amenity=parking r/amenity=parking
+export PADJ_PARKING_PBF=$PWD/region_parking.osm.pbf
+```
+
+**The rerun reproduced the committed result exactly** ✅ — 57 facilities, and the
+same 6 served OSM ids as the August run:
+
+```
+node/5814874288  node/5897812888  node/5912066241
+way/243581117    way/244102591    way/730327047
+```
+
+One caveat worth knowing: the same area run against the *national* pbf found 60
+facilities rather than 57, because that extract is newer than the August regional
+one and the bbox has picked up three more mapped lots. The **served** set was
+identical either way. So drift in the lot universe is normal; drift in the served
+set would be a signal.
+
 Cross-area helpers:
 
 - `review_queue.py` — scans every area's verdicts and builds ONE cross-area
@@ -1091,8 +1130,11 @@ correct. User-approved 2026-08-02: *"all looks good"*.
 Biggest areas by lot count: White River NF 227, Roosevelt NF 146, Pike NF 82,
 Rocky Mountain NP 79, San Juan NF 77, Cherry Creek SP 73.
 
-⚠️ `run_co.sh` depends on the env-var-aware tools that no longer exist (section
-8). Fix that before using it.
+`run_co.sh` is in the repo and now resolves its own directory; it already exports
+`PADJ_PARKING_PBF=.../colorado_parking.osm.pbf`, which is the setting that makes
+a batch this size feasible at all — see the timings in section 9. At the regional
+rate, 261 areas is roughly an hour of dossier building plus the foot-route and
+context passes; at the national rate it would be about 30 hours.
 
 ---
 

@@ -48,6 +48,19 @@ belong with the rest of the pipeline's extracts. **Everything that needs them is
 homelab-only.** Everything else — reading verdicts, scoring, building artifacts,
 judging from already-rendered tiles — runs anywhere.
 
+## Speed: use a regional parking extract
+
+`dossier.py` scans the whole parking pbf per area. Measured on
+`grafton-notch-state-park-me` 2026-09-13: **6 m 50 s** against the 120 MB
+national `parking-only.osm.pbf`, **14.7 s** against a regional one — 28x, same
+result. Always set `PADJ_PARKING_PBF` for a batch.
+
+```bash
+osmium tags-filter -o region_parking.osm.pbf <region>.osm.pbf \\
+  n/amenity=parking w/amenity=parking r/amenity=parking
+export PADJ_PARKING_PBF=$PWD/region_parking.osm.pbf
+```
+
 ## Running one area end to end
 
 Needs `osmium`, `shapely`, `Pillow`, and the OSM extracts (so: homelab).

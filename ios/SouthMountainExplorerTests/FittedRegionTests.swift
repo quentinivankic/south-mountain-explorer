@@ -219,6 +219,39 @@ struct FittedRegionTests {
                 "A wide area must shift south more than a square one to sit centered in the visible area")
     }
 
+    @Test func fittedRegion_wideArea_shiftFollowsMercatorLatitude() {
+        // A width-constrained region's displayed latitude span is a Mercator
+        // quantity: the map draws a degree of latitude 1/cos(lat) times as
+        // tall as a degree of longitude, so the height holds
+        // `lonDelta * (height/width) * cos(lat)` degrees. The south-shift is
+        // half the occluded fraction of THAT, so the same wide shape at 60°N
+        // must shift half as far (cos 60° = 0.5) as at the equator. The old
+        // math ignored the cosine, so both shifted the same and the northern
+        // park landed far too high — this test fails against that bug.
+        let equator = TrailMapView.fittedRegion(
+            centerLat: 0.0, centerLon: -60.0,
+            latDelta: 0.05, lonDelta: 0.30,
+            bottomInset: 400, screenHeight: 900, screenWidth: 400
+        )
+        let north = TrailMapView.fittedRegion(
+            centerLat: 60.0, centerLon: -150.0,
+            latDelta: 0.05, lonDelta: 0.30,
+            bottomInset: 400, screenHeight: 900, screenWidth: 400
+        )
+        guard case .region(let eqLat, _, _, _) = equator,
+              case .region(let noLat, _, _, _) = north else {
+            Issue.record("Expected .region cases"); return
+        }
+        let equatorShift = 0.0 - eqLat
+        let northShift = 60.0 - noLat
+        // Both width-constrained: 0.30 × (900/400) × cos(lat) = 0.675 / 0.3375°
+        // displayed, times p/2 = (400/900)/2. Exact to floating point.
+        #expect(abs(equatorShift - 0.675 * (400.0 / 900.0) / 2) < 1e-9,
+                "Equator shift should be half the occluded fraction of the displayed span, got \(equatorShift)")
+        #expect(abs(northShift - equatorShift / 2) < 1e-9,
+                "At 60°N a width-constrained view holds half the latitude, so the shift must halve, got \(northShift)")
+    }
+
     // MARK: - lonCenterAndSpan: antimeridian crossing
 
     /// Alaska Maritime National Wildlife Refuge runs the Aleutians from

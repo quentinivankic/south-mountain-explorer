@@ -1095,13 +1095,26 @@ struct TrailMapView: View {
         // not of `regionLatDelta`. MapKit shows at least the region and fits
         // by the more-constrained axis: a WIDE area (large lonDelta) is
         // width-constrained, so the displayed latitude span balloons to
-        // `lonDelta * (height/width)` — far bigger than regionLatDelta. Using
-        // regionLatDelta for the shift (the old bug) barely nudged a wide
-        // park, leaving it near the full-screen center → low, right at the
-        // sheet, with the surrounding city filling the top. Basing the shift
-        // on the displayed span centers the park in the visible area.
-        let displayedLatDelta = max(regionLatDelta,
-                                    regionLonDelta * Double(screenHeight / max(screenWidth, 1)))
+        // whatever fills the view's height — far bigger than regionLatDelta.
+        // Using regionLatDelta for the shift (the old bug) barely nudged a
+        // wide park, leaving it near the full-screen center → low, right at
+        // the sheet, with the surrounding city filling the top. Basing the
+        // shift on the displayed span centers the park in the visible area.
+        //
+        // How much latitude fills the height is a Mercator question, not a
+        // plain aspect ratio. The map draws a degree of latitude 1/cos(lat)
+        // times as tall as a degree of longitude, so a width-constrained view
+        // holds `lonDelta * (height/width) * cos(lat)` degrees of latitude.
+        // Without the cosine the displayed span — and with it the shift — is
+        // too big by 1/cos(lat): 20% at Phoenix (a wide park opened ~35 pt
+        // high at the fit stop, ~55 pt at browse), 2× at 60°N, where a wide
+        // park was pushed clear off the top of the visible strip. Floored
+        // well short of the poles so a polar area can't zero the span.
+        let mercatorLatPerLon = max(0.05, cos(centerLat * .pi / 180))
+        let displayedLatDelta = max(
+            regionLatDelta,
+            regionLonDelta * Double(screenHeight / max(screenWidth, 1)) * mercatorLatPerLon
+        )
         let shiftLat = displayedLatDelta * p / 2
         return .region(
             centerLat: centerLat - shiftLat,

@@ -1106,10 +1106,13 @@ struct TrailMapView: View {
         // times as tall as a degree of longitude, so a width-constrained view
         // holds `lonDelta * (height/width) * cos(lat)` degrees of latitude.
         // Without the cosine the displayed span — and with it the shift — is
-        // too big by 1/cos(lat): 20% at Phoenix (a wide park opened ~35 pt
-        // high at the fit stop, ~55 pt at browse), 2× at 60°N, where a wide
-        // park was pushed clear off the top of the visible strip. Floored
-        // well short of the poles so a polar area can't zero the span.
+        // too big by 1/cos(lat): 20% at Phoenix, which over-shifted a wide
+        // park by ~35 pt at the fit stop and ~55 pt at browse (the cosine
+        // term alone — MapKit itself centres a region some 15–20 pt below the
+        // view's midpoint, which hid part of that on screen), and 2× at 60°N,
+        // where a wide park was pushed clear off the top of the visible
+        // strip. Floored well short of the poles so a polar area can't zero
+        // the span.
         let mercatorLatPerLon = max(0.05, cos(centerLat * .pi / 180))
         let displayedLatDelta = max(
             regionLatDelta,

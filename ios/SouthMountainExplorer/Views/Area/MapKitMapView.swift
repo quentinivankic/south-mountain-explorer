@@ -165,6 +165,27 @@ struct MapKitMapView: UIViewRepresentable {
     /// comes if they're not moving.
     let onUserGestureRegionChange: (() -> Void)?
 
+    /// Fires the moment the user starts moving the camera by hand — a pan,
+    /// pinch or rotation beginning on the map, or a zoom tap (double-tap,
+    /// two-finger tap) landing. TrailMapView uses it to stop re-fitting its
+    /// opening framing as the sheet moves: from this point the camera is the
+    /// user's.
+    ///
+    /// Deliberately NOT derived from `onUserGestureRegionChange`. That hook
+    /// classifies a region change as user-driven by counting our own
+    /// programmatic changes in and out through `regionDidChangeAnimated`, and
+    /// the count is only approximate: the first layout of the map and the
+    /// un-counted initial `setRegion` in `makeUIView` both report a change
+    /// nobody asked for, and an animated change cut short by the next one
+    /// may never report its end. Either error is fatal for a one-way latch —
+    /// a spurious report releases the framing before it has settled, a
+    /// missed one re-fits over a map the user has panned. A gesture
+    /// recognizer observing the touches directly is exact: it fires for a
+    /// finger on the map and for nothing else. Recognized alongside MapKit's
+    /// own gestures and never cancels their touches, so panning and zooming
+    /// behave exactly as before.
+    var onUserCameraGestureBegan: (() -> Void)? = nil
+
     /// User-selected map style from Settings → Display. Re-applied
     /// in `updateUIView` so flipping the picker propagates to the
     /// open map without re-creating the view.
@@ -233,6 +254,33 @@ struct MapKitMapView: UIViewRepresentable {
                                          action: #selector(Coordinator.handleTap(_:)))
         tap.delegate = context.coordinator
         mv.addGestureRecognizer(tap)
+
+        // Camera-gesture observers (see `onUserCameraGestureBegan`). One per
+        // way a finger can move MKMapView's camera: drag, pinch, two-finger
+        // rotate, double-tap zoom-in, two-finger-tap zoom-out. They observe
+        // only — recognized simultaneously with MapKit's own recognizers (the
+        // delegate says so for exactly these) and never cancelling or delaying
+        // touches in the view — so every map gesture behaves exactly as before.
+        let action = #selector(Coordinator.handleCameraGesture(_:))
+        let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: action)
+        doubleTap.numberOfTapsRequired = 2
+        let twoFingerTap = UITapGestureRecognizer(target: context.coordinator, action: action)
+        twoFingerTap.numberOfTouchesRequired = 2
+        let observers: [UIGestureRecognizer] = [
+            UIPanGestureRecognizer(target: context.coordinator, action: action),
+            UIPinchGestureRecognizer(target: context.coordinator, action: action),
+            UIRotationGestureRecognizer(target: context.coordinator, action: action),
+            doubleTap,
+            twoFingerTap,
+        ]
+        for observer in observers {
+            observer.cancelsTouchesInView = false
+            observer.delaysTouchesBegan = false
+            observer.delaysTouchesEnded = false
+            observer.delegate = context.coordinator
+            mv.addGestureRecognizer(observer)
+        }
+        context.coordinator.cameraGestureObservers = observers
         return mv
     }
 
@@ -1256,15 +1304,42 @@ struct MapKitMapView: UIViewRepresentable {
             }
         }
 
+        // MARK: Camera-gesture observers
+
+        /// The recognizers added in `makeUIView` purely to observe when the
+        /// user takes the camera (pan, pinch, rotation, and the two zoom
+        /// taps). Held so the delegate can tell them apart from the selection
+        /// tap, which must NOT recognize alongside MapKit's gestures.
+        var cameraGestureObservers: [UIGestureRecognizer] = []
+
+        /// The user just started moving the camera by hand. Reported once per
+        /// gesture: the continuous ones (pan / pinch / rotate) at `.began`, so
+        /// a drag that lasts a hundred frames tells the parent exactly once;
+        /// the zoom taps at `.ended`, the only state a discrete recognizer
+        /// ever reaches.
+        @objc func handleCameraGesture(_ gesture: UIGestureRecognizer) {
+            let began = gesture is UITapGestureRecognizer
+                ? gesture.state == .ended
+                : gesture.state == .began
+            guard began else { return }
+            parent.onUserCameraGestureBegan?()
+        }
+
         // MARK: UIGestureRecognizerDelegate
 
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                                shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+            // The camera observers must run ALONGSIDE MapKit's own pan /
+            // pinch / rotate — they only watch, and a `false` here would make
+            // them compete with the gestures they exist to observe.
+            if cameraGestureObservers.contains(where: { $0 === gestureRecognizer }) {
+                return true
+            }
             // Tap shouldn't compete with MKMapView's pan/pinch.
             // Returning false here makes the tap a standalone gesture
             // that only fires when the user genuinely tapped without
             // initiating a pan.
-            false
+            return false
         }
 
         // MARK: Distance helpers

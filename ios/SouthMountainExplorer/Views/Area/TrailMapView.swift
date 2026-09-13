@@ -144,14 +144,46 @@ struct TrailMapView: View {
     @State private var cameraTarget: MapTarget
     @State private var cameraTick: Int = 0
 
-    /// One-shot guard for the area-overview re-frame. `bottomInset` (the
-    /// trail-list sheet's height) often arrives as 0 on the first render and
-    /// only settles a frame later; the initial `centerOnArea()` in `onAppear`
-    /// then fit the park to the FULL screen, so once the sheet covered the
-    /// bottom the park read as zoomed-out (the "not centered on the park"
-    /// screenshot). When the inset settles we re-fit ONCE — but never again,
-    /// so a later user sheet-drag doesn't yank a map they've since panned.
-    @State private var pendingInsetReframe = true
+    /// Does the camera still show the framing this view chose on open — the
+    /// whole-area overview, or the trail the area was opened on — rather
+    /// than something the user has done since?
+    ///
+    /// While it does, that framing is kept FIT to whatever the sheet leaves
+    /// visible: each change to `bottomInset` re-frames the same target once
+    /// the inset stops moving (`scheduleOpeningRefit`). It has to work that
+    /// way because the inset arrives in stages — the seed the view mounts
+    /// with, the height the sheet actually presents at, then the measured
+    /// fit height the sheet commits to ~140 ms later and resizes to — and
+    /// the overview is only right for the LAST of them. The previous design
+    /// re-fitted exactly once, on the first change, so it spent itself on
+    /// the presentation and never saw the commit: any park whose measured
+    /// fit differed from the 360 pt seed opened framed for the wrong sheet,
+    /// centred too high or too low by half the difference — the "sometimes
+    /// off when you first open an area" report.
+    ///
+    /// Flips false for the rest of this appearance the moment the camera
+    /// gets another owner: the user pans / pinches / rotates the map, a
+    /// trail is selected or deselected, a recording is in progress, a follow
+    /// mode engages, or a recenter / switch-trail framing runs. From then on
+    /// a sheet move never touches the camera — which is the guarantee the
+    /// old one-shot was really there to keep: a map the user has framed is
+    /// never yanked back to the overview.
+    @State private var holdsOpeningFraming = true
+    /// The refit waiting for `bottomInset` to stop moving. Each change
+    /// cancels and replaces it, so a burst lands ONE refit, at the end.
+    ///
+    /// Held in a reference box rather than as a `@State` Task directly:
+    /// `bottomInset` changes on every frame of a sheet drag, and each change
+    /// replaces this. Assigning a `@State` value that often would invalidate
+    /// the view once more per frame for nothing the body could show — the
+    /// box's contents can change without SwiftUI hearing about it.
+    @State private var openingRefit = PendingRefit()
+
+    /// Mutable holder for `openingRefit` — see that property.
+    @MainActor
+    final class PendingRefit {
+        var task: Task<Void, Never>?
+    }
 
     init(
         area: Area,
@@ -239,6 +271,12 @@ struct TrailMapView: View {
                     if trackingMode != .free {
                         updateTrackedPosition()
                     }
+                },
+                onUserCameraGestureBegan: {
+                    // A finger moved on the map: the camera is the user's now.
+                    // Whatever the sheet does from here, the opening framing
+                    // is never re-applied over where they put it.
+                    releaseOpeningFraming()
                 }
             )
 
@@ -297,10 +335,16 @@ struct TrailMapView: View {
                 // floor — often BEFORE this view mounts — so the
                 // `.onChange(of: selectedTrailId)` below never fires for
                 // it and `onAppear` is the only place that can catch it.
+                // `reapplyOpeningFraming` re-frames this same trail as the
+                // sheet settles, for the same reason.
                 centerOn(trail: trail)
             } else {
                 centerOnArea()
             }
+            // A hike already in progress owns the camera from the first
+            // frame — even before its first GPS fix, when the overview is
+            // shown as a stand-in. A sheet move must never re-fit it.
+            if activeRecording != nil { releaseOpeningFraming() }
         }
         .onChange(of: pastHikes.count) { _, _ in
             // New hike finished and AreaView reloaded pastHikes —
@@ -317,6 +361,13 @@ struct TrailMapView: View {
             cachedHaloSegments = [trailSnappedHaloRuns()]
         }
         .onChange(of: selectedTrailId) { _, newId in
+            // Any change of selection — a tap on the map or in the list, or a
+            // banner clearing it — ends the opening framing. A selected trail
+            // has its own framing (below, plus `fitSelectedTrailTick` as the
+            // sheet moves); a deselect leaves the camera where the user was
+            // looking, and a later sheet move must not pull it back to the
+            // overview.
+            releaseOpeningFraming()
             // Recompute the orange walked-since-completion overlay
             // for the newly-selected trail. Cheap — one trail at a
             // time. Clears to empty when nothing's selected.
@@ -327,25 +378,22 @@ struct TrailMapView: View {
                 // selection). Leave the camera exactly where it is. Auto-
                 // zooming back to the whole-area overview on every deselect
                 // was disorienting — the user is usually still looking at the
-                // spot they just tapped. The intentional area framings (initial
-                // load, the one-shot inset reframe) still run centerOnArea; a
-                // plain deselect no longer moves the map.
+                // spot they just tapped. Only the opening framing (initial
+                // load, and its refits while the sheet settles) frames the
+                // whole area on purpose; a plain deselect never moves the map.
                 return
             }
             centerOn(trail: trail)
         }
         .onChange(of: bottomInset) { _, _ in
-            // The sheet reported its real height after the initial frame —
-            // re-fit the park to the correct inset ONCE, so the whole-area
-            // overview isn't left zoomed-out (fit for a full screen the sheet
-            // then half-covers). Only when idle-browsing (not recording, no
-            // active follow, nothing selected — those framings are intentional
-            // and must not be yanked to the area overview).
-            guard pendingInsetReframe else { return }
-            pendingInsetReframe = false
-            if activeRecording == nil && trackingMode == .free && selectedTrailId == nil {
-                centerOnArea()
-            }
+            // The visible map just changed size. While the camera still holds
+            // the opening framing, keep that framing fit to the new visible
+            // area — once the inset has stopped moving, not per change. On
+            // open the inset lands in a burst (the presented height, then the
+            // committed fit height ~140 ms later), and during a sheet drag it
+            // changes every frame; a refit per change would animate the
+            // camera against itself.
+            scheduleOpeningRefit()
         }
         .onChange(of: centerOnSwitchedTrailTick) { _, _ in
             // Fired by AreaView when Switch is tapped on the retarget
@@ -353,6 +401,7 @@ struct TrailMapView: View {
             // active trail PLUS the user's current location so they
             // can see both. Falls back to centerOn(trail:) if we
             // don't have a fresh location fix yet.
+            releaseOpeningFraming()
             guard let id = selectedTrailId,
                   let trail = area.trails.first(where: { $0.id == id }) else {
                 return
@@ -364,7 +413,13 @@ struct TrailMapView: View {
             // that trail in the map area now visible above it. Reads the
             // CURRENT bottomInset, which is why AreaView waits for the sheet's
             // motion to land before bumping this.
-            guard let id = selectedTrailId,
+            //
+            // While the opening framing is still held, the selected trail is
+            // the one the area was opened on, and the inset refit is already
+            // keeping it framed for every sheet move — a second animated
+            // camera move to the same region would only cut the first short.
+            guard !holdsOpeningFraming,
+                  let id = selectedTrailId,
                   let trail = area.trails.first(where: { $0.id == id }) else {
                 return
             }
@@ -376,10 +431,14 @@ struct TrailMapView: View {
             // mode, drop back to .free so the camera doesn't
             // immediately re-engage tracking and override the
             // recenter.
+            releaseOpeningFraming()
             trackingMode = .free
             centerOnUser()
         }
         .onChange(of: trackingMode, initial: false) { _, newMode in
+            // Engaging a follow mode hands the camera to the user's position;
+            // the overview must not come back when the sheet moves.
+            if newMode != .free { releaseOpeningFraming() }
             applyTrackingMode(newMode)
         }
         // While in a tracking mode, push every new GPS sample (and
@@ -408,6 +467,10 @@ struct TrailMapView: View {
             if ended {
                 liveHaloSegments = []
                 lastLiveHaloRecomputeAt = 0
+            } else {
+                // A hike just started: the camera follows the hike from
+                // here, never the overview.
+                releaseOpeningFraming()
             }
         }
         .onChange(of: location.liveHeading) { _, _ in
@@ -419,7 +482,64 @@ struct TrailMapView: View {
             // every other screen for no benefit. Idempotent — safe
             // even when the HUD was never enabled.
             FPSCounter.shared.stop()
+            openingRefit.task?.cancel()
         }
+    }
+
+    // MARK: - Opening framing
+
+    /// How long `bottomInset` must hold still before the opening framing is
+    /// re-fit to it. On open the sheet commits its measured fit height 140 ms
+    /// after presenting (AreaView's `minHeightCommit`), and the resize that
+    /// follows reports the new inset a frame or three later still — roughly
+    /// 160–190 ms after the presented height. This window outlasts that by a
+    /// few frames, so the two heights collapse into ONE camera move instead
+    /// of two back-to-back, while still firing inside the sheet's ~400 ms
+    /// settle animation so map and sheet read as a single motion. If the
+    /// commit ever does slip past it, the cost is a second short redirect of
+    /// the in-flight animation, not a wrong frame.
+    private static let openingRefitSettle: Duration = .milliseconds(250)
+
+    /// Re-fit the opening framing to the current `bottomInset` once it has
+    /// stopped changing. Cancels any refit already waiting, so a burst of
+    /// inset changes lands one refit, `openingRefitSettle` after the last of
+    /// them. Nothing is scheduled once the camera has another owner.
+    private func scheduleOpeningRefit() {
+        openingRefit.task?.cancel()
+        guard holdsOpeningFraming else { return }
+        openingRefit.task = Task { @MainActor in
+            try? await Task.sleep(for: Self.openingRefitSettle)
+            guard !Task.isCancelled else { return }
+            reapplyOpeningFraming()
+        }
+    }
+
+    /// The framing chosen on open, recomputed for the inset the sheet has
+    /// NOW: the trail the area was opened on if there is one, else the whole
+    /// area. Re-checks the hold and the open's own preconditions at fire
+    /// time — a recording or follow mode that began during the wait, or a
+    /// gesture that released the hold, means the camera is no longer ours to
+    /// move.
+    private func reapplyOpeningFraming() {
+        guard holdsOpeningFraming, activeRecording == nil, trackingMode == .free else { return }
+        if let id = selectedTrailId,
+           let trail = area.trails.first(where: { $0.id == id }) {
+            centerOn(trail: trail)
+        } else {
+            centerOnArea()
+        }
+    }
+
+    /// The camera now belongs to something other than the opening framing:
+    /// the user's own pan / pinch, a selection, a recording, a follow mode,
+    /// or a recenter. Idempotent. Also drops any refit still waiting on the
+    /// inset, so it cannot fire over the new owner.
+    private func releaseOpeningFraming() {
+        openingRefit.task?.cancel()
+        openingRefit.task = nil
+        // Write the flag only when it changes: this runs on every pan for the
+        // rest of the appearance, and a no-op must not invalidate the view.
+        if holdsOpeningFraming { holdsOpeningFraming = false }
     }
 
     /// Set of trail ids in this area that ProgressService considers

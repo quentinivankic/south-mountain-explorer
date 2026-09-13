@@ -25,13 +25,14 @@ whole point and section 3 explains why it was fought for.
 | Thing | State |
 |---|---|
 | Verdict model (3 axes) | Settled, exercised on 11 areas across 3 morphologies |
-| Tooling | Built, on `/mnt/raid/trekdex/parking-adjud/tools/` (16 files) |
+| Tooling | Built, **in the repo** at `scripts/parking-adjud/tools/` (14 python + 2 shell + the judge protocol). Paths are env-configurable; all 14 compile ✅ |
 | Areas adjudicated | **11**, 0 reviews outstanding 📋 |
 | Distinct OSM lots with a banked verdict | **299** ✅ (`python3` count over the 4 verdict stores) |
 | Global pool the app actually serves | **30,840 lots** ✅ (ran `scripts/build-parking-pool.py`) |
 | So: fraction adjudicated | ~1% |
 | `public/areas/parking-verdicts.json` | **DOES NOT EXIST** ✅ (`ls`); nothing in the repo references it except `TASKS.md` ✅ (`grep -rn`) |
 | Colorado batch | Inputs prepared, **never run** — 261 areas / 2,090 lots ✅ (`co_areas.json`) |
+| Data | **In the repo** at `scripts/parking-adjud/data/` — 74 files, 8.2 MB ✅. Aerial tiles stay on the homelab (~91 MB, regenerable) |
 | Blocking | Nothing external. This is unblocked work. |
 | It blocks | TASKS **#51**'s containment roll and **#52**'s polygon merge 📋 |
 
@@ -256,6 +257,109 @@ trails split into ≥2 chunks ≥1 km apart. Smoking gun: "Yellow" in
 
 ---
 
+## 5b. The vision half, concretely
+
+Sections 4 and 5 give the rules. This is what actually happens at the screen.
+
+### What a judge is handed, per lot
+
+1. **The dossier row** — read it BEFORE any image, and write the prior down
+   first. `judge_protocol.md` step 0 is explicit that you may not look first and
+   then decide what the tags "must have meant".
+   - `prior`: `surveyed` or `bare`
+   - `tags_union` and per-`members` tags (a cluster can mix access values —
+     `mixed_access` flags it, and you judge the member nearest the trail)
+   - `ring` / `area_m2` — the mapped footprint
+   - serving trail, its **edge** distance, and whether it came via fallback
+   - `walk_m` and `conn` from the foot network ("no route" is a real signal)
+   - `trailhead_nodes` within 120 m, `footways_60m`, `building_overlap`
+   - the OSM context category and its evidence string
+2. **The tiles** — Z1 / Z2 / Z3, pre-rendered.
+3. **Nothing else.** No map app, no Street View. The protocol is the protocol.
+
+### What a tile looks like
+
+`z2render.py` and `ladder_tiles.py` draw, on every frame:
+
+- **red** — the lot's own mapped OSM polygon(s). Node-only lots get a 20 m red
+  circle instead.
+- **yellow with a dark casing** — every trail we ship in the region.
+- **orange rings** — every OTHER parking lot in frame, so "is there a closer lot
+  than this one" is answerable by eye.
+- a black header strip naming the fid, the rung, the half-width, and the imagery
+  source, e.g. `#1596 Z2 · 220 m · NAIP · red=lot yellow=trails`.
+
+`ne_review2.py` adds a fourth layer for the northeast:
+
+- **cyan, drawn UNDER the yellow** — hiking-relevant OSM ways we do NOT ship.
+  Cyan reaching a lot while yellow stops short is a trimmed trailhead spur
+  (lesson 7). The filter that keeps cyan meaningful is `_hike_ok`: drop
+  `piste:*`, drop bare `highway=track` without `foot=yes`, drop
+  `bicycle=designated` bike-park trails, drop sidewalk and crossing footways. ✅
+  Without that filter a ski resort renders as a field of cyan that means nothing
+  — measured at Gunstock: 189 ways, of which 74 piste and 124 MTB. 📋
+
+### Imagery endpoints, verbatim
+
+```
+NAIP  (primary)
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage
+  ?bbox={x0},{y0},{x1},{y1}&bboxSR=4326&imageSR=4326&size={PX},{PX}&format=png&f=image
+
+ESRI World Imagery  (fallback only)
+https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/export
+  ?bbox={x0},{y0},{x1},{y1}&bboxSR=4326&imageSR=4326&size={PX},{PX}&format=png&f=image
+```
+
+- `PX = 1024`. Half-widths: Z1 600 m, Z2 220 m, Z3 140 m, converted to degrees
+  with `dlat = half/111320`, `dlon = half/(111320·cos(lat))`.
+- Retry ladder per source: immediate, +6 s, +15 s. NAIP first, then ESRI.
+- **Pace at ~1 request/second minimum, 2.5 s under burst.** ESRI throttles by
+  firing fast failures and then HANGING every subsequent connection, which looks
+  like a network outage and is not one.
+- A `User-Agent` header is set (`trekdex/1.0`); requests time out at 40 s.
+
+### How a call is actually made
+
+- Read the dossier, commit to the prior.
+- Z1: name every plausible non-trail owner you can see. If you cannot name one,
+  say so — that is evidence FOR the trail explanation.
+- Z2: this resolves almost everything. Delineation, aisles, how it meets the
+  road, what is next door.
+- Z3: only for confirmation, and **mandatory** before dropping a surveyed prior
+  or keeping something Z2 did not prove with cars or stripes.
+- Evidence strength, strongest first: **parked cars > painted stripes >
+  delineated graded surface > bare clearing.** Name which you saw and in which
+  frame, or which prior carried it. The `evidence` strings in the banked verdicts
+  are the style to copy — they are specific and falsifiable, e.g.
+  `"Z3: painted stalls + 2 cars; NAIP: 5 cars"`.
+- Then write the JSON object from section 11 and nothing else.
+
+### The fan-out that is proven to work
+
+67 of the 80 New England lots were judged by **four parallel per-area
+sub-agents**, one area each. Each was handed, in its prompt: `judge_protocol.md`
+verbatim, the nine lessons, and that area's `_dossier.json`, `_serves2.json`,
+`_context.json`, `_walk.json` and rendered Z2 tiles. Each returned a
+`<slug>_verdict_draft.json` — a LIST of verdict objects. `merge_ne.py` then
+validated the schema, printed every DROP with its evidence for a human to
+eyeball, and `--write` folded them into the OSM-keyed store. 📋
+
+Verification after the fact found the agents correct: all 12 drops were
+far-fallback serves (2.1–7.3 km walks, none a close lot wrongly dropped), the 3
+surveyed-prior drops were rest areas and a ski lot dropped on serves-distance and
+NOT on canopy (lesson 8 respected), and 4 tiles were re-read by hand. 📋
+
+✅ You can see that whole review for yourself right now — `merge_ne.py` runs
+against the committed data and reprints the nine drops with their evidence and
+the path to each tile:
+
+```bash
+cd scripts/parking-adjud && PADJ_TMP=$PWD/data python3 tools/merge_ne.py
+```
+
+---
+
 ## 6. Killed ideas — do not re-propose without new evidence
 
 - **Area-first framing** (judge a lot against one area, draw a boundary). WRONG —
@@ -276,39 +380,41 @@ trails split into ≥2 chunks ≥1 km apart. Smoking gun: "Yellow" in
 
 ## 7. The pipeline — running one area end to end
 
-⚠️ **Read section 8 first. The tools will not run as-is.**
+Needs `osmium`, `shapely`, `Pillow` and the OSM extracts — so this half is
+homelab-only. See section 17 for what a non-homelab agent can still do.
 
 ```bash
-D=/mnt/raid/trekdex/parking-adjud
+cd scripts/parking-adjud
+export PADJ_TMP=$PWD/work       # tools read AND write their JSON here
 SLUG=<area-slug>                # matches public/areas/geom/<slug>.json
 
 # 1. Per-area OSM context extract (footways + context features), ~3.5 min from
 #    the national file. dossier.py and foot_route_area.py BOTH read
 #    <slug>_ctx.osm.pbf from their TMP dir, so name it exactly that.
 osmium extract --bbox=<lon0,lat0,lon1,lat1> \
-  -o $TMP/${SLUG}_ctx.osm.pbf /mnt/raid/trekdex/osm/us-latest.osm.pbf
+  -o $PADJ_TMP/${SLUG}_ctx.osm.pbf /mnt/raid/trekdex/osm/us-latest.osm.pbf
 #    bbox = the geom bbox expanded by BUF=0.06 degrees on every side.
 
 # 2. Dossier: per-lot full tags + real OSM ids + polygons + the edge-distance
 #    serves gate. Emits <slug>_dossier.json and <slug>_serves2.json.
-python3 $D/tools/dossier.py $SLUG
+python3 tools/dossier.py $SLUG
 
 # 3. Foot-network walk distance to our nearest shipped trail (Dijkstra over the
 #    walkable OSM network). Emits <slug>_walk.json and joins walk_m into the dossier.
-python3 $D/tools/foot_route_area.py $SLUG
+python3 tools/foot_route_area.py $SLUG
 
 # 4. OSM context classifier — pass the pbf path explicitly.
-python3 $D/tools/context_classify.py $SLUG $TMP/${SLUG}_ctx.osm.pbf
+python3 tools/context_classify.py $SLUG $PADJ_TMP/${SLUG}_ctx.osm.pbf
 
 # 5. Render the zoom tiles for the public-served set (NAIP primary).
-python3 $D/tools/z2render.py          # Z2 only, or ladder_tiles.py for Z1/Z2/Z3
+python3 tools/z2render.py          # Z2 only, or ladder_tiles.py for Z1/Z2/Z3
 
 # 6. JUDGE each served lot. Vision. By hand, or fan out to sub-agents each
 #    handed tools/judge_protocol.md plus the nine lessons above plus this
 #    area's dossier / serves / context / tiles. Store verdicts KEYED BY OSM ID.
 
 # 7. Artifact for human review.
-python3 $D/tools/padjart2.py $SLUG "Display Name"
+python3 tools/padjart2.py $SLUG "Display Name"
 ```
 
 Cross-area helpers:
@@ -321,62 +427,63 @@ Cross-area helpers:
 
 ---
 
-## 8. ⚠️ Resurrection — what is broken right now and how to fix it
+## 8. Paths — fixed, and what was wrong before
 
-**Every tool has a hardcoded `TMP` pointing at a directory that no longer
-exists.** ✅ (`grep -n "^TMP" tools/*.py` and `ls -d /home/quentin/.claude/jobs/a4a4c50a/tmp`)
+**This is no longer a blocker.** It is recorded because the failure shape recurs.
 
-```
-TMP="/home/quentin/.claude/jobs/a4a4c50a/tmp"     # GONE
-```
+Every tool used to hardcode `TMP="/home/quentin/.claude/jobs/a4a4c50a/tmp"` — an
+ephemeral Claude job directory that no longer exists ✅ (`ls -d`). Thirteen files
+carried it, plus both shell drivers. `run_co.sh` tried to work around it with
+`PADJ_TMP` / `PADJ_PARKING_PBF` / `PADJ_US` environment variables, but the
+`/mnt/raid` copies of the tools read no environment variable at all ✅
+(`grep -rn "PADJ_\|os.environ\|getenv"` returned nothing) — the env-aware
+versions lived only inside that wiped tmp.
 
-Affected: `dossier.py`, `foot_route_area.py`, `context_classify.py`,
-`ladder_tiles.py`, `z2render.py`, `padjart2.py`, `review_queue.py`,
-`padjudicate.py`, `serves_relative.py`, `phx_apply.py`, `make_ne_review.py`,
-`ne_review2.py`, `run_ne.sh`.
+**Fixed 2026-09-13** when the tools were graduated into `scripts/parking-adjud/`.
+Every path now resolves through an environment variable with a repo-relative
+fallback:
 
-**First action: repoint `TMP` to a working directory and copy `data/*` into it**
-(the scripts read their inputs from `TMP` and write their outputs there too).
-
-⚠️ **`run_co.sh` sets `PADJ_TMP` / `PADJ_PARKING_PBF` / `PADJ_US` environment
-variables, but the tools on `/mnt/raid` do not read any environment variable** ✅
-(`grep -rn "PADJ_\|os.environ\|getenv" tools/*.py` returns nothing). The
-env-var-aware versions of the tools lived only in the wiped job tmp and are
-**lost**. Either re-add env support (recommended — it is a 3-line change per
-tool) or edit `TMP` by hand.
-
-Other hardcoded paths, all currently valid ✅ (`ls`):
-
-| Constant | Value | Exists |
+| Variable | Default | What it is |
 |---|---|---|
-| `GEOMDIR` | `/home/quentin/south-mountain-explorer/public/areas/geom` | yes |
-| `US` (dossier) | `/mnt/raid/trekdex/osm/us-access.osm.pbf` | yes, 3.7 GB |
-| national parking pbf | `/mnt/raid/trekdex/osm/cache/parking-only.osm.pbf` | yes, 120 MB |
-| full planet-US | `/mnt/raid/trekdex/osm/us-latest.osm.pbf` | yes, 12 GB |
+| `PADJ_TMP` | `scripts/parking-adjud/work` | Working dir; tools read and write JSON here |
+| `PADJ_GEOM` | `public/areas/geom` | Shipped trail geom |
+| `PADJ_PARKING_PBF` | a region pbf in `PADJ_TMP`, else `/mnt/raid/trekdex/osm/cache/parking-only.osm.pbf` | The `amenity=parking` extract |
+| `PADJ_US` | `/mnt/raid/trekdex/osm/us-access.osm.pbf` | What per-area context is cut from |
+| `PADJ_OSM` | `/mnt/raid/trekdex/parking-adjud/osm` | Per-area `_ctx.osm.pbf` extracts |
 
-**Python dependencies are all installed** ✅ (`python3 -c "import osmium, shapely, PIL"`):
-osmium, shapely 2.0.3, Pillow 10.2.0.
+Verified ✅: all 14 python tools compile, both shell drivers pass `bash -n`, no
+file anywhere under `tools/` still names the dead directory, and `merge_ne.py`
+runs against the committed `data/` and reproduces the New England review.
+
+```bash
+cd scripts/parking-adjud && PADJ_TMP=$PWD/data python3 tools/merge_ne.py
+```
+
+Two tools still fail on their own inputs, and that is expected, not a
+regression — `serves_relative.py` and `padjudicate.py` are **superseded by
+`dossier.py`** and read pre-protocol files (`zion_ctx.json`) that were never
+carried forward. They are kept because `serves_relative.py` is the clearest
+single statement of the serves rule.
+
+### Dependencies ✅
+
+`python3 -c "import osmium, shapely, PIL"` — osmium, shapely 2.0.3, Pillow 10.2.0,
+all installed on the homelab.
 
 ### Stale warnings you can ignore
 
-📌 **The README, `TASKS.md` #53 and the auto-memory all warn that the root disk is
-at 94% with 5.7 GB free, and that a disk-full once truncated a verdict file.**
-That is **no longer true** ✅ (`df -h /`): the root filesystem is now 232 GB, 46%
-used, **121 GB free**. The habit of keeping pbfs on `/mnt/raid` is still correct
-(they are huge and belong with the other extracts), but the disk panic is over.
+📌 The raid README, `TASKS.md` #53 and the auto-memory all warn that the root disk
+is at 94% with 5.7 GB free, and that a disk-full once truncated a verdict file.
+**No longer true** ✅ (`df -h /`): 232 GB, 46% used, **121 GB free**. Keeping pbfs
+on `/mnt/raid` is still right — they are huge and belong with the other extracts
+— but the disk panic is over.
 
-📌 **The auto-memory carries a TODO: "filter cyan to hiking-relevant ways before
-reusing the overlay elsewhere."** That work is **already done** ✅ — see
-`tools/ne_review2.py::_hike_ok` (line 66), which drops ski pistes
-(`piste:*`), bare `highway=track` without `foot=yes`, `bicycle=designated`
-bike-park trails, and sidewalk/crossing footways. It is wired into the render
-path at line 108.
-
----
+📌 The auto-memory lists "filter cyan to hiking-relevant ways" as a TODO. **Already
+done** ✅ — `ne_review2.py::_hike_ok`, wired into the render path.
 
 ## 9. Tool reference
 
-All in `/mnt/raid/trekdex/parking-adjud/tools/`.
+All in `scripts/parking-adjud/tools/` (also still at `/mnt/raid/trekdex/parking-adjud/tools/`, now the stale copy).
 
 | File | Role |
 |---|---|
@@ -401,7 +508,7 @@ All in `/mnt/raid/trekdex/parking-adjud/tools/`.
 
 ## 10. Data reference
 
-All in `/mnt/raid/trekdex/parking-adjud/data/` (99 MB, 73 files) ✅.
+All in `scripts/parking-adjud/data/` — 74 files, 8.2 MB ✅. The rendered tiles are NOT in the repo; they stay at `/mnt/raid/trekdex/parking-adjud/data/<slug>_ladder/`.
 
 | File | Shape |
 |---|---|
@@ -688,8 +795,8 @@ Rocky Mountain NP 79, San Juan NF 77, Cherry Creek SP 73.
 
 ## 16. First actions for the next agent
 
-1. **Repoint `TMP`** in the tools, or add env-var support. Nothing runs until
-   this is done (section 8).
+1. ~~Repoint `TMP` in the tools~~ — **done 2026-09-13**, section 8. The tools and
+   data are in the repo and run from it.
 2. **Settle the ID question** (section 12). It determines the sidecar's shape,
    and everything downstream depends on it. Write the decision into `TASKS.md` #53.
 3. **Build the sidecar and its consumer**, copying `nonhiking-trails.json`'s shape
@@ -708,17 +815,62 @@ Rocky Mountain NP 79, San Juan NF 77, Cherry Creek SP 73.
 
 ## 17. Where everything lives
 
+### In the repo — travels with git, works on any machine
+
+| Path | What |
+|---|---|
+| `docs/parking-adjudication-handoff.md` | this document |
+| `scripts/parking-adjud/README.md` | how to run the tools |
+| `scripts/parking-adjud/tools/` | all 14 python tools, 2 shell drivers, `judge_protocol.md` |
+| `scripts/parking-adjud/data/` | every dossier, serves gate, context, walk, verdict store, `groundtruth.json`, `coverage_gaps.json`, `QUALITY_REPORT.md`, `co_areas.json` — 74 files, 8.2 MB |
+| `scripts/parking-adjud/work/` | scratch, git-ignored, created on demand |
+
+**The tools no longer hardcode anything.** Paths come from `PADJ_TMP`,
+`PADJ_GEOM`, `PADJ_PARKING_PBF`, `PADJ_US` and `PADJ_OSM`, each falling back to a
+repo-relative default. Verified: all 14 compile, and `merge_ne.py` runs against
+the committed data and reproduces the New England review. ✅
+
+### On the homelab only — too big for git, regenerable
+
+| Path | What | Size |
+|---|---|---|
+| `/mnt/raid/trekdex/parking-adjud/data/<slug>_ladder/` | rendered Z1/Z2/Z3 aerial tiles | ~91 MB |
+| `/mnt/raid/trekdex/parking-adjud/data/<slug>_ctx600/` | raw NAIP context-frame caches | included above |
+| `/mnt/raid/trekdex/parking-adjud/osm/` | per-area `_ctx.osm.pbf`, regional extracts | 182 MB |
+| `/mnt/raid/trekdex/parking-adjud/artifacts/` | the rendered review HTML pages | 35 MB |
+| `/mnt/raid/trekdex/parking-adjud/co/osm/` | Colorado: 261 per-area extracts + state pbfs | 1.2 GB |
+| `/mnt/raid/trekdex/osm/us-access.osm.pbf` | what per-area context is cut from | 3.7 GB |
+| `/mnt/raid/trekdex/osm/us-latest.osm.pbf` | full US | 12 GB |
+| `/mnt/raid/trekdex/osm/cache/parking-only.osm.pbf` | national `amenity=parking` | 120 MB |
+
+Tiles regenerate from a dossier with `z2render.py`; extracts regenerate with
+`osmium extract`. Nothing here is irreplaceable, but re-cutting the US extract is
+hours, so do not delete it casually.
+
+### What a NON-homelab agent can and cannot do
+
+**Can**, from the repo alone: read every verdict and its evidence, re-score
+against `groundtruth.json`, validate schemas, reason about the rules, design and
+build the sidecar and its consumer, and change any of the logic.
+
+**Cannot**, without the homelab: build a dossier, cut an OSM extract, compute
+foot-network walks, or render a tile — all of those need the multi-GB extracts
+and, for tiles, network access to NAIP.
+
+So: **the sidecar work (section 16 steps 2 and 3) is portable. Adjudicating new
+areas is not.**
+
+### Elsewhere in the repo
+
 | What | Where |
 |---|---|
-| Tooling, data, lessons | `/mnt/raid/trekdex/parking-adjud/` — **read its `README.md` first** |
-| Task, with full measurement history | `TASKS.md` #53 (and #51, #52, #54 which defer to it) |
-| Auto-memory | `parking-vision-adjudication.md`, plus `parking-feature.md`, `always-spatial-index.md`, `prefer-homelab-over-network.md`, `verify-before-asserting.md` |
+| Task, with measurement history | `TASKS.md` #53 (and #51, #52, #54 which defer to it) |
+| Auto-memory | `parking-vision-adjudication.md`, `parking-feature.md`, `always-spatial-index.md`, `prefer-homelab-over-network.md`, `verify-before-asserting.md` |
 | Global pool builder | `scripts/build-parking-pool.py` |
 | Parking enrichment | `scripts/add-parking.py` |
 | Sidecar precedent | `public/areas/nonhiking-trails.json` + `scripts/sweep-nonhiking-trails.py` |
 | App parking model | `ios/SouthMountainExplorer/Models/Area.swift`, `Services/ParkingPoolService.swift` |
 | R2 sync | `.github/workflows/sync-geom-to-r2.yml` |
-| Colorado batch | `/mnt/raid/trekdex/parking-adjud/co/` |
 
 ### Working rules that apply here specifically
 

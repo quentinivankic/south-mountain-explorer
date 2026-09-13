@@ -1,0 +1,1606 @@
+{
+"0": {
+"fid": 0,
+"osm": [
+"node/616391122"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z3: painted angled bays + 2 cars at the road end by the playground"
+},
+"public": {
+"call": "yes",
+"evidence": "public Brand Park; no gate"
+},
+"serves": {
+"call": "yes",
+"evidence": "Brand Gravesite Trail 866 m walk via footway; closest lot to the trail approach"
+},
+"frames_used": [
+"z1",
+"z3"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null
+},
+"12": {
+"fid": 12,
+"osm": [
+"node/4317786766"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "prior capacity=2; Z3 canopy-blind, no contradiction (dirt road passes under trees)"
+},
+"public": {
+"call": "yes",
+"evidence": "no access tag; park road"
+},
+"serves": {
+"call": "yes",
+"evidence": "Key Club Path 190 m edge / Vital Link 248 m walk; nothing else this spot could serve"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"capacity": "2"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"49": {
+"fid": 49,
+"osm": [
+"way/31271845"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: 27,094 m2 graded pad, named Stough Park & Starlight Bowl Parking"
+},
+"public": {
+"call": "yes",
+"evidence": "city park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Stough trails start at the canyon head; walk 717 m via footway"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"name": "Stough Park & Starlight Bowl Parking",
+"surface": "dirt"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"57": {
+"fid": 57,
+"osm": [
+"way/31927834"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z3: paved lot with dozens of cars inside the polygon (Brand Library)"
+},
+"public": {
+"call": "yes",
+"evidence": "public library park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Brand Gravesite Trail starts in this park; 653 m walk via footway; dual-use library+trailhead"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null
+},
+"58": {
+"fid": 58,
+"osm": [
+"way/31927856"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: long striped overflow lot, faded stripes + cars at south end"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no, park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Brand Park overflow; 709 m walk via footway; dual-use"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"87": {
+"fid": 87,
+"osm": [
+"way/38555785"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z3: graded gravel lot, ~7 cars inside polygon (Coldwater Canyon/TreePeople)"
+},
+"public": {
+"call": "yes",
+"evidence": "no gate visible"
+},
+"serves": {
+"call": "yes",
+"evidence": "Dearing Mountain Trail network; 1075 m walk < 1 mi"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null
+},
+"235": {
+"fid": 235,
+"osm": [
+"way/169035917"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "parking=multi-storey; garage strip visible"
+},
+"public": {
+"call": "yes",
+"evidence": "no access tag"
+},
+"serves": {
+"call": "no",
+"evidence": "Z1: garage row inside apartment/condo complex; walk 1793 m > 1 mi; tennis courts+apartments explain it"
+},
+"frames_used": [
+"z1"
+],
+"tags_cited": {
+"name": "South Tennis Courts",
+"parking": "multi-storey"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"335": {
+"fid": 335,
+"osm": [
+"way/228744761"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z1: dirt yard full of horse trailers"
+},
+"public": {
+"call": "yes",
+"evidence": "equestrian center grounds"
+},
+"serves": {
+"call": "no",
+"evidence": "LA Equestrian Center trailer yard; walk 1526 m; facility explains it, no trail relationship"
+},
+"frames_used": [
+"z1"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null
+},
+"339": {
+"fid": 339,
+"osm": [
+"way/229117478"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: delineated pull-in strip on park road, truck + car parked in it"
+},
+"public": {
+"call": "yes",
+"evidence": "park road, no gate"
+},
+"serves": {
+"call": "yes",
+"evidence": "Lower Old Zoo Trail edge 14 m / walk 64 m; picnic+trail access"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"parking": "street_side"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"340": {
+"fid": 340,
+"osm": [
+"way/229121972"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: tree-lined gravel bays, ~12 cars"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Coolidge Trail edge 59 m / walk 208 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"access": "yes",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"352": {
+"fid": 352,
+"osm": [
+"way/234204269"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z1: row of horse trailers inside equestrian center"
+},
+"public": {
+"call": "yes",
+"evidence": "facility grounds"
+},
+"serves": {
+"call": "no",
+"evidence": "equestrian facility explains it; nearest 'trail' is the Future LA River Bike Path (not built); walk 1446 m"
+},
+"frames_used": [
+"z1"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null
+},
+"360": {
+"fid": 360,
+"osm": [
+"way/243119013"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z3: graded pull-in lot, 5+ cars, trail enters the lot"
+},
+"public": {
+"call": "yes",
+"evidence": "open roadside lot"
+},
+"serves": {
+"call": "yes",
+"evidence": "Betty B Dearing trailhead: edge 0 m, walk 0 m, trailhead node 5 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null
+},
+"428": {
+"fid": 428,
+"osm": [
+"way/321238036"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: paved striped lot full of cars (Elysian Park)"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Portola Trail 361 m walk; park picnic+trail dual-use"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"access": "yes",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"795": {
+"fid": 795,
+"osm": [
+"way/426079344"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "parking=multi-storey; garage row visible in complex"
+},
+"public": {
+"call": "yes",
+"evidence": "unposted"
+},
+"serves": {
+"call": "no",
+"evidence": "Z1: garage inside Barham condo complex; no foot route to any trail; complex explains it"
+},
+"frames_used": [
+"z1"
+],
+"tags_cited": {
+"parking": "multi-storey"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"796": {
+"fid": 796,
+"osm": [
+"way/426079372"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "parking=multi-storey"
+},
+"public": {
+"call": "yes",
+"evidence": "unposted"
+},
+"serves": {
+"call": "no",
+"evidence": "adjacent garage row in the same condo complex; no foot route; complex explains it"
+},
+"frames_used": [
+"z1"
+],
+"tags_cited": {
+"parking": "multi-storey"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"857": {
+"fid": 857,
+"osm": [
+"way/432826890"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z3: distinct old-paved pad, car+trailer parked at south corner (Starlight Bowl area)"
+},
+"public": {
+"call": "yes",
+"evidence": "city park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Stough canyon trails; walk 739 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null
+},
+"897": {
+"fid": 897,
+"osm": [
+"way/463438685"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: mapped street-side strip on Crystal Springs Dr, cars parked in lane"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Riverside Trail edge 24 m / walk 181 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "asphalt",
+"parking": "street_side",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"903": {
+"fid": 903,
+"osm": [
+"relation/6943687"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "parking=multi-storey campus garages"
+},
+"public": {
+"call": "yes",
+"evidence": "hospital/office campus"
+},
+"serves": {
+"call": "no",
+"evidence": "Z1: freeway-side medical/office campus; walk 1808 m > 1 mi; campus explains it"
+},
+"frames_used": [
+"z1"
+],
+"tags_cited": {
+"parking": "multi-storey"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"940": {
+"fid": 940,
+"osm": [
+"way/481634398"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: paved striped lot ~30 cars (Observatory)"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=yes operator=Griffith Park \u2014 fee is not private"
+},
+"serves": {
+"call": "yes",
+"evidence": "Charlie Turner Trailhead node 45 m; Observatory Trail walk 260 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"fee": "yes",
+"operator": "Griffith Park"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"946": {
+"fid": 946,
+"osm": [
+"way/486289262"
+],
+"verdict": "REVIEW",
+"prior": "bare",
+"exists": {
+"call": "unclear",
+"evidence": "Z3: small paved pad by equestrian arena, no cars, no stripes"
+},
+"public": {
+"call": "yes",
+"evidence": "park grounds"
+},
+"serves": {
+"call": "unclear",
+"evidence": "Haskins East Flank walk 692 m via footway, but the arena may explain the pad"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": "NAIP different date, or ground check whether the pad is signed parking"
+},
+"1064": {
+"fid": 1064,
+"osm": [
+"way/536776740"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z3: small paved strip with 1 car by frontage road"
+},
+"public": {
+"call": "yes",
+"evidence": "open"
+},
+"serves": {
+"call": "no",
+"evidence": "serves the adjacent neighborhood playground; no foot route to Ridge Motorway (502 m across hillside)"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null
+},
+"1092": {
+"fid": 1092,
+"osm": [
+"relation/7835737"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: large striped complex lot, cars present"
+},
+"public": {
+"call": "yes",
+"evidence": "public sports complex"
+},
+"serves": {
+"call": "yes",
+"evidence": "Catalina Verdugo Trail edge 40 m / walk 116 m; dual-use complex+trailhead"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"1170": {
+"fid": 1170,
+"osm": [
+"way/697503474"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z1: commercial strip-mall lots behind Ventura Blvd stores"
+},
+"public": {
+"call": "yes",
+"evidence": "unposted but customer lots"
+},
+"serves": {
+"call": "no",
+"evidence": "commercial block explains it; fallback-only serve at 1253 m walk; the trail's own lot exists (fid360)"
+},
+"frames_used": [
+"z1"
+],
+"tags_cited": {
+"surface": "asphalt"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"1181": {
+"fid": 1181,
+"osm": [
+"way/702946560"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "prior capacity=10; Z3 canopy-blind, pavement fragment visible, no contradiction"
+},
+"public": {
+"call": "yes",
+"evidence": "park road head"
+},
+"serves": {
+"call": "yes",
+"evidence": "Wildwood Canyon; 321 m walk via footway"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"capacity": "10"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"1182": {
+"fid": 1182,
+"osm": [
+"way/702946561"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "prior parking=surface capacity=3; Z3 canopy-blind, paved fragment W of polygon, no contradiction"
+},
+"public": {
+"call": "yes",
+"evidence": "Wildwood Canyon park road"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 365 m via footway to Vital Link; canyon trailheads"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"parking": "surface",
+"capacity": "3"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"1285": {
+"fid": 1285,
+"osm": [
+"way/721668058"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: large delineated lot with tree islands, ~25 cars"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Riverside Trail edge 15 m / walk 65 m; trailhead node 66 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "asphalt",
+"fee": "no"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"1469": {
+"fid": 1469,
+"osm": [
+"way/793327927"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z1: small campus lot at the hospital building base"
+},
+"public": {
+"call": "yes",
+"evidence": "campus"
+},
+"serves": {
+"call": "no",
+"evidence": "medical campus explains it; walk 1730 m > 1 mi to Descanso Motorway"
+},
+"frames_used": [
+"z1"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null
+},
+"1507": {
+"fid": 1507,
+"osm": [
+"way/873365786"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: large paved double-loop lot, ~10 cars"
+},
+"public": {
+"call": "yes",
+"evidence": "operator=LA Rec & Parks"
+},
+"serves": {
+"call": "yes",
+"evidence": "West Trail edge 9 m / walk 126 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"operator": "City of Los Angeles Department of Recreation and Parks"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"1508": {
+"fid": 1508,
+"osm": [
+"way/873365787"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: two paved strips, 2 cars, partly under trees"
+},
+"public": {
+"call": "yes",
+"evidence": "operator=Griffith Park"
+},
+"serves": {
+"call": "yes",
+"evidence": "West Trail edge 94 m / walk 215 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"operator": "Griffith Park",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"1510": {
+"fid": 1510,
+"osm": [
+"way/880345479"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z3: long dirt shoulder with ~15 cars parked in a row at street end"
+},
+"public": {
+"call": "yes",
+"evidence": "open shoulder"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 707 m via footway to West Trail (Cahuenga Peak side)"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null
+},
+"1548": {
+"fid": 1548,
+"osm": [
+"way/893143713"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: mapped street-side gravel strip along Brand Park road, vehicles at east end"
+},
+"public": {
+"call": "yes",
+"evidence": "park road"
+},
+"serves": {
+"call": "yes",
+"evidence": "Beacon trails; walk 853 m via footway"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"parking": "street_side"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"1589": {
+"fid": 1589,
+"osm": [
+"way/894421430"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: small paved pull-in, 3 cars inside polygon"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Portola Trail 230 m walk via footway (Elysian Park)"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"access": "yes",
+"fee": "no"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"1594": {
+"fid": 1594,
+"osm": [
+"way/895297897"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z3: narrow paved spur off park road, 1 car at south end"
+},
+"public": {
+"call": "yes",
+"evidence": "park road"
+},
+"serves": {
+"call": "yes",
+"evidence": "Mineral Wells Trail edge 40 m / walk 84 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null
+},
+"1596": {
+"fid": 1596,
+"osm": [
+"way/895331039"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: paved widening, ~5 cars inside polygon under partial canopy (Bronson)"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Bronson Caves Trail edge 56 m; Brush Canyon Trailhead node 102 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "asphalt",
+"fee": "no"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"1597": {
+"fid": 1597,
+"osm": [
+"way/895331041"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: long dirt overflow lot along the fire road, ~2 cars"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Bronson Caves Trail 137 m edge / walk 245 m; overflow for the paved Bronson lot"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "dirt",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"1603": {
+"fid": 1603,
+"osm": [
+"way/896741459"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: paved street-side bays on Crystal Springs, cars parked"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Bird Sanctuary Loop edge 33 m; Riverside/Bird Sanctuary access"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "asphalt",
+"parking": "street_side",
+"fee": "no"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"1642": {
+"fid": 1642,
+"osm": [
+"way/907803403"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: graded dirt pad at neighborhood street end, 1-2 cars, named Elyria Canyon Trail"
+},
+"public": {
+"call": "yes",
+"evidence": "open"
+},
+"serves": {
+"call": "yes",
+"evidence": "Elyria Canyon Trail edge 1 m; trailhead node 22 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"name": "Elyria Canyon Trail",
+"surface": "unpaved"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"1697": {
+"fid": 1697,
+"osm": [
+"way/911090381"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z3: long dirt shoulder lot along the road with a row of parked cars"
+},
+"public": {
+"call": "yes",
+"evidence": "park road"
+},
+"serves": {
+"call": "yes",
+"evidence": "North Trail edge 256 m / walk 337 m; the golf/soccer complex parking here also feeds the trail"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null
+},
+"1720": {
+"fid": 1720,
+"osm": [
+"relation/12383802"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: big tree-islanded dirt lot, cars, named Lower Lot"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Fern Canyon / Old Zoo trailheads; walk 398 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"name": "Lower Lot",
+"access": "yes",
+"fee": "no"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"1721": {
+"fid": 1721,
+"osm": [
+"relation/12383803"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: large graded lot, named Upper Lot"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Fern Canyon trailhead; walk 200 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"name": "Upper Lot",
+"access": "yes",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"1722": {
+"fid": 1722,
+"osm": [
+"relation/12383804"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: 11,167 m2 lot, Merry-Go-Round Parking, cars"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Fern Canyon Trailhead node 89 m; walk 113 m; dual-use carousel+trailhead"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"operator": "Merry-Go-Round Parking",
+"access": "yes",
+"fee": "no"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"1723": {
+"fid": 1723,
+"osm": [
+"way/912577531"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: dirt lot packed with ~40 cars by the LA River bridge"
+},
+"public": {
+"call": "yes",
+"evidence": "open"
+},
+"serves": {
+"call": "yes",
+"evidence": "Rattlesnake Trail edge 16 m / walk 30 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"surface": "unpaved"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"1725": {
+"fid": 1725,
+"osm": [
+"way/912577538"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: fenced dirt yard full of RVs, trailers, trucks and structures by the 5-freeway"
+},
+"public": {
+"call": "unclear",
+"evidence": "access=permissive but reads as a storage/maintenance yard"
+},
+"serves": {
+"call": "no",
+"evidence": "equipment/RV storage yard; the real trailhead lot is the separate car lot just S (fid1723)"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"access": "permissive",
+"surface": "unpaved"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"1728": {
+"fid": 1728,
+"osm": [
+"way/912987982"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: small paved pad at the West Trail road junction, one vehicle"
+},
+"public": {
+"call": "yes",
+"evidence": "park road"
+},
+"serves": {
+"call": "yes",
+"evidence": "West Trail edge 25 m / walk 22 m; trail access pad"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"parking": "street_side"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"1835": {
+"fid": 1835,
+"osm": [
+"way/1042520720"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: dirt overflow pad with 2 cars beside a paved striped lot"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Oak Canyon / Skyline trails edge 44 m / walk 63 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"1899": {
+"fid": 1899,
+"osm": [
+"way/1152606444"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: large graded dirt lot (empty on capture) by the 5-freeway; empty!=absent"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Coolidge Trail edge 204 m / walk 285 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"access": "yes",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"1914": {
+"fid": 1914,
+"osm": [
+"way/1199329096"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z3: large paved lot beside the golf course with a restroom structure"
+},
+"public": {
+"call": "yes",
+"evidence": "park lot"
+},
+"serves": {
+"call": "yes",
+"evidence": "Vital Link Trail edge 5 m / walk 110 m"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null
+},
+"1929": {
+"fid": 1929,
+"osm": [
+"way/1238465329"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: mapped street-side strip along the park boulevard, cars parked"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no park road"
+},
+"serves": {
+"call": "yes",
+"evidence": "Cadman Trail edge 191 m / walk 396 m; park roadside parking"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"parking": "street_side",
+"fee": "no"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"1944": {
+"fid": 1944,
+"osm": [
+"way/1240203570"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3+NAIP: thin graded dirt strip beside the Mineral Wells trail/road, no positive contradiction"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Bill Eckert / Mineral Wells; walk 42 m via footway"
+},
+"frames_used": [
+"z3",
+"z3_naip"
+],
+"tags_cited": {
+"fee": "no"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"1945": {
+"fid": 1945,
+"osm": [
+"way/1240203571"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "NAIP: tan graded dirt pull-in at the trail junction"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Lower Old Zoo / Mineral Wells; walk 16 m"
+},
+"frames_used": [
+"z3",
+"z3_naip"
+],
+"tags_cited": {
+"fee": "no"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"1946": {
+"fid": 1946,
+"osm": [
+"way/1240203574"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3+NAIP: graded pull-in on the Mineral Wells Dr shoulder"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Abandoned Pool Trail; walk 30 m"
+},
+"frames_used": [
+"z3",
+"z3_naip"
+],
+"tags_cited": {
+"surface": "dirt",
+"fee": "no"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"2018": {
+"fid": 2018,
+"osm": [
+"way/1263111348"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: large dirt clearing at the fire-road switchback"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "Condor Trail edge 16 m / walk 41 m; trailhead pullout"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"surface": "dirt",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"2159": {
+"fid": 2159,
+"osm": [
+"way/1363447410"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z3: bare dirt vacant lot inside a dense Hollywood residential block"
+},
+"public": {
+"call": "yes",
+"evidence": "informal"
+},
+"serves": {
+"call": "no",
+"evidence": "urban block explains it; East Trail 1016 m walk, its own lots exist nearer"
+},
+"frames_used": [
+"z1",
+"z3"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null
+},
+"2252": {
+"fid": 2252,
+"osm": [
+"way/1456610633"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z3: very large paved striped lot, hundreds of stalls (rec/golf complex)"
+},
+"public": {
+"call": "yes",
+"evidence": "public complex"
+},
+"serves": {
+"call": "yes",
+"evidence": "Vital Link Trail edge 287 m / walk 543 m; dual-use complex+trailhead"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {},
+"confidence": "certain",
+"resolve_hint": null
+},
+"2259": {
+"fid": 2259,
+"osm": [
+"relation/20224434"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z3: paved trailhead loop with marked stalls and cars, top of the fire road"
+},
+"public": {
+"call": "yes",
+"evidence": "access=permissive"
+},
+"serves": {
+"call": "yes",
+"evidence": "Verdugo Motorway trailhead (fallback 921 m edge; this IS its lot)"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {
+"access": "permissive",
+"surface": "asphalt"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"2260": {
+"fid": 2260,
+"osm": [
+"relation/20228407"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z1: paved striped lot with cars at the golf course / driving range"
+},
+"public": {
+"call": "yes",
+"evidence": "open"
+},
+"serves": {
+"call": "no",
+"evidence": "golf/driving-range lot; fallback-only at 1722 m edge; facility explains it better"
+},
+"frames_used": [
+"z1"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": "street check whether it doubles as the La Tuna Canyon trailhead"
+},
+"2326": {
+"fid": 2326,
+"osm": [
+"way/1493519438"
+],
+"verdict": "REVIEW",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z3: real paved lot with rows of cars"
+},
+"public": {
+"call": "yes",
+"evidence": "unposted"
+},
+"serves": {
+"call": "unclear",
+"evidence": "dense Tujunga commercial/residential block; Trebek Open Space Trail 974 m \u2014 unclear if public trail parking or a business lot"
+},
+"frames_used": [
+"z3"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": "street-level / signage check: is it public open-space parking or a shared commercial lot"
+}
+}

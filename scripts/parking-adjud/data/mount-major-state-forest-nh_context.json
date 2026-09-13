@@ -1,0 +1,338 @@
+{
+"0": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Kimball Wildlife Forest'",
+"fac_area_m": null,
+"fac_label": null
+},
+"1": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Quarry Mountain Forest'",
+"fac_area_m": null,
+"fac_label": null
+},
+"2": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Belknap Mountain State Forest'",
+"fac_area_m": null,
+"fac_label": null
+},
+"3": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Belknap Mountain State Forest'",
+"fac_area_m": null,
+"fac_label": null
+},
+"4": {
+"category": "PARK",
+"evidence": "in leisure=park 'Gunstock Mountain Resort' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"5": {
+"category": "SUPPORT",
+"evidence": "in tourism=camp_site",
+"fac_area_m": null,
+"fac_label": null
+},
+"6": {
+"category": "PARK",
+"evidence": "in leisure=park 'Gunstock Mountain Resort' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"7": {
+"category": "FACILITY",
+"evidence": "17 m from amenity=restaurant",
+"fac_area_m": null,
+"fac_label": null
+},
+"8": {
+"category": "FACILITY",
+"evidence": "11 m from amenity=cinema 'Cinema 8'",
+"fac_area_m": 11,
+"fac_label": "amenity=cinema"
+},
+"9": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"10": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"11": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"12": {
+"category": "FACILITY",
+"evidence": "4 m from shop=convenience 'Corner Deli'",
+"fac_area_m": 4,
+"fac_label": "shop=convenience"
+},
+"13": {
+"category": "FACILITY",
+"evidence": "16 m from building=apartments",
+"fac_area_m": 16,
+"fac_label": "building=apartments"
+},
+"14": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"15": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"16": {
+"category": "FACILITY",
+"evidence": "71 m from leisure=sports_centre 'Gunstock Mountain Resort'",
+"fac_area_m": null,
+"fac_label": null
+},
+"17": {
+"category": "SUPPORT",
+"evidence": "2 m from tourism=information",
+"fac_area_m": null,
+"fac_label": null
+},
+"18": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=restaurant 'Sawyer's Dairy Bar & Restaurant'",
+"fac_area_m": 0,
+"fac_label": "amenity=restaurant"
+},
+"19": {
+"category": "FACILITY",
+"evidence": "5 m from building=apartments",
+"fac_area_m": 5,
+"fac_label": "building=apartments"
+},
+"20": {
+"category": "FACILITY",
+"evidence": "65 m from amenity=restaurant 'Pop's Clam Shell'",
+"fac_area_m": null,
+"fac_label": null
+},
+"21": {
+"category": "FACILITY",
+"evidence": "51 m from office=flight_training 'Laconia Flight Academy'",
+"fac_area_m": 57,
+"fac_label": "office=fixed_base_operator"
+},
+"22": {
+"category": "FACILITY",
+"evidence": "0 m from building=commercial",
+"fac_area_m": 0,
+"fac_label": "building=commercial"
+},
+"23": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"24": {
+"category": "FACILITY",
+"evidence": "72 m from building=commercial",
+"fac_area_m": 72,
+"fac_label": "building=commercial"
+},
+"25": {
+"category": "FACILITY",
+"evidence": "5 m from building=commercial",
+"fac_area_m": 5,
+"fac_label": "building=commercial"
+},
+"26": {
+"category": "FACILITY",
+"evidence": "81 m from leisure=pitch 'Little Fenway'",
+"fac_area_m": 81,
+"fac_label": "leisure=pitch"
+},
+"27": {
+"category": "FACILITY",
+"evidence": "40 m from leisure=pitch",
+"fac_area_m": 40,
+"fac_label": "leisure=pitch"
+},
+"28": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Alton Town Forest'",
+"fac_area_m": null,
+"fac_label": null
+},
+"29": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Patrick's Place'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"30": {
+"category": "FACILITY",
+"evidence": "44 m from amenity=place_of_worship Gilford Community Church 'Gilford Community Church'",
+"fac_area_m": 44,
+"fac_label": "amenity=place_of_worship Gilford Community Church"
+},
+"31": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Belknap Mountain State Forest'",
+"fac_area_m": null,
+"fac_label": null
+},
+"32": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"33": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"34": {
+"category": "FACILITY",
+"evidence": "10 m from building=commercial",
+"fac_area_m": 10,
+"fac_label": "building=commercial"
+},
+"35": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"36": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"37": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"38": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 208,
+"fac_label": "landuse=industrial"
+},
+"39": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"40": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"41": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"42": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"43": {
+"category": "FACILITY",
+"evidence": "120 m from shop=music 'Bank of New Hampshire Pavilion Box Office'",
+"fac_area_m": null,
+"fac_label": null
+},
+"44": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"45": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"46": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"47": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'John M. & Eileen R. Weeks Conservation Area'",
+"fac_area_m": null,
+"fac_label": null
+},
+"48": {
+"category": "SUPPORT",
+"evidence": "in tourism=camp_site 'Hidden Valley'",
+"fac_area_m": 83,
+"fac_label": "amenity=theatre"
+},
+"49": {
+"category": "SUPPORT",
+"evidence": "in tourism=camp_site 'Hidden Valley'",
+"fac_area_m": null,
+"fac_label": null
+},
+"50": {
+"category": "FACILITY",
+"evidence": "3 m from building=school",
+"fac_area_m": 3,
+"fac_label": "building=school"
+},
+"51": {
+"category": "PARK",
+"evidence": "in leisure=park 'Gunstock Mountain Resort' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"52": {
+"category": "PARK",
+"evidence": "in leisure=park 'Gunstock Mountain Resort' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"53": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Gilford Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"54": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Gilford Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"55": {
+"category": "FACILITY",
+"evidence": "25 m from building=school",
+"fac_area_m": 25,
+"fac_label": "building=school"
+}
+}

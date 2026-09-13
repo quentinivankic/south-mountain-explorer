@@ -1,0 +1,302 @@
+{
+"0": {
+"served": false
+},
+"1": {
+"served": true,
+"trail": "Old Halfway House Trail",
+"dist_m": 44,
+"fallback": false,
+"n": 16
+},
+"2": {
+"served": false
+},
+"3": {
+"served": false
+},
+"4": {
+"served": false
+},
+"5": {
+"served": true,
+"trail": "Eastview Trail",
+"dist_m": 226,
+"fallback": false,
+"n": 3
+},
+"6": {
+"served": true,
+"trail": "Birchtoft Trail",
+"dist_m": 881,
+"fallback": true,
+"n": 2
+},
+"7": {
+"served": true,
+"trail": "Dublin Trai",
+"dist_m": 0,
+"fallback": false,
+"n": 3
+},
+"8": {
+"served": false
+},
+"9": {
+"served": false
+},
+"10": {
+"served": false
+},
+"11": {
+"served": false
+},
+"12": {
+"served": false
+},
+"13": {
+"served": false
+},
+"14": {
+"served": false
+},
+"15": {
+"served": false
+},
+"16": {
+"served": false
+},
+"17": {
+"served": false
+},
+"18": {
+"served": false
+},
+"19": {
+"served": true,
+"trail": "Parker Trail",
+"dist_m": 179,
+"fallback": false,
+"n": 19
+},
+"20": {
+"served": true,
+"trail": "Parker Trail",
+"dist_m": 88,
+"fallback": false,
+"n": 8
+},
+"21": {
+"served": false
+},
+"22": {
+"served": true,
+"trail": "Sandy Beach Path",
+"dist_m": 1,
+"fallback": false,
+"n": 1
+},
+"23": {
+"served": false
+},
+"24": {
+"served": false
+},
+"25": {
+"served": true,
+"trail": "Monadnock Recreational Rail Trail",
+"dist_m": 2232,
+"fallback": true,
+"n": 1
+},
+"26": {
+"served": false
+},
+"27": {
+"served": false
+},
+"28": {
+"served": false
+},
+"29": {
+"served": true,
+"trail": "Little Monadnock Trail",
+"dist_m": 3523,
+"fallback": true,
+"n": 1
+},
+"30": {
+"served": true,
+"trail": "Jaquith Rail Trail",
+"dist_m": 3973,
+"fallback": true,
+"n": 1
+},
+"31": {
+"served": true,
+"trail": "Marlboro Trail",
+"dist_m": 36,
+"fallback": false,
+"n": 10
+},
+"32": {
+"served": false
+},
+"33": {
+"served": true,
+"trail": "Birchtoft Trail",
+"dist_m": 1536,
+"fallback": true,
+"n": 1
+},
+"34": {
+"served": false
+},
+"35": {
+"served": false
+},
+"36": {
+"served": false
+},
+"37": {
+"served": false
+},
+"38": {
+"served": false
+},
+"39": {
+"served": false
+},
+"40": {
+"served": false
+},
+"41": {
+"served": false
+},
+"42": {
+"served": false
+},
+"43": {
+"served": false
+},
+"44": {
+"served": false
+},
+"45": {
+"served": false
+},
+"46": {
+"served": false
+},
+"47": {
+"served": false
+},
+"48": {
+"served": false
+},
+"49": {
+"served": false
+},
+"50": {
+"served": false
+},
+"51": {
+"served": false
+},
+"52": {
+"served": false
+},
+"53": {
+"served": false
+},
+"54": {
+"served": false
+},
+"55": {
+"served": false
+},
+"56": {
+"served": false
+},
+"57": {
+"served": false
+},
+"58": {
+"served": false
+},
+"59": {
+"served": false
+},
+"60": {
+"served": false
+},
+"61": {
+"served": false
+},
+"62": {
+"served": false
+},
+"63": {
+"served": false
+},
+"64": {
+"served": false
+},
+"65": {
+"served": false
+},
+"66": {
+"served": false
+},
+"67": {
+"served": false
+},
+"68": {
+"served": true,
+"trail": "Monadnock Recreational Rail Trail",
+"dist_m": 2505,
+"fallback": true,
+"n": 1
+},
+"69": {
+"served": false
+},
+"70": {
+"served": false
+},
+"71": {
+"served": false
+},
+"72": {
+"served": false
+},
+"73": {
+"served": false
+},
+"74": {
+"served": false
+},
+"75": {
+"served": false
+},
+"76": {
+"served": true,
+"trail": "Pumpelly Trail",
+"dist_m": 2203,
+"fallback": true,
+"n": 1
+},
+"77": {
+"served": false
+},
+"78": {
+"served": false
+},
+"79": {
+"served": true,
+"trail": "Little Monadnock Trail",
+"dist_m": 4039,
+"fallback": true,
+"n": 1
+}
+}

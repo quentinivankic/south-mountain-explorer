@@ -1,0 +1,338 @@
+{
+"0": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"1": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"2": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Crawford Notch State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"3": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"4": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"5": {
+"category": "FACILITY",
+"evidence": "63 m from shop=gift",
+"fac_area_m": null,
+"fac_label": null
+},
+"6": {
+"category": "FACILITY",
+"evidence": "71 m from building=commercial",
+"fac_area_m": 71,
+"fac_label": "building=commercial"
+},
+"7": {
+"category": "FACILITY",
+"evidence": "32 m from shop=gift",
+"fac_area_m": null,
+"fac_label": null
+},
+"8": {
+"category": "SUPPORT",
+"evidence": "86 m from amenity=drinking_water",
+"fac_area_m": null,
+"fac_label": null
+},
+"9": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"10": {
+"category": "FACILITY",
+"evidence": "72 m from shop=gift 'Summit Stage Office'",
+"fac_area_m": 72,
+"fac_label": "shop=gift"
+},
+"11": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"12": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"13": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"14": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"15": {
+"category": "SUPPORT",
+"evidence": "40 m from tourism=information",
+"fac_area_m": null,
+"fac_label": null
+},
+"16": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Crawford Notch State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"17": {
+"category": "SUPPORT",
+"evidence": "23 m from tourism=information",
+"fac_area_m": null,
+"fac_label": null
+},
+"18": {
+"category": "SUPPORT",
+"evidence": "11 m from tourism=information",
+"fac_area_m": null,
+"fac_label": null
+},
+"19": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Crawford Notch State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"20": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Crawford Notch State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"21": {
+"category": "SUPPORT",
+"evidence": "in tourism=picnic_site 'Eisenhower Memorial Area'",
+"fac_area_m": null,
+"fac_label": null
+},
+"22": {
+"category": "SUPPORT",
+"evidence": "19 m from leisure=picnic_table",
+"fac_area_m": null,
+"fac_label": null
+},
+"23": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"24": {
+"category": "FACILITY",
+"evidence": "41 m from leisure=golf_course 'Mount Pleasant Course'",
+"fac_area_m": 41,
+"fac_label": "leisure=golf_course"
+},
+"25": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 240,
+"fac_label": "leisure=golf_course"
+},
+"26": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 318,
+"fac_label": "leisure=golf_course"
+},
+"27": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 232,
+"fac_label": "leisure=golf_course"
+},
+"28": {
+"category": "FACILITY",
+"evidence": "54 m from tourism=hotel 'Omni Bretton Arms Inn'",
+"fac_area_m": 54,
+"fac_label": "tourism=hotel"
+},
+"29": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Crawford Notch State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"30": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Crawford Notch State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"31": {
+"category": "SUPPORT",
+"evidence": "in tourism=picnic_site 'Zealand Picnic Area'",
+"fac_area_m": null,
+"fac_label": null
+},
+"32": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Crawford Notch State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"33": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Crawford Notch State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"34": {
+"category": "FACILITY",
+"evidence": "79 m from leisure=golf_course 'Mount Pleasant Course'",
+"fac_area_m": 79,
+"fac_label": "leisure=golf_course"
+},
+"35": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"36": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"37": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"38": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"39": {
+"category": "FACILITY",
+"evidence": "84 m from leisure=pitch",
+"fac_area_m": 84,
+"fac_label": "leisure=pitch"
+},
+"40": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"41": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"42": {
+"category": "PARK",
+"evidence": "in leisure=park 'Mount Washington State Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"43": {
+"category": "FACILITY",
+"evidence": "10 m from shop=gift 'Summit Stage Office'",
+"fac_area_m": 10,
+"fac_label": "shop=gift"
+},
+"44": {
+"category": "PARK",
+"evidence": "in leisure=park 'Mount Washington State Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"45": {
+"category": "PARK",
+"evidence": "in leisure=park 'Mount Washington State Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"46": {
+"category": "PARK",
+"evidence": "in leisure=park 'Mount Washington State Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"47": {
+"category": "SUPPORT",
+"evidence": "59 m from landmark",
+"fac_area_m": null,
+"fac_label": null
+},
+"48": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"49": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Crawford Notch State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"50": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"51": {
+"category": "FACILITY",
+"evidence": "84 m from amenity=fire_station 'Twin Mountain Fire Department'",
+"fac_area_m": null,
+"fac_label": null
+},
+"52": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'Mount Washington Course'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"53": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Crawford Notch State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"54": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Crawford Ridge Townhomes'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"55": {
+"category": "FACILITY",
+"evidence": "47 m from shop=gift",
+"fac_area_m": null,
+"fac_label": null
+}
+}

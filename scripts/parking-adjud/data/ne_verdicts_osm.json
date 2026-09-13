@@ -1,0 +1,2517 @@
+{
+"node/1305712093": {
+"osm": [
+"node/1305712093"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"area": "monadnock-reservation-nh",
+"exists": {
+"call": "yes",
+"evidence": "Z2: small dirt pull-off at a woods-road junction, trail 44 m NE"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Old Toll Road trailhead pull-off; walk 2770 m is a routing/coverage artifact"
+},
+"tags_cited": {
+"name": "Mt Monadnock Old Toll Road Parking",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"coverage_gap": true,
+"src": "opus-ne"
+},
+"way/134470463": {
+"osm": [
+"way/134470463"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"area": "monadnock-reservation-nh",
+"exists": {
+"call": "yes",
+"evidence": "Z2: distinct gravel lot, the trail starts at its SW corner"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Dublin Trailhead \u2014 trail starts at the lot"
+},
+"tags_cited": {
+"name": "Dublin Trailhead",
+"parking": "surface"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"coverage_gap": false,
+"src": "opus-ne"
+},
+"way/288247342": {
+"osm": [
+"way/288247342"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"area": "monadnock-reservation-nh",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large paved lot full of cars, marked stalls"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Monadnock State Park HQ lot (White Dot/Cross), walk 360 m"
+},
+"tags_cited": {
+"name": "Mt Monadnock Park Headquarters parking",
+"surface": "gravel",
+"parking": "surface",
+"fee": "yes"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"coverage_gap": false,
+"src": "opus-ne"
+},
+"way/432555495": {
+"osm": [
+"way/432555495"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"area": "monadnock-reservation-nh",
+"exists": {
+"call": "yes",
+"evidence": "mapped parking polygon at the trail junction (clearing visible)"
+},
+"public": {
+"call": "yes",
+"evidence": "open"
+},
+"serves": {
+"call": "yes",
+"evidence": "our shipped Sandy Beach Path (yellow) arrives at 1 m"
+},
+"tags_cited": {
+"surface": "gravel",
+"parking": "lane",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"coverage_gap": false,
+"src": "opus-ne",
+"fid": 22
+},
+"way/647443658": {
+"osm": [
+"way/647443658"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"area": "monadnock-reservation-nh",
+"exists": {
+"call": "yes",
+"evidence": "Z2: small clearing by a mobile-home park / residential"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "no",
+"evidence": "'Childrens Woods Carey Park' \u2014 a different neighbourhood park, 2.2 km from Monadnock trails"
+},
+"tags_cited": {
+"name": "Childrens Woods Carey Park"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"coverage_gap": false,
+"src": "opus-ne"
+},
+"way/859061511": {
+"osm": [
+"way/859061511"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"area": "monadnock-reservation-nh",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved lot beside a community centre + ball field"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "no",
+"evidence": "town community-centre lot, 3.5 km from Monadnock trails"
+},
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"coverage_gap": false,
+"src": "opus-ne"
+},
+"way/897171108": {
+"osm": [
+"way/897171108"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"area": "monadnock-reservation-nh",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large dirt trailhead lot with an info kiosk (tourism=information 14 m) by a wash"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Jaquith Rail Trail trailhead; our rail-trail geom is a short fragment 4 km off \u2014 coverage gap"
+},
+"tags_cited": {
+"surface": "unpaved",
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"coverage_gap": true,
+"src": "opus-ne"
+},
+"way/1507563904": {
+"osm": [
+"way/1507563904"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"area": "monadnock-reservation-nh",
+"exists": {
+"call": "yes",
+"evidence": "Z2: roadside pull-off on Dublin Lake Rd (tiny, informal)"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Pumpelly Trail Parking \u2014 the named Pumpelly trailhead; our Pumpelly geom ends 2.2 km short \u2014 coverage gap"
+},
+"tags_cited": {
+"name": "Pumpelly Trail Parking",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"coverage_gap": true,
+"src": "opus-ne"
+},
+"node/12312546500": {
+"osm": [
+"node/12312546500"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"area": "monadnock-reservation-nh",
+"exists": {
+"call": "yes",
+"evidence": "surveyed parking node under leaf-on canopy; cyan trail present, no positive contradiction (lesson #8 \u2014 don't penalize canopy). Softest of the five."
+},
+"public": {
+"call": "yes",
+"evidence": "open"
+},
+"serves": {
+"call": "yes",
+"evidence": "Eastview Trail at hand (cyan through the frame)"
+},
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"coverage_gap": false,
+"src": "opus-ne",
+"fid": 5
+},
+"way/133576343": {
+"osm": [
+"way/133576343"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"area": "monadnock-reservation-nh",
+"exists": {
+"call": "yes",
+"evidence": "Z2: small paved/gravel lot with 2 cars beside the state-park field"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "in Monadnock State Park, walk 1196 m (overflow range)"
+},
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"coverage_gap": false,
+"src": "opus-ne"
+},
+"way/288247344": {
+"osm": [
+"way/288247344"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"area": "monadnock-reservation-nh",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large gravel park lot (overflow) with a car, by the HQ field"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Monadnock State Park lot, fee=yes, walk 279 m"
+},
+"tags_cited": {
+"surface": "gravel",
+"parking": "surface",
+"fee": "yes"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"coverage_gap": false,
+"src": "opus-ne"
+},
+"way/952505904": {
+"osm": [
+"way/952505904"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"area": "monadnock-reservation-nh",
+"exists": {
+"call": "yes",
+"evidence": "mapped parking polygon; cyan trail runs through it"
+},
+"public": {
+"call": "yes",
+"evidence": "open"
+},
+"serves": {
+"call": "yes",
+"evidence": "Marlboro Trail 36 m (yellow just east); Marlboro trailhead"
+},
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"coverage_gap": false,
+"src": "opus-ne",
+"fid": 31
+},
+"way/1327127288": {
+"osm": [
+"way/1327127288"
+],
+"verdict": "DROP",
+"prior": "bare",
+"area": "monadnock-reservation-nh",
+"exists": {
+"call": "yes",
+"evidence": "Z2: parking rows serving a condo/townhouse complex (+ basketball/tennis)"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "no",
+"evidence": "residential-complex parking, 2.5 km from any trail, no route"
+},
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"coverage_gap": false,
+"src": "opus-ne"
+},
+"node/5814874288": {
+"fid": 0,
+"osm": [
+"node/5814874288"
+],
+"area": "grafton-notch-state-park-me",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "Step Falls Trail (yellow) descends to and terminates at the marker; tile shows a small clearing with a white vehicle plus a dirt drive down to the road and a tan gravel pull-off just SE \u2014 Step Falls Preserve trailhead."
+},
+"public": {
+"call": "yes",
+"evidence": "No restrictive access tags; TNC Step Falls Preserve public trailhead, context=SUPPORT (in nature_reserve 'Step Falls Preserve')."
+},
+"serves": {
+"call": "yes",
+"evidence": "served=true, Step Falls Trail dist_m=0, walk_m=0, non-fallback \u2014 trail starts at the lot."
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"node/5897812888": {
+"fid": 1,
+"osm": [
+"node/5897812888"
+],
+"area": "grafton-notch-state-park-me",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded roadside lot with parked cars (Z2 + Google)"
+},
+"public": {
+"call": "yes",
+"evidence": "open roadside trailhead lot, no access restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "User+Google: this is 'Grafton Loop Trailhead East'. Served only via 1265 m fallback because our Grafton Loop Trail geom is clipped ~1.6 km short of its eastern trailhead."
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"coverage_gap": "Grafton Loop Trail geom clipped ~1.6 km short of its eastern trailhead (Bear River Rd)"
+},
+"node/5912066241": {
+"fid": 2,
+"osm": [
+"node/5912066241"
+],
+"area": "grafton-notch-state-park-me",
+"prior": "bare",
+"verdict": "DROP",
+"exists": {
+"call": "unsure",
+"evidence": "Marker sits on a road bridge/culvert over a river; no parking footprint visible within the circle \u2014 the light area SW is a river gravel bar, not a lot."
+},
+"public": {
+"call": "unsure",
+"evidence": "No tags; nothing to assess."
+},
+"serves": {
+"call": "no",
+"evidence": "Nearest trail is Grafton Loop Trail via fallback at dist_m=3956; walk_m=7250 (~4.5 mi), no trailhead node, context=NEUTRAL \u2014 far beyond the 1-mile cutoff with no trailhead signal."
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/243581117": {
+"fid": 5,
+"osm": [
+"way/243581117"
+],
+"area": "grafton-notch-state-park-me",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "Red outline traces a large elongated graded lot with parked cars (white specks) visible \u2014 leaf-off tile, unambiguous parking surface."
+},
+"public": {
+"call": "yes",
+"evidence": "No restrictive access tags; in Grafton Notch State Park (context=SUPPORT), the Old Speck / Appalachian Trail trailhead lot."
+},
+"serves": {
+"call": "yes",
+"evidence": "served=true, Old Speck Trail (yellow) connects directly to the lot's east end, dist_m=0, walk_m=43, trailhead node present ([[34]])."
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"source": "Bing"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/244102591": {
+"fid": 6,
+"osm": [
+"way/244102591"
+],
+"area": "grafton-notch-state-park-me",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "Red outline traces a clear kidney-shaped graded gravel lot beside Route 26 (leaf-off tile); surveyed prior (parking=surface + name)."
+},
+"public": {
+"call": "yes",
+"evidence": "Named state-park lot 'Moose Cave', no restrictive tags, in Grafton Notch State Park (context=SUPPORT)."
+},
+"serves": {
+"call": "yes",
+"evidence": "served=true, Table Rock Trail dist_m=525 non-fallback; named Grafton Notch SP attraction/trailhead lot (Moose Cave / Mother Walker Falls)."
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Moose Cave",
+"parking": "surface"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/730327047": {
+"fid": 17,
+"osm": [
+"way/730327047"
+],
+"area": "grafton-notch-state-park-me",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "Small clearing with a dark vehicle visible under leaf-on canopy; surveyed prior (parking=surface + operator) carries it."
+},
+"public": {
+"call": "yes",
+"evidence": "operator=Maine Bureau of Parks and Lands, no restrictive tags, in Mahoosuc Public Reserved Land (context=SUPPORT)."
+},
+"serves": {
+"call": "yes",
+"evidence": "served=true, Wright Trail dist_m=58, walk_m=66 non-fallback \u2014 trailhead lot for the Wright Trail."
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"operator": "Maine Bureau of Parks and Lands",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"node/340120145": {
+"fid": 1,
+"osm": [
+"node/340120145"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "small clearing/gap in canopy inside red circle where a yellow trail begins at its lower edge; consistent with a forest trailhead pull-off"
+},
+"public": {
+"call": "yes",
+"evidence": "inside leisure=nature_reserve 'Camel's Hump State Park' (context SUPPORT), no access restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "Camels Hump View Trail 16 m, non-fallback; walk 7 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"node/3065414660": {
+"fid": 2,
+"osm": [
+"node/3065414660"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "surveyed",
+"verdict": "DROP",
+"exists": {
+"call": "yes",
+"evidence": "interstate rest-area parking with marked angled stalls and parked cars visible in/beside circle"
+},
+"public": {
+"call": "yes",
+"evidence": "public I-89 rest area, no access restriction"
+},
+"serves": {
+"call": "no",
+"evidence": "only a fallback serve to Woodward Ski Trail at 2509 m (>1609); no route (walk null); name 'Rest Area I-89 (North Bound)', no trailhead node, context NEUTRAL \u2014 highway rest area, not a park trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Rest Area I-89 (North Bound)"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"node/4770301126": {
+"fid": 3,
+"osm": [
+"node/4770301126"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "gravel/dirt pull-off clearing beside the road and river, visible bare graded surface where the yellow Long Trail meets it"
+},
+"public": {
+"call": "yes",
+"evidence": "inside nature_reserve 'Camel's Hump State Park' (context SUPPORT), roadside, no restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "Long Trail 11 m, non-fallback; walk 0 m \u2014 Long Trail crossing trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"node/9128369620": {
+"fid": 4,
+"osm": [
+"node/9128369620"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded clearing visible in the circle; Forest City Trail (cyan) arrives at the pull-off"
+},
+"public": {
+"call": "yes",
+"evidence": "open trailhead pull-off"
+},
+"serves": {
+"call": "yes",
+"evidence": "Forest City Trail 188 m, trail reaches the lot"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"node/10038109178": {
+"fid": 5,
+"osm": [
+"node/10038109178"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "street-side pull-off along Notch Road, road/graded surface visible in circle; surveyed prior (surface=unpaved, parking=street_side)"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes, fee=no explicit"
+},
+"serves": {
+"call": "yes",
+"evidence": "Preston Pond Loop Cutoff 609 m non-fallback; walk 16 m; yellow trail passes just below circle"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"fee": "no",
+"parking": "street_side",
+"name": "Bolton Upper West parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"node/10161918927": {
+"fid": 7,
+"osm": [
+"node/10161918927"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "cars clearly parked along the roadside pull-off inside the circle"
+},
+"public": {
+"call": "yes",
+"evidence": "inside nature_reserve 'Camels Hump State Forest' (context SUPPORT), no restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "trailhead node [Jerusalem Trailhead] and Jerusalem Trail 52 m non-fallback; walk 35 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Jerusalem Trail Parking"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"node/11413622244": {
+"fid": 8,
+"osm": [
+"node/11413622244"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "lighter graded widening/clearing beside the forest road within the circle, consistent with a small pull-off"
+},
+"public": {
+"call": "yes",
+"evidence": "forest road, no gate or single-house driveway, no access restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "Jake trail 731 m non-fallback; walk 1310 m (<1609)"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"node/11936023306": {
+"fid": 9,
+"osm": [
+"node/11936023306"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "gravel drive/pull-off visible in circle; surveyed prior (capacity=2, operator)"
+},
+"public": {
+"call": "yes",
+"evidence": "operator=Town of Bolton, inside 'Preston Pond Conservation Area' (context SUPPORT) \u2014 public conservation lot"
+},
+"serves": {
+"call": "yes",
+"evidence": "trailhead node and Preston Pond Loop 425 m non-fallback; walk 467 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"capacity": "2",
+"operator": "Town of Bolton",
+"description": "Preston Pond Conservation Area parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/30731613": {
+"fid": 16,
+"osm": [
+"way/30731613"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "mapped lot polygon with multiple cars parked in rows clearly visible"
+},
+"public": {
+"call": "yes",
+"evidence": "inside nature_reserve 'Camel's Hump State Park' (context SUPPORT); state-park west-slope trailhead"
+},
+"serves": {
+"call": "yes",
+"evidence": "trailhead node [Burrows Trail] and Burrows Trail 0 m; description names 'Burrows trailhead'"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"description": "Camel's Hump parking area, West slope, Burrows trailhead."
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/32581355": {
+"fid": 18,
+"osm": [
+"way/32581355"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "surveyed",
+"verdict": "DROP",
+"exists": {
+"call": "yes",
+"evidence": "large gravel/dirt ski-area base parking lot clearly visible"
+},
+"public": {
+"call": "yes",
+"evidence": "Mad River Glen ski-area lot, no access restriction tag"
+},
+"serves": {
+"call": "no",
+"evidence": "walk 2224 m (>1609) with only a fallback serve to Catamount Trail at 1679 m; no trailhead node, name 'Mad River Glen Parking Lot' does not match a serving trail, context FACILITY \u2014 ski resort lot, no in-range park trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Mad River Glen Parking Lot",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/32586834": {
+"fid": 19,
+"osm": [
+"way/32586834"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "bare",
+"verdict": "DROP",
+"exists": {
+"call": "yes",
+"evidence": "very large (51508 m2) graded gravel field with parallel parking lanes \u2014 event/overflow parking"
+},
+"public": {
+"call": "yes",
+"evidence": "open graded field, no access restriction"
+},
+"serves": {
+"call": "no",
+"evidence": "walk 5213 m (>1609) with only a fallback serve to Catamount Trail at 2737 m; no trailhead node, no name, context NEUTRAL \u2014 far event field with no trailhead signal"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/36079469": {
+"fid": 20,
+"osm": [
+"way/36079469"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "large gravel lot with many cars parked in organized rows (Bolton Valley resort base area)"
+},
+"public": {
+"call": "yes",
+"evidence": "resort base-area day-use lot; no access=private/customers tag; facility-adjacency (context FACILITY residential) is not by itself a drop"
+},
+"serves": {
+"call": "yes",
+"evidence": "Brook Run 313 m non-fallback; walk 781 m (<1609)"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"way/364838690": {
+"fid": 53,
+"osm": [
+"way/364838690"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "paved roadside lot with 2 cars visible at the App Gap on VT Route 17; surveyed prior (surface=asphalt)"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes explicit; state highway trailhead pull-off"
+},
+"serves": {
+"call": "yes",
+"evidence": "Long Trail 9 m non-fallback; walk 34 m; yellow Long Trail crosses the road here (Appalachian Gap)"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"amenity": "parking",
+"surface": "asphalt"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/552444283": {
+"fid": 60,
+"osm": [
+"way/552444283"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "small gravel lot with several cars parked, visible in the mapped rectangle"
+},
+"public": {
+"call": "yes",
+"evidence": "inside nature_reserve 'Camel's Hump State Park' (context SUPPORT); fee=no; state-park east-slope trailhead"
+},
+"serves": {
+"call": "yes",
+"evidence": "Monroe Trail 3 m non-fallback; walk 21 m; description 'Monroe trailhead'; yellow Monroe Trail connects"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"fee": "no",
+"description": "Camel's Hump Parking, East slope, Monroe trailhead.",
+"operator": "Monroe trailhead parking"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/620731018": {
+"fid": 71,
+"osm": [
+"way/620731018"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded gravel lot clearly visible between I-89 and the local road/rail near the Winooski; surveyed prior + name"
+},
+"public": {
+"call": "yes",
+"evidence": "Long Trail parking, no access restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "Long Trail Temporary Realignment 344 m non-fallback; walk 991 m (<1609); name 'Long Trail Parking Lot'"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Long Trail Parking Lot"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/698413265": {
+"fid": 74,
+"osm": [
+"way/698413265"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "mapped lot polygon at the road edge by the Winooski where the yellow Long Trail begins; small graded area visible, partly canopy-obscured"
+},
+"public": {
+"call": "yes",
+"evidence": "inside nature_reserve 'Camel's Hump State Park' (context SUPPORT); roadside LT trailhead"
+},
+"serves": {
+"call": "yes",
+"evidence": "trailhead node [Duxbury Window Trail] and Long Trail 0 m; walk 22 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"way/963491846": {
+"fid": 76,
+"osm": [
+"way/963491846"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "large gravel lot clearly visible (mapped box covers left portion), a car present \u2014 Monroe trailhead lower/overflow lot"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no; park trailhead lot"
+},
+"serves": {
+"call": "yes",
+"evidence": "Monroe Trail 132 m non-fallback; walk 177 m; overflow serving the same east-slope trailhead as fid 60"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"fee": "no",
+"surface": "gravel"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/1069257651": {
+"fid": 79,
+"osm": [
+"way/1069257651"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "surveyed",
+"verdict": "DROP",
+"exists": {
+"call": "yes",
+"evidence": "long paved interstate rest-area parking apron alongside I-89 southbound"
+},
+"public": {
+"call": "yes",
+"evidence": "public I-89 rest area, no restriction"
+},
+"serves": {
+"call": "no",
+"evidence": "no route (walk null), only fallback serve to Woodward Ski Trail at 2655 m (>1609); name 'Rest Area I-89 (South Bound)', no trailhead node, context NEUTRAL \u2014 highway rest area, not a park trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Rest Area I-89 (South Bound)"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/1286946708": {
+"fid": 82,
+"osm": [
+"way/1286946708"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "surveyed prior (capacity=7, operator) carries EXISTS; small forest lot under leaf-on canopy with a faint woods track adjacent \u2014 canopy does not flip a surveyed prior"
+},
+"public": {
+"call": "yes",
+"evidence": "operator=Town of Bolton, inside 'Preston Pond Conservation Area' (context SUPPORT)"
+},
+"serves": {
+"call": "yes",
+"evidence": "trailhead node [Preston Pond Loop Trailhead] and Old VAST Trail 83 m non-fallback; walk 114 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"capacity": "7",
+"operator": "Town of Bolton",
+"description": "Preston Pond Conservation Area parking"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"way/1287529154": {
+"fid": 83,
+"osm": [
+"way/1287529154"
+],
+"area": "camels-hump-state-park-vt",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded gravel lot with a loop drive clearly visible in a field beside I-89; surveyed prior (surface=unpaved, operator)"
+},
+"public": {
+"call": "yes",
+"evidence": "operator='Driving Range MTB Trails' (a trail-network lot), no private/customers access tag"
+},
+"serves": {
+"call": "yes",
+"evidence": "Bog Wall Rock Climbing Path 794 m non-fallback (dist_m <1609) and MTB-trail operator name = trailhead signal; routed walk 6128 m is a long routing artifact, not a far-drop given the trailhead signal"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"operator": "Driving Range MTB Trails",
+"surface": "unpaved"
+},
+"confidence": "leaning",
+"resolve_hint": "coverage gap: trail geom short \u2014 routed walk 6.1 km but straight-line serve 794 m; confirm the Driving Range MTB trailhead connects"
+},
+"node/5471311056": {
+"fid": 0,
+"osm": [
+"node/5471311056"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "gravel lot with multiple parked cars clearly visible inside red circle; yellow Quarry Trail departs from its south edge"
+},
+"public": {
+"call": "yes",
+"evidence": "roadside forest lot in Kimball Wildlife Forest, no access tag"
+},
+"serves": {
+"call": "yes",
+"evidence": "serves Quarry Trail 12 m, fallback false; walk 16 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"node/5787506304": {
+"fid": 1,
+"osm": [
+"node/5787506304"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "gravel clearing/loop with vehicle(s) at end of dirt access drive; named 'Steinwachs Trailhead'"
+},
+"public": {
+"call": "yes",
+"evidence": "operator SPBHT (Society for the Protection of NH Forests), public forest reserve, no access restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "serves Reed Road Trail 484 m, fallback false; walk 592 m; named trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Steinwachs Trailhead",
+"operator": "SPBHT"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"node/9403319428": {
+"fid": 2,
+"osm": [
+"node/9403319428"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "unpaved cleared pull-off along woods-road corridor in Belknap Mountain State Forest; surveyed prior (fee=no, surface=unpaved) carries, no positive contradiction (no building/lawn/water)"
+},
+"public": {
+"call": "yes",
+"evidence": "state forest, fee=no, no access restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "serves Gunstock Mountain Trail 82 m, fallback false; walk 78 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"fee": "no",
+"surface": "unpaved"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"node/11174736859": {
+"fid": 3,
+"osm": [
+"node/11174736859",
+"way/1066796099"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "small dirt lot at end of Wood Road where East Gilford Trail begins; red polygon on cleared ground"
+},
+"public": {
+"call": "yes",
+"evidence": "Belknap Mountain State Forest, fee=no, capacity 5, no access restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "East Gilford Trail 0 m fallback false; walk 6 m; trailhead node 'East Gilford Trailhead'"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Wood Road Parking Lot",
+"capacity": "5",
+"fee": "no"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/1066796099": {
+"fid": 3,
+"osm": [
+"node/11174736859",
+"way/1066796099"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "small dirt lot at end of Wood Road where East Gilford Trail begins; red polygon on cleared ground"
+},
+"public": {
+"call": "yes",
+"evidence": "Belknap Mountain State Forest, fee=no, capacity 5, no access restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "East Gilford Trail 0 m fallback false; walk 6 m; trailhead node 'East Gilford Trailhead'"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Wood Road Parking Lot",
+"capacity": "5",
+"fee": "no"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/219690843": {
+"fid": 4,
+"osm": [
+"way/219690843"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "very large gravel-surface parking/event field with cars parked along its north edge; named 'Main Parking Lot'"
+},
+"public": {
+"call": "yes",
+"evidence": "Gunstock Mountain Resort (county-owned public recreation area), no access=private tag"
+},
+"serves": {
+"call": "yes",
+"evidence": "serves North Spur Trail 1154 m (fallback); walk 1378 m < 1609; resort base trailhead, dual-use"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Main Parking Lot",
+"parking": "surface",
+"surface": "gravel"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/219698371": {
+"fid": 5,
+"osm": [
+"way/219698371"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "bare",
+"verdict": "DROP",
+"exists": {
+"call": "unsure",
+"evidence": "red outline is a small blob over trees and the edge of a gravel campground road; no distinct parking surface clearly visible"
+},
+"public": {
+"call": "unsure",
+"evidence": "inside tourism=camp_site; access unclear"
+},
+"serves": {
+"call": "no",
+"evidence": "only a fallback match to North Spur Trail (Orange) 1170 m; walk 2123 m > 1609 m and NO trailhead signal (no name, no trailhead node, camp_site context)"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/219703662": {
+"fid": 7,
+"osm": [
+"way/219703662"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "surveyed",
+"verdict": "DROP",
+"exists": {
+"call": "unsure",
+"evidence": "footprint overlaps a resort building at the Gunstock base area"
+},
+"public": {
+"call": "unsure",
+"evidence": "resort infrastructure, not open trailhead parking"
+},
+"serves": {
+"call": "no",
+"evidence": "served only via 1059 m fallback through Gunstock ski/bike terrain; 'Segway Training' staging by a building, not a hiking trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Segway Training",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"relation/3435137": {
+"fid": 17,
+"osm": [
+"relation/3435137"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "paved lot full of parked cars directly off NH-11; named 'Mount Major Parking Lot', capacity 65, tourism=information kiosk 2 m away \u2014 the main Mount Major trailhead"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no, public state trailhead lot, no access restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "named trailhead (name matches area/mountain) with tourism=information; serves Mount Major Trail (blue) 1144 m fallback, walk 2189 m >1609 but KEEP as named trailhead / coverage gap"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Mount Major Parking Lot",
+"capacity": "65",
+"fee": "no"
+},
+"confidence": "certain",
+"resolve_hint": "coverage gap: trail geom short (walk 2189 m to matched trail)"
+},
+"way/466571967": {
+"fid": 20,
+"osm": [
+"way/466571967",
+"way/466571969"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "bare",
+"verdict": "DROP",
+"exists": {
+"call": "yes",
+"evidence": "two striped rows of parked cars beside a lakeside building at Alton Bay"
+},
+"public": {
+"call": "yes",
+"evidence": "town/beach/restaurant lot, publicly accessible"
+},
+"serves": {
+"call": "no",
+"evidence": "only fallback match to Mary Jane Morse Greenwood Trail 2398 m; walk 3078 m > 1609 m with NO trailhead signal; FACILITY 65 m from restaurant 'Pop's Clam Shell' \u2014 a waterfront town lot, not a trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/466571969": {
+"fid": 20,
+"osm": [
+"way/466571967",
+"way/466571969"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "bare",
+"verdict": "DROP",
+"exists": {
+"call": "yes",
+"evidence": "two striped rows of parked cars beside a lakeside building at Alton Bay"
+},
+"public": {
+"call": "yes",
+"evidence": "town/beach/restaurant lot, publicly accessible"
+},
+"serves": {
+"call": "no",
+"evidence": "only fallback match to Mary Jane Morse Greenwood Trail 2398 m; walk 3078 m > 1609 m with NO trailhead signal; FACILITY 65 m from restaurant 'Pop's Clam Shell' \u2014 a waterfront town lot, not a trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/708010624": {
+"fid": 28,
+"osm": [
+"way/708010624"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "small light-toned clearing (with what appears to be a vehicle) at a hub where several yellow trails converge in Alton Town Forest"
+},
+"public": {
+"call": "yes",
+"evidence": "inside leisure=nature_reserve 'Alton Town Forest', no access restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "serves Upper Loop (white) 0 m, fallback false; walk 0 m; trail-junction pull-off"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "leaning",
+"resolve_hint": null
+},
+"way/956438821": {
+"fid": 31,
+"osm": [
+"way/956438821"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "gravel lot with a row of parked cars; yellow Red Trail descends to it"
+},
+"public": {
+"call": "yes",
+"evidence": "Belknap Mountain State Forest; fee=yes is fine (fee not private)"
+},
+"serves": {
+"call": "yes",
+"evidence": "serves Red Trail 81 m, fallback false; walk 121 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"fee": "yes",
+"parking": "surface"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/1124412697": {
+"fid": 33,
+"osm": [
+"way/1124412697"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "bare",
+"verdict": "DROP",
+"exists": {
+"call": "unsure",
+"evidence": "elongated gravel drive/clearing running to a mowed field and a large house/lodge; reads as a residential/private drive, not a public lot"
+},
+"public": {
+"call": "unsure",
+"evidence": "NEUTRAL context; associated with a private residence/large building"
+},
+"serves": {
+"call": "no",
+"evidence": "only fallback match Dave Roberts Quarry Trail (White) 2108 m; walk 2344 m > 1609 m with NO trailhead signal"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/1183467834": {
+"fid": 47,
+"osm": [
+"way/1183467834"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded gravel pull-off beside the road at the edge of a field in John M. & Eileen R. Weeks Conservation Area"
+},
+"public": {
+"call": "yes",
+"evidence": "inside leisure=nature_reserve conservation area, no access restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "serves Ledges-Iron Mine Trail 514 m, fallback false; walk 738 m < 1609"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/1367192203": {
+"fid": 50,
+"osm": [
+"way/1367192203"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "large striped asphalt lots full of cars at the Gilford school campus"
+},
+"public": {
+"call": "yes",
+"evidence": "public (government) school campus, fee=no, capacity:disabled=4, no access=private; not a private/commercial facility"
+},
+"serves": {
+"call": "yes",
+"evidence": "serves Mt. Rowe Trail 302 m, fallback false; walk 662 m; Mt. Rowe trailhead sits on the school grounds (dual-use)"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"fee": "no",
+"parking": "surface",
+"surface": "asphalt"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/1474933940": {
+"fid": 53,
+"osm": [
+"way/1474933940",
+"way/1474933941"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "striped asphalt parking with parked cars at Gilford Elementary School"
+},
+"public": {
+"call": "yes",
+"evidence": "public (government) school lot, no access=private; the FACILITY (school) is government not private/commercial"
+},
+"serves": {
+"call": "yes",
+"evidence": "serves Mt. Rowe Trail 140 m, fallback false; walk 213 m; school-grounds trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/1474933941": {
+"fid": 53,
+"osm": [
+"way/1474933940",
+"way/1474933941"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "striped asphalt parking with parked cars at Gilford Elementary School"
+},
+"public": {
+"call": "yes",
+"evidence": "public (government) school lot, no access=private; the FACILITY (school) is government not private/commercial"
+},
+"serves": {
+"call": "yes",
+"evidence": "serves Mt. Rowe Trail 140 m, fallback false; walk 213 m; school-grounds trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/1474934519": {
+"fid": 54,
+"osm": [
+"way/1474934519"
+],
+"area": "mount-major-state-forest-nh",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "striped asphalt lot with a few parked cars on the Gilford school campus"
+},
+"public": {
+"call": "yes",
+"evidence": "public (government) school lot, no access=private; FACILITY is government not private/commercial"
+},
+"serves": {
+"call": "yes",
+"evidence": "serves Mt. Rowe Trail 265 m, fallback false; walk 472 m; school-grounds trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"node/1430578616": {
+"fid": 2,
+"osm": [
+"node/1430578616"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded forest clearing in red outline with a couple of vehicles visible; trail leaves it directly"
+},
+"public": {
+"call": "yes",
+"evidence": "no access restriction; in nature_reserve; state-park trailhead lot"
+},
+"serves": {
+"call": "yes",
+"evidence": "Ethan Pond Trail at 11 m, walk 0 m; trailhead named for the trail"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Ethan Pond Trailhead"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"node/2262010513": {
+"fid": 3,
+"osm": [
+"node/2262010513"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "large paved highway pull-off with a full row of parked cars in/at red circle"
+},
+"public": {
+"call": "yes",
+"evidence": "public Route 302 pull-off, no access restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "Webster-Jackson Trail at 407 m, walk 782 m; named for that trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Webster Jackson Trailhead"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"node/3234346682": {
+"fid": 4,
+"osm": [
+"node/3234346682"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "paved shoulder parking with angled parked cars beside Saco Lake / Route 302"
+},
+"public": {
+"call": "yes",
+"evidence": "public roadside pull-off, no access restriction"
+},
+"serves": {
+"call": "yes",
+"evidence": "Webster-Jackson Trail at 578 m, walk 878 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"parking": "surface"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"node/3234389463": {
+"fid": 5,
+"osm": [
+"node/3234389463"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "roadside parking row with parked cars at the Crawford Depot / AMC Highland Center hub"
+},
+"public": {
+"call": "yes",
+"evidence": "public trailhead-hub parking, no access restriction; FACILITY (63 m from gift shop) is dual-use, not a drop"
+},
+"serves": {
+"call": "yes",
+"evidence": "Crawford Cliff Trail at 714 m, walk 858 m; Crawford Path trailhead hub"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"parking": "surface"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/167025471": {
+"fid": 10,
+"osm": [
+"way/167025471",
+"way/167025472"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "two large graded summit parking areas outlined red, both with rows of parked cars (Mount Washington summit)"
+},
+"public": {
+"call": "yes",
+"evidence": "public summit parking; FACILITY (near Summit Stage gift shop) is dual-use"
+},
+"serves": {
+"call": "yes",
+"evidence": "Tuckerman Ravine Trail at 3 m, walk 98 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"parking": "surface"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/167025472": {
+"fid": 10,
+"osm": [
+"way/167025471",
+"way/167025472"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "two large graded summit parking areas outlined red, both with rows of parked cars (Mount Washington summit)"
+},
+"public": {
+"call": "yes",
+"evidence": "public summit parking; FACILITY (near Summit Stage gift shop) is dual-use"
+},
+"serves": {
+"call": "yes",
+"evidence": "Tuckerman Ravine Trail at 3 m, walk 98 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"parking": "surface"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/290550853": {
+"fid": 13,
+"osm": [
+"way/290550853"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded gravel pull-off (light footprint) outlined red beside the Mt Washington Auto Road, above treeline"
+},
+"public": {
+"call": "yes",
+"evidence": "no access restriction; open roadside parking in alpine zone"
+},
+"serves": {
+"call": "yes",
+"evidence": "Great Gulf Trail at 193 m, walk 164 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"parking": "surface",
+"surface": "gravel"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/317192829": {
+"fid": 15,
+"osm": [
+"way/317192829"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "clear parking lot outlined red with many parked cars"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=yes (fee is not private); public trailhead lot, 40 m from tourism=information"
+},
+"serves": {
+"call": "yes",
+"evidence": "Crawford Cliff Trail at 501 m, walk 895 m; Crawford Path trailhead"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"fee": "yes",
+"name": "Crawford Path Trailhead"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/378369703": {
+"fid": 16,
+"osm": [
+"way/378369703"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "large paved lot with painted stripes and a few parked cars (Willey House area)"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes; in nature_reserve"
+},
+"serves": {
+"call": "yes",
+"evidence": "Kedron Flume Trail at 66 m, walk 130 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"access": "yes",
+"surface": "asphalt"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/400667196": {
+"fid": 17,
+"osm": [
+"way/400667196"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded forest clearing with a couple of vehicles at the end of Zealand Road"
+},
+"public": {
+"call": "yes",
+"evidence": "no access restriction; 23 m from tourism=information, named trailhead"
+},
+"serves": {
+"call": "yes",
+"evidence": "named 'Zealand Trailhead'; Zeacliff Trail fallback at 4822 m / walk 4051 m \u2014 named-trailhead-beyond-1-mile keeps"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Zealand Trailhead"
+},
+"confidence": "strong",
+"resolve_hint": "coverage gap: trail geom short of the named trailhead"
+},
+"way/523539139": {
+"fid": 19,
+"osm": [
+"way/523539139"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "gravel parking clearing outlined red with a vehicle; trail (yellow) passes through it"
+},
+"public": {
+"call": "yes",
+"evidence": "access=permissive (public), WMNF donation lot, fee=yes not private"
+},
+"serves": {
+"call": "yes",
+"evidence": "Frankenstein Cliff Trail at 0 m, walk 13 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"access": "permissive",
+"fee": "yes",
+"capacity": "15"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/523539146": {
+"fid": 20,
+"osm": [
+"way/523539146"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "long graded gravel parking area outlined red with a parked vehicle/trailer"
+},
+"public": {
+"call": "yes",
+"evidence": "access=permissive (public), WMNF donation lot, capacity 50"
+},
+"serves": {
+"call": "yes",
+"evidence": "Frankenstein Cliff Trail at 232 m, walk 250 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"access": "permissive",
+"fee": "yes",
+"capacity": "50"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/538093280": {
+"fid": 22,
+"osm": [
+"way/538093280"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded gravel lot outlined red with a row of parked cars beside Route 302 / Saco River"
+},
+"public": {
+"call": "yes",
+"evidence": "no access restriction; named trailhead parking, 19 m from picnic table"
+},
+"serves": {
+"call": "yes",
+"evidence": "Davis Path at 400 m, walk 721 m; named for the trail"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Davis Path Trailhead Parking",
+"surface": "gravel"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/852197641": {
+"fid": 23,
+"osm": [
+"way/852197641"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "narrow graded roadside pull-off outlined red along Route 302"
+},
+"public": {
+"call": "yes",
+"evidence": "no access restriction; named trailhead, capacity 8"
+},
+"serves": {
+"call": "yes",
+"evidence": "named 'Nancy Pond Trailhead' matching Nancy Pond Trail (fallback 2554 m / walk 2398 m) \u2014 named-trailhead-beyond-1-mile keeps"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"name": "Nancy Pond Trailhead",
+"capacity": "8"
+},
+"confidence": "strong",
+"resolve_hint": "coverage gap: trail geom short of the named trailhead"
+},
+"way/969656605": {
+"fid": 29,
+"osm": [
+"way/969656605"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "small paved lot outlined red with parked cars near the Willey House buildings"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes; in nature_reserve"
+},
+"serves": {
+"call": "yes",
+"evidence": "Kedron Flume Trail at 86 m, walk 157 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"access": "yes",
+"surface": "asphalt"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/969656606": {
+"fid": 30,
+"osm": [
+"way/969656606"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "long graded parking strip outlined red along the Willey House access road with parked vehicles"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes; in nature_reserve"
+},
+"serves": {
+"call": "yes",
+"evidence": "Kedron Flume Trail at 17 m, walk 109 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"access": "yes",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/975392711": {
+"fid": 32,
+"osm": [
+"way/975392711"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded gravel clearing outlined red beside Route 302 with parked vehicles"
+},
+"public": {
+"call": "yes",
+"evidence": "no access restriction; roadside pull-off in nature_reserve"
+},
+"serves": {
+"call": "yes",
+"evidence": "Webster-Jackson Trail at 517 m, walk 1194 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/975392712": {
+"fid": 33,
+"osm": [
+"way/975392712"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded pull-off outlined red beside Route 302 with several parked cars"
+},
+"public": {
+"call": "yes",
+"evidence": "no access restriction; roadside pull-off in nature_reserve"
+},
+"serves": {
+"call": "yes",
+"evidence": "Mt. Willard Section House Trail at 740 m, walk 820 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/1004810868": {
+"fid": 37,
+"osm": [
+"way/1004810868"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "bare",
+"verdict": "DROP",
+"exists": {
+"call": "yes",
+"evidence": "large graded yard outlined red at the Cog Railway base, but footprint is a materials/laydown yard with rows of stacked piles, not clean trailhead parking"
+},
+"public": {
+"call": "unsure",
+"evidence": "no access tag; NEUTRAL context; industrial staging appearance"
+},
+"serves": {
+"call": "no",
+"evidence": "walk 3757 m and only a 2796 m FALLBACK serve to distant Mount Franklin Trail; no name, no trailhead node, NEUTRAL context \u2014 no trailhead signal, >1609 m far-drop"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/1054005724": {
+"fid": 42,
+"osm": [
+"way/1054005724"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "large graded summit parking lot outlined red full of parked cars (Mount Washington summit)"
+},
+"public": {
+"call": "yes",
+"evidence": "public summit lot in Mount Washington State Park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Tuckerman Ravine Trail at 9 m, walk 135 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"parking": "surface"
+},
+"confidence": "certain",
+"resolve_hint": null
+},
+"way/1056026638": {
+"fid": 44,
+"osm": [
+"way/1056026638"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded summit service/parking area outlined red adjacent to summit buildings and Cog terminus; graded surface dominant despite building_overlap"
+},
+"public": {
+"call": "yes",
+"evidence": "no access restriction; Mount Washington State Park summit"
+},
+"serves": {
+"call": "yes",
+"evidence": "Nelson Crag Trail at 110 m, walk 310 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"parking": "surface",
+"surface": "gravel"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/1062605122": {
+"fid": 46,
+"osm": [
+"way/1062605122"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "parking lane (widened shoulder) along the Mt Washington Auto Road, surveyed parking=lane"
+},
+"public": {
+"call": "yes",
+"evidence": "no access restriction; roadside parking in Mount Washington State Park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Great Gulf Trail at 340 m, walk 0 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"parking": "lane"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/1062605124": {
+"fid": 47,
+"osm": [
+"way/1062605124"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded roadside pull-off (light graded patch) outlined red beside the Auto Road"
+},
+"public": {
+"call": "yes",
+"evidence": "no access restriction; roadside parking in alpine zone"
+},
+"serves": {
+"call": "yes",
+"evidence": "Great Gulf Trail at 316 m (dist within 1 mile; walk had no route computed)"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/1111258317": {
+"fid": 49,
+"osm": [
+"way/1111258317"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded gravel clearing outlined red beside the railroad (Arethusa Falls / Frankenstein Cliff area)"
+},
+"public": {
+"call": "yes",
+"evidence": "no access restriction; in nature_reserve"
+},
+"serves": {
+"call": "yes",
+"evidence": "Frankenstein Cliff Trail at 332 m, walk 522 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/1255379959": {
+"fid": 53,
+"osm": [
+"way/1255379959"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "bare",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "graded clearing/pull-off outlined red at a road bend near the Saco River"
+},
+"public": {
+"call": "yes",
+"evidence": "no access restriction; in nature_reserve"
+},
+"serves": {
+"call": "yes",
+"evidence": "Maggie's Run at 25 m, walk 33 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"way/1385909409": {
+"fid": 55,
+"osm": [
+"way/1385909409"
+],
+"area": "crawford-notch-state-park-nh",
+"prior": "surveyed",
+"verdict": "KEEP",
+"exists": {
+"call": "yes",
+"evidence": "dirt parking lot outlined red with a row of parked cars at the Crawford Depot hub"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes; FACILITY (47 m from gift shop) is dual-use trailhead-hub parking, not a drop"
+},
+"serves": {
+"call": "yes",
+"evidence": "Mount Willard Trail at 742 m, walk 907 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"amenity": "parking",
+"access": "yes",
+"surface": "dirt"
+},
+"confidence": "certain",
+"resolve_hint": null
+}
+}

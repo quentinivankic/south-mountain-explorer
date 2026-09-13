@@ -1,0 +1,2501 @@
+{
+"0": {
+"straight_m": 1961.0580680582616,
+"snap_m": 8,
+"walk_m": 2866,
+"infra_frac": 0.6,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"1": {
+"straight_m": 7970.617750996696,
+"snap_m": 25,
+"walk_m": 9665,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"2": {
+"straight_m": 2387.8403541267116,
+"snap_m": 13,
+"walk_m": 5035,
+"infra_frac": 0.04,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"3": {
+"straight_m": 16.873421990624923,
+"snap_m": 4,
+"walk_m": 27,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"4": {
+"straight_m": 4716.455663772366,
+"snap_m": 24,
+"walk_m": 7152,
+"infra_frac": 0.47,
+"conn": "mixed road+path",
+"first_hw": "footway",
+"first_sw": ""
+},
+"5": {
+"straight_m": 548.1042400567497,
+"snap_m": 10,
+"walk_m": 2048,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"6": {
+"straight_m": 9.91674945459607,
+"snap_m": 6,
+"walk_m": 29,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"7": {
+"straight_m": 10944.995073590493,
+"snap_m": 22,
+"walk_m": 12716,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"8": {
+"straight_m": 2396.9709309536365,
+"snap_m": 5,
+"walk_m": 4603,
+"infra_frac": 0.04,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"9": {
+"straight_m": 2428.8509917565534,
+"snap_m": 32,
+"walk_m": 4247,
+"infra_frac": 0.05,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"10": {
+"straight_m": 2908.874716125342,
+"snap_m": 6,
+"walk_m": 8487,
+"infra_frac": 0.02,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"11": {
+"straight_m": 3061.3466030191007,
+"snap_m": 3,
+"walk_m": 8662,
+"infra_frac": 0.02,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"12": {
+"straight_m": 3513.921610598638,
+"snap_m": 7,
+"walk_m": 5785,
+"infra_frac": 0.26,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"13": {
+"straight_m": 2692.6255159192224,
+"snap_m": 10,
+"walk_m": 4902,
+"infra_frac": 0.37,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"14": {
+"straight_m": 2805.2990688123423,
+"snap_m": 18,
+"walk_m": 4955,
+"infra_frac": 0.37,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"15": {
+"straight_m": 240.35062974242138,
+"snap_m": 12,
+"walk_m": 1028,
+"infra_frac": 0.08,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"16": {
+"straight_m": 4713.044740117977,
+"snap_m": 22,
+"walk_m": 7323,
+"infra_frac": 0.46,
+"conn": "mixed road+path",
+"first_hw": "service",
+"first_sw": ""
+},
+"17": {
+"straight_m": 4452.473050839031,
+"snap_m": 11,
+"walk_m": 6848,
+"infra_frac": 0.45,
+"conn": "road, no sidewalk",
+"first_hw": "footway",
+"first_sw": ""
+},
+"18": {
+"straight_m": 3587.425412528297,
+"snap_m": 8,
+"walk_m": 5917,
+"infra_frac": 0.22,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"19": {
+"straight_m": 3638.7291848202026,
+"snap_m": 8,
+"walk_m": 5983,
+"infra_frac": 0.29,
+"conn": "road, no sidewalk",
+"first_hw": "footway",
+"first_sw": ""
+},
+"20": {
+"straight_m": 2170.953689127483,
+"snap_m": 32,
+"walk_m": 4400,
+"infra_frac": 0.32,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"21": {
+"straight_m": 4520.321057822058,
+"snap_m": 9,
+"walk_m": 6976,
+"infra_frac": 0.44,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"22": {
+"straight_m": 14.741473505914138,
+"snap_m": 7,
+"walk_m": 34,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"23": {
+"straight_m": 4737.988422203468,
+"snap_m": 4,
+"walk_m": 7203,
+"infra_frac": 0.18,
+"conn": "mixed road+path",
+"first_hw": "service",
+"first_sw": ""
+},
+"24": {
+"straight_m": 1675.8457907519817,
+"snap_m": 1,
+"walk_m": 2106,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"25": {
+"straight_m": 7688.116344806987,
+"snap_m": 48,
+"walk_m": 11668,
+"infra_frac": 0.24,
+"conn": "road, no sidewalk",
+"first_hw": "unclassified",
+"first_sw": ""
+},
+"26": {
+"straight_m": 7663.894590726302,
+"snap_m": 19,
+"walk_m": 11668,
+"infra_frac": 0.24,
+"conn": "road, no sidewalk",
+"first_hw": "unclassified",
+"first_sw": ""
+},
+"27": {
+"straight_m": 7669.61916952396,
+"snap_m": 18,
+"walk_m": 11734,
+"infra_frac": 0.25,
+"conn": "road, no sidewalk",
+"first_hw": "track",
+"first_sw": ""
+},
+"28": {
+"straight_m": 7715.487545707801,
+"snap_m": 19,
+"walk_m": 11816,
+"infra_frac": 0.25,
+"conn": "road, no sidewalk",
+"first_hw": "track",
+"first_sw": ""
+},
+"29": {
+"straight_m": 7542.812245472008,
+"snap_m": 23,
+"walk_m": 11944,
+"infra_frac": 0.24,
+"conn": "road, no sidewalk",
+"first_hw": "unclassified",
+"first_sw": ""
+},
+"30": {
+"straight_m": 7612.713179488536,
+"snap_m": 20,
+"walk_m": 11852,
+"infra_frac": 0.24,
+"conn": "road, no sidewalk",
+"first_hw": "track",
+"first_sw": ""
+},
+"31": {
+"straight_m": 7506.528764218837,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"32": {
+"straight_m": 7672.04094995359,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"33": {
+"straight_m": 7536.661160694113,
+"snap_m": 10,
+"walk_m": 11925,
+"infra_frac": 0.24,
+"conn": "road, no sidewalk",
+"first_hw": "track",
+"first_sw": ""
+},
+"34": {
+"straight_m": 7580.820759736853,
+"snap_m": 25,
+"walk_m": 11802,
+"infra_frac": 0.24,
+"conn": "road, no sidewalk",
+"first_hw": "unclassified",
+"first_sw": ""
+},
+"35": {
+"straight_m": 7564.538102285528,
+"snap_m": 22,
+"walk_m": 11815,
+"infra_frac": 0.24,
+"conn": "road, no sidewalk",
+"first_hw": "unclassified",
+"first_sw": ""
+},
+"36": {
+"straight_m": 7335.923558794522,
+"snap_m": 7,
+"walk_m": 9731,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "track",
+"first_sw": ""
+},
+"37": {
+"straight_m": 8217.225112630753,
+"snap_m": 22,
+"walk_m": 10092,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "residential",
+"first_sw": ""
+},
+"38": {
+"straight_m": 7790.82698817574,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"39": {
+"straight_m": 7036.282057368096,
+"snap_m": 38,
+"walk_m": 10954,
+"infra_frac": 0.22,
+"conn": "road, no sidewalk",
+"first_hw": "track",
+"first_sw": ""
+},
+"40": {
+"straight_m": 7083.909220644958,
+"snap_m": 12,
+"walk_m": 10449,
+"infra_frac": 0.18,
+"conn": "road, no sidewalk",
+"first_hw": "track",
+"first_sw": ""
+},
+"41": {
+"straight_m": 962.9379257058417,
+"snap_m": 12,
+"walk_m": 1050,
+"infra_frac": 0.92,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"42": {
+"straight_m": 4633.797015573914,
+"snap_m": 2,
+"walk_m": 8094,
+"infra_frac": 0.49,
+"conn": "mixed road+path",
+"first_hw": "footway",
+"first_sw": ""
+},
+"43": {
+"straight_m": 3356.878338469223,
+"snap_m": 4,
+"walk_m": 9827,
+"infra_frac": 0.55,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"44": {
+"straight_m": 3981.168759969502,
+"snap_m": 11,
+"walk_m": 6470,
+"infra_frac": 0.22,
+"conn": "road, no sidewalk",
+"first_hw": "track",
+"first_sw": ""
+},
+"45": {
+"straight_m": 2476.866054808634,
+"snap_m": 28,
+"walk_m": 3471,
+"infra_frac": 0.06,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"46": {
+"straight_m": 1301.1874936583968,
+"snap_m": 6,
+"walk_m": 1616,
+"infra_frac": 0.13,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"47": {
+"straight_m": 1032.656190117107,
+"snap_m": 2,
+"walk_m": 1292,
+"infra_frac": 0.16,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"48": {
+"straight_m": 281.9257048930636,
+"snap_m": 1,
+"walk_m": 360,
+"infra_frac": 0.57,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"49": {
+"straight_m": 2933.434067622456,
+"snap_m": 4,
+"walk_m": 7852,
+"infra_frac": 0.03,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"50": {
+"straight_m": 2791.411994960669,
+"snap_m": 6,
+"walk_m": 8060,
+"infra_frac": 0.03,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"51": {
+"straight_m": 2103.905240269565,
+"snap_m": 8,
+"walk_m": 3121,
+"infra_frac": 0.56,
+"conn": "road, no sidewalk",
+"first_hw": "footway",
+"first_sw": ""
+},
+"52": {
+"straight_m": 2073.9720940613765,
+"snap_m": 5,
+"walk_m": 3092,
+"infra_frac": 0.93,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"53": {
+"straight_m": 2029.054075112343,
+"snap_m": 8,
+"walk_m": 3040,
+"infra_frac": 0.95,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"54": {
+"straight_m": 1428.2672984208302,
+"snap_m": 13,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"55": {
+"straight_m": 272.3731508226508,
+"snap_m": 26,
+"walk_m": 497,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"56": {
+"straight_m": 291.4896935114173,
+"snap_m": 18,
+"walk_m": 533,
+"infra_frac": 0.1,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"57": {
+"straight_m": 2118.6358639774503,
+"snap_m": 11,
+"walk_m": 2638,
+"infra_frac": 0.02,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"58": {
+"straight_m": 562.2128013758627,
+"snap_m": 11,
+"walk_m": 910,
+"infra_frac": 0.06,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"59": {
+"straight_m": 598.7005195399577,
+"snap_m": 5,
+"walk_m": 1860,
+"infra_frac": 0.04,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"60": {
+"straight_m": 646.8742172937258,
+"snap_m": 10,
+"walk_m": 2020,
+"infra_frac": 0.04,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"61": {
+"straight_m": 5041.235713167385,
+"snap_m": 6,
+"walk_m": 7498,
+"infra_frac": 0.18,
+"conn": "mixed road+path",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"62": {
+"straight_m": 1074.4533239996165,
+"snap_m": 21,
+"walk_m": 1320,
+"infra_frac": 0.16,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"63": {
+"straight_m": 1110.40196728448,
+"snap_m": 20,
+"walk_m": 1361,
+"infra_frac": 0.15,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"64": {
+"straight_m": 215.12986640445268,
+"snap_m": 5,
+"walk_m": 336,
+"infra_frac": 0.61,
+"conn": "at/via trail or footway",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"65": {
+"straight_m": 1794.0572842423403,
+"snap_m": 6,
+"walk_m": 2201,
+"infra_frac": 0.09,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"66": {
+"straight_m": 1865.0356173347704,
+"snap_m": 5,
+"walk_m": 2317,
+"infra_frac": 0.09,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"67": {
+"straight_m": 2381.4006998453733,
+"snap_m": 5,
+"walk_m": 3272,
+"infra_frac": 0.06,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"68": {
+"straight_m": 2629.885656407105,
+"snap_m": 4,
+"walk_m": 3616,
+"infra_frac": 0.06,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"69": {
+"straight_m": 2551.3598492514125,
+"snap_m": 4,
+"walk_m": 5425,
+"infra_frac": 0.04,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"70": {
+"straight_m": 2760.137716998308,
+"snap_m": 15,
+"walk_m": 5766,
+"infra_frac": 0.04,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"71": {
+"straight_m": 2879.4220451738333,
+"snap_m": 29,
+"walk_m": 5989,
+"infra_frac": 0.03,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"72": {
+"straight_m": 2772.5041030110933,
+"snap_m": 15,
+"walk_m": 8119,
+"infra_frac": 0.03,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"73": {
+"straight_m": 2882.671136380172,
+"snap_m": 2,
+"walk_m": 8389,
+"infra_frac": 0.02,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"74": {
+"straight_m": 2333.2739924965404,
+"snap_m": 7,
+"walk_m": 2981,
+"infra_frac": 0.07,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"75": {
+"straight_m": 757.7449600968343,
+"snap_m": 3,
+"walk_m": 858,
+"infra_frac": 0.24,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"76": {
+"straight_m": 836.7190989082121,
+"snap_m": 13,
+"walk_m": 867,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"77": {
+"straight_m": 175.0298091651955,
+"snap_m": 3,
+"walk_m": 712,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"78": {
+"straight_m": 230.85846967460543,
+"snap_m": 5,
+"walk_m": 865,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"79": {
+"straight_m": 539.3663860726773,
+"snap_m": 34,
+"walk_m": 1255,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"80": {
+"straight_m": 661.5848067557378,
+"snap_m": 2,
+"walk_m": 2188,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"81": {
+"straight_m": 772.8430729339717,
+"snap_m": 5,
+"walk_m": 2410,
+"infra_frac": 0.98,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"82": {
+"straight_m": 4929.356288834613,
+"snap_m": 9,
+"walk_m": 7355,
+"infra_frac": 0.18,
+"conn": "mixed road+path",
+"first_hw": "primary",
+"first_sw": "right"
+},
+"83": {
+"straight_m": 191.94974139548518,
+"snap_m": 9,
+"walk_m": 254,
+"infra_frac": 0.81,
+"conn": "at/via trail or footway",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"84": {
+"straight_m": 449.6588855669283,
+"snap_m": 5,
+"walk_m": 549,
+"infra_frac": 0.37,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"85": {
+"straight_m": 599.8983832057369,
+"snap_m": 9,
+"walk_m": 1594,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "footway",
+"first_sw": ""
+},
+"86": {
+"straight_m": 5243.5385347945185,
+"snap_m": 12,
+"walk_m": 7434,
+"infra_frac": 0.74,
+"conn": "at/via trail or footway",
+"first_hw": "footway",
+"first_sw": ""
+},
+"87": {
+"straight_m": 5185.9899434600875,
+"snap_m": 75,
+"walk_m": 7786,
+"infra_frac": 0.48,
+"conn": "mixed road+path",
+"first_hw": "residential",
+"first_sw": ""
+},
+"88": {
+"straight_m": 2606.3764733508633,
+"snap_m": 4,
+"walk_m": 6613,
+"infra_frac": 0.03,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"89": {
+"straight_m": 3299.253015126574,
+"snap_m": 4,
+"walk_m": 9414,
+"infra_frac": 0.58,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"90": {
+"straight_m": 3538.8600995605734,
+"snap_m": 15,
+"walk_m": 10467,
+"infra_frac": 0.52,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"91": {
+"straight_m": 3157.618810812446,
+"snap_m": 23,
+"walk_m": 8314,
+"infra_frac": 0.65,
+"conn": "at/via trail or footway",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"92": {
+"straight_m": 3352.302929526094,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"93": {
+"straight_m": 3165.4219743844837,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"94": {
+"straight_m": 9.71060476860288,
+"snap_m": 5,
+"walk_m": 16,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"95": {
+"straight_m": 267.8146343445707,
+"snap_m": 1,
+"walk_m": 284,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "path",
+"first_sw": ""
+},
+"96": {
+"straight_m": 4163.576901034494,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"97": {
+"straight_m": 459.04785810594706,
+"snap_m": 5,
+"walk_m": 2434,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"98": {
+"straight_m": 462.34151165012975,
+"snap_m": 5,
+"walk_m": 2159,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"99": {
+"straight_m": 3003.067445126252,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"100": {
+"straight_m": 2016.7420820299892,
+"snap_m": 8,
+"walk_m": 4016,
+"infra_frac": 0.52,
+"conn": "road, no sidewalk",
+"first_hw": "cycleway",
+"first_sw": ""
+},
+"101": {
+"straight_m": 2841.403053720865,
+"snap_m": 23,
+"walk_m": 5046,
+"infra_frac": 0.37,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"102": {
+"straight_m": 835.268225384841,
+"snap_m": 21,
+"walk_m": 1122,
+"infra_frac": 0.06,
+"conn": "road, no sidewalk",
+"first_hw": "unclassified",
+"first_sw": ""
+},
+"103": {
+"straight_m": 1077.6618872925515,
+"snap_m": 31,
+"walk_m": 1376,
+"infra_frac": 0.79,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"104": {
+"straight_m": 359.710865462079,
+"snap_m": 14,
+"walk_m": 2951,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"105": {
+"straight_m": 172.63921741063942,
+"snap_m": 12,
+"walk_m": 221,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "track",
+"first_sw": ""
+},
+"106": {
+"straight_m": 92.0934847628378,
+"snap_m": 8,
+"walk_m": 105,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"107": {
+"straight_m": 426.8031648742852,
+"snap_m": 2,
+"walk_m": 2817,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"108": {
+"straight_m": 2144.277460988542,
+"snap_m": 6,
+"walk_m": 2677,
+"infra_frac": 0.08,
+"conn": "road, no sidewalk",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"109": {
+"straight_m": 1482.6576210836954,
+"snap_m": 9,
+"walk_m": 1720,
+"infra_frac": 0.79,
+"conn": "at/via trail or footway",
+"first_hw": "path",
+"first_sw": ""
+},
+"110": {
+"straight_m": 2012.6111159912698,
+"snap_m": 11,
+"walk_m": 7243,
+"infra_frac": 0.4,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"111": {
+"straight_m": 33.24254461237827,
+"snap_m": 9,
+"walk_m": 53,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"112": {
+"straight_m": 2844.84616585913,
+"snap_m": 29,
+"walk_m": 3945,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "track",
+"first_sw": ""
+},
+"113": {
+"straight_m": 119.4239342240251,
+"snap_m": 45,
+"walk_m": 156,
+"infra_frac": 0.45,
+"conn": "road, no sidewalk",
+"first_hw": "unclassified",
+"first_sw": ""
+},
+"114": {
+"straight_m": 6407.890049220632,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"115": {
+"straight_m": 1841.842596302152,
+"snap_m": 6,
+"walk_m": 1966,
+"infra_frac": 0.03,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"116": {
+"straight_m": 1197.6076199521972,
+"snap_m": 6,
+"walk_m": 1266,
+"infra_frac": 0.04,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"117": {
+"straight_m": 7.442058728290445,
+"snap_m": 2,
+"walk_m": 6,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "unclassified",
+"first_sw": ""
+},
+"118": {
+"straight_m": 578.6595127313883,
+"snap_m": 1,
+"walk_m": 1864,
+"infra_frac": 0.38,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"119": {
+"straight_m": 153.9450910286487,
+"snap_m": 13,
+"walk_m": 274,
+"infra_frac": 0.3,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"120": {
+"straight_m": 272.77162289643957,
+"snap_m": 4,
+"walk_m": 723,
+"infra_frac": 0.11,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"121": {
+"straight_m": 90.28702425607592,
+"snap_m": 3,
+"walk_m": 112,
+"infra_frac": 0.73,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"122": {
+"straight_m": 35.89089975473188,
+"snap_m": 4,
+"walk_m": 63,
+"infra_frac": 0.85,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"123": {
+"straight_m": 89.56887580482226,
+"snap_m": 21,
+"walk_m": 100,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"124": {
+"straight_m": 815.4145345137255,
+"snap_m": 11,
+"walk_m": 2399,
+"infra_frac": 0.03,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"125": {
+"straight_m": 2482.9677601918156,
+"snap_m": 46,
+"walk_m": 3117,
+"infra_frac": 0.02,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"126": {
+"straight_m": 1652.7115483312891,
+"snap_m": 57,
+"walk_m": 2038,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"127": {
+"straight_m": 2109.1590277567825,
+"snap_m": 10,
+"walk_m": 2637,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"128": {
+"straight_m": 4688.807964003628,
+"snap_m": 2,
+"walk_m": 6652,
+"infra_frac": 0.82,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"129": {
+"straight_m": 6080.29714984169,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"130": {
+"straight_m": 6036.2953700518065,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"131": {
+"straight_m": 5654.687893352304,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"132": {
+"straight_m": 5684.912767613815,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"133": {
+"straight_m": 9790.307118606213,
+"snap_m": 12,
+"walk_m": 12189,
+"infra_frac": 0.02,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"134": {
+"straight_m": 9798.503361385852,
+"snap_m": 15,
+"walk_m": 12135,
+"infra_frac": 0.02,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"135": {
+"straight_m": 9912.610539553767,
+"snap_m": 14,
+"walk_m": 12005,
+"infra_frac": 0.02,
+"conn": "road, no sidewalk",
+"first_hw": "residential",
+"first_sw": ""
+},
+"136": {
+"straight_m": 1581.6623822503682,
+"snap_m": 2,
+"walk_m": 2664,
+"infra_frac": 0.5,
+"conn": "road, no sidewalk",
+"first_hw": "primary",
+"first_sw": ""
+},
+"137": {
+"straight_m": 4834.935098613315,
+"snap_m": 7,
+"walk_m": 7276,
+"infra_frac": 0.48,
+"conn": "mixed road+path",
+"first_hw": "footway",
+"first_sw": ""
+},
+"138": {
+"straight_m": 4811.412524944888,
+"snap_m": 25,
+"walk_m": 7248,
+"infra_frac": 0.47,
+"conn": "mixed road+path",
+"first_hw": "footway",
+"first_sw": ""
+},
+"139": {
+"straight_m": 2571.7087911982508,
+"snap_m": 13,
+"walk_m": 3282,
+"infra_frac": 0.02,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"140": {
+"straight_m": 14677.600173584262,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"141": {
+"straight_m": 3330.129402598789,
+"snap_m": 8,
+"walk_m": 4338,
+"infra_frac": 0.99,
+"conn": "at/via trail or footway",
+"first_hw": "track",
+"first_sw": ""
+},
+"142": {
+"straight_m": 192.729424974669,
+"snap_m": 7,
+"walk_m": 1992,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"143": {
+"straight_m": 515.4455007618121,
+"snap_m": 3,
+"walk_m": 1511,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"144": {
+"straight_m": 24.185925229185237,
+"snap_m": 16,
+"walk_m": 116,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"145": {
+"straight_m": 3982.212218654941,
+"snap_m": 5,
+"walk_m": 7046,
+"infra_frac": 0.19,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"146": {
+"straight_m": 4023.9658340745736,
+"snap_m": 26,
+"walk_m": 6550,
+"infra_frac": 0.24,
+"conn": "road, no sidewalk",
+"first_hw": "footway",
+"first_sw": ""
+},
+"147": {
+"straight_m": 3873.5941571845415,
+"snap_m": 11,
+"walk_m": 7283,
+"infra_frac": 0.18,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"148": {
+"straight_m": 1213.1180211584654,
+"snap_m": 15,
+"walk_m": 5201,
+"infra_frac": 0.33,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"149": {
+"straight_m": 1441.8373847336063,
+"snap_m": 26,
+"walk_m": 2191,
+"infra_frac": 0.14,
+"conn": "road, no sidewalk",
+"first_hw": "footway",
+"first_sw": ""
+},
+"150": {
+"straight_m": 912.7719289979731,
+"snap_m": 12,
+"walk_m": 1708,
+"infra_frac": 0.64,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"151": {
+"straight_m": 1139.5068931372587,
+"snap_m": 42,
+"walk_m": 2437,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"152": {
+"straight_m": 2216.4681970816255,
+"snap_m": 5,
+"walk_m": 3906,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"153": {
+"straight_m": 2615.0742348396575,
+"snap_m": 7,
+"walk_m": 4335,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"154": {
+"straight_m": 3500.874225245738,
+"snap_m": 8,
+"walk_m": 5318,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"155": {
+"straight_m": 3621.683391274391,
+"snap_m": 4,
+"walk_m": 5554,
+"infra_frac": 0.98,
+"conn": "at/via trail or footway",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"156": {
+"straight_m": 3526.6592408470856,
+"snap_m": 12,
+"walk_m": 5657,
+"infra_frac": 0.96,
+"conn": "at/via trail or footway",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"157": {
+"straight_m": 3311.4717129997384,
+"snap_m": 9,
+"walk_m": 6115,
+"infra_frac": 0.89,
+"conn": "at/via trail or footway",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"158": {
+"straight_m": 3253.572654730933,
+"snap_m": 6,
+"walk_m": 6279,
+"infra_frac": 0.87,
+"conn": "at/via trail or footway",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"159": {
+"straight_m": 4480.231619323338,
+"snap_m": 1,
+"walk_m": 6420,
+"infra_frac": 0.85,
+"conn": "at/via trail or footway",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"160": {
+"straight_m": 7144.308598411336,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"161": {
+"straight_m": 8603.122531346102,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"162": {
+"straight_m": 4274.19974640761,
+"snap_m": 13,
+"walk_m": 6778,
+"infra_frac": 0.33,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"163": {
+"straight_m": 4217.112556260854,
+"snap_m": 8,
+"walk_m": 5505,
+"infra_frac": 0.79,
+"conn": "at/via trail or footway",
+"first_hw": "track",
+"first_sw": ""
+},
+"164": {
+"straight_m": 149.10124010959717,
+"snap_m": 4,
+"walk_m": 184,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"165": {
+"straight_m": 1016.0260885577316,
+"snap_m": 5,
+"walk_m": 1540,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"166": {
+"straight_m": 6008.13201050348,
+"snap_m": 32,
+"walk_m": 9386,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"167": {
+"straight_m": 6011.947303080914,
+"snap_m": 27,
+"walk_m": 9521,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"168": {
+"straight_m": 3025.2888314231163,
+"snap_m": 11,
+"walk_m": 3964,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"169": {
+"straight_m": 4979.80506544941,
+"snap_m": 7,
+"walk_m": 7214,
+"infra_frac": 0.98,
+"conn": "at/via trail or footway",
+"first_hw": "residential",
+"first_sw": ""
+},
+"170": {
+"straight_m": 4912.404709944153,
+"snap_m": 5,
+"walk_m": 7701,
+"infra_frac": 0.49,
+"conn": "mixed road+path",
+"first_hw": "unclassified",
+"first_sw": ""
+},
+"171": {
+"straight_m": 4589.673364390382,
+"snap_m": 7,
+"walk_m": 7783,
+"infra_frac": 0.5,
+"conn": "mixed road+path",
+"first_hw": "service",
+"first_sw": ""
+},
+"172": {
+"straight_m": 4889.632979515908,
+"snap_m": 15,
+"walk_m": 7796,
+"infra_frac": 0.5,
+"conn": "mixed road+path",
+"first_hw": "service",
+"first_sw": ""
+},
+"173": {
+"straight_m": 11022.919151429578,
+"snap_m": 7,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"174": {
+"straight_m": 11232.10348684318,
+"snap_m": 5,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"175": {
+"straight_m": 3432.16745632178,
+"snap_m": 6,
+"walk_m": 5700,
+"infra_frac": 0.25,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"176": {
+"straight_m": 3485.1748334139165,
+"snap_m": 12,
+"walk_m": 5788,
+"infra_frac": 0.24,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"177": {
+"straight_m": 3473.95107195894,
+"snap_m": 8,
+"walk_m": 5732,
+"infra_frac": 0.25,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"178": {
+"straight_m": 4927.749858504411,
+"snap_m": 10,
+"walk_m": 7491,
+"infra_frac": 0.49,
+"conn": "mixed road+path",
+"first_hw": "footway",
+"first_sw": ""
+},
+"179": {
+"straight_m": 1235.073909512177,
+"snap_m": 3,
+"walk_m": 1556,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"180": {
+"straight_m": 11344.01833003229,
+"snap_m": 38,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"181": {
+"straight_m": 12698.23492072025,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"182": {
+"straight_m": 4899.055810845769,
+"snap_m": 15,
+"walk_m": 7142,
+"infra_frac": 0.76,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"183": {
+"straight_m": 4848.935323500451,
+"snap_m": 9,
+"walk_m": 7101,
+"infra_frac": 0.77,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"184": {
+"straight_m": 3168.2872605163857,
+"snap_m": 3,
+"walk_m": 5412,
+"infra_frac": 0.29,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"185": {
+"straight_m": 4774.0187061746055,
+"snap_m": 17,
+"walk_m": 7177,
+"infra_frac": 0.76,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"186": {
+"straight_m": 4859.654543745413,
+"snap_m": 11,
+"walk_m": 7125,
+"infra_frac": 0.76,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"187": {
+"straight_m": 3590.911131425319,
+"snap_m": 10,
+"walk_m": 4375,
+"infra_frac": 0.02,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"188": {
+"straight_m": 2644.336937779095,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"189": {
+"straight_m": 5389.86301415826,
+"snap_m": 43,
+"walk_m": 7761,
+"infra_frac": 0.91,
+"conn": "at/via trail or footway",
+"first_hw": "residential",
+"first_sw": ""
+},
+"190": {
+"straight_m": 5154.2356132463665,
+"snap_m": 10,
+"walk_m": 7154,
+"infra_frac": 0.76,
+"conn": "at/via trail or footway",
+"first_hw": "secondary",
+"first_sw": ""
+},
+"191": {
+"straight_m": 15742.265764916745,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"192": {
+"straight_m": 13513.552972549007,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"193": {
+"straight_m": 13901.539884578933,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"194": {
+"straight_m": 1972.0569050914635,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"195": {
+"straight_m": 2261.1841457075852,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"196": {
+"straight_m": 547.4072988625201,
+"snap_m": 2,
+"walk_m": 2076,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "tertiary",
+"first_sw": ""
+},
+"197": {
+"straight_m": 1908.937812450039,
+"snap_m": 5,
+"walk_m": 2932,
+"infra_frac": 0.59,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"198": {
+"straight_m": 8609.865796998318,
+"snap_m": 25,
+"walk_m": 11556,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"199": {
+"straight_m": 2458.8212837231886,
+"snap_m": 24,
+"walk_m": 3576,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"200": {
+"straight_m": 3890.52544495451,
+"snap_m": 6,
+"walk_m": 6477,
+"infra_frac": 0.21,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"201": {
+"straight_m": 3356.0963227756893,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"202": {
+"straight_m": 15212.306674880327,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"203": {
+"straight_m": 7289.6081038582715,
+"snap_m": 22,
+"walk_m": 9102,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"204": {
+"straight_m": 5255.793153242708,
+"snap_m": 3,
+"walk_m": 7436,
+"infra_frac": 1.0,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"205": {
+"straight_m": 25.538792074712998,
+"snap_m": 1,
+"walk_m": 25,
+"infra_frac": 0.0,
+"conn": "road, no sidewalk",
+"first_hw": "tertiary",
+"first_sw": "no"
+},
+"206": {
+"straight_m": 4369.006472307112,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"207": {
+"straight_m": 13729.244113156665,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"208": {
+"straight_m": 12902.605549155054,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"209": {
+"straight_m": 9775.776398695549,
+"snap_m": 28,
+"walk_m": 11555,
+"infra_frac": 0.02,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"210": {
+"straight_m": 7937.699534528658,
+"snap_m": 6,
+"walk_m": 9780,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"211": {
+"straight_m": 7900.947664049079,
+"snap_m": 24,
+"walk_m": 9992,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"212": {
+"straight_m": 7956.008894720359,
+"snap_m": 11,
+"walk_m": 10106,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"213": {
+"straight_m": 8028.841011955196,
+"snap_m": 8,
+"walk_m": 10009,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"214": {
+"straight_m": 8082.018293740261,
+"snap_m": 19,
+"walk_m": 9824,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"215": {
+"straight_m": 8052.713760587674,
+"snap_m": 29,
+"walk_m": 9824,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"216": {
+"straight_m": 8098.092617505902,
+"snap_m": 5,
+"walk_m": 9927,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "footway",
+"first_sw": ""
+},
+"217": {
+"straight_m": 8573.730052364586,
+"snap_m": 8,
+"walk_m": 10359,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"218": {
+"straight_m": 8463.934433797014,
+"snap_m": 16,
+"walk_m": 10276,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"219": {
+"straight_m": 8494.568875181481,
+"snap_m": 23,
+"walk_m": 10288,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"220": {
+"straight_m": 11424.7740315663,
+"snap_m": 67,
+"walk_m": 13175,
+"infra_frac": 0.01,
+"conn": "road, no sidewalk",
+"first_hw": "unclassified",
+"first_sw": ""
+},
+"221": {
+"straight_m": 4197.143558464011,
+"snap_m": 12,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+},
+"222": {
+"straight_m": 4191.222681124902,
+"snap_m": 4,
+"walk_m": 6553,
+"infra_frac": 0.41,
+"conn": "road, no sidewalk",
+"first_hw": "unclassified",
+"first_sw": ""
+},
+"223": {
+"straight_m": 4192.956916124681,
+"snap_m": 8,
+"walk_m": 6584,
+"infra_frac": 0.31,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"224": {
+"straight_m": 4121.984737875194,
+"snap_m": 16,
+"walk_m": 6537,
+"infra_frac": 0.3,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"225": {
+"straight_m": 4104.664196281792,
+"snap_m": 11,
+"walk_m": 6603,
+"infra_frac": 0.3,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"226": {
+"straight_m": 3302.795364878586,
+"snap_m": 18,
+"walk_m": 5613,
+"infra_frac": 0.24,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"227": {
+"straight_m": 3317.5310119289998,
+"snap_m": 19,
+"walk_m": 5816,
+"infra_frac": 0.3,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"228": {
+"straight_m": 4578.077102623724,
+"snap_m": 25,
+"walk_m": 6969,
+"infra_frac": 0.46,
+"conn": "mixed road+path",
+"first_hw": "footway",
+"first_sw": ""
+},
+"229": {
+"straight_m": 4607.213461778059,
+"snap_m": 3,
+"walk_m": 7056,
+"infra_frac": 0.19,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"230": {
+"straight_m": 4517.371967690075,
+"snap_m": 11,
+"walk_m": 6971,
+"infra_frac": 0.19,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"231": {
+"straight_m": 4516.364397355504,
+"snap_m": 10,
+"walk_m": 6931,
+"infra_frac": 0.45,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"232": {
+"straight_m": 2220.2618760828027,
+"snap_m": 11,
+"walk_m": 4388,
+"infra_frac": 0.32,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"233": {
+"straight_m": 2266.798167251688,
+"snap_m": 20,
+"walk_m": 4360,
+"infra_frac": 0.34,
+"conn": "road, no sidewalk",
+"first_hw": "footway",
+"first_sw": ""
+},
+"234": {
+"straight_m": 1706.1149386915888,
+"snap_m": 11,
+"walk_m": 3689,
+"infra_frac": 0.36,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"235": {
+"straight_m": 1865.26124370826,
+"snap_m": 12,
+"walk_m": 3859,
+"infra_frac": 0.49,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"236": {
+"straight_m": 2445.9051684261813,
+"snap_m": 8,
+"walk_m": 4575,
+"infra_frac": 0.29,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"237": {
+"straight_m": 1531.7526817656362,
+"snap_m": 8,
+"walk_m": 2839,
+"infra_frac": 0.47,
+"conn": "road, no sidewalk",
+"first_hw": "steps",
+"first_sw": ""
+},
+"238": {
+"straight_m": 1532.683009168297,
+"snap_m": 3,
+"walk_m": 2891,
+"infra_frac": 0.46,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"239": {
+"straight_m": 4438.40159213238,
+"snap_m": 8,
+"walk_m": 6882,
+"infra_frac": 0.44,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"240": {
+"straight_m": 4208.778447589616,
+"snap_m": 10,
+"walk_m": 6557,
+"infra_frac": 0.42,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"241": {
+"straight_m": 3885.219047714971,
+"snap_m": 12,
+"walk_m": 6148,
+"infra_frac": 0.38,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"242": {
+"straight_m": 3683.666693578978,
+"snap_m": 14,
+"walk_m": 5993,
+"infra_frac": 0.37,
+"conn": "road, no sidewalk",
+"first_hw": "footway",
+"first_sw": ""
+},
+"243": {
+"straight_m": 3559.7811219576347,
+"snap_m": 10,
+"walk_m": 5853,
+"infra_frac": 0.34,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"244": {
+"straight_m": 3444.6547706360298,
+"snap_m": 20,
+"walk_m": 5774,
+"infra_frac": 0.33,
+"conn": "road, no sidewalk",
+"first_hw": "residential",
+"first_sw": ""
+},
+"245": {
+"straight_m": 3413.8374468104726,
+"snap_m": 10,
+"walk_m": 5668,
+"infra_frac": 0.33,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"246": {
+"straight_m": 3315.382483857127,
+"snap_m": 5,
+"walk_m": 5587,
+"infra_frac": 0.31,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"247": {
+"straight_m": 3264.6537205479067,
+"snap_m": 16,
+"walk_m": 5570,
+"infra_frac": 0.3,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"248": {
+"straight_m": 3122.6297629401574,
+"snap_m": 4,
+"walk_m": 5437,
+"infra_frac": 0.29,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"249": {
+"straight_m": 3011.9353287161857,
+"snap_m": 15,
+"walk_m": 5187,
+"infra_frac": 0.26,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"250": {
+"straight_m": 2923.2946217653525,
+"snap_m": 3,
+"walk_m": 5118,
+"infra_frac": 0.28,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"251": {
+"straight_m": 2993.285458656655,
+"snap_m": 35,
+"walk_m": 5155,
+"infra_frac": 0.36,
+"conn": "road, no sidewalk",
+"first_hw": "residential",
+"first_sw": "no"
+},
+"252": {
+"straight_m": 2914.7189080200005,
+"snap_m": 1,
+"walk_m": 5110,
+"infra_frac": 0.27,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"253": {
+"straight_m": 2836.693516056138,
+"snap_m": 11,
+"walk_m": 4982,
+"infra_frac": 0.39,
+"conn": "road, no sidewalk",
+"first_hw": "footway",
+"first_sw": ""
+},
+"254": {
+"straight_m": 2468.528052369245,
+"snap_m": 13,
+"walk_m": 4572,
+"infra_frac": 0.33,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"255": {
+"straight_m": 2360.2505004403138,
+"snap_m": 24,
+"walk_m": 4422,
+"infra_frac": 0.32,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"256": {
+"straight_m": 2322.7417603669287,
+"snap_m": 19,
+"walk_m": 4403,
+"infra_frac": 0.31,
+"conn": "road, no sidewalk",
+"first_hw": "footway",
+"first_sw": ""
+},
+"257": {
+"straight_m": 2364.4014483019546,
+"snap_m": 88,
+"walk_m": 4431,
+"infra_frac": 0.57,
+"conn": "road, no sidewalk",
+"first_hw": "path",
+"first_sw": ""
+},
+"258": {
+"straight_m": 2225.7451591081935,
+"snap_m": 28,
+"walk_m": 4255,
+"infra_frac": 0.32,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"259": {
+"straight_m": 2313.7677054315795,
+"snap_m": 87,
+"walk_m": 4339,
+"infra_frac": 0.34,
+"conn": "road, no sidewalk",
+"first_hw": "footway",
+"first_sw": ""
+},
+"260": {
+"straight_m": 2175.4617955810227,
+"snap_m": 7,
+"walk_m": 4232,
+"infra_frac": 0.32,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"261": {
+"straight_m": 1590.763746751576,
+"snap_m": 2,
+"walk_m": 2811,
+"infra_frac": 0.47,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"262": {
+"straight_m": 1574.4345827899924,
+"snap_m": 59,
+"walk_m": 2104,
+"infra_frac": 0.63,
+"conn": "at/via trail or footway",
+"first_hw": "primary",
+"first_sw": "no"
+},
+"263": {
+"straight_m": 4038.919186472777,
+"snap_m": 6,
+"walk_m": 6552,
+"infra_frac": 0.31,
+"conn": "road, no sidewalk",
+"first_hw": "footway",
+"first_sw": ""
+},
+"264": {
+"straight_m": 2712.3290105835126,
+"snap_m": 17,
+"walk_m": 4885,
+"infra_frac": 0.33,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"265": {
+"straight_m": 2806.973638588767,
+"snap_m": 13,
+"walk_m": 4973,
+"infra_frac": 0.35,
+"conn": "road, no sidewalk",
+"first_hw": "footway",
+"first_sw": ""
+},
+"266": {
+"straight_m": 2786.911058682649,
+"snap_m": 26,
+"walk_m": 5108,
+"infra_frac": 0.35,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"267": {
+"straight_m": 2864.573870183838,
+"snap_m": 6,
+"walk_m": 5111,
+"infra_frac": 0.36,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"268": {
+"straight_m": 2971.56082507971,
+"snap_m": 12,
+"walk_m": 5179,
+"infra_frac": 0.36,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"269": {
+"straight_m": 3099.9207098740467,
+"snap_m": 7,
+"walk_m": 5461,
+"infra_frac": 0.39,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"270": {
+"straight_m": 3127.30917983708,
+"snap_m": 12,
+"walk_m": 5452,
+"infra_frac": 0.4,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"271": {
+"straight_m": 3177.5585750110845,
+"snap_m": 8,
+"walk_m": 5411,
+"infra_frac": 0.4,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"272": {
+"straight_m": 3221.261694661342,
+"snap_m": 7,
+"walk_m": 5496,
+"infra_frac": 0.24,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"273": {
+"straight_m": 3438.8312496929775,
+"snap_m": 3,
+"walk_m": 5813,
+"infra_frac": 0.25,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"274": {
+"straight_m": 3450.1821914417433,
+"snap_m": 5,
+"walk_m": 5819,
+"infra_frac": 0.23,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"275": {
+"straight_m": 3395.365171190905,
+"snap_m": 15,
+"walk_m": 5962,
+"infra_frac": 0.22,
+"conn": "road, no sidewalk",
+"first_hw": "residential",
+"first_sw": ""
+},
+"276": {
+"straight_m": 3369.2846127591306,
+"snap_m": 14,
+"walk_m": 5615,
+"infra_frac": 0.24,
+"conn": "road, no sidewalk",
+"first_hw": "footway",
+"first_sw": ""
+},
+"277": {
+"straight_m": 3665.5147378965353,
+"snap_m": 7,
+"walk_m": 6003,
+"infra_frac": 0.24,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"278": {
+"straight_m": 3755.087253899217,
+"snap_m": 18,
+"walk_m": 6049,
+"infra_frac": 0.25,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"279": {
+"straight_m": 3801.3513585825576,
+"snap_m": 9,
+"walk_m": 6183,
+"infra_frac": 0.25,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"280": {
+"straight_m": 3741.6456301817007,
+"snap_m": 12,
+"walk_m": 6243,
+"infra_frac": 0.25,
+"conn": "road, no sidewalk",
+"first_hw": "service",
+"first_sw": ""
+},
+"281": {
+"straight_m": 5148.4463037225205,
+"snap_m": 48,
+"walk_m": 7724,
+"infra_frac": 0.49,
+"conn": "mixed road+path",
+"first_hw": "path",
+"first_sw": ""
+},
+"282": {
+"straight_m": 5419.351950295408,
+"snap_m": 2,
+"walk_m": 7580,
+"infra_frac": 0.72,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"283": {
+"straight_m": 5363.92826191744,
+"snap_m": 3,
+"walk_m": 7588,
+"infra_frac": 0.72,
+"conn": "at/via trail or footway",
+"first_hw": "service",
+"first_sw": ""
+},
+"284": {
+"straight_m": 4364.086429820521,
+"snap_m": null,
+"walk_m": null,
+"conn": "no foot route",
+"infra_frac": null
+}
+}

@@ -1,0 +1,817 @@
+{
+"0": {
+"osm": [
+"node/1145832434"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surveyed park lot (edge 21 m) \u2014 matches the confirmed Usery roadside/staging pattern"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 0 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "street_side"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 0
+},
+"2": {
+"osm": [
+"node/1667554634"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: angled-stall roadside lot along Usery Pass Rd (one of a series)"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "park roadside parking; walk 215 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 2
+},
+"3": {
+"osm": [
+"node/1667554683"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: angled-stall roadside lot with cars along the park road"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "park roadside parking; walk 178 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 3
+},
+"4": {
+"osm": [
+"node/1667554709"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "trailhead-node-coincident access point (edge 83 m), park roadside parking"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "trail meets it"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 4
+},
+"5": {
+"osm": [
+"node/2103033767"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "no",
+"evidence": "Z2: bare dirt patch at a road fork, no delineated lot or cars"
+},
+"public": {
+"call": "no",
+"evidence": "open"
+},
+"serves": {
+"call": "no",
+"evidence": "walk 1343 m; no parking surface"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 5
+},
+"8": {
+"osm": [
+"node/8184567299"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surveyed park lot (edge 22 m) \u2014 matches the confirmed Usery roadside/staging pattern"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 45 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "unpaved",
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 8
+},
+"9": {
+"osm": [
+"node/8220926855"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: dirt trailhead pull-in with 2 cars; trail starts SE"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "endpoint 32 m; trail starts here"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "unpaved",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 9
+},
+"10": {
+"osm": [
+"node/10247080492"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "trailhead-node-coincident access point (edge 16 m), park roadside parking"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "trail meets it"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 10
+},
+"11": {
+"osm": [
+"node/10247080494",
+"node/10247080495"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "trailhead-node-coincident access point (edge 10 m), park roadside parking"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "trail meets it"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 11
+},
+"12": {
+"osm": [
+"node/10247080497"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "trailhead-node-coincident access point (edge 26 m), park roadside parking"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "trail meets it"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 12
+},
+"13": {
+"osm": [
+"node/11036403636"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "unclear",
+"evidence": "Z2: bare dirt widening beside the highway at a trail crossing, no stalls/cars"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "no",
+"evidence": "Bare highway dirt pull-off, no delineated lot; Usery has a full dedicated lot system \u2014 skip"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "street_side"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01",
+"fid": 13
+},
+"14": {
+"osm": [
+"node/11036403637"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "unclear",
+"evidence": "Z2: bare dirt widening beside the highway, no delineated lot"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "no",
+"evidence": "Bare highway dirt pull-off, no delineated lot \u2014 skip"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "street_side"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "user-feedback-2026-08-01",
+"fid": 14
+},
+"16": {
+"osm": [
+"way/152827585"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: long striped lot beside a softball/ballfield complex"
+},
+"public": {
+"call": "yes",
+"evidence": "sports complex"
+},
+"serves": {
+"call": "no",
+"evidence": "ballfields explain it; walk 2638 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 16
+},
+"20": {
+"osm": [
+"way/153208069"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: graded facility yard with buildings + a shooting/archery range"
+},
+"public": {
+"call": "yes",
+"evidence": "facility"
+},
+"serves": {
+"call": "no",
+"evidence": "range facility; walk 858 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 20
+},
+"152": {
+"osm": [
+"way/328697962"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved lot with cars beside the Salt River (tubers in the water)"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=yes river day-use"
+},
+"serves": {
+"call": "no",
+"evidence": "serves Salt River tubing/rec, not the hiking trail; walk 2121 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"fee": "yes"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 152
+},
+"177": {
+"osm": [
+"way/559846875"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large developed loop lot in a master-planned community with a greenbelt/golf"
+},
+"public": {
+"call": "yes",
+"evidence": "community park"
+},
+"serves": {
+"call": "no",
+"evidence": "community lot; walk 3668 m from the Usery trail"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "asphalt",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 177
+},
+"221": {
+"osm": [
+"way/951300277"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large graded dirt lot along the road by the river, named Hawer Trail Parking"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Hawer Trail Parking; walk 266 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"name": "Hawer Trail Parking",
+"access": "yes",
+"surface": "unpaved",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 221
+},
+"273": {
+"osm": [
+"way/1151071352"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large named picnic-area parking with ramadas, trails running through it"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Usery Picnic Area Parking; walk 0 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"name": "Usery Mountain Regional Park Picnic Area Parking",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 273
+},
+"274": {
+"osm": [
+"way/1151071356"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "trailhead-node-coincident access point (edge 102 m), park roadside parking"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "trail meets it"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 274
+},
+"275": {
+"osm": [
+"way/1151086151"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surveyed park lot (edge 108 m) \u2014 matches the confirmed Usery roadside/staging pattern"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 207 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 275
+},
+"276": {
+"osm": [
+"way/1151086152"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surveyed park lot (edge 0 m) \u2014 matches the confirmed Usery roadside/staging pattern"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 32 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 276
+},
+"278": {
+"osm": [
+"way/1155218980"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: paved angled-stall lot with a car beside the road, trail crosses"
+},
+"public": {
+"call": "yes",
+"evidence": "Maricopa County"
+},
+"serves": {
+"call": "yes",
+"evidence": "operator Maricopa County; walk 119 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "asphalt",
+"parking": "surface",
+"fee": "no",
+"operator": "Maricopa County"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 278
+},
+"288": {
+"osm": [
+"way/1265321873"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surveyed park lot (edge 482 m) \u2014 matches the confirmed Usery roadside/staging pattern"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 239 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 288
+},
+"289": {
+"osm": [
+"way/1265321874"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surveyed park lot (edge 32 m) \u2014 matches the confirmed Usery roadside/staging pattern"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 47 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 289
+},
+"290": {
+"osm": [
+"way/1265321875"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: graded dirt staging lot with vehicles, trail from it"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Usery OHV Staging Area; walk 19 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"name": "Usery OHV Staging Area",
+"access": "yes",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 290
+},
+"297": {
+"osm": [
+"way/1424044543"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: developed park lot with marked stalls + ramada at the road end, trails around"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "Usery staging lot; walk 494 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 297
+},
+"299": {
+"osm": [
+"way/1498956986"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "surveyed park lot (edge 153 m) \u2014 matches the confirmed Usery roadside/staging pattern"
+},
+"public": {
+"call": "yes",
+"evidence": "public park"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 179 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "sand",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 299
+},
+"300": {
+"osm": [
+"way/1538443669"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "named Wolverine OHV Staging Area (USFS operator) \u2014 a real staging lot"
+},
+"public": {
+"call": "yes",
+"evidence": "United States Forest Service"
+},
+"serves": {
+"call": "yes",
+"evidence": "Wolverine OHV Staging"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"name": "Wolverine OHV Staging Area",
+"parking": "surface",
+"operator": "United States Forest Service"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 300
+}
+}

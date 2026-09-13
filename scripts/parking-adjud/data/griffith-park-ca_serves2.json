@@ -1,0 +1,7570 @@
+{
+"0": {
+"served": true,
+"trail": "Brand Gravesite Trail",
+"dist_m": 634,
+"fallback": false,
+"n": 3
+},
+"1": {
+"served": false
+},
+"2": {
+"served": false
+},
+"3": {
+"served": false
+},
+"4": {
+"served": false
+},
+"5": {
+"served": false
+},
+"6": {
+"served": false
+},
+"7": {
+"served": false
+},
+"8": {
+"served": false
+},
+"9": {
+"served": false
+},
+"10": {
+"served": false
+},
+"11": {
+"served": false
+},
+"12": {
+"served": true,
+"trail": "Key Club Path to the \"B\"",
+"dist_m": 190,
+"fallback": false,
+"n": 3
+},
+"13": {
+"served": false
+},
+"14": {
+"served": false
+},
+"15": {
+"served": false
+},
+"16": {
+"served": false
+},
+"17": {
+"served": false
+},
+"18": {
+"served": false
+},
+"19": {
+"served": false
+},
+"20": {
+"served": false
+},
+"21": {
+"served": false
+},
+"22": {
+"served": false
+},
+"23": {
+"served": false
+},
+"24": {
+"served": false
+},
+"25": {
+"served": false
+},
+"26": {
+"served": false
+},
+"27": {
+"served": false
+},
+"28": {
+"served": false
+},
+"29": {
+"served": false
+},
+"30": {
+"served": false
+},
+"31": {
+"served": false
+},
+"32": {
+"served": false
+},
+"33": {
+"served": false
+},
+"34": {
+"served": false
+},
+"35": {
+"served": false
+},
+"36": {
+"served": false
+},
+"37": {
+"served": false
+},
+"38": {
+"served": false
+},
+"39": {
+"served": false
+},
+"40": {
+"served": false
+},
+"41": {
+"served": false
+},
+"42": {
+"served": false
+},
+"43": {
+"served": true,
+"trail": "Skyline Trail",
+"dist_m": 61,
+"fallback": false,
+"n": 1
+},
+"44": {
+"served": false
+},
+"45": {
+"served": false
+},
+"46": {
+"served": false
+},
+"47": {
+"served": false
+},
+"48": {
+"served": false
+},
+"49": {
+"served": true,
+"trail": "Former Stough Park Motorbike Trail",
+"dist_m": 140,
+"fallback": false,
+"n": 3
+},
+"50": {
+"served": false
+},
+"51": {
+"served": false
+},
+"52": {
+"served": false
+},
+"53": {
+"served": false
+},
+"54": {
+"served": false
+},
+"55": {
+"served": false
+},
+"56": {
+"served": false
+},
+"57": {
+"served": true,
+"trail": "Brand Gravesite Trail",
+"dist_m": 444,
+"fallback": false,
+"n": 3
+},
+"58": {
+"served": true,
+"trail": "Brand Gravesite Trail",
+"dist_m": 537,
+"fallback": false,
+"n": 2
+},
+"59": {
+"served": false
+},
+"60": {
+"served": false
+},
+"61": {
+"served": false
+},
+"62": {
+"served": false
+},
+"63": {
+"served": false
+},
+"64": {
+"served": false
+},
+"65": {
+"served": false
+},
+"66": {
+"served": false
+},
+"67": {
+"served": false
+},
+"68": {
+"served": false
+},
+"69": {
+"served": false
+},
+"70": {
+"served": false
+},
+"71": {
+"served": false
+},
+"72": {
+"served": false
+},
+"73": {
+"served": false
+},
+"74": {
+"served": false
+},
+"75": {
+"served": false
+},
+"76": {
+"served": false
+},
+"77": {
+"served": false
+},
+"78": {
+"served": false
+},
+"79": {
+"served": false
+},
+"80": {
+"served": false
+},
+"81": {
+"served": false
+},
+"82": {
+"served": false
+},
+"83": {
+"served": false
+},
+"84": {
+"served": false
+},
+"85": {
+"served": false
+},
+"86": {
+"served": false
+},
+"87": {
+"served": true,
+"trail": "Dearing Mountain Trail",
+"dist_m": 302,
+"fallback": false,
+"n": 4
+},
+"88": {
+"served": false
+},
+"89": {
+"served": false
+},
+"90": {
+"served": false
+},
+"91": {
+"served": false
+},
+"92": {
+"served": false
+},
+"93": {
+"served": false
+},
+"94": {
+"served": false
+},
+"95": {
+"served": false
+},
+"96": {
+"served": false
+},
+"97": {
+"served": false
+},
+"98": {
+"served": false
+},
+"99": {
+"served": false
+},
+"100": {
+"served": false
+},
+"101": {
+"served": false
+},
+"102": {
+"served": false
+},
+"103": {
+"served": false
+},
+"104": {
+"served": false
+},
+"105": {
+"served": false
+},
+"106": {
+"served": false
+},
+"107": {
+"served": false
+},
+"108": {
+"served": false
+},
+"109": {
+"served": false
+},
+"110": {
+"served": false
+},
+"111": {
+"served": false
+},
+"112": {
+"served": false
+},
+"113": {
+"served": false
+},
+"114": {
+"served": false
+},
+"115": {
+"served": false
+},
+"116": {
+"served": false
+},
+"117": {
+"served": false
+},
+"118": {
+"served": false
+},
+"119": {
+"served": false
+},
+"120": {
+"served": false
+},
+"121": {
+"served": false
+},
+"122": {
+"served": false
+},
+"123": {
+"served": false
+},
+"124": {
+"served": false
+},
+"125": {
+"served": false
+},
+"126": {
+"served": false
+},
+"127": {
+"served": false
+},
+"128": {
+"served": false
+},
+"129": {
+"served": false
+},
+"130": {
+"served": false
+},
+"131": {
+"served": false
+},
+"132": {
+"served": false
+},
+"133": {
+"served": false
+},
+"134": {
+"served": false
+},
+"135": {
+"served": false
+},
+"136": {
+"served": false
+},
+"137": {
+"served": false
+},
+"138": {
+"served": false
+},
+"139": {
+"served": false
+},
+"140": {
+"served": false
+},
+"141": {
+"served": false
+},
+"142": {
+"served": false
+},
+"143": {
+"served": false
+},
+"144": {
+"served": false
+},
+"145": {
+"served": false
+},
+"146": {
+"served": false
+},
+"147": {
+"served": false
+},
+"148": {
+"served": false
+},
+"149": {
+"served": false
+},
+"150": {
+"served": false
+},
+"151": {
+"served": false
+},
+"152": {
+"served": false
+},
+"153": {
+"served": false
+},
+"154": {
+"served": false
+},
+"155": {
+"served": false
+},
+"156": {
+"served": false
+},
+"157": {
+"served": false
+},
+"158": {
+"served": false
+},
+"159": {
+"served": false
+},
+"160": {
+"served": false
+},
+"161": {
+"served": false
+},
+"162": {
+"served": false
+},
+"163": {
+"served": false
+},
+"164": {
+"served": false
+},
+"165": {
+"served": false
+},
+"166": {
+"served": false
+},
+"167": {
+"served": false
+},
+"168": {
+"served": false
+},
+"169": {
+"served": false
+},
+"170": {
+"served": false
+},
+"171": {
+"served": false
+},
+"172": {
+"served": false
+},
+"173": {
+"served": false
+},
+"174": {
+"served": false
+},
+"175": {
+"served": false
+},
+"176": {
+"served": false
+},
+"177": {
+"served": false
+},
+"178": {
+"served": false
+},
+"179": {
+"served": false
+},
+"180": {
+"served": false
+},
+"181": {
+"served": false
+},
+"182": {
+"served": false
+},
+"183": {
+"served": false
+},
+"184": {
+"served": false
+},
+"185": {
+"served": false
+},
+"186": {
+"served": false
+},
+"187": {
+"served": false
+},
+"188": {
+"served": false
+},
+"189": {
+"served": false
+},
+"190": {
+"served": false
+},
+"191": {
+"served": false
+},
+"192": {
+"served": false
+},
+"193": {
+"served": false
+},
+"194": {
+"served": false
+},
+"195": {
+"served": false
+},
+"196": {
+"served": false
+},
+"197": {
+"served": false
+},
+"198": {
+"served": false
+},
+"199": {
+"served": false
+},
+"200": {
+"served": false
+},
+"201": {
+"served": false
+},
+"202": {
+"served": false
+},
+"203": {
+"served": false
+},
+"204": {
+"served": false
+},
+"205": {
+"served": false
+},
+"206": {
+"served": false
+},
+"207": {
+"served": false
+},
+"208": {
+"served": false
+},
+"209": {
+"served": false
+},
+"210": {
+"served": false
+},
+"211": {
+"served": false
+},
+"212": {
+"served": false
+},
+"213": {
+"served": false
+},
+"214": {
+"served": false
+},
+"215": {
+"served": false
+},
+"216": {
+"served": false
+},
+"217": {
+"served": false
+},
+"218": {
+"served": false
+},
+"219": {
+"served": false
+},
+"220": {
+"served": false
+},
+"221": {
+"served": false
+},
+"222": {
+"served": false
+},
+"223": {
+"served": false
+},
+"224": {
+"served": false
+},
+"225": {
+"served": false
+},
+"226": {
+"served": false
+},
+"227": {
+"served": false
+},
+"228": {
+"served": false
+},
+"229": {
+"served": false
+},
+"230": {
+"served": false
+},
+"231": {
+"served": false
+},
+"232": {
+"served": false
+},
+"233": {
+"served": false
+},
+"234": {
+"served": false
+},
+"235": {
+"served": true,
+"trail": "Burbank Peak Trail",
+"dist_m": 684,
+"fallback": false,
+"n": 1
+},
+"236": {
+"served": false
+},
+"237": {
+"served": false
+},
+"238": {
+"served": false
+},
+"239": {
+"served": false
+},
+"240": {
+"served": false
+},
+"241": {
+"served": false
+},
+"242": {
+"served": false
+},
+"243": {
+"served": false
+},
+"244": {
+"served": false
+},
+"245": {
+"served": false
+},
+"246": {
+"served": false
+},
+"247": {
+"served": false
+},
+"248": {
+"served": false
+},
+"249": {
+"served": false
+},
+"250": {
+"served": false
+},
+"251": {
+"served": false
+},
+"252": {
+"served": false
+},
+"253": {
+"served": false
+},
+"254": {
+"served": false
+},
+"255": {
+"served": false
+},
+"256": {
+"served": false
+},
+"257": {
+"served": false
+},
+"258": {
+"served": false
+},
+"259": {
+"served": false
+},
+"260": {
+"served": false
+},
+"261": {
+"served": false
+},
+"262": {
+"served": false
+},
+"263": {
+"served": false
+},
+"264": {
+"served": false
+},
+"265": {
+"served": false
+},
+"266": {
+"served": false
+},
+"267": {
+"served": false
+},
+"268": {
+"served": false
+},
+"269": {
+"served": false
+},
+"270": {
+"served": false
+},
+"271": {
+"served": false
+},
+"272": {
+"served": false
+},
+"273": {
+"served": false
+},
+"274": {
+"served": false
+},
+"275": {
+"served": false
+},
+"276": {
+"served": false
+},
+"277": {
+"served": false
+},
+"278": {
+"served": false
+},
+"279": {
+"served": false
+},
+"280": {
+"served": false
+},
+"281": {
+"served": false
+},
+"282": {
+"served": false
+},
+"283": {
+"served": false
+},
+"284": {
+"served": false
+},
+"285": {
+"served": false
+},
+"286": {
+"served": false
+},
+"287": {
+"served": false
+},
+"288": {
+"served": false
+},
+"289": {
+"served": false
+},
+"290": {
+"served": false
+},
+"291": {
+"served": false
+},
+"292": {
+"served": false
+},
+"293": {
+"served": false
+},
+"294": {
+"served": false
+},
+"295": {
+"served": false
+},
+"296": {
+"served": false
+},
+"297": {
+"served": false
+},
+"298": {
+"served": false
+},
+"299": {
+"served": false
+},
+"300": {
+"served": false
+},
+"301": {
+"served": false
+},
+"302": {
+"served": false
+},
+"303": {
+"served": false
+},
+"304": {
+"served": false
+},
+"305": {
+"served": false
+},
+"306": {
+"served": false
+},
+"307": {
+"served": false
+},
+"308": {
+"served": false
+},
+"309": {
+"served": false
+},
+"310": {
+"served": false
+},
+"311": {
+"served": false
+},
+"312": {
+"served": false
+},
+"313": {
+"served": false
+},
+"314": {
+"served": false
+},
+"315": {
+"served": false
+},
+"316": {
+"served": false
+},
+"317": {
+"served": false
+},
+"318": {
+"served": false
+},
+"319": {
+"served": false
+},
+"320": {
+"served": false
+},
+"321": {
+"served": false
+},
+"322": {
+"served": false
+},
+"323": {
+"served": false
+},
+"324": {
+"served": false
+},
+"325": {
+"served": false
+},
+"326": {
+"served": false
+},
+"327": {
+"served": false
+},
+"328": {
+"served": false
+},
+"329": {
+"served": false
+},
+"330": {
+"served": false
+},
+"331": {
+"served": false
+},
+"332": {
+"served": false
+},
+"333": {
+"served": false
+},
+"334": {
+"served": false
+},
+"335": {
+"served": true,
+"trail": "Oak Canyon Trail",
+"dist_m": 403,
+"fallback": false,
+"n": 1
+},
+"336": {
+"served": false
+},
+"337": {
+"served": false
+},
+"338": {
+"served": false
+},
+"339": {
+"served": true,
+"trail": "Lower Old Zoo Trail",
+"dist_m": 14,
+"fallback": false,
+"n": 6
+},
+"340": {
+"served": true,
+"trail": "Coolidge Trail",
+"dist_m": 59,
+"fallback": false,
+"n": 3
+},
+"341": {
+"served": false
+},
+"342": {
+"served": false
+},
+"343": {
+"served": false
+},
+"344": {
+"served": false
+},
+"345": {
+"served": false
+},
+"346": {
+"served": false
+},
+"347": {
+"served": false
+},
+"348": {
+"served": false
+},
+"349": {
+"served": false
+},
+"350": {
+"served": false
+},
+"351": {
+"served": false
+},
+"352": {
+"served": true,
+"trail": "Future Los Angeles River Bike Path",
+"dist_m": 201,
+"fallback": false,
+"n": 1
+},
+"353": {
+"served": false
+},
+"354": {
+"served": false
+},
+"355": {
+"served": false
+},
+"356": {
+"served": false
+},
+"357": {
+"served": false
+},
+"358": {
+"served": false
+},
+"359": {
+"served": false
+},
+"360": {
+"served": true,
+"trail": "Betty B Dearing Trail",
+"dist_m": 0,
+"fallback": false,
+"n": 4
+},
+"361": {
+"served": false
+},
+"362": {
+"served": false
+},
+"363": {
+"served": false
+},
+"364": {
+"served": false
+},
+"365": {
+"served": false
+},
+"366": {
+"served": false
+},
+"367": {
+"served": false
+},
+"368": {
+"served": false
+},
+"369": {
+"served": false
+},
+"370": {
+"served": false
+},
+"371": {
+"served": false
+},
+"372": {
+"served": false
+},
+"373": {
+"served": false
+},
+"374": {
+"served": false
+},
+"375": {
+"served": false
+},
+"376": {
+"served": false
+},
+"377": {
+"served": false
+},
+"378": {
+"served": false
+},
+"379": {
+"served": false
+},
+"380": {
+"served": false
+},
+"381": {
+"served": false
+},
+"382": {
+"served": false
+},
+"383": {
+"served": false
+},
+"384": {
+"served": false
+},
+"385": {
+"served": false
+},
+"386": {
+"served": false
+},
+"387": {
+"served": false
+},
+"388": {
+"served": false
+},
+"389": {
+"served": false
+},
+"390": {
+"served": false
+},
+"391": {
+"served": false
+},
+"392": {
+"served": false
+},
+"393": {
+"served": false
+},
+"394": {
+"served": false
+},
+"395": {
+"served": false
+},
+"396": {
+"served": false
+},
+"397": {
+"served": false
+},
+"398": {
+"served": false
+},
+"399": {
+"served": false
+},
+"400": {
+"served": false
+},
+"401": {
+"served": false
+},
+"402": {
+"served": false
+},
+"403": {
+"served": false
+},
+"404": {
+"served": false
+},
+"405": {
+"served": false
+},
+"406": {
+"served": false
+},
+"407": {
+"served": false
+},
+"408": {
+"served": false
+},
+"409": {
+"served": false
+},
+"410": {
+"served": false
+},
+"411": {
+"served": false
+},
+"412": {
+"served": false
+},
+"413": {
+"served": false
+},
+"414": {
+"served": false
+},
+"415": {
+"served": false
+},
+"416": {
+"served": false
+},
+"417": {
+"served": false
+},
+"418": {
+"served": false
+},
+"419": {
+"served": false
+},
+"420": {
+"served": false
+},
+"421": {
+"served": false
+},
+"422": {
+"served": false
+},
+"423": {
+"served": false
+},
+"424": {
+"served": false
+},
+"425": {
+"served": false
+},
+"426": {
+"served": false
+},
+"427": {
+"served": false
+},
+"428": {
+"served": true,
+"trail": "Portola Trail",
+"dist_m": 255,
+"fallback": false,
+"n": 1
+},
+"429": {
+"served": false
+},
+"430": {
+"served": true,
+"trail": "Portola Trail",
+"dist_m": 232,
+"fallback": false,
+"n": 1
+},
+"431": {
+"served": false
+},
+"432": {
+"served": false
+},
+"433": {
+"served": false
+},
+"434": {
+"served": false
+},
+"435": {
+"served": false
+},
+"436": {
+"served": false
+},
+"437": {
+"served": false
+},
+"438": {
+"served": false
+},
+"439": {
+"served": false
+},
+"440": {
+"served": false
+},
+"441": {
+"served": false
+},
+"442": {
+"served": false
+},
+"443": {
+"served": false
+},
+"444": {
+"served": false
+},
+"445": {
+"served": false
+},
+"446": {
+"served": true,
+"trail": "Henry's Trail",
+"dist_m": 607,
+"fallback": false,
+"n": 3
+},
+"447": {
+"served": false
+},
+"448": {
+"served": false
+},
+"449": {
+"served": false
+},
+"450": {
+"served": false
+},
+"451": {
+"served": false
+},
+"452": {
+"served": false
+},
+"453": {
+"served": false
+},
+"454": {
+"served": false
+},
+"455": {
+"served": false
+},
+"456": {
+"served": false
+},
+"457": {
+"served": false
+},
+"458": {
+"served": false
+},
+"459": {
+"served": false
+},
+"460": {
+"served": false
+},
+"461": {
+"served": false
+},
+"462": {
+"served": false
+},
+"463": {
+"served": false
+},
+"464": {
+"served": false
+},
+"465": {
+"served": false
+},
+"466": {
+"served": false
+},
+"467": {
+"served": false
+},
+"468": {
+"served": false
+},
+"469": {
+"served": true,
+"trail": "Haskins West Flank",
+"dist_m": 266,
+"fallback": false,
+"n": 3
+},
+"470": {
+"served": false
+},
+"471": {
+"served": false
+},
+"472": {
+"served": false
+},
+"473": {
+"served": false
+},
+"474": {
+"served": false
+},
+"475": {
+"served": false
+},
+"476": {
+"served": false
+},
+"477": {
+"served": false
+},
+"478": {
+"served": false
+},
+"479": {
+"served": false
+},
+"480": {
+"served": false
+},
+"481": {
+"served": false
+},
+"482": {
+"served": false
+},
+"483": {
+"served": false
+},
+"484": {
+"served": false
+},
+"485": {
+"served": false
+},
+"486": {
+"served": false
+},
+"487": {
+"served": false
+},
+"488": {
+"served": false
+},
+"489": {
+"served": false
+},
+"490": {
+"served": false
+},
+"491": {
+"served": false
+},
+"492": {
+"served": false
+},
+"493": {
+"served": true,
+"trail": "Riverside Trail",
+"dist_m": 111,
+"fallback": false,
+"n": 2
+},
+"494": {
+"served": false
+},
+"495": {
+"served": false
+},
+"496": {
+"served": false
+},
+"497": {
+"served": false
+},
+"498": {
+"served": false
+},
+"499": {
+"served": false
+},
+"500": {
+"served": false
+},
+"501": {
+"served": false
+},
+"502": {
+"served": false
+},
+"503": {
+"served": false
+},
+"504": {
+"served": false
+},
+"505": {
+"served": false
+},
+"506": {
+"served": false
+},
+"507": {
+"served": false
+},
+"508": {
+"served": false
+},
+"509": {
+"served": false
+},
+"510": {
+"served": false
+},
+"511": {
+"served": false
+},
+"512": {
+"served": false
+},
+"513": {
+"served": false
+},
+"514": {
+"served": false
+},
+"515": {
+"served": false
+},
+"516": {
+"served": false
+},
+"517": {
+"served": false
+},
+"518": {
+"served": false
+},
+"519": {
+"served": false
+},
+"520": {
+"served": false
+},
+"521": {
+"served": false
+},
+"522": {
+"served": false
+},
+"523": {
+"served": false
+},
+"524": {
+"served": false
+},
+"525": {
+"served": false
+},
+"526": {
+"served": false
+},
+"527": {
+"served": false
+},
+"528": {
+"served": false
+},
+"529": {
+"served": false
+},
+"530": {
+"served": false
+},
+"531": {
+"served": false
+},
+"532": {
+"served": false
+},
+"533": {
+"served": false
+},
+"534": {
+"served": false
+},
+"535": {
+"served": false
+},
+"536": {
+"served": false
+},
+"537": {
+"served": false
+},
+"538": {
+"served": false
+},
+"539": {
+"served": false
+},
+"540": {
+"served": false
+},
+"541": {
+"served": false
+},
+"542": {
+"served": false
+},
+"543": {
+"served": false
+},
+"544": {
+"served": false
+},
+"545": {
+"served": false
+},
+"546": {
+"served": false
+},
+"547": {
+"served": false
+},
+"548": {
+"served": false
+},
+"549": {
+"served": false
+},
+"550": {
+"served": false
+},
+"551": {
+"served": false
+},
+"552": {
+"served": false
+},
+"553": {
+"served": false
+},
+"554": {
+"served": false
+},
+"555": {
+"served": false
+},
+"556": {
+"served": false
+},
+"557": {
+"served": false
+},
+"558": {
+"served": false
+},
+"559": {
+"served": false
+},
+"560": {
+"served": false
+},
+"561": {
+"served": false
+},
+"562": {
+"served": false
+},
+"563": {
+"served": false
+},
+"564": {
+"served": false
+},
+"565": {
+"served": false
+},
+"566": {
+"served": false
+},
+"567": {
+"served": false
+},
+"568": {
+"served": false
+},
+"569": {
+"served": false
+},
+"570": {
+"served": false
+},
+"571": {
+"served": false
+},
+"572": {
+"served": false
+},
+"573": {
+"served": false
+},
+"574": {
+"served": false
+},
+"575": {
+"served": false
+},
+"576": {
+"served": false
+},
+"577": {
+"served": false
+},
+"578": {
+"served": false
+},
+"579": {
+"served": false
+},
+"580": {
+"served": false
+},
+"581": {
+"served": false
+},
+"582": {
+"served": false
+},
+"583": {
+"served": false
+},
+"584": {
+"served": false
+},
+"585": {
+"served": false
+},
+"586": {
+"served": false
+},
+"587": {
+"served": false
+},
+"588": {
+"served": false
+},
+"589": {
+"served": false
+},
+"590": {
+"served": false
+},
+"591": {
+"served": false
+},
+"592": {
+"served": false
+},
+"593": {
+"served": false
+},
+"594": {
+"served": false
+},
+"595": {
+"served": false
+},
+"596": {
+"served": false
+},
+"597": {
+"served": false
+},
+"598": {
+"served": false
+},
+"599": {
+"served": false
+},
+"600": {
+"served": false
+},
+"601": {
+"served": false
+},
+"602": {
+"served": false
+},
+"603": {
+"served": false
+},
+"604": {
+"served": false
+},
+"605": {
+"served": false
+},
+"606": {
+"served": false
+},
+"607": {
+"served": false
+},
+"608": {
+"served": false
+},
+"609": {
+"served": false
+},
+"610": {
+"served": false
+},
+"611": {
+"served": false
+},
+"612": {
+"served": false
+},
+"613": {
+"served": false
+},
+"614": {
+"served": false
+},
+"615": {
+"served": false
+},
+"616": {
+"served": false
+},
+"617": {
+"served": false
+},
+"618": {
+"served": false
+},
+"619": {
+"served": false
+},
+"620": {
+"served": false
+},
+"621": {
+"served": false
+},
+"622": {
+"served": false
+},
+"623": {
+"served": false
+},
+"624": {
+"served": false
+},
+"625": {
+"served": false
+},
+"626": {
+"served": false
+},
+"627": {
+"served": false
+},
+"628": {
+"served": false
+},
+"629": {
+"served": false
+},
+"630": {
+"served": false
+},
+"631": {
+"served": false
+},
+"632": {
+"served": false
+},
+"633": {
+"served": false
+},
+"634": {
+"served": false
+},
+"635": {
+"served": false
+},
+"636": {
+"served": false
+},
+"637": {
+"served": false
+},
+"638": {
+"served": false
+},
+"639": {
+"served": false
+},
+"640": {
+"served": false
+},
+"641": {
+"served": false
+},
+"642": {
+"served": false
+},
+"643": {
+"served": false
+},
+"644": {
+"served": false
+},
+"645": {
+"served": false
+},
+"646": {
+"served": false
+},
+"647": {
+"served": false
+},
+"648": {
+"served": false
+},
+"649": {
+"served": false
+},
+"650": {
+"served": false
+},
+"651": {
+"served": false
+},
+"652": {
+"served": false
+},
+"653": {
+"served": false
+},
+"654": {
+"served": false
+},
+"655": {
+"served": false
+},
+"656": {
+"served": false
+},
+"657": {
+"served": false
+},
+"658": {
+"served": false
+},
+"659": {
+"served": false
+},
+"660": {
+"served": false
+},
+"661": {
+"served": false
+},
+"662": {
+"served": false
+},
+"663": {
+"served": false
+},
+"664": {
+"served": false
+},
+"665": {
+"served": false
+},
+"666": {
+"served": false
+},
+"667": {
+"served": false
+},
+"668": {
+"served": false
+},
+"669": {
+"served": false
+},
+"670": {
+"served": false
+},
+"671": {
+"served": false
+},
+"672": {
+"served": false
+},
+"673": {
+"served": false
+},
+"674": {
+"served": false
+},
+"675": {
+"served": false
+},
+"676": {
+"served": false
+},
+"677": {
+"served": false
+},
+"678": {
+"served": false
+},
+"679": {
+"served": false
+},
+"680": {
+"served": false
+},
+"681": {
+"served": false
+},
+"682": {
+"served": false
+},
+"683": {
+"served": false
+},
+"684": {
+"served": false
+},
+"685": {
+"served": false
+},
+"686": {
+"served": false
+},
+"687": {
+"served": false
+},
+"688": {
+"served": false
+},
+"689": {
+"served": false
+},
+"690": {
+"served": false
+},
+"691": {
+"served": false
+},
+"692": {
+"served": false
+},
+"693": {
+"served": false
+},
+"694": {
+"served": false
+},
+"695": {
+"served": false
+},
+"696": {
+"served": false
+},
+"697": {
+"served": false
+},
+"698": {
+"served": false
+},
+"699": {
+"served": false
+},
+"700": {
+"served": false
+},
+"701": {
+"served": false
+},
+"702": {
+"served": false
+},
+"703": {
+"served": false
+},
+"704": {
+"served": false
+},
+"705": {
+"served": false
+},
+"706": {
+"served": false
+},
+"707": {
+"served": false
+},
+"708": {
+"served": false
+},
+"709": {
+"served": false
+},
+"710": {
+"served": false
+},
+"711": {
+"served": false
+},
+"712": {
+"served": false
+},
+"713": {
+"served": false
+},
+"714": {
+"served": false
+},
+"715": {
+"served": false
+},
+"716": {
+"served": false
+},
+"717": {
+"served": false
+},
+"718": {
+"served": false
+},
+"719": {
+"served": false
+},
+"720": {
+"served": false
+},
+"721": {
+"served": false
+},
+"722": {
+"served": false
+},
+"723": {
+"served": false
+},
+"724": {
+"served": false
+},
+"725": {
+"served": false
+},
+"726": {
+"served": false
+},
+"727": {
+"served": false
+},
+"728": {
+"served": false
+},
+"729": {
+"served": false
+},
+"730": {
+"served": false
+},
+"731": {
+"served": true,
+"trail": "Boy Scout Trail",
+"dist_m": 69,
+"fallback": false,
+"n": 2
+},
+"732": {
+"served": false
+},
+"733": {
+"served": false
+},
+"734": {
+"served": false
+},
+"735": {
+"served": false
+},
+"736": {
+"served": false
+},
+"737": {
+"served": false
+},
+"738": {
+"served": false
+},
+"739": {
+"served": false
+},
+"740": {
+"served": false
+},
+"741": {
+"served": false
+},
+"742": {
+"served": false
+},
+"743": {
+"served": false
+},
+"744": {
+"served": false
+},
+"745": {
+"served": false
+},
+"746": {
+"served": false
+},
+"747": {
+"served": false
+},
+"748": {
+"served": false
+},
+"749": {
+"served": false
+},
+"750": {
+"served": false
+},
+"751": {
+"served": false
+},
+"752": {
+"served": false
+},
+"753": {
+"served": false
+},
+"754": {
+"served": false
+},
+"755": {
+"served": false
+},
+"756": {
+"served": false
+},
+"757": {
+"served": false
+},
+"758": {
+"served": false
+},
+"759": {
+"served": false
+},
+"760": {
+"served": false
+},
+"761": {
+"served": false
+},
+"762": {
+"served": false
+},
+"763": {
+"served": false
+},
+"764": {
+"served": false
+},
+"765": {
+"served": false
+},
+"766": {
+"served": false
+},
+"767": {
+"served": false
+},
+"768": {
+"served": false
+},
+"769": {
+"served": false
+},
+"770": {
+"served": false
+},
+"771": {
+"served": false
+},
+"772": {
+"served": false
+},
+"773": {
+"served": false
+},
+"774": {
+"served": false
+},
+"775": {
+"served": false
+},
+"776": {
+"served": false
+},
+"777": {
+"served": false
+},
+"778": {
+"served": false
+},
+"779": {
+"served": false
+},
+"780": {
+"served": false
+},
+"781": {
+"served": false
+},
+"782": {
+"served": false
+},
+"783": {
+"served": false
+},
+"784": {
+"served": false
+},
+"785": {
+"served": false
+},
+"786": {
+"served": false
+},
+"787": {
+"served": false
+},
+"788": {
+"served": false
+},
+"789": {
+"served": false
+},
+"790": {
+"served": false
+},
+"791": {
+"served": false
+},
+"792": {
+"served": false
+},
+"793": {
+"served": false
+},
+"794": {
+"served": false
+},
+"795": {
+"served": true,
+"trail": "Burbank Peak Trail",
+"dist_m": 764,
+"fallback": false,
+"n": 2
+},
+"796": {
+"served": true,
+"trail": "Burbank Peak Trail",
+"dist_m": 661,
+"fallback": false,
+"n": 2
+},
+"797": {
+"served": false
+},
+"798": {
+"served": false
+},
+"799": {
+"served": false
+},
+"800": {
+"served": false
+},
+"801": {
+"served": false
+},
+"802": {
+"served": false
+},
+"803": {
+"served": false
+},
+"804": {
+"served": false
+},
+"805": {
+"served": false
+},
+"806": {
+"served": false
+},
+"807": {
+"served": false
+},
+"808": {
+"served": false
+},
+"809": {
+"served": false
+},
+"810": {
+"served": false
+},
+"811": {
+"served": false
+},
+"812": {
+"served": false
+},
+"813": {
+"served": false
+},
+"814": {
+"served": false
+},
+"815": {
+"served": false
+},
+"816": {
+"served": false
+},
+"817": {
+"served": false
+},
+"818": {
+"served": false
+},
+"819": {
+"served": false
+},
+"820": {
+"served": false
+},
+"821": {
+"served": false
+},
+"822": {
+"served": false
+},
+"823": {
+"served": false
+},
+"824": {
+"served": false
+},
+"825": {
+"served": false
+},
+"826": {
+"served": false
+},
+"827": {
+"served": false
+},
+"828": {
+"served": false
+},
+"829": {
+"served": false
+},
+"830": {
+"served": false
+},
+"831": {
+"served": false
+},
+"832": {
+"served": false
+},
+"833": {
+"served": false
+},
+"834": {
+"served": false
+},
+"835": {
+"served": false
+},
+"836": {
+"served": false
+},
+"837": {
+"served": false
+},
+"838": {
+"served": false
+},
+"839": {
+"served": false
+},
+"840": {
+"served": false
+},
+"841": {
+"served": false
+},
+"842": {
+"served": false
+},
+"843": {
+"served": false
+},
+"844": {
+"served": false
+},
+"845": {
+"served": false
+},
+"846": {
+"served": false
+},
+"847": {
+"served": false
+},
+"848": {
+"served": false
+},
+"849": {
+"served": false
+},
+"850": {
+"served": false
+},
+"851": {
+"served": false
+},
+"852": {
+"served": false
+},
+"853": {
+"served": false
+},
+"854": {
+"served": false
+},
+"855": {
+"served": false
+},
+"856": {
+"served": false
+},
+"857": {
+"served": true,
+"trail": "Key Club Path to the \"B\"",
+"dist_m": 339,
+"fallback": false,
+"n": 1
+},
+"858": {
+"served": false
+},
+"859": {
+"served": false
+},
+"860": {
+"served": false
+},
+"861": {
+"served": false
+},
+"862": {
+"served": false
+},
+"863": {
+"served": false
+},
+"864": {
+"served": false
+},
+"865": {
+"served": false
+},
+"866": {
+"served": false
+},
+"867": {
+"served": false
+},
+"868": {
+"served": false
+},
+"869": {
+"served": false
+},
+"870": {
+"served": false
+},
+"871": {
+"served": false
+},
+"872": {
+"served": false
+},
+"873": {
+"served": false
+},
+"874": {
+"served": false
+},
+"875": {
+"served": false
+},
+"876": {
+"served": false
+},
+"877": {
+"served": false
+},
+"878": {
+"served": false
+},
+"879": {
+"served": false
+},
+"880": {
+"served": false
+},
+"881": {
+"served": false
+},
+"882": {
+"served": false
+},
+"883": {
+"served": false
+},
+"884": {
+"served": false
+},
+"885": {
+"served": false
+},
+"886": {
+"served": false
+},
+"887": {
+"served": false
+},
+"888": {
+"served": false
+},
+"889": {
+"served": false
+},
+"890": {
+"served": false
+},
+"891": {
+"served": false
+},
+"892": {
+"served": false
+},
+"893": {
+"served": false
+},
+"894": {
+"served": false
+},
+"895": {
+"served": false
+},
+"896": {
+"served": false
+},
+"897": {
+"served": true,
+"trail": "Riverside Trail",
+"dist_m": 24,
+"fallback": false,
+"n": 4
+},
+"898": {
+"served": false
+},
+"899": {
+"served": false
+},
+"900": {
+"served": false
+},
+"901": {
+"served": false
+},
+"902": {
+"served": false
+},
+"903": {
+"served": true,
+"trail": "Descanso Motorway",
+"dist_m": 418,
+"fallback": false,
+"n": 2
+},
+"904": {
+"served": false
+},
+"905": {
+"served": false
+},
+"906": {
+"served": false
+},
+"907": {
+"served": false
+},
+"908": {
+"served": false
+},
+"909": {
+"served": false
+},
+"910": {
+"served": false
+},
+"911": {
+"served": false
+},
+"912": {
+"served": false
+},
+"913": {
+"served": false
+},
+"914": {
+"served": false
+},
+"915": {
+"served": false
+},
+"916": {
+"served": false
+},
+"917": {
+"served": false
+},
+"918": {
+"served": false
+},
+"919": {
+"served": false
+},
+"920": {
+"served": false
+},
+"921": {
+"served": false
+},
+"922": {
+"served": false
+},
+"923": {
+"served": false
+},
+"924": {
+"served": false
+},
+"925": {
+"served": false
+},
+"926": {
+"served": false
+},
+"927": {
+"served": false
+},
+"928": {
+"served": false
+},
+"929": {
+"served": false
+},
+"930": {
+"served": false
+},
+"931": {
+"served": false
+},
+"932": {
+"served": false
+},
+"933": {
+"served": false
+},
+"934": {
+"served": false
+},
+"935": {
+"served": false
+},
+"936": {
+"served": false
+},
+"937": {
+"served": false
+},
+"938": {
+"served": false
+},
+"939": {
+"served": false
+},
+"940": {
+"served": true,
+"trail": "Observatory Trail",
+"dist_m": 157,
+"fallback": false,
+"n": 6
+},
+"941": {
+"served": false
+},
+"942": {
+"served": false
+},
+"943": {
+"served": false
+},
+"944": {
+"served": false
+},
+"945": {
+"served": false
+},
+"946": {
+"served": true,
+"trail": "Haskins East Flank",
+"dist_m": 219,
+"fallback": false,
+"n": 3
+},
+"947": {
+"served": false
+},
+"948": {
+"served": false
+},
+"949": {
+"served": false
+},
+"950": {
+"served": false
+},
+"951": {
+"served": false
+},
+"952": {
+"served": false
+},
+"953": {
+"served": false
+},
+"954": {
+"served": false
+},
+"955": {
+"served": false
+},
+"956": {
+"served": false
+},
+"957": {
+"served": false
+},
+"958": {
+"served": false
+},
+"959": {
+"served": false
+},
+"960": {
+"served": false
+},
+"961": {
+"served": false
+},
+"962": {
+"served": false
+},
+"963": {
+"served": false
+},
+"964": {
+"served": false
+},
+"965": {
+"served": false
+},
+"966": {
+"served": false
+},
+"967": {
+"served": false
+},
+"968": {
+"served": false
+},
+"969": {
+"served": false
+},
+"970": {
+"served": false
+},
+"971": {
+"served": false
+},
+"972": {
+"served": false
+},
+"973": {
+"served": false
+},
+"974": {
+"served": false
+},
+"975": {
+"served": false
+},
+"976": {
+"served": false
+},
+"977": {
+"served": false
+},
+"978": {
+"served": false
+},
+"979": {
+"served": false
+},
+"980": {
+"served": false
+},
+"981": {
+"served": false
+},
+"982": {
+"served": false
+},
+"983": {
+"served": false
+},
+"984": {
+"served": false
+},
+"985": {
+"served": false
+},
+"986": {
+"served": false
+},
+"987": {
+"served": false
+},
+"988": {
+"served": false
+},
+"989": {
+"served": false
+},
+"990": {
+"served": false
+},
+"991": {
+"served": false
+},
+"992": {
+"served": false
+},
+"993": {
+"served": false
+},
+"994": {
+"served": false
+},
+"995": {
+"served": false
+},
+"996": {
+"served": false
+},
+"997": {
+"served": false
+},
+"998": {
+"served": false
+},
+"999": {
+"served": false
+},
+"1000": {
+"served": false
+},
+"1001": {
+"served": false
+},
+"1002": {
+"served": false
+},
+"1003": {
+"served": false
+},
+"1004": {
+"served": false
+},
+"1005": {
+"served": false
+},
+"1006": {
+"served": false
+},
+"1007": {
+"served": false
+},
+"1008": {
+"served": false
+},
+"1009": {
+"served": false
+},
+"1010": {
+"served": false
+},
+"1011": {
+"served": false
+},
+"1012": {
+"served": false
+},
+"1013": {
+"served": false
+},
+"1014": {
+"served": false
+},
+"1015": {
+"served": false
+},
+"1016": {
+"served": false
+},
+"1017": {
+"served": false
+},
+"1018": {
+"served": false
+},
+"1019": {
+"served": false
+},
+"1020": {
+"served": false
+},
+"1021": {
+"served": false
+},
+"1022": {
+"served": false
+},
+"1023": {
+"served": false
+},
+"1024": {
+"served": false
+},
+"1025": {
+"served": false
+},
+"1026": {
+"served": false
+},
+"1027": {
+"served": false
+},
+"1028": {
+"served": false
+},
+"1029": {
+"served": false
+},
+"1030": {
+"served": false
+},
+"1031": {
+"served": false
+},
+"1032": {
+"served": false
+},
+"1033": {
+"served": false
+},
+"1034": {
+"served": false
+},
+"1035": {
+"served": false
+},
+"1036": {
+"served": false
+},
+"1037": {
+"served": false
+},
+"1038": {
+"served": false
+},
+"1039": {
+"served": false
+},
+"1040": {
+"served": false
+},
+"1041": {
+"served": false
+},
+"1042": {
+"served": false
+},
+"1043": {
+"served": false
+},
+"1044": {
+"served": false
+},
+"1045": {
+"served": false
+},
+"1046": {
+"served": false
+},
+"1047": {
+"served": false
+},
+"1048": {
+"served": false
+},
+"1049": {
+"served": false
+},
+"1050": {
+"served": false
+},
+"1051": {
+"served": false
+},
+"1052": {
+"served": false
+},
+"1053": {
+"served": false
+},
+"1054": {
+"served": false
+},
+"1055": {
+"served": false
+},
+"1056": {
+"served": false
+},
+"1057": {
+"served": false
+},
+"1058": {
+"served": false
+},
+"1059": {
+"served": false
+},
+"1060": {
+"served": false
+},
+"1061": {
+"served": false
+},
+"1062": {
+"served": false
+},
+"1063": {
+"served": false
+},
+"1064": {
+"served": true,
+"trail": "Ridge Motorway",
+"dist_m": 502,
+"fallback": false,
+"n": 2
+},
+"1065": {
+"served": false
+},
+"1066": {
+"served": false
+},
+"1067": {
+"served": false
+},
+"1068": {
+"served": false
+},
+"1069": {
+"served": true,
+"trail": "Catalina Verdugo Trail",
+"dist_m": 146,
+"fallback": false,
+"n": 2
+},
+"1070": {
+"served": false
+},
+"1071": {
+"served": false
+},
+"1072": {
+"served": false
+},
+"1073": {
+"served": true,
+"trail": "Ridge Motorway",
+"dist_m": 286,
+"fallback": false,
+"n": 2
+},
+"1074": {
+"served": false
+},
+"1075": {
+"served": false
+},
+"1076": {
+"served": false
+},
+"1077": {
+"served": false
+},
+"1078": {
+"served": true,
+"trail": "Scott's Trail",
+"dist_m": 621,
+"fallback": false,
+"n": 2
+},
+"1079": {
+"served": false
+},
+"1080": {
+"served": true,
+"trail": "Descanso Motorway",
+"dist_m": 386,
+"fallback": false,
+"n": 2
+},
+"1081": {
+"served": false
+},
+"1082": {
+"served": false
+},
+"1083": {
+"served": false
+},
+"1084": {
+"served": false
+},
+"1085": {
+"served": false
+},
+"1086": {
+"served": false
+},
+"1087": {
+"served": false
+},
+"1088": {
+"served": false
+},
+"1089": {
+"served": false
+},
+"1090": {
+"served": false
+},
+"1091": {
+"served": false
+},
+"1092": {
+"served": true,
+"trail": "Catalina Verdugo Trail",
+"dist_m": 40,
+"fallback": false,
+"n": 3
+},
+"1093": {
+"served": false
+},
+"1094": {
+"served": false
+},
+"1095": {
+"served": false
+},
+"1096": {
+"served": false
+},
+"1097": {
+"served": false
+},
+"1098": {
+"served": false
+},
+"1099": {
+"served": false
+},
+"1100": {
+"served": false
+},
+"1101": {
+"served": false
+},
+"1102": {
+"served": false
+},
+"1103": {
+"served": false
+},
+"1104": {
+"served": false
+},
+"1105": {
+"served": false
+},
+"1106": {
+"served": false
+},
+"1107": {
+"served": false
+},
+"1108": {
+"served": false
+},
+"1109": {
+"served": false
+},
+"1110": {
+"served": false
+},
+"1111": {
+"served": false
+},
+"1112": {
+"served": false
+},
+"1113": {
+"served": false
+},
+"1114": {
+"served": false
+},
+"1115": {
+"served": false
+},
+"1116": {
+"served": false
+},
+"1117": {
+"served": false
+},
+"1118": {
+"served": false
+},
+"1119": {
+"served": false
+},
+"1120": {
+"served": false
+},
+"1121": {
+"served": false
+},
+"1122": {
+"served": false
+},
+"1123": {
+"served": false
+},
+"1124": {
+"served": false
+},
+"1125": {
+"served": false
+},
+"1126": {
+"served": false
+},
+"1127": {
+"served": false
+},
+"1128": {
+"served": false
+},
+"1129": {
+"served": false
+},
+"1130": {
+"served": false
+},
+"1131": {
+"served": false
+},
+"1132": {
+"served": false
+},
+"1133": {
+"served": false
+},
+"1134": {
+"served": false
+},
+"1135": {
+"served": false
+},
+"1136": {
+"served": false
+},
+"1137": {
+"served": false
+},
+"1138": {
+"served": false
+},
+"1139": {
+"served": false
+},
+"1140": {
+"served": false
+},
+"1141": {
+"served": false
+},
+"1142": {
+"served": false
+},
+"1143": {
+"served": false
+},
+"1144": {
+"served": false
+},
+"1145": {
+"served": false
+},
+"1146": {
+"served": false
+},
+"1147": {
+"served": false
+},
+"1148": {
+"served": false
+},
+"1149": {
+"served": false
+},
+"1150": {
+"served": false
+},
+"1151": {
+"served": false
+},
+"1152": {
+"served": false
+},
+"1153": {
+"served": false
+},
+"1154": {
+"served": false
+},
+"1155": {
+"served": false
+},
+"1156": {
+"served": false
+},
+"1157": {
+"served": false
+},
+"1158": {
+"served": false
+},
+"1159": {
+"served": false
+},
+"1160": {
+"served": false
+},
+"1161": {
+"served": false
+},
+"1162": {
+"served": false
+},
+"1163": {
+"served": false
+},
+"1164": {
+"served": false
+},
+"1165": {
+"served": false
+},
+"1166": {
+"served": false
+},
+"1167": {
+"served": false
+},
+"1168": {
+"served": false
+},
+"1169": {
+"served": false
+},
+"1170": {
+"served": true,
+"trail": "Betty B. Dearing Trail",
+"dist_m": 997,
+"fallback": true,
+"n": 3
+},
+"1171": {
+"served": false
+},
+"1172": {
+"served": false
+},
+"1173": {
+"served": false
+},
+"1174": {
+"served": false
+},
+"1175": {
+"served": false
+},
+"1176": {
+"served": false
+},
+"1177": {
+"served": false
+},
+"1178": {
+"served": false
+},
+"1179": {
+"served": false
+},
+"1180": {
+"served": false
+},
+"1181": {
+"served": true,
+"trail": "Wildwood Canyon Trailhead #4",
+"dist_m": 509,
+"fallback": false,
+"n": 4
+},
+"1182": {
+"served": true,
+"trail": "Wildwood Canyon Trailhead #4",
+"dist_m": 583,
+"fallback": false,
+"n": 3
+},
+"1183": {
+"served": false
+},
+"1184": {
+"served": false
+},
+"1185": {
+"served": false
+},
+"1186": {
+"served": false
+},
+"1187": {
+"served": false
+},
+"1188": {
+"served": false
+},
+"1189": {
+"served": false
+},
+"1190": {
+"served": false
+},
+"1191": {
+"served": false
+},
+"1192": {
+"served": false
+},
+"1193": {
+"served": false
+},
+"1194": {
+"served": false
+},
+"1195": {
+"served": false
+},
+"1196": {
+"served": false
+},
+"1197": {
+"served": false
+},
+"1198": {
+"served": false
+},
+"1199": {
+"served": false
+},
+"1200": {
+"served": false
+},
+"1201": {
+"served": false
+},
+"1202": {
+"served": false
+},
+"1203": {
+"served": false
+},
+"1204": {
+"served": false
+},
+"1205": {
+"served": false
+},
+"1206": {
+"served": false
+},
+"1207": {
+"served": false
+},
+"1208": {
+"served": false
+},
+"1209": {
+"served": false
+},
+"1210": {
+"served": false
+},
+"1211": {
+"served": false
+},
+"1212": {
+"served": false
+},
+"1213": {
+"served": false
+},
+"1214": {
+"served": false
+},
+"1215": {
+"served": false
+},
+"1216": {
+"served": false
+},
+"1217": {
+"served": false
+},
+"1218": {
+"served": false
+},
+"1219": {
+"served": false
+},
+"1220": {
+"served": false
+},
+"1221": {
+"served": false
+},
+"1222": {
+"served": false
+},
+"1223": {
+"served": false
+},
+"1224": {
+"served": false
+},
+"1225": {
+"served": false
+},
+"1226": {
+"served": false
+},
+"1227": {
+"served": false
+},
+"1228": {
+"served": false
+},
+"1229": {
+"served": false
+},
+"1230": {
+"served": false
+},
+"1231": {
+"served": false
+},
+"1232": {
+"served": false
+},
+"1233": {
+"served": false
+},
+"1234": {
+"served": false
+},
+"1235": {
+"served": false
+},
+"1236": {
+"served": false
+},
+"1237": {
+"served": false
+},
+"1238": {
+"served": false
+},
+"1239": {
+"served": false
+},
+"1240": {
+"served": false
+},
+"1241": {
+"served": false
+},
+"1242": {
+"served": false
+},
+"1243": {
+"served": false
+},
+"1244": {
+"served": false
+},
+"1245": {
+"served": false
+},
+"1246": {
+"served": false
+},
+"1247": {
+"served": false
+},
+"1248": {
+"served": false
+},
+"1249": {
+"served": false
+},
+"1250": {
+"served": false
+},
+"1251": {
+"served": false
+},
+"1252": {
+"served": false
+},
+"1253": {
+"served": false
+},
+"1254": {
+"served": false
+},
+"1255": {
+"served": false
+},
+"1256": {
+"served": false
+},
+"1257": {
+"served": false
+},
+"1258": {
+"served": false
+},
+"1259": {
+"served": false
+},
+"1260": {
+"served": false
+},
+"1261": {
+"served": false
+},
+"1262": {
+"served": false
+},
+"1263": {
+"served": false
+},
+"1264": {
+"served": false
+},
+"1265": {
+"served": false
+},
+"1266": {
+"served": false
+},
+"1267": {
+"served": false
+},
+"1268": {
+"served": false
+},
+"1269": {
+"served": false
+},
+"1270": {
+"served": false
+},
+"1271": {
+"served": false
+},
+"1272": {
+"served": false
+},
+"1273": {
+"served": false
+},
+"1274": {
+"served": false
+},
+"1275": {
+"served": false
+},
+"1276": {
+"served": false
+},
+"1277": {
+"served": false
+},
+"1278": {
+"served": false
+},
+"1279": {
+"served": false
+},
+"1280": {
+"served": false
+},
+"1281": {
+"served": false
+},
+"1282": {
+"served": false
+},
+"1283": {
+"served": false
+},
+"1284": {
+"served": false
+},
+"1285": {
+"served": true,
+"trail": "Riverside Trail",
+"dist_m": 15,
+"fallback": false,
+"n": 4
+},
+"1286": {
+"served": false
+},
+"1287": {
+"served": false
+},
+"1288": {
+"served": false
+},
+"1289": {
+"served": false
+},
+"1290": {
+"served": false
+},
+"1291": {
+"served": false
+},
+"1292": {
+"served": false
+},
+"1293": {
+"served": false
+},
+"1294": {
+"served": false
+},
+"1295": {
+"served": false
+},
+"1296": {
+"served": false
+},
+"1297": {
+"served": false
+},
+"1298": {
+"served": false
+},
+"1299": {
+"served": false
+},
+"1300": {
+"served": false
+},
+"1301": {
+"served": false
+},
+"1302": {
+"served": false
+},
+"1303": {
+"served": false
+},
+"1304": {
+"served": false
+},
+"1305": {
+"served": false
+},
+"1306": {
+"served": false
+},
+"1307": {
+"served": false
+},
+"1308": {
+"served": false
+},
+"1309": {
+"served": false
+},
+"1310": {
+"served": false
+},
+"1311": {
+"served": false
+},
+"1312": {
+"served": false
+},
+"1313": {
+"served": false
+},
+"1314": {
+"served": false
+},
+"1315": {
+"served": false
+},
+"1316": {
+"served": false
+},
+"1317": {
+"served": false
+},
+"1318": {
+"served": false
+},
+"1319": {
+"served": false
+},
+"1320": {
+"served": false
+},
+"1321": {
+"served": false
+},
+"1322": {
+"served": false
+},
+"1323": {
+"served": false
+},
+"1324": {
+"served": false
+},
+"1325": {
+"served": false
+},
+"1326": {
+"served": false
+},
+"1327": {
+"served": false
+},
+"1328": {
+"served": false
+},
+"1329": {
+"served": false
+},
+"1330": {
+"served": false
+},
+"1331": {
+"served": false
+},
+"1332": {
+"served": false
+},
+"1333": {
+"served": false
+},
+"1334": {
+"served": false
+},
+"1335": {
+"served": false
+},
+"1336": {
+"served": false
+},
+"1337": {
+"served": false
+},
+"1338": {
+"served": false
+},
+"1339": {
+"served": false
+},
+"1340": {
+"served": false
+},
+"1341": {
+"served": false
+},
+"1342": {
+"served": false
+},
+"1343": {
+"served": false
+},
+"1344": {
+"served": false
+},
+"1345": {
+"served": false
+},
+"1346": {
+"served": false
+},
+"1347": {
+"served": false
+},
+"1348": {
+"served": false
+},
+"1349": {
+"served": false
+},
+"1350": {
+"served": false
+},
+"1351": {
+"served": false
+},
+"1352": {
+"served": false
+},
+"1353": {
+"served": false
+},
+"1354": {
+"served": false
+},
+"1355": {
+"served": false
+},
+"1356": {
+"served": false
+},
+"1357": {
+"served": false
+},
+"1358": {
+"served": false
+},
+"1359": {
+"served": false
+},
+"1360": {
+"served": false
+},
+"1361": {
+"served": false
+},
+"1362": {
+"served": false
+},
+"1363": {
+"served": false
+},
+"1364": {
+"served": false
+},
+"1365": {
+"served": false
+},
+"1366": {
+"served": false
+},
+"1367": {
+"served": false
+},
+"1368": {
+"served": false
+},
+"1369": {
+"served": false
+},
+"1370": {
+"served": false
+},
+"1371": {
+"served": false
+},
+"1372": {
+"served": false
+},
+"1373": {
+"served": false
+},
+"1374": {
+"served": false
+},
+"1375": {
+"served": false
+},
+"1376": {
+"served": false
+},
+"1377": {
+"served": false
+},
+"1378": {
+"served": false
+},
+"1379": {
+"served": false
+},
+"1380": {
+"served": false
+},
+"1381": {
+"served": false
+},
+"1382": {
+"served": false
+},
+"1383": {
+"served": false
+},
+"1384": {
+"served": false
+},
+"1385": {
+"served": false
+},
+"1386": {
+"served": false
+},
+"1387": {
+"served": false
+},
+"1388": {
+"served": false
+},
+"1389": {
+"served": false
+},
+"1390": {
+"served": false
+},
+"1391": {
+"served": false
+},
+"1392": {
+"served": false
+},
+"1393": {
+"served": false
+},
+"1394": {
+"served": false
+},
+"1395": {
+"served": false
+},
+"1396": {
+"served": false
+},
+"1397": {
+"served": false
+},
+"1398": {
+"served": false
+},
+"1399": {
+"served": false
+},
+"1400": {
+"served": false
+},
+"1401": {
+"served": false
+},
+"1402": {
+"served": false
+},
+"1403": {
+"served": false
+},
+"1404": {
+"served": false
+},
+"1405": {
+"served": false
+},
+"1406": {
+"served": false
+},
+"1407": {
+"served": false
+},
+"1408": {
+"served": false
+},
+"1409": {
+"served": false
+},
+"1410": {
+"served": false
+},
+"1411": {
+"served": false
+},
+"1412": {
+"served": true,
+"trail": "Scott's Trail",
+"dist_m": 645,
+"fallback": false,
+"n": 1
+},
+"1413": {
+"served": false
+},
+"1414": {
+"served": false
+},
+"1415": {
+"served": false
+},
+"1416": {
+"served": false
+},
+"1417": {
+"served": false
+},
+"1418": {
+"served": false
+},
+"1419": {
+"served": false
+},
+"1420": {
+"served": false
+},
+"1421": {
+"served": false
+},
+"1422": {
+"served": false
+},
+"1423": {
+"served": false
+},
+"1424": {
+"served": false
+},
+"1425": {
+"served": false
+},
+"1426": {
+"served": false
+},
+"1427": {
+"served": false
+},
+"1428": {
+"served": false
+},
+"1429": {
+"served": false
+},
+"1430": {
+"served": false
+},
+"1431": {
+"served": false
+},
+"1432": {
+"served": false
+},
+"1433": {
+"served": false
+},
+"1434": {
+"served": false
+},
+"1435": {
+"served": false
+},
+"1436": {
+"served": false
+},
+"1437": {
+"served": false
+},
+"1438": {
+"served": false
+},
+"1439": {
+"served": false
+},
+"1440": {
+"served": false
+},
+"1441": {
+"served": false
+},
+"1442": {
+"served": false
+},
+"1443": {
+"served": false
+},
+"1444": {
+"served": false
+},
+"1445": {
+"served": false
+},
+"1446": {
+"served": false
+},
+"1447": {
+"served": false
+},
+"1448": {
+"served": false
+},
+"1449": {
+"served": false
+},
+"1450": {
+"served": false
+},
+"1451": {
+"served": false
+},
+"1452": {
+"served": false
+},
+"1453": {
+"served": false
+},
+"1454": {
+"served": false
+},
+"1455": {
+"served": false
+},
+"1456": {
+"served": false
+},
+"1457": {
+"served": false
+},
+"1458": {
+"served": false
+},
+"1459": {
+"served": false
+},
+"1460": {
+"served": false
+},
+"1461": {
+"served": false
+},
+"1462": {
+"served": false
+},
+"1463": {
+"served": false
+},
+"1464": {
+"served": false
+},
+"1465": {
+"served": false
+},
+"1466": {
+"served": false
+},
+"1467": {
+"served": false
+},
+"1468": {
+"served": false
+},
+"1469": {
+"served": true,
+"trail": "Descanso Motorway",
+"dist_m": 395,
+"fallback": false,
+"n": 2
+},
+"1470": {
+"served": false
+},
+"1471": {
+"served": false
+},
+"1472": {
+"served": false
+},
+"1473": {
+"served": false
+},
+"1474": {
+"served": false
+},
+"1475": {
+"served": false
+},
+"1476": {
+"served": false
+},
+"1477": {
+"served": false
+},
+"1478": {
+"served": false
+},
+"1479": {
+"served": false
+},
+"1480": {
+"served": false
+},
+"1481": {
+"served": false
+},
+"1482": {
+"served": false
+},
+"1483": {
+"served": false
+},
+"1484": {
+"served": false
+},
+"1485": {
+"served": false
+},
+"1486": {
+"served": false
+},
+"1487": {
+"served": false
+},
+"1488": {
+"served": false
+},
+"1489": {
+"served": false
+},
+"1490": {
+"served": false
+},
+"1491": {
+"served": false
+},
+"1492": {
+"served": false
+},
+"1493": {
+"served": false
+},
+"1494": {
+"served": false
+},
+"1495": {
+"served": false
+},
+"1496": {
+"served": false
+},
+"1497": {
+"served": false
+},
+"1498": {
+"served": false
+},
+"1499": {
+"served": false
+},
+"1500": {
+"served": false
+},
+"1501": {
+"served": false
+},
+"1502": {
+"served": false
+},
+"1503": {
+"served": false
+},
+"1504": {
+"served": false
+},
+"1505": {
+"served": false
+},
+"1506": {
+"served": false
+},
+"1507": {
+"served": true,
+"trail": "West Trail",
+"dist_m": 9,
+"fallback": false,
+"n": 3
+},
+"1508": {
+"served": true,
+"trail": "West Trail",
+"dist_m": 94,
+"fallback": false,
+"n": 3
+},
+"1509": {
+"served": false
+},
+"1510": {
+"served": true,
+"trail": "West Trail",
+"dist_m": 420,
+"fallback": false,
+"n": 4
+},
+"1511": {
+"served": false
+},
+"1512": {
+"served": false
+},
+"1513": {
+"served": false
+},
+"1514": {
+"served": false
+},
+"1515": {
+"served": false
+},
+"1516": {
+"served": false
+},
+"1517": {
+"served": false
+},
+"1518": {
+"served": false
+},
+"1519": {
+"served": false
+},
+"1520": {
+"served": false
+},
+"1521": {
+"served": false
+},
+"1522": {
+"served": false
+},
+"1523": {
+"served": false
+},
+"1524": {
+"served": false
+},
+"1525": {
+"served": false
+},
+"1526": {
+"served": false
+},
+"1527": {
+"served": false
+},
+"1528": {
+"served": false
+},
+"1529": {
+"served": false
+},
+"1530": {
+"served": false
+},
+"1531": {
+"served": false
+},
+"1532": {
+"served": false
+},
+"1533": {
+"served": false
+},
+"1534": {
+"served": false
+},
+"1535": {
+"served": false
+},
+"1536": {
+"served": false
+},
+"1537": {
+"served": false
+},
+"1538": {
+"served": false
+},
+"1539": {
+"served": false
+},
+"1540": {
+"served": false
+},
+"1541": {
+"served": false
+},
+"1542": {
+"served": false
+},
+"1543": {
+"served": true,
+"trail": "Skyline Trail",
+"dist_m": 24,
+"fallback": false,
+"n": 1
+},
+"1544": {
+"served": true,
+"trail": "Abandoned Pool Trail",
+"dist_m": 672,
+"fallback": false,
+"n": 1
+},
+"1545": {
+"served": true,
+"trail": "Abandoned Pool Trail",
+"dist_m": 680,
+"fallback": false,
+"n": 1
+},
+"1546": {
+"served": false
+},
+"1547": {
+"served": false
+},
+"1548": {
+"served": true,
+"trail": "Upper Beacon Trail",
+"dist_m": 382,
+"fallback": false,
+"n": 1
+},
+"1549": {
+"served": false
+},
+"1550": {
+"served": false
+},
+"1551": {
+"served": false
+},
+"1552": {
+"served": true,
+"trail": "Oak Canyon Trail",
+"dist_m": 50,
+"fallback": false,
+"n": 4
+},
+"1553": {
+"served": false
+},
+"1554": {
+"served": false
+},
+"1555": {
+"served": false
+},
+"1556": {
+"served": false
+},
+"1557": {
+"served": false
+},
+"1558": {
+"served": false
+},
+"1559": {
+"served": false
+},
+"1560": {
+"served": false
+},
+"1561": {
+"served": false
+},
+"1562": {
+"served": false
+},
+"1563": {
+"served": false
+},
+"1564": {
+"served": false
+},
+"1565": {
+"served": false
+},
+"1566": {
+"served": false
+},
+"1567": {
+"served": false
+},
+"1568": {
+"served": false
+},
+"1569": {
+"served": false
+},
+"1570": {
+"served": false
+},
+"1571": {
+"served": false
+},
+"1572": {
+"served": false
+},
+"1573": {
+"served": false
+},
+"1574": {
+"served": false
+},
+"1575": {
+"served": false
+},
+"1576": {
+"served": false
+},
+"1577": {
+"served": false
+},
+"1578": {
+"served": false
+},
+"1579": {
+"served": false
+},
+"1580": {
+"served": false
+},
+"1581": {
+"served": false
+},
+"1582": {
+"served": false
+},
+"1583": {
+"served": false
+},
+"1584": {
+"served": false
+},
+"1585": {
+"served": false
+},
+"1586": {
+"served": false
+},
+"1587": {
+"served": false
+},
+"1588": {
+"served": false
+},
+"1589": {
+"served": true,
+"trail": "Portola Trail",
+"dist_m": 140,
+"fallback": false,
+"n": 1
+},
+"1590": {
+"served": false
+},
+"1591": {
+"served": false
+},
+"1592": {
+"served": false
+},
+"1593": {
+"served": true,
+"trail": "Rattlesnake Trail",
+"dist_m": 106,
+"fallback": false,
+"n": 1
+},
+"1594": {
+"served": true,
+"trail": "Mineral Wells Trail",
+"dist_m": 40,
+"fallback": false,
+"n": 3
+},
+"1595": {
+"served": false
+},
+"1596": {
+"served": true,
+"trail": "Bronson Caves Trail",
+"dist_m": 56,
+"fallback": false,
+"n": 2
+},
+"1597": {
+"served": true,
+"trail": "Bronson Caves Trail",
+"dist_m": 137,
+"fallback": false,
+"n": 1
+},
+"1598": {
+"served": true,
+"trail": "Bronson Caves Trail",
+"dist_m": 85,
+"fallback": false,
+"n": 1
+},
+"1599": {
+"served": false
+},
+"1600": {
+"served": false
+},
+"1601": {
+"served": false
+},
+"1602": {
+"served": false
+},
+"1603": {
+"served": true,
+"trail": "Bird Sanctuary Loop",
+"dist_m": 33,
+"fallback": false,
+"n": 6
+},
+"1604": {
+"served": false
+},
+"1605": {
+"served": false
+},
+"1606": {
+"served": false
+},
+"1607": {
+"served": true,
+"trail": "Fern Dell Nature Trail",
+"dist_m": 248,
+"fallback": false,
+"n": 1
+},
+"1608": {
+"served": true,
+"trail": "Fern Dell Nature Trail",
+"dist_m": 185,
+"fallback": false,
+"n": 1
+},
+"1609": {
+"served": true,
+"trail": "Fern Dell Nature Trail",
+"dist_m": 173,
+"fallback": false,
+"n": 1
+},
+"1610": {
+"served": false
+},
+"1611": {
+"served": false
+},
+"1612": {
+"served": false
+},
+"1613": {
+"served": false
+},
+"1614": {
+"served": false
+},
+"1615": {
+"served": false
+},
+"1616": {
+"served": false
+},
+"1617": {
+"served": false
+},
+"1618": {
+"served": false
+},
+"1619": {
+"served": false
+},
+"1620": {
+"served": false
+},
+"1621": {
+"served": false
+},
+"1622": {
+"served": false
+},
+"1623": {
+"served": false
+},
+"1624": {
+"served": false
+},
+"1625": {
+"served": false
+},
+"1626": {
+"served": false
+},
+"1627": {
+"served": false
+},
+"1628": {
+"served": false
+},
+"1629": {
+"served": false
+},
+"1630": {
+"served": false
+},
+"1631": {
+"served": false
+},
+"1632": {
+"served": false
+},
+"1633": {
+"served": false
+},
+"1634": {
+"served": false
+},
+"1635": {
+"served": false
+},
+"1636": {
+"served": false
+},
+"1637": {
+"served": false
+},
+"1638": {
+"served": false
+},
+"1639": {
+"served": false
+},
+"1640": {
+"served": false
+},
+"1641": {
+"served": false
+},
+"1642": {
+"served": true,
+"trail": "Elyria Canyon Trail",
+"dist_m": 1,
+"fallback": false,
+"n": 1
+},
+"1643": {
+"served": false
+},
+"1644": {
+"served": false
+},
+"1645": {
+"served": false
+},
+"1646": {
+"served": false
+},
+"1647": {
+"served": false
+},
+"1648": {
+"served": false
+},
+"1649": {
+"served": false
+},
+"1650": {
+"served": false
+},
+"1651": {
+"served": false
+},
+"1652": {
+"served": false
+},
+"1653": {
+"served": false
+},
+"1654": {
+"served": false
+},
+"1655": {
+"served": false
+},
+"1656": {
+"served": false
+},
+"1657": {
+"served": false
+},
+"1658": {
+"served": false
+},
+"1659": {
+"served": false
+},
+"1660": {
+"served": false
+},
+"1661": {
+"served": false
+},
+"1662": {
+"served": false
+},
+"1663": {
+"served": false
+},
+"1664": {
+"served": false
+},
+"1665": {
+"served": false
+},
+"1666": {
+"served": false
+},
+"1667": {
+"served": false
+},
+"1668": {
+"served": false
+},
+"1669": {
+"served": false
+},
+"1670": {
+"served": false
+},
+"1671": {
+"served": false
+},
+"1672": {
+"served": false
+},
+"1673": {
+"served": false
+},
+"1674": {
+"served": false
+},
+"1675": {
+"served": false
+},
+"1676": {
+"served": false
+},
+"1677": {
+"served": false
+},
+"1678": {
+"served": false
+},
+"1679": {
+"served": false
+},
+"1680": {
+"served": false
+},
+"1681": {
+"served": false
+},
+"1682": {
+"served": false
+},
+"1683": {
+"served": false
+},
+"1684": {
+"served": false
+},
+"1685": {
+"served": false
+},
+"1686": {
+"served": false
+},
+"1687": {
+"served": false
+},
+"1688": {
+"served": false
+},
+"1689": {
+"served": false
+},
+"1690": {
+"served": false
+},
+"1691": {
+"served": true,
+"trail": "Betty B. Dearing Trail",
+"dist_m": 1009,
+"fallback": true,
+"n": 3
+},
+"1692": {
+"served": false
+},
+"1693": {
+"served": false
+},
+"1694": {
+"served": false
+},
+"1695": {
+"served": false
+},
+"1696": {
+"served": false
+},
+"1697": {
+"served": true,
+"trail": "North Trail",
+"dist_m": 256,
+"fallback": false,
+"n": 1
+},
+"1698": {
+"served": false
+},
+"1699": {
+"served": false
+},
+"1700": {
+"served": false
+},
+"1701": {
+"served": false
+},
+"1702": {
+"served": false
+},
+"1703": {
+"served": false
+},
+"1704": {
+"served": false
+},
+"1705": {
+"served": false
+},
+"1706": {
+"served": false
+},
+"1707": {
+"served": false
+},
+"1708": {
+"served": false
+},
+"1709": {
+"served": false
+},
+"1710": {
+"served": false
+},
+"1711": {
+"served": false
+},
+"1712": {
+"served": false
+},
+"1713": {
+"served": false
+},
+"1714": {
+"served": false
+},
+"1715": {
+"served": false
+},
+"1716": {
+"served": false
+},
+"1717": {
+"served": false
+},
+"1718": {
+"served": true,
+"trail": "Elyria Canyon Trail",
+"dist_m": 498,
+"fallback": false,
+"n": 1
+},
+"1719": {
+"served": false
+},
+"1720": {
+"served": true,
+"trail": "Fern Canyon Trail",
+"dist_m": 243,
+"fallback": false,
+"n": 2
+},
+"1721": {
+"served": true,
+"trail": "Fern Canyon Trail",
+"dist_m": 284,
+"fallback": false,
+"n": 2
+},
+"1722": {
+"served": true,
+"trail": "Fern Canyon Trail",
+"dist_m": 21,
+"fallback": false,
+"n": 6
+},
+"1723": {
+"served": true,
+"trail": "Rattlesnake Trail",
+"dist_m": 16,
+"fallback": false,
+"n": 3
+},
+"1724": {
+"served": true,
+"trail": "Condor Trail",
+"dist_m": 386,
+"fallback": false,
+"n": 2
+},
+"1725": {
+"served": true,
+"trail": "Rattlesnake Trail",
+"dist_m": 6,
+"fallback": false,
+"n": 1
+},
+"1726": {
+"served": true,
+"trail": "Upper Beacon Trail",
+"dist_m": 333,
+"fallback": false,
+"n": 1
+},
+"1727": {
+"served": false
+},
+"1728": {
+"served": true,
+"trail": "West Trail",
+"dist_m": 25,
+"fallback": false,
+"n": 3
+},
+"1729": {
+"served": false
+},
+"1730": {
+"served": true,
+"trail": "Hollyridge Trail",
+"dist_m": 2,
+"fallback": false,
+"n": 4
+},
+"1731": {
+"served": false
+},
+"1732": {
+"served": false
+},
+"1733": {
+"served": false
+},
+"1734": {
+"served": false
+},
+"1735": {
+"served": false
+},
+"1736": {
+"served": false
+},
+"1737": {
+"served": false
+},
+"1738": {
+"served": false
+},
+"1739": {
+"served": false
+},
+"1740": {
+"served": false
+},
+"1741": {
+"served": false
+},
+"1742": {
+"served": false
+},
+"1743": {
+"served": false
+},
+"1744": {
+"served": false
+},
+"1745": {
+"served": false
+},
+"1746": {
+"served": false
+},
+"1747": {
+"served": false
+},
+"1748": {
+"served": false
+},
+"1749": {
+"served": false
+},
+"1750": {
+"served": false
+},
+"1751": {
+"served": false
+},
+"1752": {
+"served": false
+},
+"1753": {
+"served": false
+},
+"1754": {
+"served": false
+},
+"1755": {
+"served": false
+},
+"1756": {
+"served": false
+},
+"1757": {
+"served": false
+},
+"1758": {
+"served": false
+},
+"1759": {
+"served": false
+},
+"1760": {
+"served": false
+},
+"1761": {
+"served": false
+},
+"1762": {
+"served": true,
+"trail": "Elyria Canyon Trail",
+"dist_m": 435,
+"fallback": false,
+"n": 1
+},
+"1763": {
+"served": false
+},
+"1764": {
+"served": false
+},
+"1765": {
+"served": false
+},
+"1766": {
+"served": false
+},
+"1767": {
+"served": false
+},
+"1768": {
+"served": false
+},
+"1769": {
+"served": false
+},
+"1770": {
+"served": false
+},
+"1771": {
+"served": false
+},
+"1772": {
+"served": false
+},
+"1773": {
+"served": false
+},
+"1774": {
+"served": false
+},
+"1775": {
+"served": false
+},
+"1776": {
+"served": false
+},
+"1777": {
+"served": false
+},
+"1778": {
+"served": false
+},
+"1779": {
+"served": false
+},
+"1780": {
+"served": false
+},
+"1781": {
+"served": false
+},
+"1782": {
+"served": false
+},
+"1783": {
+"served": false
+},
+"1784": {
+"served": false
+},
+"1785": {
+"served": false
+},
+"1786": {
+"served": false
+},
+"1787": {
+"served": false
+},
+"1788": {
+"served": false
+},
+"1789": {
+"served": false
+},
+"1790": {
+"served": false
+},
+"1791": {
+"served": false
+},
+"1792": {
+"served": false
+},
+"1793": {
+"served": false
+},
+"1794": {
+"served": false
+},
+"1795": {
+"served": false
+},
+"1796": {
+"served": false
+},
+"1797": {
+"served": false
+},
+"1798": {
+"served": false
+},
+"1799": {
+"served": false
+},
+"1800": {
+"served": false
+},
+"1801": {
+"served": false
+},
+"1802": {
+"served": false
+},
+"1803": {
+"served": false
+},
+"1804": {
+"served": false
+},
+"1805": {
+"served": false
+},
+"1806": {
+"served": false
+},
+"1807": {
+"served": false
+},
+"1808": {
+"served": false
+},
+"1809": {
+"served": false
+},
+"1810": {
+"served": false
+},
+"1811": {
+"served": false
+},
+"1812": {
+"served": false
+},
+"1813": {
+"served": false
+},
+"1814": {
+"served": false
+},
+"1815": {
+"served": false
+},
+"1816": {
+"served": false
+},
+"1817": {
+"served": false
+},
+"1818": {
+"served": false
+},
+"1819": {
+"served": false
+},
+"1820": {
+"served": false
+},
+"1821": {
+"served": false
+},
+"1822": {
+"served": false
+},
+"1823": {
+"served": false
+},
+"1824": {
+"served": false
+},
+"1825": {
+"served": false
+},
+"1826": {
+"served": false
+},
+"1827": {
+"served": false
+},
+"1828": {
+"served": false
+},
+"1829": {
+"served": false
+},
+"1830": {
+"served": false
+},
+"1831": {
+"served": false
+},
+"1832": {
+"served": false
+},
+"1833": {
+"served": false
+},
+"1834": {
+"served": false
+},
+"1835": {
+"served": true,
+"trail": "Oak Canyon Trail",
+"dist_m": 44,
+"fallback": false,
+"n": 5
+},
+"1836": {
+"served": false
+},
+"1837": {
+"served": false
+},
+"1838": {
+"served": false
+},
+"1839": {
+"served": false
+},
+"1840": {
+"served": false
+},
+"1841": {
+"served": false
+},
+"1842": {
+"served": false
+},
+"1843": {
+"served": false
+},
+"1844": {
+"served": false
+},
+"1845": {
+"served": false
+},
+"1846": {
+"served": false
+},
+"1847": {
+"served": false
+},
+"1848": {
+"served": false
+},
+"1849": {
+"served": false
+},
+"1850": {
+"served": false
+},
+"1851": {
+"served": false
+},
+"1852": {
+"served": false
+},
+"1853": {
+"served": false
+},
+"1854": {
+"served": false
+},
+"1855": {
+"served": false
+},
+"1856": {
+"served": false
+},
+"1857": {
+"served": false
+},
+"1858": {
+"served": false
+},
+"1859": {
+"served": false
+},
+"1860": {
+"served": false
+},
+"1861": {
+"served": false
+},
+"1862": {
+"served": false
+},
+"1863": {
+"served": false
+},
+"1864": {
+"served": false
+},
+"1865": {
+"served": false
+},
+"1866": {
+"served": false
+},
+"1867": {
+"served": false
+},
+"1868": {
+"served": false
+},
+"1869": {
+"served": false
+},
+"1870": {
+"served": false
+},
+"1871": {
+"served": false
+},
+"1872": {
+"served": false
+},
+"1873": {
+"served": false
+},
+"1874": {
+"served": false
+},
+"1875": {
+"served": false
+},
+"1876": {
+"served": false
+},
+"1877": {
+"served": false
+},
+"1878": {
+"served": false
+},
+"1879": {
+"served": false
+},
+"1880": {
+"served": false
+},
+"1881": {
+"served": false
+},
+"1882": {
+"served": false
+},
+"1883": {
+"served": false
+},
+"1884": {
+"served": false
+},
+"1885": {
+"served": false
+},
+"1886": {
+"served": false
+},
+"1887": {
+"served": false
+},
+"1888": {
+"served": false
+},
+"1889": {
+"served": false
+},
+"1890": {
+"served": false
+},
+"1891": {
+"served": false
+},
+"1892": {
+"served": false
+},
+"1893": {
+"served": false
+},
+"1894": {
+"served": false
+},
+"1895": {
+"served": false
+},
+"1896": {
+"served": false
+},
+"1897": {
+"served": false
+},
+"1898": {
+"served": false
+},
+"1899": {
+"served": true,
+"trail": "Coolidge Trail",
+"dist_m": 204,
+"fallback": false,
+"n": 2
+},
+"1900": {
+"served": false
+},
+"1901": {
+"served": false
+},
+"1902": {
+"served": false
+},
+"1903": {
+"served": false
+},
+"1904": {
+"served": false
+},
+"1905": {
+"served": false
+},
+"1906": {
+"served": false
+},
+"1907": {
+"served": false
+},
+"1908": {
+"served": false
+},
+"1909": {
+"served": false
+},
+"1910": {
+"served": false
+},
+"1911": {
+"served": false
+},
+"1912": {
+"served": false
+},
+"1913": {
+"served": false
+},
+"1914": {
+"served": true,
+"trail": "Vital Link Trail",
+"dist_m": 5,
+"fallback": false,
+"n": 2
+},
+"1915": {
+"served": false
+},
+"1916": {
+"served": false
+},
+"1917": {
+"served": false
+},
+"1918": {
+"served": false
+},
+"1919": {
+"served": false
+},
+"1920": {
+"served": false
+},
+"1921": {
+"served": false
+},
+"1922": {
+"served": false
+},
+"1923": {
+"served": false
+},
+"1924": {
+"served": false
+},
+"1925": {
+"served": false
+},
+"1926": {
+"served": false
+},
+"1927": {
+"served": false
+},
+"1928": {
+"served": true,
+"trail": "Upper Beacon Trail",
+"dist_m": 363,
+"fallback": false,
+"n": 1
+},
+"1929": {
+"served": true,
+"trail": "Cadman Trail",
+"dist_m": 191,
+"fallback": false,
+"n": 2
+},
+"1930": {
+"served": false
+},
+"1931": {
+"served": false
+},
+"1932": {
+"served": false
+},
+"1933": {
+"served": false
+},
+"1934": {
+"served": false
+},
+"1935": {
+"served": false
+},
+"1936": {
+"served": false
+},
+"1937": {
+"served": false
+},
+"1938": {
+"served": false
+},
+"1939": {
+"served": false
+},
+"1940": {
+"served": false
+},
+"1941": {
+"served": false
+},
+"1942": {
+"served": false
+},
+"1943": {
+"served": false
+},
+"1944": {
+"served": true,
+"trail": "Bill Eckert Trail",
+"dist_m": 241,
+"fallback": false,
+"n": 3
+},
+"1945": {
+"served": true,
+"trail": "Lower Old Zoo Trail",
+"dist_m": 165,
+"fallback": false,
+"n": 6
+},
+"1946": {
+"served": true,
+"trail": "Abandoned Pool Trail",
+"dist_m": 707,
+"fallback": false,
+"n": 1
+},
+"1947": {
+"served": false
+},
+"1948": {
+"served": false
+},
+"1949": {
+"served": false
+},
+"1950": {
+"served": false
+},
+"1951": {
+"served": false
+},
+"1952": {
+"served": false
+},
+"1953": {
+"served": false
+},
+"1954": {
+"served": false
+},
+"1955": {
+"served": true,
+"trail": "Hogback Trail",
+"dist_m": 116,
+"fallback": false,
+"n": 3
+},
+"1956": {
+"served": false
+},
+"1957": {
+"served": false
+},
+"1958": {
+"served": false
+},
+"1959": {
+"served": false
+},
+"1960": {
+"served": false
+},
+"1961": {
+"served": false
+},
+"1962": {
+"served": false
+},
+"1963": {
+"served": false
+},
+"1964": {
+"served": false
+},
+"1965": {
+"served": false
+},
+"1966": {
+"served": false
+},
+"1967": {
+"served": false
+},
+"1968": {
+"served": false
+},
+"1969": {
+"served": false
+},
+"1970": {
+"served": false
+},
+"1971": {
+"served": false
+},
+"1972": {
+"served": false
+},
+"1973": {
+"served": false
+},
+"1974": {
+"served": false
+},
+"1975": {
+"served": false
+},
+"1976": {
+"served": false
+},
+"1977": {
+"served": false
+},
+"1978": {
+"served": false
+},
+"1979": {
+"served": false
+},
+"1980": {
+"served": false
+},
+"1981": {
+"served": false
+},
+"1982": {
+"served": false
+},
+"1983": {
+"served": false
+},
+"1984": {
+"served": false
+},
+"1985": {
+"served": false
+},
+"1986": {
+"served": false
+},
+"1987": {
+"served": false
+},
+"1988": {
+"served": false
+},
+"1989": {
+"served": false
+},
+"1990": {
+"served": false
+},
+"1991": {
+"served": false
+},
+"1992": {
+"served": false
+},
+"1993": {
+"served": false
+},
+"1994": {
+"served": false
+},
+"1995": {
+"served": false
+},
+"1996": {
+"served": false
+},
+"1997": {
+"served": false
+},
+"1998": {
+"served": false
+},
+"1999": {
+"served": false
+},
+"2000": {
+"served": false
+},
+"2001": {
+"served": false
+},
+"2002": {
+"served": false
+},
+"2003": {
+"served": false
+},
+"2004": {
+"served": false
+},
+"2005": {
+"served": false
+},
+"2006": {
+"served": false
+},
+"2007": {
+"served": false
+},
+"2008": {
+"served": false
+},
+"2009": {
+"served": false
+},
+"2010": {
+"served": false
+},
+"2011": {
+"served": false
+},
+"2012": {
+"served": false
+},
+"2013": {
+"served": false
+},
+"2014": {
+"served": false
+},
+"2015": {
+"served": false
+},
+"2016": {
+"served": false
+},
+"2017": {
+"served": false
+},
+"2018": {
+"served": true,
+"trail": "Condor Trail",
+"dist_m": 16,
+"fallback": false,
+"n": 3
+},
+"2019": {
+"served": false
+},
+"2020": {
+"served": false
+},
+"2021": {
+"served": false
+},
+"2022": {
+"served": false
+},
+"2023": {
+"served": false
+},
+"2024": {
+"served": false
+},
+"2025": {
+"served": false
+},
+"2026": {
+"served": false
+},
+"2027": {
+"served": false
+},
+"2028": {
+"served": false
+},
+"2029": {
+"served": false
+},
+"2030": {
+"served": false
+},
+"2031": {
+"served": false
+},
+"2032": {
+"served": false
+},
+"2033": {
+"served": false
+},
+"2034": {
+"served": false
+},
+"2035": {
+"served": false
+},
+"2036": {
+"served": false
+},
+"2037": {
+"served": false
+},
+"2038": {
+"served": false
+},
+"2039": {
+"served": false
+},
+"2040": {
+"served": false
+},
+"2041": {
+"served": false
+},
+"2042": {
+"served": false
+},
+"2043": {
+"served": false
+},
+"2044": {
+"served": false
+},
+"2045": {
+"served": false
+},
+"2046": {
+"served": false
+},
+"2047": {
+"served": false
+},
+"2048": {
+"served": false
+},
+"2049": {
+"served": false
+},
+"2050": {
+"served": false
+},
+"2051": {
+"served": false
+},
+"2052": {
+"served": false
+},
+"2053": {
+"served": false
+},
+"2054": {
+"served": false
+},
+"2055": {
+"served": false
+},
+"2056": {
+"served": false
+},
+"2057": {
+"served": false
+},
+"2058": {
+"served": false
+},
+"2059": {
+"served": false
+},
+"2060": {
+"served": false
+},
+"2061": {
+"served": false
+},
+"2062": {
+"served": false
+},
+"2063": {
+"served": false
+},
+"2064": {
+"served": false
+},
+"2065": {
+"served": false
+},
+"2066": {
+"served": false
+},
+"2067": {
+"served": false
+},
+"2068": {
+"served": false
+},
+"2069": {
+"served": false
+},
+"2070": {
+"served": false
+},
+"2071": {
+"served": false
+},
+"2072": {
+"served": false
+},
+"2073": {
+"served": false
+},
+"2074": {
+"served": false
+},
+"2075": {
+"served": false
+},
+"2076": {
+"served": false
+},
+"2077": {
+"served": false
+},
+"2078": {
+"served": false
+},
+"2079": {
+"served": false
+},
+"2080": {
+"served": false
+},
+"2081": {
+"served": false
+},
+"2082": {
+"served": false
+},
+"2083": {
+"served": false
+},
+"2084": {
+"served": false
+},
+"2085": {
+"served": false
+},
+"2086": {
+"served": false
+},
+"2087": {
+"served": false
+},
+"2088": {
+"served": true,
+"trail": "Hollyridge Trail",
+"dist_m": 14,
+"fallback": false,
+"n": 4
+},
+"2089": {
+"served": false
+},
+"2090": {
+"served": false
+},
+"2091": {
+"served": false
+},
+"2092": {
+"served": false
+},
+"2093": {
+"served": false
+},
+"2094": {
+"served": false
+},
+"2095": {
+"served": false
+},
+"2096": {
+"served": false
+},
+"2097": {
+"served": false
+},
+"2098": {
+"served": false
+},
+"2099": {
+"served": false
+},
+"2100": {
+"served": false
+},
+"2101": {
+"served": false
+},
+"2102": {
+"served": false
+},
+"2103": {
+"served": false
+},
+"2104": {
+"served": false
+},
+"2105": {
+"served": false
+},
+"2106": {
+"served": false
+},
+"2107": {
+"served": false
+},
+"2108": {
+"served": false
+},
+"2109": {
+"served": false
+},
+"2110": {
+"served": false
+},
+"2111": {
+"served": false
+},
+"2112": {
+"served": false
+},
+"2113": {
+"served": false
+},
+"2114": {
+"served": false
+},
+"2115": {
+"served": false
+},
+"2116": {
+"served": false
+},
+"2117": {
+"served": false
+},
+"2118": {
+"served": false
+},
+"2119": {
+"served": false
+},
+"2120": {
+"served": false
+},
+"2121": {
+"served": false
+},
+"2122": {
+"served": false
+},
+"2123": {
+"served": false
+},
+"2124": {
+"served": false
+},
+"2125": {
+"served": false
+},
+"2126": {
+"served": false
+},
+"2127": {
+"served": false
+},
+"2128": {
+"served": false
+},
+"2129": {
+"served": false
+},
+"2130": {
+"served": false
+},
+"2131": {
+"served": false
+},
+"2132": {
+"served": false
+},
+"2133": {
+"served": false
+},
+"2134": {
+"served": false
+},
+"2135": {
+"served": false
+},
+"2136": {
+"served": false
+},
+"2137": {
+"served": false
+},
+"2138": {
+"served": false
+},
+"2139": {
+"served": false
+},
+"2140": {
+"served": false
+},
+"2141": {
+"served": false
+},
+"2142": {
+"served": false
+},
+"2143": {
+"served": false
+},
+"2144": {
+"served": false
+},
+"2145": {
+"served": false
+},
+"2146": {
+"served": false
+},
+"2147": {
+"served": false
+},
+"2148": {
+"served": false
+},
+"2149": {
+"served": false
+},
+"2150": {
+"served": false
+},
+"2151": {
+"served": false
+},
+"2152": {
+"served": false
+},
+"2153": {
+"served": false
+},
+"2154": {
+"served": false
+},
+"2155": {
+"served": false
+},
+"2156": {
+"served": false
+},
+"2157": {
+"served": false
+},
+"2158": {
+"served": true,
+"trail": "East Trail",
+"dist_m": 434,
+"fallback": false,
+"n": 5
+},
+"2159": {
+"served": true,
+"trail": "East Trail",
+"dist_m": 464,
+"fallback": false,
+"n": 5
+},
+"2160": {
+"served": true,
+"trail": "East Trail",
+"dist_m": 496,
+"fallback": false,
+"n": 2
+},
+"2161": {
+"served": false
+},
+"2162": {
+"served": false
+},
+"2163": {
+"served": false
+},
+"2164": {
+"served": false
+},
+"2165": {
+"served": false
+},
+"2166": {
+"served": false
+},
+"2167": {
+"served": false
+},
+"2168": {
+"served": false
+},
+"2169": {
+"served": false
+},
+"2170": {
+"served": false
+},
+"2171": {
+"served": false
+},
+"2172": {
+"served": false
+},
+"2173": {
+"served": false
+},
+"2174": {
+"served": false
+},
+"2175": {
+"served": false
+},
+"2176": {
+"served": false
+},
+"2177": {
+"served": false
+},
+"2178": {
+"served": false
+},
+"2179": {
+"served": false
+},
+"2180": {
+"served": false
+},
+"2181": {
+"served": false
+},
+"2182": {
+"served": false
+},
+"2183": {
+"served": false
+},
+"2184": {
+"served": false
+},
+"2185": {
+"served": false
+},
+"2186": {
+"served": false
+},
+"2187": {
+"served": false
+},
+"2188": {
+"served": false
+},
+"2189": {
+"served": false
+},
+"2190": {
+"served": false
+},
+"2191": {
+"served": false
+},
+"2192": {
+"served": false
+},
+"2193": {
+"served": false
+},
+"2194": {
+"served": false
+},
+"2195": {
+"served": false
+},
+"2196": {
+"served": false
+},
+"2197": {
+"served": false
+},
+"2198": {
+"served": false
+},
+"2199": {
+"served": false
+},
+"2200": {
+"served": false
+},
+"2201": {
+"served": false
+},
+"2202": {
+"served": false
+},
+"2203": {
+"served": false
+},
+"2204": {
+"served": false
+},
+"2205": {
+"served": false
+},
+"2206": {
+"served": false
+},
+"2207": {
+"served": false
+},
+"2208": {
+"served": false
+},
+"2209": {
+"served": false
+},
+"2210": {
+"served": false
+},
+"2211": {
+"served": false
+},
+"2212": {
+"served": false
+},
+"2213": {
+"served": false
+},
+"2214": {
+"served": false
+},
+"2215": {
+"served": false
+},
+"2216": {
+"served": false
+},
+"2217": {
+"served": false
+},
+"2218": {
+"served": false
+},
+"2219": {
+"served": false
+},
+"2220": {
+"served": false
+},
+"2221": {
+"served": false
+},
+"2222": {
+"served": false
+},
+"2223": {
+"served": false
+},
+"2224": {
+"served": false
+},
+"2225": {
+"served": false
+},
+"2226": {
+"served": false
+},
+"2227": {
+"served": false
+},
+"2228": {
+"served": false
+},
+"2229": {
+"served": false
+},
+"2230": {
+"served": false
+},
+"2231": {
+"served": false
+},
+"2232": {
+"served": false
+},
+"2233": {
+"served": false
+},
+"2234": {
+"served": false
+},
+"2235": {
+"served": false
+},
+"2236": {
+"served": false
+},
+"2237": {
+"served": false
+},
+"2238": {
+"served": false
+},
+"2239": {
+"served": false
+},
+"2240": {
+"served": false
+},
+"2241": {
+"served": false
+},
+"2242": {
+"served": false
+},
+"2243": {
+"served": false
+},
+"2244": {
+"served": false
+},
+"2245": {
+"served": true,
+"trail": "Cadman Trail",
+"dist_m": 400,
+"fallback": false,
+"n": 1
+},
+"2246": {
+"served": false
+},
+"2247": {
+"served": false
+},
+"2248": {
+"served": false
+},
+"2249": {
+"served": false
+},
+"2250": {
+"served": false
+},
+"2251": {
+"served": false
+},
+"2252": {
+"served": true,
+"trail": "Vital Link Trail",
+"dist_m": 287,
+"fallback": false,
+"n": 1
+},
+"2253": {
+"served": false
+},
+"2254": {
+"served": false
+},
+"2255": {
+"served": false
+},
+"2256": {
+"served": false
+},
+"2257": {
+"served": false
+},
+"2258": {
+"served": false
+},
+"2259": {
+"served": true,
+"trail": "Verdugo Motorway",
+"dist_m": 921,
+"fallback": true,
+"n": 2
+},
+"2260": {
+"served": true,
+"trail": "Verdugo Motorway",
+"dist_m": 1722,
+"fallback": true,
+"n": 2
+},
+"2261": {
+"served": false
+},
+"2262": {
+"served": false
+},
+"2263": {
+"served": false
+},
+"2264": {
+"served": false
+},
+"2265": {
+"served": false
+},
+"2266": {
+"served": false
+},
+"2267": {
+"served": false
+},
+"2268": {
+"served": false
+},
+"2269": {
+"served": false
+},
+"2270": {
+"served": false
+},
+"2271": {
+"served": false
+},
+"2272": {
+"served": false
+},
+"2273": {
+"served": false
+},
+"2274": {
+"served": false
+},
+"2275": {
+"served": false
+},
+"2276": {
+"served": false
+},
+"2277": {
+"served": false
+},
+"2278": {
+"served": false
+},
+"2279": {
+"served": false
+},
+"2280": {
+"served": false
+},
+"2281": {
+"served": false
+},
+"2282": {
+"served": false
+},
+"2283": {
+"served": false
+},
+"2284": {
+"served": false
+},
+"2285": {
+"served": false
+},
+"2286": {
+"served": false
+},
+"2287": {
+"served": false
+},
+"2288": {
+"served": false
+},
+"2289": {
+"served": false
+},
+"2290": {
+"served": false
+},
+"2291": {
+"served": false
+},
+"2292": {
+"served": false
+},
+"2293": {
+"served": false
+},
+"2294": {
+"served": false
+},
+"2295": {
+"served": false
+},
+"2296": {
+"served": false
+},
+"2297": {
+"served": false
+},
+"2298": {
+"served": false
+},
+"2299": {
+"served": false
+},
+"2300": {
+"served": false
+},
+"2301": {
+"served": false
+},
+"2302": {
+"served": false
+},
+"2303": {
+"served": false
+},
+"2304": {
+"served": false
+},
+"2305": {
+"served": false
+},
+"2306": {
+"served": false
+},
+"2307": {
+"served": false
+},
+"2308": {
+"served": false
+},
+"2309": {
+"served": false
+},
+"2310": {
+"served": false
+},
+"2311": {
+"served": false
+},
+"2312": {
+"served": false
+},
+"2313": {
+"served": false
+},
+"2314": {
+"served": false
+},
+"2315": {
+"served": false
+},
+"2316": {
+"served": false
+},
+"2317": {
+"served": false
+},
+"2318": {
+"served": false
+},
+"2319": {
+"served": false
+},
+"2320": {
+"served": false
+},
+"2321": {
+"served": false
+},
+"2322": {
+"served": false
+},
+"2323": {
+"served": false
+},
+"2324": {
+"served": false
+},
+"2325": {
+"served": false
+},
+"2326": {
+"served": true,
+"trail": "Trebek Open Space Trail (Castair Road)",
+"dist_m": 764,
+"fallback": false,
+"n": 2
+},
+"2327": {
+"served": false
+},
+"2328": {
+"served": false
+},
+"2329": {
+"served": false
+},
+"2330": {
+"served": false
+},
+"2331": {
+"served": false
+},
+"2332": {
+"served": false
+},
+"2333": {
+"served": false
+},
+"2334": {
+"served": false
+},
+"2335": {
+"served": false
+},
+"2336": {
+"served": false
+},
+"2337": {
+"served": false
+},
+"2338": {
+"served": false
+},
+"2339": {
+"served": false
+},
+"2340": {
+"served": false
+},
+"2341": {
+"served": false
+},
+"2342": {
+"served": false
+},
+"2343": {
+"served": false
+},
+"2344": {
+"served": false
+},
+"2345": {
+"served": false
+},
+"2346": {
+"served": false
+},
+"2347": {
+"served": false
+},
+"2348": {
+"served": false
+},
+"2349": {
+"served": false
+},
+"2350": {
+"served": false
+},
+"2351": {
+"served": false
+},
+"2352": {
+"served": false
+},
+"2353": {
+"served": false
+},
+"2354": {
+"served": false
+},
+"2355": {
+"served": false
+},
+"2356": {
+"served": false
+},
+"2357": {
+"served": false
+},
+"2358": {
+"served": false
+},
+"2359": {
+"served": false
+},
+"2360": {
+"served": false
+},
+"2361": {
+"served": false
+},
+"2362": {
+"served": false
+},
+"2363": {
+"served": false
+},
+"2364": {
+"served": false
+},
+"2365": {
+"served": false
+},
+"2366": {
+"served": false
+},
+"2367": {
+"served": false
+},
+"2368": {
+"served": false
+},
+"2369": {
+"served": false
+},
+"2370": {
+"served": false
+},
+"2371": {
+"served": false
+},
+"2372": {
+"served": false
+},
+"2373": {
+"served": false
+},
+"2374": {
+"served": false
+},
+"2375": {
+"served": false
+},
+"2376": {
+"served": false
+},
+"2377": {
+"served": false
+},
+"2378": {
+"served": false
+},
+"2379": {
+"served": false
+},
+"2380": {
+"served": false
+},
+"2381": {
+"served": false
+},
+"2382": {
+"served": false
+},
+"2383": {
+"served": false
+},
+"2384": {
+"served": false
+},
+"2385": {
+"served": false
+},
+"2386": {
+"served": false
+},
+"2387": {
+"served": false
+},
+"2388": {
+"served": false
+},
+"2389": {
+"served": false
+},
+"2390": {
+"served": false
+},
+"2391": {
+"served": false
+},
+"2392": {
+"served": false
+},
+"2393": {
+"served": false
+},
+"2394": {
+"served": false
+},
+"2395": {
+"served": false
+},
+"2396": {
+"served": false
+},
+"2397": {
+"served": false
+},
+"2398": {
+"served": false
+},
+"2399": {
+"served": false
+},
+"2400": {
+"served": false
+},
+"2401": {
+"served": false
+},
+"2402": {
+"served": false
+},
+"2403": {
+"served": false
+}
+}

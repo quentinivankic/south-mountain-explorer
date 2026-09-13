@@ -1,0 +1,344 @@
+{
+"0": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Step Falls Preserve'",
+"fac_area_m": null,
+"fac_label": null
+},
+"1": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"2": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"3": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"4": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"5": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Grafton Notch State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"6": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Grafton Notch State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"7": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Grafton Notch State Park'",
+"fac_area_m": null,
+"fac_label": null
+},
+"8": {
+"category": "FACILITY",
+"evidence": "116 m from shop=sports 'Sunday River Sports'",
+"fac_area_m": null,
+"fac_label": null
+},
+"9": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"10": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"11": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"12": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"13": {
+"category": "FACILITY",
+"evidence": "25 m from tourism=hotel 'Grand Summit Resort Hotel'",
+"fac_area_m": 25,
+"fac_label": "tourism=hotel"
+},
+"14": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 121,
+"fac_label": "tourism=hotel"
+},
+"15": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"16": {
+"category": "FACILITY",
+"evidence": "28 m from tourism=hotel 'Jordan Grand Hotel'",
+"fac_area_m": 28,
+"fac_label": "tourism=hotel"
+},
+"17": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Mahoosuc Public Reserved Land'",
+"fac_area_m": null,
+"fac_label": null
+},
+"18": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Mahoosuc Public Reserved Land'",
+"fac_area_m": null,
+"fac_label": null
+},
+"19": {
+"category": "FACILITY",
+"evidence": "50 m from amenity=pub 'Matterhorn Ski Bar'",
+"fac_area_m": 53,
+"fac_label": "amenity=restaurant"
+},
+"20": {
+"category": "FACILITY",
+"evidence": "21 m from amenity=restaurant 'Matterhorn Ski Bar'",
+"fac_area_m": 21,
+"fac_label": "amenity=restaurant"
+},
+"21": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"22": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"23": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"24": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"25": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Mount Will'",
+"fac_area_m": null,
+"fac_label": null
+},
+"26": {
+"category": "FACILITY",
+"evidence": "6 m from building=apartments 'Barker Brook Condos'",
+"fac_area_m": 6,
+"fac_label": "building=apartments"
+},
+"27": {
+"category": "FACILITY",
+"evidence": "98 m from amenity=restaurant 'Shipyard Brew Haus'",
+"fac_area_m": 72,
+"fac_label": "building=commercial"
+},
+"28": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"29": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"30": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"31": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"32": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"33": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"34": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"35": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"36": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"37": {
+"category": "FACILITY",
+"evidence": "40 m from amenity=school 'Andover Elementary School'",
+"fac_area_m": 40,
+"fac_label": "amenity=school"
+},
+"38": {
+"category": "FACILITY",
+"evidence": "19 m from building=apartments 'Elderwood Manor Apartments'",
+"fac_area_m": 19,
+"fac_label": "building=apartments"
+},
+"39": {
+"category": "FACILITY",
+"evidence": "10 m from shop=convenience 'Mills Market'",
+"fac_area_m": 10,
+"fac_label": "shop=convenience"
+},
+"40": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=fuel 'Fabian'",
+"fac_area_m": 0,
+"fac_label": "amenity=fuel"
+},
+"41": {
+"category": "FACILITY",
+"evidence": "0 m from building=school 'Andover Elementary School'",
+"fac_area_m": 0,
+"fac_label": "building=school"
+},
+"42": {
+"category": "FACILITY",
+"evidence": "10 m from shop=sports 'Akers Ski Shop'",
+"fac_area_m": 10,
+"fac_label": "shop=sports"
+},
+"43": {
+"category": "FACILITY",
+"evidence": "47 m from shop=hardware 'Pete's Hardware'",
+"fac_area_m": 47,
+"fac_label": "shop=hardware"
+},
+"44": {
+"category": "FACILITY",
+"evidence": "14 m from office=government 'Andover Water District'",
+"fac_area_m": 14,
+"fac_label": "office=government"
+},
+"45": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"46": {
+"category": "FACILITY",
+"evidence": "12 m from shop=hardware 'Pete's Hardware'",
+"fac_area_m": 12,
+"fac_label": "shop=hardware"
+},
+"47": {
+"category": "FACILITY",
+"evidence": "19 m from amenity=place_of_worship First Congregational Church of Andover 'First Congregational Church of Andover'",
+"fac_area_m": 19,
+"fac_label": "amenity=place_of_worship First Congregational Church of Andover"
+},
+"48": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"49": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial 'Wood is Good'",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"50": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial 'Wood is Good'",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"51": {
+"category": "FACILITY",
+"evidence": "7 m from shop=car_repair 'Martin's Auto Services'",
+"fac_area_m": 7,
+"fac_label": "shop=car_repair"
+},
+"52": {
+"category": "FACILITY",
+"evidence": "9 m from shop=car_repair 'Andover Auto Shop'",
+"fac_area_m": 9,
+"fac_label": "shop=car_repair"
+},
+"53": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'Sunday River Golf Club'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"54": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'Sunday River Golf Club'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"55": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"56": {
+"category": "FACILITY",
+"evidence": "99 m from building=residential",
+"fac_area_m": null,
+"fac_label": null
+}
+}

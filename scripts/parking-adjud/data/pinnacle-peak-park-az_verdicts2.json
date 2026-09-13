@@ -1,0 +1,504 @@
+{
+"0": {
+"osm": [
+"way/29473680"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large paved lot full of cars, marked stalls + ramadas/restrooms, trail leads SW"
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "trailhead node; walk 124 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 0
+},
+"7": {
+"osm": [
+"way/77954807"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: solar-covered parking structure next to a large resort/institutional building"
+},
+"public": {
+"call": "yes",
+"evidence": "facility"
+},
+"serves": {
+"call": "no",
+"evidence": "building explains it; walk 579 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 7
+},
+"20": {
+"osm": [
+"way/589544689"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large graded trailer/overflow trailhead lot with a restroom, trail leads E"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "'Trailer Parking'; walk 38 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"name": "Trailer Parking",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 20
+},
+"21": {
+"osm": [
+"way/589544692",
+"way/589544693"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: two long angled-stall rows of the park's designed lot, trail at the edge"
+},
+"public": {
+"call": "yes",
+"evidence": "fee=no"
+},
+"serves": {
+"call": "yes",
+"evidence": "pebblestone park lot; walk 59 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "pebblestone",
+"parking": "surface",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 21
+},
+"29": {
+"osm": [
+"way/674139912"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: tiny spot (cap 2) inside the Four Seasons Troon North resort complex"
+},
+"public": {
+"call": "no",
+"evidence": "resort"
+},
+"serves": {
+"call": "no",
+"evidence": "resort explains it; walk 705 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface",
+"capacity": "2"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 29
+},
+"30": {
+"osm": [
+"way/674139913"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: small lot beside the Four Seasons resort building"
+},
+"public": {
+"call": "no",
+"evidence": "resort"
+},
+"serves": {
+"call": "no",
+"evidence": "resort parking; walk 752 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "asphalt",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 30
+},
+"50": {
+"osm": [
+"way/857002207"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: striped surface lot in a commercial/apartment complex"
+},
+"public": {
+"call": "yes",
+"evidence": "commercial"
+},
+"serves": {
+"call": "no",
+"evidence": "complex explains it; walk 1704 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "concrete",
+"parking": "multi-storey"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 50
+},
+"51": {
+"osm": [
+"way/909184913"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: the main Pinnacle Peak trailhead lot, angled stalls + cars, trail runs from it"
+},
+"public": {
+"call": "yes",
+"evidence": "operator=City of Scottsdale"
+},
+"serves": {
+"call": "yes",
+"evidence": "walk 0 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"access": "yes",
+"surface": "asphalt",
+"parking": "surface",
+"operator": "City of Scottsdale"
+},
+"confidence": "certain",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 51
+},
+"52": {
+"osm": [
+"way/909184915"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large graded dirt overflow lot beside the main paved Pinnacle Peak lot"
+},
+"public": {
+"call": "yes",
+"evidence": "operator=City of Scottsdale"
+},
+"serves": {
+"call": "yes",
+"evidence": "park overflow; walk 148 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"surface": "ground",
+"parking": "surface",
+"operator": "City of Scottsdale"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 52
+},
+"53": {
+"osm": [
+"way/909225499"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: long angled-stall rows of the park's designed lot (matches #21/#51)"
+},
+"public": {
+"call": "yes",
+"evidence": "operator=City of Scottsdale"
+},
+"serves": {
+"call": "yes",
+"evidence": "park lot; walk 187 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface",
+"operator": "City of Scottsdale"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 53
+},
+"54": {
+"osm": [
+"way/909225500"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: a row of the park's large designed multi-row parking (matches #21 style)"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Pinnacle Peak Park lot; trail 147 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 54
+},
+"55": {
+"osm": [
+"way/909225501"
+],
+"verdict": "KEEP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: the park's large multi-row angled parking in the desert"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "Pinnacle Peak Park lot; trail nearby"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 55
+},
+"67": {
+"osm": [
+"way/1104530306"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: dirt pull-through lot with cars beside a school/institutional building + sports fields"
+},
+"public": {
+"call": "yes",
+"evidence": "institution"
+},
+"serves": {
+"call": "no",
+"evidence": "institution explains it; walk 2473 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 67
+},
+"77": {
+"osm": [
+"way/1375691333"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large graded overflow lot with faint stall lines (power lines cross above)"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "park overflow parking; walk 351 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 77
+},
+"78": {
+"osm": [
+"way/1375691351"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: large developed park lot with marked stalls, cars, ramada (14,710 m2)"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "main Pinnacle Peak lot; walk 182 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 78
+},
+"79": {
+"osm": [
+"way/1375691352"
+],
+"verdict": "KEEP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2: graded dirt overflow loop beside the main paved park lot (cars in the main lot)"
+},
+"public": {
+"call": "yes",
+"evidence": "public"
+},
+"serves": {
+"call": "yes",
+"evidence": "park overflow; walk 76 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 79
+},
+"80": {
+"osm": [
+"way/1512238640"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2: tiny road-shoulder sliver at a desert-road junction, no cars, no lot"
+},
+"public": {
+"call": "no",
+"evidence": "open roadside"
+},
+"serves": {
+"call": "no",
+"evidence": "no parking surface; walk 2315 m"
+},
+"frames_used": [
+"z2"
+],
+"tags_cited": {},
+"confidence": "leaning",
+"resolve_hint": null,
+"src": "opus-protocol-phx",
+"fid": 80
+}
+}

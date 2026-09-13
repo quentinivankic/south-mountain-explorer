@@ -1,0 +1,4238 @@
+{
+"0": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"1": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'The Phoenician Resort'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"2": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'The Phoenician Resort'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"3": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'The Phoenician Resort'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"4": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'J.W. Marriot Camelback Inn Resort and Spa'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"5": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'J.W. Marriot Camelback Inn Resort and Spa'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"6": {
+"category": "FACILITY",
+"evidence": "3 m from building=commercial",
+"fac_area_m": 3,
+"fac_label": "building=commercial"
+},
+"7": {
+"category": "FACILITY",
+"evidence": "4 m from building=commercial",
+"fac_area_m": 4,
+"fac_label": "building=commercial"
+},
+"8": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"9": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"10": {
+"category": "FACILITY",
+"evidence": "0 m from building=commercial",
+"fac_area_m": 0,
+"fac_label": "building=commercial"
+},
+"11": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"12": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Phoenix Mountains Preserve'",
+"fac_area_m": null,
+"fac_label": null
+},
+"13": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Phoenix Mountains Preserve'",
+"fac_area_m": null,
+"fac_label": null
+},
+"14": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Phoenix Mountains Preserve'",
+"fac_area_m": null,
+"fac_label": null
+},
+"15": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Phoenix Mountains Preserve'",
+"fac_area_m": null,
+"fac_label": null
+},
+"16": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Phoenix Mountains Preserve'",
+"fac_area_m": null,
+"fac_label": null
+},
+"17": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Phoenix Mountains Preserve'",
+"fac_area_m": 387,
+"fac_label": "landuse=residential"
+},
+"18": {
+"category": "PARK",
+"evidence": "in leisure=park 'Granada Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"19": {
+"category": "FACILITY",
+"evidence": "17 m from leisure=pitch",
+"fac_area_m": 17,
+"fac_label": "leisure=pitch"
+},
+"20": {
+"category": "FACILITY",
+"evidence": "102 m from amenity=restaurant 'Gertrude's by Tarbell\u2019s'",
+"fac_area_m": null,
+"fac_label": null
+},
+"21": {
+"category": "FACILITY",
+"evidence": "36 m from building=industrial",
+"fac_area_m": 36,
+"fac_label": "building=industrial"
+},
+"22": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=sports_centre 'Papago Sports Complex'",
+"fac_area_m": 0,
+"fac_label": "leisure=sports_centre"
+},
+"23": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=sports_centre 'Papago Sports Complex'",
+"fac_area_m": 0,
+"fac_label": "leisure=sports_centre"
+},
+"24": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=sports_centre 'Papago Sports Complex'",
+"fac_area_m": 0,
+"fac_label": "leisure=sports_centre"
+},
+"25": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"26": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'Camelback Golf Club'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"27": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"28": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=place_of_worship Hope Bible Church 'Hope Bible Church'",
+"fac_area_m": 0,
+"fac_label": "amenity=place_of_worship Hope Bible Church"
+},
+"29": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=place_of_worship Hope Bible Church 'Hope Bible Church'",
+"fac_area_m": 0,
+"fac_label": "amenity=place_of_worship Hope Bible Church"
+},
+"30": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=place_of_worship Apostolic Christian Church of America 'Apostolic Christian Church of America'",
+"fac_area_m": 0,
+"fac_label": "amenity=place_of_worship Apostolic Christian Church of America"
+},
+"31": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Mercury Mine School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"32": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Mercury Mine School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"33": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"34": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"35": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"36": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"37": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"38": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"39": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Town and Country Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"40": {
+"category": "FACILITY",
+"evidence": "25 m from amenity=restaurant 'Chart House'",
+"fac_area_m": 25,
+"fac_label": "amenity=restaurant"
+},
+"41": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"42": {
+"category": "FACILITY",
+"evidence": "107 m from office=company 'Infinity Builders - Phoenix Remodeling & Construction'",
+"fac_area_m": 61,
+"fac_label": "building=apartments"
+},
+"43": {
+"category": "FACILITY",
+"evidence": "96 m from shop=hairdresser 'Park Avenue Salon & Blow Dry Suite 16'",
+"fac_area_m": 51,
+"fac_label": "landuse=residential"
+},
+"44": {
+"category": "FACILITY",
+"evidence": "89 m from shop=yes 'Just Food For Dogs'",
+"fac_area_m": 62,
+"fac_label": "landuse=commercial"
+},
+"45": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'McCormick Ranch Golf Club'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"46": {
+"category": "FACILITY",
+"evidence": "32 m from amenity=bank 'Chase'",
+"fac_area_m": 32,
+"fac_label": "amenity=bank"
+},
+"47": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"48": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"49": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"50": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"51": {
+"category": "FACILITY",
+"evidence": "54 m from amenity=school 'Coronado High School'",
+"fac_area_m": 54,
+"fac_label": "amenity=school"
+},
+"52": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"53": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Hohokam Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"54": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Coronado High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"55": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Coronado High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"56": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Coronado High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"57": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Coronado High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"58": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Fountain Plaza'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"59": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"60": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"61": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"62": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"63": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"64": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"65": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"66": {
+"category": "FACILITY",
+"evidence": "69 m from amenity=school 'Wilson Primary School'",
+"fac_area_m": 69,
+"fac_label": "amenity=school"
+},
+"67": {
+"category": "PARK",
+"evidence": "in leisure=park 'McCormick Stillman Railroad Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"68": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Gateway School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"69": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Gateway School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"70": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Gateway School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"71": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Gateway School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"72": {
+"category": "FACILITY",
+"evidence": "43 m from landuse=residential",
+"fac_area_m": 43,
+"fac_label": "landuse=residential"
+},
+"73": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=college 'GateWay Community College'",
+"fac_area_m": 0,
+"fac_label": "amenity=college"
+},
+"74": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=stadium 'Scottsdale Stadium'",
+"fac_area_m": 0,
+"fac_label": "leisure=stadium"
+},
+"75": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"76": {
+"category": "FACILITY",
+"evidence": "45 m from amenity=police 'Scottsdale Police Station'",
+"fac_area_m": 45,
+"fac_label": "amenity=police"
+},
+"77": {
+"category": "FACILITY",
+"evidence": "1 m from landuse=retail",
+"fac_area_m": 1,
+"fac_label": "landuse=retail"
+},
+"78": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"79": {
+"category": "FACILITY",
+"evidence": "22 m from leisure=stadium 'Scottsdale Stadium'",
+"fac_area_m": 22,
+"fac_label": "leisure=stadium"
+},
+"80": {
+"category": "FACILITY",
+"evidence": "62 m from office=architect 'DPA Architects Inc'",
+"fac_area_m": null,
+"fac_label": null
+},
+"81": {
+"category": "FACILITY",
+"evidence": "106 m from office=lawyer 'Gage Mathers Law Group, PLLC'",
+"fac_area_m": 70,
+"fac_label": "landuse=residential"
+},
+"82": {
+"category": "FACILITY",
+"evidence": "21 m from leisure=pitch",
+"fac_area_m": 21,
+"fac_label": "leisure=pitch"
+},
+"83": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Biltmore Fashion Park'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"84": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'The Phoenician Resort'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"85": {
+"category": "FACILITY",
+"evidence": "14 m from leisure=golf_course 'The Phoenician Resort'",
+"fac_area_m": 14,
+"fac_label": "leisure=golf_course"
+},
+"86": {
+"category": "FACILITY",
+"evidence": "41 m from leisure=golf_course 'The Phoenician Resort'",
+"fac_area_m": 41,
+"fac_label": "leisure=golf_course"
+},
+"87": {
+"category": "FACILITY",
+"evidence": "97 m from amenity=place_of_worship Camelback Seventh Day Adventist Church 'Camelback Seventh Day Adventist Church'",
+"fac_area_m": 62,
+"fac_label": "building=church"
+},
+"88": {
+"category": "FACILITY",
+"evidence": "28 m from landuse=residential",
+"fac_area_m": 28,
+"fac_label": "landuse=residential"
+},
+"89": {
+"category": "FACILITY",
+"evidence": "25 m from building=church",
+"fac_area_m": 25,
+"fac_label": "building=church"
+},
+"90": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'The Estates At Dreamy Draw'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"91": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Tillman Middle School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"92": {
+"category": "FACILITY",
+"evidence": "34 m from landuse=retail",
+"fac_area_m": 34,
+"fac_label": "landuse=retail"
+},
+"93": {
+"category": "FACILITY",
+"evidence": "26 m from landuse=residential 'Scottsdale Serrento Apartments'",
+"fac_area_m": 26,
+"fac_label": "landuse=residential"
+},
+"94": {
+"category": "FACILITY",
+"evidence": "48 m from leisure=pitch",
+"fac_area_m": 48,
+"fac_label": "leisure=pitch"
+},
+"95": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"96": {
+"category": "FACILITY",
+"evidence": "46 m from landuse=residential",
+"fac_area_m": 46,
+"fac_label": "landuse=residential"
+},
+"97": {
+"category": "FACILITY",
+"evidence": "44 m from leisure=golf_course 'Coronado Golf Course'",
+"fac_area_m": 44,
+"fac_label": "leisure=golf_course"
+},
+"98": {
+"category": "FACILITY",
+"evidence": "28 m from landuse=residential",
+"fac_area_m": 28,
+"fac_label": "landuse=residential"
+},
+"99": {
+"category": "FACILITY",
+"evidence": "40 m from landuse=retail 'Fountain Plaza'",
+"fac_area_m": 40,
+"fac_label": "landuse=retail"
+},
+"100": {
+"category": "FACILITY",
+"evidence": "34 m from landuse=residential",
+"fac_area_m": 34,
+"fac_label": "landuse=residential"
+},
+"101": {
+"category": "FACILITY",
+"evidence": "28 m from landuse=residential",
+"fac_area_m": 28,
+"fac_label": "landuse=residential"
+},
+"102": {
+"category": "FACILITY",
+"evidence": "32 m from landuse=residential",
+"fac_area_m": 32,
+"fac_label": "landuse=residential"
+},
+"103": {
+"category": "PARK",
+"evidence": "in leisure=park 'Vista del Camino Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"104": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"105": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=place_of_worship The Trinity Church 'The Trinity Church'",
+"fac_area_m": 0,
+"fac_label": "amenity=place_of_worship The Trinity Church"
+},
+"106": {
+"category": "FACILITY",
+"evidence": "0 m from shop=mall 'Scottsdale Fashion Square'",
+"fac_area_m": 0,
+"fac_label": "shop=mall"
+},
+"107": {
+"category": "FACILITY",
+"evidence": "0 m from shop=mall 'Scottsdale Fashion Square'",
+"fac_area_m": 0,
+"fac_label": "shop=mall"
+},
+"108": {
+"category": "FACILITY",
+"evidence": "0 m from shop=mall 'Scottsdale Fashion Square'",
+"fac_area_m": 0,
+"fac_label": "shop=mall"
+},
+"109": {
+"category": "FACILITY",
+"evidence": "0 m from shop=mall 'Scottsdale Fashion Square'",
+"fac_area_m": 0,
+"fac_label": "shop=mall"
+},
+"110": {
+"category": "FACILITY",
+"evidence": "0 m from shop=mall 'Scottsdale Fashion Square'",
+"fac_area_m": 0,
+"fac_label": "shop=mall"
+},
+"111": {
+"category": "FACILITY",
+"evidence": "0 m from shop=mall 'Scottsdale Fashion Square'",
+"fac_area_m": 0,
+"fac_label": "shop=mall"
+},
+"112": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial 'General Dynamics Mission Systems (Scottsdale Campus)'",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"113": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial 'General Dynamics Mission Systems (Scottsdale Campus)'",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"114": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial 'General Dynamics Mission Systems (Scottsdale Campus)'",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"115": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial 'General Dynamics Mission Systems (Scottsdale Campus)'",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"116": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial 'General Dynamics Mission Systems (Scottsdale Campus)'",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"117": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial 'General Dynamics Mission Systems (Scottsdale Campus)'",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"118": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial 'General Dynamics Mission Systems (Scottsdale Campus)'",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"119": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial 'General Dynamics Mission Systems (Scottsdale Campus)'",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"120": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial 'General Dynamics Mission Systems (Scottsdale Campus)'",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"121": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial 'General Dynamics Mission Systems (Scottsdale Campus)'",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"122": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'Coronado Golf Course'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"123": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Saguaro High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"124": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Saguaro High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"125": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Saguaro High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"126": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Pueblo Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"127": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Chaparral High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"128": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Chaparral High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"129": {
+"category": "FACILITY",
+"evidence": "10 m from landuse=residential",
+"fac_area_m": 10,
+"fac_label": "landuse=residential"
+},
+"130": {
+"category": "FACILITY",
+"evidence": "31 m from landuse=residential 'Echo Canyon'",
+"fac_area_m": 31,
+"fac_label": "landuse=residential"
+},
+"131": {
+"category": "FACILITY",
+"evidence": "17 m from landuse=residential 'Echo Canyon'",
+"fac_area_m": 17,
+"fac_label": "landuse=residential"
+},
+"132": {
+"category": "FACILITY",
+"evidence": "36 m from building=church",
+"fac_area_m": 36,
+"fac_label": "building=church"
+},
+"133": {
+"category": "FACILITY",
+"evidence": "0 m from building=church 'The Church of Jesus Christ of Latter-day Saints'",
+"fac_area_m": 0,
+"fac_label": "building=church"
+},
+"134": {
+"category": "FACILITY",
+"evidence": "45 m from landuse=residential",
+"fac_area_m": 45,
+"fac_label": "landuse=residential"
+},
+"135": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"136": {
+"category": "FACILITY",
+"evidence": "52 m from amenity=fire_station 'Scottsdale Fire Station Number 1'",
+"fac_area_m": 52,
+"fac_label": "amenity=fire_station"
+},
+"137": {
+"category": "FACILITY",
+"evidence": "39 m from leisure=pitch",
+"fac_area_m": 39,
+"fac_label": "leisure=pitch"
+},
+"138": {
+"category": "FACILITY",
+"evidence": "0 m from building=hotel",
+"fac_area_m": 0,
+"fac_label": "building=hotel"
+},
+"139": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'DoubleTree Resort by Hilton Hotel Paradise Valley - Scottsdale'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"140": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'DoubleTree Resort by Hilton Hotel Paradise Valley - Scottsdale'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"141": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"142": {
+"category": "FACILITY",
+"evidence": "46 m from landuse=commercial",
+"fac_area_m": 46,
+"fac_label": "landuse=commercial"
+},
+"143": {
+"category": "FACILITY",
+"evidence": "33 m from landuse=retail",
+"fac_area_m": 33,
+"fac_label": "landuse=retail"
+},
+"144": {
+"category": "FACILITY",
+"evidence": "23 m from landuse=residential",
+"fac_area_m": 23,
+"fac_label": "landuse=residential"
+},
+"145": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"146": {
+"category": "FACILITY",
+"evidence": "0 m from building=hotel",
+"fac_area_m": 0,
+"fac_label": "building=hotel"
+},
+"147": {
+"category": "FACILITY",
+"evidence": "40 m from landuse=commercial",
+"fac_area_m": 40,
+"fac_label": "landuse=commercial"
+},
+"148": {
+"category": "FACILITY",
+"evidence": "114 m from shop=massage 'Skin Results'",
+"fac_area_m": 52,
+"fac_label": "landuse=residential"
+},
+"149": {
+"category": "FACILITY",
+"evidence": "56 m from landuse=residential",
+"fac_area_m": 56,
+"fac_label": "landuse=residential"
+},
+"150": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"151": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"152": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"153": {
+"category": "FACILITY",
+"evidence": "10 m from amenity=school",
+"fac_area_m": 10,
+"fac_label": "amenity=school"
+},
+"154": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"155": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Cochise Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"156": {
+"category": "FACILITY",
+"evidence": "38 m from leisure=golf_course 'Gainey Ranch Golf Club'",
+"fac_area_m": 38,
+"fac_label": "leisure=golf_course"
+},
+"157": {
+"category": "FACILITY",
+"evidence": "17 m from landuse=residential",
+"fac_area_m": 17,
+"fac_label": "landuse=residential"
+},
+"158": {
+"category": "FACILITY",
+"evidence": "36 m from landuse=residential",
+"fac_area_m": 36,
+"fac_label": "landuse=residential"
+},
+"159": {
+"category": "FACILITY",
+"evidence": "30 m from leisure=pitch",
+"fac_area_m": 30,
+"fac_label": "leisure=pitch"
+},
+"160": {
+"category": "FACILITY",
+"evidence": "30 m from amenity=school 'Yavapai Elementary School'",
+"fac_area_m": 30,
+"fac_label": "amenity=school"
+},
+"161": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"162": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Echo Canyon'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"163": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Echo Canyon'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"164": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Block 6'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"165": {
+"category": "FACILITY",
+"evidence": "44 m from landuse=residential",
+"fac_area_m": 44,
+"fac_label": "landuse=residential"
+},
+"166": {
+"category": "FACILITY",
+"evidence": "35 m from leisure=pitch",
+"fac_area_m": 35,
+"fac_label": "leisure=pitch"
+},
+"167": {
+"category": "FACILITY",
+"evidence": "45 m from office=government 'Arizona Division of Emergency Management'",
+"fac_area_m": 45,
+"fac_label": "office=government"
+},
+"168": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 115,
+"fac_label": "leisure=golf_course"
+},
+"169": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 160,
+"fac_label": "leisure=golf_course"
+},
+"170": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"171": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=sports_centre 'Papago Sports Complex'",
+"fac_area_m": 0,
+"fac_label": "leisure=sports_centre"
+},
+"172": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"173": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"174": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"175": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"176": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"177": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"178": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"179": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"180": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"181": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"182": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"183": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"184": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"185": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"186": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Arcadia'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"187": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"188": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"189": {
+"category": "FACILITY",
+"evidence": "41 m from landuse=residential",
+"fac_area_m": 41,
+"fac_label": "landuse=residential"
+},
+"190": {
+"category": "FACILITY",
+"evidence": "9 m from leisure=sports_centre",
+"fac_area_m": 9,
+"fac_label": "leisure=sports_centre"
+},
+"191": {
+"category": "FACILITY",
+"evidence": "51 m from leisure=track",
+"fac_area_m": 51,
+"fac_label": "leisure=track"
+},
+"192": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"193": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"194": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"195": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"196": {
+"category": "FACILITY",
+"evidence": "71 m from leisure=track",
+"fac_area_m": 71,
+"fac_label": "leisure=track"
+},
+"197": {
+"category": "FACILITY",
+"evidence": "26 m from leisure=track",
+"fac_area_m": 26,
+"fac_label": "leisure=track"
+},
+"198": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"199": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"200": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"201": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"202": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"203": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"204": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"205": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"206": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"207": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"208": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"209": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"210": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"211": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"212": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"213": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"214": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"215": {
+"category": "FACILITY",
+"evidence": "34 m from tourism=hotel 'Arizona Biltmore, LXR Hotels & Resorts'",
+"fac_area_m": 34,
+"fac_label": "tourism=hotel"
+},
+"216": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"217": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"218": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"219": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"220": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"221": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"222": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"223": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"224": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"225": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"226": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"227": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"228": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"229": {
+"category": "PARK",
+"evidence": "in leisure=park 'Scottsdale Civic Center Mall' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"230": {
+"category": "FACILITY",
+"evidence": "67 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 67,
+"fac_label": "landuse=retail"
+},
+"231": {
+"category": "FACILITY",
+"evidence": "109 m from office=private 'Pump It Up/BounceU Corporate Office'",
+"fac_area_m": 123,
+"fac_label": "landuse=commercial"
+},
+"232": {
+"category": "FACILITY",
+"evidence": "38 m from building=commercial",
+"fac_area_m": 38,
+"fac_label": "building=commercial"
+},
+"233": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"234": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'East Shea Boulevard and AZ SR 51 Dreamy Draw Park and Ride'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"235": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'East Shea Boulevard and AZ SR 51 Dreamy Draw Park and Ride'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"236": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"237": {
+"category": "PARK",
+"evidence": "in leisure=park 'Indian School Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"238": {
+"category": "FACILITY",
+"evidence": "37 m from amenity=school 'Madison School Number Two'",
+"fac_area_m": 37,
+"fac_label": "amenity=school"
+},
+"239": {
+"category": "FACILITY",
+"evidence": "10 m from building=apartments",
+"fac_area_m": 10,
+"fac_label": "building=apartments"
+},
+"240": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"241": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"242": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"243": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"244": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"245": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Mohave Middle School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"246": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Citrine Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"247": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=restaurant 'Loving Hut'",
+"fac_area_m": 0,
+"fac_label": "amenity=restaurant"
+},
+"248": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"249": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"250": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=golf_course 'McCormick Ranch Golf Club'",
+"fac_area_m": 0,
+"fac_label": "leisure=golf_course"
+},
+"251": {
+"category": "FACILITY",
+"evidence": "50 m from building=commercial",
+"fac_area_m": 50,
+"fac_label": "building=commercial"
+},
+"252": {
+"category": "FACILITY",
+"evidence": "20 m from landuse=residential",
+"fac_area_m": 20,
+"fac_label": "landuse=residential"
+},
+"253": {
+"category": "FACILITY",
+"evidence": "81 m from amenity=restaurant 'Giuseppe\u2019s'",
+"fac_area_m": 57,
+"fac_label": "landuse=retail"
+},
+"254": {
+"category": "FACILITY",
+"evidence": "29 m from amenity=community_centre 'Devonshire Senior Center'",
+"fac_area_m": 29,
+"fac_label": "amenity=community_centre"
+},
+"255": {
+"category": "FACILITY",
+"evidence": "8 m from amenity=community_centre 'Devonshire Senior Center'",
+"fac_area_m": 8,
+"fac_label": "amenity=community_centre"
+},
+"256": {
+"category": "FACILITY",
+"evidence": "54 m from landuse=residential",
+"fac_area_m": 54,
+"fac_label": "landuse=residential"
+},
+"257": {
+"category": "FACILITY",
+"evidence": "32 m from landuse=residential",
+"fac_area_m": 32,
+"fac_label": "landuse=residential"
+},
+"258": {
+"category": "FACILITY",
+"evidence": "38 m from landuse=retail 'Tower Plaza Shopping Center'",
+"fac_area_m": 38,
+"fac_label": "landuse=retail"
+},
+"259": {
+"category": "FACILITY",
+"evidence": "54 m from shop=convenience '7-Eleven'",
+"fac_area_m": 54,
+"fac_label": "shop=convenience"
+},
+"260": {
+"category": "FACILITY",
+"evidence": "42 m from leisure=pitch",
+"fac_area_m": 42,
+"fac_label": "leisure=pitch"
+},
+"261": {
+"category": "FACILITY",
+"evidence": "21 m from leisure=sports_centre 'Perry Pool'",
+"fac_area_m": 21,
+"fac_label": "leisure=sports_centre"
+},
+"262": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"263": {
+"category": "FACILITY",
+"evidence": "76 m from landuse=residential",
+"fac_area_m": 76,
+"fac_label": "landuse=residential"
+},
+"264": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 220,
+"fac_label": "landuse=residential"
+},
+"265": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Tower Plaza Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"266": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Tower Plaza Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"267": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Tower Plaza Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"268": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Tower Plaza Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"269": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Tower Plaza Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"270": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Tower Plaza Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"271": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Tower Plaza Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"272": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Tower Plaza Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"273": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Tower Plaza Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"274": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Tower Plaza Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"275": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Tower Plaza Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"276": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"277": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Pueblo Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"278": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Pueblo Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"279": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Echo Canyon'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"280": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Echo Canyon'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"281": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'Banner Behavioral Health Hospital'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"282": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'Banner Behavioral Health Hospital'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"283": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Scottsdale Crossing'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"284": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Scottsdale Crossing'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"285": {
+"category": "FACILITY",
+"evidence": "33 m from landuse=industrial 'Central Groundwater Treatment Facility'",
+"fac_area_m": 33,
+"fac_label": "landuse=industrial"
+},
+"286": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Phoenix Country Day School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"287": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Phoenix Country Day School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"288": {
+"category": "FACILITY",
+"evidence": "37 m from amenity=school 'Phoenix Country Day School'",
+"fac_area_m": 37,
+"fac_label": "amenity=school"
+},
+"289": {
+"category": "FACILITY",
+"evidence": "23 m from building=commercial",
+"fac_area_m": 23,
+"fac_label": "building=commercial"
+},
+"290": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Heritage Hills 1'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"291": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Wrigley Mansion'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"292": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"293": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Heritage Hills 2'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"294": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Heritage Hills 2'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"295": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Heritage Hills 2'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"296": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Heritage Hills 2'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"297": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Heritage Hills 2'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"298": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Heritage Hills 2'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"299": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Heritage Hills 2'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"300": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Heritage Hills 1'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"301": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Heritage Hills 1'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"302": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Heritage Hills 1'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"303": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Heritage Hills 1'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"304": {
+"category": "FACILITY",
+"evidence": "29 m from leisure=golf_course 'Paradise Valley Country Club'",
+"fac_area_m": 29,
+"fac_label": "leisure=golf_course"
+},
+"305": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"306": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"307": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"308": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"309": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"310": {
+"category": "FACILITY",
+"evidence": "14 m from landuse=residential 'Scottsdale Park Place Condominiums'",
+"fac_area_m": 14,
+"fac_label": "landuse=residential"
+},
+"311": {
+"category": "FACILITY",
+"evidence": "0 m from building=church",
+"fac_area_m": 0,
+"fac_label": "building=church"
+},
+"312": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"313": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"314": {
+"category": "FACILITY",
+"evidence": "48 m from building=office 'Exhibits Department'",
+"fac_area_m": 48,
+"fac_label": "building=office"
+},
+"315": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Scottsdale Waterfront'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"316": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"317": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"318": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Scottsdale Waterfront'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"319": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"320": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"321": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"322": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"323": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"324": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"325": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"326": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"327": {
+"category": "FACILITY",
+"evidence": "10 m from landuse=residential",
+"fac_area_m": 10,
+"fac_label": "landuse=residential"
+},
+"328": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=university 'Arizona State University - SkySong Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=university"
+},
+"329": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=university 'Arizona State University - SkySong Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=university"
+},
+"330": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=university 'Arizona State University - SkySong Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=university"
+},
+"331": {
+"category": "FACILITY",
+"evidence": "7 m from amenity=police 'Scottsdale Police Station'",
+"fac_area_m": 7,
+"fac_label": "amenity=police"
+},
+"332": {
+"category": "FACILITY",
+"evidence": "0 m from shop=mall 'Scottsdale Fashion Square'",
+"fac_area_m": 0,
+"fac_label": "shop=mall"
+},
+"333": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"334": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"335": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"336": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"337": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"338": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"339": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"340": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"341": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"342": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"343": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'La Terreza'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"344": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"345": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"346": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"347": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"348": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Portalis Office Park'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"349": {
+"category": "FACILITY",
+"evidence": "83 m from shop=electronics 'Scottsdale Home Theater Installation'",
+"fac_area_m": null,
+"fac_label": null
+},
+"350": {
+"category": "FACILITY",
+"evidence": "52 m from landuse=residential",
+"fac_area_m": 52,
+"fac_label": "landuse=residential"
+},
+"351": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Wilson Primary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"352": {
+"category": "FACILITY",
+"evidence": "31 m from landuse=residential",
+"fac_area_m": 31,
+"fac_label": "landuse=residential"
+},
+"353": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"354": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Las Aguas Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"355": {
+"category": "FACILITY",
+"evidence": "0 m from shop=mall 'Scottsdale Fashion Square'",
+"fac_area_m": 0,
+"fac_label": "shop=mall"
+},
+"356": {
+"category": "FACILITY",
+"evidence": "102 m from amenity=restaurant 'Grassroots'",
+"fac_area_m": null,
+"fac_label": null
+},
+"357": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"358": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Scottsdale East Plaza'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"359": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial 'General Dynamics Mission Systems (Scottsdale Campus)'",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"360": {
+"category": "FACILITY",
+"evidence": "8 m from shop=convenience '7-Eleven'",
+"fac_area_m": 8,
+"fac_label": "shop=convenience"
+},
+"361": {
+"category": "FACILITY",
+"evidence": "69 m from leisure=golf_course 'Silverado Golf Club'",
+"fac_area_m": 69,
+"fac_label": "leisure=golf_course"
+},
+"362": {
+"category": "FACILITY",
+"evidence": "16 m from building=church",
+"fac_area_m": 16,
+"fac_label": "building=church"
+},
+"363": {
+"category": "FACILITY",
+"evidence": "23 m from building=commercial",
+"fac_area_m": 23,
+"fac_label": "building=commercial"
+},
+"364": {
+"category": "FACILITY",
+"evidence": "31 m from building=commercial",
+"fac_area_m": 31,
+"fac_label": "building=commercial"
+},
+"365": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 94,
+"fac_label": "landuse=residential"
+},
+"366": {
+"category": "FACILITY",
+"evidence": "40 m from landuse=residential",
+"fac_area_m": 40,
+"fac_label": "landuse=residential"
+},
+"367": {
+"category": "FACILITY",
+"evidence": "7 m from landuse=residential",
+"fac_area_m": 7,
+"fac_label": "landuse=residential"
+},
+"368": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Artisan Duette'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"369": {
+"category": "FACILITY",
+"evidence": "28 m from building=church",
+"fac_area_m": 28,
+"fac_label": "building=church"
+},
+"370": {
+"category": "FACILITY",
+"evidence": "22 m from landuse=residential",
+"fac_area_m": 22,
+"fac_label": "landuse=residential"
+},
+"371": {
+"category": "FACILITY",
+"evidence": "52 m from landuse=residential",
+"fac_area_m": 52,
+"fac_label": "landuse=residential"
+},
+"372": {
+"category": "FACILITY",
+"evidence": "4 m from shop=car_repair 'Jacks Automotive Services'",
+"fac_area_m": 4,
+"fac_label": "shop=car_repair"
+},
+"373": {
+"category": "FACILITY",
+"evidence": "10 m from shop=car_parts 'AutoZone'",
+"fac_area_m": 10,
+"fac_label": "shop=car_parts"
+},
+"374": {
+"category": "FACILITY",
+"evidence": "6 m from amenity=place_of_worship Faith Christian Center 'Faith Christian Center'",
+"fac_area_m": 6,
+"fac_label": "amenity=place_of_worship Faith Christian Center"
+},
+"375": {
+"category": "FACILITY",
+"evidence": "25 m from building=retail",
+"fac_area_m": 25,
+"fac_label": "building=retail"
+},
+"376": {
+"category": "FACILITY",
+"evidence": "23 m from landuse=industrial",
+"fac_area_m": 23,
+"fac_label": "landuse=industrial"
+},
+"377": {
+"category": "FACILITY",
+"evidence": "19 m from building=retail 'EAR Professional Audio Video'",
+"fac_area_m": 19,
+"fac_label": "building=retail"
+},
+"378": {
+"category": "FACILITY",
+"evidence": "14 m from building=church",
+"fac_area_m": 14,
+"fac_label": "building=church"
+},
+"379": {
+"category": "FACILITY",
+"evidence": "44 m from building=church",
+"fac_area_m": 44,
+"fac_label": "building=church"
+},
+"380": {
+"category": "FACILITY",
+"evidence": "15 m from amenity=place_of_worship Mount Claret Chapel 'Mount Claret Chapel'",
+"fac_area_m": 15,
+"fac_label": "amenity=place_of_worship Mount Claret Chapel"
+},
+"381": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=police",
+"fac_area_m": 0,
+"fac_label": "amenity=police"
+},
+"382": {
+"category": "FACILITY",
+"evidence": "87 m from amenity=kindergarten 'Biltmore Bible Day Care Center'",
+"fac_area_m": 47,
+"fac_label": "building=commercial"
+},
+"383": {
+"category": "FACILITY",
+"evidence": "33 m from amenity=place_of_worship Camelback Bible Church 'Camelback Bible Church'",
+"fac_area_m": 33,
+"fac_label": "amenity=place_of_worship Camelback Bible Church"
+},
+"384": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Phoenix Country Day School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"385": {
+"category": "FACILITY",
+"evidence": "31 m from landuse=residential",
+"fac_area_m": 31,
+"fac_label": "landuse=residential"
+},
+"386": {
+"category": "FACILITY",
+"evidence": "32 m from amenity=place_of_worship Valley View Bible Church 'Valley View Bible Church'",
+"fac_area_m": 32,
+"fac_label": "amenity=place_of_worship Valley View Bible Church"
+},
+"387": {
+"category": "FACILITY",
+"evidence": "30 m from amenity=place_of_worship Valley View Bible Church 'Valley View Bible Church'",
+"fac_area_m": 30,
+"fac_label": "amenity=place_of_worship Valley View Bible Church"
+},
+"388": {
+"category": "FACILITY",
+"evidence": "0 m from building=church",
+"fac_area_m": 0,
+"fac_label": "building=church"
+},
+"389": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=place_of_worship The Commons Chaparral Church on Shea 'The Commons Chaparral Church on Shea'",
+"fac_area_m": 0,
+"fac_label": "amenity=place_of_worship The Commons Chaparral Church on Shea"
+},
+"390": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"391": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"392": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"393": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"394": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"395": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Shadow Mountain Estates'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"396": {
+"category": "FACILITY",
+"evidence": "14 m from amenity=restaurant 'Phoenix Slice House'",
+"fac_area_m": 14,
+"fac_label": "amenity=restaurant"
+},
+"397": {
+"category": "FACILITY",
+"evidence": "5 m from shop=convenience '7-Eleven'",
+"fac_area_m": 5,
+"fac_label": "shop=convenience"
+},
+"398": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'The Creighton Academy'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"399": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'The Creighton Academy'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"400": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'The Creighton Academy'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"401": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"402": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"403": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"404": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"405": {
+"category": "FACILITY",
+"evidence": "24 m from landuse=residential",
+"fac_area_m": 24,
+"fac_label": "landuse=residential"
+},
+"406": {
+"category": "FACILITY",
+"evidence": "31 m from landuse=residential",
+"fac_area_m": 31,
+"fac_label": "landuse=residential"
+},
+"407": {
+"category": "FACILITY",
+"evidence": "42 m from landuse=retail",
+"fac_area_m": 42,
+"fac_label": "landuse=retail"
+},
+"408": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"409": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"410": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"411": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"412": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"413": {
+"category": "FACILITY",
+"evidence": "27 m from landuse=residential",
+"fac_area_m": 27,
+"fac_label": "landuse=residential"
+},
+"414": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"415": {
+"category": "FACILITY",
+"evidence": "11 m from building=office 'Catholic Cemeteries and Funeral Homes'",
+"fac_area_m": 11,
+"fac_label": "building=office"
+},
+"416": {
+"category": "FACILITY",
+"evidence": "12 m from amenity=place_of_worship Biltmore Church of the Nazarene 'Biltmore Church of the Nazarene'",
+"fac_area_m": 12,
+"fac_label": "amenity=place_of_worship Biltmore Church of the Nazarene"
+},
+"417": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"418": {
+"category": "FACILITY",
+"evidence": "67 m from landuse=residential 'Pueblo Sereno Mobile Home Park'",
+"fac_area_m": 67,
+"fac_label": "landuse=residential"
+},
+"419": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"420": {
+"category": "FACILITY",
+"evidence": "9 m from shop=funeral_directors 'Green Acres Mortuary & Cemetery'",
+"fac_area_m": 9,
+"fac_label": "shop=funeral_directors"
+},
+"421": {
+"category": "FACILITY",
+"evidence": "39 m from shop=funeral_directors 'Green Acres Mortuary & Cemetery'",
+"fac_area_m": 39,
+"fac_label": "shop=funeral_directors"
+},
+"422": {
+"category": "FACILITY",
+"evidence": "0 m from building=retail",
+"fac_area_m": 0,
+"fac_label": "building=retail"
+},
+"423": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Arcadia'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"424": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Griffith Elementary School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"425": {
+"category": "FACILITY",
+"evidence": "16 m from shop=funeral_directors 'Whitney & Murphy Funeral Home'",
+"fac_area_m": 16,
+"fac_label": "shop=funeral_directors"
+},
+"426": {
+"category": "FACILITY",
+"evidence": "2 m from building=commercial",
+"fac_area_m": 2,
+"fac_label": "building=commercial"
+},
+"427": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Papago School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"428": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Papago School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"429": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Papago School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"430": {
+"category": "FACILITY",
+"evidence": "15 m from landuse=residential",
+"fac_area_m": 15,
+"fac_label": "landuse=residential"
+},
+"431": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"432": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"433": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"434": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"435": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"436": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"437": {
+"category": "FACILITY",
+"evidence": "41 m from leisure=pitch",
+"fac_area_m": 41,
+"fac_label": "leisure=pitch"
+},
+"438": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=sports_centre 'Papago Sports Complex'",
+"fac_area_m": 0,
+"fac_label": "leisure=sports_centre"
+},
+"439": {
+"category": "FACILITY",
+"evidence": "0 m from leisure=sports_centre 'Papago Sports Complex'",
+"fac_area_m": 0,
+"fac_label": "leisure=sports_centre"
+},
+"440": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"441": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"442": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"443": {
+"category": "FACILITY",
+"evidence": "49 m from amenity=clinic 'The Hormone Zone'",
+"fac_area_m": 102,
+"fac_label": "landuse=commercial"
+},
+"444": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"445": {
+"category": "FACILITY",
+"evidence": "2 m from tourism=hotel 'Marriott Phoenix Airport'",
+"fac_area_m": 2,
+"fac_label": "tourism=hotel"
+},
+"446": {
+"category": "FACILITY",
+"evidence": "15 m from landuse=residential",
+"fac_area_m": 15,
+"fac_label": "landuse=residential"
+},
+"447": {
+"category": "FACILITY",
+"evidence": "40 m from landuse=commercial",
+"fac_area_m": 40,
+"fac_label": "landuse=commercial"
+},
+"448": {
+"category": "FACILITY",
+"evidence": "29 m from landuse=residential",
+"fac_area_m": 29,
+"fac_label": "landuse=residential"
+},
+"449": {
+"category": "FACILITY",
+"evidence": "28 m from leisure=golf_course 'Arizona Biltmore Estates Course'",
+"fac_area_m": 28,
+"fac_label": "leisure=golf_course"
+},
+"450": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Arcadia'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"451": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 120,
+"fac_label": "landuse=residential"
+},
+"452": {
+"category": "FACILITY",
+"evidence": "9 m from leisure=sports_centre 'Eldorado Aquatic Center'",
+"fac_area_m": 9,
+"fac_label": "leisure=sports_centre"
+},
+"453": {
+"category": "FACILITY",
+"evidence": "27 m from building=office 'Development Department'",
+"fac_area_m": 27,
+"fac_label": "building=office"
+},
+"454": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"455": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"456": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"457": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"458": {
+"category": "FACILITY",
+"evidence": "68 m from leisure=pitch",
+"fac_area_m": 68,
+"fac_label": "leisure=pitch"
+},
+"459": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Town and Country Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"460": {
+"category": "PARK",
+"evidence": "in leisure=park 'Agua Linda Park' \u2014 generic park, weak",
+"fac_area_m": 112,
+"fac_label": "landuse=residential"
+},
+"461": {
+"category": "FACILITY",
+"evidence": "38 m from amenity=school",
+"fac_area_m": 38,
+"fac_label": "amenity=school"
+},
+"462": {
+"category": "FACILITY",
+"evidence": "20 m from amenity=restaurant 'Sa Bai Modern Thai'",
+"fac_area_m": 20,
+"fac_label": "amenity=restaurant"
+},
+"463": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"464": {
+"category": "FACILITY",
+"evidence": "62 m from landuse=residential 'Scottsdale Serrento Apartments'",
+"fac_area_m": 62,
+"fac_label": "landuse=residential"
+},
+"465": {
+"category": "FACILITY",
+"evidence": "20 m from leisure=pitch",
+"fac_area_m": 20,
+"fac_label": "leisure=pitch"
+},
+"466": {
+"category": "FACILITY",
+"evidence": "19 m from leisure=pitch",
+"fac_area_m": 19,
+"fac_label": "leisure=pitch"
+},
+"467": {
+"category": "FACILITY",
+"evidence": "36 m from leisure=pitch",
+"fac_area_m": 36,
+"fac_label": "leisure=pitch"
+},
+"468": {
+"category": "FACILITY",
+"evidence": "37 m from leisure=pitch",
+"fac_area_m": 37,
+"fac_label": "leisure=pitch"
+},
+"469": {
+"category": "FACILITY",
+"evidence": "33 m from leisure=pitch",
+"fac_area_m": 33,
+"fac_label": "leisure=pitch"
+},
+"470": {
+"category": "FACILITY",
+"evidence": "33 m from landuse=residential",
+"fac_area_m": 33,
+"fac_label": "landuse=residential"
+},
+"471": {
+"category": "FACILITY",
+"evidence": "26 m from landuse=residential",
+"fac_area_m": 26,
+"fac_label": "landuse=residential"
+},
+"472": {
+"category": "FACILITY",
+"evidence": "41 m from leisure=pitch",
+"fac_area_m": 41,
+"fac_label": "leisure=pitch"
+},
+"473": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Phoenix Mountains Preserve'",
+"fac_area_m": 131,
+"fac_label": "landuse=residential"
+},
+"474": {
+"category": "FACILITY",
+"evidence": "15 m from landuse=residential",
+"fac_area_m": 15,
+"fac_label": "landuse=residential"
+},
+"475": {
+"category": "FACILITY",
+"evidence": "23 m from building=church",
+"fac_area_m": 23,
+"fac_label": "building=church"
+},
+"476": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Phoenix Mountains Preserve'",
+"fac_area_m": null,
+"fac_label": null
+},
+"477": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Anchor Centre'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"478": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"479": {
+"category": "FACILITY",
+"evidence": "53 m from leisure=pitch",
+"fac_area_m": 53,
+"fac_label": "leisure=pitch"
+},
+"480": {
+"category": "FACILITY",
+"evidence": "21 m from landuse=residential",
+"fac_area_m": 21,
+"fac_label": "landuse=residential"
+},
+"481": {
+"category": "FACILITY",
+"evidence": "46 m from amenity=clinic '32nd Street VA Clinic'",
+"fac_area_m": 46,
+"fac_label": "amenity=clinic"
+},
+"482": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Camelback Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"483": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Camelback Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"484": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Camelback Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"485": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Camelback Resort'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"486": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=college 'GateWay Community College'",
+"fac_area_m": 0,
+"fac_label": "amenity=college"
+},
+"487": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Arcadia Lofts'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"488": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Enclave Villas'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"489": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Enclave Villas'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"490": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Enclave Villas'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"491": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Enclave Villas'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"492": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Enclave Villas'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"493": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Enclave Villas'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"494": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Enclave Villas'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"495": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Enclave Villas'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"496": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Enclave Villas'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"497": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Enclave Villas'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"498": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"499": {
+"category": "FACILITY",
+"evidence": "16 m from building=commercial",
+"fac_area_m": 16,
+"fac_label": "building=commercial"
+},
+"500": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Modena Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"501": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Modena Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"502": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Modena Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"503": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Modena Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"504": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Modena Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"505": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Modena Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"506": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Modena Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"507": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Modena Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"508": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Modena Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"509": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"510": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"511": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"512": {
+"category": "FACILITY",
+"evidence": "12 m from landuse=retail",
+"fac_area_m": 12,
+"fac_label": "landuse=retail"
+},
+"513": {
+"category": "FACILITY",
+"evidence": "29 m from amenity=place_of_worship Primera Iglesia del Nazareno 'Primera Iglesia del Nazareno'",
+"fac_area_m": 29,
+"fac_label": "amenity=place_of_worship Primera Iglesia del Nazareno"
+},
+"514": {
+"category": "FACILITY",
+"evidence": "32 m from landuse=residential",
+"fac_area_m": 32,
+"fac_label": "landuse=residential"
+},
+"515": {
+"category": "FACILITY",
+"evidence": "24 m from landuse=residential",
+"fac_area_m": 24,
+"fac_label": "landuse=residential"
+},
+"516": {
+"category": "FACILITY",
+"evidence": "27 m from landuse=residential",
+"fac_area_m": 27,
+"fac_label": "landuse=residential"
+},
+"517": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"518": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=industrial 'General Dynamics Mission Systems (Scottsdale Campus)'",
+"fac_area_m": 0,
+"fac_label": "landuse=industrial"
+},
+"519": {
+"category": "FACILITY",
+"evidence": "24 m from landuse=residential",
+"fac_area_m": 24,
+"fac_label": "landuse=residential"
+},
+"520": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"521": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"522": {
+"category": "FACILITY",
+"evidence": "106 m from office=educational_institution 'Catechesis of the Good Shepherd USA'",
+"fac_area_m": 70,
+"fac_label": "amenity=place_of_worship Our Lady of Perpetual Help Catholic Church"
+},
+"523": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"524": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'Hotel Valley Ho'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"525": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'Hotel Valley Ho'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"526": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"527": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"528": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"529": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"530": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"531": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"532": {
+"category": "FACILITY",
+"evidence": "20 m from landuse=residential 'The Griffen'",
+"fac_area_m": 20,
+"fac_label": "landuse=residential"
+},
+"533": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'The Carter'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"534": {
+"category": "FACILITY",
+"evidence": "39 m from landuse=residential 'The Carter'",
+"fac_area_m": 39,
+"fac_label": "landuse=residential"
+},
+"535": {
+"category": "FACILITY",
+"evidence": "29 m from leisure=sports_centre",
+"fac_area_m": 29,
+"fac_label": "leisure=sports_centre"
+},
+"536": {
+"category": "FACILITY",
+"evidence": "18 m from leisure=sports_centre",
+"fac_area_m": 18,
+"fac_label": "leisure=sports_centre"
+},
+"537": {
+"category": "FACILITY",
+"evidence": "23 m from landuse=residential",
+"fac_area_m": 23,
+"fac_label": "landuse=residential"
+},
+"538": {
+"category": "FACILITY",
+"evidence": "26 m from tourism=hotel 'Holiday Inn Express Hotel and Suites Scottsdale - Old Town'",
+"fac_area_m": 75,
+"fac_label": "tourism=hotel"
+},
+"539": {
+"category": "FACILITY",
+"evidence": "42 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 42,
+"fac_label": "landuse=commercial"
+},
+"540": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Scottsdale Healthcare Osborn Medical Center Campus'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"541": {
+"category": "FACILITY",
+"evidence": "44 m from building=apartments",
+"fac_area_m": 44,
+"fac_label": "building=apartments"
+},
+"542": {
+"category": "FACILITY",
+"evidence": "112 m from office=educational_institution 'Our Lady of Perpetual Help Catholic School'",
+"fac_area_m": null,
+"fac_label": null
+},
+"543": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"544": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"545": {
+"category": "FACILITY",
+"evidence": "114 m from shop=beauty 'SkinFix Studios'",
+"fac_area_m": 62,
+"fac_label": "building=retail"
+},
+"546": {
+"category": "FACILITY",
+"evidence": "16 m from building=retail",
+"fac_area_m": 16,
+"fac_label": "building=retail"
+},
+"547": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"548": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"549": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"550": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"551": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"552": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"553": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"554": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"555": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"556": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"557": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"558": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"559": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"560": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"561": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"562": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"563": {
+"category": "FACILITY",
+"evidence": "22 m from tourism=hotel 'BEST WESTERN PLUS Sundial'",
+"fac_area_m": 22,
+"fac_label": "tourism=hotel"
+},
+"564": {
+"category": "FACILITY",
+"evidence": "20 m from tourism=hotel 'BEST WESTERN PLUS Sundial'",
+"fac_area_m": 20,
+"fac_label": "tourism=hotel"
+},
+"565": {
+"category": "FACILITY",
+"evidence": "30 m from tourism=hotel 'BEST WESTERN PLUS Sundial'",
+"fac_area_m": 30,
+"fac_label": "tourism=hotel"
+},
+"566": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Fireside East Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"567": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Fireside East Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"568": {
+"category": "FACILITY",
+"evidence": "65 m from shop=funeral_directors 'Messinger Indian School Mortuary'",
+"fac_area_m": null,
+"fac_label": null
+},
+"569": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Main Street Arts District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"570": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Main Street Arts District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"571": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Main Street Arts District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"572": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Main Street Arts District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"573": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"574": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"575": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"576": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"577": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"578": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"579": {
+"category": "FACILITY",
+"evidence": "7 m from landuse=retail",
+"fac_area_m": 7,
+"fac_label": "landuse=retail"
+},
+"580": {
+"category": "FACILITY",
+"evidence": "6 m from landuse=commercial",
+"fac_area_m": 6,
+"fac_label": "landuse=commercial"
+},
+"581": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"582": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"583": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"584": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"585": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"586": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"587": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"588": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"589": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Scottsdale Entrada Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"590": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"591": {
+"category": "FACILITY",
+"evidence": "30 m from landuse=residential",
+"fac_area_m": 30,
+"fac_label": "landuse=residential"
+},
+"592": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"593": {
+"category": "FACILITY",
+"evidence": "34 m from amenity=school",
+"fac_area_m": 34,
+"fac_label": "amenity=school"
+},
+"594": {
+"category": "FACILITY",
+"evidence": "47 m from amenity=place_of_worship St. Mark's Catholic Church 'St. Mark's Catholic Church'",
+"fac_area_m": 47,
+"fac_label": "amenity=place_of_worship St. Mark's Catholic Church"
+},
+"595": {
+"category": "FACILITY",
+"evidence": "26 m from amenity=school 'Wilson Elementary School'",
+"fac_area_m": 26,
+"fac_label": "amenity=school"
+},
+"596": {
+"category": "FACILITY",
+"evidence": "21 m from building=church 'St Daniel Former School'",
+"fac_area_m": 21,
+"fac_label": "building=church"
+},
+"597": {
+"category": "FACILITY",
+"evidence": "33 m from building=church",
+"fac_area_m": 33,
+"fac_label": "building=church"
+},
+"598": {
+"category": "FACILITY",
+"evidence": "12 m from amenity=place_of_worship St Daniel the Prophet Catholic Church 'St Daniel the Prophet Catholic Church'",
+"fac_area_m": 12,
+"fac_label": "amenity=place_of_worship St Daniel the Prophet Catholic Church"
+},
+"599": {
+"category": "FACILITY",
+"evidence": "65 m from amenity=place_of_worship Conventual Church of Our Lady of the Angels 'Conventual Church of Our Lady of the Angels'",
+"fac_area_m": 65,
+"fac_label": "amenity=place_of_worship Conventual Church of Our Lady of the Angels"
+},
+"600": {
+"category": "FACILITY",
+"evidence": "49 m from landuse=residential",
+"fac_area_m": 49,
+"fac_label": "landuse=residential"
+},
+"601": {
+"category": "FACILITY",
+"evidence": "57 m from landuse=residential",
+"fac_area_m": 57,
+"fac_label": "landuse=residential"
+},
+"602": {
+"category": "FACILITY",
+"evidence": "61 m from landuse=residential",
+"fac_area_m": 61,
+"fac_label": "landuse=residential"
+},
+"603": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": 92,
+"fac_label": "landuse=residential"
+},
+"604": {
+"category": "FACILITY",
+"evidence": "76 m from landuse=residential",
+"fac_area_m": 76,
+"fac_label": "landuse=residential"
+},
+"605": {
+"category": "FACILITY",
+"evidence": "30 m from landuse=residential",
+"fac_area_m": 30,
+"fac_label": "landuse=residential"
+},
+"606": {
+"category": "FACILITY",
+"evidence": "58 m from landuse=residential 'Royal View'",
+"fac_area_m": 58,
+"fac_label": "landuse=residential"
+},
+"607": {
+"category": "FACILITY",
+"evidence": "98 m from amenity=place_of_worship Canaan in the Desert Church 'Canaan in the Desert Church'",
+"fac_area_m": 71,
+"fac_label": "landuse=residential"
+},
+"608": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Phoenix Mountains Preserve'",
+"fac_area_m": null,
+"fac_label": null
+},
+"609": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Phoenix Mountains Preserve'",
+"fac_area_m": null,
+"fac_label": null
+},
+"610": {
+"category": "PARK",
+"evidence": "in leisure=park 'Papago Park' \u2014 generic park, weak",
+"fac_area_m": null,
+"fac_label": null
+},
+"611": {
+"category": "FACILITY",
+"evidence": "26 m from shop=storage_rental 'Key Storage - Scottsdale'",
+"fac_area_m": 26,
+"fac_label": "shop=storage_rental"
+},
+"612": {
+"category": "FACILITY",
+"evidence": "7 m from landuse=residential",
+"fac_area_m": 7,
+"fac_label": "landuse=residential"
+},
+"613": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"614": {
+"category": "FACILITY",
+"evidence": "26 m from landuse=residential",
+"fac_area_m": 26,
+"fac_label": "landuse=residential"
+},
+"615": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Hanger 44'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"616": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Hanger 44'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"617": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Hanger 44'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"618": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Tillman Middle School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"619": {
+"category": "FACILITY",
+"evidence": "16 m from landuse=residential 'Eclipse Luxury Apartments'",
+"fac_area_m": 16,
+"fac_label": "landuse=residential"
+},
+"620": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Summerfield I & II'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"621": {
+"category": "SUPPORT",
+"evidence": "in leisure=nature_reserve 'Phoenix Mountains Preserve'",
+"fac_area_m": null,
+"fac_label": null
+},
+"622": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Arcadia High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"623": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Arcadia High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"624": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Arcadia High School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"625": {
+"category": "FACILITY",
+"evidence": "5 m from leisure=golf_course 'The Phoenician Resort'",
+"fac_area_m": 5,
+"fac_label": "leisure=golf_course"
+},
+"626": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"627": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'Arizona State Hospital'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"628": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'Arizona State Hospital'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"629": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'Arizona State Hospital'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"630": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'Arizona State Hospital'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"631": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'Arizona State Hospital'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"632": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'Arizona State Hospital'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"633": {
+"category": "FACILITY",
+"evidence": "32 m from landuse=residential",
+"fac_area_m": 32,
+"fac_label": "landuse=residential"
+},
+"634": {
+"category": "FACILITY",
+"evidence": "12 m from landuse=residential",
+"fac_area_m": 12,
+"fac_label": "landuse=residential"
+},
+"635": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Arcadia Crossing'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"636": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Town and Country Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"637": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Town and Country Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"638": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Town and Country Shopping Center'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"639": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"640": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"641": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail '5th Avenue Shops and Boutiques'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"642": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"643": {
+"category": "FACILITY",
+"evidence": "8 m from amenity=restaurant 'Fate Brewing Company - Scottsdale'",
+"fac_area_m": 8,
+"fac_label": "amenity=restaurant"
+},
+"644": {
+"category": "FACILITY",
+"evidence": "17 m from building=commercial",
+"fac_area_m": 17,
+"fac_label": "building=commercial"
+},
+"645": {
+"category": "FACILITY",
+"evidence": "31 m from amenity=clinic '32nd Street VA Clinic'",
+"fac_area_m": 31,
+"fac_label": "amenity=clinic"
+},
+"646": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Arcadia Crossing'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"647": {
+"category": "FACILITY",
+"evidence": "15 m from amenity=fire_station 'Phoenix Fire Department - Station 92'",
+"fac_area_m": 15,
+"fac_label": "amenity=fire_station"
+},
+"648": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"649": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"650": {
+"category": "FACILITY",
+"evidence": "64 m from amenity=restaurant 'Pitch Pizzeria'",
+"fac_area_m": 53,
+"fac_label": "landuse=industrial"
+},
+"651": {
+"category": "FACILITY",
+"evidence": "46 m from amenity=restaurant 'Pitch Pizzeria'",
+"fac_area_m": 57,
+"fac_label": "landuse=residential"
+},
+"652": {
+"category": "FACILITY",
+"evidence": "64 m from landuse=residential",
+"fac_area_m": 64,
+"fac_label": "landuse=residential"
+},
+"653": {
+"category": "FACILITY",
+"evidence": "25 m from landuse=residential",
+"fac_area_m": 25,
+"fac_label": "landuse=residential"
+},
+"654": {
+"category": "FACILITY",
+"evidence": "43 m from landuse=residential",
+"fac_area_m": 43,
+"fac_label": "landuse=residential"
+},
+"655": {
+"category": "FACILITY",
+"evidence": "50 m from landuse=residential",
+"fac_area_m": 50,
+"fac_label": "landuse=residential"
+},
+"656": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=university 'Arizona State University - SkySong Campus'",
+"fac_area_m": 0,
+"fac_label": "amenity=university"
+},
+"657": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"658": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Supai Middle School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"659": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Supai Middle School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"660": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=school 'Supai Middle School'",
+"fac_area_m": 0,
+"fac_label": "amenity=school"
+},
+"661": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"662": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'Andaz Scottsdale Resort & Bungalows'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"663": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'Andaz Scottsdale Resort & Bungalows'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"664": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'Andaz Scottsdale Resort & Bungalows'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"665": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'Andaz Scottsdale Resort & Bungalows'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"666": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'Andaz Scottsdale Resort & Bungalows'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"667": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'Andaz Scottsdale Resort & Bungalows'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"668": {
+"category": "FACILITY",
+"evidence": "0 m from tourism=hotel 'Andaz Scottsdale Resort & Bungalows'",
+"fac_area_m": 0,
+"fac_label": "tourism=hotel"
+},
+"669": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Arcadia Crossing'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"670": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial 'Arcadia Crossing'",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"671": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"672": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"673": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"674": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=retail 'Entertainment District'",
+"fac_area_m": 0,
+"fac_label": "landuse=retail"
+},
+"675": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'Arizona Community Protection & Treatment Center'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"676": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'Arizona State Hospital'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"677": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'Arizona State Hospital'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"678": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'Arizona State Hospital'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"679": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'Arizona State Hospital'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"680": {
+"category": "FACILITY",
+"evidence": "0 m from building=hospital 'Hunt'",
+"fac_area_m": 0,
+"fac_label": "building=hospital"
+},
+"681": {
+"category": "FACILITY",
+"evidence": "0 m from building=apartments",
+"fac_area_m": 0,
+"fac_label": "building=apartments"
+},
+"682": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=commercial",
+"fac_area_m": 0,
+"fac_label": "landuse=commercial"
+},
+"683": {
+"category": "FACILITY",
+"evidence": "35 m from amenity=hospital 'Arizona State Hospital'",
+"fac_area_m": 35,
+"fac_label": "amenity=hospital"
+},
+"684": {
+"category": "FACILITY",
+"evidence": "0 m from amenity=hospital 'Arizona State Hospital'",
+"fac_area_m": 0,
+"fac_label": "amenity=hospital"
+},
+"685": {
+"category": "FACILITY",
+"evidence": "42 m from landuse=residential",
+"fac_area_m": 42,
+"fac_label": "landuse=residential"
+},
+"686": {
+"category": "FACILITY",
+"evidence": "11 m from building=apartments",
+"fac_area_m": 11,
+"fac_label": "building=apartments"
+},
+"687": {
+"category": "FACILITY",
+"evidence": "6 m from building=apartments",
+"fac_area_m": 6,
+"fac_label": "building=apartments"
+},
+"688": {
+"category": "FACILITY",
+"evidence": "6 m from building=apartments",
+"fac_area_m": 6,
+"fac_label": "building=apartments"
+},
+"689": {
+"category": "FACILITY",
+"evidence": "14 m from office=government 'Phoenix Parks District Office'",
+"fac_area_m": 14,
+"fac_label": "office=government"
+},
+"690": {
+"category": "FACILITY",
+"evidence": "27 m from office=government 'Phoenix Parks District Office'",
+"fac_area_m": 27,
+"fac_label": "office=government"
+},
+"691": {
+"category": "FACILITY",
+"evidence": "62 m from office=government 'Phoenix Parks District Office'",
+"fac_area_m": 62,
+"fac_label": "office=government"
+},
+"692": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"693": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"694": {
+"category": "FACILITY",
+"evidence": "82 m from building=apartments",
+"fac_area_m": 82,
+"fac_label": "building=apartments"
+},
+"695": {
+"category": "FACILITY",
+"evidence": "64 m from building=apartments",
+"fac_area_m": 64,
+"fac_label": "building=apartments"
+},
+"696": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"697": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Modena Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"698": {
+"category": "NEUTRAL",
+"evidence": "",
+"fac_area_m": null,
+"fac_label": null
+},
+"699": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential 'Valencia Park Apartments'",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"700": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"701": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"702": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"703": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"704": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+},
+"705": {
+"category": "FACILITY",
+"evidence": "0 m from landuse=residential",
+"fac_area_m": 0,
+"fac_label": "landuse=residential"
+}
+}

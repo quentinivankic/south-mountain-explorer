@@ -1,0 +1,98 @@
+[
+ {
+  "fid": 24,
+  "name": "Right Fork Trailhead",
+  "lat": 37.2708459,
+  "lon": -113.1032326,
+  "reason": "serves no trail we ship",
+  "nearest_trail": "The Subway Bottom-Up Approach"
+ },
+ {
+  "fid": 112,
+  "name": "Orderville Corral Trailhead (Non-4x4) Parking",
+  "lat": 37.3353643,
+  "lon": -112.8331201,
+  "reason": "serves no trail we ship",
+  "nearest_trail": "Upper Orderville Canyon Trail"
+ },
+ {
+  "fid": 148,
+  "name": "Applecross North Trailhead Parking",
+  "lat": 37.2607433,
+  "lon": -112.8589815,
+  "reason": "serves no trail we ship",
+  "nearest_trail": "East Rim Trail"
+ },
+ {
+  "fid": 110,
+  "name": "Birch Hollow Trailhead Parking",
+  "lat": 37.3096867,
+  "lon": -112.8564945,
+  "reason": "serves no trail we ship",
+  "nearest_trail": "East Mesa Trail"
+ },
+ {
+  "fid": 38,
+  "name": "Gooseberry Mesa - Windmill Trailhead Parking",
+  "lat": 37.151604,
+  "lon": -113.1661642,
+  "reason": "serves no trail we ship",
+  "nearest_trail": null
+ },
+ {
+  "fid": 99,
+  "name": "The Corral Trailhead Parking - Applecross MTB System",
+  "lat": 37.2424406,
+  "lon": -112.8329085,
+  "reason": "serves no trail we ship",
+  "nearest_trail": null
+ },
+ {
+  "fid": 140,
+  "name": "JEM Trailhead Parking",
+  "lat": 37.1385958,
+  "lon": -113.2422475,
+  "reason": "serves no trail we ship",
+  "nearest_trail": null
+ },
+ {
+  "fid": 160,
+  "name": "Gooseberry Trailhead Parking",
+  "lat": 37.1418283,
+  "lon": -113.1534248,
+  "reason": "serves no trail we ship",
+  "nearest_trail": null
+ },
+ {
+  "fid": 161,
+  "name": "Gooseberry Mesa - White Trailhead Parking",
+  "lat": 37.141768,
+  "lon": -113.1715184,
+  "reason": "serves no trail we ship",
+  "nearest_trail": null
+ },
+ {
+  "fid": 193,
+  "name": "Sheep Bridge Trailhead Parking",
+  "lat": 37.1780951,
+  "lon": -113.2386532,
+  "reason": "serves no trail we ship",
+  "nearest_trail": null
+ },
+ {
+  "fid": 206,
+  "name": "Wire Mesa Trailhead Parking",
+  "lat": 37.1328671,
+  "lon": -113.0712111,
+  "reason": "serves no trail we ship",
+  "nearest_trail": null
+ },
+ {
+  "fid": 96,
+  "name": "Chamberlain's Ranch Trailhead Parking",
+  "lat": 37.3854318,
+  "lon": -112.8389111,
+  "reason": "only a far fallback (4176 m to trail end)",
+  "nearest_trail": null
+ }
+]

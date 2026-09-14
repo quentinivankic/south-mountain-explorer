@@ -95,11 +95,11 @@ Confidence tiers: `certain` (cars/stripes seen, or a hard tag rule) / `strong`
 
 ---
 
-## 5. The nine load-bearing lessons
+## 5. The ten load-bearing lessons
 
 **Every one of these came from a real user correction or a measured failure.
 They are the most valuable thing in this document. Do not quietly re-derive
-around them.** 📋 for all nine (sourced from auto-memory `parking-vision-adjudication`).
+around them.** 📋 for all ten (sourced from auto-memory `parking-vision-adjudication`).
 
 ### 1. SERVES = the app's own rule, run area-agnostically
 
@@ -195,7 +195,9 @@ from a 480 m frame with the tags hidden. The fix:
 - **NAIP is the primary imagery source**, not ESRI:
   `https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage`
   ESRI World Imagery **throttles under burst** — it fires fast failures and then
-  HANGS every connection. Pace at ≥1 request / 2.5 s.
+  HANGS every connection. `ladder_tiles.py` paces at 1 s (`PACE_S`) with a
+  0/6/15 s retry ladder, and since 2026-09-13 fetches NAIP first with ESRI as
+  the fallback (ESRI alone failed 61 of 61 Z3 frames that day).
 - Draw the mapped polygon (red) and our shipped trails (yellow) on every frame,
   and put the OSM tags in front of the judge.
 - **Misregistration:** read the ~15 m neighbourhood of the red outline, not the
@@ -256,6 +258,20 @@ fallback at all.
 `scripts/audit-namestitch-teleport.py` (national, off geom, ~35 s) finds **1,647**
 trails split into ≥2 chunks ≥1 km apart. Smoking gun: "Yellow" in
 `adirondack-park`, two chunks **111 km** apart. That feeds TASKS #36, not this task.
+
+### 10. REVIEW must name the frame that would flip it; otherwise decide
+Indian Peaks (2026-09-13), the first fan-out area: the judges returned 2 REVIEWs
+in 149 lots and the user flipped both to DROP on sight. #9 was a highway pull-off
+under 100% ESRI cloud with Social 16 at 705 m and nothing else in range; #82 a dirt
+pad on a condo-street spur, Tunnel Hill 202 m away across the railroad, whose only
+KEEP path was a "residents only" sign no aerial frame can show. Both
+`resolve_hint`s asked for evidence the ladder cannot produce (a ground check, a
+sign). REVIEW is for a call that a FETCHABLE frame would change: canopy over a
+surveyed prior, a clear NAIP frame for a clouded ESRI one (fetch it, then
+decide). When the only thing that could rescue a lot is unobservable from the
+air and everything visible says DROP, the verdict is DROP, `leaning`, with the
+doubt in the evidence string. The human's pen (`merge_drafts.py --set`) exists
+for the rest, and `tools/calibration.py` counts how often it is used.
 
 ---
 
@@ -1134,8 +1150,45 @@ correct. User-approved 2026-08-02: *"all looks good"*.
 
 ---
 
-## 17. The Colorado batch — prepared, never run
+## 17. The Colorado batch — running; 1 of 261 areas done
 
+**2026-09-13: `indian-peaks-wilderness-co` went end to end**, the first area
+judged with the fan-out tooling now in `scripts/parking-adjud/tools/`:
+- Homelab: `bash tools/run_co.sh <slug>` (~70 s; 279 facilities → 157 served →
+  **149 public-served**, 77 surveyed, 23 fallback-served), then
+  `ladder_tiles.py <slug> all-served` renders Z1/Z2/Z3 for every served lot
+  (447 frames, ~8 s each, three workers in parallel via `padj_missing.py`).
+  ESRI alone failed 61 of 61 Z3 frames; the tool is now **NAIP-primary with
+  ESRI fallback**, 1 s pacing, 0/6/15 s retries, source named in the header.
+- Mac: rsync the `_z[123].png` frames and the four JSONs, then
+  `judge_packets.py <slug> --tiles DIR --skip-judged <every store>` writes one
+  packet per lot (prior, tags, serves, walk, context, tile paths) in chunks of
+  15, and a prompt per chunk from `judge_agent_prompt.md`.
+- Ten `general-task-execution` judge agents in parallel, each with
+  `judge_protocol.md` + `judge_lessons.md` + its chunk, **rewriting the draft
+  after every lot** (an interrupt costs one lot, and a second launch resumes
+  from the draft). 149 lots took about 40 minutes of wall clock across two
+  launches.
+- `merge_drafts.py data/co_verdicts_osm.json <slug>` validates (schema,
+  coverage against `_pub.txt`, Z3 required for a surveyed-prior DROP) and
+  prints every DROP with evidence and tile path; `judge_review_sheet.py <slug>`
+  writes one HTML page (149 cards, three frames each, DROPs first) for the human;
+  `--set FID=VERDICT` records a human flip; `--write` folds into the store with
+  `lat/lon/rings/name/judged` embedded, so **no Colorado dossier is committed**
+  (`build-parking-verdicts.py` places a self-contained entry from the entry).
+- **Result: 109 KEEP (51 certain / 38 strong / 20 leaning), 40 DROP, 0 REVIEW.**
+  Every DROP fails SERVES; the two judge REVIEWs were flipped to DROP by the
+  user and became lesson 10. Sweep removed 13 shipped pins in the four
+  overlapping areas (Cozens Ranch 6, Roosevelt NF 5, Arapaho NF 1, RMNP 1);
+  `--add-keeps` added 14 new pins; pool 30,885 → 30,886.
+- **Scale finding:** the judge set per area is the served set (~50–150 lots),
+  not the shipped count (7 here), so Colorado is roughly 15–25k judgments
+  before `--skip-judged` dedupe. Areas overlap heavily; the dedupe matters.
+- **Calibration** (`tools/calibration.py`, `data/calibration.json`): one area
+  in, DROP 38 reviewed / 0 flipped (miss rate ≤ 9.2% at 95%), KEEP unmeasured.
+  189 zero-flip DROP reviews reach a 2% bound, 381 reach 1%.
+
+What was prepared beforehand, still true:
 `/mnt/raid/trekdex/parking-adjud/co/` (1.2 GB) ✅.
 
 - `co_areas.json` — **261 areas, 2,090 lots, 6,116 trails** ✅. Each row:
@@ -1144,7 +1197,9 @@ correct. User-approved 2026-08-02: *"all looks good"*.
   The slow part is done.
 - `osm/colorado-latest.osm.pbf` (360 MB), `osm/colorado_parking.osm.pbf` (4.2 MB).
 - `run_co.sh` — the per-area driver.
-- `data/`, `tiles/`, `artifacts/` — **all empty** ✅. Nothing was judged.
+- `data/`, `tiles/`, `artifacts/` — empty at hand-off; Indian Peaks now lives in
+  `~/south-mountain-explorer/scripts/parking-adjud/work/co/` on the homelab
+  (dossier, serves, context, walk, 447 frames) and its verdicts in the repo store.
 
 Biggest areas by lot count: White River NF 227, Roosevelt NF 146, Pike NF 82,
 Rocky Mountain NP 79, San Juan NF 77, Cherry Creek SP 73.
@@ -1259,9 +1314,13 @@ overconfident successor.
    `judge_protocol.md` into `scripts/`**, the way
    `scripts/build-nonhiking-list.py` and `scripts/sweep-nonhiking-trails.py` were
    graduated. They are durable logic living in a scratch directory.
-5. **Then scale.** Colorado is prepared and is the obvious next batch — 261 areas
-   with their extracts already built. Run a couple of areas first and eyeball the
-   artifact before fanning out.
+5. **Then scale** — **started 2026-09-13**, section 17. `indian-peaks-wilderness-co`
+   (149 lots) is judged, reviewed, folded and shipped; 260 Colorado areas remain.
+   Per area: `run_co.sh` + `ladder_tiles.py` on the homelab, `judge_packets.py
+   --skip-judged <every store>`, ten judge agents, `merge_drafts.py`,
+   `judge_review_sheet.py` for the human, `--set` for flips, `--write`, then
+   `calibration.py add` with what the human actually reviewed. Keep the human
+   on every DROP until `calibration.py report` says AUTO-OK for the class.
 
 ---
 
@@ -1273,7 +1332,9 @@ overconfident successor.
 |---|---|
 | `docs/parking-adjudication-handoff.md` | this document |
 | `scripts/parking-adjud/README.md` | how to run the tools |
-| `scripts/parking-adjud/tools/` | all 14 python tools, 2 shell drivers, `judge_protocol.md` |
+| `scripts/parking-adjud/data/co_verdicts_osm.json` | the self-contained Colorado store (lat/lon/rings embedded; no CO dossiers in git) |
+| `scripts/parking-adjud/data/calibration.json` | human-vs-judge agreement ledger, per area (`tools/calibration.py report`) |
+| `scripts/parking-adjud/tools/` | all 18 python tools, 2 shell drivers, `judge_protocol.md`, `judge_lessons.md`, `judge_agent_prompt.md` |
 | `scripts/parking-adjud/data/` | every dossier, serves gate, context, walk, verdict store, `groundtruth.json`, `coverage_gaps.json`, `QUALITY_REPORT.md`, `co_areas.json` — 74 files, 8.2 MB |
 | `scripts/parking-adjud/work/` | scratch, git-ignored, created on demand |
 

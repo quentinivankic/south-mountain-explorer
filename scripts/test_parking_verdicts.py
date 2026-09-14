@@ -238,6 +238,51 @@ def test_generator_refuses_to_write_when_a_verdict_cannot_be_placed(tmp_path, ca
     assert "could not be placed" in capsys.readouterr().err
 
 
+def test_generator_places_a_self_contained_store_entry_without_a_dossier(tmp_path):
+    """The Colorado store (merge_drafts.py) embeds lat/lon/rings/name/judged in
+    every entry because its dossiers are not committed; the entry places
+    itself, carries its own date, and a human override rides along."""
+    data = _store_and_dossier(tmp_path)
+    far_lat, far_lon = LAT + 0.5, LON + 0.5           # nowhere near the dossier lot
+    ring = [[far_lat, far_lon], [far_lat + 1e-4, far_lon], [far_lat + 1e-4, far_lon + 1e-4],
+            [far_lat, far_lon + 1e-4], [far_lat, far_lon]]
+    co = {"way/9": {"fid": 9, "area": "indian-peaks-wilderness-co", "osm": ["way/9"],
+                    "verdict": "DROP", "prior": "bare", "confidence": "strong",
+                    "exists": {"call": "yes", "evidence": "Z2: paved apron, 3 cars"},
+                    "public": {"call": "unclear", "evidence": "no access tag"},
+                    "serves": {"call": "unclear", "evidence": "cloud on Z1/Z2"},
+                    "resolve_hint": None,
+                    "override": {"from": "REVIEW", "by": "human", "date": "2026-09-13",
+                                 "note": "sheet review", "resolve_hint": "fetch a clear frame"},
+                    "lat": far_lat, "lon": far_lon, "rings": [ring], "name": "Far Lot",
+                    "judged": "2026-09-13", "src": "judge-fanout"}}
+    (data / "co_verdicts_osm.json").write_text(json.dumps(co))
+    doc, notes, folded = build_verdicts.build(str(data))
+    assert notes == [] and folded == []
+    e = doc["lots"]["way/9"]
+    assert (e["lat"], e["lon"]) == (far_lat, far_lon) and e["name"] == "Far Lot"
+    assert e["rings"] == [[[round(p[0], 6), round(p[1], 6)] for p in ring]]
+    assert e["area"] == "indian-peaks-wilderness-co" and e["judged"] == "2026-09-13"
+    assert e["verdict"] == "DROP" and e["reason"] == "dropped"     # no axis said no
+    assert e["override"]["from"] == "REVIEW" and e["override"]["by"] == "human"
+    assert "resolve_hint" not in e                                 # nulled by the flip
+    # The dossier-backed entry is untouched and still dated from STORES.
+    assert doc["lots"]["way/1"]["judged"] == "2026-08-01"
+    # And the matcher finds the far lot by footprint, not just by id.
+    v = pv.Verdicts(doc)
+    assert v.drop_for({"lat": far_lat + 5e-5, "lon": far_lon + 5e-5}) is not None
+
+
+def test_generator_still_refuses_an_entry_with_neither_dossier_nor_position(tmp_path, capsys):
+    data = _store_and_dossier(tmp_path)
+    co = {"way/77": {"fid": 77, "area": "x-co", "osm": ["way/77"], "verdict": "KEEP",
+                     "prior": "bare", "confidence": "strong", "exists": {"call": "yes", "evidence": "Z2"},
+                     "public": {"call": "yes", "evidence": "t"}, "serves": {"call": "yes", "evidence": "t"}}}
+    (data / "co_verdicts_osm.json").write_text(json.dumps(co))
+    doc, notes, _ = build_verdicts.build(str(data))
+    assert "way/77" not in doc["lots"] and len(notes) == 1 and "no dossier position" in notes[0]
+
+
 def test_generator_is_deterministic_and_check_mode_detects_drift(tmp_path, capsys):
     data = _store_and_dossier(tmp_path)
     out = tmp_path / "parking-verdicts.json"

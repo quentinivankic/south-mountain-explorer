@@ -93,6 +93,39 @@ python3 tools/padjart2.py         $SLUG "Display Name"
 `tools/run_ne.sh <slug>` and `tools/run_co.sh <slug>` are the batch drivers; both
 now resolve their own directory rather than a hardcoded path.
 
+## Judging an area by fan-out (the Colorado way, since 2026-09-13)
+
+The judge set is every public-served lot (50–150 per area), split into chunks
+of 15 and handed to parallel sub-agents. Dossiers stay on the homelab; only the
+store and the sidecar are committed.
+
+```bash
+# homelab: dossier/serves/context/walk into work/co, then every served lot's Z1/Z2/Z3
+bash tools/run_co.sh $SLUG
+export PADJ_TMP=$PWD/work/co PADJ_GEOM=$PWD/../../public/areas/geom
+python3 tools/ladder_tiles.py $SLUG all-served        # NAIP-primary, ESRI fallback
+
+# laptop: pull the four JSONs and the *_z[123].png frames into work/co, then
+export PADJ_TMP=$PWD/work/co
+python3 tools/judge_packets.py $SLUG --tiles $PADJ_TMP/${SLUG}_ladder \
+  --skip-judged data/co_verdicts_osm.json --skip-judged data/phx_verdicts_osm.json \
+  --skip-judged data/ne_verdicts_osm.json               # one flag per store
+#   -> <slug>_pub.txt, <slug>_packets.json, <slug>_chunk_NN.json and
+#      <slug>_prompt_NN.txt (judge_agent_prompt.md with the paths filled in)
+#   ... one judge agent per prompt; each writes <slug>_verdict_draft_NN.json,
+#       rewriting it after every lot ...
+python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG      # validate, print every DROP
+python3 tools/judge_review_sheet.py $SLUG --open                    # one HTML page for the human
+python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG --set 9=DROP --note "why"  # human flips
+python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG --write
+python3 tools/calibration.py add $SLUG --reviewed DROP=each --reviewed KEEP=en-bloc
+python3 tools/calibration.py report                                  # agreement + miss-rate bounds
+```
+
+Then ship as below. `merge_drafts.py` refuses `--write` while any schema or
+coverage issue stands; a DROP of a surveyed prior must list `z3` in
+`frames_used`.
+
 ## Shipping verdicts (runs anywhere, no extracts needed)
 
 The stores in `data/` are the source; `public/areas/parking-verdicts.json` is
@@ -122,4 +155,6 @@ decision behind it is in `TASKS.md` #53.
   polygon-edge distances. Kept because it is the clearest single statement of the
   serves rule.
 - `padjudicate.py` is likewise superseded by `dossier.py`.
-- `make_ne_review.py` is superseded by `ne_review2.py`.
+- `make_ne_review.py` is superseded by `ne_review2.py`, and both by
+  `judge_review_sheet.py`, which works for any area from its packets.
+- `merge_ne.py` is superseded by `merge_drafts.py` (any area, any store).

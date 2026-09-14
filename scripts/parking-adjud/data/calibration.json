@@ -1,0 +1,53 @@
+{
+ "about": "Human-vs-judge agreement per area for the parking vision adjudication. Written by tools/calibration.py; read by its report. `reviewed` says which verdict classes the human looked at one lot at a time (each), accepted without per-lot review (en-bloc) or did not look at (none); only `each` counts toward agreement. Flips are the human's overrides of the judge.",
+ "areas": [
+  {
+   "area": "indian-peaks-wilderness-co",
+   "date": "2026-09-13",
+   "judge": "agent-fanout",
+   "n": 149,
+   "judged": {
+    "KEEP": {
+     "certain": 51,
+     "leaning": 20,
+     "strong": 38
+    },
+    "DROP": {
+     "certain": 3,
+     "strong": 35
+    },
+    "REVIEW": {
+     "leaning": 2
+    }
+   },
+   "reviewed": {
+    "DROP": "each",
+    "REVIEW": "each",
+    "KEEP": "en-bloc"
+   },
+   "flips": [
+    {
+     "fid": 9,
+     "from": "REVIEW",
+     "to": "DROP",
+     "from_confidence": "leaning",
+     "by": "human"
+    },
+    {
+     "fid": 82,
+     "from": "REVIEW",
+     "to": "DROP",
+     "from_confidence": "leaning",
+     "by": "human"
+    }
+   ],
+   "spot_checks": [
+    163,
+    164,
+    204,
+    218
+   ],
+   "note": "First fan-out area. User eyeballed all 38 judge DROPs (list + review sheet) and flipped none; flipped both REVIEWs to DROP; accepted the KEEPs en bloc. Integrator spot-read the four DROPs nearest a shipped trail and agreed."
+  }
+ ]
+}

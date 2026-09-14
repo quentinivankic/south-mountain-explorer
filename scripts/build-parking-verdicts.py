@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """Fold the banked parking verdicts into `public/areas/parking-verdicts.json`.
 
-The adjudication (task #53) leaves its verdicts in four stores under
-`scripts/parking-adjud/data/`, keyed two different ways (OSM id for the Arizona
-and New England stores, dossier fid for Zion and Griffith) and without
-positions. This turns them into ONE committed sidecar the pipeline can consume:
+The adjudication (task #53) leaves its verdicts in stores under
+`scripts/parking-adjud/data/`, keyed two different ways (OSM id for the Arizona,
+New England and Colorado stores, dossier fid for Zion and Griffith). The early
+stores carry no positions and resolve through their committed dossiers; the
+Colorado store (the judge fan-out, `tools/merge_drafts.py`) is self-contained,
+each entry carrying its own `lat`/`lon`/`rings`/`name`/`judged`, because its
+dossiers stay on the homelab. This turns them into ONE committed sidecar the
+pipeline can consume:
 every judged lot once, with the position and footprint (rings) the consumers
 match on (see `scripts/_parking_verdicts.py`), the OSM ids it was judged under, and the
 evidence that justified the call — so a wrong verdict is one entry to delete,
@@ -33,12 +37,14 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _DATA = os.path.join(_ROOT, "scripts", "parking-adjud", "data")
 
 # (store file, dossier slug when the store is fid-keyed, date judged). The
-# dates are the run dates recorded in the handoff; the stores do not carry them.
+# dates are the run dates recorded in the handoff for the stores that do not
+# carry one; an entry's own `judged` (merge_drafts.py stamps it) wins.
 STORES = [
     ("phx_verdicts_osm.json", None, "2026-08-01"),
     ("ne_verdicts_osm.json", None, "2026-08-02"),
     ("zion-wilderness-ut_verdicts2.json", "zion-wilderness-ut", "2026-08-01"),
     ("griffith-park-ca_verdicts2.json", "griffith-park-ca", "2026-08-01"),
+    ("co_verdicts_osm.json", None, "2026-09-13"),
 ]
 
 
@@ -82,7 +88,25 @@ def load_dossiers(data_dir: str) -> tuple[dict, dict]:
     return by_fid, by_osm
 
 
+def embedded_facility(v: dict) -> dict | None:
+    """A store entry that carries its own position places itself: the geometry
+    the judge was shown is the record, and no dossier needs committing. Returns
+    a facility-shaped dict, or None when the entry has no `lat`/`lon`."""
+    if v.get("lat") is None or v.get("lon") is None:
+        return None
+    return {
+        "lat": v["lat"], "lon": v["lon"],
+        "rings": v.get("rings") or [],
+        "osm": list(v.get("osm") or []),
+        "tags_union": {"name": v.get("name")} if v.get("name") else {},
+        "_slug": v.get("area"),
+    }
+
+
 def facility_for(v: dict, slug_hint: str | None, by_fid: dict, by_osm: dict) -> dict | None:
+    emb = embedded_facility(v)
+    if emb is not None:
+        return emb
     if slug_hint is not None and "fid" in v:
         fac = by_fid.get((slug_hint, v["fid"]))
         if fac is not None:
@@ -156,11 +180,15 @@ def build(data_dir: str = _DATA) -> tuple[dict, list[str], list[str]]:
                     for ax in ("exists", "public", "serves")
                     if (v.get(ax) or {}).get("evidence")
                 },
-                "judged": judged,
+                "judged": v.get("judged") or judged,
                 "src": v.get("src") or store,
             }
             if v.get("coverage_gap"):
                 entry["coverage_gap"] = True
+            if v.get("override"):
+                # A human flipped the judge's call (merge_drafts.py --set). The
+                # flip is part of the record: who, when, from what, and why.
+                entry["override"] = v["override"]
             if v.get("resolve_hint"):
                 # Required on a REVIEW; kept on any verdict that has one
                 # (Zion's "sibling Kolob pullouts dropped — cars are present

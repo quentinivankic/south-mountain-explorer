@@ -44,7 +44,51 @@ which is not much.
 ---
 
 <a name="53"></a>
-## #53 — Adjudicate parking by aerial + vision. Tooling built; 11 areas done.
+## #53 — Adjudicate parking by aerial + vision. Tooling built; 12 areas done, Colorado running.
+
+> ### DONE 2026-09-13: first Colorado area (Indian Peaks) judged by fan-out, 149 lots.
+>
+> `indian-peaks-wilderness-co` was the first area run end to end with the
+> batch tooling in `scripts/parking-adjud/tools/`: `run_co.sh` on the homelab
+> (279 facilities → 157 served → **149 public-served**, 77 surveyed, 23
+> fallback-served) → `ladder_tiles.py` (447 Z1/Z2/Z3 frames, NAIP-primary with
+> ESRI fallback after ESRI alone failed 61 of 61 Z3 frames) → `judge_packets.py`
+> (one packet per lot, chunks of 15, `--skip-judged` dedupes by OSM id across
+> overlapping areas) → ten `general-task-execution` judge agents in parallel
+> (`judge_agent_prompt.md`, drafts rewritten after every lot so an interrupt
+> loses at most one) → `merge_drafts.py` (schema + coverage checks, prints
+> every DROP, `--set FID=VERDICT` is the human's pen, `--write` folds into the
+> self-contained `data/co_verdicts_osm.json` with lat/lon/rings/name/judged
+> embedded so no Colorado dossier is committed) → `judge_review_sheet.py` (one
+> HTML page per area, every lot's three frames and evidence, DROPs first).
+>
+> **Result: 109 KEEP (51 certain / 38 strong / 20 leaning), 40 DROP, 0 REVIEW.**
+> Every DROP fails SERVES: business and retail lots wrapping their own building
+> (13), lodging/church/school/golf/camp (9), residential pads and condo
+> courtyards (8), highway pull-offs and yards with nothing within a mile (8),
+> plus the two REVIEWs the user flipped to DROP (a clouded pull-off, a
+> condo-street pad), which became lesson 10 in the handoff: a REVIEW must name
+> the frame that would flip it. The user eyeballed all 38 judge DROPs (list +
+> review sheet) and flipped none; the integrator spot-read the four nearest a
+> shipped trail (Lions Ponds 31 m, Barker Reservoir 44 m, Fraser River 85 m,
+> Sandbeach Lake 101 m) and agreed. **App effect:** the sweep removed 13 shipped
+> pins across the overlapping areas (Cozens Ranch 6, Roosevelt NF 5, Arapaho NF
+> 1, RMNP 1); `--add-keeps` adds 14 new Indian Peaks pins; pool 30,885 → 30,886.
+> Sidecar: 441 judged lots, 319 KEEP / 122 DROP.
+>
+> **Calibration ledger started** (`data/calibration.json`, `tools/calibration.py`):
+> per area, what the judge said by verdict and confidence, which classes the
+> human reviewed one lot at a time versus accepted en bloc, and every flip, with
+> a 95% Wilson upper bound on the miss rate. After one area: DROP 38 reviewed /
+> 0 flipped, miss rate ≤ 9.2%; KEEP not measured (accepted en bloc). Zero flips
+> in 189 reviewed DROPs would bound the miss rate at 2%, 381 at 1%; that is the
+> number to reach before DROPs ship without a per-lot human pass. KEEPs need a
+> reviewed sample of their own before the same question can be asked of them.
+>
+> Next: the remaining 260 Colorado areas with the same pipeline (candidates
+> first: `staunton-state-park-co`, `lory-state-park-co`,
+> `boulder-open-space-and-mountain-parks-co`, `rocky-mountain-wilderness-co`),
+> `--skip-judged` against every store so overlapping areas re-judge nothing.
 
 > ### DECIDED 2026-09-13: the ID question, and the sidecar now exists.
 >

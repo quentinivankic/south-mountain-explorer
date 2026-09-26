@@ -870,7 +870,9 @@ The New England run added two optional fields, both useful — keep them:
 
 The plan of record is a reversible `public/areas/parking-verdicts.json` **keyed by
 OSM id**, shaped like `nonhiking-trails.json`, honoured by the pool builder, and
-never able to empty an area.
+refused from emptying an area by default. Only exact, committed, manually
+reviewed empty-population signatures may proceed; section 15 defines that
+narrow policy.
 
 **There is a hole in that plan, and I verified it this session.**
 
@@ -1003,7 +1005,9 @@ rare EXISTS failure), `too-far` (>1609 m walk with no trailhead signal),
 **Wire it into `build-parking-pool.py`'s `consider()`**, which is the one
 function every lot passes through — geom lots and sidecar lots alike. A DROP
 there removes the lot from the pool once, for every area, which is the same
-single choke point the containment gate has. Add the empty-area guard beside it.
+single choke point the containment gate has. Last-lot removal is decided by the
+sweep's reviewed-signature policy below; the pool builder keeps its separate
+conservative guard when handed a still-nonempty geom.
 
 
 ### The global pool
@@ -1052,34 +1056,28 @@ is a third file. Name it clearly.
 - All three display paths — map pins, camera frame, trail-row banner — go through
   the merged list. Wiring only one of them names a lot with no pin under it.
 
-### The refuse-to-empty guard — copy this exactly
+### Refuse by default; exact reviewed-empty exceptions
 
-Both the publisher and the sweep for `nonhiking-trails.json` refuse to let a
-sidecar empty an area. Copy the pattern.
+The parking sweep refuses last-lot removal by default.
+`_REVIEWED_EMPTY_SIGNATURES` in `scripts/sweep-parking-verdicts.py` is a
+committed case-review policy, not an operator force switch. An area may empty
+only when its complete matched DROP population exactly equals the recorded
+`(verdict key, reason)` tuple sequence, including multiplicity. A changed key,
+reason, or matched count restores refusal; evidence- or confidence-only edits
+are not part of this signature. The CLI exposes no force option.
 
-`trailforge/serve/publish_areas.py` line 642 ✅:
+`--dry-run` prints `REVIEWED-EMPTY ... exact signature` for an approved match
+and `REFUSING ...` otherwise. Check both stdout and stderr because refusal does
+not make the command nonzero. The current reviewed signatures are:
 
-```python
-if not row["trails"]:
-    # Never let the sidecar empty an area; that would remove it
-    # from Browse on the strength of an external dataset.
-    print(f"  {slug}: sidecar would empty the area — ignoring it")
-```
+- Mesa Valley / `way/58294967:not-public`
+- Promntory Point / `way/1206954210:not-public`
+- Sondermann / `way/58294967:not-public`
 
-`scripts/sweep-nonhiking-trails.py` line 62 ✅:
-
-```python
-# An area must never be emptied by a curation sidecar — that would make
-# it vanish from Browse entirely on the strength of an external dataset.
-if gone and not keep:
-    print(f"  !! REFUSING to empty {slug} — {len(gone)} flagged, 0 would "
-          f"remain. Review the sidecar for this area.", file=sys.stderr)
-    continue
-```
-
-For parking the equivalent rule is: **a verdicts sidecar must never remove the
-last lot serving an area.** Leaving a real trailhead unmarked is a smaller harm
-than telling a hiker a park has nowhere to park.
+Run the sweep before the pool build. `build-parking-pool.py` retains its own
+conservative unconditional guard when handed a still-nonempty geom; it does not
+implement the reviewed-signature policy. Once the committed sweep has written
+`parking: []`, those areas contribute no lot to the pool.
 
 ### The shape to copy
 

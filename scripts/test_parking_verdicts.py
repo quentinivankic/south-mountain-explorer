@@ -409,6 +409,81 @@ def test_sweep_removes_matched_lots_but_never_empties_an_area(tmp_path):
     assert (geom / "two.json").read_text() == json.dumps(doc)
 
 
+def test_sweep_allows_only_exact_reviewed_empty_signature(tmp_path):
+    geom, _ = _geom_dir(tmp_path, {"approved": [{"lat": LAT, "lon": LON}]})
+    verdicts = pv.Verdicts(_doc(_entry("way/1", "DROP", reason="not-public")))
+    policy = {"approved": (("way/1", "not-public"),)}
+    before = (geom / "approved.json").read_bytes()
+
+    dry = sweep.sweep(str(geom), verdicts, dry_run=True,
+                      reviewed_empty_signatures=policy)
+    assert dry["refused"] == []
+    assert dry["reviewed_empty"] == [
+        ("approved", 1, (("way/1", "not-public"),))
+    ]
+    assert dry["changed"] == ["approved"] and len(dry["removed"]) == 1
+    assert (geom / "approved.json").read_bytes() == before
+
+    written = sweep.sweep(str(geom), verdicts, dry_run=False,
+                          reviewed_empty_signatures=policy)
+    assert written["reviewed_empty"] == dry["reviewed_empty"]
+    assert json.loads((geom / "approved.json").read_text())["parking"] == []
+    again = sweep.sweep(str(geom), verdicts, dry_run=False,
+                        reviewed_empty_signatures=policy)
+    assert again == {"reasons": {}, "removed": [], "refused": [],
+                     "reviewed_empty": [], "changed": []}
+
+
+def test_sweep_reviewed_empty_signature_drift_refuses(tmp_path):
+    other = _offset(LAT, LON, north_m=300)
+    geom, _ = _geom_dir(tmp_path, {
+        "wrong-reason": [{"lat": LAT, "lon": LON}],
+        "extra-drop": [{"lat": LAT, "lon": LON},
+                       {"lat": other[0], "lon": other[1]}],
+    })
+    verdicts = pv.Verdicts(_doc(
+        _entry("way/1", "DROP", reason="too-far"),
+        _entry("way/2", "DROP", lat=other[0], lon=other[1], reason="not-public"),
+    ))
+    policy = {
+        "wrong-reason": (("way/1", "not-public"),),
+        "extra-drop": (("way/1", "too-far"),),
+    }
+    before = {path.name: path.read_bytes() for path in geom.glob("*.json")}
+    result = sweep.sweep(str(geom), verdicts, dry_run=False,
+                         reviewed_empty_signatures=policy)
+    assert sorted(result["refused"]) == [("extra-drop", 2), ("wrong-reason", 1)]
+    assert result["reviewed_empty"] == [] and result["changed"] == []
+    assert {path.name: path.read_bytes() for path in geom.glob("*.json")} == before
+
+
+def test_production_reviewed_empty_signatures_are_exact_singletons(tmp_path):
+    assert sweep._REVIEWED_EMPTY_SIGNATURES == {
+        "mesa-valley-open-space-co": (("way/58294967", "not-public"),),
+        "promntory-point-open-space-co": (("way/1206954210", "not-public"),),
+        "sondermann-park-co": (("way/58294967", "not-public"),),
+    }
+    church = _offset(LAT, LON, north_m=300)
+    geom, _ = _geom_dir(tmp_path, {
+        "mesa-valley-open-space-co": [{"lat": LAT, "lon": LON}],
+        "sondermann-park-co": [{"lat": LAT, "lon": LON}],
+        "promntory-point-open-space-co": [{"lat": church[0], "lon": church[1]}],
+    })
+    verdicts = pv.Verdicts(_doc(
+        _entry("way/58294967", "DROP", reason="not-public"),
+        _entry("way/1206954210", "DROP", lat=church[0], lon=church[1],
+               reason="not-public"),
+    ))
+    result = sweep.sweep(str(geom), verdicts, dry_run=False)
+    assert [slug for slug, _, _ in result["reviewed_empty"]] == [
+        "mesa-valley-open-space-co", "promntory-point-open-space-co",
+        "sondermann-park-co"
+    ]
+    assert result["refused"] == []
+    assert all(json.loads(path.read_text())["parking"] == []
+               for path in geom.glob("*.json"))
+
+
 # --------------------------------------------------------------- add-parking
 
 def test_parse_parking_emits_the_osm_id_that_ships_in_geom():

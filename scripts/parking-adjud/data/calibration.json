@@ -48,6 +48,52 @@
     218
    ],
    "note": "First fan-out area. User eyeballed all 38 judge DROPs (list + review sheet) and flipped none; flipped both REVIEWs to DROP; accepted the KEEPs en bloc. Integrator spot-read the four DROPs nearest a shipped trail and agreed."
+  },
+  {
+   "area": "pike-national-forest-co",
+   "date": "2026-09-26",
+   "judge": "agent-fanout",
+   "n": 758,
+   "judged": {
+    "KEEP": {
+     "certain": 279,
+     "leaning": 76,
+     "strong": 189
+    },
+    "DROP": {
+     "certain": 45,
+     "leaning": 19,
+     "strong": 148
+    },
+    "REVIEW": {
+     "leaning": 2
+    }
+   },
+   "reviewed": {
+    "DROP": "none",
+    "REVIEW": "each",
+    "KEEP": "none"
+   },
+   "flips": [
+    {
+     "fid": 1003,
+     "from": "REVIEW",
+     "to": "DROP",
+     "from_confidence": "leaning",
+     "by": "human",
+     "sampled": false
+    },
+    {
+     "fid": 6871,
+     "from": "REVIEW",
+     "to": "DROP",
+     "from_confidence": "leaning",
+     "by": "human",
+     "sampled": false
+    }
+   ],
+   "spot_checks": [],
+   "note": "User reviewed both REVIEW cards and resolved both to DROP; original DROP class and 20-KEEP sample were not individually reviewed."
   }
  ]
 }

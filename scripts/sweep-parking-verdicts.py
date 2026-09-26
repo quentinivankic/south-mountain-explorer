@@ -18,10 +18,12 @@ can ship inside any area whose bbox reaches it (Zion Wilderness verdicts land
 on lots that `zion-national-park-ut` carries). A lot is matched by a JUDGED OSM
 id when the geom carries one, else by footprint — see `scripts/_parking_verdicts.py`.
 
-An area must never be emptied by a curation sidecar: if every lot an area has
-is a DROP, the area is left alone and reported. Reversible by design — delete
-the entry from the store, rebuild the sidecar, and the next parking roll brings
-the lot back (or `git revert` the sweep commit).
+An area is refused by default when a curation sidecar would remove every lot.
+A tiny committed reviewed-empty policy may permit an exact, manually reviewed
+(key, reason, count) signature; any future parking or verdict drift fails closed
+and restores the refusal. Reversible by design — delete the entry from the store,
+rebuild the sidecar, and the next parking roll brings the lot back (or `git revert`
+the sweep commit).
 """
 from __future__ import annotations
 
@@ -36,12 +38,27 @@ import _parking_verdicts as pv  # noqa: E402
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Exact singleton populations manually double-reviewed on 2026-09-26. Both
+# independent reviews agreed the retained lot is not public, and a search of all
+# validated KEEPs found no replacement within the app's 805 m rule. Binding the
+# approval to verdict key + reason + multiplicity means any future lot/verdict
+# change is refused again instead of inheriting a broad slug-level exception.
+_REVIEWED_EMPTY_SIGNATURES = {
+    "mesa-valley-open-space-co": (("way/58294967", "not-public"),),
+    "promntory-point-open-space-co": (("way/1206954210", "not-public"),),
+    "sondermann-park-co": (("way/58294967", "not-public"),),
+}
 
-def sweep(geom_dir: str, verdicts: pv.Verdicts, dry_run: bool) -> dict:
+
+def sweep(geom_dir: str, verdicts: pv.Verdicts, dry_run: bool, *,
+          reviewed_empty_signatures: dict[str, tuple] | None = None) -> dict:
     reasons: Counter = Counter()
     removed: list[tuple[str, dict, dict]] = []
     refused: list[tuple[str, int]] = []
+    reviewed_empty: list[tuple[str, int, tuple]] = []
     changed: list[str] = []
+    if reviewed_empty_signatures is None:
+        reviewed_empty_signatures = _REVIEWED_EMPTY_SIGNATURES
     for f in sorted(os.listdir(geom_dir)):
         if not f.endswith(".json"):
             continue
@@ -59,8 +76,13 @@ def sweep(geom_dir: str, verdicts: pv.Verdicts, dry_run: bool) -> dict:
         if not gone:
             continue
         if len(gone) == len(lots):
-            refused.append((slug, len(gone)))
-            continue
+            actual = tuple(sorted((entry["_key"], entry.get("reason") or "?")
+                                  for _, entry in gone))
+            expected = reviewed_empty_signatures.get(slug)
+            if actual != expected:
+                refused.append((slug, len(gone)))
+                continue
+            reviewed_empty.append((slug, len(gone), actual))
         doomed = {id(lot) for lot, _ in gone}
         keep = [lot for lot in lots if id(lot) not in doomed]
         for lot, e in gone:
@@ -70,7 +92,8 @@ def sweep(geom_dir: str, verdicts: pv.Verdicts, dry_run: bool) -> dict:
         if not dry_run:
             d["parking"] = keep
             json.dump(d, open(path, "w"))
-    return {"reasons": reasons, "removed": removed, "refused": refused, "changed": changed}
+    return {"reasons": reasons, "removed": removed, "refused": refused,
+            "reviewed_empty": reviewed_empty, "changed": changed}
 
 
 def main(argv=None) -> int:
@@ -99,6 +122,9 @@ def main(argv=None) -> int:
         why = e["evidence"].get(axis) or next(iter(e["evidence"].values()), "")
         print(f"   {slug:34} {name[:30]:32} {e['_key']:20} {d:5.1f} m  "
               f"[{e.get('reason')}] {why}")
+    for slug, n, signature in r["reviewed_empty"]:
+        sig = ", ".join(f"{key}:{reason}" for key, reason in signature)
+        print(f"  REVIEWED-EMPTY {slug} — {n} flagged, exact signature [{sig}]")
     for slug, n in r["refused"]:
         print(f"  !! REFUSING to empty {slug} — {n} flagged, 0 would remain. "
               f"Review the verdicts for this area.", file=sys.stderr)

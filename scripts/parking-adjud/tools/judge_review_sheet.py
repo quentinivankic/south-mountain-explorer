@@ -8,6 +8,12 @@ calls with the agents' evidence, prior / confidence / serves / walk / context,
 and Google Maps + OpenStreetMap links at the lot's centroid. Filter buttons
 show KEEP / DROP / REVIEW subsets; DROPs sort first by default so the
 eyeballing pass is quick.
+`--sample N` (default 20) also draws N KEEPs at random (seeded by the slug, so
+the draw is reproducible) and files them right after the DROPs, badged SAMPLE:
+the human reviews those one by one too, which is what gives the calibration
+ledger a KEEP denominator (`calibration.py add --reviewed KEEP=sample
+--sample-fids ...`; the sheet prints the exact command). The draw is written
+to `<slug>_keep_sample.json` beside the sheet.
 
     PADJ_TMP=work/co python3 tools/judge_review_sheet.py <slug> [--out FILE]
                                                                   [--open]
@@ -18,19 +24,24 @@ packets appear as "UNJUDGED" cards.
 """
 import argparse
 import base64
-import glob
+import hashlib
 import html
 import io
 import json
 import os
+import random
 import subprocess
 import sys
 from pathlib import Path
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+from judge_validation import canonical_draft_files, original_judge_projection  # noqa: E402
+
 PADJ_TMP = os.environ.get("PADJ_TMP") or os.path.join(_HERE, "..", "work")
 
-ORDER = {"DROP": 0, "REVIEW": 1, "UNJUDGED": 2, "KEEP": 3}
+ORDER = {"DROP": 0, "REVIEW": 1, "SAMPLE": 2, "UNJUDGED": 3, "KEEP": 4}
 THUMB_PX = {"z1": 360, "z2": 560, "z3": 360}
 
 
@@ -49,26 +60,100 @@ def thumb(path, px):
     return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
 
 
+def _atomic_write_text(path, text):
+    path = Path(path)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text)
+    os.replace(tmp, path)
+
+
 def esc(x):
     return html.escape("" if x is None else str(x))
 
 
 def load_verdicts(tmp, slug):
-    """Same draft discovery as merge_drafts.py: a single consolidated
-    `<slug>_verdict_draft.json` if present, else the chunk drafts."""
+    """Load only the canonical draft layout shared by every downstream tool."""
     out = {}
-    single = os.path.join(tmp, f"{slug}_verdict_draft.json")
-    files = [single] if os.path.exists(single) else sorted(
-        glob.glob(os.path.join(tmp, f"{slug}_verdict_draft_*.json")))
-    for f in files:
+    try:
+        files = canonical_draft_files(tmp, slug)
+    except ValueError as exc:
+        sys.exit(str(exc))
+    for path in files:
         try:
-            rows = json.load(open(f))
-        except json.JSONDecodeError as e:
-            print(f"warning: {f}: {e}", file=sys.stderr)
-            continue
-        for v in rows:
-            out[v["fid"]] = v
+            rows = json.loads(path.read_text())
+        except json.JSONDecodeError as exc:
+            sys.exit(f"{path}: {exc}")
+        if not isinstance(rows, list):
+            sys.exit(f"{path} must contain a JSON list")
+        for verdict in rows:
+            if not isinstance(verdict, dict) or not isinstance(verdict.get("fid"), int):
+                sys.exit(f"{path} contains a malformed verdict row")
+            if verdict["fid"] in out:
+                sys.exit(f"fid {verdict['fid']} appears in more than one draft")
+            out[verdict["fid"]] = verdict
     return out
+
+
+def _judge_call(verdict):
+    projected, errors = original_judge_projection(verdict)
+    if errors or projected is None:
+        sys.exit(f"fid {verdict.get('fid')}: invalid override: {errors}")
+    return projected.get("verdict"), projected.get("confidence")
+
+
+def _sample_population(verdicts, packets):
+    rows = []
+    for fid in sorted(packets):
+        verdict = verdicts.get(fid)
+        if verdict is None:
+            sys.exit("KEEP sampling requires every packet to be judged; rerun with --sample 0 "
+                     "until the area is complete")
+        call, confidence = _judge_call(verdict)
+        packet = packets[fid]
+        rows.append({"fid": fid, "verdict": call, "confidence": confidence,
+                     "osm": packet.get("osm"), "prior": packet.get("prior")})
+    digest = hashlib.sha256(json.dumps(rows, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    keeps = [row["fid"] for row in rows if row["verdict"] == "KEEP"]
+    return digest, keeps
+
+
+def load_or_create_sample(tmp, slug, requested, verdicts, packets):
+    """Return one immutable, judge-call-based KEEP sample manifest."""
+    if requested <= 0:
+        return []
+    population_sha, keeps = _sample_population(verdicts, packets)
+    wanted = min(requested, len(keeps))
+    path = Path(tmp, f"{slug}_keep_sample.json")
+    value = None
+    legacy = False
+    if path.exists():
+        value = json.loads(path.read_text())
+        if isinstance(value, list):
+            legacy = True
+            sample = value
+            value = {"version": 1, "area": slug, "requested": requested,
+                     "population_sha256": population_sha, "sample": sample}
+        if not isinstance(value, dict):
+            sys.exit(f"{path} must contain a sample-manifest object")
+        expected = {"version": 1, "area": slug, "requested": requested,
+                    "population_sha256": population_sha}
+        for key, expected_value in expected.items():
+            if value.get(key) != expected_value:
+                sys.exit(f"immutable sample manifest {path} has {key}={value.get(key)!r}; "
+                         f"expected {expected_value!r}. Archive it explicitly before a redraw")
+        sample = value.get("sample")
+        if (not isinstance(sample, list) or any(not isinstance(fid, int) for fid in sample)
+                or len(sample) != len(set(sample)) or len(sample) != wanted
+                or any(fid not in keeps for fid in sample)):
+            sys.exit(f"immutable sample manifest {path} has invalid KEEP fids")
+        if legacy:
+            _atomic_write_text(path, json.dumps(value, indent=1) + "\n")
+        return sorted(sample)
+    sample = sorted(random.Random(slug).sample(keeps, wanted))
+    value = {"version": 1, "area": slug, "requested": requested,
+             "population_sha256": population_sha, "sample": sample}
+    _atomic_write_text(path, json.dumps(value, indent=1) + "\n")
+    return sample
 
 
 def centroid(pkt, dossier_row):
@@ -92,9 +177,10 @@ def axis_row(name, ax):
             f"{esc(call)}</td><td>{esc(ax.get('evidence'))}</td></tr>")
 
 
-def card(pkt, v, dossier_row):
+def card(pkt, v, dossier_row, sampled=False):
     fid = pkt["fid"]
     verdict = (v or {}).get("verdict") or "UNJUDGED"
+    shown = "SAMPLE" if sampled else verdict      # a sampled KEEP files under SAMPLE
     conf = (v or {}).get("confidence") or ""
     tags = pkt.get("tags_union") or {}
     name = tags.get("name") or tags.get("operator") or "(unnamed)"
@@ -149,9 +235,9 @@ def card(pkt, v, dossier_row):
         extra += "<p class='hint'><b>coverage gap</b> flagged</p>"
 
     return f"""
-<section class='card {verdict}' data-verdict='{verdict}' id='fid{fid}'>
+<section class='card {verdict} {shown}' data-verdict='{shown}' id='fid{fid}'>
   <header>
-    <span class='badge'>{verdict}</span>
+    <span class='badge'>{verdict}{' · SAMPLE' if sampled else ''}</span>
     <span class='conf'>{esc(conf)}</span>
     <span class='fid'>#{fid}</span>
     <span class='name'>{esc(name)}</span>
@@ -179,7 +265,7 @@ body{font:14px/1.4 -apple-system,Helvetica,Arial,sans-serif;margin:0;background:
 .top button{border:1px solid #999;background:#fafafa;border-radius:4px;padding:4px 10px;cursor:pointer}
 .top button.on{background:#222;color:#fff;border-color:#222}
 .card{background:#fff;margin:14px 16px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.15);border-left:8px solid #999}
-.card.DROP{border-left-color:#c0392b}.card.KEEP{border-left-color:#27ae60}.card.REVIEW{border-left-color:#e67e22}.card.UNJUDGED{border-left-color:#7f8c8d}
+.card.SAMPLE{border-left-color:#2980b9}.card.DROP{border-left-color:#c0392b}.card.KEEP{border-left-color:#27ae60}.card.REVIEW{border-left-color:#e67e22}.card.UNJUDGED{border-left-color:#7f8c8d}
 .card header{display:flex;gap:12px;align-items:baseline;padding:10px 14px;border-bottom:1px solid #eee;flex-wrap:wrap}
 .badge{font-weight:700;padding:2px 8px;border-radius:4px;color:#fff;background:#999}
 .DROP .badge{background:#c0392b}.KEEP .badge{background:#27ae60}.REVIEW .badge{background:#e67e22}
@@ -213,6 +299,8 @@ def main():
     ap.add_argument("slug")
     ap.add_argument("--out", help="output HTML (default $PADJ_TMP/<slug>_review.html)")
     ap.add_argument("--open", action="store_true", help="open the page when done (macOS `open`)")
+    ap.add_argument("--sample", type=int, default=20,
+                    help="KEEPs drawn at random for per-lot human review (default 20, 0 = none)")
     a = ap.parse_args()
 
     tmp = PADJ_TMP
@@ -230,19 +318,23 @@ def main():
             if isinstance(r, dict) and "fid" in r:
                 dossier[r["fid"]] = r
 
+    sample = load_or_create_sample(tmp, a.slug, a.sample, verdicts, packets)
     counts = {}
     ordered = []
     for fid, pkt in sorted(packets.items()):
         v = verdicts.get(fid)
         verdict = (v or {}).get("verdict") or "UNJUDGED"
         counts[verdict] = counts.get(verdict, 0) + 1
-        ordered.append((ORDER.get(verdict, 9), fid, pkt, v))
+        shown = "SAMPLE" if fid in sample else verdict
+        ordered.append((ORDER.get(shown, 9), fid, pkt, v))
     ordered.sort(key=lambda t: (t[0], t[1]))
-
-    cards = "".join(card(pkt, v, dossier.get(fid)) for _, fid, pkt, v in ordered)
-    summary = " · ".join(f"{k} {counts[k]}" for k in ("DROP", "REVIEW", "UNJUDGED", "KEEP") if k in counts)
+    counts["SAMPLE"] = len(sample)
+    cards = "".join(card(pkt, v, dossier.get(fid), sampled=fid in sample) for _, fid, pkt, v in ordered)
+    summary = " · ".join(f"{k} {counts[k]}" for k in ("DROP", "REVIEW", "UNJUDGED", "KEEP") if counts.get(k))
+    if sample:
+        summary += f" · {len(sample)} KEEPs sampled for review"
     buttons = "".join(f"<button data-f='{k}'>{k} ({counts.get(k, 0)})</button>"
-                      for k in ("ALL", "DROP", "REVIEW", "KEEP", "UNJUDGED")
+                      for k in ("ALL", "DROP", "REVIEW", "SAMPLE", "KEEP", "UNJUDGED")
                       if k == "ALL" or counts.get(k))
     buttons = buttons.replace(f"ALL ({counts.get('ALL', 0)})", f"ALL ({len(packets)})")
 
@@ -256,6 +348,10 @@ def main():
     out = a.out or os.path.join(tmp, f"{a.slug}_review.html")
     Path(out).write_text(page, encoding="utf-8")
     print(f"wrote {out} ({os.path.getsize(out) / 1e6:.1f} MB): {len(packets)} lots, {summary}")
+    if sample:
+        print("after the human has been through the DROPs and the SAMPLE cards, record it with:\n"
+              f"  python3 tools/calibration.py add {a.slug} --reviewed DROP=each --reviewed REVIEW=each "
+              f"--reviewed KEEP=sample --sample-fids {','.join(str(f) for f in sample)}")
     if a.open:
         subprocess.run(["open", out], check=False)
 

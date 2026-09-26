@@ -111,14 +111,26 @@ python3 tools/judge_packets.py $SLUG --tiles $PADJ_TMP/${SLUG}_ladder \
   --skip-judged data/co_verdicts_osm.json --skip-judged data/phx_verdicts_osm.json \
   --skip-judged data/ne_verdicts_osm.json               # one flag per store
 #   -> <slug>_pub.txt, <slug>_packets.json, <slug>_chunk_NN.json and
-#      <slug>_prompt_NN.txt (judge_agent_prompt.md with the paths filled in)
-#   ... one judge agent per prompt; each writes <slug>_verdict_draft_NN.json,
-#       rewriting it after every lot ...
+#      <slug>_prompt_NN.txt. The command prints PENDING_PROMPT records only for
+#      chunks that still need work; COMPLETE chunks schedule nothing.
+#   ... one judge agent per pending prompt. Agents write ONLY the named
+#       <slug>_verdict_continue_NN.json, checkpointing after every lot. The
+#       canonical <slug>_verdict_draft_NN.json files are host-owned ...
+# Re-run the same command after every wave: it validates each continuation,
+# appends it atomically to the unchanged canonical prefix, archives the
+# continuation, refreshes fingerprints, and emits precise RESUME prompts.
+# Pre-checkpoint legacy drafts require one independently validated adoption run:
+#   ...same command... --adopt-existing
 python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG      # validate, print every DROP
-python3 tools/judge_review_sheet.py $SLUG --open                    # one HTML page for the human
+python3 tools/judge_review_sheet.py $SLUG --sample 20 --open        # DROP/REVIEW + immutable KEEP sample
 python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG --set 9=DROP --note "why"  # human flips
 python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG --write
-python3 tools/calibration.py add $SLUG --reviewed DROP=each --reviewed KEEP=en-bloc
+# Record only what the human actually reviewed. The review-sheet output prints
+# the exact KEEP=sample command after all SAMPLE cards were reviewed. If a class
+# was not reviewed one-by-one, use `none` (never claim `each` or `sample`).
+python3 tools/calibration.py add $SLUG \
+  --reviewed DROP=each --reviewed REVIEW=each --reviewed KEEP=sample \
+  --sample-fids <comma-separated-fids-printed-by-review-sheet>
 python3 tools/calibration.py report                                  # agreement + miss-rate bounds
 ```
 
@@ -139,6 +151,20 @@ python3 scripts/build-parking-pool.py --out /tmp/parking.json \
   --extra public/areas/parking-pool.json            # pool honours the DROPs, lists
                                                     # judged KEEPs it lacks (--add-keeps adds)
 ```
+
+The sweep refuses to empty an area by default. Its only exceptions are the
+exact `(OSM verdict key, DROP reason, multiplicity)` signatures committed in
+`_REVIEWED_EMPTY_SIGNATURES`; these are case-specific reviewed approvals, not
+a force flag, and the CLI has no bypass. In `--dry-run`, require one
+`REVIEWED-EMPTY ... exact signature` line per approved case and no `REFUSING`
+line; check both stdout and stderr because a refusal does not make the command
+fail. A changed matched key, reason, or count restores refusal. Evidence and
+confidence are not part of the signature.
+
+Current reviewed cases are `mesa-valley-open-space-co` and
+`sondermann-park-co` (`way/58294967:not-public`), plus
+`promntory-point-open-space-co` (`way/1206954210:not-public`). Run the sweep
+before rebuilding the global pool.
 
 Commit the sidecar and the swept geom together; `sync-geom-to-r2.yml` rebuilds
 the pool from them. `add-parking.py` reads the sidecar too, so a parking roll

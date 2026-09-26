@@ -36,13 +36,20 @@ store.
 from __future__ import annotations
 
 import datetime as _dt
-import glob
 import json
 import os
 import sys
 from pathlib import Path
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+from judge_validation import (  # noqa: E402
+    canonical_draft_files,
+    load_canonical_drafts,
+    validate_verdict_row,
+)
+
 PADJ_TMP = os.environ.get("PADJ_TMP") or os.path.join(_HERE, "..", "work")
 REQ = ["fid", "osm", "prior", "verdict", "exists", "public", "serves", "confidence"]
 VERDICTS = ("KEEP", "DROP", "REVIEW")
@@ -50,20 +57,11 @@ CONFIDENCE = ("certain", "strong", "leaning")
 
 
 def draft_files(tmp: Path, slug: str) -> list[Path]:
-    single = tmp / f"{slug}_verdict_draft.json"
-    if single.exists():
-        return [single]
-    return [Path(p) for p in sorted(glob.glob(str(tmp / f"{slug}_verdict_draft_*.json")))]
+    return canonical_draft_files(tmp, slug)
 
 
 def load_draft(tmp: Path, slug: str) -> list[dict] | None:
-    files = draft_files(tmp, slug)
-    if not files:
-        return None
-    out: list[dict] = []
-    for p in files:
-        out.extend(json.load(open(p)))
-    return out
+    return load_canonical_drafts(tmp, slug)
 
 
 def _dump_atomic(path: Path, rows: list[dict]) -> None:
@@ -184,7 +182,11 @@ def main(argv=None) -> int:
     entries: list[tuple[str, dict, dict]] = []      # (slug, verdict, facility)
     totals = {v: 0 for v in VERDICTS}
     for slug in slugs:
-        arr = load_draft(tmp, slug)
+        try:
+            arr = load_draft(tmp, slug)
+        except (ValueError, json.JSONDecodeError) as exc:
+            issues.append(f"INVALID draft layout/content for {slug}: {exc}")
+            continue
         if arr is None:
             issues.append(f"MISSING draft: {slug}")
             continue
@@ -199,36 +201,19 @@ def main(argv=None) -> int:
                 issues.append(f"{slug} fid{fid}: judged twice")
                 continue
             seen.add(fid)
-            for k in REQ:
-                if k not in e:
-                    issues.append(f"{slug} fid{fid}: missing '{k}'")
-            v = e.get("verdict")
-            if v not in VERDICTS:
-                issues.append(f"{slug} fid{fid}: bad verdict {v!r}")
-                continue
-            if e.get("confidence") not in CONFIDENCE:
-                issues.append(f"{slug} fid{fid}: bad confidence {e.get('confidence')!r}")
-            if v == "REVIEW" and not e.get("resolve_hint"):
-                issues.append(f"{slug} fid{fid}: REVIEW without resolve_hint")
             fac = fac_by_fid.get(fid)
             if fac is None:
                 issues.append(f"{slug} fid{fid}: not in the dossier")
                 continue
+            packet_identity = {"fid": fid, "area": slug, "osm": fac.get("osm") or [],
+                               "prior": fac.get("prior")}
+            row_issues, _ = validate_verdict_row(e, packet_identity)
+            issues.extend(f"{slug} fid{fid}: {issue}" for issue in row_issues)
+            v = e.get("verdict")
+            if v not in VERDICTS:
+                continue
             if fid not in pub:
                 issues.append(f"{slug} fid{fid}: not in the judge set (_pub.txt)")
-            if not e.get("osm"):
-                e["osm"] = list(fac.get("osm") or [])
-            if not e.get("osm"):
-                issues.append(f"{slug} fid{fid}: no OSM id")
-            for ax in ("exists", "public", "serves"):
-                a = e.get(ax) or {}
-                if a.get("call") not in ("yes", "no", "unclear", "n/a"):
-                    issues.append(f"{slug} fid{fid}: {ax}.call is {a.get('call')!r}")
-                if not a.get("evidence"):
-                    issues.append(f"{slug} fid{fid}: {ax} has no evidence")
-            if v == "DROP" and e.get("prior") == "surveyed" and "z3" not in [
-                    z.lower() for z in e.get("frames_used") or []]:
-                issues.append(f"{slug} fid{fid}: DROP of a surveyed prior without Z3 in frames_used")
             # Areas overlap; a lot judged under another area must not be
             # silently re-decided here. `judge_packets.py --skip-judged` keeps
             # such lots out of the judge set upstream — this is the backstop.

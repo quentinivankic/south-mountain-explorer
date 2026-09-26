@@ -26,7 +26,13 @@ rule says this lot serves, its edge distance in metres, whether it was a far
 `conn` means no foot route was found), `trailhead_nodes_120m`, `footways_60m`,
 `building_overlap`, `context` (OSM neighbourhood category SUPPORT / FACILITY /
 PARK / NEUTRAL with its evidence), and `tiles` — absolute paths to three
-pre-rendered aerial frames you view with your file-reading tool:
+pre-rendered aerial frames you view with your file-reading tool.
+
+**Checkpoint mode for this chunk:** {RESUME_BLOCK}
+
+The checkpoint mode is authoritative. In RESUME MODE, read and preserve the
+existing objects before doing any new work; in COMPLETE MODE, stop without
+rewriting the draft. For work that remains, use the frames as follows:
 
 - `z1` (600 m across): context. Name every plausible non-trail owner you see.
 - `z2` (220 m across): the lot. Delineation, aisles, road relationship,
@@ -58,15 +64,18 @@ Things this batch will show you (Colorado, alpine and national forest):
 - Snow, shadow and canopy. "I can't see it" never flips a surveyed prior;
   mark REVIEW with a `resolve_hint` instead.
 
-Output: write ONE file, `{OUT_PATH}`, a JSON list with exactly one object per
-packet in your chunk, in the protocol's schema, plus `"area"` copied from the
-packet. Rewrite that file after EVERY lot with all verdicts so far, so an
-interrupted run loses at most one lot. Every axis object needs a `call` and a
+Output: write ONE agent-owned continuation file, `{OUT_PATH}`, containing a JSON
+list with exactly one object per fid assigned by the checkpoint mode, in that
+exact order, using the protocol's schema plus `"area"` copied from the packet.
+Do NOT copy completed objects from the host-owned canonical draft into this
+file. Rewrite the continuation after EVERY newly judged lot with all new
+verdicts from this run so an interruption loses at most one lot; the host will
+validate and atomically merge it later. Every axis object needs a `call` and a
 non-empty `evidence`. `call` is exactly one of `"yes"`, `"no"`, `"unclear"`,
 `"n/a"` (never `"unknown"`); the merge tool rejects anything else.
-`frames_used` lists the frames you actually viewed (`"z1"`, `"z2"`, `"z3"`).
-`resolve_hint` is required (non-null) when the verdict is REVIEW, null
-otherwise. Do not skip a lot, do not judge a lot that is not in your chunk, do
-not write anything else to disk. When done, reply with a three-line summary:
-counts of KEEP / DROP / REVIEW, then one line per DROP with its fid and the
-axis that failed.
+`frames_used` lists the frames you actually viewed (`"z1"`, `"z2"`, `"z3"`,
+and a `"_naip"` suffix when applicable). `resolve_hint` is required (non-null)
+when the verdict is REVIEW, null otherwise. Do not judge any fid outside the
+checkpoint assignment and do not write anything else to disk. When done,
+reply with a three-line summary: counts of KEEP / DROP / REVIEW, then one line
+per DROP with its fid and the axis that failed.

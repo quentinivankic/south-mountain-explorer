@@ -210,6 +210,11 @@ def build(data_dir: str = _DATA) -> tuple[dict, list[str], list[str]]:
     return doc, notes, folded
 
 
+def serialize(document: dict) -> str:
+    """Canonical committed bytes for the generated sidecar."""
+    return json.dumps(document, indent=1, sort_keys=False, ensure_ascii=False) + "\n"
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -220,7 +225,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     doc, notes, folded = build(args.data_dir)
-    text = json.dumps(doc, indent=1, sort_keys=False, ensure_ascii=False) + "\n"
+    text = serialize(doc)
 
     lots = doc["lots"]
     verdicts = Counter(e["verdict"] for e in lots.values())

@@ -121,22 +121,77 @@ python3 tools/judge_packets.py $SLUG --tiles $PADJ_TMP/${SLUG}_ladder \
 # continuation, refreshes fingerprints, and emits precise RESUME prompts.
 # Pre-checkpoint legacy drafts require one independently validated adoption run:
 #   ...same command... --adopt-existing
-python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG      # validate, print every DROP
-python3 tools/judge_review_sheet.py $SLUG --sample 20 --open        # DROP/REVIEW + immutable KEEP sample
-python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG --set 9=DROP --note "why"  # human flips
+python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG      # validate only; no --write
+python3 tools/replay_trust.py --work-area $SLUG --tmp $PADJ_TMP \
+  --out $PADJ_TMP/shadow/${SLUG}_trust-shadow-v1.json --format summary
+# The orchestration agent consumes report.items without showing the primary call:
+#   AUTONOMOUS_REFRESH         -> regenerate that primary row under current inputs
+#   AUTONOMOUS_BLIND_CHALLENGE -> independent challenger, known family + hashes
+#   AUTONOMOUS_ARBITER         -> fetch more evidence and resolve disagreement
+#   HUMAN_EXCEPTION            -> only then open the review sheet for the user
+```
+
+**Shadow-v1 stops here.** It measures and routes but deliberately cannot change a
+canonical draft or write a store. Do not add `--write`, sweep, pool, workflow or
+publish commands to this path, and do not claim it has reduced production human
+work yet. Activation needs a separate provenance-preserving resolver that can
+validate challenger/arbiter records and update drafts without falsely recording
+them as human overrides. Until that exists, the old manual review/write sequence
+is a legacy publication fallback, not the default autonomous recipe:
+
+```bash
+# Only when a new area must publish before the autonomous resolver exists:
+python3 tools/judge_review_sheet.py $SLUG --sample 20 --open
+python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG --set 9=DROP --note "why"
 python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG --write
-# Record only what the human actually reviewed. The review-sheet output prints
-# the exact KEEP=sample command after all SAMPLE cards were reviewed. If a class
-# was not reviewed one-by-one, use `none` (never claim `each` or `sample`).
 python3 tools/calibration.py add $SLUG \
   --reviewed DROP=each --reviewed REVIEW=each --reviewed KEEP=sample \
   --sample-fids <comma-separated-fids-printed-by-review-sheet>
-python3 tools/calibration.py report                                  # agreement + miss-rate bounds
+python3 tools/calibration.py report
 ```
 
-Then ship as below. `merge_drafts.py` refuses `--write` while any schema or
-coverage issue stands; a DROP of a surveyed prior must list `z3` in
-`frames_used`.
+The shipping section below applies only after the legacy fallback has written a
+reviewed store change, or after a future autonomous resolver has landed with its
+own provenance/consensus tests. `merge_drafts.py` still refuses `--write` while
+schema or coverage issues stand; a surveyed-prior DROP must list `z3`.
+
+## Shadow trust replay (read-only)
+
+Run the trust policy before expanding another batch. It reads the five
+authoritative stores, verifies they still compile byte-for-byte to the committed
+sidecar, reconstructs original judge calls, and separates real review evidence
+from agent-only outcomes:
+
+```bash
+python3 tools/replay_trust.py --format summary
+python3 tools/replay_trust.py --include-items \
+  --out work/shadow/parking-trust-shadow-v1.json --format summary
+```
+
+The default is deterministic JSON on stdout and writes nothing. `--out` is
+accepted only outside the repository or under the ignored
+`scripts/parking-adjud/work/` tree. There is deliberately no `--write`, `--set`,
+store, sidecar, sweep, pool, workflow, or publish option.
+
+Routes are autonomous by default: current-schema certain/strong rows go to a
+blind challenger; leaning, REVIEW, fallback, no-route, and coverage-gap cases go
+to an evidence-fetching arbiter; legacy/schema-deficient rows get a fresh judge
+pass. Existing explicit human decisions remain authority. A human exception is
+created only after those autonomous stages still disagree—the committed-corpus
+replay itself creates zero direct user work.
+
+Direct model promotion is stricter than historical agreement. The exact class
+must meet its own 95% error bound (KEEP ≤1%, DROP ≤2%) from per-decision
+`blind_reviews` records across at least three areas and two verified reviewer
+families. Each primary must carry `judge_provenance`; each reference record
+must carry the complete reference decision and bind known reviewer
+identity/family/kind, frozen primary and reference decision hashes, a shared
+packet hash, and distinct prompt/evidence hashes. Identity keys are trimmed,
+case-folded, and restricted to a slug alphabet before equality or breadth is
+counted. Missing/unknown/noncanonical identities, a reviewer ID/family matching
+the primary, model-visible area booleans, mismatched packets, and malformed or
+mismatched hashes cannot promote anything. Same-model votes never count as
+independent.
 
 ## Shipping verdicts (runs anywhere, no extracts needed)
 

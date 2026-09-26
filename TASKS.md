@@ -33,7 +33,7 @@ which is not much.
 | [47](#47) | Crash and stability pass on device | QA |
 | [49](#49) | Live Activity (the turn banner SHIPPED in #555) | app |
 | [50](#50) | Paid Applications Agreement | user-side |
-| [53](#53) | Adjudicate parking by aerial + vision, per lot | **data · THE TRUTH for parking; 11 areas done** |
+| [53](#53) | Adjudicate parking by aerial + vision, per lot | **data · THE TRUTH for parking; 13 areas done** |
 | [54](#54) | Trailhead spurs trimmed by `_trim_to_parks` — trails end short of the trailhead | data · pipeline |
 | [52](#52) | One car park mapped as many OSM polygons ships as many pins | data · unmeasured |
 | [55](#55) | Device-test the rebuilt area sheet | QA · needs a TestFlight build |
@@ -44,7 +44,41 @@ which is not much.
 ---
 
 <a name="53"></a>
-## #53 — Adjudicate parking by aerial + vision. Tooling built; 12 areas done, Colorado running.
+## #53 — Adjudicate parking by aerial + vision. Tooling built; 13 areas done, autonomous trust shadow built.
+
+> ### BUILT 2026-09-26: read-only autonomous trust replay.
+>
+> `tools/trust_engine.py` + `tools/replay_trust.py` replay the five authoritative
+> stores against the deterministic sidecar without touching drafts, stores,
+> geom, pools, workflows or live data. The engine preserves explicit human
+> authority, routes legacy/schema-deficient rows to a fresh autonomous judge,
+> current certain/strong rows to a blind challenger, and leaning/REVIEW/
+> exception-sensitive rows to an autonomous arbiter. Human escalation exists
+> only after those stages remain contradictory; the current replay creates
+> **zero direct user work**.
+>
+> Honest baseline: **1,268 source rows → 1,199 unique clusters** (69 folds),
+> 863 KEEP / 336 DROP; 961 current-schema and 238 legacy/not-current. There are
+> 90 explicit human labels (97 rows in the broader human-influenced union), but
+> only 38 binary model calls have a per-lot review denominator, all DROP from
+> one area/source and model-visible: 0 observed flips, 9.2% Wilson U95. KEEP has
+> no measured denominator. Therefore **no model class is promoted directly**.
+> The strict shadow screen finds 100 KEEP + 20 DROP candidates, but promotion
+> requires per-decision blind reference records at KEEP ≤1% / DROP ≤2%, across
+> ≥3 areas and ≥2 verified reviewer families. Every primary carries
+> `judge_provenance`; every reference binds the complete independent decision,
+> known reviewer identity/family/kind, frozen decision hashes, a shared packet
+> hash, and distinct prompt/evidence hashes. Identity aliases are canonicalized
+> before equality or breadth; area booleans are insufficient.
+>
+> Current autonomous routing: 190 fresh re-judges, 746 blind challenges, 173
+> evidence-fetching arbiters, 90 preserved explicit authorities, 0 direct
+> human exceptions. Reports are deterministic JSON on stdout or ignored
+> `work/shadow/`; tests pin corpus/provenance/routing and no-write behavior.
+> **Activation is still open:** shadow-v1 emits the queue but cannot yet record
+> challenger/arbiter results back into canonical drafts. Production human work
+> is unchanged until a separately reviewed provenance-preserving resolver lands;
+> never treat a shadow route as publication approval.
 
 > ### DONE 2026-09-13: first Colorado area (Indian Peaks) judged by fan-out, 149 lots.
 >
@@ -82,13 +116,17 @@ which is not much.
 > a 95% Wilson upper bound on the miss rate. After one area: DROP 38 reviewed /
 > 0 flipped, miss rate ≤ 9.2%; KEEP not measured (accepted en bloc). Zero flips
 > in 189 reviewed DROPs would bound the miss rate at 2%, 381 at 1%; that is the
-> number to reach before DROPs ship without a per-lot human pass. KEEPs need a
-> reviewed sample of their own before the same question can be asked of them.
+> number to reach before the class can even meet the numeric bound; the shadow
+> engine additionally requires promotion-grade per-decision reference records,
+> verified reviewer-family breadth, and area breadth. Model-visible review is
+> diagnostic only and never promotes a class.
 >
-> Next: the remaining 260 Colorado areas with the same pipeline (candidates
-> first: `staunton-state-park-co`, `lory-state-park-co`,
+> Next: the remaining 259 Colorado source areas through the autonomous trust
+> router (candidates first: `staunton-state-park-co`, `lory-state-park-co`,
 > `boulder-open-space-and-mountain-parks-co`, `rocky-mountain-wilderness-co`),
 > `--skip-judged` against every store so overlapping areas re-judge nothing.
+> Fresh judge → blind challenger → autonomous arbiter; ask the user only when
+> those stages still produce contradictory evidence.
 
 > ### DECIDED 2026-09-13: the ID question, and the sidecar now exists.
 >

@@ -316,9 +316,16 @@ def analyse_item(item: dict, ledger_by_area: dict[str, dict]) -> dict:
         axis: (original.get(axis) or {}).get("call")
         for axis in ("exists", "public", "serves")
     }
-    walk_m = _walk_metres(original)
-    fallback_signal = _positive_fallback(evidence)
-    no_route_signal = "no route" in evidence.lower() or "no-route" in evidence.lower()
+    packet = item.get("packet") if isinstance(item.get("packet"), dict) else {}
+    packet_serves = packet.get("serves") if isinstance(packet.get("serves"), dict) else {}
+    packet_walk = packet.get("walk") if isinstance(packet.get("walk"), dict) else {}
+    structured_walk = packet_walk.get("walk_m")
+    walk_m = (float(structured_walk) if isinstance(structured_walk, (int, float))
+              else _walk_metres(original))
+    fallback_signal = bool(packet_serves.get("fallback")) or _positive_fallback(evidence)
+    connection = str(packet_walk.get("conn") or "").casefold()
+    no_route_signal = (connection in ("no route", "no-route")
+                       or "no route" in evidence.lower() or "no-route" in evidence.lower())
     tags = original.get("tags_cited") if isinstance(original.get("tags_cited"), dict) else {}
     hard_access = str(tags.get("access") or "").lower() in _HARD_ACCESS
     complete_ladder = all(_has_zoom(frames, zoom) for zoom in ("z1", "z2", "z3"))

@@ -713,7 +713,7 @@ def build_report(items: list[dict], ledger: dict, groundtruth: dict,
         },
         "historical_replay": replay_groundtruth(sidecar, groundtruth),
         "limitations": [
-            "The 1,199 final verdicts are not 1,199 independent ground-truth labels.",
+            f"The {len(analyses):,} final verdicts are not {len(analyses):,} independent ground-truth labels.",
             "Confidence is self-reported and is never treated as calibrated probability.",
             "Same-model fan-out shares prompts, evidence, imagery, and systematic errors.",
             "Colorado structured dossier/serve/walk inputs are not committed; prose parsing is audit-only.",

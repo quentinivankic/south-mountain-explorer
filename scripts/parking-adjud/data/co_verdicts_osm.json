@@ -87858,5 +87858,1420 @@
 ]
 ],
 "name": null
+},
+"way/149638196": {
+"fid": 37,
+"area": "staunton-state-park-co",
+"osm": [
+"way/149638196"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3: the mapped footprint is a broad concrete parking field with painted stalls and numerous parked cars; Z1 shows a dedicated lot beside US 285."
+},
+"public": {
+"call": "yes",
+"evidence": "The official RTD facility record identifies US285 / Mountain View as a free Park-n-Ride served by a bus route [external:rtd-mountain-view-20260926]; packet tag park_ride=yes agrees."
+},
+"serves": {
+"call": "no",
+"evidence": "Packet: Sapsucker Trail is only a 1,397 m fallback candidate, with no walking route, no trailhead node within 120 m, and no footway within 60 m; Z1 shows no trail approach. The explicit Park-n-Ride name and RTD transit-facility record provide the clearly better explanation [external:rtd-mountain-view-20260926]."
+},
+"frames_used": [
+"z1",
+"z2",
+"z3"
+],
+"tags_cited": {
+"amenity": "parking",
+"capacity": "183",
+"name": "US285 & Mountain View Park-n-Ride",
+"park_ride": "yes",
+"parking": "surface",
+"surface": "concrete"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"judge_provenance": {
+"model_id": "kiro-general-arbiter",
+"model_family": "gpt-5.6-sol",
+"decision_sha256": "a562210bcc4b9333471371f31d7d8b20f9aa1ceb7329e06b1c9271874496bd6a",
+"packet_sha256": "c6fd76c1fe87a19ec0097bb53a39d174e00558f694ee65b1a8842b9593fa8dc8",
+"prompt_sha256": "14f733889da4ed73d85f8fd80a7afb6ea8df4496efbbfe71906f655d30141644",
+"evidence_sha256": "6a36e757a0763994a58590e19cd464c707b44beed49a504ada861ed73d5e331c"
+},
+"trust_resolution": {
+"version": 1,
+"policy_id": "parking-trust-resolver-v1",
+"run_id": "05fee14092594b15874af1f86eb2c56bdf0e1610ddce0efb40f7d9b38d2aacfe",
+"transaction_id": "05924d6d262858e99a6f97104a847d68aa476a348eb72aecf46ff6db77f7cfb8",
+"route": "AUTONOMOUS_ARBITER",
+"result": "CORRELATED_EVIDENCE_ARBITRATION",
+"selected_role": "arbiter",
+"selected_decision_sha256": "a562210bcc4b9333471371f31d7d8b20f9aa1ceb7329e06b1c9271874496bd6a",
+"primary": {
+"assignment_id": "fc5e0d9588c02f1b2a8c66a17a8bbda969b22a5f7614b1252526e81c88e48e56",
+"decision": {
+"area": "staunton-state-park-co",
+"confidence": "certain",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3 NAIP: large paved lot with painted stall rows and multiple parked cars"
+},
+"fid": 37,
+"frames_used": [
+"z1_naip",
+"z2_naip",
+"z3_naip"
+],
+"osm": [
+"way/149638196"
+],
+"prior": "surveyed",
+"public": {
+"call": "yes",
+"evidence": "name=US285 & Mountain View Park-n-Ride and park_ride=yes; Z1/Z3 NAIP show open access from the highway frontage road"
+},
+"resolve_hint": null,
+"serves": {
+"call": "no",
+"evidence": "Sapsucker Trail is a 1,397 m fallback with no foot route and no shipped trail visible in Z1; the explicitly named US285 park-and-ride use explains the lot better"
+},
+"tags_cited": {
+"name": "US285 & Mountain View Park-n-Ride",
+"park_ride": "yes",
+"parking": "surface",
+"surface": "concrete"
+},
+"verdict": "DROP"
+},
+"decision_sha256": "322034282e9cb475b997d49237a1bd6934e6a2522ee7071db0ee1fb393b8be21",
+"envelope_sha256": "054783b4b244ed10ecdc9b32f36bbba7e530d7db312ee2b47e71427140a023be",
+"evidence_sha256": "c90bf188f5740e69044b4dde674e782414aa265a1ecb56ae4ee6efbce798950d",
+"external_evidence": [],
+"input_evidence_sha256": [
+"0f910ef8210124b8a42dc9166576c57196e10f764936e83c1d2ad0217439d0ac",
+"611c44f0ca67d3e43d33fe80deac4454b9f54252668e11e8e45fa4f13143aa10",
+"9033ca03aab6e452d7832ccee4ac1576275199cbff7e0ed555e4749c9aa50d66",
+"c6fd76c1fe87a19ec0097bb53a39d174e00558f694ee65b1a8842b9593fa8dc8",
+"daab80929c7a059ad949f1b8f068d2fcd8308612f8b1827d61f347d1dba1d4fb"
+],
+"model": {
+"build": "2026-09-26",
+"family": "gpt-5.6-sol",
+"id": "kiro-general-primary",
+"provider": "openai"
+},
+"packet_sha256": "c6fd76c1fe87a19ec0097bb53a39d174e00558f694ee65b1a8842b9593fa8dc8",
+"prompt_sha256": "79ac4b7a0c81fbd33f6e3ea5ec5801f9bc4767db48b13414735f3d929d92fe58",
+"role": "primary",
+"version": 1
+},
+"challenger": null,
+"arbiter": {
+"version": 1,
+"role": "arbiter",
+"assignment_id": "a3f2edd6c66980e69b5cd9b16e5c4414a0b941c2c805a3fde4db700f54850abe",
+"model": {
+"build": "2026-09-26",
+"family": "gpt-5.6-sol",
+"id": "kiro-general-arbiter",
+"provider": "openai"
+},
+"packet_sha256": "c6fd76c1fe87a19ec0097bb53a39d174e00558f694ee65b1a8842b9593fa8dc8",
+"prompt_sha256": "14f733889da4ed73d85f8fd80a7afb6ea8df4496efbbfe71906f655d30141644",
+"input_evidence_sha256": [
+"0f910ef8210124b8a42dc9166576c57196e10f764936e83c1d2ad0217439d0ac",
+"611c44f0ca67d3e43d33fe80deac4454b9f54252668e11e8e45fa4f13143aa10",
+"9033ca03aab6e452d7832ccee4ac1576275199cbff7e0ed555e4749c9aa50d66",
+"c6fd76c1fe87a19ec0097bb53a39d174e00558f694ee65b1a8842b9593fa8dc8",
+"daab80929c7a059ad949f1b8f068d2fcd8308612f8b1827d61f347d1dba1d4fb"
+],
+"evidence_sha256": "6a36e757a0763994a58590e19cd464c707b44beed49a504ada861ed73d5e331c",
+"decision_sha256": "a562210bcc4b9333471371f31d7d8b20f9aa1ceb7329e06b1c9271874496bd6a",
+"external_evidence": [
+{
+"id": "rtd-mountain-view-20260926",
+"sha256": "8096b32291906275173760062d06817ee303ceaf6eb34a63766d5c0e67adc696"
+}
+],
+"decision": {
+"fid": 37,
+"area": "staunton-state-park-co",
+"osm": [
+"way/149638196"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3: the mapped footprint is a broad concrete parking field with painted stalls and numerous parked cars; Z1 shows a dedicated lot beside US 285."
+},
+"public": {
+"call": "yes",
+"evidence": "The official RTD facility record identifies US285 / Mountain View as a free Park-n-Ride served by a bus route [external:rtd-mountain-view-20260926]; packet tag park_ride=yes agrees."
+},
+"serves": {
+"call": "no",
+"evidence": "Packet: Sapsucker Trail is only a 1,397 m fallback candidate, with no walking route, no trailhead node within 120 m, and no footway within 60 m; Z1 shows no trail approach. The explicit Park-n-Ride name and RTD transit-facility record provide the clearly better explanation [external:rtd-mountain-view-20260926]."
+},
+"frames_used": [
+"z1",
+"z2",
+"z3"
+],
+"tags_cited": {
+"amenity": "parking",
+"capacity": "183",
+"name": "US285 & Mountain View Park-n-Ride",
+"park_ride": "yes",
+"parking": "surface",
+"surface": "concrete"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"envelope_sha256": "55805bc9d9389614b1e33d763cadc04e56f06722c151ba3cf70fecea7289c3ba"
+},
+"correlation": {
+"model_ids": [
+"kiro-general-arbiter",
+"kiro-general-primary"
+],
+"model_families": [
+"gpt-5.6-sol"
+],
+"same_model_family": true,
+"basis": "CORRELATED_EVIDENCE_ARBITRATION"
+},
+"resolution_sha256": "2007e5fe2a0cd7e90d9d7072dfc73b489f7c12e2aea5203f8fce87b0fffe873b"
+},
+"src": "judge-fanout",
+"judged": "2026-09-26",
+"lat": 39.502886,
+"lon": -105.32295,
+"rings": [
+[
+[
+39.502863,
+-105.323373
+],
+[
+39.502422,
+-105.323107
+],
+[
+39.502327,
+-105.323372
+],
+[
+39.502168,
+-105.323275
+],
+[
+39.502389,
+-105.322661
+],
+[
+39.50244,
+-105.322692
+],
+[
+39.502457,
+-105.322644
+],
+[
+39.502567,
+-105.322711
+],
+[
+39.503002,
+-105.322973
+],
+[
+39.503199,
+-105.322425
+],
+[
+39.503251,
+-105.322457
+],
+[
+39.503278,
+-105.322382
+],
+[
+39.503475,
+-105.322501
+],
+[
+39.50345,
+-105.322571
+],
+[
+39.503511,
+-105.322608
+],
+[
+39.503265,
+-105.323293
+],
+[
+39.503209,
+-105.32326
+],
+[
+39.503183,
+-105.323332
+],
+[
+39.502933,
+-105.323181
+],
+[
+39.502863,
+-105.323373
+]
+]
+],
+"name": "US285 & Mountain View Park-n-Ride"
+},
+"way/149643766": {
+"fid": 39,
+"area": "staunton-state-park-co",
+"osm": [
+"way/149643766"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3: clearly delineated asphalt parking lot with painted stalls and multiple parked vehicles."
+},
+"public": {
+"call": "yes",
+"evidence": "Z1-Z3: open, ungated driveway access and a striped lot serving a public-facing business; no residential-only geometry is visible."
+},
+"serves": {
+"call": "no",
+"evidence": "Packet: Sapsucker Trail is fallback at 1671 m edge and 2744 m walk, with no connection, nearby trailhead node, or footway; Z1-Z3 show the lot wrapping the Snowpack Taproom buildings, and the official business address corroborates that adjacent commercial use [external:snowpack-contact-20260926]."
+},
+"frames_used": [
+"z1",
+"z2",
+"z3"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"judge_provenance": {
+"model_id": "kiro-general-arbiter",
+"model_family": "gpt-5.6-sol",
+"decision_sha256": "8658416660a17ae6bf85266c8751981b890ecd1eeb2644b2655c68faf62fb9b4",
+"packet_sha256": "cd61ee95c2ee0942058367b26d4c4c334dd97a5c613e6bb60afdd3d289eb5099",
+"prompt_sha256": "8e2f2f8659c692234a05bebe262deb9b2e44cdd673842f3a2c3b85715cb4cba5",
+"evidence_sha256": "44497829cfee6d90ab00098646eb61bd3b4c0683dd45fefa3a7eab8f2200f52a"
+},
+"trust_resolution": {
+"version": 1,
+"policy_id": "parking-trust-resolver-v1",
+"run_id": "05fee14092594b15874af1f86eb2c56bdf0e1610ddce0efb40f7d9b38d2aacfe",
+"transaction_id": "05924d6d262858e99a6f97104a847d68aa476a348eb72aecf46ff6db77f7cfb8",
+"route": "AUTONOMOUS_ARBITER",
+"result": "CORRELATED_EVIDENCE_ARBITRATION",
+"selected_role": "arbiter",
+"selected_decision_sha256": "8658416660a17ae6bf85266c8751981b890ecd1eeb2644b2655c68faf62fb9b4",
+"primary": {
+"assignment_id": "f7c9ea094e1b6671864c205a5c9321d220e528d74c75efa7133802043654e33e",
+"decision": {
+"area": "staunton-state-park-co",
+"confidence": "strong",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3 NAIP: paved lot with painted stall rows and numerous parked vehicles wrapping two buildings"
+},
+"fid": 39,
+"frames_used": [
+"z1_naip",
+"z2_naip",
+"z3_naip"
+],
+"osm": [
+"way/149643766"
+],
+"prior": "bare",
+"public": {
+"call": "yes",
+"evidence": "Z1/Z2 NAIP: open commercial parking reached directly from the frontage road, with no gate or residential driveway geometry"
+},
+"resolve_hint": null,
+"serves": {
+"call": "no",
+"evidence": "Sapsucker Trail is a 1,671 m fallback; packet reports a 2,744 m walk with no foot connection, no shipped trail is visible in Z1, and the adjacent commercial buildings plus Snow Pack Tap Room 41 m away explain the lot better"
+},
+"tags_cited": {
+"amenity": "parking"
+},
+"verdict": "DROP"
+},
+"decision_sha256": "07a761527f903692886ad61d3f37c7f113309d908705b16f698682d7cb41a97c",
+"envelope_sha256": "a363aa669297a2a0f6207aa4a9be986c18b0c8e05b231e9c32cf2d18b3d44252",
+"evidence_sha256": "96509d2cd2750977a5a92fafd942294ceecce69236e908fa1dc262ca6a02b3d4",
+"external_evidence": [],
+"input_evidence_sha256": [
+"15260ac52ba3f3b72497fa7495b36cd052573ed8b615539f5c653e901b471aff",
+"3a711b1f5f4d14f731d286e7723df51820e4f42d22d03af35a133064e638ac53",
+"46e608108919f00bd3d4f17c1927bc510ba179fbcdb3fd3f2ddb631e26602dfb",
+"cd61ee95c2ee0942058367b26d4c4c334dd97a5c613e6bb60afdd3d289eb5099",
+"d1c93f862dd21ce4fea3c8eafb62c7fc210bf0a4bea77141c1f5a21b93d53b1e"
+],
+"model": {
+"build": "2026-09-26",
+"family": "gpt-5.6-sol",
+"id": "kiro-general-primary",
+"provider": "openai"
+},
+"packet_sha256": "cd61ee95c2ee0942058367b26d4c4c334dd97a5c613e6bb60afdd3d289eb5099",
+"prompt_sha256": "79ac4b7a0c81fbd33f6e3ea5ec5801f9bc4767db48b13414735f3d929d92fe58",
+"role": "primary",
+"version": 1
+},
+"challenger": null,
+"arbiter": {
+"version": 1,
+"role": "arbiter",
+"assignment_id": "06627240e0f209ebffc80829e6abc68bc595286187c2be36b719b30e58a8c64b",
+"model": {
+"build": "2026-09-26",
+"family": "gpt-5.6-sol",
+"id": "kiro-general-arbiter",
+"provider": "openai"
+},
+"packet_sha256": "cd61ee95c2ee0942058367b26d4c4c334dd97a5c613e6bb60afdd3d289eb5099",
+"prompt_sha256": "8e2f2f8659c692234a05bebe262deb9b2e44cdd673842f3a2c3b85715cb4cba5",
+"input_evidence_sha256": [
+"15260ac52ba3f3b72497fa7495b36cd052573ed8b615539f5c653e901b471aff",
+"3a711b1f5f4d14f731d286e7723df51820e4f42d22d03af35a133064e638ac53",
+"46e608108919f00bd3d4f17c1927bc510ba179fbcdb3fd3f2ddb631e26602dfb",
+"cd61ee95c2ee0942058367b26d4c4c334dd97a5c613e6bb60afdd3d289eb5099",
+"d1c93f862dd21ce4fea3c8eafb62c7fc210bf0a4bea77141c1f5a21b93d53b1e"
+],
+"evidence_sha256": "44497829cfee6d90ab00098646eb61bd3b4c0683dd45fefa3a7eab8f2200f52a",
+"decision_sha256": "8658416660a17ae6bf85266c8751981b890ecd1eeb2644b2655c68faf62fb9b4",
+"external_evidence": [
+{
+"id": "snowpack-contact-20260926",
+"sha256": "09664cbdc11630f2b0babd7da8749925a8b1838c568680d191033232e99067ff"
+}
+],
+"decision": {
+"fid": 39,
+"area": "staunton-state-park-co",
+"osm": [
+"way/149643766"
+],
+"verdict": "DROP",
+"prior": "bare",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3: clearly delineated asphalt parking lot with painted stalls and multiple parked vehicles."
+},
+"public": {
+"call": "yes",
+"evidence": "Z1-Z3: open, ungated driveway access and a striped lot serving a public-facing business; no residential-only geometry is visible."
+},
+"serves": {
+"call": "no",
+"evidence": "Packet: Sapsucker Trail is fallback at 1671 m edge and 2744 m walk, with no connection, nearby trailhead node, or footway; Z1-Z3 show the lot wrapping the Snowpack Taproom buildings, and the official business address corroborates that adjacent commercial use [external:snowpack-contact-20260926]."
+},
+"frames_used": [
+"z1",
+"z2",
+"z3"
+],
+"tags_cited": {
+"amenity": "parking"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"envelope_sha256": "a93f17ddd6ad5fd4f151ee48014a4c334e06d6bdb2547601ce097824b567eaa7"
+},
+"correlation": {
+"model_ids": [
+"kiro-general-arbiter",
+"kiro-general-primary"
+],
+"model_families": [
+"gpt-5.6-sol"
+],
+"same_model_family": true,
+"basis": "CORRELATED_EVIDENCE_ARBITRATION"
+},
+"resolution_sha256": "83f82ea1fe400bf3a7def329cf2e0a2b99face67ca9a5dd82864ffeab26bcaaf"
+},
+"src": "judge-fanout",
+"judged": "2026-09-26",
+"lat": 39.50115,
+"lon": -105.32631,
+"rings": [
+[
+[
+39.501135,
+-105.32692
+],
+[
+39.501106,
+-105.326646
+],
+[
+39.500851,
+-105.326675
+],
+[
+39.500845,
+-105.326609
+],
+[
+39.500897,
+-105.326549
+],
+[
+39.500891,
+-105.326331
+],
+[
+39.500916,
+-105.326271
+],
+[
+39.501224,
+-105.326241
+],
+[
+39.501207,
+-105.326031
+],
+[
+39.500824,
+-105.326058
+],
+[
+39.500821,
+-105.325925
+],
+[
+39.500872,
+-105.32592
+],
+[
+39.500992,
+-105.325909
+],
+[
+39.501061,
+-105.325874
+],
+[
+39.501143,
+-105.325858
+],
+[
+39.501216,
+-105.325855
+],
+[
+39.501419,
+-105.325847
+],
+[
+39.501385,
+-105.326424
+],
+[
+39.50129,
+-105.326459
+],
+[
+39.501266,
+-105.326612
+],
+[
+39.501274,
+-105.326754
+],
+[
+39.501263,
+-105.326868
+],
+[
+39.501135,
+-105.32692
+]
+]
+],
+"name": null
+},
+"way/173189775": {
+"fid": 52,
+"area": "staunton-state-park-co",
+"osm": [
+"way/173189775",
+"way/173189776"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3: both red footprints coincide with delineated light-surface vehicle areas beside the facility rather than a building, lawn, or through-lanes; the surveyed amenity=parking + parking=surface prior is corroborated."
+},
+"public": {
+"call": "yes",
+"evidence": "Z1-Z3 show ungated, road-connected facility parking; the frozen source identifies adjacent Mountain Resource Center as a community nonprofit and service center at this location [external:mountain-resource-center-20260926]."
+},
+"serves": {
+"call": "no",
+"evidence": "Casto Creek Trail is fallback-only at 1,226 m edge distance with a 4,022 m walk, no walk connection, no footways within 60 m, and no trailhead node within 120 m; Z1-Z3 instead show the parking directly embedded in Mountain Resource Center grounds."
+},
+"frames_used": [
+"z1",
+"z2",
+"z3"
+],
+"tags_cited": {
+"amenity": "parking",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"judge_provenance": {
+"model_id": "kiro-general-arbiter",
+"model_family": "gpt-5.6-sol",
+"decision_sha256": "26b412ba2aba4ac9011772c0b710da4e37921712a6cfc443b8ade4aedb149ac3",
+"packet_sha256": "c75f2cde9145db0f0c75336c464b4b215f2902e76616dfe2fadbe9983f7b7f8c",
+"prompt_sha256": "e4a3a71702a2f2ac951fd45e9a88274ef8790127c6370ab23827f11205ee7b1c",
+"evidence_sha256": "5d798bb760120a5ebcf9ca03b107428fe4b0d3a101aeb887131522ae55653659"
+},
+"trust_resolution": {
+"version": 1,
+"policy_id": "parking-trust-resolver-v1",
+"run_id": "05fee14092594b15874af1f86eb2c56bdf0e1610ddce0efb40f7d9b38d2aacfe",
+"transaction_id": "05924d6d262858e99a6f97104a847d68aa476a348eb72aecf46ff6db77f7cfb8",
+"route": "AUTONOMOUS_ARBITER",
+"result": "CORRELATED_EVIDENCE_ARBITRATION",
+"selected_role": "arbiter",
+"selected_decision_sha256": "26b412ba2aba4ac9011772c0b710da4e37921712a6cfc443b8ade4aedb149ac3",
+"primary": {
+"assignment_id": "41dde2b2cbdd728a06e603c4d762c62f1576de5ba583d0b2aa6403f51076303a",
+"decision": {
+"area": "staunton-state-park-co",
+"confidence": "strong",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3 NAIP: two delineated paved parking aprons beside the center building, with a marked narrow row west and parked vehicles on the main apron"
+},
+"fid": 52,
+"frames_used": [
+"z1_naip",
+"z2_naip",
+"z3_naip"
+],
+"osm": [
+"way/173189775",
+"way/173189776"
+],
+"prior": "surveyed",
+"public": {
+"call": "yes",
+"evidence": "Packet context places the lots at amenity=community_centre Mountain Resource Center; Z1/Z2 NAIP show interconnected visitor drives with no gate or single-residence geometry"
+},
+"resolve_hint": null,
+"serves": {
+"call": "no",
+"evidence": "Casto Creek Trail is a 1,226 m fallback; packet reports a 4,022 m walk with no foot connection, no shipped trail is visible in Z1, and the Mountain Resource Center at 0 m explains these building-side lots better"
+},
+"tags_cited": {
+"parking": "surface"
+},
+"verdict": "DROP"
+},
+"decision_sha256": "3c0b944a6096ea93e39912d76736180c3a1b71d83e13a1d52f9395b0488f6f62",
+"envelope_sha256": "1634bd39d026667bd0a347cca87a47a3fef57d43ae7410b3bc937ad003f1fb4a",
+"evidence_sha256": "47aaf63f1161ed43b3dce85824c538f712776f854cdcc8ae85ddf110ace90eee",
+"external_evidence": [],
+"input_evidence_sha256": [
+"2429636079d44dca43aeb55d5f7463056039c3b7b30b66a92724d803f4ad2322",
+"6f958dcfa1d9aa4cf0e7649527ae64fe3344d9c18d11b156a8598d254d9dcbde",
+"81cfb5be4210d138597ca69d9eaf3c8232c62c43a1c71c8c8d01ec41f41e4a46",
+"b83919a71558754b8f5b533c60d0682a24234b28318f914b429a1ee2392c4ca8",
+"c75f2cde9145db0f0c75336c464b4b215f2902e76616dfe2fadbe9983f7b7f8c"
+],
+"model": {
+"build": "2026-09-26",
+"family": "gpt-5.6-sol",
+"id": "kiro-general-primary",
+"provider": "openai"
+},
+"packet_sha256": "c75f2cde9145db0f0c75336c464b4b215f2902e76616dfe2fadbe9983f7b7f8c",
+"prompt_sha256": "79ac4b7a0c81fbd33f6e3ea5ec5801f9bc4767db48b13414735f3d929d92fe58",
+"role": "primary",
+"version": 1
+},
+"challenger": null,
+"arbiter": {
+"version": 1,
+"role": "arbiter",
+"assignment_id": "ba8e9bb79dd0ec089e0f4da2bffad3784b6b963a4cea5e753780402a0f63d746",
+"model": {
+"build": "2026-09-26",
+"family": "gpt-5.6-sol",
+"id": "kiro-general-arbiter",
+"provider": "openai"
+},
+"packet_sha256": "c75f2cde9145db0f0c75336c464b4b215f2902e76616dfe2fadbe9983f7b7f8c",
+"prompt_sha256": "e4a3a71702a2f2ac951fd45e9a88274ef8790127c6370ab23827f11205ee7b1c",
+"input_evidence_sha256": [
+"2429636079d44dca43aeb55d5f7463056039c3b7b30b66a92724d803f4ad2322",
+"6f958dcfa1d9aa4cf0e7649527ae64fe3344d9c18d11b156a8598d254d9dcbde",
+"81cfb5be4210d138597ca69d9eaf3c8232c62c43a1c71c8c8d01ec41f41e4a46",
+"b83919a71558754b8f5b533c60d0682a24234b28318f914b429a1ee2392c4ca8",
+"c75f2cde9145db0f0c75336c464b4b215f2902e76616dfe2fadbe9983f7b7f8c"
+],
+"evidence_sha256": "5d798bb760120a5ebcf9ca03b107428fe4b0d3a101aeb887131522ae55653659",
+"decision_sha256": "26b412ba2aba4ac9011772c0b710da4e37921712a6cfc443b8ade4aedb149ac3",
+"external_evidence": [
+{
+"id": "mountain-resource-center-20260926",
+"sha256": "c486174dff3f302ec09f3859d72c52d74616f77ccf9983d65fbd77d321460a3a"
+}
+],
+"decision": {
+"fid": 52,
+"area": "staunton-state-park-co",
+"osm": [
+"way/173189775",
+"way/173189776"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3: both red footprints coincide with delineated light-surface vehicle areas beside the facility rather than a building, lawn, or through-lanes; the surveyed amenity=parking + parking=surface prior is corroborated."
+},
+"public": {
+"call": "yes",
+"evidence": "Z1-Z3 show ungated, road-connected facility parking; the frozen source identifies adjacent Mountain Resource Center as a community nonprofit and service center at this location [external:mountain-resource-center-20260926]."
+},
+"serves": {
+"call": "no",
+"evidence": "Casto Creek Trail is fallback-only at 1,226 m edge distance with a 4,022 m walk, no walk connection, no footways within 60 m, and no trailhead node within 120 m; Z1-Z3 instead show the parking directly embedded in Mountain Resource Center grounds."
+},
+"frames_used": [
+"z1",
+"z2",
+"z3"
+],
+"tags_cited": {
+"amenity": "parking",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"envelope_sha256": "045e9977564de9f22c1af21005a337a30a6895f5098f91275c97b9fba1e90664"
+},
+"correlation": {
+"model_ids": [
+"kiro-general-arbiter",
+"kiro-general-primary"
+],
+"model_families": [
+"gpt-5.6-sol"
+],
+"same_model_family": true,
+"basis": "CORRELATED_EVIDENCE_ARBITRATION"
+},
+"resolution_sha256": "96898e49c5970cf35457042ca776bc8203ed342058b26c7c64be43a7065e83ef"
+},
+"src": "judge-fanout",
+"judged": "2026-09-26",
+"lat": 39.517602,
+"lon": -105.308463,
+"rings": [
+[
+[
+39.517463,
+-105.308711
+],
+[
+39.517469,
+-105.308646
+],
+[
+39.517661,
+-105.308635
+],
+[
+39.517663,
+-105.308694
+],
+[
+39.517463,
+-105.308711
+]
+],
+[
+[
+39.517775,
+-105.308482
+],
+[
+39.517707,
+-105.308431
+],
+[
+39.517723,
+-105.308399
+],
+[
+39.517703,
+-105.30838
+],
+[
+39.517719,
+-105.308351
+],
+[
+39.517698,
+-105.308332
+],
+[
+39.517723,
+-105.308257
+],
+[
+39.517622,
+-105.308233
+],
+[
+39.517618,
+-105.308249
+],
+[
+39.517651,
+-105.308302
+],
+[
+39.517442,
+-105.308327
+],
+[
+39.517407,
+-105.308294
+],
+[
+39.517401,
+-105.308227
+],
+[
+39.517444,
+-105.308155
+],
+[
+39.51769,
+-105.308123
+],
+[
+39.517862,
+-105.308222
+],
+[
+39.517775,
+-105.308482
+]
+]
+],
+"name": null
+},
+"way/173189776": {
+"fid": 52,
+"area": "staunton-state-park-co",
+"osm": [
+"way/173189775",
+"way/173189776"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3: both red footprints coincide with delineated light-surface vehicle areas beside the facility rather than a building, lawn, or through-lanes; the surveyed amenity=parking + parking=surface prior is corroborated."
+},
+"public": {
+"call": "yes",
+"evidence": "Z1-Z3 show ungated, road-connected facility parking; the frozen source identifies adjacent Mountain Resource Center as a community nonprofit and service center at this location [external:mountain-resource-center-20260926]."
+},
+"serves": {
+"call": "no",
+"evidence": "Casto Creek Trail is fallback-only at 1,226 m edge distance with a 4,022 m walk, no walk connection, no footways within 60 m, and no trailhead node within 120 m; Z1-Z3 instead show the parking directly embedded in Mountain Resource Center grounds."
+},
+"frames_used": [
+"z1",
+"z2",
+"z3"
+],
+"tags_cited": {
+"amenity": "parking",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"judge_provenance": {
+"model_id": "kiro-general-arbiter",
+"model_family": "gpt-5.6-sol",
+"decision_sha256": "26b412ba2aba4ac9011772c0b710da4e37921712a6cfc443b8ade4aedb149ac3",
+"packet_sha256": "c75f2cde9145db0f0c75336c464b4b215f2902e76616dfe2fadbe9983f7b7f8c",
+"prompt_sha256": "e4a3a71702a2f2ac951fd45e9a88274ef8790127c6370ab23827f11205ee7b1c",
+"evidence_sha256": "5d798bb760120a5ebcf9ca03b107428fe4b0d3a101aeb887131522ae55653659"
+},
+"trust_resolution": {
+"version": 1,
+"policy_id": "parking-trust-resolver-v1",
+"run_id": "05fee14092594b15874af1f86eb2c56bdf0e1610ddce0efb40f7d9b38d2aacfe",
+"transaction_id": "05924d6d262858e99a6f97104a847d68aa476a348eb72aecf46ff6db77f7cfb8",
+"route": "AUTONOMOUS_ARBITER",
+"result": "CORRELATED_EVIDENCE_ARBITRATION",
+"selected_role": "arbiter",
+"selected_decision_sha256": "26b412ba2aba4ac9011772c0b710da4e37921712a6cfc443b8ade4aedb149ac3",
+"primary": {
+"assignment_id": "41dde2b2cbdd728a06e603c4d762c62f1576de5ba583d0b2aa6403f51076303a",
+"decision": {
+"area": "staunton-state-park-co",
+"confidence": "strong",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3 NAIP: two delineated paved parking aprons beside the center building, with a marked narrow row west and parked vehicles on the main apron"
+},
+"fid": 52,
+"frames_used": [
+"z1_naip",
+"z2_naip",
+"z3_naip"
+],
+"osm": [
+"way/173189775",
+"way/173189776"
+],
+"prior": "surveyed",
+"public": {
+"call": "yes",
+"evidence": "Packet context places the lots at amenity=community_centre Mountain Resource Center; Z1/Z2 NAIP show interconnected visitor drives with no gate or single-residence geometry"
+},
+"resolve_hint": null,
+"serves": {
+"call": "no",
+"evidence": "Casto Creek Trail is a 1,226 m fallback; packet reports a 4,022 m walk with no foot connection, no shipped trail is visible in Z1, and the Mountain Resource Center at 0 m explains these building-side lots better"
+},
+"tags_cited": {
+"parking": "surface"
+},
+"verdict": "DROP"
+},
+"decision_sha256": "3c0b944a6096ea93e39912d76736180c3a1b71d83e13a1d52f9395b0488f6f62",
+"envelope_sha256": "1634bd39d026667bd0a347cca87a47a3fef57d43ae7410b3bc937ad003f1fb4a",
+"evidence_sha256": "47aaf63f1161ed43b3dce85824c538f712776f854cdcc8ae85ddf110ace90eee",
+"external_evidence": [],
+"input_evidence_sha256": [
+"2429636079d44dca43aeb55d5f7463056039c3b7b30b66a92724d803f4ad2322",
+"6f958dcfa1d9aa4cf0e7649527ae64fe3344d9c18d11b156a8598d254d9dcbde",
+"81cfb5be4210d138597ca69d9eaf3c8232c62c43a1c71c8c8d01ec41f41e4a46",
+"b83919a71558754b8f5b533c60d0682a24234b28318f914b429a1ee2392c4ca8",
+"c75f2cde9145db0f0c75336c464b4b215f2902e76616dfe2fadbe9983f7b7f8c"
+],
+"model": {
+"build": "2026-09-26",
+"family": "gpt-5.6-sol",
+"id": "kiro-general-primary",
+"provider": "openai"
+},
+"packet_sha256": "c75f2cde9145db0f0c75336c464b4b215f2902e76616dfe2fadbe9983f7b7f8c",
+"prompt_sha256": "79ac4b7a0c81fbd33f6e3ea5ec5801f9bc4767db48b13414735f3d929d92fe58",
+"role": "primary",
+"version": 1
+},
+"challenger": null,
+"arbiter": {
+"version": 1,
+"role": "arbiter",
+"assignment_id": "ba8e9bb79dd0ec089e0f4da2bffad3784b6b963a4cea5e753780402a0f63d746",
+"model": {
+"build": "2026-09-26",
+"family": "gpt-5.6-sol",
+"id": "kiro-general-arbiter",
+"provider": "openai"
+},
+"packet_sha256": "c75f2cde9145db0f0c75336c464b4b215f2902e76616dfe2fadbe9983f7b7f8c",
+"prompt_sha256": "e4a3a71702a2f2ac951fd45e9a88274ef8790127c6370ab23827f11205ee7b1c",
+"input_evidence_sha256": [
+"2429636079d44dca43aeb55d5f7463056039c3b7b30b66a92724d803f4ad2322",
+"6f958dcfa1d9aa4cf0e7649527ae64fe3344d9c18d11b156a8598d254d9dcbde",
+"81cfb5be4210d138597ca69d9eaf3c8232c62c43a1c71c8c8d01ec41f41e4a46",
+"b83919a71558754b8f5b533c60d0682a24234b28318f914b429a1ee2392c4ca8",
+"c75f2cde9145db0f0c75336c464b4b215f2902e76616dfe2fadbe9983f7b7f8c"
+],
+"evidence_sha256": "5d798bb760120a5ebcf9ca03b107428fe4b0d3a101aeb887131522ae55653659",
+"decision_sha256": "26b412ba2aba4ac9011772c0b710da4e37921712a6cfc443b8ade4aedb149ac3",
+"external_evidence": [
+{
+"id": "mountain-resource-center-20260926",
+"sha256": "c486174dff3f302ec09f3859d72c52d74616f77ccf9983d65fbd77d321460a3a"
+}
+],
+"decision": {
+"fid": 52,
+"area": "staunton-state-park-co",
+"osm": [
+"way/173189775",
+"way/173189776"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3: both red footprints coincide with delineated light-surface vehicle areas beside the facility rather than a building, lawn, or through-lanes; the surveyed amenity=parking + parking=surface prior is corroborated."
+},
+"public": {
+"call": "yes",
+"evidence": "Z1-Z3 show ungated, road-connected facility parking; the frozen source identifies adjacent Mountain Resource Center as a community nonprofit and service center at this location [external:mountain-resource-center-20260926]."
+},
+"serves": {
+"call": "no",
+"evidence": "Casto Creek Trail is fallback-only at 1,226 m edge distance with a 4,022 m walk, no walk connection, no footways within 60 m, and no trailhead node within 120 m; Z1-Z3 instead show the parking directly embedded in Mountain Resource Center grounds."
+},
+"frames_used": [
+"z1",
+"z2",
+"z3"
+],
+"tags_cited": {
+"amenity": "parking",
+"parking": "surface"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"envelope_sha256": "045e9977564de9f22c1af21005a337a30a6895f5098f91275c97b9fba1e90664"
+},
+"correlation": {
+"model_ids": [
+"kiro-general-arbiter",
+"kiro-general-primary"
+],
+"model_families": [
+"gpt-5.6-sol"
+],
+"same_model_family": true,
+"basis": "CORRELATED_EVIDENCE_ARBITRATION"
+},
+"resolution_sha256": "96898e49c5970cf35457042ca776bc8203ed342058b26c7c64be43a7065e83ef"
+},
+"src": "judge-fanout",
+"judged": "2026-09-26",
+"lat": 39.517602,
+"lon": -105.308463,
+"rings": [
+[
+[
+39.517463,
+-105.308711
+],
+[
+39.517469,
+-105.308646
+],
+[
+39.517661,
+-105.308635
+],
+[
+39.517663,
+-105.308694
+],
+[
+39.517463,
+-105.308711
+]
+],
+[
+[
+39.517775,
+-105.308482
+],
+[
+39.517707,
+-105.308431
+],
+[
+39.517723,
+-105.308399
+],
+[
+39.517703,
+-105.30838
+],
+[
+39.517719,
+-105.308351
+],
+[
+39.517698,
+-105.308332
+],
+[
+39.517723,
+-105.308257
+],
+[
+39.517622,
+-105.308233
+],
+[
+39.517618,
+-105.308249
+],
+[
+39.517651,
+-105.308302
+],
+[
+39.517442,
+-105.308327
+],
+[
+39.517407,
+-105.308294
+],
+[
+39.517401,
+-105.308227
+],
+[
+39.517444,
+-105.308155
+],
+[
+39.51769,
+-105.308123
+],
+[
+39.517862,
+-105.308222
+],
+[
+39.517775,
+-105.308482
+]
+]
+],
+"name": null
+},
+"way/708329665": {
+"fid": 78,
+"area": "staunton-state-park-co",
+"osm": [
+"way/708329665"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3: the mapped polygon is a delineated asphalt parking lot with many painted stalls and several parked vehicles."
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes and fee=no; Z1-Z3 show an ungated lot reached from the public access road."
+},
+"serves": {
+"call": "no",
+"evidence": "Casto Creek Trail is fallback-only at 1,285 m edge with a 4,028 m walk, no recorded connection, no trailhead node within 120 m, and no footway within 60 m; Z1 shows no trail in the 600 m context. Z1-Z3 place the lot directly beside the Mountain Resource Center, identified as a community nonprofit/service center at 11030 Kitty Drive [external:mountain-resource-center-20260926], which better explains the lot."
+},
+"frames_used": [
+"z1",
+"z2",
+"z3"
+],
+"tags_cited": {
+"access": "yes",
+"parking": "surface",
+"surface": "asphalt",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null,
+"judge_provenance": {
+"model_id": "kiro-general-arbiter",
+"model_family": "gpt-5.6-sol",
+"decision_sha256": "9bb81158d6a044f190978b610cbbb89a05640b31eae13e5907879502ba565600",
+"packet_sha256": "0ece3d118f5cf000023f3f414e79b686cf3466d543dcf28fc904cfda80ba98d1",
+"prompt_sha256": "a8bee03fd731b5740675bae63a5b59a5baf98169c7a9a81ab677a42ce4a70ed3",
+"evidence_sha256": "bc80fff7e7584b79593e3e07eb9683fe34b3e9c6c383a5e6d147c87bcc2ee6bf"
+},
+"trust_resolution": {
+"version": 1,
+"policy_id": "parking-trust-resolver-v1",
+"run_id": "05fee14092594b15874af1f86eb2c56bdf0e1610ddce0efb40f7d9b38d2aacfe",
+"transaction_id": "05924d6d262858e99a6f97104a847d68aa476a348eb72aecf46ff6db77f7cfb8",
+"route": "AUTONOMOUS_ARBITER",
+"result": "CORRELATED_EVIDENCE_ARBITRATION",
+"selected_role": "arbiter",
+"selected_decision_sha256": "9bb81158d6a044f190978b610cbbb89a05640b31eae13e5907879502ba565600",
+"primary": {
+"assignment_id": "8dc769f5e50551d87173e238e37f7dcec242a26e3f567fd03a95e57ec50941bf",
+"decision": {
+"area": "staunton-state-park-co",
+"confidence": "strong",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3 NAIP: long paved facility lot has painted stall rows on both sides and multiple parked vehicles; the mapped footprint overlaps the central building but includes substantial real parking"
+},
+"fid": 78,
+"frames_used": [
+"z1_naip",
+"z2_naip",
+"z3_naip"
+],
+"osm": [
+"way/708329665"
+],
+"prior": "surveyed",
+"public": {
+"call": "yes",
+"evidence": "access=yes and fee=no; Z2/Z3 NAIP show an open connection to the facility drive"
+},
+"resolve_hint": null,
+"serves": {
+"call": "no",
+"evidence": "Casto Creek Trail is a 1,285 m fallback; packet reports a 4,028 m walk with no foot connection, no shipped trail is visible in Z1, and the facility building plus Mountain Resource Center 47 m away explain the lot better"
+},
+"tags_cited": {
+"access": "yes",
+"covered": "no",
+"fee": "no",
+"parking": "surface",
+"surface": "asphalt"
+},
+"verdict": "DROP"
+},
+"decision_sha256": "8289f9675bece2803fa43072c5a6a15e2c80b0110d2c9f17d1d887dd5e92199a",
+"envelope_sha256": "63c4e1d98bda26e4ce39f86eb41107c58ab00578e471a44c59527c2a51739484",
+"evidence_sha256": "b6cb66f3a769717d7578310a90a54b375f667e5c77db40e5bca6ae16a87d5905",
+"external_evidence": [],
+"input_evidence_sha256": [
+"01105b0462edd8763a11387e07bfb37f65e3c7652390006aecce0101b5f84de2",
+"0ece3d118f5cf000023f3f414e79b686cf3466d543dcf28fc904cfda80ba98d1",
+"37fa3a94e77b8a8fde814e6d678402ac32a80c24fd5d4167f78a9f46a00a4e82",
+"3aac92265680168780282243bc93d7ad7c2596502eb65f8e32c495f7f8889974",
+"977372a4a095436f173e6f930b3504e27c8d3c1277a99ca67e6fada6c1fe8e55"
+],
+"model": {
+"build": "2026-09-26",
+"family": "gpt-5.6-sol",
+"id": "kiro-general-primary",
+"provider": "openai"
+},
+"packet_sha256": "0ece3d118f5cf000023f3f414e79b686cf3466d543dcf28fc904cfda80ba98d1",
+"prompt_sha256": "79ac4b7a0c81fbd33f6e3ea5ec5801f9bc4767db48b13414735f3d929d92fe58",
+"role": "primary",
+"version": 1
+},
+"challenger": null,
+"arbiter": {
+"version": 1,
+"role": "arbiter",
+"assignment_id": "cbb2dc3ccb6d3c21c4697495a9c5585d61520361eed0a3e3a7854d2ee5dc01c2",
+"model": {
+"build": "2026-09-26",
+"family": "gpt-5.6-sol",
+"id": "kiro-general-arbiter",
+"provider": "openai"
+},
+"packet_sha256": "0ece3d118f5cf000023f3f414e79b686cf3466d543dcf28fc904cfda80ba98d1",
+"prompt_sha256": "a8bee03fd731b5740675bae63a5b59a5baf98169c7a9a81ab677a42ce4a70ed3",
+"input_evidence_sha256": [
+"01105b0462edd8763a11387e07bfb37f65e3c7652390006aecce0101b5f84de2",
+"0ece3d118f5cf000023f3f414e79b686cf3466d543dcf28fc904cfda80ba98d1",
+"37fa3a94e77b8a8fde814e6d678402ac32a80c24fd5d4167f78a9f46a00a4e82",
+"3aac92265680168780282243bc93d7ad7c2596502eb65f8e32c495f7f8889974",
+"977372a4a095436f173e6f930b3504e27c8d3c1277a99ca67e6fada6c1fe8e55"
+],
+"evidence_sha256": "bc80fff7e7584b79593e3e07eb9683fe34b3e9c6c383a5e6d147c87bcc2ee6bf",
+"decision_sha256": "9bb81158d6a044f190978b610cbbb89a05640b31eae13e5907879502ba565600",
+"external_evidence": [
+{
+"id": "mountain-resource-center-20260926",
+"sha256": "c486174dff3f302ec09f3859d72c52d74616f77ccf9983d65fbd77d321460a3a"
+}
+],
+"decision": {
+"fid": 78,
+"area": "staunton-state-park-co",
+"osm": [
+"way/708329665"
+],
+"verdict": "DROP",
+"prior": "surveyed",
+"exists": {
+"call": "yes",
+"evidence": "Z2/Z3: the mapped polygon is a delineated asphalt parking lot with many painted stalls and several parked vehicles."
+},
+"public": {
+"call": "yes",
+"evidence": "access=yes and fee=no; Z1-Z3 show an ungated lot reached from the public access road."
+},
+"serves": {
+"call": "no",
+"evidence": "Casto Creek Trail is fallback-only at 1,285 m edge with a 4,028 m walk, no recorded connection, no trailhead node within 120 m, and no footway within 60 m; Z1 shows no trail in the 600 m context. Z1-Z3 place the lot directly beside the Mountain Resource Center, identified as a community nonprofit/service center at 11030 Kitty Drive [external:mountain-resource-center-20260926], which better explains the lot."
+},
+"frames_used": [
+"z1",
+"z2",
+"z3"
+],
+"tags_cited": {
+"access": "yes",
+"parking": "surface",
+"surface": "asphalt",
+"fee": "no"
+},
+"confidence": "strong",
+"resolve_hint": null
+},
+"envelope_sha256": "72515575867dd62265ceea7dfab9d29640702e9ef179cc36045bce26c3dc782d"
+},
+"correlation": {
+"model_ids": [
+"kiro-general-arbiter",
+"kiro-general-primary"
+],
+"model_families": [
+"gpt-5.6-sol"
+],
+"same_model_family": true,
+"basis": "CORRELATED_EVIDENCE_ARBITRATION"
+},
+"resolution_sha256": "dfe373cb8c3e123b303604292b3e84007e9f6b7c5a2d88341a0028f64e835cce"
+},
+"src": "judge-fanout",
+"judged": "2026-09-26",
+"lat": 39.518028,
+"lon": -105.30876,
+"rings": [
+[
+[
+39.517936,
+-105.309448
+],
+[
+39.517885,
+-105.30941
+],
+[
+39.51784,
+-105.309403
+],
+[
+39.517855,
+-105.309246
+],
+[
+39.517904,
+-105.309236
+],
+[
+39.517962,
+-105.308772
+],
+[
+39.517982,
+-105.308777
+],
+[
+39.518025,
+-105.308426
+],
+[
+39.517979,
+-105.308416
+],
+[
+39.518026,
+-105.308032
+],
+[
+39.518059,
+-105.307976
+],
+[
+39.518119,
+-105.307925
+],
+[
+39.518146,
+-105.307978
+],
+[
+39.518151,
+-105.308025
+],
+[
+39.518108,
+-105.30837
+],
+[
+39.518158,
+-105.30838
+],
+[
+39.518155,
+-105.308646
+],
+[
+39.518089,
+-105.308635
+],
+[
+39.518036,
+-105.309022
+],
+[
+39.518099,
+-105.309029
+],
+[
+39.518074,
+-105.309194
+],
+[
+39.518092,
+-105.309267
+],
+[
+39.518078,
+-105.309348
+],
+[
+39.518015,
+-105.30942
+],
+[
+39.517936,
+-105.309448
+]
+]
+],
+"name": null
 }
 }

@@ -247,14 +247,14 @@ def test_actual_corpus_replay_is_deterministic_and_keeps_claims_honest():
     second = trust_engine.build_report(items, ledger, groundtruth, sidecar, corpus)
     assert json.dumps(first, sort_keys=True) == json.dumps(second, sort_keys=True)
 
-    assert corpus["source_rows"] == 1268
-    assert corpus["unique_clusters"] == 1199
-    assert corpus["folded_duplicates"] == 69
-    assert first["corpus"]["final_verdicts"] == {"DROP": 336, "KEEP": 863}
+    assert corpus["source_rows"] == 1273
+    assert corpus["unique_clusters"] == 1203
+    assert corpus["folded_duplicates"] == 70
+    assert first["corpus"]["final_verdicts"] == {"DROP": 340, "KEEP": 863}
     assert first["corpus"]["original_judge_verdicts"] == {
-        "DROP": 332, "KEEP": 863, "REVIEW": 4,
+        "DROP": 336, "KEEP": 863, "REVIEW": 4,
     }
-    assert first["corpus"]["schema_current"] == 961
+    assert first["corpus"]["schema_current"] == 965
     assert first["corpus"]["schema_not_current"] == 238
     assert first["provenance"]["explicit_label_authority"] == 90
     assert first["provenance"]["human_influenced_union"] == 97
@@ -270,7 +270,8 @@ def test_actual_corpus_replay_is_deterministic_and_keeps_claims_honest():
     assert not first["candidate_policies"]["strict"]["DROP"]["promotion_ready"]
     assert first["routing"]["direct_user_work_created"] == 0
     assert first["routing"]["model_direct_auto"] == 0
-    assert sum(first["routing"]["counts"].values()) == 1199
+    assert first["routing"]["counts"][trust_engine.ROUTE_RESOLVED] == 4
+    assert sum(first["routing"]["counts"].values()) == 1203
 
     zion = first["historical_replay"]["zion"]
     assert (zion["total_labels"], zion["matched_predictions"], zion["agreements"],
@@ -285,7 +286,7 @@ def test_actual_corpus_replay_is_deterministic_and_keeps_claims_honest():
 def test_cli_is_read_only_by_default_and_report_writes_are_sandboxed(tmp_path, capsys):
     assert replay_trust.main(["--format", "summary"]) == 0
     output = capsys.readouterr().out
-    assert "1199 clusters" in output
+    assert "1203 clusters" in output
     assert "direct user work created: 0" in output
     assert "SHADOW ONLY" in output
 

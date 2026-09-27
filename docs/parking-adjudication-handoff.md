@@ -24,18 +24,18 @@ whole point and section 3 explains why it was fought for.
 
 | Thing | State |
 |---|---|
-| Verdict model (3 axes) | Settled; 1,199 unique verdict clusters across 13 source areas / 4 morphologies |
+| Verdict model (3 axes) | Settled; 1,203 unique verdict clusters across 14 source areas / 4 morphologies |
 | Tooling | Built in `scripts/parking-adjud/tools/`; paths are env-configurable; shadow replay + journaled resolver are local-only |
-| Areas adjudicated | **13**, 0 REVIEW outcomes outstanding |
-| Distinct OSM lot clusters with a banked verdict | **1,199** (1,268 source rows, 69 duplicate folds) |
+| Areas adjudicated | **14**, 0 REVIEW outcomes outstanding |
+| Distinct OSM lot clusters with a banked verdict | **1,203** (1,273 source rows, 70 duplicate folds) |
 | Global pool the app actually serves | **30,949 lots**, live and byte-verified 2026-09-26 |
 | So: fraction adjudicated | ~3.9% of the current global pool (not a random sample) |
 | `public/areas/parking-verdicts.json` | Generated deterministically from five explicit stores; consumed by sweep, pool builder and `add-parking.py` |
-| Colorado batch | Indian Peaks (149) + Pike (758) complete; **259 source areas remain** |
+| Colorado batch | Indian Peaks (149) + Pike (758) complete; **258 source areas remain** |
 | Data | Durable source stores and legacy evidence are in `scripts/parking-adjud/data/`; large aerial/OSM inputs stay on the homelab |
 | Trust measurement | 90 explicit human labels; only 38 binary model calls have a per-lot denominator, all one DROP area/source; no class promoted |
-| Autonomous routing | Shadow replay: 190 refresh / 746 blind challenge / 173 arbiter / 90 preserved explicit authority / 0 direct human exceptions |
-| Blocking | No external blocker. Resolver is tested but not field-run; direct model promotion remains disabled until promotion-grade references pass error/breadth gates. |
+| Autonomous routing | Shadow replay: 190 refresh / 746 blind challenge / 173 arbiter / 90 preserved explicit authority / 0 direct human exceptions. Staunton field pilot: 4 `PRESERVE_MACHINE_RESOLUTION` / 0 human exceptions. |
+| Blocking | No external blocker. The Staunton resolver pilot is complete; its four resolved DROPs are in a reviewed publication candidate that is not yet live. Direct model promotion remains disabled until promotion-grade references pass error/breadth gates. |
 | It blocks | TASKS **#51**'s containment roll and **#52**'s polygon merge 📋 |
 
 **The ID problem is settled in section 14. The current design boundary is the
@@ -1290,8 +1290,8 @@ queue for the next autonomous stages:
 - `HUMAN_EXCEPTION`: only after the autonomous stages still conflict. The
   committed-corpus replay creates zero such work.
 
-Measured 2026-09-26 baseline: 1,268 source rows fold to 1,199 unique clusters
-(863 KEEP / 336 DROP); 961 pass the current schema and 238 are legacy/not-current.
+Measured 2026-09-26 baseline after Staunton: 1,273 source rows fold to 1,203
+unique clusters (863 KEEP / 340 DROP); 965 pass the current schema and 238 are legacy/not-current.
 There are 90 explicit human labels and 97 rows in the broader human-influenced
 union. Only 38 binary primary calls have a per-lot review denominator, all DROP
 from one area/source and shown alongside the model answer; 0 observed flips still
@@ -1340,8 +1340,10 @@ durable backup, PREPARED journal, one atomic draft replacement, exact receipt,
 and retry recovery. A live journal dominates any receipt; preserve-only chunks
 receive a durable terminal receipt.
 It cannot write a store, sidecar, geom, pool, workflow, or live object. Exact
-commands and schemas: `tools/trust_resolver_schema.md`. The implementation is
-fully simulated but not yet field-run; the next new area is the first pilot.
+commands and schemas: `tools/trust_resolver_schema.md`. The Staunton field pilot
+ran this path end to end: all four new lots terminated as
+`PRESERVE_MACHINE_RESOLUTION`, with zero human exceptions. Its reviewed
+publication candidate remains local and is not yet live.
 
 ---
 
@@ -1351,7 +1353,7 @@ Written deliberately, because a handoff that only lists what is known produces a
 overconfident successor.
 
 - **Colorado is no longer an unseen morphology, but it dominates the corpus.**
-  Indian Peaks + Pike contribute 907/1,199 unique verdicts, so a micro-average
+  Indian Peaks + Pike contribute 907/1,203 unique verdicts, so a micro-average
   mostly measures one judge protocol in alpine/national-forest terrain. Hold out
   whole areas and source families; do not call Colorado volume generalization.
 - **The >1 mile over-keep test rests on a small sample.** It measured 0 across
@@ -1371,7 +1373,7 @@ overconfident successor.
 - **The leaf-off NAIP layer for the northeast was recommended and never
   sourced.** Lesson 8's workaround is to mark REVIEW, which does not scale: a
   batch that produces reviews nobody resolves is a batch that produced nothing.
-- **Confidence is self-reported, not calibrated probability.** 162/1,199
+- **Confidence is self-reported, not calibrated probability.** 162/1,203
   current outcomes are `leaning`, but even certain/strong classes cannot bypass
   blind challenge until their exact class passes the trust engine's independent
   error and breadth gates. Treat confidence as routing metadata, never proof.
@@ -1400,7 +1402,7 @@ overconfident successor.
    `scripts/build-nonhiking-list.py` and `scripts/sweep-nonhiking-trails.py` were
    graduated. They are durable logic living in a scratch directory.
 5. **Then scale through the autonomous trust router** — Indian Peaks (149) and
-   Pike (758) are judged and shipped; 259 Colorado source areas remain. Per area:
+   Pike (758) are judged and shipped; 258 Colorado source areas remain. Per area:
    `run_co.sh` + `ladder_tiles.py` on the homelab, `judge_packets.py
    --skip-judged <every store>`, fresh judge, `replay_trust.py` routing,
    `resolve_trust.py prepare/status`, blind challenger, then arbiter only when
@@ -1426,7 +1428,7 @@ overconfident successor.
 | `scripts/parking-adjud/tools/resolve_trust.py` | deterministic prepare/status and journaled one-chunk canonical apply |
 | `scripts/parking-adjud/tools/trust_{challenger,arbiter}_prompt.md` | blind role prompts; neither exposes prior decisions |
 | `scripts/parking-adjud/tools/trust_resolver_schema.md` | exact resolver artifacts, policy, transaction and recovery contract |
-| `scripts/test_parking_trust_engine.py` | shadow/no-write, provenance, promotion, routing and 1,199-corpus regressions |
+| `scripts/test_parking_trust_engine.py` | shadow/no-write, provenance, promotion, routing and canonical-corpus regressions |
 | `scripts/test_parking_trust_resolver.py` | prepare/status/consensus/apply/tamper/crash/store integration simulations |
 | `scripts/parking-adjud/tools/` | adjudication, checkpoint, review and trust tools plus 2 shell drivers and the judge protocol |
 | `scripts/parking-adjud/data/` | every dossier, serves gate, context, walk, verdict store, `groundtruth.json`, `coverage_gaps.json`, `QUALITY_REPORT.md`, `co_areas.json` — 74 files, 8.2 MB |

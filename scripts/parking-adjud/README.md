@@ -131,29 +131,57 @@ python3 tools/replay_trust.py --work-area $SLUG --tmp $PADJ_TMP \
 #   HUMAN_EXCEPTION            -> only then open the review sheet for the user
 ```
 
-**Shadow-v1 stops here.** It measures and routes but deliberately cannot change a
-canonical draft or write a store. Do not add `--write`, sweep, pool, workflow or
-publish commands to this path, and do not claim it has reduced production human
-work yet. Activation needs a separate provenance-preserving resolver that can
-validate challenger/arbiter records and update drafts without falsely recording
-them as human overrides. Until that exists, the old manual review/write sequence
-is a legacy publication fallback, not the default autonomous recipe:
+The provenance-preserving resolver now consumes those machine routes without
+writing any publish artifact. Bind the **actual underlying model identities**;
+a renamed role or prompt is not a different model family:
 
 ```bash
-# Only when a new area must publish before the autonomous resolver exists:
-python3 tools/judge_review_sheet.py $SLUG --sample 20 --open
-python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG --set 9=DROP --note "why"
-python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG --write
-python3 tools/calibration.py add $SLUG \
-  --reviewed DROP=each --reviewed REVIEW=each --reviewed KEEP=sample \
-  --sample-fids <comma-separated-fids-printed-by-review-sheet>
-python3 tools/calibration.py report
+RUN=$(python3 tools/resolve_trust.py prepare $SLUG --tmp $PADJ_TMP \
+  --primary-model primary-id:family-a \
+  --challenger-model challenger-id:family-b \
+  --arbiter-model arbiter-id:family-c)
+
+# The orchestration agent dispatches only the exact prompt paths in
+# $RUN/prepare.json. Agents write only their assigned $RUN/inbox files.
+python3 tools/resolve_trust.py status --run "$RUN"       # 3=pending, 2=blocked, 0=ready
+python3 tools/resolve_trust.py apply --run "$RUN" --chunk 0          # plan, no write
+python3 tools/resolve_trust.py apply --run "$RUN" --chunk 0 --apply  # one atomic chunk
 ```
 
-The shipping section below applies only after the legacy fallback has written a
-reviewed store change, or after a future autonomous resolver has landed with its
-own provenance/consensus tests. `merge_drafts.py` still refuses `--write` while
-schema or coverage issues stand; a surveyed-prior DROP must list `z3`.
+Repeat status/dispatch until each chunk is READY, then apply one chunk at a
+time. Distinct-family confident agreement resolves directly. Disagreement,
+exception-sensitive cases, or same-family agreement require an arbiter; a
+same-family arbiter must add evidence whose hash is new relative to packet/prior
+inputs and whose canonical stable ID is cited as `[external:id]` in the selected
+decision. Only an arbiter
+that remains REVIEW/contradictory produces `HUMAN_EXCEPTION`. For those few fids
+only, open the review sheet and use the existing `merge_drafts.py --set`; the
+human override stays outside the machine-resolution wrapper.
+
+`prepare` writes only the ignored resolver run. `status` is read-only. `apply`
+without `--apply` is read-only; with it, the resolver changes exactly one
+canonical draft and checkpoint through a canonical area lock, source+authority
+recheck, derived-path compare-and-swap journal, durable backup, atomic
+replacement, reconstructed receipt, and retry-safe recovery. `judge_packets`
+shares the area lock. Calibration and store writers take their global-resource
+lock first, then area lock(s), preventing cross-area whole-file lost updates;
+human overrides run inside the store+area locks. A live journal always forces
+recovery, while preserve-only chunks get a durable no-op receipt. The resolver
+never invokes store merge or publishing. Once all chunks are applied (and any true human
+exceptions resolved), validate and write the store explicitly:
+
+```bash
+python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG
+python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG --write
+```
+
+The exact schemas, hash identities, consensus rules, and recovery states are in
+`tools/trust_resolver_schema.md`.
+
+The shipping section below applies only after every resolver chunk has an
+APPLIED receipt, any true human exceptions are resolved, and the explicit store
+merge passes. `merge_drafts.py` still refuses `--write` while schema or coverage
+issues stand; a surveyed-prior DROP must list `z3`.
 
 ## Shadow trust replay (read-only)
 

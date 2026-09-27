@@ -8,9 +8,12 @@ legal verdict row is. This module contains no writes.
 from __future__ import annotations
 
 import copy
+import datetime as _dt
 import json
 import re
 from pathlib import Path
+
+import trust_resolution as tr
 
 REQUIRED = {
     "fid", "area", "osm", "verdict", "prior", "exists", "public", "serves",
@@ -70,15 +73,8 @@ def load_canonical_drafts(tmp: str | Path, slug: str) -> list[dict] | None:
     return rows
 
 
-def original_judge_projection(row: dict) -> tuple[dict | None, list[str]]:
-    """Return the pre-human-override row used for validation/calibration.
-
-    `merge_drafts.py --set` deliberately leaves the judge's axis evidence in
-    place and records the original verdict/confidence/hint under `override`.
-    Restoring those three fields prevents a legal human override from looking
-    like an axis/verdict inconsistency while still fingerprinting every piece of
-    original judge evidence.
-    """
+def machine_decision_projection(row: dict) -> tuple[dict | None, list[str]]:
+    """Return the pre-human effective decision, retaining machine resolution."""
     errors: list[str] = []
     if not isinstance(row, dict):
         return None, ["row is not an object"]
@@ -88,6 +84,17 @@ def original_judge_projection(row: dict) -> tuple[dict | None, list[str]]:
         return projected, errors
     if not isinstance(override, dict):
         return None, ["override must be an object"]
+    required = {"from", "by", "date", "note", "resolve_hint", "confidence_from"}
+    if set(override) != required:
+        errors.append(f"override keys {sorted(override)} != {sorted(required)}")
+    if override.get("by") != "human":
+        errors.append("override.by must be human")
+    try:
+        _dt.date.fromisoformat(override.get("date"))
+    except (TypeError, ValueError):
+        errors.append("override.date must be YYYY-MM-DD")
+    if override.get("note") is not None and not isinstance(override.get("note"), str):
+        errors.append("override.note must be a string or null")
     original_verdict = override.get("from")
     original_confidence = override.get("confidence_from")
     original_hint = override.get("resolve_hint")
@@ -109,6 +116,19 @@ def original_judge_projection(row: dict) -> tuple[dict | None, list[str]]:
     return projected, errors
 
 
+def original_judge_projection(row: dict) -> tuple[dict | None, list[str]]:
+    """Return the immutable primary decision beneath machine/human layers."""
+    machine, errors = machine_decision_projection(row)
+    if machine is None or errors:
+        return None, errors
+    if "trust_resolution" not in machine:
+        return machine, []
+    primary = tr.primary_decision(machine)
+    if primary is None:
+        return None, ["trust_resolution has no complete primary decision"]
+    return primary, []
+
+
 def validate_verdict_row(row: object, packet: dict | None = None,
                          allow_override: bool = True) -> tuple[list[str], dict | None]:
     """Validate one persisted row and return its original judge projection."""
@@ -120,6 +140,8 @@ def validate_verdict_row(row: object, packet: dict | None = None,
         errors.append(f"missing keys {missing}")
     if "override" in row and not allow_override:
         errors.append("continuation rows may not contain human overrides")
+    if "trust_resolution" in row and not allow_override:
+        errors.append("continuation rows may not contain machine resolutions")
 
     fid = row.get("fid")
     if not isinstance(fid, int):
@@ -188,9 +210,33 @@ def validate_verdict_row(row: object, packet: dict | None = None,
             errors.append("EXISTS=no requires PUBLIC/SERVES=n/a")
         if calls[0] != "no" and "n/a" in calls:
             errors.append("n/a used without EXISTS=no")
+    source_frames = source.get("frames_used") if isinstance(source.get("frames_used"), list) else []
     if (source.get("prior") == "surveyed" and original_verdict == "DROP"
-            and not any(frame in ("z3", "z3_naip") for frame in frame_values)):
+            and not any(frame in ("z3", "z3_naip") for frame in source_frames)):
         errors.append("DROP of a surveyed prior without Z3 in frames_used")
+
+    machine, _machine_errors = machine_decision_projection(row)
+    if isinstance(machine, dict) and "trust_resolution" in machine:
+        packet_identity = packet or {
+            key: machine.get(key) for key in ("fid", "area", "osm", "prior")
+        }
+
+        def validate_plain(decision: dict) -> list[str]:
+            plain_errors, _ = validate_verdict_row(
+                decision, packet_identity, allow_override=False
+            )
+            return plain_errors
+
+        expected_packet_hash = None
+        if isinstance(packet_identity.get("tiles"), dict):
+            try:
+                expected_packet_hash = tr.packet_sha256(packet_identity)
+            except ValueError as error:
+                errors.append(f"cannot verify trust_resolution packet bytes: {error}")
+        errors.extend(tr.validate_persisted_resolution(
+            machine, packet_identity, validate_plain,
+            expected_packet_sha256=expected_packet_hash,
+        ))
 
     if packet is not None:
         for key in ("fid", "area", "osm", "prior"):

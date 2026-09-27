@@ -25,7 +25,7 @@ whole point and section 3 explains why it was fought for.
 | Thing | State |
 |---|---|
 | Verdict model (3 axes) | Settled; 1,199 unique verdict clusters across 13 source areas / 4 morphologies |
-| Tooling | Built in `scripts/parking-adjud/tools/`; paths are env-configurable; shadow trust replay is read-only |
+| Tooling | Built in `scripts/parking-adjud/tools/`; paths are env-configurable; shadow replay + journaled resolver are local-only |
 | Areas adjudicated | **13**, 0 REVIEW outcomes outstanding |
 | Distinct OSM lot clusters with a banked verdict | **1,199** (1,268 source rows, 69 duplicate folds) |
 | Global pool the app actually serves | **30,949 lots**, live and byte-verified 2026-09-26 |
@@ -35,7 +35,7 @@ whole point and section 3 explains why it was fought for.
 | Data | Durable source stores and legacy evidence are in `scripts/parking-adjud/data/`; large aerial/OSM inputs stay on the homelab |
 | Trust measurement | 90 explicit human labels; only 38 binary model calls have a per-lot denominator, all one DROP area/source; no class promoted |
 | Autonomous routing | Shadow replay: 190 refresh / 746 blind challenge / 173 arbiter / 90 preserved explicit authority / 0 direct human exceptions |
-| Blocking | Nothing external. Direct model promotion remains disabled until promotion-grade per-decision references pass error and area/reviewer-family breadth gates. |
+| Blocking | No external blocker. Resolver is tested but not field-run; direct model promotion remains disabled until promotion-grade references pass error/breadth gates. |
 | It blocks | TASKS **#51**'s containment roll and **#52**'s polygon merge 📋 |
 
 **The ID problem is settled in section 14. The current design boundary is the
@@ -1318,13 +1318,30 @@ This policy spends compute first: refresh → blind challenge → autonomous
 arbiter. It does not manufacture confidence from final verdicts, self-reported
 confidence, circular labels, or unblinded agreement.
 
-**Activation boundary:** shadow-v1 measures and emits the machine queue, but it
-does not yet write challenger/arbiter results back into canonical drafts. It
-therefore has not reduced production human work yet. Until a separate
-provenance-preserving resolver lands, publishing a new area still uses the
-legacy human review/write fallback. Never bypass that gap by treating a shadow
-route as publication approval or by recording an autonomous arbiter as a human
-override.
+**Resolver activation:** `trust_resolution.py` and `resolve_trust.py` now
+consume the machine queue through deterministic prepare, read-only status, and
+an explicit one-chunk `--apply`. The selected complete decision/evidence lands
+at top level; immutable full primary/challenger/arbiter envelopes and every
+model/packet/prompt/evidence/decision hash stay under `trust_resolution`.
+`original_judge_projection` still returns the primary, while a second checkpoint
+vector binds the pre-human machine result. Human `override` remains an outer
+layer and is never used for autonomous work.
+
+Distinct-family agreement resolves clean routes. Disagreement and exception
+routes require an arbiter; a correlated arbiter resolves only with externally
+frozen evidence whose hash is novel versus packet/prior inputs and whose
+canonical stable ID is cited as `[external:id]` in the selected decision. Only an unresolved arbiter becomes a human
+exception. Apply shares a canonical area lock with `judge_packets`; calibration/store
+writers take their global resource lock first and then sorted area lock(s), so
+cross-area whole-file updates serialize without reversing lock order. Under
+those locks the resolver rechecks current authority, reconstructs all recovery
+artifacts from bound prepare+inbox data, and enforces draft+checkpoint CAS,
+durable backup, PREPARED journal, one atomic draft replacement, exact receipt,
+and retry recovery. A live journal dominates any receipt; preserve-only chunks
+receive a durable terminal receipt.
+It cannot write a store, sidecar, geom, pool, workflow, or live object. Exact
+commands and schemas: `tools/trust_resolver_schema.md`. The implementation is
+fully simulated but not yet field-run; the next new area is the first pilot.
 
 ---
 
@@ -1385,11 +1402,11 @@ overconfident successor.
 5. **Then scale through the autonomous trust router** — Indian Peaks (149) and
    Pike (758) are judged and shipped; 259 Colorado source areas remain. Per area:
    `run_co.sh` + `ladder_tiles.py` on the homelab, `judge_packets.py
-   --skip-judged <every store>`, fresh judge, `replay_trust.py` routing, blind
-   challenger, then autonomous arbiter for disagreements. Only a contradiction
-   that survives those stages becomes a human exception. Merge/store/sweep/pool
-   writes stay behind their existing explicit commands; shadow output never
-   enters publishing by filename discovery.
+   --skip-judged <every store>`, fresh judge, `replay_trust.py` routing,
+   `resolve_trust.py prepare/status`, blind challenger, then arbiter only when
+   required. Apply each READY chunk explicitly; only a contradiction that
+   survives arbitration becomes a human exception. Then run the still-separate
+   merge/store/sweep/pool publication sequence.
 
 ---
 
@@ -1404,8 +1421,13 @@ overconfident successor.
 | `scripts/parking-adjud/data/co_verdicts_osm.json` | the self-contained Colorado store (lat/lon/rings embedded; no CO dossiers in git) |
 | `scripts/parking-adjud/data/calibration.json` | human-vs-judge agreement ledger, per area (`tools/calibration.py report`) |
 | `scripts/parking-adjud/tools/trust_engine.py` | pure shadow routing, candidate policy, calibration bounds and historical replay logic |
-| `scripts/parking-adjud/tools/replay_trust.py` | read-only deterministic corpus CLI; JSON stdout or ignored `work/shadow/` report only |
-| `scripts/test_parking_trust_engine.py` | shadow/no-write, provenance, promotion, routing and 1,199-corpus regression tests |
+| `scripts/parking-adjud/tools/replay_trust.py` | read-only deterministic corpus/current-area route manifest |
+| `scripts/parking-adjud/tools/trust_resolution.py` | pure decision envelopes, consensus, hashes and persisted-resolution validation |
+| `scripts/parking-adjud/tools/resolve_trust.py` | deterministic prepare/status and journaled one-chunk canonical apply |
+| `scripts/parking-adjud/tools/trust_{challenger,arbiter}_prompt.md` | blind role prompts; neither exposes prior decisions |
+| `scripts/parking-adjud/tools/trust_resolver_schema.md` | exact resolver artifacts, policy, transaction and recovery contract |
+| `scripts/test_parking_trust_engine.py` | shadow/no-write, provenance, promotion, routing and 1,199-corpus regressions |
+| `scripts/test_parking_trust_resolver.py` | prepare/status/consensus/apply/tamper/crash/store integration simulations |
 | `scripts/parking-adjud/tools/` | adjudication, checkpoint, review and trust tools plus 2 shell drivers and the judge protocol |
 | `scripts/parking-adjud/data/` | every dossier, serves gate, context, walk, verdict store, `groundtruth.json`, `coverage_gaps.json`, `QUALITY_REPORT.md`, `co_areas.json` — 74 files, 8.2 MB |
 | `scripts/parking-adjud/work/` | scratch, git-ignored, created on demand |

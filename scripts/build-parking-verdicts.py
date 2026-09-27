@@ -23,6 +23,7 @@ store changes; the sidecar is committed, the stores are the source.
 from __future__ import annotations
 
 import argparse
+import copy
 import glob
 import json
 import os
@@ -131,6 +132,7 @@ def build(data_dir: str = _DATA) -> tuple[dict, list[str], list[str]]:
     notes: list[str] = []
     folded: list[str] = []
     claimed: dict[str, str] = {}          # osm id -> key that already holds it
+    resolution_by_key: dict[str, object] = {}
     for store, slug_hint, judged in STORES:
         path = os.path.join(data_dir, store)
         for key, v in json.load(open(path)).items():
@@ -157,6 +159,11 @@ def build(data_dir: str = _DATA) -> tuple[dict, list[str], list[str]]:
                 if lots[dup]["verdict"] != v["verdict"]:
                     notes.append(f"{store}:{key} says {v['verdict']} but {dup} already "
                                  f"holds this cluster as {lots[dup]['verdict']} — resolve in the store")
+                    continue
+                if ((resolution_by_key.get(dup) is not None or v.get("trust_resolution") is not None)
+                        and resolution_by_key.get(dup) != v.get("trust_resolution")):
+                    notes.append(f"{store}:{key} has different trust resolution provenance "
+                                 f"from cluster holder {dup} — resolve in the store")
                     continue
                 folded.append(f"{store}:{key} is the cluster already held by {dup}")
                 continue
@@ -195,6 +202,7 @@ def build(data_dir: str = _DATA) -> tuple[dict, list[str], list[str]]:
                 # here" is the record of a judgement call, not a leftover).
                 entry["resolve_hint"] = v["resolve_hint"]
             lots[osm[0]] = entry
+            resolution_by_key[osm[0]] = copy.deepcopy(v.get("trust_resolution"))
             for o in osm:
                 claimed[o] = osm[0]
     doc = {

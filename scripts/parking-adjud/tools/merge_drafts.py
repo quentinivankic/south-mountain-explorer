@@ -36,8 +36,10 @@ store.
 from __future__ import annotations
 
 import datetime as _dt
+import fcntl
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -49,6 +51,8 @@ from judge_validation import (  # noqa: E402
     load_canonical_drafts,
     validate_verdict_row,
 )
+import judge_packets  # noqa: E402
+import trust_resolution as tr  # noqa: E402
 
 PADJ_TMP = os.environ.get("PADJ_TMP") or os.path.join(_HERE, "..", "work")
 REQ = ["fid", "osm", "prior", "verdict", "exists", "public", "serves", "confidence"]
@@ -62,6 +66,48 @@ def draft_files(tmp: Path, slug: str) -> list[Path]:
 
 def load_draft(tmp: Path, slug: str) -> list[dict] | None:
     return load_canonical_drafts(tmp, slug)
+
+
+def _resolution_packets(tmp: Path, slug: str, drafts: list[dict]) -> tuple[dict[int, dict], list[str]]:
+    """For machine-resolved rows, bind store merge to packet bytes + checkpoint."""
+    if not any(isinstance(row, dict) and row.get("trust_resolution") for row in drafts):
+        return {}, []
+    issues = []
+    packet_path = tmp / f"{slug}_packets.json"
+    try:
+        raw_packets = json.loads(packet_path.read_text())
+        packets = {int(fid): packet for fid, packet in raw_packets.items()}
+    except (OSError, ValueError, json.JSONDecodeError) as error:
+        return {}, [f"{slug}: machine resolution requires valid {packet_path.name}: {error}"]
+    files = draft_files(tmp, slug)
+    numbered = re.compile(rf"^{re.escape(slug)}_verdict_draft_(\d{{2}})\.json$")
+    for fallback, path in enumerate(files):
+        rows = json.loads(path.read_text())
+        match = numbered.fullmatch(path.name)
+        index = int(match.group(1)) if match else fallback
+        try:
+            chunk = [packets[row["fid"]] for row in rows]
+        except (KeyError, TypeError) as error:
+            issues.append(f"{slug}: {path.name} has no full packet for {error}")
+            continue
+        state = judge_packets.inspect_draft(chunk, path)
+        decision_input, missing = judge_packets.decision_fingerprint(chunk)
+        checkpoint = tmp / f"{slug}_checkpoint_{index:02d}.json"
+        if state["status"] != "complete":
+            issues.append(f"{slug}: {path.name} resolution state invalid: {state['errors']}")
+            continue
+        if missing or not decision_input:
+            issues.append(f"{slug}: {path.name} missing packet/tile inputs: {missing}")
+            continue
+        try:
+            manifest = json.loads(checkpoint.read_text())
+        except (OSError, json.JSONDecodeError) as error:
+            issues.append(f"{slug}: cannot read {checkpoint.name}: {error}")
+            continue
+        for error in judge_packets.validate_manifest(
+                manifest, slug, index, chunk, decision_input, state):
+            issues.append(f"{slug}: {checkpoint.name}: {error}")
+    return packets, issues
 
 
 def _dump_atomic(path: Path, rows: list[dict]) -> None:
@@ -145,6 +191,12 @@ def _take_opt(argv: list[str], name: str, repeat: bool = False):
     return vals if repeat else (vals[0] if vals else None)
 
 
+def _release_locks(handles: list) -> None:
+    for handle in reversed(handles):
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        handle.close()
+
+
 def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     write = "--write" in argv
@@ -161,6 +213,18 @@ def main(argv=None) -> int:
         return 2
     store_path, slugs = Path(argv[0]), argv[1:]
     tmp = Path(PADJ_TMP)
+    store_lock_path = tr.resource_lock_path(tmp, store_path)
+    store_lock_path.parent.mkdir(parents=True, exist_ok=True)
+    store_handle = open(store_lock_path, "a+b")
+    fcntl.flock(store_handle.fileno(), fcntl.LOCK_EX)
+    area_locks = [store_handle]
+    # Global store first, then sorted areas: every writer uses this order.
+    for slug in sorted(set(slugs)):
+        lock_path = tr.area_lock_path(tmp, slug)
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        handle = open(lock_path, "a+b")
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        area_locks.append(handle)
     store = json.load(open(store_path)) if store_path.exists() else {}
 
     issues: list[str] = []
@@ -190,6 +254,8 @@ def main(argv=None) -> int:
         if arr is None:
             issues.append(f"MISSING draft: {slug}")
             continue
+        resolution_packets, resolution_issues = _resolution_packets(tmp, slug, arr)
+        issues.extend(resolution_issues)
         dos = json.load(open(tmp / f"{slug}_dossier.json"))
         fac_by_fid = {f["fid"]: f for f in dos["facilities"]}
         pub = [int(x) for x in open(tmp / f"{slug}_pub.txt").read().split(",") if x.strip()]
@@ -205,8 +271,10 @@ def main(argv=None) -> int:
             if fac is None:
                 issues.append(f"{slug} fid{fid}: not in the dossier")
                 continue
-            packet_identity = {"fid": fid, "area": slug, "osm": fac.get("osm") or [],
-                               "prior": fac.get("prior")}
+            packet_identity = (resolution_packets.get(fid) if e.get("trust_resolution") else None)
+            if packet_identity is None:
+                packet_identity = {"fid": fid, "area": slug, "osm": fac.get("osm") or [],
+                                   "prior": fac.get("prior")}
             row_issues, _ = validate_verdict_row(e, packet_identity)
             issues.extend(f"{slug} fid{fid}: {issue}" for issue in row_issues)
             v = e.get("verdict")
@@ -222,6 +290,10 @@ def main(argv=None) -> int:
             if held is not None and held.get("verdict") != v:
                 issues.append(f"{slug} fid{fid}: {v} but {held.get('area')} already holds "
                               f"{held.get('osm', ['?'])[0]} as {held.get('verdict')} — resolve, do not overwrite")
+            if (held is not None and (held.get("trust_resolution") or e.get("trust_resolution"))
+                    and held.get("trust_resolution") != e.get("trust_resolution")):
+                issues.append(f"{slug} fid{fid}: same-verdict overlapping record has different "
+                              "trust resolution provenance — resolve, do not discard it")
             counts[v] += 1
             name = (fac.get("tags_union") or {}).get("name") or "(unnamed)"
             if v == "DROP":
@@ -260,9 +332,11 @@ def main(argv=None) -> int:
     else:
         print("\n=== no schema issues ===")
     if not write:
+        _release_locks(area_locks)
         return 1 if issues else 0
     if issues:
         print("\n!! refusing to --write with issues outstanding", file=sys.stderr)
+        _release_locks(area_locks)
         return 1
 
     before = len(store)
@@ -296,6 +370,7 @@ def main(argv=None) -> int:
     print(f"\nWROTE {store_path}: {before} -> {len(store)} osm keys "
           f"({len(entries) - kept} verdicts merged"
           + (f", {kept} already held by another area, kept)" if kept else ")"))
+    _release_locks(area_locks)
     return 0
 
 

@@ -10,7 +10,6 @@ blind challenge, or arbitration before a human is considered.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import math
 import re
@@ -19,6 +18,7 @@ from typing import Iterable
 
 from calibration import n_for_target, wilson_upper
 from judge_validation import original_judge_projection, validate_verdict_row
+import trust_resolution as resolution
 
 POLICY_VERSION = "parking-trust-shadow-v1"
 KEEP_ERROR_TARGET = 0.01
@@ -28,6 +28,7 @@ MIN_SOURCE_FAMILIES = 2
 GROUNDTRUTH_MATCH_M = 60.0
 
 ROUTE_AUTHORITY = "PRESERVE_HUMAN_AUTHORITY"
+ROUTE_RESOLVED = "PRESERVE_MACHINE_RESOLUTION"
 ROUTE_AUTO_KEEP = "DIRECT_AUTO_KEEP"
 ROUTE_AUTO_DROP = "DIRECT_AUTO_DROP"
 ROUTE_REFRESH = "AUTONOMOUS_REFRESH"
@@ -60,18 +61,8 @@ def _counter(values: Iterable[str]) -> dict[str, int]:
 
 
 def _identity_key(value: object) -> str | None:
-    """Canonical model/reviewer identity used for equality and breadth.
-
-    Case and surrounding whitespace are aliases, not independent identities.
-    Internal whitespace and punctuation outside a conservative slug alphabet are
-    rejected so an unknown naming variant cannot manufacture reviewer breadth.
-    """
-    if not isinstance(value, str):
-        return None
-    key = value.strip().casefold()
-    if key == "unknown" or re.fullmatch(r"[a-z0-9][a-z0-9._:/-]*", key) is None:
-        return None
-    return key
+    """Canonical model/reviewer identity used for equality and breadth."""
+    return resolution.identity_key(value)
 
 
 def source_family(item: dict) -> str:
@@ -135,12 +126,8 @@ def _positive_fallback(evidence: str) -> bool:
 
 
 def decision_sha256(row: dict) -> str:
-    """Stable identity of decision content, excluding its own provenance wrapper."""
-    content = dict(row)
-    content.pop("judge_provenance", None)
-    content.pop("override", None)
-    payload = json.dumps(content, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    """Stable identity of decision content, excluding provenance wrappers."""
+    return resolution.decision_sha256(row)
 
 
 def _primary_provenance_errors(original: dict) -> list[str]:
@@ -320,6 +307,7 @@ def analyse_item(item: dict, ledger_by_area: dict[str, dict]) -> dict:
     source_is_human = src.lower().startswith("user")
     evidence_is_human = bool(_HUMAN_RE.search(evidence))
     override = isinstance(row.get("override"), dict)
+    machine_resolved = isinstance(row.get("trust_resolution"), dict) and not errors
     explicit_label_authority = source_is_human or review["reviewed"] or override
     human_influenced = explicit_label_authority or evidence_is_human
 
@@ -421,6 +409,7 @@ def analyse_item(item: dict, ledger_by_area: dict[str, dict]) -> dict:
         "source_is_human": source_is_human,
         "evidence_is_human": evidence_is_human,
         "override": override,
+        "machine_resolved": machine_resolved,
         "explicit_label_authority": explicit_label_authority,
         "human_influenced": human_influenced,
         "review": review,
@@ -483,6 +472,8 @@ def candidate_policy_metrics(analyses: list[dict], policy_name: str,
 def _route(analysis: dict, strict_metrics: dict) -> str:
     if analysis["explicit_label_authority"]:
         return ROUTE_AUTHORITY
+    if analysis["machine_resolved"]:
+        return ROUTE_RESOLVED
     verdict = analysis["original_verdict"]
     if analysis["validation_errors"]:
         return ROUTE_REFRESH
@@ -597,6 +588,7 @@ def build_report(items: list[dict], ledger: dict, groundtruth: dict,
         analysis["route"] = _route(analysis, strict)
 
     routes = _counter(a["route"] for a in analyses)
+    routes.setdefault(ROUTE_RESOLVED, 0)
     routes.setdefault(ROUTE_HUMAN, 0)
     final_counts = _counter(a["effective_verdict"] for a in analyses)
     original_counts = _counter(a["original_verdict"] for a in analyses)

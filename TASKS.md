@@ -33,7 +33,7 @@ which is not much.
 | [47](#47) | Crash and stability pass on device | QA |
 | [49](#49) | Live Activity (the turn banner SHIPPED in #555) | app |
 | [50](#50) | Paid Applications Agreement | user-side |
-| [53](#53) | Adjudicate parking by aerial + vision, per lot | **data · THE TRUTH for parking; 13 areas done** |
+| [53](#53) | Adjudicate parking by aerial + vision, per lot | **data · THE TRUTH for parking; 13 areas done; autonomous resolver built** |
 | [54](#54) | Trailhead spurs trimmed by `_trim_to_parks` — trails end short of the trailhead | data · pipeline |
 | [52](#52) | One car park mapped as many OSM polygons ships as many pins | data · unmeasured |
 | [55](#55) | Device-test the rebuilt area sheet | QA · needs a TestFlight build |
@@ -44,7 +44,7 @@ which is not much.
 ---
 
 <a name="53"></a>
-## #53 — Adjudicate parking by aerial + vision. Tooling built; 13 areas done, autonomous trust shadow built.
+## #53 — Adjudicate parking by aerial + vision. Tooling built; 13 areas done, autonomous resolver built.
 
 > ### BUILT 2026-09-26: read-only autonomous trust replay.
 >
@@ -75,10 +75,31 @@ which is not much.
 > evidence-fetching arbiters, 90 preserved explicit authorities, 0 direct
 > human exceptions. Reports are deterministic JSON on stdout or ignored
 > `work/shadow/`; tests pin corpus/provenance/routing and no-write behavior.
-> **Activation is still open:** shadow-v1 emits the queue but cannot yet record
-> challenger/arbiter results back into canonical drafts. Production human work
-> is unchanged until a separately reviewed provenance-preserving resolver lands;
-> never treat a shadow route as publication approval.
+>
+> ### BUILT 2026-09-26: provenance-preserving autonomous resolver.
+>
+> `trust_resolution.py` + `resolve_trust.py` now carry the machine queue through
+> deterministic prepare → read-only status → one-chunk atomic apply. Full
+> primary/challenger/arbiter decisions and host-bound model, packet, prompt,
+> evidence and decision hashes survive under `trust_resolution`; the selected
+> complete evidence becomes top-level while `original_judge_projection` still
+> returns the immutable primary. A second checkpoint hash vector protects the
+> machine layer; human `override` remains outermost and is never forged by an
+> agent.
+>
+> Distinct-family confident agreement resolves autonomously. Disagreement and
+> exception routes require an arbiter; correlated arbitration requires frozen
+> evidence that is hash-novel versus packet inputs and cited as `[external:id]`
+> in the selected decision. Only unresolved arbiter output reaches the
+> user. Resolver and `judge_packets` share a canonical area lock; calibration and
+> store writers take a global-resource lock first, then area lock(s). Routes are
+> rechecked under lock, recovery paths/receipts are reconstructed, and
+> draft+checkpoint CAS is journaled with durable backup, atomic single-draft
+> replacement, terminal receipt and crash recovery. Store merge revalidates full
+> packet/tile bytes and checkpoint vectors before accepting machine rows; publish
+> remain separate. **144/144 tests green** at the hardened implementation
+> checkpoint, including 29 resolver simulations. Not yet field-run on a new area; Staunton is the first
+> intended shadow+resolver pilot.
 
 > ### DONE 2026-09-13: first Colorado area (Indian Peaks) judged by fan-out, 149 lots.
 >

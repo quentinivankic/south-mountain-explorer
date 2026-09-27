@@ -33,7 +33,7 @@ which is not much.
 | [47](#47) | Crash and stability pass on device | QA |
 | [49](#49) | Live Activity (the turn banner SHIPPED in #555) | app |
 | [50](#50) | Paid Applications Agreement | user-side |
-| [53](#53) | Adjudicate parking by aerial + vision, per lot | **data · THE TRUTH for parking; 13 areas done; autonomous resolver built** |
+| [53](#53) | Adjudicate parking by aerial + vision, per lot | **data · THE TRUTH for parking; 14 areas done; autonomous resolver built** |
 | [54](#54) | Trailhead spurs trimmed by `_trim_to_parks` — trails end short of the trailhead | data · pipeline |
 | [52](#52) | One car park mapped as many OSM polygons ships as many pins | data · unmeasured |
 | [55](#55) | Device-test the rebuilt area sheet | QA · needs a TestFlight build |
@@ -44,7 +44,7 @@ which is not much.
 ---
 
 <a name="53"></a>
-## #53 — Adjudicate parking by aerial + vision. Tooling built; 13 areas done, autonomous resolver built.
+## #53 — Adjudicate parking by aerial + vision. Tooling built; 14 areas done, autonomous resolver built.
 
 > ### BUILT 2026-09-26: read-only autonomous trust replay.
 >
@@ -57,8 +57,8 @@ which is not much.
 > only after those stages remain contradictory; the current replay creates
 > **zero direct user work**.
 >
-> Honest baseline: **1,268 source rows → 1,199 unique clusters** (69 folds),
-> 863 KEEP / 336 DROP; 961 current-schema and 238 legacy/not-current. There are
+> Honest baseline after the held Staunton fold: **1,273 source rows → 1,203
+> unique clusters** (70 folds), 863 KEEP / 340 DROP; 965 current-schema and 238 legacy/not-current. There are
 > 90 explicit human labels (97 rows in the broader human-influenced union), but
 > only 38 binary model calls have a per-lot review denominator, all DROP from
 > one area/source and model-visible: 0 observed flips, 9.2% Wilson U95. KEEP has
@@ -72,8 +72,8 @@ which is not much.
 > before equality or breadth; area booleans are insufficient.
 >
 > Current autonomous routing: 190 fresh re-judges, 746 blind challenges, 173
-> evidence-fetching arbiters, 90 preserved explicit authorities, 0 direct
-> human exceptions. Reports are deterministic JSON on stdout or ignored
+> evidence-fetching arbiters, 90 preserved explicit authorities, 4 preserved
+> machine resolutions, 0 direct human exceptions. Reports are deterministic JSON on stdout or ignored
 > `work/shadow/`; tests pin corpus/provenance/routing and no-write behavior.
 >
 > ### BUILT 2026-09-26: provenance-preserving autonomous resolver.
@@ -120,10 +120,13 @@ which is not much.
 > preflight clean. Independent final review inspected all 12 frames and the
 > entire hash/provenance chain: APPROVED, zero findings.
 >
-> **Held before publication:** canonical resolved draft/checkpoint/receipt exist
-> only in ignored pilot work. `co_verdicts_osm.json`, generated sidecar, geom,
-> pool, workflow and CDN are unchanged. ESRI alternate imagery failed its retry
-> ladder; attributed official records provided the genuinely new evidence.
+> **Publication candidate prepared:** user approved the store fold. The guarded
+> merge added 4 verdict clusters / 5 OSM keys (`co_verdicts_osm.json` 972→977),
+> regenerated sidecar 1,199→1,203 (DROP 336→340), and passed a no-refusal sweep
+> that removed 0 geom copies. The exact workflow pool remains byte-identical at
+> 30,949 / SHA-256 `803208fe…fc9`; these four lots had never shipped. This commit
+> changes only the store, generated sidecar, corpus regressions, and status docs;
+> live R2 verification follows the reviewed merge.
 
 > ### DONE 2026-09-13: first Colorado area (Indian Peaks) judged by fan-out, 149 lots.
 >

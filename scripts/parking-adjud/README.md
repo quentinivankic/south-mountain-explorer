@@ -121,22 +121,105 @@ python3 tools/judge_packets.py $SLUG --tiles $PADJ_TMP/${SLUG}_ladder \
 # continuation, refreshes fingerprints, and emits precise RESUME prompts.
 # Pre-checkpoint legacy drafts require one independently validated adoption run:
 #   ...same command... --adopt-existing
-python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG      # validate, print every DROP
-python3 tools/judge_review_sheet.py $SLUG --sample 20 --open        # DROP/REVIEW + immutable KEEP sample
-python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG --set 9=DROP --note "why"  # human flips
-python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG --write
-# Record only what the human actually reviewed. The review-sheet output prints
-# the exact KEEP=sample command after all SAMPLE cards were reviewed. If a class
-# was not reviewed one-by-one, use `none` (never claim `each` or `sample`).
-python3 tools/calibration.py add $SLUG \
-  --reviewed DROP=each --reviewed REVIEW=each --reviewed KEEP=sample \
-  --sample-fids <comma-separated-fids-printed-by-review-sheet>
-python3 tools/calibration.py report                                  # agreement + miss-rate bounds
+python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG      # validate only; no --write
+python3 tools/replay_trust.py --work-area $SLUG --tmp $PADJ_TMP \
+  --out $PADJ_TMP/shadow/${SLUG}_trust-shadow-v1.json --format summary
+# The orchestration agent consumes report.items without showing the primary call:
+#   AUTONOMOUS_REFRESH         -> regenerate that primary row under current inputs
+#   AUTONOMOUS_BLIND_CHALLENGE -> independent challenger, known family + hashes
+#   AUTONOMOUS_ARBITER         -> fetch more evidence and resolve disagreement
+#   HUMAN_EXCEPTION            -> only then open the review sheet for the user
 ```
 
-Then ship as below. `merge_drafts.py` refuses `--write` while any schema or
-coverage issue stands; a DROP of a surveyed prior must list `z3` in
-`frames_used`.
+The provenance-preserving resolver now consumes those machine routes without
+writing any publish artifact. Bind the **actual underlying model identities**;
+a renamed role or prompt is not a different model family:
+
+```bash
+RUN=$(python3 tools/resolve_trust.py prepare $SLUG --tmp $PADJ_TMP \
+  --primary-model primary-id:family-a \
+  --challenger-model challenger-id:family-b \
+  --arbiter-model arbiter-id:family-c)
+
+# The orchestration agent dispatches only the exact prompt paths in
+# $RUN/prepare.json. Agents write only their assigned $RUN/inbox files.
+python3 tools/resolve_trust.py status --run "$RUN"       # 3=pending, 2=blocked, 0=ready
+python3 tools/resolve_trust.py apply --run "$RUN" --chunk 0          # plan, no write
+python3 tools/resolve_trust.py apply --run "$RUN" --chunk 0 --apply  # one atomic chunk
+```
+
+Repeat status/dispatch until each chunk is READY, then apply one chunk at a
+time. Distinct-family confident agreement resolves directly. Disagreement,
+exception-sensitive cases, or same-family agreement require an arbiter; a
+same-family arbiter must add evidence whose hash is new relative to packet/prior
+inputs and whose canonical stable ID is cited as `[external:id]` in the selected
+decision. Only an arbiter
+that remains REVIEW/contradictory produces `HUMAN_EXCEPTION`. For those few fids
+only, open the review sheet and use the existing `merge_drafts.py --set`; the
+human override stays outside the machine-resolution wrapper.
+
+`prepare` writes only the ignored resolver run. `status` is read-only. `apply`
+without `--apply` is read-only; with it, the resolver changes exactly one
+canonical draft and checkpoint through a canonical area lock, source+authority
+recheck, derived-path compare-and-swap journal, durable backup, atomic
+replacement, reconstructed receipt, and retry-safe recovery. `judge_packets`
+shares the area lock. Calibration and store writers take their global-resource
+lock first, then area lock(s), preventing cross-area whole-file lost updates;
+human overrides run inside the store+area locks. A live journal always forces
+recovery, while preserve-only chunks get a durable no-op receipt. The resolver
+never invokes store merge or publishing. Once all chunks are applied (and any true human
+exceptions resolved), validate and write the store explicitly:
+
+```bash
+python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG
+python3 tools/merge_drafts.py data/co_verdicts_osm.json $SLUG --write
+```
+
+The exact schemas, hash identities, consensus rules, and recovery states are in
+`tools/trust_resolver_schema.md`.
+
+The shipping section below applies only after every resolver chunk has an
+APPLIED receipt, any true human exceptions are resolved, and the explicit store
+merge passes. `merge_drafts.py` still refuses `--write` while schema or coverage
+issues stand; a surveyed-prior DROP must list `z3`.
+
+## Shadow trust replay (read-only)
+
+Run the trust policy before expanding another batch. It reads the five
+authoritative stores, verifies they still compile byte-for-byte to the committed
+sidecar, reconstructs original judge calls, and separates real review evidence
+from agent-only outcomes:
+
+```bash
+python3 tools/replay_trust.py --format summary
+python3 tools/replay_trust.py --include-items \
+  --out work/shadow/parking-trust-shadow-v1.json --format summary
+```
+
+The default is deterministic JSON on stdout and writes nothing. `--out` is
+accepted only outside the repository or under the ignored
+`scripts/parking-adjud/work/` tree. There is deliberately no `--write`, `--set`,
+store, sidecar, sweep, pool, workflow, or publish option.
+
+Routes are autonomous by default: current-schema certain/strong rows go to a
+blind challenger; leaning, REVIEW, fallback, no-route, and coverage-gap cases go
+to an evidence-fetching arbiter; legacy/schema-deficient rows get a fresh judge
+pass. Existing explicit human decisions remain authority. A human exception is
+created only after those autonomous stages still disagree—the committed-corpus
+replay itself creates zero direct user work.
+
+Direct model promotion is stricter than historical agreement. The exact class
+must meet its own 95% error bound (KEEP ≤1%, DROP ≤2%) from per-decision
+`blind_reviews` records across at least three areas and two verified reviewer
+families. Each primary must carry `judge_provenance`; each reference record
+must carry the complete reference decision and bind known reviewer
+identity/family/kind, frozen primary and reference decision hashes, a shared
+packet hash, and distinct prompt/evidence hashes. Identity keys are trimmed,
+case-folded, and restricted to a slug alphabet before equality or breadth is
+counted. Missing/unknown/noncanonical identities, a reviewer ID/family matching
+the primary, model-visible area booleans, mismatched packets, and malformed or
+mismatched hashes cannot promote anything. Same-model votes never count as
+independent.
 
 ## Shipping verdicts (runs anywhere, no extracts needed)
 

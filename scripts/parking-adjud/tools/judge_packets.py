@@ -25,6 +25,7 @@ human-oriented status prose, for orchestration.
 from __future__ import annotations
 
 import argparse
+import fcntl
 import hashlib
 import json
 import os
@@ -36,9 +37,11 @@ if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 from judge_validation import (  # noqa: E402
     canonical_draft_files,
+    machine_decision_projection,
     original_judge_projection,
     validate_verdict_row,
 )
+import trust_resolution as tr  # noqa: E402
 
 PADJ_TMP = os.environ.get("PADJ_TMP") or os.path.join(_HERE, "..", "work")
 NON_PUBLIC_ACCESS = ("private", "no", "customers")
@@ -162,13 +165,14 @@ def _row_sha(projection: dict) -> str:
 
 
 def _state(status: str, completed: list[int], missing: list[int], errors=None,
-           row_sha256=None, file_sha256=None, rows=None) -> dict:
+           row_sha256=None, resolution_sha256=None, file_sha256=None, rows=None) -> dict:
     return {
         "status": status,
         "completed": completed,
         "missing": missing,
         "errors": errors or [],
         "row_sha256": row_sha256 or [],
+        "resolution_sha256": resolution_sha256 or [],
         "file_sha256": file_sha256,
         "rows": rows or [],
     }
@@ -181,6 +185,7 @@ def inspect_rows(chunk: list[dict], rows: object, source: str,
         return _state("invalid", [], expected, [f"{source} must contain a JSON list"])
     completed: list[int] = []
     row_hashes: list[str] = []
+    resolution_hashes: list[str] = []
     errors: list[str] = []
     seen: set[int] = set()
     packets = {packet["fid"]: packet for packet in chunk}
@@ -203,13 +208,17 @@ def inspect_rows(chunk: list[dict], rows: object, source: str,
         errors.extend(f"{label} fid {fid}: {error}" for error in row_errors)
         if projection is not None:
             row_hashes.append(_row_sha(projection))
+        machine, _ = machine_decision_projection(row)
+        if machine is not None:
+            resolution_hashes.append(_row_sha(machine))
     if completed != expected[:len(completed)]:
         errors.append(f"{source} fids {completed} are not packet-order prefix {expected[:len(completed)]}")
     if len(rows) > len(chunk):
         errors.append(f"{source} has {len(rows)} rows for a {len(chunk)}-packet sequence")
     missing = expected[len(completed):] if not errors else expected
     return _state("invalid" if errors else ("complete" if not missing else "partial"),
-                  completed, missing, errors, row_hashes, rows=rows)
+                  completed, missing, errors, row_sha256=row_hashes,
+                  resolution_sha256=resolution_hashes, rows=rows)
 
 
 def inspect_draft(chunk: list[dict], path: str | Path,
@@ -251,6 +260,7 @@ def manifest_value(slug: str, chunk_index: int, chunk: list[dict], decision_sha2
         "completed": state["completed"],
         "draft_sha256": state["file_sha256"],
         "judge_row_sha256": state["row_sha256"],
+        "resolution_row_sha256": state["resolution_sha256"],
     }
 
 
@@ -282,8 +292,11 @@ def validate_manifest(value: object, slug: str, chunk_index: int, chunk: list[di
         errors.append(f"checkpoint completed fids {value.get('completed')!r} != {state['completed']!r}")
     if value.get("judge_row_sha256") != state["row_sha256"]:
         errors.append("canonical draft's original judge rows changed")
-    # Byte changes are tolerated only when the original judge projection is
-    # unchanged (the normal merge_drafts --set override lifecycle). The refreshed
+    stored_resolution = value.get("resolution_row_sha256", value.get("judge_row_sha256"))
+    if stored_resolution != state["resolution_sha256"]:
+        errors.append("canonical draft's machine resolution rows changed")
+    # Byte changes are tolerated only when the original and machine projections
+    # are unchanged (the normal human override lifecycle). The refreshed
     # hash is written after the whole preflight passes.
     return errors
 
@@ -392,8 +405,10 @@ def _status_record(slug: str, chunk_index: int, state: dict, prompt: Path,
 
 
 def _manifest_matches_state(manifest: dict, state: dict) -> bool:
+    stored_resolution = manifest.get("resolution_row_sha256", manifest.get("judge_row_sha256"))
     return (manifest.get("completed") == state["completed"]
-            and manifest.get("judge_row_sha256") == state["row_sha256"])
+            and manifest.get("judge_row_sha256") == state["row_sha256"]
+            and stored_resolution == state["resolution_sha256"])
 
 
 def classify_continuation_transaction(chunk: list[dict], state: dict, manifest: object,
@@ -426,14 +441,19 @@ def classify_continuation_transaction(chunk: list[dict], state: dict, manifest: 
     # the already-appended canonical suffix.
     old_completed = manifest.get("completed")
     old_hashes = manifest.get("judge_row_sha256")
-    if isinstance(old_completed, list) and isinstance(old_hashes, list):
+    old_resolutions = manifest.get("resolution_row_sha256", old_hashes)
+    if (isinstance(old_completed, list) and isinstance(old_hashes, list)
+            and isinstance(old_resolutions, list)):
         old_count = len(old_completed)
         if (state["completed"][:old_count] == old_completed
-                and state["row_sha256"][:old_count] == old_hashes):
+                and state["row_sha256"][:old_count] == old_hashes
+                and state["resolution_sha256"][:old_count] == old_resolutions):
             replay = inspect_draft(chunk[old_count:], continuation, allow_override=False)
             if (not replay["errors"] and replay["completed"]
                     and state["completed"] == old_completed + replay["completed"]
-                    and state["row_sha256"] == old_hashes + replay["row_sha256"]):
+                    and state["row_sha256"] == old_hashes + replay["row_sha256"]
+                    and state["resolution_sha256"]
+                    == old_resolutions + replay["resolution_sha256"]):
                 return "refresh_manifest", replay, []
 
     # Crash after manifest replacement but before continuation archival: the
@@ -449,7 +469,8 @@ def classify_continuation_transaction(chunk: list[dict], state: dict, manifest: 
         duplicate = inspect_draft(chunk[start:], continuation, allow_override=False)
         if (not duplicate["errors"]
                 and duplicate["completed"] == state["completed"][start:]
-                and duplicate["row_sha256"] == state["row_sha256"][start:]):
+                and duplicate["row_sha256"] == state["row_sha256"][start:]
+                and duplicate["resolution_sha256"] == state["resolution_sha256"][start:]):
             return "archive_only", duplicate, []
 
     return None, None, [
@@ -458,7 +479,7 @@ def classify_continuation_transaction(chunk: list[dict], state: dict, manifest: 
     ]
 
 
-def main(argv=None) -> int:
+def _argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("slug")
@@ -470,7 +491,11 @@ def main(argv=None) -> int:
                         help="bind valid pre-manifest drafts to current packet/rule/tile hashes")
     parser.add_argument("--status-json", action="store_true",
                         help="emit only one JSON status object per chunk")
-    args = parser.parse_args(argv)
+    return parser
+
+
+def _main_under_area_lock(args: argparse.Namespace) -> int:
+    parser = _argument_parser()
     if args.chunk <= 0:
         parser.error("--chunk must be positive")
 
@@ -618,6 +643,16 @@ def main(argv=None) -> int:
             missing = ",".join(str(fid) for fid in record["missing"])
             print(f"PENDING_PROMPT\t{record['prompt']}\t{record['status']}\t{missing}")
     return 0
+
+
+def main(argv=None) -> int:
+    values = list(sys.argv[1:] if argv is None else argv)
+    args = _argument_parser().parse_args(values)
+    lock_path = tr.area_lock_path(args.tmp, args.slug)
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock_path, "a+b") as area_lock:
+        fcntl.flock(area_lock.fileno(), fcntl.LOCK_EX)
+        return _main_under_area_lock(args)
 
 
 if __name__ == "__main__":

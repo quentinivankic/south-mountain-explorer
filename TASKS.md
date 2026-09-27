@@ -33,7 +33,7 @@ which is not much.
 | [47](#47) | Crash and stability pass on device | QA |
 | [49](#49) | Live Activity (the turn banner SHIPPED in #555) | app |
 | [50](#50) | Paid Applications Agreement | user-side |
-| [53](#53) | Adjudicate parking by aerial + vision, per lot | **data · THE TRUTH for parking; 11 areas done** |
+| [53](#53) | Adjudicate parking by aerial + vision, per lot | **data · THE TRUTH for parking; 13 areas done; autonomous resolver built** |
 | [54](#54) | Trailhead spurs trimmed by `_trim_to_parks` — trails end short of the trailhead | data · pipeline |
 | [52](#52) | One car park mapped as many OSM polygons ships as many pins | data · unmeasured |
 | [55](#55) | Device-test the rebuilt area sheet | QA · needs a TestFlight build |
@@ -44,7 +44,62 @@ which is not much.
 ---
 
 <a name="53"></a>
-## #53 — Adjudicate parking by aerial + vision. Tooling built; 12 areas done, Colorado running.
+## #53 — Adjudicate parking by aerial + vision. Tooling built; 13 areas done, autonomous resolver built.
+
+> ### BUILT 2026-09-26: read-only autonomous trust replay.
+>
+> `tools/trust_engine.py` + `tools/replay_trust.py` replay the five authoritative
+> stores against the deterministic sidecar without touching drafts, stores,
+> geom, pools, workflows or live data. The engine preserves explicit human
+> authority, routes legacy/schema-deficient rows to a fresh autonomous judge,
+> current certain/strong rows to a blind challenger, and leaning/REVIEW/
+> exception-sensitive rows to an autonomous arbiter. Human escalation exists
+> only after those stages remain contradictory; the current replay creates
+> **zero direct user work**.
+>
+> Honest baseline: **1,268 source rows → 1,199 unique clusters** (69 folds),
+> 863 KEEP / 336 DROP; 961 current-schema and 238 legacy/not-current. There are
+> 90 explicit human labels (97 rows in the broader human-influenced union), but
+> only 38 binary model calls have a per-lot review denominator, all DROP from
+> one area/source and model-visible: 0 observed flips, 9.2% Wilson U95. KEEP has
+> no measured denominator. Therefore **no model class is promoted directly**.
+> The strict shadow screen finds 100 KEEP + 20 DROP candidates, but promotion
+> requires per-decision blind reference records at KEEP ≤1% / DROP ≤2%, across
+> ≥3 areas and ≥2 verified reviewer families. Every primary carries
+> `judge_provenance`; every reference binds the complete independent decision,
+> known reviewer identity/family/kind, frozen decision hashes, a shared packet
+> hash, and distinct prompt/evidence hashes. Identity aliases are canonicalized
+> before equality or breadth; area booleans are insufficient.
+>
+> Current autonomous routing: 190 fresh re-judges, 746 blind challenges, 173
+> evidence-fetching arbiters, 90 preserved explicit authorities, 0 direct
+> human exceptions. Reports are deterministic JSON on stdout or ignored
+> `work/shadow/`; tests pin corpus/provenance/routing and no-write behavior.
+>
+> ### BUILT 2026-09-26: provenance-preserving autonomous resolver.
+>
+> `trust_resolution.py` + `resolve_trust.py` now carry the machine queue through
+> deterministic prepare → read-only status → one-chunk atomic apply. Full
+> primary/challenger/arbiter decisions and host-bound model, packet, prompt,
+> evidence and decision hashes survive under `trust_resolution`; the selected
+> complete evidence becomes top-level while `original_judge_projection` still
+> returns the immutable primary. A second checkpoint hash vector protects the
+> machine layer; human `override` remains outermost and is never forged by an
+> agent.
+>
+> Distinct-family confident agreement resolves autonomously. Disagreement and
+> exception routes require an arbiter; correlated arbitration requires frozen
+> evidence that is hash-novel versus packet inputs and cited as `[external:id]`
+> in the selected decision. Only unresolved arbiter output reaches the
+> user. Resolver and `judge_packets` share a canonical area lock; calibration and
+> store writers take a global-resource lock first, then area lock(s). Routes are
+> rechecked under lock, recovery paths/receipts are reconstructed, and
+> draft+checkpoint CAS is journaled with durable backup, atomic single-draft
+> replacement, terminal receipt and crash recovery. Store merge revalidates full
+> packet/tile bytes and checkpoint vectors before accepting machine rows; publish
+> remain separate. **144/144 tests green** at the hardened implementation
+> checkpoint, including 29 resolver simulations. Not yet field-run on a new area; Staunton is the first
+> intended shadow+resolver pilot.
 
 > ### DONE 2026-09-13: first Colorado area (Indian Peaks) judged by fan-out, 149 lots.
 >
@@ -82,13 +137,17 @@ which is not much.
 > a 95% Wilson upper bound on the miss rate. After one area: DROP 38 reviewed /
 > 0 flipped, miss rate ≤ 9.2%; KEEP not measured (accepted en bloc). Zero flips
 > in 189 reviewed DROPs would bound the miss rate at 2%, 381 at 1%; that is the
-> number to reach before DROPs ship without a per-lot human pass. KEEPs need a
-> reviewed sample of their own before the same question can be asked of them.
+> number to reach before the class can even meet the numeric bound; the shadow
+> engine additionally requires promotion-grade per-decision reference records,
+> verified reviewer-family breadth, and area breadth. Model-visible review is
+> diagnostic only and never promotes a class.
 >
-> Next: the remaining 260 Colorado areas with the same pipeline (candidates
-> first: `staunton-state-park-co`, `lory-state-park-co`,
+> Next: the remaining 259 Colorado source areas through the autonomous trust
+> router (candidates first: `staunton-state-park-co`, `lory-state-park-co`,
 > `boulder-open-space-and-mountain-parks-co`, `rocky-mountain-wilderness-co`),
 > `--skip-judged` against every store so overlapping areas re-judge nothing.
+> Fresh judge → blind challenger → autonomous arbiter; ask the user only when
+> those stages still produce contradictory evidence.
 
 > ### DECIDED 2026-09-13: the ID question, and the sidecar now exists.
 >

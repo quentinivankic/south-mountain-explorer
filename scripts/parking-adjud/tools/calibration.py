@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import fcntl
 import hashlib
 import json
 import math
@@ -46,7 +47,12 @@ from pathlib import Path
 _HERE = os.path.dirname(os.path.abspath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
-from judge_validation import canonical_draft_files, original_judge_projection  # noqa: E402
+from judge_validation import (  # noqa: E402
+    canonical_draft_files,
+    machine_decision_projection,
+    original_judge_projection,
+)
+import trust_resolution as tr  # noqa: E402
 
 PADJ_TMP = os.environ.get("PADJ_TMP") or os.path.join(_HERE, "..", "work")
 LEDGER = os.environ.get("PADJ_CALIBRATION") or os.path.join(_HERE, "..", "data", "calibration.json")
@@ -155,18 +161,31 @@ def record_for(slug: str, drafts: list[dict], reviewed: dict[str, str], spots: l
     counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     sampled: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     flips = []
+    human_exceptions = []
     for entry in drafts:
         verdict, confidence = judge_call(entry)
         counts[verdict][confidence] += 1
         if entry.get("fid") in sample_set:
             sampled[verdict][confidence] += 1
         override = entry.get("override")
-        if override and override.get("from") and override["from"] != entry.get("verdict"):
-            flips.append({"fid": entry.get("fid"), "from": override["from"],
-                          "to": entry.get("verdict"),
-                          "from_confidence": override.get("confidence_from"),
-                          "by": override.get("by", "human"),
-                          "sampled": entry.get("fid") in sample_set})
+        if override:
+            primary, primary_errors = original_judge_projection(entry)
+            machine, machine_errors = machine_decision_projection(entry)
+            if primary is None or primary_errors or machine is None or machine_errors:
+                sys.exit(f"fid {entry.get('fid')}: invalid layered provenance")
+            if primary.get("verdict") != entry.get("verdict"):
+                flips.append({"fid": entry.get("fid"), "from": primary.get("verdict"),
+                              "to": entry.get("verdict"),
+                              "from_confidence": primary.get("confidence"),
+                              "by": "human",
+                              "sampled": entry.get("fid") in sample_set})
+            if entry.get("trust_resolution") and machine.get("verdict") != entry.get("verdict"):
+                human_exceptions.append({
+                    "fid": entry.get("fid"),
+                    "from": machine.get("verdict"),
+                    "to": entry.get("verdict"),
+                    "by": "human",
+                })
     rec = {
         "area": slug, "date": date, "judge": judge, "n": len(drafts),
         "judged": {verdict: dict(sorted(counts[verdict].items()))
@@ -176,6 +195,8 @@ def record_for(slug: str, drafts: list[dict], reviewed: dict[str, str], spots: l
         "spot_checks": sorted(spots),
         "note": note,
     }
+    if human_exceptions:
+        rec["human_exceptions"] = human_exceptions
     if sample_fids:
         rec["sample"] = {verdict: dict(sorted(sampled[verdict].items()))
                          for verdict in VERDICTS if sampled.get(verdict)}
@@ -314,6 +335,45 @@ def report(ledger: dict, target: float, min_n: int) -> str:
     return "\n".join(lines)
 
 
+def _add_command(args) -> dict:
+    reviewed = {}
+    for value in args.reviewed:
+        verdict, _, mode = value.partition("=")
+        if verdict not in VERDICTS or mode not in REVIEW_MODES:
+            sys.exit(f"--reviewed wants VERDICT=each|sample|en-bloc|none, got {value!r}")
+        reviewed[verdict] = mode
+    resource_lock = tr.resource_lock_path(PADJ_TMP, LEDGER)
+    area_lock = tr.area_lock_path(PADJ_TMP, args.slug)
+    resource_lock.parent.mkdir(parents=True, exist_ok=True)
+    area_lock.parent.mkdir(parents=True, exist_ok=True)
+    # Global resource first, then area: every writer uses this order.
+    with open(resource_lock, "a+b") as resource_handle:
+        fcntl.flock(resource_handle.fileno(), fcntl.LOCK_EX)
+        with open(area_lock, "a+b") as area_handle:
+            fcntl.flock(area_handle.fileno(), fcntl.LOCK_EX)
+            ledger = load_ledger()
+            drafts = load_drafts(PADJ_TMP, args.slug)
+            declared_sample = [verdict for verdict, mode in reviewed.items() if mode == "sample"]
+            typed_sample = [int(x) for x in args.sample_fids.split(",") if x.strip()]
+            sample_fids: list[int] = []
+            sample_manifest_sha = None
+            if declared_sample:
+                sample_fids, sample_manifest_sha = load_sample_manifest(PADJ_TMP, args.slug, drafts)
+                if typed_sample and typed_sample != sample_fids:
+                    sys.exit(f"--sample-fids must exactly match the immutable manifest: {sample_fids}")
+            elif typed_sample:
+                sys.exit("--sample-fids requires --reviewed VERDICT=sample")
+            rec = record_for(args.slug, drafts, reviewed, args.spot, args.note, args.date,
+                             args.judge, sample_fids, sample_manifest_sha)
+            ledger["areas"] = [x for x in ledger["areas"] if x["area"] != args.slug] + [rec]
+            os.makedirs(os.path.dirname(LEDGER), exist_ok=True)
+            json.dump(ledger, open(LEDGER, "w"), indent=1, ensure_ascii=False)
+    print(f"recorded {args.slug}: {rec['n']} judged, {rec['judged']}, "
+          f"{len(rec['flips'])} flip(s), reviewed {reviewed}")
+    print(f"wrote {LEDGER}")
+    return ledger
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -335,33 +395,10 @@ def main(argv=None) -> int:
     r.add_argument("--min-n", type=int, default=100)
     args = ap.parse_args(argv)
 
-    ledger = load_ledger()
     if args.cmd == "add":
-        reviewed = {}
-        for s in args.reviewed:
-            v, _, mode = s.partition("=")
-            if v not in VERDICTS or mode not in REVIEW_MODES:
-                sys.exit(f"--reviewed wants VERDICT=each|sample|en-bloc|none, got {s!r}")
-            reviewed[v] = mode
-        drafts = load_drafts(PADJ_TMP, args.slug)
-        declared_sample = [verdict for verdict, mode in reviewed.items() if mode == "sample"]
-        typed_sample = [int(x) for x in args.sample_fids.split(",") if x.strip()]
-        sample_fids: list[int] = []
-        sample_manifest_sha = None
-        if declared_sample:
-            sample_fids, sample_manifest_sha = load_sample_manifest(PADJ_TMP, args.slug, drafts)
-            if typed_sample and typed_sample != sample_fids:
-                sys.exit(f"--sample-fids must exactly match the immutable manifest: {sample_fids}")
-        elif typed_sample:
-            sys.exit("--sample-fids requires --reviewed VERDICT=sample")
-        rec = record_for(args.slug, drafts, reviewed, args.spot, args.note, args.date,
-                         args.judge, sample_fids, sample_manifest_sha)
-        ledger["areas"] = [x for x in ledger["areas"] if x["area"] != args.slug] + [rec]
-        os.makedirs(os.path.dirname(LEDGER), exist_ok=True)
-        json.dump(ledger, open(LEDGER, "w"), indent=1, ensure_ascii=False)
-        print(f"recorded {args.slug}: {rec['n']} judged, {rec['judged']}, "
-              f"{len(rec['flips'])} flip(s), reviewed {reviewed}")
-        print(f"wrote {LEDGER}")
+        ledger = _add_command(args)
+    else:
+        ledger = load_ledger()
     print(report(ledger, getattr(args, "target", 0.02), getattr(args, "min_n", 100)))
     return 0
 

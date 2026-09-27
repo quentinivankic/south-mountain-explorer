@@ -45,3 +45,4 @@ public/areas/counts-cache.json
 
 # parking adjudication scratch (regenerable)
 scripts/parking-adjud/work/
+**/.trekdex-locks/

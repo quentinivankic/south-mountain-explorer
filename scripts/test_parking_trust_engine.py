@@ -480,3 +480,23 @@ def test_reviewer_family_aliases_cannot_manufacture_promotion_breadth():
     assert metric["reviewed"] == 381 and metric["promotion_reviewed"] == 381
     assert metric["promotion_reviewed_source_families"] == ["reference-family"]
     assert metric["promotion_ready"] is False
+
+
+def test_work_area_structured_packet_risk_overrides_incomplete_prose():
+    row = _row(880, confidence="strong")
+    row["serves"]["evidence"] = "Trail appears nearby"
+    item = _item(880, row)
+    item["packet"] = {
+        "fid": 880,
+        "area": "test-co",
+        "osm": ["way/880"],
+        "prior": "surveyed",
+        "serves": {"fallback": True},
+        "walk": {"walk_m": 2744, "conn": "no route"},
+    }
+    assessed = trust_engine.analyse_item(item, {})
+    assert assessed["fallback_signal"] is True
+    assert assessed["no_route_signal"] is True
+    assert assessed["walk_m"] == 2744.0
+    report = _report([item])
+    assert report["items"][0]["route"] == trust_engine.ROUTE_ARBITER

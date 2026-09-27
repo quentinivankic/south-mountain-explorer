@@ -195,6 +195,7 @@ def load_work_area(tmp: Path, slug: str) -> tuple[list[dict], dict, dict]:
             "store": f"work:{slug}",
             "area": slug,
             "row": row,
+            "packet": packet,
             "published": published,
         })
     missing = sorted(set(packets) - seen)

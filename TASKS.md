@@ -96,10 +96,34 @@ which is not much.
 > rechecked under lock, recovery paths/receipts are reconstructed, and
 > draft+checkpoint CAS is journaled with durable backup, atomic single-draft
 > replacement, terminal receipt and crash recovery. Store merge revalidates full
-> packet/tile bytes and checkpoint vectors before accepting machine rows; publish
-> remain separate. **144/144 tests green** at the hardened implementation
-> checkpoint, including 29 resolver simulations. Not yet field-run on a new area; Staunton is the first
-> intended shadow+resolver pilot.
+> packet/tile bytes and checkpoint vectors before accepting machine rows;
+> publishing remains separate. **145/145 tests green** at the pilot implementation
+> checkpoint, including 29 resolver simulations.
+>
+> ### PILOT COMPLETE 2026-09-26: Staunton, local-only and zero user decisions.
+>
+> Existing prep held 22 public-served packets; all-store dedupe removed 18
+> already judged elsewhere, leaving four new fallback facilities (fids 37, 39,
+> 52, 78). Rendered 12 NAIP Z1/Z2/Z3 frames. Primary independently called all
+> four DROP on SERVES only (EXISTS/PUBLIC yes). The first replay exposed a real
+> bug: work-area routing ignored structured packet fallback/walk/no-route and
+> sent all four to challenge. Fixed with packet-native risk precedence in
+> `a6217f08` / PR #607 / main `d8b8c2c7`; full suite 145/145 and review APPROVED.
+>
+> Corrected run `05fee140…aacfe` routed 4/4 directly to arbitration. All roles
+> were truthfully recorded as one `gpt-5.6-sol` family, so each arbiter had to
+> add independent evidence: official RTD, Snowpack, or Mountain Resource Center
+> fact records, frozen and cited as `[external:id]`. All four blind arbiters
+> independently returned DROP/SERVES=no. Resolver applied transaction
+> `05924d6d…cfb8`: 4 correlated-evidence resolutions, 0 human exceptions,
+> 0 invalid/pending, terminal/idempotent receipt; full packet/checkpoint store
+> preflight clean. Independent final review inspected all 12 frames and the
+> entire hash/provenance chain: APPROVED, zero findings.
+>
+> **Held before publication:** canonical resolved draft/checkpoint/receipt exist
+> only in ignored pilot work. `co_verdicts_osm.json`, generated sidecar, geom,
+> pool, workflow and CDN are unchanged. ESRI alternate imagery failed its retry
+> ladder; attributed official records provided the genuinely new evidence.
 
 > ### DONE 2026-09-13: first Colorado area (Indian Peaks) judged by fan-out, 149 lots.
 >
@@ -142,8 +166,8 @@ which is not much.
 > verified reviewer-family breadth, and area breadth. Model-visible review is
 > diagnostic only and never promotes a class.
 >
-> Next: the remaining 259 Colorado source areas through the autonomous trust
-> router (candidates first: `staunton-state-park-co`, `lory-state-park-co`,
+> Next after the held Staunton pilot: the remaining 258 Colorado source areas
+> through the autonomous trust router (candidates first: `lory-state-park-co`,
 > `boulder-open-space-and-mountain-parks-co`, `rocky-mountain-wilderness-co`),
 > `--skip-judged` against every store so overlapping areas re-judge nothing.
 > Fresh judge → blind challenger → autonomous arbiter; ask the user only when

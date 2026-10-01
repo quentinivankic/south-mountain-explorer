@@ -1,25 +1,12 @@
 #!/usr/bin/env python3
-"""Re-label per-trail `difficulty` from the `gainFt` already baked into
-published geom — no DEM re-sample needed.
+"""Re-label per-trail difficulty from gainFt already baked into geom.
 
-WHY. `trailforge/serve/elevation.py::difficulty_label` gained a steepness
-floor (a SHORT brutal climb like Acadia's Precipice — 966 ft in 0.67 mi —
-scored "Easy" under the NPS `sqrt(2·gain·mi)` rating alone, because that
-rating scales with distance). `add-elevation.py` writes difficulty during the
-DEM pass, but re-running it needs Terrarium tile egress the sandbox lacks.
-Since `gainFt` is already in the geom, this recomputes the label in place
-using the SAME `difficulty_label`, so a formula change reaches shipped data
-without touching geometry or re-sampling elevation.
+No DEM resample is needed. Only trails with gainFt are touched; System-1 legacy
+areas remain unchanged. A real write holds the shared persistent parking-sweep
+gate for its full read/write phase.
 
-Only trails that carry `gainFt` are touched (the ones the elevation pass
-reached — clean trailforge geom). Trails with no gain, and System-1 legacy
-areas (top-level `cached_at`), are left exactly as-is: they aren't in the app
-bundle and never had a sampled gain to re-label from.
-
-    python3 scripts/recompute-difficulty.py --dry-run   # report only
-    python3 scripts/recompute-difficulty.py             # rewrite geom in place
-Then: sync-geom-to-r2 (auto on push) republishes geom + rebuilds
-trail-search.json, so search results pick up the new labels too.
+    python3 scripts/recompute-difficulty.py --dry-run
+    python3 scripts/recompute-difficulty.py
 """
 from __future__ import annotations
 
@@ -31,16 +18,13 @@ import sys
 from collections import Counter
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(_ROOT, "scripts"))
 sys.path.insert(0, os.path.join(_ROOT, "trailforge", "serve"))
+import _parking_geom_guard as geom_guard  # noqa: E402
 import elevation  # noqa: E402
 
 
-def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="recompute difficulty from baked gainFt")
-    ap.add_argument("--geom-dir", default=os.path.join(_ROOT, "public", "areas", "geom"))
-    ap.add_argument("--dry-run", action="store_true")
-    args = ap.parse_args(argv)
-
+def _run(args) -> int:
     moves = Counter()
     files_changed = 0
     trails_seen = 0
@@ -48,31 +32,32 @@ def main(argv=None) -> int:
 
     for path in sorted(glob.glob(os.path.join(args.geom_dir, "*.json"))):
         try:
-            d = json.load(open(path))
-        except Exception:
+            document = json.load(open(path))
+        except Exception:  # noqa: BLE001
             continue
-        if not isinstance(d, dict) or "cached_at" in d:
-            continue                       # System-1 legacy — no sampled gain
+        if not isinstance(document, dict) or "cached_at" in document:
+            continue
         changed = False
-        for t in d.get("trails") or []:
-            g = t.get("gainFt")
-            mi = t.get("distanceMi")
-            if g is None or mi is None:
-                continue                   # no DEM gain -> leave the label alone
+        for trail in document.get("trails") or []:
+            gain = trail.get("gainFt")
+            miles = trail.get("distanceMi")
+            if gain is None or miles is None:
+                continue
             trails_seen += 1
-            old = t.get("difficulty")
-            new = elevation.difficulty_label(float(mi), float(g))
+            old = trail.get("difficulty")
+            new = elevation.difficulty_label(float(miles), float(gain))
             if new != old:
                 moves[f"{old}->{new}"] += 1
                 if len(examples) < 25:
-                    examples.append(
-                        (round(float(g) / max(float(mi), 0.05)), old, new,
-                         t.get("name"), os.path.basename(path)[:-5]))
+                    examples.append((
+                        round(float(gain) / max(float(miles), 0.05)), old, new,
+                        trail.get("name"), os.path.basename(path)[:-5],
+                    ))
                 if not args.dry_run:
-                    t["difficulty"] = new
+                    trail["difficulty"] = new
                     changed = True
         if changed and not args.dry_run:
-            json.dump(d, open(path, "w"))
+            geom_guard.atomic_write_json(path, document)
             files_changed += 1
 
     total = sum(moves.values())
@@ -80,12 +65,27 @@ def main(argv=None) -> int:
           f"{trails_seen} trails with gainFt; relabelled {total} "
           f"({(total / trails_seen * 100 if trails_seen else 0):.1f}%)"
           f"{'' if args.dry_run else f' across {files_changed} files'}")
-    for k, n in moves.most_common():
-        print(f"  {n:>5}  {k}")
+    for move, count in moves.most_common():
+        print(f"  {count:>5}  {move}")
     print("\nexamples (grade ft/mi, old -> new, name, area):")
     for grade, old, new, name, slug in sorted(examples, reverse=True):
         print(f"  {grade:>5} ft/mi  {old} -> {new}  {name!r}  ({slug})")
     return 0
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description="recompute difficulty from baked gainFt")
+    parser.add_argument("--geom-dir", default=os.path.join(_ROOT, "public", "areas", "geom"))
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args(argv)
+    if args.dry_run:
+        return _run(args)
+    try:
+        with geom_guard.geom_writer(args.geom_dir):
+            return _run(args)
+    except geom_guard.LiveSweepInProgress as error:
+        print(f"REFUSING: {error}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

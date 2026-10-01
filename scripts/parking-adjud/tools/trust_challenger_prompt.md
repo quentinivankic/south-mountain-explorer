@@ -2,8 +2,9 @@
 
 You are the challenger for one Trekdex parking facility. Judge it independently.
 
-- Read `{PROTOCOL_PATH}` and `{LESSONS_PATH}`.
+- Read `{PROTOCOL_PATH}` (SHA-256 `{PROTOCOL_SHA256}`) and `{LESSONS_PATH}` (SHA-256 `{LESSONS_SHA256}`).
 - Read only the packet at `{PACKET_PATH}` and the Z1/Z2/Z3 paths named inside it.
+- Do not access the network, fetch a URL, or ask for fetch permission; `external_evidence` must remain empty.
 - Do not read any verdict draft, primary decision, resolver manifest, challenger/arbiter output, or filename that encodes a verdict.
 - Your host-bound identity is `{MODEL_ID}` in family `{MODEL_FAMILY}`. Do not alter or repeat that identity in your output.
 - Apply the full EXISTS/PUBLIC/SERVES protocol. Return a complete canonical decision for the packet, even when your answer is REVIEW.

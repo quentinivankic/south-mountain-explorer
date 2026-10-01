@@ -11,7 +11,9 @@ Only areas that (a) are in the app's index for the given --state and (b) have
 a boundary assembled from the PBF get published; everything else is reported
 and skipped. Each output is validated (unique canonical ids — the crash that
 bit #306 — valid difficulties, coords in range, non-empty); a failing area is
-skipped, never shipped.
+skipped, never shipped. When --out-dir resolves to canonical
+public/areas/geom, the full read/write phase holds the shared persistent
+parking-sweep writer gate; artifact and staging directories remain separate.
 
 Usage:
   python3 serve/publish_areas.py \
@@ -26,8 +28,10 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "assemble"))
+import _parking_geom_guard as geom_guard  # noqa: E402
 import to_app_json as conv          # noqa: E402
 import areas as areamod             # noqa: E402
 import model                        # noqa: E402 — merge_key for rescue dedupe
@@ -295,7 +299,7 @@ def _clip_one(g, f, area_union, min_inside_mi, all_parks, cache):
     return None
 
 
-def main(argv=None) -> int:
+def _main(argv=None, *, _guarded: bool = False) -> int:
     ap = argparse.ArgumentParser(description="batch-publish trailforge areas -> app JSON")
     ap.add_argument("--trails", required=True, help="statewide trails.geojson (--per-area-merge)")
     ap.add_argument("--hiking", required=True, help="hiking.osm.pbf for boundary assembly")
@@ -340,6 +344,14 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     if args.multi_area_report:
         args.dry_run = True             # pure diagnostic — never write
+    if (not _guarded and not args.dry_run
+            and geom_guard.is_canonical_geom_dir(args.out_dir)):
+        try:
+            with geom_guard.canonical_geom_writer(args.out_dir):
+                return _main(argv, _guarded=True)
+        except geom_guard.LiveSweepInProgress as error:
+            print(f"REFUSING: {error}", file=sys.stderr)
+            return 2
 
     # Build the DEM sampler up front so an unavailable-elevation warning prints
     # once (not per area). None => fall back to length-based difficulty.
@@ -696,7 +708,7 @@ def main(argv=None) -> int:
         if args.dry_run:
             published.append((slug, row["trail_count"], "dry-run"))
             continue
-        json.dump(row, open(_out, "w"))
+        geom_guard.atomic_write_json(_out, row)
         for r in index:
             if r and r[0] == slug:
                 # Pad to 7, NOT 8 — see merge-published-geom.py's comment on
@@ -712,7 +724,7 @@ def main(argv=None) -> int:
         published.append((slug, row["trail_count"], row["total_mi"]))
 
     if not args.dry_run:
-        json.dump(index, open(args.index, "w"))
+        geom_guard.atomic_write_json(args.index, index)
 
     print(f"\n=== published {len(published)} areas "
           f"({'dry-run, nothing written' if args.dry_run else 'wrote geom + updated index'}) ===")
@@ -758,7 +770,9 @@ def main(argv=None) -> int:
                   "properties": {**f["properties"], "removed_reason": reason,
                                  "removed_category": "route-traverse"}}
                  for nm, mi, reason, f in dropped_routes]
-        json.dump({"type": "FeatureCollection", "features": feats}, open(drop_path, "w"))
+        geom_guard.atomic_write_json(
+            drop_path, {"type": "FeatureCollection", "features": feats},
+        )
         print(f"\ndropped-routes geojson -> {drop_path} ({len(feats)} features)")
 
     if args.multi_area_report:
@@ -784,6 +798,10 @@ def main(argv=None) -> int:
         if len(multi) > 60:
             print(f"  … and {len(multi) - 60} more")
     return 0
+
+
+def main(argv=None) -> int:
+    return _main(argv)
 
 
 if __name__ == "__main__":

@@ -48,11 +48,14 @@ writing; the histogram is how we tune `PARKING_TRAIL_MAX_M` from real data.
     python3 scripts/add-parking.py --all
 
 Post-process for now (a republish drops it), mirroring how DEM elevation
-started — fold into the publish pipeline once proven.
+started — fold into the publish pipeline once proven. A real commit takes the
+shared persistent geom/live-journal gate, recaptures the exact verdict sidecar,
+and rechecks every geom source before its first atomic write.
 """
 from __future__ import annotations
 
 import argparse
+import fcntl
 import importlib.util
 import json
 import math
@@ -65,9 +68,14 @@ import urllib.request
 from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(_SCRIPTS_DIR))
+_TOOLS_DIR = _SCRIPTS_DIR / "parking-adjud" / "tools"
+for _import_path in (str(_SCRIPTS_DIR), str(_TOOLS_DIR)):
+    if _import_path not in sys.path:
+        sys.path.insert(0, _import_path)
 from _seed_constants import STATE_NAMES  # noqa: E402
+import _parking_geom_guard as _parking_geom_guard  # noqa: E402
 import _parking_verdicts  # noqa: E402  — the KEEP/DROP sidecar and its matcher
+import trusted_filesystem as _trusted_filesystem  # noqa: E402
 
 # seed-areas.py has a hyphen, so it can't be a plain import target.
 _spec = importlib.util.spec_from_file_location(
@@ -1035,8 +1043,12 @@ def write_pool_sidecar(path: str | Path, fresh: dict[str, list[dict]],
     if not dry_run:
         doc = {"version": POOL_SIDECAR_VERSION,
                "states": {k: merged[k] for k in sorted(merged)}}
-        Path(path).write_text(json.dumps(doc, separators=(",", ":"),
-                                         sort_keys=False))
+        _parking_geom_guard.atomic_write_bytes(
+            path,
+            json.dumps(
+                doc, separators=(",", ":"), sort_keys=False,
+            ).encode("utf-8"),
+        )
     verb = "would hold" if dry_run else "holds"
     print(f"\npool sidecar: {verb} {total} lot(s) across {len(merged)} state(s) "
           f"({len(fresh)} refreshed this run)")
@@ -1373,6 +1385,41 @@ def print_federal_fill(fed_fill: list[tuple[str, str, list[str]]]) -> None:
         print(f"    {name or aid:45} {dict(by)}")
 
 
+def _capture_verdict_snapshot(path: str | None, *, quiet: bool = False) -> dict:
+    """Capture the exact no-follow sidecar bytes used by this parking roll."""
+    canonical = Path(path or _parking_verdicts.DEFAULT_PATH).expanduser().absolute()
+    try:
+        data = _trusted_filesystem.read_regular_bytes(canonical)
+    except FileNotFoundError:
+        if not quiet:
+            print(f"  verdicts {canonical}: not present — skipping")
+        return {"path": canonical, "exists": False, "data": None, "verdicts": None}
+    try:
+        verdicts = _parking_verdicts.strict_verdicts_bytes(
+            data, f"parking verdict sidecar {canonical}",
+        )
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            f"existing parking verdict sidecar is invalid: {canonical}: {error}"
+        ) from error
+    if not quiet and verdicts is not None:
+        print(f"  verdicts {canonical}: {len(verdicts)} judged lot(s), "
+              f"{verdicts.count('KEEP')} keep / {verdicts.count('DROP')} drop / "
+              f"{verdicts.count('REVIEW')} review")
+    return {
+        "path": canonical,
+        "exists": True,
+        "data": data,
+        "verdicts": verdicts,
+    }
+
+
+def _same_verdict_snapshot(first: dict, second: dict) -> bool:
+    return (first["path"] == second["path"]
+            and first["exists"] == second["exists"]
+            and first["data"] == second["data"])
+
+
 def process(state_codes: list[str], dry_run: bool, use_federal: bool = True,
             pool_sidecar: str | None = None, local=None,
             local_boundaries: bool = False, verdicts_path: str | None = None) -> bool:
@@ -1384,7 +1431,8 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True,
     `verdicts_path` is the parking-verdicts sidecar (default: the committed
     one). Its DROPs are removed from the state-wide candidates before any area
     is assigned; a missing file is not an error."""
-    verdicts = _parking_verdicts.load(verdicts_path)
+    verdict_snapshot = _capture_verdict_snapshot(verdicts_path)
+    verdicts = verdict_snapshot["verdicts"]
     groups = geom_by_state()
     # {STATE: [lot, ...]} for the global pool — populated only when a sidecar
     # path was asked for, and replaced per state so a single-state run cannot
@@ -1408,6 +1456,8 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True,
     updated = 0      # had parking, lots changed
     cleared = 0      # had parking, no longer qualifies -> key removed
     boundary_failed = False
+    geom_source_bytes: dict[Path, bytes] = {}
+    pending_area_writes: list[tuple[Path, dict]] = []
     for code in state_codes:
         name = STATE_NAMES.get(code.upper())
         files = groups.get(name, []) if name else []
@@ -1476,7 +1526,9 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True,
         # fill blanks from federal sources below, and want one write per file.
         state_areas: list[tuple[Path, dict, list]] = []
         for f in files:
-            geom = json.loads(f.read_text())
+            source_bytes = _trusted_filesystem.read_regular_bytes(f)
+            geom = json.loads(source_bytes)
+            geom_source_bytes[f] = source_bytes
             if not geom.get("trails") or not geom.get("bbox"):
                 continue
             rings = rings_by_area.get(f.stem)
@@ -1595,30 +1647,55 @@ def process(state_codes: list[str], dry_run: bool, use_federal: bool = True,
                           f"source would newly fill is still missing.",
                           file=sys.stderr)
 
-        # Pass 3 — record + write (one write per changed file).
+        # Pass 3 records the complete candidate set but defers every geom write.
+        # One lease after all states finish binds the exact sidecar bytes, all
+        # source geom bytes, the geom EX lock, and the persistent live journal.
         for f, geom, kept in state_areas:
             per_area.append((f.stem, kept))
             area_counts[f.stem] = len(kept)
             clean = _strip_internal(kept)
             had = geom.get("parking")
             outcome = _classify_write(had, clean)
-            if outcome:
-                # Classify BEFORE writing: clearing a stale key is a legitimate
-                # outcome (better than leaving pins for parking that no longer
-                # qualifies) but it must never be reported as if parking were
-                # added.
-                if outcome == "added":
-                    added += 1
-                elif outcome == "updated":
-                    updated += 1
+            if not outcome:
+                continue
+            if outcome == "added":
+                added += 1
+            elif outcome == "updated":
+                updated += 1
+            else:
+                cleared += 1
+            if not dry_run:
+                if clean:
+                    geom["parking"] = clean
                 else:
-                    cleared += 1
-                if not dry_run:
-                    if clean:
-                        geom["parking"] = clean
-                    else:
-                        geom.pop("parking", None)
-                    f.write_text(json.dumps(geom))
+                    geom.pop("parking", None)
+                pending_area_writes.append((f, geom))
+
+    if not dry_run and pending_area_writes:
+        with _parking_geom_guard.geom_writer(
+                GEOM_DIR,
+                additional_resource_modes=((
+                    verdict_snapshot["path"], fcntl.LOCK_SH,
+                ),)):
+            current_verdicts = _capture_verdict_snapshot(
+                str(verdict_snapshot["path"]), quiet=True,
+            )
+            if not _same_verdict_snapshot(verdict_snapshot, current_verdicts):
+                raise RuntimeError(
+                    "parking verdict sidecar changed before parking commit; "
+                    "refusing all geom writes"
+                )
+            drifted = [
+                path.name for path, before in geom_source_bytes.items()
+                if _trusted_filesystem.read_regular_bytes(path) != before
+            ]
+            if drifted:
+                raise RuntimeError(
+                    "canonical geom changed before parking commit: "
+                    + ", ".join(sorted(drifted)[:12])
+                )
+            for path, document in pending_area_writes:
+                _parking_geom_guard.atomic_write_json(path, document)
 
     if pool_sidecar is not None:
         write_pool_sidecar(pool_sidecar, pool_by_state, dry_run)
@@ -1702,10 +1779,16 @@ def main() -> None:
         local = LocalOSM(cache_dir=args.local_cache or None)
         print(f"local OSM cache: {local.dir}")
 
-    golden_ok = process(codes, args.dry_run, use_federal=not args.no_federal,
-                        pool_sidecar=args.pool_sidecar, local=local,
-                        local_boundaries=args.local_boundaries,
-                        verdicts_path=args.verdicts)
+    try:
+        golden_ok = process(
+            codes, args.dry_run, use_federal=not args.no_federal,
+            pool_sidecar=args.pool_sidecar, local=local,
+            local_boundaries=args.local_boundaries,
+            verdicts_path=args.verdicts,
+        )
+    except _parking_geom_guard.LiveSweepInProgress as error:
+        print(f"REFUSING: {error}", file=sys.stderr)
+        sys.exit(2)
     if not golden_ok:
         sys.exit(2)
 

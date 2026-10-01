@@ -64,6 +64,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import unicodedata
 from typing import Iterable
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -252,6 +253,164 @@ class Verdicts:
         that matches more closely shields the lot (see `match`)."""
         hit = self.match(lot)
         return hit if hit is not None and hit["verdict"] == "DROP" else None
+
+
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key {key!r}")
+        result[key] = value
+    return result
+
+
+def _reject_nonfinite(token: str):
+    raise ValueError(f"non-finite JSON number {token}")
+
+
+def _finite_coordinate(value: object, minimum: float, maximum: float,
+                       field: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{field} must be a nonboolean number")
+    number = float(value)
+    if not math.isfinite(number) or not minimum <= number <= maximum:
+        raise ValueError(f"{field} must be finite and in [{minimum}, {maximum}]")
+    return number
+
+
+def _validate_matching_ring(ring: object, field: str) -> list[list[float]]:
+    if not isinstance(ring, list) or len(ring) < 4:
+        raise ValueError(f"{field} must contain at least four points")
+    coordinates = []
+    for index, point in enumerate(ring):
+        if not isinstance(point, list) or len(point) != 2:
+            raise ValueError(f"{field}[{index}] must be [lat, lon]")
+        coordinates.append([
+            _finite_coordinate(point[0], -90.0, 90.0, f"{field}[{index}][0]"),
+            _finite_coordinate(point[1], -180.0, 180.0, f"{field}[{index}][1]"),
+        ])
+    if coordinates[0] != coordinates[-1]:
+        raise ValueError(f"{field} must be explicitly closed")
+    distinct = {tuple(point) for point in coordinates[:-1]}
+    if len(distinct) < 3:
+        raise ValueError(f"{field} must contain at least three distinct vertices")
+    twice_area = abs(sum(
+        first[1] * second[0] - second[1] * first[0]
+        for first, second in zip(coordinates, coordinates[1:])
+    ))
+    if twice_area <= 1e-15:
+        raise ValueError(f"{field} is a degenerate zero-area polygon")
+    lats = [point[0] for point in distinct]
+    lons = [point[1] for point in distinct]
+    latitude = (min(lats) + max(lats)) / 2
+    diagonal = math.hypot(
+        (max(lats) - min(lats)) * 111_320.0,
+        (max(lons) - min(lons)) * 111_320.0
+        * math.cos(math.radians(latitude)),
+    )
+    if diagonal > 2_000.0:
+        raise ValueError(f"{field} diagonal {diagonal:.2f} m exceeds 2000 m")
+    return coordinates
+
+
+def _reject_control_text(value: object, field: str) -> None:
+    if isinstance(value, str):
+        if any(unicodedata.category(character) in {"Cc", "Cf", "Zl", "Zp"}
+               for character in value):
+            raise ValueError(f"{field} contains forbidden control text")
+    elif isinstance(value, dict):
+        for key, child in value.items():
+            _reject_control_text(key, f"{field} key")
+            _reject_control_text(child, f"{field}.{key!r}")
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            _reject_control_text(child, f"{field}[{index}]")
+
+
+def strict_verdicts_document(document: object,
+                             label: str = "parking verdict sidecar") -> Verdicts:
+    """Validate every matching field before a mutating consumer uses it."""
+    _reject_control_text(document, label)
+    if not isinstance(document, dict):
+        raise ValueError(f"{label} root must be an object")
+    if type(document.get("version")) is not int or document["version"] != VERSION:
+        raise ValueError(f"{label} version must be integer {VERSION}")
+    if "about" in document and not isinstance(document["about"], str):
+        raise ValueError(f"{label} about must be a string")
+    lots = document.get("lots")
+    if not isinstance(lots, dict):
+        raise ValueError(f"{label} lots must be an object")
+    aliases = {}
+    for key, entry in lots.items():
+        entry_label = f"{label} lot {key!r}"
+        if not isinstance(key, str) or not key or not isinstance(entry, dict):
+            raise ValueError(f"{entry_label} key and entry must be nonempty/object")
+        if entry.get("verdict") not in ("KEEP", "DROP", "REVIEW"):
+            raise ValueError(f"{entry_label} verdict is invalid")
+        lat = _finite_coordinate(entry.get("lat"), -90.0, 90.0, f"{entry_label}.lat")
+        lon = _finite_coordinate(entry.get("lon"), -180.0, 180.0, f"{entry_label}.lon")
+        osm = entry.get("osm")
+        if (not isinstance(osm, list) or not osm
+                or any(not isinstance(alias, str) or not alias for alias in osm)
+                or len(osm) != len(set(osm)) or osm[0] != key):
+            raise ValueError(f"{entry_label}.osm is not one canonical alias vector")
+        for alias in osm:
+            previous = aliases.setdefault(alias, key)
+            if previous != key:
+                raise ValueError(
+                    f"{entry_label}.osm alias {alias!r} is also owned by {previous!r}"
+                )
+        rings = entry.get("rings")
+        if not isinstance(rings, list):
+            raise ValueError(f"{entry_label}.rings must be a list")
+        normalized_rings = [
+            _validate_matching_ring(ring, f"{entry_label}.rings[{index}]")
+            for index, ring in enumerate(rings)
+        ]
+        if normalized_rings and not any(
+                point_in_ring(lat, lon, ring)
+                or dist_to_ring_m(lat, lon, ring) <= 100.0
+                for ring in normalized_rings):
+            raise ValueError(
+                f"{entry_label}.rings are more than 100 m from the verdict position"
+            )
+        reason = entry.get("reason")
+        if reason is not None and not isinstance(reason, str):
+            raise ValueError(f"{entry_label}.reason must be a string or null")
+        if entry["verdict"] == "DROP" and not reason:
+            raise ValueError(f"{entry_label} DROP reason must be nonempty")
+        evidence = entry.get("evidence")
+        if (not isinstance(evidence, dict)
+                or any(not isinstance(axis, str) or not isinstance(text, str)
+                       for axis, text in evidence.items())):
+            raise ValueError(f"{entry_label}.evidence must map strings to strings")
+        for field in ("name", "area", "prior", "confidence", "judged", "src"):
+            if (field in entry and entry[field] is not None
+                    and not isinstance(entry[field], str)):
+                raise ValueError(f"{entry_label}.{field} must be a string or null")
+        if "coverage_gap" in entry and not isinstance(entry["coverage_gap"], bool):
+            raise ValueError(f"{entry_label}.coverage_gap must be boolean")
+        if ("resolve_hint" in entry and entry["resolve_hint"] is not None
+                and not isinstance(entry["resolve_hint"], str)):
+            raise ValueError(f"{entry_label}.resolve_hint must be a string or null")
+        if "override" in entry and not isinstance(entry["override"], dict):
+            raise ValueError(f"{entry_label}.override must be an object")
+    return Verdicts(document)
+
+
+def strict_verdicts_bytes(data: bytes,
+                          label: str = "parking verdict sidecar") -> Verdicts:
+    """Parse duplicate-free finite UTF-8 JSON and validate every verdict row."""
+    if not isinstance(data, bytes):
+        raise TypeError(f"{label} input must be bytes")
+    try:
+        document = json.loads(
+            data.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys,
+            parse_constant=_reject_nonfinite,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+        raise ValueError(f"{label} is not strict JSON: {error}") from error
+    return strict_verdicts_document(document, label)
 
 
 def load(path: str | os.PathLike | None = None, *, quiet: bool = False) -> Verdicts | None:

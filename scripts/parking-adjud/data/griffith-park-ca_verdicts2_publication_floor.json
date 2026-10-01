@@ -1,0 +1,17 @@
+{
+  "entries": {},
+  "floor_sha256": "46267586adf833239021602a20356df1a3e1720909229fdd0ff14980fbd16f2f",
+  "kind": "parking-publication-floor",
+  "schema": {
+    "canonical_json": "utf-8-sort-keys-compact-no-nan-v1",
+    "entry_identity": [
+      "first_authority_kind",
+      "first_authority_sha256",
+      "first_attestation_sha256",
+      "first_proof_sha256"
+    ],
+    "floor_sha256": "sha256-canonical-json-without-self-hash"
+  },
+  "store": "griffith-park-ca_verdicts2.json",
+  "version": 1
+}

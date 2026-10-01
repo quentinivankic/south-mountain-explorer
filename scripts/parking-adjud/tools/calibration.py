@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Calibration ledger: how often does the human agree with the judge?
 
-The judge fan-out produces verdicts; a human eyeballs some of them and flips a
-few (`merge_drafts.py --set`). This ledger records, per area, what the judge
+The judge fan-out produces verdicts; a human reviews some of them and records
+receipt-bound changes with `merge_drafts.py --decide` or same-verdict
+affirmations with `--confirm`. This ledger records, per area, what the judge
 said (by verdict and confidence), which verdict classes the human reviewed one
 lot at a time versus accepted en bloc, and every flip. The report turns that
 into agreement rates with a 95% upper bound on the miss rate, per class, so
@@ -14,13 +15,14 @@ number instead of a feeling.
         --sample-fids 3,17,42 [--spot FID ...] [--note TEXT] [--date YYYY-MM-DD]
     python3 tools/calibration.py report [--target 0.02] [--min-n 100]
 
-`add` reads the area's verdict drafts (after the overrides are applied) and
-appends one record to `data/calibration.json`; the judge is scored on its
-ORIGINAL call (an overridden entry counts under `override.from`). A class the
-human only accepted en bloc is recorded but not counted as reviewed: silence
-is not agreement. `--reviewed KEEP=sample --sample-fids 3,17,...` says the
-human went through exactly those lots one by one (the sheet's SAMPLE cards);
-only they enter the KEEP denominator. Re-adding an area replaces its record.
+`add` reads the area's verdict drafts after receipt-bound authority is applied
+and appends one record to `data/calibration.json`; the judge is scored on its
+ORIGINAL call via `original_judge_projection()` (`override.from_decision` for
+versioned decisions). A class the human only accepted en bloc is recorded but not
+counted as reviewed: silence is not agreement. `--reviewed KEEP=sample
+--sample-fids 3,17,...` says the human went through exactly those lots one by
+one (the sheet's SAMPLE cards); only they enter the KEEP denominator.
+Re-adding an area replaces its record.
 
 `report` prints, per (judge verdict, confidence): lots judged, lots the human
 reviewed one at a time, flips, agreement, and the Wilson 95% upper bound on the
@@ -53,6 +55,7 @@ from judge_validation import (  # noqa: E402
     original_judge_projection,
 )
 import trust_resolution as tr  # noqa: E402
+import trusted_filesystem as trusted_fs  # noqa: E402
 
 PADJ_TMP = os.environ.get("PADJ_TMP") or os.path.join(_HERE, "..", "work")
 LEDGER = os.environ.get("PADJ_CALIBRATION") or os.path.join(_HERE, "..", "data", "calibration.json")
@@ -120,7 +123,7 @@ def load_sample_manifest(tmp: str, slug: str, drafts: list[dict]) -> tuple[list[
     if not isinstance(value, dict) or value.get("version") != 1 or value.get("area") != slug:
         sys.exit(f"{path} is not a version-1 sample manifest for {slug}")
     sample = value.get("sample")
-    if (not isinstance(sample, list) or any(not isinstance(fid, int) for fid in sample)
+    if (not isinstance(sample, list) or any(type(fid) is not int for fid in sample)
             or len(sample) != len(set(sample))):
         sys.exit(f"{path} has invalid sample fids")
     packets_path = Path(tmp, f"{slug}_packets.json")
@@ -133,9 +136,54 @@ def load_sample_manifest(tmp: str, slug: str, drafts: list[dict]) -> tuple[list[
     return sample, hashlib.sha256(raw).hexdigest()
 
 
+def load_sample_review_receipt(path: Path, slug: str,
+                               drafts: list[dict]) -> tuple[list[int], str]:
+    """Validate the canonical frozen review chain and return its sampled fids."""
+    import resolve_trust as resolver  # lazy to avoid widening report-only imports
+
+    if not path.is_absolute():
+        sys.exit("--review-receipt must be a canonical absolute path")
+    try:
+        receipt_bytes = trusted_fs.read_regular_bytes(
+            path, require_owner_only=True
+        )
+        receipt = json.loads(receipt_bytes)
+        if not isinstance(receipt, dict):
+            raise ValueError("review receipt root is not an object")
+        source_run_path = receipt.get("source_run_path")
+        if not isinstance(source_run_path, str):
+            raise ValueError("review receipt has no source run path")
+        context = resolver.load_review_receipt(
+            path, Path(source_run_path), slug
+        )
+    except (OSError, ValueError, TypeError, json.JSONDecodeError) as error:
+        sys.exit(f"sample review receipt is invalid: {error}")
+    validated = context["receipt"]
+    items = validated["items"]
+    by_fid = {entry.get("fid"): entry for entry in drafts}
+    if len(by_fid) != len(drafts) or None in by_fid:
+        sys.exit("drafts contain duplicate or missing fids")
+    if [item["fid"] for item in items] != sorted(by_fid):
+        sys.exit("sample review receipt does not cover the current draft population")
+    for item in items:
+        projected, errors = original_judge_projection(by_fid[item["fid"]])
+        if (errors or projected is None
+                or tr.decision_projection(projected)
+                != tr.decision_projection(item["primary"]["decision"])):
+            sys.exit(
+                f"sample review receipt fid {item['fid']} does not match the "
+                "current original judge call"
+            )
+    return (
+        list(validated["sample"]["selected_fids"]),
+        validated["receipt_sha256"],
+    )
+
+
 def record_for(slug: str, drafts: list[dict], reviewed: dict[str, str], spots: list[int],
                note: str | None, date: str, judge: str, sample_fids: list[int] = (),
-               sample_manifest_sha256: str | None = None) -> dict:
+               sample_manifest_sha256: str | None = None,
+               sample_review_receipt_sha256: str | None = None) -> dict:
     by_fid = {entry.get("fid"): entry for entry in drafts}
     if len(by_fid) != len(drafts) or None in by_fid:
         sys.exit("drafts contain duplicate or missing fids")
@@ -201,7 +249,10 @@ def record_for(slug: str, drafts: list[dict], reviewed: dict[str, str], spots: l
         rec["sample"] = {verdict: dict(sorted(sampled[verdict].items()))
                          for verdict in VERDICTS if sampled.get(verdict)}
         rec["sample_fids"] = sorted(sample_set)
-        rec["sample_manifest_sha256"] = sample_manifest_sha256
+        if sample_review_receipt_sha256 is not None:
+            rec["sample_review_receipt_sha256"] = sample_review_receipt_sha256
+        elif sample_manifest_sha256 is not None:
+            rec["sample_manifest_sha256"] = sample_manifest_sha256
     return rec
 
 
@@ -344,30 +395,64 @@ def _add_command(args) -> dict:
         reviewed[verdict] = mode
     resource_lock = tr.resource_lock_path(PADJ_TMP, LEDGER)
     area_lock = tr.area_lock_path(PADJ_TMP, args.slug)
-    resource_lock.parent.mkdir(parents=True, exist_ok=True)
-    area_lock.parent.mkdir(parents=True, exist_ok=True)
     # Global resource first, then area: every writer uses this order.
-    with open(resource_lock, "a+b") as resource_handle:
+    with trusted_fs.open_lock_file(resource_lock) as resource_handle:
         fcntl.flock(resource_handle.fileno(), fcntl.LOCK_EX)
-        with open(area_lock, "a+b") as area_handle:
+        with trusted_fs.open_lock_file(area_lock) as area_handle:
             fcntl.flock(area_handle.fileno(), fcntl.LOCK_EX)
+            if tr.authority_journal_path(PADJ_TMP, args.slug).exists():
+                sys.exit(
+                    "RECOVERY_REQUIRED: live human-authority journal blocks "
+                    "calibration writes"
+                )
             ledger = load_ledger()
             drafts = load_drafts(PADJ_TMP, args.slug)
             declared_sample = [verdict for verdict, mode in reviewed.items() if mode == "sample"]
             typed_sample = [int(x) for x in args.sample_fids.split(",") if x.strip()]
             sample_fids: list[int] = []
             sample_manifest_sha = None
+            sample_review_receipt_sha = None
             if declared_sample:
-                sample_fids, sample_manifest_sha = load_sample_manifest(PADJ_TMP, args.slug, drafts)
+                if len(declared_sample) != 1 or declared_sample[0] != "KEEP":
+                    sys.exit("canonical review receipts can sample only original judge KEEP calls")
+                if args.legacy_sample_manifest:
+                    if args.review_receipt is not None:
+                        sys.exit(
+                            "--legacy-sample-manifest and --review-receipt are mutually exclusive"
+                        )
+                    sample_fids, sample_manifest_sha = load_sample_manifest(
+                        PADJ_TMP, args.slug, drafts
+                    )
+                else:
+                    if args.review_receipt is None:
+                        sys.exit(
+                            "sample review requires --review-receipt PATH; use "
+                            "--legacy-sample-manifest only for explicit legacy replay"
+                        )
+                    sample_fids, sample_review_receipt_sha = (
+                        load_sample_review_receipt(
+                            args.review_receipt, args.slug, drafts
+                        )
+                    )
                 if typed_sample and typed_sample != sample_fids:
-                    sys.exit(f"--sample-fids must exactly match the immutable manifest: {sample_fids}")
+                    sys.exit(f"--sample-fids must exactly match the review receipt: {sample_fids}")
             elif typed_sample:
                 sys.exit("--sample-fids requires --reviewed VERDICT=sample")
-            rec = record_for(args.slug, drafts, reviewed, args.spot, args.note, args.date,
-                             args.judge, sample_fids, sample_manifest_sha)
+            elif args.review_receipt is not None or args.legacy_sample_manifest:
+                sys.exit(
+                    "--review-receipt/--legacy-sample-manifest requires "
+                    "--reviewed KEEP=sample"
+                )
+            rec = record_for(
+                args.slug, drafts, reviewed, args.spot, args.note, args.date,
+                args.judge, sample_fids, sample_manifest_sha,
+                sample_review_receipt_sha,
+            )
             ledger["areas"] = [x for x in ledger["areas"] if x["area"] != args.slug] + [rec]
-            os.makedirs(os.path.dirname(LEDGER), exist_ok=True)
-            json.dump(ledger, open(LEDGER, "w"), indent=1, ensure_ascii=False)
+            ledger_bytes = json.dumps(
+                ledger, indent=1, ensure_ascii=False
+            ).encode("utf-8")
+            trusted_fs.atomic_write_bytes(Path(LEDGER), ledger_bytes)
     print(f"recorded {args.slug}: {rec['n']} judged, {rec['judged']}, "
           f"{len(rec['flips'])} flip(s), reviewed {reviewed}")
     print(f"wrote {LEDGER}")
@@ -385,8 +470,11 @@ def main(argv=None) -> int:
     a.add_argument("--spot", type=int, action="append", default=[], metavar="FID",
                    help="fids the integrator spot-read independently of the human")
     a.add_argument("--sample-fids", default="", metavar="FID,FID,...",
-                   help="the lots the human reviewed one by one inside a `sample` class "
-                        "(judge_review_sheet.py --sample draws and prints them)")
+                   help="optional assertion matching the receipt-derived sample")
+    a.add_argument("--review-receipt", type=Path,
+                   help="canonical frozen review receipt for sample calibration")
+    a.add_argument("--legacy-sample-manifest", action="store_true",
+                   help="explicitly replay the obsolete <slug>_keep_sample.json path")
     a.add_argument("--note")
     a.add_argument("--date", default=_dt.date.today().isoformat())
     a.add_argument("--judge", default="agent-fanout")

@@ -15,10 +15,11 @@ For each lot: the smallest landuse/leisure/amenity AREA that contains it (the
 ground it sits on), plus the nearest classifying POI within 120 m. Emits
 <slug>_context.json {fid:{category, in_area, nearest_poi, evidence}}.
 Usage: python3 context_classify.py"""
-import json, math, glob, os, sys, collections
+import math, glob, os, sys, collections
 import osmium, shapely.wkb
 from shapely.geometry import Point
 from shapely.strtree import STRtree
+import dossier_output
 # --- portable paths (added when these tools were graduated into the repo) -----
 # PADJ_TMP   working dir holding <slug>_dossier.json etc.  default: ../work
 # PADJ_GEOM  shipped trail geom                            default: <repo>/public/areas/geom
@@ -91,7 +92,11 @@ def run(pbf,slugs):
     for i,(la,lo,cat,lab,nm) in enumerate(h.pts): grid[cell(la,lo)].append(i)
     def m2deg(m): return m/111320.0
     for slug in slugs:
-        dos=json.load(open(f"{TMP}/{slug}_dossier.json")); out={}
+        slug=dossier_output.canonical_area(slug)
+        dos,source_dossier_bytes,source_dossier_sha256=(
+            dossier_output.capture_producer_dossier(TMP,slug)
+        )
+        out={}
         for f in dos["facilities"]:
             la,lo=f["lat"],f["lon"]; pt=Point(lo,la)
             # nearest FACILITY area by EDGE distance (adjacency, not just containment)
@@ -138,7 +143,12 @@ def run(pbf,slugs):
                 category="NEUTRAL"; ev=""
             out[str(f["fid"])]={"category":category,"evidence":ev,"fac_area_m":fac_m,
                                 "fac_label":(fac[1][2] if fac else None)}
-        json.dump(out,open(f"{TMP}/{slug}_context.json","w"),indent=0)
+        dossier_output.write_context_output(
+            TMP,slug,
+            source_dossier_bytes=source_dossier_bytes,
+            source_dossier_sha256=source_dossier_sha256,
+            dossier=dos,context=out,
+        )
         cc=collections.Counter(v["category"] for v in out.values())
         print(f"{slug}: {dict(cc)}")
 def main():

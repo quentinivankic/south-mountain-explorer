@@ -3,7 +3,17 @@
 highways), sources = <slug>_dossier.json facilities, targets = our shipped trail
 vertices from every geom overlapping the area bbox. Writes <slug>_walk.json and
 joins walk_m into the dossier. Usage: python3 foot_route_area.py <slug>"""
-import osmium, math, json, heapq, collections, glob, os, sys
+import collections
+import heapq
+import math
+import os
+import sys
+
+import osmium
+
+import dossier_output
+import geom_source
+
 # --- portable paths (added when these tools were graduated into the repo) -----
 # PADJ_TMP   working dir holding <slug>_dossier.json etc.  default: ../work
 # PADJ_GEOM  shipped trail geom                            default: <repo>/public/areas/geom
@@ -35,8 +45,17 @@ class G(osmium.SimpleHandler):
             s.adj[A[0]].append((B[0],L,meta)); s.adj[B[0]].append((A[0],L,meta))
             s.coords[A[0]]=(A[1],A[2]); s.coords[B[0]]=(B[1],B[2])
 def main(slug):
-    dos=json.load(open(f"{TMP}/{slug}_dossier.json")); b=dos["bbox"]
+    slug=dossier_output.canonical_area(slug)
+    dos,source_dossier_bytes,source_dossier_sha256=(
+        dossier_output.capture_producer_dossier(TMP,slug)
+    )
+    b=dos["bbox"]
     RBOX=(b[0]-0.06,b[1]-0.06,b[2]+0.06,b[3]+0.06)
+    geom_inventory=geom_source.load_geom_inventory(GEOMDIR)
+    relevant_geoms=geom_source.relevant_trail_documents(
+        geom_inventory,
+        (RBOX[0]-0.02,RBOX[1]-0.02,RBOX[2]+0.02,RBOX[3]+0.02),
+    )
     g=G(); g.apply_file(f"{TMP}/{slug}_ctx.osm.pbf",locations=True); coords=g.coords; adj=g.adj
     print(f"network: {len(coords)} nodes")
     def cell(la,lo): return (int(la*1000),int(lo*1000))
@@ -50,16 +69,13 @@ def main(slug):
                     d=hav(la,lo,*coords[nid])
                     if d<bd: bd=d; best=nid
         return best,bd
-    def bbox_hit(bb): return bool(bb) and not (bb[2]<RBOX[0]-0.02 or bb[0]>RBOX[2]+0.02 or bb[3]<RBOX[1]-0.02 or bb[1]>RBOX[3]+0.02)
     targets=[]
-    for fn in glob.glob(GEOMDIR+"/*.json"):
-        try: d=json.load(open(fn))
-        except Exception: continue
-        if not bbox_hit(d.get("bbox")): continue
-        for tr in d.get("trails",[]):
+    for entry in relevant_geoms:
+        for tr in entry.document["trails"]:
             nm=tr.get("name") or "(unnamed)"
-            for s in tr["segments"]:
-                for v in s: targets.append((v[0],v[1],nm))
+            for segment in tr["segments"]:
+                for vertex in segment:
+                    targets.append((vertex[0],vertex[1],nm))
     trailnodes=set(); nodename={}
     for la,lo,nm in targets:
         nid,dd=nearest(la,lo,30)
@@ -83,8 +99,14 @@ def main(slug):
         else:
             out[str(f["fid"])]={"walk_m":round(walk),"conn":"","trail":nodename.get(nid)}
         f["walk"]=out[str(f["fid"])]
-    json.dump(out,open(f"{TMP}/{slug}_walk.json","w"))
-    json.dump(dos,open(f"{TMP}/{slug}_dossier.json","w"))
+    dossier_output.write_walk_outputs(
+        TMP,slug,
+        source_dossier_bytes=source_dossier_bytes,
+        source_dossier_sha256=source_dossier_sha256,
+        dossier=dos,walk=out,
+    )
     n=sum(1 for v in out.values() if v["walk_m"] is not None)
     print(f"walk joined into dossier: {n}/{len(out)} routed")
-if __name__=="__main__": raise SystemExit(main(sys.argv[1]))
+if __name__=="__main__":
+    if len(sys.argv)!=2: raise SystemExit("usage: foot_route_area.py <slug>")
+    raise SystemExit(main(sys.argv[1]))

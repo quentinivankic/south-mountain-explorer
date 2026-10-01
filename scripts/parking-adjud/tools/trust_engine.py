@@ -17,10 +17,23 @@ from collections import Counter, defaultdict
 from typing import Iterable
 
 from calibration import n_for_target, wilson_upper
-from judge_validation import original_judge_projection, validate_verdict_row
+from judge_validation import (
+    LEGACY_OVERRIDE_VERSION,
+    OVERRIDE_VERSION,
+    authority_wrapper,
+    original_judge_projection,
+    validate_verdict_row,
+)
 import trust_resolution as resolution
 
-POLICY_VERSION = "parking-trust-shadow-v1"
+REPORT_VERSION = 2
+POLICY_VERSION = "parking-trust-shadow-v2"
+PRIMARY_PROMOTION_IDENTITY_FIELDS = (
+    "policy_id", "model_family", "model_id", "prompt_sha256",
+)
+UNAUTHENTICATED_PRIMARY_IDENTITY_DIMENSIONS = (
+    "provider", "build", "normative_document_sha256",
+)
 KEEP_ERROR_TARGET = 0.01
 DROP_ERROR_TARGET = 0.02
 MIN_REVIEWED_AREAS = 3
@@ -147,6 +160,52 @@ def _primary_provenance_errors(original: dict) -> list[str]:
     return errors
 
 
+def _primary_promotion_identity(original: object) -> dict | None:
+    """Return the exact authenticated identity that may earn promotion credit.
+
+    The shadow policy ID is host/code-owned. Current judge provenance binds the
+    model family, model ID, and prompt hash, but does not bind provider, build,
+    or normative-document hashes. Those unavailable dimensions are never
+    represented by an ``unknown`` wildcard; callers must rotate one of the
+    authenticated identity fields when any unavailable dimension changes.
+    """
+    if not isinstance(original, dict):
+        return None
+    provenance = original.get("judge_provenance")
+    if not isinstance(provenance, dict):
+        return None
+    policy_id = _identity_key(POLICY_VERSION)
+    model_family = _identity_key(provenance.get("model_family"))
+    model_id = _identity_key(provenance.get("model_id"))
+    prompt_sha256 = provenance.get("prompt_sha256")
+    if (policy_id is None or model_family is None or model_id is None
+            or not isinstance(prompt_sha256, str)
+            or re.fullmatch(r"[0-9a-f]{64}", prompt_sha256) is None):
+        return None
+    return {
+        "policy_id": policy_id,
+        "model_family": model_family,
+        "model_id": model_id,
+        "prompt_sha256": prompt_sha256,
+    }
+
+
+def _promotion_identity_key(identity: object) -> tuple[str, str, str, str] | None:
+    if not isinstance(identity, dict) or set(identity) != set(
+            PRIMARY_PROMOTION_IDENTITY_FIELDS):
+        return None
+    values = tuple(identity.get(field) for field in PRIMARY_PROMOTION_IDENTITY_FIELDS)
+    if not all(isinstance(value, str) for value in values):
+        return None
+    policy_id, model_family, model_id, prompt_sha256 = values
+    if (_identity_key(policy_id) != policy_id
+            or _identity_key(model_family) != model_family
+            or _identity_key(model_id) != model_id
+            or re.fullmatch(r"[0-9a-f]{64}", prompt_sha256) is None):
+        return None
+    return policy_id, model_family, model_id, prompt_sha256
+
+
 def _promotion_reference(item: dict, area_record: dict, original: dict | None) -> dict:
     """Validate one per-decision blind independent reference label.
 
@@ -159,6 +218,7 @@ def _promotion_reference(item: dict, area_record: dict, original: dict | None) -
     result = {
         "valid": False,
         "reference_verdict": None,
+        "reviewer_id": None,
         "reviewer_family": None,
         "error": False,
         "errors": [],
@@ -259,6 +319,7 @@ def _promotion_reference(item: dict, area_record: dict, original: dict | None) -
     result.update({
         "valid": True,
         "reference_verdict": review["reference_verdict"],
+        "reviewer_id": reviewer_id_key,
         "reviewer_family": reviewer_family_key,
         "error": review["reference_verdict"] != original.get("verdict"),
     })
@@ -277,13 +338,20 @@ def _review_status(item: dict, ledger_by_area: dict[str, dict], original: dict |
     binary = reviewed and verdict in ("KEEP", "DROP")
     reference = _promotion_reference(item, rec, original)
     effective = item.get("row", {}).get("verdict")
+    locally_valid_promotion = binary and reference["valid"]
     return {
         "mode": mode,
         "reviewed": reviewed,
         "binary": binary,
-        "promotion_evidence": binary and reference["valid"],
-        "promotion_error": binary and reference["valid"] and reference["error"],
+        "promotion_evidence_locally_valid": locally_valid_promotion,
+        "promotion_error_locally_valid": (
+            locally_valid_promotion and reference["error"]
+        ),
+        "promotion_evidence": locally_valid_promotion,
+        "promotion_error": locally_valid_promotion and reference["error"],
+        "promotion_reviewer_id": reference["reviewer_id"],
         "promotion_reviewer_family": reference["reviewer_family"],
+        "promotion_reviewer_family_conflict": None,
         "promotion_reference_verdict": reference["reference_verdict"],
         "promotion_provenance_errors": reference["errors"],
         "deferred": reviewed and verdict == "REVIEW",
@@ -294,21 +362,69 @@ def _review_status(item: dict, ledger_by_area: dict[str, dict], original: dict |
 def analyse_item(item: dict, ledger_by_area: dict[str, dict]) -> dict:
     """Return deterministic evidence/risk facts for one canonical lot cluster."""
     row = item["row"]
-    errors, projection = validate_verdict_row(row)
+    packet = item.get("packet") if isinstance(item.get("packet"), dict) else {}
+    errors, projection = validate_verdict_row(row, packet or None)
+    attestation = row.get("publication_attestation")
+    publication_authority_verified = (
+        isinstance(attestation, dict)
+        and isinstance(attestation.get("attestation_sha256"), str)
+        and item.get("published_authority_attestation_sha256")
+        == attestation["attestation_sha256"]
+    )
+    if publication_authority_verified:
+        errors = [
+            error for error in errors
+            if not error.startswith("cannot verify trust_resolution packet bytes")
+            and not error.startswith("cannot verify human authority packet bytes")
+        ]
     if projection is None:
         projection, projection_errors = original_judge_projection(row)
         errors = list(errors) + list(projection_errors)
     original = projection if isinstance(projection, dict) else row
     primary_provenance_errors = _primary_provenance_errors(original)
+    primary_promotion_identity = _primary_promotion_identity(original)
     review = _review_status(item, ledger_by_area, original if isinstance(original, dict) else None)
 
     src = str((item.get("published") or {}).get("src") or item.get("store") or "")
     evidence = _axis_evidence(original)
     source_is_human = src.lower().startswith("user")
     evidence_is_human = bool(_HUMAN_RE.search(evidence))
-    override = isinstance(row.get("override"), dict)
+    bound_authority = authority_wrapper(row)
+    verified_receipt = False
+    if bound_authority is not None:
+        authority_kind, wrapper = bound_authority
+        claimed_receipt = wrapper.get("authority_receipt_sha256")
+        verified_receipt = (
+            isinstance(claimed_receipt, str)
+            and item.get("validated_authority_receipt_sha256") == claimed_receipt
+        )
+        if not verified_receipt:
+            errors = list(errors) + [
+                f"{authority_kind} authority receipt was not verified"
+            ]
+    override_errors = [error for error in errors if "override" in error]
+    confirmation_errors = [error for error in errors if "human_confirmation" in error]
+    override_value = row.get("override")
+    receipt_bound_override = (
+        isinstance(override_value, dict)
+        and type(override_value.get("version")) is int
+        and override_value.get("version") in (
+            LEGACY_OVERRIDE_VERSION, OVERRIDE_VERSION
+        )
+    )
+    override = (
+        isinstance(override_value, dict)
+        and not override_errors
+        and (not receipt_bound_override or (verified_receipt and not errors))
+    )
+    confirmation = (
+        isinstance(row.get("human_confirmation"), dict)
+        and not confirmation_errors
+        and verified_receipt
+        and not errors
+    )
     machine_resolved = isinstance(row.get("trust_resolution"), dict) and not errors
-    explicit_label_authority = source_is_human or review["reviewed"] or override
+    explicit_label_authority = source_is_human or review["reviewed"] or override or confirmation
     human_influenced = explicit_label_authority or evidence_is_human
 
     frames = original.get("frames_used")
@@ -316,7 +432,6 @@ def analyse_item(item: dict, ledger_by_area: dict[str, dict]) -> dict:
         axis: (original.get(axis) or {}).get("call")
         for axis in ("exists", "public", "serves")
     }
-    packet = item.get("packet") if isinstance(item.get("packet"), dict) else {}
     packet_serves = packet.get("serves") if isinstance(packet.get("serves"), dict) else {}
     packet_walk = packet.get("walk") if isinstance(packet.get("walk"), dict) else {}
     structured_walk = packet_walk.get("walk_m")
@@ -407,6 +522,7 @@ def analyse_item(item: dict, ledger_by_area: dict[str, dict]) -> dict:
         "validation_errors": sorted(set(errors)),
         "primary_provenance_valid": not primary_provenance_errors,
         "primary_provenance_errors": sorted(set(primary_provenance_errors)),
+        "primary_promotion_identity": primary_promotion_identity,
         "calls": calls,
         "walk_m": round(walk_m, 3) if walk_m is not None else None,
         "complete_ladder": complete_ladder,
@@ -416,12 +532,98 @@ def analyse_item(item: dict, ledger_by_area: dict[str, dict]) -> dict:
         "source_is_human": source_is_human,
         "evidence_is_human": evidence_is_human,
         "override": override,
+        "human_confirmation": confirmation,
         "machine_resolved": machine_resolved,
+        "publication_authority_verified": publication_authority_verified,
         "explicit_label_authority": explicit_label_authority,
         "human_influenced": human_influenced,
         "review": review,
         "candidate": {"strict": strict, "balanced": balanced},
         "risk_signals": sorted(set(risk_signals)),
+    }
+
+
+def _invalidate_reviewer_family_conflicts(analyses: list[dict]) -> list[dict]:
+    """Symmetrically remove promotion credit from relabelled reviewer IDs."""
+    families_by_id: dict[str, set[str]] = defaultdict(set)
+    rows_by_id: dict[str, list[dict]] = defaultdict(list)
+    for analysis in analyses:
+        review = analysis["review"]
+        if review.get("promotion_evidence_locally_valid") is not True:
+            continue
+        reviewer_id = review.get("promotion_reviewer_id")
+        reviewer_family = review.get("promotion_reviewer_family")
+        if not isinstance(reviewer_id, str) or not isinstance(reviewer_family, str):
+            continue
+        families_by_id[reviewer_id].add(reviewer_family)
+        rows_by_id[reviewer_id].append(analysis)
+
+    conflicts = []
+    for reviewer_id in sorted(families_by_id):
+        families = sorted(families_by_id[reviewer_id])
+        if len(families) < 2:
+            continue
+        affected = []
+        for analysis in rows_by_id[reviewer_id]:
+            review = analysis["review"]
+            review["promotion_evidence"] = False
+            review["promotion_error"] = False
+            review["promotion_reviewer_family_conflict"] = families
+            analysis["risk_signals"] = sorted(set(
+                analysis["risk_signals"] + ["promotion-reviewer-family-conflict"]
+            ))
+            affected.append({
+                "key": str(analysis["key"]),
+                "area": str(analysis["area"]),
+                "original_verdict": analysis["original_verdict"],
+                "claimed_family": review["promotion_reviewer_family"],
+            })
+        conflicts.append({
+            "reviewer_id": reviewer_id,
+            "claimed_families": families,
+            "affected_records": sorted(
+                affected,
+                key=lambda row: (
+                    row["area"], row["key"], row["original_verdict"],
+                    row["claimed_family"],
+                ),
+            ),
+        })
+    return conflicts
+
+
+def _promotion_scope_metrics(identity: dict, eligible: list[dict], target: float,
+                             min_areas: int, min_sources: int) -> dict:
+    reviewed = [row for row in eligible if row["review"]["binary"]]
+    historical_errors = sum(1 for row in reviewed if row["review"]["error"])
+    promotion_rows = [
+        row for row in eligible if row["review"]["promotion_evidence"]
+    ]
+    promotion_errors = sum(
+        1 for row in promotion_rows if row["review"]["promotion_error"]
+    )
+    areas = sorted({str(row["area"]) for row in promotion_rows})
+    reviewer_families = sorted({
+        row["review"]["promotion_reviewer_family"] for row in promotion_rows
+    })
+    promotion_upper = wilson_upper(promotion_errors, len(promotion_rows))
+    return {
+        "primary_identity": dict(identity),
+        "eligible": len(eligible),
+        "reviewed": len(reviewed),
+        "errors": historical_errors,
+        "wilson_error_upper_95": wilson_upper(historical_errors, len(reviewed)),
+        "promotion_reviewed": len(promotion_rows),
+        "promotion_errors": promotion_errors,
+        "promotion_error_upper_95": promotion_upper,
+        "promotion_reviewed_areas": areas,
+        "promotion_reviewed_reviewer_families": reviewer_families,
+        "promotion_ready": (
+            bool(promotion_rows)
+            and promotion_upper <= target
+            and len(areas) >= min_areas
+            and len(reviewer_families) >= min_sources
+        ),
     }
 
 
@@ -437,19 +639,34 @@ def _class_metrics(analyses: list[dict], policy_name: str, verdict: str,
     sources = sorted({a["review"]["promotion_reviewer_family"] for a in promotion_rows})
     historical_upper = wilson_upper(historical_errors, len(reviewed))
     promotion_upper = wilson_upper(promotion_errors, len(promotion_rows))
-    ready = (
-        bool(promotion_rows)
-        and promotion_upper <= target
-        and len(areas) >= min_areas
-        and len(sources) >= min_sources
-    )
+
+    eligible_by_identity: dict[tuple[str, str, str, str], list[dict]] = defaultdict(list)
+    identity_by_key: dict[tuple[str, str, str, str], dict] = {}
+    for analysis in eligible:
+        identity = analysis.get("primary_promotion_identity")
+        identity_key = _promotion_identity_key(identity)
+        if identity_key is None:
+            continue
+        eligible_by_identity[identity_key].append(analysis)
+        identity_by_key[identity_key] = identity
+    identity_metrics = [
+        _promotion_scope_metrics(
+            identity_by_key[identity_key], eligible_by_identity[identity_key],
+            target, min_areas, min_sources,
+        )
+        for identity_key in sorted(eligible_by_identity)
+    ]
+
     return {
         "eligible": len(eligible),
         "reviewed": len(reviewed),
         "errors": historical_errors,
         "observed_error_rate": historical_errors / len(reviewed) if reviewed else None,
         "wilson_error_upper_95": historical_upper,
-        "review_note": "Diagnostic only unless the review was both blind and independent.",
+        "review_note": (
+            "Aggregate diagnostics never authorize routing; only one exact "
+            "primary_identity entry may do so."
+        ),
         "promotion_reviewed": len(promotion_rows),
         "promotion_errors": promotion_errors,
         "promotion_error_upper_95": promotion_upper,
@@ -459,7 +676,11 @@ def _class_metrics(analyses: list[dict], policy_name: str, verdict: str,
         "minimum_reviewed_areas": min_areas,
         "minimum_reviewer_families": min_sources,
         "zero_error_reviews_needed_for_target": n_for_target(target),
-        "promotion_ready": ready,
+        "promotion_authority_scope": "exact-primary-identity-only",
+        "promotion_identity_metrics": identity_metrics,
+        "ready_identity_count": sum(
+            1 for metric in identity_metrics if metric["promotion_ready"]
+        ),
     }
 
 
@@ -474,6 +695,21 @@ def candidate_policy_metrics(analyses: list[dict], policy_name: str,
         "DROP": _class_metrics(analyses, policy_name, "DROP", drop_target,
                                min_areas, min_sources),
     }
+
+
+def _identity_is_promotion_ready(metric: object, identity: object) -> bool:
+    identity_key = _promotion_identity_key(identity)
+    if identity_key is None or not isinstance(metric, dict):
+        return False
+    scopes = metric.get("promotion_identity_metrics")
+    if not isinstance(scopes, list):
+        return False
+    return any(
+        isinstance(scope, dict)
+        and _promotion_identity_key(scope.get("primary_identity")) == identity_key
+        and scope.get("promotion_ready") is True
+        for scope in scopes
+    )
 
 
 def _route(analysis: dict, strict_metrics: dict) -> str:
@@ -495,7 +731,9 @@ def _route(analysis: dict, strict_metrics: dict) -> str:
         return ROUTE_ARBITER
     if (analysis["primary_provenance_valid"] and analysis["candidate"]["strict"]
             and verdict in ("KEEP", "DROP")):
-        if strict_metrics[verdict]["promotion_ready"]:
+        metric = strict_metrics.get(verdict) if isinstance(strict_metrics, dict) else None
+        if _identity_is_promotion_ready(
+                metric, analysis.get("primary_promotion_identity")):
             return ROUTE_AUTO_KEEP if verdict == "KEEP" else ROUTE_AUTO_DROP
     return ROUTE_CHALLENGE
 
@@ -589,8 +827,15 @@ def build_report(items: list[dict], ledger: dict, groundtruth: dict,
                  sidecar: dict, corpus: dict, include_items: bool = False) -> dict:
     ledger_by_area = {row["area"]: row for row in ledger.get("areas", [])}
     analyses = [analyse_item(item, ledger_by_area) for item in items]
+    reviewer_identity_conflicts = _invalidate_reviewer_family_conflicts(analyses)
     strict = candidate_policy_metrics(analyses, "strict")
     balanced = candidate_policy_metrics(analyses, "balanced")
+    ready_exact_identities = [
+        {"verdict": verdict, **metric["primary_identity"]}
+        for verdict in ("KEEP", "DROP")
+        for metric in strict[verdict]["promotion_identity_metrics"]
+        if metric["promotion_ready"]
+    ]
     for analysis in analyses:
         analysis["route"] = _route(analysis, strict)
 
@@ -635,7 +880,7 @@ def build_report(items: list[dict], ledger: dict, groundtruth: dict,
     risk_signal_counts = _counter(signal for a in analyses for signal in a["risk_signals"])
 
     report = {
-        "version": 1,
+        "version": REPORT_VERSION,
         "policy": {
             "id": POLICY_VERSION,
             "shadow_only": True,
@@ -646,6 +891,17 @@ def build_report(items: list[dict], ledger: dict, groundtruth: dict,
                 "DROP": {"error_upper_95_target": DROP_ERROR_TARGET},
                 "minimum_reviewed_areas": MIN_REVIEWED_AREAS,
                 "minimum_reviewer_families": MIN_SOURCE_FAMILIES,
+                "authority_scope": "exact-primary-identity-only",
+                "primary_identity_fields": list(PRIMARY_PROMOTION_IDENTITY_FIELDS),
+                "unauthenticated_primary_identity_dimensions": list(
+                    UNAUTHENTICATED_PRIMARY_IDENTITY_DIMENSIONS
+                ),
+                "unauthenticated_dimension_contract": (
+                    "Current judge_provenance does not authenticate provider, build, or "
+                    "normative-document hashes. They are not accepted as unknown or wildcard "
+                    "identity values; any change to one must rotate model_id or prompt_sha256 "
+                    "before promotion credit can transfer."
+                ),
                 "reference_contract": (
                     "one blind_reviews record per fid with promotion-grade reviewer identity, "
                     "a family different from the primary, frozen primary/reviewer decisions, "
@@ -672,6 +928,7 @@ def build_report(items: list[dict], ledger: dict, groundtruth: dict,
             "structured_overrides": len(overrides),
             "human_influenced_union": len(influenced),
             "model_only_or_unreviewed": len(analyses) - len(influenced),
+            "promotion_reviewer_identity_conflicts": reviewer_identity_conflicts,
         },
         "routing": {
             "counts": routes,
@@ -695,9 +952,7 @@ def build_report(items: list[dict], ledger: dict, groundtruth: dict,
             "deferred_resolution_counts": _counter(a["effective_verdict"] for a in deferred),
         },
         "generalization": {
-            "promotion_ready": any(
-                strict[verdict]["promotion_ready"] for verdict in ("KEEP", "DROP")
-            ),
+            "ready_exact_primary_identities": ready_exact_identities,
             "historical_binary_reviewed_areas": reviewed_areas,
             "historical_binary_reviewed_source_families": reviewed_sources,
             "promotion_grade_reviewed": len(promotion_binary),
@@ -749,10 +1004,10 @@ def summary_text(report: dict) -> str:
         f"routes: {routes['counts']}",
         f"direct user work created: {routes['direct_user_work_created']}",
         f"strict candidates: KEEP {strict['KEEP']['eligible']} / DROP {strict['DROP']['eligible']}",
-        f"strict promotion: KEEP={strict['KEEP']['promotion_ready']} "
-        f"(reference n={strict['KEEP']['promotion_reviewed']}) / "
-        f"DROP={strict['DROP']['promotion_ready']} "
-        f"(reference n={strict['DROP']['promotion_reviewed']})",
+        f"strict exact identities ready: KEEP={strict['KEEP']['ready_identity_count']} "
+        f"(aggregate reference n={strict['KEEP']['promotion_reviewed']}) / "
+        f"DROP={strict['DROP']['ready_identity_count']} "
+        f"(aggregate reference n={strict['DROP']['promotion_reviewed']})",
         f"measured KEEP: n={report['calibration']['binary']['KEEP']['reviewed']} "
         f"U95={report['calibration']['binary']['KEEP']['wilson_error_upper_95']:.1%}",
         f"measured DROP: n={report['calibration']['binary']['DROP']['reviewed']} "

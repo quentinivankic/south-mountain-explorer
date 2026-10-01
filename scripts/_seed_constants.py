@@ -14,6 +14,8 @@ import math
 import re
 from pathlib import Path
 
+import _parking_geom_guard as geom_guard
+
 # ---------- Paths ----------
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -628,20 +630,22 @@ def write_geom_file(
     `cached_at` is passed in (not derived inside) so the PBF pipeline
     can stamp every file with the same build timestamp for clean
     diffs against prior builds."""
-    GEOM_DIR.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "id": area_id,
-        "name": name,
-        "state": state,
-        "center_lat": center_lat,
-        "center_lon": center_lon,
-        "zoom": 13,
-        "bbox": geom_bbox,
-        "trails": geom_trails,
-        "trail_count": trail_count,
-        "total_mi": total_mi,
-        "cached_at": cached_at,
-        "osm_relation_id": osm_relation_id,
-    }
-    out_path = GEOM_DIR / f"{area_id}.json"
-    out_path.write_text(json.dumps(payload, separators=(",", ":")))
+    with geom_guard.geom_writer(GEOM_DIR):
+        payload = {
+            "id": area_id,
+            "name": name,
+            "state": state,
+            "center_lat": center_lat,
+            "center_lon": center_lon,
+            "zoom": 13,
+            "bbox": geom_bbox,
+            "trails": geom_trails,
+            "trail_count": trail_count,
+            "total_mi": total_mi,
+            "cached_at": cached_at,
+            "osm_relation_id": osm_relation_id,
+        }
+        out_path = GEOM_DIR / f"{area_id}.json"
+        geom_guard.atomic_write_json(
+            out_path, payload, separators=(",", ":"),
+        )

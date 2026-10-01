@@ -1,0 +1,17 @@
+{
+  "entries": {},
+  "floor_sha256": "6165ef438e82c791972ace115e106de07c1811a9ee7f62ade05e1d97fc76e405",
+  "kind": "parking-publication-floor",
+  "schema": {
+    "canonical_json": "utf-8-sort-keys-compact-no-nan-v1",
+    "entry_identity": [
+      "first_authority_kind",
+      "first_authority_sha256",
+      "first_attestation_sha256",
+      "first_proof_sha256"
+    ],
+    "floor_sha256": "sha256-canonical-json-without-self-hash"
+  },
+  "store": "zion-wilderness-ut_verdicts2.json",
+  "version": 1
+}

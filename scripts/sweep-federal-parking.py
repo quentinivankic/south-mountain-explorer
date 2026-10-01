@@ -43,6 +43,8 @@ from collections import Counter
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _AP = os.path.join(_ROOT, "scripts", "add-parking.py")
 sys.path.insert(0, os.path.join(_ROOT, "scripts"))
+import _parking_geom_guard as geom_guard  # noqa: E402
+
 # add-parking.py has a dash, so it cannot be imported by name. Loading it by
 # path is deliberate: the alternative is copying the rule here, and a copied
 # curation rule is exactly what drifts.
@@ -51,16 +53,7 @@ ap = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(ap)
 
 
-def main(argv=None) -> int:
-    p = argparse.ArgumentParser(description="sanity-clean federal parking pins")
-    p.add_argument("--geom-dir", default=os.path.join(_ROOT, "public", "areas", "geom"))
-    p.add_argument("--same-name-m", type=float, default=ap.FED_SAME_NAME_M,
-                   help="two same-named federal pins closer than this are one "
-                        "facility; further apart they are distinct places that "
-                        "share a placeholder name")
-    p.add_argument("--dry-run", action="store_true")
-    args = p.parse_args(argv)
-
+def _run(args) -> int:
     reasons = Counter()
     changed: dict[str, tuple[int, int]] = {}
     examples: list[tuple[str, str, str]] = []
@@ -98,7 +91,7 @@ def main(argv=None) -> int:
                 d["parking"] = kept
             else:
                 d.pop("parking", None)
-            json.dump(d, open(path, "w"))
+            geom_guard.atomic_write_json(path, d)
 
     total = sum(reasons.values())
     print(f"{'DRY-RUN — ' if args.dry_run else ''}cleaned {len(changed)} area(s), "
@@ -120,6 +113,26 @@ def main(argv=None) -> int:
     for slug in lost_all[:12]:
         print(f"  {slug}")
     return 0
+
+
+def main(argv=None) -> int:
+    p = argparse.ArgumentParser(description="sanity-clean federal parking pins")
+    p.add_argument("--geom-dir", default=os.path.join(_ROOT, "public", "areas", "geom"))
+    p.add_argument("--same-name-m", type=float, default=ap.FED_SAME_NAME_M,
+                   help="two same-named federal pins closer than this are one "
+                        "facility; further apart they are distinct places that "
+                        "share a placeholder name")
+    p.add_argument("--dry-run", action="store_true")
+    args = p.parse_args(argv)
+
+    if args.dry_run:
+        return _run(args)
+    try:
+        with geom_guard.geom_writer(args.geom_dir):
+            return _run(args)
+    except geom_guard.LiveSweepInProgress as error:
+        print(f"REFUSING: {error}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

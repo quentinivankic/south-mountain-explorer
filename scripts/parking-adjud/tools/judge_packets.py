@@ -12,8 +12,11 @@ For each chunk this writes the packet JSON plus either:
   `<slug>_verdict_draft_NN.json`.
 
 Canonical drafts are host-owned. On the next run, a valid continuation prefix
-is appended atomically to its canonical draft while preserving the existing
-bytes, then archived. A checkpoint manifest binds every completed prefix to a
+is appended atomically from one stable capture while preserving existing bytes.
+That exact image is archived under its full hash; the live entry is moved—not
+deleted—into owner-only quarantine. A newer entry that wins the final retirement
+race is preserved and reported as recovery-required. A checkpoint manifest
+binds every completed prefix to a
 SHA-256 over the complete packet, judge rules/prompt, and Z1/Z2/Z3 tile bytes.
 Changed decision inputs, malformed rows, changed prefixes, stale aliases, and
 missing imagery all fail closed before generated artifacts or drafts change.
@@ -29,7 +32,10 @@ import fcntl
 import hashlib
 import json
 import os
+import secrets
+import stat
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -41,12 +47,152 @@ from judge_validation import (  # noqa: E402
     original_judge_projection,
     validate_verdict_row,
 )
+import dossier_output  # noqa: E402
 import trust_resolution as tr  # noqa: E402
+import trusted_filesystem as trusted_fs  # noqa: E402
 
 PADJ_TMP = os.environ.get("PADJ_TMP") or os.path.join(_HERE, "..", "work")
 NON_PUBLIC_ACCESS = ("private", "no", "customers")
 PROMPT_TEMPLATE = os.path.join(_HERE, "judge_agent_prompt.md")
-CHECKPOINT_VERSION = 1
+CHECKPOINT_VERSION = 2
+
+
+@dataclass(frozen=True)
+class _FileSignature:
+    device: int
+    inode: int
+    mode: int
+    links: int
+    size: int
+    mtime_ns: int
+    ctime_ns: int
+
+
+@dataclass(frozen=True)
+class _ContinuationCapture:
+    path: Path
+    raw: bytes
+    rows: object
+    sha256: str
+    parent_identity: tuple[int, int]
+    fd_before: _FileSignature
+    fd_after: _FileSignature
+    entry_before: _FileSignature
+    entry_after: _FileSignature
+
+
+@dataclass(frozen=True)
+class _ChunkProposal:
+    mode: str | None
+    state: dict
+    draft_raw: bytes | None
+    manifest: dict
+    continuation: _ContinuationCapture | None
+
+
+def _file_signature(value: os.stat_result) -> _FileSignature:
+    return _FileSignature(
+        device=value.st_dev,
+        inode=value.st_ino,
+        mode=value.st_mode,
+        links=value.st_nlink,
+        size=value.st_size,
+        mtime_ns=value.st_mtime_ns,
+        ctime_ns=value.st_ctime_ns,
+    )
+
+
+def _open_parent_fd(path: Path) -> int:
+    return trusted_fs.open_trusted_directory_fd(path, create=False)
+
+
+def _read_fd_bytes(fd: int) -> bytes:
+    chunks = []
+    while True:
+        chunk = os.read(fd, 1024 * 1024)
+        if not chunk:
+            return b"".join(chunks)
+        chunks.append(chunk)
+
+
+def _capture_continuation(path: Path) -> _ContinuationCapture | None:
+    """Read one agent-owned continuation once and bind it to its live entry."""
+    parent_fd = _open_parent_fd(path.parent)
+    fd = None
+    try:
+        parent_stat = os.fstat(parent_fd)
+        parent_identity = (parent_stat.st_dev, parent_stat.st_ino)
+        flags = os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
+        try:
+            fd = os.open(path.name, flags, dir_fd=parent_fd)
+        except FileNotFoundError:
+            return None
+        fd_before = _file_signature(os.fstat(fd))
+        entry_before = _file_signature(os.stat(
+            path.name, dir_fd=parent_fd, follow_symlinks=False
+        ))
+        if not stat.S_ISREG(fd_before.mode) or not stat.S_ISREG(entry_before.mode):
+            raise ValueError(f"{path.name} is not a regular file")
+        if (fd_before.device, fd_before.inode) != (
+                entry_before.device, entry_before.inode):
+            raise ValueError(f"{path.name} changed while it was opened")
+
+        raw = _read_fd_bytes(fd)
+        fd_after = _file_signature(os.fstat(fd))
+        try:
+            entry_after = _file_signature(os.stat(
+                path.name, dir_fd=parent_fd, follow_symlinks=False
+            ))
+        except FileNotFoundError as exc:
+            raise ValueError(f"{path.name} disappeared during secure capture") from exc
+        if not stat.S_ISREG(fd_after.mode) or not stat.S_ISREG(entry_after.mode):
+            raise ValueError(f"{path.name} stopped being a regular file during secure capture")
+        if not (fd_before == fd_after == entry_before == entry_after):
+            raise ValueError(f"{path.name} changed during secure capture")
+    finally:
+        if fd is not None:
+            os.close(fd)
+        os.close(parent_fd)
+
+    try:
+        rows = json.loads(raw)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ValueError(f"cannot parse {path.name}: {exc}") from exc
+    return _ContinuationCapture(
+        path=path,
+        raw=raw,
+        rows=rows,
+        sha256=_sha256(raw),
+        parent_identity=parent_identity,
+        fd_before=fd_before,
+        fd_after=fd_after,
+        entry_before=entry_before,
+        entry_after=entry_after,
+    )
+
+
+def _validate_capture_entry(parent_fd: int, capture: _ContinuationCapture) -> None:
+    parent_stat = os.fstat(parent_fd)
+    if (parent_stat.st_dev, parent_stat.st_ino) != capture.parent_identity:
+        raise ValueError(f"{capture.path.name} parent directory changed after capture")
+    try:
+        current = _file_signature(os.stat(
+            capture.path.name, dir_fd=parent_fd, follow_symlinks=False
+        ))
+    except FileNotFoundError as exc:
+        raise ValueError(f"{capture.path.name} disappeared after capture") from exc
+    if not stat.S_ISREG(current.mode):
+        raise ValueError(f"{capture.path.name} is no longer a regular file")
+    if current != capture.entry_after:
+        raise ValueError(f"{capture.path.name} changed after capture")
+
+
+def _recheck_continuation(capture: _ContinuationCapture) -> None:
+    parent_fd = _open_parent_fd(capture.path.parent)
+    try:
+        _validate_capture_entry(parent_fd, capture)
+    finally:
+        os.close(parent_fd)
 
 
 def _sha256(data: bytes) -> str:
@@ -59,10 +205,8 @@ def _canonical_sha(value: object) -> str:
 
 
 def _atomic_write(path: Path, data: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_bytes(data)
-    os.replace(tmp, path)
+    """Write canonical bytes inside a trusted, lock-serialized parent."""
+    trusted_fs.atomic_write_bytes(path, data)
 
 
 def _atomic_json(path: Path, value: object) -> None:
@@ -81,11 +225,46 @@ def render_prompt_template(path: str = PROMPT_TEMPLATE) -> str:
     return text
 
 
-def build_packets(slug: str, tmp: str, tiles_dir: str | None) -> dict[int, dict]:
-    dossier = json.loads(Path(tmp, f"{slug}_dossier.json").read_text())
-    serves = json.loads(Path(tmp, f"{slug}_serves2.json").read_text())
-    context = json.loads(Path(tmp, f"{slug}_context.json").read_text())
-    walk = json.loads(Path(tmp, f"{slug}_walk.json").read_text())
+def _packet_source_generation(chunk: list[dict]) -> dict:
+    if not isinstance(chunk, list) or not chunk:
+        raise ValueError("packet chunk has no source_generation binding")
+    expected = None
+    for packet in chunk:
+        if not isinstance(packet, dict):
+            raise ValueError("packet chunk contains a non-object packet")
+        area = packet.get("area")
+        binding = dossier_output.validate_source_generation(
+            packet.get("source_generation"), area
+        )
+        if expected is None:
+            expected = binding
+        elif binding != expected:
+            raise ValueError("packet source_generation bindings are not identical")
+    assert expected is not None
+    return expected
+
+
+def build_packets(slug: str, tmp: str, tiles_dir: str | None,
+                  generation_capture) -> dict[int, dict]:
+    dossier = dossier_output.captured_generation_document(
+        generation_capture, "dossier"
+    )
+    serves = dossier_output.captured_generation_document(
+        generation_capture, "serves"
+    )
+    context = dossier_output.captured_generation_document(
+        generation_capture, "context"
+    )
+    walk = dossier_output.captured_generation_document(
+        generation_capture, "walk"
+    )
+    source_generation = dossier_output.portable_source_generation(
+        generation_capture, slug
+    )
+    if not isinstance(dossier, dict):
+        raise ValueError("captured dossier must be an object")
+    if not all(isinstance(value, dict) for value in (serves, context, walk)):
+        raise ValueError("captured dossier sidecars must be objects")
     tiles = tiles_dir or os.path.join(tmp, f"{slug}_ladder")
     packets: dict[int, dict] = {}
     for facility in dossier["facilities"]:
@@ -100,6 +279,11 @@ def build_packets(slug: str, tmp: str, tiles_dir: str | None) -> dict[int, dict]
         packets[fid] = {
             "fid": fid,
             "area": slug,
+            "source_generation": {
+                "manifest_path": source_generation["manifest_path"],
+                "manifest_sha256": source_generation["manifest_sha256"],
+                "artifact_sha256": dict(source_generation["artifact_sha256"]),
+            },
             "osm": facility.get("osm") or [],
             "prior": facility.get("prior"),
             "descriptive_tags": facility.get("descriptive") or [],
@@ -125,8 +309,13 @@ def build_packets(slug: str, tmp: str, tiles_dir: str | None) -> dict[int, dict]
 
 
 def decision_fingerprint(chunk: list[dict]) -> tuple[str | None, list[str]]:
-    """Hash every decision input, including the imagery bytes and judge rules."""
+    """Hash every decision input, including generation, imagery, and rules."""
     missing: list[str] = []
+    try:
+        source_generation = _packet_source_generation(chunk)
+    except (TypeError, ValueError) as error:
+        source_generation = None
+        missing.append(str(error))
     packet_rows = []
     for packet in chunk:
         tile_hashes = {}
@@ -141,7 +330,10 @@ def decision_fingerprint(chunk: list[dict]) -> tuple[str | None, list[str]]:
             else:
                 tile_hashes[zoom] = _sha256(Path(path).read_bytes())
         packet_rows.append({
-            "packet": {key: value for key, value in packet.items() if key != "tiles"},
+            "packet": {
+                key: value for key, value in packet.items()
+                if key not in ("tiles", "source_generation")
+            },
             "tile_sha256": tile_hashes,
         })
     rule_paths = {
@@ -157,7 +349,11 @@ def decision_fingerprint(chunk: list[dict]) -> tuple[str | None, list[str]]:
             rules[name] = _sha256(path.read_bytes())
     if missing:
         return None, missing
-    return _canonical_sha({"rules": rules, "packets": packet_rows}), []
+    return _canonical_sha({
+        "source_generation": source_generation,
+        "rules": rules,
+        "packets": packet_rows,
+    }), []
 
 
 def _row_sha(projection: dict) -> str:
@@ -192,7 +388,7 @@ def inspect_rows(chunk: list[dict], rows: object, source: str,
     for position, row in enumerate(rows):
         label = f"{source} row {position}"
         fid = row.get("fid") if isinstance(row, dict) else None
-        if not isinstance(fid, int):
+        if type(fid) is not int:
             errors.append(f"{label}: fid is not an integer: {fid!r}")
             continue
         if fid in seen:
@@ -221,6 +417,29 @@ def inspect_rows(chunk: list[dict], rows: object, source: str,
                   resolution_sha256=resolution_hashes, rows=rows)
 
 
+def _inspect_bytes(chunk: list[dict], raw: bytes, source: str,
+                   allow_override: bool = True) -> dict:
+    expected = [packet["fid"] for packet in chunk]
+    try:
+        rows = json.loads(raw)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        return _state("invalid", [], expected, [f"cannot parse {source}: {exc}"])
+    state = inspect_rows(chunk, rows, source, allow_override=allow_override)
+    state["file_sha256"] = _sha256(raw)
+    state["raw_bytes"] = raw
+    return state
+
+
+def _inspect_continuation(chunk: list[dict], capture: _ContinuationCapture,
+                          allow_override: bool = False) -> dict:
+    state = inspect_rows(
+        chunk, capture.rows, capture.path.name, allow_override=allow_override
+    )
+    state["file_sha256"] = capture.sha256
+    state["raw_bytes"] = capture.raw
+    return state
+
+
 def inspect_draft(chunk: list[dict], path: str | Path,
                   allow_override: bool = True) -> dict:
     draft_path = Path(path)
@@ -229,12 +448,9 @@ def inspect_draft(chunk: list[dict], path: str | Path,
         return _state("missing", [], expected)
     try:
         raw = draft_path.read_bytes()
-        rows = json.loads(raw)
-    except (OSError, json.JSONDecodeError) as exc:
+    except OSError as exc:
         return _state("invalid", [], expected, [f"cannot parse {draft_path.name}: {exc}"])
-    state = inspect_rows(chunk, rows, draft_path.name, allow_override=allow_override)
-    state["file_sha256"] = _sha256(raw)
-    return state
+    return _inspect_bytes(chunk, raw, draft_path.name, allow_override=allow_override)
 
 
 def _manifest_path(tmp: str | Path, slug: str, chunk_index: int) -> Path:
@@ -249,6 +465,26 @@ def _continue_path(tmp: str | Path, slug: str, chunk_index: int) -> Path:
     return Path(tmp, f"{slug}_verdict_continue_{chunk_index:02d}.json")
 
 
+CHECKPOINT_V1_LEGACY_KEYS = frozenset({
+    "version", "area", "chunk", "fids", "decision_sha256", "completed",
+    "draft_sha256", "judge_row_sha256",
+})
+CHECKPOINT_V1_CURRENT_KEYS = CHECKPOINT_V1_LEGACY_KEYS | {"resolution_row_sha256"}
+CHECKPOINT_V2_CURRENT_KEYS = CHECKPOINT_V1_CURRENT_KEYS | {"source_generation"}
+_CHECKPOINT_HEX = frozenset("0123456789abcdef")
+
+
+def _checkpoint_sha(value: object) -> bool:
+    return (isinstance(value, str) and len(value) == 64
+            and all(character in _CHECKPOINT_HEX for character in value))
+
+
+def _manifest_resolution_hashes(value: dict) -> object:
+    if "resolution_row_sha256" in value:
+        return value.get("resolution_row_sha256")
+    return value.get("judge_row_sha256")
+
+
 def manifest_value(slug: str, chunk_index: int, chunk: list[dict], decision_sha256: str,
                    state: dict) -> dict:
     return {
@@ -256,6 +492,7 @@ def manifest_value(slug: str, chunk_index: int, chunk: list[dict], decision_sha2
         "area": slug,
         "chunk": chunk_index,
         "fids": [packet["fid"] for packet in chunk],
+        "source_generation": _packet_source_generation(chunk),
         "decision_sha256": decision_sha256,
         "completed": state["completed"],
         "draft_sha256": state["file_sha256"],
@@ -266,20 +503,96 @@ def manifest_value(slug: str, chunk_index: int, chunk: list[dict], decision_sha2
 
 def validate_manifest_static(value: object, slug: str, chunk_index: int,
                              chunk: list[dict], decision_sha256: str) -> list[str]:
-    """Validate fields that do not depend on the canonical draft's progress."""
+    """Validate the exact generation-bound current checkpoint schema."""
     if not isinstance(value, dict):
         return ["checkpoint manifest must be an object"]
     errors = []
-    expected = {
-        "version": CHECKPOINT_VERSION,
-        "area": slug,
-        "chunk": chunk_index,
-        "fids": [packet["fid"] for packet in chunk],
-        "decision_sha256": decision_sha256,
-    }
-    for key, wanted in expected.items():
-        if value.get(key) != wanted:
-            errors.append(f"checkpoint {key} changed: {value.get(key)!r} != {wanted!r}")
+    keys = frozenset(value)
+    if keys != CHECKPOINT_V2_CURRENT_KEYS:
+        errors.append(
+            "checkpoint manifest keys are not the exact current v2 schema: "
+            f"{sorted(keys)}"
+        )
+
+    version = value.get("version")
+    if type(version) is not int or version != CHECKPOINT_VERSION:
+        errors.append(
+            f"checkpoint version changed: {version!r} != {CHECKPOINT_VERSION!r}"
+        )
+    area = value.get("area")
+    if not isinstance(area, str) or area != slug:
+        errors.append(f"checkpoint area changed: {area!r} != {slug!r}")
+    stored_chunk = value.get("chunk")
+    if type(stored_chunk) is not int or stored_chunk != chunk_index:
+        errors.append(
+            f"checkpoint chunk changed: {stored_chunk!r} != {chunk_index!r}"
+        )
+
+    try:
+        expected_generation = _packet_source_generation(chunk)
+    except (TypeError, ValueError) as error:
+        errors.append(f"checkpoint packet source_generation is invalid: {error}")
+        expected_generation = None
+    try:
+        stored_generation = dossier_output.validate_source_generation(
+            value.get("source_generation"), slug
+        )
+    except (TypeError, ValueError) as error:
+        errors.append(f"checkpoint source_generation is invalid: {error}")
+        stored_generation = None
+    if (expected_generation is not None and stored_generation is not None
+            and stored_generation != expected_generation):
+        errors.append("checkpoint source_generation differs from packet generation")
+
+    expected_fids = [packet["fid"] for packet in chunk]
+    fids = value.get("fids")
+    if not isinstance(fids, list) or any(type(fid) is not int for fid in fids):
+        errors.append("checkpoint fids must be an exact integer list")
+    elif fids != expected_fids:
+        errors.append(f"checkpoint fids changed: {fids!r} != {expected_fids!r}")
+
+    claimed_decision = value.get("decision_sha256")
+    if not _checkpoint_sha(claimed_decision):
+        errors.append("checkpoint decision_sha256 is not a lowercase SHA-256")
+    elif claimed_decision != decision_sha256:
+        errors.append(
+            f"checkpoint decision_sha256 changed: {claimed_decision!r} != {decision_sha256!r}"
+        )
+
+    completed = value.get("completed")
+    completed_is_int_list = (
+        isinstance(completed, list)
+        and all(type(fid) is int for fid in completed)
+    )
+    if not completed_is_int_list:
+        errors.append("checkpoint completed must be an exact integer list")
+    elif completed != expected_fids[:len(completed)]:
+        errors.append("checkpoint completed fids are not a packet-order prefix")
+
+    draft_sha = value.get("draft_sha256")
+    if draft_sha is not None and not _checkpoint_sha(draft_sha):
+        errors.append("checkpoint draft_sha256 is neither null nor a lowercase SHA-256")
+
+    judge_hashes = value.get("judge_row_sha256")
+    judge_hashes_valid = (
+        isinstance(judge_hashes, list)
+        and all(_checkpoint_sha(item) for item in judge_hashes)
+    )
+    if not judge_hashes_valid:
+        errors.append("checkpoint judge_row_sha256 is not a SHA-256 list")
+    elif completed_is_int_list and len(judge_hashes) != len(completed):
+        errors.append("checkpoint judge_row_sha256 length does not match completed")
+
+    if "resolution_row_sha256" in value:
+        resolution_hashes = value.get("resolution_row_sha256")
+        resolution_hashes_valid = (
+            isinstance(resolution_hashes, list)
+            and all(_checkpoint_sha(item) for item in resolution_hashes)
+        )
+        if not resolution_hashes_valid:
+            errors.append("checkpoint resolution_row_sha256 is not a SHA-256 list")
+        elif completed_is_int_list and len(resolution_hashes) != len(completed):
+            errors.append("checkpoint resolution_row_sha256 length does not match completed")
     return errors
 
 
@@ -292,7 +605,7 @@ def validate_manifest(value: object, slug: str, chunk_index: int, chunk: list[di
         errors.append(f"checkpoint completed fids {value.get('completed')!r} != {state['completed']!r}")
     if value.get("judge_row_sha256") != state["row_sha256"]:
         errors.append("canonical draft's original judge rows changed")
-    stored_resolution = value.get("resolution_row_sha256", value.get("judge_row_sha256"))
+    stored_resolution = _manifest_resolution_hashes(value)
     if stored_resolution != state["resolution_sha256"]:
         errors.append("canonical draft's machine resolution rows changed")
     # Byte changes are tolerated only when the original and machine projections
@@ -326,9 +639,10 @@ def strict_work_files(tmp: str | Path, slug: str, chunk_count: int) -> list[str]
     return errors
 
 
-def _append_json_arrays(existing: bytes | None, addition: bytes) -> bytes:
+def _append_json_arrays(existing: bytes | None, addition: bytes,
+                        addition_rows: object | None = None) -> bytes:
     """Append list members while retaining every existing prefix byte."""
-    added = json.loads(addition)
+    added = json.loads(addition) if addition_rows is None else addition_rows
     if not isinstance(added, list) or not added:
         raise ValueError("continuation must contain a non-empty JSON list")
     if existing is None:
@@ -348,17 +662,146 @@ def _append_json_arrays(existing: bytes | None, addition: bytes) -> bytes:
     return existing[:close_existing] + b"," + inner + existing[close_existing:]
 
 
-def _archive_continuation(path: Path) -> Path:
+def _capture_quarantined_entry(parent_fd: int, name: str,
+                                path: Path) -> tuple[_FileSignature, bytes]:
+    """Read a moved quarantine entry stably without following a replacement."""
+    fd = None
+    try:
+        flags = os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
+        fd = os.open(name, flags, dir_fd=parent_fd)
+        fd_before = _file_signature(os.fstat(fd))
+        entry_before = _file_signature(os.stat(
+            name, dir_fd=parent_fd, follow_symlinks=False
+        ))
+        if (not stat.S_ISREG(fd_before.mode)
+                or not stat.S_ISREG(entry_before.mode)
+                or (fd_before.device, fd_before.inode)
+                != (entry_before.device, entry_before.inode)):
+            raise ValueError(f"quarantined continuation is not regular: {path}")
+        raw = _read_fd_bytes(fd)
+        fd_after = _file_signature(os.fstat(fd))
+        entry_after = _file_signature(os.stat(
+            name, dir_fd=parent_fd, follow_symlinks=False
+        ))
+        if not (fd_before == entry_before == fd_after == entry_after):
+            raise ValueError(f"quarantined continuation changed while reading: {path}")
+        if len(raw) != fd_after.size:
+            raise ValueError(f"quarantined continuation size changed: {path}")
+        return fd_after, raw
+    finally:
+        if fd is not None:
+            os.close(fd)
+
+
+def _new_quarantine_directory(capture: _ContinuationCapture,
+                              archive: Path) -> tuple[int, int, Path]:
+    """Allocate one unpredictable 0700 retirement directory."""
+    root = archive.parent / "continuation-quarantine"
+    root_fd = trusted_fs.open_trusted_directory_fd(
+        root, create=True, create_mode=0o700
+    )
+    child_fd = None
+    try:
+        for _ in range(128):
+            name = (
+                f"{capture.path.stem}.{capture.sha256[:16]}."
+                f"{secrets.token_hex(16)}"
+            )
+            try:
+                child_fd = trusted_fs.create_trusted_directory_fd(
+                    root_fd, root, name, create_mode=0o700
+                )
+            except FileExistsError:
+                continue
+            child = root / name
+            trusted_fs.require_trusted_directory_fd(child_fd, child)
+            return root_fd, child_fd, child
+        raise FileExistsError("could not allocate a continuation quarantine")
+    except BaseException:
+        if child_fd is not None:
+            try:
+                os.close(child_fd)
+            except BaseException:
+                pass
+        try:
+            os.close(root_fd)
+        except BaseException:
+            pass
+        raise
+
+
+def _archive_continuation(capture: _ContinuationCapture) -> Path:
+    """Preserve captured bytes, then quarantine—not unlink—the live entry.
+
+    The capture archive is deterministic and idempotent under the full content
+    hash. The final source-name race is resolved by moving whichever entry is
+    present into an unpredictable dedicated directory. A newer same-UID agent
+    entry can win that race, but it is retained and reported; it is never
+    admitted into canonical draft/checkpoint bytes and is never deleted.
+    """
+    _recheck_continuation(capture)
+    path = capture.path
     archive = path.parent / "Archive"
-    archive.mkdir(exist_ok=True)
-    digest = _sha256(path.read_bytes())[:12]
-    target = archive / f"{path.stem}.merged-{digest}.json"
-    counter = 2
-    while target.exists():
-        target = archive / f"{path.stem}.merged-{digest}-{counter}.json"
-        counter += 1
-    os.replace(path, target)
-    return target
+    target = archive / f"{path.stem}.captured-{capture.sha256}.json"
+    trusted_fs.write_idempotent_bytes(target, capture.raw)
+
+    source_fd = _open_parent_fd(path.parent)
+    quarantine_root_fd = None
+    quarantine_fd = None
+    quarantine_directory = None
+    moved_path = None
+    try:
+        quarantine_root_fd, quarantine_fd, quarantine_directory = (
+            _new_quarantine_directory(capture, target)
+        )
+        moved_path = quarantine_directory / path.name
+        # This check intentionally precedes an atomic descriptor-relative move.
+        # POSIX cannot condition that move on the checked inode. If a same-UID
+        # writer violates the lock contract and wins here, its entry is moved
+        # intact and the post-move identity/hash check below fails with its path.
+        _validate_capture_entry(source_fd, capture)
+        try:
+            os.replace(
+                path.name, path.name,
+                src_dir_fd=source_fd, dst_dir_fd=quarantine_fd,
+            )
+        except OSError as error:
+            raise ValueError(
+                "RECOVERY_REQUIRED: continuation retirement move failed; "
+                f"captured bytes remain at {target}: {error}"
+            ) from error
+        os.fsync(source_fd)
+        os.fsync(quarantine_fd)
+        os.fsync(quarantine_root_fd)
+
+        try:
+            moved_stat, moved_raw = _capture_quarantined_entry(
+                quarantine_fd, path.name, moved_path
+            )
+        except (OSError, ValueError) as error:
+            raise ValueError(
+                "RECOVERY_REQUIRED: unverified retirement entry preserved at "
+                f"{moved_path}: {error}"
+            ) from error
+        expected = capture.entry_after
+        if ((moved_stat.device, moved_stat.inode)
+                != (expected.device, expected.inode)
+                or moved_stat.mode != expected.mode
+                or moved_stat.links != expected.links
+                or moved_stat.size != expected.size
+                or moved_raw != capture.raw
+                or _sha256(moved_raw) != capture.sha256):
+            raise ValueError(
+                "RECOVERY_REQUIRED: newer continuation won final retirement; "
+                f"preserved at {moved_path}"
+            )
+        return target
+    finally:
+        if quarantine_fd is not None:
+            os.close(quarantine_fd)
+        if quarantine_root_fd is not None:
+            os.close(quarantine_root_fd)
+        os.close(source_fd)
 
 
 def resume_block(state: dict, draft_path: str | Path,
@@ -413,8 +856,9 @@ def _manifest_matches_state(manifest: dict, state: dict) -> bool:
 
 def classify_continuation_transaction(chunk: list[dict], state: dict, manifest: object,
                                       slug: str, chunk_index: int, decision_sha256: str,
-                                      continuation: Path) -> tuple[str | None, dict | None, list[str]]:
-    """Classify or recover one continuation transaction without writing.
+                                      continuation: _ContinuationCapture,
+                                      ) -> tuple[str | None, dict | None, list[str]]:
+    """Classify or recover one captured continuation transaction without writing.
 
     Normal state is manifest==draft plus a continuation for the next packet
     suffix. Two crash states are also safe and recoverable:
@@ -432,7 +876,7 @@ def classify_continuation_transaction(chunk: list[dict], state: dict, manifest: 
     # prefix, and the continuation starts at the next packet.
     if _manifest_matches_state(manifest, state):
         suffix = chunk[len(state["completed"]):]
-        normal = inspect_draft(suffix, continuation, allow_override=False)
+        normal = _inspect_continuation(suffix, continuation, allow_override=False)
         if not normal["errors"] and normal["completed"]:
             return "merge", normal, []
 
@@ -448,7 +892,9 @@ def classify_continuation_transaction(chunk: list[dict], state: dict, manifest: 
         if (state["completed"][:old_count] == old_completed
                 and state["row_sha256"][:old_count] == old_hashes
                 and state["resolution_sha256"][:old_count] == old_resolutions):
-            replay = inspect_draft(chunk[old_count:], continuation, allow_override=False)
+            replay = _inspect_continuation(
+                chunk[old_count:], continuation, allow_override=False
+            )
             if (not replay["errors"] and replay["completed"]
                     and state["completed"] == old_completed + replay["completed"]
                     and state["row_sha256"] == old_hashes + replay["row_sha256"]
@@ -459,14 +905,13 @@ def classify_continuation_transaction(chunk: list[dict], state: dict, manifest: 
     # Crash after manifest replacement but before continuation archival: the
     # manifest binds the advanced draft and the continuation duplicates its
     # exact final rows. It is safe to archive without appending again.
-    try:
-        raw_rows = json.loads(continuation.read_text())
-    except (OSError, json.JSONDecodeError) as exc:
-        return None, None, [f"cannot parse {continuation.name}: {exc}"]
+    raw_rows = continuation.rows
     if (_manifest_matches_state(manifest, state) and isinstance(raw_rows, list)
             and raw_rows and len(raw_rows) <= len(state["completed"])):
         start = len(state["completed"]) - len(raw_rows)
-        duplicate = inspect_draft(chunk[start:], continuation, allow_override=False)
+        duplicate = _inspect_continuation(
+            chunk[start:], continuation, allow_override=False
+        )
         if (not duplicate["errors"]
                 and duplicate["completed"] == state["completed"][start:]
                 and duplicate["row_sha256"] == state["row_sha256"][start:]
@@ -474,9 +919,73 @@ def classify_continuation_transaction(chunk: list[dict], state: dict, manifest: 
             return "archive_only", duplicate, []
 
     return None, None, [
-        f"{continuation.name} is neither a new packet suffix nor an exact "
+        f"{continuation.path.name} is neither a new packet suffix nor an exact "
         "recoverable canonical suffix"
     ]
+
+
+def _build_chunk_proposal(
+        tmp: str | Path, slug: str, chunk_index: int, chunk: list[dict],
+        decision_sha256: str, state: dict, continuation_state: dict | None,
+        mode: str | None, continuation: _ContinuationCapture | None,
+        ) -> tuple[_ChunkProposal | None, list[str]]:
+    draft = _draft_path(tmp, slug, chunk_index)
+    proposed_state = state
+    proposed_raw = None
+    errors: list[str] = []
+
+    if mode == "merge":
+        if continuation is None or continuation_state is None:
+            return None, ["merge proposal lost its captured continuation"]
+        draft = _draft_path(continuation.path.parent, slug, chunk_index)
+        try:
+            proposed_raw = _append_json_arrays(
+                state.get("raw_bytes"), continuation.raw, continuation.rows
+            )
+        except (ValueError, UnicodeDecodeError) as exc:
+            return None, [f"cannot build proposed {draft.name}: {exc}"]
+        proposed_state = _inspect_bytes(chunk, proposed_raw, draft.name)
+        errors.extend(proposed_state["errors"])
+        expected = {
+            "rows": state["rows"] + continuation_state["rows"],
+            "completed": state["completed"] + continuation_state["completed"],
+            "row_sha256": state["row_sha256"] + continuation_state["row_sha256"],
+            "resolution_sha256": (
+                state["resolution_sha256"] + continuation_state["resolution_sha256"]
+            ),
+        }
+        for key, wanted in expected.items():
+            if proposed_state[key] != wanted:
+                errors.append(f"proposed {draft.name} changed its {key}")
+    elif mode not in (None, "refresh_manifest", "archive_only"):
+        errors.append(f"unknown continuation transaction mode {mode!r}")
+
+    manifest = manifest_value(
+        slug, chunk_index, chunk, decision_sha256, proposed_state
+    )
+    errors.extend(validate_manifest(
+        manifest, slug, chunk_index, chunk, decision_sha256, proposed_state
+    ))
+    if errors:
+        return None, errors
+    return _ChunkProposal(
+        mode=mode,
+        state=proposed_state,
+        draft_raw=proposed_raw,
+        manifest=manifest,
+        continuation=continuation,
+    ), []
+
+
+def _refuse_invalid_checkpoint(args: argparse.Namespace, errors: list[str]) -> int:
+    if args.status_json:
+        print(json.dumps({"version": 1, "area": args.slug, "status": "invalid",
+                          "errors": errors}), file=sys.stderr)
+    else:
+        for error in errors:
+            print(f"INVALID_CHECKPOINT\t{error}", file=sys.stderr)
+        print("refusing to rewrite artifacts or merge continuations", file=sys.stderr)
+    return 2
 
 
 def _argument_parser() -> argparse.ArgumentParser:
@@ -494,12 +1003,27 @@ def _argument_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _main_under_area_lock(args: argparse.Namespace) -> int:
+def _main_under_area_lock(args: argparse.Namespace,
+                          generation_capture) -> int:
     parser = _argument_parser()
     if args.chunk <= 0:
         parser.error("--chunk must be positive")
+    try:
+        authority_journal = tr.authority_journal_path(args.tmp, args.slug)
+    except ValueError as error:
+        print(f"RECOVERY_REQUIRED: {error}", file=sys.stderr)
+        return 2
+    if authority_journal.exists():
+        print(
+            "RECOVERY_REQUIRED: live human-authority journal blocks packet "
+            "validation and writes",
+            file=sys.stderr,
+        )
+        return 2
 
-    packets = build_packets(args.slug, args.tmp, args.tiles)
+    packets = build_packets(
+        args.slug, args.tmp, args.tiles, generation_capture
+    )
     already_elsewhere: set[str] = set()
     for store in args.skip_judged:
         if os.path.exists(store):
@@ -527,6 +1051,7 @@ def _main_under_area_lock(args: argparse.Namespace) -> int:
     states: list[dict] = []
     continuation_states: list[dict | None] = []
     continuation_modes: list[str | None] = []
+    continuation_captures: list[_ContinuationCapture | None] = []
     for index, rows in enumerate(chunk_rows):
         decision, missing_inputs = decision_fingerprint(rows)
         if missing_inputs:
@@ -549,15 +1074,26 @@ def _main_under_area_lock(args: argparse.Namespace) -> int:
         continuation = _continue_path(args.tmp, args.slug, index)
         continuation_state = None
         continuation_mode = None
-        if continuation.exists():
+        capture_failed = False
+        try:
+            continuation_capture = _capture_continuation(continuation)
+        except (OSError, ValueError) as exc:
+            errors.append(f"chunk {index:02d}: cannot securely capture "
+                          f"{continuation.name}: {exc}")
+            continuation_capture = None
+            capture_failed = True
+        if continuation_capture is not None:
             if manifest is None:
                 errors.append(f"chunk {index:02d}: {continuation.name} requires an existing "
                               "checkpoint manifest")
             else:
                 continuation_mode, continuation_state, transaction_errors = (
                     classify_continuation_transaction(
-                        rows, state, manifest, args.slug, index, decision or "", continuation))
+                        rows, state, manifest, args.slug, index, decision or "",
+                        continuation_capture))
                 errors.extend(f"chunk {index:02d}: {error}" for error in transaction_errors)
+        elif capture_failed:
+            pass
         elif manifest is not None:
             errors.extend(f"chunk {index:02d}: {error}" for error in
                           validate_manifest(manifest, args.slug, index, rows,
@@ -567,42 +1103,70 @@ def _main_under_area_lock(args: argparse.Namespace) -> int:
                           "independently validate it, then rerun with --adopt-existing")
         continuation_states.append(continuation_state)
         continuation_modes.append(continuation_mode)
+        continuation_captures.append(continuation_capture)
+
+    # Construct and semantically validate every canonical/checkpoint proposal
+    # before the first canonical mutation. Merge proposals use only bytes from
+    # the canonical preflight and the immutable continuation capture.
+    proposals: list[_ChunkProposal | None] = []
+    if not errors:
+        for index, rows in enumerate(chunk_rows):
+            proposal, proposal_errors = _build_chunk_proposal(
+                args.tmp, args.slug, index, rows, decisions[index], states[index],
+                continuation_states[index], continuation_modes[index],
+                continuation_captures[index],
+            )
+            proposals.append(proposal)
+            errors.extend(f"chunk {index:02d}: {error}" for error in proposal_errors)
 
     if errors:
-        if args.status_json:
-            print(json.dumps({"version": 1, "area": args.slug, "status": "invalid",
-                              "errors": errors}), file=sys.stderr)
-        else:
-            for error in errors:
-                print(f"INVALID_CHECKPOINT\t{error}", file=sys.stderr)
-            print("refusing to rewrite artifacts or merge continuations", file=sys.stderr)
-        return 2
+        return _refuse_invalid_checkpoint(args, errors)
 
-    # All chunks passed preflight. The recoverable transaction order is:
-    # canonical draft -> refreshed manifest -> archived continuation. A retry can
-    # prove and finish either interrupted boundary without appending twice.
+    # Catch any capture drift before any chunk mutates canonical state. Each
+    # continuation is checked again immediately before its own transaction so
+    # races during an earlier chunk cannot select replacement commit bytes.
+    for index, capture in enumerate(continuation_captures):
+        if capture is None:
+            continue
+        try:
+            _recheck_continuation(capture)
+        except (OSError, ValueError) as exc:
+            return _refuse_invalid_checkpoint(
+                args, [f"chunk {index:02d}: {exc}"]
+            )
+
+    # All chunks passed preflight. The recoverable transaction order remains:
+    # canonical draft -> refreshed manifest -> archived continuation. A retry
+    # can prove and finish either interrupted boundary without appending twice.
     root = Path(args.tmp)
     root.mkdir(parents=True, exist_ok=True)
-    for index, rows in enumerate(chunk_rows):
-        draft = _draft_path(args.tmp, args.slug, index)
-        continuation = _continue_path(args.tmp, args.slug, index)
-        mode = continuation_modes[index]
-        if mode == "merge":
-            merged = _append_json_arrays(draft.read_bytes() if draft.exists() else None,
-                                         continuation.read_bytes())
-            _atomic_write(draft, merged)
-            states[index] = inspect_draft(rows, draft)
-            if states[index]["status"] == "invalid":  # defensive: impossible after preflight
-                raise RuntimeError(f"host merge produced invalid {draft.name}: {states[index]['errors']}")
-        elif mode not in (None, "refresh_manifest", "archive_only"):
-            raise RuntimeError(f"unknown continuation transaction mode {mode!r}")
+    for index, proposal in enumerate(proposals):
+        if proposal is None:  # defensive: proposals are complete before this loop
+            raise RuntimeError(f"chunk {index:02d} lost its validated proposal")
+        capture = proposal.continuation
+        if capture is not None:
+            try:
+                _recheck_continuation(capture)
+            except (OSError, ValueError) as exc:
+                return _refuse_invalid_checkpoint(
+                    args, [f"chunk {index:02d}: {exc}"]
+                )
+
+        draft = _draft_path(root, args.slug, index)
+        if proposal.draft_raw is not None:
+            _atomic_write(draft, proposal.draft_raw)
+        states[index] = proposal.state
 
         # This manifest write also refreshes byte hashes after a legal human
         # override or completes recovery when the draft replacement landed first.
-        _atomic_json(_manifest_path(root, args.slug, index),
-                     manifest_value(args.slug, index, rows, decisions[index], states[index]))
-        if mode is not None:
-            _archive_continuation(continuation)
+        _atomic_json(_manifest_path(root, args.slug, index), proposal.manifest)
+        if capture is not None:
+            try:
+                _archive_continuation(capture)
+            except (OSError, ValueError) as exc:
+                return _refuse_invalid_checkpoint(
+                    args, [f"chunk {index:02d}: {exc}"]
+                )
 
     _atomic_write(root / f"{args.slug}_pub.txt", ",".join(str(fid) for fid in fids).encode())
     _atomic_json(root / f"{args.slug}_packets.json", {str(fid): packets[fid] for fid in fids})
@@ -648,11 +1212,22 @@ def _main_under_area_lock(args: argparse.Namespace) -> int:
 def main(argv=None) -> int:
     values = list(sys.argv[1:] if argv is None else argv)
     args = _argument_parser().parse_args(values)
-    lock_path = tr.area_lock_path(args.tmp, args.slug)
-    lock_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(lock_path, "a+b") as area_lock:
-        fcntl.flock(area_lock.fileno(), fcntl.LOCK_EX)
-        return _main_under_area_lock(args)
+    inventory_resource = tr.dossier_resource_path(args.tmp)
+    with trusted_fs.locked_resources(
+            args.tmp, [(inventory_resource, fcntl.LOCK_SH)],
+            tr.resource_lock_path):
+        lock_path = tr.area_lock_path(args.tmp, args.slug)
+        with trusted_fs.open_lock_file(lock_path) as area_lock:
+            fcntl.flock(area_lock.fileno(), fcntl.LOCK_EX)
+            try:
+                generation_capture = dossier_output.capture_generation_locked(
+                    args.tmp, args.slug
+                )
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                return _refuse_invalid_checkpoint(
+                    args, [f"source generation validation failed: {error}"]
+                )
+            return _main_under_area_lock(args, generation_capture)
 
 
 if __name__ == "__main__":

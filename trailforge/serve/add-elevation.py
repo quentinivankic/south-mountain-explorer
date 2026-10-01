@@ -30,7 +30,9 @@ import os
 import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_HERE, "..", "..", "scripts"))
 sys.path.insert(0, _HERE)
+import _parking_geom_guard as geom_guard  # noqa: E402
 import elevation  # noqa: E402
 
 _GEOM = os.path.join(_HERE, "..", "..", "public", "areas", "geom")
@@ -40,24 +42,7 @@ _GEOM = os.path.join(_HERE, "..", "..", "public", "areas", "geom")
 process_area = elevation.process_area
 
 
-def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--geom-dir", default=_GEOM)
-    ap.add_argument("--state", help="2-letter code suffix filter, e.g. az (slug ends -az)")
-    ap.add_argument("--slug", help="comma-separated area slugs — the targeted form. "
-                    "--state is too coarse for a backfill: the areas missing "
-                    "elevation are scattered across MT/NC/UT/OR/ME/HI/…, and "
-                    "re-sampling whole states to reach 24 areas would re-write "
-                    "thousands of files for nothing")
-    ap.add_argument("--zoom", type=int, default=elevation.DEM_ZOOM)
-    ap.add_argument("--cache-dir", default=os.path.join(_HERE, "..", "data", "dem-cache"))
-    ap.add_argument("--dry-run", action="store_true", help="compute + report, write nothing")
-    ap.add_argument("--top", type=int, default=10, help="print the N highest-gain trails")
-    ap.add_argument("--name", help="calibration: print gain for every trail whose "
-                    "name contains this (case-insensitive), e.g. --name humphreys")
-    args = ap.parse_args(argv)
-
+def _run(args) -> int:
     files = sorted(glob.glob(os.path.join(args.geom_dir, "*.json")))
     if args.state:
         suf = f"-{args.state.lower()}.json"
@@ -98,7 +83,7 @@ def main(argv=None) -> int:
             top.append((t.get("gainFt", 0), t.get("name") or "", geom.get("name") or "",
                         t.get("distanceMi", 0), t.get("difficulty", "")))
         if not args.dry_run:
-            json.dump(geom, open(f, "w"), separators=(",", ":"))
+            geom_guard.atomic_write_json(f, geom, separators=(",", ":"))
         if i % 25 == 0 or i == len(files):
             print(f"  [{i}/{len(files)}] {os.path.basename(f)} "
                   f"({changed} trails)", file=sys.stderr)
@@ -121,6 +106,34 @@ def main(argv=None) -> int:
         for g, tn, an, mi, diff in top[:args.top]:
             print(f"  {g:6} ft  {mi:5} mi  {diff:8}  {tn}  ({an})")
     return 0
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--geom-dir", default=_GEOM)
+    ap.add_argument("--state", help="2-letter code suffix filter, e.g. az (slug ends -az)")
+    ap.add_argument("--slug", help="comma-separated area slugs — the targeted form. "
+                    "--state is too coarse for a backfill: the areas missing "
+                    "elevation are scattered across MT/NC/UT/OR/ME/HI/…, and "
+                    "re-sampling whole states to reach 24 areas would re-write "
+                    "thousands of files for nothing")
+    ap.add_argument("--zoom", type=int, default=elevation.DEM_ZOOM)
+    ap.add_argument("--cache-dir", default=os.path.join(_HERE, "..", "data", "dem-cache"))
+    ap.add_argument("--dry-run", action="store_true", help="compute + report, write nothing")
+    ap.add_argument("--top", type=int, default=10, help="print the N highest-gain trails")
+    ap.add_argument("--name", help="calibration: print gain for every trail whose "
+                    "name contains this (case-insensitive), e.g. --name humphreys")
+    args = ap.parse_args(argv)
+
+    if args.dry_run:
+        return _run(args)
+    try:
+        with geom_guard.geom_writer(args.geom_dir):
+            return _run(args)
+    except geom_guard.LiveSweepInProgress as error:
+        print(f"REFUSING: {error}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

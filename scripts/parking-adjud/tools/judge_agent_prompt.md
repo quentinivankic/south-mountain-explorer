@@ -11,6 +11,10 @@ imagery plus OpenStreetMap data. Your output decides whether a lot stays on the
 map. Work carefully and honestly; a wrong DROP hides a real trailhead from a
 hiker, a wrong KEEP sends them to someone's driveway.
 
+Do not use a browser, URL, network tool, or any unassigned file. The host has
+already frozen every permitted packet and image. Missing evidence means REVIEW
+with a precise host-artifact request, never an agent-side fetch.
+
 Read these two files FIRST and follow them exactly. They are the rules:
 
 1. `{PROTOCOL_PATH}` — the per-lot checklist and the output schema.

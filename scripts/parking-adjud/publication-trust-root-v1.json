@@ -1,0 +1,105 @@
+{
+  "dossiers": [
+    {
+      "filename": "camels-hump-state-park-vt_dossier.json",
+      "sha256": "949d61c36f7a544416ccbeb7b439e96b27525f3b45368d2afd285c8304e11fa4"
+    },
+    {
+      "filename": "crawford-notch-state-park-nh_dossier.json",
+      "sha256": "81ab29e5334c0b9c2f851863961327e41a69dadf1d21330d4530618a57681f59"
+    },
+    {
+      "filename": "echo-canyon-recreation-area-az_dossier.json",
+      "sha256": "bc7fcbe8b254a3d87d19736b3ffed8304952f6ecc51e36a154ec4b30c1fc4c5d"
+    },
+    {
+      "filename": "grafton-notch-state-park-me_dossier.json",
+      "sha256": "dff08394cc073b5a009ea9d1f2210d4f7956ffe8cbb3f45643c2fc21b980939c"
+    },
+    {
+      "filename": "griffith-park-ca_dossier.json",
+      "sha256": "ad4e24484635e9bbbbddffbcf4a1302411369d945cd7b2846085b365488b8b12"
+    },
+    {
+      "filename": "monadnock-reservation-nh_dossier.json",
+      "sha256": "a9e705a2a7e495581821dd6c010e3507265d53277c8c0506babe5df458fbc9a6"
+    },
+    {
+      "filename": "mount-major-state-forest-nh_dossier.json",
+      "sha256": "4744b6331312042a7317d02ae4f193a77e8227d43d01acc02b95a9eab7107c34"
+    },
+    {
+      "filename": "phoenix-mountains-preserve-az_dossier.json",
+      "sha256": "ddfe926840c2dab9f18fdcf2625875b040bc1db250bfcc2d40fb5c07832b9547"
+    },
+    {
+      "filename": "pinnacle-peak-park-az_dossier.json",
+      "sha256": "44381ceaf0538d9528b304289404ee3a7941748873f73ca97c0f442cff0b0a8a"
+    },
+    {
+      "filename": "usery-mountain-regional-park-az_dossier.json",
+      "sha256": "19a18a819446e782936d8e5f32cd873ea4ebce2664e60e0b51086bec2e7c2aa9"
+    },
+    {
+      "filename": "zion-wilderness-ut_dossier.json",
+      "sha256": "e1551fdb2ce8100f81be405b3bf98805a98a7367a5cb5e33aa3f938182029abd"
+    }
+  ],
+  "generation": 1,
+  "kind": "parking-publication-trust-root",
+  "legacy_baseline": {
+    "filename": "proofless-source-baseline-v1.json",
+    "sha256": "166ec465995cf0216f864b2bb9eaef3780f82f76ccba096981092d15082ec1b2"
+  },
+  "parent_root_sha256": null,
+  "schema": {
+    "artifact_sha256": "sha256-exact-bytes",
+    "canonical_json": "utf-8-indent-2-sort-keys-no-nan-newline-v1",
+    "dossier_inventory": "sorted-canonical-dossier-filenames-v1",
+    "path_derivation": "configured-store-filename-v1",
+    "proof_registry_absence": "null"
+  },
+  "stores": {
+    "co_verdicts_osm.json": {
+      "default_judged": "2026-09-13",
+      "dossier_slug": null,
+      "key_kind": "osm",
+      "proof_registry_sha256": null,
+      "publication_floor_sha256": "5b5d134bec54d6e3e4862cea31231e1701b5d116c4866819128b6e59b40f3cad",
+      "store_sha256": "44f3ac4c6793e1be66e301f6ee46875de92b8e1952351c607ae4e658d861a0cb"
+    },
+    "griffith-park-ca_verdicts2.json": {
+      "default_judged": "2026-08-01",
+      "dossier_slug": "griffith-park-ca",
+      "key_kind": "fid",
+      "proof_registry_sha256": null,
+      "publication_floor_sha256": "1800884b1d12e166964a1748affa6c20a19a58d9984dc0d7134d7009dde9b7bd",
+      "store_sha256": "87850e0bd91c29d59a87da96a9425bdde25aabb7e4569b3c7ad358c583d5f7da"
+    },
+    "ne_verdicts_osm.json": {
+      "default_judged": "2026-08-02",
+      "dossier_slug": null,
+      "key_kind": "osm",
+      "proof_registry_sha256": null,
+      "publication_floor_sha256": "82c407dfec8dca9b2eb1a49c60c62143b5a7b181db4f5ed3195912e0e0e08ee2",
+      "store_sha256": "04ce8a868210fededb31e85b8c018d8519a97abaff2914c87b525a471d473e25"
+    },
+    "phx_verdicts_osm.json": {
+      "default_judged": "2026-08-01",
+      "dossier_slug": null,
+      "key_kind": "osm",
+      "proof_registry_sha256": null,
+      "publication_floor_sha256": "69efdc283b55bd9e1ee5130ec0f94cab618d308f0af6934c1d36d464616cc5a9",
+      "store_sha256": "8908e8d85a7c501be9105c1f701c0235951cdc201f81531c6f65d29d830df7c2"
+    },
+    "zion-wilderness-ut_verdicts2.json": {
+      "default_judged": "2026-08-01",
+      "dossier_slug": "zion-wilderness-ut",
+      "key_kind": "fid",
+      "proof_registry_sha256": null,
+      "publication_floor_sha256": "fc15656c009bc145b816b4336797af647c4897f147f2d5d6b89beabb73f28925",
+      "store_sha256": "3b9a61dca7703bc2922c6226bcc342d9fb5d23de4b5704f9a39532fcd2b14c11"
+    }
+  },
+  "version": 1
+}

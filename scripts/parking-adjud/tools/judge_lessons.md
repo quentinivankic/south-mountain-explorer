@@ -1,8 +1,8 @@
-## 5. The ten load-bearing lessons
+## 5. The eleven load-bearing lessons
 
 **Every one of these came from a real user correction or a measured failure.
 They are the most valuable thing in this document. Do not quietly re-derive
-around them.** 📋 for all ten (sourced from auto-memory `parking-vision-adjudication`).
+around them.** 📋 for all eleven (sourced from auto-memory `parking-vision-adjudication`).
 
 ### 1. SERVES = the app's own rule, run area-agnostically
 
@@ -95,9 +95,10 @@ from a 480 m frame with the tags hidden. The fix:
 
 - **Z3 is MANDATORY** before any DROP of a surveyed prior, and before any KEEP
   that Z2 did not already prove with cars or stripes.
-- **NAIP is the primary imagery source**, not ESRI:
-  `https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage`
-  ESRI World Imagery **throttles under burst** — it fires fast failures and then
+- **NAIP is the host's primary imagery source**, not ESRI. Its endpoint and
+  fetch credentials/configuration stay host-side; agent assignments contain
+  only frozen image paths, and orchestration must disable browser/network tools.
+  The Python preparers do not themselves provide a network sandbox. ESRI World Imagery **throttles under burst** — it fires fast failures and then
   HANGS every connection. `ladder_tiles.py` paces at 1 s (`PACE_S`) with a
   0/6/15 s retry ladder, and since 2026-09-13 fetches NAIP first with ESRI as
   the fallback (ESRI alone failed 61 of 61 Z3 frames that day).
@@ -169,12 +170,49 @@ under 100% ESRI cloud with Social 16 at 705 m and nothing else in range; #82 a d
 pad on a condo-street spur, Tunnel Hill 202 m away across the railroad, whose only
 KEEP path was a "residents only" sign no aerial frame can show. Both
 `resolve_hint`s asked for evidence the ladder cannot produce (a ground check, a
-sign). REVIEW is for a call that a FETCHABLE frame would change: canopy over a
-surveyed prior, a clear NAIP frame for a clouded ESRI one (fetch it, then
-decide). When the only thing that could rescue a lot is unobservable from the
+sign). REVIEW is for a call that a HOST-FETCHABLE frame would change: canopy
+over a surveyed prior, or a clear NAIP frame for a clouded ESRI one. Agents do
+not fetch it; request the exact host-frozen frame in `resolve_hint`, then decide
+on the next bound run. When the only thing that could rescue a lot is unobservable from the
 air and everything visible says DROP, the verdict is DROP, `leaning`, with the
-doubt in the evidence string. The human's pen (`merge_drafts.py --set`) exists
-for the rest, and `tools/calibration.py` counts how often it is used.
+doubt in the evidence string. New human authority uses receipt-bound
+`merge_drafts.py --decide` for a flip or `--confirm` for same-verdict acceptance;
+the unbound `--set` CLI is retired and exists only as legacy replay code.
+`tools/calibration.py` counts the resulting explicit decisions.
+
+### 11. Public ownership and proximity are not parking permission
+
+Bear Creek's first autonomous run failed a high-bar audit because the same
+model family repeatedly turned weak context into permission:
+
+- government ownership or a whole park/venue marked `PUBLIC_ACCESS=Open`;
+- no gate visible in aerial imagery;
+- road-right-of-way classification;
+- a finite walk below one mile;
+- a trail line touching or passing a mapped footprint.
+
+None proves that **this lot** is legal public trail parking. Apply the axes in
+order:
+
+1. **EXISTS:** a roadside feature needs a vehicle-access throat and a bay outside
+   the travel lane, cars/stalls, or a clearly delineated graded surface. A
+   continuous curb, sidewalk, verge, through-lane, or building footprint is no.
+2. **PUBLIC:** require lot-level access tags, an official access/trailhead record
+   at the lot, or an authoritative statement granting parking. Public ownership,
+   an open enclosing property, and no visible gate are only context.
+3. **SERVES:** only after PUBLIC=yes, require direct trail access or a named/
+   official trailhead relationship. Distance alone does not convert school,
+   church, commercial, restaurant, transit, event, VIP, pit, resident, or
+   employee parking into trail overflow.
+
+Same-family external evidence can improve the human exception packet, but under
+resolver v2 it is never independent authority and cannot authorize a machine
+resolution—even when every call matches and the source is novel. Every source
+still needs a durable official locator, retrieval/update timestamps, exact
+frozen bytes/hash, structured support matching the selected call, and an
+axis-local citation. If no arbiter whose model ID and family differ from every
+parent reaches exact verdict-and-axis agreement, produce REVIEW/human exception
+rather than manufacturing confidence.
 
 ---
 

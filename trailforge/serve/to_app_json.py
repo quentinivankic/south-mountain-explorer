@@ -25,6 +25,8 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))
+import _parking_geom_guard as geom_guard  # noqa: E402
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "assemble"))
 import model  # noqa: E402 — for merge_key (same-trail matching across renames)
 sys.path.insert(0, os.path.dirname(__file__))
@@ -174,29 +176,7 @@ def _index_lookup(index_path: str, area_id: str) -> dict | None:
     return None
 
 
-def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="trailforge geojson -> app AreaRow json + orphan diff")
-    ap.add_argument("--in", dest="inp", required=True)
-    ap.add_argument("--area-id", required=True)
-    # name/state/center/osm-rel auto-fill from --index by area-id; override here.
-    ap.add_argument("--name")
-    ap.add_argument("--state")
-    ap.add_argument("--center-lat", type=float)
-    ap.add_argument("--center-lon", type=float)
-    ap.add_argument("--osm-relation-id", type=int)
-    ap.add_argument("--index", default=_DEFAULT_INDEX,
-                    help="areas-index.json to auto-fill area metadata (and --update-index)")
-    ap.add_argument("--out")
-    ap.add_argument("--update-index", action="store_true",
-                    help="patch the area's trail_count + total_mi in --index in place")
-    ap.add_argument("--compare", help="live area json to diff trail-ids against")
-    ap.add_argument("--preserve-ids-from",
-                    help="live area json: keep its id for a same-trail (merge_key) match "
-                         "so completions re-bind across a rename (opt-in)")
-    ap.add_argument("--no-routes", action="store_true",
-                    help="exclude kind=route overlays (default: include everything)")
-    args = ap.parse_args(argv)
-
+def _run(args, parser, output_path) -> int:
     meta = _index_lookup(args.index, args.area_id) if os.path.exists(args.index) else None
     name = args.name or (meta and meta["name"])
     state = args.state or (meta and meta["state"]) or "Arizona"
@@ -204,7 +184,7 @@ def main(argv=None) -> int:
               else (meta and meta["center"]))
     osm_rel = args.osm_relation_id if args.osm_relation_id is not None else (meta and meta["osm_rel"])
     if not name or not center:
-        ap.error(f"no metadata for '{args.area_id}' in {args.index}; pass --name/--center-lat/--center-lon")
+        parser.error(f"no metadata for '{args.area_id}' in {args.index}; pass --name/--center-lat/--center-lon")
 
     id_by_mergekey = None
     if args.preserve_ids_from:
@@ -216,8 +196,8 @@ def main(argv=None) -> int:
     kinds = {"trail", "hike"} if args.no_routes else {"trail", "hike", "route"}
     row = convert(fc, args.area_id, name, state, center, osm_rel, kinds, id_by_mergekey)
     print(f"converted {row['trail_count']} trails, {row['total_mi']} mi", file=sys.stderr)
-    if args.out:
-        json.dump(row, open(args.out, "w"))
+    if output_path is not None:
+        geom_guard.atomic_write_json(output_path, row)
         print(f"wrote {args.out}", file=sys.stderr)
     if args.update_index:
         idx = json.load(open(args.index))
@@ -233,6 +213,43 @@ def main(argv=None) -> int:
     if args.compare:
         diff(row, json.load(open(args.compare)))
     return 0
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(
+        description="trailforge geojson -> app AreaRow json + orphan diff"
+    )
+    parser.add_argument("--in", dest="inp", required=True)
+    parser.add_argument("--area-id", required=True)
+    # name/state/center/osm-rel auto-fill from --index by area-id; override here.
+    parser.add_argument("--name")
+    parser.add_argument("--state")
+    parser.add_argument("--center-lat", type=float)
+    parser.add_argument("--center-lon", type=float)
+    parser.add_argument("--osm-relation-id", type=int)
+    parser.add_argument("--index", default=_DEFAULT_INDEX,
+                        help="areas-index.json to auto-fill area metadata (and --update-index)")
+    parser.add_argument("--out")
+    parser.add_argument("--update-index", action="store_true",
+                        help="patch the area's trail_count + total_mi in --index in place")
+    parser.add_argument("--compare", help="live area json to diff trail-ids against")
+    parser.add_argument("--preserve-ids-from",
+                        help="live area json: keep its id for a same-trail (merge_key) match "
+                             "so completions re-bind across a rename (opt-in)")
+    parser.add_argument("--no-routes", action="store_true",
+                        help="exclude kind=route overlays (default: include everything)")
+    args = parser.parse_args(argv)
+    output_path = geom_guard.canonical_path(args.out) if args.out else None
+
+    if (output_path is None
+            or not geom_guard.is_canonical_geom_dir(output_path.parent)):
+        return _run(args, parser, output_path)
+    try:
+        with geom_guard.canonical_geom_writer(output_path.parent):
+            return _run(args, parser, output_path)
+    except geom_guard.LiveSweepInProgress as error:
+        print(f"REFUSING: {error}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

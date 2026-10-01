@@ -35,7 +35,7 @@ whole point and section 3 explains why it was fought for.
 | Data | Durable source stores and legacy evidence are in `scripts/parking-adjud/data/`; large aerial/OSM inputs stay on the homelab |
 | Trust measurement | 90 explicit human labels; only 38 binary model calls have a per-lot denominator, all one DROP area/source; no class promoted |
 | Autonomous routing | Shadow replay: 190 refresh / 746 blind challenge / 173 arbiter / 90 preserved explicit authority / 0 direct human exceptions. Staunton field pilot: 4 `PRESERVE_MACHINE_RESOLUTION` / 0 human exceptions. |
-| Blocking | No external blocker. The Staunton resolver pilot is complete; its four resolved DROPs are in a reviewed publication candidate that is not yet live. Direct model promotion remains disabled until promotion-grade references pass error/breadth gates. |
+| Blocking | **Operational/manual freeze — not code-enforced:** do not publish `bear-creek-lake-park-co`. Its available resolver run and 4 historical human decisions predate the current prepare/review-receipt authority schemas and cannot be newly published. Regenerate/re-evaluate all 50 rows, rebind accepted decisions through current frozen review evidence, resolve every exception, pass hostile review, and obtain an explicit thaw before store/sidecar/geom/pool/R2/live publication. Staunton's four DROPs are already published and live-verified. Direct model promotion remains disabled. |
 | It blocks | TASKS **#51**'s containment roll and **#52**'s polygon merge 📋 |
 
 **The ID problem is settled in section 14. The current design boundary is the
@@ -96,11 +96,11 @@ Confidence tiers: `certain` (cars/stripes seen, or a hard tag rule) / `strong`
 
 ---
 
-## 5. The ten load-bearing lessons
+## 5. The eleven load-bearing lessons
 
 **Every one of these came from a real user correction or a measured failure.
 They are the most valuable thing in this document. Do not quietly re-derive
-around them.** 📋 for all ten (sourced from auto-memory `parking-vision-adjudication`).
+around them.** 📋 for all eleven (sourced from auto-memory `parking-vision-adjudication`).
 
 ### 1. SERVES = the app's own rule, run area-agnostically
 
@@ -193,9 +193,10 @@ from a 480 m frame with the tags hidden. The fix:
 
 - **Z3 is MANDATORY** before any DROP of a surveyed prior, and before any KEEP
   that Z2 did not already prove with cars or stripes.
-- **NAIP is the primary imagery source**, not ESRI:
-  `https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage`
-  ESRI World Imagery **throttles under burst** — it fires fast failures and then
+- **NAIP is the host's primary imagery source**, not ESRI. Its endpoint and
+  fetch credentials/configuration stay host-side; agent assignments contain
+  only frozen image paths, and orchestration must disable browser/network tools.
+  The Python preparers do not themselves provide a network sandbox. ESRI World Imagery **throttles under burst** — it fires fast failures and then
   HANGS every connection. `ladder_tiles.py` paces at 1 s (`PACE_S`) with a
   0/6/15 s retry ladder, and since 2026-09-13 fetches NAIP first with ESRI as
   the fallback (ESRI alone failed 61 of 61 Z3 frames that day).
@@ -267,12 +268,49 @@ under 100% ESRI cloud with Social 16 at 705 m and nothing else in range; #82 a d
 pad on a condo-street spur, Tunnel Hill 202 m away across the railroad, whose only
 KEEP path was a "residents only" sign no aerial frame can show. Both
 `resolve_hint`s asked for evidence the ladder cannot produce (a ground check, a
-sign). REVIEW is for a call that a FETCHABLE frame would change: canopy over a
-surveyed prior, a clear NAIP frame for a clouded ESRI one (fetch it, then
-decide). When the only thing that could rescue a lot is unobservable from the
+sign). REVIEW is for a call that a HOST-FETCHABLE frame would change: canopy
+over a surveyed prior, or a clear NAIP frame for a clouded ESRI one. Agents do
+not fetch it; request the exact host-frozen frame in `resolve_hint`, then decide
+on the next bound run. When the only thing that could rescue a lot is unobservable from the
 air and everything visible says DROP, the verdict is DROP, `leaning`, with the
-doubt in the evidence string. The human's pen (`merge_drafts.py --set`) exists
-for the rest, and `tools/calibration.py` counts how often it is used.
+doubt in the evidence string. New human authority uses receipt-bound
+`merge_drafts.py --decide` for a flip or `--confirm` for same-verdict acceptance;
+the unbound `--set` CLI is retired and exists only as legacy replay code.
+`tools/calibration.py` counts the resulting explicit decisions.
+
+### 11. Public ownership and proximity are not parking permission
+
+Bear Creek's first autonomous run failed a high-bar audit because the same
+model family repeatedly turned weak context into permission:
+
+- government ownership or a whole park/venue marked `PUBLIC_ACCESS=Open`;
+- no gate visible in aerial imagery;
+- road-right-of-way classification;
+- a finite walk below one mile;
+- a trail line touching or passing a mapped footprint.
+
+None proves that **this lot** is legal public trail parking. Apply the axes in
+order:
+
+1. **EXISTS:** a roadside feature needs a vehicle-access throat and a bay outside
+   the travel lane, cars/stalls, or a clearly delineated graded surface. A
+   continuous curb, sidewalk, verge, through-lane, or building footprint is no.
+2. **PUBLIC:** require lot-level access tags, an official access/trailhead record
+   at the lot, or an authoritative statement granting parking. Public ownership,
+   an open enclosing property, and no visible gate are only context.
+3. **SERVES:** only after PUBLIC=yes, require direct trail access or a named/
+   official trailhead relationship. Distance alone does not convert school,
+   church, commercial, restaurant, transit, event, VIP, pit, resident, or
+   employee parking into trail overflow.
+
+Same-family external evidence can improve the human exception packet, but under
+resolver v2 it is never independent authority and cannot authorize a machine
+resolution—even when every call matches and the source is novel. Every source
+still needs a durable official locator, retrieval/update timestamps, exact
+frozen bytes/hash, structured support matching the selected call, and an
+axis-local citation. If no arbiter whose model ID and family differ from every
+parent reaches exact verdict-and-axis agreement, produce REVIEW/human exception
+rather than manufacturing confidence.
 
 ---
 
@@ -294,7 +332,13 @@ Sections 4 and 5 give the rules. This is what actually happens at the screen.
    - `trailhead_nodes` within 120 m, `footways_60m`, `building_overlap`
    - the OSM context category and its evidence string
 2. **The tiles** — Z1 / Z2 / Z3, pre-rendered.
-3. **Nothing else.** No map app, no Street View. The protocol is the protocol.
+3. **No other evidence assignment.** Dispatch only the generated prompt and its
+   named run-local files, with browser/network tools disabled. Packet tags can
+   contain URL strings; those are data, not fetch permission. The human-only
+   review sheet is separate, deterministic, and self-contained. It embeds
+   frozen run-local PNGs plus the complete frozen packet payload and normalized
+   publication facts; OSM IDs and coordinates are labels, not live evidence or
+   fetch permission.
 
 ### What a tile looks like
 
@@ -793,7 +837,9 @@ All in `scripts/parking-adjud/tools/` (also still at `/mnt/raid/trekdex/parking-
 
 ## 12. Data reference
 
-All in `scripts/parking-adjud/data/` — 74 files, 8.2 MB ✅. The rendered tiles are NOT in the repo; they stay at `/mnt/raid/trekdex/parking-adjud/data/<slug>_ladder/`.
+All in `scripts/parking-adjud/data/`; see section 21 for the rooted artifact
+inventory. The rendered tiles are NOT in the repo; they stay at
+`/mnt/raid/trekdex/parking-adjud/data/<slug>_ladder/`.
 
 | File | Shape |
 |---|---|
@@ -1060,20 +1106,59 @@ is a third file. Name it clearly.
 ### Refuse by default; exact reviewed-empty exceptions
 
 The parking sweep refuses last-lot removal by default.
-`_REVIEWED_EMPTY_SIGNATURES` in `scripts/sweep-parking-verdicts.py` is a
-committed case-review policy, not an operator force switch. An area may empty
-only when its complete matched DROP population exactly equals the recorded
-`(verdict key, reason)` tuple sequence, including multiplicity. A changed key,
-reason, or matched count restores refusal; evidence- or confidence-only edits
-are not part of this signature. The CLI exposes no force option.
+`_REVIEWED_EMPTY_SIGNATURES` in `scripts/sweep-parking-verdicts.py` is the
+source for the code-approved versioned policy registry, not an operator force
+switch. An area may empty only when its complete matched DROP population
+exactly equals the recorded `(verdict key, reason)` tuple sequence, including
+multiplicity. A changed key, reason, or matched count restores refusal;
+evidence- or confidence-only edits are not part of this signature. The CLI
+exposes no force option.
 
-`--dry-run` prints `REVIEWED-EMPTY ... exact signature` for an approved match
-and `REFUSING ...` otherwise. Check both stdout and stderr because refusal does
-not make the command nonzero. The current reviewed signatures are:
+Every nonempty footprint must be an explicitly closed, finite, nonzero-area
+polygon with at least four points and three distinct vertices, a diagonal no
+larger than 2,000 m, and its verdict position inside a ring or no farther than
+100 m from the nearest edge. `rings=[]` remains valid. Control, format, and
+line-separator characters are rejected throughout sidecar and geom strings;
+all report-bound untrusted values are also rendered through one single-line
+escaping helper.
+
+`--dry-run` is recursively nonmutating and begins `DRY-RUN — would remove`.
+It prints `REVIEWED-EMPTY ... exact signature` for an approved match and
+`REFUSING ...` otherwise. A refused apply exits 2, mutates nothing, and begins
+`NOT APPLIED — 0 lots removed; planned N`; details are under `planned
+removals:` and never claim an applied removal. Check both stdout and stderr.
+The current reviewed signatures are:
 
 - Mesa Valley / `way/58294967:not-public`
 - Promntory Point / `way/1206954210:not-public`
 - Sondermann / `way/58294967:not-public`
+
+Before canonical mutation the sweep durably verifies exact BEFORE backups,
+AFTER stages, an owner-only exact sidecar snapshot, and its PREPARED journal.
+Recovery ignores mutable current sidecar bytes/inode and current policy: it
+independently derives paths and transaction ID, accepts only hardcoded approved
+historical policy version+bytes, reconstructs the original plan from retained
+authority, and rolls forward only an exact AFTER prefix/BEFORE suffix. Unsafe
+target or inventory drift refuses deterministically without further mutation.
+
+All canonical geom writers share the persistent gate: `add-parking.py`,
+`merge-published-geom.py`, the federal/degenerate/name/nonhiking sweep tools,
+`backfill-area-boundary-ids.py`, `recompute-difficulty.py`, standalone
+`trailforge/serve/add-elevation.py`, non-cache-only `build-trail-counts.py`
+(including its low-level `_seed_constants.write_geom_file` helper), and
+canonical `trailforge/serve/publish_areas.py` or direct canonical
+`to_app_json.py` output all hold the same geom EX plus live-journal lease and
+refuse while PREPARED exists. Artifact and derived output directories remain
+outside this gate. The canonical sidecar builder joins the
+sidecar/live-journal lease too. `add-parking.py` recaptures exact sidecar bytes
+and every geom source under one globally sorted commit lease before its first
+write, so a stale roll cannot restore a DROP.
+
+The live journal remains until all targets and the receipt are durable and the
+bound stdout/stderr report has been printed and flushed. Only then is it moved
+to Archive and both parents fsynced. A crash before or during reporting leaves
+the journal live; rerunning the exact sweep command replays the bound report,
+finishes archival, and does not recompute authority from current inputs.
 
 Run the sweep before the pool build. `build-parking-pool.py` retains its own
 conservative unconditional guard when handed a still-nonempty geom; it does not
@@ -1164,15 +1249,26 @@ judged with the fan-out tooling now in `scripts/parking-adjud/tools/`:
   packet per lot (prior, tags, serves, walk, context, tile paths) in chunks of
   15, and a prompt per chunk from `judge_agent_prompt.md`.
 - Ten `general-task-execution` judge agents in parallel, each with
-  `judge_protocol.md` + `judge_lessons.md` + its chunk, **rewriting the draft
-  after every lot** (an interrupt costs one lot, and a second launch resumes
-  from the draft). 149 lots took about 40 minutes of wall clock across two
-  launches.
+  `judge_protocol.md` + `judge_lessons.md` + its chunk. Current agents rewrite
+  only their assigned `<slug>_verdict_continue_NN.json` after every lot; the
+  host captures and validates that continuation once, then merges it into the
+  canonical draft under the area lock. Canonical drafts/checkpoints are never
+  agent-owned. 149 lots took about 40 minutes of wall clock across two launches.
 - `merge_drafts.py data/co_verdicts_osm.json <slug>` validates (schema,
   coverage against `_pub.txt`, Z3 required for a surveyed-prior DROP) and
-  prints every DROP with evidence and tile path; `judge_review_sheet.py <slug>`
-  writes one HTML page (149 cards, three frames each, DROPs first) for the human;
-  `--set FID=VERDICT` records a human flip; `--write` folds into the store with
+  prints every DROP with evidence and tile path; current human review uses
+  `judge_review_sheet.py <slug> --authority-run <run>`, which writes one
+  deterministic self-contained HTML page plus a self-hashed review receipt
+  under `.review-artifacts/<slug>/<run-id>/`. Review generation holds the area
+  `LOCK_EX` through both immutable installs; a sheet without its exact receipt
+  is not authority. Indian Peaks historically used loose HTML and `--set
+  FID=VERDICT` for two flips; neither can create current authority. Current
+  flips require receipt-bound `--decide --review-receipt`; every `--decide`,
+  `--confirm`, and `--write` mutation also requires explicit `--judged
+  YYYY-MM-DD`. For `--reviewed KEEP=sample`, `calibration.py add` requires the
+  canonical absolute `--review-receipt`; `--legacy-sample-manifest` is only for
+  explicit replay of the obsolete sample manifest. `--write --resolver-run
+  PATH` folds one terminal area into the store with
   `lat/lon/rings/name/judged` embedded, so **no Colorado dossier is committed**
   (`build-parking-verdicts.py` places a self-contained entry from the entry).
 - **Result: 109 KEEP (51 certain / 38 strong / 20 leaning), 40 DROP, 0 REVIEW.**
@@ -1213,10 +1309,21 @@ context passes; at the national rate it would be about 30 hours.
 
 ## 18. Checking you have not broken it
 
-Two things to run before and after any change to the rules or the stores.
+Three things to run before and after any change to the rules or the stores.
 
-**1. The stores still parse and the totals still hold.** ✅ (this is the command
-that produced the numbers in section 7)
+**1. The complete rooted corpus and committed sidecar still agree.**
+
+```bash
+python3 scripts/build-parking-verdicts.py --check
+```
+
+This validates the literal-pinned publication root before deeper semantics; the
+exact five store/proof-registry-state/floor images; the schema-v2 legacy
+baseline and 11 rooted dossiers; current proof/floor policy; and the canonical
+1,203-cluster sidecar compiled from 1,273 source rows.
+
+**Historical original-four subcorpus check only.** This produced the section 7
+numbers, but it is not the authoritative five-store publication gate:
 
 ```bash
 cd scripts/parking-adjud/data && python3 -c "
@@ -1283,8 +1390,8 @@ queue for the next autonomous stages:
   packet and a fresh judge;
 - `AUTONOMOUS_BLIND_CHALLENGE`: independently challenge a clean certain/strong
   call without exposing the primary answer;
-- `AUTONOMOUS_ARBITER`: fetch more evidence and resolve leaning, REVIEW,
-  fallback, no-route, or coverage-gap cases;
+- `AUTONOMOUS_ARBITER`: use only host-frozen offline evidence to resolve
+  leaning, REVIEW, fallback, no-route, or coverage-gap cases;
 - `PRESERVE_HUMAN_AUTHORITY`: retain an existing explicit human-influenced
   outcome without counting it as a model success;
 - `HUMAN_EXCEPTION`: only after the autonomous stages still conflict. The
@@ -1327,23 +1434,187 @@ model/packet/prompt/evidence/decision hash stay under `trust_resolution`.
 vector binds the pre-human machine result. Human `override` remains an outer
 layer and is never used for autonomous work.
 
-Distinct-family agreement resolves clean routes. Disagreement and exception
-routes require an arbiter; a correlated arbiter resolves only with externally
-frozen evidence whose hash is novel versus packet/prior inputs and whose
-canonical stable ID is cited as `[external:id]` in the selected decision. Only an unresolved arbiter becomes a human
-exception. Apply shares a canonical area lock with `judge_packets`; calibration/store
+Distinct-family agreement requires exact verdict and EXISTS/PUBLIC/SERVES
+calls. An arbiter resolves only when it exactly matches a confident parent and
+its model ID and family differ from every available parent. Any duplicate model
+ID or family among participating v2 votes—including same-family parents plus an
+otherwise independent arbiter—is a human exception. Every remaining same-family
+v2 outcome is a human exception regardless of novel citations. The host
+stable-captures each external manifest, artifact, and metadata file once through
+pre/post no-follow fd+entry checks, writes only those buffers into
+content-addressed run paths, and fully reloads/validates the completed run before
+returning it for dispatch. Arbiter orchestration must disable browser/network
+tools and assign only the generated
+prompt plus named run-local files; these preparers do not supply a sandbox.
+Arbiters may name only catalog-assigned IDs and structured support; they cannot invent
+paths, locators, timestamps, or hashes. The envelope persists the HTTPS source
+locator, UTC retrieval/update timestamps, exact content/manifest/metadata
+hashes, and axis-local claims, but none of that grants same-family authority.
+Preparation schema v2 binds the absolute run root, closed
+model/source/item/assignment schemas, complete primary decisions, host evidence
+catalog, prompt templates, exact `judge_protocol.md`/`judge_lessons.md` bytes,
+and exact dossier/`_pub.txt` bytes plus normalized aliases/location/rings/name.
+Area slugs are separator-free. Resolver prepare owns the canonical area
+`LOCK_EX` from source capture through completed-run reload. Every consumer
+requires `prepare.json` to be strict duplicate-free JSON whose exact bytes equal
+the canonical serialization; whitespace-only and duplicate-key rewrites fail
+before review, authority, or publication. Canonical
+resolver/authority/publication target installation pins and hashes source bytes, copies them into a fresh private
+single-link inode in the trusted target directory, fsyncs and verifies it,
+renames that unpredictable private entry, then verifies the installed inode and
+bytes. It does not rename the deterministic source stage. The shared
+`trusted_filesystem.py` boundary requires target/lock parents owned by the
+current euid with no group/world write and trivial descriptor-bound ACLs.
+Unsupported or failed ACL inspection and inherited/extended ACLs fail before
+mutation. Lock inodes must be regular, single-link, mode 0600, with repeated
+fd↔live-entry identity checks. Canonical old 0644 lock
+inodes are tightened in place without rotation. Portable POSIX cannot bind the
+final private-name lookup against a malicious same-UID peer inside that trusted
+directory, so every such process must obey the canonical lock. `merge_drafts`
+owns every opened resource/area handle in one outer cleanup scope; normal
+completion, unexpected post-lock exceptions, and partial open/`flock` failures
+all drain the acquired handles while preserving the original failure. The run
+retains immutable pre-apply packet/draft/checkpoint buffers for route
+rechecks, so an applied sibling cannot change another chunk's prepared route.
+Packet JSON, dossier, judge set, drafts, and checkpoints are each parsed/hashed
+from one immutable read. Each source PNG is accepted only when its pre/post fd
+and ladder-entry device/inode/mode/link/size/mtime/ctime stay identical around
+one read, then copied to `tiles/<sha256>.png`; later routing/proof uses only
+frozen run-local packets. `judge_packets` similarly commits only one stable
+continuation capture, writes a deterministic full-hash archive, and moves—not
+deletes—the live entry into owner-only quarantine. A newer final-race entry is
+preserved at a reported recovery path, never silently lost.
+Apply shares a canonical area lock with `judge_packets`; calibration/store
 writers take their global resource lock first and then sorted area lock(s), so
 cross-area whole-file updates serialize without reversing lock order. Under
-those locks the resolver rechecks current authority, reconstructs all recovery
-artifacts from bound prepare+inbox data, and enforces draft+checkpoint CAS,
-durable backup, PREPARED journal, one atomic draft replacement, exact receipt,
-and retry recovery. A live journal dominates any receipt; preserve-only chunks
-receive a durable terminal receipt.
+those locks the resolver rechecks current authority and, on the first real
+apply, freezes the whole run's role outputs into content-hashed `sealed-inbox/`
+bytes plus `output-seal.json`, including the all-items READY resolution snapshot.
+Planning, receipts, and recovery thereafter ignore mutable live inbox files; a
+journal without that matching seal, with changed resolution, or with any
+unresolved sealed sibling cannot write canonical state. It enforces draft+checkpoint CAS, durable backup,
+PREPARED journal bound to the seal, one atomic draft replacement, exact receipt,
+and retry recovery. No ready-looking chunk can plan, write a preservation
+receipt, or begin a transaction while any sibling is pending, blocked, or in
+recovery; only an already-durable journal may finish. A live journal dominates
+any receipt, and preserved-only chunks get durable terminal receipts.
+
+`--decide` and `--confirm` use pure planner helpers, but the CLI commands are
+mutating receipt/draft/checkpoint transactions. Before either command, generate
+canonical review evidence with `judge_review_sheet.py SLUG --authority-run RUN`.
+The renderer uses only the validated frozen run and embeds, for every item, the
+complete packet payload except replaced tile paths, the full normalized
+publication facility as canonical JSON, the exact primary decision, and the
+frozen PNG bytes. Under one area `LOCK_EX` it installs immutable owner-only
+single-link `review.html` and self-hashed `review-receipt.json` under
+`.review-artifacts/<area>/<run-id>/`; arbitrary `--out` is forbidden. A sheet
+alone is non-authoritative, and an exact retry completes the pair without inode
+rotation. The human command must pass that exact canonical `--review-receipt`.
+Sample calibration with `calibration.py add --reviewed KEEP=sample` also requires
+the canonical absolute `--review-receipt`; the mutually exclusive
+`--legacy-sample-manifest` flag exists only to replay the obsolete manifest.
+
+Under the global store lock then area lock, the CLI reconstructs the exact
+request and reviewed item from the frozen authority run, validates
+schema/packet/overlap, complete review sheet/receipt hashes, and whole-area
+packet/draft/checkpoint/dossier/public-set freshness, stages exact backups and
+after-images, writes a durable journal, then installs receipt → draft →
+checkpoint. The checkpoint changes only `draft_sha256`. New confirmation v2,
+override v3, and authority receipt v2 bind prepare/primary/packet/source,
+reviewer/date/note/effective decision, and review receipt/sheet/item hashes.
+Failed preflight leaves canonical targets unchanged. Legacy receipt-bound
+schemas remain replayable but cannot be newly emitted or published as current
+authority. A live authority journal blocks
+merge, packet generation, calibration/review-sheet writes, resolver work, and
+replay. Recovery requires rerunning the complete original `--decide` or
+`--confirm` invocation with the same authority run, canonical review receipt,
+and explicit `--judged` date; any changed field or noncanonical
+target/stage/backup fails without advancing files. The unbound `--set` CLI is retired. Store merge reopens receipts/source runs and
+full packets/tiles, rejects draft-injected `src` or geometry, and expands the
+full transitive alias component across same- and cross-area holders. Every write accepts one area and requires
+an explicit terminal `--resolver-run` whose bound dossier/judge-set bytes still
+match, so PENDING/BLOCKED primary rows and later dossier aliases cannot bypass
+the resolver. Merge writes run-bound publication fields plus a row reference to
+the separate canonical `<store>_publication_proofs.json` registry. That proof
+contains the actual prepare, output seal, byte-exact base64 sealed outputs and
+rendered prompts, chunk receipts with complete per-fid terminal vectors,
+packet bindings, exact final decision/authority rows, and each current human
+authority receipt plus an exact deduplicated review bundle (receipt, sheet,
+prepare, and every frozen source artifact needed to reconstruct it). New proof
+and attestation v2 independently replay the wrapper → authority receipt → review
+receipt → sheet/source chain; legacy v1 proof remains replay-only. Canonical replay independently derives assignment and prompt hashes,
+reconstructs persisted envelopes from sealed outputs, recomputes whole-run
+READY, exact-compares final rows, reconstructs the complete terminal checkpoint
+manifest and validates its raw draft/checkpoint hashes, then validates
+machine/human terminal membership. The strict canonical
+`publication-trust-root-v1.json` is the Git-reviewed trust anchor for the
+complete publication image. Its exact bytes are pinned by the literal
+`PUBLICATION_TRUST_ROOT_SHA256` in `build-parking-verdicts.py`; schema v1 binds
+generation/parent lineage, all five configured store images, all five
+proof-registry states (including exact `null` absence), all five self-hashed
+append-only publication floors, the exact schema-v2 1,273-row/11-dossier
+baseline, and the sorted exact 11-dossier byte inventory. The generated sidecar
+is derived and deliberately not rooted. Replay/build take root `LOCK_SH`;
+terminal publication takes root `LOCK_EX`, the target publication resources
+exclusively, and sibling resources shared.
+
+The rooted journaled transaction installs exact after-images in one valid
+prefix order: proof → floor → store → non-authoritative successor candidate.
+The floor preserves every admitted key's first authority, attestation, and
+proof identity. Every stage is exact-byte verified before the journal is
+archived. A prefix crash after proof, floor, store, candidate, or archive
+installation recovers only by rerunning the exact original one-area
+`merge_drafts.py ... --resolver-run RUN --judged DATE --write` command;
+different runs, dates, bytes, or malformed stages/backups/candidates/archives
+fail closed. The tracked root and code pin never change automatically. Review
+the generated candidate, replace the tracked root with those exact bytes, and
+update the literal pin plus pin assertions in one reviewed Git change. Until
+that promotion, replay/build and every second publication reject the live image
+against the old root. Sidecar builder and replay hold sorted shared resource
+locks through root/store/proof-state/floor/journal/baseline/dossier capture,
+semantic validation, compilation, and final sidecar comparison/write. Any live journal blocks. Every current OSM key
+must occur in its attested alias vector; proofless rows must exactly match the
+separately self-pinned schema-v2 1,273-row/11-dossier
+`proofless-source-baseline-v1.json`, whose exact file bytes are also rooted. A
+current key cannot downgrade to that baseline through publication. Captured
+dossier
+bytes, canonical store keys, `judge_provenance`, and exact emitted source/date
+defaults all participate in the same builder/replay alias closure, so
+key-only/provenance conflicts cannot fold silently. Real terminal-run direct-human precedence preserves the human record while
+rebuilding host geometry and aliases.
 It cannot write a store, sidecar, geom, pool, workflow, or live object. Exact
 commands and schemas: `tools/trust_resolver_schema.md`. The Staunton field pilot
 ran this path end to end: all four new lots terminated as
-`PRESERVE_MACHINE_RESOLUTION`, with zero human exceptions. Its reviewed
-publication candidate remains local and is not yet live.
+`PRESERVE_MACHINE_RESOLUTION`, with zero human exceptions, and its four DROPs
+were published and live-verified.
+
+**Operational/manual freeze — not code-enforced:** do not publish
+`bear-creek-lake-park-co`. Its available resolver run and 4 historical human
+decisions predate the current prepare/review-receipt authority schemas and
+cannot be newly published. Regenerate/re-evaluate all 50 rows, rebind accepted
+decisions through current frozen review evidence, resolve every exception, pass
+hostile review, and obtain an explicit thaw before store, sidecar, geom, pool,
+R2, or live publication.
+
+### Recovery commands
+
+No journal authorizes itself and there is no generic recovery command:
+
+| Live transaction | Only supported recovery |
+|---|---|
+| Judge continuation | Rerun the identical `judge_packets.py SLUG ...` command; it validates and commits the one captured continuation image. |
+| Resolver apply | Rerun `resolve_trust.py apply --run RUN --chunk N --apply`; status/plan-only calls do not finish it. |
+| Human authority | Rerun the complete original `merge_drafts.py ... --confirm/--decide ... --authority-run RUN --review-receipt RECEIPT --judged DATE` invocation. |
+| Store publication | Rerun the complete original `merge_drafts.py STORE SLUG --resolver-run RUN --judged DATE --write` invocation. |
+| Parking geom sweep | Rerun the identical `sweep-parking-verdicts.py` apply command; retained sidecar bytes and the approved historical reviewed-empty policy remain authoritative. |
+
+Do not edit, remove, or hand-build journals, stages, backups, candidates, or
+archives. A retry accepts only the exact trusted before/after images
+independently derived from its original inputs. Exact publication recovery
+finishes proof/floor/store/candidate installation but does **not** promote the
+candidate. Build/replay and another publication remain blocked until a separate
+reviewed Git change installs the candidate as the tracked root and updates the
+literal code pin.
 
 ---
 
@@ -1380,8 +1651,8 @@ overconfident successor.
 - **Same-model fan-out is throughput, not independent evidence.** Shared prompts,
   imagery, packet construction and source data create correlated errors. The
   trust engine routes clean rows to a blind challenger and disagreements to an
-  autonomous evidence-fetching arbiter; only unresolved contradictions reach
-  the user.
+  autonomous offline arbiter using host-frozen evidence; only unresolved
+  contradictions reach the user.
 
 ---
 
@@ -1407,8 +1678,12 @@ overconfident successor.
    --skip-judged <every store>`, fresh judge, `replay_trust.py` routing,
    `resolve_trust.py prepare/status`, blind challenger, then arbiter only when
    required. Apply each READY chunk explicitly; only a contradiction that
-   survives arbitration becomes a human exception. Then run the still-separate
-   merge/store/sweep/pool publication sequence.
+   survives arbitration becomes a human exception. Run the separate one-area
+   store publication next. It emits a non-authoritative successor root; review
+   that candidate and promote its exact bytes plus the literal code pin in one
+   reviewed Git change. Verify replay and `build-parking-verdicts.py --check`
+   against the promoted root before any sidecar/sweep/pool publication. Do not
+   begin a second store publication before promotion.
 
 ---
 
@@ -1423,7 +1698,13 @@ overconfident successor.
 | `scripts/parking-adjud/data/co_verdicts_osm.json` | the self-contained Colorado store (lat/lon/rings embedded; no CO dossiers in git) |
 | `scripts/parking-adjud/data/calibration.json` | human-vs-judge agreement ledger, per area (`tools/calibration.py report`) |
 | `scripts/parking-adjud/tools/trust_engine.py` | pure shadow routing, candidate policy, calibration bounds and historical replay logic |
-| `scripts/parking-adjud/tools/replay_trust.py` | read-only deterministic corpus/current-area route manifest |
+| `scripts/parking-adjud/tools/replay_trust.py` | read-only deterministic corpus/current-area route manifest plus lock-held proof/baseline validation |
+| `scripts/_parking_verdict_source.py` | shared immutable store/dossier snapshot capability, strict publication-root/floor/baseline schemas, key/alias/provenance normalization |
+| `scripts/parking-adjud/publication-trust-root-v1.json` | strict canonical exact-byte root for the complete authoritative publication corpus; SHA-256 is literally pinned in `build-parking-verdicts.py` |
+| `scripts/parking-adjud/proofless-source-baseline-v1.json` | schema-v2 exact allowlist for 1,273 proofless rows plus the exact 11-dossier inventory/bytes; separately self-pinned and exact-byte-rooted |
+| `scripts/parking-adjud/data/*_publication_floor.json` | one self-hashed append-only first-authority/attestation/proof floor per configured store |
+| `scripts/parking-adjud/tools/review_evidence.py` | deterministic frozen review sheet/receipt construction and validation |
+| `scripts/parking-adjud/tools/trusted_filesystem.py` | descriptor-relative trusted-parent, lock, read, and atomic-write primitives |
 | `scripts/parking-adjud/tools/trust_resolution.py` | pure decision envelopes, consensus, hashes and persisted-resolution validation |
 | `scripts/parking-adjud/tools/resolve_trust.py` | deterministic prepare/status and journaled one-chunk canonical apply |
 | `scripts/parking-adjud/tools/trust_{challenger,arbiter}_prompt.md` | blind role prompts; neither exposes prior decisions |
@@ -1431,7 +1712,7 @@ overconfident successor.
 | `scripts/test_parking_trust_engine.py` | shadow/no-write, provenance, promotion, routing and canonical-corpus regressions |
 | `scripts/test_parking_trust_resolver.py` | prepare/status/consensus/apply/tamper/crash/store integration simulations |
 | `scripts/parking-adjud/tools/` | adjudication, checkpoint, review and trust tools plus 2 shell drivers and the judge protocol |
-| `scripts/parking-adjud/data/` | every dossier, serves gate, context, walk, verdict store, `groundtruth.json`, `coverage_gaps.json`, `QUALITY_REPORT.md`, `co_areas.json` — 74 files, 8.2 MB |
+| `scripts/parking-adjud/data/` | five verdict stores, five publication floors, 11 rooted dossiers, serves/context/walk inputs, `groundtruth.json`, `coverage_gaps.json`, `QUALITY_REPORT.md`, and `co_areas.json` |
 | `scripts/parking-adjud/work/` | scratch, git-ignored, created on demand |
 
 **The tools no longer hardcode operational data paths.** Paths come from

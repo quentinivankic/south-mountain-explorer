@@ -53,6 +53,8 @@ import sys
 import time
 from pathlib import Path
 
+import _parking_geom_guard as geom_guard
+
 _ROOT = Path(__file__).resolve().parent.parent
 GEOM = _ROOT / "public" / "areas" / "geom"
 
@@ -138,21 +140,7 @@ def bbox_overlap_frac(a, b) -> float:
     return (ix * iy / area) if area > 0 else 0.0
 
 
-def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--pbf", required=True,
-                    help="a park-tagged extract (osmium tags-filter of us-latest)")
-    ap.add_argument("--geom-dir", default=str(GEOM))
-    ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--limit-report", type=int, default=25)
-    ap.add_argument("--min-trail-cover", type=float, default=0.9,
-                    help="reject a matched boundary that holds less than this "
-                         "share of the area's own trail vertices — the check "
-                         "that separates the right polygon from a same-named "
-                         "one (default 0.9)")
-    args = ap.parse_args(argv)
-
+def _run(args) -> int:
     from shapely.geometry import Point
 
     log(f"reading park polygons from {args.pbf}")
@@ -278,10 +266,35 @@ def main(argv=None) -> int:
         # a different polygon entirely.
         key = "osm_relation_id" if pick["osm_type"] == "relation" else "osm_way_id"
         g[key] = int(pick["osm_id"])
-        Path(path).write_text(json.dumps(g))
+        geom_guard.atomic_write_json(path, g)
         wrote += 1
     log(f"wrote {wrote:,} geom file(s)")
     return 0
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--pbf", required=True,
+                    help="a park-tagged extract (osmium tags-filter of us-latest)")
+    ap.add_argument("--geom-dir", default=str(GEOM))
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--limit-report", type=int, default=25)
+    ap.add_argument("--min-trail-cover", type=float, default=0.9,
+                    help="reject a matched boundary that holds less than this "
+                         "share of the area's own trail vertices — the check "
+                         "that separates the right polygon from a same-named "
+                         "one (default 0.9)")
+    args = ap.parse_args(argv)
+
+    if args.dry_run:
+        return _run(args)
+    try:
+        with geom_guard.geom_writer(args.geom_dir):
+            return _run(args)
+    except geom_guard.LiveSweepInProgress as error:
+        print(f"REFUSING: {error}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

@@ -1,0 +1,17 @@
+{
+  "entries": {},
+  "floor_sha256": "c5377b4afd23967bd8d44085abff0906057c1957bde3232619e04057e973b748",
+  "kind": "parking-publication-floor",
+  "schema": {
+    "canonical_json": "utf-8-sort-keys-compact-no-nan-v1",
+    "entry_identity": [
+      "first_authority_kind",
+      "first_authority_sha256",
+      "first_attestation_sha256",
+      "first_proof_sha256"
+    ],
+    "floor_sha256": "sha256-canonical-json-without-self-hash"
+  },
+  "store": "co_verdicts_osm.json",
+  "version": 1
+}

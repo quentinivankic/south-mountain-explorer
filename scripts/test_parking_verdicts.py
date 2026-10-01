@@ -3,14 +3,24 @@
 and the three consumers (pool builder, geom sweep, add-parking gate)."""
 from __future__ import annotations
 
+import copy
+import hashlib
 import importlib.util
 import json
+import os
+import stat
 import sys
 from pathlib import Path
 
+import pytest
+
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
+TOOLS = HERE / "parking-adjud" / "tools"
+for path in (str(HERE), str(TOOLS)):
+    if path not in sys.path:
+        sys.path.insert(0, path)
 import _parking_verdicts as pv  # noqa: E402
+import dossier_output  # noqa: E402
 
 
 def _load(name: str):
@@ -155,7 +165,90 @@ def test_load_is_tolerant_of_a_missing_or_broken_sidecar(tmp_path):
     assert v is not None and len(v) == 1 and v.count("KEEP") == 1
 
 
+@pytest.mark.parametrize("raw, message", [
+    (b'{"version":1,"lots":{},"lots":{}}', "duplicate JSON key"),
+    (b'{"version":1,"lots":{"way/1":{"verdict":"DROP"}}}', "lat"),
+])
+def test_strict_mutation_loader_rejects_silently_omitted_rows(raw, message):
+    with pytest.raises(ValueError, match=message):
+        pv.strict_verdicts_bytes(raw)
+
+
+def test_strict_mutation_loader_rejects_overmatching_ring():
+    document = _doc(_entry(
+        "way/1", "DROP",
+        rings=[[[LAT, LON], [LAT + 1.0, LON], [LAT, LON]]],
+    ))
+    with pytest.raises(ValueError, match="at least four points"):
+        pv.strict_verdicts_bytes(json.dumps(document).encode())
+
+
 # ---------------------------------------------------------------- generator
+
+def _install_generator_baseline(data: Path) -> None:
+    """Pin exact controlled stores, dossiers, and empty floors for each build."""
+    specs = build_verdicts._store_specs()
+    raw = {
+        spec.filename: (data / spec.filename).read_bytes()
+        for spec in specs
+    }
+    dossiers = {
+        path.name: path.read_bytes()
+        for path in sorted(data.glob("*_dossier.json"))
+    }
+    document = build_verdicts.pvs.build_legacy_baseline_document(
+        specs, raw, dossiers
+    )
+    path = data / f"test-baseline-{document['baseline_sha256']}.json"
+    path.write_bytes(build_verdicts.pvs.legacy_baseline_json_bytes(document))
+    build_verdicts.LEGACY_ROW_BASELINE_PATH = str(path)
+    build_verdicts.LEGACY_ROW_BASELINE_SHA256 = document["baseline_sha256"]
+    for spec in specs:
+        floor = data / f"{Path(spec.filename).stem}_publication_floor.json"
+        if not floor.exists():
+            floor.write_bytes(build_verdicts.pvs.publication_floor_json_bytes(
+                build_verdicts.pvs.build_empty_publication_floor_document(
+                    spec.filename
+                )
+            ))
+    proof_image = {}
+    floor_image = {}
+    for spec in specs:
+        proof = data / f"{Path(spec.filename).stem}_publication_proofs.json"
+        proof_image[spec.filename] = proof.read_bytes() if proof.exists() else None
+        floor_image[spec.filename] = (
+            data / f"{Path(spec.filename).stem}_publication_floor.json"
+        ).read_bytes()
+    root_document = build_verdicts.pvs.build_publication_trust_root_document(
+        specs, raw, proof_image, floor_image, path.name, path.read_bytes(),
+        dossiers,
+    )
+    root_path = data / "test-publication-trust-root-v1.json"
+    root_bytes = build_verdicts.pvs.publication_trust_root_json_bytes(
+        root_document
+    )
+    root_path.write_bytes(root_bytes)
+    build_verdicts.PUBLICATION_TRUST_ROOT_PATH = str(root_path)
+    build_verdicts.PUBLICATION_TRUST_ROOT_SHA256 = hashlib.sha256(
+        root_bytes
+    ).hexdigest()
+
+
+def _install_dossier_generation(data: Path, dossier: dict) -> None:
+    slug = dossier["slug"]
+    fids = [facility["fid"] for facility in dossier["facilities"]]
+    sidecars = {
+        "serves2": {str(fid): {"served": False} for fid in fids},
+        "context": {str(fid): {"category": "NEUTRAL"} for fid in fids},
+        "walk": {
+            str(fid): {"walk_m": None, "conn": "no route", "trail": None}
+            for fid in fids
+        },
+    }
+    for suffix, document in sidecars.items():
+        (data / f"{slug}_{suffix}.json").write_text(json.dumps(document))
+    dossier_output.bootstrap_generation(data, slug)
+
 
 def _store_and_dossier(tmp_path, verdict="DROP", rings=True, serves_evidence="walk 2600 m"):
     data = tmp_path / "data"
@@ -168,6 +261,7 @@ def _store_and_dossier(tmp_path, verdict="DROP", rings=True, serves_evidence="wa
         "ring": RECT if rings else None, "rings": [RECT] if rings else None,
     }]}
     (data / "test-area_dossier.json").write_text(json.dumps(dossier))
+    _install_dossier_generation(data, dossier)
     store = {"way/1": {"osm": ["way/1", "node/2"], "verdict": verdict, "prior": "surveyed",
                        "exists": {"call": "yes", "evidence": "Z2: striped lot"},
                        "public": {"call": "yes", "evidence": "no access tag"},
@@ -176,6 +270,7 @@ def _store_and_dossier(tmp_path, verdict="DROP", rings=True, serves_evidence="wa
                        "confidence": "strong", "src": "test"}}
     for name, _, _ in build_verdicts.STORES:
         (data / name).write_text(json.dumps(store if name.startswith("phx") else {}))
+    _install_generator_baseline(data)
     return data
 
 
@@ -215,8 +310,9 @@ def test_generator_unions_store_and_dossier_ids_and_folds_a_second_key_for_one_c
     # the phx store a second key that names only the cluster's other member.
     path = data / "phx_verdicts_osm.json"
     store = json.loads(path.read_text())
-    store["node/2"] = dict(store["way/1"], osm=["node/2"])
+    store["node/2"] = copy.deepcopy(store["way/1"])
     path.write_text(json.dumps(store))
+    _install_generator_baseline(data)
     doc, notes, folded = build_verdicts.build(str(data))
     assert notes == [] and len(folded) == 1 and "node/2" in folded[0]
     assert list(doc["lots"]) == ["way/1"]
@@ -232,6 +328,7 @@ def test_generator_refuses_to_write_when_a_verdict_cannot_be_placed(tmp_path, ca
     store = json.loads(path.read_text())
     store["way/404"] = dict(store["way/1"], osm=["way/404"])        # no dossier facility
     path.write_text(json.dumps(store))
+    _install_generator_baseline(data)
     out = tmp_path / "parking-verdicts.json"
     assert build_verdicts.main(["--data-dir", str(data), "--out", str(out)]) == 1
     assert not out.exists()
@@ -257,6 +354,7 @@ def test_generator_places_a_self_contained_store_entry_without_a_dossier(tmp_pat
                     "lat": far_lat, "lon": far_lon, "rings": [ring], "name": "Far Lot",
                     "judged": "2026-09-13", "src": "judge-fanout"}}
     (data / "co_verdicts_osm.json").write_text(json.dumps(co))
+    _install_generator_baseline(data)
     doc, notes, folded = build_verdicts.build(str(data))
     assert notes == [] and folded == []
     e = doc["lots"]["way/9"]
@@ -279,6 +377,7 @@ def test_generator_still_refuses_an_entry_with_neither_dossier_nor_position(tmp_
                      "prior": "bare", "confidence": "strong", "exists": {"call": "yes", "evidence": "Z2"},
                      "public": {"call": "yes", "evidence": "t"}, "serves": {"call": "yes", "evidence": "t"}}}
     (data / "co_verdicts_osm.json").write_text(json.dumps(co))
+    _install_generator_baseline(data)
     doc, notes, _ = build_verdicts.build(str(data))
     assert "way/77" not in doc["lots"] and len(notes) == 1 and "no dossier position" in notes[0]
 
@@ -388,25 +487,27 @@ def test_pool_without_a_sidecar_is_unchanged(tmp_path):
 
 # -------------------------------------------------------------------- sweep
 
-def test_sweep_removes_matched_lots_but_never_empties_an_area(tmp_path):
+def test_sweep_planner_is_pure_and_refusal_blocks_every_target(tmp_path):
     other = _offset(LAT, LON, north_m=300)
     geom, _ = _geom_dir(tmp_path, {
         "two": [{"lat": LAT, "lon": LON}, {"lat": other[0], "lon": other[1]}],
         "one": [{"lat": LAT, "lon": LON}],
     })
-    v = pv.Verdicts(_doc(_entry("way/1", "DROP")))
-    r = sweep.sweep(str(geom), v, dry_run=True)
-    assert [s for s, _ in r["refused"]] == ["one"] and r["changed"] == ["two"]
-    assert json.load(open(geom / "two.json"))["parking"] and \
-        len(json.load(open(geom / "two.json"))["parking"]) == 2, "dry run wrote nothing"
-    r = sweep.sweep(str(geom), v, dry_run=False)
-    assert len(json.load(open(geom / "two.json"))["parking"]) == 1
-    assert len(json.load(open(geom / "one.json"))["parking"]) == 1
-    assert r["reasons"] == {"too-far": 1}
-    # Written exactly as add-parking.py writes geom (`json.dumps(geom)`), so a
-    # swept file differs from a rolled one only in the lots removed.
-    doc = json.load(open(geom / "two.json"))
-    assert (geom / "two.json").read_text() == json.dumps(doc)
+    document = _doc(_entry("way/1", "DROP"))
+    verdicts = pv.Verdicts(document)
+    before = {path.name: path.read_bytes() for path in geom.glob("*.json")}
+
+    dry = sweep.sweep(str(geom), verdicts, dry_run=True)
+    planned = sweep.sweep(str(geom), verdicts, dry_run=False)
+    assert [slug for slug, _ in dry["refused"]] == ["one"]
+    assert dry["changed"] == ["two"] and planned == dry
+    assert dry["reasons"] == {"too-far": 1}
+    assert {path.name: path.read_bytes() for path in geom.glob("*.json")} == before
+
+    sidecar = tmp_path / "verdicts.json"
+    sidecar.write_text(json.dumps(document))
+    assert sweep.run(geom, sidecar, False) == 2
+    assert {path.name: path.read_bytes() for path in geom.glob("*.json")} == before
 
 
 def test_sweep_allows_only_exact_reviewed_empty_signature(tmp_path):
@@ -424,14 +525,15 @@ def test_sweep_allows_only_exact_reviewed_empty_signature(tmp_path):
     assert dry["changed"] == ["approved"] and len(dry["removed"]) == 1
     assert (geom / "approved.json").read_bytes() == before
 
-    written = sweep.sweep(str(geom), verdicts, dry_run=False,
-                          reviewed_empty_signatures=policy)
-    assert written["reviewed_empty"] == dry["reviewed_empty"]
-    assert json.loads((geom / "approved.json").read_text())["parking"] == []
-    again = sweep.sweep(str(geom), verdicts, dry_run=False,
-                        reviewed_empty_signatures=policy)
-    assert again == {"reasons": {}, "removed": [], "refused": [],
-                     "reviewed_empty": [], "changed": []}
+    sidecar = tmp_path / "verdicts.json"
+    sidecar.write_text(json.dumps(_doc(_entry(
+        "way/1", "DROP", reason="not-public",
+    ))))
+    with pytest.raises(ValueError, match="code-approved policy"):
+        sweep.run(
+            geom, sidecar, False, reviewed_empty_signatures=policy,
+        )
+    assert (geom / "approved.json").read_bytes() == before
 
 
 def test_sweep_reviewed_empty_signature_drift_refuses(tmp_path):
@@ -457,7 +559,7 @@ def test_sweep_reviewed_empty_signature_drift_refuses(tmp_path):
     assert {path.name: path.read_bytes() for path in geom.glob("*.json")} == before
 
 
-def test_production_reviewed_empty_signatures_are_exact_singletons(tmp_path):
+def test_production_reviewed_empty_signatures_are_exact_singletons(tmp_path, capsys):
     assert sweep._REVIEWED_EMPTY_SIGNATURES == {
         "mesa-valley-open-space-co": (("way/58294967", "not-public"),),
         "promntory-point-open-space-co": (("way/1206954210", "not-public"),),
@@ -469,19 +571,562 @@ def test_production_reviewed_empty_signatures_are_exact_singletons(tmp_path):
         "sondermann-park-co": [{"lat": LAT, "lon": LON}],
         "promntory-point-open-space-co": [{"lat": church[0], "lon": church[1]}],
     })
-    verdicts = pv.Verdicts(_doc(
+    document = _doc(
         _entry("way/58294967", "DROP", reason="not-public"),
         _entry("way/1206954210", "DROP", lat=church[0], lon=church[1],
                reason="not-public"),
-    ))
+    )
+    verdicts = pv.Verdicts(document)
     result = sweep.sweep(str(geom), verdicts, dry_run=False)
     assert [slug for slug, _, _ in result["reviewed_empty"]] == [
         "mesa-valley-open-space-co", "promntory-point-open-space-co",
         "sondermann-park-co"
     ]
     assert result["refused"] == []
+    sidecar = tmp_path / "verdicts.json"
+    sidecar.write_text(json.dumps(document))
+    assert sweep.run(geom, sidecar, False) == 0
+    captured = capsys.readouterr()
+    for slug in sweep._REVIEWED_EMPTY_SIGNATURES:
+        assert f"REVIEWED-EMPTY {slug} — 1 flagged, exact signature" in captured.out
+    assert "REFUSING" not in captured.err
     assert all(json.loads(path.read_text())["parking"] == []
                for path in geom.glob("*.json"))
+
+
+def _sweep_transaction_fixture(tmp_path):
+    other = _offset(LAT, LON, north_m=350)
+    geom, _ = _geom_dir(tmp_path, {
+        "area-a": [
+            {"lat": LAT, "lon": LON, "name": "drop-a"},
+            {"lat": other[0], "lon": other[1], "name": "keep-a"},
+        ],
+        "area-b": [
+            {"lat": LAT, "lon": LON, "name": "drop-b"},
+            {"lat": other[0], "lon": other[1], "name": "keep-b"},
+        ],
+    })
+    sidecar = tmp_path / "parking-verdicts.json"
+    sidecar.write_bytes(json.dumps(_doc(_entry("way/1", "DROP"))).encode())
+    return geom, sidecar
+
+
+def _interrupt_sweep_after(monkeypatch, count):
+    original = sweep._replace_target
+    calls = {"count": 0}
+
+    def interrupted(stage, target, before, after):
+        if count == 0:
+            raise OSError("fault before first replacement")
+        original(stage, target, before, after)
+        calls["count"] += 1
+        if calls["count"] == count:
+            raise OSError(f"fault after replacement {count}")
+
+    monkeypatch.setattr(sweep, "_replace_target", interrupted)
+    return original
+
+
+def test_sweep_rejects_degenerate_large_and_distant_rings_without_mutation(
+        tmp_path):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    before = {path.name: path.read_bytes() for path in geom.glob("*.json")}
+    far = _offset(LAT, LON, north_m=5_000)
+    p1 = [LAT, LON]
+    p2 = [far[0], far[1]]
+    large_sw = _offset(LAT, LON, north_m=-1_500, east_m=-1_500)
+    large_ne = _offset(LAT, LON, north_m=1_500, east_m=1_500)
+    distant_center = _offset(LAT, LON, north_m=300)
+    distant = [
+        list(_offset(*distant_center, north_m=-20, east_m=-20)),
+        list(_offset(*distant_center, north_m=-20, east_m=20)),
+        list(_offset(*distant_center, north_m=20, east_m=20)),
+        list(_offset(*distant_center, north_m=20, east_m=-20)),
+    ]
+    distant.append(distant[0])
+    cases = [
+        [[p1]],
+        [[p1, p2, p1, p2, p1]],
+        [[*RECT[:-1]]],
+        [[[LAT, LON], [LAT, LON], [LAT, LON], [LAT, LON]]],
+        [[[LAT, LON], [LAT, LON + 0.0001], [LAT, LON + 0.0002],
+          [LAT, LON]]],
+        [[list(large_sw), [large_sw[0], large_ne[1]], list(large_ne),
+          [large_ne[0], large_sw[1]], list(large_sw)]],
+        [distant],
+    ]
+    for rings in cases:
+        sidecar.write_bytes(json.dumps(_doc(_entry(
+            "way/1", "DROP", rings=rings,
+        ))).encode())
+        with pytest.raises(ValueError):
+            sweep.run(geom, sidecar, False)
+        assert {path.name: path.read_bytes() for path in geom.glob("*.json")} == before
+        assert not (tmp_path / ".parking-sweep-transactions" / "live.journal.json").exists()
+
+
+def test_sweep_rejects_all_report_control_categories_and_cannot_forge_status(
+        tmp_path, capsys):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    controls = ["\n", "\r", "\x1b", "\x85", "\u202e", "\u2028", "\u2029"]
+    for control in controls:
+        hostile = _entry(
+            "way/1", "DROP",
+            reason=f"too-far{control}RECOVERED forged-transaction",
+            evidence={"serves": f"evidence{control}NOT APPLIED: forged"},
+        )
+        sidecar.write_bytes(json.dumps(_doc(hostile)).encode())
+        assert sweep.main([
+            "--geom-dir", str(geom), "--sidecar", str(sidecar), "--dry-run",
+        ]) == 1
+        captured = capsys.readouterr()
+        physical = (captured.out + captured.err).splitlines()
+        assert "RECOVERED forged-transaction" not in physical
+        assert "NOT APPLIED: forged" not in physical
+
+
+def test_report_renderer_single_line_escapes_untrusted_fields_even_if_bypassed():
+    entry = _entry(
+        "way/1\nRECOVERED forged", "DROP",
+        reason="too-far\nNOT APPLIED: forged",
+        evidence={"serves": "evidence\rREFUSING forged"},
+    )
+    entry["_key"] = entry["osm"][0]
+    result = {
+        "reasons": sweep.Counter({entry["reason"]: 1}),
+        "removed": [("area\nRECOVERED forged", {
+            "lat": LAT, "lon": LON, "name": "lot\nNOT APPLIED: forged",
+        }, entry)],
+        "refused": [("refused\nRECOVERED forged", 1)],
+        "reviewed_empty": [],
+        "changed": ["area"],
+    }
+    stdout, stderr = sweep._render_report(result, dry_run=True, apply_refused=False)
+    physical = (stdout + stderr).splitlines()
+    assert "RECOVERED forged" not in physical
+    assert "NOT APPLIED: forged" not in physical
+    assert "REFUSING forged" not in physical
+    assert "\\nRECOVERED forged" in stdout
+    assert "\\rREFUSING forged" in stdout
+
+
+def test_sweep_strict_json_rejects_duplicate_and_nonfinite_sidecar_and_geom(
+        tmp_path):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    target = geom / "area-a.json"
+    original_target = target.read_bytes()
+    invalid_sidecars = [
+        b'{"version":1,"version":1,"lots":{}}',
+        b'{"version":1,"lots":{"way/1":{"lat":NaN}}}',
+    ]
+    for raw in invalid_sidecars:
+        sidecar.write_bytes(raw)
+        with pytest.raises(ValueError, match="strict JSON"):
+            sweep.run(geom, sidecar, True)
+        assert target.read_bytes() == original_target
+    sidecar.write_bytes(json.dumps(_doc(_entry("way/1", "DROP"))).encode())
+    invalid_geom = [
+        b'{"parking":[],"parking":[]}',
+        b'{"parking":[{"lat":NaN,"lon":0}]}',
+    ]
+    for raw in invalid_geom:
+        target.write_bytes(raw)
+        with pytest.raises(ValueError, match="strict JSON"):
+            sweep.run(geom, sidecar, True)
+
+
+def test_sweep_rejects_control_text_in_unknown_geom_fields(tmp_path):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    target = geom / "area-a.json"
+    document = json.loads(target.read_text())
+    document["unknown"] = "safe\nNOT APPLIED: forged"
+    target.write_text(json.dumps(document))
+    before = target.read_bytes()
+    with pytest.raises(ValueError, match="forbidden control"):
+        sweep.run(geom, sidecar, False)
+    assert target.read_bytes() == before
+
+
+def test_sweep_refusal_is_truthful_global_and_exit_two(tmp_path, capsys):
+    other = _offset(LAT, LON, north_m=300)
+    geom, _ = _geom_dir(tmp_path, {
+        "changed": [{"lat": LAT, "lon": LON},
+                    {"lat": other[0], "lon": other[1]}],
+        "refused": [{"lat": LAT, "lon": LON}],
+    })
+    sidecar = tmp_path / "parking-verdicts.json"
+    sidecar.write_text(json.dumps(_doc(_entry("way/1", "DROP"))))
+    before = {path.name: path.read_bytes() for path in geom.glob("*.json")}
+    assert sweep.run(geom, sidecar, False) == 2
+    captured = capsys.readouterr()
+    assert captured.out.splitlines()[0] == (
+        "NOT APPLIED — 0 lots removed; planned 1 lot(s) from 1 area(s)"
+    )
+    assert "planned removals:" in captured.out
+    assert "removed 1 lot" not in captured.out
+    assert "REFUSING to empty refused — 1 flagged, 0 would remain" in captured.err
+    assert "NOT APPLIED:" in captured.err
+    assert {path.name: path.read_bytes() for path in geom.glob("*.json")} == before
+
+
+def test_sweep_dry_run_is_recursively_nonmutating(tmp_path, capsys):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    before = {
+        path.relative_to(tmp_path): path.read_bytes()
+        for path in tmp_path.rglob("*") if path.is_file()
+    }
+    assert sweep.run(geom, sidecar, True) == 0
+    assert capsys.readouterr().out.startswith("DRY-RUN — would remove 2 lot(s)")
+    after = {
+        path.relative_to(tmp_path): path.read_bytes()
+        for path in tmp_path.rglob("*") if path.is_file()
+    }
+    assert after == before
+    assert not (tmp_path / ".parking-sweep-transactions").exists()
+
+
+@pytest.mark.parametrize("drift", ["same-byte-inode", "changed-sidecar", "current-policy"])
+def test_prepared_recovery_uses_retained_sidecar_and_approved_policy(
+        tmp_path, monkeypatch, capsys, drift):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    original_replace = _interrupt_sweep_after(monkeypatch, 1)
+    with pytest.raises(sweep.RecoveryRequired, match="live transaction retained"):
+        sweep.run(geom, sidecar, False)
+    monkeypatch.setattr(sweep, "_replace_target", original_replace)
+    live = tmp_path / ".parking-sweep-transactions" / "live.journal.json"
+    assert live.exists()
+    if drift == "same-byte-inode":
+        replacement = tmp_path / "sidecar-refresh.json"
+        replacement.write_bytes(sidecar.read_bytes())
+        os.replace(replacement, sidecar)
+    elif drift == "changed-sidecar":
+        sidecar.write_text(json.dumps({"version": 1, "lots": {}}))
+    else:
+        monkeypatch.setattr(sweep, "_REVIEWED_EMPTY_SIGNATURES", {})
+    assert sweep.run(geom, sidecar, False) == 0
+    captured = capsys.readouterr().out
+    assert "removed 2 lot(s) from 2 area(s)" in captured
+    assert "RECOVERED " in captured
+    assert not live.exists()
+    assert all(len(json.loads(path.read_text())["parking"]) == 1
+               for path in geom.glob("*.json"))
+
+
+def test_prepared_recovery_refuses_unsafe_target_drift_without_more_mutation(
+        tmp_path, monkeypatch):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    original_replace = _interrupt_sweep_after(monkeypatch, 1)
+    with pytest.raises(sweep.RecoveryRequired):
+        sweep.run(geom, sidecar, False)
+    monkeypatch.setattr(sweep, "_replace_target", original_replace)
+    first = geom / "area-a.json"
+    second = geom / "area-b.json"
+    first_after = first.read_bytes()
+    drifted = json.loads(second.read_text())
+    drifted["unrelated"] = True
+    second.write_text(json.dumps(drifted))
+    second_drift = second.read_bytes()
+    with pytest.raises(sweep.RecoveryRequired, match="neither"):
+        sweep.run(geom, sidecar, False)
+    assert first.read_bytes() == first_after
+    assert second.read_bytes() == second_drift
+
+
+@pytest.mark.parametrize("prefix", [0, 1, 2])
+def test_every_prepared_replacement_prefix_rolls_forward(
+        tmp_path, monkeypatch, prefix):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    original_replace = _interrupt_sweep_after(monkeypatch, prefix)
+    with pytest.raises(sweep.RecoveryRequired):
+        sweep.run(geom, sidecar, False)
+    monkeypatch.setattr(sweep, "_replace_target", original_replace)
+    assert sweep.run(geom, sidecar, False) == 0
+    assert all(len(json.loads(path.read_text())["parking"]) == 1
+               for path in geom.glob("*.json"))
+
+
+@pytest.mark.parametrize(
+    "artifact", ["sidecar_snapshot", "backup", "stage", "receipt", "archive"],
+)
+def test_prepared_recovery_rejects_artifact_tamper_without_mutation(
+        tmp_path, monkeypatch, artifact):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    original_replace = _interrupt_sweep_after(monkeypatch, 1)
+    with pytest.raises(sweep.RecoveryRequired):
+        sweep.run(geom, sidecar, False)
+    monkeypatch.setattr(sweep, "_replace_target", original_replace)
+    live = tmp_path / ".parking-sweep-transactions" / "live.journal.json"
+    journal = json.loads(live.read_text())
+    if artifact == "sidecar_snapshot":
+        path = Path(journal["artifacts"]["sidecar_snapshot"])
+    elif artifact in {"receipt", "archive"}:
+        path = Path(journal["artifacts"][artifact])
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        path.write_bytes(b"tamper")
+        os.chmod(path, 0o600)
+    else:
+        path = Path(journal["artifacts"]["targets"][1][artifact])
+    if artifact not in {"receipt", "archive"}:
+        path.write_bytes(path.read_bytes() + b"tamper")
+    before = {path.name: path.read_bytes() for path in geom.glob("*.json")}
+    with pytest.raises(sweep.RecoveryRequired):
+        sweep.run(geom, sidecar, False)
+    assert {path.name: path.read_bytes() for path in geom.glob("*.json")} == before
+
+
+def test_pre_journal_orphans_are_idempotently_reused(tmp_path):
+    geom, sidecar_path = _sweep_transaction_fixture(tmp_path)
+    sidecar = sweep._capture_sidecar(sidecar_path)
+    inventory = sweep._capture_inventory(geom)
+    plan = sweep._plan_inventory(
+        sidecar, inventory, sweep._REVIEWED_EMPTY_SIGNATURES, dry_run=False,
+    )
+    sweep._prepare_transaction(plan)
+    _root, entries = sweep._validate_initial_paths(sidecar_path, geom)
+    sweep._validate_transaction_paths(plan, entries)
+    sweep._write_transaction_artifacts(plan)
+    assert not plan["paths"]["live"].exists()
+    assert sweep.run(geom, sidecar_path, False) == 0
+    assert all(len(json.loads(path.read_text())["parking"]) == 1
+               for path in geom.glob("*.json"))
+
+
+@pytest.mark.parametrize("tail", ["after-receipt", "after-print", "archive-failure"])
+def test_terminal_report_precedes_archive_and_retry_recovers(
+        tmp_path, monkeypatch, capsys, tail):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    if tail == "after-receipt":
+        original = sweep._finish_transaction
+
+        def fail_after_receipt(plan):
+            original(plan)
+            raise OSError("fault after receipt")
+
+        monkeypatch.setattr(sweep, "_finish_transaction", fail_after_receipt)
+    elif tail == "after-print":
+        original = sweep._print_report
+
+        def fail_after_print(plan, **kwargs):
+            original(plan, **kwargs)
+            raise OSError("fault after report flush")
+
+        monkeypatch.setattr(sweep, "_print_report", fail_after_print)
+    else:
+        original = sweep._archive_journal
+
+        def fail_archive(_plan):
+            raise OSError("fault before archive")
+
+        monkeypatch.setattr(sweep, "_archive_journal", fail_archive)
+    with pytest.raises((OSError, sweep.RecoveryRequired)):
+        sweep.run(geom, sidecar, False)
+    monkeypatch.setattr(
+        sweep,
+        {"after-receipt": "_finish_transaction",
+         "after-print": "_print_report",
+         "archive-failure": "_archive_journal"}[tail],
+        original,
+    )
+    live = tmp_path / ".parking-sweep-transactions" / "live.journal.json"
+    assert live.exists()
+    capsys.readouterr()
+    assert sweep.run(geom, sidecar, False) == 0
+    replay = capsys.readouterr().out
+    assert "removed 2 lot(s) from 2 area(s)" in replay
+    assert "RECOVERED " in replay
+    assert not live.exists()
+
+
+def test_archive_tail_failure_cannot_precede_the_bound_report(
+        tmp_path, monkeypatch, capsys):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    original_archive = sweep._archive_journal
+
+    def fail_after_archive(plan):
+        original_archive(plan)
+        raise OSError("fault after archive durability")
+
+    monkeypatch.setattr(sweep, "_archive_journal", fail_after_archive)
+    with pytest.raises(OSError, match="after archive durability"):
+        sweep.run(geom, sidecar, False)
+    first = capsys.readouterr().out
+    assert "removed 2 lot(s) from 2 area(s)" in first
+    assert not (tmp_path / ".parking-sweep-transactions" / "live.journal.json").exists()
+    monkeypatch.setattr(sweep, "_archive_journal", original_archive)
+    after = {path.name: path.read_bytes() for path in geom.glob("*.json")}
+    assert sweep.run(geom, sidecar, False) == 0
+    assert capsys.readouterr().out.startswith("removed 0 lot(s) from 0 area(s)")
+    assert {path.name: path.read_bytes() for path in geom.glob("*.json")} == after
+
+
+def test_completed_recovery_is_idempotent_after_archive(
+        tmp_path, monkeypatch, capsys):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    original_replace = _interrupt_sweep_after(monkeypatch, 1)
+    with pytest.raises(sweep.RecoveryRequired):
+        sweep.run(geom, sidecar, False)
+    monkeypatch.setattr(sweep, "_replace_target", original_replace)
+    assert sweep.run(geom, sidecar, False) == 0
+    capsys.readouterr()
+    after = {path.name: path.read_bytes() for path in geom.glob("*.json")}
+    archive = tmp_path / ".parking-sweep-transactions" / "Archive"
+    archived = sorted(archive.glob("*.journal.json"))
+    assert len(archived) == 1
+    assert sweep.run(geom, sidecar, False) == 0
+    assert capsys.readouterr().out.startswith("removed 0 lot(s) from 0 area(s)")
+    assert {path.name: path.read_bytes() for path in geom.glob("*.json")} == after
+    assert sorted(archive.glob("*.journal.json")) == archived
+
+
+def test_sweep_preserves_nondefault_supplementary_gid(tmp_path):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    target = geom / "area-a.json"
+    supplementary = next(gid for gid in os.getgroups() if gid != os.getegid())
+    os.chown(target, -1, supplementary)
+    assert target.stat().st_gid == supplementary
+    assert sweep.run(geom, sidecar, False) == 0
+    assert target.stat().st_gid == supplementary
+
+
+def test_sweep_refuses_unpreservable_gid_before_journal_or_geom_mutation(
+        tmp_path, monkeypatch):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    before = {path.name: path.read_bytes() for path in geom.glob("*.json")}
+    monkeypatch.setattr(sweep, "_settable_gids", lambda: set())
+    with pytest.raises(ValueError, match="GID cannot be preserved"):
+        sweep.run(geom, sidecar, False)
+    assert {path.name: path.read_bytes() for path in geom.glob("*.json")} == before
+    assert not (tmp_path / ".parking-sweep-transactions" / "live.journal.json").exists()
+
+
+def test_transaction_id_is_deterministic_and_recomputed_from_identity(tmp_path):
+    geom, sidecar_path = _sweep_transaction_fixture(tmp_path)
+    sidecar = sweep._capture_sidecar(sidecar_path)
+    inventory = sweep._capture_inventory(geom)
+    plans = []
+    for _ in range(2):
+        plan = sweep._plan_inventory(
+            sidecar, inventory, sweep._REVIEWED_EMPTY_SIGNATURES, dry_run=False,
+        )
+        plans.append(sweep._prepare_transaction(plan))
+    assert plans[0]["transaction_id"] == plans[1]["transaction_id"]
+    assert plans[0]["transaction_id"] == sweep._sha256(
+        sweep._canonical_json(plans[0]["identity"]),
+    )
+
+
+@pytest.mark.parametrize("tamper", [
+    "transaction-id", "artifact-escape", "policy-authority", "root-schema",
+])
+def test_recovery_rejects_journal_authority_and_path_tamper_without_more_mutation(
+        tmp_path, monkeypatch, tamper):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    original_replace = _interrupt_sweep_after(monkeypatch, 1)
+    with pytest.raises(sweep.RecoveryRequired):
+        sweep.run(geom, sidecar, False)
+    monkeypatch.setattr(sweep, "_replace_target", original_replace)
+    live = tmp_path / ".parking-sweep-transactions" / "live.journal.json"
+    journal = json.loads(live.read_text())
+    if tamper == "transaction-id":
+        journal["transaction_id"] = "0" * 64
+    elif tamper == "artifact-escape":
+        journal["artifacts"]["targets"][0]["stage"] = str(tmp_path / "escape.json")
+    elif tamper == "policy-authority":
+        journal["identity"]["reviewed_empty_policy"]["version"] = "attacker-v1"
+        journal["transaction_id"] = sweep._sha256(
+            sweep._canonical_json(journal["identity"]),
+        )
+    else:
+        journal["attacker"] = True
+    live.write_bytes(sweep._canonical_json(journal))
+    before = {path.name: path.read_bytes() for path in geom.glob("*.json")}
+    with pytest.raises(sweep.RecoveryRequired):
+        sweep.run(geom, sidecar, False)
+    assert {path.name: path.read_bytes() for path in geom.glob("*.json")} == before
+
+
+@pytest.mark.parametrize("kind", ["sidecar-symlink", "geom-symlink", "geom-hardlink"])
+def test_sweep_rejects_symlink_and_hardlink_inputs_without_transaction(
+        tmp_path, kind):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    target = geom / "area-a.json"
+    if kind == "sidecar-symlink":
+        real = tmp_path / "real-sidecar.json"
+        real.write_bytes(sidecar.read_bytes())
+        sidecar.unlink()
+        sidecar.symlink_to(real)
+    elif kind == "geom-symlink":
+        real = tmp_path / "real-geom.json"
+        real.write_bytes(target.read_bytes())
+        target.unlink()
+        target.symlink_to(real)
+    else:
+        os.link(target, tmp_path / "second-link.json")
+    with pytest.raises((OSError, ValueError)):
+        sweep.run(geom, sidecar, False)
+    assert not (tmp_path / ".parking-sweep-transactions" / "live.journal.json").exists()
+
+
+def test_same_byte_geom_inode_replacement_before_prepared_is_refused(
+        tmp_path, monkeypatch):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    target = geom / "area-a.json"
+    original_plan = sweep._plan_inventory
+    replaced = {"done": False}
+
+    def replace_after_plan(*args, **kwargs):
+        plan = original_plan(*args, **kwargs)
+        if not replaced["done"]:
+            replaced["done"] = True
+            temporary = tmp_path / "same-bytes.json"
+            temporary.write_bytes(target.read_bytes())
+            os.replace(temporary, target)
+        return plan
+
+    monkeypatch.setattr(sweep, "_plan_inventory", replace_after_plan)
+    with pytest.raises(ValueError, match="changed after complete preflight"):
+        sweep.run(geom, sidecar, False)
+    assert not (tmp_path / ".parking-sweep-transactions" / "live.journal.json").exists()
+    assert len(json.loads(target.read_text())["parking"]) == 2
+
+
+def test_recovery_rejects_geom_inventory_drift_without_advancing_prefix(
+        tmp_path, monkeypatch):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    original_replace = _interrupt_sweep_after(monkeypatch, 1)
+    with pytest.raises(sweep.RecoveryRequired):
+        sweep.run(geom, sidecar, False)
+    monkeypatch.setattr(sweep, "_replace_target", original_replace)
+    first = geom / "area-a.json"
+    first_after = first.read_bytes()
+    extra = geom / "unrelated.json"
+    extra.write_text(json.dumps({"parking": []}))
+    with pytest.raises(sweep.RecoveryRequired, match="extra or missing"):
+        sweep.run(geom, sidecar, False)
+    assert first.read_bytes() == first_after
+    assert extra.exists()
+
+
+def test_recovery_rejects_tampered_terminal_receipt_and_keeps_live_journal(
+        tmp_path, monkeypatch):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    original_print = sweep._print_report
+    monkeypatch.setattr(
+        sweep, "_print_report",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("before report")),
+    )
+    with pytest.raises(OSError, match="before report"):
+        sweep.run(geom, sidecar, False)
+    monkeypatch.setattr(sweep, "_print_report", original_print)
+    live = tmp_path / ".parking-sweep-transactions" / "live.journal.json"
+    journal = json.loads(live.read_text())
+    receipt = Path(journal["artifacts"]["receipt"])
+    receipt.write_bytes(receipt.read_bytes() + b"tamper")
+    before = {path.name: path.read_bytes() for path in geom.glob("*.json")}
+    with pytest.raises(sweep.RecoveryRequired, match="terminal receipt differs"):
+        sweep.run(geom, sidecar, False)
+    assert live.exists()
+    assert {path.name: path.read_bytes() for path in geom.glob("*.json")} == before
 
 
 # --------------------------------------------------------------- add-parking
@@ -519,8 +1164,41 @@ def test_generator_refuses_a_second_entry_that_disagrees_with_its_cluster(tmp_pa
     store = json.loads(path.read_text())
     store["node/2"] = dict(store["way/1"], osm=["node/2"], verdict="KEEP")
     path.write_text(json.dumps(store))
-    doc, notes, folded = build_verdicts.build(str(data))
-    assert folded == [] and len(notes) == 1 and "says KEEP" in notes[0]
+    _install_generator_baseline(data)
+    with pytest.raises(ValueError, match="does not share one exact row"):
+        build_verdicts.build(str(data))
     out = tmp_path / "parking-verdicts.json"
     assert build_verdicts.main(["--data-dir", str(data), "--out", str(out)]) == 1
     assert not out.exists()
+
+
+def test_generator_propagates_transitive_aliases_before_checking_later_conflict(tmp_path):
+    data = _store_and_dossier(tmp_path, verdict="KEEP", serves_evidence="trail access")
+    path = data / "phx_verdicts_osm.json"
+    store = json.loads(path.read_text())
+    base = store["way/1"]
+    base["osm"] = ["way/1"]
+    embedded = {
+        "lat": LAT, "lon": LON, "rings": [RECT], "name": "Test Lot",
+        "area": "test-area",
+    }
+    store["node/2"] = dict(
+        base, osm=["node/2", "node/900"], **embedded
+    )
+    conflicting = copy.deepcopy(base)
+    conflicting.update(embedded)
+    conflicting["osm"] = ["node/3", "node/900", "way/4"]
+    conflicting["verdict"] = "DROP"
+    conflicting["serves"] = {"call": "no", "evidence": "different decision"}
+    store["node/3"] = conflicting
+    path.write_text(json.dumps(store))
+    _install_generator_baseline(data)
+
+    doc, notes, folded = build_verdicts.build(str(data))
+    assert len(notes) == 1
+    assert "different complete decision/authority provenance" in notes[0]
+    assert list(doc["lots"]) == ["way/1"]
+    assert set(doc["lots"]["way/1"]["osm"]) == {
+        "way/1", "node/2", "node/900",
+    }
+    assert len(folded) == 1

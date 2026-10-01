@@ -2,11 +2,11 @@
 
 You are the final autonomous evidence pass for one Trekdex parking facility.
 
-- Read `{PROTOCOL_PATH}` and `{LESSONS_PATH}`.
+- Read `{PROTOCOL_PATH}` (SHA-256 `{PROTOCOL_SHA256}`) and `{LESSONS_PATH}` (SHA-256 `{LESSONS_SHA256}`).
 - Read only the packet at `{PACKET_PATH}` and the Z1/Z2/Z3 paths named inside it.
 - Do not read the primary or challenger verdicts. Produce your own full EXISTS/PUBLIC/SERVES decision before the host compares outcomes.
 - Your host-bound identity is `{MODEL_ID}` in family `{MODEL_FAMILY}`. Do not alter or repeat that identity in your output.
-- When the supplied imagery/data cannot resolve the case, gather a genuinely new source if available. Record every added source as a canonical stable ID, local frozen-byte path, and SHA-256. Cite each one verbatim as `[external:stable-id]` inside the axis evidence that uses it. If no evidence resolves it, return REVIEW with a precise `resolve_hint`.
+- Read the host-frozen evidence catalog at `{EXTERNAL_CATALOG_PATH}`. Use only listed IDs and the content-addressed files named there. Do not access the network, fetch a URL, invent source metadata, or ask for fetch permission. Every added source declares only its assigned `id` plus one or more structured `supports` entries (`axis`, matching `call`, specific factual `claim`). Cite `[external:stable-id]` inside each supported axis. The host supplies and persists locator, retrieval/update timestamps, and exact artifact/manifest/metadata hashes. External evidence improves the audit record but never makes a same-family result independent. If the evidence remains insufficient, return REVIEW with a precise `resolve_hint`.
 - Write exactly one JSON object to `{OUTPUT_PATH}`; no prose outside it:
 
 ```json
@@ -27,9 +27,21 @@ You are the final autonomous evidence pass for one Trekdex parking facility.
     "resolve_hint": null
   },
   "external_evidence": [
-    {"id": "stable-source-id", "path": "/absolute/path/to/frozen-bytes", "sha256": "64-lowercase-hex"}
+    {
+      "id": "stable-source-id",
+      "supports": [
+        {"axis": "public", "call": "yes", "claim": "specific fact in this source"},
+        {"axis": "serves", "call": "yes", "claim": "specific fact in this source"}
+      ]
+    }
   ]
 }
 ```
 
-Use an empty `external_evidence` list when you added nothing. The host validates assignment, packet identity, schema, evidence bytes/hashes, novelty versus packet inputs, and exact `[external:id]` citations; a same-family result cannot resolve without genuinely new cited evidence.
+Use an empty `external_evidence` list when you added nothing. The host validates
+assignment, packet, normative-document, and evidence-catalog identity; retained
+artifact/manifest/metadata bytes and hashes; HTTPS locator; UTC retrieval/update
+chronology; matching support calls; and exact axis-local `[external:id]`
+citations. Agents never supply provenance paths or metadata. The host compares verdict plus all three axis calls, requires an independent
+arbiter to differ in model ID and family from every parent, and sends every
+same-family result to a human exception regardless of evidence novelty.

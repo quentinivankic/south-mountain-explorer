@@ -13,10 +13,12 @@ foot-walk output and OSM context (trailhead nodes, footways, buildings). Emits:
   membership diff printed vs the old centroid gate.
 
 Usage: python3 dossier.py <slug>"""
-import json, math, os, sys, glob, collections
+import json, math, os, sys, collections
 import osmium, shapely.wkb
 from shapely.geometry import Point, Polygon
 from shapely.strtree import STRtree
+import dossier_output
+import geom_source
 # --- portable paths (added when these tools were graduated into the repo) -----
 # PADJ_TMP   working dir holding <slug>_dossier.json etc.  default: ../work
 # PADJ_GEOM  shipped trail geom                            default: <repo>/public/areas/geom
@@ -47,9 +49,23 @@ def hav(a,b,c,d):
 class ParkH(osmium.SimpleHandler):
     """Collect amenity=parking: ways (with rings) AND nodes, full tags, real ids."""
     def __init__(s,bb):
-        super().__init__(); s.bb=bb; s.lots=[]; s.wkb=osmium.geom.WKBFactory()
+        super().__init__(); s.bb=bb; s.lots=[]; s.errors=[]; s.wkb=osmium.geom.WKBFactory()
     def _in(s,la,lo):
         return s.bb[0]<=lo<=s.bb[2] and s.bb[1]<=la<=s.bb[3]
+    def _identity(s,a):
+        try: kind="way" if a.from_way() else "relation"
+        except Exception: kind="area"
+        try: ident=a.orig_id()
+        except Exception:
+            try: ident=a.id
+            except Exception: ident="unknown"
+        return f"{kind}/{ident}"
+    def _error(s,identity,reason):
+        s.errors.append((identity,reason))
+    def raise_for_errors(s):
+        if not s.errors: return
+        details="; ".join(f"{identity}: {reason}" for identity,reason in sorted(s.errors))
+        raise ValueError(f"parking area geometry failures: {details}")
     def node(s,n):
         t={x.k:x.v for x in n.tags}
         if t.get("amenity")!="parking": return
@@ -58,14 +74,63 @@ class ParkH(osmium.SimpleHandler):
     def area(s,a):
         t={x.k:x.v for x in a.tags}
         if t.get("amenity")!="parking": return
-        try: g=shapely.wkb.loads(s.wkb.create_multipolygon(a),hex=True)
-        except Exception: return
-        c=g.centroid
-        if not s._in(c.y,c.x): return
-        p=max(g.geoms,key=lambda q:q.area) if g.geom_type=="MultiPolygon" else g
-        ring=[[round(y,7),round(x,7)] for x,y in p.exterior.coords]  # [lat,lon]
-        kind="way" if a.from_way() else "relation"
-        s.lots.append({"osm":f"{kind}/{a.orig_id()}","lat":c.y,"lon":c.x,"tags":t,"ring":ring})
+        identity=s._identity(a)
+        try: encoded=s.wkb.create_multipolygon(a)
+        except Exception:
+            s._error(identity,"WKB multipolygon conversion failed"); return
+        try: g=shapely.wkb.loads(encoded,hex=True)
+        except Exception:
+            s._error(identity,"WKB multipolygon decode failed"); return
+        try:
+            if g is None or g.is_empty:
+                s._error(identity,"multipolygon is empty"); return
+            geom_type=g.geom_type
+        except Exception:
+            s._error(identity,"multipolygon inspection failed"); return
+        if geom_type=="Polygon": polygons=[g]
+        elif geom_type=="MultiPolygon":
+            try: polygons=list(g.geoms)
+            except Exception:
+                s._error(identity,"multipolygon components are unreadable"); return
+            if not polygons:
+                s._error(identity,"multipolygon has no polygon components"); return
+        else:
+            s._error(identity,"WKB geometry is not a polygon or multipolygon"); return
+        exteriors=[]
+        for p in polygons:
+            try:
+                if p is None or p.is_empty or p.geom_type!="Polygon": raise ValueError
+                area=float(p.area)
+                exterior=p.exterior
+                if exterior is None or exterior.is_empty: raise ValueError
+                coords=list(exterior.coords)
+            except Exception:
+                s._error(identity,"polygon exterior is missing or unreadable"); return
+            if not math.isfinite(area) or len(coords)<4:
+                s._error(identity,"polygon exterior is empty or nonfinite"); return
+            normalized=[]
+            for coordinate in coords:
+                try: x=float(coordinate[0]); y=float(coordinate[1])
+                except (TypeError,ValueError,IndexError):
+                    s._error(identity,"polygon exterior coordinate is malformed"); return
+                if (not math.isfinite(x) or not math.isfinite(y)
+                        or not -180<=x<=180 or not -90<=y<=90):
+                    s._error(identity,"polygon exterior coordinate is nonfinite or out of range"); return
+                normalized.append((x,y))
+            exteriors.append((area,normalized))
+        try:
+            c=g.centroid
+            if c is None or c.is_empty: raise ValueError
+            cx=float(c.x); cy=float(c.y)
+        except Exception:
+            s._error(identity,"parking centroid is missing or unreadable"); return
+        if (not math.isfinite(cx) or not math.isfinite(cy)
+                or not -180<=cx<=180 or not -90<=cy<=90):
+            s._error(identity,"parking centroid is nonfinite or out of range"); return
+        _area,coords=max(exteriors,key=lambda item:item[0])
+        if not s._in(cy,cx): return
+        ring=[[round(y,7),round(x,7)] for x,y in coords]  # [lat,lon]
+        s.lots.append({"osm":identity,"lat":cy,"lon":cx,"tags":t,"ring":ring})
 
 class CtxH(osmium.SimpleHandler):
     """Context: highway=trailhead nodes + footway/path ways + building areas in bbox."""
@@ -108,9 +173,18 @@ def poly_area_m2(ring):
     la=sum(r[0] for r in ring)/len(ring)
     return abs(p.area)*(111320.0**2)*math.cos(math.radians(la))
 
+def _write_generated_outputs(tmp, slug, dossier, serves):
+    """Atomically publish generated files under the shared dossier-set lock."""
+    dossier_output.write_generated_outputs(tmp, slug, dossier, serves)
+
+
 def main(slug):
-    g=json.load(open(f"{GEOMDIR}/{slug}.json")); b=g["bbox"]
+    slug=dossier_output.canonical_area(slug)
+    geom_inventory=geom_source.load_geom_inventory(GEOMDIR)
+    area_geom=geom_source.document_for_slug(geom_inventory,slug)
+    g=area_geom.document; b=g["bbox"]
     bb=(b[0]-BUF,b[1]-BUF,b[2]+BUF,b[3]+BUF)
+    relevant_geoms=geom_source.relevant_trail_documents(geom_inventory,bb)
     # bbox context extract once (65 s on us-access for Griffith, measured) — never
     # run handlers over the 3.5 GB national file directly.
     ctx_pbf=f"{TMP}/{slug}_ctx.osm.pbf"
@@ -118,7 +192,7 @@ def main(slug):
         import subprocess
         subprocess.run(["osmium","extract",f"--bbox={bb[0]},{bb[1]},{bb[2]},{bb[3]}",
                         "-o",ctx_pbf,"--overwrite",US],check=True)
-    ph=ParkH(bb); ph.apply_file(PBF,locations=True)
+    ph=ParkH(bb); ph.apply_file(PBF,locations=True); ph.raise_for_errors()
     lots=ph.lots
     print(f"pbf lots in bbox: {len(lots)} ({sum(1 for l in lots if l['ring'])} with rings)")
     # cluster 40 m, per-member tags kept
@@ -160,17 +234,14 @@ def main(slug):
     # ---- serves gate, EDGE distances ----
     trails=[]
     RB=bb
-    for fn in glob.glob(GEOMDIR+"/*.json"):
-        try: d=json.load(open(fn))
-        except Exception: continue
-        tb=d.get("bbox")
-        if not tb or tb[2]<RB[0] or tb[0]>RB[2] or tb[3]<RB[1] or tb[1]>RB[3]: continue
-        for tr in d.get("trails",[]):
+    for entry in relevant_geoms:
+        d=entry.document
+        for tr in d["trails"]:
             nm=tr.get("name") or "(unnamed trail)"; ends=[]
-            for s in tr["segments"]:
-                if s:
-                    if len(s[0])>=2: ends.append((s[0][0],s[0][1]))
-                    if len(s[-1])>=2: ends.append((s[-1][0],s[-1][1]))
+            for segment in tr["segments"]:
+                if segment:
+                    ends.append((segment[0][0],segment[0][1]))
+                    ends.append((segment[-1][0],segment[-1][1]))
             if ends and any(RB[0]<=e[1]<=RB[2] and RB[1]<=e[0]<=RB[3] for e in ends):
                 trails.append((nm,ends))
     print(f"trails in region: {len(trails)}")
@@ -210,12 +281,8 @@ def main(slug):
             p=ring_poly(f["ring"])
             f["building_overlap"]=bool(p) and any(p.intersects(ch.bld[i]) for i in btree.query(p))
         else: f["building_overlap"]=False
-    # ---- walk join (if present) ----
-    wf=f"{TMP}/zion_walk_our.json" if slug.startswith("zion") else f"{TMP}/{slug}_walk.json"
-    walk=json.load(open(wf)) if os.path.exists(wf) else {}
     out={"slug":slug,"name":g.get("name",slug),"bbox":b,"facilities":facs}
-    json.dump(out,open(f"{TMP}/{slug}_dossier.json","w"))
-    json.dump(srv,open(f"{TMP}/{slug}_serves2.json","w"),indent=0)
+    _write_generated_outputs(TMP, slug, out, srv)
     # ---- membership diff vs old centroid gate ----
     oldf=f"{TMP}/{slug}_serves.json" if os.path.exists(f"{TMP}/{slug}_serves.json") else (f"{TMP}/serves_rel.json" if slug.startswith("zion") else None)
     if oldf and os.path.exists(oldf):

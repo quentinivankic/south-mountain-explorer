@@ -45,4 +45,6 @@ public/areas/counts-cache.json
 
 # parking adjudication scratch (regenerable)
 scripts/parking-adjud/work/
+scripts/parking-adjud/reports/
 **/.trekdex-locks/
+**/.parking-sweep-transactions/

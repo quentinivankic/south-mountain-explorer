@@ -18,6 +18,8 @@ Constants / helpers (difficulty, slug, downsample, dedup, …) live in
 `_seed_constants.py` so the new PBF pipeline can't drift from this.
 """
 
+from __future__ import annotations
+
 import argparse
 import asyncio
 import json
@@ -35,6 +37,7 @@ from pathlib import Path
 # `python3 scripts/build-trail-counts.py` from the repo root.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import _parking_geom_guard as geom_guard  # noqa: E402
 from _seed_constants import (  # noqa: E402
     CACHE_PATH,
     GEOM_DIR,
@@ -321,19 +324,7 @@ def write_silhouettes(cache: dict, index: list) -> None:
         write_silhouette(area_id, sil)
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--batch-size", type=int, default=50)
-    parser.add_argument("--delay", type=float, default=1.5)
-    parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--force", action="store_true")
-    parser.add_argument("--concurrency", type=int, default=3)
-    parser.add_argument("--cache-only", action="store_true")
-    parser.add_argument("--min-trails", type=int, default=0)
-    parser.add_argument("--min-miles", type=float, default=0.0)
-    parser.add_argument("--state-filter", action="append", default=None)
-    args = parser.parse_args()
-
+def _run(args) -> int:
     index = json.loads(INDEX_PATH.read_text())
     cache: dict = (
         json.loads(CACHE_PATH.read_text()) if CACHE_PATH.exists() else {}
@@ -363,7 +354,7 @@ def main():
             f"Cache-only rebuild: {cached_count}/{len(new_index)} areas "
             f"have counts, {sil_count} have silhouettes."
         )
-        return
+        return 0
 
     targets = index if args.limit is None else index[: args.limit]
     if args.state_filter:
@@ -417,7 +408,31 @@ def main():
         f"{cached_count}/{len(new_index)} areas have counts, "
         f"{sil_count} have silhouettes."
     )
+    return 0
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--batch-size", type=int, default=50)
+    parser.add_argument("--delay", type=float, default=1.5)
+    parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--force", action="store_true")
+    parser.add_argument("--concurrency", type=int, default=3)
+    parser.add_argument("--cache-only", action="store_true")
+    parser.add_argument("--min-trails", type=int, default=0)
+    parser.add_argument("--min-miles", type=float, default=0.0)
+    parser.add_argument("--state-filter", action="append", default=None)
+    args = parser.parse_args(argv)
+
+    if args.cache_only:
+        return _run(args)
+    try:
+        with geom_guard.geom_writer(GEOM_DIR):
+            return _run(args)
+    except geom_guard.LiveSweepInProgress as error:
+        print(f"REFUSING: {error}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

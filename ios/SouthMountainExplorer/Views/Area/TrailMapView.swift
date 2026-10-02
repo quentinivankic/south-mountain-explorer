@@ -113,6 +113,7 @@ struct TrailMapView: View {
     /// completed trails changes. Passed straight through to
     /// `MapKitMapView`, which renders each run as an `MKPolyline`.
     @State private var cachedHaloSegments: [[[CLLocationCoordinate2D]]] = []
+    @State private var locationConsumer = LocationConsumerID()
     /// On-trail-filtered segments of the **live** recording's GPS
     /// path. Recomputed at most once per second from
     /// Trail-polyline-snapped runs covered by the in-progress
@@ -304,7 +305,10 @@ struct TrailMapView: View {
             // Compass on as soon as the map is up, so the dot's facing cone is
             // right from the first frame rather than only after the user cycles
             // into a follow mode.
-            location.startHeadingUpdates()
+            location.acquireHeading(for: locationConsumer)
+            if trackingMode != .free {
+                location.acquireLocation(for: locationConsumer, accuracy: .precise)
+            }
             // Snap every past hike's GPS onto the trail network so the
             // cyan "walked here" overlay follows the trail polylines
             // exactly and overlapping passes collapse into one line
@@ -434,6 +438,15 @@ struct TrailMapView: View {
             releaseOpeningFraming()
             trackingMode = .free
             centerOnUser()
+            Task { @MainActor in
+                let result = await location.requestOneShotFix(
+                    for: locationConsumer,
+                    accuracy: .precise
+                )
+                if case .success = result {
+                    centerOnUser()
+                }
+            }
         }
         .onChange(of: trackingMode, initial: false) { _, newMode in
             // Engaging a follow mode hands the camera to the user's position;
@@ -483,6 +496,8 @@ struct TrailMapView: View {
             // even when the HUD was never enabled.
             FPSCounter.shared.stop()
             openingRefit.task?.cancel()
+            location.releaseLocation(for: locationConsumer)
+            location.releaseHeading(for: locationConsumer)
         }
     }
 
@@ -566,17 +581,18 @@ struct TrailMapView: View {
     private func applyTrackingMode(_ mode: MapTrackingMode) {
         switch mode {
         case .free:
-            location.startHeadingUpdates()
+            location.releaseLocation(for: locationConsumer)
+            location.acquireHeading(for: locationConsumer)
             centerOnUser()
         case .follow:
             // Ensure live location is pumping (idempotent — no-op if
             // already running, e.g. during a recording).
-            location.startLiveTracking()
-            location.startHeadingUpdates()
+            location.acquireLocation(for: locationConsumer, accuracy: .precise)
+            location.acquireHeading(for: locationConsumer)
             updateTrackedPosition(resetZoom: true)
         case .followHeading:
-            location.startLiveTracking()
-            location.startHeadingUpdates()
+            location.acquireLocation(for: locationConsumer, accuracy: .precise)
+            location.acquireHeading(for: locationConsumer)
             updateTrackedPosition(resetZoom: true)
         }
     }

@@ -42,6 +42,7 @@ struct HomeView: View {
     @State private var showWalk = false
     @State private var history: [SavedRecording] = []
     @State private var lengthFilter: LengthFilter = .all
+    @State private var locationConsumer = LocationConsumerID()
 
     // MARK: - Cached section content
     //
@@ -155,7 +156,10 @@ struct HomeView: View {
                 // re-poke the location service so Near You can recompute.
                 history = await recording.loadHistory()
                 if location.isAuthorized {
-                    location.startLiveTracking()
+                    _ = await location.requestOneShotFix(
+                        for: locationConsumer,
+                        accuracy: .coarse
+                    )
                 }
             }
             .trailMeshBackground()
@@ -211,10 +215,27 @@ struct HomeView: View {
             // Anyone who declines still has the "Enable Location" button in
             // the empty state below, which is visible rather than modal.
             if location.isAuthorized {
-                location.startLiveTracking()
+                Task {
+                    _ = await location.requestOneShotFix(
+                        for: locationConsumer,
+                        accuracy: .coarse
+                    )
+                }
             }
             Task { history = await recording.loadHistory() }
             prefetchVisibleAreas()
+        }
+        .onDisappear {
+            location.releaseLocation(for: locationConsumer)
+        }
+        .onChange(of: location.authorizationStatus) { _, status in
+            guard status == .authorizedAlways || status == .authorizedWhenInUse else { return }
+            Task {
+                _ = await location.requestOneShotFix(
+                    for: locationConsumer,
+                    accuracy: .coarse
+                )
+            }
         }
         .onChange(of: location.userLocation?.latitude) { _, _ in prefetchVisibleAreas() }
         .onChange(of: lengthFilter) { _, _ in prefetchVisibleAreas() }

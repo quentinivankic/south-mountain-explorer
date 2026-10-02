@@ -276,36 +276,69 @@ final class AreaSheetAuditTests: XCTestCase {
     }
 
     private func auditExploreCards(_ app: XCUIApplication) {
+        let safeFrame = exploreVisibleContentFrame(app)
+        print(
+            "AUDIT[explore-viewport] x=\(Int(safeFrame.minX)) y=\(Int(safeFrame.minY)) "
+            + "w=\(Int(safeFrame.width)) h=\(Int(safeFrame.height))"
+        )
+
         let continueButton = app.buttons["continue-card"].firstMatch
         guard continueButton.waitForExistence(timeout: 30) else {
             dumpTree(app, "continue-card-missing")
             XCTFail("Continue card is missing from the seeded Explore screen")
             return
         }
+        XCTAssertTrue(
+            scrollIntoExploreViewport(continueButton, app: app),
+            "Continue card did not settle inside the Explore viewport"
+        )
+        assertInsideFrame(continueButton, frame: safeFrame, tag: "explore-continue-card")
+        assertCompleteAreaTitle(
+            app.descendants(matching: .any)["continue-card-title"].firstMatch,
+            app: app,
+            tag: "explore-continue-title"
+        )
         capture(app, "field-trust-00-explore-continue-card")
-        logElementFrame(app, continueButton, tag: "explore-continue-card")
 
         let open = app.buttons["area-open-\(areaId)"].firstMatch
-        var swipes = 0
-        while !isOnScreenAndHittable(open, app: app), swipes < 12 {
-            app.swipeUp()
-            swipes += 1
-            settle(1)
+        guard scrollIntoExploreViewport(open, app: app) else {
+            dumpTree(app, "area-card-actions-not-visible")
+            XCTFail("Area card did not settle inside the Explore viewport")
+            return
         }
         let save = app.buttons["area-save-\(areaId)"].firstMatch
-        guard isOnScreenAndHittable(open, app: app),
-              isOnScreenAndHittable(save, app: app) else {
-            dumpTree(app, "area-card-actions-not-visible")
-            XCTFail("Distinct Open Area and Save Area controls were not both visible after \(swipes) swipes")
+        guard open.exists, save.exists else {
+            dumpTree(app, "area-card-actions-missing")
+            XCTFail("Distinct Area card actions are missing")
             return
         }
         let areaActionIdentifiersAreDistinct = open.identifier != save.identifier
         XCTAssertTrue(areaActionIdentifiersAreDistinct, "Area actions must have distinct identifiers")
         let areaActionLabelsAreDistinct = open.label != save.label
         XCTAssertTrue(areaActionLabelsAreDistinct, "Area actions must have distinct labels")
+        assertInsideFrame(open, frame: safeFrame, tag: "explore-area-card-open")
+        assertInsideFrame(save, frame: safeFrame, tag: "explore-area-card-save")
+        assertCompleteAreaTitle(
+            app.descendants(matching: .any)["area-card-title-\(areaId)"].firstMatch,
+            app: app,
+            tag: "explore-area-card-title"
+        )
         capture(app, "field-trust-00-explore-area-card")
-        logElementFrame(app, open, tag: "explore-area-card-open")
-        logElementFrame(app, save, tag: "explore-area-card-save")
+
+        let savedHeading = app.staticTexts["Saved Areas"].firstMatch
+        XCTAssertTrue(
+            scrollIntoExploreViewport(savedHeading, app: app),
+            "Saved Areas did not remain reachable by scrolling down"
+        )
+        XCTAssertTrue(
+            scrollIntoExploreViewport(continueButton, app: app),
+            "Continue card did not remain reachable by scrolling up"
+        )
+        XCTAssertTrue(app.buttons["All Areas Map"].firstMatch.isHittable)
+        XCTAssertTrue(app.tabBars.buttons["Explore"].firstMatch.isHittable)
+        XCTAssertTrue(app.tabBars.buttons["Browse"].firstMatch.isHittable)
+        XCTAssertTrue(app.tabBars.buttons["Stats"].firstMatch.isHittable)
+        XCTAssertTrue(app.tabBars.buttons["Settings"].firstMatch.isHittable)
     }
 
     private func assertFitAreaPresentation(_ app: XCUIApplication) {
@@ -387,6 +420,77 @@ final class AreaSheetAuditTests: XCTestCase {
             && frame.maxX <= screen.maxX + 1
             && frame.minY >= screen.minY - 1
             && frame.maxY <= screen.maxY + 1
+    }
+
+    private func exploreVisibleContentFrame(_ app: XCUIApplication) -> CGRect {
+        let navigationBar = app.navigationBars.firstMatch
+        let tabBar = app.tabBars.firstMatch
+        _ = navigationBar.waitForExistence(timeout: 10)
+        _ = tabBar.waitForExistence(timeout: 10)
+
+        let screen = app.frame
+        let top = navigationBar.exists ? navigationBar.frame.maxY : screen.minY
+        let bottom = tabBar.exists ? tabBar.frame.minY : screen.maxY
+        return CGRect(
+            x: screen.minX,
+            y: top,
+            width: screen.width,
+            height: max(0, bottom - top)
+        ).insetBy(dx: 1, dy: 4)
+    }
+
+    private func scrollIntoExploreViewport(
+        _ element: XCUIElement,
+        app: XCUIApplication
+    ) -> Bool {
+        let safeFrame = exploreVisibleContentFrame(app)
+        for attempt in 0...12 {
+            if element.exists,
+               element.isHittable,
+               safeFrame.contains(element.frame) {
+                return true
+            }
+            if attempt < 12 {
+                if element.exists, element.frame.minY < safeFrame.minY {
+                    app.swipeDown()
+                } else {
+                    app.swipeUp()
+                }
+                settle(1)
+            }
+        }
+        return false
+    }
+
+    private func assertInsideFrame(
+        _ element: XCUIElement,
+        frame: CGRect,
+        tag: String
+    ) {
+        let isContained = element.exists
+            && element.isHittable
+            && frame.contains(element.frame)
+        print("AUDIT[\(tag)] contained=\(isContained)")
+        XCTAssertTrue(isContained, "Explore control is outside the visible viewport")
+    }
+
+    private func assertCompleteAreaTitle(
+        _ title: XCUIElement,
+        app: XCUIApplication,
+        tag: String
+    ) {
+        let exists = title.waitForExistence(timeout: 10)
+        let isComplete = exists && title.label == "South Mountain Park and Preserve"
+        let isAccessibility = app.launchArguments.contains(
+            "UICTContentSizeCategoryAccessibilityXXXL"
+        )
+        let isWithinStandardLineLimit = isAccessibility || (exists && title.frame.height <= 52)
+        print(
+            "AUDIT[\(tag)] complete=\(isComplete) "
+            + "standardLineBound=\(isWithinStandardLineLimit)"
+        )
+        XCTAssertTrue(isComplete, "Area title is incomplete")
+        XCTAssertTrue(isWithinStandardLineLimit, "Area title exceeds two standard lines")
     }
 
     private func launchRecordingAudit(arguments: [String]) -> XCUIApplication {

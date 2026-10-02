@@ -11,15 +11,27 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
     func testAreaCardOpenAndSaveAreIndependentButtons() {
         let app = launchSeededApp()
+        let visibleFrame = exploreVisibleContentFrame(app)
 
         let continueButton = app.buttons["continue-card"].firstMatch
         XCTAssertTrue(continueButton.waitForExistence(timeout: 30))
+        XCTAssertTrue(
+            scrollIntoExploreViewport(continueButton, app: app),
+            "Continue card did not settle inside the Explore viewport"
+        )
         let continueIsOpenAction = continueButton.label.hasPrefix("Open Area,")
         XCTAssertTrue(continueIsOpenAction, "Continue must expose an Open Area action")
-        assertInsideScreen(continueButton, app: app)
+        assertInsideFrame(continueButton, frame: visibleFrame)
+        assertCompleteStandardTitle(
+            app.descendants(matching: .any)["continue-card-title"].firstMatch
+        )
 
-        let open = findByScrolling(app.buttons["area-open-\(areaId)"].firstMatch, in: app)
-        let save = findByScrolling(app.buttons["area-save-\(areaId)"].firstMatch, in: app)
+        let open = app.buttons["area-open-\(areaId)"].firstMatch
+        XCTAssertTrue(
+            scrollIntoExploreViewport(open, app: app),
+            "Area Open button did not settle inside the Explore viewport"
+        )
+        let save = app.buttons["area-save-\(areaId)"].firstMatch
         XCTAssertTrue(open.exists, "Area Open button is missing")
         XCTAssertTrue(save.exists, "Area Save button is missing")
         let areaActionIdentifiersAreDistinct = open.identifier != save.identifier
@@ -30,9 +42,28 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(openHasExpectedLabel, "Area Open button has an unexpected label")
         let saveHasExpectedLabel = save.label == "Remove from Saved Areas"
         XCTAssertTrue(saveHasExpectedLabel, "Area Save button has an unexpected label")
-        assertInsideScreen(open, app: app)
-        assertInsideScreen(save, app: app)
+        assertInsideFrame(open, frame: visibleFrame)
+        assertInsideFrame(save, frame: visibleFrame)
+        assertCompleteStandardTitle(
+            app.descendants(matching: .any)["area-card-title-\(areaId)"].firstMatch
+        )
 
+        let savedHeading = app.staticTexts["Saved Areas"].firstMatch
+        XCTAssertTrue(
+            scrollIntoExploreViewport(savedHeading, app: app),
+            "Saved Areas did not remain reachable by scrolling down"
+        )
+        XCTAssertTrue(
+            scrollIntoExploreViewport(continueButton, app: app),
+            "Continue card did not remain reachable by scrolling up"
+        )
+        XCTAssertTrue(app.buttons["All Areas Map"].firstMatch.isHittable)
+        XCTAssertTrue(app.tabBars.buttons["Explore"].firstMatch.isHittable)
+        XCTAssertTrue(app.tabBars.buttons["Stats"].firstMatch.isHittable)
+        XCTAssertTrue(app.tabBars.buttons["Browse"].firstMatch.isHittable)
+        XCTAssertTrue(app.tabBars.buttons["Settings"].firstMatch.isHittable)
+
+        XCTAssertTrue(scrollIntoExploreViewport(save, app: app))
         save.tap()
         XCTAssertFalse(
             app.buttons["area-recenter-button"].firstMatch.waitForExistence(timeout: 2),
@@ -44,8 +75,9 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         app.launch()
         _ = app.tabBars.buttons["Explore"].waitForExistence(timeout: 30)
 
-        let resetOpen = findByScrolling(app.buttons["area-open-\(areaId)"].firstMatch, in: app)
-        let resetSave = findByScrolling(app.buttons["area-save-\(areaId)"].firstMatch, in: app)
+        let resetOpen = app.buttons["area-open-\(areaId)"].firstMatch
+        let resetSave = app.buttons["area-save-\(areaId)"].firstMatch
+        XCTAssertTrue(scrollIntoExploreViewport(resetOpen, app: app))
         let resetSaveHasExpectedLabel = resetSave.label == "Remove from Saved Areas"
         XCTAssertTrue(resetSaveHasExpectedLabel, "Seeded Area Save button has an unexpected label")
         resetOpen.tap()
@@ -57,7 +89,8 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let close = app.buttons["area-close-button"].firstMatch
         XCTAssertTrue(close.waitForExistence(timeout: 10))
         close.tap()
-        let saveAfterOpen = findByScrolling(app.buttons["area-save-\(areaId)"].firstMatch, in: app)
+        let saveAfterOpen = app.buttons["area-save-\(areaId)"].firstMatch
+        XCTAssertTrue(scrollIntoExploreViewport(saveAfterOpen, app: app))
         let savedStateWasPreserved = saveAfterOpen.label == "Remove from Saved Areas"
         XCTAssertTrue(savedStateWasPreserved, "Opening an area changed its saved state")
     }
@@ -316,20 +349,57 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         return app
     }
 
-    @discardableResult
-    private func findByScrolling(_ element: XCUIElement, in app: XCUIApplication) -> XCUIElement {
-        let maximumSwipes = 12
-        for attempt in 0...maximumSwipes {
-            if isOnScreenAndHittable(element, app: app) {
-                return element
+    private func exploreVisibleContentFrame(_ app: XCUIApplication) -> CGRect {
+        let navigationBar = app.navigationBars.firstMatch
+        let tabBar = app.tabBars.firstMatch
+        _ = navigationBar.waitForExistence(timeout: 10)
+        _ = tabBar.waitForExistence(timeout: 10)
+
+        let screen = app.frame
+        let top = navigationBar.exists ? navigationBar.frame.maxY : screen.minY
+        let bottom = tabBar.exists ? tabBar.frame.minY : screen.maxY
+        return CGRect(
+            x: screen.minX,
+            y: top,
+            width: screen.width,
+            height: max(0, bottom - top)
+        ).insetBy(dx: 1, dy: 4)
+    }
+
+    private func scrollIntoExploreViewport(
+        _ element: XCUIElement,
+        app: XCUIApplication
+    ) -> Bool {
+        let visibleFrame = exploreVisibleContentFrame(app)
+        for attempt in 0...12 {
+            if element.exists,
+               element.isHittable,
+               visibleFrame.contains(element.frame) {
+                return true
             }
-            if attempt < maximumSwipes {
-                app.swipeUp()
+            if attempt < 12 {
+                if element.exists, element.frame.minY < visibleFrame.minY {
+                    app.swipeDown()
+                } else {
+                    app.swipeUp()
+                }
                 sleep(1)
             }
         }
-        XCTFail("Area card control did not become visible and hittable within the scroll limit")
-        return element
+        return false
+    }
+
+    private func assertCompleteStandardTitle(_ title: XCUIElement) {
+        XCTAssertTrue(title.waitForExistence(timeout: 10), "Area title is missing")
+        let isComplete = title.label == "South Mountain Park and Preserve"
+        XCTAssertTrue(isComplete, "Area title is incomplete")
+        XCTAssertLessThanOrEqual(title.frame.height, 52, "Area title exceeds two standard lines")
+    }
+
+    private func assertInsideFrame(_ element: XCUIElement, frame: CGRect) {
+        XCTAssertTrue(element.exists, "Explore control is missing")
+        XCTAssertTrue(element.isHittable, "Explore control is not hittable")
+        XCTAssertTrue(frame.contains(element.frame), "Explore control is outside the visible viewport")
     }
 
     private func isOnScreenAndHittable(_ element: XCUIElement, app: XCUIApplication) -> Bool {

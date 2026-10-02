@@ -152,7 +152,7 @@ struct AreaCard: View {
         } else {
             ZStack(alignment: .bottomLeading) {
                 artwork
-                    .frame(width: 220, height: 176)
+                    .frame(width: 220, height: 196)
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
                 information(accessibilityLayout: false)
@@ -173,7 +173,9 @@ struct AreaCard: View {
             Text(area.name)
                 .font(.headline)
                 .foregroundStyle(.primary)
-                .lineLimit(accessibilityLayout ? nil : 1)
+                .lineLimit(accessibilityLayout ? nil : 2, reservesSpace: !accessibilityLayout)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("area-card-title-\(area.id)")
 
             if accessibilityLayout {
                 Text(area.subtitle)

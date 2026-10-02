@@ -54,7 +54,7 @@ struct ContinueCard: View {
             } else {
                 ZStack(alignment: .bottomLeading) {
                     artwork
-                        .frame(height: 200)
+                        .frame(height: 220)
                         .frame(maxWidth: .infinity)
                         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                         .overlay(cardBorder)
@@ -84,7 +84,9 @@ struct ContinueCard: View {
                 .font(.title3)
                 .fontWeight(.semibold)
                 .foregroundStyle(.primary)
-                .lineLimit(accessibilityLayout ? nil : 1)
+                .lineLimit(accessibilityLayout ? nil : 2, reservesSpace: !accessibilityLayout)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("continue-card-title")
 
             if totalTrails > 0 {
                 Text("\(completedCount)/\(totalTrails) trails")

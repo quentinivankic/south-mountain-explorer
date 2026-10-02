@@ -15,9 +15,9 @@ import XCTest
 /// presented in four consecutive CI runs regardless of trigger (launch
 /// deep-link, card tap, banner tap), so the area is opened by PUSHING
 /// AreaView from the Stats tab's "Area Progress" row instead. AreaView's
-/// own inner trail-list sheet is the one modal we still depend on; every
-/// wait failure dumps the accessibility tree to stdout so a CI log can
-/// diagnose exactly what was on screen.
+/// own inner trail-list sheet is the one modal we still depend on; wait
+/// failures log only a stable state tag and element count so CI diagnostics
+/// cannot emit trail-derived accessibility labels or identifiers.
 ///
 /// Screenshot files are numbered to match the App Store submission plan
 /// (docs/app-store-submission.md) so they upload in order:
@@ -192,8 +192,8 @@ final class ScreenshotTests: XCTestCase {
 
     /// Push AreaView via the Stats tab's "Area Progress" row and wait
     /// for the area sheet's context-neutral chrome. Returns true when the
-    /// sheet is on screen. Dumps the accessibility tree on any wait
-    /// failure so the CI log shows exactly what rendered instead.
+    /// sheet is on screen. Logs a sanitized state/count diagnostic on any
+    /// wait failure without exposing dynamic accessibility content.
     /// Scroll the current screen until `identifier` exists, then return it.
     /// Tries down first, then back up, because a previous shot may have left
     /// the screen scrolled past the target. Returns nil if it never appears.
@@ -292,13 +292,10 @@ final class ScreenshotTests: XCTestCase {
         add(attachment)
     }
 
-    /// Print the full accessibility tree to stdout — it lands in the
-    /// xcodebuild output inside the CI step log, so a failed wait can be
-    /// diagnosed from the logs alone (the simulator isn't inspectable
-    /// after the run).
+    /// Emit only a stable tag and element count. Full accessibility-tree
+    /// output can contain trail-derived labels and identifiers.
     private func dumpTree(_ app: XCUIApplication, _ tag: String) {
-        print("===== UI TREE [\(tag)] =====")
-        print(app.debugDescription)
-        print("===== END UI TREE [\(tag)] =====")
+        let elementCount = app.descendants(matching: .any).count
+        print("AUDIT[\(tag)] hierarchy unavailable; elementCount=\(elementCount)")
     }
 }

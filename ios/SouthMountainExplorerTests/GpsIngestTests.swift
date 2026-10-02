@@ -89,8 +89,11 @@ struct GpsIngestTests {
         #expect(summary.gapCount == 2)
         #expect(summary.totalMissingSeconds == 180)
         #expect(summary.longestMissingSeconds == 120)
-        #expect(summary.lastRecoveryAt == Date(timeIntervalSince1970: 184))
-        #expect(summary.explanation == "GPS paused 2 times for 3m total (longest 2m). No straight-line distance was counted.")
+        let recoveryTimeMatches = summary.lastRecoveryAt == Date(timeIntervalSince1970: 184)
+        #expect(recoveryTimeMatches, "The material-gap recovery time is incorrect")
+        let explanationMatches =
+            summary.explanation == "GPS paused 2 times for 3m total (longest 2m). No straight-line distance was counted."
+        #expect(explanationMatches, "The material-gap explanation is incorrect")
     }
 
     @Test func malformedMissingAndBackwardTimestampsDoNotInventGaps() {
@@ -131,7 +134,9 @@ struct GpsIngestTests {
 
     @Test func oneGapExplanationUsesSingularCopy() throws {
         let summary = try #require(GpsIngest.materialGapSummary([pt(0, 0), pt(10, 21_000)]))
-        #expect(summary.explanation == "GPS paused for 21s. No straight-line distance was counted.")
+        let explanationMatches =
+            summary.explanation == "GPS paused for 21s. No straight-line distance was counted."
+        #expect(explanationMatches, "The singular material-gap explanation is incorrect")
     }
 
     /// Elevation profile must not inflate distance or count climb across a gap.

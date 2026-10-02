@@ -44,7 +44,8 @@ struct AreaCacheStoreTests {
         let receipt = store.store(area(id: "a"))
 
         #expect(receipt.succeeded)
-        #expect(store.validArea(id: "a")?.id == "a")
+        let durableAreaMatchesRequest = store.validArea(id: "a")?.id == "a"
+        #expect(durableAreaMatchesRequest, "The durable cache entry has an unexpected identity")
         #expect(store.validBytes(id: "a") != nil)
     }
 
@@ -61,7 +62,8 @@ struct AreaCacheStoreTests {
         #expect(store.store(Data("{".utf8), expectedID: "a").failure == .invalidPayload)
         #expect(store.store(try encoded(empty), expectedID: "a").failure == .invalidPayload)
         #expect(store.store(try encoded(area(id: "other")), expectedID: "a").failure == .invalidPayload)
-        #expect(store.validArea(id: "a") == nil)
+        let rejectedAreaIsUnavailable = store.validArea(id: "a") == nil
+        #expect(rejectedAreaIsUnavailable, "Rejected cache payload became durably available")
     }
 
     @Test func stagingAndPromotionFailuresPreservePriorBytesExactly() throws {
@@ -81,7 +83,8 @@ struct AreaCacheStoreTests {
             )
         )
         #expect(stagingFailure.store(area(id: "a", name: "New")).failure == .stagingWriteFailed)
-        #expect(try Data(contentsOf: live.fileURL(for: "a")) == oldBytes)
+        let stagingPreservedPriorBytes = try Data(contentsOf: live.fileURL(for: "a")) == oldBytes
+        #expect(stagingPreservedPriorBytes, "A staging failure changed the prior cache bytes")
 
         let liveIO = AreaCacheStore.IO.live()
         let promotionFailure = AreaCacheStore(
@@ -94,7 +97,8 @@ struct AreaCacheStoreTests {
             )
         )
         #expect(promotionFailure.store(area(id: "a", name: "New")).failure == .promotionFailed)
-        #expect(try Data(contentsOf: live.fileURL(for: "a")) == oldBytes)
+        let promotionPreservedPriorBytes = try Data(contentsOf: live.fileURL(for: "a")) == oldBytes
+        #expect(promotionPreservedPriorBytes, "A promotion failure changed the prior cache bytes")
     }
 
     @Test func promotionThatMutatesBeforeThrowingRestoresPriorBytesExactly() throws {
@@ -124,8 +128,10 @@ struct AreaCacheStoreTests {
 
         #expect(store.store(area(id: "a", name: "New")).failure == .promotionFailed)
         #expect(state.callCount == 2, "the second promotion restores the verified backup")
-        #expect(try Data(contentsOf: live.fileURL(for: "a")) == oldBytes)
-        #expect(live.validArea(id: "a")?.name == "Old")
+        let priorBytesWereRestored = try Data(contentsOf: live.fileURL(for: "a")) == oldBytes
+        #expect(priorBytesWereRestored, "Rollback did not restore the prior cache bytes")
+        let priorAreaWasRestored = live.validArea(id: "a")?.name == "Old"
+        #expect(priorAreaWasRestored, "Rollback did not restore the prior cache area")
     }
 
     @Test func rollbackThrowingBeforeMutationRetriesAndRestoresPriorBytesExactly() throws {
@@ -160,8 +166,10 @@ struct AreaCacheStoreTests {
 
         #expect(store.store(area(id: "a", name: "New")).failure == .promotionFailed)
         #expect(state.callCount == 3, "rollback should retry after a pre-mutation error")
-        #expect(try Data(contentsOf: live.fileURL(for: "a")) == oldBytes)
-        #expect(live.validArea(id: "a")?.name == "Old")
+        let priorBytesWereRestored = try Data(contentsOf: live.fileURL(for: "a")) == oldBytes
+        #expect(priorBytesWereRestored, "Retried rollback did not restore the prior cache bytes")
+        let priorAreaWasRestored = live.validArea(id: "a")?.name == "Old"
+        #expect(priorAreaWasRestored, "Retried rollback did not restore the prior cache area")
     }
 
     @Test func rollbackMutatingBeforeThrowIsVerifiedAsSuccessful() throws {
@@ -189,8 +197,10 @@ struct AreaCacheStoreTests {
 
         #expect(store.store(area(id: "a", name: "New")).failure == .promotionFailed)
         #expect(state.callCount == 2, "the mutated rollback destination should be verified directly")
-        #expect(try Data(contentsOf: live.fileURL(for: "a")) == oldBytes)
-        #expect(live.validArea(id: "a")?.name == "Old")
+        let priorBytesWereRestored = try Data(contentsOf: live.fileURL(for: "a")) == oldBytes
+        #expect(priorBytesWereRestored, "Verified rollback did not retain the prior cache bytes")
+        let priorAreaWasRestored = live.validArea(id: "a")?.name == "Old"
+        #expect(priorAreaWasRestored, "Verified rollback did not retain the prior cache area")
     }
 
     @Test func finalReadbackFailureRollsBackPriorBytesExactly() throws {
@@ -220,7 +230,8 @@ struct AreaCacheStoreTests {
         )
 
         #expect(store.store(area(id: "a", name: "New")).failure == .finalVerificationFailed)
-        #expect(try Data(contentsOf: destination) == oldBytes)
+        let priorBytesWereRestored = try Data(contentsOf: destination) == oldBytes
+        #expect(priorBytesWereRestored, "Final verification failure changed the prior cache bytes")
     }
 
     @Test func successfulRetryPromotesOnlyVerifiedBytes() throws {
@@ -231,10 +242,13 @@ struct AreaCacheStoreTests {
         let oldBytes = try #require(store.validBytes(id: "a"))
 
         #expect(store.store(Data("bad".utf8), expectedID: "a").failure == .invalidPayload)
-        #expect(store.validBytes(id: "a") == oldBytes)
+        let invalidPayloadPreservedBytes = store.validBytes(id: "a") == oldBytes
+        #expect(invalidPayloadPreservedBytes, "Invalid payload handling changed the prior cache bytes")
         #expect(store.store(area(id: "a", name: "New")).succeeded)
-        #expect(store.validArea(id: "a")?.name == "New")
-        #expect(store.validBytes(id: "a") != oldBytes)
+        let replacementAreaMatches = store.validArea(id: "a")?.name == "New"
+        #expect(replacementAreaMatches, "Successful retry retained the prior cache area")
+        let replacementBytesChanged = store.validBytes(id: "a") != oldBytes
+        #expect(replacementBytesChanged, "Successful retry did not promote replacement bytes")
     }
 
     @Test @MainActor func failedForcedRevalidationKeepsValidStaleBytesAvailable() async throws {
@@ -250,9 +264,12 @@ struct AreaCacheStoreTests {
 
         let result = await prefetcher.run(ids: ["a"], forceRefresh: true)
 
-        #expect(result.failedIDs == ["a"])
-        #expect(store.validArea(id: "a")?.name == "Stale")
-        #expect(store.validBytes(id: "a") == staleBytes)
+        let failedIdentifiersMatch = result.failedIDs == ["a"]
+        #expect(failedIdentifiersMatch, "Forced revalidation reported unexpected failed identifiers")
+        let staleAreaWasPreserved = store.validArea(id: "a")?.name == "Stale"
+        #expect(staleAreaWasPreserved, "Failed revalidation changed the stale cache area")
+        let staleBytesWerePreserved = store.validBytes(id: "a") == staleBytes
+        #expect(staleBytesWerePreserved, "Failed revalidation changed the stale cache bytes")
     }
 
     @Test func enumerationExcludesMalformedEmptyAndWrongIdentityFiles() throws {
@@ -269,7 +286,8 @@ struct AreaCacheStoreTests {
         try encoded(empty).write(to: store.fileURL(for: "empty"))
         try encoded(area(id: "other")).write(to: store.fileURL(for: "wrong"))
 
-        #expect(store.entries().map(\.id) == ["valid"])
+        let durableIdentifiersMatch = store.entries().map(\.id) == ["valid"]
+        #expect(durableIdentifiersMatch, "Durable enumeration returned unexpected identifiers")
         #expect(store.entries().first?.sizeBytes == store.validBytes(id: "valid")?.count)
     }
 }

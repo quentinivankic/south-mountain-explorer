@@ -17,17 +17,24 @@ struct OfflineTrailPrefetchTests {
         )
 
         let partial = await prefetcher.run(ids: ["a", "b", "c"], forceRefresh: false)
-        #expect(attempted == ["a", "b", "c"])
-        #expect(partial.succeededIDs == ["a", "c"])
-        #expect(partial.failedIDs == ["b"])
+        let firstAttemptsMatch = attempted == ["a", "b", "c"]
+        #expect(firstAttemptsMatch, "The first prefetch attempts were not sequential")
+        let partialSuccessesMatch = partial.succeededIDs == ["a", "c"]
+        #expect(partialSuccessesMatch, "Partial prefetch reported unexpected successful identifiers")
+        let partialFailuresMatch = partial.failedIDs == ["b"]
+        #expect(partialFailuresMatch, "Partial prefetch reported unexpected failed identifiers")
 
         let current = await prefetcher.run(ids: ["a", "c"], forceRefresh: false)
-        #expect(current.alreadyCurrentIDs == ["a", "c"])
-        #expect(attempted == ["a", "b", "c"], "already-current IDs must not fetch")
+        let currentIdentifiersMatch = current.alreadyCurrentIDs == ["a", "c"]
+        #expect(currentIdentifiersMatch, "Prefetch reported unexpected already-current identifiers")
+        let currentAttemptsWereSkipped = attempted == ["a", "b", "c"]
+        #expect(currentAttemptsWereSkipped, "Already-current identifiers must not fetch")
 
         let failed = await prefetcher.run(ids: ["b"], forceRefresh: true)
-        #expect(failed.failedIDs == ["b"])
-        #expect(attempted.last == "b")
+        let forcedFailuresMatch = failed.failedIDs == ["b"]
+        #expect(forcedFailuresMatch, "Forced prefetch reported unexpected failed identifiers")
+        let forcedAttemptMatches = attempted.last == "b"
+        #expect(forcedAttemptMatches, "Forced prefetch attempted an unexpected identifier")
     }
 
     @Test func retryProcessesOnlyPriorFailures() async {
@@ -49,8 +56,10 @@ struct OfflineTrailPrefetchTests {
 
         let retry = await prefetcher.run(ids: prior.retryIDs, forceRefresh: true)
 
-        #expect(attempted == ["b"])
-        #expect(retry.succeededIDs == ["b"])
+        let retryAttemptsMatch = attempted == ["b"]
+        #expect(retryAttemptsMatch, "Retry attempted identifiers outside the prior failures")
+        let retrySuccessesMatch = retry.succeededIDs == ["b"]
+        #expect(retrySuccessesMatch, "Retry reported unexpected successful identifiers")
         #expect(retry.isCompleteDurableAvailability)
     }
 
@@ -75,7 +84,8 @@ struct OfflineTrailPrefetchTests {
 
         #expect(complete.isCompleteDurableAvailability)
         #expect(partial.isPartial)
-        #expect(partial.retryIDs == ["b"])
+        let partialRetryIdentifiersMatch = partial.retryIDs == ["b"]
+        #expect(partialRetryIdentifiersMatch, "Partial result reported unexpected retry identifiers")
         #expect(!failed.isPartial)
         #expect(!failed.isCompleteDurableAvailability)
         #expect(current.isCompleteDurableAvailability)
@@ -90,10 +100,14 @@ struct OfflineTrailPrefetchTests {
             alreadyCurrentIDs: ["d", "c"]
         )
 
-        #expect(result.requestedIDs == ["b", "a", "c", "d"])
-        #expect(result.succeededIDs == ["b", "c"])
-        #expect(result.alreadyCurrentIDs == ["d"])
-        #expect(result.failedIDs == ["a"])
+        let requestedOrderMatches = result.requestedIDs == ["b", "a", "c", "d"]
+        #expect(requestedOrderMatches, "Requested identifiers lost stable deduplication order")
+        let successfulIdentifiersMatch = result.succeededIDs == ["b", "c"]
+        #expect(successfulIdentifiersMatch, "Result reported unexpected successful identifiers")
+        let currentIdentifiersMatch = result.alreadyCurrentIDs == ["d"]
+        #expect(currentIdentifiersMatch, "Result reported unexpected already-current identifiers")
+        let failedIdentifiersMatch = result.failedIDs == ["a"]
+        #expect(failedIdentifiersMatch, "Result reported unexpected failed identifiers")
         #expect(result.processedCount == result.requestedIDs.count)
     }
 
@@ -102,8 +116,10 @@ struct OfflineTrailPrefetchTests {
             requestedIDs: ["a", "b"],
             succeededIDs: ["a"]
         )
-        #expect(result.failedIDs == ["b"])
-        #expect(result.retryIDs == ["b"])
+        let failedIdentifiersMatch = result.failedIDs == ["b"]
+        #expect(failedIdentifiersMatch, "Missing outcome produced unexpected failed identifiers")
+        let retryIdentifiersMatch = result.retryIDs == ["b"]
+        #expect(retryIdentifiersMatch, "Missing outcome produced unexpected retry identifiers")
         #expect(!result.isCompleteDurableAvailability)
     }
 

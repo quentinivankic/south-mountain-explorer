@@ -5,23 +5,27 @@ import Testing
 struct FieldTrustStateTests {
     @Test func exploreLocationOutcomesRemainActionable() {
         let coordinate = CLLocationCoordinate2D(latitude: 33.3, longitude: -112.0)
-
-        #expect(ExploreLocationState.resolved(
+        let successfulState = ExploreLocationState.resolved(
             result: .success(coordinate),
             hasFallback: false
-        ) == .available)
-        #expect(ExploreLocationState.resolved(
+        )
+        let deniedState = ExploreLocationState.resolved(
             result: .denied,
             hasFallback: true
-        ) == .denied)
-        #expect(ExploreLocationState.resolved(
+        )
+        let unavailableState = ExploreLocationState.resolved(
             result: .unavailable,
             hasFallback: false
-        ) == .unavailable)
-        #expect(ExploreLocationState.resolved(
+        )
+        let fallbackState = ExploreLocationState.resolved(
             result: .unavailable,
             hasFallback: true
-        ) == .fallback)
+        )
+
+        #expect(successfulState == .available)
+        #expect(deniedState == .denied)
+        #expect(unavailableState == .unavailable)
+        #expect(fallbackState == .fallback)
     }
 
     @Test func everyCompetingCameraOwnerInvalidatesPendingRecenter() {
@@ -32,7 +36,7 @@ struct FieldTrustStateTests {
                 owner: owner
             )
 
-            #expect(invalidated == 5, "\(owner) did not advance the camera generation")
+            #expect(invalidated == 5, "A competing camera owner did not advance the generation")
             #expect(!RecenterRequestGate.mayApply(request: current, current: invalidated))
         }
         #expect(RecenterRequestGate.mayApply(request: 4, current: 4))

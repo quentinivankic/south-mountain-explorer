@@ -166,9 +166,12 @@ struct RecordingDataSafetyTests {
         )
 
         #expect(result == .alreadyActive)
-        #expect(service.activeRecording == active)
+        let activeRecordingWasPreserved = service.activeRecording == active
+        #expect(activeRecordingWasPreserved, "Starting a Walk changed the active recording")
         let recovered = try #require(defaults.data(forKey: StorageKeys.activeRecording))
-        #expect(try JSONDecoder().decode(ActiveRecording.self, from: recovered) == active)
+        let decodedCheckpoint = try JSONDecoder().decode(ActiveRecording.self, from: recovered)
+        let checkpointWasPreserved = decodedCheckpoint == active
+        #expect(checkpointWasPreserved, "Starting a Walk changed the persisted checkpoint")
     }
 
     @Test func newRecordingAcquiresOnceAndDiscardReleasesOnce() throws {
@@ -197,7 +200,8 @@ struct RecordingDataSafetyTests {
         service.discardRecording()
         #expect(location.releaseCount == 1)
         #expect(!location.ownsRecordingLocation)
-        #expect(defaults.data(forKey: StorageKeys.activeRecording) == nil)
+        let checkpointWasCleared = defaults.data(forKey: StorageKeys.activeRecording) == nil
+        #expect(checkpointWasCleared, "Discard left an active checkpoint")
     }
 
     @Test func missingHistoryIsEmptyButCorruptHistoryIsDistinctAndProtected() async throws {
@@ -217,14 +221,16 @@ struct RecordingDataSafetyTests {
             Issue.record("corrupt history must not be interpreted as empty")
         } catch let error as RecordingHistoryStoreError {
             guard case .corrupt = error else {
-                Issue.record("expected a corrupt-history error, got \(error)")
+                Issue.record("expected a corrupt-history error")
                 return
             }
         }
-        #expect(throws: RecordingHistoryStoreError.self) {
+        do {
             try store.prepend(makeSaved())
-        }
-        #expect(try Data(contentsOf: url) == corrupt)
+            Issue.record("corrupt history must reject prepend")
+        } catch is RecordingHistoryStoreError { }
+        let corruptBytesWerePreserved = try Data(contentsOf: url) == corrupt
+        #expect(corruptBytesWerePreserved, "Corrupt history bytes were changed")
 
         let service = RecordingService(
             historyStore: store,
@@ -233,7 +239,8 @@ struct RecordingDataSafetyTests {
         )
         let loadedHistory = await service.loadHistory()
         #expect(loadedHistory.isEmpty)
-        #expect(service.historyErrorMessage != nil, "Stats must receive an error instead of an empty-history state")
+        let historyFailureIsVisible = service.historyErrorMessage != nil
+        #expect(historyFailureIsVisible, "Stats must receive an error instead of an empty-history state")
     }
 
     @Test func successfulAtomicSaveRoundTripsSortsAndIsIdempotent() throws {
@@ -249,7 +256,9 @@ struct RecordingDataSafetyTests {
         try store.prepend(newer)
         try store.prepend(newer)
 
-        #expect(try store.load() == [newer, older])
+        let loadedHistory = try store.load()
+        let historyOrderMatches = loadedHistory == [newer, older]
+        #expect(historyOrderMatches, "Atomic history save produced an unexpected order")
     }
 
     @Test func postCommitWriterErrorReconcilesInsideHistoryStore() throws {
@@ -264,8 +273,12 @@ struct RecordingDataSafetyTests {
         )
         let saved = makeSaved()
 
-        #expect(try store.prepend(saved) == saved)
-        #expect(try store.load() == [saved])
+        let reconciledSave = try store.prepend(saved)
+        let reconciledSaveMatches = reconciledSave == saved
+        #expect(reconciledSaveMatches, "Post-commit reconciliation returned an unexpected recording")
+        let loadedHistory = try store.load()
+        let persistedHistoryMatches = loadedHistory == [saved]
+        #expect(persistedHistoryMatches, "Post-commit reconciliation persisted unexpected history")
     }
 
     @Test func retargetCannotMutateCheckpointDuringAtomicAppend() async throws {
@@ -301,12 +314,15 @@ struct RecordingDataSafetyTests {
         }
 
         #expect(!service.retargetTrail("different-trail"))
-        #expect(service.activeRecording?.trailId == active.trailId)
-        #expect(service.activeRecording?.recordingId == active.recordingId)
+        let trailIntentWasPreserved = service.activeRecording?.trailId == active.trailId
+        #expect(trailIntentWasPreserved, "Retarget changed trail intent during atomic append")
+        let recordingIdentityWasPreserved = service.activeRecording?.recordingId == active.recordingId
+        #expect(recordingIdentityWasPreserved, "Retarget changed recording identity during atomic append")
 
         writer.release()
         _ = try await stopTask.value
-        #expect(service.activeRecording == nil)
+        let activeRecordingWasCleared = service.activeRecording == nil
+        #expect(activeRecordingWasCleared, "Verified save left an active recording")
         #expect(try store.load().count == 1)
     }
 
@@ -335,26 +351,34 @@ struct RecordingDataSafetyTests {
             Issue.record("the forced write failure must reach the caller")
         } catch is RecordingHistoryStoreError { }
 
-        #expect(service.activeRecording == active)
-        #expect(defaults.data(forKey: StorageKeys.activeRecording) != nil)
-        #expect(!FileManager.default.fileExists(atPath: url.path))
+        let activeRecordingWasPreserved = service.activeRecording == active
+        #expect(activeRecordingWasPreserved, "Save failure changed the active recording")
+        let checkpointWasPreserved = defaults.data(forKey: StorageKeys.activeRecording) != nil
+        #expect(checkpointWasPreserved, "Save failure removed the active checkpoint")
+        let historyFileIsAbsent = !FileManager.default.fileExists(atPath: url.path)
+        #expect(historyFileIsAbsent, "Save failure created an unverified history file")
         #expect(location.releaseCount == 0, "save failure must retain recording ownership")
         #expect(location.acquireCount == 1, "save failure must restart polling without reacquiring")
         #expect(location.ownsRecordingLocation)
-        #expect(service.errorMessage != nil)
+        let saveFailureIsVisible = service.errorMessage != nil
+        #expect(saveFailureIsVisible, "Save failure did not expose an error state")
 
         writer.allowWrites()
         let retryResult = try await service.stopRecording(trails: [])
         let finished = try #require(retryResult)
 
-        #expect(finished.startedAt == active.startedAt)
-        #expect(service.activeRecording == nil)
-        #expect(defaults.data(forKey: StorageKeys.activeRecording) == nil)
+        let startTimeWasPreserved = finished.startedAt == active.startedAt
+        #expect(startTimeWasPreserved, "Save retry changed the recording start time")
+        let activeRecordingWasCleared = service.activeRecording == nil
+        #expect(activeRecordingWasCleared, "Successful retry left an active recording")
+        let checkpointWasCleared = defaults.data(forKey: StorageKeys.activeRecording) == nil
+        #expect(checkpointWasCleared, "Successful retry left an active checkpoint")
         #expect(location.releaseCount == 1)
         #expect(!location.ownsRecordingLocation)
         let history = try store.load()
         #expect(history.count == 1)
-        #expect(history[0].id == active.recordingId)
+        let savedIdentityMatches = history[0].id == active.recordingId
+        #expect(savedIdentityMatches, "Save retry persisted an unexpected recording identity")
     }
 
     @Test func unreadableCheckpointIsPreservedVisibleAndRetryable() throws {
@@ -374,17 +398,23 @@ struct RecordingDataSafetyTests {
             restoreStoredState: true
         )
 
-        #expect(service.activeRecording == nil)
+        let noActiveRecordingWasDecoded = service.activeRecording == nil
+        #expect(noActiveRecordingWasDecoded, "Unreadable checkpoint produced an active recording")
         #expect(service.recoveryIssue == .unreadableCheckpoint)
-        #expect(defaults.data(forKey: StorageKeys.activeRecording) == unreadable)
+        let unreadableBytesWerePreserved =
+            defaults.data(forKey: StorageKeys.activeRecording) == unreadable
+        #expect(unreadableBytesWerePreserved, "Unreadable checkpoint bytes were changed")
         #expect(service.startRecording(areaId: "new-area", mode: .roam) == .recoveryRequired)
-        #expect(defaults.data(forKey: StorageKeys.activeRecording) == unreadable)
+        let refusedStartPreservedBytes =
+            defaults.data(forKey: StorageKeys.activeRecording) == unreadable
+        #expect(refusedStartPreservedBytes, "Refused start changed unreadable checkpoint bytes")
 
         let repaired = makeActive(recordingId: "repaired-checkpoint")
         defaults.set(try JSONEncoder().encode(repaired), forKey: StorageKeys.activeRecording)
         service.retryRecovery()
 
-        #expect(service.activeRecording == repaired)
+        let repairedRecordingWasRestored = service.activeRecording == repaired
+        #expect(repairedRecordingWasRestored, "Recovery retry restored an unexpected recording")
         #expect(service.recoveryIssue == nil)
         #expect(location.acquireCount == 1)
         #expect(location.ownsRecordingLocation)
@@ -409,18 +439,25 @@ struct RecordingDataSafetyTests {
             restoreStoredState: true
         )
 
-        #expect(service.activeRecording == active)
+        let activeRecordingWasRestored = service.activeRecording == active
+        #expect(activeRecordingWasRestored, "History failure changed the active recording")
         #expect(service.recoveryIssue == .historyUnavailable)
-        #expect(defaults.data(forKey: StorageKeys.activeRecording) == activeBytes)
-        #expect(try Data(contentsOf: historyURL) == corruptHistory)
+        let activeBytesWerePreserved =
+            defaults.data(forKey: StorageKeys.activeRecording) == activeBytes
+        #expect(activeBytesWerePreserved, "History failure changed the active checkpoint bytes")
+        let corruptHistoryWasPreserved = try Data(contentsOf: historyURL) == corruptHistory
+        #expect(corruptHistoryWasPreserved, "History failure changed the corrupt history bytes")
         #expect(location.acquireCount == 1)
 
         try FileManager.default.removeItem(at: historyURL)
         service.retryRecovery()
 
-        #expect(service.activeRecording == active)
+        let retryPreservedActiveRecording = service.activeRecording == active
+        #expect(retryPreservedActiveRecording, "Recovery retry changed the active recording")
         #expect(service.recoveryIssue == nil)
-        #expect(defaults.data(forKey: StorageKeys.activeRecording) == activeBytes)
+        let retryPreservedActiveBytes =
+            defaults.data(forKey: StorageKeys.activeRecording) == activeBytes
+        #expect(retryPreservedActiveBytes, "Recovery retry changed the active checkpoint bytes")
         #expect(location.acquireCount == 1, "retry must not duplicate recording ownership")
     }
 
@@ -445,11 +482,15 @@ struct RecordingDataSafetyTests {
             restoreStoredState: true
         )
 
-        #expect(service.activeRecording == nil)
-        #expect(defaults.data(forKey: StorageKeys.activeRecording) == nil)
+        let activeRecordingWasCleared = service.activeRecording == nil
+        #expect(activeRecordingWasCleared, "Exact saved-checkpoint recovery left an active recording")
+        let checkpointWasCleared = defaults.data(forKey: StorageKeys.activeRecording) == nil
+        #expect(checkpointWasCleared, "Exact saved-checkpoint recovery left checkpoint bytes")
         #expect(service.recoveryIssue == nil)
         #expect(location.acquireCount == 0)
-        #expect(try store.load() == [saved])
+        let loadedHistory = try store.load()
+        let historyWasNotDuplicated = loadedHistory == [saved]
+        #expect(historyWasNotDuplicated, "Exact saved-checkpoint recovery duplicated history")
     }
 
     @Test func identifierConflictPreservesBothHistoryAndActiveCheckpoint() async throws {
@@ -472,17 +513,23 @@ struct RecordingDataSafetyTests {
             restoreStoredState: true
         )
 
-        #expect(service.activeRecording == active)
-        #expect(defaults.data(forKey: StorageKeys.activeRecording) != nil)
+        let activeRecordingWasPreserved = service.activeRecording == active
+        #expect(activeRecordingWasPreserved, "Identifier conflict changed the active recording")
+        let checkpointWasPreserved = defaults.data(forKey: StorageKeys.activeRecording) != nil
+        #expect(checkpointWasPreserved, "Identifier conflict removed the active checkpoint")
         #expect(service.recoveryIssue == .identifierConflict)
-        #expect(service.errorMessage == nil)
+        let genericErrorStayedClear = service.errorMessage == nil
+        #expect(genericErrorStayedClear, "Identifier conflict populated the generic error channel")
         #expect(location.acquireCount == 1, "a conflict preserves and resumes the active recording")
         #expect(location.ownsRecordingLocation)
 
         service.retryRecovery()
         #expect(service.recoveryIssue == .identifierConflict)
-        #expect(service.activeRecording == active)
-        #expect(try store.load() == [conflicting])
+        let retryPreservedActiveRecording = service.activeRecording == active
+        #expect(retryPreservedActiveRecording, "Conflict retry changed the active recording")
+        let historyAfterRetry = try store.load()
+        let retryPreservedHistory = historyAfterRetry == [conflicting]
+        #expect(retryPreservedHistory, "Conflict retry changed persisted history")
         #expect(location.acquireCount == 1, "recovery retry must not duplicate ownership")
 
         do {
@@ -490,14 +537,18 @@ struct RecordingDataSafetyTests {
             Issue.record("a different payload with the same stable ID must fail closed")
         } catch let error as RecordingHistoryStoreError {
             guard case .identifierConflict("conflicting-id") = error else {
-                Issue.record("expected identifier conflict, got \(error)")
+                Issue.record("expected an identifier-conflict error")
                 return
             }
         }
 
-        #expect(service.activeRecording?.path == active.path)
-        #expect(defaults.data(forKey: StorageKeys.activeRecording) != nil)
-        #expect(try store.load() == [conflicting])
+        let activePathWasPreserved = service.activeRecording?.path == active.path
+        #expect(activePathWasPreserved, "Failed conflicting stop changed the active path")
+        let failedStopPreservedCheckpoint = defaults.data(forKey: StorageKeys.activeRecording) != nil
+        #expect(failedStopPreservedCheckpoint, "Failed conflicting stop removed the checkpoint")
+        let historyAfterFailedStop = try store.load()
+        let failedStopPreservedHistory = historyAfterFailedStop == [conflicting]
+        #expect(failedStopPreservedHistory, "Failed conflicting stop changed persisted history")
         #expect(location.acquireCount == 1, "failed stop must restart polling without duplicating ownership")
         #expect(location.releaseCount == 0)
         #expect(location.ownsRecordingLocation)
@@ -544,11 +595,14 @@ struct RecordingDataSafetyTests {
             )
             Issue.record("a partial persisted Walk scope must not save")
         } catch let error as RecordingOperationError {
-            #expect(error == .missingWalkAreaData)
+            let expectedError = error == .missingWalkAreaData
+            #expect(expectedError, "Partial Walk save returned an unexpected error")
         }
 
-        #expect(service.activeRecording == active)
-        #expect(defaults.data(forKey: StorageKeys.activeRecording) != nil)
+        let activeRecordingWasPreserved = service.activeRecording == active
+        #expect(activeRecordingWasPreserved, "Partial Walk save changed the active recording")
+        let checkpointWasPreserved = defaults.data(forKey: StorageKeys.activeRecording) != nil
+        #expect(checkpointWasPreserved, "Partial Walk save removed the active checkpoint")
         #expect(try store.load().isEmpty)
         #expect(location.ownsRecordingLocation)
         #expect(location.releaseCount == 0)
@@ -584,11 +638,14 @@ struct RecordingDataSafetyTests {
         let finished = try #require(walkResult)
 
         #expect(finished.mode == .walk)
-        #expect(service.activeRecording == nil)
-        #expect(defaults.data(forKey: StorageKeys.activeRecording) == nil)
+        let activeRecordingWasCleared = service.activeRecording == nil
+        #expect(activeRecordingWasCleared, "Successful Walk save left an active recording")
+        let checkpointWasCleared = defaults.data(forKey: StorageKeys.activeRecording) == nil
+        #expect(checkpointWasCleared, "Successful Walk save left an active checkpoint")
         let history = try store.load()
         #expect(history.count == 1)
-        #expect(history[0].id == "stable-walk-id")
+        let savedIdentityMatches = history[0].id == "stable-walk-id"
+        #expect(savedIdentityMatches, "Walk save persisted an unexpected recording identity")
         #expect(history[0].mode == .walk)
     }
 }

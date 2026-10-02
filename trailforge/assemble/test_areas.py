@@ -88,6 +88,18 @@ class AreaFilter(unittest.TestCase):
         self.assertEqual(len(A.clip_features_to_area([tiny], union, min_inside_mi=0.05)), 0)
         self.assertEqual(len(A.clip_features_to_area([tiny], union, min_inside_mi=0.0)), 1)
 
+    def test_exact_selector_is_case_sensitive_and_does_not_union_substrings(self):
+        exact = A.select_exact(self.AREAS, "South Mountain Preserve")
+        self.assertEqual([area["name"] for area in exact], ["South Mountain Preserve"])
+        self.assertEqual(A.select_exact(self.AREAS, "south mountain preserve"), [])
+        self.assertEqual(A.select_exact(self.AREAS, "South Mountain"), [])
+
+    def test_exact_selector_returns_duplicates_for_caller_to_reject(self):
+        duplicate = _area("South Mountain Preserve", (20, 0, 21, 1))
+        exact = A.select_exact(
+            [*self.AREAS, duplicate], "South Mountain Preserve")
+        self.assertEqual(len(exact), 2)
+
     def test_no_match_returns_none(self):
         union, names = A.union_matching(self.AREAS, "nonexistent park")
         self.assertIsNone(union)

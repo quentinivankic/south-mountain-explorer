@@ -79,6 +79,25 @@ def read_pbf(path: str):
     return nodes, ways, relations, pois
 
 
+def _boundary_record(area: dict) -> dict:
+    return {
+        "name": area.get("name"),
+        "osm_type": area.get("osm_type"),
+        "osm_id": area.get("osm_id"),
+    }
+
+
+def _write_report(path: str | None, report: dict) -> None:
+    if not path:
+        return
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Assemble trail objects from OSM PBF")
     ap.add_argument("--in", dest="inp", required=True)
@@ -87,6 +106,13 @@ def main(argv=None) -> int:
                     help="keep only trails inside area(s) whose name contains this "
                          "(case-insensitive; unions all matches). Boundaries are "
                          "assembled from the same --in PBF.")
+    ap.add_argument("--require-exact-area", action="store_true",
+                    help="require exactly one case-sensitive --only-area boundary "
+                         "from the expected relation; never fall back to unclipped")
+    ap.add_argument("--expected-area-relation-id", type=int,
+                    help="relation id required by --require-exact-area")
+    ap.add_argument("--report-json",
+                    help="write versioned machine-readable assembly evidence")
     ap.add_argument("--min-length-mi", dest="min_length_mi", type=float, default=0.0,
                     help="drop assembled trails shorter than this (miles); 0 = keep all")
     ap.add_argument("--min-inside-mi", dest="min_inside_mi", type=float, default=0.05,
@@ -104,9 +130,61 @@ def main(argv=None) -> int:
                          "'Skyline Trail'). Match what the publisher ships.")
     args = ap.parse_args(argv)
 
+    if args.require_exact_area:
+        if not args.only_area:
+            ap.error("--require-exact-area requires --only-area")
+        if args.expected_area_relation_id is None:
+            ap.error("--require-exact-area requires --expected-area-relation-id")
+        if args.expected_area_relation_id <= 0:
+            ap.error("--expected-area-relation-id must be positive")
+        if not args.report_json:
+            ap.error("--require-exact-area requires --report-json")
+    elif args.expected_area_relation_id is not None:
+        ap.error("--expected-area-relation-id requires --require-exact-area")
+
     nodes, ways, relations, pois = read_pbf(args.inp)
     print(f"read: {len(ways):,} ways, {len(relations):,} route relations, "
           f"{len(pois):,} POIs, {len(nodes):,} nodes", file=sys.stderr)
+    coverage = model.coverage_stats(ways, relations, pois)
+
+    area_objs = None
+    exact_area = None
+    boundary_matches: list[dict] = []
+    if args.require_exact_area:
+        import areas as areamod
+        area_objs = areamod.assemble_areas(args.inp)
+        exact_matches = areamod.select_exact(area_objs, args.only_area)
+        boundary_matches = [_boundary_record(area) for area in exact_matches]
+        failure = None
+        if len(exact_matches) != 1:
+            failure = (f"expected exactly one boundary named {args.only_area!r}; "
+                       f"found {len(exact_matches)}")
+        elif exact_matches[0].get("osm_type") != "relation":
+            failure = (f"boundary {args.only_area!r} came from "
+                       f"{exact_matches[0].get('osm_type')!r}, not a relation")
+        elif int(exact_matches[0].get("osm_id") or 0) != args.expected_area_relation_id:
+            failure = (f"boundary relation id {exact_matches[0].get('osm_id')!r} "
+                       f"does not match expected {args.expected_area_relation_id}")
+        if failure:
+            _write_report(args.report_json, {
+                "schema_version": 1,
+                "status": "failed",
+                "failure": failure,
+                "exact_area_required": True,
+                "area_query": args.only_area,
+                "expected_area_relation_id": args.expected_area_relation_id,
+                "boundary_match_count": len(exact_matches),
+                "boundary_matches": boundary_matches,
+                "boundary": None,
+                "clip_applied": False,
+                "pre_clip_trail_count": None,
+                "post_clip_trail_count": None,
+                "assembled_trail_count": None,
+                "coverage": coverage,
+            })
+            print(f"ERROR: exact-area validation failed: {failure}", file=sys.stderr)
+            return 2
+        exact_area = exact_matches[0]
 
     areas_arg = None
     if args.per_area_merge:
@@ -122,12 +200,19 @@ def main(argv=None) -> int:
                             collect_removed=removed, region=args.region,
                             collect_ingest_dropped=ingest_dropped)
     features = [t.to_feature() for t in trails]
+    pre_clip_count = len(features)
+    clip_applied = False
 
     area_note = ""
     if args.only_area:
         import areas as areamod
-        union, names = areamod.union_matching(
-            areamod.assemble_areas(args.inp), args.only_area)
+        if exact_area is not None:
+            union = exact_area["geom"]
+            names = {exact_area["name"]}
+        else:
+            if area_objs is None:
+                area_objs = areamod.assemble_areas(args.inp)
+            union, names = areamod.union_matching(area_objs, args.only_area)
         if union is None:
             print(f"WARNING: no area matched '{args.only_area}' in {args.inp} "
                   f"— leaving trails unclipped", file=sys.stderr)
@@ -135,13 +220,14 @@ def main(argv=None) -> int:
             before = len(features)
             features = areamod.clip_features_to_area(
                 features, union, min_inside_mi=args.min_inside_mi)
+            clip_applied = True
             clipped = sum(1 for f in features if f["properties"].get("clipped"))
             matched = ", ".join(sorted(n for n in names if n)) or "(unnamed)"
             area_note = (f"; clipped to '{args.only_area}' [{matched}]: "
                          f"{before} -> {len(features)} ({clipped} trimmed at boundary)")
 
     fc = {"type": "FeatureCollection", "features": features,
-          "coverage": model.coverage_stats(ways, relations, pois)}
+          "coverage": coverage}
     Path(args.out).write_text(json.dumps(fc), encoding="utf-8")
 
     # Sidecar base: strip '.trails.geojson' (or '.geojson') down to the stem so
@@ -230,7 +316,8 @@ def main(argv=None) -> int:
     try:
         import areas as areamod
         from shapely.geometry import mapping as shp_mapping
-        area_objs = areamod.assemble_areas(args.inp)
+        if area_objs is None:
+            area_objs = areamod.assemble_areas(args.inp)
         area_feats = [{"type": "Feature",
                        "properties": {"name": a.get("name")},
                        "geometry": shp_mapping(a["geom"])}
@@ -242,6 +329,24 @@ def main(argv=None) -> int:
         json.dumps({"type": "FeatureCollection", "features": area_feats}),
         encoding="utf-8")
     print(f"exported {len(area_feats):,} park areas -> {areas_path}", file=sys.stderr)
+
+    report_boundary = (_boundary_record(exact_area) if exact_area is not None else None)
+    _write_report(args.report_json, {
+        "schema_version": 1,
+        "status": "ok",
+        "failure": None,
+        "exact_area_required": bool(args.require_exact_area),
+        "area_query": args.only_area,
+        "expected_area_relation_id": args.expected_area_relation_id,
+        "boundary_match_count": len(boundary_matches),
+        "boundary_matches": boundary_matches,
+        "boundary": report_boundary,
+        "clip_applied": clip_applied,
+        "pre_clip_trail_count": pre_clip_count,
+        "post_clip_trail_count": len(features),
+        "assembled_trail_count": len(features),
+        "coverage": coverage,
+    })
 
     welded = sum(1 for f in features if f["properties"].get("welds"))
     from_rel = sum(1 for f in features if f["properties"].get("source") == "relation")

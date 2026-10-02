@@ -37,20 +37,26 @@ on:
       region_code:
         description: "Optional assemble --region 2-letter code, e.g. dk. Leave empty for US states."
         default: ""
+      pilot_area_id:
+        description: "Opt into the read-only Mols Bjerge QA pilot"
+        default: ""
+      pilot_bbox:
+        description: "Exact padded bbox required by the Mols Bjerge QA pilot"
+        default: ""
+      expected_osm_relation_id:
+        description: "Expected current OSM relation id for the pilot area"
+        default: ""
 
 concurrency:
   group: trailforge-publish
   cancel-in-progress: false
 
-# GITHUB_TOKEN defaults to read-only in this repo, so the publish commit's
-# `git push` 403s without this. Mirrors build-trail-index.yml: contents:write
-# to push the published data to main, actions:write to dispatch the R2 sync.
-permissions:
-  contents: write
-  actions: write
-
 jobs:
   publish:
+    if: ${{ github.event.inputs.pilot_area_id == '' }}
+    permissions:
+      contents: write
+      actions: write
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -134,3 +140,258 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run sync-geom-to-r2.yml
+
+  pilot:
+    if: ${{ github.event.inputs.pilot_area_id != '' }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PILOT_EXTRACT: ${{ github.event.inputs.extract }}
+      PILOT_STATE: ${{ github.event.inputs.state }}
+      PILOT_DRY_RUN: ${{ github.event.inputs.dry_run }}
+      PILOT_NO_ROUTES: ${{ github.event.inputs.no_routes }}
+      PILOT_TOUCH_REPORT: ${{ github.event.inputs.touch_report }}
+      PILOT_ELEVATION: ${{ github.event.inputs.elevation }}
+      PILOT_REGION_CODE: ${{ github.event.inputs.region_code }}
+      PILOT_AREA_ID: ${{ github.event.inputs.pilot_area_id }}
+      PILOT_BBOX: ${{ github.event.inputs.pilot_bbox }}
+      PILOT_EXPECTED_RELATION_ID: ${{ github.event.inputs.expected_osm_relation_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Initialize runner-local QA directories
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK_ROOT="$(mktemp -d "${RUNNER_TEMP:?}/mols-bjerge-work.XXXXXX")"
+          QA_ROOT="$(mktemp -d "${RUNNER_TEMP:?}/mols-bjerge-qa.XXXXXX")"
+          export PILOT_WORK_ROOT="$WORK_ROOT"
+          export PILOT_QA_ROOT="$QA_ROOT"
+          export PILOT_REPO="$WORK_ROOT/repo"
+          export PILOT_INDEX="$WORK_ROOT/mols-index.json"
+          {
+            echo "PILOT_WORK_ROOT=$PILOT_WORK_ROOT"
+            echo "PILOT_QA_ROOT=$PILOT_QA_ROOT"
+            echo "PILOT_REPO=$PILOT_REPO"
+            echo "PILOT_INDEX=$PILOT_INDEX"
+          } >> "$GITHUB_ENV"
+          mkdir -p \
+            "$PILOT_QA_ROOT/data/aoi" \
+            "$PILOT_QA_ROOT/discovery" \
+            "$PILOT_QA_ROOT/reports" \
+            "$PILOT_QA_ROOT/validation" \
+            "$PILOT_QA_ROOT/viewer"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["PILOT_QA_ROOT"])
+          inputs = {
+              "extract": os.environ["PILOT_EXTRACT"],
+              "state": os.environ["PILOT_STATE"],
+              "dry_run": os.environ["PILOT_DRY_RUN"],
+              "no_routes": os.environ["PILOT_NO_ROUTES"],
+              "touch_report": os.environ["PILOT_TOUCH_REPORT"],
+              "elevation": os.environ["PILOT_ELEVATION"],
+              "region_code": os.environ["PILOT_REGION_CODE"],
+              "pilot_area_id": os.environ["PILOT_AREA_ID"],
+              "pilot_bbox": os.environ["PILOT_BBOX"],
+              "expected_osm_relation_id": os.environ["PILOT_EXPECTED_RELATION_ID"],
+          }
+          manifest = {
+              "schema_version": 1,
+              "branch_ref": os.environ["GITHUB_REF_NAME"],
+              "source_sha": os.environ["GITHUB_SHA"],
+              "inputs": inputs,
+              "visual_review_url": "http://localhost:8000/viewer/?aoi=mols-bjerge",
+              "attribution": "© OpenStreetMap contributors",
+          }
+          (root / "manifest.json").write_text(
+              json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+              encoding="utf-8",
+          )
+          (root / "README.md").write_text(
+              "# Nationalpark Mols Bjerge runner-local QA\n\n"
+              "No persistent or live data was written. Download this artifact, "
+              "run `python3 viewer/serve.py` from any directory, and open "
+              "http://localhost:8000/viewer/?aoi=mols-bjerge.\n\n"
+              "Dispatch inputs:\n```json\n"
+              + json.dumps(inputs, indent=2)
+              + "\n```\n\n© OpenStreetMap contributors\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Validate exact pilot inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec > >(tee "$PILOT_QA_ROOT/reports/input-validation.log") 2>&1
+          [[ "$GITHUB_REF_NAME" == "chat/denmark-trails" ]]
+          [[ "$PILOT_DRY_RUN" == "true" ]]
+          [[ "$PILOT_STATE" == "Denmark" ]]
+          [[ "$PILOT_REGION_CODE" == "dk" ]]
+          [[ "$PILOT_EXTRACT" == "europe/denmark" ]]
+          [[ "$PILOT_NO_ROUTES" == "false" ]]
+          [[ "$PILOT_TOUCH_REPORT" == "false" ]]
+          [[ "$PILOT_ELEVATION" == "false" ]]
+          [[ "$PILOT_AREA_ID" == "nationalpark-mols-bjerge-dk" ]]
+          [[ "$PILOT_BBOX" == "10.40,56.08,10.90,56.35" ]]
+          [[ "$PILOT_EXPECTED_RELATION_ID" =~ ^[0-9]+$ ]]
+          [[ "$PILOT_EXPECTED_RELATION_ID" != "0" ]]
+          SEED_CODE="${PILOT_REGION_CODE^^}"
+          [[ "$SEED_CODE" == "DK" ]]
+          echo "PILOT_SEED_CODE=$SEED_CODE" >> "$GITHUB_ENV"
+          echo "Validated read-only Mols Bjerge pilot inputs."
+
+      - name: Materialize tracked HEAD in runner-local work area
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$PILOT_REPO"
+          git archive HEAD | tar -x -C "$PILOT_REPO"
+          test -f "$PILOT_REPO/scripts/seed-areas.py"
+          test -f "$PILOT_REPO/trailforge/tools/validate_publish_pilot.py"
+
+      - name: Discover and verify exact Mols relation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PILOT_REPO"
+          if ! python3 scripts/seed-areas.py \
+            --dry-run "$PILOT_SEED_CODE" \
+            --discovery-report "$PILOT_QA_ROOT/discovery/report.json" \
+            > "$PILOT_QA_ROOT/discovery/discovery.log" 2>&1; then
+            cat "$PILOT_QA_ROOT/discovery/discovery.log"
+            exit 1
+          fi
+          cat "$PILOT_QA_ROOT/discovery/discovery.log"
+          python3 trailforge/tools/validate_publish_pilot.py discovery \
+            --discovery-report "$PILOT_QA_ROOT/discovery/report.json" \
+            --expected-osm-relation-id "$PILOT_EXPECTED_RELATION_ID" \
+            --selected-record-out "$PILOT_QA_ROOT/discovery/selected.json" \
+            --index-out "$PILOT_INDEX" \
+            --result-json "$PILOT_QA_ROOT/discovery/validation.json" \
+            2>&1 | tee "$PILOT_QA_ROOT/discovery/validation.log"
+          AREA_NAME="$(python3 -c \
+            'import json,sys; print(json.load(open(sys.argv[1]))["index_row"][1])' \
+            "$PILOT_QA_ROOT/discovery/selected.json")"
+          [[ "$AREA_NAME" == "Nationalpark Mols Bjerge" ]]
+          echo "PILOT_AREA_NAME=$AREA_NAME" >> "$GITHUB_ENV"
+
+      - name: Install osmium + pyosmium + shapely + Pillow
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely python3-pil
+
+      - name: Download and prefilter Denmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PILOT_REPO/trailforge"
+          mkdir -p data/raw data/aoi
+          curl -fL --retry 5 --retry-delay 5 --connect-timeout 20 \
+            --speed-limit 2000 --speed-time 30 \
+            -o data/raw/denmark.osm.pbf \
+            "https://download.geofabrik.de/europe/denmark-latest.osm.pbf"
+          bash extract/prefilter.sh data/raw/denmark.osm.pbf data/hiking.osm.pbf
+
+      - name: Cut padded Mols AOI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PILOT_REPO/trailforge"
+          HIKING=data/hiking.osm.pbf NAME=mols-bjerge BBOX="$PILOT_BBOX" \
+            bash extract/aoi.sh
+
+      - name: Assemble exact Mols boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PILOT_REPO/trailforge"
+          python3 assemble/assemble.py \
+            --in data/aoi/mols-bjerge.osm.pbf \
+            --out data/aoi/mols-bjerge.trails.geojson \
+            --only-area "$PILOT_AREA_NAME" \
+            --require-exact-area \
+            --expected-area-relation-id "$PILOT_EXPECTED_RELATION_ID" \
+            --min-length-mi 0.1 \
+            --per-area-merge \
+            --region dk \
+            --report-json "$PILOT_QA_ROOT/reports/assembly.json" \
+            2>&1 | tee "$PILOT_QA_ROOT/reports/assembly.log"
+
+      - name: Dry-run publish the one-row Mols index
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PILOT_REPO/trailforge"
+          mkdir -p "$PILOT_WORK_ROOT/publish-output"
+          python3 serve/publish_areas.py \
+            --trails data/aoi/mols-bjerge.trails.geojson \
+            --hiking data/aoi/mols-bjerge.osm.pbf \
+            --state Denmark \
+            --index "$PILOT_INDEX" \
+            --out-dir "$PILOT_WORK_ROOT/publish-output" \
+            --dry-run \
+            --no-boundary-fetch \
+            --no-elevation \
+            --report-json "$PILOT_QA_ROOT/reports/publish.json" \
+            2>&1 | tee "$PILOT_QA_ROOT/reports/publish.log"
+
+      - name: Stage complete visual QA artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PILOT_REPO/trailforge"
+          for file in \
+            mols-bjerge.raw.geojson \
+            mols-bjerge.trails.geojson \
+            mols-bjerge.removed.geojson \
+            mols-bjerge.ingest-dropped.geojson \
+            mols-bjerge.areas.geojson \
+            mols-bjerge.curation.json \
+            mols-bjerge.curation-diff.json; do
+            cp "data/aoi/$file" "$PILOT_QA_ROOT/data/aoi/$file"
+          done
+          if [[ -f data/aoi/mols-bjerge.dropped-routes.geojson ]]; then
+            cp data/aoi/mols-bjerge.dropped-routes.geojson \
+              "$PILOT_QA_ROOT/data/aoi/mols-bjerge.dropped-routes.geojson"
+          fi
+          cp viewer/index.html "$PILOT_QA_ROOT/viewer/index.html"
+          cp viewer/serve.py "$PILOT_QA_ROOT/viewer/serve.py"
+
+      - name: Validate complete Mols QA package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 "$PILOT_REPO/trailforge/tools/validate_publish_pilot.py" final \
+            --qa-dir "$PILOT_QA_ROOT" \
+            --expected-osm-relation-id "$PILOT_EXPECTED_RELATION_ID" \
+            --result-json "$PILOT_QA_ROOT/validation/final.json" \
+            2>&1 | tee "$PILOT_QA_ROOT/validation/final.log"
+
+      - name: Upload Mols Bjerge QA artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: mols-bjerge-qa-${{ github.sha }}
+          path: ${{ env.PILOT_QA_ROOT }}
+          if-no-files-found: error
+
+      - name: Prove tracked checkout stayed unchanged
+        if: ${{ always() }}
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD --
+          git diff --cached --exit-code
+          STATUS="$(git status --porcelain --untracked-files=all)"
+          if [[ -n "$STATUS" ]]; then
+            printf '%s\n' "$STATUS"
+            exit 1
+          fi

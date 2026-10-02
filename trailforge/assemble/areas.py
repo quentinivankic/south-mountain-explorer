@@ -92,8 +92,9 @@ def merge_areas(pbf_path: str) -> list[dict[str, Any]]:
 def assemble_areas(pbf_path: str) -> list[dict[str, Any]]:
     """Assemble park-ish area polygons from an OSM PBF.
 
-    Returns [{"name", "tags", "geom" (shapely)}]. Requires a SORTED PBF —
-    osmium extract output (what aoi.sh produces) always is.
+    Returns [{"name", "tags", "geom" (shapely), "osm_id", "osm_type"}].
+    Requires a SORTED PBF — osmium extract output (what aoi.sh produces)
+    always is.
     """
     import osmium
     import shapely.wkb
@@ -110,10 +111,21 @@ def assemble_areas(pbf_path: str) -> list[dict[str, Any]]:
                 geom = shapely.wkb.loads(wkbfab.create_multipolygon(a), hex=True)
             except Exception:  # noqa: BLE001 — skip an unassemblable area
                 return
-            out.append({"name": _display_name(tags), "tags": tags, "geom": geom})
+            out.append({
+                "name": _display_name(tags),
+                "tags": tags,
+                "geom": geom,
+                "osm_id": a.orig_id(),
+                "osm_type": "way" if a.from_way() else "relation",
+            })
 
     Handler().apply_file(pbf_path, locations=True)
     return out
+
+
+def select_exact(areas: list[dict[str, Any]], name: str) -> list[dict[str, Any]]:
+    """Return boundaries whose display name exactly matches, case-sensitively."""
+    return [area for area in areas if area.get("name") == name]
 
 
 def union_matching(areas: list[dict[str, Any]], name_substr: str):

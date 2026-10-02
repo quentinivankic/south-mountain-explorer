@@ -372,6 +372,11 @@ def main() -> None:
         help="State codes, e.g. AZ CA. Required unless --all is set.",
     )
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--discovery-report",
+        type=Path,
+        help="write a versioned machine-readable candidate report (requires --dry-run)",
+    )
     ap.add_argument("--merge", action="store_true")
     ap.add_argument(
         "--resume",
@@ -390,6 +395,9 @@ def main() -> None:
         "positional state codes.",
     )
     args = ap.parse_args()
+
+    if args.discovery_report and not args.dry_run:
+        ap.error("--discovery-report requires --dry-run")
 
     if args.all:
         if args.states:
@@ -426,20 +434,35 @@ def main() -> None:
 
     if args.dry_run:
         seen_ids: set[str] = set()
-        candidates: list[list] = []
+        candidates: list[tuple[list, int | None]] = []
         for state in args.states:
             if state in already_seeded:
                 continue
-            for row, _ in fetch_state(state, includes):
+            for row, osm_relation_id in fetch_state(state, includes):
                 if row[1].lower() in excludes:
                     continue
                 if row[0] in seen_ids:
                     continue
                 seen_ids.add(row[0])
-                candidates.append(row)
-        candidates.sort(key=lambda x: (x[2], x[1]))
-        for c in candidates:
-            print(f"  {c[1]:60s}  {c[2]:12s}  {c[3]:>8.3f}, {c[4]:>9.3f}")
+                candidates.append((row, osm_relation_id))
+        candidates.sort(key=lambda item: (item[0][2], item[0][1]))
+        for row, _ in candidates:
+            print(f"  {row[1]:60s}  {row[2]:12s}  {row[3]:>8.3f}, {row[4]:>9.3f}")
+        if args.discovery_report:
+            report = {
+                "schema_version": 1,
+                "requested_region_codes": list(args.states),
+                "candidate_count": len(candidates),
+                "candidates": [
+                    {"index_row": row, "osm_relation_id": osm_relation_id}
+                    for row, osm_relation_id in candidates
+                ],
+                "attribution": "© OpenStreetMap contributors",
+            }
+            args.discovery_report.write_text(
+                json.dumps(report, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
         return
 
     total_rows_written = 0

@@ -317,6 +317,8 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                          "designations 'one home park' would wrongly strip. Writes nothing.")
     ap.add_argument("--limit", type=int, help="only publish the first N areas (a first wave)")
     ap.add_argument("--dry-run", action="store_true", help="report matches; write nothing")
+    ap.add_argument("--report-json",
+                    help="write a versioned machine-readable publication summary")
     ap.add_argument("--no-boundary-fetch", action="store_true",
                     help="skip the Overpass fetch-by-rel-id rescue of multi-state "
                          "areas whose boundary is clipped in the per-state PBF")
@@ -460,6 +462,8 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
 
     kinds = {"trail", "hike"} if args.no_routes else {"trail", "hike", "route"}
     published, skipped, failed, changes = [], [], [], []
+    validated_records: list[dict] = []
+    published_records: list[dict] = []
     touch_gain = []                     # (slug, name, full_length_mi) for --touch-report
     # merge_key -> {name, kind, full, slugs[]} for --multi-area-report: which
     # trails a "one home park" (argmax) rule would move out of a second area.
@@ -701,12 +705,21 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
         problems = validate(row)
         if problems:
             failed.append((slug, problems)); continue
+        area_record = {
+            "area_id": slug,
+            "name": meta["name"],
+            "osm_relation_id": meta["osm_rel"],
+            "trail_count": row["trail_count"],
+            "total_miles": row["total_mi"],
+        }
+        validated_records.append(area_record)
         d = existing_diff(slug, row)
         if d and (d[0] or d[1] or d[2]):
             changes.append((slug, d[0], d[1], d[2]))
         count += 1
         if args.dry_run:
             published.append((slug, row["trail_count"], "dry-run"))
+            published_records.append(area_record)
             continue
         geom_guard.atomic_write_json(_out, row)
         for r in index:
@@ -722,6 +735,7 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                 r[5], r[6] = row["trail_count"], row["total_mi"]
                 break
         published.append((slug, row["trail_count"], row["total_mi"]))
+        published_records.append(area_record)
 
     if not args.dry_run:
         geom_guard.atomic_write_json(args.index, index)
@@ -797,6 +811,41 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
             print(f"  {m['name']!r} — {mi} — {', '.join(slugs)}")
         if len(multi) > 60:
             print(f"  … and {len(multi) - 60} more")
+    if args.report_json:
+        report_dir = os.path.dirname(os.path.abspath(args.report_json))
+        os.makedirs(report_dir, exist_ok=True)
+        report = {
+            "schema_version": 1,
+            "state": args.state,
+            "dry_run": bool(args.dry_run),
+            "write_mode": (
+                "dry-run" if args.dry_run
+                else ("canonical" if geom_guard.is_canonical_geom_dir(args.out_dir)
+                      else "noncanonical")
+            ),
+            "canonical_write": bool(
+                not args.dry_run
+                and geom_guard.is_canonical_geom_dir(args.out_dir)
+            ),
+            "index_area_count": len(az),
+            "validated_areas": validated_records,
+            "published_areas": published_records,
+            "skipped_areas": [
+                {"area_id": slug, "reason": reason}
+                for slug, reason in skipped
+            ],
+            "validation_failures": [
+                {"area_id": slug, "problems": problems}
+                for slug, problems in failed
+            ],
+            "routes": {
+                "kept": len(kept_routes),
+                "dropped": len(dropped_routes),
+            },
+        }
+        with open(args.report_json, "w", encoding="utf-8") as report_file:
+            json.dump(report, report_file, indent=2, ensure_ascii=False)
+            report_file.write("\n")
     return 0
 
 

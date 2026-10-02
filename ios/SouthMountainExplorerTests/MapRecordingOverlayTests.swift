@@ -36,7 +36,8 @@ struct MapRecordingOverlayTests {
 
         #expect(overlays.count == 1)
         #expect(overlays[0].pointCount == 3)
-        #expect(overlayIds == Set([ObjectIdentifier(overlays[0])]))
+        let overlayIdentitySetMatches = overlayIds == Set([ObjectIdentifier(overlays[0])])
+        #expect(overlayIdentitySetMatches, "Recording overlay identity tracking is inconsistent")
     }
 
     @Test func materialGapProducesIndependentPolylinesWithNoConnector() {
@@ -56,8 +57,10 @@ struct MapRecordingOverlayTests {
         )
 
         #expect(overlays.count == 2)
-        #expect(coordinates(of: overlays[0]).map(\.latitude) == [33.30, 33.31])
-        #expect(coordinates(of: overlays[1]).map(\.latitude) == [33.40, 33.41])
+        let firstRunCoordinatesMatch = coordinates(of: overlays[0]).map(\.latitude) == [33.30, 33.31]
+        #expect(firstRunCoordinatesMatch, "The first continuous run has unexpected coordinates")
+        let secondRunCoordinatesMatch = coordinates(of: overlays[1]).map(\.latitude) == [33.40, 33.41]
+        #expect(secondRunCoordinatesMatch, "The resumed run has unexpected coordinates")
         #expect(overlays.allSatisfy { $0.pointCount == 2 })
     }
 
@@ -74,7 +77,8 @@ struct MapRecordingOverlayTests {
         )
 
         #expect(overlays.count == 1)
-        #expect(coordinates(of: overlays[0]).map(\.latitude) == [33.30, 33.31])
+        let retainedRunCoordinatesMatch = coordinates(of: overlays[0]).map(\.latitude) == [33.30, 33.31]
+        #expect(retainedRunCoordinatesMatch, "A one-point resumed run changed the prior run")
     }
 
     @Test func appendReplacesOnlyActiveRunAndPreservesUnrelatedOverlay() {
@@ -113,10 +117,13 @@ struct MapRecordingOverlayTests {
             overlayIds: &overlayIds
         )
 
-        #expect(ObjectIdentifier(overlays[0]) == finalizedIdentity)
-        #expect(ObjectIdentifier(overlays[1]) != firstActiveIdentity)
+        let finalizedIdentityWasPreserved = ObjectIdentifier(overlays[0]) == finalizedIdentity
+        #expect(finalizedIdentityWasPreserved, "Appending replaced a finalized recording run")
+        let activeIdentityWasReplaced = ObjectIdentifier(overlays[1]) != firstActiveIdentity
+        #expect(activeIdentityWasReplaced, "Appending did not replace the active recording run")
         #expect(mapView.overlays.contains { ObjectIdentifier($0) == ObjectIdentifier(unrelated) })
-        #expect(overlayIds == Set(overlays.map { ObjectIdentifier($0) }))
+        let trackedIdentitiesMatch = overlayIds == Set(overlays.map { ObjectIdentifier($0) })
+        #expect(trackedIdentitiesMatch, "Tracked recording overlay identities are inconsistent")
     }
 
     @Test func endingRecordingRemovesOnlyRecordingOverlays() {
@@ -141,6 +148,8 @@ struct MapRecordingOverlayTests {
         #expect(overlays.isEmpty)
         #expect(overlayIds.isEmpty)
         #expect(mapView.overlays.count == 1)
-        #expect(ObjectIdentifier(mapView.overlays[0]) == ObjectIdentifier(unrelated))
+        let unrelatedIdentityWasPreserved =
+            ObjectIdentifier(mapView.overlays[0]) == ObjectIdentifier(unrelated)
+        #expect(unrelatedIdentityWasPreserved, "Recording cleanup removed an unrelated overlay")
     }
 }

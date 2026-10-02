@@ -14,17 +14,22 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
         let continueButton = app.buttons["continue-card"].firstMatch
         XCTAssertTrue(continueButton.waitForExistence(timeout: 30))
-        XCTAssertTrue(continueButton.label.hasPrefix("Open Area,"))
+        let continueIsOpenAction = continueButton.label.hasPrefix("Open Area,")
+        XCTAssertTrue(continueIsOpenAction, "Continue must expose an Open Area action")
         assertInsideScreen(continueButton, app: app)
 
         let open = findByScrolling(app.buttons["area-open-\(areaId)"].firstMatch, in: app)
-        let save = app.buttons["area-save-\(areaId)"].firstMatch
+        let save = findByScrolling(app.buttons["area-save-\(areaId)"].firstMatch, in: app)
         XCTAssertTrue(open.exists, "Area Open button is missing")
         XCTAssertTrue(save.exists, "Area Save button is missing")
-        XCTAssertNotEqual(open.identifier, save.identifier)
-        XCTAssertNotEqual(open.label, save.label)
-        XCTAssertTrue(open.label.hasPrefix("Open Area,"))
-        XCTAssertEqual(save.label, "Remove from Saved Areas")
+        let areaActionIdentifiersAreDistinct = open.identifier != save.identifier
+        XCTAssertTrue(areaActionIdentifiersAreDistinct, "Area actions must have distinct identifiers")
+        let areaActionLabelsAreDistinct = open.label != save.label
+        XCTAssertTrue(areaActionLabelsAreDistinct, "Area actions must have distinct labels")
+        let openHasExpectedLabel = open.label.hasPrefix("Open Area,")
+        XCTAssertTrue(openHasExpectedLabel, "Area Open button has an unexpected label")
+        let saveHasExpectedLabel = save.label == "Remove from Saved Areas"
+        XCTAssertTrue(saveHasExpectedLabel, "Area Save button has an unexpected label")
         assertInsideScreen(open, app: app)
         assertInsideScreen(save, app: app)
 
@@ -40,8 +45,9 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         _ = app.tabBars.buttons["Explore"].waitForExistence(timeout: 30)
 
         let resetOpen = findByScrolling(app.buttons["area-open-\(areaId)"].firstMatch, in: app)
-        let resetSave = app.buttons["area-save-\(areaId)"].firstMatch
-        XCTAssertEqual(resetSave.label, "Remove from Saved Areas")
+        let resetSave = findByScrolling(app.buttons["area-save-\(areaId)"].firstMatch, in: app)
+        let resetSaveHasExpectedLabel = resetSave.label == "Remove from Saved Areas"
+        XCTAssertTrue(resetSaveHasExpectedLabel, "Seeded Area Save button has an unexpected label")
         resetOpen.tap()
         XCTAssertTrue(
             app.buttons["area-recenter-button"].firstMatch.waitForExistence(timeout: 60),
@@ -52,7 +58,8 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(close.waitForExistence(timeout: 10))
         close.tap()
         let saveAfterOpen = findByScrolling(app.buttons["area-save-\(areaId)"].firstMatch, in: app)
-        XCTAssertEqual(saveAfterOpen.label, "Remove from Saved Areas", "Opening an area changed its saved state")
+        let savedStateWasPreserved = saveAfterOpen.label == "Remove from Saved Areas"
+        XCTAssertTrue(savedStateWasPreserved, "Opening an area changed its saved state")
     }
 
     func testTrailSelectAndCompleteAreIndependentButtons() {
@@ -70,10 +77,12 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let trailSuffix = String(select.identifier.dropFirst("trail-select-".count))
         let secondary = app.buttons["trail-secondary-\(trailSuffix)"].firstMatch
         XCTAssertTrue(secondary.waitForExistence(timeout: 10), "Trail secondary action is missing")
-        XCTAssertNotEqual(select.identifier, secondary.identifier)
+        let trailActionIdentifiersAreDistinct = select.identifier != secondary.identifier
+        XCTAssertTrue(trailActionIdentifiersAreDistinct, "Trail actions must have distinct identifiers")
         let actionLabelsAreDistinct = select.label != secondary.label
         XCTAssertTrue(actionLabelsAreDistinct, "Trail action labels must be distinct")
-        XCTAssertTrue(select.label.hasPrefix("Select Trail,"))
+        let selectHasExpectedLabel = select.label.hasPrefix("Select Trail,")
+        XCTAssertTrue(selectHasExpectedLabel, "Trail Select action has an unexpected label")
         let initialWasComplete = secondary.label.hasPrefix("Mark Trail Incomplete,")
         let hasExpectedCompletionAction =
             initialWasComplete || secondary.label.hasPrefix("Mark Trail Complete,")
@@ -85,7 +94,8 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             waitForLabelPrefix(toggledPrefix, element: secondary),
             "Completion action did not toggle completion"
         )
-        XCTAssertTrue(select.label.hasPrefix("Select Trail,"), "Mark Complete selected the trail")
+        let selectionStayedInactive = select.label.hasPrefix("Select Trail,")
+        XCTAssertTrue(selectionStayedInactive, "Mark Complete selected the trail")
 
         select.tap()
         XCTAssertTrue(waitForLabelPrefix("Deselect Trail,", element: select))
@@ -112,12 +122,28 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
     @discardableResult
     private func findByScrolling(_ element: XCUIElement, in app: XCUIApplication) -> XCUIElement {
-        var swipes = 0
-        while !element.exists && swipes < 12 {
-            app.swipeUp()
-            swipes += 1
+        let maximumSwipes = 12
+        for attempt in 0...maximumSwipes {
+            if isOnScreenAndHittable(element, app: app) {
+                return element
+            }
+            if attempt < maximumSwipes {
+                app.swipeUp()
+                sleep(1)
+            }
         }
+        XCTFail("Area card control did not become visible and hittable within the scroll limit")
         return element
+    }
+
+    private func isOnScreenAndHittable(_ element: XCUIElement, app: XCUIApplication) -> Bool {
+        guard element.exists, element.isHittable else { return false }
+        let frame = element.frame
+        let screen = app.frame
+        return frame.minX >= screen.minX - 1
+            && frame.maxX <= screen.maxX + 1
+            && frame.minY >= screen.minY - 1
+            && frame.maxY <= screen.maxY + 1
     }
 
     private func waitForLabelPrefix(
@@ -133,9 +159,10 @@ final class FieldTrustAccessibilityTests: XCTestCase {
     private func assertInsideScreen(_ element: XCUIElement, app: XCUIApplication) {
         let frame = element.frame
         let screen = app.frame
-        XCTAssertGreaterThanOrEqual(frame.minX, screen.minX - 1)
-        XCTAssertLessThanOrEqual(frame.maxX, screen.maxX + 1)
-        XCTAssertGreaterThanOrEqual(frame.minY, screen.minY - 1)
-        XCTAssertLessThanOrEqual(frame.maxY, screen.maxY + 1)
+        let isInside = frame.minX >= screen.minX - 1
+            && frame.maxX <= screen.maxX + 1
+            && frame.minY >= screen.minY - 1
+            && frame.maxY <= screen.maxY + 1
+        XCTAssertTrue(isInside, "Control extends outside the app frame")
     }
 }

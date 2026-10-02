@@ -43,20 +43,21 @@ final class OnboardingAuditTests: XCTestCase {
         let start = app.buttons["Get Started"].firstMatch
         let onboardingVisible = cont.exists || start.exists
 
-        // Name what IS on screen, so a failure says where the app landed
-        // instead of only that onboarding was absent.
+        // Report only booleans/counts so a failure says which surface appeared
+        // without emitting dynamic accessibility labels.
         let exploreTab = app.tabBars.buttons.element(boundBy: 0)
+        let firstTabSelected = exploreTab.exists && exploreTab.isSelected
         print("AUDIT[first-launch] onboardingVisible=\(onboardingVisible) "
               + "continueExists=\(cont.exists) getStartedExists=\(start.exists) "
               + "tabBarCount=\(app.tabBars.count) "
-              + "firstTab=\(exploreTab.exists ? exploreTab.label : "<none>")")
+              + "firstTabExists=\(exploreTab.exists) firstTabSelected=\(firstTabSelected)")
 
         XCTAssertTrue(
             onboardingVisible,
             "FIRST LAUNCH SHOWED NO ONBOARDING. `summit:onboarded` defaults to "
             + "false and ContentView renders OnboardingView whenever it is false, "
-            + "so the walkthrough should be up. See the dumped tree for where the "
-            + "app landed instead."
+            + "so the walkthrough should be up. See the sanitized audit status for "
+            + "the surface that appeared instead."
         )
 
         guard onboardingVisible else { return }
@@ -80,7 +81,7 @@ final class OnboardingAuditTests: XCTestCase {
                 let alert = springboard.alerts.firstMatch
                 if alert.waitForExistence(timeout: 15) {
                     sawLocationPrompt = true
-                    print("AUDIT[permission] alert label=\(alert.label)")
+                    print("AUDIT[permission] alertVisible=true")
                     capture(app, "onboard-08-location-prompt")
                     let allow = alert.buttons["Allow While Using App"]
                     if allow.exists { allow.tap() } else { alert.buttons.element(boundBy: 0).tap() }
@@ -134,8 +135,7 @@ final class OnboardingAuditTests: XCTestCase {
     }
 
     private func dumpTree(_ app: XCUIApplication, _ tag: String) {
-        print("===== UI TREE [\(tag)] =====")
-        print(app.debugDescription)
-        print("===== END UI TREE [\(tag)] =====")
+        let elementCount = app.descendants(matching: .any).count
+        print("AUDIT[\(tag)] hierarchy unavailable; elementCount=\(elementCount)")
     }
 }

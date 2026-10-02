@@ -240,7 +240,8 @@ struct LocationOwnershipTests {
             Issue.record("expected a successful fresh Home fix")
             return
         }
-        #expect(coordinate.latitude == 33.3)
+        let deliveredCoordinateMatches = coordinate.latitude == 33.3
+        #expect(deliveredCoordinateMatches, "The one-shot returned an unexpected coordinate")
         #expect(manager.locationStartCount == 1, "a one-shot must not start continuous updates")
         #expect(manager.locationStopCount == 1)
     }
@@ -268,7 +269,8 @@ struct LocationOwnershipTests {
             Issue.record("the retry must own the delivered fresh fix")
             return
         }
-        #expect(coordinate.latitude == 33.4)
+        let retryCoordinateMatches = coordinate.latitude == 33.4
+        #expect(retryCoordinateMatches, "The retry returned an unexpected coordinate")
         #expect(!manager.allowsBackgroundLocationUpdates)
         #expect(manager.locationStartCount == 0)
     }

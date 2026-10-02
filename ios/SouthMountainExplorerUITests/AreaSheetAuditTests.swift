@@ -189,7 +189,8 @@ final class AreaSheetAuditTests: XCTestCase {
 
         let status = app.descendants(matching: .any)["recording-gps-status"].firstMatch
         XCTAssertTrue(status.waitForExistence(timeout: 10), "Recovered GPS status is missing")
-        XCTAssertEqual(status.label, "GPS recovered")
+        let recoveredStatusIsExpected = status.label == "GPS recovered"
+        XCTAssertTrue(recoveredStatusIsExpected, "Recovered GPS status has unexpected copy")
         capture(app, "field-trust-01-gps-recovered")
         logElementFrame(app, status, tag: "gps-recovered")
 
@@ -220,7 +221,8 @@ final class AreaSheetAuditTests: XCTestCase {
 
         let status = app.descendants(matching: .any)["recording-gps-status"].firstMatch
         XCTAssertTrue(status.waitForExistence(timeout: 10), "Paused GPS status is missing")
-        XCTAssertEqual(status.label, "GPS paused—route stays safe")
+        let pausedStatusIsExpected = status.label == "GPS paused—route stays safe"
+        XCTAssertTrue(pausedStatusIsExpected, "Paused GPS status has unexpected copy")
         capture(app, "field-trust-03-gps-paused")
         logElementFrame(app, status, tag: "gps-paused")
     }
@@ -237,26 +239,29 @@ final class AreaSheetAuditTests: XCTestCase {
 
         let open = app.buttons["area-open-\(areaId)"].firstMatch
         var swipes = 0
-        while !isInsideScreen(open, app: app), swipes < 12 {
+        while !isOnScreenAndHittable(open, app: app), swipes < 12 {
             app.swipeUp()
             swipes += 1
             settle(1)
         }
         let save = app.buttons["area-save-\(areaId)"].firstMatch
-        guard isInsideScreen(open, app: app), isInsideScreen(save, app: app) else {
+        guard isOnScreenAndHittable(open, app: app),
+              isOnScreenAndHittable(save, app: app) else {
             dumpTree(app, "area-card-actions-not-visible")
             XCTFail("Distinct Open Area and Save Area controls were not both visible after \(swipes) swipes")
             return
         }
-        XCTAssertNotEqual(open.identifier, save.identifier)
-        XCTAssertNotEqual(open.label, save.label)
+        let areaActionIdentifiersAreDistinct = open.identifier != save.identifier
+        XCTAssertTrue(areaActionIdentifiersAreDistinct, "Area actions must have distinct identifiers")
+        let areaActionLabelsAreDistinct = open.label != save.label
+        XCTAssertTrue(areaActionLabelsAreDistinct, "Area actions must have distinct labels")
         capture(app, "field-trust-00-explore-area-card")
         logElementFrame(app, open, tag: "explore-area-card-open")
         logElementFrame(app, save, tag: "explore-area-card-save")
     }
 
-    private func isInsideScreen(_ element: XCUIElement, app: XCUIApplication) -> Bool {
-        guard element.exists else { return false }
+    private func isOnScreenAndHittable(_ element: XCUIElement, app: XCUIApplication) -> Bool {
+        guard element.exists, element.isHittable else { return false }
         let frame = element.frame
         let screen = app.frame
         return frame.minX >= screen.minX - 1

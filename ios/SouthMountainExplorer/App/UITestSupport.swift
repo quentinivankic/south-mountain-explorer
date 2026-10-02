@@ -10,8 +10,9 @@ import Foundation
 /// (`#if DEBUG`), so none of this — nor the demo data — can ship.
 ///
 /// Activated by launch arguments (set by `ScreenshotTests`):
-///   `--uitest-seed`       seed historical hikes + completions + coverage
-///   `--uitest-recording`  additionally inject a live active recording
+///   `--uitest-seed`           seed historical hikes + completions + coverage
+///   `--uitest-recording`      additionally inject a live active recording
+///   `--uitest-recording-gap`  inject that recording with a material GPS gap
 ///
 /// All seeding writes the same UserDefaults keys and `hike-history.json`
 /// path used by normal app persistence, then re-hydrates the `@Observable`
@@ -30,7 +31,10 @@ enum UITestSupport {
     /// passed alone (run 33512537301) and failed in the full suite
     /// (run 34065141359).
     static var isFreshRequested: Bool { args.contains("--uitest-fresh") }
-    static var isRecordingRequested: Bool { args.contains("--uitest-recording") }
+    static var isRecordingGapRequested: Bool { args.contains("--uitest-recording-gap") }
+    static var isRecordingRequested: Bool {
+        args.contains("--uitest-recording") || isRecordingGapRequested
+    }
 
     /// `--uitest-completed <n>`: seed n completed trails (the first n real IDs
     /// that aren't in `showcaseIncomplete`) instead of deriving completions
@@ -216,7 +220,20 @@ enum UITestSupport {
         for i in 0..<path.count {
             path[i][2] = nowMs - (totalMeters - cumulative[i]) / speedMps * 1000
         }
-        let distanceMi = (pathLengthMi(path) * 100).rounded() / 100
+        if isRecordingGapRequested, path.count >= 4 {
+            // Keep two fresh points after the gap so the visual audit gets a
+            // drawable recovered run and the short-lived recovered status.
+            let recoveryIndex = path.count - 2
+            for index in 0..<recoveryIndex {
+                path[index][2] -= 120_000
+            }
+            path[recoveryIndex][2] = nowMs - 2_000
+            path[recoveryIndex + 1][2] = nowMs
+        }
+        let recordedMiles = GpsIngest.continuousRuns(path)
+            .map { pathLengthMi($0) }
+            .reduce(0, +)
+        let distanceMi = (recordedMiles * 100).rounded() / 100
         let elapsed = totalMeters / speedMps
 
         return ActiveRecording(

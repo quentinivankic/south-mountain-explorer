@@ -466,6 +466,7 @@ struct WalkRecordingPanel: View {
     let onStop: (FinishedRecording?) -> Void
 
     @Environment(RecordingService.self) private var recording
+    @Environment(LocationService.self) private var location
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     @State private var elapsed: TimeInterval = 0
@@ -477,8 +478,37 @@ struct WalkRecordingPanel: View {
 
     private var rec: ActiveRecording? { recording.activeRecording }
 
+    private var gpsStatus: (text: String, tint: Color) {
+        let status = GpsIngest.activeStatus(
+            path: rec?.path ?? [],
+            lastFixAt: location.lastFixDate
+        )
+        switch status {
+        case .waiting:
+            return ("Waiting for GPS", .orange)
+        case .paused:
+            return ("GPS paused—route stays safe", .orange)
+        case .recovered:
+            return ("GPS recovered", .blue)
+        case .good:
+            return ("GPS good", .green)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 12) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(gpsStatus.tint)
+                    .frame(width: 7, height: 7)
+                Text(gpsStatus.text)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .accessibilityElement(children: .combine)
+
             if let rec, let stats = elevationStats(path: rec.path) {
                 ElevationProfileView(
                     stats: stats,
@@ -688,6 +718,14 @@ struct WalkSummarySheet: View {
                     }
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
+                }
+
+                if let gap = GpsIngest.materialGapSummary(finished.path) {
+                    Section {
+                        Label(gap.explanation, systemImage: "location.slash")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 if areaResults.isEmpty {

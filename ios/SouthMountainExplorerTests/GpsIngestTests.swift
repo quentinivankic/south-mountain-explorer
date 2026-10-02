@@ -72,6 +72,68 @@ struct GpsIngestTests {
         #expect(runs[1].count == 2)
     }
 
+    @Test func exactGapBoundaryRemainsContinuous() {
+        let path = [pt(0, 0), pt(10, GpsIngest.gapMs)]
+        #expect(GpsIngest.continuousRuns(path).count == 1)
+        #expect(GpsIngest.materialGapSummary(path) == nil)
+    }
+
+    @Test func materialGapSummaryCountsDurationsAndLastRecovery() throws {
+        let path = [
+            pt(0, 0), pt(10, 2_000),
+            pt(100, 122_000), pt(110, 124_000),
+            pt(200, 184_000), pt(210, 186_000),
+        ]
+        let summary = try #require(GpsIngest.materialGapSummary(path))
+        #expect(GpsIngest.continuousRuns(path).count == 3)
+        #expect(summary.gapCount == 2)
+        #expect(summary.totalMissingSeconds == 180)
+        #expect(summary.longestMissingSeconds == 120)
+        #expect(summary.lastRecoveryAt == Date(timeIntervalSince1970: 184))
+        #expect(summary.explanation == "GPS paused 2 times for 3m total (longest 2m). No straight-line distance was counted.")
+    }
+
+    @Test func malformedMissingAndBackwardTimestampsDoNotInventGaps() {
+        let path: [GpsPoint] = [
+            pt(0, 100_000),
+            [33.3, -112.0],
+            pt(10, 500_000),
+            pt(20, 400_000),
+            [33.3, -112.0, .infinity],
+            pt(30, 900_000),
+        ]
+        #expect(GpsIngest.materialGapSummary(path) == nil)
+        #expect(GpsIngest.continuousRuns(path).count == 1)
+    }
+
+    @Test func activeStatusDistinguishesWaitingPausedRecoveredAndGood() {
+        let now = Date(timeIntervalSince1970: 200)
+        let continuous = [pt(0, 190_000), pt(10, 192_000)]
+        #expect(GpsIngest.activeStatus(path: [], lastFixAt: nil, now: now) == .waiting)
+        #expect(GpsIngest.activeStatus(
+            path: continuous,
+            lastFixAt: Date(timeIntervalSince1970: 100),
+            now: now
+        ) == .paused)
+
+        let recovered = [pt(0, 50_000), pt(100, 190_000), pt(110, 192_000)]
+        #expect(GpsIngest.activeStatus(
+            path: recovered,
+            lastFixAt: Date(timeIntervalSince1970: 200),
+            now: now
+        ) == .recovered)
+        #expect(GpsIngest.activeStatus(
+            path: continuous,
+            lastFixAt: Date(timeIntervalSince1970: 200),
+            now: now
+        ) == .good)
+    }
+
+    @Test func oneGapExplanationUsesSingularCopy() throws {
+        let summary = try #require(GpsIngest.materialGapSummary([pt(0, 0), pt(10, 21_000)]))
+        #expect(summary.explanation == "GPS paused for 21s. No straight-line distance was counted.")
+    }
+
     /// Elevation profile must not inflate distance or count climb across a gap.
     @Test func elevationStatsIgnoresGapJump() throws {
         // run 1: gentle 4 m climb over ~40 m; then a 2-minute gap to a point

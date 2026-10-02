@@ -39,25 +39,24 @@ struct RecordingPanel: View {
 
     private var rec: ActiveRecording? { recording.activeRecording }
 
-    /// Seconds without a fix before we call the signal lost. Long enough that
-    /// ordinary sampling jitter (and the deliberate 2 s poll) never trips it.
-    private let staleFixSeconds: TimeInterval = 45
-
-    /// Acquiring / lost / good. ALWAYS a value: signal quality is permanent
-    /// dashboard state on a one-line slot, never a capsule that pops in and
-    /// resizes the card. Recomputed off `elapsed`, which the 1 s timer drives.
+    /// Permanent, quiet GPS state for the reserved one-line status slot.
+    /// Signal freshness uses LocationService so stationary jitter filtering
+    /// cannot look like signal loss; recovery comes from recorded timestamps.
     private var gpsStatus: (text: String, tint: Color) {
-        guard let last = location.lastFixDate else {
-            return ("Waiting for GPS…", .orange)
+        let status = GpsIngest.activeStatus(
+            path: rec?.path ?? [],
+            lastFixAt: location.lastFixDate
+        )
+        switch status {
+        case .waiting:
+            return ("Waiting for GPS", .orange)
+        case .paused:
+            return ("GPS paused—route stays safe", .orange)
+        case .recovered:
+            return ("GPS recovered", .blue)
+        case .good:
+            return ("GPS good", .green)
         }
-        if Date().timeIntervalSince(last) > staleFixSeconds {
-            return ("GPS signal lost", .red)
-        }
-        // Have a fix, but not enough points to draw anything yet.
-        if (rec?.path.count ?? 0) < 2 {
-            return ("Waiting for GPS…", .orange)
-        }
-        return ("GPS good", .green)
     }
 
     /// Human-readable ETA to the end of the recording's active
@@ -422,6 +421,14 @@ struct RecordingSummarySheet: View {
                         }
                     }
                     .padding(.horizontal)
+
+                    if let gap = GpsIngest.materialGapSummary(finished.path) {
+                        Label(gap.explanation, systemImage: "location.slash")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal)
+                    }
 
                     // Cumulative area progress
                     if areaTrailCount > 0 {

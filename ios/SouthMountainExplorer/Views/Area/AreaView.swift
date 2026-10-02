@@ -240,6 +240,7 @@ struct AreaView: View {
 
     // Pre-flight checks before kicking off a recording.
     @State private var showConflictAlert = false
+    @State private var showRecordingRecoveryAlert = false
     @State private var conflictAreaName: String = ""
     /// Captured by tryStartRecording when a confirmation dialog interrupts
     /// the start. The dialog's "proceed" button reads this so a trail-mode
@@ -1338,7 +1339,13 @@ struct AreaView: View {
     private func startRecordingNow(trailId: String?) {
         let mode: RecordingMode = trailId == nil ? .roam : .trail
         let result = recording.startRecording(areaId: areaId, mode: mode, trailId: trailId)
-        guard result == .started else {
+        switch result {
+        case .started:
+            break
+        case .recoveryRequired:
+            showRecordingRecoveryAlert = true
+            return
+        case .alreadyActive:
             pendingRecordTrailId = trailId
             conflictAreaName = recording.activeRecording?.mode == .walk
                 ? "your walk"
@@ -1752,6 +1759,16 @@ struct AreaView: View {
         // its binding stays true), which clobbered the dialog. Net:
         // dialog flashed for ~0.1s then vanished, and recording could
         // never start.
+        .alert(
+            "Recording Recovery Needed",
+            isPresented: $showRecordingRecoveryAlert
+        ) {
+            Button("Retry Recovery") { recording.retryRecovery() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text(recording.recoveryIssue?.message
+                 ?? "Resolve the preserved recording recovery state before starting another hike.")
+        }
         .confirmationDialog(
             "You're already recording at \(conflictAreaName)",
             isPresented: $showConflictAlert,

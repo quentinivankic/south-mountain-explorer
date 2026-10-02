@@ -2,6 +2,38 @@ import SwiftUI
 import MapKit
 import CoreLocation
 
+enum WalkGeometryLoadState: Equatable {
+    case locating
+    case loading(done: Int, total: Int)
+    case ready
+    case partial(loaded: Int, total: Int)
+    case restoringPartial(loaded: Int, total: Int)
+    case noLocation
+    case noAreas
+    case loadFailed
+
+    var allowsNewWalkStart: Bool {
+        switch self {
+        case .ready, .partial:
+            return true
+        default:
+            return false
+        }
+    }
+
+    static func resolved(
+        requested: Int,
+        loaded: Int,
+        restoringActiveWalk: Bool
+    ) -> WalkGeometryLoadState {
+        guard requested > 0, loaded > 0 else { return .loadFailed }
+        guard loaded < requested else { return .ready }
+        return restoringActiveWalk
+            ? .restoringPartial(loaded: loaded, total: requested)
+            : .partial(loaded: loaded, total: requested)
+    }
+}
+
 /// Area-less "start anywhere" walk. Full-screen map of every trail from
 /// the ~12 nearest areas (within 20 mi); one Start button; at stop time
 /// `RecordingService.stopWalk` credits trail coverage/completions to
@@ -23,7 +55,7 @@ struct WalkView: View {
     @Environment(ProgressService.self) private var progress
 
     @State private var loadedAreas: [Area] = []
-    @State private var loadState: LoadState = .locating
+    @State private var loadState: WalkGeometryLoadState = .locating
     @State private var mergedArea: Area? = nil
     @State private var selectedTrailId: String? = nil
     @State private var cameraTarget: MapTarget = .region(
@@ -38,15 +70,6 @@ struct WalkView: View {
     @State private var candidateAreaIds: [String] = []
     @State private var isLoadInFlight = false
     @State private var locationConsumer = LocationConsumerID()
-
-    private enum LoadState: Equatable {
-        case locating
-        case loading(done: Int, total: Int)
-        case ready
-        case noLocation
-        case noAreas
-        case loadFailed
-    }
 
     /// Credit radius. Areas whose CENTER is within this many miles of
     /// the user when the walk screen opens are loaded; capped at
@@ -108,7 +131,7 @@ struct WalkView: View {
                             dismiss()
                         }
                     }
-                } else if loadState == .ready {
+                } else if !isWalking, loadState.allowsNewWalkStart {
                     startButton
                 }
             }
@@ -132,13 +155,24 @@ struct WalkView: View {
             }
         }
         .alert(
-            "Recording Already Active",
+            recording.recoveryIssue == nil
+                ? "Recording Already Active"
+                : "Recording Recovery Needed",
             isPresented: Binding(
                 get: { startConflictMessage != nil },
                 set: { if !$0 { startConflictMessage = nil } }
             )
         ) {
-            Button("Keep Existing Recording", role: .cancel) { }
+            Button(
+                recording.recoveryIssue == nil
+                    ? "Keep Existing Recording"
+                    : "Retry Recovery",
+                role: .cancel
+            ) {
+                if recording.recoveryIssue != nil {
+                    recording.retryRecovery()
+                }
+            }
         } message: {
             Text(startConflictMessage ?? "Stop the current recording before starting a walk.")
         }
@@ -203,6 +237,22 @@ struct WalkView: View {
             statusCard("Finding you…", detail: nil, spinner: true)
         case .loading(let done, let total):
             statusCard("Loading nearby trails…", detail: "\(done) of \(total) areas", spinner: true)
+        case .partial(let loaded, let total):
+            statusCard(
+                "Some nearby trails are missing",
+                detail: "\(loaded) of \(total) areas loaded. Start uses the visible trails, or retry the missing areas first.",
+                spinner: false,
+                actionTitle: "Retry Missing",
+                action: retryAreaLoad
+            )
+        case .restoringPartial(let loaded, let total):
+            statusCard(
+                "More trails needed to save",
+                detail: "\(loaded) of \(total) saved walk areas loaded. Stop & Save stays unavailable until the full recorded scope is restored.",
+                spinner: false,
+                actionTitle: "Retry Missing",
+                action: retryAreaLoad
+            )
         case .noLocation:
             statusCard(
                 "Location needed",
@@ -374,16 +424,6 @@ struct WalkView: View {
             }
         }
 
-        // A resumed Walk must restore its entire persisted credit scope before
-        // exposing Stop & Save. Partial geometry is useful for a new Walk, but
-        // saving an existing one with a subset would lose area credits forever.
-        if restoringActiveWalk, loaded.count != areaIds.count {
-            loadedAreas = []
-            mergedArea = nil
-            loadState = .loadFailed
-            return
-        }
-
         guard !loaded.isEmpty else {
             loadedAreas = []
             mergedArea = nil
@@ -393,7 +433,11 @@ struct WalkView: View {
 
         loadedAreas = loaded
         mergedArea = Self.merged(from: loaded)
-        loadState = .ready
+        loadState = WalkGeometryLoadState.resolved(
+            requested: areaIds.count,
+            loaded: loaded.count,
+            restoringActiveWalk: restoringActiveWalk
+        )
         centerOnUser()
     }
 
@@ -450,7 +494,13 @@ struct WalkView: View {
             primaryAreaId: nearest.id,
             nearbyAreaIds: loadedAreas.map(\.id)
         )
-        if result == .alreadyActive {
+        switch result {
+        case .started:
+            break
+        case .recoveryRequired:
+            startConflictMessage = recording.recoveryIssue?.message
+                ?? "Resolve the preserved recording recovery state before starting another walk."
+        case .alreadyActive:
             let activeMode = recording.activeRecording?.mode == .walk ? "walk" : "hike"
             startConflictMessage = "Your current \(activeMode) is still recording and was not changed. Stop or discard it before starting another walk."
         }

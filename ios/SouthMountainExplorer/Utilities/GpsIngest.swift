@@ -50,6 +50,33 @@ enum GpsIngest {
         let startsNewRun: Bool
     }
 
+    struct MaterialGapSummary: Equatable {
+        let gapCount: Int
+        let totalMissingSeconds: TimeInterval
+        let longestMissingSeconds: TimeInterval
+        let lastRecoveryAt: Date
+
+        var explanation: String {
+            if gapCount == 1 {
+                return "GPS paused for \(GpsIngest.durationLabel(totalMissingSeconds)). "
+                    + "No straight-line distance was counted."
+            }
+            return "GPS paused \(gapCount) times for \(GpsIngest.durationLabel(totalMissingSeconds)) total "
+                + "(longest \(GpsIngest.durationLabel(longestMissingSeconds))). "
+                + "No straight-line distance was counted."
+        }
+    }
+
+    enum ActiveStatus: Equatable {
+        case waiting
+        case paused
+        case recovered
+        case good
+    }
+
+    static let staleFixSeconds: TimeInterval = 45
+    static let recoveredDisplaySeconds: TimeInterval = 15
+
     /// Decide how to ingest a fix given the previous kept point.
     /// - Parameters:
     ///   - prev: last kept point `[lat, lon, tsMs, …]`, or nil for the first.
@@ -80,7 +107,9 @@ enum GpsIngest {
     /// True when the fix at `p` begins a new run relative to `prev` — i.e. more
     /// than `gapMs` elapsed between them. Both must carry a timestamp.
     static func isGap(prev: GpsPoint, p: GpsPoint) -> Bool {
-        prev.count >= 3 && p.count >= 3 && (p[2] - prev[2] > gapMs)
+        guard prev.count >= 3, p.count >= 3,
+              prev[2].isFinite, p[2].isFinite else { return false }
+        return p[2] > prev[2] && p[2] - prev[2] > gapMs
     }
 
     /// Split a recorded path into continuous runs, breaking wherever the time
@@ -98,5 +127,83 @@ enum GpsIngest {
         }
         if !cur.isEmpty { runs.append(cur) }
         return runs
+    }
+
+    /// Summarize only trustworthy, forward-moving timestamp gaps. The source
+    /// path is never changed, and malformed legacy points cannot create a
+    /// warning.
+    static func materialGapSummary(_ path: [GpsPoint]) -> MaterialGapSummary? {
+        guard path.count >= 2 else { return nil }
+        var gapCount = 0
+        var totalMissingSeconds: TimeInterval = 0
+        var longestMissingSeconds: TimeInterval = 0
+        var lastRecoveryAt: Date?
+
+        for index in 1..<path.count {
+            let previous = path[index - 1]
+            let current = path[index]
+            guard isValidTimestampedPoint(previous), isValidTimestampedPoint(current) else {
+                continue
+            }
+            let elapsedMs = current[2] - previous[2]
+            guard elapsedMs > gapMs else { continue }
+            let elapsedSeconds = elapsedMs / 1000
+            gapCount += 1
+            totalMissingSeconds += elapsedSeconds
+            longestMissingSeconds = max(longestMissingSeconds, elapsedSeconds)
+            lastRecoveryAt = Date(timeIntervalSince1970: current[2] / 1000)
+        }
+
+        guard let lastRecoveryAt else { return nil }
+        return MaterialGapSummary(
+            gapCount: gapCount,
+            totalMissingSeconds: totalMissingSeconds,
+            longestMissingSeconds: longestMissingSeconds,
+            lastRecoveryAt: lastRecoveryAt
+        )
+    }
+
+    /// Quiet active-recording state. Current signal freshness comes from the
+    /// location observer so standing still does not look like signal loss when
+    /// jitter-filtered fixes are intentionally absent from the stored path.
+    /// Recovery is derived from the path's existing timestamps.
+    static func activeStatus(
+        path: [GpsPoint],
+        lastFixAt: Date?,
+        now: Date = Date()
+    ) -> ActiveStatus {
+        let recordedFixAt = path.last(where: isValidTimestampedPoint)
+            .map { Date(timeIntervalSince1970: $0[2] / 1000) }
+        guard let freshestFixAt = lastFixAt ?? recordedFixAt else { return .waiting }
+        if now.timeIntervalSince(freshestFixAt) > staleFixSeconds {
+            return .paused
+        }
+        let validPointCount = path.lazy.filter(isValidTimestampedPoint).prefix(2).count
+        guard validPointCount >= 2 else { return .waiting }
+        if let recoveredAt = materialGapSummary(path)?.lastRecoveryAt {
+            let age = now.timeIntervalSince(recoveredAt)
+            if age >= 0, age <= recoveredDisplaySeconds {
+                return .recovered
+            }
+        }
+        return .good
+    }
+
+    private static func isValidTimestampedPoint(_ point: GpsPoint) -> Bool {
+        point.count >= 3 && point[0].isFinite && point[1].isFinite && point[2].isFinite
+    }
+
+    private static func durationLabel(_ seconds: TimeInterval) -> String {
+        let rounded = max(0, Int(seconds.rounded()))
+        let hours = rounded / 3600
+        let minutes = (rounded % 3600) / 60
+        let remainingSeconds = rounded % 60
+        if hours > 0 {
+            return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
+        }
+        if minutes > 0 {
+            return remainingSeconds > 0 ? "\(minutes)m \(remainingSeconds)s" : "\(minutes)m"
+        }
+        return "\(remainingSeconds)s"
     }
 }

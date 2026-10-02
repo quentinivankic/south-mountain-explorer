@@ -233,8 +233,11 @@ struct MapKitMapView: UIViewRepresentable {
         context.coordinator.rebuildTrailOverlays(on: mv, from: area)
         context.coordinator.rebuildSelectedTrailWalkedOverlays(on: mv, segments: selectedTrailWalkedSegments)
         context.coordinator.rebuildLiveTrailSnappedOverlays(on: mv, segments: liveHaloSegments)
-        if let rec = activeRecording, rec.path.count > 1 {
-            context.coordinator.updateRecordingOverlay(on: mv, path: rec.path)
+        if let rec = activeRecording {
+            context.coordinator.updateRecordingOverlays(on: mv, path: rec.path)
+            context.coordinator.lastRecordingPathCount = rec.path.count
+            context.coordinator.lastRecordingIdentity = rec.recordingId
+                ?? "\(rec.areaId)|\(rec.startedAt.timeIntervalSinceReferenceDate)"
         }
         context.coordinator.lastAreaId = area.id
         context.coordinator.lastCameraTick = cameraTick
@@ -365,21 +368,25 @@ struct MapKitMapView: UIViewRepresentable {
             coord.lastSelectedTrailWalkedHash = newSelectedWalkedHash
         }
 
-        // 4) Recording overlay — live updates whenever the path grows.
-        // Rebuild ONLY when the path actually grew (or the recording changed).
-        // Every other overlay here is diffed by a change hash; this one wasn't,
-        // so each updateUIView — which fires for ANY parent state change, e.g. a
-        // sheet detent or toast, not just new GPS — walked the whole path,
-        // allocated a fresh MKPolyline, and forced a full layer redraw. Cost
-        // grew with hike length, so long hikes got progressively choppier.
-        if let rec = activeRecording, rec.path.count > 1 {
+        // 4) Recording overlays — one polyline per continuous GPS run.
+        // A normal append replaces only the growing final run. Finalized runs
+        // and every unrelated map layer keep their object identity.
+        if let rec = activeRecording {
+            let identity = rec.recordingId
+                ?? "\(rec.areaId)|\(rec.startedAt.timeIntervalSinceReferenceDate)"
+            if coord.lastRecordingIdentity != identity {
+                coord.removeRecordingOverlays(from: mapView)
+                coord.lastRecordingPathCount = 0
+                coord.lastRecordingIdentity = identity
+            }
             if coord.lastRecordingPathCount != rec.path.count {
-                coord.updateRecordingOverlay(on: mapView, path: rec.path)
+                coord.updateRecordingOverlays(on: mapView, path: rec.path)
                 coord.lastRecordingPathCount = rec.path.count
             }
-        } else if coord.recordingOverlay != nil {
-            coord.removeRecordingOverlay(from: mapView)
+        } else if !coord.recordingOverlays.isEmpty {
+            coord.removeRecordingOverlays(from: mapView)
             coord.lastRecordingPathCount = 0
+            coord.lastRecordingIdentity = nil
         }
 
         // 4) Re-style trail renderers when selection / recording /
@@ -646,7 +653,10 @@ struct MapKitMapView: UIViewRepresentable {
         /// (per-overlay closure doesn't carry context).
         var selectedTrailWalkedOverlays: [MKPolyline] = []
         var selectedTrailWalkedIds: Set<ObjectIdentifier> = []
-        var recordingOverlay: MKPolyline?
+        /// Raw recording runs in path order. Completed runs retain their
+        /// overlays while only the growing final run is replaced.
+        var recordingOverlays: [MKPolyline] = []
+        var recordingOverlayIds: Set<ObjectIdentifier> = []
 
         // Diff snapshots — set in makeUIView and updated in
         // updateUIView so we know what changed since last pass.
@@ -686,9 +696,12 @@ struct MapKitMapView: UIViewRepresentable {
 
         /// Latest heading handed down from the SwiftUI layer.
         var pendingHeading: Double?
-        /// Point count of the recording path last rendered, so the recording
-        /// overlay is only rebuilt when the path actually grew.
+        /// Point count of the recording path last rendered, so recording
+        /// overlays are reconciled only when the path actually changes.
         var lastRecordingPathCount: Int = 0
+        /// Stable session identity prevents a replacement recording with the
+        /// same point count from inheriting the prior session's overlays.
+        var lastRecordingIdentity: String?
         /// Signature of the parking set last drawn. Parking arrives with the
         /// area but can also land in a later in-place update (same area.id), so
         /// gating the pin rebuild only on area.id change would miss it. -1 =
@@ -908,32 +921,100 @@ struct MapKitMapView: UIViewRepresentable {
             }
         }
 
-        // MARK: Recording overlay
+        // MARK: Recording overlays
 
-        func updateRecordingOverlay(on mapView: MKMapView, path: [GpsPoint]) {
-            let coords: [CLLocationCoordinate2D] = path.compactMap { p in
-                guard p.count >= 2 else { return nil }
-                return CLLocationCoordinate2D(latitude: p[0], longitude: p[1])
-            }
-            guard coords.count >= 2 else { return }
-            if let existing = recordingOverlay {
-                mapView.removeOverlay(existing)
-            }
-            let pl = MKPolyline(coordinates: coords, count: coords.count)
-            recordingOverlay = pl
-            // .aboveRoads so the (slim, semi-transparent) raw-GPS
-            // stroke sits BELOW the snapped purple live-halo at
-            // .aboveLabels — on-trail portions read as a single
-            // bold snapped stroke; off-trail portions show only
-            // the slimmer raw GPS line.
-            mapView.addOverlay(pl, level: .aboveRoads)
+        func updateRecordingOverlays(on mapView: MKMapView, path: [GpsPoint]) {
+            Self.reconcileRecordingOverlays(
+                on: mapView,
+                path: path,
+                overlays: &recordingOverlays,
+                overlayIds: &recordingOverlayIds
+            )
         }
 
-        func removeRecordingOverlay(from mapView: MKMapView) {
-            if let existing = recordingOverlay {
-                mapView.removeOverlay(existing)
-                recordingOverlay = nil
+        /// Incrementally reconcile drawable continuous runs. Existing overlays
+        /// before the active run are finalized and retained by identity; only
+        /// the prior active overlay is removed and replaced.
+        static func reconcileRecordingOverlays(
+            on mapView: MKMapView,
+            path: [GpsPoint],
+            overlays: inout [MKPolyline],
+            overlayIds: inout Set<ObjectIdentifier>
+        ) {
+            let coordinateRuns = GpsIngest.continuousRuns(path).map { run in
+                run.compactMap { point -> CLLocationCoordinate2D? in
+                    guard point.count >= 2,
+                          point[0].isFinite, point[1].isFinite else { return nil }
+                    return CLLocationCoordinate2D(latitude: point[0], longitude: point[1])
+                }
             }
+            let finalizedRuns = coordinateRuns.dropLast().filter { $0.count >= 2 }
+
+            // Anything after the finalized prefix was the old growing run (or
+            // belongs to a path that was replaced/shrunk). No unrelated overlay
+            // is ever considered for removal.
+            if overlays.count > finalizedRuns.count {
+                let removed = overlays[finalizedRuns.count...]
+                mapView.removeOverlays(Array(removed) as [MKOverlay])
+                for overlay in removed {
+                    overlayIds.remove(ObjectIdentifier(overlay))
+                }
+                overlays.removeLast(overlays.count - finalizedRuns.count)
+            }
+
+            // Initial rendering can arrive with several completed runs. Build
+            // only the missing finalized suffix; an incrementally finalized run
+            // already occupies the matching slot and keeps its identity.
+            if overlays.count < finalizedRuns.count {
+                for coordinates in finalizedRuns.dropFirst(overlays.count) {
+                    addRecordingOverlay(
+                        coordinates: coordinates,
+                        to: mapView,
+                        overlays: &overlays,
+                        overlayIds: &overlayIds
+                    )
+                }
+            }
+
+            if let activeRun = coordinateRuns.last, activeRun.count >= 2 {
+                addRecordingOverlay(
+                    coordinates: activeRun,
+                    to: mapView,
+                    overlays: &overlays,
+                    overlayIds: &overlayIds
+                )
+            }
+        }
+
+        static func removeRecordingOverlays(
+            from mapView: MKMapView,
+            overlays: inout [MKPolyline],
+            overlayIds: inout Set<ObjectIdentifier>
+        ) {
+            mapView.removeOverlays(overlays as [MKOverlay])
+            overlays.removeAll(keepingCapacity: true)
+            overlayIds.removeAll(keepingCapacity: true)
+        }
+
+        func removeRecordingOverlays(from mapView: MKMapView) {
+            Self.removeRecordingOverlays(
+                from: mapView,
+                overlays: &recordingOverlays,
+                overlayIds: &recordingOverlayIds
+            )
+        }
+
+        private static func addRecordingOverlay(
+            coordinates: [CLLocationCoordinate2D],
+            to mapView: MKMapView,
+            overlays: inout [MKPolyline],
+            overlayIds: inout Set<ObjectIdentifier>
+        ) {
+            let overlay = MKPolyline(coordinates: coordinates, count: coordinates.count)
+            overlays.append(overlay)
+            overlayIds.insert(ObjectIdentifier(overlay))
+            // .aboveRoads keeps raw GPS below the snapped live coverage layer.
+            mapView.addOverlay(overlay, level: .aboveRoads)
         }
 
         /// Counter for in-flight programmatic region changes initiated
@@ -1222,7 +1303,7 @@ struct MapKitMapView: UIViewRepresentable {
                 let r = MKPolylineRenderer(polyline: pl)
                 r.lineCap = .round
                 r.lineJoin = .round
-                if pl === recordingOverlay {
+                if recordingOverlayIds.contains(ObjectIdentifier(pl)) {
                     // Raw GPS path during recording. Purple at
                     // reduced alpha + slimmer than the on-trail
                     // snapped overlay below so it shows through

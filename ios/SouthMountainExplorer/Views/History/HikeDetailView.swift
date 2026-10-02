@@ -21,6 +21,14 @@ struct HikeDetailView: View {
                 statsCard
                     .padding(.horizontal)
 
+                if let gap = GpsIngest.materialGapSummary(hike.path) {
+                    Label(gap.explanation, systemImage: "location.slash")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                }
+
                 elevationSection
                     .padding(.horizontal)
 

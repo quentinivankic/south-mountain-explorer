@@ -105,6 +105,7 @@ struct SettingsView: View {
     @State private var isPreparingNearbyDownload = false
     @State private var waitingForNearbyPermission = false
     @State private var nearbyLocationAlert: NearbyLocationAlert? = nil
+    @State private var locationConsumer = LocationConsumerID()
 
     private var nearbyDownloadBusy: Bool {
         isPreparingNearbyDownload || nearbyProgress != nil
@@ -453,6 +454,9 @@ struct SettingsView: View {
         .onChange(of: location.authorizationStatus) { _, status in
             handleNearbyAuthorizationChange(status)
         }
+        .onDisappear {
+            location.releaseLocation(for: locationConsumer)
+        }
     }
 
     /// Kick off a manual "Download Nearby" run with `force: true` so it
@@ -527,37 +531,27 @@ struct SettingsView: View {
             return
         }
 
-        let requestedAt = Date()
-        // Always require a post-tap fix before choosing the 50-mile radius.
-        // requestLocation() is one-shot, so this recovery flow does not acquire
-        // continuous tracking ownership that Settings would then have to release.
-        location.requestFreshFix()
-        for _ in 0..<14 {
-            guard !Task.isCancelled else {
-                isPreparingNearbyDownload = false
-                return
-            }
-            if location.isDenied {
-                isPreparingNearbyDownload = false
-                nearbyLocationAlert = .accessDenied
-                return
-            }
-            if let fixDate = location.lastFixDate,
-               fixDate >= requestedAt,
-               location.liveLocation != nil {
-                continueNearbyDownload()
-                return
-            }
-            do {
-                try await Task.sleep(for: .milliseconds(500))
-            } catch {
-                isPreparingNearbyDownload = false
-                return
-            }
+        // Always require a post-tap coarse fix before choosing the 50-mile
+        // radius. The one-shot demand cannot enable background updates or
+        // interfere with an active recording's precise ownership.
+        let result = await location.requestOneShotFix(
+            for: locationConsumer,
+            accuracy: .coarse
+        )
+        guard isPreparingNearbyDownload, !Task.isCancelled else {
+            isPreparingNearbyDownload = false
+            return
         }
-
-        isPreparingNearbyDownload = false
-        nearbyLocationAlert = .unavailable
+        switch result {
+        case .success:
+            continueNearbyDownload()
+        case .denied:
+            isPreparingNearbyDownload = false
+            nearbyLocationAlert = .accessDenied
+        case .unavailable:
+            isPreparingNearbyDownload = false
+            nearbyLocationAlert = .unavailable
+        }
     }
 
     private func continueNearbyDownload() {

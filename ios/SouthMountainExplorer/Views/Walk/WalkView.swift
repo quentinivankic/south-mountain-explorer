@@ -37,6 +37,7 @@ struct WalkView: View {
     /// their persisted area IDs so current location can never change credit.
     @State private var candidateAreaIds: [String] = []
     @State private var isLoadInFlight = false
+    @State private var locationConsumer = LocationConsumerID()
 
     private enum LoadState: Equatable {
         case locating
@@ -117,6 +118,13 @@ struct WalkView: View {
         .overlay(alignment: .topTrailing) {
             if mergedArea != nil { recenterButton }
         }
+        .onAppear {
+            location.acquireHeading(for: locationConsumer)
+        }
+        .onDisappear {
+            location.releaseLocation(for: locationConsumer)
+            location.releaseHeading(for: locationConsumer)
+        }
         .task { await load() }
         .sheet(isPresented: $showSummary, onDismiss: { dismiss() }) {
             if let finished = finishedWalk {
@@ -155,7 +163,15 @@ struct WalkView: View {
 
     private var recenterButton: some View {
         Button {
-            centerOnUser()
+            Task { @MainActor in
+                let result = await location.requestOneShotFix(
+                    for: locationConsumer,
+                    accuracy: .precise
+                )
+                if case .success = result {
+                    centerOnUser()
+                }
+            }
         } label: {
             Image(systemName: "location.fill")
                 .font(.body.weight(.semibold))
@@ -306,30 +322,21 @@ struct WalkView: View {
                 return
             }
 
-            // Ask for a genuinely fresh fix on open. The last-known location is
-            // restored from UserDefaults and may represent a previous trip.
-            let openedAt = Date()
-            location.startLiveTracking()
-            location.requestFreshFix()
-
-            var center: CLLocationCoordinate2D? = nil
-            for _ in 0..<14 {
-                if let fixDate = location.lastFixDate,
-                   fixDate >= openedAt.addingTimeInterval(-2),
-                   let loc = location.liveLocation {
-                    center = loc
-                    break
-                }
-                do {
-                    try await Task.sleep(for: .milliseconds(500))
-                } catch {
-                    return
-                }
+            // Ask for a genuinely fresh precise fix on open. The last-known
+            // location is restored from UserDefaults and may represent a
+            // previous trip, so use it only as the established offline fallback.
+            let fixResult = await location.requestOneShotFix(
+                for: locationConsumer,
+                accuracy: .precise
+            )
+            guard !Task.isCancelled else { return }
+            let center: CLLocationCoordinate2D?
+            switch fixResult {
+            case .success(let coordinate):
+                center = coordinate
+            case .denied, .unavailable:
+                center = location.userLocation ?? location.liveLocation
             }
-
-            // Preserve the existing offline/indoor fallback when authorization
-            // remains valid but a fresh one-shot fix does not arrive.
-            if center == nil { center = location.userLocation ?? location.liveLocation }
             guard let loc = center else {
                 loadState = .noLocation
                 return

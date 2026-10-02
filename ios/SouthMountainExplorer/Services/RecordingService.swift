@@ -81,8 +81,8 @@ private func trailEndpointDistances(
 protocol RecordingLocationControlling: AnyObject {
     var liveLocation: CLLocationCoordinate2D? { get }
     var liveAltitude: Double? { get }
-    func startBackgroundTracking()
-    func stopBackgroundTracking()
+    func acquireRecordingLocation()
+    func releaseRecordingLocation()
 }
 
 enum RecordingStartResult: Equatable, Sendable {
@@ -153,6 +153,8 @@ final class RecordingService {
         if let initialActiveRecording {
             activeRecording = initialActiveRecording
             persist()
+            locationService.acquireRecordingLocation()
+            beginObservingLocation()
         } else if restoreStoredState {
             restoreActiveRecording()
         }
@@ -181,6 +183,7 @@ final class RecordingService {
                     if existing.matchesCheckpoint(restored) {
                         activeRecording = nil
                         userDefaults.removeObject(forKey: persistKey)
+                        locationService.releaseRecordingLocation()
                         historyErrorMessage = nil
                         log.notice("restoreActiveRecording: cleared already-saved checkpoint id=\(recordingId, privacy: .public)")
                         return
@@ -208,7 +211,7 @@ final class RecordingService {
                 "ageSeconds": String(Int(age)),
             ]
         )
-        locationService.startBackgroundTracking()
+        locationService.acquireRecordingLocation()
         beginObservingLocation()
     }
 
@@ -378,7 +381,7 @@ final class RecordingService {
             ]
         )
         AnalyticsService.shared.capture(.hikeStarted(areaId: areaId, mode: mode.rawValue))
-        locationService.startBackgroundTracking()
+        locationService.acquireRecordingLocation()
         beginObservingLocation()
         // Lazy-prompt for notifications now that the user has actually
         // started a hike. The OS only asks once per install, so the
@@ -422,8 +425,8 @@ final class RecordingService {
 
     #if DEBUG
     /// Set an active recording directly for App Store screenshot UI
-    /// tests, WITHOUT starting background location tracking. The normal
-    /// restore path calls `startBackgroundTracking()`, which triggers a
+    /// tests, WITHOUT acquiring recording location ownership. The normal
+    /// restore path calls `acquireRecordingLocation()`, which triggers a
     /// location-permission system alert that freezes the UI test. This
     /// demo path is in-memory only (no persistence, no GPS) — the seeded
     /// path already carries the samples the recording panel renders.
@@ -439,6 +442,9 @@ final class RecordingService {
         activeRecording = nil
         errorMessage = nil
         userDefaults.removeObject(forKey: persistKey)
+        if prev != nil {
+            locationService.releaseRecordingLocation()
+        }
         log.notice("discardRecording areaId=\(prev?.areaId ?? "nil", privacy: .public) duration=\(prev.map { Date().timeIntervalSince($0.startedAt) } ?? 0)s pathPoints=\(prev?.path.count ?? 0)")
         ActivityLogService.shared.log(
             category: "recording",
@@ -785,7 +791,7 @@ final class RecordingService {
             ]
         )
         AnalyticsService.shared.capture(.hikeStarted(areaId: primaryAreaId, mode: RecordingMode.walk.rawValue))
-        locationService.startBackgroundTracking()
+        locationService.acquireRecordingLocation()
         beginObservingLocation()
         Task { await NotificationService.shared.ensurePermission() }
         return .started
@@ -1698,7 +1704,6 @@ final class RecordingService {
     private func pauseLocationObservation() {
         locationObserver?.cancel()
         locationObserver = nil
-        locationService.stopBackgroundTracking()
     }
 
     private func beginObservingLocation() {
@@ -1889,6 +1894,7 @@ final class RecordingService {
         // has finished.
         activeRecording = nil
         userDefaults.removeObject(forKey: persistKey)
+        locationService.releaseRecordingLocation()
         errorMessage = nil
         historyErrorMessage = nil
         return finished
@@ -1940,7 +1946,6 @@ final class RecordingService {
                 "error": error.localizedDescription,
             ]
         )
-        locationService.startBackgroundTracking()
         beginObservingLocation()
     }
 

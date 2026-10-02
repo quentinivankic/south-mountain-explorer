@@ -14,11 +14,21 @@ struct RecordingDataSafetyTests {
     private final class FakeLocationController: RecordingLocationControlling {
         var liveLocation: CLLocationCoordinate2D? = nil
         var liveAltitude: Double? = nil
-        private(set) var startCount = 0
-        private(set) var stopCount = 0
+        private(set) var acquireCount = 0
+        private(set) var releaseCount = 0
+        private(set) var ownsRecordingLocation = false
 
-        func startBackgroundTracking() { startCount += 1 }
-        func stopBackgroundTracking() { stopCount += 1 }
+        func acquireRecordingLocation() {
+            guard !ownsRecordingLocation else { return }
+            ownsRecordingLocation = true
+            acquireCount += 1
+        }
+
+        func releaseRecordingLocation() {
+            guard ownsRecordingLocation else { return }
+            ownsRecordingLocation = false
+            releaseCount += 1
+        }
     }
 
     private final class ToggleWriter: @unchecked Sendable {
@@ -161,6 +171,35 @@ struct RecordingDataSafetyTests {
         #expect(try JSONDecoder().decode(ActiveRecording.self, from: recovered) == active)
     }
 
+    @Test func newRecordingAcquiresOnceAndDiscardReleasesOnce() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let location = FakeLocationController()
+        let service = RecordingService(
+            historyStore: RecordingHistoryStore(
+                fileURL: directory.appendingPathComponent("hike-history.json")
+            ),
+            userDefaults: defaults,
+            locationService: location
+        )
+
+        #expect(service.startRecording(
+            areaId: "recording-safety-test-area",
+            mode: .trail,
+            trailId: "safe-trail"
+        ) == .started)
+        #expect(location.acquireCount == 1)
+        #expect(location.ownsRecordingLocation)
+
+        service.discardRecording()
+        service.discardRecording()
+        #expect(location.releaseCount == 1)
+        #expect(!location.ownsRecordingLocation)
+        #expect(defaults.data(forKey: StorageKeys.activeRecording) == nil)
+    }
+
     @Test func missingHistoryIsEmptyButCorruptHistoryIsDistinctAndProtected() async throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -299,8 +338,9 @@ struct RecordingDataSafetyTests {
         #expect(service.activeRecording == active)
         #expect(defaults.data(forKey: StorageKeys.activeRecording) != nil)
         #expect(!FileManager.default.fileExists(atPath: url.path))
-        #expect(location.stopCount == 1)
-        #expect(location.startCount == 1, "every save failure must resume location observation")
+        #expect(location.releaseCount == 0, "save failure must retain recording ownership")
+        #expect(location.acquireCount == 1, "save failure must restart polling without reacquiring")
+        #expect(location.ownsRecordingLocation)
         #expect(service.errorMessage != nil)
 
         writer.allowWrites()
@@ -310,6 +350,8 @@ struct RecordingDataSafetyTests {
         #expect(finished.startedAt == active.startedAt)
         #expect(service.activeRecording == nil)
         #expect(defaults.data(forKey: StorageKeys.activeRecording) == nil)
+        #expect(location.releaseCount == 1)
+        #expect(!location.ownsRecordingLocation)
         let history = try store.load()
         #expect(history.count == 1)
         #expect(history[0].id == active.recordingId)
@@ -338,7 +380,7 @@ struct RecordingDataSafetyTests {
 
         #expect(service.activeRecording == nil)
         #expect(defaults.data(forKey: StorageKeys.activeRecording) == nil)
-        #expect(location.startCount == 0)
+        #expect(location.acquireCount == 0)
         #expect(try store.load() == [saved])
     }
 
@@ -365,7 +407,8 @@ struct RecordingDataSafetyTests {
         #expect(service.activeRecording == active)
         #expect(defaults.data(forKey: StorageKeys.activeRecording) != nil)
         #expect(service.errorMessage != nil)
-        #expect(location.startCount == 1, "a conflict preserves and resumes the active recording")
+        #expect(location.acquireCount == 1, "a conflict preserves and resumes the active recording")
+        #expect(location.ownsRecordingLocation)
 
         do {
             _ = try await service.stopRecording(trails: [])
@@ -380,7 +423,9 @@ struct RecordingDataSafetyTests {
         #expect(service.activeRecording?.path == active.path)
         #expect(defaults.data(forKey: StorageKeys.activeRecording) != nil)
         #expect(try store.load() == [conflicting])
-        #expect(location.startCount == 2, "failed stop must resume observation again")
+        #expect(location.acquireCount == 1, "failed stop must restart polling without duplicating ownership")
+        #expect(location.releaseCount == 0)
+        #expect(location.ownsRecordingLocation)
     }
 
     @Test func successfulWalkSaveUsesStableIdAndClearsRecoveryAfterSavePath() async throws {

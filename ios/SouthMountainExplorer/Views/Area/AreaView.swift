@@ -35,6 +35,7 @@ struct AreaView: View {
     @Environment(CoverageService.self) private var coverage
     @Environment(ActivityService.self) private var activity
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// Map style binding lives on AreaView so the user can flip
     /// it from the per-map "•••" menu rather than digging into
     /// Settings. Same `@AppStorage` key MapKitMapView reads, so
@@ -967,12 +968,15 @@ struct AreaView: View {
     }
 
     /// The browse stop's `.height()` value. Its visible extent (this plus the
-    /// home-indicator band) is ~66% of the sheet's maximum, which leaves the
-    /// top ~40% of every supported iPhone as map. A per-device constant, so
-    /// comparing a detent against `browseDetent` is stable — unlike the fit
-    /// stop, whose height is measured.
+    /// home-indicator band) is ~66% of the sheet's maximum at standard text,
+    /// which leaves the top ~40% of every supported iPhone as map. Accessibility
+    /// text needs a taller browse stop so a selected row can remain whole; 78%
+    /// still leaves more than a quarter of the screen as map. A per-device
+    /// constant, so comparing a detent against `browseDetent` is stable — unlike
+    /// the fit stop, whose height is measured.
     private var browseHeight: CGFloat {
-        ((maxDetentHeight * 0.66 - Self.bottomSafeInset) / 4).rounded(.down) * 4
+        let fraction: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.78 : 0.66
+        return ((maxDetentHeight * fraction - Self.bottomSafeInset) / 4).rounded(.down) * 4
     }
 
     private var browseDetent: PresentationDetent { .height(browseHeight) }

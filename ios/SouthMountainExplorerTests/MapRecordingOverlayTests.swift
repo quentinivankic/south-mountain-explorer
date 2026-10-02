@@ -22,6 +22,12 @@ struct MapRecordingOverlayTests {
         return coordinates
     }
 
+    private func latitudes(of overlay: MKPolyline, match expected: [CLLocationDegrees]) -> Bool {
+        let actual = coordinates(of: overlay).map(\.latitude)
+        return actual.count == expected.count
+            && zip(actual, expected).allSatisfy { abs($0 - $1) <= 0.000_001 }
+    }
+
     @Test func continuousPathProducesOneOverlay() {
         let mapView = MKMapView()
         var overlays: [MKPolyline] = []
@@ -57,9 +63,9 @@ struct MapRecordingOverlayTests {
         )
 
         #expect(overlays.count == 2)
-        let firstRunCoordinatesMatch = coordinates(of: overlays[0]).map(\.latitude) == [33.30, 33.31]
+        let firstRunCoordinatesMatch = latitudes(of: overlays[0], match: [33.30, 33.31])
         #expect(firstRunCoordinatesMatch, "The first continuous run has unexpected coordinates")
-        let secondRunCoordinatesMatch = coordinates(of: overlays[1]).map(\.latitude) == [33.40, 33.41]
+        let secondRunCoordinatesMatch = latitudes(of: overlays[1], match: [33.40, 33.41])
         #expect(secondRunCoordinatesMatch, "The resumed run has unexpected coordinates")
         #expect(overlays.allSatisfy { $0.pointCount == 2 })
     }
@@ -77,7 +83,7 @@ struct MapRecordingOverlayTests {
         )
 
         #expect(overlays.count == 1)
-        let retainedRunCoordinatesMatch = coordinates(of: overlays[0]).map(\.latitude) == [33.30, 33.31]
+        let retainedRunCoordinatesMatch = latitudes(of: overlays[0], match: [33.30, 33.31])
         #expect(retainedRunCoordinatesMatch, "A one-point resumed run changed the prior run")
     }
 
@@ -94,7 +100,7 @@ struct MapRecordingOverlayTests {
             overlays: &overlays,
             overlayIds: &overlayIds
         )
-        let finalizedIdentity = ObjectIdentifier(overlays[0])
+        let finalizedOverlay = overlays[0]
 
         Coordinator.reconcileRecordingOverlays(
             on: mapView,
@@ -105,7 +111,7 @@ struct MapRecordingOverlayTests {
             overlays: &overlays,
             overlayIds: &overlayIds
         )
-        let firstActiveIdentity = ObjectIdentifier(overlays[1])
+        let firstActiveOverlay = overlays[1]
 
         Coordinator.reconcileRecordingOverlays(
             on: mapView,
@@ -117,9 +123,9 @@ struct MapRecordingOverlayTests {
             overlayIds: &overlayIds
         )
 
-        let finalizedIdentityWasPreserved = ObjectIdentifier(overlays[0]) == finalizedIdentity
+        let finalizedIdentityWasPreserved = overlays[0] === finalizedOverlay
         #expect(finalizedIdentityWasPreserved, "Appending replaced a finalized recording run")
-        let activeIdentityWasReplaced = ObjectIdentifier(overlays[1]) != firstActiveIdentity
+        let activeIdentityWasReplaced = overlays[1] !== firstActiveOverlay
         #expect(activeIdentityWasReplaced, "Appending did not replace the active recording run")
         #expect(mapView.overlays.contains { ObjectIdentifier($0) == ObjectIdentifier(unrelated) })
         let trackedIdentitiesMatch = overlayIds == Set(overlays.map { ObjectIdentifier($0) })

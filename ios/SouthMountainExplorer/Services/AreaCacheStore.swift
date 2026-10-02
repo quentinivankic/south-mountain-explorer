@@ -146,6 +146,14 @@ struct AreaCacheStore {
         do {
             try io.promote(stagedURL, destinationURL)
         } catch {
+            guard restorePriorBytes(
+                priorBytes,
+                areaID: expectedID,
+                backupURL: backupURL,
+                destinationURL: destinationURL
+            ) else {
+                return AreaCacheStoreReceipt(areaID: expectedID, failure: .rollbackFailed)
+            }
             return AreaCacheStoreReceipt(areaID: expectedID, failure: .promotionFailed)
         }
 
@@ -155,19 +163,38 @@ struct AreaCacheStore {
             return AreaCacheStoreReceipt(areaID: expectedID, failure: nil)
         }
 
-        do {
-            if priorBytes != nil {
-                try io.promote(backupURL, destinationURL)
-                guard validBytes(id: expectedID) == priorBytes else {
-                    return AreaCacheStoreReceipt(areaID: expectedID, failure: .rollbackFailed)
-                }
-            } else {
-                try io.remove(destinationURL)
-            }
-        } catch {
+        guard restorePriorBytes(
+            priorBytes,
+            areaID: expectedID,
+            backupURL: backupURL,
+            destinationURL: destinationURL
+        ) else {
             return AreaCacheStoreReceipt(areaID: expectedID, failure: .rollbackFailed)
         }
         return AreaCacheStoreReceipt(areaID: expectedID, failure: .finalVerificationFailed)
+    }
+
+    /// Restore the exact verified bytes that preceded a failed promotion. A
+    /// promotion can mutate the destination and still throw, so every failure
+    /// path verifies rollback instead of assuming a thrown operation was inert.
+    private func restorePriorBytes(
+        _ priorBytes: Data?,
+        areaID: String,
+        backupURL: URL,
+        destinationURL: URL
+    ) -> Bool {
+        do {
+            if let priorBytes {
+                try io.promote(backupURL, destinationURL)
+                return validBytes(id: areaID) == priorBytes
+            }
+            if fileManager.fileExists(atPath: destinationURL.path) {
+                try io.remove(destinationURL)
+            }
+            return !fileManager.fileExists(atPath: destinationURL.path)
+        } catch {
+            return false
+        }
     }
 
     func entries() -> [Entry] {

@@ -102,6 +102,31 @@ struct LocationOwnershipTests {
         #expect(!manager.allowsBackgroundLocationUpdates)
     }
 
+    @Test func recordingDemandStopsWhenAuthorizationIsLostAndRestartsWhenRestored() async throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let manager = FakeLocationManager()
+        let service = makeService(manager: manager, defaults: defaults)
+
+        service.acquireRecordingLocation()
+        #expect(manager.locationStartCount == 1)
+        #expect(manager.allowsBackgroundLocationUpdates)
+
+        manager.authorizationStatus = .denied
+        manager.notifyAuthorizationChanged()
+        await Task.yield()
+        #expect(manager.locationStopCount == 1)
+        #expect(!manager.allowsBackgroundLocationUpdates)
+
+        manager.authorizationStatus = .authorizedWhenInUse
+        manager.notifyAuthorizationChanged()
+        await Task.yield()
+        #expect(manager.locationStartCount == 2)
+        #expect(manager.allowsBackgroundLocationUpdates)
+        #expect(!manager.pausesLocationUpdatesAutomatically)
+        #expect(manager.activityType == .fitness)
+    }
+
     @Test func foregroundAreaAndWalkOwnershipIsConsumerKeyedAndIdempotent() throws {
         let (defaults, suiteName) = try makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }

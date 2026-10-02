@@ -17,6 +17,7 @@ import XCTest
 /// clip even before a human looks at the PNG.
 final class AreaSheetAuditTests: XCTestCase {
 
+    private let areaId = "south-mountain-park-and-preserve-az"
     private let areaRowId = "area-progress-south-mountain-park-and-preserve-az"
 
     /// Layout anchors per state tag, so the test can ASSERT the layout rather
@@ -41,6 +42,12 @@ final class AreaSheetAuditTests: XCTestCase {
         // rebuild) finish before the first accessibility query — an early
         // snapshot can time out, which aborts the run uncatchably.
         settle(25)
+
+        // Photograph the Home card layouts before leaving Explore. This runs
+        // in every device/content-size matrix entry, so the accessibility-size
+        // AreaCard and ContinueCard branches are actual visual gates rather
+        // than source-only assertions.
+        auditExploreCards(app)
 
         openStatsTab(app)
         _ = app.staticTexts["Recent Hikes"].firstMatch.waitForExistence(timeout: 60)
@@ -216,6 +223,46 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertEqual(status.label, "GPS paused—route stays safe")
         capture(app, "field-trust-03-gps-paused")
         logElementFrame(app, status, tag: "gps-paused")
+    }
+
+    private func auditExploreCards(_ app: XCUIApplication) {
+        let continueButton = app.buttons["continue-card"].firstMatch
+        guard continueButton.waitForExistence(timeout: 30) else {
+            dumpTree(app, "continue-card-missing")
+            XCTFail("Continue card is missing from the seeded Explore screen")
+            return
+        }
+        capture(app, "field-trust-00-explore-continue-card")
+        logElementFrame(app, continueButton, tag: "explore-continue-card")
+
+        let open = app.buttons["area-open-\(areaId)"].firstMatch
+        var swipes = 0
+        while !isInsideScreen(open, app: app), swipes < 12 {
+            app.swipeUp()
+            swipes += 1
+            settle(1)
+        }
+        let save = app.buttons["area-save-\(areaId)"].firstMatch
+        guard isInsideScreen(open, app: app), isInsideScreen(save, app: app) else {
+            dumpTree(app, "area-card-actions-not-visible")
+            XCTFail("Distinct Open Area and Save Area controls were not both visible after \(swipes) swipes")
+            return
+        }
+        XCTAssertNotEqual(open.identifier, save.identifier)
+        XCTAssertNotEqual(open.label, save.label)
+        capture(app, "field-trust-00-explore-area-card")
+        logElementFrame(app, open, tag: "explore-area-card-open")
+        logElementFrame(app, save, tag: "explore-area-card-save")
+    }
+
+    private func isInsideScreen(_ element: XCUIElement, app: XCUIApplication) -> Bool {
+        guard element.exists else { return false }
+        let frame = element.frame
+        let screen = app.frame
+        return frame.minX >= screen.minX - 1
+            && frame.maxX <= screen.maxX + 1
+            && frame.minY >= screen.minY - 1
+            && frame.maxY <= screen.maxY + 1
     }
 
     private func launchRecordingAudit(arguments: [String]) -> XCUIApplication {

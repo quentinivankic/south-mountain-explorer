@@ -232,19 +232,22 @@ final class LocationService: NSObject, RecordingLocationControlling {
     }
 
     private func reconcileManagerState() {
-        let foregroundLocationActive = applicationIsActive && !foregroundDemands.isEmpty
-        let shouldRunLocation = recordingOwnsLocation || foregroundLocationActive
+        let recordingLocationActive = recordingOwnsLocation && isAuthorized
+        let foregroundLocationActive = applicationIsActive
+            && isAuthorized
+            && !foregroundDemands.isEmpty
+        let shouldRunLocation = recordingLocationActive || foregroundLocationActive
         let pendingAccuracy = pendingFixes.values.map(\.accuracy)
-        let needsPrecise = recordingOwnsLocation
+        let needsPrecise = recordingLocationActive
             || foregroundDemands.values.contains(.precise)
             || pendingAccuracy.contains(.precise)
 
         manager.desiredAccuracy = needsPrecise
             ? kCLLocationAccuracyBest
             : kCLLocationAccuracyHundredMeters
-        manager.allowsBackgroundLocationUpdates = recordingOwnsLocation
-        manager.pausesLocationUpdatesAutomatically = !recordingOwnsLocation
-        manager.activityType = recordingOwnsLocation ? .fitness : .other
+        manager.allowsBackgroundLocationUpdates = recordingLocationActive
+        manager.pausesLocationUpdatesAutomatically = !recordingLocationActive
+        manager.activityType = recordingLocationActive ? .fitness : .other
 
         if shouldRunLocation, !locationUpdatesRunning {
             locationUpdatesRunning = true

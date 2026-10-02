@@ -97,6 +97,37 @@ struct AreaCacheStoreTests {
         #expect(try Data(contentsOf: live.fileURL(for: "a")) == oldBytes)
     }
 
+    @Test func promotionThatMutatesBeforeThrowingRestoresPriorBytesExactly() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let live = AreaCacheStore(cacheDirectory: directory)
+        #expect(live.store(area(id: "a", name: "Old")).succeeded)
+        let oldBytes = try #require(live.validBytes(id: "a"))
+        let liveIO = AreaCacheStore.IO.live()
+        final class PromotionState { var callCount = 0 }
+        let state = PromotionState()
+        let store = AreaCacheStore(
+            cacheDirectory: directory,
+            io: .init(
+                read: liveIO.read,
+                writeStaged: liveIO.writeStaged,
+                promote: { stagedURL, destinationURL in
+                    state.callCount += 1
+                    try liveIO.promote(stagedURL, destinationURL)
+                    if state.callCount == 1 {
+                        throw CocoaError(.fileWriteUnknown)
+                    }
+                },
+                remove: liveIO.remove
+            )
+        )
+
+        #expect(store.store(area(id: "a", name: "New")).failure == .promotionFailed)
+        #expect(state.callCount == 2, "the second promotion restores the verified backup")
+        #expect(try Data(contentsOf: live.fileURL(for: "a")) == oldBytes)
+        #expect(live.validArea(id: "a")?.name == "Old")
+    }
+
     @Test func finalReadbackFailureRollsBackPriorBytesExactly() throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }

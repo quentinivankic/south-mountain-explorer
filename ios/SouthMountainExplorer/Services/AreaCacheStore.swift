@@ -183,18 +183,46 @@ struct AreaCacheStore {
         backupURL: URL,
         destinationURL: URL
     ) -> Bool {
-        do {
-            if let priorBytes {
-                try io.promote(backupURL, destinationURL)
-                return validBytes(id: areaID) == priorBytes
+        guard let priorBytes else {
+            do {
+                if fileManager.fileExists(atPath: destinationURL.path) {
+                    try io.remove(destinationURL)
+                }
+                return !fileManager.fileExists(atPath: destinationURL.path)
+            } catch {
+                return !fileManager.fileExists(atPath: destinationURL.path)
             }
-            if fileManager.fileExists(atPath: destinationURL.path) {
-                try io.remove(destinationURL)
-            }
-            return !fileManager.fileExists(atPath: destinationURL.path)
-        } catch {
-            return false
         }
+
+        do {
+            try io.promote(backupURL, destinationURL)
+        } catch {
+            // A promotion is allowed to mutate before throwing. Read the
+            // destination first: if the exact verified bytes landed, rollback
+            // succeeded despite the error. Otherwise recreate a verified
+            // same-directory backup and make one bounded recovery promotion.
+            if destinationContains(priorBytes, areaID: areaID) {
+                return true
+            }
+            do {
+                try io.writeStaged(priorBytes, backupURL)
+                guard let recoveredBackup = try? io.read(backupURL),
+                      recoveredBackup == priorBytes,
+                      Self.validatedArea(from: recoveredBackup, expectedID: areaID) != nil
+                else { return false }
+                try io.promote(backupURL, destinationURL)
+            } catch {
+                return destinationContains(priorBytes, areaID: areaID)
+            }
+        }
+        return destinationContains(priorBytes, areaID: areaID)
+    }
+
+    private func destinationContains(_ expectedBytes: Data, areaID: String) -> Bool {
+        guard let destinationBytes = try? io.read(fileURL(for: areaID)),
+              destinationBytes == expectedBytes
+        else { return false }
+        return Self.validatedArea(from: destinationBytes, expectedID: areaID) != nil
     }
 
     func entries() -> [Entry] {

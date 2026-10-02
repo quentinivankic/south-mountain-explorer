@@ -24,9 +24,18 @@ struct FieldTrustStateTests {
         ) == .fallback)
     }
 
-    @Test func userGestureInvalidatesPendingRecenter() {
+    @Test func everyCompetingCameraOwnerInvalidatesPendingRecenter() {
+        for owner in RecenterCameraOwner.allCases {
+            let current = 4
+            let invalidated = RecenterRequestGate.invalidatedGeneration(
+                current: current,
+                owner: owner
+            )
+
+            #expect(invalidated == 5, "\(owner) did not advance the camera generation")
+            #expect(!RecenterRequestGate.mayApply(request: current, current: invalidated))
+        }
         #expect(RecenterRequestGate.mayApply(request: 4, current: 4))
-        #expect(!RecenterRequestGate.mayApply(request: 4, current: 5))
     }
 
     @Test func newWalkPartialScopeIsExplicitAndStartable() {

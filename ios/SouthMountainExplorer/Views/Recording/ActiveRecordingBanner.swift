@@ -52,6 +52,8 @@ struct ActiveRecordingBanner: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("active-recording-banner")
+            .accessibilityLabel("Open active recording")
+            .accessibilityHint("Returns to the map and recording controls")
 
             Button(action: onStop) {
                 HStack(spacing: 6) {
@@ -70,7 +72,9 @@ struct ActiveRecordingBanner: View {
             }
             .buttonStyle(.plain)
             .disabled(isSaving)
+            .accessibilityIdentifier("active-recording-stop-button")
             .accessibilityLabel(isSaving ? "Saving recording" : "Stop recording")
+            .accessibilityHint("Stops and saves the active recording")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)

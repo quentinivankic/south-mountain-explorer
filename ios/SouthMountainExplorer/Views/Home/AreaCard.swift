@@ -2,12 +2,14 @@ import SwiftUI
 
 struct AreaCard: View {
     let area: AreaSummary
+    let onOpen: () -> Void
 
     @Environment(FavoritesService.self) private var favorites
     @Environment(ProgressService.self) private var progress
     @Environment(AreaDataService.self) private var areas
     @Environment(AreaSilhouetteService.self) private var silhouettes
     @Environment(LocationService.self) private var location
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     private var cachedArea: Area? { areas.cachedArea(id: area.id) }
@@ -95,27 +97,94 @@ struct AreaCard: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            // 176 (not 160) so the heart button and the info box can't
-            // collide: the box grows upward from the bottom and its top
-            // reaches ~y63 with every row present; the heart occupies
-            // y10–50. At 160 they overlapped in the top-right corner.
-            artwork
-                .frame(width: 220, height: 176)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        ZStack(alignment: .topTrailing) {
+            Button(action: onOpen) {
+                cardContent
+                    .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("area-open-\(area.id)")
+            .accessibilityLabel("Open Area, \(area.name)")
+            .accessibilityHint("Opens the area map and trail list")
 
-            // Zero stack spacing: the rows should read as one tight
-            // block under the name. Even at spacing 2 the name-to-
-            // subtitle gap read as "too much space" on device — what
-            // remains is the fonts' own line padding, so the subtitle
-            // row pulls up an extra point into the headline's descender
-            // zone, and only the bars get explicit breathing room.
+            Button {
+                Task { await favorites.toggle(areaId: area.id) }
+            } label: {
+                Image(systemName: favorites.isFavorite(area.id) ? "heart.fill" : "heart")
+                    .foregroundStyle(favorites.isFavorite(area.id) ? .red : .primary)
+                    .padding(10)
+                    .compatibleGlass(in: .circle)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("area-save-\(area.id)")
+            .accessibilityLabel(
+                favorites.isFavorite(area.id) ? "Remove from Saved Areas" : "Save Area"
+            )
+            .accessibilityHint(
+                favorites.isFavorite(area.id)
+                    ? "Removes this area from your saved areas"
+                    : "Adds this area to your saved areas"
+            )
+            .padding(.top, 12)
+            .padding(.trailing, 12)
+        }
+    }
+
+    @ViewBuilder
+    private var cardContent: some View {
+        if dynamicTypeSize.isAccessibilitySize {
             VStack(alignment: .leading, spacing: 0) {
-                Text(area.name)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
+                artwork
+                    .frame(width: 260, height: 132)
 
+                information(accessibilityLayout: true)
+                    .padding(14)
+                    .frame(width: 260, alignment: .leading)
+                    .background(.regularMaterial)
+            }
+            .frame(width: 260)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(Color(.separator), lineWidth: 0.5)
+            )
+        } else {
+            ZStack(alignment: .bottomLeading) {
+                artwork
+                    .frame(width: 220, height: 176)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+                information(accessibilityLayout: false)
+                    .padding(.horizontal, 14)
+                    .padding(.top, 7)
+                    .padding(.bottom, 10)
+                    .frame(width: 208, alignment: .leading)
+                    .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.horizontal, 6)
+                    .padding(.top, 6)
+                    .padding(.bottom, 4)
+            }
+        }
+    }
+
+    private func information(accessibilityLayout: Bool) -> some View {
+        VStack(alignment: .leading, spacing: accessibilityLayout ? 4 : 0) {
+            Text(area.name)
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .lineLimit(accessibilityLayout ? nil : 1)
+
+            if accessibilityLayout {
+                Text(area.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if totalTrails > 0 {
+                    Text("\(completedCount)/\(totalTrails) trails")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
                 HStack(spacing: 6) {
                     Text(area.subtitle)
                         .font(.caption)
@@ -130,78 +199,27 @@ struct AreaCard: View {
                     }
                 }
                 .padding(.top, -1)
+            }
 
-                // The distance line and difficulty bar load ASYNC (user
-                // location / R2 silhouette). Always render their slots —
-                // with placeholders while empty — so the glass box's
-                // height never changes after first layout. On iOS 26 the
-                // Liquid Glass shape doesn't reliably re-invalidate when
-                // its content grows, so a box that gained rows mid-life
-                // left the last row (the progress bar) hanging outside
-                // the glass edge.
-                Text(distanceMi.map { "\(UnitFormatter.distance(miles: $0, units: units)) away" } ?? " ")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+            Text(distanceMi.map { "\(UnitFormatter.distance(miles: $0, units: units)) away" } ?? " ")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
 
-                Group {
-                    if let mix = difficultyMix {
-                        DifficultyMixBar(mix: mix)
-                    } else {
-                        Color.clear
-                    }
-                }
-                .frame(height: 3)
-                .padding(.top, 3)
-
-                if totalTrails > 0 {
-                    ProgressView(value: progressFraction)
-                        .tint(.accentColor)
-                        .padding(.top, 3)
+            Group {
+                if let mix = difficultyMix {
+                    DifficultyMixBar(mix: mix)
+                } else {
+                    Color.clear
                 }
             }
-            .padding(.horizontal, 14)
-            // Asymmetric: slimmer on top so the box's TOP EDGE sits
-            // lower (more artwork visible), fuller on the bottom so the
-            // progress bar doesn't crowd the glass edge.
-            .padding(.top, 7)
-            .padding(.bottom, 10)
-            // 208, NOT the artwork's 220: the inset paddings below place
-            // the box 6pt inside each side edge, so a 220-wide box had a
-            // 232-wide footprint and its right edge stuck out 6pt past
-            // the artwork. 208 + 6pt margins = exactly the 220 card.
-            .frame(width: 208, alignment: .leading)
-            .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .padding(.horizontal, 6)
-            .padding(.top, 6)
-            // 4 (not 6): hugging the card's bottom edge shifts the whole
-            // box down, which is where it should sit — the artwork above
-            // is the star.
-            .padding(.bottom, 4)
-        }
-        // The artwork is a fixed 220×176 — larger text sizes grow the
-        // info box up into the heart button and out of the card. Cap
-        // type inside the card only (at the default size, so card text
-        // simply doesn't scale); the surrounding screen scales freely.
-        .dynamicTypeSize(...DynamicTypeSize.large)
-        .overlay(alignment: .topTrailing) {
-            Button {
-                Task { await favorites.toggle(areaId: area.id) }
-            } label: {
-                Image(systemName: favorites.isFavorite(area.id) ? "heart.fill" : "heart")
-                    .foregroundStyle(favorites.isFavorite(area.id) ? .red : .primary)
-                    .padding(10)
-                    .compatibleGlass(in: .circle)
+            .frame(height: 3)
+            .padding(.top, 3)
+
+            if totalTrails > 0 {
+                ProgressView(value: progressFraction)
+                    .tint(.accentColor)
+                    .padding(.top, 3)
             }
-            .accessibilityLabel(
-                favorites.isFavorite(area.id) ? "Remove from Saved Areas" : "Save Area"
-            )
-            // Equal insets so the heart sits symmetrically in the
-            // corner. (An earlier top-biased 10/18 split read as
-            // "closer to the top than the right" on device; the taller
-            // 176pt card no longer needs the upward bias it was
-            // compensating for.)
-            .padding(.top, 12)
-            .padding(.trailing, 12)
         }
     }
 

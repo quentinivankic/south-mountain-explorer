@@ -7,6 +7,7 @@ struct ContinueCard: View {
     @Environment(ProgressService.self) private var progress
     @Environment(AreaDataService.self) private var areas
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var cachedArea: Area? { areas.cachedArea(id: area.id) }
     private var totalTrails: Int { cachedArea?.resolvedTrailCount ?? area.trailCount ?? 0 }
@@ -35,44 +36,62 @@ struct ContinueCard: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            artwork
-                .frame(height: 200)
-                .frame(maxWidth: .infinity)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 0) {
+                    artwork
+                        .frame(height: 140)
+                        .frame(maxWidth: .infinity)
+
+                    information(accessibilityLayout: true)
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.regularMaterial)
+                }
+                .background(Color(.secondarySystemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                .overlay(
-                    // Subtle border so the card has a defined edge in both
-                    // light and dark mode, especially when the artwork lines
-                    // are sparse.
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .stroke(Color(.separator), lineWidth: 0.5)
-                )
+                .overlay(cardBorder)
+            } else {
+                ZStack(alignment: .bottomLeading) {
+                    artwork
+                        .frame(height: 200)
+                        .frame(maxWidth: .infinity)
+                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                        .overlay(cardBorder)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Label("Continue exploring", systemImage: "arrow.uturn.forward.circle.fill")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-
-                Text(area.name)
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-
-                if totalTrails > 0 {
-                    Text("\(completedCount)/\(totalTrails) trails")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    information(accessibilityLayout: false)
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .compatibleGlass(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .padding(8)
                 }
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .compatibleGlass(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .padding(8)
         }
-        // Same cap as AreaCard: the artwork height is fixed (200), so
-        // accessibility text sizes overflow the glass box otherwise.
-        .dynamicTypeSize(...DynamicTypeSize.xLarge)
+    }
+
+    private var cardBorder: some View {
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
+            .stroke(Color(.separator), lineWidth: 0.5)
+    }
+
+    private func information(accessibilityLayout: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Continue exploring", systemImage: "arrow.uturn.forward.circle.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Text(area.name)
+                .font(.title3)
+                .fontWeight(.semibold)
+                .foregroundStyle(.primary)
+                .lineLimit(accessibilityLayout ? nil : 1)
+
+            if totalTrails > 0 {
+                Text("\(completedCount)/\(totalTrails) trails")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 
     @ViewBuilder

@@ -13,6 +13,7 @@ import Foundation
 ///   `--uitest-seed`           seed historical hikes + completions + coverage
 ///   `--uitest-recording`      additionally inject a live active recording
 ///   `--uitest-recording-gap`  inject that recording with a material GPS gap
+///   `--uitest-recording-paused` inject it with a stale final GPS fix
 ///
 /// All seeding writes the same UserDefaults keys and `hike-history.json`
 /// path used by normal app persistence, then re-hydrates the `@Observable`
@@ -32,8 +33,11 @@ enum UITestSupport {
     /// (run 34065141359).
     static var isFreshRequested: Bool { args.contains("--uitest-fresh") }
     static var isRecordingGapRequested: Bool { args.contains("--uitest-recording-gap") }
+    static var isRecordingPausedRequested: Bool { args.contains("--uitest-recording-paused") }
     static var isRecordingRequested: Bool {
-        args.contains("--uitest-recording") || isRecordingGapRequested
+        args.contains("--uitest-recording")
+            || isRecordingGapRequested
+            || isRecordingPausedRequested
     }
 
     /// `--uitest-completed <n>`: seed n completed trails (the first n real IDs
@@ -229,6 +233,13 @@ enum UITestSupport {
             }
             path[recoveryIndex][2] = nowMs - 2_000
             path[recoveryIndex + 1][2] = nowMs
+        } else if isRecordingPausedRequested {
+            // Deterministic signal-loss state for the screenshot audit. The
+            // path remains continuous and untouched apart from its timestamps;
+            // the newest recorded fix is old enough to derive `.paused`.
+            for index in path.indices {
+                path[index][2] -= 120_000
+            }
         }
         let recordedMiles = GpsIngest.continuousRuns(path)
             .map { pathLengthMi($0) }

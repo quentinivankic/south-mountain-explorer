@@ -558,6 +558,8 @@ struct WalkRecordingPanel: View {
                 Spacer(minLength: 0)
             }
             .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("walk-gps-status")
+            .accessibilityLabel(gpsStatus.text)
 
             if let rec, let stats = elevationStats(path: rec.path) {
                 ElevationProfileView(
@@ -600,6 +602,9 @@ struct WalkRecordingPanel: View {
                     }
                 }
                 .disabled(isStopping || recording.isStopping)
+                .accessibilityIdentifier("walk-stop-button")
+                .accessibilityLabel(isStopping ? "Saving walk" : "Stop walk")
+                .accessibilityHint("Opens options to save, discard, or keep walking")
             }
         }
         .padding(.horizontal, 20)

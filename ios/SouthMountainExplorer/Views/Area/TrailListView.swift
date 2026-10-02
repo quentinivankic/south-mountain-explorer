@@ -649,7 +649,9 @@ struct TrailRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 14) {
+            ZStack(alignment: .topTrailing) {
+                Button(action: toggleSelection) {
+                    HStack(spacing: 14) {
                 // The trail's own shape, stroked in its difficulty color
                 // (cyan once completed — same color language as the map's cyan
                 // completed stroke). Replaced the leaf/arrow/bolt difficulty
@@ -715,30 +717,36 @@ struct TrailRow: View {
 
                 Spacer()
 
-                // Trailing control. Normally the completion checkmark (tap to
-                // mark done). The moment this row is SELECTED it becomes a Record
-                // button — tap a trail in the list, then hit Record right there,
-                // no popup. Re-tapping the row deselects and the checkmark returns.
-                Button {
-                    if isSelected {
-                        onRecordTrail?(trail)
-                    } else {
-                        Task { await progress.toggleTrail(areaId: areaId, trailId: trail.id) }
+                // Reserve the trailing action's footprint inside the primary
+                // button label. The real completion/record control is overlaid
+                // as a semantic sibling below, so the row keeps its exact
+                // visual geometry without nesting one Button inside another.
+                    Color.clear
+                        .frame(width: 24, height: 24)
+                        .accessibilityHidden(true)
                     }
-                } label: {
-                    // SAME SIZE in both states — an icon, never a labelled
-                    // capsule. Selecting a row used to swap the checkmark for a
-                    // wide "Record" pill, which reflowed the whole row and
-                    // shoved the trail name around on every selection. Now the
-                    // checkmark simply becomes a record light: red and filled
-                    // while recording this trail, accent-coloured when it's the
-                    // selected trail and ready to start.
+                }
+                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+                .accessibilityIdentifier("trail-select-\(trail.id)")
+                .accessibilityLabel(isSelected ? "Deselect Trail, \(trail.name)" : "Select Trail, \(trail.name)")
+                .accessibilityHint(
+                    isSelected
+                        ? "Removes this trail from the map selection"
+                        : "Highlights this trail on the map and shows its details"
+                )
+
+                Button(action: performSecondaryAction) {
                     Image(systemName: recordControlSymbol)
                         .font(.title3)
                         .foregroundStyle(recordControlStyle)
                         .symbolEffect(.pulse, isActive: isRecordingThis)
+                        .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("trail-secondary-\(trail.id)")
+                .accessibilityLabel(secondaryActionLabel)
+                .accessibilityHint(secondaryActionHint)
             }
 
         // The profile expands INTO the selected row rather than opening a
@@ -818,19 +826,37 @@ struct TrailRow: View {
             }
         }
         .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            // Tap only highlights the polyline on the map (no popup) — so you
-            // can click around trails freely. It also toggles selection, which
-            // swaps this row's trailing control to a Record button; tapping the
-            // same row again deselects and restores the checkmark.
-            ActivityLogService.shared.log(
-                category: "trail",
-                action: "tap",
-                context: ["areaId": areaId, "trailId": trail.id]
-            )
-            selectedTrailId = (selectedTrailId == trail.id) ? nil : trail.id
+    }
+
+    private var secondaryActionLabel: String {
+        if isSelected { return "Record Trail, \(trail.name)" }
+        return isComplete
+            ? "Mark Trail Incomplete, \(trail.name)"
+            : "Mark Trail Complete, \(trail.name)"
+    }
+
+    private var secondaryActionHint: String {
+        if isSelected { return "Starts recording this selected trail" }
+        return isComplete
+            ? "Removes this trail from completed trails"
+            : "Adds this trail to completed trails"
+    }
+
+    private func performSecondaryAction() {
+        if isSelected {
+            onRecordTrail?(trail)
+        } else {
+            Task { await progress.toggleTrail(areaId: areaId, trailId: trail.id) }
         }
+    }
+
+    private func toggleSelection() {
+        ActivityLogService.shared.log(
+            category: "trail",
+            action: "tap",
+            context: ["areaId": areaId, "trailId": trail.id]
+        )
+        selectedTrailId = isSelected ? nil : trail.id
     }
 
     private var difficultyColor: Color {

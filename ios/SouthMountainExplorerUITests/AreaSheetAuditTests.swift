@@ -79,14 +79,14 @@ final class AreaSheetAuditTests: XCTestCase {
         logFrames(app, "min-after-scroll-back")
 
         // ---- 4. Select a trail at the min stop ----------------------------
-        let firstRowName = tapFirstTrailRow(app)
+        let firstRowIdentifier = tapFirstTrailRow(app)
         settle(3)
         capture(app, "sheet-05-min-trail-selected")
-        logFrames(app, "min-trail-selected", extraText: firstRowName)
+        logFrames(app, "min-trail-selected", extraRowIdentifier: firstRowIdentifier)
 
         // ---- 5. Deselect: the toolbar and rows must return to idle --------
-        if let name = firstRowName {
-            tapElement(app.staticTexts[name].firstMatch)
+        if let identifier = firstRowIdentifier {
+            tapElement(app.buttons[identifier].firstMatch)
             settle(3)
         }
         capture(app, "sheet-06-min-trail-deselected")
@@ -129,11 +129,11 @@ final class AreaSheetAuditTests: XCTestCase {
         // ---- 6b. Select from browse: the sheet hands off to the map -------
         // Tapping a trail is a question about WHERE it is, so selecting from
         // the tall stop drops the sheet to fit and the trail is framed above.
-        let browseRowName = tapFirstTrailRow(app)
+        let browseRowIdentifier = tapFirstTrailRow(app)
         settle(3)
         capture(app, "sheet-07b-selected-from-browse")
-        logFrames(app, "selected-from-browse", extraText: browseRowName)
-        if let name = browseRowName {
+        logFrames(app, "selected-from-browse", extraRowIdentifier: browseRowIdentifier)
+        if let identifier = browseRowIdentifier {
             if let atBrowse = toolbarY["browse-after-deselect"],
                let afterSelect = toolbarY["selected-from-browse"] {
                 // Larger minY = lower on screen = the sheet dropped. The design
@@ -148,7 +148,7 @@ final class AreaSheetAuditTests: XCTestCase {
                 XCTFail("Missing toolbar measurements for the select-from-browse handoff: \(toolbarY.keys.sorted())")
             }
             // Deselect returns to browse, since the drop was for the selection.
-            tapElement(app.staticTexts[name].firstMatch)
+            tapElement(app.buttons[identifier].firstMatch)
             settle(3)
             capture(app, "sheet-07c-deselected-back-to-browse")
             logFrames(app, "deselected-back-to-browse")
@@ -174,6 +174,84 @@ final class AreaSheetAuditTests: XCTestCase {
         logFrames(app, "collection-closed")
 
         assertLayoutInvariants()
+    }
+
+    func testAuditRecoveredGpsAndGapSummary() {
+        let app = launchRecordingAudit(arguments: ["--uitest-recording-gap"])
+        guard openRecordingArea(app) else { return }
+
+        let status = app.descendants(matching: .any)["recording-gps-status"].firstMatch
+        XCTAssertTrue(status.waitForExistence(timeout: 10), "Recovered GPS status is missing")
+        XCTAssertEqual(status.label, "GPS recovered")
+        capture(app, "field-trust-01-gps-recovered")
+        logElementFrame(app, status, tag: "gps-recovered")
+
+        let stop = app.buttons["recording-stop-button"].firstMatch
+        guard stop.waitForExistence(timeout: 10) else {
+            dumpTree(app, "recording-stop-missing")
+            XCTFail("Recording stop control is missing")
+            return
+        }
+        tapElement(stop)
+        let save = app.buttons["Stop & Save"].firstMatch
+        guard save.waitForExistence(timeout: 10) else {
+            dumpTree(app, "stop-save-dialog-missing")
+            XCTFail("Stop & Save action is missing")
+            return
+        }
+        tapElement(save)
+
+        let gapCopy = app.descendants(matching: .any)["recording-gap-summary"].firstMatch
+        XCTAssertTrue(gapCopy.waitForExistence(timeout: 60), "Saved hike gap explanation is missing")
+        capture(app, "field-trust-02-gap-summary")
+        logElementFrame(app, gapCopy, tag: "gap-summary")
+    }
+
+    func testAuditPausedGpsState() {
+        let app = launchRecordingAudit(arguments: ["--uitest-recording-paused"])
+        guard openRecordingArea(app) else { return }
+
+        let status = app.descendants(matching: .any)["recording-gps-status"].firstMatch
+        XCTAssertTrue(status.waitForExistence(timeout: 10), "Paused GPS status is missing")
+        XCTAssertEqual(status.label, "GPS paused—route stays safe")
+        capture(app, "field-trust-03-gps-paused")
+        logElementFrame(app, status, tag: "gps-paused")
+    }
+
+    private func launchRecordingAudit(arguments: [String]) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["--uitest-seed"] + arguments
+        app.launch()
+        settle(25)
+        return app
+    }
+
+    private func openRecordingArea(_ app: XCUIApplication) -> Bool {
+        openStatsTab(app)
+        _ = app.staticTexts["Recent Hikes"].firstMatch.waitForExistence(timeout: 60)
+        guard openAreaFromStats(app) else {
+            capture(app, "field-trust-area-never-opened")
+            XCTFail("Recording area never appeared")
+            return false
+        }
+        settle(8)
+        return true
+    }
+
+    private func logElementFrame(_ app: XCUIApplication, _ element: XCUIElement, tag: String) {
+        guard element.exists else {
+            print("AUDIT[\(tag)] element: MISSING")
+            return
+        }
+        let frame = element.frame
+        let screen = app.frame
+        print("AUDIT[\(tag)] element: x=\(Int(frame.minX)) y=\(Int(frame.minY)) "
+              + "w=\(Int(frame.width)) h=\(Int(frame.height)) maxY=\(Int(frame.maxY)) "
+              + "screenW=\(Int(screen.width)) screenH=\(Int(screen.height))")
+        XCTAssertGreaterThanOrEqual(frame.minX, screen.minX - 1)
+        XCTAssertLessThanOrEqual(frame.maxX, screen.maxX + 1)
+        XCTAssertGreaterThanOrEqual(frame.minY, screen.minY - 1)
+        XCTAssertLessThanOrEqual(frame.maxY, screen.maxY + 1)
     }
 
     /// Turn the audit into a GATE, not just a gallery. Photographs need a human;
@@ -307,9 +385,9 @@ final class AreaSheetAuditTests: XCTestCase {
         tapElement(done)
     }
 
-    /// Tap the first visible trail row and return its name so the caller
-    /// can tap it again to deselect. Rows are identified by their trail
-    /// name static text sitting below the fit stop's action toolbar.
+    /// Tap the first visible trail's semantic Select button and return its
+    /// stable identifier so callers can address the same row after its label
+    /// changes to Deselect. This avoids guessing from localized/static text.
     private func tapFirstTrailRow(_ app: XCUIApplication) -> String? {
         let start = app.buttons["area-record-button"].firstMatch
         guard start.exists else {
@@ -317,26 +395,19 @@ final class AreaSheetAuditTests: XCTestCase {
             return nil
         }
         let rowBandTop = start.frame.maxY + 4
-        // Find the topmost static text below the chrome that looks like a
-        // trail title (skips distance/difficulty captions by height).
-        let texts = app.staticTexts.allElementsBoundByIndex
-        var best: XCUIElement?
-        var bestY = CGFloat.greatestFiniteMagnitude
-        for t in texts {
-            let f = t.frame
-            guard f.minY > rowBandTop, f.height >= 18, f.minX < app.frame.width * 0.5 else { continue }
-            let label = t.label
-            guard !label.isEmpty, !label.contains(" mi"), !label.contains(" ft") else { continue }
-            if f.minY < bestY { bestY = f.minY; best = t }
-        }
-        guard let row = best else {
+        let candidates = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "trail-select-")
+        ).allElementsBoundByIndex
+        let row = candidates
+            .filter { $0.exists && $0.frame.minY > rowBandTop && $0.frame.minY < app.frame.maxY }
+            .min { $0.frame.minY < $1.frame.minY }
+        guard let row else {
             dumpTree(app, "no-trail-row-found")
             return nil
         }
-        let name = row.label
-        print("AUDIT tapping first trail row: \(name)")
+        print("AUDIT tapping first trail row: \(row.identifier), label=\(row.label)")
         tapElement(row)
-        return name
+        return row.identifier
     }
 
     // MARK: - Frame logging
@@ -344,21 +415,26 @@ final class AreaSheetAuditTests: XCTestCase {
     /// Print the frames that decide whether this layout is clipped. The
     /// screen height is printed alongside so `maxY > screen` is readable
     /// straight off the CI log.
-    private func logFrames(_ app: XCUIApplication, _ tag: String, extraText: String? = nil) {
+    private func logFrames(_ app: XCUIApplication, _ tag: String, extraRowIdentifier: String? = nil) {
         let screen = app.frame
         func line(_ label: String, _ e: XCUIElement) {
             guard e.exists else { print("AUDIT[\(tag)] \(label): MISSING"); return }
             let f = e.frame
             print("AUDIT[\(tag)] \(label): x=\(Int(f.minX)) y=\(Int(f.minY)) w=\(Int(f.width)) h=\(Int(f.height)) maxY=\(Int(f.maxY)) screenH=\(Int(screen.height))")
+            XCTAssertGreaterThanOrEqual(f.minX, screen.minX - 1, "\(label) clips past the leading screen edge")
+            XCTAssertLessThanOrEqual(f.maxX, screen.maxX + 1, "\(label) clips past the trailing screen edge")
+            XCTAssertGreaterThanOrEqual(f.minY, screen.minY - 1, "\(label) clips past the top screen edge")
+            XCTAssertLessThanOrEqual(f.maxY, screen.maxY + 1, "\(label) clips past the bottom screen edge")
         }
+        print("AUDIT[configuration] width=\(Int(screen.width)) height=\(Int(screen.height))")
         print("AUDIT[\(tag)] ---- frames ----")
         line("area-name", app.staticTexts["South Mountain Park and Preserve"].firstMatch)
         line("start-button", app.buttons["area-record-button"].firstMatch)
         line("search-field", app.textFields["Search trails"].firstMatch)
         let start = app.buttons["area-record-button"].firstMatch
         if start.exists { toolbarY[tag] = start.frame.minY }
-        if let extra = extraText {
-            line("selected-row-title", app.staticTexts[extra].firstMatch)
+        if let identifier = extraRowIdentifier {
+            line("selected-row", app.buttons[identifier].firstMatch)
         }
         // The first few trail-title-looking texts, to see row boundaries —
         // banded below the toolbar (fit) or the search field (browse).

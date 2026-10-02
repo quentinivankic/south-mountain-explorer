@@ -300,8 +300,9 @@ struct HomeView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
                     ForEach(items) { area in
-                        AreaCard(area: area)
-                            .onTapGesture { selectedArea = area }
+                        AreaCard(area: area) {
+                            selectedArea = area
+                        }
                     }
                 }
                 .padding(.horizontal, 4)
@@ -364,8 +365,9 @@ struct HomeView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14) {
                         ForEach(nearbyAreas) { area in
-                            AreaCard(area: area)
-                                .onTapGesture { selectedArea = area }
+                            AreaCard(area: area) {
+                                selectedArea = area
+                            }
                         }
                     }
                     .padding(.horizontal, 4)
@@ -389,6 +391,8 @@ struct HomeView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("continue-card")
+            .accessibilityLabel("Open Area, \(area.name)")
+            .accessibilityHint("Returns to this area's map and trail list")
         }
     }
 

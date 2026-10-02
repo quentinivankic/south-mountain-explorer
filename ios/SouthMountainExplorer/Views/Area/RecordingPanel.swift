@@ -121,6 +121,8 @@ struct RecordingPanel: View {
                 Spacer(minLength: 0)
             }
             .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("recording-gps-status")
+            .accessibilityLabel(gpsStatus.text)
 
             // Live elevation strip — the 70pt slot is ALWAYS reserved. Before
             // there are enough altitude samples (the first minutes of a hike,
@@ -179,6 +181,9 @@ struct RecordingPanel: View {
                     .frame(width: 56, height: 56)
                 }
                 .disabled(isStopping || recording.isStopping)
+                .accessibilityIdentifier("recording-stop-button")
+                .accessibilityLabel(isStopping ? "Saving recording" : "Stop recording")
+                .accessibilityHint("Opens options to save, discard, or keep recording")
             }
 
             estimatesLine
@@ -428,6 +433,7 @@ struct RecordingSummarySheet: View {
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal)
+                            .accessibilityIdentifier("recording-gap-summary")
                     }
 
                     // Cumulative area progress

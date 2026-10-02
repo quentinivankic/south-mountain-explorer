@@ -186,6 +186,7 @@ struct HomeView: View {
                     await refreshLocation()
                 }
             }
+            .modifier(ExploreScrollViewportModifier())
             .trailMeshBackground()
             .navigationTitle("Explore")
             .toolbar {
@@ -591,5 +592,27 @@ struct HomeView: View {
             + cos(lat * .pi / 180) * cos(a.centerLat * .pi / 180)
             * sin(dLon / 2) * sin(dLon / 2)
         return R * 2 * atan2(sqrt(h), sqrt(1 - h))
+    }
+}
+
+private struct ExploreScrollViewportModifier: ViewModifier {
+    private let breathingSpace: CGFloat = 8
+
+    func body(content: Content) -> some View {
+        GeometryReader { geometry in
+            content
+                .contentMargins(
+                    .top,
+                    geometry.safeAreaInsets.top + breathingSpace,
+                    for: .scrollContent
+                )
+                .contentMargins(
+                    .bottom,
+                    geometry.safeAreaInsets.bottom + breathingSpace,
+                    for: .scrollContent
+                )
+                .toolbarBackground(.regularMaterial, for: .navigationBar, .tabBar)
+                .toolbarBackground(.visible, for: .navigationBar, .tabBar)
+        }
     }
 }

@@ -65,6 +65,7 @@ final class AreaSheetAuditTests: XCTestCase {
         // ---- 1. As opened: the fit stop (the sheet's opening detent) ------
         capture(app, "sheet-01-fit-initial")
         logFrames(app, "fit-initial")
+        assertFitAreaPresentation(app)
 
         // ---- 2. The smallest stop: the state in every bug report ----------
         dragSheet(app, toBottom: true)
@@ -88,12 +89,16 @@ final class AreaSheetAuditTests: XCTestCase {
         // ---- 4. Select a trail at the min stop ----------------------------
         let firstRowIdentifier = tapFirstTrailRow(app)
         settle(3)
+        assertSelectedTrailPresentation(app, rowIdentifier: firstRowIdentifier)
         capture(app, "sheet-05-min-trail-selected")
-        logFrames(app, "min-trail-selected", extraRowIdentifier: firstRowIdentifier)
+        logFrames(app, "min-trail-selected")
 
         // ---- 5. Deselect: the toolbar and rows must return to idle --------
         if let identifier = firstRowIdentifier {
-            tapElement(app.buttons[identifier].firstMatch)
+            let select = app.buttons[identifier].firstMatch
+            let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+            XCTAssertTrue(scrollToReachable(select, in: trailScroll, app: app))
+            tapElement(select)
             settle(3)
         }
         capture(app, "sheet-06-min-trail-deselected")
@@ -105,6 +110,8 @@ final class AreaSheetAuditTests: XCTestCase {
             app.textFields["Search trails"].firstMatch.exists,
             "The search field rendered at the fit stop; it must exist only at browse"
         )
+        XCTAssertEqual(app.buttons["area-search-button"].count, 1)
+        XCTAssertEqual(app.buttons["trail-filter-button"].count, 0)
 
         // ---- 6. Drag up to the browse stop (the only other stop) ----------
         dragSheet(app, toBottom: false)
@@ -117,6 +124,9 @@ final class AreaSheetAuditTests: XCTestCase {
             app.textFields["Search trails"].firstMatch.waitForExistence(timeout: 10),
             "The search field is missing at the browse stop, where the chrome lives"
         )
+        XCTAssertEqual(app.textFields["Search trails"].count, 1)
+        XCTAssertEqual(app.buttons["trail-filter-button"].count, 1)
+        XCTAssertEqual(app.buttons["area-search-button"].count, 0)
 
         // The map must stay visible even at the tallest stop: the area name
         // heads the sheet, so its top edge is the sheet's top edge, and it
@@ -172,6 +182,18 @@ final class AreaSheetAuditTests: XCTestCase {
         settle(3)
         capture(app, "sheet-08-collection-open")
         logFrames(app, "collection-open")
+
+        let collectionScroll = app.scrollViews["collection-scroll"].firstMatch
+        XCTAssertTrue(collectionScroll.waitForExistence(timeout: 10), "Collection scroll is missing")
+        let finalCollectionContent = app.descendants(matching: .any)[
+            "collection-dedication-final"
+        ].firstMatch
+        XCTAssertTrue(
+            scrollToReachable(finalCollectionContent, in: collectionScroll, app: app),
+            "Collection final content is not reachable"
+        )
+        logElementFrame(app, finalCollectionContent, tag: "collection-lower-content")
+        capture(app, "sheet-08b-collection-lower-content")
 
         // ---- 8. Close the Collection: the sheet underneath must be exactly
         // the idle min-stop layout it was before the presentation.
@@ -284,6 +306,49 @@ final class AreaSheetAuditTests: XCTestCase {
         capture(app, "field-trust-00-explore-area-card")
         logElementFrame(app, open, tag: "explore-area-card-open")
         logElementFrame(app, save, tag: "explore-area-card-save")
+    }
+
+    private func assertFitAreaPresentation(_ app: XCUIApplication) {
+        let header = app.descendants(matching: .any)["area-header"].firstMatch
+        let title = app.descendants(matching: .any)["area-header-title"].firstMatch
+        let actions = app.descendants(matching: .any)["area-action-group"].firstMatch
+        XCTAssertTrue(header.exists, "Area header is missing")
+        XCTAssertTrue(title.exists, "Area title is missing")
+        XCTAssertTrue(actions.exists, "Area action group is missing")
+        logElementFrame(app, header, tag: "area-header")
+        logElementFrame(app, title, tag: "area-title")
+        logElementFrame(app, actions, tag: "area-actions")
+        XCTAssertEqual(app.buttons["area-record-button"].count, 1)
+        XCTAssertEqual(app.buttons["area-search-button"].count, 1)
+        XCTAssertEqual(app.buttons["area-collection-button"].count, 1)
+    }
+
+    private func assertSelectedTrailPresentation(
+        _ app: XCUIApplication,
+        rowIdentifier: String?
+    ) {
+        guard let rowIdentifier else {
+            XCTFail("Selected trail row identifier is missing")
+            return
+        }
+        let suffix = String(rowIdentifier.dropFirst("trail-select-".count))
+        let select = app.buttons[rowIdentifier].firstMatch
+        let secondary = app.buttons["trail-secondary-\(suffix)"].firstMatch
+        let profile = app.descendants(matching: .any)["trail-profile-\(suffix)"].firstMatch
+        XCTAssertTrue(select.exists, "Selected trail action is missing")
+        XCTAssertTrue(secondary.exists, "Selected trail secondary action is missing")
+        XCTAssertTrue(profile.exists, "Selected trail profile is missing")
+        XCTAssertNotEqual(select.identifier, secondary.identifier)
+        XCTAssertNotEqual(select.label, secondary.label)
+        logElementFrame(app, select, tag: "trail-select")
+        logElementFrame(app, secondary, tag: "trail-secondary")
+        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+        XCTAssertTrue(trailScroll.exists, "Trail list scroll is missing")
+        XCTAssertTrue(
+            scrollToReachable(profile, in: trailScroll, app: app),
+            "Selected trail profile is not reachable"
+        )
+        logElementFrame(app, profile, tag: "trail-profile")
     }
 
     private func stopControlCount(_ app: XCUIApplication) -> Int {

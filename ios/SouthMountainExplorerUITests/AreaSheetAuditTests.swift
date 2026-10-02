@@ -452,7 +452,7 @@ final class AreaSheetAuditTests: XCTestCase {
             dumpTree(app, "no-trail-row-found")
             return nil
         }
-        print("AUDIT tapping first trail row: \(row.identifier), label=\(row.label)")
+        print("AUDIT tapping first trail row: \(row.identifier)")
         tapElement(row)
         return row.identifier
     }
@@ -493,7 +493,7 @@ final class AreaSheetAuditTests: XCTestCase {
         for t in app.staticTexts.allElementsBoundByIndex {
             let f = t.frame
             guard f.minY > bandTop, f.height >= 18 else { continue }
-            print("AUDIT[\(tag)] text \"\(t.label.prefix(28))\": y=\(Int(f.minY)) maxY=\(Int(f.maxY))")
+            print("AUDIT[\(tag)] text-index=\(printed): y=\(Int(f.minY)) maxY=\(Int(f.maxY))")
             if firstTitleY == nil, !t.label.contains(" mi"), !t.label.contains(" ft") {
                 firstTitleY = f.minY
             }
@@ -570,8 +570,7 @@ final class AreaSheetAuditTests: XCTestCase {
     }
 
     private func dumpTree(_ app: XCUIApplication, _ tag: String) {
-        print("===== UI TREE [\(tag)] =====")
-        print(app.debugDescription)
-        print("===== END UI TREE [\(tag)] =====")
+        let elementCount = app.descendants(matching: .any).count
+        print("AUDIT[\(tag)] hierarchy unavailable; elementCount=\(elementCount)")
     }
 }

@@ -10,9 +10,27 @@ enum RecenterLocationState: Equatable {
     case unavailable
 }
 
+enum RecenterCameraOwner: CaseIterable {
+    case openingFraming
+    case selection
+    case switchedTrail
+    case fitSelectedTrail
+    case follow
+    case gesture
+    case recording
+    case viewDisappearance
+}
+
 enum RecenterRequestGate {
     static func mayApply(request: Int, current: Int) -> Bool {
         request == current
+    }
+
+    static func invalidatedGeneration(
+        current: Int,
+        owner _: RecenterCameraOwner
+    ) -> Int {
+        current &+ 1
     }
 }
 
@@ -297,7 +315,7 @@ struct TrailMapView: View {
                     // invalidates a pending one-shot recenter so a late fix
                     // cannot take the camera back.
                     releaseOpeningFraming()
-                    cancelPendingRecenter()
+                    cancelPendingRecenter(for: .gesture)
                 }
             )
 
@@ -354,6 +372,9 @@ struct TrailMapView: View {
             // ~1500 m as the recenter button — rather than the whole-park
             // overview. Uses the recording's own last GPS sample, so it
             // works even before a fresh live fix lands.
+            // Any opening target must remain authoritative over a one-shot
+            // recenter result that was requested before this appearance.
+            cancelPendingRecenter(for: .openingFraming)
             if (activeRecording?.path.count ?? 0) >= 2 {
                 centerOnActiveRecording()
             } else if let id = selectedTrailId,
@@ -397,6 +418,7 @@ struct TrailMapView: View {
             // looking, and a later sheet move must not pull it back to the
             // overview.
             releaseOpeningFraming()
+            cancelPendingRecenter(for: .selection)
             // Recompute the orange walked-since-completion overlay
             // for the newly-selected trail. Cheap — one trail at a
             // time. Clears to empty when nothing's selected.
@@ -431,6 +453,7 @@ struct TrailMapView: View {
             // can see both. Falls back to centerOn(trail:) if we
             // don't have a fresh location fix yet.
             releaseOpeningFraming()
+            cancelPendingRecenter(for: .switchedTrail)
             guard let id = selectedTrailId,
                   let trail = area.trails.first(where: { $0.id == id }) else {
                 return
@@ -447,6 +470,7 @@ struct TrailMapView: View {
             // the one the area was opened on, and the inset refit is already
             // keeping it framed for every sheet move — a second animated
             // camera move to the same region would only cut the first short.
+            cancelPendingRecenter(for: .fitSelectedTrail)
             guard !holdsOpeningFraming,
                   let id = selectedTrailId,
                   let trail = area.trails.first(where: { $0.id == id }) else {
@@ -460,7 +484,10 @@ struct TrailMapView: View {
         .onChange(of: trackingMode, initial: false) { _, newMode in
             // Engaging a follow mode hands the camera to the user's position;
             // the overview must not come back when the sheet moves.
-            if newMode != .free { releaseOpeningFraming() }
+            if newMode != .free {
+                cancelPendingRecenter(for: .follow)
+                releaseOpeningFraming()
+            }
             applyTrackingMode(newMode)
         }
         // While in a tracking mode, push every new GPS sample (and
@@ -492,6 +519,7 @@ struct TrailMapView: View {
             } else {
                 // A hike just started: the camera follows the hike from
                 // here, never the overview.
+                cancelPendingRecenter(for: .recording)
                 releaseOpeningFraming()
             }
         }
@@ -505,7 +533,7 @@ struct TrailMapView: View {
             // even when the HUD was never enabled.
             FPSCounter.shared.stop()
             openingRefit.task?.cancel()
-            cancelPendingRecenter()
+            cancelPendingRecenter(for: .viewDisappearance)
             location.releaseLocation(for: locationConsumer)
             location.releaseHeading(for: locationConsumer)
         }
@@ -599,8 +627,11 @@ struct TrailMapView: View {
         }
     }
 
-    private func cancelPendingRecenter() {
-        recenterGeneration += 1
+    private func cancelPendingRecenter(for owner: RecenterCameraOwner) {
+        recenterGeneration = RecenterRequestGate.invalidatedGeneration(
+            current: recenterGeneration,
+            owner: owner
+        )
         if recenterState == .locating {
             recenterState = .idle
         }
@@ -642,6 +673,7 @@ struct TrailMapView: View {
     /// move.
     private func reapplyOpeningFraming() {
         guard holdsOpeningFraming, activeRecording == nil, trackingMode == .free else { return }
+        cancelPendingRecenter(for: .openingFraming)
         if let id = selectedTrailId,
            let trail = area.trails.first(where: { $0.id == id }) {
             centerOn(trail: trail)

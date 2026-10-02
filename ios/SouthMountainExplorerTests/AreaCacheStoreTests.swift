@@ -128,6 +128,71 @@ struct AreaCacheStoreTests {
         #expect(live.validArea(id: "a")?.name == "Old")
     }
 
+    @Test func rollbackThrowingBeforeMutationRetriesAndRestoresPriorBytesExactly() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let live = AreaCacheStore(cacheDirectory: directory)
+        #expect(live.store(area(id: "a", name: "Old")).succeeded)
+        let oldBytes = try #require(live.validBytes(id: "a"))
+        let liveIO = AreaCacheStore.IO.live()
+        final class PromotionState { var callCount = 0 }
+        let state = PromotionState()
+        let store = AreaCacheStore(
+            cacheDirectory: directory,
+            io: .init(
+                read: liveIO.read,
+                writeStaged: liveIO.writeStaged,
+                promote: { stagedURL, destinationURL in
+                    state.callCount += 1
+                    switch state.callCount {
+                    case 1:
+                        try liveIO.promote(stagedURL, destinationURL)
+                        throw CocoaError(.fileWriteUnknown)
+                    case 2:
+                        throw CocoaError(.fileWriteUnknown)
+                    default:
+                        try liveIO.promote(stagedURL, destinationURL)
+                    }
+                },
+                remove: liveIO.remove
+            )
+        )
+
+        #expect(store.store(area(id: "a", name: "New")).failure == .promotionFailed)
+        #expect(state.callCount == 3, "rollback should retry after a pre-mutation error")
+        #expect(try Data(contentsOf: live.fileURL(for: "a")) == oldBytes)
+        #expect(live.validArea(id: "a")?.name == "Old")
+    }
+
+    @Test func rollbackMutatingBeforeThrowIsVerifiedAsSuccessful() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let live = AreaCacheStore(cacheDirectory: directory)
+        #expect(live.store(area(id: "a", name: "Old")).succeeded)
+        let oldBytes = try #require(live.validBytes(id: "a"))
+        let liveIO = AreaCacheStore.IO.live()
+        final class PromotionState { var callCount = 0 }
+        let state = PromotionState()
+        let store = AreaCacheStore(
+            cacheDirectory: directory,
+            io: .init(
+                read: liveIO.read,
+                writeStaged: liveIO.writeStaged,
+                promote: { stagedURL, destinationURL in
+                    state.callCount += 1
+                    try liveIO.promote(stagedURL, destinationURL)
+                    throw CocoaError(.fileWriteUnknown)
+                },
+                remove: liveIO.remove
+            )
+        )
+
+        #expect(store.store(area(id: "a", name: "New")).failure == .promotionFailed)
+        #expect(state.callCount == 2, "the mutated rollback destination should be verified directly")
+        #expect(try Data(contentsOf: live.fileURL(for: "a")) == oldBytes)
+        #expect(live.validArea(id: "a")?.name == "Old")
+    }
+
     @Test func finalReadbackFailureRollsBackPriorBytesExactly() throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }

@@ -452,7 +452,7 @@ final class AreaSheetAuditTests: XCTestCase {
             dumpTree(app, "no-trail-row-found")
             return nil
         }
-        print("AUDIT tapping first trail row: \(row.identifier)")
+        print("AUDIT tapping first trail row")
         tapElement(row)
         return row.identifier
     }

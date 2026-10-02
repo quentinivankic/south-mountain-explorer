@@ -88,9 +88,21 @@ jobs:
 
       - name: Pick exact simulator class
         run: |
-          read -r UDID NAME < <(xcrun simctl list devices available -j | python3 -c '
-          import json, os, sys
-          devices = [device for runtime in json.load(sys.stdin)["devices"].values() for device in runtime]
+          read -r UDID NAME < <(python3 -c '
+          import json, os, subprocess
+
+          def simctl_json(*args):
+              output = subprocess.check_output(
+                  ["xcrun", "simctl", "list", *args, "-j"],
+                  text=True,
+              )
+              return json.loads(output)
+
+          devices = [
+              device
+              for runtime in simctl_json("devices", "available")["devices"].values()
+              for device in runtime
+          ]
           iphones = [device for device in devices if "iPhone" in device["name"]]
           role = os.environ["DEVICE_ROLE"]
           if role == "large":
@@ -99,6 +111,34 @@ jobs:
               matches = [by_name[name] for name in preferred if name in by_name]
           elif role == "small":
               matches = [device for device in iphones if device["name"] == "iPhone SE (3rd generation)"]
+              if not matches:
+                  device_types = simctl_json("devicetypes")["devicetypes"]
+                  device_type = next(
+                      (item for item in device_types if item["name"] == "iPhone SE (3rd generation)"),
+                      None,
+                  )
+                  runtimes = [
+                      item for item in simctl_json("runtimes", "available")["runtimes"]
+                      if item.get("isAvailable")
+                      and item["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")
+                  ]
+                  if device_type is None:
+                      raise SystemExit("No iPhone SE (3rd generation) simulator device type is available")
+                  if not runtimes:
+                      raise SystemExit("No available iOS simulator runtime can host the small audit")
+                  runtime = max(
+                      runtimes,
+                      key=lambda item: tuple(int(part) for part in item["version"].split(".")),
+                  )
+                  udid = subprocess.check_output(
+                      [
+                          "xcrun", "simctl", "create", device_type["name"],
+                          device_type["identifier"], runtime["identifier"],
+                      ],
+                      text=True,
+                  ).strip()
+                  print(udid, device_type["name"])
+                  raise SystemExit
           else:
               raise SystemExit(f"Unknown device role: {role}")
           if not matches:

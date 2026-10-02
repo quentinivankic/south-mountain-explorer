@@ -354,6 +354,7 @@ struct TrailListView: View {
                 // home-indicator strip as a bottom CONTENT inset. It was on the
                 // LazyVStack — the scroll view's CONTENT — where it did nothing
                 // about the scroll view's own inset.
+                .accessibilityIdentifier("trail-list-scroll")
                 .ignoresSafeArea(edges: .bottom)
                 // A scroll gesture puts the keyboard away — with the search
                 // field only present at browse, the list fills the sheet
@@ -515,6 +516,7 @@ struct TrailListView: View {
             .padding(.vertical, 4)
         }
         .accessibilityLabel("Filter trails")
+        .accessibilityIdentifier("trail-filter-button")
     }
 }
 
@@ -533,6 +535,7 @@ struct TrailRow: View {
     @Environment(CoverageService.self) private var coverage
     @Environment(RecordingService.self) private var recording
     @Environment(LocationService.self) private var location
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     /// Chart orientation, LATCHED when the profile opens.
@@ -649,104 +652,10 @@ struct TrailRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ZStack(alignment: .topTrailing) {
-                Button(action: toggleSelection) {
-                    HStack(spacing: 14) {
-                // The trail's own shape, stroked in its difficulty color
-                // (cyan once completed — same color language as the map's cyan
-                // completed stroke). Replaced the leaf/arrow/bolt difficulty
-                // glyphs; difficulty stays readable via the colored text in the
-                // caption row.
-                TrailShapeThumb(
-                    trail: trail,
-                    color: isComplete ? .completedTrail : difficultyColor
-                )
-
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack {
-                        Text(trail.name)
-                            .font(.body)
-                            .fontWeight(isRecordingThis ? .semibold : .regular)
-                        if isRecordingThis {
-                            Image(systemName: "record.circle.fill")
-                                .foregroundStyle(.red)
-                                .symbolEffect(.pulse)
-                        }
-                    }
-
-                    HStack(spacing: 8) {
-                        Label(UnitFormatter.distance(miles: trail.distanceMi, units: units), systemImage: "figure.walk")
-                        if let gain = trail.gainFt, gain > 0 {
-                            Text("·")
-                            // An up-and-down arrow, not an up arrow. `gainFt` is
-                            // `max(ascent, descent)` over the trail — the climb
-                            // in the HARDER direction — because OSM way order is
-                            // arbitrary and a one-way "gain" would be a coin
-                            // flip. Measured over a 400-area sample: 46.7% of
-                            // trails with a profile fall further than they
-                            // climb in stored order, and 26.8% of all of them
-                            // had this badge claiming at least twice the climb
-                            // the drawn direction actually has. Shaughnessey
-                            // Connector is the example that surfaced it: 238 ft
-                            // of pure descent, badged as a 220 ft ascent right
-                            // above a chart that visibly only goes down.
-                            Label(UnitFormatter.elevation(feet: Double(gain), units: units),
-                                  systemImage: "arrow.up.and.down")
-                                .accessibilityLabel(
-                                    "\(UnitFormatter.elevation(feet: Double(gain), units: units)) of elevation change"
-                                )
-                        }
-                        Text("·")
-                        Text(trail.difficulty.rawValue)
-                            .foregroundStyle(difficultyColor)
-                        // Loop/Linear removed from the row: the trail's own
-                        // shape thumbnail on the left already shows whether it
-                        // closes on itself, so the label was restating the
-                        // picture and crowding the caption line. Still available
-                        // as a FILTER in the menu.
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                    if coveragePct > 0.02 && !isComplete {
-                        ProgressView(value: coveragePct)
-                            .tint(difficultyColor)
-                            .frame(maxWidth: 120)
-                    }
-                }
-
-                Spacer()
-
-                // Reserve the trailing action's footprint inside the primary
-                // button label. The real completion/record control is overlaid
-                // as a semantic sibling below, so the row keeps its exact
-                // visual geometry without nesting one Button inside another.
-                    Color.clear
-                        .frame(width: 24, height: 24)
-                        .accessibilityHidden(true)
-                    }
-                }
-                .buttonStyle(.plain)
-                .contentShape(Rectangle())
-                .accessibilityIdentifier("trail-select-\(trail.id)")
-                .accessibilityLabel(isSelected ? "Deselect Trail, \(trail.name)" : "Select Trail, \(trail.name)")
-                .accessibilityHint(
-                    isSelected
-                        ? "Removes this trail from the map selection"
-                        : "Highlights this trail on the map and shows its details"
-                )
-
-                Button(action: performSecondaryAction) {
-                    Image(systemName: recordControlSymbol)
-                        .font(.title3)
-                        .foregroundStyle(recordControlStyle)
-                        .symbolEffect(.pulse, isActive: isRecordingThis)
-                        .frame(width: 24, height: 24)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("trail-secondary-\(trail.id)")
-                .accessibilityLabel(secondaryActionLabel)
-                .accessibilityHint(secondaryActionHint)
+            if dynamicTypeSize.isAccessibilitySize {
+                accessibilityRowHeader
+            } else {
+                compactRowHeader
             }
 
         // The profile expands INTO the selected row rather than opening a
@@ -780,9 +689,10 @@ struct TrailRow: View {
                     )
                 }
             )
-            .frame(height: 96)
-            .padding(.trailing, 4)
+            .frame(height: dynamicTypeSize.isAccessibilitySize ? 250 : 96)
+            .padding(.trailing, dynamicTypeSize.isAccessibilitySize ? 0 : 4)
             .transition(.opacity.combined(with: .move(edge: .top)))
+            .accessibilityIdentifier("trail-profile-\(trail.id)")
             .accessibilityLabel(profileAccessibilityLabel)
         }
 
@@ -794,8 +704,10 @@ struct TrailRow: View {
                     .font(.caption)
                     .foregroundStyle(pk.isNear ? Color.blue : Color.orange)
                 Text(pk.text)
-                    .font(.caption)
+                    .font(dynamicTypeSize.isAccessibilitySize ? .body : .caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : nil)
+                    .fixedSize(horizontal: false, vertical: dynamicTypeSize.isAccessibilitySize)
                 Spacer(minLength: 0)
             }
             .padding(.top, 3)
@@ -826,6 +738,176 @@ struct TrailRow: View {
             }
         }
         .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
+    }
+
+    private var compactRowHeader: some View {
+        ZStack(alignment: .topTrailing) {
+            Button(action: toggleSelection) {
+                HStack(spacing: 14) {
+                    TrailShapeThumb(
+                        trail: trail,
+                        color: isComplete ? .completedTrail : difficultyColor
+                    )
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack {
+                            Text(trail.name)
+                                .font(.body)
+                                .fontWeight(isRecordingThis ? .semibold : .regular)
+                            if isRecordingThis {
+                                Image(systemName: "record.circle.fill")
+                                    .foregroundStyle(.red)
+                                    .symbolEffect(.pulse)
+                            }
+                        }
+
+                        HStack(spacing: 8) {
+                            Label(
+                                UnitFormatter.distance(miles: trail.distanceMi, units: units),
+                                systemImage: "figure.walk"
+                            )
+                            if let gain = trail.gainFt, gain > 0 {
+                                Text("·")
+                                Label(
+                                    UnitFormatter.elevation(feet: Double(gain), units: units),
+                                    systemImage: "arrow.up.and.down"
+                                )
+                                .accessibilityLabel(
+                                    "\(UnitFormatter.elevation(feet: Double(gain), units: units)) of elevation change"
+                                )
+                            }
+                            Text("·")
+                            Text(trail.difficulty.rawValue)
+                                .foregroundStyle(difficultyColor)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                        if coveragePct > 0.02 && !isComplete {
+                            ProgressView(value: coveragePct)
+                                .tint(difficultyColor)
+                                .frame(maxWidth: 120)
+                        }
+                    }
+
+                    Spacer()
+                    Color.clear
+                        .frame(width: 24, height: 24)
+                        .accessibilityHidden(true)
+                }
+            }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+            .accessibilityIdentifier("trail-select-\(trail.id)")
+            .accessibilityLabel(
+                isSelected ? "Deselect Trail, \(trail.name)" : "Select Trail, \(trail.name)"
+            )
+            .accessibilityHint(selectionAccessibilityHint)
+
+            Button(action: performSecondaryAction) {
+                Image(systemName: recordControlSymbol)
+                    .font(.title3)
+                    .foregroundStyle(recordControlStyle)
+                    .symbolEffect(.pulse, isActive: isRecordingThis)
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("trail-secondary-\(trail.id)")
+            .accessibilityLabel(secondaryActionLabel)
+            .accessibilityHint(secondaryActionHint)
+        }
+    }
+
+    private var accessibilityRowHeader: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button(action: toggleSelection) {
+                HStack(alignment: .top, spacing: 14) {
+                    TrailShapeThumb(
+                        trail: trail,
+                        color: isComplete ? .completedTrail : difficultyColor
+                    )
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(alignment: .top, spacing: 8) {
+                            Text(trail.name)
+                                .font(.body.weight(isRecordingThis ? .semibold : .regular))
+                                .lineLimit(3)
+                                .fixedSize(horizontal: false, vertical: true)
+                            if isRecordingThis {
+                                Image(systemName: "record.circle.fill")
+                                    .foregroundStyle(.red)
+                                    .symbolEffect(.pulse)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Label(
+                                UnitFormatter.distance(miles: trail.distanceMi, units: units),
+                                systemImage: "figure.walk"
+                            )
+                            if let gain = trail.gainFt, gain > 0 {
+                                Label(
+                                    "\(UnitFormatter.elevation(feet: Double(gain), units: units)) elevation change",
+                                    systemImage: "arrow.up.and.down"
+                                )
+                            }
+                            Label(trail.difficulty.rawValue, systemImage: "figure.hiking")
+                                .foregroundStyle(difficultyColor)
+                        }
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("trail-metadata-\(trail.id)")
+
+                        if coveragePct > 0.02 && !isComplete {
+                            ProgressView(value: coveragePct)
+                                .tint(difficultyColor)
+                                .frame(maxWidth: .infinity)
+                        }
+
+                        Label(
+                            isSelected ? "Deselect Trail" : "Select Trail",
+                            systemImage: isSelected ? "map.fill" : "map"
+                        )
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.tint)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("trail-select-\(trail.id)")
+            .accessibilityLabel(
+                isSelected ? "Deselect Trail, \(trail.name)" : "Select Trail, \(trail.name)"
+            )
+            .accessibilityHint(selectionAccessibilityHint)
+
+            Button(action: performSecondaryAction) {
+                Label(accessibilitySecondaryTitle, systemImage: recordControlSymbol)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(recordControlStyle)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("trail-secondary-\(trail.id)")
+            .accessibilityLabel(secondaryActionLabel)
+            .accessibilityHint(secondaryActionHint)
+        }
+    }
+
+    private var selectionAccessibilityHint: String {
+        isSelected
+            ? "Removes this trail from the map selection"
+            : "Highlights this trail on the map and shows its details"
+    }
+
+    private var accessibilitySecondaryTitle: String {
+        if isSelected { return "Record Trail" }
+        return isComplete ? "Mark Incomplete" : "Mark Complete"
     }
 
     private var secondaryActionLabel: String {

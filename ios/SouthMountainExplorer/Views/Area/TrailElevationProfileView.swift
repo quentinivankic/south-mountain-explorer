@@ -40,6 +40,7 @@ struct TrailElevationProfileView: View {
     var onFlip: (() -> Void)? = nil
 
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// Gap sample-indices in the CURRENTLY DRAWN orientation.
     ///
@@ -85,39 +86,73 @@ struct TrailElevationProfileView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: dynamicTypeSize.isAccessibilitySize ? 8 : 2) {
             if onFlip != nil {
-                // Names the left edge, which the chart alone never did — the
-                // series orients by whichever trail END is nearest you, and
-                // browsing from home that is near-arbitrary with nothing on
-                // screen to say which way it went. The label states the
-                // convention; the button lets you set it when you know better
-                // ("I'm parking at THAT end").
-                HStack(spacing: 6) {
-                    // Names the physical end by compass direction. The earlier
-                    // "nearest end" described the algorithm instead of answering
-                    // the question — ambiguous about nearest to WHAT, silent on
-                    // which end that is, and weakest when browsing from far
-                    // away. A loop has no distinguishable ends, so it falls back
-                    // to the neutral wording rather than inventing a direction.
-                    Text(startEndLabel.map { "Starts: \($0)" } ?? "Start of trail")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Spacer(minLength: 0)
-                    Button(action: { onFlip?() }) {
-                        Label("Flip", systemImage: "arrow.left.arrow.right")
-                            .font(.caption2)
-                            .labelStyle(.titleAndIcon)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.tint)
-                    .accessibilityLabel("Flip profile direction")
-                    .accessibilityHint("Draws the profile from the other end of the trail")
-                }
-                .padding(.bottom, 1)
+                directionControls
             }
             chart
+                .accessibilityHidden(dynamicTypeSize.isAccessibilitySize)
+
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Start: 0 \(distanceUnitLabel)")
+                    Text("End: \(UnitFormatter.distance(miles: totalDistanceMi, units: units))")
+                    Text(elevationRangeLabel)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("trail-profile-range")
+            }
         }
+    }
+
+    @ViewBuilder
+    private var directionControls: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(startEndLabel.map { "Starts: \($0)" } ?? "Start of trail")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                flipButton
+            }
+        } else {
+            HStack(spacing: 6) {
+                Text(startEndLabel.map { "Starts: \($0)" } ?? "Start of trail")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                flipButton
+            }
+            .padding(.bottom, 1)
+        }
+    }
+
+    private var flipButton: some View {
+        Button(action: { onFlip?() }) {
+            Label("Flip", systemImage: "arrow.left.arrow.right")
+                .font(dynamicTypeSize.isAccessibilitySize ? .body.weight(.semibold) : .caption2)
+                .labelStyle(.titleAndIcon)
+                .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil,
+                       alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.tint)
+        .accessibilityIdentifier("trail-profile-flip-button")
+        .accessibilityLabel("Flip profile direction")
+        .accessibilityHint("Draws the profile from the other end of the trail")
+    }
+
+    private var distanceUnitLabel: String {
+        units == .imperial ? "mi" : "km"
+    }
+
+    private var elevationRangeLabel: String {
+        let low = Double(profileFt.min() ?? 0)
+        let high = Double(profileFt.max() ?? 0)
+        return "Elevation: \(UnitFormatter.elevation(feet: low, units: units)) to "
+            + UnitFormatter.elevation(feet: high, units: units)
     }
 
     private var chart: some View {
@@ -208,27 +243,31 @@ struct TrailElevationProfileView: View {
         .chartYScale(domain: yAxis.domain)
         .chartXScale(domain: 0...totalMeters)
         .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: 4)) { value in
-                AxisGridLine().foregroundStyle(.secondary.opacity(0.2))
-                AxisValueLabel {
-                    if let meters = value.as(Double.self) {
-                        let display = units == .imperial ? meters / 1609.344 : meters / 1000
-                        Text(display < 1 ? String(format: "%.2f", display)
-                                         : String(format: "%.1f", display))
-                            .font(.caption2)
+            if !dynamicTypeSize.isAccessibilitySize {
+                AxisMarks(values: .automatic(desiredCount: 4)) { value in
+                    AxisGridLine().foregroundStyle(.secondary.opacity(0.2))
+                    AxisValueLabel {
+                        if let meters = value.as(Double.self) {
+                            let display = units == .imperial ? meters / 1609.344 : meters / 1000
+                            Text(display < 1 ? String(format: "%.2f", display)
+                                             : String(format: "%.1f", display))
+                                .font(.caption2)
+                        }
                     }
                 }
             }
         }
         .chartYAxis {
-            AxisMarks(position: .leading, values: yAxis.ticks) { value in
-                AxisGridLine().foregroundStyle(.secondary.opacity(0.2))
-                AxisValueLabel {
-                    if let ft = value.as(Double.self) {
-                        // The series is in FEET; metric converts at display.
-                        let display = units == .imperial ? ft : ft / 3.28084
-                        Text("\(Int(display.rounded()))")
-                            .font(.caption2)
+            if !dynamicTypeSize.isAccessibilitySize {
+                AxisMarks(position: .leading, values: yAxis.ticks) { value in
+                    AxisGridLine().foregroundStyle(.secondary.opacity(0.2))
+                    AxisValueLabel {
+                        if let ft = value.as(Double.self) {
+                            // The series is in FEET; metric converts at display.
+                            let display = units == .imperial ? ft : ft / 3.28084
+                            Text("\(Int(display.rounded()))")
+                                .font(.caption2)
+                        }
                     }
                 }
             }

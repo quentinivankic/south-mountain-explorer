@@ -989,8 +989,9 @@ struct AreaView: View {
     ///   - trail selected → the ENTIRE expanded card — name, stats, elevation
     ///     chart, parking line — so selecting a trail nudges the sheet up by
     ///     exactly what the card needs, whatever its size.
-    ///   - browsing → the action toolbar plus three whole rows, the third row
-    ///     being the cue that the list continues.
+    ///   - browsing → the action toolbar plus measured trail rows. Standard
+    ///     sizes show three as a continuation cue; accessibility sizes show
+    ///     one complete row without compressing its metadata.
     ///
     /// The terms are measurements, but everything they measure is now FIXED
     /// BY DESIGN for the duration of its context: the dashboard's slots are
@@ -1013,12 +1014,15 @@ struct AreaView: View {
             // Clipping the stop button off the bottom is the worse failure.
             ceiling = maxDetentHeight * 0.85
         } else if selectedTrailId != nil {
-            let card = max(selectedRowHeight, collapsedRowHeight * 3)
+            let referenceRowCount: CGFloat = dynamicTypeSize.isAccessibilitySize ? 1 : 3
+            let card = max(selectedRowHeight, collapsedRowHeight * referenceRowCount)
             h = headerHeightFull + idleToolbarHeight + card
                 - Self.bottomSafeInset + Self.fitBottomAir
             ceiling = browseHeight - 40
         } else {
-            h = headerHeightFull + idleToolbarHeight + collapsedRowHeight * 3
+            let referenceRowCount: CGFloat = dynamicTypeSize.isAccessibilitySize ? 1 : 3
+            h = headerHeightFull + idleToolbarHeight
+                + collapsedRowHeight * referenceRowCount
                 - Self.bottomSafeInset + Self.fitBottomAir
             ceiling = browseHeight - 40
         }
@@ -1536,133 +1540,199 @@ struct AreaView: View {
         )
     }
 
-    /// The idle context's primary actions: start a hike and open the
-    /// Collection. Explicit and labeled — both used to be pages behind an
-    /// unlabeled horizontal swipe, which is why neither was discoverable.
-    /// The Start button states what it will record so there is no way to
-    /// press it and be surprised.
+    /// The idle context's primary actions: start a hike, open Browse search,
+    /// and open the Collection. At accessibility sizes they become full-width
+    /// rows so their labels never compete for horizontal space.
     @ViewBuilder
     private func areaActionRow(area: Area) -> some View {
         let selected = selectedTrailId.flatMap { id in area.trails.first { $0.id == id } }
-        HStack(spacing: 10) {
-            Button {
-                tryStartRecording(trailId: selected?.id)
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "record.circle")
-                        .font(.body.weight(.semibold))
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(spacing: 10) {
+                    areaRecordButton(selected: selected)
+                    if atMinStop {
+                        areaSearchButton
+                    }
+                    areaCollectionButton
+                }
+            } else {
+                HStack(spacing: 10) {
+                    areaRecordButton(selected: selected)
+                    if atMinStop {
+                        areaSearchButton
+                    }
+                    areaCollectionButton
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .accessibilityIdentifier("area-action-group")
+    }
+
+    private func areaRecordButton(selected: Trail?) -> some View {
+        Button {
+            tryStartRecording(trailId: selected?.id)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "record.circle")
+                    .font(.body.weight(.semibold))
+                if dynamicTypeSize.isAccessibilitySize {
+                    Text(selected == nil ? "Start a Hike" : "Record This Trail")
+                        .font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
                     Text(selected == nil ? "Start a Hike" : "Record This Trail")
                         .font(.subheadline.weight(.semibold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .compatibleGlass(in: .capsule)
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("area-record-button")
-            .accessibilityLabel(selected.map { "Record \($0.name)" } ?? "Start a hike")
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 14 : 0)
+            .padding(.vertical, 12)
+            .compatibleGlass(in: .capsule)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("area-record-button")
+        .accessibilityLabel(selected.map { "Record \($0.name)" } ?? "Start a hike")
+    }
 
-            // Search lives at the browse stop; this button is the intentional
-            // way there — expand, then focus once the chrome has mounted.
-            // While a search or filter is ACTIVE, the icon swaps to a filled
-            // filter glyph in the accent color: the fit stop hides the chrome,
-            // so this constant-size badge is how a filtered 3-row list says
-            // it's filtered.
-            Button {
-                sheetDetent = browseDetent
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(400))
-                    searchFocusTick &+= 1
-                }
-            } label: {
+    private var areaSearchButton: some View {
+        Button {
+            sheetDetent = browseDetent
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(400))
+                searchFocusTick &+= 1
+            }
+        } label: {
+            HStack(spacing: 8) {
                 Image(systemName: hasActiveFilter
                       ? "line.3.horizontal.decrease.circle.fill"
                       : "magnifyingglass")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(hasActiveFilter ? Color.accentColor : .primary)
-                    .padding(.horizontal, 13)
-                    .padding(.vertical, 12)
-                    .compatibleGlass(in: .capsule)
+                if dynamicTypeSize.isAccessibilitySize {
+                    Text(hasActiveFilter ? "Search & Filters" : "Search Trails")
+                        .font(.subheadline.weight(.semibold))
+                }
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("area-search-button")
-            .accessibilityLabel(hasActiveFilter
-                                ? "Search and filters — filters active"
-                                : "Search trails")
+            .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 12)
+            .compatibleGlass(in: .capsule)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("area-search-button")
+        .accessibilityLabel(hasActiveFilter
+                            ? "Search and filters — filters active"
+                            : "Search trails")
+    }
 
-            Button {
-                showCollection = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "trophy")
-                        .font(.body.weight(.semibold))
+    private var areaCollectionButton: some View {
+        Button {
+            showCollection = true
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "trophy")
+                    .font(.body.weight(.semibold))
+                if dynamicTypeSize.isAccessibilitySize {
+                    Text("Collection")
+                        .font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
                     Text("Collection")
                         .font(.subheadline.weight(.semibold))
                         .lineLimit(1)
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .compatibleGlass(in: .capsule)
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("area-collection-button")
-            .accessibilityLabel("Collection — badges earned in this area")
+            .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .compatibleGlass(in: .capsule)
         }
-        .padding(.horizontal, 20)
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("area-collection-button")
+        .accessibilityLabel("Collection — badges earned in this area")
     }
 
-    @ViewBuilder
-    private func sheetContent(area: Area) -> some View {
-        VStack(spacing: 0) {
-            // Title + summary block — centered under the drag
-            // indicator, reads as one header. The trail count /
-            // completion line used to live in TrailListView's own
-            // summary header; with the area name now sitting above
-            // it, the two read as redundant stacked headers — moved
-            // up here so the user gets the whole "where am I, what's
-            // here" pitch in one block.
-            VStack(spacing: 4) {
-                // The name and summary NEVER stand down. They used to hide at
-                // the smallest stop while a trail was selected, to buy the
-                // expanded row ~40pt — and the audit photographed the price
-                // (sheet-06-min-trail-deselected, run 32203094649): the header
-                // growing back on deselect while the sheet resized under it
-                // left the search field tucked under the divider. A header
-                // with one height cannot do that, and hiding the park's name
-                // was the same "control that vanishes" mistake as the search
-                // bar's — twice reported as breakage, never read as intent.
-                Text(areaName)
-                    .font(.title3.weight(.semibold))
-                    .lineLimit(1)
+    private func areaHeader(area: Area) -> some View {
+        let completed = progress.completionCount(in: area.id, trails: area.trails)
+        let areaComplete = area.resolvedTrailCount > 0 && completed >= area.resolvedTrailCount
 
-                // Single summary line: trails · total distance (unit-aware)
-                // · completion. `areaTrailIds` is the cached Set from
-                // recomputeFiltered() — avoids a per-eval O(N) rebuild.
-                // Whole line turns green at 100% as an area-complete cue.
-                let completed = progress.completionCount(in: area.id, trails: area.trails)
-                let areaComplete = area.resolvedTrailCount > 0 && completed >= area.resolvedTrailCount
+        return VStack(spacing: dynamicTypeSize.isAccessibilitySize ? 10 : 4) {
+            // Keep content below the system grabber without relying on an
+            // overlay or a font-derived offset. This clearance participates
+            // in the same live measurement as the rest of the header.
+            Color.clear
+                .frame(height: 20)
+                .accessibilityHidden(true)
+
+            Text(areaName)
+                .font(.title3.weight(.semibold))
+                .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .center)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                .fixedSize(horizontal: false, vertical: dynamicTypeSize.isAccessibilitySize)
+                .frame(maxWidth: .infinity,
+                       alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .center)
+                .accessibilityIdentifier("area-header-title")
+
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 8) {
+                    areaHeaderMetric(
+                        label: "Trails",
+                        value: "\(area.resolvedTrailCount)"
+                    )
+                    areaHeaderMetric(
+                        label: "Total Distance",
+                        value: UnitFormatter.distance(miles: area.resolvedTotalMi, units: units)
+                    )
+                    areaHeaderMetric(
+                        label: "Completed",
+                        value: "\(completed) of \(area.resolvedTrailCount)",
+                        valueColor: areaComplete ? .green : .secondary
+                    )
+                }
+                .accessibilityIdentifier("area-header-metrics")
+            } else {
                 Text(areaSummaryLine(area: area, completed: completed))
                     .font(.subheadline)
                     .foregroundStyle(areaComplete ? .green : .secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
+            }
+        }
+        .frame(maxWidth: .infinity,
+               alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .center)
+        .padding(.horizontal, 20)
+        .padding(.top, 0)
+        .padding(.bottom, 12)
+        .accessibilityIdentifier("area-header")
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+            if abs(headerHeightFull - h) >= 2 { headerHeightFull = h }
+        }
+    }
 
-                // OSM attribution is NOT repeated here — the required
-                // "© OpenStreetMap contributors" credit lives in
-                // Settings → About (with the licence link), which
-                // satisfies the ODbL. Keeping the header uncluttered.
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.horizontal, 20)
-            .padding(.top, 10)
-            .padding(.bottom, 12)
-            // Measured with a deadband like every other block the fit stop
-            // must contain, so a sub-2pt wobble cannot thrash the detent.
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
-                if abs(headerHeightFull - h) >= 2 { headerHeightFull = h }
-            }
+    private func areaHeaderMetric(
+        label: String,
+        value: String,
+        valueColor: Color = .secondary
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.body)
+                .foregroundStyle(valueColor)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func sheetContent(area: Area) -> some View {
+        VStack(spacing: 0) {
+            areaHeader(area: area)
 
             // The line the pages scroll under. The pager's top edge clips
             // whatever is scrolled past it, and with no rule there the cut

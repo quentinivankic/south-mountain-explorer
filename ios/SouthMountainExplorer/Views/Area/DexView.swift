@@ -10,6 +10,7 @@ struct DexView: View {
 
     @Environment(RecordingService.self) private var recording
     @Environment(ProgressService.self) private var progress
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     @State private var achievements: [Achievement] = []
@@ -41,12 +42,13 @@ struct DexView: View {
                     ForEach(AchievementCategory.allCases, id: \.self) { category in
                         let items = achievements.filter { $0.category == category }
                         if !items.isEmpty {
-                            section(title: category.rawValue, items: items)
+                            section(category: category, items: items)
                         }
                     }
                 }
             }
             .scrollIndicators(.hidden)
+            .accessibilityIdentifier("collection-scroll")
 
             if let selected {
                 detailOverlay(selected)
@@ -85,27 +87,59 @@ struct DexView: View {
 
     // MARK: - Sections
 
-    private func section(title: String, items: [Achievement]) -> some View {
+    private func section(category: AchievementCategory, items: [Achievement]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title)
+            Text(category.rawValue)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 20)
-            LazyVGrid(columns: columns, spacing: 14) {
-                ForEach(items) { achievement in
-                    DexBadgeCell(
-                        achievement: achievement,
-                        statusText: statusText(for: achievement),
-                        onTap: {
-                            withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
-                                selected = achievement
-                            }
-                        })
+                .accessibilityIdentifier(
+                    "collection-category-\(category.rawValue.lowercased())"
+                )
+
+            if dynamicTypeSize.isAccessibilitySize {
+                LazyVStack(spacing: 12) {
+                    ForEach(items) { achievement in
+                        badgeCell(
+                            achievement,
+                            isFinalDedication: category == .dedication
+                                && achievement.id == items.last?.id
+                        )
+                    }
                 }
+                .padding(.horizontal, 16)
+            } else {
+                LazyVGrid(columns: columns, spacing: 14) {
+                    ForEach(items) { achievement in
+                        badgeCell(
+                            achievement,
+                            isFinalDedication: category == .dedication
+                                && achievement.id == items.last?.id
+                        )
+                    }
+                }
+                .padding(.horizontal, 16)
             }
-            .padding(.horizontal, 16)
         }
         .padding(.bottom, 18)
+    }
+
+    private func badgeCell(
+        _ achievement: Achievement,
+        isFinalDedication: Bool
+    ) -> some View {
+        DexBadgeCell(
+            achievement: achievement,
+            statusText: statusText(for: achievement),
+            onTap: {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                    selected = achievement
+                }
+            }
+        )
+        .accessibilityIdentifier(
+            isFinalDedication ? "collection-dedication-final" : "collection-badge"
+        )
     }
 
     // MARK: - Status text
@@ -267,58 +301,90 @@ private struct DexBadgeCell: View {
     let statusText: String
     let onTap: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        VStack(spacing: 6) {
-            ZStack {
-                Circle()
-                    .fill(achievement.isEarned
-                          ? AnyShapeStyle(earnedGradient)
-                          : AnyShapeStyle(Color(.tertiarySystemFill)))
-                    .frame(width: 64, height: 64)
-                Image(systemName: achievement.symbol)
-                    .font(.system(size: 26))
-                    .foregroundStyle(achievement.isEarned ? .white : Color(.tertiaryLabel))
-                if !achievement.isEarned {
-                    // Small lock chip, bottom-trailing, so a locked
-                    // badge reads as "not yet" at a glance even when
-                    // the symbol itself is recognizable.
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.secondary)
-                        .padding(4)
-                        .background(Color(.systemBackground), in: Circle())
-                        .offset(x: 22, y: 22)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                HStack(alignment: .top, spacing: 16) {
+                    badgeFace
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(achievement.title)
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(achievement.isEarned ? .primary : .secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(statusText)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        progressBar(fullWidth: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 16))
+            } else {
+                VStack(spacing: 6) {
+                    badgeFace
+                    progressBar(fullWidth: false)
+                    Text(achievement.title)
+                        .font(.caption.weight(.semibold))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .foregroundStyle(achievement.isEarned ? .primary : .secondary)
+                    Text(statusText)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
             }
-            // Slim progress arc substitute: a thin bar under in-progress
-            // (locked but accumulating) badges so the grid telegraphs
-            // "close to earning this" without opening a detail view.
-            if !achievement.isEarned, let p = achievement.progress, p.fraction > 0 {
-                ProgressView(value: p.fraction)
-                    .tint(.purple)
-                    .frame(width: 56)
-            }
-            Text(achievement.title)
-                .font(.caption.weight(.semibold))
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .foregroundStyle(achievement.isEarned ? .primary : .secondary)
-            Text(statusText)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        // Whole cell is the tap target — `contentShape` so the gaps
-        // between the badge face and the text labels are tappable too.
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel("\(achievement.title), \(achievement.isEarned ? "earned" : "locked"). \(statusText)")
         .accessibilityHint("Double tap for details")
+    }
+
+    private var badgeFace: some View {
+        ZStack {
+            Circle()
+                .fill(achievement.isEarned
+                      ? AnyShapeStyle(earnedGradient)
+                      : AnyShapeStyle(Color(.tertiarySystemFill)))
+                .frame(width: 64, height: 64)
+            Image(systemName: achievement.symbol)
+                .font(.system(size: 26))
+                .foregroundStyle(achievement.isEarned ? .white : Color(.tertiaryLabel))
+            if !achievement.isEarned {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .padding(4)
+                    .background(Color(.systemBackground), in: Circle())
+                    .offset(x: 22, y: 22)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func progressBar(fullWidth: Bool) -> some View {
+        if !achievement.isEarned, let progress = achievement.progress, progress.fraction > 0 {
+            if fullWidth {
+                ProgressView(value: progress.fraction)
+                    .tint(.purple)
+                    .frame(maxWidth: .infinity)
+            } else {
+                ProgressView(value: progress.fraction)
+                    .tint(.purple)
+                    .frame(width: 56)
+            }
+        }
     }
 
     private var earnedGradient: LinearGradient {

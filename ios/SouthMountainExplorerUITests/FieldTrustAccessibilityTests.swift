@@ -112,6 +112,96 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         )
     }
 
+    func testAreaSheetAndCollectionAdaptAtAccessibilitySize() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitest-seed",
+            "-UIPreferredContentSizeCategoryName",
+            "UICTContentSizeCategoryAccessibilityXXXL",
+        ]
+        app.launch()
+
+        let continueButton = app.buttons["continue-card"].firstMatch
+        XCTAssertTrue(continueButton.waitForExistence(timeout: 30))
+        continueButton.tap()
+        XCTAssertTrue(app.buttons["area-recenter-button"].firstMatch.waitForExistence(timeout: 60))
+
+        let header = app.descendants(matching: .any)["area-header"].firstMatch
+        let title = app.descendants(matching: .any)["area-header-title"].firstMatch
+        let metrics = app.descendants(matching: .any)["area-header-metrics"].firstMatch
+        let actions = app.descendants(matching: .any)["area-action-group"].firstMatch
+        XCTAssertTrue(header.waitForExistence(timeout: 10), "Area header is missing")
+        XCTAssertTrue(title.exists, "Area title is missing")
+        XCTAssertTrue(metrics.exists, "Area metrics are missing")
+        XCTAssertTrue(actions.exists, "Area actions are missing")
+        assertInsideScreen(header, app: app)
+        assertInsideScreen(title, app: app)
+        assertInsideScreen(metrics, app: app)
+        assertInsideScreen(actions, app: app)
+
+        XCTAssertEqual(app.buttons["area-record-button"].count, 1)
+        XCTAssertEqual(app.buttons["area-search-button"].count, 1)
+        XCTAssertEqual(app.buttons["area-collection-button"].count, 1)
+        XCTAssertEqual(app.textFields["Search trails"].count, 0)
+        XCTAssertEqual(app.buttons["trail-filter-button"].count, 0)
+
+        let select = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "trail-select-")
+        ).firstMatch
+        XCTAssertTrue(select.waitForExistence(timeout: 30), "Trail Select action is missing")
+        let suffix = String(select.identifier.dropFirst("trail-select-".count))
+        let secondary = app.buttons["trail-secondary-\(suffix)"].firstMatch
+        XCTAssertTrue(secondary.waitForExistence(timeout: 10), "Trail secondary action is missing")
+        assertInsideScreen(select, app: app)
+        assertInsideScreen(secondary, app: app)
+        select.tap()
+        XCTAssertTrue(waitForLabelPrefix("Deselect Trail,", element: select))
+        XCTAssertTrue(waitForLabelPrefix("Record Trail,", element: secondary))
+
+        let profile = app.descendants(matching: .any)["trail-profile-\(suffix)"].firstMatch
+        XCTAssertTrue(profile.waitForExistence(timeout: 10), "Trail profile is missing")
+        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+        XCTAssertTrue(trailScroll.waitForExistence(timeout: 10), "Trail list scroll is missing")
+        XCTAssertTrue(
+            scrollToReachable(profile, in: trailScroll, app: app),
+            "Trail profile is not reachable"
+        )
+        assertInsideScreen(profile, app: app)
+        XCTAssertEqual(app.buttons["trail-profile-flip-button"].count, 1)
+
+        XCTAssertTrue(scrollToReachable(select, in: trailScroll, app: app))
+        select.tap()
+        XCTAssertTrue(waitForLabelPrefix("Select Trail,", element: select))
+        let search = app.buttons["area-search-button"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
+        search.tap()
+        XCTAssertTrue(app.textFields["Search trails"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertEqual(app.textFields["Search trails"].count, 1)
+        XCTAssertEqual(app.buttons["trail-filter-button"].count, 1)
+        XCTAssertEqual(app.buttons["area-search-button"].count, 0)
+
+        let collection = app.buttons["area-collection-button"].firstMatch
+        XCTAssertTrue(collection.waitForExistence(timeout: 10), "Collection action is missing")
+        collection.tap()
+        let collectionScroll = app.scrollViews["collection-scroll"].firstMatch
+        XCTAssertTrue(collectionScroll.waitForExistence(timeout: 20), "Collection scroll is missing")
+        XCTAssertTrue(
+            app.descendants(matching: .any)["collection-category-milestones"].firstMatch.exists,
+            "Collection first category is missing"
+        )
+        let finalContent = app.descendants(matching: .any)["collection-dedication-final"].firstMatch
+        XCTAssertTrue(
+            scrollToReachable(finalContent, in: collectionScroll, app: app),
+            "Collection final content is not reachable"
+        )
+        assertInsideScreen(finalContent, app: app)
+        XCTAssertGreaterThan(
+            finalContent.frame.width,
+            app.frame.width * 0.7,
+            "Accessibility Collection badges must use full-width rows"
+        )
+    }
+
     func testRecordingControlsAndSummaryRemainUniqueAtAccessibilitySize() {
         let app = XCUIApplication()
         app.launchArguments = [

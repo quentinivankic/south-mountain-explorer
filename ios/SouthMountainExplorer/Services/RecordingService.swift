@@ -1007,23 +1007,7 @@ final class RecordingService {
             currentPath: rec.path,
             history: history
         )
-        // This is proportional to every historical GPS fix × every raw trail
-        // node. Running it on the main actor made the recording UI unresponsive
-        // on mature histories exactly when this 30-second tick fired.
-        let sessionCoverage = await Task.detached(priority: .utility) {
-            measureCoverage(
-                path: combinedPath,
-                trails: trails,
-                bufferMeters: bufferMeters
-            )
-        }.value
-        // The detached snapshot may outlive a stop or a newly started session.
-        // Never merge its result into a different active recording.
-        guard let current = activeRecording,
-              current.recordingId == rec.recordingId,
-              current.areaId == rec.areaId,
-              current.mode == rec.mode,
-              current.startedAt == rec.startedAt else { return }
+        let sessionCoverage = measureCoverage(path: combinedPath, trails: trails, bufferMeters: bufferMeters)
         _ = await mergeCoverage(
             areaId: rec.areaId,
             sessionCoverage: sessionCoverage,

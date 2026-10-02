@@ -69,6 +69,12 @@ enum MapTarget: Equatable {
 /// the real MKUserLocation).
 final class DemoUserDotAnnotation: MKPointAnnotation {}
 
+/// Marker subtype for raw recording runs. MKMapView asks its delegate for a
+/// renderer synchronously from `addOverlay`; identifying the run by type avoids
+/// re-entering the coordinator's `recordingOverlayIds` while reconciliation
+/// holds that set as an `inout` value.
+final class RecordingPolyline: MKPolyline {}
+
 /// A trailhead parking / access pin (see `Area.parking`). A distinct class lets
 /// the Coordinator's `viewFor` render it without touching other annotations
 /// MapKit manages. `isTrailhead` (a federal BLM/USFS trailhead POINT, not a
@@ -1010,7 +1016,7 @@ struct MapKitMapView: UIViewRepresentable {
             overlays: inout [MKPolyline],
             overlayIds: inout Set<ObjectIdentifier>
         ) {
-            let overlay = MKPolyline(coordinates: coordinates, count: coordinates.count)
+            let overlay = RecordingPolyline(coordinates: coordinates, count: coordinates.count)
             overlays.append(overlay)
             overlayIds.insert(ObjectIdentifier(overlay))
             // .aboveRoads keeps raw GPS below the snapped live coverage layer.
@@ -1303,7 +1309,7 @@ struct MapKitMapView: UIViewRepresentable {
                 let r = MKPolylineRenderer(polyline: pl)
                 r.lineCap = .round
                 r.lineJoin = .round
-                if recordingOverlayIds.contains(ObjectIdentifier(pl)) {
+                if pl is RecordingPolyline {
                     // Raw GPS path during recording. Purple at
                     // reduced alpha + slimmer than the on-trail
                     // snapped overlay below so it shows through

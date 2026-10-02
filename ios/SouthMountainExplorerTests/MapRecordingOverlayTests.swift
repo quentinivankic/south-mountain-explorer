@@ -42,6 +42,11 @@ struct MapRecordingOverlayTests {
 
         #expect(overlays.count == 1)
         #expect(overlays[0].pointCount == 3)
+        let usesDedicatedRecordingType = overlays[0] is RecordingPolyline
+        #expect(
+            usesDedicatedRecordingType,
+            "Recording overlays must carry renderer identity without coordinator re-entry"
+        )
         let overlayIdentitySetMatches = overlayIds == Set([ObjectIdentifier(overlays[0])])
         #expect(overlayIdentitySetMatches, "Recording overlay identity tracking is inconsistent")
     }

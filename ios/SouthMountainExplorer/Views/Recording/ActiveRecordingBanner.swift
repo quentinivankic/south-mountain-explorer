@@ -13,6 +13,7 @@ struct ActiveRecordingBanner: View {
     let trailName: String?
     let distanceMi: Double
     let startedAt: Date
+    let isSaving: Bool
     let onTap: () -> Void
     let onStop: () -> Void
 
@@ -53,14 +54,23 @@ struct ActiveRecordingBanner: View {
             .accessibilityIdentifier("active-recording-banner")
 
             Button(action: onStop) {
-                Text("Stop")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(.red, in: Capsule())
+                HStack(spacing: 6) {
+                    if isSaving {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(.white)
+                    }
+                    Text(isSaving ? "Saving…" : "Stop")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(isSaving ? Color.secondary : Color.red, in: Capsule())
             }
             .buttonStyle(.plain)
+            .disabled(isSaving)
+            .accessibilityLabel(isSaving ? "Saving recording" : "Stop recording")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)

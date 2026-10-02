@@ -357,6 +357,73 @@ struct RecordingDataSafetyTests {
         #expect(history[0].id == active.recordingId)
     }
 
+    @Test func unreadableCheckpointIsPreservedVisibleAndRetryable() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let unreadable = Data("preserve these recovery bytes".utf8)
+        defaults.set(unreadable, forKey: StorageKeys.activeRecording)
+        let location = FakeLocationController()
+        let service = RecordingService(
+            historyStore: RecordingHistoryStore(
+                fileURL: directory.appendingPathComponent("hike-history.json")
+            ),
+            userDefaults: defaults,
+            locationService: location,
+            restoreStoredState: true
+        )
+
+        #expect(service.activeRecording == nil)
+        #expect(service.recoveryIssue == .unreadableCheckpoint)
+        #expect(defaults.data(forKey: StorageKeys.activeRecording) == unreadable)
+        #expect(service.startRecording(areaId: "new-area", mode: .roam) == .recoveryRequired)
+        #expect(defaults.data(forKey: StorageKeys.activeRecording) == unreadable)
+
+        let repaired = makeActive(recordingId: "repaired-checkpoint")
+        defaults.set(try JSONEncoder().encode(repaired), forKey: StorageKeys.activeRecording)
+        service.retryRecovery()
+
+        #expect(service.activeRecording == repaired)
+        #expect(service.recoveryIssue == nil)
+        #expect(location.acquireCount == 1)
+        #expect(location.ownsRecordingLocation)
+    }
+
+    @Test func historyReadFailurePreservesBothCopiesAndRecoveryRetry() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let historyURL = directory.appendingPathComponent("hike-history.json")
+        let corruptHistory = Data("preserve corrupt history".utf8)
+        try corruptHistory.write(to: historyURL)
+        let active = makeActive(recordingId: "history-read-checkpoint")
+        let activeBytes = try JSONEncoder().encode(active)
+        defaults.set(activeBytes, forKey: StorageKeys.activeRecording)
+        let location = FakeLocationController()
+        let service = RecordingService(
+            historyStore: RecordingHistoryStore(fileURL: historyURL),
+            userDefaults: defaults,
+            locationService: location,
+            restoreStoredState: true
+        )
+
+        #expect(service.activeRecording == active)
+        #expect(service.recoveryIssue == .historyUnavailable)
+        #expect(defaults.data(forKey: StorageKeys.activeRecording) == activeBytes)
+        #expect(try Data(contentsOf: historyURL) == corruptHistory)
+        #expect(location.acquireCount == 1)
+
+        try FileManager.default.removeItem(at: historyURL)
+        service.retryRecovery()
+
+        #expect(service.activeRecording == active)
+        #expect(service.recoveryIssue == nil)
+        #expect(defaults.data(forKey: StorageKeys.activeRecording) == activeBytes)
+        #expect(location.acquireCount == 1, "retry must not duplicate recording ownership")
+    }
+
     @Test func launchClearsExactAlreadySavedCheckpointWithoutDuplicatingHistory() throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -380,6 +447,7 @@ struct RecordingDataSafetyTests {
 
         #expect(service.activeRecording == nil)
         #expect(defaults.data(forKey: StorageKeys.activeRecording) == nil)
+        #expect(service.recoveryIssue == nil)
         #expect(location.acquireCount == 0)
         #expect(try store.load() == [saved])
     }
@@ -406,9 +474,16 @@ struct RecordingDataSafetyTests {
 
         #expect(service.activeRecording == active)
         #expect(defaults.data(forKey: StorageKeys.activeRecording) != nil)
-        #expect(service.errorMessage != nil)
+        #expect(service.recoveryIssue == .identifierConflict)
+        #expect(service.errorMessage == nil)
         #expect(location.acquireCount == 1, "a conflict preserves and resumes the active recording")
         #expect(location.ownsRecordingLocation)
+
+        service.retryRecovery()
+        #expect(service.recoveryIssue == .identifierConflict)
+        #expect(service.activeRecording == active)
+        #expect(try store.load() == [conflicting])
+        #expect(location.acquireCount == 1, "recovery retry must not duplicate ownership")
 
         do {
             _ = try await service.stopRecording(trails: [])
@@ -426,6 +501,58 @@ struct RecordingDataSafetyTests {
         #expect(location.acquireCount == 1, "failed stop must restart polling without duplicating ownership")
         #expect(location.releaseCount == 0)
         #expect(location.ownsRecordingLocation)
+    }
+
+    @Test func restoredWalkCannotSaveFromPartialPersistedScope() async throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let active = ActiveRecording(
+            areaId: "recording-safety-test-area",
+            mode: .walk,
+            trailId: nil,
+            startedAt: Date().addingTimeInterval(-120),
+            path: [[33.3, -112.0, Date().timeIntervalSince1970 * 1000]],
+            distanceMi: 1.25,
+            priorCompleteTrailIds: [],
+            nearbyAreaIds: ["recording-safety-test-area", "missing-area"],
+            priorCompleteByArea: [:],
+            recordingId: "partial-restored-walk"
+        )
+        let location = FakeLocationController()
+        let store = RecordingHistoryStore(
+            fileURL: directory.appendingPathComponent("hike-history.json")
+        )
+        let service = RecordingService(
+            historyStore: store,
+            userDefaults: defaults,
+            locationService: location,
+            initialActiveRecording: active
+        )
+        let loadedTrail = Trail(
+            id: "safe-trail",
+            name: "Safe Trail",
+            distanceMi: 1,
+            difficulty: .easy,
+            segments: [[[33.3, -112.0], [33.31, -112.0]]]
+        )
+
+        do {
+            _ = try await service.stopWalk(
+                trailsByArea: [active.areaId: [loadedTrail]]
+            )
+            Issue.record("a partial persisted Walk scope must not save")
+        } catch let error as RecordingOperationError {
+            #expect(error == .missingWalkAreaData)
+        }
+
+        #expect(service.activeRecording == active)
+        #expect(defaults.data(forKey: StorageKeys.activeRecording) != nil)
+        #expect(try store.load().isEmpty)
+        #expect(location.ownsRecordingLocation)
+        #expect(location.releaseCount == 0)
+        #expect(!service.isStopping)
     }
 
     @Test func successfulWalkSaveUsesStableIdAndClearsRecoveryAfterSavePath() async throws {

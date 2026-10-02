@@ -1,6 +1,21 @@
 import SwiftUI
 import MapKit
 
+enum RecenterLocationState: Equatable {
+    case idle
+    case locating
+    case available
+    case fallback
+    case denied
+    case unavailable
+}
+
+enum RecenterRequestGate {
+    static func mayApply(request: Int, current: Int) -> Bool {
+        request == current
+    }
+}
+
 /// Three-state camera tracking cycle for the map. Mirrors Apple Maps'
 /// own location button — outline (free), filled (follow), filled-with-
 /// heading (follow + rotate). Owned by `AreaView` so the rotation
@@ -144,6 +159,8 @@ struct TrailMapView: View {
     /// view-state updates from accidentally re-framing the map.
     @State private var cameraTarget: MapTarget
     @State private var cameraTick: Int = 0
+    @State private var recenterState: RecenterLocationState = .idle
+    @State private var recenterGeneration = 0
 
     /// Does the camera still show the framing this view chose on open — the
     /// whole-area overview, or the trail the area was opened on — rather
@@ -276,8 +293,11 @@ struct TrailMapView: View {
                 onUserCameraGestureBegan: {
                     // A finger moved on the map: the camera is the user's now.
                     // Whatever the sheet does from here, the opening framing
-                    // is never re-applied over where they put it.
+                    // is never re-applied over where they put it. It also
+                    // invalidates a pending one-shot recenter so a late fix
+                    // cannot take the camera back.
                     releaseOpeningFraming()
+                    cancelPendingRecenter()
                 }
             )
 
@@ -290,6 +310,11 @@ struct TrailMapView: View {
                     .padding(.top, 56)
                     .padding(.leading, 60)
             }
+        }
+        .overlay(alignment: .top) {
+            recenterStatusOverlay
+                .padding(.top, 12)
+                .padding(.horizontal, 64)
         }
         .onChange(of: showDebugHUD, initial: true) { _, on in
             // The FPS counter runs a CADisplayLink — pause it when
@@ -430,23 +455,7 @@ struct TrailMapView: View {
             centerOn(trail: trail)
         }
         .onChange(of: recenterTick) { _, _ in
-            // Manual recenter — always a one-shot center on user with
-            // no rotation. If the user is currently in a tracking
-            // mode, drop back to .free so the camera doesn't
-            // immediately re-engage tracking and override the
-            // recenter.
-            releaseOpeningFraming()
-            trackingMode = .free
-            centerOnUser()
-            Task { @MainActor in
-                let result = await location.requestOneShotFix(
-                    for: locationConsumer,
-                    accuracy: .precise
-                )
-                if case .success = result {
-                    centerOnUser()
-                }
-            }
+            performRecenter()
         }
         .onChange(of: trackingMode, initial: false) { _, newMode in
             // Engaging a follow mode hands the camera to the user's position;
@@ -496,8 +505,104 @@ struct TrailMapView: View {
             // even when the HUD was never enabled.
             FPSCounter.shared.stop()
             openingRefit.task?.cancel()
+            cancelPendingRecenter()
             location.releaseLocation(for: locationConsumer)
             location.releaseHeading(for: locationConsumer)
+        }
+    }
+
+    @ViewBuilder
+    private var recenterStatusOverlay: some View {
+        switch recenterState {
+        case .locating:
+            HStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Finding your location…")
+            }
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(.regularMaterial, in: Capsule())
+            .accessibilityIdentifier("area-recenter-locating")
+        case .fallback, .denied, .unavailable:
+            HStack(spacing: 8) {
+                Image(systemName: "location.slash")
+                    .foregroundStyle(.orange)
+                Text(recenterStatusMessage)
+                    .font(.caption)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button(recenterState == .denied ? "Settings" : "Retry") {
+                    if recenterState == .denied {
+                        location.requestPermission()
+                    } else {
+                        performRecenter()
+                    }
+                }
+                .font(.caption.weight(.semibold))
+                .buttonStyle(.bordered)
+            }
+            .padding(10)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("area-recenter-status")
+        case .idle, .available:
+            EmptyView()
+        }
+    }
+
+    private var recenterStatusMessage: String {
+        switch recenterState {
+        case .fallback:
+            return "Fresh location unavailable; showing your last fix."
+        case .denied:
+            return "Location access is off."
+        case .unavailable:
+            return "Location is unavailable."
+        case .idle, .locating, .available:
+            return ""
+        }
+    }
+
+    private func performRecenter() {
+        // Manual recenter immediately releases opening framing and follow
+        // ownership. A stale location may be shown while the authorized fresh
+        // one-shot runs, but only this generation may apply its late result.
+        releaseOpeningFraming()
+        trackingMode = .free
+        recenterGeneration += 1
+        let request = recenterGeneration
+        recenterState = .locating
+        if location.userLocation != nil {
+            centerOnUser()
+        }
+
+        Task { @MainActor in
+            let result = await location.requestOneShotFix(
+                for: locationConsumer,
+                accuracy: .precise
+            )
+            guard RecenterRequestGate.mayApply(
+                request: request,
+                current: recenterGeneration
+            ) else { return }
+
+            switch result {
+            case .success:
+                recenterState = .available
+                centerOnUser()
+            case .denied:
+                recenterState = .denied
+            case .unavailable:
+                recenterState = location.userLocation == nil ? .unavailable : .fallback
+            }
+        }
+    }
+
+    private func cancelPendingRecenter() {
+        recenterGeneration += 1
+        if recenterState == .locating {
+            recenterState = .idle
         }
     }
 

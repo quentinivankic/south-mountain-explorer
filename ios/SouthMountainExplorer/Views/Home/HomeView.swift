@@ -29,6 +29,29 @@ private enum LengthFilter: String, CaseIterable, Identifiable {
     }
 }
 
+enum ExploreLocationState: Equatable {
+    case idle
+    case locating
+    case available
+    case fallback
+    case denied
+    case unavailable
+
+    static func resolved(
+        result: LocationFixResult,
+        hasFallback: Bool
+    ) -> ExploreLocationState {
+        switch result {
+        case .success:
+            return .available
+        case .denied:
+            return .denied
+        case .unavailable:
+            return hasFallback ? .fallback : .unavailable
+        }
+    }
+}
+
 struct HomeView: View {
     @Environment(AreaDataService.self) private var areas
     @Environment(AreaSilhouetteService.self) private var silhouettes
@@ -43,6 +66,7 @@ struct HomeView: View {
     @State private var history: [SavedRecording] = []
     @State private var lengthFilter: LengthFilter = .all
     @State private var locationConsumer = LocationConsumerID()
+    @State private var locationState: ExploreLocationState = .idle
 
     // MARK: - Cached section content
     //
@@ -119,6 +143,9 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
+                    if showsLocationStatusBanner {
+                        locationStatusBanner
+                    }
                     // Out-of-region users: a waitlist prompt above the
                     // normal content (which still lists US/CA parks, so
                     // they can browse/plan). See RegionSupport.
@@ -156,10 +183,7 @@ struct HomeView: View {
                 // re-poke the location service so Near You can recompute.
                 history = await recording.loadHistory()
                 if location.isAuthorized {
-                    _ = await location.requestOneShotFix(
-                        for: locationConsumer,
-                        accuracy: .coarse
-                    )
+                    await refreshLocation()
                 }
             }
             .trailMeshBackground()
@@ -215,12 +239,9 @@ struct HomeView: View {
             // Anyone who declines still has the "Enable Location" button in
             // the empty state below, which is visible rather than modal.
             if location.isAuthorized {
-                Task {
-                    _ = await location.requestOneShotFix(
-                        for: locationConsumer,
-                        accuracy: .coarse
-                    )
-                }
+                Task { await refreshLocation() }
+            } else {
+                locationState = location.isDenied ? .denied : .idle
             }
             Task { history = await recording.loadHistory() }
             prefetchVisibleAreas()
@@ -229,13 +250,11 @@ struct HomeView: View {
             location.releaseLocation(for: locationConsumer)
         }
         .onChange(of: location.authorizationStatus) { _, status in
-            guard status == .authorizedAlways || status == .authorizedWhenInUse else { return }
-            Task {
-                _ = await location.requestOneShotFix(
-                    for: locationConsumer,
-                    accuracy: .coarse
-                )
+            guard status == .authorizedAlways || status == .authorizedWhenInUse else {
+                locationState = location.isDenied ? .denied : .idle
+                return
             }
+            Task { await refreshLocation() }
         }
         .onChange(of: location.userLocation?.latitude) { _, _ in prefetchVisibleAreas() }
         .onChange(of: lengthFilter) { _, _ in prefetchVisibleAreas() }
@@ -373,25 +392,148 @@ struct HomeView: View {
         }
     }
 
+    @ViewBuilder
     private var emptyState: some View {
+        switch locationState {
+        case .locating:
+            locationEmptyState(
+                icon: "location.magnifyingglass",
+                title: "Finding your location…",
+                detail: "Nearby parks will appear when TrekDex gets a fresh fix.",
+                showsProgress: true
+            )
+        case .denied:
+            locationEmptyState(
+                icon: "location.slash",
+                title: "Location is off",
+                detail: "Open Settings to show nearby parks, or browse every available area.",
+                actionTitle: "Open Settings",
+                action: { location.requestPermission() }
+            )
+        case .unavailable:
+            locationEmptyState(
+                icon: "location.slash",
+                title: "Location unavailable",
+                detail: "TrekDex couldn't get a location fix. Try again or browse every available area.",
+                actionTitle: "Retry",
+                action: { Task { await refreshLocation() } }
+            )
+        case .idle, .available, .fallback:
+            locationEmptyState(
+                icon: "mountain.2",
+                title: "Trails near you",
+                detail: "Turn on location and we'll show parks within driving distance. Otherwise, search thousands of parks in Browse.",
+                actionTitle: "Enable Location",
+                action: { location.requestPermission() }
+            )
+        }
+    }
+
+    private var showsLocationStatusBanner: Bool {
+        guard location.userLocation != nil else { return false }
+        return locationState == .locating
+            || locationState == .fallback
+            || locationState == .denied
+    }
+
+    private var locationStatusBanner: some View {
+        HStack(alignment: .top, spacing: 12) {
+            if locationState == .locating {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Image(systemName: locationState == .denied ? "location.slash" : "location.fill.viewfinder")
+                    .foregroundStyle(.orange)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(locationStatusTitle)
+                    .font(.subheadline.weight(.semibold))
+                Text(locationStatusDetail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            if locationState != .locating {
+                Button(locationState == .denied ? "Settings" : "Retry") {
+                    if locationState == .denied {
+                        location.requestPermission()
+                    } else {
+                        Task { await refreshLocation() }
+                    }
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding(14)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("explore-location-status")
+    }
+
+    private var locationStatusTitle: String {
+        switch locationState {
+        case .locating: return "Updating your location"
+        case .denied: return "Location access is off"
+        case .fallback: return "Using your last location"
+        case .idle, .available, .unavailable: return "Location status"
+        }
+    }
+
+    private var locationStatusDetail: String {
+        switch locationState {
+        case .locating: return "Showing your last location while TrekDex gets a fresh fix."
+        case .denied: return "Nearby results may be out of date until location is enabled."
+        case .fallback: return "A fresh fix wasn't available. Nearby results may be out of date."
+        case .idle, .available, .unavailable: return ""
+        }
+    }
+
+    private func locationEmptyState(
+        icon: String,
+        title: String,
+        detail: String,
+        showsProgress: Bool = false,
+        actionTitle: String? = nil,
+        action: (() -> Void)? = nil
+    ) -> some View {
         VStack(spacing: 20) {
-            Image(systemName: "mountain.2")
-                .font(.system(size: 56))
-                .foregroundStyle(.secondary)
-            Text("Trails near you")
+            if showsProgress {
+                ProgressView()
+                    .controlSize(.large)
+            } else {
+                Image(systemName: icon)
+                    .font(.system(size: 56))
+                    .foregroundStyle(.secondary)
+            }
+            Text(title)
                 .font(.title2)
                 .fontWeight(.semibold)
-            Text("Turn on location and we'll show parks within driving distance. Otherwise, search thousands of parks in Browse.")
+            Text(detail)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
             VStack(spacing: 10) {
-                Button("Enable Location") { location.requestPermission() }
-                    .buttonStyle(.borderedProminent)
+                if let actionTitle, let action {
+                    Button(actionTitle, action: action)
+                        .buttonStyle(.borderedProminent)
+                }
                 Button("Browse All Areas") { showAllAreasMap = true }
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
+    }
+
+    private func refreshLocation() async {
+        locationState = .locating
+        let result = await location.requestOneShotFix(
+            for: locationConsumer,
+            accuracy: .coarse
+        )
+        guard !Task.isCancelled else { return }
+        locationState = ExploreLocationState.resolved(
+            result: result,
+            hasFallback: location.userLocation != nil
+        )
     }
 
     /// Warm the per-area cache for every card currently rendered on Explore so

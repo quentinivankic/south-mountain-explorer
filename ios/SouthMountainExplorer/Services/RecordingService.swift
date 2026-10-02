@@ -88,6 +88,7 @@ protocol RecordingLocationControlling: AnyObject {
 enum RecordingStartResult: Equatable, Sendable {
     case started
     case alreadyActive
+    case recoveryRequired
 }
 
 enum RecordingOperationError: Error, LocalizedError, Sendable, Equatable {
@@ -104,6 +105,37 @@ enum RecordingOperationError: Error, LocalizedError, Sendable, Equatable {
     }
 }
 
+/// A non-sensitive explanation of why launch-time recording reconciliation
+/// needs attention. Cases intentionally carry no paths, coordinates, trail
+/// names, identifiers, or underlying error text.
+enum RecordingRecoveryIssue: Equatable, Sendable {
+    case unreadableCheckpoint
+    case historyUnavailable
+    case identifierConflict
+
+    var title: String {
+        switch self {
+        case .unreadableCheckpoint:
+            return "Recording recovery needs attention"
+        case .historyUnavailable:
+            return "History couldn't be checked"
+        case .identifierConflict:
+            return "Recording and history differ"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .unreadableCheckpoint:
+            return "Your in-progress recording couldn't be opened. Its recovery data was left untouched."
+        case .historyUnavailable:
+            return "TrekDex left your recording and history untouched. Retry when storage is available."
+        case .identifierConflict:
+            return "A saved hike differs from the active recovery copy. Both were preserved; retry after the conflict is repaired."
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class RecordingService {
@@ -112,6 +144,7 @@ final class RecordingService {
     private(set) var activeRecording: ActiveRecording? = nil
     private(set) var errorMessage: String? = nil
     private(set) var historyErrorMessage: String? = nil
+    private(set) var recoveryIssue: RecordingRecoveryIssue? = nil
     private(set) var isStopping = false
 
     private let locationService: any RecordingLocationControlling
@@ -167,35 +200,40 @@ final class RecordingService {
     /// observation; history remains authoritative for rebuilding coverage.
     private func restoreActiveRecording() {
         errorMessage = nil
-        guard let data = userDefaults.data(forKey: persistKey) else { return }
+        guard let data = userDefaults.data(forKey: persistKey) else {
+            recoveryIssue = nil
+            return
+        }
         guard let restored = try? JSONDecoder().decode(ActiveRecording.self, from: data) else {
             // Preserve undecodable recovery bytes for diagnostics/manual recovery
             // rather than silently deleting the only copy of an in-progress hike.
-            errorMessage = "Your in-progress recording couldn't be restored. Its recovery data was left untouched."
+            recoveryIssue = .unreadableCheckpoint
             log.error("restoreActiveRecording: decode failed, preserving persisted state")
             return
         }
 
         activeRecording = restored
+        recoveryIssue = nil
         if let recordingId = restored.recordingId {
             do {
                 if let existing = try historyStore.record(id: recordingId) {
+                    historyErrorMessage = nil
                     if existing.matchesCheckpoint(restored) {
                         activeRecording = nil
                         userDefaults.removeObject(forKey: persistKey)
                         locationService.releaseRecordingLocation()
-                        historyErrorMessage = nil
+                        recoveryIssue = nil
                         log.notice("restoreActiveRecording: cleared already-saved checkpoint id=\(recordingId, privacy: .public)")
                         return
                     }
-                    errorMessage = "A different saved hike already uses this recording identifier. Both copies were preserved; saving will remain blocked until the history conflict is repaired."
+                    recoveryIssue = .identifierConflict
                     log.error("restoreActiveRecording: identifier conflict id=\(recordingId, privacy: .public); resuming active checkpoint")
                 } else {
                     historyErrorMessage = nil
                 }
             } catch {
                 recordHistoryFailure(error, context: "active recovery reconciliation")
-                errorMessage = error.localizedDescription
+                recoveryIssue = .historyUnavailable
             }
         }
 
@@ -316,6 +354,13 @@ final class RecordingService {
 
     @discardableResult
     func startRecording(areaId: String, mode: RecordingMode, trailId: String? = nil) -> RecordingStartResult {
+        // Never overwrite recovery bytes that could not be decoded. The root
+        // recovery banner owns the retry path until the issue is resolved or
+        // the user explicitly resets their data.
+        guard recoveryIssue == nil else {
+            log.error("startRecording REFUSED — unresolved recovery state")
+            return .recoveryRequired
+        }
         // NEVER overwrite a live recording. This assignment is destructive —
         // `activeRecording` holds the entire GPS path — and on 2026-08-16 it
         // silently threw away 25 minutes and 457 fixes of a real hike, because
@@ -423,6 +468,13 @@ final class RecordingService {
         restoreActiveRecording()
     }
 
+    /// Re-run launch-time reconciliation without changing either stored copy.
+    /// Successful exact-match verification may clear only the redundant active
+    /// checkpoint; every unresolved state remains visible and retryable.
+    func retryRecovery() {
+        restoreActiveRecording()
+    }
+
     #if DEBUG
     /// Set an active recording directly for App Store screenshot UI
     /// tests, WITHOUT acquiring recording location ownership. The normal
@@ -441,6 +493,7 @@ final class RecordingService {
         pauseLocationObservation()
         activeRecording = nil
         errorMessage = nil
+        recoveryIssue = nil
         userDefaults.removeObject(forKey: persistKey)
         if prev != nil {
             locationService.releaseRecordingLocation()
@@ -741,6 +794,10 @@ final class RecordingService {
     /// exists to defuse.
     @discardableResult
     func startWalk(primaryAreaId: String, nearbyAreaIds: [String]) -> RecordingStartResult {
+        guard recoveryIssue == nil else {
+            log.error("startWalk REFUSED — unresolved recovery state")
+            return .recoveryRequired
+        }
         if let live = activeRecording {
             log.error("startWalk REFUSED — a recording is already live areaId=\(live.areaId, privacy: .public) mode=\(live.mode.rawValue, privacy: .public) points=\(live.path.count). Stop it first.")
             ActivityLogService.shared.log(
@@ -1897,6 +1954,7 @@ final class RecordingService {
         locationService.releaseRecordingLocation()
         errorMessage = nil
         historyErrorMessage = nil
+        recoveryIssue = nil
         return finished
     }
 

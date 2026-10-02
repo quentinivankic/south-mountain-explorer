@@ -7,6 +7,19 @@ enum AppTab: Hashable {
     case explore, browse, stats, settings
 }
 
+/// Pure gate shared by the root action and focused tests. It closes the period
+/// before RecordingService enters `isStopping` while area geometry hydrates.
+enum RootRecordingStopGate {
+    static func canBegin(
+        isRootStopInFlight: Bool,
+        hasSummaryRoute: Bool,
+        hasActiveRecording: Bool,
+        serviceIsStopping: Bool
+    ) -> Bool {
+        !isRootStopInFlight && !hasSummaryRoute && hasActiveRecording && !serviceIsStopping
+    }
+}
+
 /// One presentation event for an AreaView opened outside normal Browse
 /// navigation. A fresh identity forces SwiftUI to discard any prior area's
 /// local state when consecutive notification taps arrive while the cover is
@@ -128,29 +141,38 @@ struct ContentView: View {
         // existing stored values decode harmlessly.
         .preferredColorScheme(.dark)
         .safeAreaInset(edge: .top, spacing: 0) {
-            if let rec = recording.activeRecording {
-                ActiveRecordingBanner(
-                    // Walks aren't "in" an area — title the banner Walk
-                    // and put the primary area in the subtitle slot.
-                    areaName: rec.mode == .walk ? "Walk" : areaName(for: rec.areaId),
-                    trailName: trailName(forAreaId: rec.areaId, trailId: rec.trailId),
-                    distanceMi: rec.distanceMi,
-                    startedAt: rec.startedAt,
-                    onTap: {
-                        if rec.mode == .walk {
-                            showWalkCover = true
-                        } else {
-                            // Active-recording navigation is area-only; a
-                            // notification trail identity must never leak in.
-                            areaJumpRoute = AreaJumpRoute(
-                                areaId: rec.areaId,
-                                trailId: nil,
-                                trailName: nil
-                            )
-                        }
-                    },
-                    onStop: { showStopConfirm = true }
-                )
+            VStack(spacing: 0) {
+                if let issue = recording.recoveryIssue {
+                    RecordingRecoveryBanner(
+                        issue: issue,
+                        onRetry: { recording.retryRecovery() }
+                    )
+                }
+                if let rec = recording.activeRecording {
+                    ActiveRecordingBanner(
+                        // Walks aren't "in" an area — title the banner Walk
+                        // and put the primary area in the subtitle slot.
+                        areaName: rec.mode == .walk ? "Walk" : areaName(for: rec.areaId),
+                        trailName: trailName(forAreaId: rec.areaId, trailId: rec.trailId),
+                        distanceMi: rec.distanceMi,
+                        startedAt: rec.startedAt,
+                        isSaving: isRootStopInFlight || recording.isStopping,
+                        onTap: {
+                            if rec.mode == .walk {
+                                showWalkCover = true
+                            } else {
+                                // Active-recording navigation is area-only; a
+                                // notification trail identity must never leak in.
+                                areaJumpRoute = AreaJumpRoute(
+                                    areaId: rec.areaId,
+                                    trailId: nil,
+                                    trailName: nil
+                                )
+                            }
+                        },
+                        onStop: { showStopConfirm = true }
+                    )
+                }
             }
         }
         // Warm the trail-shape thumbnails in the background at launch (while
@@ -198,6 +220,7 @@ struct ContentView: View {
             Button("Stop & Save") {
                 Task { await stopActiveRecording() }
             }
+            .disabled(isRootStopInFlight || recording.isStopping)
             Button("Stop & Discard", role: .destructive) {
                 showDiscardConfirm = true
             }
@@ -375,11 +398,12 @@ struct ContentView: View {
     }
 
     private func stopActiveRecording() async {
-        guard !isRootStopInFlight,
-              recordingSummaryRoute == nil,
-              let rec = recording.activeRecording,
-              !recording.isStopping
-        else { return }
+        guard RootRecordingStopGate.canBegin(
+            isRootStopInFlight: isRootStopInFlight,
+            hasSummaryRoute: recordingSummaryRoute != nil,
+            hasActiveRecording: recording.activeRecording != nil,
+            serviceIsStopping: recording.isStopping
+        ), let rec = recording.activeRecording else { return }
 
         // This must flip before the first area-loading await. RecordingService's
         // own guard starts later, once stopRecording/stopWalk is entered.

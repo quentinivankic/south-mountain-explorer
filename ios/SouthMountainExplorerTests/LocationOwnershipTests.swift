@@ -220,6 +220,34 @@ struct LocationOwnershipTests {
         #expect(manager.locationStopCount == 1)
     }
 
+    @Test func retryReplacesPendingOneShotWithoutLeakingLateOwnership() async throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let manager = FakeLocationManager()
+        let service = makeService(manager: manager, defaults: defaults)
+        let recenter = LocationConsumerID("area-recenter")
+
+        let first = Task { @MainActor in
+            await service.requestOneShotFix(for: recenter, accuracy: .precise)
+        }
+        await Task.yield()
+        let retry = Task { @MainActor in
+            await service.requestOneShotFix(for: recenter, accuracy: .precise)
+        }
+        await Task.yield()
+
+        #expect(await first.value == .unavailable)
+        #expect(manager.requestLocationCount == 2)
+        manager.deliverLocation(latitude: 33.4, longitude: -112.1)
+        guard case .success(let coordinate) = await retry.value else {
+            Issue.record("the retry must own the delivered fresh fix")
+            return
+        }
+        #expect(coordinate.latitude == 33.4)
+        #expect(!manager.allowsBackgroundLocationUpdates)
+        #expect(manager.locationStartCount == 0)
+    }
+
     @Test func deniedUnavailableAndFailedOneShotsReturnExplicitResults() async throws {
         let (defaults, suiteName) = try makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }

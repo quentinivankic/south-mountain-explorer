@@ -40,6 +40,24 @@ enum UITestSupport {
             || isRecordingPausedRequested
     }
 
+    /// Freeze only the two recording-status visual audits to a clock derived
+    /// from their seeded path. Ordinary Debug launches return nil and continue
+    /// using the live clock and LocationService fix freshness.
+    static func recordingStatusNow(for recording: ActiveRecording?) -> Date? {
+        guard let recording else { return nil }
+        if isRecordingGapRequested {
+            return GpsIngest.materialGapSummary(recording.path)?.lastRecoveryAt
+        }
+        if isRecordingPausedRequested,
+           let finalPoint = recording.path.last(where: {
+               $0.count >= 3 && $0[0].isFinite && $0[1].isFinite && $0[2].isFinite
+           }) {
+            return Date(timeIntervalSince1970: finalPoint[2] / 1000)
+                .addingTimeInterval(GpsIngest.staleFixSeconds + 1)
+        }
+        return nil
+    }
+
     /// `--uitest-completed <n>`: seed n completed trails (the first n real IDs
     /// that aren't in `showcaseIncomplete`) instead of deriving completions
     /// from the demo hikes. Lets each screenshot tell its own story — the map

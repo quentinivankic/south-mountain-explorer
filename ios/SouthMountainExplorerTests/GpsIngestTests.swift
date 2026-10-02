@@ -164,7 +164,7 @@ struct GpsIngestTests {
         #expect(usedSafeFallback, "Malformed gap duration formatting must fail closed")
     }
 
-    @Test func activeStatusDistinguishesWaitingPausedRecoveredAndGood() {
+    @Test func activeStatusDistinguishesWaitingPausedRecoveredAndGoodAtBoundaries() {
         let now = Date(timeIntervalSince1970: 200)
         let continuous = [pt(0, 190_000), pt(10, 192_000)]
         #expect(GpsIngest.activeStatus(path: [], lastFixAt: nil, now: now) == .waiting)
@@ -177,15 +177,46 @@ struct GpsIngestTests {
         let recovered = [pt(0, 50_000), pt(100, 190_000), pt(110, 192_000)]
         #expect(GpsIngest.activeStatus(
             path: recovered,
-            lastFixAt: Date(timeIntervalSince1970: 200),
-            now: now
+            lastFixAt: Date(timeIntervalSince1970: 205),
+            now: Date(timeIntervalSince1970: 205)
         ) == .recovered)
+        #expect(GpsIngest.activeStatus(
+            path: recovered,
+            lastFixAt: Date(timeIntervalSince1970: 205.001),
+            now: Date(timeIntervalSince1970: 205.001)
+        ) == .good)
+        #expect(GpsIngest.activeStatus(
+            path: continuous,
+            lastFixAt: Date(timeIntervalSince1970: 200),
+            now: Date(timeIntervalSince1970: 245)
+        ) == .good)
+        #expect(GpsIngest.activeStatus(
+            path: continuous,
+            lastFixAt: Date(timeIntervalSince1970: 200),
+            now: Date(timeIntervalSince1970: 245.001)
+        ) == .paused)
         #expect(GpsIngest.activeStatus(
             path: continuous,
             lastFixAt: Date(timeIntervalSince1970: 200),
             now: now
         ) == .good)
     }
+
+    #if DEBUG
+    @Test func ordinaryDebugLaunchDoesNotOverrideRecordingStatusClock() {
+        let startedAt = Date(timeIntervalSince1970: 100)
+        let active = ActiveRecording(
+            areaId: "gps-status-test-area",
+            mode: .trail,
+            trailId: "gps-status-test-trail",
+            startedAt: startedAt,
+            path: [pt(0, 100_000), pt(10, 102_000)],
+            distanceMi: 0.01,
+            priorCompleteTrailIds: []
+        )
+        #expect(UITestSupport.recordingStatusNow(for: active) == nil)
+    }
+    #endif
 
     @Test func oneGapExplanationUsesSingularCopy() throws {
         let summary = try #require(GpsIngest.materialGapSummary([pt(0, 0), pt(10, 21_000)]))

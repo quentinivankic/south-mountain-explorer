@@ -112,6 +112,112 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         )
     }
 
+    func testRecordingControlsAndSummaryRemainUniqueAtAccessibilitySize() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitest-seed",
+            "--uitest-recording-gap",
+            "-UIPreferredContentSizeCategoryName",
+            "UICTContentSizeCategoryAccessibilityXXXL",
+        ]
+        app.launch()
+
+        let banner = app.buttons["active-recording-banner"].firstMatch
+        XCTAssertTrue(banner.waitForExistence(timeout: 30), "Active recording banner is missing")
+        assertInsideScreen(banner, app: app)
+        let bannerMetadata = banner.value as? String ?? ""
+        XCTAssertFalse(bannerMetadata.isEmpty, "Active recording metadata is missing")
+        XCTAssertEqual(stopControlCount(app), 1, "A non-contextual screen must expose one Stop control")
+        XCTAssertEqual(app.buttons["active-recording-stop-button"].count, 1)
+
+        banner.tap()
+        let status = app.descendants(matching: .any)["recording-gps-status"].firstMatch
+        XCTAssertTrue(status.waitForExistence(timeout: 60), "Recording GPS status is missing")
+        XCTAssertEqual(status.label, "GPS recovered", "Recording GPS status has unexpected copy")
+        assertInsideScreen(status, app: app)
+        XCTAssertEqual(stopControlCount(app), 1, "A contextual recording screen must expose one Stop control")
+        XCTAssertEqual(app.buttons["recording-stop-button"].count, 1)
+        XCTAssertEqual(app.buttons["active-recording-stop-button"].count, 0)
+
+        let close = app.buttons["area-close-button"].firstMatch
+        XCTAssertTrue(close.waitForExistence(timeout: 10), "Area close control is missing")
+        close.tap()
+        XCTAssertTrue(
+            app.buttons["active-recording-stop-button"].firstMatch.waitForExistence(timeout: 10),
+            "Global Stop did not return after the contextual panel disappeared"
+        )
+        XCTAssertEqual(stopControlCount(app), 1)
+
+        app.buttons["active-recording-banner"].firstMatch.tap()
+        XCTAssertTrue(status.waitForExistence(timeout: 60), "Recording panel did not reopen")
+        let dashboardScroll = app.scrollViews["recording-dashboard-scroll"].firstMatch
+        XCTAssertTrue(dashboardScroll.waitForExistence(timeout: 10), "Accessibility recording scroll is missing")
+        let elevation = app.descendants(matching: .any)["recording-elevation-summary"].firstMatch
+        XCTAssertTrue(scrollToReachable(elevation, in: dashboardScroll, app: app))
+        assertInsideScreen(elevation, app: app)
+        let metrics = app.descendants(matching: .any)["recording-metrics"].firstMatch
+        XCTAssertTrue(scrollToReachable(metrics, in: dashboardScroll, app: app))
+        assertInsideScreen(metrics, app: app)
+        let estimates = app.descendants(matching: .any)["recording-estimates"].firstMatch
+        XCTAssertTrue(scrollToReachable(estimates, in: dashboardScroll, app: app))
+        assertInsideScreen(estimates, app: app)
+
+        let stop = app.buttons["recording-stop-button"].firstMatch
+        XCTAssertTrue(scrollToReachable(stop, in: dashboardScroll, app: app))
+        stop.tap()
+        let save = app.buttons["Stop & Save"].firstMatch
+        XCTAssertTrue(save.waitForExistence(timeout: 10), "Stop & Save action is missing")
+        save.tap()
+
+        let done = app.buttons["recording-summary-done"].firstMatch
+        XCTAssertTrue(done.waitForExistence(timeout: 60), "Summary Done action is missing")
+        XCTAssertEqual(app.buttons["recording-summary-done"].count, 1)
+        XCTAssertEqual(
+            app.buttons.matching(NSPredicate(format: "label == %@", "Done")).count,
+            1,
+            "Recording summary must expose exactly one Done action"
+        )
+        assertInsideScreen(done, app: app)
+
+        let gap = app.descendants(matching: .any)["recording-gap-summary"].firstMatch
+        XCTAssertTrue(gap.waitForExistence(timeout: 10), "Summary gap explanation is missing")
+        let summaryScroll = app.scrollViews["recording-summary-scroll"].firstMatch
+        XCTAssertTrue(summaryScroll.waitForExistence(timeout: 10), "Summary scroll is missing")
+        let summaryMetrics = app.descendants(matching: .any)["recording-summary-metrics"].firstMatch
+        XCTAssertTrue(scrollToReachable(summaryMetrics, in: summaryScroll, app: app))
+        assertInsideScreen(summaryMetrics, app: app)
+        let lowerContent = app.descendants(matching: .any)["recording-summary-area-progress"].firstMatch
+        XCTAssertTrue(scrollToReachable(lowerContent, in: summaryScroll, app: app))
+        assertInsideScreen(lowerContent, app: app)
+    }
+
+    private func stopControlCount(_ app: XCUIApplication) -> Int {
+        app.buttons.matching(NSPredicate(
+            format: "identifier == %@ OR identifier == %@ OR identifier == %@",
+            "active-recording-stop-button",
+            "recording-stop-button",
+            "walk-stop-button"
+        )).count
+    }
+
+    private func scrollToReachable(
+        _ element: XCUIElement,
+        in scrollView: XCUIElement,
+        app: XCUIApplication
+    ) -> Bool {
+        for attempt in 0...10 {
+            if isOnScreenAndHittable(element, app: app) { return true }
+            if attempt < 10 {
+                if element.exists, element.frame.maxY < app.frame.minY {
+                    scrollView.swipeDown()
+                } else {
+                    scrollView.swipeUp()
+                }
+            }
+        }
+        return false
+    }
+
     private func launchSeededApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--uitest-seed"]

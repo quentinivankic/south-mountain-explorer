@@ -34,6 +34,9 @@ on:
         description: "Bake DEM elevation gain + gain-aware difficulty into the geom while publishing (durable across republishes). Uncheck only to skip sampling."
         type: boolean
         default: true
+      region_code:
+        description: "Optional assemble --region 2-letter code, e.g. dk. Leave empty for US states."
+        default: ""
 
 concurrency:
   group: trailforge-publish
@@ -73,8 +76,12 @@ jobs:
         run: |
           set -e
           cd trailforge
+          # Pass --region ONLY when region_code is set, so existing US-state
+          # dispatches (empty region_code) are byte-for-byte unchanged.
+          REGION_FLAG=""
+          [ -n "${{ github.event.inputs.region_code }}" ] && REGION_FLAG="--region ${{ github.event.inputs.region_code }}"
           python3 assemble/assemble.py --in data/hiking.osm.pbf \
-            --out data/aoi/state.trails.geojson --min-length-mi 0.1 --per-area-merge
+            --out data/aoi/state.trails.geojson --min-length-mi 0.1 --per-area-merge $REGION_FLAG
 
       - name: Publish areas (clip + convert + validate)
         run: |

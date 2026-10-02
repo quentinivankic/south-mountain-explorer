@@ -53,6 +53,7 @@ from _seed_constants import (  # noqa: E402
     display_state,
     is_quality,
     load_overrides,
+    passes_safety_floor,
     slugify,
 )
 
@@ -196,7 +197,10 @@ def fetch_region_bbox(state_code: str) -> tuple[float, float, float, float] | No
     return best
 
 
-def fetch_state(state_code: str) -> list[tuple[list, int | None]]:
+def fetch_state(
+    state_code: str,
+    includes: set[str] | None = None,
+) -> list[tuple[list, int | None]]:
     """Returns (index_row, osm_relation_id) pairs. The osm_id pins
     the same polygon Python and iOS both query — Nominatim's
     `featuretype=relation` was unstable for ambiguous names.
@@ -244,6 +248,8 @@ def fetch_state(state_code: str) -> list[tuple[list, int | None]]:
     bbox = fetch_region_bbox(state_code)
 
 
+    includes = includes or set()
+
     out: list[tuple[list, int | None]] = []
     raw = 0
     out_of_bbox = 0
@@ -253,7 +259,19 @@ def fetch_state(state_code: str) -> list[tuple[list, int | None]]:
             continue
         raw += 1
         tags = el.get("tags") or {}
-        if not is_quality(tags):
+        # A seeds-include.txt listing (case-insensitive name match) bypasses
+        # ONLY the name/protect-class quality check — NOT the private/red-flag
+        # safety floor, and NOT the valid-name / coordinate / id / region /
+        # dedupe / seeds-exclude checks that follow. is_quality() already runs
+        # the same safety floor first, so for a non-included area the behavior
+        # is unchanged; for an included area we drop the keyword/protect_class
+        # requirement but still require passes_safety_floor().
+        name_lower = (tags.get("name") or "").strip().lower()
+        included = bool(name_lower) and name_lower in includes
+        if included:
+            if not passes_safety_floor(tags):
+                continue
+        elif not is_quality(tags, code=state_code):
             continue
         center = el.get("center") or {}
         lat, lon = center.get("lat"), center.get("lon")
@@ -412,7 +430,7 @@ def main() -> None:
         for state in args.states:
             if state in already_seeded:
                 continue
-            for row, _ in fetch_state(state):
+            for row, _ in fetch_state(state, includes):
                 if row[1].lower() in excludes:
                     continue
                 if row[0] in seen_ids:
@@ -431,7 +449,7 @@ def main() -> None:
             continue
         new_rows: list[list] = []
         new_osm_ids: dict[str, int] = {}
-        for row, osm_id in fetch_state(state):
+        for row, osm_id in fetch_state(state, includes):
             if row[1].lower() in excludes:
                 continue
             new_rows.append(row)

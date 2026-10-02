@@ -57,13 +57,18 @@ enum GpsIngest {
         let lastRecoveryAt: Date
 
         var explanation: String {
-            if gapCount == 1 {
-                return "GPS paused for \(GpsIngest.durationLabel(totalMissingSeconds)). "
-                    + "No straight-line distance was counted."
+            let distanceCopy = "No straight-line distance was counted."
+            guard let totalDuration = GpsIngest.durationLabel(totalMissingSeconds) else {
+                return "GPS paused. \(distanceCopy)"
             }
-            return "GPS paused \(gapCount) times for \(GpsIngest.durationLabel(totalMissingSeconds)) total "
-                + "(longest \(GpsIngest.durationLabel(longestMissingSeconds))). "
-                + "No straight-line distance was counted."
+            if gapCount == 1 {
+                return "GPS paused for \(totalDuration). \(distanceCopy)"
+            }
+            guard let longestDuration = GpsIngest.durationLabel(longestMissingSeconds) else {
+                return "GPS paused \(gapCount) times for \(totalDuration) total. \(distanceCopy)"
+            }
+            return "GPS paused \(gapCount) times for \(totalDuration) total "
+                + "(longest \(longestDuration)). \(distanceCopy)"
         }
     }
 
@@ -105,11 +110,13 @@ enum GpsIngest {
     }
 
     /// True when the fix at `p` begins a new run relative to `prev` — i.e. more
-    /// than `gapMs` elapsed between them. Both must carry a timestamp.
+    /// than `gapMs` elapsed between them. Both must carry a trustworthy,
+    /// representable timestamp interval.
     static func isGap(prev: GpsPoint, p: GpsPoint) -> Bool {
-        guard prev.count >= 3, p.count >= 3,
-              prev[2].isFinite, p[2].isFinite else { return false }
-        return p[2] > prev[2] && p[2] - prev[2] > gapMs
+        guard let elapsedSeconds = safeElapsedSeconds(from: prev, to: p) else {
+            return false
+        }
+        return elapsedSeconds > gapMs / 1000
     }
 
     /// Split a recorded path into continuous runs, breaking wherever the time
@@ -142,14 +149,18 @@ enum GpsIngest {
         for index in 1..<path.count {
             let previous = path[index - 1]
             let current = path[index]
-            guard isValidTimestampedPoint(previous), isValidTimestampedPoint(current) else {
+            guard isValidTimestampedPoint(previous), isValidTimestampedPoint(current),
+                  let elapsedSeconds = safeElapsedSeconds(from: previous, to: current),
+                  elapsedSeconds > gapMs / 1000 else {
                 continue
             }
-            let elapsedMs = current[2] - previous[2]
-            guard elapsedMs > gapMs else { continue }
-            let elapsedSeconds = elapsedMs / 1000
+            let updatedTotal = totalMissingSeconds + elapsedSeconds
+            guard updatedTotal > totalMissingSeconds,
+                  roundedDurationSeconds(updatedTotal) != nil else {
+                continue
+            }
             gapCount += 1
-            totalMissingSeconds += elapsedSeconds
+            totalMissingSeconds = updatedTotal
             longestMissingSeconds = max(longestMissingSeconds, elapsedSeconds)
             lastRecoveryAt = Date(timeIntervalSince1970: current[2] / 1000)
         }
@@ -193,8 +204,26 @@ enum GpsIngest {
         point.count >= 3 && point[0].isFinite && point[1].isFinite && point[2].isFinite
     }
 
-    private static func durationLabel(_ seconds: TimeInterval) -> String {
-        let rounded = max(0, Int(seconds.rounded()))
+    private static func safeElapsedSeconds(from previous: GpsPoint, to current: GpsPoint) -> TimeInterval? {
+        guard previous.count >= 3, current.count >= 3,
+              previous[2].isFinite, current[2].isFinite,
+              current[2] > previous[2] else {
+            return nil
+        }
+        let elapsedMs = current[2] - previous[2]
+        guard elapsedMs.isFinite else { return nil }
+        let elapsedSeconds = elapsedMs / 1000
+        guard roundedDurationSeconds(elapsedSeconds) != nil else { return nil }
+        return elapsedSeconds
+    }
+
+    private static func roundedDurationSeconds(_ seconds: TimeInterval) -> Int? {
+        guard seconds.isFinite, seconds >= 0 else { return nil }
+        return Int(exactly: seconds.rounded())
+    }
+
+    private static func durationLabel(_ seconds: TimeInterval) -> String? {
+        guard let rounded = roundedDurationSeconds(seconds) else { return nil }
         let hours = rounded / 3600
         let minutes = (rounded % 3600) / 60
         let remainingSeconds = rounded % 60

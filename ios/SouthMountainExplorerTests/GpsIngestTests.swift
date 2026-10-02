@@ -109,6 +109,61 @@ struct GpsIngestTests {
         #expect(GpsIngest.continuousRuns(path).count == 1)
     }
 
+    @Test func oversizedFiniteTimestampDifferencesDoNotInventGaps() {
+        let oversizedElapsed = [pt(0, 0), pt(10, 1e308)]
+        let subtractionOverflow = [
+            pt(0, -Double.greatestFiniteMagnitude),
+            pt(10, Double.greatestFiniteMagnitude),
+        ]
+        let malformedIntervalsWereIgnored =
+            GpsIngest.materialGapSummary(oversizedElapsed) == nil
+            && GpsIngest.continuousRuns(oversizedElapsed).count == 1
+            && GpsIngest.materialGapSummary(subtractionOverflow) == nil
+            && GpsIngest.continuousRuns(subtractionOverflow).count == 1
+        #expect(
+            malformedIntervalsWereIgnored,
+            "Oversized finite timestamp intervals must be omitted"
+        )
+    }
+
+    @Test func materialGapSummaryOmitsAccumulatorOverflow() {
+        let singleGapSeconds = 6e18
+        let singleGapMs = singleGapSeconds * 1000
+        let path = [pt(0, 0), pt(10, singleGapMs), pt(20, singleGapMs * 2)]
+        let candidate = GpsIngest.materialGapSummary(path)
+        let summaryExists = candidate != nil
+        #expect(summaryExists, "A representable material gap must produce a summary")
+        guard let summary = candidate else { return }
+
+        let onlyRepresentableGapWasSummarized =
+            summary.gapCount == 1
+            && summary.totalMissingSeconds == singleGapSeconds
+            && summary.longestMissingSeconds == singleGapSeconds
+            && summary.lastRecoveryAt == Date(timeIntervalSince1970: singleGapSeconds)
+        #expect(
+            onlyRepresentableGapWasSummarized,
+            "A gap that overflows the accumulated duration must be omitted"
+        )
+        let representableExplanationWasFormatted =
+            summary.explanation.hasSuffix("No straight-line distance was counted.")
+        #expect(
+            representableExplanationWasFormatted,
+            "A representable large duration must format without trapping"
+        )
+    }
+
+    @Test func malformedGapSummaryFormattingFailsClosed() {
+        let malformed = GpsIngest.MaterialGapSummary(
+            gapCount: 1,
+            totalMissingSeconds: Double.greatestFiniteMagnitude,
+            longestMissingSeconds: Double.greatestFiniteMagnitude,
+            lastRecoveryAt: Date(timeIntervalSince1970: 0)
+        )
+        let usedSafeFallback =
+            malformed.explanation == "GPS paused. No straight-line distance was counted."
+        #expect(usedSafeFallback, "Malformed gap duration formatting must fail closed")
+    }
+
     @Test func activeStatusDistinguishesWaitingPausedRecoveredAndGood() {
         let now = Date(timeIntervalSince1970: 200)
         let continuous = [pt(0, 190_000), pt(10, 192_000)]

@@ -229,20 +229,12 @@ struct ContentView: View {
         }
         .task {
             await rebuildCompletionsFromHistory()
-            // Background prefetch of favorites + recent areas so the
-            // user's saved spots are usable offline. Fire-and-forget —
-            // the inner Task outlives this .task block so it keeps
-            // running if SwiftUI ever decides to cancel the root task.
-            // prefetchOffline short-circuits anything fresher than 24 h
-            // so this is cheap on warm caches.
+            // Background verification of saved/recent Offline Trails remains
+            // sequential. Nearby follows it and independently enforces its
+            // unmetered-network and complete-receipt cooldown policy.
             Task {
-                await areas.prefetchOffline()
-                // Then sweep a 50 mi radius around the user (Wi-Fi only,
-                // skipped if we already prefetched within 25 mi of
-                // current location). Runs after prefetchOffline so
-                // favorites/recents get priority on metered situations
-                // where the radius sweep is skipped.
-                await areas.runNearbyPrefetchIfAppropriate()
+                _ = await areas.prefetchOffline()
+                _ = await areas.runNearbyPrefetchIfAppropriate()
             }
         }
         // Track foreground sessions for engagement telemetry. .active fires
@@ -274,7 +266,7 @@ struct ContentView: View {
                 // entry — covers the "user moved 30+ mi between
                 // sessions" case. The orchestrator's movement check
                 // makes this a cheap no-op when the user hasn't moved.
-                Task { await areas.runNearbyPrefetchIfAppropriate() }
+                Task { _ = await areas.runNearbyPrefetchIfAppropriate() }
             case .inactive, .background:
                 activity.endSession()
                 if nextState != lastLoggedAppState {

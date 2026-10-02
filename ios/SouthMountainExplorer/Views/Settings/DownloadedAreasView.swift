@@ -1,10 +1,7 @@
 import SwiftUI
 
-/// Settings → Manage Downloads. Lists every area whose trail data is
-/// cached to disk so the user can free up space on a per-area basis,
-/// or nuke the lot from a single button. Sourced from
-/// `AreaDataService.downloadedAreas()` (disk enumeration) so it
-/// reflects exactly what's actually on the device.
+/// Settings → Manage Offline Trails. Lists every decoded, non-empty,
+/// identity-matching area file whose trail geometry is durable on disk.
 struct DownloadedAreasView: View {
     @State private var rows: [AreaDataService.DownloadedArea] = []
     @State private var showClearAllConfirm = false
@@ -13,7 +10,7 @@ struct DownloadedAreasView: View {
         List {
             if rows.isEmpty {
                 Section {
-                    Text("No downloaded areas")
+                    Text("No Offline Trails downloaded")
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.vertical, 24)
@@ -29,13 +26,13 @@ struct DownloadedAreasView: View {
                     Button(role: .destructive) {
                         showClearAllConfirm = true
                     } label: {
-                        Label("Clear All Downloads", systemImage: "trash")
+                        Label("Clear All Offline Trails", systemImage: "trash")
                     }
                 } header: {
                     Text("Summary")
                 }
 
-                Section("Downloaded Areas") {
+                Section("Offline Trail Areas") {
                     ForEach(rows) { row in
                         HStack {
                             Text(row.name)
@@ -55,11 +52,11 @@ struct DownloadedAreasView: View {
                 }
             }
         }
-        .navigationTitle("Manage Downloads")
+        .navigationTitle("Manage Offline Trails")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { rows = AreaDataService.shared.downloadedAreas() }
         .confirmationDialog(
-            "Clear all downloaded areas?",
+            "Clear all Offline Trails?",
             isPresented: $showClearAllConfirm,
             titleVisibility: .visible
         ) {
@@ -69,7 +66,7 @@ struct DownloadedAreasView: View {
             }
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("Removes \(rows.count) downloaded area\(rows.count == 1 ? "" : "s") from this device (~\(totalSizeFormatted)). Each one will re-download the next time you open it.")
+            Text("Removes offline trail and catalog geometry for \(rows.count) area\(rows.count == 1 ? "" : "s") from this device (~\(totalSizeFormatted)). Apple base-map tiles are not managed here.")
         }
     }
 

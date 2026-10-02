@@ -26,16 +26,28 @@ struct IdentifiedURL: Identifiable {
     var id: String { url.absoluteString }
 }
 
-/// How long the "Refresh Trail Data" button stays in its
-/// disabled / "Trail Data Cleared" confirmation state before
-/// flipping back to the actionable label.
-private let refreshButtonReenableDelay: Duration = .seconds(3)
+private enum OfflineTrailTaskState: Equatable {
+    case idle
+    case checking
+    case progress(OfflineTrailPrefetchProgress)
+    case result(OfflineTrailPrefetchResult)
+    case retryResult(OfflineTrailPrefetchResult)
+    case skipped(OfflineTrailPrefetchSkipReason)
 
-/// How long the download buttons hold their "(N of N)" final
-/// count visible after a prefetch completes, so the user sees
-/// the result land instead of the label snapping back to the
-/// idle state immediately.
-private let progressHoldDuration: Duration = .seconds(1.5)
+    var isBusy: Bool {
+        switch self {
+        case .checking, .progress: return true
+        case .idle, .result, .retryResult, .skipped: return false
+        }
+    }
+
+    var prefetchResult: OfflineTrailPrefetchResult? {
+        switch self {
+        case .result(let result), .retryResult(let result): return result
+        case .idle, .checking, .progress, .skipped: return nil
+        }
+    }
+}
 
 private enum NearbyLocationAlert: String, Identifiable {
     case accessDenied
@@ -90,16 +102,12 @@ struct SettingsView: View {
     @State private var exportShareURL: IdentifiedURL? = nil
     @State private var exportError: String? = nil
     @State private var showRefreshConfirm = false
-    @State private var trailDataRefreshed = false
-    /// Active "Download for Offline" progress as `(completed, total)`.
-    /// Non-nil while the prefetch task is running so the button label can
-    /// show "Downloading 2 of 5…". Cleared a beat after completion so the
-    /// user sees the final state briefly before it reverts.
-    @State private var downloadProgress: (Int, Int)? = nil
+    @State private var refreshState: OfflineTrailTaskState = .idle
+    @State private var downloadState: OfflineTrailTaskState = .idle
     @State private var showDownloadConfirm = false
-    /// Same idea for the "Download Nearby Areas" radius prefetch button.
-    @State private var nearbyProgress: (Int, Int)? = nil
+    @State private var nearbyState: OfflineTrailTaskState = .idle
     @State private var showNearbyCellularConfirm = false
+    @State private var pendingNearbyRetry: OfflineTrailPrefetchResult? = nil
     /// Covers permission/fresh-fix preparation before download progress begins.
     /// Set synchronously before any Task so repeated taps cannot launch duplicates.
     @State private var isPreparingNearbyDownload = false
@@ -108,7 +116,7 @@ struct SettingsView: View {
     @State private var locationConsumer = LocationConsumerID()
 
     private var nearbyDownloadBusy: Bool {
-        isPreparingNearbyDownload || nearbyProgress != nil
+        isPreparingNearbyDownload || nearbyState.isBusy
     }
 
     var body: some View {
@@ -199,90 +207,58 @@ struct SettingsView: View {
                         }
                 }
 
-                // Named for what it does (keep maps usable without a signal),
-                // not "Trail Data" — which read as a near-duplicate of the
-                // "Data" section below that handles backup/reset.
-                Section("Offline Maps") {
+                Section("Offline Trails") {
+                    Text("Downloaded trail and catalog geometry stays available without a signal. Apple base-map tiles may not.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
                     Button {
                         showRefreshConfirm = true
                     } label: {
-                        Label(
-                            trailDataRefreshed ? "Trail Data Cleared" : "Refresh Trail Data",
-                            systemImage: trailDataRefreshed ? "checkmark.circle" : "arrow.clockwise"
-                        )
+                        Label(taskLabel(defaultTitle: "Refresh Offline Trails", state: refreshState), systemImage: "arrow.clockwise")
                     }
-                    .disabled(trailDataRefreshed)
+                    .disabled(refreshState.isBusy)
                     .confirmationDialog(
-                        "Refresh trail data?",
+                        "Refresh downloaded Offline Trails?",
                         isPresented: $showRefreshConfirm,
                         titleVisibility: .visible
                     ) {
-                        Button("Clear & Refresh") {
-                            ActivityLogService.shared.log(category: "settings", action: "refreshTrails")
-                            AreaDataService.shared.clearAreaCache()
-                            trailDataRefreshed = true
-                            // Re-enable the button after a brief
-                            // confirmation window so the user can refresh
-                            // again later in the same session.
-                            Task {
-                                try? await Task.sleep(for: refreshButtonReenableDelay)
-                                trailDataRefreshed = false
-                            }
-                        }
+                        Button("Refresh") { runOfflineRefresh() }
                         Button("Cancel", role: .cancel) { }
                     } message: {
-                        Text("Fetches fresh trail data next time you open each area. Your hikes and completions are kept.")
+                        Text("Verifies replacement trail geometry before changing each saved file. If a refresh fails, the prior offline trails stay available.")
+                    }
+                    offlineStatus(refreshState, retryTitle: "Retry Failed Refreshes") {
+                        retryRefresh()
                     }
 
                     Button {
                         showDownloadConfirm = true
                     } label: {
-                        if let p = downloadProgress {
-                            Label("Downloading \(p.0) of \(p.1)…", systemImage: "arrow.down.circle")
-                        } else {
-                            Label("Download for Offline", systemImage: "arrow.down.circle")
-                        }
+                        Label(taskLabel(defaultTitle: "Download Saved & Recent Areas", state: downloadState), systemImage: "arrow.down.circle")
                     }
-                    .disabled(downloadProgress != nil)
+                    .disabled(downloadState.isBusy)
                     .confirmationDialog(
-                        "Download Saved Areas and recently viewed areas for offline use?",
+                        "Download saved and recently viewed areas for offline trail use?",
                         isPresented: $showDownloadConfirm,
                         titleVisibility: .visible
                     ) {
-                        Button("Download") {
-                            Task {
-                                downloadProgress = (0, 0)
-                                await AreaDataService.shared.prefetchOffline { completed, total in
-                                    // prefetchOffline runs off MainActor, so
-                                    // hop back here before touching @State —
-                                    // otherwise writes race the renderer and
-                                    // get coalesced away.
-                                    await MainActor.run {
-                                        downloadProgress = (completed, total)
-                                    }
-                                }
-                                // Hold the final "(N of N)" reading for a
-                                // beat so the user sees the result land
-                                // instead of the label snapping back
-                                // immediately.
-                                try? await Task.sleep(for: progressHoldDuration)
-                                downloadProgress = nil
-                            }
-                        }
+                        Button("Download") { runOfflineDownload() }
                         Button("Cancel", role: .cancel) { }
                     } message: {
-                        Text("Saves your Saved Areas and recently viewed areas for use without a signal.")
+                        Text("Saves trail and catalog geometry. Apple base-map tiles are not included.")
+                    }
+                    offlineStatus(downloadState, retryTitle: "Retry Failed Downloads") {
+                        retryDownload()
                     }
 
                     Button {
                         beginNearbyDownload()
                     } label: {
-                        if let p = nearbyProgress {
-                            Label("Downloading \(p.0) of \(p.1)…", systemImage: "location.circle")
-                        } else if isPreparingNearbyDownload {
+                        if isPreparingNearbyDownload {
                             Label("Finding Location…", systemImage: "location.circle")
                         } else {
-                            Label("Download Nearby Areas", systemImage: "location.circle")
+                            Label(taskLabel(defaultTitle: "Download Nearby Areas", state: nearbyState), systemImage: "location.circle")
                         }
                     }
                     .disabled(nearbyDownloadBusy)
@@ -291,16 +267,26 @@ struct SettingsView: View {
                         isPresented: $showNearbyCellularConfirm,
                         titleVisibility: .visible
                     ) {
-                        Button("Download") { runNearbyDownload() }
-                        Button("Cancel", role: .cancel) { }
+                        Button("Download") {
+                            if let retry = pendingNearbyRetry {
+                                pendingNearbyRetry = nil
+                                runNearbyRetry(retry)
+                            } else {
+                                runNearbyDownload()
+                            }
+                        }
+                        Button("Cancel", role: .cancel) { pendingNearbyRetry = nil }
                     } message: {
-                        Text("Saves every area within 50 miles. Can use a lot of cellular data.")
+                        Text("Saves trail and catalog geometry for every area within 50 miles. This can use a lot of cellular data; Apple base-map tiles are not included.")
+                    }
+                    offlineStatus(nearbyState, retryTitle: "Retry Failed Nearby Areas") {
+                        beginNearbyRetry()
                     }
 
                     NavigationLink {
                         DownloadedAreasView()
                     } label: {
-                        Label("Manage Downloads", systemImage: "internaldrive")
+                        Label("Manage Offline Trails", systemImage: "internaldrive")
                     }
                 }
 
@@ -331,7 +317,7 @@ struct SettingsView: View {
                         }
                         Button("Cancel", role: .cancel) { }
                     } message: {
-                        Text("Removes saved and in-progress hikes and walks, completions, coverage and badges, Saved Areas, cached downloads, the local activity log, and onboarding. Apple sign-in and display preferences are kept.")
+                        Text("Removes saved and in-progress hikes and walks, completions, coverage and badges, Saved Areas, Offline Trails, the local activity log, and onboarding. Apple sign-in and display preferences are kept.")
                     }
                 }
 
@@ -459,16 +445,138 @@ struct SettingsView: View {
         }
     }
 
-    /// Kick off a manual "Download Nearby" run with `force: true` so it
-    /// bypasses the network / movement gates the cold-launch path
-    /// respects. Same progress-on-MainActor + 1.5 s post-completion hold
-    /// pattern as the favorites prefetch above.
-    /// Kick off the diagnostics-export flow. Builds the JSON
-    /// bundle off the main actor (mostly — OSLogStore reads stay
-    /// on main), then presents the share sheet with the resulting
-    /// file URL. Errors are surfaced inline under the button so
-    /// the user doesn't lose the rest of their Settings context to
-    /// an alert.
+    private func taskLabel(defaultTitle: String, state: OfflineTrailTaskState) -> String {
+        switch state {
+        case .checking:
+            return "Checking Offline Trails…"
+        case .progress(let progress):
+            return "Checking \(progress.processedCount) of \(progress.totalCount)…"
+        case .idle, .result, .retryResult, .skipped:
+            return defaultTitle
+        }
+    }
+
+    @ViewBuilder
+    private func offlineStatus(
+        _ state: OfflineTrailTaskState,
+        retryTitle: String,
+        retry: @escaping () -> Void
+    ) -> some View {
+        switch state {
+        case .idle, .checking:
+            EmptyView()
+        case .progress(let progress):
+            Text("\(progress.succeededCount + progress.alreadyCurrentCount) verified, \(progress.failedCount) failed")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        case .result(let result):
+            offlineResultStatus(result, wasRetry: false, retryTitle: retryTitle, retry: retry)
+        case .retryResult(let result):
+            offlineResultStatus(result, wasRetry: true, retryTitle: retryTitle, retry: retry)
+        case .skipped(let reason):
+            Text(skipMessage(reason))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func offlineResultStatus(
+        _ result: OfflineTrailPrefetchResult,
+        wasRetry: Bool,
+        retryTitle: String,
+        retry: @escaping () -> Void
+    ) -> some View {
+        let prefix = wasRetry ? "Retry: " : ""
+        if result.requestedIDs.isEmpty {
+            Text("\(prefix)No areas matched this request. Nothing was changed.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        } else if result.succeededIDs.isEmpty,
+                  result.alreadyCurrentIDs.count == result.requestedIDs.count {
+            Text("\(prefix)All \(result.requestedIDs.count) area\(result.requestedIDs.count == 1 ? " was" : "s were") already available for offline trail use.")
+                .font(.caption)
+                .foregroundStyle(.green)
+        } else if result.isCompleteDurableAvailability {
+            let available = result.succeededIDs.count + result.alreadyCurrentIDs.count
+            Text("\(prefix)\(available) of \(result.requestedIDs.count) areas verified for offline trail use.")
+                .font(.caption)
+                .foregroundStyle(.green)
+        } else if result.isPartial {
+            Text("\(prefix)\(result.succeededIDs.count + result.alreadyCurrentIDs.count) of \(result.requestedIDs.count) areas are available. \(result.failedIDs.count) failed; prior valid trail files were kept.")
+                .font(.caption)
+                .foregroundStyle(.orange)
+            Button(retryTitle, action: retry)
+        } else {
+            Text("\(prefix)Couldn't verify \(result.failedIDs.count) area\(result.failedIDs.count == 1 ? "" : "s"). Prior valid trail files were kept.")
+                .font(.caption)
+                .foregroundStyle(.red)
+            Button(retryTitle, action: retry)
+        }
+    }
+
+    private func skipMessage(_ reason: OfflineTrailPrefetchSkipReason) -> String {
+        switch reason {
+        case .noLocation: return "No current location was available. Try again."
+        case .networkUnavailable: return "Background download waits for an unmetered connection."
+        case .expensiveNetwork: return "Background download skipped cellular data."
+        case .movementCooldown: return "Nearby Offline Trails are already verified for this location."
+        }
+    }
+
+    private func runOfflineRefresh() {
+        guard !refreshState.isBusy else { return }
+        refreshState = .checking
+        ActivityLogService.shared.log(category: "settings", action: "refreshOfflineTrails")
+        Task { @MainActor in
+            let result = await AreaDataService.shared.refreshOfflineTrails { progress in
+                await MainActor.run { refreshState = .progress(progress) }
+            }
+            refreshState = .result(result)
+        }
+    }
+
+    private func runOfflineDownload() {
+        guard !downloadState.isBusy else { return }
+        downloadState = .checking
+        Task { @MainActor in
+            let result = await AreaDataService.shared.prefetchOffline { progress in
+                await MainActor.run { downloadState = .progress(progress) }
+            }
+            downloadState = .result(result)
+        }
+    }
+
+    private func retryRefresh() {
+        guard let prior = refreshState.prefetchResult, !prior.retryIDs.isEmpty else { return }
+        refreshState = .checking
+        Task { @MainActor in
+            let result = await AreaDataService.shared.retryOfflineTrails(
+                prior,
+                forceRefresh: true
+            ) { progress in
+                await MainActor.run { refreshState = .progress(progress) }
+            }
+            refreshState = .retryResult(result)
+        }
+    }
+
+    private func retryDownload() {
+        guard let prior = downloadState.prefetchResult, !prior.retryIDs.isEmpty else { return }
+        downloadState = .checking
+        Task { @MainActor in
+            let result = await AreaDataService.shared.retryOfflineTrails(
+                prior,
+                forceRefresh: false
+            ) { progress in
+                await MainActor.run { downloadState = .progress(progress) }
+            }
+            downloadState = .retryResult(result)
+        }
+    }
+
+    /// Kick off the diagnostics-export flow. Builds the JSON bundle off the
+    /// main actor, then presents its file URL. Errors stay inline.
     private func runDiagnosticsExport() {
         diagnosticsError = nil
         diagnosticsExporting = true
@@ -564,23 +672,45 @@ struct SettingsView: View {
         }
     }
 
-    private func runNearbyDownload() {
-        guard nearbyProgress == nil else { return }
-        isPreparingNearbyDownload = false
-        nearbyProgress = (0, 0)
+    private func beginNearbyRetry() {
+        guard let prior = nearbyState.prefetchResult, !prior.retryIDs.isEmpty else { return }
+        if NetworkService.shared.isExpensive {
+            pendingNearbyRetry = prior
+            showNearbyCellularConfirm = true
+        } else {
+            runNearbyRetry(prior)
+        }
+    }
+
+    private func runNearbyRetry(_ prior: OfflineTrailPrefetchResult) {
+        guard !nearbyState.isBusy else { return }
+        nearbyState = .checking
         Task { @MainActor in
-            let started = await AreaDataService.shared.runNearbyPrefetchIfAppropriate(force: true) { completed, total in
-                await MainActor.run {
-                    nearbyProgress = (completed, total)
-                }
+            let result = await AreaDataService.shared.retryOfflineTrails(
+                prior,
+                forceRefresh: false
+            ) { progress in
+                await MainActor.run { nearbyState = .progress(progress) }
             }
-            guard started else {
-                nearbyProgress = nil
-                nearbyLocationAlert = .unavailable
-                return
+            nearbyState = .retryResult(result)
+        }
+    }
+
+    private func runNearbyDownload() {
+        guard !nearbyState.isBusy else { return }
+        isPreparingNearbyDownload = false
+        nearbyState = .checking
+        Task { @MainActor in
+            let run = await AreaDataService.shared.runNearbyPrefetchIfAppropriate(force: true) { progress in
+                await MainActor.run { nearbyState = .progress(progress) }
             }
-            try? await Task.sleep(for: progressHoldDuration)
-            nearbyProgress = nil
+            switch run {
+            case .completed(let result):
+                nearbyState = .result(result)
+            case .skipped(let reason):
+                nearbyState = .skipped(reason)
+                if reason == .noLocation { nearbyLocationAlert = .unavailable }
+            }
         }
     }
 

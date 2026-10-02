@@ -71,13 +71,13 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let secondary = app.buttons["trail-secondary-\(trailSuffix)"].firstMatch
         XCTAssertTrue(secondary.waitForExistence(timeout: 10), "Trail secondary action is missing")
         XCTAssertNotEqual(select.identifier, secondary.identifier)
-        XCTAssertNotEqual(select.label, secondary.label)
+        let actionLabelsAreDistinct = select.label != secondary.label
+        XCTAssertTrue(actionLabelsAreDistinct, "Trail action labels must be distinct")
         XCTAssertTrue(select.label.hasPrefix("Select Trail,"))
         let initialWasComplete = secondary.label.hasPrefix("Mark Trail Incomplete,")
-        XCTAssertTrue(
-            initialWasComplete || secondary.label.hasPrefix("Mark Trail Complete,"),
-            "Unexpected trail completion action: \(secondary.label)"
-        )
+        let hasExpectedCompletionAction =
+            initialWasComplete || secondary.label.hasPrefix("Mark Trail Complete,")
+        XCTAssertTrue(hasExpectedCompletionAction, "Unexpected trail completion action")
         let toggledPrefix = initialWasComplete ? "Mark Trail Complete," : "Mark Trail Incomplete,"
 
         secondary.tap()

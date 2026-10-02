@@ -204,6 +204,33 @@ struct RecordingDataSafetyTests {
         #expect(checkpointWasCleared, "Discard left an active checkpoint")
     }
 
+    @Test func localControlVisibilityDoesNotMutateActiveRecording() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let active = makeActive(recordingId: "visibility-safety-id")
+        let location = FakeLocationController()
+        let service = RecordingService(
+            historyStore: RecordingHistoryStore(
+                fileURL: directory.appendingPathComponent("hike-history.json")
+            ),
+            userDefaults: defaults,
+            locationService: location,
+            initialActiveRecording: active
+        )
+        let visibility = RecordingControlVisibility()
+        let token = RecordingControlVisibility.Token()
+
+        visibility.acquire(token)
+        visibility.release(token)
+
+        let activeRecordingWasPreserved = service.activeRecording == active
+        #expect(activeRecordingWasPreserved, "Control visibility changed the active recording")
+        #expect(location.ownsRecordingLocation)
+        #expect(location.releaseCount == 0)
+    }
+
     @Test func missingHistoryIsEmptyButCorruptHistoryIsDistinctAndProtected() async throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }

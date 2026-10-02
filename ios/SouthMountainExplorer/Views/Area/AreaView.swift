@@ -1474,6 +1474,7 @@ struct AreaView: View {
                 // hike's path.
                 Task { await loadPastPaths() }
             }
+            .frame(maxHeight: dynamicTypeSize.isAccessibilitySize ? 470 : .infinity)
             .padding(.bottom, 4)
             // No Spacer. One sat here and the content measured taller than
             // itself, leaving a band of empty sheet under the panel.

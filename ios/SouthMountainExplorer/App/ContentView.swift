@@ -82,6 +82,7 @@ struct ContentView: View {
     /// Banner-tap route for an in-progress walk (walks reopen WalkView,
     /// not the primary area's AreaView).
     @State private var showWalkCover = false
+    @State private var recordingControlVisibility = RecordingControlVisibility()
 
     var body: some View {
         // Onboarding is an OVERLAY, not a presentation. It used to be a third
@@ -93,6 +94,7 @@ struct ContentView: View {
         // plain conditional does not, so this branch cannot be out-voted.
         ZStack {
             tabs
+                .environment(recordingControlVisibility)
                 .accessibilityHidden(!onboarded)
 
             if !onboarded {
@@ -157,6 +159,7 @@ struct ContentView: View {
                         distanceMi: rec.distanceMi,
                         startedAt: rec.startedAt,
                         isSaving: isRootStopInFlight || recording.isStopping,
+                        showsStopControl: !recordingControlVisibility.hasLocalControls,
                         onTap: {
                             if rec.mode == .walk {
                                 showWalkCover = true

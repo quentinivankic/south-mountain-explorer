@@ -517,6 +517,8 @@ struct WalkRecordingPanel: View {
 
     @Environment(RecordingService.self) private var recording
     @Environment(LocationService.self) private var location
+    @Environment(RecordingControlVisibility.self) private var controlVisibility
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     @State private var elapsed: TimeInterval = 0
@@ -525,14 +527,31 @@ struct WalkRecordingPanel: View {
     @State private var showStopConfirm = false
     @State private var showDiscardConfirm = false
     @State private var saveFailureMessage: String? = nil
+    @State private var localControlToken = RecordingControlVisibility.Token()
 
     private var rec: ActiveRecording? { recording.activeRecording }
 
     private var gpsStatus: (text: String, tint: Color) {
-        let status = GpsIngest.activeStatus(
+        let status: GpsIngest.ActiveStatus
+        #if DEBUG
+        if let auditNow = UITestSupport.recordingStatusNow(for: rec) {
+            status = GpsIngest.activeStatus(
+                path: rec?.path ?? [],
+                lastFixAt: nil,
+                now: auditNow
+            )
+        } else {
+            status = GpsIngest.activeStatus(
+                path: rec?.path ?? [],
+                lastFixAt: location.lastFixDate
+            )
+        }
+        #else
+        status = GpsIngest.activeStatus(
             path: rec?.path ?? [],
             lastFixAt: location.lastFixDate
         )
+        #endif
         switch status {
         case .waiting:
             return ("Waiting for GPS", .orange)
@@ -546,73 +565,30 @@ struct WalkRecordingPanel: View {
     }
 
     var body: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(gpsStatus.tint)
-                    .frame(width: 7, height: 7)
-                Text(gpsStatus.text)
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("walk-gps-status")
-            .accessibilityLabel(gpsStatus.text)
-
-            if let rec, let stats = elevationStats(path: rec.path) {
-                ElevationProfileView(
-                    stats: stats,
-                    totalDistanceMeters: rec.distanceMi * 1609.344
-                )
-                .frame(height: 70)
-                .transition(.opacity)
-            }
-
-            HStack(spacing: 12) {
-                VStack(spacing: 2) {
-                    Image(systemName: "record.circle.fill")
-                        .foregroundStyle(.red)
-                        .font(.title2)
-                        .symbolEffect(.pulse)
-                    Text("REC")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.red)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                ScrollView {
+                    panelContents
                 }
-
-                Divider().frame(height: 40)
-
-                statColumn(label: "Distance", value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units))
-                statColumn(label: "Duration", value: formattedElapsed)
-                statColumn(label: "Pace",
-                           value: UnitFormatter.pace(metersPerSecond: recording.smoothedPaceMetersPerSec() ?? 0,
-                                                     units: units))
-
-                Button {
-                    showStopConfirm = true
-                } label: {
-                    if isStopping {
-                        ProgressView()
-                            .frame(width: 56, height: 56)
-                    } else {
-                        Image(systemName: "stop.circle.fill")
-                            .font(.system(size: 44))
-                            .foregroundStyle(.red)
-                    }
-                }
-                .disabled(isStopping || recording.isStopping)
-                .accessibilityIdentifier("walk-stop-button")
-                .accessibilityLabel(isStopping ? "Saving walk" : "Stop walk")
-                .accessibilityHint("Opens options to save, discard, or keep walking")
+                .scrollIndicators(.visible)
+                .frame(maxHeight: 430)
+                .accessibilityIdentifier("walk-recording-dashboard-scroll")
+            } else {
+                panelContents
             }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
         .compatibleGlass(in: .rect(cornerRadius: 24))
         .padding(.horizontal, 16)
-        .onAppear { startTimer() }
-        .onDisappear { timer?.invalidate() }
+        .onAppear {
+            controlVisibility.acquire(localControlToken)
+            startTimer()
+        }
+        .onDisappear {
+            timer?.invalidate()
+            controlVisibility.release(localControlToken)
+        }
         .confirmationDialog(
             "Stop this walk?",
             isPresented: $showStopConfirm,
@@ -646,6 +622,147 @@ struct WalkRecordingPanel: View {
         } message: {
             Text(saveFailureMessage ?? "Your active walk is still safe and location observation has resumed.")
         }
+    }
+
+    private var panelContents: some View {
+        VStack(spacing: dynamicTypeSize.isAccessibilitySize ? 16 : 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Circle()
+                    .fill(gpsStatus.tint)
+                    .frame(width: 7, height: 7)
+                Text(gpsStatus.text)
+                    .font(dynamicTypeSize.isAccessibilitySize ? .body.weight(.medium) : .caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("walk-gps-status")
+            .accessibilityLabel(gpsStatus.text)
+
+            if let rec, let stats = elevationStats(path: rec.path) {
+                VStack(alignment: .leading, spacing: 8) {
+                    ElevationProfileView(
+                        stats: stats,
+                        totalDistanceMeters: rec.distanceMi * 1609.344
+                    )
+                    .frame(height: dynamicTypeSize.isAccessibilitySize ? 150 : 70)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Elevation profile")
+                    .accessibilityValue(elevationRangeLabel(stats))
+
+                    if dynamicTypeSize.isAccessibilitySize {
+                        Text(elevationRangeLabel(stats))
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("walk-elevation-summary")
+                    }
+                }
+                .accessibilityIdentifier("walk-elevation-profile")
+                .transition(.opacity)
+            }
+
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(spacing: 10) {
+                    metricRow(
+                        label: "Distance",
+                        value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units)
+                    )
+                    metricRow(label: "Duration", value: formattedElapsed)
+                    metricRow(
+                        label: "Pace",
+                        value: UnitFormatter.pace(
+                            metersPerSecond: recording.smoothedPaceMetersPerSec() ?? 0,
+                            units: units
+                        )
+                    )
+                }
+                .accessibilityIdentifier("walk-recording-metrics")
+                stopButton
+            } else {
+                HStack(spacing: 12) {
+                    VStack(spacing: 2) {
+                        Image(systemName: "record.circle.fill")
+                            .foregroundStyle(.red)
+                            .font(.title2)
+                            .symbolEffect(.pulse)
+                        Text("REC")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.red)
+                    }
+
+                    Divider().frame(height: 40)
+                    statColumn(
+                        label: "Distance",
+                        value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units)
+                    )
+                    statColumn(label: "Duration", value: formattedElapsed)
+                    statColumn(
+                        label: "Pace",
+                        value: UnitFormatter.pace(
+                            metersPerSecond: recording.smoothedPaceMetersPerSec() ?? 0,
+                            units: units
+                        )
+                    )
+                    stopButton
+                }
+            }
+        }
+    }
+
+    private var stopButton: some View {
+        Button {
+            showStopConfirm = true
+        } label: {
+            if dynamicTypeSize.isAccessibilitySize {
+                HStack(spacing: 10) {
+                    if isStopping {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "stop.circle.fill")
+                    }
+                    Text(isStopping ? "Saving…" : "Stop")
+                        .font(.headline)
+                }
+                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+            } else if isStopping {
+                ProgressView()
+                    .frame(width: 56, height: 56)
+            } else {
+                Image(systemName: "stop.circle.fill")
+                    .font(.system(size: 44))
+                    .foregroundStyle(.red)
+                    .frame(width: 56, height: 56)
+            }
+        }
+        .disabled(isStopping || recording.isStopping)
+        .accessibilityIdentifier("walk-stop-button")
+        .accessibilityLabel(isStopping ? "Saving walk" : "Stop walk")
+        .accessibilityHint("Opens options to save, discard, or keep walking")
+    }
+
+    private func metricRow(label: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(label)
+                .font(.body)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 12)
+            Text(value)
+                .font(.headline.monospacedDigit())
+                .multilineTextAlignment(.trailing)
+        }
+        .frame(maxWidth: .infinity)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func elevationRangeLabel(_ stats: ElevationStats) -> String {
+        let low = UnitFormatter.elevation(meters: stats.minAltitudeMeters, units: units)
+        let high = UnitFormatter.elevation(meters: stats.maxAltitudeMeters, units: units)
+        return "Elevation range \(low) to \(high)"
     }
 
     private var stopMessage: String {

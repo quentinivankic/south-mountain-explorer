@@ -7,6 +7,8 @@ struct RecordingPanel: View {
 
     @Environment(RecordingService.self) private var recording
     @Environment(LocationService.self) private var location
+    @Environment(RecordingControlVisibility.self) private var controlVisibility
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     @State private var elapsed: TimeInterval = 0
@@ -27,6 +29,7 @@ struct RecordingPanel: View {
     @State private var isStopping = false
     @State private var showStopConfirm = false
     @State private var saveFailureMessage: String? = nil
+    @State private var localControlToken = RecordingControlVisibility.Token()
 
     /// True when the recording has produced nothing worth persisting — under
     /// ~80 m of movement or too few GPS fixes to draw a route. Saving one of
@@ -43,10 +46,26 @@ struct RecordingPanel: View {
     /// Signal freshness uses LocationService so stationary jitter filtering
     /// cannot look like signal loss; recovery comes from recorded timestamps.
     private var gpsStatus: (text: String, tint: Color) {
-        let status = GpsIngest.activeStatus(
+        let status: GpsIngest.ActiveStatus
+        #if DEBUG
+        if let auditNow = UITestSupport.recordingStatusNow(for: rec) {
+            status = GpsIngest.activeStatus(
+                path: rec?.path ?? [],
+                lastFixAt: nil,
+                now: auditNow
+            )
+        } else {
+            status = GpsIngest.activeStatus(
+                path: rec?.path ?? [],
+                lastFixAt: location.lastFixDate
+            )
+        }
+        #else
+        status = GpsIngest.activeStatus(
             path: rec?.path ?? [],
             lastFixAt: location.lastFixDate
         )
+        #endif
         switch status {
         case .waiting:
             return ("Waiting for GPS", .orange)
@@ -101,99 +120,30 @@ struct RecordingPanel: View {
     }
 
     var body: some View {
-        // EVERY slot in this card is permanently reserved. The dashboard sizes
-        // the sheet's fit stop, so a block that pops in mid-hike (GPS capsule,
-        // elevation strip, ETA line — all former offenders) resizes the sheet
-        // under the user's thumb and clips for a beat while the stop catches
-        // up. Reserved slots make the card's height a fact, not a feed.
-        VStack(spacing: 12) {
-            // GPS signal quality — one quiet permanent line, not a colored
-            // capsule that appears and disappears. Signal state is the one
-            // thing a hiker should always be able to glance at mid-hike.
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(gpsStatus.tint)
-                    .frame(width: 7, height: 7)
-                Text(gpsStatus.text)
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("recording-gps-status")
-            .accessibilityLabel(gpsStatus.text)
-
-            // Live elevation strip — the 70pt slot is ALWAYS reserved. Before
-            // there are enough altitude samples (the first minutes of a hike,
-            // or hardware that returns no altitude) it holds a quiet
-            // placeholder instead of not existing.
-            Group {
-                if let rec, let stats = liveElevation {
-                    ElevationProfileView(
-                        stats: stats,
-                        totalDistanceMeters: rec.distanceMi * 1609.344
-                    )
-                } else {
-                    Text("Elevation appears after a few minutes")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(.quaternary.opacity(0.3))
-                        )
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                ScrollView {
+                    dashboardContents
                 }
+                .scrollIndicators(.visible)
+                .frame(maxHeight: 430)
+                .accessibilityIdentifier("recording-dashboard-scroll")
+            } else {
+                dashboardContents
             }
-            .frame(height: 70)
-
-            HStack(spacing: 12) {
-                // The REC badge is gone, and with it a whole column of width.
-                // It said "you are recording" on a panel that only EXISTS while
-                // you are recording, under a top banner already showing a
-                // pulsing record dot, beside a big red stop button. Three
-                // statements of the same fact; the other two are better placed.
-                // The room it freed is what lets three stat columns breathe.
-                statColumn(label: "Distance", value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units))
-                statColumn(label: "Duration", value: formattedElapsed)
-                // Live pace from the 60-second smoothed window. Renders
-                // "—" until the recording has enough samples (handled
-                // inside UnitFormatter.pace), so the column is stable
-                // from the first frame instead of popping in.
-                statColumn(label: "Pace",
-                           value: UnitFormatter.pace(metersPerSecond: recording.smoothedPaceMetersPerSec() ?? 0,
-                                                     units: units))
-
-                // Stop button — both states framed identically so tapping
-                // Stop cannot wobble the card's height while it saves.
-                Button {
-                    showStopConfirm = true
-                } label: {
-                    Group {
-                        if isStopping {
-                            ProgressView()
-                        } else {
-                            Image(systemName: "stop.circle.fill")
-                                .font(.system(size: 44))
-                                .foregroundStyle(.red)
-                        }
-                    }
-                    .frame(width: 56, height: 56)
-                }
-                .disabled(isStopping || recording.isStopping)
-                .accessibilityIdentifier("recording-stop-button")
-                .accessibilityLabel(isStopping ? "Saving recording" : "Stop recording")
-                .accessibilityHint("Opens options to save, discard, or keep recording")
-            }
-
-            estimatesLine
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
         .compatibleGlass(in: .rect(cornerRadius: 24))
         .padding(.horizontal, 16)
-        .onAppear { startTimer() }
-        .onDisappear { timer?.invalidate() }
+        .onAppear {
+            controlVisibility.acquire(localControlToken)
+            startTimer()
+        }
+        .onDisappear {
+            timer?.invalidate()
+            controlVisibility.release(localControlToken)
+        }
         // Nothing worth keeping yet: offer Discard instead of Save, so a
         // start-then-immediately-stop doesn't drop a 0.0 mi hike into history
         // that then shows up as "Pick Up Where You Left Off" with an empty map.
@@ -239,6 +189,163 @@ struct RecordingPanel: View {
         }
     }
 
+    private var dashboardContents: some View {
+        // Every slot remains reserved so status updates cannot resize the fit
+        // stop under the user's thumb. Accessibility uses a vertical layout
+        // inside the bounded ScrollView above instead of compressing text.
+        VStack(spacing: dynamicTypeSize.isAccessibilitySize ? 16 : 12) {
+            gpsStatusLine
+            elevationBlock
+
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(spacing: 10) {
+                    metricRow(
+                        label: "Distance",
+                        value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units)
+                    )
+                    metricRow(label: "Duration", value: formattedElapsed)
+                    metricRow(
+                        label: "Pace",
+                        value: UnitFormatter.pace(
+                            metersPerSecond: recording.smoothedPaceMetersPerSec() ?? 0,
+                            units: units
+                        )
+                    )
+                }
+                .accessibilityIdentifier("recording-metrics")
+
+                stopButton
+            } else {
+                HStack(spacing: 12) {
+                    statColumn(
+                        label: "Distance",
+                        value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units)
+                    )
+                    statColumn(label: "Duration", value: formattedElapsed)
+                    statColumn(
+                        label: "Pace",
+                        value: UnitFormatter.pace(
+                            metersPerSecond: recording.smoothedPaceMetersPerSec() ?? 0,
+                            units: units
+                        )
+                    )
+                    stopButton
+                }
+            }
+
+            estimatesLine
+        }
+    }
+
+    private var gpsStatusLine: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Circle()
+                .fill(gpsStatus.tint)
+                .frame(width: 7, height: 7)
+            Text(gpsStatus.text)
+                .font(dynamicTypeSize.isAccessibilitySize ? .body.weight(.medium) : .caption2.weight(.medium))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("recording-gps-status")
+        .accessibilityLabel(gpsStatus.text)
+    }
+
+    @ViewBuilder
+    private var elevationBlock: some View {
+        if let rec, let stats = liveElevation {
+            VStack(alignment: .leading, spacing: 8) {
+                ElevationProfileView(
+                    stats: stats,
+                    totalDistanceMeters: rec.distanceMi * 1609.344
+                )
+                .frame(height: dynamicTypeSize.isAccessibilitySize ? 150 : 70)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Elevation profile")
+                .accessibilityValue(elevationRangeLabel(stats))
+
+                if dynamicTypeSize.isAccessibilitySize {
+                    Text(elevationRangeLabel(stats))
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("recording-elevation-summary")
+                }
+            }
+            .accessibilityIdentifier("recording-elevation-profile")
+        } else {
+            Text("Elevation appears after a few minutes")
+                .font(dynamicTypeSize.isAccessibilitySize ? .body : .caption2)
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity, minHeight: dynamicTypeSize.isAccessibilitySize ? 150 : 70)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(.quaternary.opacity(0.3))
+                )
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("recording-elevation-profile")
+        }
+    }
+
+    private var stopButton: some View {
+        Button {
+            showStopConfirm = true
+        } label: {
+            if dynamicTypeSize.isAccessibilitySize {
+                HStack(spacing: 10) {
+                    if isStopping {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "stop.circle.fill")
+                    }
+                    Text(isStopping ? "Saving…" : "Stop")
+                        .font(.headline)
+                }
+                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+            } else {
+                Group {
+                    if isStopping {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "stop.circle.fill")
+                            .font(.system(size: 44))
+                            .foregroundStyle(.red)
+                    }
+                }
+                .frame(width: 56, height: 56)
+            }
+        }
+        .disabled(isStopping || recording.isStopping)
+        .accessibilityIdentifier("recording-stop-button")
+        .accessibilityLabel(isStopping ? "Saving recording" : "Stop recording")
+        .accessibilityHint("Opens options to save, discard, or keep recording")
+    }
+
+    private func metricRow(label: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(label)
+                .font(.body)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 12)
+            Text(value)
+                .font(.headline.monospacedDigit())
+                .multilineTextAlignment(.trailing)
+        }
+        .frame(maxWidth: .infinity)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func elevationRangeLabel(_ stats: ElevationStats) -> String {
+        let low = UnitFormatter.elevation(meters: stats.minAltitudeMeters, units: units)
+        let high = UnitFormatter.elevation(meters: stats.maxAltitudeMeters, units: units)
+        return "Elevation range \(low) to \(high)"
+    }
+
     /// "When am I done" and "when am I back", on one caption line beneath the
     /// counters rather than as two more columns.
     ///
@@ -251,26 +358,49 @@ struct RecordingPanel: View {
     /// is now permanently reserved: estimates arriving a few minutes into a
     /// hike must not resize the card the sheet's fit stop is sized from. The
     /// slot renders a blank line of the same font until it has an answer.
+    @ViewBuilder
     private var estimatesLine: some View {
-        HStack(spacing: 16) {
-            if let eta = liveEtaLabel {
-                Label("Finish \(eta)", systemImage: "flag.checkered")
-                    .accessibilityLabel("About \(eta) to the end of the trail")
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 10) {
+                if let eta = liveEtaLabel {
+                    Label("Finish \(eta)", systemImage: "flag.checkered")
+                        .accessibilityLabel("About \(eta) to the end of the trail")
+                }
+                if let back = liveReturnLabel {
+                    Label("Back \(back)", systemImage: "arrow.uturn.left")
+                        .accessibilityLabel("About \(back) to return to where you started")
+                }
+                if liveEtaLabel == nil && liveReturnLabel == nil {
+                    Text(" ")
+                        .accessibilityHidden(true)
+                }
             }
-            if let back = liveReturnLabel {
-                Label("Back \(back)", systemImage: "arrow.uturn.left")
-                    .accessibilityLabel("About \(back) to return to where you started")
+            .font(.body)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityIdentifier("recording-estimates")
+        } else {
+            HStack(spacing: 16) {
+                if let eta = liveEtaLabel {
+                    Label("Finish \(eta)", systemImage: "flag.checkered")
+                        .accessibilityLabel("About \(eta) to the end of the trail")
+                }
+                if let back = liveReturnLabel {
+                    Label("Back \(back)", systemImage: "arrow.uturn.left")
+                        .accessibilityLabel("About \(back) to return to where you started")
+                }
+                if liveEtaLabel == nil && liveReturnLabel == nil {
+                    Text(" ")
+                        .accessibilityHidden(true)
+                }
+                Spacer(minLength: 0)
             }
-            if liveEtaLabel == nil && liveReturnLabel == nil {
-                Text(" ")
-                    .accessibilityHidden(true)
-            }
-            Spacer(minLength: 0)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
         }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
     }
 
     private var stopMessage: String {
@@ -360,6 +490,7 @@ struct RecordingSummarySheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ProgressService.self) private var progress
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     @State private var gpxShareURL: IdentifiedURL? = nil
@@ -412,41 +543,79 @@ struct RecordingSummarySheet: View {
                     }
                     .padding(.top)
 
-                    // Stats grid
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                        statCard(title: "Distance", value: UnitFormatter.distanceValue(miles: finished.distanceMi, units: units), unit: UnitFormatter.distanceSuffix(units: units))
-                        statCard(title: "Duration", value: formattedDuration, unit: "")
-                        if let stats = elevationStats(path: finished.path) {
-                            statCard(title: "Ascent",
-                                     value: UnitFormatter.elevationValue(meters: stats.totalAscentMeters, units: units),
-                                     unit: UnitFormatter.elevationSuffix(units: units))
-                            statCard(title: "Descent",
-                                     value: UnitFormatter.elevationValue(meters: stats.totalDescentMeters, units: units),
-                                     unit: UnitFormatter.elevationSuffix(units: units))
-                        }
-                    }
-                    .padding(.horizontal)
-
                     if let gap = GpsIngest.materialGapSummary(finished.path) {
                         Label(gap.explanation, systemImage: "location.slash")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .fixedSize(horizontal: false, vertical: true)
                             .padding(.horizontal)
                             .accessibilityIdentifier("recording-gap-summary")
+                    }
+
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(spacing: 12) {
+                            summaryStatRow(
+                                title: "Distance",
+                                value: UnitFormatter.distanceValue(miles: finished.distanceMi, units: units),
+                                unit: UnitFormatter.distanceSuffix(units: units)
+                            )
+                            summaryStatRow(title: "Duration", value: formattedDuration, unit: "")
+                            if let stats = elevationStats(path: finished.path) {
+                                summaryStatRow(
+                                    title: "Ascent",
+                                    value: UnitFormatter.elevationValue(meters: stats.totalAscentMeters, units: units),
+                                    unit: UnitFormatter.elevationSuffix(units: units)
+                                )
+                                summaryStatRow(
+                                    title: "Descent",
+                                    value: UnitFormatter.elevationValue(meters: stats.totalDescentMeters, units: units),
+                                    unit: UnitFormatter.elevationSuffix(units: units)
+                                )
+                            }
+                        }
+                        .padding(.horizontal)
+                        .accessibilityIdentifier("recording-summary-metrics")
+                    } else {
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                            statCard(title: "Distance", value: UnitFormatter.distanceValue(miles: finished.distanceMi, units: units), unit: UnitFormatter.distanceSuffix(units: units))
+                            statCard(title: "Duration", value: formattedDuration, unit: "")
+                            if let stats = elevationStats(path: finished.path) {
+                                statCard(title: "Ascent",
+                                         value: UnitFormatter.elevationValue(meters: stats.totalAscentMeters, units: units),
+                                         unit: UnitFormatter.elevationSuffix(units: units))
+                                statCard(title: "Descent",
+                                         value: UnitFormatter.elevationValue(meters: stats.totalDescentMeters, units: units),
+                                         unit: UnitFormatter.elevationSuffix(units: units))
+                            }
+                        }
+                        .padding(.horizontal)
+                        .accessibilityIdentifier("recording-summary-metrics")
                     }
 
                     // Cumulative area progress
                     if areaTrailCount > 0 {
                         VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("Area Progress")
-                                    .font(.headline)
-                                Spacer()
-                                Text("\(areaCompletedCount) of \(areaTrailCount) · \(Int((areaCompletionFraction * 100).rounded()))%")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .monospacedDigit()
+                            if dynamicTypeSize.isAccessibilitySize {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Area Progress")
+                                        .font(.headline)
+                                    Text("\(areaCompletedCount) of \(areaTrailCount) · \(Int((areaCompletionFraction * 100).rounded()))%")
+                                        .font(.body)
+                                        .foregroundStyle(.secondary)
+                                        .monospacedDigit()
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            } else {
+                                HStack {
+                                    Text("Area Progress")
+                                        .font(.headline)
+                                    Spacer()
+                                    Text("\(areaCompletedCount) of \(areaTrailCount) · \(Int((areaCompletionFraction * 100).rounded()))%")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .monospacedDigit()
+                                }
                             }
                             ProgressView(value: areaCompletionFraction)
                                 .tint(.cyan)
@@ -455,6 +624,7 @@ struct RecordingSummarySheet: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .padding(.horizontal)
+                        .accessibilityIdentifier("recording-summary-area-progress")
                     }
 
                     // Newly completed trails
@@ -517,18 +687,15 @@ struct RecordingSummarySheet: View {
                             .padding(.horizontal)
                         }
                     }
-
-                    Button("Done") { dismiss() }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        .padding(.horizontal)
                 }
             }
+            .accessibilityIdentifier("recording-summary-scroll")
             .navigationTitle("Summary")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .accessibilityIdentifier("recording-summary-done")
                 }
             }
         }
@@ -576,6 +743,22 @@ struct RecordingSummarySheet: View {
             exportFailure = ExportFailure.message(for: error,
                                                   what: "\u{201C}\(trail.name)\u{201D}")
         }
+    }
+
+    private func summaryStatRow(title: String, value: String, unit: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(title)
+                .font(.body)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 12)
+            Text(unit.isEmpty ? value : "\(value) \(unit)")
+                .font(.title3.bold().monospacedDigit())
+                .multilineTextAlignment(.trailing)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .compatibleGlass(in: .rect(cornerRadius: 16))
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func statCard(title: String, value: String, unit: String) -> some View {

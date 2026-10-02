@@ -190,9 +190,13 @@ final class AreaSheetAuditTests: XCTestCase {
         let status = app.descendants(matching: .any)["recording-gps-status"].firstMatch
         XCTAssertTrue(status.waitForExistence(timeout: 10), "Recovered GPS status is missing")
         let recoveredStatusIsExpected = status.label == "GPS recovered"
+        print("AUDIT[gps-recovered] expectedState=recovered matched=\(recoveredStatusIsExpected)")
         XCTAssertTrue(recoveredStatusIsExpected, "Recovered GPS status has unexpected copy")
-        capture(app, "field-trust-01-gps-recovered")
         logElementFrame(app, status, tag: "gps-recovered")
+        XCTAssertEqual(stopControlCount(app), 1, "Recovered state must expose exactly one Stop control")
+        XCTAssertEqual(app.buttons["recording-stop-button"].count, 1)
+        XCTAssertEqual(app.buttons["active-recording-stop-button"].count, 0)
+        capture(app, "field-trust-01-gps-recovered")
 
         let stop = app.buttons["recording-stop-button"].firstMatch
         guard stop.waitForExistence(timeout: 10) else {
@@ -211,8 +215,26 @@ final class AreaSheetAuditTests: XCTestCase {
 
         let gapCopy = app.descendants(matching: .any)["recording-gap-summary"].firstMatch
         XCTAssertTrue(gapCopy.waitForExistence(timeout: 60), "Saved hike gap explanation is missing")
-        capture(app, "field-trust-02-gap-summary")
         logElementFrame(app, gapCopy, tag: "gap-summary")
+        capture(app, "field-trust-02-gap-summary")
+        let done = app.buttons["recording-summary-done"].firstMatch
+        XCTAssertTrue(done.waitForExistence(timeout: 10), "Summary Done action is missing")
+        XCTAssertEqual(app.buttons["recording-summary-done"].count, 1)
+        XCTAssertEqual(
+            app.buttons.matching(NSPredicate(format: "label == %@", "Done")).count,
+            1,
+            "Recording summary must expose exactly one Done action"
+        )
+        logElementFrame(app, done, tag: "summary-done")
+
+        let summaryScroll = app.scrollViews["recording-summary-scroll"].firstMatch
+        XCTAssertTrue(summaryScroll.waitForExistence(timeout: 10), "Summary scroll is missing")
+        let lowerContent = app.descendants(matching: .any)["recording-summary-area-progress"].firstMatch
+        XCTAssertTrue(
+            scrollToReachable(lowerContent, in: summaryScroll, app: app),
+            "Summary lower content is not reachable"
+        )
+        logElementFrame(app, lowerContent, tag: "summary-lower-content")
     }
 
     func testAuditPausedGpsState() {
@@ -222,9 +244,13 @@ final class AreaSheetAuditTests: XCTestCase {
         let status = app.descendants(matching: .any)["recording-gps-status"].firstMatch
         XCTAssertTrue(status.waitForExistence(timeout: 10), "Paused GPS status is missing")
         let pausedStatusIsExpected = status.label == "GPS paused—route stays safe"
+        print("AUDIT[gps-paused] expectedState=paused matched=\(pausedStatusIsExpected)")
         XCTAssertTrue(pausedStatusIsExpected, "Paused GPS status has unexpected copy")
-        capture(app, "field-trust-03-gps-paused")
         logElementFrame(app, status, tag: "gps-paused")
+        XCTAssertEqual(stopControlCount(app), 1, "Paused state must expose exactly one Stop control")
+        XCTAssertEqual(app.buttons["recording-stop-button"].count, 1)
+        XCTAssertEqual(app.buttons["active-recording-stop-button"].count, 0)
+        capture(app, "field-trust-03-gps-paused")
     }
 
     private func auditExploreCards(_ app: XCUIApplication) {
@@ -258,6 +284,34 @@ final class AreaSheetAuditTests: XCTestCase {
         capture(app, "field-trust-00-explore-area-card")
         logElementFrame(app, open, tag: "explore-area-card-open")
         logElementFrame(app, save, tag: "explore-area-card-save")
+    }
+
+    private func stopControlCount(_ app: XCUIApplication) -> Int {
+        app.buttons.matching(NSPredicate(
+            format: "identifier == %@ OR identifier == %@ OR identifier == %@",
+            "active-recording-stop-button",
+            "recording-stop-button",
+            "walk-stop-button"
+        )).count
+    }
+
+    private func scrollToReachable(
+        _ element: XCUIElement,
+        in scrollView: XCUIElement,
+        app: XCUIApplication
+    ) -> Bool {
+        for attempt in 0...10 {
+            if isOnScreenAndHittable(element, app: app) { return true }
+            if attempt < 10 {
+                if element.exists, element.frame.maxY < app.frame.minY {
+                    scrollView.swipeDown()
+                } else {
+                    scrollView.swipeUp()
+                }
+                settle(1)
+            }
+        }
+        return false
     }
 
     private func isOnScreenAndHittable(_ element: XCUIElement, app: XCUIApplication) -> Bool {

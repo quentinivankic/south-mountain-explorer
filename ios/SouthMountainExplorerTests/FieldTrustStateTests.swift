@@ -69,6 +69,28 @@ struct FieldTrustStateTests {
         ) == .ready)
     }
 
+    @MainActor
+    @Test func recordingControlVisibilityTracksUniqueMountedPanels() {
+        let visibility = RecordingControlVisibility()
+        let areaPanel = RecordingControlVisibility.Token()
+        let walkPanel = RecordingControlVisibility.Token()
+
+        visibility.acquire(areaPanel)
+        visibility.acquire(areaPanel)
+        #expect(visibility.hasLocalControls)
+        #expect(visibility.localControlCount == 1)
+
+        visibility.acquire(walkPanel)
+        visibility.release(areaPanel)
+        #expect(visibility.hasLocalControls)
+        #expect(visibility.localControlCount == 1)
+
+        visibility.release(areaPanel)
+        visibility.release(walkPanel)
+        #expect(!visibility.hasLocalControls)
+        #expect(visibility.localControlCount == 0)
+    }
+
     @Test func rootStopGateBlocksPreHydrationDuplicates() {
         #expect(RootRecordingStopGate.canBegin(
             isRootStopInFlight: false,

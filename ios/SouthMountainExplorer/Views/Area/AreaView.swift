@@ -998,12 +998,12 @@ struct AreaView: View {
     /// The browse stop's `.height()` value. Its visible extent (this plus the
     /// home-indicator band) is ~66% of the sheet's maximum at standard text,
     /// which leaves the top ~40% of every supported iPhone as map. Accessibility
-    /// text needs a taller browse stop so a selected row can remain whole; 85%
-    /// still leaves a visible map band while making the larger controls reachable.
-    /// A per-device constant, so comparing a detent against `browseDetent` is stable — unlike
+    /// text needs a taller browse stop so a selected row can remain whole; 78%
+    /// still leaves more than a quarter of the screen as map. A per-device
+    /// constant, so comparing a detent against `browseDetent` is stable — unlike
     /// the fit stop, whose height is measured.
     private var browseHeight: CGFloat {
-        let fraction: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.85 : 0.66
+        let fraction: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.78 : 0.66
         return ((maxDetentHeight * fraction - Self.bottomSafeInset) / 4).rounded(.down) * 4
     }
 
@@ -1510,6 +1510,7 @@ struct AreaView: View {
             // itself, leaving a band of empty sheet under the panel.
         }
         .padding(.top, 8)
+        .frame(height: dynamicTypeSize.isAccessibilitySize ? 410 : nil, alignment: .top)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
             if abs(recordingHeight - h) >= 2 { recordingHeight = h }
         }

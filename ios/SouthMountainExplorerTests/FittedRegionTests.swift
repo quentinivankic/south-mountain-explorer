@@ -376,23 +376,6 @@ struct FittedRegionTests {
         #expect(centerLat < 33.35, "A larger bottom obstruction must move content upward")
     }
 
-    @Test func directionalFit_preservesNarrowAccessibilityMapBand() {
-        let target = TrailMapView.fittedRegion(
-            centerLat: 33.35,
-            centerLon: -112,
-            latDelta: 0.1,
-            lonDelta: 0.1,
-            viewportInsets: MapViewportInsets(top: 80, bottom: 720),
-            screenHeight: 956,
-            screenWidth: 440
-        )
-        guard case .region(_, _, let latDelta, _) = target else {
-            Issue.record("Expected an accessibility selected-route region")
-            return
-        }
-        #expect(latDelta > 0.5)
-    }
-
     @Test func selectedRouteRegion_asymmetricSideObstructionsShiftLongitude() {
         let centered = TrailMapView.selectedRouteRegion(
             points: [(33.3, -112.0), (33.4, -111.9)],

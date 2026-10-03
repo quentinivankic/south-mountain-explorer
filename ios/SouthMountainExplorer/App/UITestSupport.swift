@@ -176,6 +176,11 @@ enum UITestSupport {
             }
         }
         writeJSON([areaId: completions], forKey: StorageKeys.completedTrails)
+        // Keep repeated UI-test launches deterministic. ProgressService can
+        // rebuild fingerprints from these seeded completions after area load;
+        // stale fingerprints from an earlier test must not make a zero-count
+        // seed render completed rows that its exact ID store does not contain.
+        UserDefaults.standard.removeObject(forKey: StorageKeys.completedTrailFingerprints)
 
         // Cosmetic: make the trail-detail "% remaining" bars read 100% /
         // 0%-remaining on completed trails.

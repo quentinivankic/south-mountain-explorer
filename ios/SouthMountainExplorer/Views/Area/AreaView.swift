@@ -1729,7 +1729,7 @@ struct AreaView: View {
                 .accessibilityHidden(true)
 
             Text(areaName)
-                .font(dynamicTypeSize.isAccessibilitySize ? .headline : .title3.weight(.semibold))
+                .font(dynamicTypeSize.isAccessibilitySize ? .caption.weight(.semibold) : .title3.weight(.semibold))
                 .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .center)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 .fixedSize(horizontal: false, vertical: dynamicTypeSize.isAccessibilitySize)

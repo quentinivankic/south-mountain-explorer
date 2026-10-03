@@ -40,7 +40,7 @@ struct ContinueCard: View {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: 0) {
                     artwork
-                        .frame(height: 72)
+                        .frame(height: 48)
                         .frame(maxWidth: .infinity)
 
                     information(accessibilityLayout: true)
@@ -99,7 +99,7 @@ struct ContinueCard: View {
 
     private var areaTitle: some View {
         Text(area.name)
-            .font(dynamicTypeSize.isAccessibilitySize ? .headline : .title3)
+            .font(dynamicTypeSize.isAccessibilitySize ? .caption : .title3)
             .fontWeight(.semibold)
             .foregroundStyle(.primary)
             .fixedSize(horizontal: false, vertical: true)

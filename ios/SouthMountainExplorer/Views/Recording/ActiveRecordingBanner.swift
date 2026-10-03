@@ -81,12 +81,12 @@ struct ActiveRecordingBanner: View {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     recordingIcon
                     Text(trailName ?? areaName)
-                        .font(.headline)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(.primary)
                         .multilineTextAlignment(.leading)
                 }
                 Text(subtitleLine)
-                    .font(.body.monospacedDigit())
+                    .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.leading)
             }

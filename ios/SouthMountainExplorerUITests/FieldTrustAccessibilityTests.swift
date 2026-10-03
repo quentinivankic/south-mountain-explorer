@@ -174,11 +174,11 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         assertInsideScreen(metrics, app: app)
         assertInsideScreen(actions, app: app)
 
-        XCTAssertEqual(app.buttons["area-record-button"].count, 1)
-        XCTAssertEqual(app.buttons["area-search-button"].count, 1)
-        XCTAssertEqual(app.buttons["area-collection-button"].count, 1)
-        XCTAssertEqual(app.textFields["Search trails"].count, 0)
-        XCTAssertEqual(app.buttons["trail-filter-button"].count, 0)
+        XCTAssertEqual(app.buttons.matching(identifier: "area-record-button").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "area-search-button").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "area-collection-button").count, 1)
+        XCTAssertEqual(app.textFields.matching(identifier: "Search trails").count, 0)
+        XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 0)
 
         let select = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "trail-select-")
@@ -204,7 +204,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             "Trail profile is not reachable"
         )
         assertInsideScreen(profile, app: app)
-        XCTAssertEqual(app.buttons["trail-profile-flip-button"].count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "trail-profile-flip-button").count, 1)
 
         XCTAssertTrue(scrollToReachable(select, in: trailScroll, app: app))
         select.tap()
@@ -213,9 +213,9 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
         search.tap()
         XCTAssertTrue(app.textFields["Search trails"].firstMatch.waitForExistence(timeout: 10))
-        XCTAssertEqual(app.textFields["Search trails"].count, 1)
-        XCTAssertEqual(app.buttons["trail-filter-button"].count, 1)
-        XCTAssertEqual(app.buttons["area-search-button"].count, 0)
+        XCTAssertEqual(app.textFields.matching(identifier: "Search trails").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "area-search-button").count, 0)
 
         let collection = app.buttons["area-collection-button"].firstMatch
         XCTAssertTrue(collection.waitForExistence(timeout: 10), "Collection action is missing")
@@ -255,7 +255,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let bannerMetadata = banner.value as? String ?? ""
         XCTAssertFalse(bannerMetadata.isEmpty, "Active recording metadata is missing")
         XCTAssertEqual(stopControlCount(app), 1, "A non-contextual screen must expose one Stop control")
-        XCTAssertEqual(app.buttons["active-recording-stop-button"].count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "active-recording-stop-button").count, 1)
 
         banner.tap()
         let status = app.descendants(matching: .any)["recording-gps-status"].firstMatch
@@ -263,8 +263,8 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertEqual(status.label, "GPS recovered", "Recording GPS status has unexpected copy")
         assertInsideScreen(status, app: app)
         XCTAssertEqual(stopControlCount(app), 1, "A contextual recording screen must expose one Stop control")
-        XCTAssertEqual(app.buttons["recording-stop-button"].count, 1)
-        XCTAssertEqual(app.buttons["active-recording-stop-button"].count, 0)
+        XCTAssertEqual(app.buttons.matching(identifier: "recording-stop-button").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "active-recording-stop-button").count, 0)
 
         let close = app.buttons["area-close-button"].firstMatch
         XCTAssertTrue(close.waitForExistence(timeout: 10), "Area close control is missing")
@@ -298,7 +298,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
         let done = app.buttons["recording-summary-done"].firstMatch
         XCTAssertTrue(done.waitForExistence(timeout: 60), "Summary Done action is missing")
-        XCTAssertEqual(app.buttons["recording-summary-done"].count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "recording-summary-done").count, 1)
         XCTAssertEqual(
             app.buttons.matching(NSPredicate(format: "label == %@", "Done")).count,
             1,
@@ -334,9 +334,9 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(sheetHeader.waitForExistence(timeout: 10), "Area sheet header is missing")
         guard controls.exists, sheetHeader.exists else { return }
 
-        XCTAssertEqual(app.buttons["area-close-button"].count, 1)
-        XCTAssertEqual(app.buttons["area-map-options-button"].count, 1)
-        XCTAssertEqual(app.buttons["area-map-favorite-button"].count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "area-close-button").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "area-map-options-button").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "area-map-favorite-button").count, 1)
 
         let safeFrame = CGRect(
             x: app.frame.minX + 20,

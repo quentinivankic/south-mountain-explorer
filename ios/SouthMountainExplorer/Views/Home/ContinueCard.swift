@@ -80,13 +80,14 @@ struct ContinueCard: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
 
-            Text(area.name)
-                .font(.title3)
-                .fontWeight(.semibold)
-                .foregroundStyle(.primary)
-                .lineLimit(accessibilityLayout ? nil : 2, reservesSpace: !accessibilityLayout)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("continue-card-title")
+            Group {
+                if accessibilityLayout {
+                    areaTitle
+                } else {
+                    areaTitle
+                        .lineLimit(2, reservesSpace: true)
+                }
+            }
 
             if totalTrails > 0 {
                 Text("\(completedCount)/\(totalTrails) trails")
@@ -94,6 +95,15 @@ struct ContinueCard: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private var areaTitle: some View {
+        Text(area.name)
+            .font(.title3)
+            .fontWeight(.semibold)
+            .foregroundStyle(.primary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("continue-card-title")
     }
 
     @ViewBuilder

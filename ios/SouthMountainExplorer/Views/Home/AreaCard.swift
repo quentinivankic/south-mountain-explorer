@@ -12,6 +12,8 @@ struct AreaCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
+    @State private var suppressOpen = false
+
     private var cachedArea: Area? { areas.cachedArea(id: area.id) }
 
     /// Great-circle distance from user to area centroid, in miles.
@@ -98,7 +100,10 @@ struct AreaCard: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            Button(action: onOpen) {
+            Button {
+                guard !suppressOpen else { return }
+                onOpen()
+            } label: {
                 cardContent
                     .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
@@ -108,7 +113,15 @@ struct AreaCard: View {
             .accessibilityHint("Opens the area map and trail list")
 
             Button {
-                Task { await favorites.toggle(areaId: area.id) }
+                // Removing a saved card destroys this row during the same tap.
+                // Latch first so the underlying Open surface cannot receive
+                // that release event as the hierarchy changes.
+                suppressOpen = true
+                Task {
+                    await favorites.toggle(areaId: area.id)
+                    try? await Task.sleep(for: .milliseconds(500))
+                    suppressOpen = false
+                }
             } label: {
                 Image(systemName: favorites.isFavorite(area.id) ? "heart.fill" : "heart")
                     .foregroundStyle(favorites.isFavorite(area.id) ? .red : .primary)
@@ -230,7 +243,7 @@ struct AreaCard: View {
 
     private var areaTitle: some View {
         Text(area.name)
-            .font(.headline)
+            .font(dynamicTypeSize.isAccessibilitySize ? .caption : .headline)
             .foregroundStyle(.primary)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityIdentifier("area-card-title-\(area.id)")

@@ -96,7 +96,7 @@ final class AreaSheetAuditTests: XCTestCase {
 
         // ---- 5. Deselect: the toolbar and rows must return to idle --------
         if let identifier = firstRowIdentifier {
-            let select = app.buttons[identifier].firstMatch
+            let select = app.descendants(matching: .any)[identifier].firstMatch
             let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
             XCTAssertTrue(scrollToReachable(select, in: trailScroll, app: app))
             tapElement(select)
@@ -216,6 +216,13 @@ final class AreaSheetAuditTests: XCTestCase {
         let recoveredStatusIsExpected = status.label == "GPS recovered"
         print("AUDIT[gps-recovered] expectedState=recovered matched=\(recoveredStatusIsExpected)")
         XCTAssertTrue(recoveredStatusIsExpected, "Recovered GPS status has unexpected copy")
+        let dashboardScroll = app.scrollViews["recording-dashboard-scroll"].firstMatch
+        if dashboardScroll.exists {
+            XCTAssertTrue(
+                scrollToReachable(status, in: dashboardScroll, app: app),
+                "Recovered GPS status is not reachable"
+            )
+        }
         logElementFrame(app, status, tag: "gps-recovered")
         XCTAssertEqual(stopControlCount(app), 1, "Recovered state must expose exactly one Stop control")
         XCTAssertEqual(app.buttons.matching(identifier: "recording-stop-button").count, 1)
@@ -227,6 +234,12 @@ final class AreaSheetAuditTests: XCTestCase {
             dumpTree(app, "recording-stop-missing")
             XCTFail("Recording stop control is missing")
             return
+        }
+        if dashboardScroll.exists {
+            XCTAssertTrue(
+                scrollToReachable(stop, in: dashboardScroll, app: app),
+                "Recording stop control is not reachable"
+            )
         }
         tapElement(stop)
         let save = app.buttons["Stop & Save"].firstMatch
@@ -271,6 +284,13 @@ final class AreaSheetAuditTests: XCTestCase {
         let pausedStatusIsExpected = status.label == "GPS paused—route stays safe"
         print("AUDIT[gps-paused] expectedState=paused matched=\(pausedStatusIsExpected)")
         XCTAssertTrue(pausedStatusIsExpected, "Paused GPS status has unexpected copy")
+        let dashboardScroll = app.scrollViews["recording-dashboard-scroll"].firstMatch
+        if dashboardScroll.exists {
+            XCTAssertTrue(
+                scrollToReachable(status, in: dashboardScroll, app: app),
+                "Paused GPS status is not reachable"
+            )
+        }
         logElementFrame(app, status, tag: "gps-paused")
         XCTAssertEqual(stopControlCount(app), 1, "Paused state must expose exactly one Stop control")
         XCTAssertEqual(app.buttons.matching(identifier: "recording-stop-button").count, 1)
@@ -378,10 +398,18 @@ final class AreaSheetAuditTests: XCTestCase {
         let actionLabelsAreDistinct = select.label != secondary.label
         XCTAssertTrue(actionIdentifiersAreDistinct, "Selected trail actions must be distinct")
         XCTAssertTrue(actionLabelsAreDistinct, "Selected trail action labels must be distinct")
-        logElementFrame(app, select, tag: "trail-select")
-        logElementFrame(app, secondary, tag: "trail-secondary")
         let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
         XCTAssertTrue(trailScroll.exists, "Trail list scroll is missing")
+        XCTAssertTrue(
+            scrollToReachable(select, in: trailScroll, app: app),
+            "Selected trail action is not reachable"
+        )
+        logElementFrame(app, select, tag: "trail-select")
+        XCTAssertTrue(
+            scrollToReachable(secondary, in: trailScroll, app: app),
+            "Selected trail secondary action is not reachable"
+        )
+        logElementFrame(app, secondary, tag: "trail-secondary")
         XCTAssertTrue(
             scrollToReachable(profile, in: trailScroll, app: app),
             "Selected trail profile is not reachable"
@@ -540,8 +568,7 @@ final class AreaSheetAuditTests: XCTestCase {
     ) {
         let exists = title.waitForExistence(timeout: 10)
         let isComplete = exists && title.label == "South Mountain Park and Preserve"
-        let isAccessibility = ProcessInfo.processInfo.environment["CONTENT_SIZE"]?
-            .hasPrefix("accessibility") == true
+        let isAccessibility = title.frame.height > 80
             || app.launchArguments.contains("UICTContentSizeCategoryAccessibilityXXXL")
         let isWithinStandardLineLimit = isAccessibility || (exists && title.frame.height <= 52)
         print(

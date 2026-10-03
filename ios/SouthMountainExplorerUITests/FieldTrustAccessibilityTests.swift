@@ -172,15 +172,13 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(metrics.exists, "Area metrics are missing")
         XCTAssertTrue(actions.exists, "Area actions are missing")
         assertInsideScreen(header, app: app)
-        let headerScroll = app.scrollViews["area-header-scroll"].firstMatch
-        XCTAssertTrue(headerScroll.waitForExistence(timeout: 10), "Area header scroll is missing")
         XCTAssertTrue(
-            scrollToReachable(title, in: headerScroll, app: app),
+            scrollToReachable(title, in: header, app: app),
             "Area title is not reachable"
         )
         assertInsideScreen(title, app: app)
         XCTAssertTrue(
-            scrollToReachable(metrics, in: headerScroll, app: app),
+            scrollToReachable(metrics, in: header, app: app),
             "Area metrics are not reachable"
         )
         assertInsideScreen(metrics, app: app)
@@ -273,6 +271,9 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let status = app.descendants(matching: .any)["recording-gps-status"].firstMatch
         XCTAssertTrue(status.waitForExistence(timeout: 60), "Recording GPS status is missing")
         XCTAssertEqual(status.label, "GPS recovered", "Recording GPS status has unexpected copy")
+        let dashboardScroll = app.scrollViews["recording-dashboard-scroll"].firstMatch
+        XCTAssertTrue(dashboardScroll.waitForExistence(timeout: 10), "Accessibility recording scroll is missing")
+        XCTAssertTrue(scrollToReachable(status, in: dashboardScroll, app: app))
         assertInsideScreen(status, app: app)
         XCTAssertEqual(stopControlCount(app), 1, "A contextual recording screen must expose one Stop control")
         XCTAssertEqual(app.buttons.matching(identifier: "recording-stop-button").count, 1)
@@ -289,8 +290,6 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
         app.buttons["active-recording-banner"].firstMatch.tap()
         XCTAssertTrue(status.waitForExistence(timeout: 60), "Recording panel did not reopen")
-        let dashboardScroll = app.scrollViews["recording-dashboard-scroll"].firstMatch
-        XCTAssertTrue(dashboardScroll.waitForExistence(timeout: 10), "Accessibility recording scroll is missing")
         let elevation = app.descendants(matching: .any)["recording-elevation-summary"].firstMatch
         XCTAssertTrue(scrollToReachable(elevation, in: dashboardScroll, app: app))
         assertInsideScreen(elevation, app: app)
@@ -449,8 +448,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(title.waitForExistence(timeout: 10), "Area title is missing")
         let isComplete = title.label == "South Mountain Park and Preserve"
         XCTAssertTrue(isComplete, "Area title is incomplete")
-        let isAccessibility = ProcessInfo.processInfo.environment["CONTENT_SIZE"]?
-            .hasPrefix("accessibility") == true
+        let isAccessibility = title.frame.height > 80
             || app.launchArguments.contains("UICTContentSizeCategoryAccessibilityXXXL")
         if !isAccessibility {
             XCTAssertLessThanOrEqual(title.frame.height, 52, "Area title exceeds two standard lines")

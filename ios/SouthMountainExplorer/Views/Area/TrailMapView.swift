@@ -1315,8 +1315,8 @@ struct TrailMapView: View {
             let rawFirst = max(0, Double(first)) / dimension
             let rawSecond = max(0, Double(second)) / dimension
             let rawTotal = rawFirst + rawSecond
-            guard rawTotal > 0.7 else { return (rawFirst, rawSecond) }
-            let scale = 0.7 / rawTotal
+            guard rawTotal > 0.85 else { return (rawFirst, rawSecond) }
+            let scale = 0.85 / rawTotal
             return (rawFirst * scale, rawSecond * scale)
         }
 
@@ -1330,8 +1330,8 @@ struct TrailMapView: View {
             second: viewportInsets.trailing,
             dimension: width
         )
-        let visibleHeight = max(0.3, 1 - vertical.first - vertical.second)
-        let visibleWidth = max(0.3, 1 - horizontal.first - horizontal.second)
+        let visibleHeight = max(0.15, 1 - vertical.first - vertical.second)
+        let visibleWidth = max(0.15, 1 - horizontal.first - horizontal.second)
 
         let regionLatDelta = min(max(latDelta / visibleHeight, 0.005), 180)
         let regionLonDelta = min(max(lonDelta / visibleWidth, 0.005), 360)

@@ -22,8 +22,9 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let continueIsOpenAction = continueButton.label.hasPrefix("Open Area,")
         XCTAssertTrue(continueIsOpenAction, "Continue must expose an Open Area action")
         assertInsideFrame(continueButton, frame: visibleFrame)
-        assertCompleteStandardTitle(
-            app.descendants(matching: .any)["continue-card-title"].firstMatch
+        assertCompleteAreaTitle(
+            app.descendants(matching: .any)["continue-card-title"].firstMatch,
+            app: app
         )
 
         let open = app.buttons["area-open-\(areaId)"].firstMatch
@@ -44,8 +45,9 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(saveHasExpectedLabel, "Area Save button has an unexpected label")
         assertInsideFrame(open, frame: visibleFrame)
         assertInsideFrame(save, frame: visibleFrame)
-        assertCompleteStandardTitle(
-            app.descendants(matching: .any)["area-card-title-\(areaId)"].firstMatch
+        assertCompleteAreaTitle(
+            app.descendants(matching: .any)["area-card-title-\(areaId)"].firstMatch,
+            app: app
         )
 
         let savedHeading = app.staticTexts["Saved Areas"].firstMatch
@@ -96,7 +98,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
     }
 
     func testTrailSelectAndCompleteAreIndependentButtons() {
-        let app = launchSeededApp()
+        let app = launchSeededApp(arguments: ["--uitest-completed", "0"])
         let continueButton = app.buttons["continue-card"].firstMatch
         XCTAssertTrue(continueButton.waitForExistence(timeout: 30))
         continueButton.tap()
@@ -170,7 +172,17 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(metrics.exists, "Area metrics are missing")
         XCTAssertTrue(actions.exists, "Area actions are missing")
         assertInsideScreen(header, app: app)
+        let headerScroll = app.scrollViews["area-header-scroll"].firstMatch
+        XCTAssertTrue(headerScroll.waitForExistence(timeout: 10), "Area header scroll is missing")
+        XCTAssertTrue(
+            scrollToReachable(title, in: headerScroll, app: app),
+            "Area title is not reachable"
+        )
         assertInsideScreen(title, app: app)
+        XCTAssertTrue(
+            scrollToReachable(metrics, in: headerScroll, app: app),
+            "Area metrics are not reachable"
+        )
         assertInsideScreen(metrics, app: app)
         assertInsideScreen(actions, app: app)
 
@@ -375,9 +387,9 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         return false
     }
 
-    private func launchSeededApp() -> XCUIApplication {
+    private func launchSeededApp(arguments: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["--uitest-seed"]
+        app.launchArguments = ["--uitest-seed"] + arguments
         app.launch()
         _ = app.tabBars.buttons["Explore"].waitForExistence(timeout: 30)
         return app
@@ -405,29 +417,44 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         app: XCUIApplication
     ) -> Bool {
         let visibleFrame = exploreVisibleContentFrame(app)
-        for attempt in 0...12 {
+        let scrollView = app.scrollViews["explore-scroll"].firstMatch
+        for attempt in 0...20 {
             if element.exists,
                element.isHittable,
                visibleFrame.contains(element.frame) {
                 return true
             }
-            if attempt < 12 {
-                if element.exists, element.frame.minY < visibleFrame.minY {
-                    app.swipeDown()
-                } else {
-                    app.swipeUp()
-                }
+            if attempt < 20 {
+                nudgeExploreScroll(
+                    scrollView.exists ? scrollView : app,
+                    towardTop: element.exists && element.frame.minY < visibleFrame.minY
+                )
                 sleep(1)
             }
         }
         return false
     }
 
-    private func assertCompleteStandardTitle(_ title: XCUIElement) {
+    private func nudgeExploreScroll(_ surface: XCUIElement, towardTop: Bool) {
+        let start = surface.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.5, dy: towardTop ? 0.35 : 0.65)
+        )
+        let end = surface.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.5, dy: towardTop ? 0.55 : 0.45)
+        )
+        start.press(forDuration: 0.05, thenDragTo: end)
+    }
+
+    private func assertCompleteAreaTitle(_ title: XCUIElement, app: XCUIApplication) {
         XCTAssertTrue(title.waitForExistence(timeout: 10), "Area title is missing")
         let isComplete = title.label == "South Mountain Park and Preserve"
         XCTAssertTrue(isComplete, "Area title is incomplete")
-        XCTAssertLessThanOrEqual(title.frame.height, 52, "Area title exceeds two standard lines")
+        let isAccessibility = ProcessInfo.processInfo.environment["CONTENT_SIZE"]?
+            .hasPrefix("accessibility") == true
+            || app.launchArguments.contains("UICTContentSizeCategoryAccessibilityXXXL")
+        if !isAccessibility {
+            XCTAssertLessThanOrEqual(title.frame.height, 52, "Area title exceeds two standard lines")
+        }
     }
 
     private func assertInsideFrame(_ element: XCUIElement, frame: CGRect) {

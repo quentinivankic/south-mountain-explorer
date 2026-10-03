@@ -127,6 +127,7 @@ struct AreaCard: View {
             )
             .padding(.top, 12)
             .padding(.trailing, 12)
+            .zIndex(1)
         }
     }
 
@@ -135,14 +136,14 @@ struct AreaCard: View {
         if dynamicTypeSize.isAccessibilitySize {
             VStack(alignment: .leading, spacing: 0) {
                 artwork
-                    .frame(width: 260, height: 132)
+                    .frame(width: 320, height: 72)
 
                 information(accessibilityLayout: true)
-                    .padding(14)
-                    .frame(width: 260, alignment: .leading)
+                    .padding(10)
+                    .frame(width: 320, alignment: .leading)
                     .background(.regularMaterial)
             }
-            .frame(width: 260)
+            .frame(width: 320)
             .background(Color(.secondarySystemBackground))
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay(

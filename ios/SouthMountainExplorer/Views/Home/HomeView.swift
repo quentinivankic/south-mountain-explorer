@@ -177,6 +177,7 @@ struct HomeView: View {
                 }
                 .padding()
             }
+            .accessibilityIdentifier("explore-scroll")
             .refreshable {
                 // Pull-to-refresh: re-load history (so a hike completed
                 // mid-session shows up in Pick Up / Try Something New),

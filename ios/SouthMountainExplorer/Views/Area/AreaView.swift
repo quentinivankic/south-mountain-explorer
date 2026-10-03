@@ -998,12 +998,12 @@ struct AreaView: View {
     /// The browse stop's `.height()` value. Its visible extent (this plus the
     /// home-indicator band) is ~66% of the sheet's maximum at standard text,
     /// which leaves the top ~40% of every supported iPhone as map. Accessibility
-    /// text needs a taller browse stop so a selected row can remain whole; 78%
-    /// still leaves more than a quarter of the screen as map. A per-device
-    /// constant, so comparing a detent against `browseDetent` is stable — unlike
+    /// text needs a taller browse stop so a selected row can remain whole; 85%
+    /// still leaves a visible map band while making the larger controls reachable.
+    /// A per-device constant, so comparing a detent against `browseDetent` is stable — unlike
     /// the fit stop, whose height is measured.
     private var browseHeight: CGFloat {
-        let fraction: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.78 : 0.66
+        let fraction: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.85 : 0.66
         return ((maxDetentHeight * fraction - Self.bottomSafeInset) / 4).rounded(.down) * 4
     }
 
@@ -1576,7 +1576,7 @@ struct AreaView: View {
         let selected = selectedTrailId.flatMap { id in area.trails.first { $0.id == id } }
         Group {
             if dynamicTypeSize.isAccessibilitySize {
-                VStack(spacing: 10) {
+                VStack(spacing: 6) {
                     areaRecordButton(selected: selected)
                     if atMinStop {
                         areaSearchButton
@@ -1607,7 +1607,7 @@ struct AreaView: View {
                     .font(.body.weight(.semibold))
                 if dynamicTypeSize.isAccessibilitySize {
                     Text(selected == nil ? "Start a Hike" : "Record This Trail")
-                        .font(.caption.weight(.semibold))
+                        .font(.caption2.weight(.semibold))
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text(selected == nil ? "Start a Hike" : "Record This Trail")
@@ -1618,7 +1618,7 @@ struct AreaView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 10 : 0)
-            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 8 : 12)
+            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 6 : 12)
             .compatibleGlass(in: .capsule)
         }
         .buttonStyle(.plain)
@@ -1642,12 +1642,12 @@ struct AreaView: View {
                     .foregroundStyle(hasActiveFilter ? Color.accentColor : .primary)
                 if dynamicTypeSize.isAccessibilitySize {
                     Text(hasActiveFilter ? "Search & Filters" : "Search Trails")
-                        .font(.caption.weight(.semibold))
+                        .font(.caption2.weight(.semibold))
                 }
             }
             .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
             .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 10 : 13)
-            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 8 : 12)
+            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 6 : 12)
             .compatibleGlass(in: .capsule)
         }
         .buttonStyle(.plain)
@@ -1666,7 +1666,7 @@ struct AreaView: View {
                     .font(.body.weight(.semibold))
                 if dynamicTypeSize.isAccessibilitySize {
                     Text("Collection")
-                        .font(.caption.weight(.semibold))
+                        .font(.caption2.weight(.semibold))
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text("Collection")
@@ -1676,7 +1676,7 @@ struct AreaView: View {
             }
             .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
             .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 10 : 14)
-            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 8 : 12)
+            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 6 : 12)
             .compatibleGlass(in: .capsule)
         }
         .buttonStyle(.plain)
@@ -1698,7 +1698,7 @@ struct AreaView: View {
                     )
                 }
                 .scrollIndicators(.visible)
-                .frame(maxHeight: 180)
+                .frame(maxHeight: isRecording ? 80 : 120)
                 .accessibilityIdentifier("area-header-scroll")
             } else {
                 areaHeaderContent(
@@ -1729,7 +1729,7 @@ struct AreaView: View {
                 .accessibilityHidden(true)
 
             Text(areaName)
-                .font(dynamicTypeSize.isAccessibilitySize ? .caption.weight(.semibold) : .title3.weight(.semibold))
+                .font(dynamicTypeSize.isAccessibilitySize ? .caption2.weight(.semibold) : .title3.weight(.semibold))
                 .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .center)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 .fixedSize(horizontal: false, vertical: dynamicTypeSize.isAccessibilitySize)
@@ -1767,7 +1767,7 @@ struct AreaView: View {
                alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .center)
         .padding(.horizontal, 20)
         .padding(.top, 0)
-        .padding(.bottom, dynamicTypeSize.isAccessibilitySize ? 8 : 12)
+        .padding(.bottom, dynamicTypeSize.isAccessibilitySize ? 6 : 12)
     }
 
     private func areaHeaderMetric(
@@ -1777,11 +1777,11 @@ struct AreaView: View {
     ) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(label)
-                .font(.caption.weight(.semibold))
+                .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
             Spacer(minLength: 12)
             Text(value)
-                .font(.caption)
+                .font(.caption2)
                 .foregroundStyle(valueColor)
                 .multilineTextAlignment(.trailing)
                 .fixedSize(horizontal: false, vertical: true)

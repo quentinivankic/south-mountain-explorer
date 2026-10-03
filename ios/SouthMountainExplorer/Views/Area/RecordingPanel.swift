@@ -243,7 +243,7 @@ struct RecordingPanel: View {
                 .fill(gpsStatus.tint)
                 .frame(width: 7, height: 7)
             Text(gpsStatus.text)
-                .font(dynamicTypeSize.isAccessibilitySize ? .body.weight(.medium) : .caption2.weight(.medium))
+                .font(dynamicTypeSize.isAccessibilitySize ? .caption.weight(.medium) : .caption2.weight(.medium))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
@@ -261,7 +261,7 @@ struct RecordingPanel: View {
                     stats: stats,
                     totalDistanceMeters: rec.distanceMi * 1609.344
                 )
-                .frame(height: dynamicTypeSize.isAccessibilitySize ? 150 : 70)
+                .frame(height: dynamicTypeSize.isAccessibilitySize ? 110 : 70)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Elevation profile")
                 .accessibilityValue(elevationRangeLabel(stats))
@@ -279,7 +279,7 @@ struct RecordingPanel: View {
             Text("Elevation appears after a few minutes")
                 .font(dynamicTypeSize.isAccessibilitySize ? .body : .caption2)
                 .foregroundStyle(.tertiary)
-                .frame(maxWidth: .infinity, minHeight: dynamicTypeSize.isAccessibilitySize ? 150 : 70)
+                .frame(maxWidth: .infinity, minHeight: dynamicTypeSize.isAccessibilitySize ? 110 : 70)
                 .background(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .fill(.quaternary.opacity(0.3))

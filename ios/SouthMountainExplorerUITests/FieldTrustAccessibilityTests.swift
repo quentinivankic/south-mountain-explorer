@@ -104,12 +104,14 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         continueButton.tap()
         XCTAssertTrue(app.buttons["area-recenter-button"].firstMatch.waitForExistence(timeout: 60))
 
-        let selectQuery = app.buttons.matching(
-            NSPredicate(format: "identifier BEGINSWITH %@", "trail-select-")
+        let select = app.buttons["trail-select-bajada-trail"].firstMatch
+        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+        XCTAssertTrue(trailScroll.waitForExistence(timeout: 10), "Trail list scroll is missing")
+        XCTAssertTrue(
+            scrollToReachable(select, in: trailScroll, app: app),
+            "No semantic trail Select button appeared"
         )
-        let select = selectQuery.firstMatch
-        XCTAssertTrue(select.waitForExistence(timeout: 60), "No semantic trail Select button appeared")
-        let trailSuffix = String(select.identifier.dropFirst("trail-select-".count))
+        let trailSuffix = "bajada-trail"
         let secondary = app.buttons["trail-secondary-\(trailSuffix)"].firstMatch
         XCTAssertTrue(secondary.waitForExistence(timeout: 10), "Trail secondary action is missing")
         let trailActionIdentifiersAreDistinct = select.identifier != secondary.identifier

@@ -105,7 +105,7 @@ struct AreaCard: View {
                 onOpen()
             } label: {
                 cardContent
-                    .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .contentShape(.interaction, AreaCardOpenHitShape(), eoFill: true)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("area-open-\(area.id)")
@@ -149,7 +149,7 @@ struct AreaCard: View {
         if dynamicTypeSize.isAccessibilitySize {
             VStack(alignment: .leading, spacing: 0) {
                 artwork
-                    .frame(width: 320, height: 72)
+                    .frame(width: 320, height: 40)
 
                 information(accessibilityLayout: true)
                     .padding(10)
@@ -243,7 +243,7 @@ struct AreaCard: View {
 
     private var areaTitle: some View {
         Text(area.name)
-            .font(dynamicTypeSize.isAccessibilitySize ? .caption : .headline)
+            .font(dynamicTypeSize.isAccessibilitySize ? .caption2 : .headline)
             .foregroundStyle(.primary)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityIdentifier("area-card-title-\(area.id)")
@@ -285,6 +285,23 @@ struct AreaCard: View {
         // is per-process seeded so it can land there.
         let index = Int(area.id.hashValue.magnitude % UInt(palette.count))
         return palette[index]
+    }
+}
+
+/// Keep the overlaid Save button out of the card-wide Open hit region while
+/// preserving the existing visual composition. Even-odd fill cuts one generic
+/// control-sized hole from the top-trailing corner.
+private struct AreaCardOpenHitShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.addRect(rect)
+        path.addRect(CGRect(
+            x: max(rect.minX, rect.maxX - 72),
+            y: rect.minY,
+            width: min(72, rect.width),
+            height: min(72, rect.height)
+        ))
+        return path
     }
 }
 

@@ -1206,6 +1206,10 @@ struct MapKitMapView: UIViewRepresentable {
                 }
                 view.canShowCallout = true
                 view.displayPriority = .required        // a few per area — always show
+                view.isAccessibilityElement = true
+                view.accessibilityIdentifier = parking.isTrailhead
+                    ? "map-trailhead-marker"
+                    : "map-parking-marker"
                 return view
             }
             return nil

@@ -90,6 +90,7 @@ final class AreaSheetAuditTests: XCTestCase {
         let firstRowIdentifier = tapFirstTrailRow(app)
         settle(3)
         assertSelectedTrailPresentation(app, rowIdentifier: firstRowIdentifier)
+        assertSelectedMapFraming(app)
         capture(app, "sheet-05-min-trail-selected")
         logFrames(app, "min-trail-selected")
 
@@ -148,6 +149,7 @@ final class AreaSheetAuditTests: XCTestCase {
         // the tall stop drops the sheet to fit and the trail is framed above.
         let browseRowIdentifier = tapFirstTrailRow(app)
         settle(3)
+        assertSelectedMapFraming(app)
         capture(app, "sheet-07b-selected-from-browse")
         logFrames(app, "selected-from-browse", extraRowIdentifier: browseRowIdentifier)
         if let identifier = browseRowIdentifier {
@@ -257,6 +259,7 @@ final class AreaSheetAuditTests: XCTestCase {
             "Summary lower content is not reachable"
         )
         logElementFrame(app, lowerContent, tag: "summary-lower-content")
+        capture(app, "field-trust-02b-summary-lower-content")
     }
 
     func testAuditPausedGpsState() {
@@ -371,8 +374,10 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(select.exists, "Selected trail action is missing")
         XCTAssertTrue(secondary.exists, "Selected trail secondary action is missing")
         XCTAssertTrue(profile.exists, "Selected trail profile is missing")
-        XCTAssertNotEqual(select.identifier, secondary.identifier)
-        XCTAssertNotEqual(select.label, secondary.label)
+        let actionIdentifiersAreDistinct = select.identifier != secondary.identifier
+        let actionLabelsAreDistinct = select.label != secondary.label
+        XCTAssertTrue(actionIdentifiersAreDistinct, "Selected trail actions must be distinct")
+        XCTAssertTrue(actionLabelsAreDistinct, "Selected trail action labels must be distinct")
         logElementFrame(app, select, tag: "trail-select")
         logElementFrame(app, secondary, tag: "trail-secondary")
         let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
@@ -382,6 +387,50 @@ final class AreaSheetAuditTests: XCTestCase {
             "Selected trail profile is not reachable"
         )
         logElementFrame(app, profile, tag: "trail-profile")
+    }
+
+    /// Selected annotations expose only generic marker identifiers. Their
+    /// frames must remain entirely between the measured top controls and the
+    /// native sheet. Diagnostics intentionally report counts/booleans only.
+    private func assertSelectedMapFraming(_ app: XCUIApplication) {
+        let controls = app.descendants(matching: .any)["area-map-controls"].firstMatch
+        let sheetHeader = app.descendants(matching: .any)["area-header"].firstMatch
+        XCTAssertTrue(controls.waitForExistence(timeout: 10), "Map controls are missing")
+        XCTAssertTrue(sheetHeader.waitForExistence(timeout: 10), "Area sheet header is missing")
+        guard controls.exists, sheetHeader.exists else { return }
+
+        let screen = app.frame
+        let safeTop = controls.frame.maxY
+        let safeBottom = sheetHeader.frame.minY
+        let safeFrame = CGRect(
+            x: screen.minX + 20,
+            y: safeTop,
+            width: max(0, screen.width - 40),
+            height: max(0, safeBottom - safeTop)
+        )
+        let markers = app.descendants(matching: .any).matching(NSPredicate(
+            format: "identifier == %@ OR identifier == %@",
+            "map-parking-marker",
+            "map-trailhead-marker"
+        )).allElementsBoundByIndex
+        let presentMarkers = markers.filter { $0.exists }
+        print(
+            "AUDIT[selected-map] markerCount=\(presentMarkers.count) "
+            + "safeW=\(Int(safeFrame.width)) safeH=\(Int(safeFrame.height))"
+        )
+        XCTAssertGreaterThan(presentMarkers.count, 0, "Selected map has no generic access marker")
+        for marker in presentMarkers {
+            let isContained = safeFrame.contains(marker.frame)
+            let clearsControls = !marker.frame.intersects(controls.frame)
+            let clearsSheet = !marker.frame.intersects(sheetHeader.frame)
+            print(
+                "AUDIT[selected-marker] contained=\(isContained) "
+                + "clearsControls=\(clearsControls) clearsSheet=\(clearsSheet)"
+            )
+            XCTAssertTrue(isContained, "Selected marker is outside the safe map frame")
+            XCTAssertTrue(clearsControls, "Selected marker intersects top map controls")
+            XCTAssertTrue(clearsSheet, "Selected marker intersects the area sheet")
+        }
     }
 
     private func stopControlCount(_ app: XCUIApplication) -> Int {

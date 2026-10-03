@@ -202,7 +202,12 @@ jobs:
           RESULT_BUNDLE="ScreenshotResults-$CONFIG_ID.xcresult"
           rm -rf "$RESULT_BUNDLE"
           ONLY_ARGS=()
-          if [ -n "${{ inputs.test_class }}" ]; then
+          if [ "${{ inputs.test_class }}" = "AreaSheetAuditTests" ]; then
+            # Field trust is one gate: run the 18-capture visual audit and the
+            # focused semantic/reachability class in the same exact-SHA result.
+            ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/AreaSheetAuditTests")
+            ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/FieldTrustAccessibilityTests")
+          elif [ -n "${{ inputs.test_class }}" ]; then
             ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/${{ inputs.test_class }}")
           fi
           xcodebuild test \
@@ -234,6 +239,38 @@ jobs:
           if [ "$PNG_COUNT" -eq 0 ]; then
             echo "No PNGs were extracted for $CONFIG_ID" >&2
             exit 1
+          fi
+          if [ "${{ inputs.test_class }}" = "AreaSheetAuditTests" ]; then
+            EXPECTED_SCREENSHOTS=(
+              field-trust-00-explore-continue-card
+              field-trust-00-explore-area-card
+              sheet-01-fit-initial
+              sheet-02-min-idle
+              sheet-03-min-after-scroll-up
+              sheet-04-min-after-scroll-back
+              sheet-05-min-trail-selected
+              sheet-06-min-trail-deselected
+              sheet-07-browse-after-deselect
+              sheet-07b-selected-from-browse
+              sheet-07c-deselected-back-to-browse
+              sheet-08-collection-open
+              sheet-08b-collection-lower-content
+              sheet-09-collection-closed
+              field-trust-01-gps-recovered
+              field-trust-02-gap-summary
+              field-trust-02b-summary-lower-content
+              field-trust-03-gps-paused
+            )
+            if [ "$PNG_COUNT" -ne "${#EXPECTED_SCREENSHOTS[@]}" ]; then
+              echo "Field-trust audit produced $PNG_COUNT PNGs; expected ${#EXPECTED_SCREENSHOTS[@]}" >&2
+              exit 1
+            fi
+            for expected in "${EXPECTED_SCREENSHOTS[@]}"; do
+              if ! find "$SCREENSHOT_DIR" -type f -name "*${expected}*.png" -print -quit | grep -q .; then
+                echo "Field-trust audit is missing expected capture: $expected" >&2
+                exit 1
+              fi
+            done
           fi
           echo "AUDIT[configuration] id=$CONFIG_ID extracted-pngs=$PNG_COUNT"
           find "$SCREENSHOT_DIR" -type f -name '*.png' -print

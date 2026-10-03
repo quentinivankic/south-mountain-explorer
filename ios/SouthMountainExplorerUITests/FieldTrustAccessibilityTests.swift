@@ -136,6 +136,8 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             waitForLabelPrefix("Record Trail,", element: secondary),
             "Selecting a trail did not expose its independent Record action"
         )
+        sleep(3)
+        assertSelectedMapFraming(app)
 
         select.tap()
         XCTAssertTrue(waitForLabelPrefix("Select Trail,", element: select))
@@ -190,6 +192,8 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         select.tap()
         XCTAssertTrue(waitForLabelPrefix("Deselect Trail,", element: select))
         XCTAssertTrue(waitForLabelPrefix("Record Trail,", element: secondary))
+        sleep(3)
+        assertSelectedMapFraming(app)
 
         let profile = app.descendants(matching: .any)["trail-profile-\(suffix)"].firstMatch
         XCTAssertTrue(profile.waitForExistence(timeout: 10), "Trail profile is missing")
@@ -321,6 +325,36 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             "recording-stop-button",
             "walk-stop-button"
         )).count
+    }
+
+    private func assertSelectedMapFraming(_ app: XCUIApplication) {
+        let controls = app.descendants(matching: .any)["area-map-controls"].firstMatch
+        let sheetHeader = app.descendants(matching: .any)["area-header"].firstMatch
+        XCTAssertTrue(controls.waitForExistence(timeout: 10), "Map controls are missing")
+        XCTAssertTrue(sheetHeader.waitForExistence(timeout: 10), "Area sheet header is missing")
+        guard controls.exists, sheetHeader.exists else { return }
+
+        XCTAssertEqual(app.buttons["area-close-button"].count, 1)
+        XCTAssertEqual(app.buttons["area-map-options-button"].count, 1)
+        XCTAssertEqual(app.buttons["area-map-favorite-button"].count, 1)
+
+        let safeFrame = CGRect(
+            x: app.frame.minX + 20,
+            y: controls.frame.maxY,
+            width: max(0, app.frame.width - 40),
+            height: max(0, sheetHeader.frame.minY - controls.frame.maxY)
+        )
+        let markers = app.descendants(matching: .any).matching(NSPredicate(
+            format: "identifier == %@ OR identifier == %@",
+            "map-parking-marker",
+            "map-trailhead-marker"
+        )).allElementsBoundByIndex.filter { $0.exists }
+        XCTAssertGreaterThan(markers.count, 0, "Selected map has no generic access marker")
+        for marker in markers {
+            XCTAssertTrue(safeFrame.contains(marker.frame), "Selected marker is outside the safe map frame")
+            XCTAssertFalse(marker.frame.intersects(controls.frame), "Selected marker intersects top map controls")
+            XCTAssertFalse(marker.frame.intersects(sheetHeader.frame), "Selected marker intersects the area sheet")
+        }
     }
 
     private func scrollToReachable(

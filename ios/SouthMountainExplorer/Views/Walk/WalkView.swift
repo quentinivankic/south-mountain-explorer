@@ -659,6 +659,7 @@ struct WalkRecordingPanel: View {
                             .accessibilityIdentifier("walk-elevation-summary")
                     }
                 }
+                .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("walk-elevation-profile")
                 .transition(.opacity)
             }

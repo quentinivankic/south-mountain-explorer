@@ -105,7 +105,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(app.buttons["area-recenter-button"].firstMatch.waitForExistence(timeout: 60))
         let search = app.buttons["area-search-button"].firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
-        search.tap()
+        expandAreaSheet(app)
         let searchField = app.textFields["Search trails"].firstMatch
         XCTAssertTrue(searchField.waitForExistence(timeout: 10))
         searchField.tap()
@@ -201,7 +201,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
         let search = app.buttons["area-search-button"].firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
-        search.tap()
+        expandAreaSheet(app)
         XCTAssertTrue(app.textFields["Search trails"].firstMatch.waitForExistence(timeout: 10))
         XCTAssertEqual(app.textFields.matching(identifier: "Search trails").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 1)
@@ -375,8 +375,11 @@ final class FieldTrustAccessibilityTests: XCTestCase {
     }
 
     private func expandAreaSheet(_ app: XCUIApplication) {
-        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.88))
-        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.30))
+        let header = app.scrollViews["area-header"].firstMatch
+        let anchorY = header.exists ? header.frame.minY + 8 : app.frame.height * 0.62
+        let start = app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: app.frame.width / 2, dy: anchorY))
+        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.20))
         start.press(forDuration: 0.05, thenDragTo: end)
         sleep(2)
     }

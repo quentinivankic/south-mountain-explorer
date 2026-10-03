@@ -274,6 +274,7 @@ struct RecordingPanel: View {
                         .accessibilityIdentifier("recording-elevation-summary")
                 }
             }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("recording-elevation-profile")
         } else {
             Text("Elevation appears after a few minutes")

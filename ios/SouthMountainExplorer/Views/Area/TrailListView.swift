@@ -692,6 +692,7 @@ struct TrailRow: View {
             .frame(height: dynamicTypeSize.isAccessibilitySize ? 180 : 96)
             .padding(.trailing, dynamicTypeSize.isAccessibilitySize ? 0 : 4)
             .transition(.opacity.combined(with: .move(edge: .top)))
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("trail-profile-\(trail.id)")
             .accessibilityLabel(profileAccessibilityLabel)
         }

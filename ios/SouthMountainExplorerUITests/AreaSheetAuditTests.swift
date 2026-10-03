@@ -111,8 +111,8 @@ final class AreaSheetAuditTests: XCTestCase {
             app.textFields["Search trails"].firstMatch.exists,
             "The search field rendered at the fit stop; it must exist only at browse"
         )
-        XCTAssertEqual(app.buttons["area-search-button"].count, 1)
-        XCTAssertEqual(app.buttons["trail-filter-button"].count, 0)
+        XCTAssertEqual(app.buttons.matching(identifier: "area-search-button").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 0)
 
         // ---- 6. Drag up to the browse stop (the only other stop) ----------
         dragSheet(app, toBottom: false)
@@ -125,9 +125,9 @@ final class AreaSheetAuditTests: XCTestCase {
             app.textFields["Search trails"].firstMatch.waitForExistence(timeout: 10),
             "The search field is missing at the browse stop, where the chrome lives"
         )
-        XCTAssertEqual(app.textFields["Search trails"].count, 1)
-        XCTAssertEqual(app.buttons["trail-filter-button"].count, 1)
-        XCTAssertEqual(app.buttons["area-search-button"].count, 0)
+        XCTAssertEqual(app.textFields.matching(identifier: "Search trails").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "area-search-button").count, 0)
 
         // The map must stay visible even at the tallest stop: the area name
         // heads the sheet, so its top edge is the sheet's top edge, and it
@@ -218,8 +218,8 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(recoveredStatusIsExpected, "Recovered GPS status has unexpected copy")
         logElementFrame(app, status, tag: "gps-recovered")
         XCTAssertEqual(stopControlCount(app), 1, "Recovered state must expose exactly one Stop control")
-        XCTAssertEqual(app.buttons["recording-stop-button"].count, 1)
-        XCTAssertEqual(app.buttons["active-recording-stop-button"].count, 0)
+        XCTAssertEqual(app.buttons.matching(identifier: "recording-stop-button").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "active-recording-stop-button").count, 0)
         capture(app, "field-trust-01-gps-recovered")
 
         let stop = app.buttons["recording-stop-button"].firstMatch
@@ -243,7 +243,7 @@ final class AreaSheetAuditTests: XCTestCase {
         capture(app, "field-trust-02-gap-summary")
         let done = app.buttons["recording-summary-done"].firstMatch
         XCTAssertTrue(done.waitForExistence(timeout: 10), "Summary Done action is missing")
-        XCTAssertEqual(app.buttons["recording-summary-done"].count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "recording-summary-done").count, 1)
         XCTAssertEqual(
             app.buttons.matching(NSPredicate(format: "label == %@", "Done")).count,
             1,
@@ -273,8 +273,8 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(pausedStatusIsExpected, "Paused GPS status has unexpected copy")
         logElementFrame(app, status, tag: "gps-paused")
         XCTAssertEqual(stopControlCount(app), 1, "Paused state must expose exactly one Stop control")
-        XCTAssertEqual(app.buttons["recording-stop-button"].count, 1)
-        XCTAssertEqual(app.buttons["active-recording-stop-button"].count, 0)
+        XCTAssertEqual(app.buttons.matching(identifier: "recording-stop-button").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "active-recording-stop-button").count, 0)
         capture(app, "field-trust-03-gps-paused")
     }
 
@@ -354,9 +354,9 @@ final class AreaSheetAuditTests: XCTestCase {
         logElementFrame(app, header, tag: "area-header")
         logElementFrame(app, title, tag: "area-title")
         logElementFrame(app, actions, tag: "area-actions")
-        XCTAssertEqual(app.buttons["area-record-button"].count, 1)
-        XCTAssertEqual(app.buttons["area-search-button"].count, 1)
-        XCTAssertEqual(app.buttons["area-collection-button"].count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "area-record-button").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "area-search-button").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "area-collection-button").count, 1)
     }
 
     private func assertSelectedTrailPresentation(

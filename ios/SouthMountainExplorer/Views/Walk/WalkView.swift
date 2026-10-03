@@ -571,7 +571,7 @@ struct WalkRecordingPanel: View {
                     panelContents
                 }
                 .scrollIndicators(.visible)
-                .frame(maxHeight: 430)
+                .frame(maxHeight: 320)
                 .accessibilityIdentifier("walk-recording-dashboard-scroll")
             } else {
                 panelContents

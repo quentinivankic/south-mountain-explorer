@@ -126,7 +126,7 @@ struct AreaView: View {
         MapViewportInsets(
             top: measuredMapControlsBottom + 40,
             leading: 20,
-            bottom: effectiveBottomInset + 20,
+            bottom: effectiveBottomInset + (dynamicTypeSize.isAccessibilitySize ? 80 : 20),
             trailing: 20
         )
     }
@@ -1504,7 +1504,7 @@ struct AreaView: View {
                 // hike's path.
                 Task { await loadPastPaths() }
             }
-            .frame(maxHeight: dynamicTypeSize.isAccessibilitySize ? 470 : .infinity)
+            .frame(maxHeight: dynamicTypeSize.isAccessibilitySize ? 320 : .infinity)
             .padding(.bottom, 4)
             // No Spacer. One sat here and the content measured taller than
             // itself, leaving a band of empty sheet under the panel.

@@ -89,10 +89,10 @@ final class AreaSheetAuditTests: XCTestCase {
         // ---- 4. Select a trail at the min stop ----------------------------
         let firstRowIdentifier = tapFirstTrailRow(app)
         settle(3)
-        assertSelectedTrailPresentation(app, rowIdentifier: firstRowIdentifier)
         assertSelectedMapFraming(app)
         capture(app, "sheet-05-min-trail-selected")
         logFrames(app, "min-trail-selected")
+        assertSelectedTrailPresentation(app, rowIdentifier: firstRowIdentifier)
 
         // ---- 5. Deselect: the toolbar and rows must return to idle --------
         if let identifier = firstRowIdentifier {
@@ -101,6 +101,8 @@ final class AreaSheetAuditTests: XCTestCase {
             XCTAssertTrue(scrollToReachable(select, in: trailScroll, app: app))
             tapElement(select)
             settle(3)
+            dragSheet(app, toBottom: true)
+            settle(2)
         }
         capture(app, "sheet-06-min-trail-deselected")
         logFrames(app, "min-trail-deselected")
@@ -218,6 +220,10 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(recoveredStatusIsExpected, "Recovered GPS status has unexpected copy")
         let dashboardScroll = app.scrollViews["recording-dashboard-scroll"].firstMatch
         if dashboardScroll.exists {
+            if dashboardScroll.frame.intersection(app.frame).isEmpty {
+                dragSheet(app, toBottom: false)
+                settle(3)
+            }
             XCTAssertTrue(
                 scrollToReachable(status, in: dashboardScroll, app: app),
                 "Recovered GPS status is not reachable"
@@ -286,6 +292,10 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(pausedStatusIsExpected, "Paused GPS status has unexpected copy")
         let dashboardScroll = app.scrollViews["recording-dashboard-scroll"].firstMatch
         if dashboardScroll.exists {
+            if dashboardScroll.frame.intersection(app.frame).isEmpty {
+                dragSheet(app, toBottom: false)
+                settle(3)
+            }
             XCTAssertTrue(
                 scrollToReachable(status, in: dashboardScroll, app: app),
                 "Paused GPS status is not reachable"
@@ -400,6 +410,10 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(actionLabelsAreDistinct, "Selected trail action labels must be distinct")
         let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
         XCTAssertTrue(trailScroll.exists, "Trail list scroll is missing")
+        if trailScroll.frame.intersection(app.frame).isEmpty {
+            dragSheet(app, toBottom: false)
+            settle(3)
+        }
         XCTAssertTrue(
             scrollToReachable(select, in: trailScroll, app: app),
             "Selected trail action is not reachable"
@@ -475,14 +489,17 @@ final class AreaSheetAuditTests: XCTestCase {
         in scrollView: XCUIElement,
         app: XCUIApplication
     ) -> Bool {
-        for attempt in 0...10 {
+        for attempt in 0...20 {
             if isOnScreenAndHittable(element, app: app) { return true }
-            if attempt < 10 {
-                if element.exists, element.frame.maxY < app.frame.minY {
-                    scrollView.swipeDown()
-                } else {
-                    scrollView.swipeUp()
-                }
+            if attempt < 20 {
+                let moveContentDown = element.exists && element.frame.midY < app.frame.midY
+                let start = scrollView.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.35 : 0.65)
+                )
+                let end = scrollView.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.55 : 0.45)
+                )
+                start.press(forDuration: 0.05, thenDragTo: end)
                 settle(1)
             }
         }

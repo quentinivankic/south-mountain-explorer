@@ -103,6 +103,10 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(continueButton.waitForExistence(timeout: 30))
         continueButton.tap()
         XCTAssertTrue(app.buttons["area-recenter-button"].firstMatch.waitForExistence(timeout: 60))
+        let search = app.buttons["area-search-button"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
+        search.tap()
+        XCTAssertTrue(app.textFields["Search trails"].firstMatch.waitForExistence(timeout: 10))
 
         let select = app.buttons["trail-select-bajada-trail"].firstMatch
         let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
@@ -192,6 +196,14 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertEqual(app.textFields.matching(identifier: "Search trails").count, 0)
         XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 0)
 
+        let search = app.buttons["area-search-button"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
+        search.tap()
+        XCTAssertTrue(app.textFields["Search trails"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertEqual(app.textFields.matching(identifier: "Search trails").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "area-search-button").count, 0)
+
         let select = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "trail-select-")
         ).firstMatch
@@ -221,13 +233,6 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(scrollToReachable(select, in: trailScroll, app: app))
         select.tap()
         XCTAssertTrue(waitForLabelPrefix("Select Trail,", element: select))
-        let search = app.buttons["area-search-button"].firstMatch
-        XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
-        search.tap()
-        XCTAssertTrue(app.textFields["Search trails"].firstMatch.waitForExistence(timeout: 10))
-        XCTAssertEqual(app.textFields.matching(identifier: "Search trails").count, 1)
-        XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 1)
-        XCTAssertEqual(app.buttons.matching(identifier: "area-search-button").count, 0)
 
         let collection = app.buttons["area-collection-button"].firstMatch
         XCTAssertTrue(collection.waitForExistence(timeout: 10), "Collection action is missing")
@@ -275,6 +280,9 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertEqual(status.label, "GPS recovered", "Recording GPS status has unexpected copy")
         let dashboardScroll = app.scrollViews["recording-dashboard-scroll"].firstMatch
         XCTAssertTrue(dashboardScroll.waitForExistence(timeout: 10), "Accessibility recording scroll is missing")
+        if dashboardScroll.frame.intersection(app.frame).isEmpty {
+            expandAreaSheet(app)
+        }
         XCTAssertTrue(scrollToReachable(status, in: dashboardScroll, app: app))
         assertInsideScreen(status, app: app)
         XCTAssertEqual(stopControlCount(app), 1, "A contextual recording screen must expose one Stop control")
@@ -370,19 +378,29 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         }
     }
 
+    private func expandAreaSheet(_ app: XCUIApplication) {
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.88))
+        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.30))
+        start.press(forDuration: 0.05, thenDragTo: end)
+        sleep(2)
+    }
+
     private func scrollToReachable(
         _ element: XCUIElement,
         in scrollView: XCUIElement,
         app: XCUIApplication
     ) -> Bool {
-        for attempt in 0...10 {
+        for attempt in 0...20 {
             if isOnScreenAndHittable(element, app: app) { return true }
-            if attempt < 10 {
-                if element.exists, element.frame.maxY < app.frame.minY {
-                    scrollView.swipeDown()
-                } else {
-                    scrollView.swipeUp()
-                }
+            if attempt < 20 {
+                let moveContentDown = element.exists && element.frame.midY < app.frame.midY
+                let start = scrollView.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.35 : 0.65)
+                )
+                let end = scrollView.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.55 : 0.45)
+                )
+                start.press(forDuration: 0.05, thenDragTo: end)
             }
         }
         return false

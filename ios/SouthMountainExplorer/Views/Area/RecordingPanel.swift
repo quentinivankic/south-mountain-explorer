@@ -126,7 +126,7 @@ struct RecordingPanel: View {
                     dashboardContents
                 }
                 .scrollIndicators(.visible)
-                .frame(maxHeight: 430)
+                .frame(maxHeight: 320)
                 .accessibilityIdentifier("recording-dashboard-scroll")
             } else {
                 dashboardContents

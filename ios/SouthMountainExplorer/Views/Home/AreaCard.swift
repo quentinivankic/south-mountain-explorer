@@ -170,12 +170,14 @@ struct AreaCard: View {
 
     private func information(accessibilityLayout: Bool) -> some View {
         VStack(alignment: .leading, spacing: accessibilityLayout ? 4 : 0) {
-            Text(area.name)
-                .font(.headline)
-                .foregroundStyle(.primary)
-                .lineLimit(accessibilityLayout ? nil : 2, reservesSpace: !accessibilityLayout)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("area-card-title-\(area.id)")
+            Group {
+                if accessibilityLayout {
+                    areaTitle
+                } else {
+                    areaTitle
+                        .lineLimit(2, reservesSpace: true)
+                }
+            }
 
             if accessibilityLayout {
                 Text(area.subtitle)
@@ -223,6 +225,14 @@ struct AreaCard: View {
                     .padding(.top, 3)
             }
         }
+    }
+
+    private var areaTitle: some View {
+        Text(area.name)
+            .font(.headline)
+            .foregroundStyle(.primary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("area-card-title-\(area.id)")
     }
 
     @ViewBuilder

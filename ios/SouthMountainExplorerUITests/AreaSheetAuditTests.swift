@@ -139,8 +139,9 @@ final class AreaSheetAuditTests: XCTestCase {
         // heads the sheet, so its top edge is the sheet's top edge, and it
         // must sit well below the top of the screen.
         let nameAtBrowse = app.staticTexts["South Mountain Park and Preserve"].firstMatch
-        if nameAtBrowse.exists {
-            let mapFraction = nameAtBrowse.frame.minY / app.frame.height
+        let headerAtBrowse = app.descendants(matching: .any)["area-header"].firstMatch
+        if nameAtBrowse.exists, headerAtBrowse.exists {
+            let mapFraction = headerAtBrowse.frame.minY / app.frame.height
             XCTAssertGreaterThan(
                 mapFraction, 0.25,
                 "Browse stop covers the map: sheet top at \(Int(mapFraction * 100))% of screen height"
@@ -730,7 +731,12 @@ final class AreaSheetAuditTests: XCTestCase {
     private func dragSheet(_ app: XCUIApplication, toBottom: Bool) {
         let name = app.staticTexts["South Mountain Park and Preserve"].firstMatch
         let from: XCUICoordinate
-        if name.exists, name.isHittable {
+        if isAccessibilityLayout(app) {
+            let header = app.scrollViews["area-header"].firstMatch
+            let anchorY = header.exists ? header.frame.minY + 8 : app.frame.height * 0.62
+            from = app.coordinate(withNormalizedOffset: .zero)
+                .withOffset(CGVector(dx: app.frame.width / 2, dy: anchorY))
+        } else if name.exists, name.isHittable {
             from = name.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         } else {
             // Sheet top estimated from the always-present toolbar.

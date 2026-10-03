@@ -40,11 +40,11 @@ struct ContinueCard: View {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: 0) {
                     artwork
-                        .frame(height: 140)
+                        .frame(height: 72)
                         .frame(maxWidth: .infinity)
 
                     information(accessibilityLayout: true)
-                        .padding(16)
+                        .padding(10)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(.regularMaterial)
                 }
@@ -75,9 +75,9 @@ struct ContinueCard: View {
     }
 
     private func information(accessibilityLayout: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: accessibilityLayout ? 4 : 6) {
             Label("Continue exploring", systemImage: "arrow.uturn.forward.circle.fill")
-                .font(.caption.weight(.semibold))
+                .font((accessibilityLayout ? Font.caption2 : .caption).weight(.semibold))
                 .foregroundStyle(.secondary)
 
             Group {
@@ -99,7 +99,7 @@ struct ContinueCard: View {
 
     private var areaTitle: some View {
         Text(area.name)
-            .font(.title3)
+            .font(dynamicTypeSize.isAccessibilitySize ? .headline : .title3)
             .fontWeight(.semibold)
             .foregroundStyle(.primary)
             .fixedSize(horizontal: false, vertical: true)

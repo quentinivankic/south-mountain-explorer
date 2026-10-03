@@ -1596,6 +1596,7 @@ struct AreaView: View {
             }
         }
         .padding(.horizontal, 20)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("area-action-group")
     }
 
@@ -1608,7 +1609,7 @@ struct AreaView: View {
                     .font(.body.weight(.semibold))
                 if dynamicTypeSize.isAccessibilitySize {
                     Text(selected == nil ? "Start a Hike" : "Record This Trail")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.caption.weight(.semibold))
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text(selected == nil ? "Start a Hike" : "Record This Trail")
@@ -1618,8 +1619,8 @@ struct AreaView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 14 : 0)
-            .padding(.vertical, 12)
+            .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 10 : 0)
+            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 8 : 12)
             .compatibleGlass(in: .capsule)
         }
         .buttonStyle(.plain)
@@ -1643,12 +1644,12 @@ struct AreaView: View {
                     .foregroundStyle(hasActiveFilter ? Color.accentColor : .primary)
                 if dynamicTypeSize.isAccessibilitySize {
                     Text(hasActiveFilter ? "Search & Filters" : "Search Trails")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.caption.weight(.semibold))
                 }
             }
             .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
-            .padding(.horizontal, 13)
-            .padding(.vertical, 12)
+            .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 10 : 13)
+            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 8 : 12)
             .compatibleGlass(in: .capsule)
         }
         .buttonStyle(.plain)
@@ -1667,7 +1668,7 @@ struct AreaView: View {
                     .font(.body.weight(.semibold))
                 if dynamicTypeSize.isAccessibilitySize {
                     Text("Collection")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.caption.weight(.semibold))
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text("Collection")
@@ -1676,8 +1677,8 @@ struct AreaView: View {
                 }
             }
             .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 10 : 14)
+            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 8 : 12)
             .compatibleGlass(in: .capsule)
         }
         .buttonStyle(.plain)
@@ -1689,7 +1690,39 @@ struct AreaView: View {
         let completed = progress.completionCount(in: area.id, trails: area.trails)
         let areaComplete = area.resolvedTrailCount > 0 && completed >= area.resolvedTrailCount
 
-        return VStack(spacing: dynamicTypeSize.isAccessibilitySize ? 10 : 4) {
+        return Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                ScrollView {
+                    areaHeaderContent(
+                        area: area,
+                        completed: completed,
+                        areaComplete: areaComplete
+                    )
+                }
+                .scrollIndicators(.visible)
+                .frame(maxHeight: 180)
+                .accessibilityIdentifier("area-header-scroll")
+            } else {
+                areaHeaderContent(
+                    area: area,
+                    completed: completed,
+                    areaComplete: areaComplete
+                )
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("area-header")
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+            if abs(headerHeightFull - h) >= 2 { headerHeightFull = h }
+        }
+    }
+
+    private func areaHeaderContent(
+        area: Area,
+        completed: Int,
+        areaComplete: Bool
+    ) -> some View {
+        VStack(spacing: dynamicTypeSize.isAccessibilitySize ? 8 : 4) {
             // Keep content below the system grabber without relying on an
             // overlay or a font-derived offset. This clearance participates
             // in the same live measurement as the rest of the header.
@@ -1698,7 +1731,7 @@ struct AreaView: View {
                 .accessibilityHidden(true)
 
             Text(areaName)
-                .font(.title3.weight(.semibold))
+                .font(dynamicTypeSize.isAccessibilitySize ? .headline : .title3.weight(.semibold))
                 .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .center)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 .fixedSize(horizontal: false, vertical: dynamicTypeSize.isAccessibilitySize)
@@ -1707,7 +1740,7 @@ struct AreaView: View {
                 .accessibilityIdentifier("area-header-title")
 
             if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
                     areaHeaderMetric(
                         label: "Trails",
                         value: "\(area.resolvedTrailCount)"
@@ -1722,6 +1755,7 @@ struct AreaView: View {
                         valueColor: areaComplete ? .green : .secondary
                     )
                 }
+                .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("area-header-metrics")
             } else {
                 Text(areaSummaryLine(area: area, completed: completed))
@@ -1735,11 +1769,7 @@ struct AreaView: View {
                alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .center)
         .padding(.horizontal, 20)
         .padding(.top, 0)
-        .padding(.bottom, 12)
-        .accessibilityIdentifier("area-header")
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
-            if abs(headerHeightFull - h) >= 2 { headerHeightFull = h }
-        }
+        .padding(.bottom, dynamicTypeSize.isAccessibilitySize ? 8 : 12)
     }
 
     private func areaHeaderMetric(
@@ -1747,16 +1777,18 @@ struct AreaView: View {
         value: String,
         valueColor: Color = .secondary
     ) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(label)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
+            Spacer(minLength: 12)
             Text(value)
-                .font(.body)
+                .font(.caption)
                 .foregroundStyle(valueColor)
+                .multilineTextAlignment(.trailing)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder

@@ -493,22 +493,32 @@ final class AreaSheetAuditTests: XCTestCase {
         app: XCUIApplication
     ) -> Bool {
         let safeFrame = exploreVisibleContentFrame(app)
-        for attempt in 0...12 {
+        let scrollView = app.scrollViews["explore-scroll"].firstMatch
+        for attempt in 0...20 {
             if element.exists,
                element.isHittable,
                safeFrame.contains(element.frame) {
                 return true
             }
-            if attempt < 12 {
-                if element.exists, element.frame.minY < safeFrame.minY {
-                    app.swipeDown()
-                } else {
-                    app.swipeUp()
-                }
+            if attempt < 20 {
+                nudgeExploreScroll(
+                    scrollView.exists ? scrollView : app,
+                    towardTop: element.exists && element.frame.minY < safeFrame.minY
+                )
                 settle(1)
             }
         }
         return false
+    }
+
+    private func nudgeExploreScroll(_ surface: XCUIElement, towardTop: Bool) {
+        let start = surface.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.5, dy: towardTop ? 0.35 : 0.65)
+        )
+        let end = surface.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.5, dy: towardTop ? 0.55 : 0.45)
+        )
+        start.press(forDuration: 0.05, thenDragTo: end)
     }
 
     private func assertInsideFrame(
@@ -530,9 +540,9 @@ final class AreaSheetAuditTests: XCTestCase {
     ) {
         let exists = title.waitForExistence(timeout: 10)
         let isComplete = exists && title.label == "South Mountain Park and Preserve"
-        let isAccessibility = app.launchArguments.contains(
-            "UICTContentSizeCategoryAccessibilityXXXL"
-        )
+        let isAccessibility = ProcessInfo.processInfo.environment["CONTENT_SIZE"]?
+            .hasPrefix("accessibility") == true
+            || app.launchArguments.contains("UICTContentSizeCategoryAccessibilityXXXL")
         let isWithinStandardLineLimit = isAccessibility || (exists && title.frame.height <= 52)
         print(
             "AUDIT[\(tag)] complete=\(isComplete) "

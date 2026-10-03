@@ -285,4 +285,160 @@ struct FittedRegionTests {
         #expect(abs(r.center - (-95.8)) < 1e-9, "Expected plain midpoint, got \(r.center)")
         #expect(abs(r.span - 57.8) < 1e-9, "Expected plain span, got \(r.span)")
     }
+
+    // MARK: - Selected-route directional safe region
+
+    @Test func directionalBottomOnlyFit_isExistingFit() {
+        let existing = TrailMapView.fittedRegion(
+            centerLat: 33.3, centerLon: -112,
+            latDelta: 0.02, lonDelta: 0.03,
+            bottomInset: 240,
+            screenHeight: 800, screenWidth: 400
+        )
+        let directional = TrailMapView.fittedRegion(
+            centerLat: 33.3, centerLon: -112,
+            latDelta: 0.02, lonDelta: 0.03,
+            viewportInsets: MapViewportInsets(bottom: 240),
+            screenHeight: 800, screenWidth: 400
+        )
+        #expect(directional == existing)
+    }
+
+    @Test func selectedRouteRegion_includesRouteEndpointsAndNearbyParking() {
+        guard let points = TrailMapView.selectedRoutePoints(
+            segments: [[
+                [33.30, -112.00],
+                [33.40, -111.90],
+            ]],
+            additionalPoints: [(33.35, -112.05)]
+        ) else {
+            Issue.record("Expected valid route and nearby parking points")
+            return
+        }
+        let target = TrailMapView.selectedRouteRegion(
+            points: points,
+            viewportInsets: .zero,
+            screenHeight: 800,
+            screenWidth: 400
+        )
+        guard let target,
+              case .region(let centerLat, let centerLon, let latDelta, let lonDelta) = target else {
+            Issue.record("Expected a finite selected-route region")
+            return
+        }
+        #expect(centerLat.isFinite && centerLon.isFinite)
+        #expect(latDelta.isFinite && lonDelta.isFinite)
+        for point in points {
+            #expect(abs(point.lat - centerLat) <= latDelta / 2)
+            #expect(abs(point.lon - centerLon) <= lonDelta / 2)
+        }
+    }
+
+    @Test func selectedRouteRegion_usesShortAntimeridianExtent() {
+        let target = TrailMapView.selectedRouteRegion(
+            points: [(51, 179.5), (51.2, -179.5)],
+            viewportInsets: .zero,
+            screenHeight: 800,
+            screenWidth: 400
+        )
+        guard let target,
+              case .region(_, let centerLon, _, let lonDelta) = target else {
+            Issue.record("Expected an antimeridian-safe selected-route region")
+            return
+        }
+        #expect(abs(centerLon) == 180)
+        #expect(lonDelta < 2)
+    }
+
+    @Test func selectedRouteRegion_directionalObstructionsContainVerticalBounds() {
+        let points: [(lat: Double, lon: Double)] = [
+            (33.30, -112.00),
+            (33.40, -111.90),
+        ]
+        let target = TrailMapView.selectedRouteRegion(
+            points: points,
+            viewportInsets: MapViewportInsets(top: 100, bottom: 300),
+            screenHeight: 800,
+            screenWidth: 400
+        )
+        guard let target,
+              case .region(let centerLat, _, let latDelta, _) = target else {
+            Issue.record("Expected a directionally fitted selected-route region")
+            return
+        }
+        let topFraction = 100.0 / 800.0
+        let bottomFraction = 1 - 300.0 / 800.0
+        for point in points {
+            let normalizedY = 0.5 - (point.lat - centerLat) / latDelta
+            #expect(normalizedY >= topFraction - 1e-9)
+            #expect(normalizedY <= bottomFraction + 1e-9)
+        }
+        #expect(centerLat < 33.35, "A larger bottom obstruction must move content upward")
+    }
+
+    @Test func selectedRouteRegion_asymmetricSideObstructionsShiftLongitude() {
+        let centered = TrailMapView.selectedRouteRegion(
+            points: [(33.3, -112.0), (33.4, -111.9)],
+            viewportInsets: .zero,
+            screenHeight: 800,
+            screenWidth: 400
+        )
+        let leading = TrailMapView.selectedRouteRegion(
+            points: [(33.3, -112.0), (33.4, -111.9)],
+            viewportInsets: MapViewportInsets(leading: 80),
+            screenHeight: 800,
+            screenWidth: 400
+        )
+        guard let centered,
+              let leading,
+              case .region(_, let centeredLon, _, _) = centered,
+              case .region(_, let shiftedLon, _, let shiftedSpan) = leading else {
+            Issue.record("Expected directional longitude regions")
+            return
+        }
+        #expect(shiftedLon < centeredLon)
+        #expect(shiftedSpan > 0.14)
+    }
+
+    @Test func selectedRouteRegion_malformedPointFailsClosed() {
+        #expect(TrailMapView.selectedRoutePoints(
+            segments: [[[33.3, -112], [33.4]]]
+        ) == nil)
+        #expect(TrailMapView.selectedRoutePoints(
+            segments: [],
+            additionalPoints: [(33.3, -112)]
+        ) == nil)
+
+        let valid: [(lat: Double, lon: Double)] = [(33.3, -112.0)]
+        #expect(TrailMapView.selectedRouteRegion(
+            points: valid + [(Double.nan, -112)],
+            viewportInsets: .zero,
+            screenHeight: 800,
+            screenWidth: 400
+        ) == nil)
+        #expect(TrailMapView.selectedRouteRegion(
+            points: valid + [(33.4, Double.infinity)],
+            viewportInsets: .zero,
+            screenHeight: 800,
+            screenWidth: 400
+        ) == nil)
+        #expect(TrailMapView.selectedRouteRegion(
+            points: valid + [(91, -112)],
+            viewportInsets: .zero,
+            screenHeight: 800,
+            screenWidth: 400
+        ) == nil)
+        #expect(TrailMapView.selectedRouteRegion(
+            points: valid,
+            viewportInsets: .zero,
+            screenHeight: 0,
+            screenWidth: 400
+        ) == nil)
+        #expect(TrailMapView.selectedRouteRegion(
+            points: valid,
+            viewportInsets: MapViewportInsets(top: .nan),
+            screenHeight: 800,
+            screenWidth: 400
+        ) == nil)
+    }
 }

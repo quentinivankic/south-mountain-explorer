@@ -114,6 +114,22 @@ struct AreaView: View {
     /// from the sheet at each stop because each stop used a different guess.
     /// A measurement has no stops to get individually wrong.
     @State private var measuredSheetTop: CGFloat? = nil
+    /// Bottom edge of the top map-control cluster in global screen points.
+    /// This is measured from rendered controls rather than inferred from a
+    /// device model so selected-route framing remains valid at every safe area.
+    @State private var measuredMapControlsBottom: CGFloat = 72
+
+    /// Selected markers need their whole glyph outside both control bands, not
+    /// merely their anchor coordinate. The fixed clearance is generic visual
+    /// chrome; no route, parking, or area data enters this value.
+    private var selectedMapViewportInsets: MapViewportInsets {
+        MapViewportInsets(
+            top: measuredMapControlsBottom + 40,
+            leading: 20,
+            bottom: effectiveBottomInset + 20,
+            trailing: 20
+        )
+    }
 
     /// Trail-list sheet detents — exactly TWO stops, and the MAP IS VISIBLE
     /// AT BOTH. There is no full-screen stop: this is a map screen, and a
@@ -450,6 +466,7 @@ struct AreaView: View {
                     selectedTrailId: $selectedTrailId,
                     visibleTrailIds: visibleTrailIds,
                     bottomInset: effectiveBottomInset,
+                    selectedViewportInsets: selectedMapViewportInsets,
                     trackingMode: $trackingMode
                 )
                 .ignoresSafeArea()
@@ -747,6 +764,7 @@ struct AreaView: View {
                         .frame(width: 36, height: 36)
                         .compatibleGlass(in: .circle)
                 }
+                .accessibilityIdentifier("area-map-options-button")
                 Button {
                     Task { await favorites.toggle(areaId: areaId) }
                 } label: {
@@ -759,10 +777,20 @@ struct AreaView: View {
                 .accessibilityLabel(
                     favorites.isFavorite(areaId) ? "Remove from Saved Areas" : "Save Area"
                 )
+                .accessibilityIdentifier("area-map-favorite-button")
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
             .safeAreaPadding(.top)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("area-map-controls")
+            .onGeometryChange(for: CGFloat.self) { proxy in
+                proxy.frame(in: .global).maxY
+            } action: { bottom in
+                if bottom.isFinite, abs(measuredMapControlsBottom - bottom) >= 1 {
+                    measuredMapControlsBottom = bottom
+                }
+            }
         }
         // Keyed on `loadAttempt` so the Try Again button can re-run the whole
         // load. Before this the area loaded exactly once and a failure was a

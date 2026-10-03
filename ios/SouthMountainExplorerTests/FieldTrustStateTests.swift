@@ -29,6 +29,9 @@ struct FieldTrustStateTests {
     }
 
     @Test func everyCompetingCameraOwnerInvalidatesPendingRecenter() {
+        // Keep this count explicit: adding or removing an owner without updating
+        // the gate is a camera-ownership regression, not a harmless enum edit.
+        #expect(RecenterCameraOwner.allCases.count == 8)
         for owner in RecenterCameraOwner.allCases {
             let current = 4
             let invalidated = RecenterRequestGate.invalidatedGeneration(

@@ -689,7 +689,7 @@ struct TrailRow: View {
                     )
                 }
             )
-            .frame(height: dynamicTypeSize.isAccessibilitySize ? 250 : 96)
+            .frame(height: dynamicTypeSize.isAccessibilitySize ? 180 : 96)
             .padding(.trailing, dynamicTypeSize.isAccessibilitySize ? 0 : 4)
             .transition(.opacity.combined(with: .move(edge: .top)))
             .accessibilityIdentifier("trail-profile-\(trail.id)")
@@ -819,18 +819,18 @@ struct TrailRow: View {
     }
 
     private var accessibilityRowHeader: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             Button(action: toggleSelection) {
-                HStack(alignment: .top, spacing: 14) {
+                HStack(alignment: .top, spacing: 10) {
                     TrailShapeThumb(
                         trail: trail,
                         color: isComplete ? .completedTrail : difficultyColor
                     )
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(alignment: .top, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(alignment: .top, spacing: 6) {
                             Text(trail.name)
-                                .font(.body.weight(isRecordingThis ? .semibold : .regular))
+                                .font(.caption.weight(isRecordingThis ? .semibold : .regular))
                                 .lineLimit(3)
                                 .fixedSize(horizontal: false, vertical: true)
                             if isRecordingThis {
@@ -854,7 +854,7 @@ struct TrailRow: View {
                             Label(trail.difficulty.rawValue, systemImage: "figure.hiking")
                                 .foregroundStyle(difficultyColor)
                         }
-                        .font(.body)
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("trail-metadata-\(trail.id)")
@@ -869,7 +869,7 @@ struct TrailRow: View {
                             isSelected ? "Deselect Trail" : "Select Trail",
                             systemImage: isSelected ? "map.fill" : "map"
                         )
-                        .font(.body.weight(.semibold))
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(.tint)
                     }
                 }
@@ -885,11 +885,11 @@ struct TrailRow: View {
 
             Button(action: performSecondaryAction) {
                 Label(accessibilitySecondaryTitle, systemImage: recordControlSymbol)
-                    .font(.body.weight(.semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(recordControlStyle)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
                     .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 12))
             }
             .buttonStyle(.plain)

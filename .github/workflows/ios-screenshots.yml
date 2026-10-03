@@ -203,10 +203,13 @@ jobs:
           rm -rf "$RESULT_BUNDLE"
           ONLY_ARGS=()
           if [ "${{ inputs.test_class }}" = "AreaSheetAuditTests" ]; then
-            # Field trust is one gate: run the 18-capture visual audit and the
-            # focused semantic/reachability class in the same exact-SHA result.
+            # Every configuration runs the 18-capture visual audit. The focused
+            # semantic/reachability class runs on the accessibility matrix,
+            # where its explicit large-content assertions are meaningful.
             ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/AreaSheetAuditTests")
-            ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/FieldTrustAccessibilityTests")
+            if [ "$CONFIG_ID" = "6.9-accessibility" ]; then
+              ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/FieldTrustAccessibilityTests")
+            fi
           elif [ -n "${{ inputs.test_class }}" ]; then
             ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/${{ inputs.test_class }}")
           fi

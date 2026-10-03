@@ -631,7 +631,7 @@ struct WalkRecordingPanel: View {
                     .fill(gpsStatus.tint)
                     .frame(width: 7, height: 7)
                 Text(gpsStatus.text)
-                    .font(dynamicTypeSize.isAccessibilitySize ? .body.weight(.medium) : .caption2.weight(.medium))
+                    .font(dynamicTypeSize.isAccessibilitySize ? .caption.weight(.medium) : .caption2.weight(.medium))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
@@ -646,7 +646,7 @@ struct WalkRecordingPanel: View {
                         stats: stats,
                         totalDistanceMeters: rec.distanceMi * 1609.344
                     )
-                    .frame(height: dynamicTypeSize.isAccessibilitySize ? 150 : 70)
+                    .frame(height: dynamicTypeSize.isAccessibilitySize ? 110 : 70)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Elevation profile")
                     .accessibilityValue(elevationRangeLabel(stats))

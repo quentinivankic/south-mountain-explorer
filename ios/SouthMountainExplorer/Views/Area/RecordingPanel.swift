@@ -747,16 +747,18 @@ struct RecordingSummarySheet: View {
     }
 
     private func summaryStatRow(title: String, value: String, unit: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.body)
                 .foregroundStyle(.secondary)
-            Spacer(minLength: 12)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("recording-summary-stat-\(title.lowercased())-label")
             Text(unit.isEmpty ? value : "\(value) \(unit)")
                 .font(.title3.bold().monospacedDigit())
-                .multilineTextAlignment(.trailing)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("recording-summary-stat-\(title.lowercased())-value")
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .compatibleGlass(in: .rect(cornerRadius: 16))
         .fixedSize(horizontal: false, vertical: true)

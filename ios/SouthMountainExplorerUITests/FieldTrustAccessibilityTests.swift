@@ -105,9 +105,12 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(app.buttons["area-recenter-button"].firstMatch.waitForExistence(timeout: 60))
         let search = app.buttons["area-search-button"].firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
-        expandAreaSheet(app)
+        XCTAssertTrue(
+            expandAreaSheetToBrowse(app),
+            "Browse search did not appear after bounded sheet drags"
+        )
         let searchField = app.textFields["Search trails"].firstMatch
-        XCTAssertTrue(searchField.waitForExistence(timeout: 10))
+        XCTAssertTrue(searchField.exists)
         searchField.tap()
         searchField.typeText("Bajada")
 
@@ -201,8 +204,10 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
         let search = app.buttons["area-search-button"].firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
-        expandAreaSheet(app)
-        XCTAssertTrue(app.textFields["Search trails"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            expandAreaSheetToBrowse(app),
+            "Browse search did not appear after bounded sheet drags"
+        )
         XCTAssertEqual(app.textFields.matching(identifier: "Search trails").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "area-search-button").count, 0)
@@ -303,19 +308,24 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
         app.buttons["active-recording-banner"].firstMatch.tap()
         XCTAssertTrue(status.waitForExistence(timeout: 60), "Recording panel did not reopen")
+        let reopenedDashboardScroll = app.scrollViews["recording-dashboard-scroll"].firstMatch
+        XCTAssertTrue(
+            reopenedDashboardScroll.waitForExistence(timeout: 10),
+            "Reopened accessibility recording scroll is missing"
+        )
         let elevation = app.descendants(matching: .any)["recording-elevation-summary"].firstMatch
         XCTAssertTrue(elevation.waitForExistence(timeout: 15), "Recording elevation summary is missing")
-        XCTAssertTrue(scrollToReachable(elevation, in: dashboardScroll, app: app))
+        XCTAssertTrue(scrollToReachable(elevation, in: reopenedDashboardScroll, app: app))
         assertInsideScreen(elevation, app: app)
         let metrics = app.descendants(matching: .any)["recording-metrics"].firstMatch
-        XCTAssertTrue(scrollToReachable(metrics, in: dashboardScroll, app: app))
+        XCTAssertTrue(scrollToReachable(metrics, in: reopenedDashboardScroll, app: app))
         assertInsideScreen(metrics, app: app)
         let estimates = app.descendants(matching: .any)["recording-estimates"].firstMatch
-        XCTAssertTrue(scrollToReachable(estimates, in: dashboardScroll, app: app))
+        XCTAssertTrue(scrollToReachable(estimates, in: reopenedDashboardScroll, app: app))
         assertInsideScreen(estimates, app: app)
 
         let stop = app.buttons["recording-stop-button"].firstMatch
-        XCTAssertTrue(scrollToReachable(stop, in: dashboardScroll, app: app))
+        XCTAssertTrue(scrollToReachable(stop, in: reopenedDashboardScroll, app: app))
         stop.tap()
         let save = app.buttons["Stop & Save"].firstMatch
         XCTAssertTrue(save.waitForExistence(timeout: 10), "Stop & Save action is missing")
@@ -338,6 +348,25 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let summaryMetrics = app.descendants(matching: .any)["recording-summary-metrics"].firstMatch
         XCTAssertTrue(scrollToReachable(summaryMetrics, in: summaryScroll, app: app))
         assertInsideScreen(summaryMetrics, app: app)
+        let distanceLabel = app.staticTexts["recording-summary-stat-distance-label"].firstMatch
+        let durationLabel = app.staticTexts["recording-summary-stat-duration-label"].firstMatch
+        let distanceValue = app.staticTexts["recording-summary-stat-distance-value"].firstMatch
+        let durationValue = app.staticTexts["recording-summary-stat-duration-value"].firstMatch
+        XCTAssertTrue(distanceLabel.exists, "Distance metric label is missing")
+        XCTAssertTrue(durationLabel.exists, "Duration metric label is missing")
+        XCTAssertTrue(distanceValue.exists, "Distance metric value is missing")
+        XCTAssertTrue(durationValue.exists, "Duration metric value is missing")
+        XCTAssertEqual(
+            durationLabel.frame.height,
+            distanceLabel.frame.height,
+            accuracy: 2,
+            "Summary metric labels must not split across lines"
+        )
+        XCTAssertLessThanOrEqual(
+            distanceValue.frame.height,
+            durationValue.frame.height + 2,
+            "Summary value and unit must remain together"
+        )
         let lowerContent = app.descendants(matching: .any)["recording-summary-area-progress"].firstMatch
         XCTAssertTrue(scrollToReachable(lowerContent, in: summaryScroll, app: app))
         assertInsideScreen(lowerContent, app: app)
@@ -363,6 +392,27 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertEqual(app.buttons.matching(identifier: "area-map-options-button").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "area-map-favorite-button").count, 1)
 
+        let mapControls = [
+            app.buttons["area-close-button"].firstMatch,
+            app.buttons["area-map-options-button"].firstMatch,
+            app.buttons["area-map-favorite-button"].firstMatch,
+        ]
+        for control in mapControls {
+            assertInsideScreen(control, app: app)
+            XCTAssertGreaterThanOrEqual(control.frame.width, 44, "Map control is below the minimum hit width")
+            XCTAssertGreaterThanOrEqual(control.frame.height, 44, "Map control is below the minimum hit height")
+            XCTAssertLessThanOrEqual(control.frame.width, 48, "Map control exceeds the bounded hit width")
+            XCTAssertLessThanOrEqual(control.frame.height, 48, "Map control exceeds the bounded hit height")
+        }
+        for firstIndex in mapControls.indices {
+            for secondIndex in mapControls.indices where secondIndex > firstIndex {
+                XCTAssertTrue(
+                    mapControls[firstIndex].frame.intersection(mapControls[secondIndex].frame).isEmpty,
+                    "Accessibility map controls overlap"
+                )
+            }
+        }
+
         let markers = app.descendants(matching: .any).matching(NSPredicate(
             format: "identifier == %@ OR identifier == %@",
             "map-parking-marker",
@@ -374,13 +424,24 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         // top controls remain exposed while prioritizing semantic reachability.
     }
 
+    private func expandAreaSheetToBrowse(_ app: XCUIApplication) -> Bool {
+        let searchField = app.textFields["Search trails"].firstMatch
+        for _ in 0..<3 {
+            if searchField.exists { return true }
+            expandAreaSheet(app)
+            if searchField.waitForExistence(timeout: 5) { return true }
+        }
+        return false
+    }
+
     private func expandAreaSheet(_ app: XCUIApplication) {
         let header = app.scrollViews["area-header"].firstMatch
         let anchorY = header.exists ? header.frame.minY + 8 : app.frame.height * 0.62
         let start = app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: app.frame.width / 2, dy: anchorY))
-        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.20))
-        start.press(forDuration: 0.05, thenDragTo: end)
+        let end = app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: app.frame.width / 2, dy: app.frame.height * 0.2))
+        start.press(forDuration: 0.1, thenDragTo: end)
         sleep(2)
     }
 

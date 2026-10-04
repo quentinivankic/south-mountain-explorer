@@ -119,6 +119,16 @@ struct AreaView: View {
     /// device model so selected-route framing remains valid at every safe area.
     @State private var measuredMapControlsBottom: CGFloat = 72
 
+    private var mapControlSize: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 48 : 36
+    }
+
+    private var mapControlIconFont: Font {
+        dynamicTypeSize.isAccessibilitySize
+            ? .system(size: 20, weight: .semibold)
+            : .body.weight(.semibold)
+    }
+
     /// Selected markers need their whole glyph outside both control bands, not
     /// merely their anchor coordinate. The fixed clearance is generic visual
     /// chrome; no route, parking, or area data enters this value.
@@ -704,10 +714,11 @@ struct AreaView: View {
                     dismiss()
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 36, height: 36)
+                        .font(mapControlIconFont)
+                        .frame(width: mapControlSize, height: mapControlSize)
                         .compatibleGlass(in: .circle)
                 }
+                .accessibilityLabel("Close Area")
                 .accessibilityIdentifier("area-close-button")
                 Spacer()
                 // Area-level overflow menu. Currently hosts only
@@ -760,17 +771,18 @@ struct AreaView: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 36, height: 36)
+                        .font(mapControlIconFont)
+                        .frame(width: mapControlSize, height: mapControlSize)
                         .compatibleGlass(in: .circle)
                 }
+                .accessibilityLabel("Area Options")
                 .accessibilityIdentifier("area-map-options-button")
                 Button {
                     Task { await favorites.toggle(areaId: areaId) }
                 } label: {
                     Image(systemName: favorites.isFavorite(areaId) ? "heart.fill" : "heart")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 36, height: 36)
+                        .font(mapControlIconFont)
+                        .frame(width: mapControlSize, height: mapControlSize)
                         .compatibleGlass(in: .circle)
                         .foregroundStyle(favorites.isFavorite(areaId) ? .red : .primary)
                 }

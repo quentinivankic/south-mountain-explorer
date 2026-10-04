@@ -306,20 +306,17 @@ private struct DexBadgeCell: View {
     var body: some View {
         Group {
             if dynamicTypeSize.isAccessibilitySize {
-                HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     badgeFace
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(achievement.title)
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(achievement.isEarned ? .primary : .secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(statusText)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        progressBar(fullWidth: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(achievement.title)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(achievement.isEarned ? .primary : .secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(statusText)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    progressBar(fullWidth: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)

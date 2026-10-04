@@ -752,16 +752,18 @@ struct RecordingSummarySheet: View {
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("recording-summary-stat-\(title.lowercased())-label")
             Text(unit.isEmpty ? value : "\(value) \(unit)")
                 .font(.title3.bold().monospacedDigit())
                 .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("recording-summary-stat-\(title.lowercased())-value")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .compatibleGlass(in: .rect(cornerRadius: 16))
         .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title)
+        .accessibilityValue(unit.isEmpty ? value : "\(value) \(unit)")
+        .accessibilityIdentifier("recording-summary-stat-\(title.lowercased())")
     }
 
     private func statCard(title: String, value: String, unit: String) -> some View {

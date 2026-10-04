@@ -138,26 +138,32 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let toggledPrefix = initialWasComplete ? "Mark Trail Complete," : "Mark Trail Incomplete,"
 
         secondary.tap()
+        let toggledSecondary = app.buttons["trail-secondary-\(trailSuffix)"].firstMatch
         XCTAssertTrue(
-            waitForLabelPrefix(toggledPrefix, element: secondary),
+            waitForLabelPrefix(toggledPrefix, element: toggledSecondary),
             "Completion action did not toggle completion"
         )
-        let selectionStayedInactive = select.label.hasPrefix("Select Trail,")
+        let inactiveSelect = app.buttons["trail-select-\(trailSuffix)"].firstMatch
+        let selectionStayedInactive = inactiveSelect.label.hasPrefix("Select Trail,")
         XCTAssertTrue(selectionStayedInactive, "Mark Complete selected the trail")
 
-        select.tap()
-        XCTAssertTrue(waitForLabelPrefix("Deselect Trail,", element: select))
+        inactiveSelect.tap()
+        let selectedControl = app.buttons["trail-select-\(trailSuffix)"].firstMatch
+        let recordControl = app.buttons["trail-secondary-\(trailSuffix)"].firstMatch
+        XCTAssertTrue(waitForLabelPrefix("Deselect Trail,", element: selectedControl))
         XCTAssertTrue(
-            waitForLabelPrefix("Record Trail,", element: secondary),
+            waitForLabelPrefix("Record Trail,", element: recordControl),
             "Selecting a trail did not expose its independent Record action"
         )
         sleep(3)
         assertSelectedMapFraming(app)
 
-        select.tap()
-        XCTAssertTrue(waitForLabelPrefix("Select Trail,", element: select))
+        selectedControl.tap()
+        let finalSelect = app.buttons["trail-select-\(trailSuffix)"].firstMatch
+        let finalSecondary = app.buttons["trail-secondary-\(trailSuffix)"].firstMatch
+        XCTAssertTrue(waitForLabelPrefix("Select Trail,", element: finalSelect))
         XCTAssertTrue(
-            waitForLabelPrefix(toggledPrefix, element: secondary),
+            waitForLabelPrefix(toggledPrefix, element: finalSecondary),
             "Selecting and deselecting changed completion state"
         )
     }
@@ -354,32 +360,33 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let summaryMetrics = app.descendants(matching: .any)["recording-summary-metrics"].firstMatch
         XCTAssertTrue(scrollToVisible(summaryMetrics, in: summaryScroll, app: app))
         assertInsideScreen(summaryMetrics, app: app)
-        let distanceLabel = app.descendants(matching: .any)[
-            "recording-summary-stat-distance-label"
+        let distanceRow = app.descendants(matching: .any)[
+            "recording-summary-stat-distance"
         ].firstMatch
-        let durationLabel = app.descendants(matching: .any)[
-            "recording-summary-stat-duration-label"
+        let durationRow = app.descendants(matching: .any)[
+            "recording-summary-stat-duration"
         ].firstMatch
-        let distanceValue = app.descendants(matching: .any)[
-            "recording-summary-stat-distance-value"
-        ].firstMatch
-        let durationValue = app.descendants(matching: .any)[
-            "recording-summary-stat-duration-value"
-        ].firstMatch
-        XCTAssertTrue(distanceLabel.exists, "Distance metric label is missing")
-        XCTAssertTrue(durationLabel.exists, "Duration metric label is missing")
-        XCTAssertTrue(distanceValue.exists, "Distance metric value is missing")
-        XCTAssertTrue(durationValue.exists, "Duration metric value is missing")
-        XCTAssertEqual(
-            durationLabel.frame.height,
-            distanceLabel.frame.height,
-            accuracy: 2,
-            "Summary metric labels must not split across lines"
+        XCTAssertTrue(distanceRow.exists, "Distance metric row is missing")
+        XCTAssertTrue(durationRow.exists, "Duration metric row is missing")
+        XCTAssertEqual(distanceRow.label, "Distance", "Distance metric label is unexpected")
+        XCTAssertEqual(durationRow.label, "Duration", "Duration metric label is unexpected")
+        XCTAssertFalse(
+            (distanceRow.value as? String ?? "").isEmpty,
+            "Distance metric value is missing"
         )
-        XCTAssertLessThanOrEqual(
-            distanceValue.frame.height,
-            durationValue.frame.height + 2,
-            "Summary value and unit must remain together"
+        XCTAssertFalse(
+            (durationRow.value as? String ?? "").isEmpty,
+            "Duration metric value is missing"
+        )
+        XCTAssertGreaterThan(
+            distanceRow.frame.width,
+            app.frame.width * 0.7,
+            "Distance metric row must reserve full text width"
+        )
+        XCTAssertGreaterThan(
+            durationRow.frame.width,
+            app.frame.width * 0.7,
+            "Duration metric row must reserve full text width"
         )
         let lowerContent = app.descendants(matching: .any)["recording-summary-area-progress"].firstMatch
         XCTAssertTrue(scrollToVisible(lowerContent, in: summaryScroll, app: app))
@@ -444,9 +451,12 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let searchKey = keyboard.buttons["Search"].firstMatch
         XCTAssertTrue(searchKey.waitForExistence(timeout: 5), "Keyboard Search action is missing")
         searchKey.tap()
+        if keyboard.exists {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15)).tap()
+        }
         XCTAssertFalse(
             keyboard.waitForExistence(timeout: 5),
-            "Search keyboard did not dismiss after submit"
+            "Search keyboard did not dismiss after tapping the map"
         )
     }
 

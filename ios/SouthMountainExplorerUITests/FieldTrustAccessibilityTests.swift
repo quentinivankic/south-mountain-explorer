@@ -105,12 +105,12 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(app.buttons["area-recenter-button"].firstMatch.waitForExistence(timeout: 60))
         let search = app.buttons["area-search-button"].firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
-        XCTAssertTrue(
-            expandAreaSheetToBrowse(app),
-            "Browse search did not appear after bounded sheet drags"
-        )
+        search.tap()
         let searchField = app.textFields["Search trails"].firstMatch
-        XCTAssertTrue(searchField.exists)
+        XCTAssertTrue(
+            searchField.waitForExistence(timeout: 10),
+            "Browse search did not appear after the Search action"
+        )
         searchField.tap()
         searchField.typeText("Bajada")
 
@@ -204,9 +204,10 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
         let search = app.buttons["area-search-button"].firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
+        search.tap()
         XCTAssertTrue(
-            expandAreaSheetToBrowse(app),
-            "Browse search did not appear after bounded sheet drags"
+            app.textFields["Search trails"].firstMatch.waitForExistence(timeout: 10),
+            "Browse search did not appear after the Search action"
         )
         XCTAssertEqual(app.textFields.matching(identifier: "Search trails").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 1)
@@ -232,7 +233,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
         XCTAssertTrue(trailScroll.waitForExistence(timeout: 10), "Trail list scroll is missing")
         XCTAssertTrue(
-            scrollToReachable(profile, in: trailScroll, app: app),
+            scrollToVisible(profile, in: trailScroll, app: app),
             "Trail profile is not reachable"
         )
         assertInsideScreen(profile, app: app)
@@ -291,7 +292,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         if dashboardScroll.frame.intersection(app.frame).isEmpty {
             expandAreaSheet(app)
         }
-        XCTAssertTrue(scrollToReachable(status, in: dashboardScroll, app: app))
+        XCTAssertTrue(scrollToVisible(status, in: dashboardScroll, app: app))
         assertInsideScreen(status, app: app)
         XCTAssertEqual(stopControlCount(app), 1, "A contextual recording screen must expose one Stop control")
         XCTAssertEqual(app.buttons.matching(identifier: "recording-stop-button").count, 1)
@@ -315,13 +316,13 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         )
         let elevation = app.descendants(matching: .any)["recording-elevation-summary"].firstMatch
         XCTAssertTrue(elevation.waitForExistence(timeout: 15), "Recording elevation summary is missing")
-        XCTAssertTrue(scrollToReachable(elevation, in: reopenedDashboardScroll, app: app))
+        XCTAssertTrue(scrollToVisible(elevation, in: reopenedDashboardScroll, app: app))
         assertInsideScreen(elevation, app: app)
         let metrics = app.descendants(matching: .any)["recording-metrics"].firstMatch
-        XCTAssertTrue(scrollToReachable(metrics, in: reopenedDashboardScroll, app: app))
+        XCTAssertTrue(scrollToVisible(metrics, in: reopenedDashboardScroll, app: app))
         assertInsideScreen(metrics, app: app)
         let estimates = app.descendants(matching: .any)["recording-estimates"].firstMatch
-        XCTAssertTrue(scrollToReachable(estimates, in: reopenedDashboardScroll, app: app))
+        XCTAssertTrue(scrollToVisible(estimates, in: reopenedDashboardScroll, app: app))
         assertInsideScreen(estimates, app: app)
 
         let stop = app.buttons["recording-stop-button"].firstMatch
@@ -346,7 +347,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let summaryScroll = app.scrollViews["recording-summary-scroll"].firstMatch
         XCTAssertTrue(summaryScroll.waitForExistence(timeout: 10), "Summary scroll is missing")
         let summaryMetrics = app.descendants(matching: .any)["recording-summary-metrics"].firstMatch
-        XCTAssertTrue(scrollToReachable(summaryMetrics, in: summaryScroll, app: app))
+        XCTAssertTrue(scrollToVisible(summaryMetrics, in: summaryScroll, app: app))
         assertInsideScreen(summaryMetrics, app: app)
         let distanceLabel = app.staticTexts["recording-summary-stat-distance-label"].firstMatch
         let durationLabel = app.staticTexts["recording-summary-stat-duration-label"].firstMatch
@@ -368,7 +369,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             "Summary value and unit must remain together"
         )
         let lowerContent = app.descendants(matching: .any)["recording-summary-area-progress"].firstMatch
-        XCTAssertTrue(scrollToReachable(lowerContent, in: summaryScroll, app: app))
+        XCTAssertTrue(scrollToVisible(lowerContent, in: summaryScroll, app: app))
         assertInsideScreen(lowerContent, app: app)
     }
 
@@ -424,16 +425,6 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         // top controls remain exposed while prioritizing semantic reachability.
     }
 
-    private func expandAreaSheetToBrowse(_ app: XCUIApplication) -> Bool {
-        let searchField = app.textFields["Search trails"].firstMatch
-        for _ in 0..<3 {
-            if searchField.exists { return true }
-            expandAreaSheet(app)
-            if searchField.waitForExistence(timeout: 5) { return true }
-        }
-        return false
-    }
-
     private func expandAreaSheet(_ app: XCUIApplication) {
         let header = app.scrollViews["area-header"].firstMatch
         let anchorY = header.exists ? header.frame.minY + 8 : app.frame.height * 0.62
@@ -443,6 +434,27 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             .withOffset(CGVector(dx: app.frame.width / 2, dy: app.frame.height * 0.2))
         start.press(forDuration: 0.1, thenDragTo: end)
         sleep(2)
+    }
+
+    private func scrollToVisible(
+        _ element: XCUIElement,
+        in scrollView: XCUIElement,
+        app: XCUIApplication
+    ) -> Bool {
+        for attempt in 0...20 {
+            if isOnScreen(element, app: app) { return true }
+            if attempt < 20 {
+                let moveContentDown = element.exists && element.frame.midY < app.frame.midY
+                let start = scrollView.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.35 : 0.65)
+                )
+                let end = scrollView.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.55 : 0.45)
+                )
+                start.press(forDuration: 0.05, thenDragTo: end)
+            }
+        }
+        return false
     }
 
     private func scrollToReachable(
@@ -541,14 +553,18 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(frame.contains(element.frame), "Explore control is outside the visible viewport")
     }
 
-    private func isOnScreenAndHittable(_ element: XCUIElement, app: XCUIApplication) -> Bool {
-        guard element.exists, element.isHittable else { return false }
+    private func isOnScreen(_ element: XCUIElement, app: XCUIApplication) -> Bool {
+        guard element.exists else { return false }
         let frame = element.frame
         let screen = app.frame
         return frame.minX >= screen.minX - 1
             && frame.maxX <= screen.maxX + 1
             && frame.minY >= screen.minY - 1
             && frame.maxY <= screen.maxY + 1
+    }
+
+    private func isOnScreenAndHittable(_ element: XCUIElement, app: XCUIApplication) -> Bool {
+        element.isHittable && isOnScreen(element, app: app)
     }
 
     private func waitForLabelPrefix(

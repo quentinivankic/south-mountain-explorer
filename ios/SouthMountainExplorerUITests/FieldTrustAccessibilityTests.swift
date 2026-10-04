@@ -111,17 +111,17 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             searchField.waitForExistence(timeout: 10),
             "Browse search did not appear after the Search action"
         )
-        searchField.tap()
-        searchField.typeText("Bajada")
 
-        let select = app.buttons["trail-select-bajada-trail"].firstMatch
+        let select = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "trail-select-")
+        ).firstMatch
         let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
         XCTAssertTrue(trailScroll.waitForExistence(timeout: 10), "Trail list scroll is missing")
         XCTAssertTrue(
             scrollToReachable(select, in: trailScroll, app: app),
             "No semantic trail Select button appeared"
         )
-        let trailSuffix = "bajada-trail"
+        let trailSuffix = String(select.identifier.dropFirst("trail-select-".count))
         let secondary = app.buttons["trail-secondary-\(trailSuffix)"].firstMatch
         XCTAssertTrue(secondary.waitForExistence(timeout: 10), "Trail secondary action is missing")
         let trailActionIdentifiersAreDistinct = select.identifier != secondary.identifier
@@ -239,9 +239,10 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         assertInsideScreen(profile, app: app)
         XCTAssertEqual(app.buttons.matching(identifier: "trail-profile-flip-button").count, 1)
 
-        XCTAssertTrue(scrollToReachable(select, in: trailScroll, app: app))
-        select.tap()
-        XCTAssertTrue(waitForLabelPrefix("Select Trail,", element: select))
+        let selectedControl = app.buttons["trail-select-\(suffix)"].firstMatch
+        XCTAssertTrue(scrollToReachable(selectedControl, in: trailScroll, app: app))
+        selectedControl.tap()
+        XCTAssertTrue(waitForLabelPrefix("Select Trail,", element: selectedControl))
 
         let collection = app.buttons["area-collection-button"].firstMatch
         XCTAssertTrue(collection.waitForExistence(timeout: 10), "Collection action is missing")
@@ -322,8 +323,10 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(scrollToVisible(metrics, in: reopenedDashboardScroll, app: app))
         assertInsideScreen(metrics, app: app)
         let estimates = app.descendants(matching: .any)["recording-estimates"].firstMatch
-        XCTAssertTrue(scrollToVisible(estimates, in: reopenedDashboardScroll, app: app))
-        assertInsideScreen(estimates, app: app)
+        XCTAssertFalse(
+            estimates.exists,
+            "Gap fixture must not invent an estimate without a stable pace"
+        )
 
         let stop = app.buttons["recording-stop-button"].firstMatch
         XCTAssertTrue(scrollToReachable(stop, in: reopenedDashboardScroll, app: app))

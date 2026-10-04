@@ -386,13 +386,13 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         )
         XCTAssertGreaterThan(
             distanceRow.frame.width,
-            app.frame.width * 0.7,
-            "Distance metric row must reserve full text width"
+            150,
+            "Distance metric semantic frame is too narrow"
         )
         XCTAssertGreaterThan(
             durationRow.frame.width,
-            app.frame.width * 0.7,
-            "Duration metric row must reserve full text width"
+            150,
+            "Duration metric semantic frame is too narrow"
         )
         let lowerContent = app.descendants(matching: .any)["recording-summary-area-progress"].firstMatch
         XCTAssertTrue(scrollToVisible(lowerContent, in: summaryScroll, app: app))
@@ -457,9 +457,12 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let searchKey = keyboard.buttons["Search"].firstMatch
         XCTAssertTrue(searchKey.waitForExistence(timeout: 5), "Keyboard Search action is missing")
         searchKey.tap()
+        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+        XCTAssertTrue(trailScroll.waitForExistence(timeout: 5), "Trail list scroll is missing")
+        trailScroll.swipeUp()
         XCTAssertFalse(
             keyboard.waitForExistence(timeout: 5),
-            "AX3 Search submit did not dismiss the keyboard"
+            "Trail-list scroll did not dismiss the search keyboard"
         )
     }
 

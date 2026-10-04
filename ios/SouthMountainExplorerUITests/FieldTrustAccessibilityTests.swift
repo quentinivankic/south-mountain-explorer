@@ -113,18 +113,23 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         )
         dismissSearchKeyboard(app)
 
-        let select = app.buttons.matching(
-            NSPredicate(format: "identifier BEGINSWITH %@", "trail-select-")
-        ).firstMatch
         let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
         XCTAssertTrue(trailScroll.waitForExistence(timeout: 10), "Trail list scroll is missing")
+        let secondary = app.buttons.matching(NSPredicate(
+            format: "identifier BEGINSWITH %@ AND label BEGINSWITH %@",
+            "trail-secondary-",
+            "Mark Trail Complete,"
+        )).firstMatch
+        XCTAssertTrue(
+            scrollToReachable(secondary, in: trailScroll, app: app),
+            "No incomplete trail action appeared"
+        )
+        let trailSuffix = String(secondary.identifier.dropFirst("trail-secondary-".count))
+        let select = app.buttons["trail-select-\(trailSuffix)"].firstMatch
         XCTAssertTrue(
             scrollToReachable(select, in: trailScroll, app: app),
-            "No semantic trail Select button appeared"
+            "No paired semantic trail Select button appeared"
         )
-        let trailSuffix = String(select.identifier.dropFirst("trail-select-".count))
-        let secondary = app.buttons["trail-secondary-\(trailSuffix)"].firstMatch
-        XCTAssertTrue(secondary.waitForExistence(timeout: 10), "Trail secondary action is missing")
         let trailActionIdentifiersAreDistinct = select.identifier != secondary.identifier
         XCTAssertTrue(trailActionIdentifiersAreDistinct, "Trail actions must have distinct identifiers")
         let actionLabelsAreDistinct = select.label != secondary.label
@@ -357,17 +362,18 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(gap.waitForExistence(timeout: 10), "Summary gap explanation is missing")
         let summaryScroll = app.scrollViews["recording-summary-scroll"].firstMatch
         XCTAssertTrue(summaryScroll.waitForExistence(timeout: 10), "Summary scroll is missing")
-        let summaryMetrics = app.descendants(matching: .any)["recording-summary-metrics"].firstMatch
-        XCTAssertTrue(scrollToVisible(summaryMetrics, in: summaryScroll, app: app))
-        assertInsideScreen(summaryMetrics, app: app)
         let distanceRow = app.descendants(matching: .any)[
             "recording-summary-stat-distance"
         ].firstMatch
         let durationRow = app.descendants(matching: .any)[
             "recording-summary-stat-duration"
         ].firstMatch
-        XCTAssertTrue(distanceRow.exists, "Distance metric row is missing")
-        XCTAssertTrue(durationRow.exists, "Duration metric row is missing")
+        XCTAssertTrue(distanceRow.waitForExistence(timeout: 10), "Distance metric row is missing")
+        XCTAssertTrue(durationRow.waitForExistence(timeout: 10), "Duration metric row is missing")
+        XCTAssertTrue(scrollToVisible(distanceRow, in: summaryScroll, app: app))
+        assertInsideScreen(distanceRow, app: app)
+        XCTAssertTrue(scrollToVisible(durationRow, in: summaryScroll, app: app))
+        assertInsideScreen(durationRow, app: app)
         XCTAssertEqual(distanceRow.label, "Distance", "Distance metric label is unexpected")
         XCTAssertEqual(durationRow.label, "Duration", "Duration metric label is unexpected")
         XCTAssertFalse(
@@ -451,12 +457,9 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let searchKey = keyboard.buttons["Search"].firstMatch
         XCTAssertTrue(searchKey.waitForExistence(timeout: 5), "Keyboard Search action is missing")
         searchKey.tap()
-        if keyboard.exists {
-            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15)).tap()
-        }
         XCTAssertFalse(
             keyboard.waitForExistence(timeout: 5),
-            "Search keyboard did not dismiss after tapping the map"
+            "AX3 Search submit did not dismiss the keyboard"
         )
     }
 

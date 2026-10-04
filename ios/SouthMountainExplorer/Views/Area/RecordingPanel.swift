@@ -576,7 +576,6 @@ struct RecordingSummarySheet: View {
                             }
                         }
                         .padding(.horizontal)
-                        .accessibilityIdentifier("recording-summary-metrics")
                     } else {
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
                             statCard(title: "Distance", value: UnitFormatter.distanceValue(miles: finished.distanceMi, units: units), unit: UnitFormatter.distanceSuffix(units: units))

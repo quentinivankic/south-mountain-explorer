@@ -142,6 +142,7 @@ struct TrailListView: View {
     @Environment(ProgressService.self) private var progress
     @Environment(CoverageService.self) private var coverage
     @Environment(RecordingService.self) private var recording
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @FocusState private var searchFocused: Bool
 
@@ -200,6 +201,11 @@ struct TrailListView: View {
                                     .autocorrectionDisabled()
                                     .focused($searchFocused)
                                     .submitLabel(.search)
+                                    .onSubmit {
+                                        if dynamicTypeSize.isAccessibilitySize {
+                                            searchFocused = false
+                                        }
+                                    }
                                 if !searchQuery.isEmpty {
                                     Button {
                                         searchQuery = ""

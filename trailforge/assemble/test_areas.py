@@ -1,4 +1,5 @@
 """Tests for area-boundary filtering (trail↔area). Gated on shapely."""
+import math
 import unittest
 from pathlib import Path
 import sys
@@ -88,6 +89,20 @@ class AreaFilter(unittest.TestCase):
         self.assertEqual(len(A.clip_features_to_area([tiny], union, min_inside_mi=0.05)), 0)
         self.assertEqual(len(A.clip_features_to_area([tiny], union, min_inside_mi=0.0)), 1)
 
+    def test_exact_clip_assigns_selected_area_to_every_survivor(self):
+        union, _ = A.union_matching(self.AREAS, "south mountain")
+        features = [
+            _line([[1, 1], [2, 2]]),
+            _line([[8, 5], [18, 5]]),
+        ]
+        kept = A.clip_features_to_area(
+            features, union, area_name="South Mountain Park and Preserve")
+        self.assertEqual(len(kept), 2)
+        self.assertEqual(
+            {feature["properties"]["area"] for feature in kept},
+            {"South Mountain Park and Preserve"},
+        )
+
     def test_exact_selector_is_case_sensitive_and_does_not_union_substrings(self):
         exact = A.select_exact(self.AREAS, "South Mountain Preserve")
         self.assertEqual([area["name"] for area in exact], ["South Mountain Preserve"])
@@ -99,6 +114,71 @@ class AreaFilter(unittest.TestCase):
         exact = A.select_exact(
             [*self.AREAS, duplicate], "South Mountain Preserve")
         self.assertEqual(len(exact), 2)
+
+    def test_sub_rounding_exact_cut_is_still_flagged_as_clipped(self):
+        from shapely.geometry import MultiPolygon, box
+
+        # The removed middle gap is below three-decimal mileage precision, so
+        # display lengths match even though exact geometry is truly clipped.
+        gap = 0.000001
+        boundary = MultiPolygon([
+            box(-0.001, -1, 0.005, 1),
+            box(0.005 + gap, -1, 0.011, 1),
+        ])
+        feature = {
+            "type": "Feature",
+            "properties": {"name": "Micro Cut", "length_mi": 0.691},
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [[0.0, 0.0], [0.01, 0.0]],
+            },
+        }
+
+        kept = A.clip_features_to_area([feature], boundary, min_inside_mi=0)
+
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(kept[0]["properties"]["length_mi"], 0.691)
+        self.assertEqual(kept[0]["properties"]["full_length_mi"], 0.691)
+        self.assertTrue(kept[0]["properties"]["clipped"])
+        self.assertEqual(len(kept[0]["geometry"]["coordinates"]), 2)
+
+    def test_legacy_floor_uses_rounded_miles_but_exact_area_uses_raw_miles(self):
+        from shapely.geometry import box
+
+        miles_per_degree = math.pi * 3958.7613 / 180.0
+        delta = 0.0496 / miles_per_degree
+        boundary = box(-0.001, -1, delta + 0.001, 1)
+        feature = {
+            "type": "Feature",
+            "properties": {"name": "Rounding Floor", "length_mi": 0.05},
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [[0, 0], [delta, 0]],
+            },
+        }
+
+        legacy = A.clip_features_to_area(
+            [feature], boundary, min_inside_mi=0.05, area_name=None)
+        exact = A.clip_features_to_area(
+            [feature], boundary, min_inside_mi=0.05,
+            area_name="Nationalpark Mols Bjerge")
+
+        self.assertEqual(len(legacy), 1)
+        self.assertEqual(legacy[0]["properties"]["length_mi"], 0.05)
+        self.assertNotIn("clipped", legacy[0]["properties"])
+        self.assertEqual(exact, [])
+
+        ordinary_delta = 0.051 / miles_per_degree
+        ordinary = {**feature, "geometry": {
+            "type": "LineString",
+            "coordinates": [[0, 0], [ordinary_delta, 0]],
+        }}
+        ordinary_boundary = box(-0.001, -1, ordinary_delta + 0.001, 1)
+        self.assertEqual(len(A.clip_features_to_area(
+            [ordinary], ordinary_boundary, min_inside_mi=0.05)), 1)
+        self.assertEqual(len(A.clip_features_to_area(
+            [ordinary], ordinary_boundary, min_inside_mi=0.05,
+            area_name="Nationalpark Mols Bjerge")), 1)
 
     def test_no_match_returns_none(self):
         union, names = A.union_matching(self.AREAS, "nonexistent park")

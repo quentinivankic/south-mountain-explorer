@@ -153,6 +153,24 @@ def test_denmark_prefilter_aoi_exact_assembly_and_routes_are_preserved():
     assert "--no-routes" not in _PILOT
 
 
+def test_independent_relation_graph_is_sealed_before_assembly_and_validated():
+    export_step = _PILOT.index(
+        "- name: Export independent Mols relation-member evidence")
+    assemble_step = _PILOT.index("- name: Assemble exact Mols boundary")
+    assert export_step < assemble_step
+    assert "tools/export_relation_members.py" in _PILOT
+    assert "--in data/aoi/mols-bjerge.osm.pbf" in _PILOT[export_step:assemble_step]
+    assert 'EVIDENCE="$PILOT_QA_ROOT/data/aoi/mols-bjerge.relation-members.json"' \
+        in _PILOT
+    assert 'manifest["relation_members_evidence"]' in _PILOT
+    assert '"source_pbf_sha256": evidence["source"]["sha256"]' in _PILOT
+    assert "hashlib.sha256(canonical).hexdigest()" in _PILOT
+    assert "os.replace(temporary, manifest_path)" in _PILOT
+    assert '--relation-members \\' in _PILOT
+    assert '"$PILOT_QA_ROOT/data/aoi/mols-bjerge.relation-members.json"' \
+        in _PILOT
+
+
 def test_publisher_is_temporary_dry_run_with_structured_final_validation():
     assert "serve/publish_areas.py" in _PILOT
     assert "--hiking data/aoi/mols-bjerge.osm.pbf" in _PILOT
@@ -169,6 +187,7 @@ def test_publisher_is_temporary_dry_run_with_structured_final_validation():
 
 def test_complete_sha_named_artifact_upload_is_fail_closed_and_always_runs():
     for filename in (
+        "mols-bjerge.relation-members.json",
         "mols-bjerge.raw.geojson",
         "mols-bjerge.trails.geojson",
         "mols-bjerge.removed.geojson",

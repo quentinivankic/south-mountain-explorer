@@ -33,10 +33,13 @@ import sys
 import unicodedata
 from typing import Any
 
+import member_safety
+
 HIKING_ROUTE_KINDS = {"hiking", "foot", "walking", "running"}
 MAIN_ROLES = {"", "main"}
 SPUR_ROLES = {"approach", "connection"}
 VARIANT_ROLES = {"alternative", "excursion", "alternate"}
+RETAINED_ROUTE_INGEST_CATEGORY = "retained-signed-route-member"
 
 # Destination POI signatures — a way ending at one of these is "reaching
 # the payoff" (SPEC.md §1). Keyed (tag, value); value None means any.
@@ -130,25 +133,8 @@ def is_generic_name(name: str | None) -> bool:
 _ROUTE_NETWORKS = {"rwn", "nwn", "iwn"}
 _ROUTE_WORD = re.compile(r"\broute\b", re.IGNORECASE)
 
-# Bike-park vocabulary in a trail NAME — only trusted when the way is also
-# IMBA-rated (see _is_nonhiking), so a lava 'Obsidian Flow' hiking trail (no
-# imba) or 'Mayflower' (not the word 'flow') is never caught.
-_BIKEPARK_NAME = re.compile(
-    r"\b(down\s*hill|dh|slalom|flow|jump\s*line|pump\s*track|berm|freeride)\b",
-    re.IGNORECASE)
-
-# A name that literally says MTB / mountain bike — 'Party of 5 (MTB)', 'Yellow
-# MTB Trail', 'Thomas Mountain Bike Trail'. Unlike _BIKEPARK_NAME this needs no
-# mtb:scale:imba co-signal: whole-word 'MTB' or 'mountain bike' never appears
-# in a genuine hiking-trail name by accident (a whole bike-park network audit
-# — Adirondack, Blue Knob, Montgomery Bell — found this exact naming pattern
-# on every entry, 0 false positives). The one guard that matters is a slash or
-# ' and ' in the name: 'Ryan Gulch MTB/Hiking Trail' explicitly declares dual
-# use, and 'X Trail and Y Mountain Bike Trail' is a merge artifact (two ways
-# fused under a concatenated name) — neither should silently drop a trail that
-# may still be a real, walkable hike.
-_BIKE_ONLY_NAME = re.compile(r"\bmtb\b|\bmountain\s*bike\b", re.IGNORECASE)
-_BIKE_NAME_COMPOSITE = re.compile(r"/| and ", re.IGNORECASE)
+# Bike-only names and bike-park co-signals are normalized centrally in
+# member_safety so relation production and final validation cannot drift.
 
 # Famous long-distance thru-hikes, matched by NAME. Tag-driven detection fails
 # here — OSM tags US thru-hikes inconsistently (no network, the name slapped on
@@ -345,32 +331,162 @@ def chains_to_multiline(chains: list[list[int]], ways: dict,
 # step 1 — relations-first
 # ---------------------------------------------------------------------------
 
-def resolve_route_members(rel_id: int, relations: dict,
-                          _seen: set[int] | None = None) -> list[tuple[int, str]]:
-    """Transitively collect (way_id, role) under a route relation.
-
-    Recurses through child route relations (superrelations). A child
-    relation's own role propagates to its ways unless the way has a more
-    specific role. Cycle-safe.
-    """
+def resolve_route_member_entries(
+        rel_id: int, relations: dict, _seen: set[int] | None = None,
+        _ancestor_spur_role: str | None = None) -> list[dict]:
+    """Resolve route ways while retaining direct owner, order, and raw role."""
     seen = _seen if _seen is not None else set()
     if rel_id in seen or rel_id not in relations:
         return []
     seen.add(rel_id)
-    out: list[tuple[int, str]] = []
-    for mtype, ref, role in relations[rel_id]["members"]:
-        if mtype == "w":
-            out.append((ref, role or "main"))
-        elif mtype == "r":
-            child = resolve_route_members(ref, relations, seen)
-            for wid, crole in child:
-                out.append((wid, role if role in SPUR_ROLES else crole))
+    out = []
+    for member_index, (member_type, ref, role) in enumerate(
+            relations[rel_id]["members"]):
+        direct_role = role or ""
+        if member_type == "w":
+            out.append({
+                "relation_id": rel_id,
+                "member_index": member_index,
+                "way_id": ref,
+                "role": direct_role,
+                "effective_role": (_ancestor_spur_role
+                                   or direct_role or "main"),
+            })
+        elif member_type == "r":
+            # Existing semantics: an outer approach/connection role overrides
+            # every nested way role; other relation roles do not propagate.
+            inherited = _ancestor_spur_role
+            if inherited is None and direct_role in SPUR_ROLES:
+                inherited = direct_role
+            out.extend(resolve_route_member_entries(
+                ref, relations, seen, inherited))
     return out
 
 
+def resolve_route_members(rel_id: int, relations: dict,
+                          _seen: set[int] | None = None) -> list[tuple[int, str]]:
+    """Transitively collect ``(way_id, effective_role)`` in source order."""
+    return [
+        (entry["way_id"], entry["effective_role"])
+        for entry in resolve_route_member_entries(rel_id, relations, _seen)
+    ]
+
+
 def _is_route(tags: dict) -> bool:
-    return (tags.get("type") == "route"
-            and (tags.get("route") or "").strip().lower() in HIKING_ROUTE_KINDS)
+    return (member_safety.normalize(tags.get("type")) == "route"
+            and member_safety.normalize(tags.get("route"))
+            in HIKING_ROUTE_KINDS)
+
+
+def _relation_member_decision(tags: dict, region: str | None
+                              ) -> member_safety.MemberDecision:
+    """Return the shared Denmark decision or the unchanged legacy result."""
+    if member_safety.normalize(region) == "dk":
+        return member_safety.dk_relation_member_decision(tags)
+    eligible = _is_trailish(tags)
+    return member_safety.MemberDecision(
+        eligible, False, "legacy-standalone-trail" if eligible
+        else "legacy-standalone-excluded")
+
+
+def _relation_member_walkable(tags: dict, region: str | None) -> bool:
+    return _relation_member_decision(tags, region).eligible
+
+
+def direct_relation_way_members(rel_id: int, relations: dict) -> list[int]:
+    """Return only ways directly listed by one relation, in source order."""
+    relation = relations.get(rel_id)
+    if relation is None:
+        return []
+    return list(dict.fromkeys(
+        ref for member_type, ref, _role in relation["members"]
+        if member_type == "w"
+    ))
+
+
+def route_relation_hierarchy(rel_id: int, relations: dict,
+                             _seen: set[int] | None = None) -> list[int]:
+    """Return the root and recursively referenced relation ids in source order."""
+    seen = _seen if _seen is not None else set()
+    if rel_id in seen or rel_id not in relations:
+        return []
+    seen.add(rel_id)
+    out = [rel_id]
+    for member_type, ref, _role in relations[rel_id]["members"]:
+        if member_type == "r":
+            out.extend(route_relation_hierarchy(ref, relations, seen))
+    return out
+
+
+def _audit_relation_name(tags: dict) -> str | None:
+    if tags.get("name"):
+        return tags["name"]
+    for key in sorted(tags):
+        if key.startswith("name:") and tags[key]:
+            return tags[key]
+    return None
+
+
+def _build_relation_member_audit(rel_id: int, relations: dict, ways: dict
+                                 ) -> tuple[dict, list[int], list[int]]:
+    """Build complete Denmark direct-member evidence for one accepted route."""
+    relation = relations[rel_id]
+    hierarchy = route_relation_hierarchy(rel_id, relations)
+    direct = {
+        relation_id: direct_relation_way_members(relation_id, relations)
+        for relation_id in hierarchy
+    }
+    missing_relations = sorted({
+        ref
+        for relation_id in hierarchy
+        for member_type, ref, _role in relations[relation_id]["members"]
+        if member_type == "r" and ref not in relations
+    })
+    main_ways = []
+    spur_ways = []
+    records = []
+    for entry in resolve_route_member_entries(rel_id, relations):
+        way_id = entry["way_id"]
+        way = ways.get(way_id)
+        effective_role = entry["effective_role"]
+        if way is None:
+            decision = member_safety.MemberDecision(
+                False, False, "missing-source-way")
+        elif effective_role in MAIN_ROLES:
+            decision = member_safety.dk_relation_member_decision(
+                way.get("tags") or {})
+        elif effective_role in SPUR_ROLES:
+            decision = member_safety.standalone_member_decision(
+                way.get("tags") or {})
+        else:
+            decision = member_safety.MemberDecision(
+                False, False,
+                f"unsupported-role-{effective_role or 'empty'}")
+        included = way is not None and decision.eligible
+        if included and effective_role in MAIN_ROLES:
+            main_ways.append(way_id)
+        elif included and effective_role in SPUR_ROLES:
+            spur_ways.append(way_id)
+        records.append({
+            **entry,
+            "source_status": "available" if way is not None else "missing",
+            "tags": member_safety.decisive_tags((way or {}).get("tags") or {}),
+            "status": "included" if included else "excluded",
+            "exclusion_reason": None if included else decision.reason,
+            "decision": decision.to_dict(),
+        })
+    return ({
+        "relation_id": rel_id,
+        "name": _audit_relation_name(relation.get("tags") or {}),
+        "tags": dict(sorted((relation.get("tags") or {}).items())),
+        "relation_ids": hierarchy,
+        "direct_relation_way_ids": direct,
+        "missing_relation_ids": missing_relations,
+        "direct_way_members": records,
+        "eligible_main_way_ids": list(dict.fromkeys(main_ways)),
+        "included_spur_way_ids": list(dict.fromkeys(spur_ways)),
+        "assembly_status": "pending",
+    }, main_ways, spur_ways)
 
 
 # ---------------------------------------------------------------------------
@@ -482,6 +598,15 @@ class Trail:
         self.name = name
         self.source = source            # "relation" | "name-stitch"
         self.member_ways = list(member_ways)
+        # Ways that actually render linework. Relation approach/connection
+        # members remain in member_ways for signed-route identity but are not
+        # treated as unexplained main-line gaps.
+        self.geometry_ways = list(member_ways)
+        self.relation_ids: list[int] = []
+        self.direct_relation_ways: dict[int, list[int]] = {}
+        # Denmark-only main-line members admitted by the signed-route road
+        # restoration rather than the standalone trail gate.
+        self.restored_relation_ways: list[int] = []
         self.lines = lines              # list of coord-lists (MultiLineString)
         self.tags = tags
         self.terminal_nodes = list(terminal_nodes)
@@ -494,6 +619,7 @@ class Trail:
 
     def weld_spur(self, wid, coords, poi):
         self.member_ways.append(wid)
+        self.geometry_ways.append(wid)
         self.lines.append(coords)
         nm = poi.get("name") or f"{poi['tags']}"
         self.destinations.append(nm)
@@ -644,7 +770,8 @@ def assemble(nodes: dict, ways: dict, relations: dict,
              areas: list[dict] | None = None,
              collect_removed: list | None = None,
              region: str | None = None,
-             collect_ingest_dropped: list | None = None) -> list[Trail]:
+             collect_ingest_dropped: list | None = None,
+             collect_relation_member_audit: list | None = None) -> list[Trail]:
     trails: list[Trail] = []
     claimed: set[int] = set()
 
@@ -665,12 +792,22 @@ def assemble(nodes: dict, ways: dict, relations: dict,
             if len(coords) < 2:
                 continue
             cat, reason = verdict
+            sidecar_properties = {
+                "name": nm,
+                "removed_category": cat,
+                "removed_reason": reason,
+                "highway": w["tags"].get("highway", ""),
+                "ckey": f"w{wid}",
+            }
+            if (region or "").casefold() == "dk":
+                sidecar_properties.update({
+                    "way_id": wid,
+                    "retained_in_route": False,
+                    "relation_ids": [],
+                })
             collect_ingest_dropped.append({
                 "type": "Feature",
-                "properties": {"name": nm, "removed_category": cat,
-                               "removed_reason": reason,
-                               "highway": w["tags"].get("highway", ""),
-                               "ckey": f"w{wid}"},
+                "properties": sidecar_properties,
                 # nodes are stored (lon, lat) — already GeoJSON order.
                 "geometry": {"type": "LineString",
                              "coordinates": [list(c) for c in coords]},
@@ -694,25 +831,69 @@ def assemble(nodes: dict, ways: dict, relations: dict,
             superroute_ids.update(kids)      # its child segments
 
     # 1. relations-first
-    for rid, rel in relations.items():
+    denmark = member_safety.normalize(region) == "dk"
+    relation_items = (sorted(relations.items()) if denmark
+                      else relations.items())
+    for rid, rel in relation_items:
         if not _is_route(rel["tags"]):
             continue
-        members = resolve_route_members(rid, relations)
-        main_ways = [w for w, role in members
-                     if role in MAIN_ROLES and w in ways and _is_trailish(ways[w]["tags"])]
-        spur_ways = [w for w, role in members
-                     if role in SPUR_ROLES and w in ways and _is_trailish(ways[w]["tags"])]
+        relation_ids = route_relation_hierarchy(rid, relations)
+        audit = None
+        if denmark:
+            audit, main_ways, spur_ways = _build_relation_member_audit(
+                rid, relations, ways)
+            if collect_relation_member_audit is not None:
+                collect_relation_member_audit.append(audit)
+            direct_members = audit["direct_relation_way_ids"]
+        else:
+            # Preserve the legacy relation member decisions outside Denmark.
+            direct_members = {
+                relation_id: direct_relation_way_members(relation_id, relations)
+                for relation_id in relation_ids
+            }
+            members = resolve_route_members(rid, relations)
+            main_ways = [w for w, role in members
+                         if role in MAIN_ROLES and w in ways
+                         and _relation_member_walkable(ways[w]["tags"], region)]
+            spur_ways = [w for w, role in members
+                         if role in SPUR_ROLES and w in ways
+                         and _is_trailish(ways[w]["tags"])]
         if not main_ways:
+            if audit is not None:
+                audit["assembly_status"] = "entirely-filtered"
             continue
         chains = order_ways(main_ways, ways)
         lines = chains_to_multiline(chains, ways, nodes)
         if not lines:
+            if audit is not None:
+                audit["assembly_status"] = "no-renderable-geometry"
             continue
         rel_name = norm_name(display_name(rel["tags"]))
         t = Trail(display_name(rel["tags"]) or _first_named(main_ways, ways),
                   "relation", main_ways, lines, rel["tags"],
                   _terminal_nodes(chains, ways))
-        # approach/connection spurs are part of the object but not the main line
+        contributing = set(main_ways + spur_ways)
+        t.relation_ids = relation_ids
+        if denmark:
+            # Full source authority, including excluded and missing direct ways.
+            # Rendering remains represented separately by geometry_ways.
+            t.direct_relation_ways = {
+                relation_id: list(member_ids)
+                for relation_id, member_ids in direct_members.items()
+            }
+            t.restored_relation_ways = [
+                way_id for way_id in dict.fromkeys(main_ways)
+                if member_safety.dk_relation_member_decision(
+                    ways[way_id]["tags"]).restored
+            ]
+        else:
+            t.direct_relation_ways = {
+                relation_id: [way_id for way_id in direct_members[relation_id]
+                              if way_id in contributing]
+                for relation_id in relation_ids
+            }
+            t.restored_relation_ways = []
+        # approach/connection spurs are signed members but not main linework
         for sw in spur_ways:
             t.member_ways.append(sw)
         # Claim ONLY members without their own distinct identity — unnamed
@@ -728,12 +909,16 @@ def assemble(nodes: dict, ways: dict, relations: dict,
         # segments. Its own ways are claimed above so name-stitch can't resurface
         # the fragment; drop the object itself (underlying local trails survive).
         if rid in superroute_ids:
+            if audit is not None:
+                audit["assembly_status"] = "removed-thru-hike"
             if collect_removed is not None:
                 t.removed_reason = ("part of a long-distance thru-hike route "
                                     "(super-relation) — dropped from the checklist")
                 t.removed_category = "thru-hike"
                 collect_removed.append(t)
             continue
+        if audit is not None:
+            audit["assembly_status"] = "emitted"
         trails.append(t)
 
     # 2. name-stitch the remainder
@@ -793,7 +978,67 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     #    that should read as one "Bonneville Shoreline Trail", not 28. Merge
     #    same-name objects sharing an area into one multi-segment object. No-op
     #    when areas aren't assigned (park runs / tests keep area=None).
-    return coalesce_by_area(promoted)
+    result = coalesce_by_area(promoted)
+    return result
+
+
+def reconcile_ingest_dropped(ingest_dropped: list[dict],
+                              final_features: list[dict],
+                              region: str | None) -> None:
+    """Bind Denmark ingest diagnostics to the final published route population.
+
+    This runs after exact-area clipping and quality disposition. A diagnostic is
+    retained only when its way is a true direct member of a surviving relation;
+    same-name fusion, welded geometry, and relations that clipped out do not
+    create a retained binding.
+    """
+    if (region or "").casefold() != "dk":
+        return
+
+    retained_relations: dict[int, set[int]] = {}
+    for feature in final_features:
+        properties = feature.get("properties") or {}
+        if properties.get("source") != "relation":
+            continue
+        relation_ids = set(properties.get("relation_ids") or [])
+        rendered_members = set(properties.get("member_ways") or [])
+        direct = properties.get("direct_relation_way_ids") or {}
+        for relation_id, member_ids in direct.items():
+            try:
+                relation_id = int(relation_id)
+            except (TypeError, ValueError):
+                continue
+            if relation_id not in relation_ids:
+                continue
+            for way_id in member_ids if isinstance(member_ids, list) else []:
+                if (isinstance(way_id, int) and not isinstance(way_id, bool)
+                        and way_id in rendered_members):
+                    retained_relations.setdefault(way_id, set()).add(relation_id)
+
+    for feature in ingest_dropped:
+        properties = feature.get("properties") or {}
+        if "standalone_drop_category" in properties:
+            properties["removed_category"] = properties.pop(
+                "standalone_drop_category")
+            properties["removed_reason"] = properties.pop(
+                "standalone_drop_reason")
+        properties["retained_in_route"] = False
+        properties["relation_ids"] = []
+
+        relation_ids = retained_relations.get(properties.get("way_id"))
+        if not relation_ids:
+            continue
+        properties["standalone_drop_category"] = properties.get(
+            "removed_category")
+        properties["standalone_drop_reason"] = properties.get(
+            "removed_reason")
+        properties["removed_category"] = RETAINED_ROUTE_INGEST_CATEGORY
+        properties["removed_reason"] = (
+            "Not eligible as a standalone checklist trail; retained only "
+            "as a member of a signed hiking route."
+        )
+        properties["retained_in_route"] = True
+        properties["relation_ids"] = sorted(relation_ids)
 
 
 def coalesce_by_area(trails: list["Trail"]) -> list["Trail"]:
@@ -923,6 +1168,17 @@ def _fuse_cluster(cluster: list["Trail"]) -> "Trail":
             continue
         base.lines.extend(t.lines)
         base.member_ways.extend(w for w in t.member_ways if w not in base.member_ways)
+        base.geometry_ways.extend(
+            w for w in t.geometry_ways if w not in base.geometry_ways)
+        base.relation_ids.extend(
+            relation_id for relation_id in t.relation_ids
+            if relation_id not in base.relation_ids)
+        base.restored_relation_ways.extend(
+            way_id for way_id in t.restored_relation_ways
+            if way_id not in base.restored_relation_ways)
+        for relation_id, member_ids in t.direct_relation_ways.items():
+            target = base.direct_relation_ways.setdefault(relation_id, [])
+            target.extend(way_id for way_id in member_ids if way_id not in target)
         base.destinations.extend(t.destinations)
         base.welds.extend(t.welds)
         base.terminal_nodes.extend(t.terminal_nodes)
@@ -1154,38 +1410,11 @@ def promote_hikes(trails: list["Trail"], pois: list[dict]) -> list["Trail"]:
     return out
 
 
-TRAILISH_HIGHWAY = {"path", "footway", "steps", "track", "bridleway",
-                    "via_ferrata", "cycleway", "pedestrian"}
+TRAILISH_HIGHWAY = member_safety.TRAILISH_HIGHWAYS
 
-# A highway=track that's really a vehicle/utility/access road — not a hike.
-# Ported from System 2 (data-pipeline stage_osm._vehicle_or_utility_road):
-# catches the paved/graded access roads (e.g. the road to a trailhead lot).
-# Name-based road tells for a highway=track. Word-boundary matched, so
-# "Placerita" isn't caught by "place" and "Broadway Trail" isn't caught by
-# "road". Covers named rural roads AND the street/lane/court/place suffixes
-# that flood grid/subdivision areas at region scale (AZ statewide run).
-_ROAD_NAME = re.compile(
-    r"\b(road|street|avenue|boulevard|drive|lane|court|place|"
-    r"canal|drain|ditch|highway|freeway|parkway|route)\b", re.IGNORECASE)
-
-# US numeric grid-address road names — "3900 East", "N 400 W", "700 South".
-# Pervasive in UT/AZ/ID rural grids; a hiking trail is never named this way.
-_GRID_ROAD = re.compile(
-    r"^\s*(?:[nsew]\.?\s+)?\d+\s+(?:north|south|east|west|n|s|e|w)\.?\s*$",
-    re.IGNORECASE)
-
-# Agency dirt-road codes — "NF-418C", "BLM 1048", "FR 236", "FS 6005",
-# "NV-9040V". Two branches so we don't play prefix whack-a-mole:
-#   (a) known agency prefixes + any digits (catches 1-2 digit "CR 15");
-#   (b) GENERIC: a short (<=4) letter code + 3+ digits (+opt trailing letter),
-#       as the whole name — catches unfamiliar prefixes (NV, ranger-district
-#       letters) WITHOUT hitting 1-2-digit TRAIL codes (GR20, E5) or worded
-#       names ("Trail 100" — "Trail" is 5 letters). Track-scoped either way,
-#       so real named paths are never touched.
-_FOREST_ROAD = re.compile(
-    r"^\s*(?:(?:nf|fr|fsr|fs|usfs|blm|cr|nv)\b[-\s]?\d"
-    r"|[a-z]{1,4}[-\s]?\d{3,}[a-z]?\s*$)", re.IGNORECASE)
-
+# Track road-shape classification lives in member_safety and is shared with
+# the Denmark final validator. Generic curation keeps the existing wrapper
+# names below for compatibility.
 
 # Name-only road/ID-code junk that rides on highway=path/footway or comes in
 # as a route relation, so _road_like_track (track-scoped) never sees it —
@@ -1406,94 +1635,18 @@ def is_access_blocked(tags: dict) -> bool:
 
 
 def _is_motorized(tags: dict) -> bool:
-    """The way is designated for motor vehicles / off-highway use — an
-    ATV/OHV/4WD/snowmobile route, not a foot trail. OSM tags these explicitly
-    (atv/ohv/motor_vehicle/4wd_only/snowmobile), so we drop by TAG, not by a
-    'Jeep'/'ATV' NAME: a foot-only path that merely carries such a name has
-    none of these tags and is kept, and a real hiking route survives via its
-    route relation regardless. (Research: OSM tags ATV/4WD tracks atv=yes,
-    Jeep/OHV routes ohv=yes.)"""
-    if str(tags.get("4wd_only", "")).strip().lower() in {"yes", "designated"}:
-        return True
-    return any(str(tags.get(k, "")).strip().lower() in {"yes", "designated"}
-               for k in ("motor_vehicle", "motorcar", "atv", "ohv", "snowmobile",
-                         "motorcycle"))
+    return member_safety.motorized_reason(tags) is not None
 
 
 def _is_nonhiking(tags: dict) -> bool:
-    """A purpose-built non-hiking way — a bike-park flow run or a ski piste —
-    that carries highway=path but is not a foot trail. Detection uses only
-    POSITIVE exclusion signals that never appear on a genuine hike:
-
-      - foot=no — hikers are banned.
-      - mtb:type=flow/downhill — a built downhill/flow bike feature.
-      - piste:type without 'hike' — a ski piste (nordic/downhill). A
-        'nordic;hike' piste is genuinely dual-use and kept.
-      - a name that literally says '(No Hiking)' (some are tagged foot=yes, so
-        only the name gives them away).
-      - a name that says MTB / mountain bike outright ('Party of 5 (MTB)',
-        'Yellow MTB Trail') with no slash or ' and ' — a whole-word 'MTB' or
-        'mountain bike' never shows up in a real hike's name by accident, so
-        (unlike mtb:scale:imba) it needs no tag co-signal. The slash/'and'
-        guard spares explicit dual-use names ('MTB/Hiking Trail') and merge
-        artifacts (two ways fused into one concatenated name).
-
-    mtb:scale:imba (an IMBA difficulty RATING) is NOT a signal on its own — it
-    rides on countless shared-use HIKING trails (South Mountain's whole network
-    is foot=yes/bicycle=yes with imba=2..4), and gating on it alone silently ate
-    them. But COMBINED with a directional or bike-park-named signal it cleanly
-    fingers a flow run (Colorado audit — Keystone/Breck/Vail): a rated path that
-    is one-way, or whose name is Downhill/Slalom/Flow/Jump Line/etc., is a bike
-    feature, never a hike. Requiring imba first keeps Rainbow Trail (imba, but
-    two-way and normally named) and every real trail untouched.
-    """
-    name = str(tags.get("name", "") or "")
-    if "no hiking" in name.strip().lower():
-        return True
-    if _BIKE_ONLY_NAME.search(name) and not _BIKE_NAME_COMPOSITE.search(name):
-        return True
-    if str(tags.get("foot", "")).strip().lower() == "no":
-        return True
-    if str(tags.get("mtb:type", "")).strip().lower() in {"flow", "downhill"}:
-        return True
-    piste = str(tags.get("piste:type", "")).strip().lower()
-    if piste and "hike" not in piste:
-        return True
-    # Bike-park flow trails: only when IMBA-rated AND (one-way OR bike-park name).
-    if str(tags.get("mtb:scale:imba", "")).strip() != "":
-        if str(tags.get("oneway", "")).strip().lower() in {"yes", "1", "true"}:
-            return True
-        if _BIKEPARK_NAME.search(name):
-            return True
-    return False
+    return member_safety.nonhiking_reason(tags) is not None
 
 
 def _road_like_track_kind(tags: dict) -> str | None:
-    """Why a highway=track reads as a road, or None. 'tag' = an unambiguous
-    hard signal (motor_vehicle / motorcar / 2+ lanes). 'name' = only its NAME
-    looks road-like (a Road/Drive/Ditch suffix, an FR-code, a PLSS grid). The
-    split matters for review: a 'name' drop is the fuzzy one that could eat a
-    real trail mis-tagged as a track, so the viewer flags it CHECK; a 'tag'
-    drop is a real road."""
-    if tags.get("highway") != "track":
-        return None
-    if str(tags.get("motor_vehicle", "")).strip().lower() in {"yes", "designated"}:
-        return "tag"
-    if str(tags.get("motorcar", "")).strip().lower() == "yes":
-        return "tag"
-    # 2+ lanes = a drivable road, not a foot trail (e.g. the sand service
-    # road through South Mountain Park mis-named after the park itself).
-    try:
-        if int(str(tags.get("lanes", "")).strip()) >= 2:
-            return "tag"
-    except ValueError:
-        pass
-    name = str(tags.get("name", "") or "")
-    if (_GRID_ROAD.match(name)          # "3900 East"
-            or _FOREST_ROAD.match(name)  # "NF-418C", "BLM 1048"
-            or _ROAD_NAME.search(name)):  # "7th Street", "Holley Lane"
-        return "name"
-    return None
+    # Preserve HEAD's standalone/non-Denmark handling of malformed lane values;
+    # Denmark relation restoration opts into conservative parsing separately.
+    return member_safety.road_like_track_kind(
+        tags, conservative_lanes=False)
 
 
 def _road_like_track(tags: dict) -> bool:

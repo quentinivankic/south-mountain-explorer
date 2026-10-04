@@ -1,0 +1,48 @@
+{
+  "area_name": "Nationalpark Mols Bjerge",
+  "area_relation_id": 7046785,
+  "artifact_name": "mols-bjerge-qa-145d9c1d92acc4565382fcc3685d5236d915e457",
+  "attribution": "© OpenStreetMap contributors",
+  "github_run_id": 37036001231,
+  "output": {
+    "bytes": 336069,
+    "file": "mols-run33-curation-replay.json",
+    "sha256": "99f3ad96b0dad2fc857e9fd5528af470fdaa27b54487e83f83d32cc06a8d1f9f"
+  },
+  "projection": {
+    "candidate_count": 70,
+    "coordinate_count": 5828,
+    "missing_member_way_ids": [
+      1027606528
+    ],
+    "raw_way_count": 547
+  },
+  "schema_version": 1,
+  "source_files": {
+    "README.md": {
+      "canonical_sha256": "b27aa7a1de549cd595f9d35aa26be7ffbbcb0c85faac8bd24233537369696bd1",
+      "format": "text"
+    },
+    "data/aoi/mols-bjerge.areas.geojson": {
+      "canonical_sha256": "88a2403a8eee12fbcb1d1b9a47f090f5f49dbce5957e01113eeb4590c75a4c1a",
+      "format": "json"
+    },
+    "data/aoi/mols-bjerge.raw.geojson": {
+      "canonical_sha256": "96c92f284d0bfa5cc42c929b5214d2149da3eba245a320950e697b86224e3832",
+      "format": "json"
+    },
+    "data/aoi/mols-bjerge.trails.geojson": {
+      "canonical_sha256": "66c3e4c3763e8c0d90cc6c93177497c6cc6b2292d0f9a25ffe27ae945ea8568d",
+      "format": "json"
+    },
+    "manifest.json": {
+      "canonical_sha256": "5161b86d65bc7a29ddbf445ff3b2dfd8f99a3746737adb4b663e673303e00f0e",
+      "format": "json"
+    },
+    "reports/assembly.json": {
+      "canonical_sha256": "8d790d620a9642e16b41be4cee30846a86e6aedc46c081b04dd08e86077eac38",
+      "format": "json"
+    }
+  },
+  "source_sha": "145d9c1d92acc4565382fcc3685d5236d915e457"
+}

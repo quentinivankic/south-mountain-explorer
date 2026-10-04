@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Assemble trail objects from an .osm.pbf → GeoJSON (SPEC.md §2).
 
-Thin pyosmium reader around `model.assemble`. Two passes:
-  pass 1: index route relations, POI nodes, and every trailish way's
-          node refs + tags.
-  pass 2: resolve node coordinates for the referenced nodes.
+Thin pyosmium reader around `model.assemble`. Three passes:
+  pass 1: index route relations and their complete direct way references.
+  pass 2: index POIs plus every trail/highway/direct-relation way's refs + tags.
+  pass 3: resolve node coordinates for the referenced nodes.
 
 pyosmium's default handler doesn't expose way-node coordinates without a
 location cache, so we read node locations with a NodeLocationsForWays-style
@@ -17,6 +17,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -40,42 +41,51 @@ def read_pbf(path: str):
     relations: dict[int, dict] = {}
     pois: list[dict] = []
     want_nodes: set[int] = set()
+    direct_relation_way_ids: set[int] = set()
 
-    class Pass1(osmium.SimpleHandler):
-        def way(self, w):
-            tags = {t.k: t.v for t in w.tags}
-            if not (model._is_trailish(tags) or "highway" in tags):
+    class RelationPass(osmium.SimpleHandler):
+        def relation(self, relation):
+            tags = {tag.k: tag.v for tag in relation.tags}
+            if model.member_safety.normalize(tags.get("type")) != "route":
                 return
-            nds = [n.ref for n in w.nodes]
-            if len(nds) < 2:
-                return
-            ways[w.id] = {"tags": tags, "nodes": nds}
-            want_nodes.update(nds)
+            members = [(member.type, member.ref, member.role)
+                       for member in relation.members]
+            relations[relation.id] = {"tags": tags, "members": members}
+            direct_relation_way_ids.update(
+                ref for member_type, ref, _role in members
+                if member_type == "w")
 
-        def relation(self, r):
-            tags = {t.k: t.v for t in r.tags}
-            if tags.get("type") != "route":
-                return
-            members = [(m.type, m.ref, m.role) for m in r.members]
-            relations[r.id] = {"tags": tags, "members": members}
+    RelationPass().apply_file(path)
 
-        def node(self, n):
-            tags = {t.k: t.v for t in n.tags}
-            if tags and _poi_kind(n.tags):
-                pois.append({"id": n.id,
-                             "coord": (n.location.lon, n.location.lat),
+    class FeaturePass(osmium.SimpleHandler):
+        def way(self, way):
+            tags = {tag.k: tag.v for tag in way.tags}
+            if not (model._is_trailish(tags) or "highway" in tags
+                    or way.id in direct_relation_way_ids):
+                return
+            node_ids = [node.ref for node in way.nodes]
+            if len(node_ids) < 2:
+                return
+            ways[way.id] = {"tags": tags, "nodes": node_ids}
+            want_nodes.update(node_ids)
+
+        def node(self, node):
+            tags = {tag.k: tag.v for tag in node.tags}
+            if tags and _poi_kind(node.tags):
+                pois.append({"id": node.id,
+                             "coord": (node.location.lon, node.location.lat),
                              "tags": tags,
                              "name": tags.get("name")})
 
-    Pass1().apply_file(path)
+    FeaturePass().apply_file(path)
 
-    # pass 2: resolve coordinates for the referenced way nodes.
-    class Pass2(osmium.SimpleHandler):
-        def node(self, n):
-            if n.id in want_nodes:
-                nodes[n.id] = (n.location.lon, n.location.lat)
+    # Final pass: resolve coordinates for the referenced way nodes.
+    class NodePass(osmium.SimpleHandler):
+        def node(self, node):
+            if node.id in want_nodes:
+                nodes[node.id] = (node.location.lon, node.location.lat)
 
-    Pass2().apply_file(path)
+    NodePass().apply_file(path)
     return nodes, ways, relations, pois
 
 
@@ -96,6 +106,20 @@ def _write_report(path: str | None, report: dict) -> None:
         json.dumps(report, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
+
+
+def _pbf_identity(path: str) -> dict:
+    source = Path(path)
+    digest = hashlib.sha256()
+    size = 0
+    with source.open("rb") as handle:
+        while True:
+            chunk = handle.read(1024 * 1024)
+            if not chunk:
+                break
+            size += len(chunk)
+            digest.update(chunk)
+    return {"sha256": digest.hexdigest(), "bytes": size}
 
 
 def main(argv=None) -> int:
@@ -142,6 +166,7 @@ def main(argv=None) -> int:
     elif args.expected_area_relation_id is not None:
         ap.error("--expected-area-relation-id requires --require-exact-area")
 
+    input_pbf = _pbf_identity(args.inp) if args.require_exact_area else None
     nodes, ways, relations, pois = read_pbf(args.inp)
     print(f"read: {len(ways):,} ways, {len(relations):,} route relations, "
           f"{len(pois):,} POIs, {len(nodes):,} nodes", file=sys.stderr)
@@ -173,6 +198,7 @@ def main(argv=None) -> int:
                 "exact_area_required": True,
                 "area_query": args.only_area,
                 "expected_area_relation_id": args.expected_area_relation_id,
+                "input_pbf": input_pbf,
                 "boundary_match_count": len(exact_matches),
                 "boundary_matches": boundary_matches,
                 "boundary": None,
@@ -195,13 +221,22 @@ def main(argv=None) -> int:
 
     removed: list = []
     ingest_dropped: list = []
+    relation_member_audit: list[dict] = []
     trails = model.assemble(nodes, ways, relations, pois,
                             min_length_mi=args.min_length_mi, areas=areas_arg,
                             collect_removed=removed, region=args.region,
-                            collect_ingest_dropped=ingest_dropped)
+                            collect_ingest_dropped=ingest_dropped,
+                            collect_relation_member_audit=relation_member_audit)
     features = [t.to_feature() for t in trails]
     pre_clip_count = len(features)
     clip_applied = False
+    quality_report = None
+    quality_removed: list[dict] = []
+    qualitymod = None
+    if (args.require_exact_area
+            and (args.region or "").strip().lower() == "dk"):
+        import quality as qualitymod
+        qualitymod.prepare_feature_sources(features, trails, ways)
 
     area_note = ""
     if args.only_area:
@@ -209,22 +244,34 @@ def main(argv=None) -> int:
         if exact_area is not None:
             union = exact_area["geom"]
             names = {exact_area["name"]}
+            selected_area_name = exact_area["name"]
         else:
             if area_objs is None:
                 area_objs = areamod.assemble_areas(args.inp)
             union, names = areamod.union_matching(area_objs, args.only_area)
+            selected_area_name = None
         if union is None:
             print(f"WARNING: no area matched '{args.only_area}' in {args.inp} "
                   f"— leaving trails unclipped", file=sys.stderr)
         else:
             before = len(features)
             features = areamod.clip_features_to_area(
-                features, union, min_inside_mi=args.min_inside_mi)
+                features, union, min_inside_mi=args.min_inside_mi,
+                area_name=selected_area_name)
             clip_applied = True
+            if qualitymod is not None:
+                features, quality_removed, quality_report = qualitymod.curate_exact_area(
+                    features, ways=ways, nodes=nodes, area_union=union,
+                    area_name=selected_area_name, region=args.region,
+                    relation_member_audit=relation_member_audit)
             clipped = sum(1 for f in features if f["properties"].get("clipped"))
             matched = ", ".join(sorted(n for n in names if n)) or "(unnamed)"
             area_note = (f"; clipped to '{args.only_area}' [{matched}]: "
                          f"{before} -> {len(features)} ({clipped} trimmed at boundary)")
+
+    # Retained-route ingest truth depends on the final diagnostic-published
+    # population, after exact clipping and Denmark quality disposition.
+    model.reconcile_ingest_dropped(ingest_dropped, features, args.region)
 
     fc = {"type": "FeatureCollection", "features": features,
           "coverage": coverage}
@@ -242,7 +289,7 @@ def main(argv=None) -> int:
     # Kept separate from the trails output so publish + the app never see them.
     removed_path = base.with_name(base.name + ".removed.geojson")
     removed_fc = {"type": "FeatureCollection",
-                  "features": [t.to_feature() for t in removed]}
+                  "features": [t.to_feature() for t in removed] + quality_removed}
     removed_path.write_text(json.dumps(removed_fc), encoding="utf-8")
 
     # Sidecar 1a: NAMED ways a TAG gate filtered out before assembly (foot=no,
@@ -338,6 +385,7 @@ def main(argv=None) -> int:
         "exact_area_required": bool(args.require_exact_area),
         "area_query": args.only_area,
         "expected_area_relation_id": args.expected_area_relation_id,
+        "input_pbf": input_pbf,
         "boundary_match_count": len(boundary_matches),
         "boundary_matches": boundary_matches,
         "boundary": report_boundary,
@@ -346,14 +394,14 @@ def main(argv=None) -> int:
         "post_clip_trail_count": len(features),
         "assembled_trail_count": len(features),
         "coverage": coverage,
+        "quality": quality_report,
     })
-
     welded = sum(1 for f in features if f["properties"].get("welds"))
     from_rel = sum(1 for f in features if f["properties"].get("source") == "relation")
     print(f"assembled {len(features):,} trails "
           f"({from_rel:,} from relations, {welded:,} with welded spurs){area_note} -> {args.out}",
           file=sys.stderr)
-    print(f"removed {len(removed):,} trails (curation) -> {removed_path}",
+    print(f"removed {len(removed) + len(quality_removed):,} trails (curation) -> {removed_path}",
           file=sys.stderr)
     return 0
 

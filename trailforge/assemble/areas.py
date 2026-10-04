@@ -160,8 +160,13 @@ def _line_parts(geom) -> list:
 
 
 def clip_features_to_area(features: list[dict[str, Any]], area_union,
-                          min_inside_mi: float = 0.05) -> list[dict[str, Any]]:
+                          min_inside_mi: float = 0.05,
+                          area_name: str | None = None) -> list[dict[str, Any]]:
     """Clip each trail to the area boundary, keeping only its in-park portion.
+
+    When the caller selected one exact boundary, ``area_name`` stamps that
+    producer-owned assignment onto every surviving feature. This is done here,
+    where survival is known, rather than weakening downstream validation.
 
     The correct model for a trail that straddles the edge: a connector that
     leaves the park to reach a road keeps the piece inside the boundary and
@@ -179,23 +184,34 @@ def clip_features_to_area(features: list[dict[str, Any]], area_union,
     kept = []
     for f in features:
         try:
-            clipped = shape(f["geometry"]).intersection(area_union)
+            source_geometry = shape(f["geometry"])
+            clipped_geometry = source_geometry.intersection(area_union)
         except Exception:  # noqa: BLE001 — invalid geometry; skip rather than crash
             continue
-        parts = _line_parts(clipped)
+        parts = _line_parts(clipped_geometry)
         if not parts:
             continue
         lines = [[(c[0], c[1]) for c in ln.coords] for ln in parts]
-        inside_mi = round(sum(model.line_mi(l) for l in lines), 3)
-        if inside_mi < min_inside_mi:
+        unrounded_inside_mi = sum(model.line_mi(line) for line in lines)
+        inside_mi = round(unrounded_inside_mi, 3)
+        # Exact-area Denmark QA uses boundary truth before display rounding.
+        # The legacy path intentionally preserves HEAD's rounded floor.
+        floor_miles = unrounded_inside_mi if area_name is not None else inside_mi
+        if floor_miles < min_inside_mi:
             continue
         props = dict(f["properties"])
+        if area_name is not None:
+            props["area"] = area_name
         full = props.get("length_mi")
         props["length_mi"] = inside_mi
-        if full is not None and abs(full - inside_mi) > 1e-6:
-            props["full_length_mi"] = full
+        # Decide clipping from exact geometry before display-mile rounding. A
+        # real sub-rounding boundary cut must still carry clipping evidence.
+        if not source_geometry.equals(clipped_geometry):
+            if full is not None:
+                props["full_length_mi"] = full
             props["clipped"] = True
         kept.append({**f, "properties": props,
                      "geometry": {"type": "MultiLineString",
-                                  "coordinates": [[list(p) for p in l] for l in lines]}})
+                                  "coordinates": [[list(p) for p in line]
+                                                  for line in lines]}})
     return kept

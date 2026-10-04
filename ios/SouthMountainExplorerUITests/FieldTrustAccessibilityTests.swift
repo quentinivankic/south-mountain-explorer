@@ -111,6 +111,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             searchField.waitForExistence(timeout: 10),
             "Browse search did not appear after the Search action"
         )
+        dismissSearchKeyboard(app)
 
         let select = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "trail-select-")
@@ -209,6 +210,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             app.textFields["Search trails"].firstMatch.waitForExistence(timeout: 10),
             "Browse search did not appear after the Search action"
         )
+        dismissSearchKeyboard(app)
         XCTAssertEqual(app.textFields.matching(identifier: "Search trails").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "area-search-button").count, 0)
@@ -352,10 +354,18 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let summaryMetrics = app.descendants(matching: .any)["recording-summary-metrics"].firstMatch
         XCTAssertTrue(scrollToVisible(summaryMetrics, in: summaryScroll, app: app))
         assertInsideScreen(summaryMetrics, app: app)
-        let distanceLabel = app.staticTexts["recording-summary-stat-distance-label"].firstMatch
-        let durationLabel = app.staticTexts["recording-summary-stat-duration-label"].firstMatch
-        let distanceValue = app.staticTexts["recording-summary-stat-distance-value"].firstMatch
-        let durationValue = app.staticTexts["recording-summary-stat-duration-value"].firstMatch
+        let distanceLabel = app.descendants(matching: .any)[
+            "recording-summary-stat-distance-label"
+        ].firstMatch
+        let durationLabel = app.descendants(matching: .any)[
+            "recording-summary-stat-duration-label"
+        ].firstMatch
+        let distanceValue = app.descendants(matching: .any)[
+            "recording-summary-stat-distance-value"
+        ].firstMatch
+        let durationValue = app.descendants(matching: .any)[
+            "recording-summary-stat-duration-value"
+        ].firstMatch
         XCTAssertTrue(distanceLabel.exists, "Distance metric label is missing")
         XCTAssertTrue(durationLabel.exists, "Duration metric label is missing")
         XCTAssertTrue(distanceValue.exists, "Distance metric value is missing")
@@ -426,6 +436,18 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         // Marker-to-control clearance is gated by the small-phone Area audit.
         // This accessibility class verifies that generic markers and all three
         // top controls remain exposed while prioritizing semantic reachability.
+    }
+
+    private func dismissSearchKeyboard(_ app: XCUIApplication) {
+        let keyboard = app.keyboards.firstMatch
+        XCTAssertTrue(keyboard.waitForExistence(timeout: 5), "Search action did not focus the keyboard")
+        let searchKey = keyboard.buttons["Search"].firstMatch
+        XCTAssertTrue(searchKey.waitForExistence(timeout: 5), "Keyboard Search action is missing")
+        searchKey.tap()
+        XCTAssertFalse(
+            keyboard.waitForExistence(timeout: 5),
+            "Search keyboard did not dismiss after submit"
+        )
     }
 
     private func expandAreaSheet(_ app: XCUIApplication) {

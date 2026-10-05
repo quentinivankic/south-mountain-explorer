@@ -11,7 +11,10 @@ and the verdicts travel with the repo instead of living on one machine.
 
 ```
 scripts/parking-adjud/
-  tools/     pipeline tools, two shell drivers, and judge/resolver documents
+  tools/     pipeline tools, including national_census.py and the candidate-only baseline sealer
+  approved-production-baselines-v1.json  reviewed approval registry, independently hash-pinned in code
+  production-baseline-v1.json  current self-hashed exact authority for a complete US census
+  requirements.txt  exact national-census geometry dependency (`Shapely==2.0.6`)
   publication-trust-root-v1.json  exact canonical corpus root; SHA-256 literally pinned in scripts/build-parking-verdicts.py
   proofless-source-baseline-v1.json  schema-v2 exact 1,273-row and 11-dossier legacy baseline
   data/      five stores, five publication floors, 11 rooted dossiers, and supporting adjudication data
@@ -59,6 +62,169 @@ Mutation and crash-recovery paths require POSIX `dir_fd`, `O_DIRECTORY`,
 `O_NOFOLLOW`, no-follow stat, descriptor-relative replace, working fsync
 semantics, owner-controlled non-group/world-writable parents, and trivial
 inspectable ACLs; they fail closed where those guarantees are unavailable.
+
+## Nationwide census: production authorization and mandatory real-PBF gate
+
+Install the exact geometry engine with the same interpreter that runs the
+census:
+
+```bash
+/absolute/path/to/python -m pip install -r scripts/parking-adjud/requirements.txt
+/absolute/path/to/python -c 'import shapely; assert shapely.__version__ == "2.0.6"'
+```
+
+`tools/national_census.py` has two structurally distinct modes:
+
+- GeoJSON-sequence fixtures and subnational PBF rehearsals emit
+  `status: "non_authoritative"`; they can never claim production completion.
+- A production run must use `--parking-pbf --authoritative`, a canonical
+  self-hashed baseline whose self digest and complete-file digest both appear in
+  the independently hash-pinned `approved-production-baselines-v1.json`, the
+  national identity floor, an absolute osmium path plus expected executable
+  SHA-256, a positive finite per-command osmium timeout, and an absolute
+  operator-owned mode-`0700` artifact directory. The current approved v1 pair is
+  self SHA-256 `08d869a9d877432089ff052034fda0f9f27b37b8c377cb1df61f14da5ae755bc`
+  and canonical file SHA-256
+  `0379418d36dceb9fdd9b804b8e387c40ecf2a81f72f467ba8f110c40ed673aa9`.
+  Any other internally valid baseline remains non-authoritative. The baseline
+  pins bundle
+  `6a4ca469...0af3`, geometry authority `4364a8ef...b04`, 9,074 areas, 51
+  jurisdictions, 92,442 trails (including five content-bound anonymous refs),
+  245,026 endpoint occurrences, 172,830 unique endpoints, the exact 30,934-row
+  live pool, and the 1,253-row 874/372/7 verdict sidecar.
+
+Routine adjudication changes the live/verdict digests, so rotate rather than
+hand-editing a seal. The sealer writes an exact canonical, self-hashed successor
+with `version == N`, `name == production-baseline-vN`, and
+`predecessor_self_sha256` naming the approved baseline it supersedes:
+
+```bash
+/absolute/path/to/the/Shapely-2.0.6/python \
+  scripts/parking-adjud/tools/seal_production_baseline.py \
+  --predecessor scripts/parking-adjud/production-baseline-v1.json \
+  --bundle ios/SouthMountainExplorer/Resources/areas-index.json \
+  --geom-dir public/areas/geom \
+  --live-pool /absolute/path/to/new-live-pool.json \
+  --verdicts public/areas/parking-verdicts.json \
+  --output /absolute/operator-owned/Archive/production-baseline-v2.candidate.json
+```
+
+The result is deliberately **not approved**. Promotion requires one reviewed
+change that (1) checks the candidate inputs and canonical bytes, (2) appends its
+version/name/self SHA/canonical-file SHA/predecessor SHA to the contiguous
+`approved-production-baselines-v1.json` lineage, (3) recomputes that registry's
+self-hash, and (4) updates `APPROVED_BASELINE_REGISTRY_SHA256` in
+`national_census.py`. The sealer never edits either trust root and authoritative
+mode rejects the candidate until that review lands.
+
+The laptop's mocked tests are necessary but are **not** the real-osmium gate.
+Before calling a national run ready, execute this homelab-only integration with
+the actual national input PBF. Do not substitute a fabricated binary fixture:
+
+```bash
+set -euo pipefail
+PY=/absolute/path/to/the/Shapely-2.0.6/python
+OSMIUM=$(command -v osmium)
+OSMIUM=$(cd "$(dirname "$OSMIUM")" && pwd -P)/$(basename "$OSMIUM")
+OSMIUM_SHA=$(shasum -a 256 "$OSMIUM" | cut -d' ' -f1)
+ARTIFACT_ROOT=/absolute/operator-owned/Archive/trekdex-national-parking-census
+mkdir -m 700 "$ARTIFACT_ROOT"
+LIVE="$ARTIFACT_ROOT/live-pool-30934.json"
+"$PY" scripts/build-parking-pool.py --out "$LIVE" \
+  --extra public/areas/parking-pool.json \
+  --verdicts public/areas/parking-verdicts.json --add-keeps
+printf '66ae82a88233b7e7414c4234819e1e253415680a0f73fb12eed29a9550aaeb2c  %s\n' \
+  "$LIVE" | shasum -a 256 -c -
+test "$(wc -c < "$LIVE" | tr -d ' ')" = 1398828
+/usr/bin/time -v -o "$ARTIFACT_ROOT/census-peak-rss.txt" \
+"$PY" scripts/parking-adjud/tools/national_census.py \
+  --parking-pbf /absolute/path/to/current-us.osm.pbf \
+  --authoritative \
+  --production-baseline scripts/parking-adjud/production-baseline-v1.json \
+  --pbf-artifact-dir "$ARTIFACT_ROOT" \
+  --osmium "$OSMIUM" --expected-osmium-sha256 "$OSMIUM_SHA" \
+  --osmium-timeout-seconds 21600 \
+  --live-pool "$LIVE" --verdicts public/areas/parking-verdicts.json \
+  --output-dir "$ARTIFACT_ROOT/census-output"
+"$PY" - <<'PY'
+import json
+from pathlib import Path
+root = Path("/absolute/operator-owned/Archive/trekdex-national-parking-census/census-output")
+manifest = json.loads((root / "manifest.json").read_bytes())
+assert manifest["status"] == "complete"
+assert manifest["production_authorization"]["authoritative"] is True
+inventory = manifest["sources"]["parking"]["inventory"]
+assert inventory["exact_filter_identity_reconciliation"] is True
+assert inventory["exact_filter_membership_reconciliation"] is True
+assert inventory["exact_identity_reconciliation"] is True
+assert inventory["input_forms"]["node"] > 0
+assert inventory["input_forms"]["way"] > 0
+assert inventory["input_forms"]["relation"] > 0
+assert manifest["sources"]["parking"]["filtered_pbf"]["sha256"]
+assert (root / "publication-receipt.json").is_file()
+PY
+test -s "$ARTIFACT_ROOT/census-peak-rss.txt"
+grep 'Maximum resident set size' "$ARTIFACT_ROOT/census-peak-rss.txt"
+```
+
+`census-peak-rss.txt` is a mandatory homelab gate artifact. Record its maximum
+resident set size, host memory, and per-pass durations with the run report. RSS
+is intentionally nondeterministic operational evidence and never enters the
+manifest, run ID, baseline, or other authority bytes.
+
+The focused pytest lane also has a real-osmium integration test. When osmium is
+installed it creates tiny OSM XML and PBF files under pytest's temporary
+directory, then executes the real source inventory, filter, filtered inventory,
+and export commands for a parking node, open way, closed `area=yes` way, closed
+ways using each standard false OSM boolean (`area=no`, `area=false`, and
+`area=0`), and a multipolygon relation. It skips only when osmium is absent;
+no binary fixture is committed. Inventory normalizes declared `area` values
+with strip/casefold. Open ways and closed ways whose normalized value is one of
+`0`, `false`, or `no` require a `LineString`; other closed ways require a
+`Polygon`. The same ordered false-value set is bound into filtered-artifact
+policy and inventory provenance.
+
+The input-side identity inventory is independently produced with osmium
+`tags-filter -R -f opl`, then reconciled exactly to both the normal filtered
+snapshot and exported node/way/relation forms. The filtered PBF and its
+self-hashed provenance manifest are content-address installed below
+`ARTIFACT_ROOT`; source, tool, filtered bytes, forms, and relation memberships
+all bind the run ID. Capture also intersects the complete parking export with
+the strict sidecar's OSM alias allow-set before the 5 km envelope discard. Only
+that sidecar-bounded seen set survives export reconciliation; its exact count
+and hash bind the manifest and run ID. Every seen alias reserves its sidecar key
+globally, so an envelope-dropped exact lot remains a tombstone and can never be
+reassigned to a positional neighbour. Conflicting sidecar ownership of one OSM
+alias fails closed.
+
+An exact rerun scans installed content addresses before creating a stage and
+reuses one only after no-follow owner/mode checks, canonical
+manifest and self-hash validation, exact source/osmium/filter/input-inventory
+matching, filtered byte hash/length verification, and fresh filtered/export
+reconciliation. It does not rerun `tags-filter` or create a stage. A matching
+filtered digest with different provenance fails and names the existing artifact.
+If another process wins promotion with the exact artifact, the winner is fully
+verified and reused; the losing stage remains preserved. Missing replication
+headers are allowed only for a non-authoritative local extract.
+
+Every failed output or PBF stage is retained with a dated diagnostic name. The
+tool never removes or prunes stages. After diagnosis, the operator must move a
+failed stage into an owner-only `Archive` path; if promotion happened without a
+publication receipt, verify/recover it in place or archive it before retrying.
+Only `publication-receipt.json`, written after the parent-directory fsync,
+reports successful durability.
+
+Large parking footprints use a power-of-two multi-resolution point index; each
+query checks every active level and exact geometry remains the decision. The
+40 m duplicate-review lane uses a dateline-safe sweep-line candidate generator.
+Neither path truncates a footprint; only total index-association, query-candidate,
+and candidate-pair caps fail closed. Service closure builds one immutable
+endpoint/component/sorted-distance graph and precomputes raw/current selections
+and bindings once. Fixed-point rounds revisit only verdict-dependent effective
+selection and merge those bindings; manifest counters prove zero association-row
+rebuilds or re-sorts per round. The unassigned total is the exact disjoint sum
+of `area_less_tombstones`, `retired_area_tombstones`, and
+`unassigned_candidate_clusters`; no residual bucket is labelled area-less.
 
 ## Speed: use a regional parking extract
 

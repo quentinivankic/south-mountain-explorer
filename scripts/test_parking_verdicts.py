@@ -143,6 +143,31 @@ def test_bbox_centre_of_a_concave_ring_is_that_lot_even_outside_the_pavement():
     assert pv.covers(v.entries["way/1"], off[0], off[1]) is None
 
 
+def test_claims_exposure_preserves_match_and_drop_for_semantics_exactly():
+    keep = _offset(LAT, LON, east_m=5)
+    verdicts = pv.Verdicts(_doc(
+        _entry("way/1", "DROP", rings=[RECT]),
+        _entry("node/2", "KEEP", lat=keep[0], lon=keep[1]),
+    ))
+    lots = [
+        {"lat": 0.0, "lon": 0.0, "osm": "way/1"},
+        {"lat": keep[0], "lon": keep[1]},
+        {"lat": LAT, "lon": LON},
+        {"lat": LAT + 1.0, "lon": LON + 1.0},
+    ]
+    for lot in lots:
+        claims = verdicts.claims(lot)
+        match = verdicts.match(lot)
+        assert match is (claims[0]["entry"] if claims else None)
+        assert verdicts.drop_for(lot) is (
+            match if match is not None and match["verdict"] == "DROP" else None
+        )
+    exact = verdicts.claims(lots[0])
+    assert len(exact) == 1
+    assert exact[0]["kind"] == "osm"
+    assert exact[0]["rank"] == -1
+
+
 def test_review_verdicts_shield_a_lot_from_a_neighbouring_drop_but_never_drop():
     rev = _offset(LAT, LON, north_m=45)
     v = pv.Verdicts(_doc(_entry("way/1", "DROP", rings=[RECT]),
@@ -181,6 +206,21 @@ def test_strict_mutation_loader_rejects_overmatching_ring():
     ))
     with pytest.raises(ValueError, match="at least four points"):
         pv.strict_verdicts_bytes(json.dumps(document).encode())
+
+
+def test_sidecar_alias_conflicts_fail_closed_in_strict_and_direct_loaders():
+    first = _entry("way/1", "KEEP")
+    first["osm"] = ["way/1", "node/9"]
+    second = _entry("way/2", "REVIEW")
+    second["osm"] = ["way/2", "node/9"]
+    document = {
+        "version": 1,
+        "lots": {"way/1": first, "way/2": second},
+    }
+    with pytest.raises(ValueError, match="alias 'node/9' is also owned"):
+        pv.strict_verdicts_document(document)
+    with pytest.raises(ValueError, match="alias 'node/9' is owned by both"):
+        pv.Verdicts(document)
 
 
 # ---------------------------------------------------------------- generator

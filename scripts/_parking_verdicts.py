@@ -204,6 +204,12 @@ class Verdicts:
             e["_key"] = key
             self.entries[key] = e
             for o in e.get("osm") or [key]:
+                previous = self._by_osm.get(o)
+                if previous is not None and previous["_key"] != key:
+                    raise ValueError(
+                        f"parking verdict OSM alias {o!r} is owned by both "
+                        f"{previous['_key']!r} and {key!r}"
+                    )
                 self._by_osm[o] = e
             # Index into every cell the footprint (plus the near circle) touches.
             lats = [e["lat"]] + [float(v[0]) for r in e.get("rings") or () for v in r]
@@ -212,6 +218,7 @@ class Verdicts:
             for i in range(int((min(lats) - pad) / _CELL), int((max(lats) + pad) / _CELL) + 1):
                 for j in range(int((min(lons) - pad) / _CELL), int((max(lons) + pad) / _CELL) + 1):
                     self._cells.setdefault((i, j), []).append(e)
+        self.osm_aliases = frozenset(self._by_osm)
 
     def __len__(self) -> int:
         return len(self.entries)
@@ -222,6 +229,45 @@ class Verdicts:
     def by_verdict(self, verdict: str) -> list[dict]:
         return [e for e in self.entries.values() if e["verdict"] == verdict]
 
+    def claims(self, lot: dict) -> list[dict]:
+        """Every verdict entry that claims ``lot``, in production match order.
+
+        A known OSM alias remains authoritative and is the sole claim. For a
+        positional fallback, callers that require unique identity can inspect
+        the complete ordered claim set instead of silently accepting the
+        normal best-match tie-break used by :meth:`match`.
+        """
+        osm = lot.get("osm")
+        if osm:
+            hit = self._by_osm.get(osm)
+            if hit is not None:
+                return [{
+                    "entry": hit,
+                    "kind": "osm",
+                    "rank": -1,
+                    "distance_m": 0.0,
+                }]
+        la, lo = lot.get("lat"), lot.get("lon")
+        if la is None or lo is None:
+            return []
+        claims = []
+        seen: set[str] = set()
+        for order, e in enumerate(
+                self._cells.get((int(la / _CELL), int(lo / _CELL)), ())):
+            if e["_key"] in seen:
+                continue
+            seen.add(e["_key"])
+            score = covers(e, la, lo)
+            if score is not None:
+                claims.append((score, order, e))
+        claims.sort(key=lambda item: (item[0], item[1]))
+        return [{
+            "entry": entry,
+            "kind": "position",
+            "rank": score[0],
+            "distance_m": score[1],
+        } for score, _order, entry in claims]
+
     def match(self, lot: dict) -> dict | None:
         """The verdict that applies to `lot` ({lat, lon, osm?}), or None.
 
@@ -229,24 +275,8 @@ class Verdicts:
         id the sidecar has not judged) the verdict that claims the lot by the
         most confident rule wins, then the nearest; a lot nobody claims has no
         verdict."""
-        osm = lot.get("osm")
-        if osm:
-            hit = self._by_osm.get(osm)
-            if hit is not None:
-                return hit
-        la, lo = lot.get("lat"), lot.get("lon")
-        if la is None or lo is None:
-            return None
-        best, best_score = None, (math.inf, math.inf)
-        seen: set[str] = set()
-        for e in self._cells.get((int(la / _CELL), int(lo / _CELL)), ()):
-            if e["_key"] in seen:
-                continue
-            seen.add(e["_key"])
-            score = covers(e, la, lo)
-            if score is not None and score < best_score:
-                best, best_score = e, score
-        return best
+        claims = self.claims(lot)
+        return claims[0]["entry"] if claims else None
 
     def drop_for(self, lot: dict) -> dict | None:
         """The DROP verdict that applies to `lot`, or None. A KEEP or REVIEW

@@ -1,0 +1,57 @@
+{
+ "after_sha256": "b89d77f49bb369a15750010ec70be130f1af1a79e05fae38ce198b475f36913f",
+ "applied_fids": [
+  {
+   "decision_sha256": "1ee8b6a206c10c4d666822cb6fd1e939fe59b8f88dd58055dd0a00f654db64d5",
+   "fid": 1012
+  },
+  {
+   "decision_sha256": "1f6e24078c46dc8a9951f58739ac93da90ac18108575a3c3a34c5b9e88f9c5b7",
+   "fid": 1014
+  },
+  {
+   "decision_sha256": "9c1766cd6b7ad158ebb61766ad758cf2ba6ec93e62c99d6f50c679c838285b59",
+   "fid": 1035
+  }
+ ],
+ "before_sha256": "c57cb1dee06197035c72a2d8e3100a359694745b4ba50aeca35b9ccf53429941",
+ "checkpoint_after_sha256": "1d5115708f93757310a5e2499f5612c6faa70f315c9d9cba41b74127ee78ef62",
+ "chunk": 3,
+ "kind": "parking-trust-receipt",
+ "output_seal_sha256": "4b4c4e7e35f2b9841c84762ffffac8b2387efee2ef124fe3e423b6846d19fd46",
+ "run_id": "4bc3624fcc9183f12ca94fccf204f4cee3d09617a5be3085590016dc4174190e",
+ "terminal_fids": [
+  {
+   "decision_sha256": "1ee8b6a206c10c4d666822cb6fd1e939fe59b8f88dd58055dd0a00f654db64d5",
+   "fid": 1012,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": "1f6e24078c46dc8a9951f58739ac93da90ac18108575a3c3a34c5b9e88f9c5b7",
+   "fid": 1014,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": "9c1766cd6b7ad158ebb61766ad758cf2ba6ec93e62c99d6f50c679c838285b59",
+   "fid": 1035,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": null,
+   "fid": 1038,
+   "selected_role": null,
+   "state": "preserved"
+  },
+  {
+   "decision_sha256": null,
+   "fid": 1106,
+   "selected_role": null,
+   "state": "preserved"
+  }
+ ],
+ "transaction_id": "b40dc29af757ce842c7030269bf464701692f4c339a988011803deec9ee55e7e",
+ "version": 1
+}

@@ -1,0 +1,58 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 3302,
+ "building_overlap": false,
+ "context": {
+  "category": "FACILITY",
+  "evidence": "0 m from amenity=school 'McLain Community High School'",
+  "facility": "amenity=school",
+  "facility_edge_m": 0
+ },
+ "descriptive_tags": [],
+ "fid": 317,
+ "footprint": "polygon",
+ "footways_60m": 1,
+ "members": [
+  {
+   "osm": "way/68252581",
+   "tags": {
+    "amenity": "parking"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/68252581"
+ ],
+ "prior": "bare",
+ "serves": {
+  "edge_m": 545,
+  "fallback": false,
+  "n_trails_in_range": 1,
+  "trail": "Sixth Ave West Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking"
+ },
+ "tiles": {
+  "z1": "tiles/ce39d23764cac0e7c6ddba82a9a8b20d610903510e66360f8e1b0509630dfd7f.png",
+  "z2": "tiles/5935b3455f3a676110aebef3eaefb2062a194ad9ec43295f0fec614f3d59d182.png",
+  "z3": "tiles/aee8b2f05fa51efd1b3847e7fb0795d6c2514ac5c5f8481e992f096887adca97.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 477
+ }
+}

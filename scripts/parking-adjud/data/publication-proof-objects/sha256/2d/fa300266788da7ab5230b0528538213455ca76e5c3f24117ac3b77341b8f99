@@ -1,0 +1,62 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 6011,
+ "building_overlap": false,
+ "context": {
+  "category": "FACILITY",
+  "evidence": "0 m from amenity=place_of_worship The Church of Jesus Christ of Latter-day Saints 'The Church of Jesus Christ of Latter-day Saints'",
+  "facility": "amenity=place_of_worship The Church of Jesus Christ of Latter-day Saints",
+  "facility_edge_m": 0
+ },
+ "descriptive_tags": [
+  "parking"
+ ],
+ "fid": 756,
+ "footprint": "polygon",
+ "footways_60m": 7,
+ "members": [
+  {
+   "osm": "way/368339804",
+   "tags": {
+    "amenity": "parking",
+    "parking": "surface"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/368339804"
+ ],
+ "prior": "surveyed",
+ "serves": {
+  "edge_m": 302,
+  "fallback": false,
+  "n_trails_in_range": 1,
+  "trail": "Green Mountain Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking",
+  "parking": "surface"
+ },
+ "tiles": {
+  "z1": "tiles/1563a5deb561ba0ee88bd97afc2d678cb9a626a2e3253aebd550fe431cb9d7bd.png",
+  "z2": "tiles/b6b1882354e385bc296ed2b2becc6e080eb829b68d7d14ff74d27f3e29471d57.png",
+  "z3": "tiles/018ac9f1cbeb9b72e394fad223eb7bc70f32e3b00bd77cc70d29cd10eabafc32.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 898
+ }
+}

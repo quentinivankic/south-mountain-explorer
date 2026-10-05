@@ -1,0 +1,58 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 1067,
+ "building_overlap": false,
+ "context": {
+  "category": "SUPPORT",
+  "evidence": "in boundary=protected_area 'Matthews/Winters Park'",
+  "facility": null,
+  "facility_edge_m": null
+ },
+ "descriptive_tags": [],
+ "fid": 391,
+ "footprint": "polygon",
+ "footways_60m": 2,
+ "members": [
+  {
+   "osm": "way/91322571",
+   "tags": {
+    "amenity": "parking"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/91322571"
+ ],
+ "prior": "bare",
+ "serves": {
+  "edge_m": 3,
+  "fallback": false,
+  "n_trails_in_range": 3,
+  "trail": "Dakota Ridge Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking"
+ },
+ "tiles": {
+  "z1": "tiles/166e974473bc39aef5535475e436e9bc197c06b326044cacc779c4d78c3f7434.png",
+  "z2": "tiles/9dfbfb68f060823cc0ba97dc3adb4e664687317b12c37b383ee1b3f8c66702e6.png",
+  "z3": "tiles/885e0a81f30f81fe635ed4d37db427491cd3430a0ddc95d1847745c7dabbef32.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": "Dinosaur Ridge Trail",
+  "walk_m": 0
+ }
+}

@@ -1,0 +1,36 @@
+{
+  "assignment_id": "9c594d50875ba7f0e69b3b6305eef3cd41df29cd2e0ddc36b1574426e58e397e",
+  "decision": {
+    "fid": 11,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/37115952"],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Surveyed prior (surface=asphalt, parking=surface, capacity=58) confirmed, not contradicted: Z2 and Z3 show a paved asphalt lot filling the red outline with two full rows of parked cars (~40 vehicles) along a central aisle and a vehicle-access throat off the curving park access road at the east end; Z1 shows the same car-filled lot. No building overlap."
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Lot-level tags: access=yes, fee=no, name='Matthews/Winters Park Trailhead', operator=Jefferson County Open Space (operator:type=government) - a named official trailhead record at the lot itself, not just enclosing-park context. Inside boundary=protected_area 'Matthews/Winters Park' (SUPPORT); no restricted-use owner (school/church/commercial/resident) adjacent in Z1/Z2."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Lot is named as the Matthews/Winters Park trailhead; Village Loop Trail edge 2 m (not fallback), 2 trails in range, walk 71 m, unnamed trailhead node 47 m, 9 footways within 60 m. Z2/Z3: yellow trails touch the lot's SW corner and SE throat, and social/dirt paths lead from the lot's south edge into the trail network. Z1's only other owners (highway interchange and a commercial lot to the NW beyond the highway, ranch buildings to the W) do not explain this lot better."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {
+      "access": "yes",
+      "fee": "no",
+      "name": "Matthews/Winters Park Trailhead",
+      "operator": "Jefferson County Open Space",
+      "operator:type": "government",
+      "parking": "surface",
+      "surface": "asphalt",
+      "capacity": "58"
+    },
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

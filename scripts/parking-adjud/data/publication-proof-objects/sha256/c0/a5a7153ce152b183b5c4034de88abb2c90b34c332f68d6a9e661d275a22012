@@ -1,0 +1,70 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 154,
+ "building_overlap": false,
+ "context": {
+  "category": "SUPPORT",
+  "evidence": "in boundary=protected_area 'Red Rocks Park'",
+  "facility": null,
+  "facility_edge_m": null
+ },
+ "descriptive_tags": [
+  "surface",
+  "capacity"
+ ],
+ "fid": 1106,
+ "footprint": "polygon",
+ "footways_60m": 4,
+ "members": [
+  {
+   "osm": "way/1408649234",
+   "tags": {
+    "amenity": "parking",
+    "capacity": "6",
+    "surface": "asphalt"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/1408649234"
+ ],
+ "prior": "surveyed",
+ "serves": {
+  "edge_m": 636,
+  "fallback": false,
+  "n_trails_in_range": 1,
+  "trail": "Morrison Slide Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking",
+  "capacity": "6",
+  "surface": "asphalt"
+ },
+ "tiles": {
+  "z1": "tiles/e090db4be89e529e29b4cb05a75f2cf5752c2228c0dc59f62e329a095734a046.png",
+  "z2": "tiles/d7b271d9cb13ebe4fbb840e73decc3d7471084bd0d12e8313eca8a086d67f00d.png",
+  "z3": "tiles/abe981ae0dd4b5e05e7e234bc299a86c9ebed26d5fee88827852cdbceef34dcc.png"
+ },
+ "trailhead_nodes_120m": [
+  [
+   32,
+   ""
+  ]
+ ],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 28
+ }
+}

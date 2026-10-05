@@ -4196,6 +4196,159 @@
    "judged": "2026-08-01",
    "src": "griffith-park-ca_verdicts2.json"
   },
+  "relation/12649204": {
+   "verdict": "KEEP",
+   "reason": null,
+   "lat": 39.665155,
+   "lon": -105.094842,
+   "rings": [
+    [
+     [
+      39.66493,
+      -105.095166
+     ],
+     [
+      39.664919,
+      -105.094943
+     ],
+     [
+      39.665392,
+      -105.09493
+     ],
+     [
+      39.66539,
+      -105.095134
+     ],
+     [
+      39.66493,
+      -105.095166
+     ]
+    ]
+   ],
+   "osm": [
+    "relation/12649204"
+   ],
+   "name": "Bear Creek Greenbelt",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "certain",
+   "evidence": {
+    "exists": "Prior surveyed (surface/parking/fee/name). Z2+Z3: red outline is the west row of a paved loop lot with painted stalls on both sides of a central aisle and ~11 parked cars; vehicle throat at the north end connects to the arterial on the west; a second striped row lies east beyond a treed island. No building, lawn, water, or through-lane contradiction.",
+    "public": "Lot-level access=yes, fee=no, name='Bear Creek Greenbelt', parking=surface, capacity:disabled=2 on the relation itself. Context SUPPORT: inside boundary=protected_area 'Bear Valley Open Space'. Z3: no gate or barrier at the north entry.",
+    "serves": "PUBLIC proved at lot level first. Serving trail Stone House Trail & Greenbelt Trail, edge 24 m, fallback=false, walk 68 m, 6 trails in range, 8 footways within 60 m. The lot name 'Bear Creek Greenbelt' matches Greenbelt Trail. Z2/Z3: paved paths leave the lot's south and east sides; a dirt track continues south to where the yellow Stone House Trail line starts about 60 m away. Z1 alternatives: townhomes to the north and south, a building complex west across the arterial, a ballfield to the NE. None are reached from this loop. The other amenities on this loop (picnic shelters, playground, restroom, pond) belong to the same open-space park."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "relation/1341586": {
+   "verdict": "REVIEW",
+   "reason": null,
+   "lat": 39.672219,
+   "lon": -105.204927,
+   "rings": [
+    [
+     [
+      39.672218,
+      -105.205202
+     ],
+     [
+      39.672176,
+      -105.205189
+     ],
+     [
+      39.672144,
+      -105.205171
+     ],
+     [
+      39.672123,
+      -105.205149
+     ],
+     [
+      39.672099,
+      -105.205113
+     ],
+     [
+      39.672086,
+      -105.205059
+     ],
+     [
+      39.672087,
+      -105.204972
+     ],
+     [
+      39.672114,
+      -105.204602
+     ],
+     [
+      39.672159,
+      -105.204574
+     ],
+     [
+      39.672197,
+      -105.204667
+     ],
+     [
+      39.672232,
+      -105.204666
+     ],
+     [
+      39.672374,
+      -105.204961
+     ],
+     [
+      39.672382,
+      -105.205
+     ],
+     [
+      39.672382,
+      -105.205023
+     ],
+     [
+      39.672381,
+      -105.205064
+     ],
+     [
+      39.672373,
+      -105.205104
+     ],
+     [
+      39.672349,
+      -105.205143
+     ],
+     [
+      39.672328,
+      -105.205173
+     ],
+     [
+      39.672289,
+      -105.205193
+     ],
+     [
+      39.672241,
+      -105.205201
+     ],
+     [
+      39.672218,
+      -105.205202
+     ]
+    ]
+   ],
+   "osm": [
+    "relation/1341586"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "leaning",
+   "evidence": {
+    "exists": "Z2: independently delineated paved turnaround forms a vehicle bay around a central island at the end of the access road.",
+    "public": "Only amenity=parking is tagged; there is no lot-level access grant or official trailhead/parking record, and protected-area context alone does not establish parking rights.",
+    "serves": "Geologic Overlook Trail has edge 0 m, 11 footways are within 60 m, and Z1-Z2 show yellow trail approaches meeting the turnaround on its west and east sides."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout",
+   "resolve_hint": "Host-freeze an official Red Rocks Park map or access record that identifies this exact Geologic Overlook turnaround as public visitor parking."
+  },
   "relation/14155619": {
    "verdict": "KEEP",
    "reason": null,
@@ -11808,6 +11961,107 @@
    },
    "judged": "2026-09-26",
    "src": "judge-fanout"
+  },
+  "way/1009503571": {
+   "verdict": "KEEP",
+   "reason": null,
+   "lat": 39.679674,
+   "lon": -105.196731,
+   "rings": [
+    [
+     [
+      39.679752,
+      -105.196887
+     ],
+     [
+      39.679544,
+      -105.196671
+     ],
+     [
+      39.679603,
+      -105.196575
+     ],
+     [
+      39.679741,
+      -105.196728
+     ],
+     [
+      39.679806,
+      -105.196796
+     ],
+     [
+      39.679752,
+      -105.196887
+     ]
+    ]
+   ],
+   "osm": [
+    "way/1009503571"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Surveyed prior (parking=surface, surface=asphalt, capacity=10) confirmed. Z2/Z3: paved bay off the junction's NE arm, outside the travel lanes, separated from the highway by a curbed island. Z3 shows about 3 parked cars inside the red outline and faint diagonal stall lines. Not a through-lane, building, lawn or water.",
+    "public": "Lot-level access=yes on way/1009503571 (the only member, mixed_access=false). capacity:disabled=1 also fits a general-use public lot. Context SUPPORT: inside boundary=protected_area 'Matthews/Winters Park', with no FACILITY neighbour within 45 m. In Z1 the only non-trail owners are a building with its own lot across the highway to the W and ranch/residences to the SW. None is attached to this bay.",
+    "serves": "Dinosaur Ridge Trail edge 5 m, walk 25 m, fallback=false, 1 trail in range. In Z1/Z2/Z3 the yellow trail line starts at the lot's SE corner and runs SE, so the trail starts at the lot. No school, church, commercial or event owner better explains this roadside pocket lot. Note: no highway=trailhead node within 120 m, and walk.trail/conn are blank in the packet."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/1013948712": {
+   "verdict": "REVIEW",
+   "reason": null,
+   "lat": 39.665709,
+   "lon": -105.200611,
+   "rings": [
+    [
+     [
+      39.665646,
+      -105.200698
+     ],
+     [
+      39.66562,
+      -105.200618
+     ],
+     [
+      39.665715,
+      -105.200552
+     ],
+     [
+      39.665777,
+      -105.200529
+     ],
+     [
+      39.665796,
+      -105.200613
+     ],
+     [
+      39.665713,
+      -105.200659
+     ],
+     [
+      39.665646,
+      -105.200698
+     ]
+    ]
+   ],
+   "osm": [
+    "way/1013948712"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2/Z3: a delineated unpaved bay with a vehicle-access throat sits outside the curved travel lane, with a parked vehicle visible; tags specify parking=surface, surface=unpaved, capacity=5.",
+    "public": "The packet has fee=no but no lot-level access tag or official trailhead/access record; Red Rocks Park protected-area context alone does not establish general parking rights.",
+    "serves": "Will Call Trail edge 3 m and walk 14 m; Z1-Z3 show shipped trail approaches meeting the turnout directly, with no adjacent non-trail facility."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout",
+   "resolve_hint": "Host packet needs a frozen official Red Rocks Park parking/access record that explicitly confirms whether this five-space turnout is authorized for general public parking."
   },
   "way/1017235043": {
    "verdict": "KEEP",
@@ -32201,6 +32455,66 @@
    "judged": "2026-09-26",
    "src": "judge-fanout"
   },
+  "way/131465822": {
+   "verdict": "KEEP",
+   "reason": null,
+   "lat": 39.667608,
+   "lon": -105.10037,
+   "rings": [
+    [
+     [
+      39.66765,
+      -105.100653
+     ],
+     [
+      39.667576,
+      -105.100616
+     ],
+     [
+      39.667567,
+      -105.100406
+     ],
+     [
+      39.667563,
+      -105.100276
+     ],
+     [
+      39.66756,
+      -105.100125
+     ],
+     [
+      39.667622,
+      -105.100118
+     ],
+     [
+      39.667646,
+      -105.100118
+     ],
+     [
+      39.667648,
+      -105.100512
+     ],
+     [
+      39.66765,
+      -105.100653
+     ]
+    ]
+   ],
+   "osm": [
+    "way/131465822"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Surveyed prior (parking=surface, capacity=8, fee, operator). Z2 and Z3: the red outline covers a dark paved asphalt pad on the south side of the east-west arterial, separate from the travel lanes, with a paved access throat opening directly off the road shoulder along its north edge and a curved paved apron continuing just west of the outline. No stripes or parked cars are legible on capture day (empty is not absent). The footprint is not a building, lawn, water, or through-lane, so nothing positively contradicts the surveyed prior.",
+    "public": "Lot-level access=yes on way/131465822, plus fee=no, operator=City of Lakewood, and designation 'Bear Creek Greenbelt Parking'. The explicit lot-level access tag decides PUBLIC. Z3 shows no gate or barrier at the throat (context only).",
+    "serves": "Trail 'Yale Ave Access' starts inside the lot (serves edge 0 m, walk 0 m, not fallback, 2 trails in range). In Z2 and Z3 the yellow trail begins inside the red outline and runs south as a visible dirt path beside a tree line. Z1 shows it reaching the Bear Creek greenbelt trail network about 350 m south. The designation names the greenbelt. The FACILITY flag (landuse=residential 25 m away) is the subdivision across the arterial to the north. The lot is on the open greenbelt side, with no driveway or path linking it to any house, so the residential neighbourhood is not a better explanation than the trail that starts in the lot."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
   "way/1315630124": {
    "verdict": "KEEP",
    "reason": null,
@@ -34683,6 +34997,50 @@
    },
    "judged": "2026-08-02",
    "src": "opus-ne"
+  },
+  "way/133916328": {
+   "verdict": "DROP",
+   "reason": "too-far",
+   "lat": 39.607176,
+   "lon": -105.229803,
+   "rings": [
+    [
+     [
+      39.60727,
+      -105.230169
+     ],
+     [
+      39.606879,
+      -105.229819
+     ],
+     [
+      39.607082,
+      -105.229436
+     ],
+     [
+      39.607473,
+      -105.229787
+     ],
+     [
+      39.60727,
+      -105.230169
+     ]
+    ]
+   ],
+   "osm": [
+    "way/133916328"
+   ],
+   "name": "US285 & Twin Forks Park-n-Ride",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "certain",
+   "evidence": {
+    "exists": "Z3: paved, striped lot contains approximately 15 parked vehicles.",
+    "public": "Lot-level access=yes and fee=no establish public use; tags identify the operator as RTD and capacity as 77.",
+    "serves": "Olde Ute Trail is a 2,573 m fallback with no foot route, no trailhead node within 120 m, and no footway within 60 m; Z1 contains no yellow trail, while name=US285 & Twin Forks Park-n-Ride and operator=RTD give the lot a direct transit purpose."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
   },
   "way/1342459777": {
    "verdict": "KEEP",
@@ -38016,6 +38374,66 @@
    "judged": "2026-09-26",
    "src": "judge-fanout"
   },
+  "way/139211035": {
+   "verdict": "DROP",
+   "reason": "not-a-lot",
+   "lat": 39.681529,
+   "lon": -105.161864,
+   "rings": [
+    [
+     [
+      39.681523,
+      -105.161954
+     ],
+     [
+      39.681498,
+      -105.161944
+     ],
+     [
+      39.681509,
+      -105.161817
+     ],
+     [
+      39.681511,
+      -105.161767
+     ],
+     [
+      39.681563,
+      -105.161807
+     ],
+     [
+      39.681559,
+      -105.161856
+     ],
+     [
+      39.681556,
+      -105.161887
+     ],
+     [
+      39.681544,
+      -105.161933
+     ],
+     [
+      39.681523,
+      -105.161954
+     ]
+    ]
+   ],
+   "osm": [
+    "way/139211035"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2-Z3: red footprint covers a short light-colored roadside verge at the trail crossing; it has no vehicle-access throat, bay outside the travel lane, parked vehicle, stripe, or independently delineated graded surface.",
+    "public": "Not evaluated because the mapped feature is a roadside verge rather than a parking facility.",
+    "serves": "Not evaluated because the mapped feature is not a parking facility, despite Rooney Valley Trail reaching the footprint and a trailhead node being 3 m away."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
   "way/1392420877": {
    "verdict": "KEEP",
    "reason": null,
@@ -38327,6 +38745,104 @@
    },
    "judged": "2026-09-26",
    "src": "judge-fanout"
+  },
+  "way/1408649234": {
+   "verdict": "REVIEW",
+   "reason": null,
+   "lat": 39.672781,
+   "lon": -105.201428,
+   "rings": [
+    [
+     [
+      39.672705,
+      -105.201537
+     ],
+     [
+      39.672679,
+      -105.201487
+     ],
+     [
+      39.672752,
+      -105.201395
+     ],
+     [
+      39.672876,
+      -105.201325
+     ],
+     [
+      39.672881,
+      -105.201387
+     ],
+     [
+      39.672705,
+      -105.201537
+     ]
+    ]
+   ],
+   "osm": [
+    "way/1408649234"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2/Z3 confirm a delineated six-space asphalt bay outside the travel lane with several parked vehicles.",
+    "public": "No lot-level access tag, name, operator, or named official access record establishes public parking; open-park context, an unnamed node, a crosswalk, and no gate are insufficient.",
+    "serves": "The shipped trail meets the bay at a painted crosswalk, with a 28 m walk and a trailhead node 32 m away; no competing facility owner is adjacent."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout",
+   "override": {
+    "version": 4,
+    "from_decision": {
+     "fid": 1106,
+     "area": "bear-creek-lake-park-co",
+     "osm": [
+      "way/1408649234"
+     ],
+     "verdict": "KEEP",
+     "prior": "surveyed",
+     "exists": {
+      "call": "yes",
+      "evidence": "Z2: a dedicated asphalt pocket outside the travel lane has painted perpendicular stalls and multiple parked vehicles; tags specify surface=asphalt and capacity=6."
+     },
+     "public": {
+      "call": "yes",
+      "evidence": "Packet records a highway=trailhead node 32 m away; Z1/Z2 show the dedicated parking pocket at that trail/road access point, with Red Rocks Park protected-area context and no facility-specific owner."
+     },
+     "serves": {
+      "call": "yes",
+      "evidence": "Morrison Slide Trail endpoint edge 636 m, with a trailhead node 32 m away and four footways within 60 m; Z1/Z2 show the shipped trail passing directly through the parking access point."
+     },
+     "frames_used": [
+      "z1",
+      "z2"
+     ],
+     "tags_cited": {
+      "amenity": "parking",
+      "surface": "asphalt",
+      "capacity": "6"
+     },
+     "confidence": "strong",
+     "resolve_hint": null
+    },
+    "from_decision_sha256": "b1307df5f892c6b7ad286c81a5bfabdd9f9e2c53095c41fc7c98a1687eead212",
+    "from_evidence_sha256": "94bfc192de0fbf8e10d893f7e43b4995882d5d39c8c3965e6709b77983f2b865",
+    "to_decision_sha256": "0ac6f50c920dec2bf2ff56d36fe44ccf69cc592ef6b6e541649754360157e7b8",
+    "to_evidence_sha256": "15bcc07c840bcdbae7ab9e74a66af3eb7c23834179e23cb7c020a96499de98f5",
+    "by": "human",
+    "reviewer": "quentin",
+    "date": "2026-10-03",
+    "note": "Hold until a frozen named official access record establishes public parking rights for the Morrison Slide six-space bay.",
+    "packet_sha256": "eb3550cb038fcf08bdf1a86a7ad7cde655c7dda50a1feec4b35c39e1438e3463",
+    "source_run_id": "6046197b676ae1711aa7992e0c3ab428a453437e789b6627d5cc61a6472c6f24",
+    "review_receipt_sha256": "d792b40e11aa21a46d033442ea84ba15e0a70f3388629539c58d5e2725399866",
+    "review_sheet_sha256": "ccc0dde4594e5bc30ea878127dd5514c03a50864152bec9fb4813af73bf4f939",
+    "review_item_sha256": "31fe8deb267966f7d0e3364594ddbcbec27b30e1bf9d0aaef2c42da548f38b3c",
+    "authority_receipt_sha256": "5a2daf4f846254454a814d06928605705192f28ecbe80a14b38ad5a13725cb54"
+   },
+   "resolve_hint": "Hold until a frozen named official access record establishes public parking rights for the Morrison Slide six-space bay."
   },
   "way/1414159370": {
    "verdict": "KEEP",
@@ -52588,6 +53104,90 @@
    "judged": "2026-09-26",
    "src": "judge-fanout"
   },
+  "way/241879865": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.668622,
+   "lon": -105.18805,
+   "rings": [
+    [
+     [
+      39.669444,
+      -105.188369
+     ],
+     [
+      39.667658,
+      -105.188109
+     ],
+     [
+      39.667567,
+      -105.187787
+     ],
+     [
+      39.667588,
+      -105.187701
+     ],
+     [
+      39.667809,
+      -105.187814
+     ],
+     [
+      39.667972,
+      -105.187884
+     ],
+     [
+      39.66811,
+      -105.187921
+     ],
+     [
+      39.668247,
+      -105.187948
+     ],
+     [
+      39.668426,
+      -105.187967
+     ],
+     [
+      39.668473,
+      -105.187837
+     ],
+     [
+      39.66887,
+      -105.187827
+     ],
+     [
+      39.669021,
+      -105.187835
+     ],
+     [
+      39.669494,
+      -105.187927
+     ],
+     [
+      39.669424,
+      -105.18819
+     ],
+     [
+      39.669444,
+      -105.188369
+     ]
+    ]
+   ],
+   "osm": [
+    "way/241879865"
+   ],
+   "name": "RV Parking Area \"North\"",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Surveyed prior (parking=surface, capacity=54, name) confirmed: Z2/Z3 show a paved lot with a marked center aisle and ~25+ RVs/trailers parked angled along the west edge inside the red outline, plus one truck in the aisle; no building overlap",
+    "public": "No lot-level access tag, no trailhead/access record (trailhead_nodes_120m empty). Name 'RV Parking Area \"North\"' plus Z1 context (lot sits beside a drag-racing strip with start tower/staging, pit/hauler parking to the NW, C-470 freeway to the east) reads as venue RV/pit parking for a motorsport facility, not general public parking; packet context NEUTRAL only means no OSM facility polygon was classified within 45 m",
+    "serves": "Bailout Trail edge 357 m but walk_m 2386 (>1 mi) with no connection or trail named on the walk; 0 footways within 60 m; no trailhead nodes; no yellow trail visible in any frame; the C-470 freeway corridor lies between the lot and the trail side; the motorsport venue is the better explanation for an RV lot"
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
   "way/242851894": {
    "verdict": "KEEP",
    "reason": null,
@@ -54290,6 +54890,98 @@
     "serves": "Silverthorne edge 73 m and packet walk 110 m; Z1-Z2 show the shipped trail along the adjacent road and pond, so North Pond Park and Silverthorne Elementary are compatible dual-use owners"
    },
    "judged": "2026-09-26",
+   "src": "judge-fanout"
+  },
+  "way/297689373": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.697111,
+   "lon": -105.207924,
+   "rings": [
+    [
+     [
+      39.696871,
+      -105.208467
+     ],
+     [
+      39.696717,
+      -105.208254
+     ],
+     [
+      39.696704,
+      -105.208223
+     ],
+     [
+      39.696697,
+      -105.208184
+     ],
+     [
+      39.6967,
+      -105.208147
+     ],
+     [
+      39.696708,
+      -105.208118
+     ],
+     [
+      39.696716,
+      -105.208099
+     ],
+     [
+      39.696732,
+      -105.208074
+     ],
+     [
+      39.697002,
+      -105.207762
+     ],
+     [
+      39.697063,
+      -105.207697
+     ],
+     [
+      39.697382,
+      -105.207383
+     ],
+     [
+      39.697516,
+      -105.207611
+     ],
+     [
+      39.69748,
+      -105.207646
+     ],
+     [
+      39.697537,
+      -105.207749
+     ],
+     [
+      39.697262,
+      -105.208022
+     ],
+     [
+      39.69721,
+      -105.208078
+     ],
+     [
+      39.696871,
+      -105.208467
+     ]
+    ]
+   ],
+   "osm": [
+    "way/297689373"
+   ],
+   "name": "Wooly Mammoth Park-and-Ride",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2-Z3: paved lot has painted rows of stalls and approximately thirty parked vehicles.",
+    "public": "Lot-level tags identify Wooly Mammoth Park-and-Ride, operator=RTD, and park_ride=yes; no access=yes or official trail-parking authorization establishes hiker use of this transit lot.",
+    "serves": "Village Loop Trail edge is 342 m and walk is 1,163 m, but no trailhead node is within 120 m and no footway is within 60 m; Z1 shows the yellow trail separated from the lot by the highway interchange, while the RTD transit purpose explains it directly."
+   },
+   "judged": "2026-10-04",
    "src": "judge-fanout"
   },
   "way/301569342": {
@@ -59996,6 +60688,122 @@
    "judged": "2026-09-13",
    "src": "judge-fanout"
   },
+  "way/368339804": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.692118,
+   "lon": -105.148256,
+   "rings": [
+    [
+     [
+      39.691821,
+      -105.148997
+     ],
+     [
+      39.691838,
+      -105.147676
+     ],
+     [
+      39.69267,
+      -105.147688
+     ],
+     [
+      39.69274,
+      -105.147854
+     ],
+     [
+      39.692735,
+      -105.147925
+     ],
+     [
+      39.69218,
+      -105.147915
+     ],
+     [
+      39.692185,
+      -105.148618
+     ],
+     [
+      39.692505,
+      -105.148624
+     ],
+     [
+      39.692209,
+      -105.148942
+     ],
+     [
+      39.691928,
+      -105.148937
+     ],
+     [
+      39.691868,
+      -105.148997
+     ],
+     [
+      39.691821,
+      -105.148997
+     ]
+    ]
+   ],
+   "osm": [
+    "way/368339804"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Surveyed prior (parking=surface) confirmed: Z2/Z3 show a paved L-shaped lot wrapping the church building's west/south/east sides with painted yellow stall stripes in multiple rows and roughly 20+ parked cars along the south rows; building_overlap=false (outline excludes the church footprint).",
+    "public": "Context FACILITY at 0 m: amenity=place_of_worship 'The Church of Jesus Christ of Latter-day Saints'; Z1/Z2/Z3 show the lot is the church's own wraparound parking with no separate entrance from public roads or trailhead features. Tags are only amenity=parking + parking=surface: no lot-level access=yes/permissive, no trailhead/official access record, and no trailhead_nodes within 120 m. Being ungated and next to public roads does not grant general parking rights; nothing aerial can show a public-permission sign.",
+    "serves": "Green Mountain Trail edge 302 m, walk_m 898 with empty connection, no trailhead node, so no direct or named trail relationship. Z1 shows the yellow trail west of the site across a multi-lane divided arterial, with no path from the lot toward it. The 7 footways within 60 m read as roadside sidewalks and church walks. The church is the better explanation, and distance alone does not make church parking trail overflow."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/369249614": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.693989,
+   "lon": -105.15071,
+   "rings": [
+    [
+     [
+      39.694251,
+      -105.150946
+     ],
+     [
+      39.693652,
+      -105.150806
+     ],
+     [
+      39.693649,
+      -105.150571
+     ],
+     [
+      39.694282,
+      -105.150512
+     ],
+     [
+      39.694251,
+      -105.150946
+     ]
+    ]
+   ],
+   "osm": [
+    "way/369249614"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Bare prior, decided by vision. Z3: paved lot in the northern half of the red outline with about 8-10 parked cars and faint stall rows, reached by a curving driveway from the east. Z2 shows the same cars and surface. The southern half of the outline sits on white/grey roofs of the adjacent building (packet building_overlap=false, so read as misregistration); the paved, car-filled part is the lot.",
+    "public": "Only tag is amenity=parking: no access tag, name, operator, fee, or trailhead record at the lot. Context is FACILITY: 25 m from amenity=place_of_worship Concordia Lutheran Church. Z1/Z2 show the lot tucked behind that building complex, reached only by its internal driveway, next to a multi-building residential complex to the east. Nothing grants general public parking here; the direct owner (church/facility) is the better explanation. No visible gate is not permission (lesson 11).",
+    "serves": "Candidate South Foothill Drive Access Trail is 212 m by edge, but walk_m=814 with no connection, footways_60m=0, and no trailhead nodes within 120 m. Z1: the yellow trails are in open space west of a residential street lined with houses, with no path from the lot toward them. PUBLIC was not proved, so overflow cannot apply, and nothing establishes dual use of this church/facility lot."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
   "way/36945929": {
    "verdict": "KEEP",
    "reason": null,
@@ -60930,6 +61738,179 @@
    },
    "judged": "2026-09-26",
    "src": "judge-fanout"
+  },
+  "way/37115952": {
+   "verdict": "KEEP",
+   "reason": null,
+   "lat": 39.694516,
+   "lon": -105.204989,
+   "rings": [
+    [
+     [
+      39.694601,
+      -105.20553
+     ],
+     [
+      39.694449,
+      -105.205528
+     ],
+     [
+      39.694424,
+      -105.205528
+     ],
+     [
+      39.694433,
+      -105.204767
+     ],
+     [
+      39.694434,
+      -105.204588
+     ],
+     [
+      39.694437,
+      -105.204549
+     ],
+     [
+      39.694443,
+      -105.204525
+     ],
+     [
+      39.694458,
+      -105.204499
+     ],
+     [
+      39.694475,
+      -105.204472
+     ],
+     [
+      39.694538,
+      -105.204391
+     ],
+     [
+      39.694545,
+      -105.204382
+     ],
+     [
+      39.694591,
+      -105.204445
+     ],
+     [
+      39.694664,
+      -105.204444
+     ],
+     [
+      39.694588,
+      -105.204542
+     ],
+     [
+      39.694591,
+      -105.20469
+     ],
+     [
+      39.694597,
+      -105.204927
+     ],
+     [
+      39.694601,
+      -105.20553
+     ]
+    ]
+   ],
+   "osm": [
+    "way/37115952"
+   ],
+   "name": "Matthews/Winters Park Trailhead",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "certain",
+   "evidence": {
+    "exists": "Surveyed prior (surface=asphalt, parking=surface, capacity=58) confirmed, not contradicted: Z2 and Z3 show a paved asphalt lot filling the red outline with two full rows of parked cars (~40 vehicles) along a central aisle and a vehicle-access throat off the curving park access road at the east end; Z1 shows the same car-filled lot. No building overlap.",
+    "public": "Lot-level tags: access=yes, fee=no, name='Matthews/Winters Park Trailhead', operator=Jefferson County Open Space (operator:type=government) - a named official trailhead record at the lot itself, not just enclosing-park context. Inside boundary=protected_area 'Matthews/Winters Park' (SUPPORT); no restricted-use owner (school/church/commercial/resident) adjacent in Z1/Z2.",
+    "serves": "Lot is named as the Matthews/Winters Park trailhead; Village Loop Trail edge 2 m (not fallback), 2 trails in range, walk 71 m, unnamed trailhead node 47 m, 9 footways within 60 m. Z2/Z3: yellow trails touch the lot's SW corner and SE throat, and social/dirt paths lead from the lot's south edge into the trail network. Z1's only other owners (highway interchange and a commercial lot to the NW beyond the highway, ranch buildings to the W) do not explain this lot better."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/37115986": {
+   "verdict": "REVIEW",
+   "reason": null,
+   "lat": 39.668928,
+   "lon": -105.20414,
+   "rings": [
+    [
+     [
+      39.669116,
+      -105.205026
+     ],
+     [
+      39.66831,
+      -105.204373
+     ],
+     [
+      39.668191,
+      -105.204029
+     ],
+     [
+      39.668186,
+      -105.204004
+     ],
+     [
+      39.66812,
+      -105.203658
+     ],
+     [
+      39.668312,
+      -105.203633
+     ],
+     [
+      39.668321,
+      -105.203684
+     ],
+     [
+      39.669682,
+      -105.203584
+     ],
+     [
+      39.669711,
+      -105.203504
+     ],
+     [
+      39.669798,
+      -105.203471
+     ],
+     [
+      39.669709,
+      -105.203745
+     ],
+     [
+      39.669374,
+      -105.204444
+     ],
+     [
+      39.669226,
+      -105.204878
+     ],
+     [
+      39.669116,
+      -105.205026
+     ]
+    ]
+   ],
+   "osm": [
+    "way/37115986"
+   ],
+   "name": "Lower North Lot",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "leaning",
+   "evidence": {
+    "exists": "Z2/Z3: broad delineated graded lot with road access and two large parked vehicles or trailers",
+    "public": "The only lot-level tag beyond amenity=parking is name=Lower North Lot; Z1 places it among Red Rocks venue lots, but no access tag or official public-parking authority is supplied",
+    "serves": "Geologic Overlook Trail edge 0 m and Z2 shows a trail endpoint at the lot's north edge, but the Red Rocks event/visitor complex is a plausible direct owner and PUBLIC is unproved"
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout",
+   "resolve_hint": "Host-freeze an official City of Denver or Red Rocks parking map/policy that identifies Lower North Lot and states whether general park or trail visitors may park there outside events"
   },
   "way/37115994": {
    "verdict": "KEEP",
@@ -64640,6 +65621,50 @@
     "serves": "Argentine North Fork Trail edge 4 m and walk 205 m; Z1-Z2 show the trail beginning immediately across the roadside edge of the lot, while nearby infrastructure is only a dual use."
    },
    "judged": "2026-09-26",
+   "src": "judge-fanout"
+  },
+  "way/40722502": {
+   "verdict": "KEEP",
+   "reason": null,
+   "lat": 39.696636,
+   "lon": -105.192213,
+   "rings": [
+    [
+     [
+      39.696809,
+      -105.192681
+     ],
+     [
+      39.696236,
+      -105.192231
+     ],
+     [
+      39.696462,
+      -105.191745
+     ],
+     [
+      39.697035,
+      -105.192195
+     ],
+     [
+      39.696809,
+      -105.192681
+     ]
+    ]
+   ],
+   "osm": [
+    "way/40722502"
+   ],
+   "name": "Rooney Road Trailhead",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "certain",
+   "evidence": {
+    "exists": "Surveyed prior (parking=surface, surface=asphalt, capacity=84) confirmed: Z2/Z3 NAIP show a delineated paved lot filling the red outline with ~25 parked cars in aisle rows and a paved access road entering from the west off the frontage road; no building/lawn/water contradiction.",
+    "public": "Lot-level access=permissive plus name=Rooney Road Trailhead (named trailhead record at the lot), operator=City of Lakewood (operator:type=government); capacity:disabled=4; mixed_access=false; no restrictive tag.",
+    "serves": "Lot is itself named Rooney Road Trailhead; highway=trailhead node 'Rooney Valley Trail/Green Mountain Trail Loop' 55 m; tourism=information 66 m (SUPPORT context); Z1/Z2 show a paved path leaving the lot's SE corner past a small kiosk/structure and crossing the freeway bridge into the yellow trail network; Zorro Trail edge 106 m, walk 204 m, no fallback, 5 trails in range. Z1 non-trail neighbours (electrical substation NW, dirt track/open ground NW, freeway) do not explain this lot better."
+   },
+   "judged": "2026-10-04",
    "src": "judge-fanout"
   },
   "way/407423073": {
@@ -69108,6 +70133,82 @@
    "judged": "2026-09-26",
    "src": "judge-fanout"
   },
+  "way/45230334": {
+   "verdict": "KEEP",
+   "reason": null,
+   "lat": 39.686959,
+   "lon": -105.154689,
+   "rings": [
+    [
+     [
+      39.68692,
+      -105.154839
+     ],
+     [
+      39.686889,
+      -105.154788
+     ],
+     [
+      39.686857,
+      -105.154796
+     ],
+     [
+      39.686819,
+      -105.154705
+     ],
+     [
+      39.686951,
+      -105.154575
+     ],
+     [
+      39.686987,
+      -105.154578
+     ],
+     [
+      39.68704,
+      -105.154537
+     ],
+     [
+      39.687076,
+      -105.154532
+     ],
+     [
+      39.687047,
+      -105.15475
+     ],
+     [
+      39.687021,
+      -105.15476
+     ],
+     [
+      39.68697,
+      -105.15483
+     ],
+     [
+      39.686956,
+      -105.154809
+     ],
+     [
+      39.68692,
+      -105.154839
+     ]
+    ]
+   ],
+   "osm": [
+    "way/45230334"
+   ],
+   "name": "Utah Trailhead",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Surveyed prior (parking=surface, capacity=12, name) confirmed, not contradicted. Z2/Z3 NAIP: a light graded gravel/dirt pad (~430 m2) distinct from the surrounding dry grass fills the red outline on the NW side of the divided arterial, outside the travel lanes, just before the signalized intersection. Its SE edge runs straight to the arterial shoulder, which gives it a vehicle access throat. Z3 shows one dark vehicle inside the NE corner and two white vehicle-sized objects along the north edge. No building, lawn, water, or through-lane in the footprint.",
+    "public": "No lot-level access tag. Lot-level trailhead record decides it: the lot itself is named 'Utah Trailhead', and a highway=trailhead node also named 'Utah Trailhead' sits 12 m away (trailhead_nodes_120m). Z1/Z2: the pad stands alone on the park side of the arterial with no school, church, commercial, residential, or event owner adjacent. The homes, condos, and the building with a large lot to the S/SE are all across the 6-lane arterial and have their own parking. Enclosing leisure=park (William Frederick Hayden Park) and the absence of a visible gate are only context, not the basis.",
+    "serves": "John O. Hayden Trail edge 1 m, not fallback, 2 trails in range, 4 footways within 60 m. In Z1/Z2/Z3 the yellow trail visibly ends at the pad's west tip, so the trail starts at the lot. The lot and the 12 m trailhead node share the name 'Utah Trailhead', which ties it to a named trailhead. The walk record (958 m, empty connection) disagrees with the visible 1 m trail contact and does not change the call. Nothing in Z1 explains this pad better than the trail."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
   "way/452963829": {
    "verdict": "KEEP",
    "reason": null,
@@ -69418,6 +70519,90 @@
     "serves": "North Inlet Trail edge 0 m, walk 0 m, trailhead node 'North Inlet Trail Trailhead' 4 m; Z2/Z3: the yellow trail starts inside the red polygon's E corner and heads SE along the drainage; the pad is the overflow bay of the main trailhead lot 60 m NE (orange ring); footways_60m 0 is irrelevant because the trail itself begins in the polygon"
    },
    "judged": "2026-09-13",
+   "src": "judge-fanout"
+  },
+  "way/45535929": {
+   "verdict": "DROP",
+   "reason": "too-far",
+   "lat": 39.714598,
+   "lon": -105.210493,
+   "rings": [
+    [
+     [
+      39.714964,
+      -105.21193
+     ],
+     [
+      39.713534,
+      -105.210095
+     ],
+     [
+      39.713576,
+      -105.210007
+     ],
+     [
+      39.713747,
+      -105.210134
+     ],
+     [
+      39.714355,
+      -105.209276
+     ],
+     [
+      39.714584,
+      -105.209424
+     ],
+     [
+      39.714958,
+      -105.209547
+     ],
+     [
+      39.715102,
+      -105.209802
+     ],
+     [
+      39.715092,
+      -105.209975
+     ],
+     [
+      39.715084,
+      -105.210306
+     ],
+     [
+      39.715195,
+      -105.210681
+     ],
+     [
+      39.715449,
+      -105.211017
+     ],
+     [
+      39.715068,
+      -105.211603
+     ],
+     [
+      39.715135,
+      -105.211713
+     ],
+     [
+      39.714964,
+      -105.21193
+     ]
+    ]
+   ],
+   "osm": [
+    "way/45535929"
+   ],
+   "name": "Heritage Square",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2/Z3: very large paved lot with extensive faded painted stalls and multiple vehicle entrances",
+    "public": "The lot is named Heritage Square and Z1 places it inside an amusement/event facility complex; no lot-level access tag or public trail-parking authority is supplied",
+    "serves": "Z1: the Heritage Square amusement/event complex is the direct owner; Apex Trail is 18 m by edge but walk is 692 m with no connection, and no trailhead or dual-use record is present"
+   },
+   "judged": "2026-10-04",
    "src": "judge-fanout"
   },
   "way/455564620": {
@@ -70013,6 +71198,74 @@
     "serves": "Z2/Z3: green-roofed Wild Basin Lodge building 35 m S directly across the road and lodge cabins 30 m E explain the lot better than the trail; Sandbeach Lake Trail edge 101 m, walk 158 m, but Z1/Z2 show the trail meeting the road at an orange-ringed trailhead lot 100 m W that already holds several cars, so the trail neither starts here nor approaches better than that closer lot"
    },
    "judged": "2026-09-13",
+   "src": "judge-fanout"
+  },
+  "way/480306052": {
+   "verdict": "KEEP",
+   "reason": null,
+   "lat": 39.716312,
+   "lon": -105.209311,
+   "rings": [
+    [
+     [
+      39.715908,
+      -105.210087
+     ],
+     [
+      39.715709,
+      -105.20984
+     ],
+     [
+      39.716582,
+      -105.208643
+     ],
+     [
+      39.71678,
+      -105.208655
+     ],
+     [
+      39.716836,
+      -105.208664
+     ],
+     [
+      39.716862,
+      -105.208624
+     ],
+     [
+      39.716969,
+      -105.2087
+     ],
+     [
+      39.716496,
+      -105.209343
+     ],
+     [
+      39.716038,
+      -105.20998
+     ],
+     [
+      39.716012,
+      -105.209946
+     ],
+     [
+      39.715908,
+      -105.210087
+     ]
+    ]
+   ],
+   "osm": [
+    "way/480306052"
+   ],
+   "name": "Apex Park East Trailhead",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Surveyed prior (name tag). Z3 positively confirms: separately delineated dark asphalt lot with curbed edges, painted diagonal stall stripes along the NW side, and ~25 parked cars on capture day; Z2 shows the same stripes/cars. Red outline sits within ~10-15 m misregistration of the asphalt; no building/lawn/water contradiction (building_overlap=false).",
+    "public": "Lot-level record: name='Apex Park East Trailhead' on this amenity=parking way itself (named trailhead record at the lot, not merely an enclosing-park inference). Z1-Z3 show a small trailhead structure/kiosk pad at the lot's NW edge with the trail leaving from it. No access/private tag; mixed_access=false. The adjacent, separately paved light-concrete lot to the SE (likely venue/event parking, mostly empty) is a different facility and not part of this member. Caveat: no explicit access=yes tag, so PUBLIC rests on the trailhead name record plus visible trailhead infrastructure.",
+    "serves": "Argos Trail edge 13 m, walk 17 m, fallback=false, 5 trails in range, 2 footways within 60 m. Z1/Z2 show the yellow trail beginning at the structure on the lot's NW corner and a paved path leaving the lot's west end directly into the trail network; lot name matches Apex Park trailhead. Nearest FACILITY (landuse=residential) is 179 m away, beyond the 45 m adjacency test. No trailhead node within 120 m, but the trail starts at the lot."
+   },
+   "judged": "2026-10-04",
    "src": "judge-fanout"
   },
   "way/481142216": {
@@ -70796,6 +72049,186 @@
    "judged": "2026-09-26",
    "src": "judge-fanout"
   },
+  "way/51380775": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.666562,
+   "lon": -105.081035,
+   "rings": [
+    [
+     [
+      39.667556,
+      -105.081238
+     ],
+     [
+      39.666488,
+      -105.081235
+     ],
+     [
+      39.665603,
+      -105.081232
+     ],
+     [
+      39.665607,
+      -105.080963
+     ],
+     [
+      39.665603,
+      -105.080814
+     ],
+     [
+      39.665634,
+      -105.080815
+     ],
+     [
+      39.665784,
+      -105.080818
+     ],
+     [
+      39.666507,
+      -105.080835
+     ],
+     [
+      39.666674,
+      -105.080839
+     ],
+     [
+      39.666848,
+      -105.080843
+     ],
+     [
+      39.666976,
+      -105.080846
+     ],
+     [
+      39.667133,
+      -105.08085
+     ],
+     [
+      39.667186,
+      -105.080851
+     ],
+     [
+      39.667541,
+      -105.080851
+     ],
+     [
+      39.667556,
+      -105.081238
+     ]
+    ]
+   ],
+   "osm": [
+    "way/51380775"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2/Z3: two paved asphalt lots with painted stalls, drive aisles, and dozens of parked cars inside the red outline, entered from the arterial and the cross street; Z3 resolves individual cars and stripes.",
+    "public": "Bare amenity=parking with no access/operator/name tag and no official trailhead or access record at the lot. Context classifies it FACILITY (landuse=retail, 0 m edge), and building_overlap=true. Z1/Z2 show a strip-commercial frontage lot: the polygon's east edge runs along the storefronts of a white-roof store and two tan retail/office buildings, with more commercial lots and apartments behind them. This is customer parking for the retail center. A missing gate or restrictive tag does not grant general public trail parking.",
+    "serves": "Greenbelt Trail edge is 48 m, but Z1/Z2 put the trail west of a six-lane divided arterial in the open space, not at the lot. Walk is 405 m with no connection (conn empty, walk.trail null), there are no trailhead nodes within 120 m, and no kiosk, trailhead signage, or trail start is visible at the lot. The retail center is the better explanation for this lot. Distance alone does not turn commercial customer parking into trail overflow (lesson 11). No aerial frame could show parking permission, so this is a DROP rather than a REVIEW."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/51381093": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.668684,
+   "lon": -105.095445,
+   "rings": [
+    [
+     [
+      39.668578,
+      -105.095592
+     ],
+     [
+      39.668576,
+      -105.0953
+     ],
+     [
+      39.66879,
+      -105.095298
+     ],
+     [
+      39.668791,
+      -105.095442
+     ],
+     [
+      39.668791,
+      -105.09559
+     ],
+     [
+      39.668578,
+      -105.095592
+     ]
+    ]
+   ],
+   "osm": [
+    "way/51381093"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Bare prior (naked amenity=parking), so vision decides. Z2/Z3 (NAIP): the red outline (~595 m2) holds a gray paved pad immediately east of a small white-roofed commercial building, with one white vehicle parked at the NW corner and small dark objects mid-pad, partly under tree canopy. No stripes visible. Paved delineated surface plus a parked vehicle shows a physical parking area. Access appears to come from the paved/gravel apron to the north shared with the commercial lot; the east edge is a continuous curb/sidewalk along the N-S arterial.",
+    "public": "Tags are only amenity=parking: no access tag, no name/operator, no trailhead/official access record, no trailhead nodes within 120 m. Z2/Z3: the pad is the side lot/forecourt of the adjacent small commercial building directly to its west, between the commercial strip to the north and Sienna Park Townhomes to the south (landuse=residential, 12 m edge, context FACILITY). Nothing at lot level grants general public or trail parking. It reads as building customer/employee parking. Being ungated and fronting a public road is context only, not permission.",
+    "serves": "Greenbelt Alternate Trail edge 189 m (not fallback, 2 trails in range), but walk 320 m with no recorded connection or trail, no trailhead nodes within 120 m, and only 1 footway within 60 m (the townhome internal path visible in Z2/Z3). Z1: the yellow trail lies SE, across both the major E-W road and the N-S arterial intersection, with no direct trail approach from this lot. Z1 also shows separate paved lots at the greenbelt/pond trail along the south frame edge, closer designated options against calling this lot overflow. The adjacent commercial building and residential neighbours explain the lot better, and distance alone does not establish trail use."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/51474671": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.668661,
+   "lon": -105.093164,
+   "rings": [
+    [
+     [
+      39.668422,
+      -105.093407
+     ],
+     [
+      39.668418,
+      -105.092908
+     ],
+     [
+      39.668695,
+      -105.092898
+     ],
+     [
+      39.668934,
+      -105.093069
+     ],
+     [
+      39.668938,
+      -105.09338
+     ],
+     [
+      39.668422,
+      -105.093407
+     ]
+    ]
+   ],
+   "osm": [
+    "way/51474671"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2/Z3: paved lot with a central double-loaded row and east perimeter row holding ~45-50 parked cars, plus a south access drive linking the west street to the school entrance; matches the red 2231 m2 polygon. Bare prior, but vision decides clearly.",
+    "public": "Only tag is naked amenity=parking; no access tag, name, operator, or trailhead record. Context puts it 0 m from amenity=school 'Westgate Elementary School' and Z1/Z2 show it as the school's own front lot, sharing the school driveway, full on a school-day capture. Per protocol, school parking is not public trail parking without lot-level public evidence, and none exists in the packet. No visible gate is not permission.",
+    "serves": "Greenbelt Alternate Trail edge 88 m / walk 116 m is a distance signal only; walk.conn is empty and walk.trail null, trailhead_nodes_120m is empty, and Z1 shows the yellow trails south of the arterial with no trail starting at or in the lot. The school is the better direct-owner explanation, and dual use cannot be credited because PUBLIC is not proved."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
   "way/523539139": {
    "verdict": "KEEP",
    "reason": null,
@@ -70927,6 +72360,238 @@
    },
    "judged": "2026-08-02",
    "src": "ne_verdicts_osm.json"
+  },
+  "way/524966199": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.62885,
+   "lon": -105.193085,
+   "rings": [
+    [
+     [
+      39.628715,
+      -105.193423
+     ],
+     [
+      39.628257,
+      -105.193414
+     ],
+     [
+      39.628206,
+      -105.193402
+     ],
+     [
+      39.628204,
+      -105.193337
+     ],
+     [
+      39.628219,
+      -105.193279
+     ],
+     [
+      39.628378,
+      -105.193264
+     ],
+     [
+      39.62869,
+      -105.193283
+     ],
+     [
+      39.628705,
+      -105.193263
+     ],
+     [
+      39.628687,
+      -105.193241
+     ],
+     [
+      39.628659,
+      -105.193231
+     ],
+     [
+      39.628481,
+      -105.193212
+     ],
+     [
+      39.628246,
+      -105.193193
+     ],
+     [
+      39.628202,
+      -105.193195
+     ],
+     [
+      39.628128,
+      -105.193173
+     ],
+     [
+      39.628027,
+      -105.192932
+     ],
+     [
+      39.628027,
+      -105.192888
+     ],
+     [
+      39.628043,
+      -105.192876
+     ],
+     [
+      39.628313,
+      -105.192802
+     ],
+     [
+      39.628597,
+      -105.192735
+     ],
+     [
+      39.628613,
+      -105.192877
+     ],
+     [
+      39.628618,
+      -105.193001
+     ],
+     [
+      39.628616,
+      -105.193065
+     ],
+     [
+      39.628622,
+      -105.193088
+     ],
+     [
+      39.628635,
+      -105.193106
+     ],
+     [
+      39.628648,
+      -105.193096
+     ],
+     [
+      39.628656,
+      -105.19307
+     ],
+     [
+      39.628658,
+      -105.193021
+     ],
+     [
+      39.628662,
+      -105.192864
+     ],
+     [
+      39.628656,
+      -105.192759
+     ],
+     [
+      39.628651,
+      -105.192655
+     ],
+     [
+      39.628643,
+      -105.192617
+     ],
+     [
+      39.628642,
+      -105.192605
+     ],
+     [
+      39.628657,
+      -105.192514
+     ],
+     [
+      39.62872,
+      -105.192485
+     ],
+     [
+      39.628745,
+      -105.192487
+     ],
+     [
+      39.628861,
+      -105.192856
+     ],
+     [
+      39.628856,
+      -105.192891
+     ],
+     [
+      39.628901,
+      -105.192894
+     ],
+     [
+      39.629086,
+      -105.192797
+     ],
+     [
+      39.62908,
+      -105.192773
+     ],
+     [
+      39.629164,
+      -105.192727
+     ],
+     [
+      39.629222,
+      -105.192733
+     ],
+     [
+      39.629358,
+      -105.192858
+     ],
+     [
+      39.629571,
+      -105.193064
+     ],
+     [
+      39.629628,
+      -105.193162
+     ],
+     [
+      39.629638,
+      -105.193196
+     ],
+     [
+      39.629678,
+      -105.193302
+     ],
+     [
+      39.629675,
+      -105.193365
+     ],
+     [
+      39.629427,
+      -105.193393
+     ],
+     [
+      39.629174,
+      -105.193409
+     ],
+     [
+      39.628941,
+      -105.19342
+     ],
+     [
+      39.628715,
+      -105.193423
+     ]
+    ]
+   ],
+   "osm": [
+    "way/524966199"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "certain",
+   "evidence": {
+    "exists": "Z3: extensive paved surface with striped parking rows and numerous vehicles",
+    "public": "Packet context identifies The Fort restaurant 25 m away; Z2-Z3: parking aisles directly wrap the restaurant complex, with no lot-level public trail-parking designation",
+    "serves": "Z1: The Fort is the direct owner and no shipped trail appears in the 600 m frame; Two Dog Trail is a 1,950 m fallback and walk is 2,350 m with no connection, footway, or trailhead node"
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
   },
   "way/527150253": {
    "verdict": "KEEP",
@@ -71634,6 +73299,66 @@
     "serves": "name=Shelf Lake Trailhead matches Shelf Lake Trail, and a highway=trailhead node named Shelf Lake Trailhead is 30 m away; Z1 shows no non-trail owner in the remote forest setting."
    },
    "judged": "2026-09-26",
+   "src": "judge-fanout"
+  },
+  "way/540496164": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.681775,
+   "lon": -105.159689,
+   "rings": [
+    [
+     [
+      39.681933,
+      -105.160327
+     ],
+     [
+      39.681459,
+      -105.160067
+     ],
+     [
+      39.681693,
+      -105.159284
+     ],
+     [
+      39.682005,
+      -105.158878
+     ],
+     [
+      39.682125,
+      -105.159051
+     ],
+     [
+      39.68187,
+      -105.159332
+     ],
+     [
+      39.681701,
+      -105.159883
+     ],
+     [
+      39.682029,
+      -105.160026
+     ],
+     [
+      39.681933,
+      -105.160327
+     ]
+    ]
+   ],
+   "osm": [
+    "way/540496164"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2/Z3: paved asphalt L-shaped lot matching the red outline, wrapping the west and south sides of a single solar-roofed building; faint painted stall lines on the east arm in Z3; parked cars inside the outline (red car in the west section, silver car in the east arm); driveway throat off the E-W arterial at the south edge",
+    "public": "Only a bare amenity=parking tag: no access, name, operator, or fee tag. Context is FACILITY, 0 m from landuse=commercial. Z1/Z2/Z3 show the lot as the dedicated surround parking of one standalone commercial/institutional building, which also has its own north drop-off loop. No trailhead node within 120 m and no official access record at the lot. Missing gate or restrictive tag is context only (lesson 11). Doubt: legal permission cannot be seen from the air, and nothing in the packet grants it",
+    "serves": "PUBLIC is not established, so dual-use/overflow cannot be credited. Rooney Valley Trail edge is 137 m, but its yellow end (orange node, Z1) sits on the far side of the signalized 4-lane N-S arterial intersection, west of the lot. walk_m 258 has a blank connection and walk trail null. No trailhead_nodes_120m. footways_60m=1 is roadside sidewalk only. The building's own use explains the lot better than trail parking"
+   },
+   "judged": "2026-10-04",
    "src": "judge-fanout"
   },
   "way/545581244": {
@@ -73106,6 +74831,106 @@
    "judged": "2026-09-26",
    "src": "judge-fanout"
   },
+  "way/57446062": {
+   "verdict": "DROP",
+   "reason": "not-a-lot",
+   "lat": 39.694672,
+   "lon": -105.150012,
+   "rings": [
+    [
+     [
+      39.694832,
+      -105.150193
+     ],
+     [
+      39.694668,
+      -105.15018
+     ],
+     [
+      39.694673,
+      -105.150079
+     ],
+     [
+      39.694446,
+      -105.150064
+     ],
+     [
+      39.694439,
+      -105.150164
+     ],
+     [
+      39.694333,
+      -105.150158
+     ],
+     [
+      39.694352,
+      -105.149998
+     ],
+     [
+      39.694508,
+      -105.150022
+     ],
+     [
+      39.69451,
+      -105.149945
+     ],
+     [
+      39.694771,
+      -105.149968
+     ],
+     [
+      39.694783,
+      -105.149702
+     ],
+     [
+      39.694807,
+      -105.149703
+     ],
+     [
+      39.694849,
+      -105.149704
+     ],
+     [
+      39.694848,
+      -105.149733
+     ],
+     [
+      39.694842,
+      -105.149882
+     ],
+     [
+      39.694898,
+      -105.149887
+     ],
+     [
+      39.694891,
+      -105.149996
+     ],
+     [
+      39.694841,
+      -105.149996
+     ],
+     [
+      39.694832,
+      -105.150193
+     ]
+    ]
+   ],
+   "osm": [
+    "way/57446062"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "certain",
+   "evidence": {
+    "exists": "Z2/Z3: the red footprint crosses apartment roofs, a landscaped courtyard, and pedestrian paving; no parking bay, vehicle aisle, or access throat exists there",
+    "public": "EXISTS=no: the mapped footprint is part of a residential building and courtyard, not a parking facility",
+    "serves": "EXISTS=no: a non-parking residential footprint cannot serve South Foothill Drive Access Trail"
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
   "way/57731654": {
    "verdict": "KEEP",
    "reason": null,
@@ -74398,6 +76223,614 @@
     "serves": "Queen of the West is 5 m from the lot (70 m walk); Z2 shows the yellow trail reaching the lot's east edge, corroborated by the two nearby trailhead nodes."
    },
    "judged": "2026-09-26",
+   "src": "judge-fanout"
+  },
+  "way/619911462": {
+   "verdict": "KEEP",
+   "reason": null,
+   "lat": 39.690265,
+   "lon": -105.152392,
+   "rings": [
+    [
+     [
+      39.689932,
+      -105.152743
+     ],
+     [
+      39.68991,
+      -105.152714
+     ],
+     [
+      39.689879,
+      -105.152675
+     ],
+     [
+      39.689879,
+      -105.152572
+     ],
+     [
+      39.690025,
+      -105.152469
+     ],
+     [
+      39.690097,
+      -105.152443
+     ],
+     [
+      39.690084,
+      -105.1524
+     ],
+     [
+      39.69056,
+      -105.152014
+     ],
+     [
+      39.690625,
+      -105.152165
+     ],
+     [
+      39.690646,
+      -105.152211
+     ],
+     [
+      39.690617,
+      -105.152237
+     ],
+     [
+      39.690487,
+      -105.152349
+     ],
+     [
+      39.690295,
+      -105.15252
+     ],
+     [
+      39.690078,
+      -105.152666
+     ],
+     [
+      39.689932,
+      -105.152743
+     ]
+    ]
+   ],
+   "osm": [
+    "way/619911462"
+   ],
+   "name": "Green Mountain Trailhead",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Surveyed prior (amenity=parking + parking=surface + name) confirmed, not contradicted: Z2/Z3 NAIP show a light graded gravel lot filling the red outline (~1770 m2), ~10-12 parked cars in a row along the NW edge plus 2-3 on the SE side, paved access drive from the SW end to a signalized intersection on the divided arterial; no building overlap",
+    "public": "Lot-level data, not enclosing-park context: the polygon itself is named 'Green Mountain Trailhead' and an OSM trailhead node sits 44 m away, i.e. a named trailhead record at the lot. Z1 shows no competing owner at the lot (it sits alone on the open-hillside side of the arterial; homes and a commercial lot with its own parking are across the road / ~400 m NE). mixed_access=false. No access tag exists, and William Frederick Hayden Park containment plus ungated entry are treated only as context",
+    "serves": "Green Mountain Trail edge 0 m, not fallback, 4 trails in range. Z2/Z3: yellow trail meets the lot's north tip, and a worn dirt path climbs NW from the lot's west edge to the trail. Lot name matches the trail and a trailhead node is at 44 m. The packet walk (887 m, empty connection, trail null) looks like a routing artifact; it is under 1 mile either way and does not outweigh the direct trail contact"
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/620201362": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.702587,
+   "lon": -105.196345,
+   "rings": [
+    [
+     [
+      39.702752,
+      -105.196693
+     ],
+     [
+      39.702173,
+      -105.196541
+     ],
+     [
+      39.702219,
+      -105.196132
+     ],
+     [
+      39.702356,
+      -105.196169
+     ],
+     [
+      39.7024,
+      -105.195996
+     ],
+     [
+      39.702777,
+      -105.196089
+     ],
+     [
+      39.703038,
+      -105.196205
+     ],
+     [
+      39.703022,
+      -105.19633
+     ],
+     [
+      39.702752,
+      -105.196693
+     ]
+    ]
+   ],
+   "osm": [
+    "way/620201362"
+   ],
+   "name": "Pro Pits",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Surveyed prior (parking=surface, name) confirmed: Z2/Z3 show a graded, delineated dirt pad inside the red outline with ~6-8 vehicles (pickups/trailers near the north tip, a red car and dark cars near the south edge, more vehicles just east of the notch), reached by a driveway off the internal paved loop; not a building, lawn, water or through-lane.",
+    "public": "No lot-level access tag, no trailhead/access record at the lot, and trailhead_nodes_120m is empty. The lot is named 'Pro Pits' and Z1 shows it sitting directly beside a large dirt motocross track complex (switchback MX circuit immediately south), with a staging building just south of the pad and trailers/RVs parked across the facility. This is motorsport pit/participant parking, which the protocol and lesson 11 explicitly exclude from public trail parking. Packet context is FACILITY (60 m from amenity=school 'Rooney Valley Training Facility').",
+    "serves": "Candidate only: C-470 Trail edge 259 m (not fallback, 3 trails in range), but walk 756 m with no connection recorded, 0 footways within 60 m, no trailhead nodes within 120 m. In Z1 the only yellow trail segment appears at the far east edge, beyond the multi-lane C-470 freeway; no trail starts at or enters the lot. The motocross pits are the direct owner and the better explanation; distance alone does not convert pit parking into trail overflow."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/620205729": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.69984,
+   "lon": -105.195102,
+   "rings": [
+    [
+     [
+      39.700159,
+      -105.19562
+     ],
+     [
+      39.700038,
+      -105.195556
+     ],
+     [
+      39.699871,
+      -105.195484
+     ],
+     [
+      39.699839,
+      -105.195433
+     ],
+     [
+      39.699393,
+      -105.195262
+     ],
+     [
+      39.69933,
+      -105.195224
+     ],
+     [
+      39.69929,
+      -105.195188
+     ],
+     [
+      39.699243,
+      -105.195115
+     ],
+     [
+      39.699226,
+      -105.195066
+     ],
+     [
+      39.69921,
+      -105.194946
+     ],
+     [
+      39.699211,
+      -105.194889
+     ],
+     [
+      39.699221,
+      -105.194791
+     ],
+     [
+      39.699036,
+      -105.194708
+     ],
+     [
+      39.699079,
+      -105.194521
+     ],
+     [
+      39.700457,
+      -105.195055
+     ],
+     [
+      39.700641,
+      -105.195126
+     ],
+     [
+      39.700587,
+      -105.195368
+     ],
+     [
+      39.700579,
+      -105.195401
+     ],
+     [
+      39.700502,
+      -105.195371
+     ],
+     [
+      39.700463,
+      -105.19556
+     ],
+     [
+      39.700213,
+      -105.195445
+     ],
+     [
+      39.700159,
+      -105.19562
+     ]
+    ]
+   ],
+   "osm": [
+    "way/620205729"
+   ],
+   "name": "VIP Zone",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Surveyed prior (parking=surface, name). Z2/Z3: a large, clearly delineated graded dirt pad (~7,876 m2) between the motocross track edge and the two-lane road, with one vehicle at the west edge (Z3). No stripes. Not a building, lawn, or water, so nothing contradicts the prior.",
+    "public": "The lot is tagged name=VIP Zone and has no access tag. Z1 shows it sits inside an active motocross venue: dirt MX tracks wrap its west and south sides, with venue buildings and staging to the north. Context puts it in leisure=park 'Thunder Valley Park', which is generic/weak. A VIP area in a motorsport venue is event-restricted parking. Venue or park openness does not grant general public parking. No trailhead node, official access record, or source grants public trail parking here.",
+    "serves": "The candidate is C-470 Trail at an edge distance of 270 m (not fallback). Walk is 452 m, but the walk record has conn empty and trail null. trailhead_nodes_120m is empty and footways_60m is 0. Z1: the yellow trail touches only the far east edge of the frame, beyond the road and the C-470 highway. No trail starts at or enters the lot. The motocross venue is the better owner explanation, and distance alone cannot make VIP motorsport parking into trail overflow."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/620205731": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.698696,
+   "lon": -105.194814,
+   "rings": [
+    [
+     [
+      39.698746,
+      -105.19534
+     ],
+     [
+      39.698732,
+      -105.19533
+     ],
+     [
+      39.698645,
+      -105.195265
+     ],
+     [
+      39.698516,
+      -105.195169
+     ],
+     [
+      39.698413,
+      -105.195067
+     ],
+     [
+      39.698319,
+      -105.194967
+     ],
+     [
+      39.69828,
+      -105.194923
+     ],
+     [
+      39.698357,
+      -105.194795
+     ],
+     [
+      39.698406,
+      -105.194687
+     ],
+     [
+      39.698448,
+      -105.194571
+     ],
+     [
+      39.698462,
+      -105.194508
+     ],
+     [
+      39.69849,
+      -105.194347
+     ],
+     [
+      39.699079,
+      -105.194521
+     ],
+     [
+      39.699036,
+      -105.194708
+     ],
+     [
+      39.698987,
+      -105.194896
+     ],
+     [
+      39.699079,
+      -105.194969
+     ],
+     [
+      39.699039,
+      -105.195029
+     ],
+     [
+      39.698977,
+      -105.195045
+     ],
+     [
+      39.698917,
+      -105.195077
+     ],
+     [
+      39.698875,
+      -105.195114
+     ],
+     [
+      39.698841,
+      -105.195161
+     ],
+     [
+      39.698794,
+      -105.195252
+     ],
+     [
+      39.698746,
+      -105.19534
+     ]
+    ]
+   ],
+   "osm": [
+    "way/620205731"
+   ],
+   "name": "Pro Pits",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Surveyed prior (parking=surface, name) with no positive contradiction. Z2/Z3: the red outline sits on a graded, compacted dirt pad with a dark rectangular patch inside it. The pad opens off the road on its east side, and dirt tracks lead west into the motocross complex. No cars or stripes on capture day, but the surface is clearly delineated, not lawn, water, building, or a through-lane.",
+    "public": "No lot-level access tag, official access record, or trailhead record. The lot is named 'Pro Pits'. Z1 shows it sits right next to an active motocross track complex (winding dirt race circuits fill the western half of the frame), and context puts it inside 'Thunder Valley Park'. Racer pit parking at a motorsport venue is internal participant space. Under protocol and lesson 11, being inside an open park/venue or having no visible gate does not make pit spaces public trail parking.",
+    "serves": "The motocross venue is the better direct explanation (motorsport pit lot). Zorro Trail edge is 238 m; walk is 345 m with an empty connection and no walk trail; no trailhead nodes within 120 m. The 2 footways within 60 m read in Z1/Z2 as motocross/pit dirt tracks heading west into the race complex, not a trail approach. Z1 also shows a separate paved, striped lot with many parked cars south-east across the road, past the substation, nearer the eastern trail. That is evidence against treating this pit pad as trail overflow."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/620205732": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.701203,
+   "lon": -105.195609,
+   "rings": [
+    [
+     [
+      39.701659,
+      -105.196065
+     ],
+     [
+      39.700857,
+      -105.1958
+     ],
+     [
+      39.700876,
+      -105.195707
+     ],
+     [
+      39.700732,
+      -105.195666
+     ],
+     [
+      39.700767,
+      -105.195479
+     ],
+     [
+      39.700579,
+      -105.195401
+     ],
+     [
+      39.700587,
+      -105.195368
+     ],
+     [
+      39.700641,
+      -105.195126
+     ],
+     [
+      39.701807,
+      -105.195578
+     ],
+     [
+      39.701659,
+      -105.196065
+     ]
+    ]
+   ],
+   "osm": [
+    "way/620205732"
+   ],
+   "name": "Pro Pits",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Surveyed prior (parking=surface + name) not contradicted. Z2/Z3: a large graded, delineated dirt pad (~5,626 m2) west of the two-lane road, reached from the motocross facility's internal yard next to the green-roofed building. Cars sit just north of it by the building and one vehicle is at its south end. No building, lawn, water, or through-lane inside the outline.",
+    "public": "No lot-level access tag, no official trailhead/access record, and no trailhead node within 120 m. name='Pro Pits' marks motorsport pit parking. Z1 shows it inside a motocross complex: dirt race-track loops immediately west and south, plus the facility building and yard to the north. Lesson 11 and the protocol both say pit spaces inside a venue are not public trail parking, whatever access the wider property has. Context is FACILITY ('Beer Garden' pub 117 m).",
+    "serves": "Nearest shipped trail is the C-470 Trail: 237 m edge distance, not fallback, but the 603 m walk has no connection (conn empty, walk trail null). footways_60m=0 and there are no trailhead nodes. Z1: the yellow trail sits NE, beyond the two-lane road, an open field, and the C-470 freeway, with no direct approach from the lot. The motocross track is the obvious owner; nothing shows trail-user dual use."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/620206644": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.697039,
+   "lon": -105.196453,
+   "rings": [
+    [
+     [
+      39.69708,
+      -105.196828
+     ],
+     [
+      39.697004,
+      -105.196825
+     ],
+     [
+      39.696909,
+      -105.196805
+     ],
+     [
+      39.696818,
+      -105.196782
+     ],
+     [
+      39.696709,
+      -105.196743
+     ],
+     [
+      39.696639,
+      -105.196705
+     ],
+     [
+      39.69657,
+      -105.196658
+     ],
+     [
+      39.6965,
+      -105.196589
+     ],
+     [
+      39.696527,
+      -105.196501
+     ],
+     [
+      39.696557,
+      -105.196393
+     ],
+     [
+      39.696624,
+      -105.19617
+     ],
+     [
+      39.69665,
+      -105.196054
+     ],
+     [
+      39.696671,
+      -105.196001
+     ],
+     [
+      39.696692,
+      -105.195973
+     ],
+     [
+      39.696715,
+      -105.195962
+     ],
+     [
+      39.696745,
+      -105.195966
+     ],
+     [
+      39.696785,
+      -105.195983
+     ],
+     [
+      39.696895,
+      -105.196048
+     ],
+     [
+      39.696995,
+      -105.196105
+     ],
+     [
+      39.69708,
+      -105.196145
+     ],
+     [
+      39.697151,
+      -105.196168
+     ],
+     [
+      39.697251,
+      -105.196202
+     ],
+     [
+      39.697392,
+      -105.196235
+     ],
+     [
+      39.697514,
+      -105.196259
+     ],
+     [
+      39.697556,
+      -105.196271
+     ],
+     [
+      39.697581,
+      -105.196286
+     ],
+     [
+      39.697602,
+      -105.196314
+     ],
+     [
+      39.697614,
+      -105.196353
+     ],
+     [
+      39.697614,
+      -105.196394
+     ],
+     [
+      39.697594,
+      -105.196503
+     ],
+     [
+      39.697558,
+      -105.196626
+     ],
+     [
+      39.697517,
+      -105.196701
+     ],
+     [
+      39.697479,
+      -105.196743
+     ],
+     [
+      39.69744,
+      -105.196774
+     ],
+     [
+      39.69739,
+      -105.196796
+     ],
+     [
+      39.697317,
+      -105.196809
+     ],
+     [
+      39.69708,
+      -105.196828
+     ]
+    ]
+   ],
+   "osm": [
+    "way/620206644"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2-Z3: large rectangular dirt surface independently graded and reached by venue vehicle lanes; empty capture does not contradict the surveyed parking prior",
+    "public": "Z1: the pad is wholly inside the Thunder Valley motorsport complex and reached through its internal circulation, with no independent lot-level public parking or trailhead identity",
+    "serves": "Z1: motocross tracks are the direct owner and better explanation; Zorro Trail is 189 m south outside the venue, with no trailhead node or direct shipped-trail approach into the pad"
+   },
+   "judged": "2026-10-04",
    "src": "judge-fanout"
   },
   "way/620404774": {
@@ -76543,6 +78976,338 @@
    "judged": "2026-08-01",
    "src": "opus-protocol-phx"
   },
+  "way/68252581": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.713929,
+   "lon": -105.152037,
+   "rings": [
+    [
+     [
+      39.713983,
+      -105.152511
+     ],
+     [
+      39.713892,
+      -105.15241
+     ],
+     [
+      39.713626,
+      -105.152166
+     ],
+     [
+      39.713694,
+      -105.151756
+     ],
+     [
+      39.713921,
+      -105.151643
+     ],
+     [
+      39.714074,
+      -105.151662
+     ],
+     [
+      39.714212,
+      -105.151866
+     ],
+     [
+      39.714094,
+      -105.152442
+     ],
+     [
+      39.713983,
+      -105.152511
+     ]
+    ]
+   ],
+   "osm": [
+    "way/68252581"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2/Z3: independently delineated flat dirt clearing beside the campus road with faint vehicle tracks; weak evidence that cars can be left there despite no stalls or cars",
+    "public": "Packet context is 0 m from amenity=school 'McLain Community High School'; Z1 shows the clearing inside the school campus, with no public-parking or trailhead authority",
+    "serves": "Sixth Ave West Trail edge 545 m and walk 477 m; Z1 shows no direct trail approach, while the school campus directly explains the clearing"
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/68252587": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.714664,
+   "lon": -105.152614,
+   "rings": [
+    [
+     [
+      39.714767,
+      -105.153293
+     ],
+     [
+      39.714631,
+      -105.153287
+     ],
+     [
+      39.714491,
+      -105.153212
+     ],
+     [
+      39.714356,
+      -105.152928
+     ],
+     [
+      39.714315,
+      -105.15293
+     ],
+     [
+      39.714255,
+      -105.152732
+     ],
+     [
+      39.714241,
+      -105.152281
+     ],
+     [
+      39.714408,
+      -105.151847
+     ],
+     [
+      39.714455,
+      -105.151892
+     ],
+     [
+      39.714585,
+      -105.151742
+     ],
+     [
+      39.714695,
+      -105.151769
+     ],
+     [
+      39.714767,
+      -105.151906
+     ],
+     [
+      39.714755,
+      -105.152061
+     ],
+     [
+      39.714637,
+      -105.152276
+     ],
+     [
+      39.714614,
+      -105.152351
+     ],
+     [
+      39.714653,
+      -105.152369
+     ],
+     [
+      39.714639,
+      -105.15252
+     ],
+     [
+      39.714654,
+      -105.152665
+     ],
+     [
+      39.714724,
+      -105.152917
+     ],
+     [
+      39.714829,
+      -105.153051
+     ],
+     [
+      39.714806,
+      -105.153121
+     ],
+     [
+      39.71486,
+      -105.15315
+     ],
+     [
+      39.714928,
+      -105.153091
+     ],
+     [
+      39.714955,
+      -105.153027
+     ],
+     [
+      39.714924,
+      -105.152968
+     ],
+     [
+      39.714897,
+      -105.15303
+     ],
+     [
+      39.714788,
+      -105.152901
+     ],
+     [
+      39.714711,
+      -105.152719
+     ],
+     [
+      39.714947,
+      -105.152485
+     ],
+     [
+      39.715105,
+      -105.15245
+     ],
+     [
+      39.715224,
+      -105.152589
+     ],
+     [
+      39.715252,
+      -105.152762
+     ],
+     [
+      39.715214,
+      -105.152881
+     ],
+     [
+      39.715046,
+      -105.153097
+     ],
+     [
+      39.714932,
+      -105.153244
+     ],
+     [
+      39.714767,
+      -105.153293
+     ]
+    ]
+   ],
+   "osm": [
+    "way/68252587"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Bare prior, so vision decided. Z2 and Z3 show a paved, curbed lot with aisles and striped stalls in two sections: a northern pod west of the building and a long curved southern lot with planted medians. Several dozen parked cars sit inside the red outline in both frames. No building overlap.",
+    "public": "Only tag is amenity=parking, with no access, operator, name, fee, or trailhead tag and no trailhead node within 120 m. Context puts amenity=school 'McLain Community High School' at 0 m edge distance (FACILITY). In Z1/Z2/Z3 the lot wraps the school building's west entrance and is full of cars on what looks like a school day. Nothing at lot level grants public trail parking. Ungated access and possible public ownership are only context (lesson 11). No aerial frame could show permission, so REVIEW does not apply.",
+    "serves": "PUBLIC is not established, so dual use cannot be credited. The candidate is Sixth Ave West Trail at 510 m edge distance with walk_m 498, but the walk connection is empty and its trail is null. No yellow trail appears in Z2 or Z3. In Z1 our trail only shows at the far bottom-right corner, past garden plots and a maintenance yard. The 6 footways within 60 m read as school sidewalks and a campus path. The school is the better explanation for this lot. Other non-trail owners visible in Z1: a campus complex with its own lots to the NE, a large striped lot to the N, an equipment yard to the SW, and greenhouse/garden plots to the SE."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/68252593": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.714885,
+   "lon": -105.149252,
+   "rings": [
+    [
+     [
+      39.714819,
+      -105.149457
+     ],
+     [
+      39.71479,
+      -105.149398
+     ],
+     [
+      39.714761,
+      -105.149419
+     ],
+     [
+      39.714722,
+      -105.14936
+     ],
+     [
+      39.714738,
+      -105.149336
+     ],
+     [
+      39.714728,
+      -105.149312
+     ],
+     [
+      39.714965,
+      -105.149041
+     ],
+     [
+      39.715054,
+      -105.149173
+     ],
+     [
+      39.714819,
+      -105.149457
+     ]
+    ]
+   ],
+   "osm": [
+    "way/68252593"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Bare prior, vision decides. Z3: paved asphalt bay fills the red outline (569 m2) with ~5-6 parked cars nose-in along the NW edge in stall positions; vehicle access from the school loop drive at the SW end. Z2 confirms the paved bay is contiguous with the campus's main NE lot. Physical lot exists.",
+    "public": "Only tag is amenity=parking: no access, name, operator, or fee tag; no trailhead node within 120 m; no official access record in the packet. Context: 0 m from amenity=school 'Warren Occupational Technical Center' (FACILITY). Z1/Z2: the lot is an inner campus bay tucked against the school buildings, reached only through the school's internal drive and contiguous with its staff/student lots. School-internal parking with no lot-level public grant is not public trail parking (protocol PUBLIC rule, lesson 11). No aerial frame could establish a parking grant, so REVIEW would have no host-fetchable resolver (lesson 10).",
+    "serves": "North Green Mountain edge 59 m and walk 115 m are distance-only signals: walk.conn empty, walk.trail null, no trailhead node within 120 m, not a fallback. Z1/Z2: the yellow trail starts east of the arterial road, next to a separate striped lot on that side; this lot is on the opposite (school) side, deep inside the campus. A closer, separate lot at the trail start counts against treating this school lot as overflow, and the school owner is the better explanation. PUBLIC is not proved, so dual-use cannot be credited."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/68252594": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.715283,
+   "lon": -105.148769,
+   "rings": [
+    [
+     [
+      39.715204,
+      -105.149266
+     ],
+     [
+      39.714967,
+      -105.148711
+     ],
+     [
+      39.715349,
+      -105.148304
+     ],
+     [
+      39.715611,
+      -105.148762
+     ],
+     [
+      39.715204,
+      -105.149266
+     ]
+    ]
+   ],
+   "osm": [
+    "way/68252594"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2+Z3: paved lot inside the red outline with painted stall rows, a central divider stripe, and roughly 40 parked cars concentrated toward the NW building side; real parking facility (bare prior decided by vision)",
+    "public": "Bare amenity=parking with no access/fee/name/operator tags; context FACILITY 0 m from amenity=school 'Warren Occupational Technical Center'. Z1/Z2: lot abuts the school buildings' NE face beside service/loading bays and fleet parking, one of several campus lots ringing the school complex. No lot-level access tag, trailhead record, or authoritative grant of public parking; public ownership or no visible gate would not establish it. Only a sign/ground fact could rescue it, which no aerial frame can show",
+    "serves": "North Green Mountain edge 28 m and walk 109 m, but walk has no connection (conn empty, trail null), no trailhead nodes within 120 m. Z1/Z2: the yellow trail begins on the far (east) side of the divided arterial, next to a separate striped lot SE of the road that sits closer to the trail start; this lot is on the school side of the road. School remains the better owner explanation; distance alone does not make it trail overflow"
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
   "way/682568192": {
    "verdict": "DROP",
    "reason": "not-public",
@@ -76601,6 +79366,286 @@
     "serves": "Crosstrails Trail edge 1020 m and fallback=true, walk 634 m; Z1: no yellow trail anywhere in the 600 m frame; the church, a townhouse development 100 m S and a graded construction site 150 m N are the only neighbours, the church explains the lot completely; no trailhead node within 120 m"
    },
    "judged": "2026-09-13",
+   "src": "judge-fanout"
+  },
+  "way/68513506": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.717891,
+   "lon": -105.1629,
+   "rings": [
+    [
+     [
+      39.718806,
+      -105.16455
+     ],
+     [
+      39.718567,
+      -105.164531
+     ],
+     [
+      39.71835,
+      -105.164448
+     ],
+     [
+      39.717987,
+      -105.164072
+     ],
+     [
+      39.717822,
+      -105.16389
+     ],
+     [
+      39.717987,
+      -105.163608
+     ],
+     [
+      39.717847,
+      -105.163453
+     ],
+     [
+      39.718078,
+      -105.16304
+     ],
+     [
+      39.718232,
+      -105.163174
+     ],
+     [
+      39.718426,
+      -105.162803
+     ],
+     [
+      39.717531,
+      -105.162023
+     ],
+     [
+      39.716898,
+      -105.1629
+     ],
+     [
+      39.717015,
+      -105.163447
+     ],
+     [
+      39.716918,
+      -105.163501
+     ],
+     [
+      39.716634,
+      -105.163729
+     ],
+     [
+      39.716466,
+      -105.164059
+     ],
+     [
+      39.716223,
+      -105.163817
+     ],
+     [
+      39.716374,
+      -105.163514
+     ],
+     [
+      39.716586,
+      -105.163286
+     ],
+     [
+      39.716774,
+      -105.163125
+     ],
+     [
+      39.716782,
+      -105.162801
+     ],
+     [
+      39.716726,
+      -105.162798
+     ],
+     [
+      39.71711,
+      -105.162254
+     ],
+     [
+      39.717613,
+      -105.161639
+     ],
+     [
+      39.71814,
+      -105.162111
+     ],
+     [
+      39.718298,
+      -105.161818
+     ],
+     [
+      39.718474,
+      -105.161492
+     ],
+     [
+      39.718614,
+      -105.161623
+     ],
+     [
+      39.71867,
+      -105.16147
+     ],
+     [
+      39.71874,
+      -105.161537
+     ],
+     [
+      39.718792,
+      -105.161473
+     ],
+     [
+      39.719082,
+      -105.161728
+     ],
+     [
+      39.71899,
+      -105.161929
+     ],
+     [
+      39.718769,
+      -105.16172
+     ],
+     [
+      39.718474,
+      -105.162294
+     ],
+     [
+      39.718703,
+      -105.162471
+     ],
+     [
+      39.718688,
+      -105.162562
+     ],
+     [
+      39.718765,
+      -105.162616
+     ],
+     [
+      39.718261,
+      -105.16356
+     ],
+     [
+      39.718214,
+      -105.16352
+     ],
+     [
+      39.718084,
+      -105.163766
+     ],
+     [
+      39.718175,
+      -105.163871
+     ],
+     [
+      39.718235,
+      -105.163804
+     ],
+     [
+      39.718367,
+      -105.16396
+     ],
+     [
+      39.718474,
+      -105.164078
+     ],
+     [
+      39.718604,
+      -105.164145
+     ],
+     [
+      39.718796,
+      -105.164145
+     ],
+     [
+      39.718806,
+      -105.16455
+     ]
+    ]
+   ],
+   "osm": [
+    "way/68513506"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2/Z3: paved aisles with painted stalls and dozens of parked cars plus a long carport structure, all running between multi-unit residential buildings; the red outline traces these internal aisles (building_overlap=true)",
+    "public": "Only tag is bare amenity=parking with no access tag, no official trailhead/access record, and no trailhead node within 120 m. Z1/Z2 show internal resident parking for an apartment/condo complex: striped bays serving the buildings, carports, landuse=residential at 0 m (FACILITY context). An ungated, unsigned aerial view does not grant public parking rights.",
+    "serves": "No yellow trail appears in Z1 (600 m), Z2 or Z3. North Access Trail edge is 389 m and walk_m is 800 with an empty connection and trail=null, so there is no direct trail approach. The 21 footways within 60 m read as the complex's internal sidewalks. The direct owner (residential complex) explains the lot better; the school to the east, commercial lot to the NW and surrounding housing are the other visible owners."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/685338418": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.712896,
+   "lon": -105.151849,
+   "rings": [
+    [
+     [
+      39.713032,
+      -105.152192
+     ],
+     [
+      39.712983,
+      -105.152156
+     ],
+     [
+      39.713101,
+      -105.15199
+     ],
+     [
+      39.712828,
+      -105.151671
+     ],
+     [
+      39.712627,
+      -105.151939
+     ],
+     [
+      39.712586,
+      -105.151893
+     ],
+     [
+      39.712795,
+      -105.151618
+     ],
+     [
+      39.712855,
+      -105.15161
+     ],
+     [
+      39.713157,
+      -105.151989
+     ],
+     [
+      39.713032,
+      -105.152192
+     ]
+    ]
+   ],
+   "osm": [
+    "way/685338418"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Bare prior, decided by vision. Z3: paved L-shaped lot wrapping the NE and SE sides of a small building, about 10 parked cars in a regular stall row along the NE edge plus 2 cars in the SE leg; Z2 shows the same delineated asphalt with an access throat off the loop road at the NW corner.",
+    "public": "Only tag is naked amenity=parking: no access, name, operator, fee, or trailhead record at the lot. Context classifier puts it 0 m from amenity=school (FACILITY). Z1 shows it inside a campus loop road beside a fenced storage/maintenance yard with parked trailers (west) and a cultivated garden/greenhouse plot (east), with large campus building lots to the north. Nothing at lot level grants general public parking; school ownership and no visible gate are context only.",
+    "serves": "Gate candidate only: Sixth Ave West Trail edge 551 m, not fallback, 2 trails in range, walk 384 m with no recorded connection (conn empty, walk trail null), 0 trailhead nodes within 120 m, no building overlap. The single nearby footway (Z2) is a paved campus path running north toward the school buildings, not toward the trail. Z1: the yellow trail runs along the creek corridor about 300 m south across open ground with no direct approach from this lot. The school/campus facility explains this lot better than trail overflow."
+   },
+   "judged": "2026-10-04",
    "src": "judge-fanout"
   },
   "way/688516761": {
@@ -78879,6 +81924,146 @@
    "judged": "2026-09-26",
    "src": "judge-fanout"
   },
+  "way/742236572": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.684181,
+   "lon": -105.153364,
+   "rings": [
+    [
+     [
+      39.68373,
+      -105.153668
+     ],
+     [
+      39.683689,
+      -105.153224
+     ],
+     [
+      39.684404,
+      -105.153113
+     ],
+     [
+      39.684554,
+      -105.153112
+     ],
+     [
+      39.68489,
+      -105.153114
+     ],
+     [
+      39.685002,
+      -105.153266
+     ],
+     [
+      39.684968,
+      -105.153316
+     ],
+     [
+      39.68484,
+      -105.15317
+     ],
+     [
+      39.68456,
+      -105.15318
+     ],
+     [
+      39.684534,
+      -105.153564
+     ],
+     [
+      39.684361,
+      -105.153572
+     ],
+     [
+      39.68373,
+      -105.153668
+     ]
+    ]
+   ],
+   "osm": [
+    "way/742236572"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Surveyed prior (operator tag) confirmed: Z2/Z3 show a paved asphalt lot inside the red outline with painted stall rows along both edges and a center double row, a striped aisle, and roughly 10 parked cars in Z3; the unpaved strip at the south end of the outline is bare ground, but the striped lot fills most of the footprint.",
+    "public": "Lot-level data names operator=Christ on the Mountain Catholic Church, with no access=yes/permissive tag, no named trailhead/access record (trailhead_nodes_120m empty), and no source granting public parking. Z1/Z2 show the lot attached to the church building directly west and to a second church lot NW off the arterial. Context is FACILITY (landuse=residential 32 m), with apartments to the SW and single-family homes to the E/S. An ungated driveway and no visible sign only give context. This is church parking, not established public trail parking.",
+    "serves": "John O. Hayden Trail edge is 259 m, but the walk is 1252 m with no connection (walk.trail null, conn empty), footways_60m=0, and there are no trailhead nodes within 120 m. In Z1/Z2 no yellow trail line reaches or starts at the lot. Its direct owner (the adjacent church) explains it better, and nothing at lot level shows dual-use trail parking."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/742236575": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.685217,
+   "lon": -105.153723,
+   "rings": [
+    [
+     [
+      39.685304,
+      -105.154148
+     ],
+     [
+      39.685259,
+      -105.154105
+     ],
+     [
+      39.685234,
+      -105.154143
+     ],
+     [
+      39.684879,
+      -105.153717
+     ],
+     [
+      39.685182,
+      -105.153306
+     ],
+     [
+      39.685207,
+      -105.153346
+     ],
+     [
+      39.685248,
+      -105.153297
+     ],
+     [
+      39.685469,
+      -105.153565
+     ],
+     [
+      39.6854,
+      -105.153722
+     ],
+     [
+      39.68551,
+      -105.15384
+     ],
+     [
+      39.685304,
+      -105.154148
+     ]
+    ]
+   ],
+   "osm": [
+    "way/742236575"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Surveyed prior (operator tag) confirmed: Z2/Z3 NAIP show a paved asphalt lot filling the red outline with painted stall stripes on every row, landscaped tree islands, a curbed end island, several parked cars, and two driveway throats off the arterial to the NE; footprint 2868 m2, no building overlap.",
+    "public": "Lot-level operator=Christ on the Mountain Catholic Church; no access tag, no trailhead/official access record, no trailhead node within 120 m. Context FACILITY: place_of_worship 60 m away. Z1/Z2/Z3 show the lot is the north wing of the church campus, continuous with the church's main striped lot running south past the church building. A church operator plus no lot-level grant of public parking makes this church parking, not general public parking (lesson 11). Absence of a gate is only context.",
+    "serves": "Only candidate is John O. Hayden Trail, edge 185 m, not fallback, but walk 1165 m with no connection (conn empty, walk trail null). Z1 shows the yellow trail end NW across a multi-lane divided highway, with open grass between it and the lot and no visible trail approach from the lot. One footway within 60 m, but no trail starts at or in the lot and nothing names it a trailhead. The church is the better direct explanation; distance alone does not turn church parking into trail overflow."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
   "way/742279119": {
    "verdict": "KEEP",
    "reason": null,
@@ -79178,6 +82363,62 @@
    },
    "judged": "2026-08-01",
    "src": "opus-protocol-phx"
+  },
+  "way/755673841": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.718371,
+   "lon": -105.159255,
+   "rings": [
+    [
+     [
+      39.718254,
+      -105.159432
+     ],
+     [
+      39.718227,
+      -105.159231
+     ],
+     [
+      39.718409,
+      -105.159072
+     ],
+     [
+      39.718503,
+      -105.159232
+     ],
+     [
+      39.718536,
+      -105.159301
+     ],
+     [
+      39.718451,
+      -105.159389
+     ],
+     [
+      39.718411,
+      -105.159306
+     ],
+     [
+      39.718254,
+      -105.159432
+     ]
+    ]
+   ],
+   "osm": [
+    "way/755673841"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2/Z3: paved lot inside the red outline holding roughly 10 parked cars (white, dark and red vehicles along the SE edge and the north arm); Z2 cars prove it, Z3 confirms the surface and vehicles. Bare prior, but vision decides EXISTS outright.",
+    "public": "Only tag is a bare amenity=parking: no access tag, name, operator or trailhead record. Context puts it 0 m from amenity=school 'Kyffin Elementary School'. Z1/Z2 show a small rear lot right behind the school's south wing, reached from the school's back apron and a residential cul-de-sac; the school's main front lot (with cars) sits on the NE side. This reads as school staff parking. School ownership and an open, ungated lot don't establish public parking rights (lesson 11).",
+    "serves": "North Access Trail edge is 784 m (non-fallback, just inside the 805 m gate) and the walk is 964 m with no connection (conn empty, walk trail null). There are no trailhead nodes within 120 m, and no yellow trail line shows anywhere in the 600 m Z1 frame, which is all residential streets, the school, its playfields and an apartment complex. The 6 footways within 60 m are school-grounds paths. The school is the better explanation and nothing at the lot level establishes trail dual use; distance alone doesn't prove SERVES."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
   },
   "way/75762973": {
    "verdict": "KEEP",
@@ -82483,6 +85724,606 @@
    "judged": "2026-09-13",
    "src": "judge-fanout"
   },
+  "way/82854200": {
+   "verdict": "DROP",
+   "reason": "too-far",
+   "lat": 39.669533,
+   "lon": -105.205765,
+   "rings": [
+    [
+     [
+      39.669404,
+      -105.20608
+     ],
+     [
+      39.669361,
+      -105.206064
+     ],
+     [
+      39.669304,
+      -105.20603
+     ],
+     [
+      39.66949,
+      -105.205738
+     ],
+     [
+      39.669625,
+      -105.205324
+     ],
+     [
+      39.669676,
+      -105.20536
+     ],
+     [
+      39.669647,
+      -105.20577
+     ],
+     [
+      39.669583,
+      -105.205915
+     ],
+     [
+      39.669492,
+      -105.206038
+     ],
+     [
+      39.669404,
+      -105.20608
+     ]
+    ]
+   ],
+   "osm": [
+    "way/82854200"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2: curved paved bay lies outside the through-road lane and contains one parked white vehicle.",
+    "public": "Only amenity=parking is tagged; there is no lot-level access grant or official trailhead/access record, and protected-area context alone does not establish parking rights.",
+    "serves": "Geologic Overlook Trail edge 121 m and walk 168 m, but conn is empty, no trailhead node or footway is recorded, and Z1 shows no yellow trail entering this scenic Red Rocks pull-off."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/82854210": {
+   "verdict": "REVIEW",
+   "reason": null,
+   "lat": 39.664306,
+   "lon": -105.203019,
+   "rings": [
+    [
+     [
+      39.664186,
+      -105.203251
+     ],
+     [
+      39.664087,
+      -105.203037
+     ],
+     [
+      39.664198,
+      -105.202964
+     ],
+     [
+      39.664346,
+      -105.202829
+     ],
+     [
+      39.664399,
+      -105.202787
+     ],
+     [
+      39.664534,
+      -105.202994
+     ],
+     [
+      39.664186,
+      -105.203251
+     ]
+    ]
+   ],
+   "osm": [
+    "way/82854210"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "leaning",
+   "evidence": {
+    "exists": "Z2: paved rectangular parking area has painted stalls and approximately nine parked vehicles.",
+    "public": "Only amenity=parking is tagged; the lot has no access grant or named official access record, and its location inside Red Rocks Park does not by itself prove general parking rights.",
+    "serves": "A highway=trailhead node is 62 m away, 12 footways are within 60 m, and Z2 shows pedestrian paths leading from the parking cluster toward nearby yellow trail segments."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout",
+   "resolve_hint": "Host-freeze an official Red Rocks Park visitor-parking map or access record that identifies this exact lot and its permitted users."
+  },
+  "way/82854212": {
+   "verdict": "KEEP",
+   "reason": null,
+   "lat": 39.663986,
+   "lon": -105.202551,
+   "rings": [
+    [
+     [
+      39.664064,
+      -105.203029
+     ],
+     [
+      39.664004,
+      -105.202828
+     ],
+     [
+      39.663975,
+      -105.202844
+     ],
+     [
+      39.663955,
+      -105.20279
+     ],
+     [
+      39.663876,
+      -105.202589
+     ],
+     [
+      39.663868,
+      -105.202576
+     ],
+     [
+      39.663852,
+      -105.202554
+     ],
+     [
+      39.663765,
+      -105.202605
+     ],
+     [
+      39.663725,
+      -105.202511
+     ],
+     [
+      39.663707,
+      -105.202436
+     ],
+     [
+      39.663717,
+      -105.202358
+     ],
+     [
+      39.66375,
+      -105.202286
+     ],
+     [
+      39.663781,
+      -105.202171
+     ],
+     [
+      39.663818,
+      -105.202104
+     ],
+     [
+      39.663824,
+      -105.202037
+     ],
+     [
+      39.663829,
+      -105.201972
+     ],
+     [
+      39.663844,
+      -105.201945
+     ],
+     [
+      39.663861,
+      -105.201928
+     ],
+     [
+      39.663938,
+      -105.202184
+     ],
+     [
+      39.663893,
+      -105.202221
+     ],
+     [
+      39.663882,
+      -105.20227
+     ],
+     [
+      39.663909,
+      -105.202307
+     ],
+     [
+      39.663928,
+      -105.202315
+     ],
+     [
+      39.664054,
+      -105.20256
+     ],
+     [
+      39.664025,
+      -105.202608
+     ],
+     [
+      39.664068,
+      -105.202688
+     ],
+     [
+      39.664093,
+      -105.202688
+     ],
+     [
+      39.664087,
+      -105.202635
+     ],
+     [
+      39.664227,
+      -105.2026
+     ],
+     [
+      39.664238,
+      -105.20268
+     ],
+     [
+      39.664261,
+      -105.202682
+     ],
+     [
+      39.664279,
+      -105.202643
+     ],
+     [
+      39.664399,
+      -105.202787
+     ],
+     [
+      39.664346,
+      -105.202829
+     ],
+     [
+      39.664095,
+      -105.202898
+     ],
+     [
+      39.664103,
+      -105.202997
+     ],
+     [
+      39.664064,
+      -105.203029
+     ]
+    ]
+   ],
+   "osm": [
+    "way/82854212"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Surveyed prior (parking=surface, fee) confirmed positively. Z2/Z3: paved lot with drive aisle and its own access throat off the main park road, bays outside the travel lane; Z3 shows ~15+ parked cars in rows along the southern and central bays inside the red outline. No building/lawn/through-lane contradiction (building_overlap=false; the adjacent building sits just west of the outline).",
+    "public": "Lot-level member tag access=yes with fee=no on way/82854212 (single member, mixed_access=false), which the protocol allows to decide PUBLIC. Context SUPPORT: inside boundary=protected_area 'Red Rocks Park'. No gate visible in Z2/Z3 (context only, not relied on).",
+    "serves": "Trading Post Trail edge 0 m, walk 0 m, no fallback, only trail in range. Z2/Z3: yellow Trading Post Trail runs from the south into the lot and terminates inside the outline beside the parked-car row, i.e. the trail starts at the lot; an unnamed trailhead node sits 13 m away and 4 footways lie within 60 m. The adjacent building is a park facility inside the protected area (context SUPPORT, consistent with the trail's namesake), not a school/church/residential owner, and lot-level access=yes independently establishes public use, so dual-use is not the explanation here."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/82854213": {
+   "verdict": "DROP",
+   "reason": "not-a-lot",
+   "lat": 39.664345,
+   "lon": -105.202471,
+   "rings": [
+    [
+     [
+      39.664525,
+      -105.202855
+     ],
+     [
+      39.664413,
+      -105.202698
+     ],
+     [
+      39.664231,
+      -105.202474
+     ],
+     [
+      39.664081,
+      -105.202321
+     ],
+     [
+      39.664312,
+      -105.20231
+     ],
+     [
+      39.664421,
+      -105.202286
+     ],
+     [
+      39.664438,
+      -105.202332
+     ],
+     [
+      39.664494,
+      -105.202495
+     ],
+     [
+      39.664456,
+      -105.202523
+     ],
+     [
+      39.664463,
+      -105.202539
+     ],
+     [
+      39.664443,
+      -105.202564
+     ],
+     [
+      39.664403,
+      -105.202612
+     ],
+     [
+      39.66446,
+      -105.202694
+     ],
+     [
+      39.664552,
+      -105.202825
+     ],
+     [
+      39.664525,
+      -105.202855
+     ]
+    ]
+   ],
+   "osm": [
+    "way/82854213"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "certain",
+   "evidence": {
+    "exists": "Z2: red footprint covers a building/roof, a narrow verge, and a segment of the through road; no vehicle-access throat or bay exists outside the travel lane. Packet also reports building_overlap=true.",
+    "public": "Not evaluated because the mapped feature is not a parking facility.",
+    "serves": "Not evaluated because the mapped feature is not a parking facility, despite Mount Vernon Creek Trail being 2 m away."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/82864827": {
+   "verdict": "KEEP",
+   "reason": null,
+   "lat": 39.698153,
+   "lon": -105.203393,
+   "rings": [
+    [
+     [
+      39.698657,
+      -105.203675
+     ],
+     [
+      39.698584,
+      -105.203667
+     ],
+     [
+      39.698174,
+      -105.203581
+     ],
+     [
+      39.697971,
+      -105.203541
+     ],
+     [
+      39.697886,
+      -105.203479
+     ],
+     [
+      39.697678,
+      -105.20335
+     ],
+     [
+      39.697633,
+      -105.203326
+     ],
+     [
+      39.697576,
+      -105.203316
+     ],
+     [
+      39.697503,
+      -105.203312
+     ],
+     [
+      39.697428,
+      -105.203338
+     ],
+     [
+      39.697378,
+      -105.203382
+     ],
+     [
+      39.697335,
+      -105.203444
+     ],
+     [
+      39.697319,
+      -105.2035
+     ],
+     [
+      39.697312,
+      -105.203551
+     ],
+     [
+      39.697177,
+      -105.203541
+     ],
+     [
+      39.69721,
+      -105.203406
+     ],
+     [
+      39.697263,
+      -105.203284
+     ],
+     [
+      39.697332,
+      -105.203204
+     ],
+     [
+      39.697412,
+      -105.203166
+     ],
+     [
+      39.697524,
+      -105.203147
+     ],
+     [
+      39.697683,
+      -105.203171
+     ],
+     [
+      39.697819,
+      -105.203178
+     ],
+     [
+      39.697931,
+      -105.203193
+     ],
+     [
+      39.69806,
+      -105.203207
+     ],
+     [
+      39.698117,
+      -105.203214
+     ],
+     [
+      39.698376,
+      -105.203237
+     ],
+     [
+      39.698675,
+      -105.203264
+     ],
+     [
+      39.698779,
+      -105.20328
+     ],
+     [
+      39.698817,
+      -105.20329
+     ],
+     [
+      39.698853,
+      -105.20333
+     ],
+     [
+      39.698884,
+      -105.203394
+     ],
+     [
+      39.698891,
+      -105.203452
+     ],
+     [
+      39.698883,
+      -105.203523
+     ],
+     [
+      39.698862,
+      -105.203574
+     ],
+     [
+      39.698833,
+      -105.203618
+     ],
+     [
+      39.698774,
+      -105.203655
+     ],
+     [
+      39.698716,
+      -105.203673
+     ],
+     [
+      39.698657,
+      -105.203675
+     ]
+    ]
+   ],
+   "osm": [
+    "way/82864827"
+   ],
+   "name": "Stegosaurus Park-and-Ride Lot",
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2/Z3 show a large paved delineated lot with dozens of parked vehicles.",
+    "public": "The frozen authoritative JCOS access record identifies this co-located facility as the Matthews/Winters Park Stegosaurus Lot trailhead; the OSM RTD park-and-ride attribution is a mistag.",
+    "serves": "The official Stegosaurus Lot access record is co-located with the facility and serves Dakota Ridge Trail, which is 26 m from the lot."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout",
+   "override": {
+    "version": 4,
+    "from_decision": {
+     "fid": 373,
+     "area": "bear-creek-lake-park-co",
+     "osm": [
+      "way/82864827"
+     ],
+     "verdict": "DROP",
+     "prior": "surveyed",
+     "exists": {
+      "call": "yes",
+      "evidence": "Z3: large paved, delineated lot contains approximately 17 parked vehicles."
+     },
+     "public": {
+      "call": "no",
+      "evidence": "Lot-level tags identify the facility as Stegosaurus Park-and-Ride Lot, operator RTD, park_ride=yes; no access=yes or trail-parking authorization establishes use by hikers."
+     },
+     "serves": {
+      "call": "no",
+      "evidence": "The RTD transit lot is the direct owner; Dakota Ridge Trail is 26 m away but conn is empty, no trailhead node exists within 120 m, and Z2-Z3 show the yellow trail separated from the lot by an unmarked dirt corridor."
+     },
+     "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+     ],
+     "tags_cited": {
+      "name": "Stegosaurus Park-and-Ride Lot",
+      "operator": "RTD",
+      "park_ride": "yes",
+      "surface": "asphalt"
+     },
+     "confidence": "strong",
+     "resolve_hint": null
+    },
+    "from_decision_sha256": "bbe1e70fe045a8bb7f21a1a207622c75d66d9949ef76221742546a1170255fa7",
+    "from_evidence_sha256": "310cc7354ca0277acd71223a8a71e7fce0f51fba7da1ea6395bc1b6a1438b915",
+    "to_decision_sha256": "c8f740b7715df07bda491c364fab1c7e9e33954c36f723559663cfd138745691",
+    "to_evidence_sha256": "928380db1924652ed42247f0f6b5260aa4dbc90641275a838d78a771d0f6ace8",
+    "by": "human",
+    "reviewer": "quentin",
+    "date": "2026-10-03",
+    "note": "Approve KEEP because the frozen JCOS access record identifies the Matthews/Winters Park Stegosaurus Lot trailhead at this facility.",
+    "packet_sha256": "af460179bc32b54fb1c3be53f5d3ff714fde62f96162731ab50b99f7ecf77239",
+    "source_run_id": "6046197b676ae1711aa7992e0c3ab428a453437e789b6627d5cc61a6472c6f24",
+    "review_receipt_sha256": "d792b40e11aa21a46d033442ea84ba15e0a70f3388629539c58d5e2725399866",
+    "review_sheet_sha256": "ccc0dde4594e5bc30ea878127dd5514c03a50864152bec9fb4813af73bf4f939",
+    "review_item_sha256": "dc805154ca834361f660a6960dcfa15c3b2ec8b1dd9ec35bd881cf0828ae5b9a",
+    "authority_receipt_sha256": "18586157ea3acc0bc2e205315f36e54e2ebfd7d567ec449a5fe83a8653289390"
+   }
+  },
   "way/82864879": {
    "verdict": "KEEP",
    "reason": null,
@@ -83393,6 +87234,70 @@
     "serves": "OSM trailhead name matches Royal Tiger Trail, whose edge is 153 m away with a 181 m walk; Z1 also shows an adjacent disturbed worksite, but the explicit trailhead identity supports dual use"
    },
    "judged": "2026-09-26",
+   "src": "judge-fanout"
+  },
+  "way/844884215": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.714368,
+   "lon": -105.148419,
+   "rings": [
+    [
+     [
+      39.714134,
+      -105.148683
+     ],
+     [
+      39.714022,
+      -105.148508
+     ],
+     [
+      39.714197,
+      -105.148372
+     ],
+     [
+      39.714423,
+      -105.14826
+     ],
+     [
+      39.714598,
+      -105.148211
+     ],
+     [
+      39.714668,
+      -105.148203
+     ],
+     [
+      39.714683,
+      -105.148423
+     ],
+     [
+      39.714489,
+      -105.148466
+     ],
+     [
+      39.714268,
+      -105.148568
+     ],
+     [
+      39.714134,
+      -105.148683
+     ]
+    ]
+   ],
+   "osm": [
+    "way/844884215"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2-Z3: elongated paved bay with faded painted stalls, several parked vehicles, and a vehicle-access throat at its southwest end",
+    "public": "Packet context places Warren Occupational Technical Center 38 m away; Z1-Z3 show the bay reached from the school campus perimeter road and associated with its surrounding parking complex, with no lot-level public access or official trailhead record",
+    "serves": "Z3: open ground separates the bay from North Green Mountain trail 27 m east, with no visible connecting path; the 80 m walk and three nearby footways do not overcome the empty foot-network connection, absent trailhead node, and school as the better direct owner"
+   },
+   "judged": "2026-10-04",
    "src": "judge-fanout"
   },
   "way/845238008": {
@@ -87641,6 +91546,316 @@
    "judged": "2026-08-01",
    "src": "griffith-park-ca_verdicts2.json"
   },
+  "way/91322571": {
+   "verdict": "REVIEW",
+   "reason": null,
+   "lat": 39.675748,
+   "lon": -105.192622,
+   "rings": [
+    [
+     [
+      39.676041,
+      -105.193345
+     ],
+     [
+      39.675927,
+      -105.1933
+     ],
+     [
+      39.675936,
+      -105.193228
+     ],
+     [
+      39.675891,
+      -105.193207
+     ],
+     [
+      39.675848,
+      -105.193242
+     ],
+     [
+      39.675782,
+      -105.193174
+     ],
+     [
+      39.675779,
+      -105.193065
+     ],
+     [
+      39.675727,
+      -105.192967
+     ],
+     [
+      39.675697,
+      -105.192912
+     ],
+     [
+      39.675643,
+      -105.192635
+     ],
+     [
+      39.675636,
+      -105.192587
+     ],
+     [
+      39.675609,
+      -105.192408
+     ],
+     [
+      39.675594,
+      -105.192308
+     ],
+     [
+      39.675641,
+      -105.192224
+     ],
+     [
+      39.675674,
+      -105.192218
+     ],
+     [
+      39.675705,
+      -105.192128
+     ],
+     [
+      39.675749,
+      -105.19206
+     ],
+     [
+      39.675779,
+      -105.19206
+     ],
+     [
+      39.675843,
+      -105.19218
+     ],
+     [
+      39.675813,
+      -105.192217
+     ],
+     [
+      39.67576,
+      -105.192318
+     ],
+     [
+      39.675717,
+      -105.19244
+     ],
+     [
+      39.675697,
+      -105.192554
+     ],
+     [
+      39.6757,
+      -105.192688
+     ],
+     [
+      39.675727,
+      -105.192814
+     ],
+     [
+      39.675768,
+      -105.192955
+     ],
+     [
+      39.675813,
+      -105.19304
+     ],
+     [
+      39.675881,
+      -105.193134
+     ],
+     [
+      39.675977,
+      -105.193236
+     ],
+     [
+      39.676052,
+      -105.193295
+     ],
+     [
+      39.676041,
+      -105.193345
+     ]
+    ]
+   ],
+   "osm": [
+    "way/91322571"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z2/Z3 show a delineated graded pullout outside the travel lane with a vehicle-access throat; the parking facility exists.",
+    "public": "No lot-level access tag or named official access record proves public parking; park ownership, a trail crossing, and lack of a gate are context only.",
+    "serves": "Dakota Ridge and Dinosaur Ridge trails directly meet the pullout, but lawful trail use remains undecidable until PUBLIC is established."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout",
+   "override": {
+    "version": 4,
+    "from_decision": {
+     "fid": 391,
+     "area": "bear-creek-lake-park-co",
+     "osm": [
+      "way/91322571"
+     ],
+     "verdict": "DROP",
+     "prior": "bare",
+     "exists": {
+      "call": "no",
+      "evidence": "Z2-Z3: red polygon follows a continuous paved curve and broad road junction; there is no separate vehicle-access throat, bay, parked vehicle, stall, or independently delineated surface outside the travel lane."
+     },
+     "public": {
+      "call": "n/a",
+      "evidence": "Not evaluated because the mapped feature is road pavement rather than a parking facility."
+     },
+     "serves": {
+      "call": "n/a",
+      "evidence": "Not evaluated because the mapped feature is not a parking facility, although shipped trails run along and across the road."
+     },
+     "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+     ],
+     "tags_cited": {
+      "amenity": "parking"
+     },
+     "confidence": "strong",
+     "resolve_hint": null
+    },
+    "from_decision_sha256": "9d50aaa650937e72ea699a41a7550b670e081a4f519e67468f39671c25ea34af",
+    "from_evidence_sha256": "2a940e893e5325ef467c8e99bf324ce3fcae15051ee66fe14f87948a5c37ff7a",
+    "to_decision_sha256": "faaff9f2ef98863700534c6f6581274c2ba964d55bd67beb7c053f53078ba053",
+    "to_evidence_sha256": "d7057a4df95c0f6e89a5f3c4ab6537e06f4dec55a92d13913c338886c5bd420e",
+    "by": "human",
+    "reviewer": "quentin",
+    "date": "2026-10-03",
+    "note": "Hold for a frozen lot-level public-parking authorization or restriction covering the Matthews/Winters hairpin pullout.",
+    "packet_sha256": "9949d8a18e1b4d48cf5a334ab6049cb75accbf48c956974bc1b4bc50f8dc7d90",
+    "source_run_id": "6046197b676ae1711aa7992e0c3ab428a453437e789b6627d5cc61a6472c6f24",
+    "review_receipt_sha256": "d792b40e11aa21a46d033442ea84ba15e0a70f3388629539c58d5e2725399866",
+    "review_sheet_sha256": "ccc0dde4594e5bc30ea878127dd5514c03a50864152bec9fb4813af73bf4f939",
+    "review_item_sha256": "2dba126d0b1032130cbac133b23f07829c9bfb89484236c8e8cbfb4ca169aed8",
+    "authority_receipt_sha256": "e9792f417e6dbcfa7ee30a0cd334703f24a71d3058d0fc4426f18766b8ad5d41"
+   },
+   "resolve_hint": "Hold for a frozen lot-level public-parking authorization or restriction covering the Matthews/Winters hairpin pullout."
+  },
+  "way/91322581": {
+   "verdict": "KEEP",
+   "reason": null,
+   "lat": 39.670816,
+   "lon": -105.194981,
+   "rings": [
+    [
+     [
+      39.67075,
+      -105.195202
+     ],
+     [
+      39.670685,
+      -105.195105
+     ],
+     [
+      39.670675,
+      -105.195087
+     ],
+     [
+      39.670829,
+      -105.194845
+     ],
+     [
+      39.670878,
+      -105.194769
+     ],
+     [
+      39.67094,
+      -105.194835
+     ],
+     [
+      39.670961,
+      -105.194863
+     ],
+     [
+      39.67076,
+      -105.195186
+     ],
+     [
+      39.67075,
+      -105.195202
+     ]
+    ]
+   ],
+   "osm": [
+    "way/91322581"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "surveyed",
+   "confidence": "certain",
+   "evidence": {
+    "exists": "Surveyed prior (surface=asphalt, parking=surface, capacity=12, fee=no). Z2 and Z3: light-grey paved rectangular bay (~456 m2) that sits outside the travel lane on the SE side of the park road, bounded by the tree line, with one red vehicle parked inside the red outline. No stripes resolvable, but the parked car plus the delineated paved bay outside the travel lane confirm the prior. No building, lawn or water contradiction.",
+    "public": "Lot-level access=yes and fee=no on way/91322581 (single member, mixed_access=false). Corroborated by a trailhead node 18 m away and SUPPORT context (inside boundary=protected_area 'Red Rocks Park'). No gate visible in Z3, but the explicit lot-level access tag is what carries this axis.",
+    "serves": "Red Rocks Trail edge 0 m (fallback=false, 4 trails in range); walk to Mount Vernon Creek Trail is 0 m. Z2/Z3 show a yellow trail leaving the lot's SW corner and heading south, and another running along the road edge from the same corner. Trailhead node 18 m away; 5 footways within 60 m. Z1 non-trail owners: a hillside residence to the NW and a residential compound to the S, both reached by their own drives and not attached to this bay. No school, church, commercial or event use better explains it, so this reads as a direct trailhead lot."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
+  "way/91322590": {
+   "verdict": "REVIEW",
+   "reason": null,
+   "lat": 39.67735,
+   "lon": -105.193955,
+   "rings": [
+    [
+     [
+      39.677569,
+      -105.194154
+     ],
+     [
+      39.677271,
+      -105.193924
+     ],
+     [
+      39.677066,
+      -105.193781
+     ],
+     [
+      39.677097,
+      -105.193758
+     ],
+     [
+      39.677362,
+      -105.193924
+     ],
+     [
+      39.677572,
+      -105.194081
+     ],
+     [
+      39.677569,
+      -105.194154
+     ]
+    ]
+   ],
+   "osm": [
+    "way/91322590"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "leaning",
+   "evidence": {
+    "exists": "Z2: elongated paved shoulder bay lies beside the travel lane, with one white vehicle parked approximately 10 m beyond the red outline on the same bay.",
+    "public": "Only amenity=parking is tagged; there is no lot-level access grant or official parking record, and protected-area context alone does not establish legal public use of the roadside bay.",
+    "serves": "Walk is 0 m to Dinosaur Ridge Trail, and Z1-Z2 show the shipped yellow trail running directly along the parking bay."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout",
+   "resolve_hint": "Host-freeze an official Matthews/Winters Park or Dinosaur Ridge parking map that identifies this exact roadside bay and its permitted users."
+  },
   "way/913912510": {
    "verdict": "KEEP",
    "reason": null,
@@ -89908,6 +94123,112 @@
    "judged": "2026-08-02",
    "src": "ne_verdicts_osm.json"
   },
+  "way/987030579": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.662008,
+   "lon": -105.093028,
+   "rings": [
+    [
+     [
+      39.661635,
+      -105.093338
+     ],
+     [
+      39.661622,
+      -105.093279
+     ],
+     [
+      39.661682,
+      -105.093257
+     ],
+     [
+      39.66165,
+      -105.093113
+     ],
+     [
+      39.661883,
+      -105.093026
+     ],
+     [
+      39.661914,
+      -105.093166
+     ],
+     [
+      39.662035,
+      -105.093121
+     ],
+     [
+      39.662049,
+      -105.093184
+     ],
+     [
+      39.661635,
+      -105.093338
+     ]
+    ],
+    [
+     [
+      39.662018,
+      -105.092997
+     ],
+     [
+      39.662017,
+      -105.092691
+     ],
+     [
+      39.66206,
+      -105.092691
+     ],
+     [
+      39.662061,
+      -105.092997
+     ],
+     [
+      39.662018,
+      -105.092997
+     ]
+    ],
+    [
+     [
+      39.662168,
+      -105.093131
+     ],
+     [
+      39.662148,
+      -105.093
+     ],
+     [
+      39.662189,
+      -105.09299
+     ],
+     [
+      39.662208,
+      -105.093121
+     ],
+     [
+      39.662168,
+      -105.093131
+     ]
+    ]
+   ],
+   "osm": [
+    "way/987030579",
+    "way/987030580",
+    "way/987030581"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Z3 (NAIP 0.14 m/px): the long western polygon is a paved bay of perpendicular stalls off the complex's internal drive, with several parked cars (white and dark vehicles) inside the outline. The east polygon is a paved strip in front of the tennis court. The small north polygon is a paved pad between two townhouse rows with a red car at its edge. Z2 shows the same delineated paved surfaces.",
+    "public": "Only tag is a bare amenity=parking on all 3 members: no access tag, name, operator, or trailhead/access record. Context is FACILITY, 0 m from landuse=residential. Z1/Z2/Z3 place all three footprints deep inside a multifamily townhouse complex, on its internal private-looking drives and next to the complex's own tennis court and pool. Everything visible reads as resident/guest parking. No lot-level evidence grants general public parking, and only a ground sign could change that.",
+    "serves": "Gated by PUBLIC=no. Stone House Trail (North) is 164 m away by edge, not fallback, and the walk is 188 m, but walk.trail is null, conn is empty, footways_60m=0, and trailhead_nodes_120m is empty. Z1/Z2 show townhouse rows between the lots and the open space to the north, with no mapped trail access from the lots. The residential complex amenity area (pool, tennis) explains this parking better than trail overflow, and distance alone does not convert resident parking to trail parking."
+   },
+   "judged": "2026-10-04",
+   "src": "judge-fanout"
+  },
   "way/987030583": {
    "verdict": "DROP",
    "reason": "not-a-lot",
@@ -89950,6 +94271,85 @@
     "serves": "EXISTS=no, so service to Stone House Trail is not applicable despite the packet's 88 m edge distance."
    },
    "judged": "2026-09-26",
+   "src": "judge-fanout"
+  },
+  "way/987030584": {
+   "verdict": "DROP",
+   "reason": "not-public",
+   "lat": 39.662184,
+   "lon": -105.094827,
+   "rings": [
+    [
+     [
+      39.662149,
+      -105.094783
+     ],
+     [
+      39.662141,
+      -105.094741
+     ],
+     [
+      39.662281,
+      -105.094693
+     ],
+     [
+      39.662291,
+      -105.094734
+     ],
+     [
+      39.662149,
+      -105.094783
+     ]
+    ],
+    [
+     [
+      39.662087,
+      -105.094967
+     ],
+     [
+      39.661971,
+      -105.094955
+     ],
+     [
+      39.661975,
+      -105.094906
+     ],
+     [
+      39.662127,
+      -105.094912
+     ],
+     [
+      39.662303,
+      -105.094834
+     ],
+     [
+      39.662319,
+      -105.094892
+     ],
+     [
+      39.662202,
+      -105.094946
+     ],
+     [
+      39.662087,
+      -105.094967
+     ]
+    ]
+   ],
+   "osm": [
+    "way/987030584",
+    "way/987030585"
+   ],
+   "name": null,
+   "area": "bear-creek-lake-park-co",
+   "prior": "bare",
+   "confidence": "strong",
+   "evidence": {
+    "exists": "Bare prior, so vision decides. Z2/Z3: two narrow slivers (189 m2 total) along a short paved spur drive off an internal cul-de-sac inside a townhouse complex. In Z3 the east sliver has 2-3 light-coloured cars parked nose-in along the drive edge. The west sliver is mostly under canopy beside the townhouse block, with paved bay edges visible near its north end. These are real resident-style parking bays outside the travel lane.",
+    "public": "The only tag is amenity=parking: no access, operator, name or fee tag at lot level, and no official trailhead or access record. Packet context: FACILITY, 0 m from landuse=residential. Z1/Z2: both members sit deep inside a multi-row townhouse/condo complex (internal drives, carports, pool, tennis court) and are reached only through the complex's internal drive network off the arterial. Resident or visitor bays for the adjacent units are the direct owner explanation. Under lesson 11, the lack of a visible gate and the park nearby do not grant public parking.",
+    "serves": "Nearest trail is Stone House Trail (North), 181 m edge, not fallback. walk_m 220 has no recorded connection (conn empty, trail null), and there are no trailhead nodes within 120 m. Z1: the northern townhouse row and its drive stand between the bays and the park's trail and path network. No trail starts at or inside the lot, and nothing visible links the lot to a trail. Under lesson 11, a finite walk alone does not turn residential parking into trail overflow."
+   },
+   "judged": "2026-10-04",
    "src": "judge-fanout"
   },
   "way/995765937": {

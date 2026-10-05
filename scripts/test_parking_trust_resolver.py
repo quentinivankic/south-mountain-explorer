@@ -228,6 +228,7 @@ def _install_external_sources(work: Path, sources: list[tuple[Path, str]]) -> No
             "path": str(artifact.resolve()),
             "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
             "query_endpoint": f"https://evidence.example/{evidence_id}",
+            "retrieved_at": "2026-09-27T17:16:10+00:00",
             "item_metadata_path": str(metadata.resolve()),
             "item_metadata_sha256": hashlib.sha256(metadata.read_bytes()).hexdigest(),
         })
@@ -653,8 +654,8 @@ def test_resolved_provenance_survives_the_existing_store_merge(tmp_path, monkeyp
     assert stored["judge_provenance"]["model_id"] == "challenger-model"
     assert "override" not in stored
     assert validate_publication_attestation(stored) == []
-    proof_registry = json.loads(
-        merge_drafts.publication_proof_path(store).read_text()
+    proof_registry = resolve_trust.replay_trust._load_publication_proofs(
+        store.parent, store.name
     )
     assert resolve_trust.replay_trust._validate_publication_proof(
         stored, proof_registry
@@ -685,7 +686,7 @@ def test_resolved_provenance_survives_the_existing_store_merge(tmp_path, monkeyp
     body = dict(att)
     body.pop("attestation_sha256")
     att["attestation_sha256"] = tr.sha256_json(body)
-    assert "publication proof final decision/authority row mismatch" in (
+    assert "publication proof v4 invalid: proof v4 final decision/authority row mismatch" in (
         resolve_trust.replay_trust._validate_publication_proof(
             coherently_rehashed, proof_registry
         )
@@ -696,6 +697,20 @@ def test_resolved_provenance_survives_the_existing_store_merge(tmp_path, monkeyp
     assert "publication_attestation publication_source_sha256 mismatch" in (
         validate_publication_attestation(moved)
     )
+    moved_attestation = moved["publication_attestation"]
+    moved_attestation["publication_source_sha256"] = tr.sha256_json(
+        merge_drafts.publication_projection(moved)
+    )
+    moved_body = dict(moved_attestation)
+    moved_body.pop("attestation_sha256")
+    moved_attestation["attestation_sha256"] = tr.sha256_json(moved_body)
+    assert validate_publication_attestation(moved) == []
+    assert resolve_trust.replay_trust._validate_publication_proof(
+        moved, proof_registry
+    ) == [
+        "publication proof v4 invalid: proof v4 final lat differs from bound "
+        "facility"
+    ]
     report = trust_engine.build_report([{
         "key": "way/1", "source_key": "1", "store": "co_verdicts_osm.json",
         "area": "test-co", "row": stored,
@@ -826,6 +841,56 @@ def test_same_verdict_human_confirmation_is_hash_bound_and_preserved(tmp_path, m
     )
 
 
+def test_review_human_confirmation_is_hash_bound_and_preserved(
+        tmp_path, monkeypatch):
+    human_row = _decision(verdict="REVIEW", confidence="leaning")
+    work, draft, checkpoint, rows, packets = _workspace(
+        tmp_path, [human_row]
+    )
+    authority_run = resolve_trust.prepare(
+        "test-co", work, _models(), tmp_path / "authority-runs"
+    )
+    monkeypatch.setattr(merge_drafts, "PADJ_TMP", str(work))
+    monkeypatch.setattr(judge_review_sheet, "PADJ_TMP", str(work))
+    assert judge_review_sheet.main([
+        "test-co", "--authority-run", str(authority_run), "--sample", "0",
+    ]) == 0
+    review_receipt = judge_review_sheet.review.artifact_paths(
+        work, "test-co", authority_run.name
+    )["receipt"]
+    store = tmp_path / "store.json"
+    assert merge_drafts.main([
+        str(store), "test-co", "--judged", "2026-10-02",
+        "--confirm", "1=REVIEW",
+        "--note", "explicitly deferred for later human review",
+        "--reviewer", "trekdex-project-owner",
+        "--authority-run", str(authority_run),
+        "--review-receipt", str(review_receipt),
+    ]) == 0
+    confirmed = json.loads(draft.read_text())[0]
+    assert confirmed["verdict"] == "REVIEW"
+    assert confirmed["resolve_hint"] == human_row["resolve_hint"]
+    assert confirmed["human_confirmation"]["verdict"] == "REVIEW"
+    assert validate_verdict_row(confirmed, packets[1])[0] == []
+    machine, errors = machine_decision_projection(confirmed)
+    assert errors == [] and machine == human_row
+
+    terminal_run = resolve_trust.prepare(
+        "test-co", work, _models(), tmp_path / "terminal-runs"
+    )
+    status, _ = resolve_trust.evaluate(terminal_run)
+    assert status["state"] == "READY"
+    assert status["counts"]["preserved_authority"] == 1
+    assert resolve_trust.apply_chunk(
+        terminal_run, 0, apply=True
+    )["state"] == "PRESERVED"
+    shielded = json.loads(draft.read_text())[0]
+    assert shielded == confirmed
+    assert shielded["verdict"] == "REVIEW"
+    assert shielded["resolve_hint"] == human_row["resolve_hint"]
+    assert "override" not in shielded and "trust_resolution" not in shielded
+
+
 def test_apply_rechecks_current_authority_routes_under_the_canonical_lock(tmp_path, monkeypatch):
     ledger_dir = tmp_path / "ledger"
     ledger_dir.mkdir()
@@ -876,8 +941,12 @@ def test_different_runs_share_one_canonical_chunk_lock(tmp_path):
     prepare_a = json.loads((run_a / "prepare.json").read_text())
     prepare_b = json.loads((run_b / "prepare.json").read_text())
     assert run_a != run_b
-    assert resolve_trust._canonical_lock_path(prepare_a, 0) == resolve_trust._canonical_lock_path(prepare_b, 0)
-    assert resolve_trust._canonical_lock_path(prepare_a, 0) == work / ".trust-resolver-locks" / "test-co.lock"
+    assert resolve_trust._canonical_lock_path(
+        run_a, prepare_a, 0
+    ) == resolve_trust._canonical_lock_path(run_b, prepare_b, 0)
+    assert resolve_trust._canonical_lock_path(
+        run_a, prepare_a, 0
+    ) == work / ".trust-resolver-locks" / "test-co.lock"
     shared_store = tmp_path / "co_verdicts_osm.json"
     assert tr.resource_lock_path(work, shared_store) == tr.resource_lock_path(tmp_path / "other-work", shared_store)
 
@@ -1200,6 +1269,87 @@ def test_prepare_binds_normative_document_bytes_into_prompts_and_envelopes(
     )
     assert replacement != run
     assert draft.read_bytes() == before[draft]
+
+
+def test_external_catalog_supports_honest_per_source_retrieval_times(
+        tmp_path):
+    first = tmp_path / "first.json"
+    second = tmp_path / "second.json"
+    first.write_bytes(b'{"source":1}')
+    second.write_bytes(b'{"source":2}')
+    work, *_ = _workspace(tmp_path / "workspace")
+    _install_external_sources(work, [
+        (first, "first-source"), (second, "second-source"),
+    ])
+    manifest_path = work / "test-co_external" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["sources"][1]["retrieved_at"] = "2026-10-01T17:52:40+00:00"
+    manifest_path.write_text(json.dumps(manifest))
+
+    run = resolve_trust.prepare(
+        "test-co", work, _models(), tmp_path / "runs"
+    )
+    prepare = json.loads((run / "prepare.json").read_text())
+    catalog = prepare["external_evidence_catalog"]
+    assert catalog["first-source"]["retrieved_at"] == manifest["fetched_at"]
+    assert catalog["second-source"]["retrieved_at"] == (
+        "2026-10-01T17:52:40+00:00"
+    )
+
+
+@pytest.mark.parametrize("retrieved_at", [None, True, "not-a-timestamp"])
+def test_external_catalog_rejects_invalid_per_source_retrieval_time(
+        tmp_path, retrieved_at):
+    source = tmp_path / "official.json"
+    source.write_bytes(b'{"official":true}')
+    work, *_ = _workspace(tmp_path / "workspace")
+    _install_external_sources(work, [(source, "official-source")])
+    manifest_path = work / "test-co_external" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["sources"][0]["retrieved_at"] = retrieved_at
+    manifest_path.write_text(json.dumps(manifest))
+
+    with pytest.raises(ValueError, match="retrieval time"):
+        resolve_trust.prepare(
+            "test-co", work, _models(), tmp_path / "runs"
+        )
+
+
+@pytest.mark.parametrize(
+    "retrieved_at",
+    ["2026-09-26T17:16:10+00:00", "9999-01-01T00:00:00+00:00"],
+)
+def test_external_catalog_bounds_retrieval_against_fetch_and_capture(
+        tmp_path, retrieved_at):
+    source = tmp_path / "official.json"
+    source.write_bytes(b'{"official":true}')
+    work, *_ = _workspace(tmp_path / "workspace")
+    _install_external_sources(work, [(source, "official-source")])
+    manifest_path = work / "test-co_external" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["sources"][0]["retrieved_at"] = retrieved_at
+    manifest_path.write_text(json.dumps(manifest))
+
+    with pytest.raises(ValueError, match="outside manifest fetch and capture"):
+        resolve_trust.prepare(
+            "test-co", work, _models(), tmp_path / "runs"
+        )
+
+
+def test_external_catalog_requires_retrieved_at_per_source(tmp_path):
+    source = tmp_path / "official.json"
+    source.write_bytes(b'{"official":true}')
+    work, *_ = _workspace(tmp_path / "workspace")
+    _install_external_sources(work, [(source, "official-source")])
+    manifest_path = work / "test-co_external" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    del manifest["sources"][0]["retrieved_at"]
+    manifest_path.write_text(json.dumps(manifest))
+
+    with pytest.raises(ValueError, match="source 0 is malformed"):
+        resolve_trust.prepare(
+            "test-co", work, _models(), tmp_path / "runs"
+        )
 
 
 def test_v2_external_evidence_persists_locator_and_freshness_metadata(tmp_path):
@@ -1591,14 +1741,44 @@ def test_plain_agent_decision_cannot_inject_host_owned_source(tmp_path):
     assert draft.read_bytes() == before[draft]
 
 
-def test_same_inputs_under_different_run_roots_have_distinct_run_identity(tmp_path):
+def test_same_inputs_under_different_run_roots_have_same_portable_run_identity(
+        tmp_path):
     work, draft, checkpoint, rows, packets = _workspace(tmp_path)
     run_a = resolve_trust.prepare("test-co", work, _models(), tmp_path / "runs-a")
     run_b = resolve_trust.prepare("test-co", work, _models(), tmp_path / "runs-b")
-    assert run_a.name != run_b.name
-    assert json.loads((run_a / "prepare.json").read_text())["run_root"] != (
-        json.loads((run_b / "prepare.json").read_text())["run_root"]
-    )
+    assert run_a.name == run_b.name
+    prepare_a = (run_a / "prepare.json").read_bytes()
+    prepare_b = (run_b / "prepare.json").read_bytes()
+    assert prepare_a == prepare_b
+    document = json.loads(prepare_a)
+    assert document["version"] == resolve_trust.PREPARE_VERSION
+    assert document["path_scheme"] == resolve_trust.PREPARE_PATH_SCHEME
+    assert "tmp" not in document and "run_root" not in document
+    for item in document["items"]:
+        packet = (run_a / item["packet_path"]).read_bytes()
+        assert str(tmp_path).encode() not in packet
+        for assignment in item["assignments"].values():
+            assert (run_a / assignment["prompt_path"]).read_bytes() == (
+                run_b / assignment["prompt_path"]
+            ).read_bytes()
+            assert str(tmp_path).encode() not in (
+                run_a / assignment["prompt_path"]
+            ).read_bytes()
+
+
+def test_prepare_v2_v3_historical_identity_remains_path_bound(tmp_path):
+    work, *_ = _workspace(tmp_path)
+    run = resolve_trust.prepare("test-co", work, _models(), tmp_path / "runs")
+    portable = json.loads((run / "prepare.json").read_text())
+    identities = []
+    for root in (tmp_path / "historical-a", tmp_path / "historical-b"):
+        historical = copy.deepcopy(portable)
+        historical["version"] = resolve_trust.PATH_BOUND_PREPARE_VERSION
+        historical.pop("path_scheme")
+        historical["tmp"] = str(work.resolve())
+        historical["run_root"] = str(root.resolve())
+        identities.append(resolve_trust._run_identity(historical))
+    assert identities[0] != identities[1]
 
 
 def test_host_evidence_is_retained_and_agent_metadata_is_not_accepted(tmp_path):
@@ -1613,7 +1793,9 @@ def test_host_evidence_is_retained_and_agent_metadata_is_not_accepted(tmp_path):
     assert (run / catalog["manifest_frozen_path"]).is_file()
     assert (run / catalog["metadata_frozen_path"]).is_file()
     arbiter_prompt = run / prepare["items"][0]["assignments"]["arbiter"]["prompt_path"]
-    assert str((run / "evidence" / "catalog.json").resolve()) in arbiter_prompt.read_text()
+    prompt_text = arbiter_prompt.read_text()
+    assert "evidence/catalog.json" in prompt_text
+    assert str(run.resolve()) not in prompt_text
 
     source_pack = work / "test-co_external"
     archived_pack = work / "Archive" / "test-co_external"
@@ -2067,7 +2249,7 @@ def test_prepare_uses_only_captured_tile_bytes_after_stable_capture(
     )
     assert replaced
     assert {
-        zoom: Path(path).read_bytes()
+        zoom: (run / path).read_bytes()
         for zoom, path in frozen_packet["tiles"].items()
     } == expected
 
@@ -2096,7 +2278,7 @@ def test_prepare_freezes_tiles_and_ignores_later_source_tile_mutation(tmp_path):
     frozen_packet = json.loads(
         (run / prepare["items"][0]["packet_path"]).read_text()
     )
-    frozen_z1 = Path(frozen_packet["tiles"]["z1"])
+    frozen_z1 = run / frozen_packet["tiles"]["z1"]
     frozen_before = frozen_z1.read_bytes()
     Path(packets[1]["tiles"]["z1"]).write_bytes(b"changed source after prepare")
     _write_output(run, 1, "challenger", copy.deepcopy(rows[0]))
@@ -2163,9 +2345,13 @@ def test_publication_proof_reconstructs_assignment_from_sealed_output(tmp_path, 
         "--judged", "2026-09-29", "--write",
     ]) == 0
     row = json.loads(store.read_text())["way/1"]
-    registry = json.loads(merge_drafts.publication_proof_path(store).read_text())
+    registry = resolve_trust.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
     old_proof_sha = row["publication_attestation"]["publication_proof_sha256"]
-    proof = copy.deepcopy(registry["proofs"][old_proof_sha])
+    manifest = copy.deepcopy(resolve_trust.replay_trust._load_proof_manifest(
+        old_proof_sha, registry
+    ))
 
     envelope = row["trust_resolution"]["challenger"]
     envelope["assignment_id"] = "f" * 64
@@ -2176,24 +2362,66 @@ def test_publication_proof_reconstructs_assignment_from_sealed_output(tmp_path, 
     body = dict(wrapper)
     body.pop("resolution_sha256")
     wrapper["resolution_sha256"] = tr.sha256_json(body)
-    proof["final_rows"]["1"] = resolve_trust.replay_trust._proof_decision_row(row)
-    body = dict(proof)
-    body.pop("proof_sha256")
-    new_proof_sha = tr.sha256_json(body)
-    proof["proof_sha256"] = new_proof_sha
+    manifest["final_rows"]["1"] = (
+        resolve_trust.replay_trust._proof_decision_row(row)
+    )
+    raw = resolve_trust._json_bytes(manifest)
+    logical, stages = merge_drafts.publication_objects.stage_logical_object(
+        (raw,), tmp_path / "forged-proof-stages"
+    )
+    merge_drafts.publication_objects.install_staged_objects(
+        registry.data_root, stages
+    )
+    value = copy.deepcopy(dict(registry))
+    value["proofs"][logical.sha256] = logical.leaves[0].to_dict()
+    forged_registry = merge_drafts.publication_objects.PublicationProofRegistry(
+        value, registry.data_root
+    )
     attestation = row["publication_attestation"]
     attestation["authority_sha256"] = wrapper["resolution_sha256"]
-    attestation["publication_proof_sha256"] = new_proof_sha
+    attestation["publication_proof_sha256"] = logical.sha256
     body = dict(attestation)
     body.pop("attestation_sha256")
     attestation["attestation_sha256"] = tr.sha256_json(body)
-    forged_registry = {"version": 1, "proofs": {new_proof_sha: proof}}
 
     errors = resolve_trust.replay_trust._validate_publication_proof(
         row, forged_registry
     )
-    assert any("persisted challenger envelope differs from sealed output" in error
+    assert any("persisted resolution differs from sealed outputs" in error
                for error in errors)
+
+
+def _forge_v4_manifest(row, registry, manifest, stage_root):
+    raw = resolve_trust._json_bytes(manifest)
+    logical, stages = merge_drafts.publication_objects.stage_logical_object(
+        (raw,), stage_root
+    )
+    merge_drafts.publication_objects.install_staged_objects(
+        registry.data_root, stages
+    )
+    value = copy.deepcopy(dict(registry))
+    value["proofs"][logical.sha256] = logical.leaves[0].to_dict()
+    forged_registry = merge_drafts.publication_objects.PublicationProofRegistry(
+        value, registry.data_root
+    )
+    attestation = row["publication_attestation"]
+    attestation["publication_proof_sha256"] = logical.sha256
+    body = dict(attestation)
+    body.pop("attestation_sha256", None)
+    attestation["attestation_sha256"] = tr.sha256_json(body)
+    return forged_registry
+
+
+def _stage_replacement_object(manifest, registry, old_ref, raw, stage_root):
+    logical, stages = merge_drafts.publication_objects.stage_logical_object(
+        (raw,), stage_root
+    )
+    merge_drafts.publication_objects.install_staged_objects(
+        registry.data_root, stages
+    )
+    manifest["objects"].pop(old_ref)
+    manifest["objects"][logical.sha256] = logical.to_dict()
+    return logical.sha256
 
 
 def test_out_of_ladder_tile_is_rejected_before_checkpoint_fingerprinting(
@@ -2251,12 +2479,16 @@ def test_preserved_machine_v2_publication_proof_uses_current_preservation_receip
     ]) == 0
     stored = json.loads(store.read_text())["way/1"]
     assert stored["trust_resolution"]["transaction_id"] == old_transaction
-    registry = json.loads(merge_drafts.publication_proof_path(store).read_text())
+    registry = resolve_trust.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
     assert resolve_trust.replay_trust._validate_publication_proof(
         stored, registry
     ) == []
     proof_sha = stored["publication_attestation"]["publication_proof_sha256"]
-    proof = copy.deepcopy(registry["proofs"][proof_sha])
+    manifest = copy.deepcopy(resolve_trust.replay_trust._load_proof_manifest(
+        proof_sha, registry
+    ))
     forged = copy.deepcopy(stored)
     primary = forged["trust_resolution"]["primary"]
     primary["decision"]["exists"]["evidence"] = "coherently forged preserved primary"
@@ -2269,21 +2501,19 @@ def test_preserved_machine_v2_publication_proof_uses_current_preservation_receip
     body = dict(wrapper)
     body.pop("resolution_sha256")
     wrapper["resolution_sha256"] = tr.sha256_json(body)
-    proof["final_rows"]["1"] = resolve_trust.replay_trust._proof_decision_row(forged)
-    body = dict(proof)
-    body.pop("proof_sha256")
-    new_proof_sha = tr.sha256_json(body)
-    proof["proof_sha256"] = new_proof_sha
+    manifest["final_rows"]["1"] = resolve_trust.replay_trust._proof_decision_row(forged)
     attestation = forged["publication_attestation"]
     attestation["authority_sha256"] = wrapper["resolution_sha256"]
-    attestation["publication_proof_sha256"] = new_proof_sha
-    body = dict(attestation)
-    body.pop("attestation_sha256")
-    attestation["attestation_sha256"] = tr.sha256_json(body)
-    errors = resolve_trust.replay_trust._validate_publication_proof(
-        forged, {"version": 1, "proofs": {new_proof_sha: proof}}
+    forged_registry = _forge_v4_manifest(
+        forged, registry, manifest, tmp_path / "preserved-forgery-stages"
     )
-    assert any("preserved machine primary decision differs" in error for error in errors)
+    errors = resolve_trust.replay_trust._validate_publication_proof(
+        forged, forged_registry
+    )
+    assert any(
+        "preserved machine resolution differs from its prepared primary" in error
+        for error in errors
+    )
 
 
 def test_publication_proof_preserves_crlf_sealed_output_bytes(tmp_path, monkeypatch):
@@ -2298,13 +2528,77 @@ def test_publication_proof_preserves_crlf_sealed_output_bytes(tmp_path, monkeypa
         "--judged", "2026-09-29", "--write",
     ]) == 0
     stored = json.loads(store.read_text())["way/1"]
-    registry = json.loads(merge_drafts.publication_proof_path(store).read_text())
+    registry = resolve_trust.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
     assert resolve_trust.replay_trust._validate_publication_proof(
         stored, registry
     ) == []
 
 
-@pytest.mark.parametrize("field", ["after_sha256", "checkpoint_after_sha256"])
+def test_publication_proof_rejects_coherently_rehashed_false_ready_snapshot(
+        tmp_path, monkeypatch):
+    run, work, draft, checkpoint, rows, packets, before = _prepared(tmp_path)
+    _write_output(run, 1, "challenger", copy.deepcopy(rows[0]))
+    assert resolve_trust.apply_chunk(run, 0, apply=True)["state"] == "APPLIED"
+    store = tmp_path / "store.json"
+    monkeypatch.setattr(merge_drafts, "PADJ_TMP", str(work))
+    assert merge_drafts.main([
+        str(store), "test-co", "--resolver-run", str(run),
+        "--judged", "2026-09-29", "--write",
+    ]) == 0
+    row = json.loads(store.read_text())["way/1"]
+    registry = resolve_trust.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
+    proof_sha = row["publication_attestation"]["publication_proof_sha256"]
+    manifest = copy.deepcopy(resolve_trust.replay_trust._load_proof_manifest(
+        proof_sha, registry
+    ))
+
+    old_seal_ref = manifest["output_seal_ref"]
+    seal = json.loads(resolve_trust.replay_trust._load_manifest_object(
+        manifest, registry, old_seal_ref
+    ))
+    seal["ready_snapshot_sha256"] = "f" * 64
+    seal_body = dict(seal)
+    seal_body.pop("seal_sha256")
+    seal["seal_sha256"] = tr.sha256_json(seal_body)
+    manifest["output_seal_ref"] = _stage_replacement_object(
+        manifest, registry, old_seal_ref, resolve_trust._json_bytes(seal),
+        tmp_path / "false-ready-seal-stages",
+    )
+
+    old_receipt_ref = manifest["chunk_receipts"]["0"]
+    receipt = json.loads(resolve_trust.replay_trust._load_manifest_object(
+        manifest, registry, old_receipt_ref
+    ))
+    receipt["output_seal_sha256"] = seal["seal_sha256"]
+    manifest["chunk_receipts"]["0"] = _stage_replacement_object(
+        manifest, registry, old_receipt_ref,
+        resolve_trust._json_bytes(receipt),
+        tmp_path / "false-ready-receipt-stages",
+    )
+    manifest["object_closure_sha256"] = (
+        merge_drafts.publication_objects.object_closure_sha256(
+            manifest["objects"].values()
+        )
+    )
+    attestation = row["publication_attestation"]
+    attestation["output_seal_sha256"] = seal["seal_sha256"]
+    attestation["terminal_receipt_sha256"] = tr.sha256_json(receipt)
+    forged_registry = _forge_v4_manifest(
+        row, registry, manifest, tmp_path / "false-ready-proof-stages"
+    )
+    errors = resolve_trust.replay_trust._validate_publication_proof(
+        row, forged_registry
+    )
+    assert any("whole-run READY snapshot mismatch" in error for error in errors)
+
+
+@pytest.mark.parametrize(
+    "field", ["after_sha256", "checkpoint_after_sha256", "transaction_id"]
+)
 def test_publication_proof_rejects_tampered_terminal_end_state_hashes(
         tmp_path, monkeypatch, field):
     run, work, draft, checkpoint, rows, packets, before = _prepared(tmp_path)
@@ -2317,26 +2611,38 @@ def test_publication_proof_rejects_tampered_terminal_end_state_hashes(
         "--judged", "2026-09-29", "--write",
     ]) == 0
     row = json.loads(store.read_text())["way/1"]
-    registry = json.loads(merge_drafts.publication_proof_path(store).read_text())
+    registry = resolve_trust.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
     old_proof_sha = row["publication_attestation"]["publication_proof_sha256"]
-    proof = copy.deepcopy(registry["proofs"][old_proof_sha])
-    proof["chunk_receipts"]["0"][field] = "f" * 64
+    manifest = copy.deepcopy(resolve_trust.replay_trust._load_proof_manifest(
+        old_proof_sha, registry
+    ))
+    old_receipt_ref = manifest["chunk_receipts"]["0"]
+    receipt = json.loads(resolve_trust.replay_trust._load_manifest_object(
+        manifest, registry, old_receipt_ref
+    ))
+    receipt[field] = "f" * 64
+    receipt_ref = _stage_replacement_object(
+        manifest, registry, old_receipt_ref,
+        resolve_trust._json_bytes(receipt),
+        tmp_path / f"receipt-{field}-stages",
+    )
+    manifest["chunk_receipts"]["0"] = receipt_ref
+    manifest["object_closure_sha256"] = (
+        merge_drafts.publication_objects.object_closure_sha256(
+            manifest["objects"].values()
+        )
+    )
     attestation = row["publication_attestation"]
-    attestation["terminal_receipt_sha256"] = tr.sha256_json(
-        proof["chunk_receipts"]["0"]
+    attestation["terminal_receipt_sha256"] = tr.sha256_json(receipt)
+    forged_registry = _forge_v4_manifest(
+        row, registry, manifest, tmp_path / "terminal-receipt-proof-stages"
     )
-    body = dict(proof)
-    body.pop("proof_sha256")
-    new_proof_sha = tr.sha256_json(body)
-    proof["proof_sha256"] = new_proof_sha
-    attestation["publication_proof_sha256"] = new_proof_sha
-    body = dict(attestation)
-    body.pop("attestation_sha256")
-    attestation["attestation_sha256"] = tr.sha256_json(body)
     errors = resolve_trust.replay_trust._validate_publication_proof(
-        row, {"version": 1, "proofs": {new_proof_sha: proof}}
+        row, forged_registry
     )
-    assert any("apply receipt mismatch" in error for error in errors)
+    assert any("apply receipt mismatch" in error for error in errors), errors
 
 
 @pytest.mark.parametrize("field", ["completed", "resolution_row_sha256"])
@@ -2352,29 +2658,54 @@ def test_publication_proof_rejects_coherently_rehashed_false_checkpoint_manifest
         "--judged", "2026-09-29", "--write",
     ]) == 0
     row = json.loads(store.read_text())["way/1"]
-    registry = json.loads(merge_drafts.publication_proof_path(store).read_text())
-    old_proof_sha = row["publication_attestation"]["publication_proof_sha256"]
-    proof = copy.deepcopy(registry["proofs"][old_proof_sha])
-    checkpoint_value = json.loads(base64.b64decode(proof["terminal_checkpoints"]["0"]))
-    checkpoint_value[field] = [] if field == "completed" else ["f" * 64]
-    checkpoint_bytes = json.dumps(checkpoint_value, sort_keys=True).encode()
-    proof["terminal_checkpoints"]["0"] = base64.b64encode(checkpoint_bytes).decode()
-    receipt = proof["chunk_receipts"]["0"]
-    receipt["checkpoint_after_sha256"] = hashlib.sha256(checkpoint_bytes).hexdigest()
-    attestation = row["publication_attestation"]
-    attestation["terminal_receipt_sha256"] = tr.sha256_json(receipt)
-    body = dict(proof)
-    body.pop("proof_sha256")
-    new_proof_sha = tr.sha256_json(body)
-    proof["proof_sha256"] = new_proof_sha
-    attestation["publication_proof_sha256"] = new_proof_sha
-    body = dict(attestation)
-    body.pop("attestation_sha256")
-    attestation["attestation_sha256"] = tr.sha256_json(body)
-    errors = resolve_trust.replay_trust._validate_publication_proof(
-        row, {"version": 1, "proofs": {new_proof_sha: proof}}
+    registry = resolve_trust.replay_trust._load_publication_proofs(
+        store.parent, store.name
     )
-    assert any("apply receipt mismatch" in error for error in errors)
+    old_proof_sha = row["publication_attestation"]["publication_proof_sha256"]
+    manifest = copy.deepcopy(resolve_trust.replay_trust._load_proof_manifest(
+        old_proof_sha, registry
+    ))
+    old_checkpoint_ref = manifest["terminal_checkpoints"]["0"]
+    checkpoint_value = json.loads(
+        resolve_trust.replay_trust._load_manifest_object(
+            manifest, registry, old_checkpoint_ref
+        )
+    )
+    checkpoint_value[field] = [] if field == "completed" else ["f" * 64]
+    checkpoint_bytes = resolve_trust._json_bytes(checkpoint_value)
+    checkpoint_ref = _stage_replacement_object(
+        manifest, registry, old_checkpoint_ref, checkpoint_bytes,
+        tmp_path / f"checkpoint-{field}-stages",
+    )
+    manifest["terminal_checkpoints"]["0"] = checkpoint_ref
+    old_receipt_ref = manifest["chunk_receipts"]["0"]
+    receipt = json.loads(resolve_trust.replay_trust._load_manifest_object(
+        manifest, registry, old_receipt_ref
+    ))
+    receipt["checkpoint_after_sha256"] = hashlib.sha256(
+        checkpoint_bytes
+    ).hexdigest()
+    receipt_ref = _stage_replacement_object(
+        manifest, registry, old_receipt_ref,
+        resolve_trust._json_bytes(receipt),
+        tmp_path / f"checkpoint-receipt-{field}-stages",
+    )
+    manifest["chunk_receipts"]["0"] = receipt_ref
+    manifest["object_closure_sha256"] = (
+        merge_drafts.publication_objects.object_closure_sha256(
+            manifest["objects"].values()
+        )
+    )
+    row["publication_attestation"]["terminal_receipt_sha256"] = (
+        tr.sha256_json(receipt)
+    )
+    forged_registry = _forge_v4_manifest(
+        row, registry, manifest, tmp_path / "checkpoint-proof-stages"
+    )
+    errors = resolve_trust.replay_trust._validate_publication_proof(
+        row, forged_registry
+    )
+    assert any("apply receipt mismatch" in error for error in errors), errors
 
 
 # Independent filesystem review: trusted-parent and lock-inode boundaries.
@@ -3026,6 +3357,22 @@ def test_prepare_cli_rejects_non_string_external_paths_without_traceback(
     assert "Traceback" not in captured.err + captured.out
 
 
+def test_prepare_accepts_current_producer_null_optional_rings(tmp_path):
+    work, *_ = _workspace(tmp_path / "workspace")
+    dossier_path = work / "test-co_dossier.json"
+    dossier = json.loads(dossier_path.read_text())
+    dossier["facilities"][0]["ring"] = None
+    dossier["facilities"][0]["rings"] = None
+    dossier_path.write_text(json.dumps(dossier))
+    _commit_generation_and_rebind(work)
+
+    run = resolve_trust.prepare(
+        "test-co", work, _models(), tmp_path / "runs"
+    )
+    prepare = json.loads((run / "prepare.json").read_text())
+    assert prepare["source"]["publication"]["facilities"]["1"]["rings"] == []
+
+
 @pytest.mark.parametrize(
     "field,malformed,expected",
     [
@@ -3034,15 +3381,14 @@ def test_prepare_cli_rejects_non_string_external_paths_without_traceback(
         ("tags_union", "", "tags_union must be an object"),
         ("tags_union", False, "tags_union must be an object"),
         ("tags_union", 7, "tags_union must be an object"),
-        ("rings", None, "rings must be a list"),
-        ("rings", {}, "rings must be a list"),
-        ("rings", "", "rings must be a list"),
-        ("rings", True, "rings must be a list"),
+        ("rings", {}, "rings must be a list or null"),
+        ("rings", "", "rings must be a list or null"),
+        ("rings", True, "rings must be a list or null"),
         ("rings", [None], "ring is invalid"),
         ("rings", [{}], "ring is invalid"),
         ("rings", ["bad"], "ring is invalid"),
         ("rings", [[[40.0]]], "ring point is invalid"),
-        ("ring", "bad", "ring must be a list"),
+        ("ring", "bad", "ring must be a list or null"),
     ],
 )
 def test_prepare_cli_rejects_malformed_dossier_tags_and_rings_without_traceback(
@@ -3313,40 +3659,67 @@ def test_publication_proof_validator_is_total_for_malformed_receipts_and_termina
         "--resolver-run", str(run), "--write",
     ]) == 0
     stored = json.loads(store.read_text())["way/1"]
-    registry = json.loads(merge_drafts.publication_proof_path(store).read_text())
+    registry = resolve_trust.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
     proof_sha = stored["publication_attestation"]["publication_proof_sha256"]
-    original = registry["proofs"][proof_sha]
+    original = resolve_trust.replay_trust._load_proof_manifest(
+        proof_sha, registry
+    )
 
-    forged_proofs = []
+    cases = []
+    malformed_shapes = (
+        ("human_authority", []),
+        ("human_reviews", []),
+        ("packet_bindings", []),
+        ("final_rows", []),
+    )
+    for field, malformed in malformed_shapes:
+        manifest = copy.deepcopy(original)
+        manifest[field] = malformed
+        cases.append((copy.deepcopy(stored), manifest))
+    manifest = copy.deepcopy(original)
+    manifest["packet_bindings"]["1"]["tile_sha256"] = []
+    cases.append((copy.deepcopy(stored), manifest))
     for terminal_fids in (None, [None], [True], [[1]], [{"fid": 10 ** 1000}]):
-        proof = copy.deepcopy(original)
-        proof["chunk_receipts"]["0"]["terminal_fids"] = terminal_fids
-        forged_proofs.append(proof)
-    for terminal_rows in (None, True, [None, True, [1], {"fid": 10 ** 1000}]):
-        proof = copy.deepcopy(original)
-        proof["terminal_drafts"]["0"] = base64.b64encode(
-            json.dumps(terminal_rows).encode("utf-8")
-        ).decode("ascii")
-        forged_proofs.append(proof)
-
-    for proof in forged_proofs:
+        manifest = copy.deepcopy(original)
+        old_ref = manifest["chunk_receipts"]["0"]
+        receipt = json.loads(resolve_trust.replay_trust._load_manifest_object(
+            manifest, registry, old_ref
+        ))
+        receipt["terminal_fids"] = terminal_fids
+        new_ref = _stage_replacement_object(
+            manifest, registry, old_ref, resolve_trust._json_bytes(receipt),
+            tmp_path / f"malformed-receipt-{len(cases)}",
+        )
+        manifest["chunk_receipts"]["0"] = new_ref
         row = copy.deepcopy(stored)
-        receipt = proof["chunk_receipts"]["0"]
         row["publication_attestation"]["terminal_receipt_sha256"] = (
             tr.sha256_json(receipt)
         )
-        body = copy.deepcopy(proof)
-        body.pop("proof_sha256")
-        new_proof_sha = tr.sha256_json(body)
-        proof["proof_sha256"] = new_proof_sha
-        row["publication_attestation"]["publication_proof_sha256"] = new_proof_sha
-        attestation_body = dict(row["publication_attestation"])
-        attestation_body.pop("attestation_sha256")
-        row["publication_attestation"]["attestation_sha256"] = tr.sha256_json(
-            attestation_body
+        cases.append((row, manifest))
+    for terminal_rows in (None, True, [None, True, [1], {"fid": 10 ** 1000}]):
+        manifest = copy.deepcopy(original)
+        old_ref = manifest["terminal_drafts"]["0"]
+        new_ref = _stage_replacement_object(
+            manifest, registry, old_ref,
+            resolve_trust._json_bytes(terminal_rows),
+            tmp_path / f"malformed-rows-{len(cases)}",
+        )
+        manifest["terminal_drafts"]["0"] = new_ref
+        cases.append((copy.deepcopy(stored), manifest))
+
+    for index, (row, manifest) in enumerate(cases):
+        manifest["object_closure_sha256"] = (
+            merge_drafts.publication_objects.object_closure_sha256(
+                manifest["objects"].values()
+            )
+        )
+        forged_registry = _forge_v4_manifest(
+            row, registry, manifest, tmp_path / f"malformed-proof-{index}"
         )
         errors = resolve_trust.replay_trust._validate_publication_proof(
-            row, {"version": 1, "proofs": {new_proof_sha: proof}}
+            row, forged_registry
         )
         assert errors
         assert isinstance(errors, list)
@@ -3637,16 +4010,19 @@ def test_publication_proof_version_matrix_preserves_historical_review_v2():
     assert compatibility(1) == {
         "prepare_version": resolve_trust.LEGACY_PREPARE_VERSION,
         "human_receipt_version": 1,
+        "attestation_version": 1,
         "human_reviews": False,
     }
     assert compatibility(2) == {
         "prepare_version": resolve_trust.LEGACY_PREPARE_VERSION,
-        "human_receipt_version": merge_drafts.AUTHORITY_RECEIPT_VERSION,
+        "human_receipt_version": merge_drafts.PATH_BOUND_AUTHORITY_RECEIPT_VERSION,
+        "attestation_version": 2,
         "human_reviews": True,
     }
     assert compatibility(3) == {
-        "prepare_version": resolve_trust.PREPARE_VERSION,
-        "human_receipt_version": merge_drafts.AUTHORITY_RECEIPT_VERSION,
+        "prepare_version": resolve_trust.PATH_BOUND_PREPARE_VERSION,
+        "human_receipt_version": merge_drafts.PATH_BOUND_AUTHORITY_RECEIPT_VERSION,
+        "attestation_version": 2,
         "human_reviews": True,
     }
     assert compatibility(True) is None

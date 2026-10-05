@@ -1,0 +1,18 @@
+{
+  "assignment_id": "4b149b40000929e7f89441a66d328b586b8cda37010cf8347f424e71bf47176b",
+  "decision": {
+    "fid": 888,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/620205729"],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {"call": "yes", "evidence": "Surveyed prior (parking=surface, name). Z2/Z3: a large, clearly delineated graded dirt pad (~7,876 m2) between the motocross track edge and the two-lane road, with one vehicle at the west edge (Z3). No stripes. Not a building, lawn, or water, so nothing contradicts the prior."},
+    "public": {"call": "no", "evidence": "The lot is tagged name=VIP Zone and has no access tag. Z1 shows it sits inside an active motocross venue: dirt MX tracks wrap its west and south sides, with venue buildings and staging to the north. Context puts it in leisure=park 'Thunder Valley Park', which is generic/weak. A VIP area in a motorsport venue is event-restricted parking. Venue or park openness does not grant general public parking. No trailhead node, official access record, or source grants public trail parking here."},
+    "serves": {"call": "no", "evidence": "The candidate is C-470 Trail at an edge distance of 270 m (not fallback). Walk is 452 m, but the walk record has conn empty and trail null. trailhead_nodes_120m is empty and footways_60m is 0. Z1: the yellow trail touches only the far east edge of the frame, beyond the road and the C-470 highway. No trail starts at or enters the lot. The motocross venue is the better owner explanation, and distance alone cannot make VIP motorsport parking into trail overflow."},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking", "name": "VIP Zone", "parking": "surface"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

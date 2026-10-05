@@ -1,0 +1,58 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 595,
+ "building_overlap": false,
+ "context": {
+  "category": "FACILITY",
+  "evidence": "12 m from landuse=residential 'Sienna Park Townhomes'",
+  "facility": "landuse=residential",
+  "facility_edge_m": 12
+ },
+ "descriptive_tags": [],
+ "fid": 159,
+ "footprint": "polygon",
+ "footways_60m": 1,
+ "members": [
+  {
+   "osm": "way/51381093",
+   "tags": {
+    "amenity": "parking"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/51381093"
+ ],
+ "prior": "bare",
+ "serves": {
+  "edge_m": 189,
+  "fallback": false,
+  "n_trails_in_range": 2,
+  "trail": "Greenbelt Alternate Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking"
+ },
+ "tiles": {
+  "z1": "tiles/c1af18db985d5d66055cdfe57a2f92c058e2b0a79b291579444c0bc1431b5346.png",
+  "z2": "tiles/658bd97f26b85eebb222a4762f3494c7adfd5f3889d03169b4719f692cdf3be2.png",
+  "z3": "tiles/ea28964f84fa6405881501911cb37209489b98f4c2a1435a1ce980a9a10ab0ba.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 320
+ }
+}

@@ -1,0 +1,36 @@
+Host contract: the authority run directory is the working directory; every file path below is a canonical run-relative POSIX path.
+
+# Blind parking challenger
+
+You are the challenger for one Trekdex parking facility. Judge it independently.
+
+- Read `rules/judge_protocol.md` (SHA-256 `eee55b6a2c9704e664cd7da8d739755f52f453eafea94a1d4e357702bbbbeff9`) and `rules/judge_lessons.md` (SHA-256 `e49dca3b8e8152c707d6f0e63f2d7bca5e1d4da6e89c27b4d3c8743a67d0a23f`).
+- Read only the packet at `packets/fid-1012.json` and the Z1/Z2/Z3 paths named inside it.
+- Do not access the network, fetch a URL, or ask for fetch permission; `external_evidence` must remain empty.
+- Do not read any verdict draft, primary decision, resolver manifest, challenger/arbiter output, or filename that encodes a verdict.
+- Your host-bound identity is `claude-opus-5.5` in family `anthropic-claude`. Do not alter or repeat that identity in your output.
+- Apply the full EXISTS/PUBLIC/SERVES protocol. Return a complete canonical decision for the packet, even when your answer is REVIEW.
+- Write exactly one JSON object to `inbox/fid-1012.challenger.json` after every update; no prose outside it:
+
+```json
+{
+  "assignment_id": "7544180ce535fe4e4afa8c1cae0bc77a86c11f1e885229c2cefd699271472b43",
+  "decision": {
+    "fid": 1,
+    "area": "area-slug",
+    "osm": ["way/1"],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {"call": "yes", "evidence": "specific frame evidence"},
+    "public": {"call": "yes", "evidence": "specific data/frame evidence"},
+    "serves": {"call": "yes", "evidence": "specific trail/walk evidence"},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}
+```
+
+`external_evidence` must stay empty for a blind challenge. The host validates assignment, packet identity, schema, and all content hashes.

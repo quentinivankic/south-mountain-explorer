@@ -1,0 +1,39 @@
+{
+  "baseline_sha256": "4a84784560ddde2a3867c9e0f1be5e303639a66dc28346b0c5faf56d1288c733",
+  "kind": "parking-proofless-source-baseline-corroboration",
+  "selection": "all source rows from all five exact generation-1 store blobs",
+  "source_commit": "140f8c935864ca5fe9b1070256193eee807691e3",
+  "stores": [
+    {
+      "filename": "phx_verdicts_osm.json",
+      "path": "scripts/parking-adjud/data/phx_verdicts_osm.json",
+      "row_count": 98,
+      "store_sha256": "8908e8d85a7c501be9105c1f701c0235951cdc201f81531c6f65d29d830df7c2"
+    },
+    {
+      "filename": "ne_verdicts_osm.json",
+      "path": "scripts/parking-adjud/data/ne_verdicts_osm.json",
+      "row_count": 84,
+      "store_sha256": "04ce8a868210fededb31e85b8c018d8519a97abaff2914c87b525a471d473e25"
+    },
+    {
+      "filename": "zion-wilderness-ut_verdicts2.json",
+      "path": "scripts/parking-adjud/data/zion-wilderness-ut_verdicts2.json",
+      "row_count": 57,
+      "store_sha256": "3b9a61dca7703bc2922c6226bcc342d9fb5d23de4b5704f9a39532fcd2b14c11"
+    },
+    {
+      "filename": "griffith-park-ca_verdicts2.json",
+      "path": "scripts/parking-adjud/data/griffith-park-ca_verdicts2.json",
+      "row_count": 57,
+      "store_sha256": "87850e0bd91c29d59a87da96a9425bdde25aabb7e4569b3c7ad358c583d5f7da"
+    },
+    {
+      "filename": "co_verdicts_osm.json",
+      "path": "scripts/parking-adjud/data/co_verdicts_osm.json",
+      "row_count": 977,
+      "store_sha256": "44f3ac4c6793e1be66e301f6ee46875de92b8e1952351c607ae4e658d861a0cb"
+    }
+  ],
+  "version": 2
+}

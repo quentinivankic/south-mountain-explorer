@@ -1,0 +1,18 @@
+{
+  "assignment_id": "bbd89921720af8ec9ee9eb30693ee1ec09352677282336bcb10dd79c12a823c3",
+  "decision": {
+    "fid": 1014,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/987030584", "way/987030585"],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {"call": "yes", "evidence": "Bare prior, so vision decides. Z2/Z3: two narrow slivers (189 m2 total) along a short paved spur drive off an internal cul-de-sac inside a townhouse complex. In Z3 the east sliver has 2-3 light-coloured cars parked nose-in along the drive edge. The west sliver is mostly under canopy beside the townhouse block, with paved bay edges visible near its north end. These are real resident-style parking bays outside the travel lane."},
+    "public": {"call": "no", "evidence": "The only tag is amenity=parking: no access, operator, name or fee tag at lot level, and no official trailhead or access record. Packet context: FACILITY, 0 m from landuse=residential. Z1/Z2: both members sit deep inside a multi-row townhouse/condo complex (internal drives, carports, pool, tennis court) and are reached only through the complex's internal drive network off the arterial. Resident or visitor bays for the adjacent units are the direct owner explanation. Under lesson 11, the lack of a visible gate and the park nearby do not grant public parking."},
+    "serves": {"call": "no", "evidence": "Nearest trail is Stone House Trail (North), 181 m edge, not fallback. walk_m 220 has no recorded connection (conn empty, trail null), and there are no trailhead nodes within 120 m. Z1: the northern townhouse row and its drive stand between the bays and the park's trail and path network. No trail starts at or inside the lot, and nothing visible links the lot to a trail. Under lesson 11, a finite walk alone does not turn residential parking into trail overflow."},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

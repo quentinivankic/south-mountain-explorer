@@ -1,0 +1,230 @@
+[
+ {
+  "fid": 1012,
+  "osm": [
+   "way/987030579",
+   "way/987030580",
+   "way/987030581"
+  ],
+  "area": "bear-creek-lake-park-co",
+  "verdict": "DROP",
+  "prior": "bare",
+  "exists": {
+   "call": "yes",
+   "evidence": "Z2: three delineated parking sections inside a townhouse complex; the central section has marked stalls and parked cars."
+  },
+  "public": {
+   "call": "no",
+   "evidence": "No lot-level access tag or official trailhead record; Z1/Z2 place all three sections inside a townhouse complex beside its tennis court and pool, and packet context is 0 m from landuse=residential."
+  },
+  "serves": {
+   "call": "no",
+   "evidence": "Stone House Trail (North) edge 164 m and walk 188 m, but walk.conn is empty, with no trailhead node or footway; Z1 shows the residential complex as the direct owner and better explanation."
+  },
+  "frames_used": [
+   "z1",
+   "z2"
+  ],
+  "tags_cited": {
+   "amenity": "parking"
+  },
+  "confidence": "strong",
+  "resolve_hint": null
+ },
+ {
+  "fid": 1014,
+  "osm": [
+   "way/987030584",
+   "way/987030585"
+  ],
+  "area": "bear-creek-lake-park-co",
+  "verdict": "DROP",
+  "prior": "bare",
+  "exists": {
+   "call": "yes",
+   "evidence": "Z3: two paved parking rows are delineated off the internal drive, with a parked vehicle visible in the shorter eastern row."
+  },
+  "public": {
+   "call": "no",
+   "evidence": "No lot-level access tag or official trailhead record; Z1-Z3 place both rows wholly inside a townhouse complex, and packet context is 0 m from landuse=residential."
+  },
+  "serves": {
+   "call": "no",
+   "evidence": "Stone House Trail (North) edge 181 m and walk 220 m, but walk.conn is empty and no trailhead node is present; Z1-Z3 show the townhouse complex as the direct owner and better explanation."
+  },
+  "frames_used": [
+   "z1",
+   "z2",
+   "z3"
+  ],
+  "tags_cited": {
+   "amenity": "parking"
+  },
+  "confidence": "strong",
+  "resolve_hint": null
+ },
+ {
+  "fid": 1035,
+  "osm": [
+   "way/1009503571"
+  ],
+  "area": "bear-creek-lake-park-co",
+  "verdict": "KEEP",
+  "prior": "surveyed",
+  "exists": {
+   "call": "yes",
+   "evidence": "Z2: an asphalt bay is independently delineated outside the travel lane, with multiple parked vehicles; tags specify parking=surface, surface=asphalt, capacity=10."
+  },
+  "public": {
+   "call": "yes",
+   "evidence": "Lot-level access=yes explicitly grants access; packet context places it in Matthews/Winters Park protected area."
+  },
+  "serves": {
+   "call": "yes",
+   "evidence": "Dinosaur Ridge Trail edge 5 m; Z1/Z2 show the shipped trail beginning directly beside the parking bay, with no facility-specific alternative owner at the lot."
+  },
+  "frames_used": [
+   "z1",
+   "z2"
+  ],
+  "tags_cited": {
+   "access": "yes",
+   "parking": "surface",
+   "surface": "asphalt",
+   "capacity": "10"
+  },
+  "confidence": "certain",
+  "resolve_hint": null
+ },
+ {
+  "fid": 1038,
+  "osm": [
+   "way/1013948712"
+  ],
+  "area": "bear-creek-lake-park-co",
+  "verdict": "REVIEW",
+  "prior": "surveyed",
+  "exists": {
+   "call": "yes",
+   "evidence": "Z2/Z3: a delineated unpaved bay with a vehicle-access throat sits outside the curved travel lane, with a parked vehicle visible; tags specify parking=surface, surface=unpaved, capacity=5."
+  },
+  "public": {
+   "call": "unclear",
+   "evidence": "The packet has fee=no but no lot-level access tag or official trailhead/access record; Red Rocks Park protected-area context alone does not establish general parking rights."
+  },
+  "serves": {
+   "call": "yes",
+   "evidence": "Will Call Trail edge 3 m and walk 14 m; Z1-Z3 show shipped trail approaches meeting the turnout directly, with no adjacent non-trail facility."
+  },
+  "frames_used": [
+   "z1",
+   "z2",
+   "z3"
+  ],
+  "tags_cited": {
+   "parking": "surface",
+   "surface": "unpaved",
+   "capacity": "5",
+   "fee": "no"
+  },
+  "confidence": "strong",
+  "resolve_hint": "Host packet needs a frozen official Red Rocks Park parking/access record that explicitly confirms whether this five-space turnout is authorized for general public parking.",
+  "human_confirmation": {
+   "version": 3,
+   "verdict": "REVIEW",
+   "by": "human",
+   "reviewer": "quentin",
+   "date": "2026-10-03",
+   "note": "Approved by Quentin; defer and retain REVIEW until the source decision requested lot-level evidence is available.",
+   "decision_sha256": "9ca3872285c67fac6831bff977a48d8a44f1f286ab35753785ca1c31d40b828e",
+   "evidence_sha256": "e19313c74139e2ea9d28f673dfa0c8e4a28d7874a34b01eb9e3b84a5b47b6c99",
+   "packet_sha256": "c85f9f3d318b9a1d1733ea137d9234ed8f4e5ad5235ef97d156df70b80af3c23",
+   "source_run_id": "6046197b676ae1711aa7992e0c3ab428a453437e789b6627d5cc61a6472c6f24",
+   "review_receipt_sha256": "d792b40e11aa21a46d033442ea84ba15e0a70f3388629539c58d5e2725399866",
+   "review_sheet_sha256": "ccc0dde4594e5bc30ea878127dd5514c03a50864152bec9fb4813af73bf4f939",
+   "review_item_sha256": "838ad2e3cc1f3d9491edbbb9bac59079b38c51b609bdc93858c2333030026620",
+   "authority_receipt_sha256": "19716c6866de35abb9494bc3d7f09ee1cee732c6c5cf4f5897535cc4ef27a6db"
+  }
+ },
+ {
+  "fid": 1106,
+  "area": "bear-creek-lake-park-co",
+  "osm": [
+   "way/1408649234"
+  ],
+  "verdict": "REVIEW",
+  "prior": "surveyed",
+  "exists": {
+   "call": "yes",
+   "evidence": "Z2/Z3 confirm a delineated six-space asphalt bay outside the travel lane with several parked vehicles."
+  },
+  "public": {
+   "call": "unclear",
+   "evidence": "No lot-level access tag, name, operator, or named official access record establishes public parking; open-park context, an unnamed node, a crosswalk, and no gate are insufficient."
+  },
+  "serves": {
+   "call": "yes",
+   "evidence": "The shipped trail meets the bay at a painted crosswalk, with a 28 m walk and a trailhead node 32 m away; no competing facility owner is adjacent."
+  },
+  "frames_used": [
+   "z1",
+   "z2"
+  ],
+  "tags_cited": {
+   "amenity": "parking",
+   "surface": "asphalt",
+   "capacity": "6"
+  },
+  "confidence": "strong",
+  "resolve_hint": "Hold until a frozen named official access record establishes public parking rights for the Morrison Slide six-space bay.",
+  "override": {
+   "version": 4,
+   "from_decision": {
+    "fid": 1106,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+     "way/1408649234"
+    ],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+     "call": "yes",
+     "evidence": "Z2: a dedicated asphalt pocket outside the travel lane has painted perpendicular stalls and multiple parked vehicles; tags specify surface=asphalt and capacity=6."
+    },
+    "public": {
+     "call": "yes",
+     "evidence": "Packet records a highway=trailhead node 32 m away; Z1/Z2 show the dedicated parking pocket at that trail/road access point, with Red Rocks Park protected-area context and no facility-specific owner."
+    },
+    "serves": {
+     "call": "yes",
+     "evidence": "Morrison Slide Trail endpoint edge 636 m, with a trailhead node 32 m away and four footways within 60 m; Z1/Z2 show the shipped trail passing directly through the parking access point."
+    },
+    "frames_used": [
+     "z1",
+     "z2"
+    ],
+    "tags_cited": {
+     "amenity": "parking",
+     "surface": "asphalt",
+     "capacity": "6"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+   },
+   "from_decision_sha256": "b1307df5f892c6b7ad286c81a5bfabdd9f9e2c53095c41fc7c98a1687eead212",
+   "from_evidence_sha256": "94bfc192de0fbf8e10d893f7e43b4995882d5d39c8c3965e6709b77983f2b865",
+   "to_decision_sha256": "0ac6f50c920dec2bf2ff56d36fe44ccf69cc592ef6b6e541649754360157e7b8",
+   "to_evidence_sha256": "15bcc07c840bcdbae7ab9e74a66af3eb7c23834179e23cb7c020a96499de98f5",
+   "by": "human",
+   "reviewer": "quentin",
+   "date": "2026-10-03",
+   "note": "Hold until a frozen named official access record establishes public parking rights for the Morrison Slide six-space bay.",
+   "packet_sha256": "eb3550cb038fcf08bdf1a86a7ad7cde655c7dda50a1feec4b35c39e1438e3463",
+   "source_run_id": "6046197b676ae1711aa7992e0c3ab428a453437e789b6627d5cc61a6472c6f24",
+   "review_receipt_sha256": "d792b40e11aa21a46d033442ea84ba15e0a70f3388629539c58d5e2725399866",
+   "review_sheet_sha256": "ccc0dde4594e5bc30ea878127dd5514c03a50864152bec9fb4813af73bf4f939",
+   "review_item_sha256": "31fe8deb267966f7d0e3364594ddbcbec27b30e1bf9d0aaef2c42da548f38b3c",
+   "authority_receipt_sha256": "5a2daf4f846254454a814d06928605705192f28ecbe80a14b38ad5a13725cb54"
+  }
+ }
+]

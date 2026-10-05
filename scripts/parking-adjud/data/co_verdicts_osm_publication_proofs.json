@@ -1,0 +1,11 @@
+{
+ "kind": "parking-publication-proof-registry",
+ "proofs": {
+  "87a4e0f3681d7e003b7aca61694c4385946ebb1f8095393947ebb0eb60cd18f1": {
+   "length": 784805,
+   "path": "publication-proof-objects/sha256/87/a4e0f3681d7e003b7aca61694c4385946ebb1f8095393947ebb0eb60cd18f1",
+   "sha256": "87a4e0f3681d7e003b7aca61694c4385946ebb1f8095393947ebb0eb60cd18f1"
+  }
+ },
+ "version": 2
+}

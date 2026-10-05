@@ -1,0 +1,71 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "authority_kind": "override_v4",
+ "authority_payload": {
+  "by": "human",
+  "date": "2026-10-03",
+  "from_decision": {
+   "area": "bear-creek-lake-park-co",
+   "confidence": "strong",
+   "exists": {
+    "call": "yes",
+    "evidence": "Z3: large paved, delineated lot contains approximately 17 parked vehicles."
+   },
+   "fid": 373,
+   "frames_used": [
+    "z1",
+    "z2",
+    "z3"
+   ],
+   "osm": [
+    "way/82864827"
+   ],
+   "prior": "surveyed",
+   "public": {
+    "call": "no",
+    "evidence": "Lot-level tags identify the facility as Stegosaurus Park-and-Ride Lot, operator RTD, park_ride=yes; no access=yes or trail-parking authorization establishes use by hikers."
+   },
+   "resolve_hint": null,
+   "serves": {
+    "call": "no",
+    "evidence": "The RTD transit lot is the direct owner; Dakota Ridge Trail is 26 m away but conn is empty, no trailhead node exists within 120 m, and Z2-Z3 show the yellow trail separated from the lot by an unmarked dirt corridor."
+   },
+   "tags_cited": {
+    "name": "Stegosaurus Park-and-Ride Lot",
+    "operator": "RTD",
+    "park_ride": "yes",
+    "surface": "asphalt"
+   },
+   "verdict": "DROP"
+  },
+  "from_decision_sha256": "bbe1e70fe045a8bb7f21a1a207622c75d66d9949ef76221742546a1170255fa7",
+  "from_evidence_sha256": "310cc7354ca0277acd71223a8a71e7fce0f51fba7da1ea6395bc1b6a1438b915",
+  "note": "Approve KEEP because the frozen JCOS access record identifies the Matthews/Winters Park Stegosaurus Lot trailhead at this facility.",
+  "packet_sha256": "af460179bc32b54fb1c3be53f5d3ff714fde62f96162731ab50b99f7ecf77239",
+  "review_item_sha256": "dc805154ca834361f660a6960dcfa15c3b2ec8b1dd9ec35bd881cf0828ae5b9a",
+  "review_receipt_sha256": "d792b40e11aa21a46d033442ea84ba15e0a70f3388629539c58d5e2725399866",
+  "review_sheet_sha256": "ccc0dde4594e5bc30ea878127dd5514c03a50864152bec9fb4813af73bf4f939",
+  "reviewer": "quentin",
+  "source_run_id": "6046197b676ae1711aa7992e0c3ab428a453437e789b6627d5cc61a6472c6f24",
+  "to_decision_sha256": "c8f740b7715df07bda491c364fab1c7e9e33954c36f723559663cfd138745691",
+  "to_evidence_sha256": "928380db1924652ed42247f0f6b5260aa4dbc90641275a838d78a771d0f6ace8",
+  "version": 4
+ },
+ "date": "2026-10-03",
+ "effective_decision_sha256": "c8f740b7715df07bda491c364fab1c7e9e33954c36f723559663cfd138745691",
+ "effective_evidence_sha256": "928380db1924652ed42247f0f6b5260aa4dbc90641275a838d78a771d0f6ace8",
+ "fid": 373,
+ "kind": "parking-human-authority-receipt",
+ "note": "Approve KEEP because the frozen JCOS access record identifies the Matthews/Winters Park Stegosaurus Lot trailhead at this facility.",
+ "packet_sha256": "af460179bc32b54fb1c3be53f5d3ff714fde62f96162731ab50b99f7ecf77239",
+ "primary_assignment_sha256": "3548cbcadc3f0ecf3d4c570dbf16ef0f6344cbe57b075671f935cee205d867be",
+ "primary_envelope_sha256": "47583f6ca183f954834152bf79018a42d50af74e3f82a1d5685b1bf0e6f5fb5f",
+ "receipt_sha256": "18586157ea3acc0bc2e205315f36e54e2ebfd7d567ec449a5fe83a8653289390",
+ "review_item_sha256": "dc805154ca834361f660a6960dcfa15c3b2ec8b1dd9ec35bd881cf0828ae5b9a",
+ "review_receipt_sha256": "d792b40e11aa21a46d033442ea84ba15e0a70f3388629539c58d5e2725399866",
+ "review_sheet_sha256": "ccc0dde4594e5bc30ea878127dd5514c03a50864152bec9fb4813af73bf4f939",
+ "reviewer": "quentin",
+ "source_prepare_sha256": "716eb476dee28b72c26b7648be41fc9886da39b79a9ec3b999fc3cd98b43d4ea",
+ "source_run_id": "6046197b676ae1711aa7992e0c3ab428a453437e789b6627d5cc61a6472c6f24",
+ "version": 3
+}

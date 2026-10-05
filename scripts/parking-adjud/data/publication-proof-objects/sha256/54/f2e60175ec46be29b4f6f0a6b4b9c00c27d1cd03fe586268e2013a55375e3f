@@ -1,0 +1,27 @@
+{
+  "assignment_id": "0f2b7d6a4650cc4af5dae85c8916542f73ad045fa75abcb907017926743ac5e9",
+  "decision": {
+    "fid": 937,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/755673841"],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2/Z3: paved lot inside the red outline holding roughly 10 parked cars (white, dark and red vehicles along the SE edge and the north arm); Z2 cars prove it, Z3 confirms the surface and vehicles. Bare prior, but vision decides EXISTS outright."
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Only tag is a bare amenity=parking: no access tag, name, operator or trailhead record. Context puts it 0 m from amenity=school 'Kyffin Elementary School'. Z1/Z2 show a small rear lot right behind the school's south wing, reached from the school's back apron and a residential cul-de-sac; the school's main front lot (with cars) sits on the NE side. This reads as school staff parking. School ownership and an open, ungated lot don't establish public parking rights (lesson 11)."
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "North Access Trail edge is 784 m (non-fallback, just inside the 805 m gate) and the walk is 964 m with no connection (conn empty, walk trail null). There are no trailhead nodes within 120 m, and no yellow trail line shows anywhere in the 600 m Z1 frame, which is all residential streets, the school, its playfields and an apartment complex. The 6 footways within 60 m are school-grounds paths. The school is the better explanation and nothing at the lot level establishes trail dual use; distance alone doesn't prove SERVES."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

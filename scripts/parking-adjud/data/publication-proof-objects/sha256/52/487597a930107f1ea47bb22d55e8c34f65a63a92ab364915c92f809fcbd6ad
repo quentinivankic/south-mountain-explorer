@@ -1,0 +1,31 @@
+{
+  "assignment_id": "0e143ed9367a5a56da07cd301650ad110baf4a842a5c0e5b8cf93b5bda78e010",
+  "decision": {
+    "fid": 886,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/620201362"],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Surveyed prior (parking=surface, name) confirmed: Z2/Z3 show a graded, delineated dirt pad inside the red outline with ~6-8 vehicles (pickups/trailers near the north tip, a red car and dark cars near the south edge, more vehicles just east of the notch), reached by a driveway off the internal paved loop; not a building, lawn, water or through-lane."
+    },
+    "public": {
+      "call": "no",
+      "evidence": "No lot-level access tag, no trailhead/access record at the lot, and trailhead_nodes_120m is empty. The lot is named 'Pro Pits' and Z1 shows it sitting directly beside a large dirt motocross track complex (switchback MX circuit immediately south), with a staging building just south of the pad and trailers/RVs parked across the facility. This is motorsport pit/participant parking, which the protocol and lesson 11 explicitly exclude from public trail parking. Packet context is FACILITY (60 m from amenity=school 'Rooney Valley Training Facility')."
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Candidate only: C-470 Trail edge 259 m (not fallback, 3 trails in range), but walk 756 m with no connection recorded, 0 footways within 60 m, no trailhead nodes within 120 m. In Z1 the only yellow trail segment appears at the far east edge, beyond the multi-lane C-470 freeway; no trail starts at or enters the lot. The motocross pits are the direct owner and the better explanation; distance alone does not convert pit parking into trail overflow."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {
+      "amenity": "parking",
+      "name": "Pro Pits",
+      "parking": "surface"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

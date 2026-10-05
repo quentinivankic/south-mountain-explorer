@@ -1,0 +1,27 @@
+{
+  "assignment_id": "f29bd00ddea897321e155d2eb0d8f4b0923509e5cbd3e8be0b2f02468db3f20c",
+  "decision": {
+    "fid": 321,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/68252594"],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2+Z3: paved lot inside the red outline with painted stall rows, a central divider stripe, and roughly 40 parked cars concentrated toward the NW building side; real parking facility (bare prior decided by vision)"
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Bare amenity=parking with no access/fee/name/operator tags; context FACILITY 0 m from amenity=school 'Warren Occupational Technical Center'. Z1/Z2: lot abuts the school buildings' NE face beside service/loading bays and fleet parking, one of several campus lots ringing the school complex. No lot-level access tag, trailhead record, or authoritative grant of public parking; public ownership or no visible gate would not establish it. Only a sign/ground fact could rescue it, which no aerial frame can show"
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "North Green Mountain edge 28 m and walk 109 m, but walk has no connection (conn empty, trail null), no trailhead nodes within 120 m. Z1/Z2: the yellow trail begins on the far (east) side of the divided arterial, next to a separate striped lot SE of the road that sits closer to the trail start; this lot is on the school side of the road. School remains the better owner explanation; distance alone does not make it trail overflow"
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

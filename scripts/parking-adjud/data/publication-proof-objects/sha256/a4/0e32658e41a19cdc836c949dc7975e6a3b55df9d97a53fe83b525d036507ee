@@ -1,0 +1,67 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 5626,
+ "building_overlap": false,
+ "context": {
+  "category": "FACILITY",
+  "evidence": "117 m from amenity=pub 'Beer Garden'",
+  "facility": null,
+  "facility_edge_m": null
+ },
+ "descriptive_tags": [
+  "parking",
+  "name"
+ ],
+ "fid": 890,
+ "footprint": "polygon",
+ "footways_60m": 0,
+ "members": [
+  {
+   "osm": "way/620205732",
+   "tags": {
+    "amenity": "parking",
+    "name": "Pro Pits",
+    "parking": "surface",
+    "source": "Bing"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/620205732"
+ ],
+ "prior": "surveyed",
+ "serves": {
+  "edge_m": 237,
+  "fallback": false,
+  "n_trails_in_range": 4,
+  "trail": "C-470 Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking",
+  "name": "Pro Pits",
+  "parking": "surface",
+  "source": "Bing"
+ },
+ "tiles": {
+  "z1": "tiles/5a47fa4799be813c60f6e44eb5295e6b83a88aed6f092c7bf28cdc51a16e8607.png",
+  "z2": "tiles/09dbf21e648b98d2a23b9d7b8a9eaefc90bb8906c48a868e6a436286f1419d7b.png",
+  "z3": "tiles/50970bc0879abc4a9907e1e79be3db5502ff505333687d784e2271ed0eb5554d.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 603
+ }
+}

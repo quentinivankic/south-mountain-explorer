@@ -1,0 +1,165 @@
+[
+  {
+    "fid": 1012,
+    "osm": [
+      "way/987030579",
+      "way/987030580",
+      "way/987030581"
+    ],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: three delineated parking sections inside a townhouse complex; the central section has marked stalls and parked cars."
+    },
+    "public": {
+      "call": "no",
+      "evidence": "No lot-level access tag or official trailhead record; Z1/Z2 place all three sections inside a townhouse complex beside its tennis court and pool, and packet context is 0 m from landuse=residential."
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Stone House Trail (North) edge 164 m and walk 188 m, but walk.conn is empty, with no trailhead node or footway; Z1 shows the residential complex as the direct owner and better explanation."
+    },
+    "frames_used": [
+      "z1",
+      "z2"
+    ],
+    "tags_cited": {
+      "amenity": "parking"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  {
+    "fid": 1014,
+    "osm": [
+      "way/987030584",
+      "way/987030585"
+    ],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z3: two paved parking rows are delineated off the internal drive, with a parked vehicle visible in the shorter eastern row."
+    },
+    "public": {
+      "call": "no",
+      "evidence": "No lot-level access tag or official trailhead record; Z1-Z3 place both rows wholly inside a townhouse complex, and packet context is 0 m from landuse=residential."
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Stone House Trail (North) edge 181 m and walk 220 m, but walk.conn is empty and no trailhead node is present; Z1-Z3 show the townhouse complex as the direct owner and better explanation."
+    },
+    "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+    ],
+    "tags_cited": {
+      "amenity": "parking"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  {
+    "fid": 1035,
+    "osm": [
+      "way/1009503571"
+    ],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: an asphalt bay is independently delineated outside the travel lane, with multiple parked vehicles; tags specify parking=surface, surface=asphalt, capacity=10."
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Lot-level access=yes explicitly grants access; packet context places it in Matthews/Winters Park protected area."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Dinosaur Ridge Trail edge 5 m; Z1/Z2 show the shipped trail beginning directly beside the parking bay, with no facility-specific alternative owner at the lot."
+    },
+    "frames_used": [
+      "z1",
+      "z2"
+    ],
+    "tags_cited": {
+      "access": "yes",
+      "parking": "surface",
+      "surface": "asphalt",
+      "capacity": "10"
+    },
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  {
+    "fid": 1038,
+    "osm": [
+      "way/1013948712"
+    ],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "REVIEW",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2/Z3: a delineated unpaved bay with a vehicle-access throat sits outside the curved travel lane, with a parked vehicle visible; tags specify parking=surface, surface=unpaved, capacity=5."
+    },
+    "public": {
+      "call": "unclear",
+      "evidence": "The packet has fee=no but no lot-level access tag or official trailhead/access record; Red Rocks Park protected-area context alone does not establish general parking rights."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Will Call Trail edge 3 m and walk 14 m; Z1-Z3 show shipped trail approaches meeting the turnout directly, with no adjacent non-trail facility."
+    },
+    "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+    ],
+    "tags_cited": {
+      "parking": "surface",
+      "surface": "unpaved",
+      "capacity": "5",
+      "fee": "no"
+    },
+    "confidence": "strong",
+    "resolve_hint": "Host packet needs a frozen official Red Rocks Park parking/access record that explicitly confirms whether this five-space turnout is authorized for general public parking."
+  },
+  {
+    "fid": 1106,
+    "osm": [
+      "way/1408649234"
+    ],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: a dedicated asphalt pocket outside the travel lane has painted perpendicular stalls and multiple parked vehicles; tags specify surface=asphalt and capacity=6."
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Packet records a highway=trailhead node 32 m away; Z1/Z2 show the dedicated parking pocket at that trail/road access point, with Red Rocks Park protected-area context and no facility-specific owner."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Morrison Slide Trail endpoint edge 636 m, with a trailhead node 32 m away and four footways within 60 m; Z1/Z2 show the shipped trail passing directly through the parking access point."
+    },
+    "frames_used": [
+      "z1",
+      "z2"
+    ],
+    "tags_cited": {
+      "amenity": "parking",
+      "surface": "asphalt",
+      "capacity": "6"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  }
+]

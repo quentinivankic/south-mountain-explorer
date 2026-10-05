@@ -1,0 +1,64 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 3916,
+ "building_overlap": false,
+ "context": {
+  "category": "FACILITY",
+  "evidence": "32 m from landuse=residential",
+  "facility": "landuse=residential",
+  "facility_edge_m": 32
+ },
+ "descriptive_tags": [
+  "operator"
+ ],
+ "fid": 906,
+ "footprint": "polygon",
+ "footways_60m": 0,
+ "members": [
+  {
+   "osm": "way/742236572",
+   "tags": {
+    "amenity": "parking",
+    "handicap": "7",
+    "operator": "Christ on the Mountain Catholic Church"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/742236572"
+ ],
+ "prior": "surveyed",
+ "serves": {
+  "edge_m": 259,
+  "fallback": false,
+  "n_trails_in_range": 1,
+  "trail": "John O. Hayden Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking",
+  "handicap": "7",
+  "operator": "Christ on the Mountain Catholic Church"
+ },
+ "tiles": {
+  "z1": "tiles/6d85b2a359085c2ec4acdfc6d2828a80fd9c9884e9f1b4887c1fdc2c7c2144cd.png",
+  "z2": "tiles/f73a2b0a352bed72a81dfcb15b2b2fc0bfd0059c93feb5659a8c80bf3184514a.png",
+  "z3": "tiles/1635e6146e44e10617fbce90595a0f0862921fa5d768e32aad826ce71c05de03.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 1252
+ }
+}

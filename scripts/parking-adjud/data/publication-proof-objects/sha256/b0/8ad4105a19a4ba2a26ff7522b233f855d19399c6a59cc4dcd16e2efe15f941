@@ -1,0 +1,348 @@
+[
+  {
+    "fid": 366,
+    "osm": ["way/82854200"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: curved paved bay lies outside the through-road lane and contains one parked white vehicle."
+    },
+    "public": {
+      "call": "unclear",
+      "evidence": "Only amenity=parking is tagged; there is no lot-level access grant or official trailhead/access record, and protected-area context alone does not establish parking rights."
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Geologic Overlook Trail edge 121 m and walk 168 m, but conn is empty, no trailhead node or footway is recorded, and Z1 shows no yellow trail entering this scenic Red Rocks pull-off."
+    },
+    "frames_used": ["z1", "z2"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  {
+    "fid": 368,
+    "osm": ["way/82854210"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "REVIEW",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: paved rectangular parking area has painted stalls and approximately nine parked vehicles."
+    },
+    "public": {
+      "call": "unclear",
+      "evidence": "Only amenity=parking is tagged; the lot has no access grant or named official access record, and its location inside Red Rocks Park does not by itself prove general parking rights."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "A highway=trailhead node is 62 m away, 12 footways are within 60 m, and Z2 shows pedestrian paths leading from the parking cluster toward nearby yellow trail segments."
+    },
+    "frames_used": ["z1", "z2"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "leaning",
+    "resolve_hint": "Host-freeze an official Red Rocks Park visitor-parking map or access record that identifies this exact lot and its permitted users."
+  },
+  {
+    "fid": 369,
+    "osm": ["way/82854212"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: multiple paved, delineated parking bays contain painted stalls and more than a dozen parked vehicles."
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Lot-level access=yes and fee=no explicitly establish public, free parking."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Trading Post Trail has edge 0 m and walk 0 m; Z2 shows the yellow trail entering the red parking footprint from the south."
+    },
+    "frames_used": ["z1", "z2"],
+    "tags_cited": {"access": "yes", "parking": "surface", "fee": "no"},
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  {
+    "fid": 370,
+    "osm": ["way/82854213"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "no",
+      "evidence": "Z2: red footprint covers a building/roof, a narrow verge, and a segment of the through road; no vehicle-access throat or bay exists outside the travel lane. Packet also reports building_overlap=true."
+    },
+    "public": {
+      "call": "n/a",
+      "evidence": "Not evaluated because the mapped feature is not a parking facility."
+    },
+    "serves": {
+      "call": "n/a",
+      "evidence": "Not evaluated because the mapped feature is not a parking facility, despite Mount Vernon Creek Trail being 2 m away."
+    },
+    "frames_used": ["z1", "z2"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  {
+    "fid": 373,
+    "osm": ["way/82864827"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z3: large paved, delineated lot contains approximately 17 parked vehicles."
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Lot-level tags identify the facility as Stegosaurus Park-and-Ride Lot, operator RTD, park_ride=yes; no access=yes or trail-parking authorization establishes use by hikers."
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "The RTD transit lot is the direct owner; Dakota Ridge Trail is 26 m away but conn is empty, no trailhead node exists within 120 m, and Z2-Z3 show the yellow trail separated from the lot by an unmarked dirt corridor."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"name": "Stegosaurus Park-and-Ride Lot", "operator": "RTD", "park_ride": "yes", "surface": "asphalt"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  {
+    "fid": 391,
+    "osm": ["way/91322571"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "no",
+      "evidence": "Z2-Z3: red polygon follows a continuous paved curve and broad road junction; there is no separate vehicle-access throat, bay, parked vehicle, stall, or independently delineated surface outside the travel lane."
+    },
+    "public": {
+      "call": "n/a",
+      "evidence": "Not evaluated because the mapped feature is road pavement rather than a parking facility."
+    },
+    "serves": {
+      "call": "n/a",
+      "evidence": "Not evaluated because the mapped feature is not a parking facility, although shipped trails run along and across the road."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  {
+    "fid": 392,
+    "osm": ["way/91322581"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: rectangular paved roadside bay is independently delineated from the road and contains a parked red vehicle."
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Lot-level access=yes and fee=no explicitly establish public, free parking; capacity=12 further surveys the facility."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Red Rocks Trail has edge 0 m, a highway=trailhead node is 18 m away, and Z2 shows two yellow trail approaches meeting the red lot."
+    },
+    "frames_used": ["z1", "z2"],
+    "tags_cited": {"access": "yes", "capacity": "12", "fee": "no", "parking": "surface", "surface": "asphalt"},
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  {
+    "fid": 393,
+    "osm": ["way/91322590"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "REVIEW",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: elongated paved shoulder bay lies beside the travel lane, with one white vehicle parked approximately 10 m beyond the red outline on the same bay."
+    },
+    "public": {
+      "call": "unclear",
+      "evidence": "Only amenity=parking is tagged; there is no lot-level access grant or official parking record, and protected-area context alone does not establish legal public use of the roadside bay."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Walk is 0 m to Dinosaur Ridge Trail, and Z1-Z2 show the shipped yellow trail running directly along the parking bay."
+    },
+    "frames_used": ["z1", "z2"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "leaning",
+    "resolve_hint": "Host-freeze an official Matthews/Winters Park or Dinosaur Ridge parking map that identifies this exact roadside bay and its permitted users."
+  },
+  {
+    "fid": 408,
+    "osm": ["relation/1341586"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "REVIEW",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: independently delineated paved turnaround forms a vehicle bay around a central island at the end of the access road."
+    },
+    "public": {
+      "call": "unclear",
+      "evidence": "Only amenity=parking is tagged; there is no lot-level access grant or official trailhead/parking record, and protected-area context alone does not establish parking rights."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Geologic Overlook Trail has edge 0 m, 11 footways are within 60 m, and Z1-Z2 show yellow trail approaches meeting the turnaround on its west and east sides."
+    },
+    "frames_used": ["z1", "z2"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "leaning",
+    "resolve_hint": "Host-freeze an official Red Rocks Park map or access record that identifies this exact Geologic Overlook turnaround as public visitor parking."
+  },
+  {
+    "fid": 477,
+    "osm": ["way/131465822"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z3: independently delineated dark-surface pullout with a broad vehicle throat sits outside Yale Avenue; the surveyed tags specify surface parking with capacity 8."
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Lot-level access=yes, fee=no, designation=Bear Creek Greenbelt Parking, and operator=City of Lakewood explicitly establish public use."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Yale Ave Access has edge 0 m and walk 0 m; Z2-Z3 show its yellow line beginning inside the red pullout and continuing south into the greenbelt."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"access": "yes", "capacity": "8", "designation": "Bear Creek Greenbelt Parking", "fee": "no", "operator": "City of Lakewood", "parking": "surface"},
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  {
+    "fid": 478,
+    "osm": ["way/133916328"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z3: paved, striped lot contains approximately 15 parked vehicles."
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Lot-level access=yes and fee=no establish public use; tags identify the operator as RTD and capacity as 77."
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Olde Ute Trail is a 2,573 m fallback with no foot route, no trailhead node within 120 m, and no footway within 60 m; Z1 contains no yellow trail, while name=US285 & Twin Forks Park-n-Ride and operator=RTD give the lot a direct transit purpose."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"access": "yes", "fee": "no", "name": "US285 & Twin Forks Park-n-Ride", "operator": "RTD", "park_ride": "yes"},
+    "confidence": "certain",
+    "resolve_hint": null
+  }
+,
+  {
+    "fid": 499,
+    "osm": ["way/139211035"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "no",
+      "evidence": "Z2-Z3: red footprint covers a short light-colored roadside verge at the trail crossing; it has no vehicle-access throat, bay outside the travel lane, parked vehicle, stripe, or independently delineated graded surface."
+    },
+    "public": {
+      "call": "n/a",
+      "evidence": "Not evaluated because the mapped feature is a roadside verge rather than a parking facility."
+    },
+    "serves": {
+      "call": "n/a",
+      "evidence": "Not evaluated because the mapped feature is not a parking facility, despite Rooney Valley Trail reaching the footprint and a trailhead node being 3 m away."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  {
+    "fid": 650,
+    "osm": ["way/241879865"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2-Z3: elongated paved parking area contains more than twenty RVs and trailers in delineated spaces, plus vehicles in its central aisle."
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Lot-level name=RV Parking Area \"North\" and Z1-Z3 place it inside a dedicated RV/trailer facility; no access=yes or official trail-parking authorization establishes general hiker use."
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Bailout Trail edge is 357 m but walk is 2,386 m; no trailhead node is within 120 m, no footway is within 60 m, and Z1 shows no yellow trail while the named RV purpose explains the lot."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"capacity": "54", "name": "RV Parking Area \"North\"", "parking": "surface"},
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  {
+    "fid": 662,
+    "osm": ["way/297689373"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2-Z3: paved lot has painted rows of stalls and approximately thirty parked vehicles."
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Lot-level tags identify Wooly Mammoth Park-and-Ride, operator=RTD, and park_ride=yes; no access=yes or official trail-parking authorization establishes hiker use of this transit lot."
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Village Loop Trail edge is 342 m and walk is 1,163 m, but no trailhead node is within 120 m and no footway is within 60 m; Z1 shows the yellow trail separated from the lot by the highway interchange, while the RTD transit purpose explains it directly."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"name": "Wooly Mammoth Park-and-Ride", "operator": "RTD", "park_ride": "yes"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  {
+    "fid": 756,
+    "osm": ["way/368339804"],
+    "area": "bear-creek-lake-park-co",
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2-Z3: paved lot wraps the church building with painted rows of stalls and approximately twenty parked vehicles."
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Packet context places the lot 0 m from The Church of Jesus Christ of Latter-day Saints, and Z2-Z3 show it wrapping that church building; no lot-level access grant or official trail-parking authorization establishes general hiker use."
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Green Mountain Trail edge is 302 m and walk is 898 m, but no trailhead node is within 120 m; Z1 shows the yellow trail across a divided arterial with no direct approach from the lot, while the church is the clear direct owner."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking", "parking": "surface"},
+    "confidence": "strong",
+    "resolve_hint": null
+  }
+]

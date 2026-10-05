@@ -20,6 +20,7 @@ import os
 import stat
 import sys
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
@@ -41,9 +42,14 @@ import trust_resolution as tr  # noqa: E402
 import trusted_filesystem as trusted_fs  # noqa: E402
 import dossier_output  # noqa: E402
 import review_evidence as review  # noqa: E402
+import publication_objects as publication_objects  # noqa: E402
 from judge_validation import (  # noqa: E402
     AUTHORITY_RECEIPT_VERSION,
+    PATH_BOUND_AUTHORITY_RECEIPT_VERSION,
     LEGACY_AUTHORITY_RECEIPT_VERSION,
+    LEGACY_PUBLICATION_ATTESTATION_VERSION,
+    PATH_BOUND_PUBLICATION_ATTESTATION_VERSION,
+    PUBLICATION_ATTESTATION_VERSION,
     authority_wrapper,
     authority_receipt_path,
     canonical_draft_files,
@@ -74,11 +80,61 @@ def _load_json(path: Path, expected: type) -> object:
     return value
 
 
-PUBLICATION_PROOF_REGISTRY_VERSION = 1
+LEGACY_PUBLICATION_PROOF_REGISTRY_VERSION = 1
+PUBLICATION_PROOF_REGISTRY_VERSION = 2
+PUBLICATION_PROOF_REGISTRY_KIND = "parking-publication-proof-registry"
 LEGACY_PUBLICATION_PROOF_VERSION = 1
 REVIEW_PUBLICATION_PROOF_VERSION = 2
-PUBLICATION_PROOF_VERSION = 3
+PATH_BOUND_PUBLICATION_PROOF_VERSION = 3
+PUBLICATION_PROOF_VERSION = 4
 PUBLICATION_PROOF_KIND = "parking-publication-proof"
+PUBLICATION_PROOF_MANIFEST_MAX_BYTES = 4 * 1024 * 1024
+
+
+@dataclass(frozen=True)
+class _ProofReplaySummary:
+    """Compact immutable state retained after one proof-v4 assignment replay."""
+
+    state: str
+    result: str | None
+    selected_role: str | None
+    reason: str
+    model_families: tuple[str, ...]
+    selected_decision_sha256: str | None
+
+
+def _compact_terminal_value(item: dict, summary: _ProofReplaySummary) -> dict:
+    value = {
+        "item": item,
+        "resolution": {
+            "state": summary.state,
+            "selected_role": summary.selected_role,
+        },
+    }
+    if summary.selected_role in tr.ROLES:
+        value[summary.selected_role] = {
+            "decision_sha256": summary.selected_decision_sha256,
+        }
+    return value
+
+
+def _update_pretty_object_digest(
+        digest, member_count: int, key: str, value: object, serializer) -> int:
+    """Hash one sorted member using the resolver's exact pretty-JSON framing."""
+    encoded = serializer({key: value})
+    if not encoded.startswith(b"{\n") or not encoded.endswith(b"\n}\n"):
+        raise ValueError("packet source member encoding is noncanonical")
+    digest.update(b"{\n" if member_count == 0 else b",\n")
+    digest.update(encoded[2:-3])
+    return member_count + 1
+
+
+def _finish_pretty_object_digest(digest, member_count: int, serializer) -> str:
+    if member_count:
+        digest.update(b"\n}\n")
+    else:
+        digest.update(serializer({}))
+    return digest.hexdigest()
 
 
 def _publication_proof_compatibility(version: object) -> dict | None:
@@ -89,16 +145,19 @@ def _publication_proof_compatibility(version: object) -> dict | None:
         LEGACY_PUBLICATION_PROOF_VERSION: {
             "prepare_version": 2,
             "human_receipt_version": LEGACY_AUTHORITY_RECEIPT_VERSION,
+            "attestation_version": LEGACY_PUBLICATION_ATTESTATION_VERSION,
             "human_reviews": False,
         },
         REVIEW_PUBLICATION_PROOF_VERSION: {
             "prepare_version": 2,
-            "human_receipt_version": AUTHORITY_RECEIPT_VERSION,
+            "human_receipt_version": PATH_BOUND_AUTHORITY_RECEIPT_VERSION,
+            "attestation_version": PATH_BOUND_PUBLICATION_ATTESTATION_VERSION,
             "human_reviews": True,
         },
-        PUBLICATION_PROOF_VERSION: {
+        PATH_BOUND_PUBLICATION_PROOF_VERSION: {
             "prepare_version": 3,
-            "human_receipt_version": AUTHORITY_RECEIPT_VERSION,
+            "human_receipt_version": PATH_BOUND_AUTHORITY_RECEIPT_VERSION,
+            "attestation_version": PATH_BOUND_PUBLICATION_ATTESTATION_VERSION,
             "human_reviews": True,
         },
     }
@@ -110,11 +169,13 @@ def _parse_embedded_proof_prepare(
         raw: bytes, resolver, expected_version: int) -> dict:
     """Parse one embedded prepare at the exact version authorized by its proof."""
     if expected_version not in (
-            resolver.LEGACY_PREPARE_VERSION, resolver.PREPARE_VERSION):
+            resolver.LEGACY_PREPARE_VERSION,
+            resolver.PATH_BOUND_PREPARE_VERSION,
+            resolver.PREPARE_VERSION):
         raise ValueError("publication proof prepare version is unsupported")
     prepare = resolver.parse_prepare_bytes(
         raw,
-        allow_legacy=(expected_version == resolver.LEGACY_PREPARE_VERSION),
+        allow_legacy=(expected_version != resolver.PREPARE_VERSION),
     )
     if prepare.get("version") != expected_version:
         raise ValueError(
@@ -137,28 +198,68 @@ def _publication_floor_path(data_dir: Path, store_name: str) -> Path:
     return Path(data_dir) / floor
 
 
+def _empty_publication_registry() -> dict:
+    return {
+        "version": PUBLICATION_PROOF_REGISTRY_VERSION,
+        "kind": PUBLICATION_PROOF_REGISTRY_KIND,
+        "proofs": {},
+    }
+
+
+def _read_publication_registry_bytes(path: Path) -> bytes | None:
+    try:
+        return publication_objects.read_bounded_regular(
+            path, publication_objects.REGISTRY_MAX_BYTES,
+            "publication proof registry",
+        )
+    except FileNotFoundError:
+        return None
+    except ValueError as error:
+        if "exceeds" in str(error):
+            raise ValueError(
+                f"{path} {publication_objects.registry_cap_message()}"
+            ) from error
+        raise
+
+
 def _load_publication_proofs(data_dir: Path, store_name: str,
                              source_bytes: bytes | None = None) -> dict:
     path = _publication_proof_path(data_dir, store_name)
     if source_bytes is None:
-        if not path.exists():
-            return {"version": PUBLICATION_PROOF_REGISTRY_VERSION, "proofs": {}}
-        source_bytes = path.read_bytes()
+        source_bytes = _read_publication_registry_bytes(path)
+        if source_bytes is None:
+            return publication_objects.PublicationProofRegistry(
+                _empty_publication_registry(), data_dir
+            )
+    elif len(source_bytes) > publication_objects.REGISTRY_MAX_BYTES:
+        raise ValueError(
+            f"{path} {publication_objects.registry_cap_message()}"
+        )
     value = json.loads(source_bytes)
-    if (not isinstance(value, dict)
-            or set(value) != {"version", "proofs"}
-            or type(value.get("version")) is not int
-            or value["version"] != PUBLICATION_PROOF_REGISTRY_VERSION
-            or not isinstance(value.get("proofs"), dict)):
+    if not isinstance(value, dict) or type(value.get("version")) is not int:
         raise ValueError(f"{path} is not a publication proof registry")
-    for proof_sha, proof in value["proofs"].items():
-        if not isinstance(proof_sha, str) or not isinstance(proof, dict):
-            raise ValueError(f"{path} has a malformed publication proof")
-        body = dict(proof)
-        claimed = body.pop("proof_sha256", None)
-        if claimed != proof_sha or tr.sha256_json(body) != proof_sha:
-            raise ValueError(f"{path} has a publication proof hash mismatch")
-    return value
+    if value["version"] == LEGACY_PUBLICATION_PROOF_REGISTRY_VERSION:
+        if set(value) != {"version", "proofs"} or not isinstance(value.get("proofs"), dict):
+            raise ValueError(f"{path} is not a legacy publication proof registry")
+        for proof_sha, proof in value["proofs"].items():
+            if not isinstance(proof_sha, str) or not isinstance(proof, dict):
+                raise ValueError(f"{path} has a malformed legacy publication proof")
+            body = dict(proof)
+            claimed = body.pop("proof_sha256", None)
+            if claimed != proof_sha or tr.sha256_json(body) != proof_sha:
+                raise ValueError(f"{path} has a legacy publication proof hash mismatch")
+    elif value["version"] == PUBLICATION_PROOF_REGISTRY_VERSION:
+        if (set(value) != {"version", "kind", "proofs"}
+                or value.get("kind") != PUBLICATION_PROOF_REGISTRY_KIND
+                or not isinstance(value.get("proofs"), dict)):
+            raise ValueError(f"{path} is not a publication proof registry v2")
+        for proof_sha, descriptor in value["proofs"].items():
+            ref = publication_objects.validate_object_ref(descriptor)
+            if ref.sha256 != proof_sha:
+                raise ValueError(f"{path} manifest key/hash mismatch")
+    else:
+        raise ValueError(f"{path} publication proof registry version is unsupported")
+    return publication_objects.PublicationProofRegistry(value, data_dir)
 
 
 def _proof_decision_row(row: dict) -> dict:
@@ -171,16 +272,16 @@ def _proof_decision_row(row: dict) -> dict:
     return value
 
 
-def _reconstruct_proof_envelope(prepare: dict, item: dict, role: str,
-                                sealed_outputs: dict, packet_identity: dict) -> tuple[dict | None, list[str]]:
+def _reconstruct_proof_envelope_bytes(
+        prepare: dict, item: dict, role: str,
+        raw_bytes: bytes | None, packet_identity: dict,
+) -> tuple[dict | None, list[str]]:
     assignment = (item.get("assignments") or {}).get(role)
     if not isinstance(assignment, dict):
         return None, [f"missing {role} assignment"]
-    encoded = sealed_outputs.get(assignment.get("output_path"))
-    if encoded is None:
+    if raw_bytes is None:
         return None, []
     try:
-        raw_bytes = base64.b64decode(encoded, validate=True)
         raw = json.loads(raw_bytes)
         if (not isinstance(raw, dict)
                 or set(raw) != {"assignment_id", "decision", "external_evidence"}
@@ -203,10 +304,12 @@ def _reconstruct_proof_envelope(prepare: dict, item: dict, role: str,
                 )
             } | {"supports": copy.deepcopy(evidence["supports"])})
         envelope = tr.make_envelope(role, assignment, raw["decision"], external)
+
         def validate_plain(decision: dict) -> list[str]:
             return validate_verdict_row(
                 decision, packet_identity, allow_override=False
             )[0]
+
         errors = tr.validate_envelope(
             envelope, role, packet_identity, validate_plain,
             expected_assignment=assignment,
@@ -216,6 +319,27 @@ def _reconstruct_proof_envelope(prepare: dict, item: dict, role: str,
         return envelope, errors
     except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
         return None, [f"{role} sealed output invalid: {error}"]
+
+
+def _reconstruct_proof_envelope(
+        prepare: dict, item: dict, role: str,
+        sealed_outputs: dict, packet_identity: dict,
+) -> tuple[dict | None, list[str]]:
+    assignment = (item.get("assignments") or {}).get(role)
+    if not isinstance(assignment, dict):
+        return None, [f"missing {role} assignment"]
+    encoded = sealed_outputs.get(assignment.get("output_path"))
+    if encoded is None:
+        return _reconstruct_proof_envelope_bytes(
+            prepare, item, role, None, packet_identity
+        )
+    try:
+        raw_bytes = base64.b64decode(encoded, validate=True)
+    except (TypeError, ValueError) as error:
+        return None, [f"{role} sealed output invalid: {error}"]
+    return _reconstruct_proof_envelope_bytes(
+        prepare, item, role, raw_bytes, packet_identity
+    )
 
 
 def _validate_review_bundle(bundle: object, authority_receipt: dict,
@@ -309,11 +433,830 @@ def _validate_review_bundle(bundle: object, authority_receipt: dict,
     return errors
 
 
+def _load_manifest_object(
+        manifest: dict, registry: dict, object_sha: str, *,
+        max_bytes: int = 4 * 1024 * 1024) -> bytes:
+    table = manifest.get("objects")
+    descriptor = table.get(object_sha) if isinstance(table, dict) else None
+    ref = publication_objects.validate_logical_object_ref(descriptor)
+    if ref.sha256 != object_sha or ref.length > max_bytes:
+        raise ValueError("proof object reference is missing, mismatched, or oversized")
+    root = getattr(registry, "data_root", None)
+    if root is None:
+        raise ValueError("compact proof registry has no object-root context")
+    stages = getattr(registry, "staged_objects", ())
+    return b"".join(publication_objects.iter_object_bytes(
+        root, ref, stages
+    ))
+
+
+def _load_proof_manifest(proof_sha: str, registry: dict) -> dict:
+    descriptor = registry.get("proofs", {}).get(proof_sha)
+    ref = publication_objects.validate_object_ref(descriptor)
+    if ref.sha256 != proof_sha or ref.length > PUBLICATION_PROOF_MANIFEST_MAX_BYTES:
+        raise ValueError("publication proof manifest descriptor is invalid")
+    root = getattr(registry, "data_root", None)
+    if root is None:
+        raise ValueError("compact proof registry has no data-root context")
+    stages = getattr(registry, "staged_objects", ())
+    raw = b"".join(publication_objects.iter_object_bytes(root, ref, stages))
+    try:
+        import resolve_trust as resolver  # lazy: resolver imports replay
+        import _parking_verdict_source as source
+        manifest = source._strict_json_loads(raw, "publication proof manifest")
+    except (UnicodeDecodeError, ValueError, json.JSONDecodeError) as error:
+        raise ValueError(f"publication proof manifest is invalid: {error}") from error
+    if not isinstance(manifest, dict) or resolver._json_bytes(manifest) != raw:
+        raise ValueError("publication proof manifest bytes are noncanonical")
+    return manifest
+
+
+def _validate_review_recipe_v2(
+        review_sha: str, entry: object, manifest: dict,
+        registry: dict, resolver) -> list[str]:
+    required_entry = {
+        "receipt_ref", "source_prepare_ref", "source_artifacts", "recipe",
+    }
+    required_recipe = {
+        "version", "format_version", "renderer_version", "prepare_ref",
+        "receipt_ref", "source_artifacts", "sheet_name",
+        "expected_sheet_length", "expected_sheet_sha256",
+    }
+    if not isinstance(entry, dict) or set(entry) != required_entry:
+        return ["publication proof review recipe entry schema mismatch"]
+    recipe = entry.get("recipe")
+    if (not isinstance(recipe, dict) or set(recipe) != required_recipe
+            or recipe.get("version") != 2
+            or recipe.get("format_version") != review.REVIEW_FORMAT_VERSION
+            or recipe.get("renderer_version") != review.REVIEW_RENDERER_VERSION
+            or recipe.get("prepare_ref") != entry.get("source_prepare_ref")
+            or recipe.get("receipt_ref") != entry.get("receipt_ref")
+            or recipe.get("source_artifacts") != entry.get("source_artifacts")
+            or recipe.get("sheet_name") != review.REVIEW_SHEET_NAME):
+        return ["publication proof review recipe schema mismatch"]
+    errors = []
+    try:
+        prepare_bytes = _load_manifest_object(
+            manifest, registry, entry["source_prepare_ref"]
+        )
+        prepare = resolver.parse_prepare_bytes(prepare_bytes)
+        receipt_bytes = _load_manifest_object(
+            manifest, registry, entry["receipt_ref"]
+        )
+        receipt = json.loads(receipt_bytes)
+        receipt_errors = review.validate_review_receipt(receipt)
+        if receipt_errors or review.json_bytes(receipt) != receipt_bytes:
+            raise ValueError(f"review receipt invalid: {receipt_errors}")
+        if (receipt.get("receipt_sha256") != review_sha
+                or receipt.get("source_prepare_sha256")
+                != hashlib.sha256(prepare_bytes).hexdigest()
+                or receipt.get("sheet_length")
+                != recipe.get("expected_sheet_length")
+                or receipt.get("sheet_sha256")
+                != recipe.get("expected_sheet_sha256")):
+            raise ValueError("review receipt/recipe identity mismatch")
+        source_map = entry.get("source_artifacts")
+        if (not isinstance(source_map, dict)
+                or set(source_map) != set(receipt.get("source_objects") or {})):
+            raise ValueError("review recipe source closure mismatch")
+        for relative, object_sha in source_map.items():
+            descriptor = publication_objects.validate_logical_object_ref(
+                manifest["objects"].get(object_sha)
+            )
+            expected = receipt["source_objects"][relative]
+            if (descriptor.sha256 != expected["sha256"]
+                    or descriptor.length != expected["length"]):
+                raise ValueError(
+                    f"review source descriptor mismatch for {relative}"
+                )
+
+        def read(relative: str) -> bytes:
+            object_sha = source_map.get(relative)
+            if object_sha is None:
+                raise ValueError(f"missing review source {relative}")
+            return _load_manifest_object(manifest, registry, object_sha)
+
+        def iterate(relative: str):
+            object_sha = source_map.get(relative)
+            if object_sha is None:
+                raise ValueError(f"missing review source {relative}")
+            descriptor = manifest["objects"][object_sha]
+            return publication_objects.iter_object_bytes(
+                registry.data_root, descriptor,
+                getattr(registry, "staged_objects", ()),
+            )
+
+        portable_run = Path("/portable-review") / prepare["run_id"]
+        render, rebuilt_receipt, consumed = review.build_review_artifacts_v2(
+            prepare, prepare_bytes, portable_run, read, iterate,
+            receipt["sample"]["requested"],
+        )
+        if rebuilt_receipt != receipt or set(consumed) != set(source_map):
+            raise ValueError("review recipe does not reconstruct its receipt")
+        identity = review.review_html_identity_v2(render())
+        if identity != (
+                recipe["expected_sheet_length"],
+                recipe["expected_sheet_sha256"]):
+            raise ValueError("review recipe reconstructed sheet identity mismatch")
+        if recipe["expected_sheet_sha256"] in manifest["objects"]:
+            raise ValueError("review sheet must be a recipe, not a stored object")
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        errors.append(f"publication proof review recipe invalid: {error}")
+    return errors
+
+
+def _validate_publication_proof_v4_row(
+        row: dict, manifest: dict, registry: dict, resolver) -> list[str]:
+    """Validate row-specific bindings after one full manifest replay."""
+    try:
+        attestation = row.get("publication_attestation")
+        if (not isinstance(attestation, dict)
+                or attestation.get("version") != PUBLICATION_ATTESTATION_VERSION):
+            raise ValueError("proof v4 requires publication attestation v3")
+        if (manifest.get("run_id") != attestation.get("resolver_run_id")
+                or manifest.get("area") != row.get("area")):
+            raise ValueError("proof v4 resolver identity mismatch")
+        fid = str(row.get("fid"))
+        final = manifest["final_rows"].get(fid)
+        if final != _proof_decision_row(row):
+            raise ValueError("proof v4 final decision/authority row mismatch")
+        prepare_bytes = _load_manifest_object(
+            manifest, registry, manifest["prepare_ref"]
+        )
+        prepare = resolver.parse_prepare_bytes(prepare_bytes)
+        facility = (
+            prepare.get("source", {}).get("publication", {})
+            .get("facilities", {}).get(fid)
+        )
+        if not isinstance(facility, dict):
+            raise ValueError("proof v4 has no bound publication facility")
+        for field in ("osm", "lat", "lon", "rings", "name"):
+            if row.get(field) != facility.get(field):
+                raise ValueError(
+                    f"proof v4 final {field} differs from bound facility"
+                )
+        binding = manifest["packet_bindings"].get(fid)
+        if (not isinstance(binding, dict)
+                or tr.sha256_json(binding)
+                != attestation.get("packet_sha256")):
+            raise ValueError("proof v4 packet binding mismatch")
+        seal_bytes = _load_manifest_object(
+            manifest, registry, manifest["output_seal_ref"]
+        )
+        seal = json.loads(seal_bytes)
+        if (resolver._json_bytes(seal) != seal_bytes
+                or seal.get("seal_sha256")
+                != attestation.get("output_seal_sha256")):
+            raise ValueError("proof v4 output seal mismatch")
+        item = next(
+            (value for value in prepare["items"]
+             if value["fid"] == row.get("fid")),
+            None,
+        )
+        if item is None:
+            raise ValueError("proof v4 prepare has no matching item")
+        receipt_bytes = _load_manifest_object(
+            manifest, registry,
+            manifest["chunk_receipts"][str(item["chunk"])],
+        )
+        receipt = json.loads(receipt_bytes)
+        if (resolver._json_bytes(receipt) != receipt_bytes
+                or tr.sha256_json(receipt)
+                != attestation.get("terminal_receipt_sha256")):
+            raise ValueError("proof v4 terminal receipt mismatch")
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        return [f"publication proof v4 invalid: {error}"]
+    return []
+
+
+def _validate_publication_proof_v4(
+        row: dict, proof_sha: str, manifest: dict, registry: dict) -> list[str]:
+    required = {
+        "version", "kind", "run_id", "area", "path_scheme", "objects",
+        "object_closure_sha256", "prepare_ref", "output_seal_ref",
+        "sealed_outputs", "rendered_prompts", "prompt_templates",
+        "normative_documents", "chunk_receipts", "terminal_drafts",
+        "terminal_checkpoints", "packet_objects", "packet_bindings",
+        "final_rows", "human_authority", "human_reviews",
+    }
+    if set(manifest) != required:
+        return ["publication proof v4 manifest schema mismatch"]
+    errors = []
+    try:
+        import resolve_trust as resolver  # lazy: resolver imports replay
+        if (manifest.get("version") != PUBLICATION_PROOF_VERSION
+                or manifest.get("kind") != PUBLICATION_PROOF_KIND
+                or manifest.get("path_scheme") != resolver.PREPARE_PATH_SCHEME):
+            raise ValueError("proof v4 version/kind/path scheme mismatch")
+        table = manifest.get("objects")
+        if not isinstance(table, dict) or not table:
+            raise ValueError("proof v4 object table is empty")
+        logical = []
+        for object_sha, descriptor in table.items():
+            ref = publication_objects.validate_logical_object_ref(descriptor)
+            if ref.sha256 != object_sha:
+                raise ValueError("proof v4 object table key/hash mismatch")
+            logical.append(ref)
+        if publication_objects.object_closure_sha256(logical) != manifest.get(
+                "object_closure_sha256"):
+            raise ValueError("proof v4 object closure hash mismatch")
+        publication_objects.verify_object_closure(
+            registry.data_root, logical,
+            getattr(registry, "staged_objects", ()),
+        )
+
+        referenced = {
+            manifest["prepare_ref"], manifest["output_seal_ref"],
+        }
+        for field in (
+            "sealed_outputs", "rendered_prompts", "prompt_templates",
+            "normative_documents", "chunk_receipts", "terminal_drafts",
+            "terminal_checkpoints", "packet_objects",
+        ):
+            values = manifest[field]
+            if not isinstance(values, dict):
+                raise ValueError(f"proof v4 {field} is not an object")
+            referenced.update(value for value in values.values() if value is not None)
+        packet_bindings = manifest.get("packet_bindings")
+        final_rows = manifest.get("final_rows")
+        human_authority = manifest.get("human_authority")
+        human_reviews = manifest.get("human_reviews")
+        if (not isinstance(packet_bindings, dict)
+                or not isinstance(final_rows, dict)
+                or not isinstance(human_authority, dict)
+                or not isinstance(human_reviews, dict)):
+            raise ValueError("proof v4 row/authority maps are malformed")
+        for binding in packet_bindings.values():
+            if not isinstance(binding, dict):
+                raise ValueError("proof v4 packet binding is malformed")
+            tile_hashes = binding.get("tile_sha256")
+            if not isinstance(tile_hashes, dict):
+                raise ValueError("proof v4 packet tile binding is malformed")
+            referenced.update(tile_hashes.values())
+        for entry in human_authority.values():
+            if not isinstance(entry, dict) or set(entry) != {
+                    "receipt_ref", "source_prepare_ref"}:
+                raise ValueError("proof v4 human authority entry is malformed")
+            referenced.update(entry.values())
+        for entry in human_reviews.values():
+            if not isinstance(entry, dict):
+                raise ValueError("proof v4 human review entry is malformed")
+            source_artifacts = entry.get("source_artifacts")
+            if not isinstance(source_artifacts, dict):
+                raise ValueError("proof v4 review source map is malformed")
+            referenced.update((
+                entry.get("receipt_ref"), entry.get("source_prepare_ref")
+            ))
+            referenced.update(source_artifacts.values())
+        if referenced != set(table):
+            missing = sorted(referenced - set(table))
+            extra = sorted(set(table) - referenced)
+            raise ValueError(
+                f"proof v4 object table is not an exact closure: "
+                f"missing={missing[:3]} extra={extra[:3]}"
+            )
+
+        prepare_bytes = _load_manifest_object(
+            manifest, registry, manifest["prepare_ref"]
+        )
+        prepare = resolver.parse_prepare_bytes(prepare_bytes)
+        attestation = row["publication_attestation"]
+        if (not isinstance(attestation, dict)
+                or attestation.get("version") != PUBLICATION_ATTESTATION_VERSION):
+            raise ValueError("proof v4 requires publication attestation v3")
+        if (prepare.get("run_id") != manifest.get("run_id")
+                or prepare.get("area") != manifest.get("area")
+                or manifest.get("run_id") != attestation.get("resolver_run_id")):
+            raise ValueError("proof v4 resolver identity mismatch")
+        prepared_fids = {str(item["fid"]) for item in prepare["items"]}
+        for field in ("packet_bindings", "packet_objects", "final_rows"):
+            if set(manifest[field]) != prepared_fids:
+                raise ValueError(f"proof v4 {field} coverage mismatch")
+
+        seal_bytes = _load_manifest_object(
+            manifest, registry, manifest["output_seal_ref"]
+        )
+        seal = json.loads(seal_bytes)
+        seal_body = dict(seal)
+        seal_hash = seal_body.pop("seal_sha256", None)
+        expected_output_paths = {
+            assignment["output_path"]
+            for item in prepare["items"]
+            for assignment in item["assignments"].values()
+        }
+        if (resolver._json_bytes(seal) != seal_bytes
+                or seal.get("version") != resolver.OUTPUT_SEAL_VERSION
+                or seal.get("kind") != "parking-trust-output-seal"
+                or seal.get("run_id") != prepare["run_id"]
+                or seal_hash != tr.sha256_json(seal_body)
+                or seal_hash != attestation.get("output_seal_sha256")
+                or set(seal.get("outputs") or {}) != expected_output_paths
+                or set(manifest["sealed_outputs"]) != expected_output_paths):
+            raise ValueError("proof v4 output seal mismatch")
+        expected_prompt_paths = {
+            assignment["prompt_path"]
+            for item in prepare["items"]
+            for assignment in item["assignments"].values()
+        }
+        if (set(manifest["rendered_prompts"]) != expected_prompt_paths
+                or set(manifest["prompt_templates"])
+                != set(prepare["prompt_template_sha256"])
+                or set(manifest["normative_documents"])
+                != set(prepare["normative_document_sha256"])):
+            raise ValueError("proof v4 prompt/rule object maps are not closed")
+        for relative, expected_hash in seal["outputs"].items():
+            object_sha = manifest["sealed_outputs"][relative]
+            if expected_hash is None:
+                if object_sha is not None:
+                    raise ValueError("proof v4 absent sealed output has an object")
+                continue
+            if object_sha != expected_hash:
+                raise ValueError(f"proof v4 sealed output mismatch for {relative}")
+            descriptor = publication_objects.validate_logical_object_ref(
+                table.get(object_sha)
+            )
+            if descriptor.sha256 != expected_hash:
+                raise ValueError(f"proof v4 sealed output mismatch for {relative}")
+
+        decoded_templates = {}
+        for role, expected_hash in prepare["prompt_template_sha256"].items():
+            raw = _load_manifest_object(
+                manifest, registry, manifest["prompt_templates"][role]
+            )
+            decoded_templates[role] = raw
+            if hashlib.sha256(raw).hexdigest() != expected_hash:
+                raise ValueError(f"proof v4 {role} template hash mismatch")
+        for name, expected_hash in prepare["normative_document_sha256"].items():
+            raw = _load_manifest_object(
+                manifest, registry, manifest["normative_documents"][name]
+            )
+            if hashlib.sha256(raw).hexdigest() != expected_hash:
+                raise ValueError(f"proof v4 {name} rule hash mismatch")
+
+        replay_summaries: dict[int, _ProofReplaySummary] = {}
+        packet_source_digest = hashlib.sha256()
+        packet_source_members = 0
+        portable_run = Path("/portable-proof") / prepare["run_id"]
+        for item in sorted(
+                prepare["items"], key=lambda value: str(value["fid"])):
+            fid = item["fid"]
+            binding = packet_bindings[str(fid)]
+            packet_raw = _load_manifest_object(
+                manifest, registry, manifest["packet_objects"][str(fid)]
+            )
+            packet = json.loads(packet_raw)
+            if resolver._json_bytes(packet) != packet_raw:
+                raise ValueError(f"proof v4 fid {fid} packet bytes are noncanonical")
+            payload = {key: copy.deepcopy(value) for key, value in packet.items()
+                       if key != "tiles"}
+            tile_hashes = binding.get("tile_sha256")
+            if (not isinstance(tile_hashes, dict)
+                    or set(tile_hashes) != {"z1", "z2", "z3"}):
+                raise ValueError(f"proof v4 fid {fid} tile binding is malformed")
+            if (payload != binding.get("packet")
+                    or packet.get("tiles") != {
+                        zoom: f"tiles/{tile_hashes[zoom]}.png"
+                        for zoom in ("z1", "z2", "z3")
+                    }
+                    or tr.sha256_json({"packet": payload, "tile_sha256": tile_hashes})
+                    != item["packet_sha256"]):
+                raise ValueError(f"proof v4 fid {fid} packet binding mismatch")
+            packet_source_members = _update_pretty_object_digest(
+                packet_source_digest, packet_source_members, str(fid), packet,
+                resolver._json_bytes,
+            )
+            for zoom, tile_sha in sorted(tile_hashes.items()):
+                prefix = b""
+                for tile_chunk in publication_objects.iter_object_bytes(
+                        registry.data_root, manifest["objects"][tile_sha],
+                        getattr(registry, "staged_objects", ())):
+                    if len(prefix) < 8:
+                        prefix += tile_chunk[:8 - len(prefix)]
+                if prefix != b"\x89PNG\r\n\x1a\n":
+                    raise ValueError(
+                        f"proof v4 fid {fid} {zoom} object is not PNG data"
+                    )
+            for role, assignment in item["assignments"].items():
+                prompt_raw = _load_manifest_object(
+                    manifest, registry,
+                    manifest["rendered_prompts"][assignment["prompt_path"]],
+                )
+                expected_prompt = resolver._prompt(
+                    role, portable_run, assignment["assignment_id"],
+                    portable_run / item["packet_path"],
+                    portable_run / assignment["output_path"],
+                    prepare["models"][role],
+                    prepare["normative_document_sha256"],
+                    template_bytes=decoded_templates[role], portable=True,
+                )
+                if (prompt_raw != expected_prompt
+                        or hashlib.sha256(prompt_raw).hexdigest()
+                        != assignment["prompt_sha256"]):
+                    raise ValueError(f"proof v4 fid {fid} {role} prompt mismatch")
+            replayed_outputs = {}
+            output_errors = []
+            for role in ("challenger", "arbiter"):
+                assignment = item["assignments"][role]
+                relative = assignment["output_path"]
+                expected_hash = seal["outputs"][relative]
+                raw_output = None
+                if expected_hash is not None:
+                    object_sha = manifest["sealed_outputs"][relative]
+                    raw_output = _load_manifest_object(
+                        manifest, registry, object_sha
+                    )
+                    if hashlib.sha256(raw_output).hexdigest() != expected_hash:
+                        raise ValueError(
+                            f"proof v4 sealed output mismatch for {relative}"
+                        )
+                envelope, role_errors = _reconstruct_proof_envelope_bytes(
+                    prepare, item, role, raw_output, payload
+                )
+                replayed_outputs[role] = envelope
+                output_errors.extend(role_errors)
+            if output_errors:
+                raise ValueError(
+                    f"proof v4 fid {fid} output invalid: {output_errors}"
+                )
+            challenger = replayed_outputs["challenger"]
+            arbiter = replayed_outputs["arbiter"]
+            envelopes = {
+                "primary": item["primary"],
+                "challenger": challenger,
+                "arbiter": arbiter,
+            }
+            resolution = tr.resolve(
+                item["route"], item["primary"], challenger, arbiter
+            )
+            selected_role = resolution.get("selected_role")
+            selected_envelope = (
+                envelopes.get(selected_role)
+                if selected_role in tr.ROLES else None
+            )
+            replay_summaries[fid] = _ProofReplaySummary(
+                state=resolution["state"],
+                result=resolution.get("result"),
+                selected_role=selected_role,
+                reason=resolution["reason"],
+                model_families=tuple(sorted({
+                    tr.family(envelope)
+                    for envelope in envelopes.values()
+                    if envelope is not None
+                })),
+                selected_decision_sha256=(
+                    selected_envelope.get("decision_sha256")
+                    if selected_envelope is not None else None
+                ),
+            )
+            final_row = final_rows[str(fid)]
+
+            def validate_plain(decision: dict) -> list[str]:
+                return validate_verdict_row(
+                    decision, payload, allow_override=False
+                )[0]
+
+            if resolution.get("state") == "resolved":
+                selected_role = resolution.get("selected_role")
+                machine_row, machine_errors = machine_decision_projection(
+                    final_row
+                )
+                if (machine_errors or machine_row is None
+                        or authority_wrapper(final_row) is not None):
+                    raise ValueError(
+                        f"proof v4 fid {fid} resolved row is not autonomous"
+                    )
+                persisted = machine_row.get("trust_resolution")
+                persisted_errors = tr.validate_persisted_resolution(
+                    machine_row, payload, validate_plain,
+                    expected_packet_sha256=item["packet_sha256"],
+                )
+                if persisted_errors:
+                    raise ValueError(
+                        f"proof v4 fid {fid} persisted resolution invalid: "
+                        f"{persisted_errors}"
+                    )
+                if (not isinstance(persisted, dict)
+                        or persisted.get("run_id") != prepare["run_id"]
+                        or persisted.get("route") != item["route"]
+                        or persisted.get("result") != resolution.get("result")
+                        or persisted.get("selected_role") != selected_role
+                        or any(persisted.get(role) != envelopes[role]
+                               for role in tr.ROLES)):
+                    raise ValueError(
+                        f"proof v4 fid {fid} persisted resolution differs "
+                        "from sealed outputs"
+                    )
+            elif (resolution.get("state") == "preserved"
+                    and item.get("route") == "PRESERVE_MACHINE_RESOLUTION"):
+                machine_row, machine_errors = machine_decision_projection(
+                    final_row
+                )
+                if machine_errors or machine_row is None:
+                    raise ValueError(
+                        f"proof v4 fid {fid} preserved machine row is invalid"
+                    )
+                persisted_errors = tr.validate_persisted_resolution(
+                    machine_row, payload, validate_plain,
+                    expected_packet_sha256=item["packet_sha256"],
+                )
+                persisted = machine_row.get("trust_resolution")
+                if (persisted_errors or not isinstance(persisted, dict)
+                        or not isinstance(persisted.get("primary"), dict)
+                        or persisted["primary"].get("decision")
+                        != item.get("primary", {}).get("decision")):
+                    raise ValueError(
+                        f"proof v4 fid {fid} preserved machine resolution "
+                        "differs from its prepared primary"
+                    )
+            # The run-wide state below contains only immutable scalar summaries.
+            # Release every decoded assignment envelope before loading the next
+            # packet so output size cannot multiply replay retention.
+            del (
+                replayed_outputs, challenger, arbiter, envelopes, resolution,
+                selected_envelope, envelope,
+            )
+
+        if _finish_pretty_object_digest(
+                packet_source_digest, packet_source_members,
+                resolver._json_bytes) != prepare["source"]["packets_file_sha256"]:
+            raise ValueError("proof v4 portable packet source map mismatch")
+
+        snapshot_counts = {
+            "items": len(prepare["items"]),
+            "pending_challenger": 0,
+            "pending_arbiter": 0,
+            "autonomous_resolved": 0,
+            "preserved_authority": 0,
+            "human_exceptions": 0,
+            "refresh_required": 0,
+            "invalid": 0,
+        }
+        snapshot_items = []
+        for item in prepare["items"]:
+            summary = replay_summaries[item["fid"]]
+            state = summary.state
+            if state == "resolved":
+                snapshot_counts["autonomous_resolved"] += 1
+            elif state == "preserved":
+                snapshot_counts["preserved_authority"] += 1
+            elif state == "pending":
+                key = (
+                    "pending_challenger"
+                    if summary.reason == "challenger decision missing"
+                    else "pending_arbiter"
+                )
+                snapshot_counts[key] += 1
+            elif state == "human_exception":
+                snapshot_counts["human_exceptions"] += 1
+            elif state == "blocked":
+                snapshot_counts["refresh_required"] += 1
+            else:
+                snapshot_counts["invalid"] += 1
+            snapshot_items.append({
+                "fid": item["fid"],
+                "chunk": item["chunk"],
+                "route": item["route"],
+                "state": state,
+                "result": summary.result,
+                "selected_role": summary.selected_role,
+                "reason": summary.reason,
+                "errors": [],
+                "model_families": list(summary.model_families),
+            })
+        snapshot_status = {
+            "run_id": prepare["run_id"],
+            "counts": snapshot_counts,
+            "items": sorted(snapshot_items, key=lambda value: value["fid"]),
+        }
+        if (any(item["state"] not in ("resolved", "preserved")
+                for item in snapshot_items)
+                or resolver._resolution_snapshot_sha256(snapshot_status)
+                != seal.get("ready_snapshot_sha256")):
+            raise ValueError("proof v4 whole-run READY snapshot mismatch")
+
+        expected_chunks = {str(source["chunk"])
+                           for source in prepare["source"]["drafts"]}
+        for field in ("chunk_receipts", "terminal_drafts", "terminal_checkpoints"):
+            if set(manifest[field]) != expected_chunks:
+                raise ValueError(f"proof v4 {field} chunk set mismatch")
+        for source in prepare["source"]["drafts"]:
+            chunk = str(source["chunk"])
+            receipt_bytes = _load_manifest_object(
+                manifest, registry, manifest["chunk_receipts"][chunk]
+            )
+            draft_bytes = _load_manifest_object(
+                manifest, registry, manifest["terminal_drafts"][chunk]
+            )
+            checkpoint_bytes = _load_manifest_object(
+                manifest, registry, manifest["terminal_checkpoints"][chunk]
+            )
+            receipt = json.loads(receipt_bytes)
+            rows = json.loads(draft_bytes)
+            checkpoint = json.loads(checkpoint_bytes)
+            chunk_items = sorted(
+                (item for item in prepare["items"]
+                 if item["chunk"] == source["chunk"]),
+                key=lambda value: value["row_index"],
+            )
+            expected_rows = [
+                final_rows[str(item["fid"])] for item in chunk_items
+            ]
+            if rows != expected_rows:
+                raise ValueError(f"proof v4 chunk {chunk} terminal rows mismatch")
+            transaction_values = [
+                _compact_terminal_value(
+                    item, replay_summaries[item["fid"]]
+                )
+                for item in chunk_items
+            ]
+            expected_terminal = resolver._terminal_vector(transaction_values)
+            expected_transaction_id = resolver._transaction_id(
+                prepare, source, transaction_values
+            )
+            receipt_errors = resolver.validate_terminal_receipt(
+                receipt, expected_terminal=expected_terminal
+            )
+            common_receipt_invalid = (
+                receipt_errors
+                or resolver._json_bytes(receipt) != receipt_bytes
+                or receipt.get("run_id") != prepare["run_id"]
+                or receipt.get("transaction_id") != expected_transaction_id
+                or receipt.get("chunk") != source["chunk"]
+                or receipt.get("output_seal_sha256") != seal_hash
+            )
+            if receipt.get("kind") == "parking-trust-receipt":
+                resolution_hashes = []
+                for terminal_row in rows:
+                    machine_row, machine_errors = machine_decision_projection(
+                        terminal_row
+                    )
+                    if machine_errors or machine_row is None:
+                        terminal_invalid = True
+                        break
+                    resolution_hashes.append(tr.sha256_json(machine_row))
+                else:
+                    expected_checkpoint = copy.deepcopy(
+                        source["checkpoint_value"]
+                    )
+                    expected_checkpoint.update({
+                        "completed": [value["fid"] for value in rows],
+                        "draft_sha256": receipt.get("after_sha256"),
+                        "judge_row_sha256": source["judge_row_sha256"],
+                        "resolution_row_sha256": resolution_hashes,
+                    })
+                    resolved_transactions_match = all(
+                        replay_summaries[item["fid"]].state != "resolved"
+                        or (final_rows[str(item["fid"])].get(
+                            "trust_resolution") or {}).get("transaction_id")
+                        == expected_transaction_id
+                        for item in chunk_items
+                    )
+                    terminal_invalid = (
+                        receipt.get("before_sha256") != source["file_sha256"]
+                        or hashlib.sha256(draft_bytes).hexdigest()
+                        != receipt.get("after_sha256")
+                        or hashlib.sha256(checkpoint_bytes).hexdigest()
+                        != receipt.get("checkpoint_after_sha256")
+                        or checkpoint != expected_checkpoint
+                        or not resolved_transactions_match
+                    )
+            elif receipt.get("kind") == "parking-trust-preservation-receipt":
+                expected_routes_sha256 = tr.sha256_json({
+                    str(item["fid"]): item["route"] for item in chunk_items
+                })
+                terminal_invalid = (
+                    any(entry["state"] != "preserved"
+                        for entry in expected_terminal)
+                    or receipt.get("routes_sha256")
+                    != expected_routes_sha256
+                    or receipt.get("draft_sha256") != source["file_sha256"]
+                    or receipt.get("checkpoint_sha256")
+                    != source["checkpoint_sha256"]
+                    or hashlib.sha256(draft_bytes).hexdigest()
+                    != receipt.get("draft_sha256")
+                    or hashlib.sha256(checkpoint_bytes).hexdigest()
+                    != receipt.get("checkpoint_sha256")
+                    or checkpoint != source["checkpoint_value"]
+                )
+            else:
+                terminal_invalid = True
+            matching_item = next(
+                (item for item in prepare["items"]
+                 if item["fid"] == row.get("fid")), None
+            )
+            if (matching_item is not None
+                    and matching_item["chunk"] == source["chunk"]
+                    and tr.sha256_json(receipt)
+                    != attestation.get("terminal_receipt_sha256")):
+                terminal_invalid = True
+            if common_receipt_invalid or terminal_invalid:
+                raise ValueError(
+                    f"proof v4 chunk {chunk} terminal apply receipt mismatch"
+                )
+
+        expected_authority = set()
+        expected_reviews = set()
+        for final in final_rows.values():
+            wrapped = authority_wrapper(final)
+            if wrapped is None:
+                continue
+            receipt_sha = wrapped[1]["authority_receipt_sha256"]
+            expected_authority.add(receipt_sha)
+            authority_entry = manifest["human_authority"].get(receipt_sha)
+            if not isinstance(authority_entry, dict):
+                raise ValueError("proof v4 human authority receipt is missing")
+            receipt_bytes = _load_manifest_object(
+                manifest, registry, authority_entry["receipt_ref"]
+            )
+            receipt = json.loads(receipt_bytes)
+            authority_prepare_bytes = _load_manifest_object(
+                manifest, registry, authority_entry["source_prepare_ref"]
+            )
+            authority_prepare = resolver.parse_prepare_bytes(
+                authority_prepare_bytes
+            )
+            if (resolver._json_bytes(receipt) != receipt_bytes
+                    or hashlib.sha256(authority_prepare_bytes).hexdigest()
+                    != receipt.get("source_prepare_sha256")
+                    or authority_prepare.get("run_id")
+                    != receipt.get("source_run_id")):
+                raise ValueError("proof v4 authority source prepare mismatch")
+            receipt_errors = validate_authority_receipt(
+                final, Path("/portable-authority"), pending={receipt_sha: receipt}
+            )
+            if receipt_errors:
+                raise ValueError(f"proof v4 authority receipt invalid: {receipt_errors}")
+            review_sha = wrapped[1]["review_receipt_sha256"]
+            review_entry = human_reviews.get(review_sha)
+            prepared_item = next(
+                (item for item in authority_prepare["items"]
+                 if item["fid"] == final.get("fid")),
+                None,
+            )
+            if (not isinstance(review_entry, dict)
+                    or prepared_item is None
+                    or review_entry.get("source_prepare_ref")
+                    != authority_entry["source_prepare_ref"]):
+                raise ValueError("proof v4 authority/review source binding mismatch")
+            review_receipt = json.loads(_load_manifest_object(
+                manifest, registry, review_entry["receipt_ref"]
+            ))
+            selected_review_item = review.review_item(
+                review_receipt, final["fid"]
+            )
+            expected_primary_assignment = resolver.expected_primary_assignment(
+                authority_prepare, prepared_item
+            )
+            if (receipt.get("primary_envelope_sha256")
+                    != prepared_item["primary"].get("envelope_sha256")
+                    or receipt.get("primary_assignment_sha256")
+                    != tr.sha256_json(expected_primary_assignment)
+                    or receipt.get("packet_sha256")
+                    != prepared_item.get("packet_sha256")
+                    or selected_review_item.get("prepared_item_sha256")
+                    != tr.sha256_json(prepared_item)
+                    or selected_review_item.get("packet_sha256")
+                    != prepared_item.get("packet_sha256")
+                    or selected_review_item.get("primary_envelope_sha256")
+                    != prepared_item["primary"].get("envelope_sha256")
+                    or selected_review_item.get("review_item_sha256")
+                    != receipt.get("review_item_sha256")):
+                raise ValueError("proof v4 authority/review item binding mismatch")
+            expected_reviews.add(review_sha)
+        if set(manifest["human_authority"]) != expected_authority:
+            raise ValueError("proof v4 human authority set mismatch")
+        if set(manifest["human_reviews"]) != expected_reviews:
+            raise ValueError("proof v4 human review set mismatch")
+        for review_sha, entry in manifest["human_reviews"].items():
+            errors.extend(_validate_review_recipe_v2(
+                review_sha, entry, manifest, registry, resolver
+            ))
+
+        errors.extend(
+            _validate_publication_proof_v4_row(
+                row, manifest, registry, resolver
+            )
+        )
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        errors.append(f"publication proof v4 invalid: {error}")
+    return errors
+
+
 def _validate_publication_proof(row: dict, registry: dict) -> list[str]:
     attestation = row.get("publication_attestation")
     if not isinstance(attestation, dict):
         return ["publication proof requires a valid attestation"]
     proof_sha = attestation.get("publication_proof_sha256")
+    if registry.get("version") == PUBLICATION_PROOF_REGISTRY_VERSION:
+        if proof_sha not in registry.get("proofs", {}):
+            return ["publication proof is absent from the canonical registry"]
+        try:
+            manifest = _load_proof_manifest(proof_sha, registry)
+        except (KeyError, TypeError, ValueError, OSError) as error:
+            return [f"publication proof manifest is unavailable: {error}"]
+        return _validate_publication_proof_v4(
+            row, proof_sha, manifest, registry
+        )
     proof = registry.get("proofs", {}).get(proof_sha)
     if not isinstance(proof, dict):
         return ["publication proof is absent from the canonical registry"]
@@ -334,6 +1277,8 @@ def _validate_publication_proof(row: dict, registry: dict) -> list[str]:
     if not required or set(proof) != required:
         return ["publication proof schema mismatch"]
     errors = []
+    if attestation.get("version") != compatibility["attestation_version"]:
+        errors.append("publication proof/attestation version mismatch")
     body = dict(proof)
     claimed_proof = body.pop("proof_sha256", None)
     if (proof.get("kind") != PUBLICATION_PROOF_KIND
@@ -345,8 +1290,7 @@ def _validate_publication_proof(row: dict, registry: dict) -> list[str]:
         prepare = resolver.validate_prepare_document(
             proof["prepare"],
             allow_legacy=(
-                compatibility["prepare_version"]
-                == resolver.LEGACY_PREPARE_VERSION
+                compatibility["prepare_version"] != resolver.PREPARE_VERSION
             ),
         )
         expected_prepare_version = compatibility["prepare_version"]
@@ -358,7 +1302,7 @@ def _validate_publication_proof(row: dict, registry: dict) -> list[str]:
                 or proof.get("run_id") != attestation.get("resolver_run_id")):
             errors.append("publication proof resolver run mismatch")
         proof_generation = None
-        if proof_version == PUBLICATION_PROOF_VERSION:
+        if proof_version == PATH_BOUND_PUBLICATION_PROOF_VERSION:
             try:
                 proof_generation = dossier_output.validate_source_generation(
                     prepare.get("source", {}).get("source_generation"),
@@ -1098,6 +2042,7 @@ def publication_resource_modes(data_dir: Path, builder,
     )
     modes = [
         (root_path, fcntl.LOCK_EX),
+        (data_dir / publication_objects.OBJECT_DIRECTORY, fcntl.LOCK_EX),
         (tr.dossier_resource_path(data_dir), fcntl.LOCK_SH),
         (baseline_path, fcntl.LOCK_SH),
     ]
@@ -1136,6 +2081,14 @@ def validate_locked_publication_corpus(
             or (target_before_bytes.get("proof") is not None
                 and not isinstance(target_before_bytes.get("proof"), bytes))):
         raise ValueError("publication target before-image is malformed")
+    if (target_before_bytes["proof"] is not None
+            and len(target_before_bytes["proof"])
+            > publication_objects.REGISTRY_MAX_BYTES):
+        raise ValueError(
+            publication_objects.registry_cap_message(
+                "publication target proof registry"
+            )
+        )
 
     store_bytes = {}
     proof_bytes = {}
@@ -1164,10 +2117,7 @@ def validate_locked_publication_corpus(
                 f"{spec.filename}: sibling publication journal blocks candidate creation"
             )
         store_bytes[spec.filename] = trusted_fs.read_regular_bytes(store_path)
-        try:
-            proof_bytes[spec.filename] = trusted_fs.read_regular_bytes(proof_path)
-        except FileNotFoundError:
-            proof_bytes[spec.filename] = None
+        proof_bytes[spec.filename] = _read_publication_registry_bytes(proof_path)
         floor_bytes[spec.filename] = trusted_fs.read_regular_bytes(floor_path)
 
     baseline_bytes = trusted_fs.read_regular_bytes(baseline_path)
@@ -1197,7 +2147,7 @@ def validate_locked_publication_corpus(
                 data_dir, spec.filename, proof_bytes[spec.filename]
             )
             if proof_bytes[spec.filename] is not None
-            else {"version": PUBLICATION_PROOF_REGISTRY_VERSION, "proofs": {}}
+            else _empty_publication_registry()
         )
         uses_legacy = (
             validate_store_proof_image(spec, values, registry, baseline)
@@ -1347,13 +2297,25 @@ def validate_store_proof_image(spec, values: dict, registry: dict,
 
     if not isinstance(values, dict):
         raise ValueError(f"{spec.filename} must contain an object")
-    if (not isinstance(registry, dict)
-            or set(registry) != {"version", "proofs"}
-            or registry.get("version") != PUBLICATION_PROOF_REGISTRY_VERSION
-            or not isinstance(registry.get("proofs"), dict)):
+    legacy_registry = (
+        isinstance(registry, dict)
+        and set(registry) == {"version", "proofs"}
+        and registry.get("version") == LEGACY_PUBLICATION_PROOF_REGISTRY_VERSION
+        and isinstance(registry.get("proofs"), dict)
+    )
+    compact_registry = (
+        isinstance(registry, dict)
+        and set(registry) == {"version", "kind", "proofs"}
+        and registry.get("version") == PUBLICATION_PROOF_REGISTRY_VERSION
+        and registry.get("kind") == PUBLICATION_PROOF_REGISTRY_KIND
+        and isinstance(registry.get("proofs"), dict)
+    )
+    if not (legacy_registry or compact_registry):
         raise ValueError(f"{spec.filename} publication proof registry is malformed")
     referenced = set()
     uses_legacy = False
+    validated_compact_proofs: dict[str, dict] = {}
+    validated_compact_rows: set[tuple[str, str]] = set()
     for source_key, row in values.items():
         if not isinstance(row, dict):
             raise ValueError(f"{spec.filename}:{source_key} row must be an object")
@@ -1389,15 +2351,45 @@ def validate_store_proof_image(spec, values: dict, registry: dict,
                 f"{spec.filename}:{source_key} invalid publication attestation: "
                 + "; ".join(attestation_errors)
             )
-        proof_errors = _validate_publication_proof(row, registry)
+        proof_sha = row["publication_attestation"][
+            "publication_proof_sha256"
+        ]
+        row_cache_key = (proof_sha, tr.sha256_json(row))
+        if compact_registry and row_cache_key in validated_compact_rows:
+            proof_errors = []
+        elif compact_registry and proof_sha in validated_compact_proofs:
+            import resolve_trust as resolver  # lazy: resolver imports replay
+            proof_errors = _validate_publication_proof_v4_row(
+                row, validated_compact_proofs[proof_sha], registry, resolver
+            )
+        elif compact_registry:
+            descriptor = registry["proofs"].get(proof_sha)
+            if descriptor is None:
+                proof_errors = [
+                    "publication proof is absent from the canonical registry"
+                ]
+            else:
+                try:
+                    manifest = _load_proof_manifest(proof_sha, registry)
+                except (KeyError, TypeError, ValueError, OSError) as error:
+                    proof_errors = [
+                        f"publication proof manifest is unavailable: {error}"
+                    ]
+                else:
+                    proof_errors = _validate_publication_proof_v4(
+                        row, proof_sha, manifest, registry
+                    )
+                    if not proof_errors:
+                        validated_compact_proofs[proof_sha] = manifest
+        else:
+            proof_errors = _validate_publication_proof(row, registry)
         if proof_errors:
             raise ValueError(
                 f"{spec.filename}:{source_key} invalid publication proof: "
                 + "; ".join(proof_errors)
             )
-        referenced.add(
-            row["publication_attestation"]["publication_proof_sha256"]
-        )
+        validated_compact_rows.add(row_cache_key)
+        referenced.add(proof_sha)
 
     if baseline is not None:
         missing_legacy_keys = sorted(
@@ -1409,12 +2401,13 @@ def validate_store_proof_image(spec, values: dict, registry: dict,
                 f"{missing_legacy_keys[:5]}"
             )
     registered = set(registry["proofs"])
-    if registered != referenced:
-        missing = sorted(referenced - registered)
-        extra = sorted(registered - referenced)
+    missing = sorted(referenced - registered)
+    extra = sorted(registered - referenced)
+    if missing or (legacy_registry and extra):
         raise ValueError(
-            f"{spec.filename} publication proof registry does not exactly match "
-            f"referenced proofs: missing={missing[:5]} extra={extra[:5]}"
+            f"{spec.filename} publication proof registry does not contain the "
+            f"required append-only proof set: missing={missing[:5]} "
+            f"extra={extra[:5]}"
         )
     return uses_legacy
 
@@ -1568,10 +2561,7 @@ def validated_store_snapshot(
         for store in stores:
             store_path, proof_path, floor_path, _journal = paths[store]
             store_bytes[store] = merger.resolver._read_bytes_nofollow(store_path)
-            try:
-                proof_bytes[store] = merger.resolver._read_bytes_nofollow(proof_path)
-            except FileNotFoundError:
-                proof_bytes[store] = None
+            proof_bytes[store] = _read_publication_registry_bytes(proof_path)
             floor_bytes[store] = merger.resolver._read_bytes_nofollow(floor_path)
         baseline_bytes = trusted_fs.read_regular_bytes(baseline_path)
         dossier_bytes = _capture_dossier_snapshot(data_dir, merger.resolver)
@@ -1612,7 +2602,7 @@ def validated_store_snapshot(
                     data_dir, spec.filename, proof_bytes[spec.filename]
                 )
                 if proof_bytes[spec.filename] is not None
-                else {"version": PUBLICATION_PROOF_REGISTRY_VERSION, "proofs": {}}
+                else _empty_publication_registry()
             )
             uses_legacy = (
                 validate_store_proof_image(spec, values, registry, baseline)

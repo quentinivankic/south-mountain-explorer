@@ -1,0 +1,32 @@
+{
+  "assignment_id": "04170a32820ea1d3aa8e5ac39d7cda4c429f7c5008028e498ec25bd457a61e53",
+  "decision": {
+    "fid": 369,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/82854212"],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Surveyed prior (parking=surface, fee) confirmed positively. Z2/Z3: paved lot with drive aisle and its own access throat off the main park road, bays outside the travel lane; Z3 shows ~15+ parked cars in rows along the southern and central bays inside the red outline. No building/lawn/through-lane contradiction (building_overlap=false; the adjacent building sits just west of the outline)."
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Lot-level member tag access=yes with fee=no on way/82854212 (single member, mixed_access=false), which the protocol allows to decide PUBLIC. Context SUPPORT: inside boundary=protected_area 'Red Rocks Park'. No gate visible in Z2/Z3 (context only, not relied on)."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Trading Post Trail edge 0 m, walk 0 m, no fallback, only trail in range. Z2/Z3: yellow Trading Post Trail runs from the south into the lot and terminates inside the outline beside the parked-car row, i.e. the trail starts at the lot; an unnamed trailhead node sits 13 m away and 4 footways lie within 60 m. The adjacent building is a park facility inside the protected area (context SUPPORT, consistent with the trail's namesake), not a school/church/residential owner, and lot-level access=yes independently establishes public use, so dual-use is not the explanation here."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {
+      "amenity": "parking",
+      "access": "yes",
+      "fee": "no",
+      "parking": "surface"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

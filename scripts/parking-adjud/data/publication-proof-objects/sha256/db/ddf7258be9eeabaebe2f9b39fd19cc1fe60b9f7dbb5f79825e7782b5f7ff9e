@@ -1,0 +1,35 @@
+{
+  "assignment_id": "ff954cb7741c92225fc195ef719ab9e0d2c84543a3c3209565fd2dc6e34d9f0b",
+  "decision": {
+    "fid": 477,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/131465822"],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Surveyed prior (parking=surface, capacity=8, fee, operator). Z2 and Z3: the red outline covers a dark paved asphalt pad on the south side of the east-west arterial, separate from the travel lanes, with a paved access throat opening directly off the road shoulder along its north edge and a curved paved apron continuing just west of the outline. No stripes or parked cars are legible on capture day (empty is not absent). The footprint is not a building, lawn, water, or through-lane, so nothing positively contradicts the surveyed prior."
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Lot-level access=yes on way/131465822, plus fee=no, operator=City of Lakewood, and designation 'Bear Creek Greenbelt Parking'. The explicit lot-level access tag decides PUBLIC. Z3 shows no gate or barrier at the throat (context only)."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Trail 'Yale Ave Access' starts inside the lot (serves edge 0 m, walk 0 m, not fallback, 2 trails in range). In Z2 and Z3 the yellow trail begins inside the red outline and runs south as a visible dirt path beside a tree line. Z1 shows it reaching the Bear Creek greenbelt trail network about 350 m south. The designation names the greenbelt. The FACILITY flag (landuse=residential 25 m away) is the subdivision across the arterial to the north. The lot is on the open greenbelt side, with no driveway or path linking it to any house, so the residential neighbourhood is not a better explanation than the trail that starts in the lot."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {
+      "access": "yes",
+      "amenity": "parking",
+      "parking": "surface",
+      "capacity": "8",
+      "fee": "no",
+      "operator": "City of Lakewood",
+      "designation": "Bear Creek Greenbelt Parking"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

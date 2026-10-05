@@ -150,8 +150,14 @@ def _coordinate(value: object, minimum: float, maximum: float, field: str) -> fl
 def _reject_untrusted_text(value: object, field: str) -> None:
     """Reject strings that could change physical report/log line framing."""
     if type(value) is str:
-        for character in value:
-            if unicodedata.category(character) in {"Cc", "Cf", "Zl", "Zp"}:
+        for index, character in enumerate(value):
+            category = unicodedata.category(character)
+            # U+200D cannot frame a line, but accepting it generally would let
+            # invisible format characters into identifiers and labels. Permit
+            # only an actual emoji-style symbol join.
+            if category == "Cf" and pv.is_emoji_zwj(value, index):
+                continue
+            if category in {"Cc", "Cf", "Zl", "Zp"}:
                 raise ValueError(
                     f"{field} contains forbidden control/format/separator text"
                 )

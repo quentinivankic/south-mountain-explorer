@@ -1,0 +1,67 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 6254,
+ "building_overlap": false,
+ "context": {
+  "category": "PARK",
+  "evidence": "in leisure=park 'Thunder Valley Park' — generic park, weak",
+  "facility": null,
+  "facility_edge_m": null
+ },
+ "descriptive_tags": [
+  "surface",
+  "parking"
+ ],
+ "fid": 891,
+ "footprint": "polygon",
+ "footways_60m": 1,
+ "members": [
+  {
+   "osm": "way/620206644",
+   "tags": {
+    "amenity": "parking",
+    "parking": "surface",
+    "source": "Bing",
+    "surface": "dirt"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/620206644"
+ ],
+ "prior": "surveyed",
+ "serves": {
+  "edge_m": 189,
+  "fallback": false,
+  "n_trails_in_range": 1,
+  "trail": "Zorro Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking",
+  "parking": "surface",
+  "source": "Bing",
+  "surface": "dirt"
+ },
+ "tiles": {
+  "z1": "tiles/b20457b72bacc33d0704ae503ab8aa3e8f4d8968e5853f6e4c93532f96eba482.png",
+  "z2": "tiles/484ae770e49bcbb46641511742f03c7ad5c36de0c7056a3a9ffff93d37b03096.png",
+  "z3": "tiles/fe9d2bfd4fe29e581b742fd36f54b00cac53b5038efb8bdaaa6e9c11b4b58b30.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 598
+ }
+}

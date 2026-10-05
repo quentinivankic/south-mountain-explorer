@@ -1,0 +1,68 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "authority_kind": "override_v4",
+ "authority_payload": {
+  "by": "human",
+  "date": "2026-10-03",
+  "from_decision": {
+   "area": "bear-creek-lake-park-co",
+   "confidence": "strong",
+   "exists": {
+    "call": "no",
+    "evidence": "Z2-Z3: red polygon follows a continuous paved curve and broad road junction; there is no separate vehicle-access throat, bay, parked vehicle, stall, or independently delineated surface outside the travel lane."
+   },
+   "fid": 391,
+   "frames_used": [
+    "z1",
+    "z2",
+    "z3"
+   ],
+   "osm": [
+    "way/91322571"
+   ],
+   "prior": "bare",
+   "public": {
+    "call": "n/a",
+    "evidence": "Not evaluated because the mapped feature is road pavement rather than a parking facility."
+   },
+   "resolve_hint": null,
+   "serves": {
+    "call": "n/a",
+    "evidence": "Not evaluated because the mapped feature is not a parking facility, although shipped trails run along and across the road."
+   },
+   "tags_cited": {
+    "amenity": "parking"
+   },
+   "verdict": "DROP"
+  },
+  "from_decision_sha256": "9d50aaa650937e72ea699a41a7550b670e081a4f519e67468f39671c25ea34af",
+  "from_evidence_sha256": "2a940e893e5325ef467c8e99bf324ce3fcae15051ee66fe14f87948a5c37ff7a",
+  "note": "Hold for a frozen lot-level public-parking authorization or restriction covering the Matthews/Winters hairpin pullout.",
+  "packet_sha256": "9949d8a18e1b4d48cf5a334ab6049cb75accbf48c956974bc1b4bc50f8dc7d90",
+  "review_item_sha256": "2dba126d0b1032130cbac133b23f07829c9bfb89484236c8e8cbfb4ca169aed8",
+  "review_receipt_sha256": "d792b40e11aa21a46d033442ea84ba15e0a70f3388629539c58d5e2725399866",
+  "review_sheet_sha256": "ccc0dde4594e5bc30ea878127dd5514c03a50864152bec9fb4813af73bf4f939",
+  "reviewer": "quentin",
+  "source_run_id": "6046197b676ae1711aa7992e0c3ab428a453437e789b6627d5cc61a6472c6f24",
+  "to_decision_sha256": "faaff9f2ef98863700534c6f6581274c2ba964d55bd67beb7c053f53078ba053",
+  "to_evidence_sha256": "d7057a4df95c0f6e89a5f3c4ab6537e06f4dec55a92d13913c338886c5bd420e",
+  "version": 4
+ },
+ "date": "2026-10-03",
+ "effective_decision_sha256": "faaff9f2ef98863700534c6f6581274c2ba964d55bd67beb7c053f53078ba053",
+ "effective_evidence_sha256": "d7057a4df95c0f6e89a5f3c4ab6537e06f4dec55a92d13913c338886c5bd420e",
+ "fid": 391,
+ "kind": "parking-human-authority-receipt",
+ "note": "Hold for a frozen lot-level public-parking authorization or restriction covering the Matthews/Winters hairpin pullout.",
+ "packet_sha256": "9949d8a18e1b4d48cf5a334ab6049cb75accbf48c956974bc1b4bc50f8dc7d90",
+ "primary_assignment_sha256": "ec33f87e43edd73b1cca8d0816aac8869f761b98ca71c95773d17bfa60ea8a9e",
+ "primary_envelope_sha256": "4007ac86e45a3cc3cdd8dcc869497b51d638f502387a891f60257e0ca5800549",
+ "receipt_sha256": "e9792f417e6dbcfa7ee30a0cd334703f24a71d3058d0fc4426f18766b8ad5d41",
+ "review_item_sha256": "2dba126d0b1032130cbac133b23f07829c9bfb89484236c8e8cbfb4ca169aed8",
+ "review_receipt_sha256": "d792b40e11aa21a46d033442ea84ba15e0a70f3388629539c58d5e2725399866",
+ "review_sheet_sha256": "ccc0dde4594e5bc30ea878127dd5514c03a50864152bec9fb4813af73bf4f939",
+ "reviewer": "quentin",
+ "source_prepare_sha256": "716eb476dee28b72c26b7648be41fc9886da39b79a9ec3b999fc3cd98b43d4ea",
+ "source_run_id": "6046197b676ae1711aa7992e0c3ab428a453437e789b6627d5cc61a6472c6f24",
+ "version": 3
+}

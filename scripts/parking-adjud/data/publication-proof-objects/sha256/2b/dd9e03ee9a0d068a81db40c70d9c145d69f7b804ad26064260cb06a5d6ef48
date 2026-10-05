@@ -1,0 +1,69 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 3591,
+ "building_overlap": false,
+ "context": {
+  "category": "FACILITY",
+  "evidence": "58 m from amenity=fuel 'Sinclair'",
+  "facility": "amenity=fuel",
+  "facility_edge_m": 58
+ },
+ "descriptive_tags": [
+  "name",
+  "operator"
+ ],
+ "fid": 662,
+ "footprint": "polygon",
+ "footways_60m": 0,
+ "members": [
+  {
+   "osm": "way/297689373",
+   "tags": {
+    "amenity": "parking",
+    "name": "Wooly Mammoth Park-and-Ride",
+    "operator": "RTD",
+    "park_ride": "yes",
+    "source": "Bing"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/297689373"
+ ],
+ "prior": "surveyed",
+ "serves": {
+  "edge_m": 342,
+  "fallback": false,
+  "n_trails_in_range": 1,
+  "trail": "Village Loop Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking",
+  "name": "Wooly Mammoth Park-and-Ride",
+  "operator": "RTD",
+  "park_ride": "yes",
+  "source": "Bing"
+ },
+ "tiles": {
+  "z1": "tiles/53616e467f3beddcc3a0a387021211cae02dc41695366e421f852f261712efc3.png",
+  "z2": "tiles/a931bd3f9cc292faf6cdc5e474c5ea8f2d273f5d68167c0dcef956c36672fda4.png",
+  "z3": "tiles/a42e76fddb8e5d341d9197890e6581fbc60522ea9fb9f11c6c431c744a39d04c.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 1163
+ }
+}

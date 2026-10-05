@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -323,40 +325,81 @@ def test_builder_requires_complete_current_authority_proof_and_exact_closure(
     store_document = json.loads(original_store)
     source_key = next(iter(store_document))
     row = store_document[source_key]
-    registry = json.loads(original_proof)
-    old_proof_sha = row["publication_attestation"]["publication_proof_sha256"]
-    forged_proof = copy.deepcopy(registry["proofs"][old_proof_sha])
-    forged_proof["final_rows"]["1"]["serves"]["evidence"] = (
-        "coherently rehashed but not sealed evidence"
+    registry = merge_drafts.resolver.replay_trust._load_publication_proofs(
+        store.parent, store.name
     )
-    proof_body = dict(forged_proof)
-    proof_body.pop("proof_sha256")
-    forged_proof_sha = merge_drafts.tr.sha256_json(proof_body)
-    forged_proof["proof_sha256"] = forged_proof_sha
-    attestation = row["publication_attestation"]
-    attestation["publication_proof_sha256"] = forged_proof_sha
-    attestation_body = dict(attestation)
-    attestation_body.pop("attestation_sha256")
-    attestation["attestation_sha256"] = merge_drafts.tr.sha256_json(
-        attestation_body
+    run_path = Path(arguments[arguments.index("--resolver-run") + 1])
+    prepare = merge_drafts.resolver.load_prepare_document(
+        run_path / "prepare.json"
     )
-    store.write_text(json.dumps(store_document))
-    proof_path.write_text(json.dumps({
-        "version": 1,
-        "proofs": {forged_proof_sha: forged_proof},
-    }))
-    # Advance the synthetic test pin so this case reaches the deeper proof
-    # semantics rather than being stopped by the exact-byte root first.
-    _install_test_baseline(tmp_path, monkeypatch, {store.name: {}})
-    _assert_cli_source_failure(tmp_path, "forged-proof")
-    assert "publication proof final decision/authority row mismatch" in (
-        capsys.readouterr().err
+    packet_document = json.loads(
+        (run_path / prepare["items"][0]["packet_path"]).read_text()
     )
+    packet_identity = merge_drafts.resolver._runtime_packet(
+        packet_document, run_path, prepare["version"]
+    )
+    base = copy.deepcopy(row)
+    row["human_confirmation"] = {
+        "version": merge_drafts.CONFIRMATION_VERSION,
+        "verdict": row["verdict"],
+        "by": "human",
+        "reviewer": "trekdex-project-owner",
+        "date": "2026-10-02",
+        "note": "synthetic closure-only confirmation",
+        "decision_sha256": merge_drafts.tr.sha256_json(
+            merge_drafts.tr.decision_projection(base)
+        ),
+        "evidence_sha256": merge_drafts.tr.evidence_sha256(base),
+        "packet_sha256": merge_drafts.tr.packet_sha256(packet_identity),
+        "source_run_id": prepare["run_id"],
+        "review_receipt_sha256": "a" * 64,
+        "review_sheet_sha256": "b" * 64,
+        "review_item_sha256": "c" * 64,
+        "authority_receipt_sha256": "d" * 64,
+    }
+    assert merge_drafts.validate_verdict_row(row, packet_identity)[0] == []
+    errors = merge_drafts.resolver.replay_trust._validate_publication_proof(
+        row, registry
+    )
+    assert errors == [
+        "publication proof v4 invalid: proof v4 final "
+        "decision/authority row mismatch"
+    ]
 
     store.write_bytes(original_store)
     proof_path.write_bytes(original_proof)
     _install_test_baseline(tmp_path, monkeypatch, {store.name: {}})
     _assert_cli_success(tmp_path, "restored-proof")
+
+
+def test_proof_v4_rejects_internal_final_row_machine_projection_drift(
+        tmp_path, monkeypatch):
+    store, _proof_path, _journal, arguments = (
+        judge_tools._real_publication_case(
+            tmp_path, monkeypatch, "generic-final-row-guard"
+        )
+    )
+    assert merge_drafts.main(arguments) == 0
+    row = json.loads(store.read_text())["way/1"]
+    registry = merge_drafts.resolver.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
+    proof_sha = row["publication_attestation"]["publication_proof_sha256"]
+    manifest = copy.deepcopy(
+        merge_drafts.resolver.replay_trust._load_proof_manifest(
+            proof_sha, registry
+        )
+    )
+    manifest["final_rows"]["1"]["serves"]["evidence"] = (
+        "coherently rehashed but not sealed evidence"
+    )
+    errors = merge_drafts.resolver.replay_trust._validate_publication_proof_v4(
+        row, proof_sha, manifest, registry
+    )
+    assert any(
+        "top-level machine decision differs from selected decision" in error
+        for error in errors
+    )
 
 
 def test_proofless_legacy_row_requires_no_stray_attestation(
@@ -442,6 +485,7 @@ def test_osm_source_key_must_be_attested_before_snapshot_or_terminal_validation(
                 source.build_empty_publication_floor_document(filename)
             ),
             filename,
+            data_root=store.parent,
             spec=spec,
             baseline=baseline,
         )
@@ -767,6 +811,38 @@ def test_current_row_stripping_and_proof_removal_fail_before_sidecar_output(
     _assert_cli_success(tmp_path, "restored-current-row")
 
 
+def test_validated_snapshot_caps_registry_before_root_image_validation(
+        tmp_path, monkeypatch):
+    filename = "oversized-registry-store.json"
+    _configure(monkeypatch, (filename, source.OSM_KEY, "2026-09-29"))
+    _write_store(tmp_path, filename, {})
+    _install_test_baseline(tmp_path, monkeypatch)
+    proof_path = replay_trust._publication_proof_path(tmp_path, filename)
+    prefix = b'{"version":1,"proofs":{}}'
+    proof_path.write_bytes(
+        prefix + b" " * (
+            replay_trust.publication_objects.REGISTRY_MAX_BYTES + 1
+            - len(prefix)
+        )
+    )
+
+    with pytest.raises(
+            ValueError,
+            match="exceeds 1 MiB; see scripts/parking-adjud/README.md#"
+                  "oversized-registry-read-block-and-generation-1-restore"):
+        with replay_trust.validated_store_snapshot(
+                tmp_path, builder._builder_configuration()):
+            pass
+
+
+def test_publication_after_image_validation_requires_explicit_data_root():
+    with pytest.raises(TypeError, match="data_root"):
+        merge_drafts._validate_publication_after_images(
+            b"{}", b'{"version":2,"kind":"parking-publication-proof-registry",'
+            b'"proofs":{}}', b"{}",
+        )
+
+
 def test_current_row_legitimately_overrides_a_baseline_key(
         tmp_path, monkeypatch):
     store, proof_path, journal, arguments = judge_tools._real_publication_case(
@@ -785,6 +861,7 @@ def test_current_row_legitimately_overrides_a_baseline_key(
     merge_drafts._validate_publication_after_images(
         store.read_bytes(), proof_path.read_bytes(),
         merge_drafts.publication_floor_path(store).read_bytes(), store.name,
+        data_root=store.parent,
         spec=builder._store_specs()[0], baseline=baseline,
     )
 
@@ -812,7 +889,8 @@ def test_terminal_transition_rejects_exact_baseline_reversion_of_current_row(
         source.publication_floor_json_bytes(
             source.build_empty_publication_floor_document(store.name)
         ),
-        store.name, spec=builder._store_specs()[0], baseline=baseline,
+        store.name, data_root=store.parent,
+        spec=builder._store_specs()[0], baseline=baseline,
     )
     with pytest.raises(ValueError, match="may not be removed or downgraded"):
         replay_trust.validate_monotonic_publication_transition(
@@ -1051,23 +1129,34 @@ def test_plain_validation_callback_cannot_mutate_issued_decision():
     assert decision == original
 
 
-def test_production_legacy_baseline_is_exact_and_deterministically_reproducible():
-    specs = builder._store_specs()
-    data_dir = Path(builder._DATA)
-    raw = {
-        spec.filename: (data_dir / spec.filename).read_bytes()
-        for spec in specs
-    }
-    dossiers = {
-        path.name: path.read_bytes()
-        for path in sorted(data_dir.glob("*_dossier.json"))
-    }
-    regenerated = source.build_legacy_baseline_document(
-        specs, raw, dossiers
+_PINNED_BASELINE_SOURCE_COMMIT = (
+    "140f8c935864ca5fe9b1070256193eee807691e3"
+)
+
+
+def _read_pinned_store_blob(commit: str, path: str) -> bytes:
+    result = subprocess.run(
+        ["git", "show", f"{commit}:{path}"],
+        cwd=HERE.parent,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
     )
+    if result.returncode != 0:
+        raise AssertionError(
+            "pinned baseline source commit is unavailable; full non-shallow "
+            "Git history is required and source tarballs cannot satisfy this "
+            f"corroboration check: {commit}:{path}"
+        )
+    return result.stdout
+
+
+def test_production_legacy_baseline_remains_exact_and_is_content_corroborated():
+    # Corroboration reads only exact generation-1 Git blobs. Current store rows
+    # may already carry proof-backed authority and must never expand this set.
+    specs = builder._store_specs()
     baseline_path = Path(builder.LEGACY_ROW_BASELINE_PATH)
     baseline_bytes = baseline_path.read_bytes()
-    assert baseline_bytes == source.legacy_baseline_json_bytes(regenerated)
     parsed = source.parse_legacy_baseline(
         baseline_bytes, specs, builder.LEGACY_ROW_BASELINE_SHA256
     )
@@ -1080,6 +1169,74 @@ def test_production_legacy_baseline_is_exact_and_deterministically_reproducible(
         98, 84, 57, 57, 977,
     ]
     assert sum(len(rows) for rows in document["rows"].values()) == 1273
+
+    corroboration_path = (
+        HERE / "parking-adjud"
+        / "proofless-source-baseline-v1-corroboration.json"
+    )
+    corroboration_bytes = corroboration_path.read_bytes()
+    assert hashlib.sha256(corroboration_bytes).hexdigest() == (
+        "de5a527a200f485b623aeba8924d42b25dfc3b14e3926bce2a8a4f8681b1c2df"
+    )
+    corroboration = json.loads(corroboration_bytes)
+    assert set(corroboration) == {
+        "version", "kind", "baseline_sha256", "source_commit", "selection",
+        "stores",
+    }
+    assert corroboration["version"] == 2
+    assert corroboration["kind"] == (
+        "parking-proofless-source-baseline-corroboration"
+    )
+    assert corroboration["selection"] == (
+        "all source rows from all five exact generation-1 store blobs"
+    )
+    assert corroboration["baseline_sha256"] == parsed.self_sha256
+    assert corroboration["source_commit"] == _PINNED_BASELINE_SOURCE_COMMIT
+
+    configured = {
+        entry["filename"]: entry
+        for entry in document["configuration"]["stores"]
+    }
+    entries = corroboration["stores"]
+    assert [entry["filename"] for entry in entries] == [
+        spec.filename for spec in specs
+    ]
+    verified_rows = 0
+    for spec, entry in zip(specs, entries):
+        assert set(entry) == {
+            "filename", "path", "row_count", "store_sha256",
+        }
+        assert entry["path"] == (
+            f"scripts/parking-adjud/data/{spec.filename}"
+        )
+        raw = _read_pinned_store_blob(
+            corroboration["source_commit"], entry["path"]
+        )
+        assert hashlib.sha256(raw).hexdigest() == entry["store_sha256"]
+        assert entry["store_sha256"] == configured[spec.filename]["store_sha256"]
+        rows = source._strict_json_loads(
+            raw, f"{corroboration['source_commit']}:{entry['path']}"
+        )
+        assert isinstance(rows, dict)
+        baseline_rows = document["rows"][spec.filename]
+        assert len(rows) == entry["row_count"] == len(baseline_rows)
+        assert set(rows) == set(baseline_rows)
+        for source_key in sorted(rows):
+            assert source.legacy_row_sha256(
+                spec.filename, source_key, rows[source_key]
+            ) == baseline_rows[source_key]
+            verified_rows += 1
+    assert verified_rows == 1273
+
+
+def test_legacy_baseline_corroboration_fails_closed_without_pinned_commit(
+        monkeypatch):
+    failure = subprocess.CompletedProcess(
+        args=["git", "show"], returncode=128, stdout=b"", stderr=b"missing"
+    )
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: failure)
+    with pytest.raises(AssertionError, match="source commit is unavailable"):
+        _read_pinned_store_blob("f" * 40, "scripts/missing.json")
 
 
 @pytest.mark.parametrize(
@@ -1931,29 +2088,80 @@ def test_builder_rejects_output_collision_with_sources_and_lock_paths(
             assert target.read_bytes() == expected
 
 
-def test_production_floor_artifacts_are_exact_empty_bootstrap_documents():
+def test_production_floor_artifacts_match_exact_bootstrap_or_promoted_state():
     data_dir = Path(builder._DATA)
     observed = {}
     for spec in builder._store_specs():
         path = replay_trust._publication_floor_path(data_dir, spec.filename)
         raw = path.read_bytes()
-        expected = source.publication_floor_json_bytes(
-            source.build_empty_publication_floor_document(spec.filename)
-        )
-        assert raw == expected
         parsed = source.parse_publication_floor(raw, spec)
-        assert parsed.keys == frozenset()
+        if spec.filename == "co_verdicts_osm.json":
+            # Bear Creek is the first proof-backed publication after the empty
+            # bootstrap. Its 50 clusters carry 53 exact source keys because
+            # three folded aliases share their cluster's first authority.
+            assert len(parsed.keys) == 53
+            kinds = {}
+            proof_hashes = set()
+            for entry in parsed.entries_by_key.values():
+                kind = entry["first_authority_kind"]
+                kinds[kind] = kinds.get(kind, 0) + 1
+                proof_hashes.add(entry["first_proof_sha256"])
+            assert kinds == {
+                "machine_v2": 34,
+                "human_confirmation_v3": 16,
+                "override_v4": 3,
+            }
+            assert proof_hashes == {
+                "87a4e0f3681d7e003b7aca61694c4385946ebb1f8095393947ebb0eb60cd18f1"
+            }
+        else:
+            expected = source.publication_floor_json_bytes(
+                source.build_empty_publication_floor_document(spec.filename)
+            )
+            assert raw == expected
+            assert parsed.keys == frozenset()
         observed[spec.filename] = parsed.self_sha256
     assert observed == {
         "phx_verdicts_osm.json": "0ee6bd90c9a797f606283183a20da128db79ee210a68bef7f5b7491e71fed211",
         "ne_verdicts_osm.json": "e3dfecbcf8513e26b950201286aa494cfa4f3a19a92e81f5a5e2d81b1a411254",
         "zion-wilderness-ut_verdicts2.json": "6165ef438e82c791972ace115e106de07c1811a9ee7f62ade05e1d97fc76e405",
         "griffith-park-ca_verdicts2.json": "46267586adf833239021602a20356df1a3e1720909229fdd0ff14980fbd16f2f",
-        "co_verdicts_osm.json": "c5377b4afd23967bd8d44085abff0906057c1957bde3232619e04057e973b748",
+        "co_verdicts_osm.json": "c8884282d397f0b78a74f85811427e05fe0780cc898a5a8b0f2e5cfdad6bd02d",
     }
 
 
 # ------------------------------------------------ publication trust root
+
+
+def test_production_compact_proof_replays_before_root_pin_gate():
+    specs = builder._store_specs()
+    data_dir = Path(builder._DATA)
+    spec = next(
+        value for value in specs
+        if value.filename == "co_verdicts_osm.json"
+    )
+    values = json.loads((data_dir / spec.filename).read_bytes())
+    proof_path = replay_trust._publication_proof_path(
+        data_dir, spec.filename
+    )
+    registry = replay_trust._load_publication_proofs(
+        data_dir, spec.filename, proof_path.read_bytes()
+    )
+    baseline_path = Path(builder.LEGACY_ROW_BASELINE_PATH)
+    baseline = source.parse_legacy_baseline(
+        baseline_path.read_bytes(), specs, builder.LEGACY_ROW_BASELINE_SHA256
+    )
+
+    assert replay_trust.validate_store_proof_image(
+        spec, values, registry, baseline
+    ) is True
+    floor = source.parse_publication_floor(
+        replay_trust._publication_floor_path(
+            data_dir, spec.filename
+        ).read_bytes(),
+        spec,
+    )
+    replay_trust.validate_store_floor_image(spec, values, floor)
 
 
 def test_production_publication_trust_root_is_exact_and_code_pinned():
@@ -1979,13 +2187,17 @@ def test_production_publication_trust_root_is_exact_and_code_pinned():
     document = source.build_publication_trust_root_document(
         specs, stores, proofs, floors, baseline_path.name,
         baseline_path.read_bytes(), dossiers,
+        generation=2,
+        parent_root_sha256=(
+            "43db143447d90f506d42b273c425e0d048e5580e605ac211750114ba350dfd85"
+        ),
     )
     expected = source.publication_trust_root_json_bytes(document)
     root_path = Path(builder.PUBLICATION_TRUST_ROOT_PATH)
     assert root_path.name == "publication-trust-root-v1.json"
     assert root_path.read_bytes() == expected
     assert builder.PUBLICATION_TRUST_ROOT_SHA256 == (
-        "43db143447d90f506d42b273c425e0d048e5580e605ac211750114ba350dfd85"
+        "f0274ec06ff28b053cf6ce0c68d8b5ae29f51329e1c5ca6a013df02e34846a91"
     )
     assert merge_drafts.resolver._sha(expected) == (
         builder.PUBLICATION_TRUST_ROOT_SHA256
@@ -1994,12 +2206,18 @@ def test_production_publication_trust_root_is_exact_and_code_pinned():
         expected, specs, builder.PUBLICATION_TRUST_ROOT_SHA256,
         baseline_path.name,
     )
-    assert parsed.generation == 1
-    assert parsed.parent_root_sha256 is None
-    assert all(value is None for value in (
-        entry["proof_registry_sha256"]
-        for entry in parsed.stores_by_name.values()
-    ))
+    assert parsed.generation == 2
+    assert parsed.parent_root_sha256 == (
+        "43db143447d90f506d42b273c425e0d048e5580e605ac211750114ba350dfd85"
+    )
+    assert parsed.stores_by_name["co_verdicts_osm.json"][
+        "proof_registry_sha256"
+    ] == "4f0828917dc9e3ed9b60850fdbdb3677203ce91e3f9492ccc8e4d3f113f55012"
+    assert all(
+        entry["proof_registry_sha256"] is None
+        for name, entry in parsed.stores_by_name.items()
+        if name != "co_verdicts_osm.json"
+    )
     source.validate_publication_trust_root_image(
         parsed, specs, stores, proofs, floors, baseline_path.name,
         baseline_path.read_bytes(), dossiers,
@@ -2008,7 +2226,7 @@ def test_production_publication_trust_root_is_exact_and_code_pinned():
         parsed, specs[-1].filename, b"next-store", b"next-proof", b"next-floor"
     )
     original = json.loads(expected)
-    assert successor["generation"] == 2
+    assert successor["generation"] == 3
     assert successor["parent_root_sha256"] == parsed.exact_sha256
     assert successor["legacy_baseline"] == original["legacy_baseline"]
     assert successor["dossiers"] == original["dossiers"]

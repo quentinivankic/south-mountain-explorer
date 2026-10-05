@@ -1,0 +1,18 @@
+{
+  "assignment_id": "7544180ce535fe4e4afa8c1cae0bc77a86c11f1e885229c2cefd699271472b43",
+  "decision": {
+    "fid": 1012,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/987030579", "way/987030580", "way/987030581"],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {"call": "yes", "evidence": "Z3 (NAIP 0.14 m/px): the long western polygon is a paved bay of perpendicular stalls off the complex's internal drive, with several parked cars (white and dark vehicles) inside the outline. The east polygon is a paved strip in front of the tennis court. The small north polygon is a paved pad between two townhouse rows with a red car at its edge. Z2 shows the same delineated paved surfaces."},
+    "public": {"call": "no", "evidence": "Only tag is a bare amenity=parking on all 3 members: no access tag, name, operator, or trailhead/access record. Context is FACILITY, 0 m from landuse=residential. Z1/Z2/Z3 place all three footprints deep inside a multifamily townhouse complex, on its internal private-looking drives and next to the complex's own tennis court and pool. Everything visible reads as resident/guest parking. No lot-level evidence grants general public parking, and only a ground sign could change that."},
+    "serves": {"call": "no", "evidence": "Gated by PUBLIC=no. Stone House Trail (North) is 164 m away by edge, not fallback, and the walk is 188 m, but walk.trail is null, conn is empty, footways_60m=0, and trailhead_nodes_120m is empty. Z1/Z2 show townhouse rows between the lots and the open space to the north, with no mapped trail access from the lots. The residential complex amenity area (pool, tennis) explains this parking better than trail overflow, and distance alone does not convert resident parking to trail parking."},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

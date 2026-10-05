@@ -487,6 +487,37 @@ def test_pool_without_a_sidecar_is_unchanged(tmp_path):
 
 # -------------------------------------------------------------------- sweep
 
+
+def test_production_geom_is_a_parking_verdict_fixed_point():
+    repo = HERE.parent
+    sidecar_path = repo / "public/areas/parking-verdicts.json"
+    sidecar_document = json.loads(sidecar_path.read_bytes())
+    assert len(sidecar_document["lots"]) == 1253, (
+        "sidecar lot count changed; confirm intentional corpus growth or "
+        "shrinkage before updating this production pin"
+    )
+    assert sum(
+        row["verdict"] == "DROP"
+        for row in sidecar_document["lots"].values()
+    ) == 372, (
+        "sidecar DROP count changed; confirm intentional verdict changes "
+        "before updating this production pin"
+    )
+    geom_dir = repo / "public/areas/geom"
+    assert len(list(geom_dir.glob("*.json"))) == 9074, (
+        "flat geom file count changed; confirm intentional corpus growth, "
+        "shrinkage, or layout changes before updating this production pin"
+    )
+
+    verdicts = pv.strict_verdicts_bytes(sidecar_path.read_bytes())
+    result = sweep.sweep(str(geom_dir), verdicts, dry_run=True)
+    assert result["removed"] == []
+    assert result["changed"] == []
+    assert result["refused"] == []
+    assert result["reviewed_empty"] == []
+    assert not result["reasons"]
+
+
 def test_sweep_planner_is_pure_and_refusal_blocks_every_target(tmp_path):
     other = _offset(LAT, LON, north_m=300)
     geom, _ = _geom_dir(tmp_path, {
@@ -733,6 +764,56 @@ def test_sweep_strict_json_rejects_duplicate_and_nonfinite_sidecar_and_geom(
         target.write_bytes(raw)
         with pytest.raises(ValueError, match="strict JSON"):
             sweep.run(geom, sidecar, True)
+
+
+def test_sidecar_and_geom_share_emoji_zero_width_joiner_policy():
+    for name in ("🐦‍⬛ Parking", "👩🏽‍💻 Trailhead"):
+        pv.strict_verdicts_document(
+            _doc(_entry("way/1", "KEEP", name=name))
+        )
+    for hostile in (
+        "\u200dadmin",
+        "admin\u200d",
+        "ad\u200dmin",
+        "🐦\u200d\u200d⬛",
+    "©\u200d®",
+    ):
+        with pytest.raises(ValueError, match="forbidden control"):
+            pv.strict_verdicts_document(
+                _doc(_entry("way/1", "KEEP", name=hostile))
+            )
+
+
+def test_sweep_allows_emoji_zero_width_joiner_in_geom_text(tmp_path):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    target = geom / "area-a.json"
+    document = json.loads(target.read_text())
+    document["trails"] = [
+        {"name": "🐦‍⬛ Path"},
+        {"name": "👩🏽‍💻 Trail"},
+    ]
+    target.write_text(json.dumps(document))
+    assert sweep.run(geom, sidecar, True) == 0
+
+
+@pytest.mark.parametrize("hostile", [
+    "\u200dadmin",
+    "admin\u200d",
+    "ad\u200dmin",
+    "🐦\u200d\u200d⬛",
+    "©\u200d®",
+])
+def test_sweep_rejects_zero_width_joiner_outside_emoji_sequence(
+        tmp_path, hostile):
+    geom, sidecar = _sweep_transaction_fixture(tmp_path)
+    target = geom / "area-a.json"
+    document = json.loads(target.read_text())
+    document["unknown"] = hostile
+    target.write_text(json.dumps(document))
+    before = target.read_bytes()
+    with pytest.raises(ValueError, match="forbidden control"):
+        sweep.run(geom, sidecar, True)
+    assert target.read_bytes() == before
 
 
 def test_sweep_rejects_control_text_in_unknown_geom_fields(tmp_path):

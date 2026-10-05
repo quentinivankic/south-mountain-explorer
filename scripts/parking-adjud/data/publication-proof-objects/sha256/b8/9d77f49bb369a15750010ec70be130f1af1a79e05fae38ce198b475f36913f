@@ -1,0 +1,694 @@
+[
+ {
+  "fid": 1012,
+  "area": "bear-creek-lake-park-co",
+  "osm": [
+   "way/987030579",
+   "way/987030580",
+   "way/987030581"
+  ],
+  "verdict": "DROP",
+  "prior": "bare",
+  "exists": {
+   "call": "yes",
+   "evidence": "Z3 (NAIP 0.14 m/px): the long western polygon is a paved bay of perpendicular stalls off the complex's internal drive, with several parked cars (white and dark vehicles) inside the outline. The east polygon is a paved strip in front of the tennis court. The small north polygon is a paved pad between two townhouse rows with a red car at its edge. Z2 shows the same delineated paved surfaces."
+  },
+  "public": {
+   "call": "no",
+   "evidence": "Only tag is a bare amenity=parking on all 3 members: no access tag, name, operator, or trailhead/access record. Context is FACILITY, 0 m from landuse=residential. Z1/Z2/Z3 place all three footprints deep inside a multifamily townhouse complex, on its internal private-looking drives and next to the complex's own tennis court and pool. Everything visible reads as resident/guest parking. No lot-level evidence grants general public parking, and only a ground sign could change that."
+  },
+  "serves": {
+   "call": "no",
+   "evidence": "Gated by PUBLIC=no. Stone House Trail (North) is 164 m away by edge, not fallback, and the walk is 188 m, but walk.trail is null, conn is empty, footways_60m=0, and trailhead_nodes_120m is empty. Z1/Z2 show townhouse rows between the lots and the open space to the north, with no mapped trail access from the lots. The residential complex amenity area (pool, tennis) explains this parking better than trail overflow, and distance alone does not convert resident parking to trail parking."
+  },
+  "frames_used": [
+   "z1",
+   "z2",
+   "z3"
+  ],
+  "tags_cited": {
+   "amenity": "parking"
+  },
+  "confidence": "strong",
+  "resolve_hint": null,
+  "judge_provenance": {
+   "model_id": "claude-opus-5.5",
+   "model_family": "anthropic-claude",
+   "decision_sha256": "1ee8b6a206c10c4d666822cb6fd1e939fe59b8f88dd58055dd0a00f654db64d5",
+   "packet_sha256": "48ad1c27e3444f54ca857bdbf37ce7ba611b3816bd447ed6bfb45876a98ec043",
+   "prompt_sha256": "e87a28b4b3f53b740b06c2784d55b81595f1d9daf5d27f1f97900e9385be388b",
+   "evidence_sha256": "bce620a0e40e4fd8c948d36a7dd99f4b8d26ed95edd91f533a0004d2150d35e3"
+  },
+  "trust_resolution": {
+   "version": 2,
+   "policy_id": "parking-trust-resolver-v2",
+   "run_id": "4bc3624fcc9183f12ca94fccf204f4cee3d09617a5be3085590016dc4174190e",
+   "transaction_id": "b40dc29af757ce842c7030269bf464701692f4c339a988011803deec9ee55e7e",
+   "route": "AUTONOMOUS_BLIND_CHALLENGE",
+   "result": "DISTINCT_FAMILY_AGREEMENT",
+   "selected_role": "challenger",
+   "selected_decision_sha256": "1ee8b6a206c10c4d666822cb6fd1e939fe59b8f88dd58055dd0a00f654db64d5",
+   "primary": {
+    "assignment_id": "4e2b70672552945d98e409639b9701e85849997c8c8d3d7aad4e8d365361a09b",
+    "decision": {
+     "area": "bear-creek-lake-park-co",
+     "confidence": "strong",
+     "exists": {
+      "call": "yes",
+      "evidence": "Z2: three delineated parking sections inside a townhouse complex; the central section has marked stalls and parked cars."
+     },
+     "fid": 1012,
+     "frames_used": [
+      "z1",
+      "z2"
+     ],
+     "osm": [
+      "way/987030579",
+      "way/987030580",
+      "way/987030581"
+     ],
+     "prior": "bare",
+     "public": {
+      "call": "no",
+      "evidence": "No lot-level access tag or official trailhead record; Z1/Z2 place all three sections inside a townhouse complex beside its tennis court and pool, and packet context is 0 m from landuse=residential."
+     },
+     "resolve_hint": null,
+     "serves": {
+      "call": "no",
+      "evidence": "Stone House Trail (North) edge 164 m and walk 188 m, but walk.conn is empty, with no trailhead node or footway; Z1 shows the residential complex as the direct owner and better explanation."
+     },
+     "tags_cited": {
+      "amenity": "parking"
+     },
+     "verdict": "DROP"
+    },
+    "decision_sha256": "92b2bb870ca989a7e35a64f5c39bdcc3b477a691a26e45e0622e029fc8307350",
+    "envelope_sha256": "48f8ba5541927cbc0a2cc949a414a78600f3aa70517958d3db0a8b4ebb1d7145",
+    "evidence_sha256": "5acfeb513a332b1ea90a0e42747482c8c535a55cf9fdabf088544906dc432e0f",
+    "external_evidence": [],
+    "external_evidence_catalog_sha256": "fc0452a87a7750ce832dc1679d719d158565f40ee3aa18bd63c6e0c35f30b660",
+    "input_evidence_sha256": [
+     "48ad1c27e3444f54ca857bdbf37ce7ba611b3816bd447ed6bfb45876a98ec043",
+     "687acd7f80d785e622e5e067b619effc2ba4f6f27d297587b3adac2a93c3b2db",
+     "ae6c12e7b09353dab53d56229f481da8f32ec0a93cfb5c06894c695074e4320f",
+     "eb9e887aa6d4d6564a2460734d1d269b4978f75558f116156dc337d6bb212261"
+    ],
+    "model": {
+     "build": "unspecified",
+     "family": "openai-gpt",
+     "id": "gpt-5.6-sol",
+     "provider": "kiro"
+    },
+    "normative_document_sha256": {
+     "judge_lessons.md": "e49dca3b8e8152c707d6f0e63f2d7bca5e1d4da6e89c27b4d3c8743a67d0a23f",
+     "judge_protocol.md": "eee55b6a2c9704e664cd7da8d739755f52f453eafea94a1d4e357702bbbbeff9"
+    },
+    "packet_sha256": "48ad1c27e3444f54ca857bdbf37ce7ba611b3816bd447ed6bfb45876a98ec043",
+    "prompt_sha256": "bcde256b151f94ea22128f8b6765d58b7d0ec562bea42b59d8399d051238bdd6",
+    "role": "primary",
+    "version": 2
+   },
+   "challenger": {
+    "version": 2,
+    "role": "challenger",
+    "assignment_id": "7544180ce535fe4e4afa8c1cae0bc77a86c11f1e885229c2cefd699271472b43",
+    "model": {
+     "build": "unspecified",
+     "family": "anthropic-claude",
+     "id": "claude-opus-5.5",
+     "provider": "kiro"
+    },
+    "packet_sha256": "48ad1c27e3444f54ca857bdbf37ce7ba611b3816bd447ed6bfb45876a98ec043",
+    "prompt_sha256": "e87a28b4b3f53b740b06c2784d55b81595f1d9daf5d27f1f97900e9385be388b",
+    "external_evidence_catalog_sha256": "fc0452a87a7750ce832dc1679d719d158565f40ee3aa18bd63c6e0c35f30b660",
+    "normative_document_sha256": {
+     "judge_lessons.md": "e49dca3b8e8152c707d6f0e63f2d7bca5e1d4da6e89c27b4d3c8743a67d0a23f",
+     "judge_protocol.md": "eee55b6a2c9704e664cd7da8d739755f52f453eafea94a1d4e357702bbbbeff9"
+    },
+    "input_evidence_sha256": [
+     "48ad1c27e3444f54ca857bdbf37ce7ba611b3816bd447ed6bfb45876a98ec043",
+     "687acd7f80d785e622e5e067b619effc2ba4f6f27d297587b3adac2a93c3b2db",
+     "ae6c12e7b09353dab53d56229f481da8f32ec0a93cfb5c06894c695074e4320f",
+     "eb9e887aa6d4d6564a2460734d1d269b4978f75558f116156dc337d6bb212261"
+    ],
+    "evidence_sha256": "bce620a0e40e4fd8c948d36a7dd99f4b8d26ed95edd91f533a0004d2150d35e3",
+    "decision_sha256": "1ee8b6a206c10c4d666822cb6fd1e939fe59b8f88dd58055dd0a00f654db64d5",
+    "external_evidence": [],
+    "decision": {
+     "fid": 1012,
+     "area": "bear-creek-lake-park-co",
+     "osm": [
+      "way/987030579",
+      "way/987030580",
+      "way/987030581"
+     ],
+     "verdict": "DROP",
+     "prior": "bare",
+     "exists": {
+      "call": "yes",
+      "evidence": "Z3 (NAIP 0.14 m/px): the long western polygon is a paved bay of perpendicular stalls off the complex's internal drive, with several parked cars (white and dark vehicles) inside the outline. The east polygon is a paved strip in front of the tennis court. The small north polygon is a paved pad between two townhouse rows with a red car at its edge. Z2 shows the same delineated paved surfaces."
+     },
+     "public": {
+      "call": "no",
+      "evidence": "Only tag is a bare amenity=parking on all 3 members: no access tag, name, operator, or trailhead/access record. Context is FACILITY, 0 m from landuse=residential. Z1/Z2/Z3 place all three footprints deep inside a multifamily townhouse complex, on its internal private-looking drives and next to the complex's own tennis court and pool. Everything visible reads as resident/guest parking. No lot-level evidence grants general public parking, and only a ground sign could change that."
+     },
+     "serves": {
+      "call": "no",
+      "evidence": "Gated by PUBLIC=no. Stone House Trail (North) is 164 m away by edge, not fallback, and the walk is 188 m, but walk.trail is null, conn is empty, footways_60m=0, and trailhead_nodes_120m is empty. Z1/Z2 show townhouse rows between the lots and the open space to the north, with no mapped trail access from the lots. The residential complex amenity area (pool, tennis) explains this parking better than trail overflow, and distance alone does not convert resident parking to trail parking."
+     },
+     "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+     ],
+     "tags_cited": {
+      "amenity": "parking"
+     },
+     "confidence": "strong",
+     "resolve_hint": null
+    },
+    "envelope_sha256": "0839c5c0626b6cb6ac83b3fdc82572b95b38cd76494c53316db949b176100556"
+   },
+   "arbiter": null,
+   "correlation": {
+    "model_ids": [
+     "claude-opus-5.5",
+     "gpt-5.6-sol"
+    ],
+    "model_families": [
+     "anthropic-claude",
+     "openai-gpt"
+    ],
+    "same_model_family": false,
+    "basis": "DISTINCT_FAMILY_AGREEMENT"
+   },
+   "resolution_sha256": "873abacf71651a93de77b00f6a59a86db4b46e4f8796f097c475873aad250f16"
+  }
+ },
+ {
+  "fid": 1014,
+  "area": "bear-creek-lake-park-co",
+  "osm": [
+   "way/987030584",
+   "way/987030585"
+  ],
+  "verdict": "DROP",
+  "prior": "bare",
+  "exists": {
+   "call": "yes",
+   "evidence": "Bare prior, so vision decides. Z2/Z3: two narrow slivers (189 m2 total) along a short paved spur drive off an internal cul-de-sac inside a townhouse complex. In Z3 the east sliver has 2-3 light-coloured cars parked nose-in along the drive edge. The west sliver is mostly under canopy beside the townhouse block, with paved bay edges visible near its north end. These are real resident-style parking bays outside the travel lane."
+  },
+  "public": {
+   "call": "no",
+   "evidence": "The only tag is amenity=parking: no access, operator, name or fee tag at lot level, and no official trailhead or access record. Packet context: FACILITY, 0 m from landuse=residential. Z1/Z2: both members sit deep inside a multi-row townhouse/condo complex (internal drives, carports, pool, tennis court) and are reached only through the complex's internal drive network off the arterial. Resident or visitor bays for the adjacent units are the direct owner explanation. Under lesson 11, the lack of a visible gate and the park nearby do not grant public parking."
+  },
+  "serves": {
+   "call": "no",
+   "evidence": "Nearest trail is Stone House Trail (North), 181 m edge, not fallback. walk_m 220 has no recorded connection (conn empty, trail null), and there are no trailhead nodes within 120 m. Z1: the northern townhouse row and its drive stand between the bays and the park's trail and path network. No trail starts at or inside the lot, and nothing visible links the lot to a trail. Under lesson 11, a finite walk alone does not turn residential parking into trail overflow."
+  },
+  "frames_used": [
+   "z1",
+   "z2",
+   "z3"
+  ],
+  "tags_cited": {
+   "amenity": "parking"
+  },
+  "confidence": "strong",
+  "resolve_hint": null,
+  "judge_provenance": {
+   "model_id": "claude-opus-5.5",
+   "model_family": "anthropic-claude",
+   "decision_sha256": "1f6e24078c46dc8a9951f58739ac93da90ac18108575a3c3a34c5b9e88f9c5b7",
+   "packet_sha256": "2a30fe3a849f5b467f1f56474014042393f0c094cd710ef6dd5696d93c343993",
+   "prompt_sha256": "45e1af09d25643a1ac225bd82a1cbdf7230de58a156e42c7d58217253df0eec8",
+   "evidence_sha256": "1c4a37ab84e1149d6d8910aec32f804090abfd4941e18d4e5774825a53a51ffd"
+  },
+  "trust_resolution": {
+   "version": 2,
+   "policy_id": "parking-trust-resolver-v2",
+   "run_id": "4bc3624fcc9183f12ca94fccf204f4cee3d09617a5be3085590016dc4174190e",
+   "transaction_id": "b40dc29af757ce842c7030269bf464701692f4c339a988011803deec9ee55e7e",
+   "route": "AUTONOMOUS_BLIND_CHALLENGE",
+   "result": "DISTINCT_FAMILY_AGREEMENT",
+   "selected_role": "challenger",
+   "selected_decision_sha256": "1f6e24078c46dc8a9951f58739ac93da90ac18108575a3c3a34c5b9e88f9c5b7",
+   "primary": {
+    "assignment_id": "d926dd6b601b0937e0437472d106eafc4607e86fe1acb8dd690d8d9827bb3144",
+    "decision": {
+     "area": "bear-creek-lake-park-co",
+     "confidence": "strong",
+     "exists": {
+      "call": "yes",
+      "evidence": "Z3: two paved parking rows are delineated off the internal drive, with a parked vehicle visible in the shorter eastern row."
+     },
+     "fid": 1014,
+     "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+     ],
+     "osm": [
+      "way/987030584",
+      "way/987030585"
+     ],
+     "prior": "bare",
+     "public": {
+      "call": "no",
+      "evidence": "No lot-level access tag or official trailhead record; Z1-Z3 place both rows wholly inside a townhouse complex, and packet context is 0 m from landuse=residential."
+     },
+     "resolve_hint": null,
+     "serves": {
+      "call": "no",
+      "evidence": "Stone House Trail (North) edge 181 m and walk 220 m, but walk.conn is empty and no trailhead node is present; Z1-Z3 show the townhouse complex as the direct owner and better explanation."
+     },
+     "tags_cited": {
+      "amenity": "parking"
+     },
+     "verdict": "DROP"
+    },
+    "decision_sha256": "1599cbdc308ac26a7fd7171f97ebab62e5af025dae96eb4fa38894c0f299898c",
+    "envelope_sha256": "ae6889b884503425aba7e50a5b7f78a210e08c8381980aefb151801ccac7a777",
+    "evidence_sha256": "02682a00d6c860ac2b98156e92cb3eb6e8b8fd4d32988988557a8fc94339d968",
+    "external_evidence": [],
+    "external_evidence_catalog_sha256": "fc0452a87a7750ce832dc1679d719d158565f40ee3aa18bd63c6e0c35f30b660",
+    "input_evidence_sha256": [
+     "2a30fe3a849f5b467f1f56474014042393f0c094cd710ef6dd5696d93c343993",
+     "73f882f36903aa46d7fed74b3a2df36b1e1860f2d9a6d440f81850671758333f",
+     "92b9c30907263c0bc14438f3f82c7b901f2aef495d610540c45e1a4f2f643cd0",
+     "f6e40705e01ac2fb00bd16a80e94417764bf2dbe4eea62eb90db69184d344117"
+    ],
+    "model": {
+     "build": "unspecified",
+     "family": "openai-gpt",
+     "id": "gpt-5.6-sol",
+     "provider": "kiro"
+    },
+    "normative_document_sha256": {
+     "judge_lessons.md": "e49dca3b8e8152c707d6f0e63f2d7bca5e1d4da6e89c27b4d3c8743a67d0a23f",
+     "judge_protocol.md": "eee55b6a2c9704e664cd7da8d739755f52f453eafea94a1d4e357702bbbbeff9"
+    },
+    "packet_sha256": "2a30fe3a849f5b467f1f56474014042393f0c094cd710ef6dd5696d93c343993",
+    "prompt_sha256": "bcde256b151f94ea22128f8b6765d58b7d0ec562bea42b59d8399d051238bdd6",
+    "role": "primary",
+    "version": 2
+   },
+   "challenger": {
+    "version": 2,
+    "role": "challenger",
+    "assignment_id": "bbd89921720af8ec9ee9eb30693ee1ec09352677282336bcb10dd79c12a823c3",
+    "model": {
+     "build": "unspecified",
+     "family": "anthropic-claude",
+     "id": "claude-opus-5.5",
+     "provider": "kiro"
+    },
+    "packet_sha256": "2a30fe3a849f5b467f1f56474014042393f0c094cd710ef6dd5696d93c343993",
+    "prompt_sha256": "45e1af09d25643a1ac225bd82a1cbdf7230de58a156e42c7d58217253df0eec8",
+    "external_evidence_catalog_sha256": "fc0452a87a7750ce832dc1679d719d158565f40ee3aa18bd63c6e0c35f30b660",
+    "normative_document_sha256": {
+     "judge_lessons.md": "e49dca3b8e8152c707d6f0e63f2d7bca5e1d4da6e89c27b4d3c8743a67d0a23f",
+     "judge_protocol.md": "eee55b6a2c9704e664cd7da8d739755f52f453eafea94a1d4e357702bbbbeff9"
+    },
+    "input_evidence_sha256": [
+     "2a30fe3a849f5b467f1f56474014042393f0c094cd710ef6dd5696d93c343993",
+     "73f882f36903aa46d7fed74b3a2df36b1e1860f2d9a6d440f81850671758333f",
+     "92b9c30907263c0bc14438f3f82c7b901f2aef495d610540c45e1a4f2f643cd0",
+     "f6e40705e01ac2fb00bd16a80e94417764bf2dbe4eea62eb90db69184d344117"
+    ],
+    "evidence_sha256": "1c4a37ab84e1149d6d8910aec32f804090abfd4941e18d4e5774825a53a51ffd",
+    "decision_sha256": "1f6e24078c46dc8a9951f58739ac93da90ac18108575a3c3a34c5b9e88f9c5b7",
+    "external_evidence": [],
+    "decision": {
+     "fid": 1014,
+     "area": "bear-creek-lake-park-co",
+     "osm": [
+      "way/987030584",
+      "way/987030585"
+     ],
+     "verdict": "DROP",
+     "prior": "bare",
+     "exists": {
+      "call": "yes",
+      "evidence": "Bare prior, so vision decides. Z2/Z3: two narrow slivers (189 m2 total) along a short paved spur drive off an internal cul-de-sac inside a townhouse complex. In Z3 the east sliver has 2-3 light-coloured cars parked nose-in along the drive edge. The west sliver is mostly under canopy beside the townhouse block, with paved bay edges visible near its north end. These are real resident-style parking bays outside the travel lane."
+     },
+     "public": {
+      "call": "no",
+      "evidence": "The only tag is amenity=parking: no access, operator, name or fee tag at lot level, and no official trailhead or access record. Packet context: FACILITY, 0 m from landuse=residential. Z1/Z2: both members sit deep inside a multi-row townhouse/condo complex (internal drives, carports, pool, tennis court) and are reached only through the complex's internal drive network off the arterial. Resident or visitor bays for the adjacent units are the direct owner explanation. Under lesson 11, the lack of a visible gate and the park nearby do not grant public parking."
+     },
+     "serves": {
+      "call": "no",
+      "evidence": "Nearest trail is Stone House Trail (North), 181 m edge, not fallback. walk_m 220 has no recorded connection (conn empty, trail null), and there are no trailhead nodes within 120 m. Z1: the northern townhouse row and its drive stand between the bays and the park's trail and path network. No trail starts at or inside the lot, and nothing visible links the lot to a trail. Under lesson 11, a finite walk alone does not turn residential parking into trail overflow."
+     },
+     "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+     ],
+     "tags_cited": {
+      "amenity": "parking"
+     },
+     "confidence": "strong",
+     "resolve_hint": null
+    },
+    "envelope_sha256": "a1983641f964b395f221d12939ae5f8298ed56a32a451e692cd261dfba02bc43"
+   },
+   "arbiter": null,
+   "correlation": {
+    "model_ids": [
+     "claude-opus-5.5",
+     "gpt-5.6-sol"
+    ],
+    "model_families": [
+     "anthropic-claude",
+     "openai-gpt"
+    ],
+    "same_model_family": false,
+    "basis": "DISTINCT_FAMILY_AGREEMENT"
+   },
+   "resolution_sha256": "9f5f5c0b74fc67046da8191353ac79dd5d19ed41355ac138ec3da4a902a4de6b"
+  }
+ },
+ {
+  "fid": 1035,
+  "area": "bear-creek-lake-park-co",
+  "osm": [
+   "way/1009503571"
+  ],
+  "verdict": "KEEP",
+  "prior": "surveyed",
+  "exists": {
+   "call": "yes",
+   "evidence": "Surveyed prior (parking=surface, surface=asphalt, capacity=10) confirmed. Z2/Z3: paved bay off the junction's NE arm, outside the travel lanes, separated from the highway by a curbed island. Z3 shows about 3 parked cars inside the red outline and faint diagonal stall lines. Not a through-lane, building, lawn or water."
+  },
+  "public": {
+   "call": "yes",
+   "evidence": "Lot-level access=yes on way/1009503571 (the only member, mixed_access=false). capacity:disabled=1 also fits a general-use public lot. Context SUPPORT: inside boundary=protected_area 'Matthews/Winters Park', with no FACILITY neighbour within 45 m. In Z1 the only non-trail owners are a building with its own lot across the highway to the W and ranch/residences to the SW. None is attached to this bay."
+  },
+  "serves": {
+   "call": "yes",
+   "evidence": "Dinosaur Ridge Trail edge 5 m, walk 25 m, fallback=false, 1 trail in range. In Z1/Z2/Z3 the yellow trail line starts at the lot's SE corner and runs SE, so the trail starts at the lot. No school, church, commercial or event owner better explains this roadside pocket lot. Note: no highway=trailhead node within 120 m, and walk.trail/conn are blank in the packet."
+  },
+  "frames_used": [
+   "z1",
+   "z2",
+   "z3"
+  ],
+  "tags_cited": {
+   "access": "yes",
+   "parking": "surface",
+   "surface": "asphalt",
+   "capacity": "10",
+   "capacity:disabled": "1"
+  },
+  "confidence": "strong",
+  "resolve_hint": null,
+  "judge_provenance": {
+   "model_id": "claude-opus-5.5",
+   "model_family": "anthropic-claude",
+   "decision_sha256": "9c1766cd6b7ad158ebb61766ad758cf2ba6ec93e62c99d6f50c679c838285b59",
+   "packet_sha256": "9772ba29b9336a456a499d10e3bb9446b79c0327a48096763356fc3a2542e14a",
+   "prompt_sha256": "a4fb49ee6fdd02de787ff7e0fc1e83a65bc4035470b54faac96bb157680aab0b",
+   "evidence_sha256": "091d997cffc247882e21fa4c8531244394c9c873caaec6359838513e8e779829"
+  },
+  "trust_resolution": {
+   "version": 2,
+   "policy_id": "parking-trust-resolver-v2",
+   "run_id": "4bc3624fcc9183f12ca94fccf204f4cee3d09617a5be3085590016dc4174190e",
+   "transaction_id": "b40dc29af757ce842c7030269bf464701692f4c339a988011803deec9ee55e7e",
+   "route": "AUTONOMOUS_BLIND_CHALLENGE",
+   "result": "DISTINCT_FAMILY_AGREEMENT",
+   "selected_role": "challenger",
+   "selected_decision_sha256": "9c1766cd6b7ad158ebb61766ad758cf2ba6ec93e62c99d6f50c679c838285b59",
+   "primary": {
+    "assignment_id": "97fc7fd09065b209e2d8f16fafcdbeb81aed59a561ac285f80a9703cd4ce4074",
+    "decision": {
+     "area": "bear-creek-lake-park-co",
+     "confidence": "certain",
+     "exists": {
+      "call": "yes",
+      "evidence": "Z2: an asphalt bay is independently delineated outside the travel lane, with multiple parked vehicles; tags specify parking=surface, surface=asphalt, capacity=10."
+     },
+     "fid": 1035,
+     "frames_used": [
+      "z1",
+      "z2"
+     ],
+     "osm": [
+      "way/1009503571"
+     ],
+     "prior": "surveyed",
+     "public": {
+      "call": "yes",
+      "evidence": "Lot-level access=yes explicitly grants access; packet context places it in Matthews/Winters Park protected area."
+     },
+     "resolve_hint": null,
+     "serves": {
+      "call": "yes",
+      "evidence": "Dinosaur Ridge Trail edge 5 m; Z1/Z2 show the shipped trail beginning directly beside the parking bay, with no facility-specific alternative owner at the lot."
+     },
+     "tags_cited": {
+      "access": "yes",
+      "capacity": "10",
+      "parking": "surface",
+      "surface": "asphalt"
+     },
+     "verdict": "KEEP"
+    },
+    "decision_sha256": "bc9e75e3bb1c4ddb460dff673b41c6a1fea8fc5b7b4513de88b49521bb128b64",
+    "envelope_sha256": "11e2cf76d0821b9abc858948719da1d2ff70b4bd9fcdfb4a33e9ca5bee54f0ac",
+    "evidence_sha256": "5d0d8740683e46d4fa2d897ad0327400f053dc7d5f225b74933b12bc01ebf8b2",
+    "external_evidence": [],
+    "external_evidence_catalog_sha256": "fc0452a87a7750ce832dc1679d719d158565f40ee3aa18bd63c6e0c35f30b660",
+    "input_evidence_sha256": [
+     "07191b37767988dcbef6af30c785c36c5b8119dd70b4dbbd893335b364d34eed",
+     "9772ba29b9336a456a499d10e3bb9446b79c0327a48096763356fc3a2542e14a",
+     "f03e7d0e381d3d5cdd4d71dc95fb9ec59420c960e0455966e35d683caaa90e97",
+     "f540002907049e550619a241e296ea1245850b508f12552ba74b4b086953fc5b"
+    ],
+    "model": {
+     "build": "unspecified",
+     "family": "openai-gpt",
+     "id": "gpt-5.6-sol",
+     "provider": "kiro"
+    },
+    "normative_document_sha256": {
+     "judge_lessons.md": "e49dca3b8e8152c707d6f0e63f2d7bca5e1d4da6e89c27b4d3c8743a67d0a23f",
+     "judge_protocol.md": "eee55b6a2c9704e664cd7da8d739755f52f453eafea94a1d4e357702bbbbeff9"
+    },
+    "packet_sha256": "9772ba29b9336a456a499d10e3bb9446b79c0327a48096763356fc3a2542e14a",
+    "prompt_sha256": "bcde256b151f94ea22128f8b6765d58b7d0ec562bea42b59d8399d051238bdd6",
+    "role": "primary",
+    "version": 2
+   },
+   "challenger": {
+    "version": 2,
+    "role": "challenger",
+    "assignment_id": "231be3177b7499a7b2ed05942b825e6e5eacdc47e6323886eb8cde02509c939f",
+    "model": {
+     "build": "unspecified",
+     "family": "anthropic-claude",
+     "id": "claude-opus-5.5",
+     "provider": "kiro"
+    },
+    "packet_sha256": "9772ba29b9336a456a499d10e3bb9446b79c0327a48096763356fc3a2542e14a",
+    "prompt_sha256": "a4fb49ee6fdd02de787ff7e0fc1e83a65bc4035470b54faac96bb157680aab0b",
+    "external_evidence_catalog_sha256": "fc0452a87a7750ce832dc1679d719d158565f40ee3aa18bd63c6e0c35f30b660",
+    "normative_document_sha256": {
+     "judge_lessons.md": "e49dca3b8e8152c707d6f0e63f2d7bca5e1d4da6e89c27b4d3c8743a67d0a23f",
+     "judge_protocol.md": "eee55b6a2c9704e664cd7da8d739755f52f453eafea94a1d4e357702bbbbeff9"
+    },
+    "input_evidence_sha256": [
+     "07191b37767988dcbef6af30c785c36c5b8119dd70b4dbbd893335b364d34eed",
+     "9772ba29b9336a456a499d10e3bb9446b79c0327a48096763356fc3a2542e14a",
+     "f03e7d0e381d3d5cdd4d71dc95fb9ec59420c960e0455966e35d683caaa90e97",
+     "f540002907049e550619a241e296ea1245850b508f12552ba74b4b086953fc5b"
+    ],
+    "evidence_sha256": "091d997cffc247882e21fa4c8531244394c9c873caaec6359838513e8e779829",
+    "decision_sha256": "9c1766cd6b7ad158ebb61766ad758cf2ba6ec93e62c99d6f50c679c838285b59",
+    "external_evidence": [],
+    "decision": {
+     "fid": 1035,
+     "area": "bear-creek-lake-park-co",
+     "osm": [
+      "way/1009503571"
+     ],
+     "verdict": "KEEP",
+     "prior": "surveyed",
+     "exists": {
+      "call": "yes",
+      "evidence": "Surveyed prior (parking=surface, surface=asphalt, capacity=10) confirmed. Z2/Z3: paved bay off the junction's NE arm, outside the travel lanes, separated from the highway by a curbed island. Z3 shows about 3 parked cars inside the red outline and faint diagonal stall lines. Not a through-lane, building, lawn or water."
+     },
+     "public": {
+      "call": "yes",
+      "evidence": "Lot-level access=yes on way/1009503571 (the only member, mixed_access=false). capacity:disabled=1 also fits a general-use public lot. Context SUPPORT: inside boundary=protected_area 'Matthews/Winters Park', with no FACILITY neighbour within 45 m. In Z1 the only non-trail owners are a building with its own lot across the highway to the W and ranch/residences to the SW. None is attached to this bay."
+     },
+     "serves": {
+      "call": "yes",
+      "evidence": "Dinosaur Ridge Trail edge 5 m, walk 25 m, fallback=false, 1 trail in range. In Z1/Z2/Z3 the yellow trail line starts at the lot's SE corner and runs SE, so the trail starts at the lot. No school, church, commercial or event owner better explains this roadside pocket lot. Note: no highway=trailhead node within 120 m, and walk.trail/conn are blank in the packet."
+     },
+     "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+     ],
+     "tags_cited": {
+      "access": "yes",
+      "parking": "surface",
+      "surface": "asphalt",
+      "capacity": "10",
+      "capacity:disabled": "1"
+     },
+     "confidence": "strong",
+     "resolve_hint": null
+    },
+    "envelope_sha256": "bba25239e44e1c13157dfd8aa3da24e4d6760802cffc2b647ebbae8842251ebc"
+   },
+   "arbiter": null,
+   "correlation": {
+    "model_ids": [
+     "claude-opus-5.5",
+     "gpt-5.6-sol"
+    ],
+    "model_families": [
+     "anthropic-claude",
+     "openai-gpt"
+    ],
+    "same_model_family": false,
+    "basis": "DISTINCT_FAMILY_AGREEMENT"
+   },
+   "resolution_sha256": "e36809508b3b9a3a0c6a88af958abca3e961e4b6cc579e732d80b46d6c33f33e"
+  }
+ },
+ {
+  "fid": 1038,
+  "osm": [
+   "way/1013948712"
+  ],
+  "area": "bear-creek-lake-park-co",
+  "verdict": "REVIEW",
+  "prior": "surveyed",
+  "exists": {
+   "call": "yes",
+   "evidence": "Z2/Z3: a delineated unpaved bay with a vehicle-access throat sits outside the curved travel lane, with a parked vehicle visible; tags specify parking=surface, surface=unpaved, capacity=5."
+  },
+  "public": {
+   "call": "unclear",
+   "evidence": "The packet has fee=no but no lot-level access tag or official trailhead/access record; Red Rocks Park protected-area context alone does not establish general parking rights."
+  },
+  "serves": {
+   "call": "yes",
+   "evidence": "Will Call Trail edge 3 m and walk 14 m; Z1-Z3 show shipped trail approaches meeting the turnout directly, with no adjacent non-trail facility."
+  },
+  "frames_used": [
+   "z1",
+   "z2",
+   "z3"
+  ],
+  "tags_cited": {
+   "parking": "surface",
+   "surface": "unpaved",
+   "capacity": "5",
+   "fee": "no"
+  },
+  "confidence": "strong",
+  "resolve_hint": "Host packet needs a frozen official Red Rocks Park parking/access record that explicitly confirms whether this five-space turnout is authorized for general public parking.",
+  "human_confirmation": {
+   "version": 3,
+   "verdict": "REVIEW",
+   "by": "human",
+   "reviewer": "quentin",
+   "date": "2026-10-03",
+   "note": "Approved by Quentin; defer and retain REVIEW until the source decision requested lot-level evidence is available.",
+   "decision_sha256": "9ca3872285c67fac6831bff977a48d8a44f1f286ab35753785ca1c31d40b828e",
+   "evidence_sha256": "e19313c74139e2ea9d28f673dfa0c8e4a28d7874a34b01eb9e3b84a5b47b6c99",
+   "packet_sha256": "c85f9f3d318b9a1d1733ea137d9234ed8f4e5ad5235ef97d156df70b80af3c23",
+   "source_run_id": "6046197b676ae1711aa7992e0c3ab428a453437e789b6627d5cc61a6472c6f24",
+   "review_receipt_sha256": "d792b40e11aa21a46d033442ea84ba15e0a70f3388629539c58d5e2725399866",
+   "review_sheet_sha256": "ccc0dde4594e5bc30ea878127dd5514c03a50864152bec9fb4813af73bf4f939",
+   "review_item_sha256": "838ad2e3cc1f3d9491edbbb9bac59079b38c51b609bdc93858c2333030026620",
+   "authority_receipt_sha256": "19716c6866de35abb9494bc3d7f09ee1cee732c6c5cf4f5897535cc4ef27a6db"
+  }
+ },
+ {
+  "fid": 1106,
+  "area": "bear-creek-lake-park-co",
+  "osm": [
+   "way/1408649234"
+  ],
+  "verdict": "REVIEW",
+  "prior": "surveyed",
+  "exists": {
+   "call": "yes",
+   "evidence": "Z2/Z3 confirm a delineated six-space asphalt bay outside the travel lane with several parked vehicles."
+  },
+  "public": {
+   "call": "unclear",
+   "evidence": "No lot-level access tag, name, operator, or named official access record establishes public parking; open-park context, an unnamed node, a crosswalk, and no gate are insufficient."
+  },
+  "serves": {
+   "call": "yes",
+   "evidence": "The shipped trail meets the bay at a painted crosswalk, with a 28 m walk and a trailhead node 32 m away; no competing facility owner is adjacent."
+  },
+  "frames_used": [
+   "z1",
+   "z2"
+  ],
+  "tags_cited": {
+   "amenity": "parking",
+   "surface": "asphalt",
+   "capacity": "6"
+  },
+  "confidence": "strong",
+  "resolve_hint": "Hold until a frozen named official access record establishes public parking rights for the Morrison Slide six-space bay.",
+  "override": {
+   "version": 4,
+   "from_decision": {
+    "fid": 1106,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+     "way/1408649234"
+    ],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+     "call": "yes",
+     "evidence": "Z2: a dedicated asphalt pocket outside the travel lane has painted perpendicular stalls and multiple parked vehicles; tags specify surface=asphalt and capacity=6."
+    },
+    "public": {
+     "call": "yes",
+     "evidence": "Packet records a highway=trailhead node 32 m away; Z1/Z2 show the dedicated parking pocket at that trail/road access point, with Red Rocks Park protected-area context and no facility-specific owner."
+    },
+    "serves": {
+     "call": "yes",
+     "evidence": "Morrison Slide Trail endpoint edge 636 m, with a trailhead node 32 m away and four footways within 60 m; Z1/Z2 show the shipped trail passing directly through the parking access point."
+    },
+    "frames_used": [
+     "z1",
+     "z2"
+    ],
+    "tags_cited": {
+     "amenity": "parking",
+     "surface": "asphalt",
+     "capacity": "6"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+   },
+   "from_decision_sha256": "b1307df5f892c6b7ad286c81a5bfabdd9f9e2c53095c41fc7c98a1687eead212",
+   "from_evidence_sha256": "94bfc192de0fbf8e10d893f7e43b4995882d5d39c8c3965e6709b77983f2b865",
+   "to_decision_sha256": "0ac6f50c920dec2bf2ff56d36fe44ccf69cc592ef6b6e541649754360157e7b8",
+   "to_evidence_sha256": "15bcc07c840bcdbae7ab9e74a66af3eb7c23834179e23cb7c020a96499de98f5",
+   "by": "human",
+   "reviewer": "quentin",
+   "date": "2026-10-03",
+   "note": "Hold until a frozen named official access record establishes public parking rights for the Morrison Slide six-space bay.",
+   "packet_sha256": "eb3550cb038fcf08bdf1a86a7ad7cde655c7dda50a1feec4b35c39e1438e3463",
+   "source_run_id": "6046197b676ae1711aa7992e0c3ab428a453437e789b6627d5cc61a6472c6f24",
+   "review_receipt_sha256": "d792b40e11aa21a46d033442ea84ba15e0a70f3388629539c58d5e2725399866",
+   "review_sheet_sha256": "ccc0dde4594e5bc30ea878127dd5514c03a50864152bec9fb4813af73bf4f939",
+   "review_item_sha256": "31fe8deb267966f7d0e3364594ddbcbec27b30e1bf9d0aaef2c42da548f38b3c",
+   "authority_receipt_sha256": "5a2daf4f846254454a814d06928605705192f28ecbe80a14b38ad5a13725cb54"
+  }
+ }
+]

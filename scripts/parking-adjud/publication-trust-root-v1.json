@@ -45,13 +45,13 @@
       "sha256": "e1551fdb2ce8100f81be405b3bf98805a98a7367a5cb5e33aa3f938182029abd"
     }
   ],
-  "generation": 1,
+  "generation": 2,
   "kind": "parking-publication-trust-root",
   "legacy_baseline": {
     "filename": "proofless-source-baseline-v1.json",
     "sha256": "166ec465995cf0216f864b2bb9eaef3780f82f76ccba096981092d15082ec1b2"
   },
-  "parent_root_sha256": null,
+  "parent_root_sha256": "43db143447d90f506d42b273c425e0d048e5580e605ac211750114ba350dfd85",
   "schema": {
     "artifact_sha256": "sha256-exact-bytes",
     "canonical_json": "utf-8-indent-2-sort-keys-no-nan-newline-v1",
@@ -64,9 +64,9 @@
       "default_judged": "2026-09-13",
       "dossier_slug": null,
       "key_kind": "osm",
-      "proof_registry_sha256": null,
-      "publication_floor_sha256": "5b5d134bec54d6e3e4862cea31231e1701b5d116c4866819128b6e59b40f3cad",
-      "store_sha256": "44f3ac4c6793e1be66e301f6ee46875de92b8e1952351c607ae4e658d861a0cb"
+      "proof_registry_sha256": "4f0828917dc9e3ed9b60850fdbdb3677203ce91e3f9492ccc8e4d3f113f55012",
+      "publication_floor_sha256": "24277e7dc21425d61c72d89f81f6415ca74122967eb1c431e3af03c2895d7675",
+      "store_sha256": "c2713639b10045a902b1acb5a2b1a950f54df61780d0c7473e974c6e449abc82"
     },
     "griffith-park-ca_verdicts2.json": {
       "default_judged": "2026-08-01",

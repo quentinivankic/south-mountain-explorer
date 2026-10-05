@@ -16,8 +16,9 @@ receipt-backed human authority, and the full transitive OSM holder component. Dr
 stamp host-owned store fields such as `src`, dates, or geometry.
 
 New human authority is always one-fid, review-bound, and receipt-bound.
-`--confirm` records a same-verdict binary affirmation; `--decide` records a
-coherent axis-explicit flip. Both require the canonical immutable review receipt
+`--confirm` records same-verdict acceptance, including an explicit REVIEW
+shield; `--decide` records a coherent axis-explicit verdict change, including a
+binary-to-REVIEW deferral. Both require the canonical immutable review receipt
 rendered from the named frozen authority run. Their helpers are pure planners;
 the lock-holding CLI commits one journaled receipt → draft → checkpoint
 transaction. A preflight failure changes no canonical target, and exact recovery
@@ -59,7 +60,10 @@ from judge_validation import (  # noqa: E402
     AUTHORITY_RECEIPT_DIR,
     AUTHORITY_RECEIPT_KIND,
     AUTHORITY_RECEIPT_VERSION,
+    PATH_BOUND_AUTHORITY_RECEIPT_VERSION,
     CONFIRMATION_VERSION,
+    PATH_BOUND_CONFIRMATION_VERSION,
+    PATH_BOUND_OVERRIDE_VERSION,
     OVERRIDE_VERSION,
     PUBLICATION_ATTESTATION_KIND,
     PUBLICATION_ATTESTATION_VERSION,
@@ -69,6 +73,7 @@ from judge_validation import (  # noqa: E402
     publication_projection,
     canonical_draft_files,
     load_canonical_drafts,
+    machine_decision_projection,
     validate_authority_receipt,
     validate_publication_attestation,
     validate_verdict_row,
@@ -77,6 +82,7 @@ import dossier_output  # noqa: E402
 import judge_packets  # noqa: E402
 import resolve_trust as resolver  # noqa: E402
 import review_evidence as review  # noqa: E402
+import publication_objects as publication_objects  # noqa: E402
 import trust_resolution as tr  # noqa: E402
 import trusted_filesystem as trusted_fs  # noqa: E402
 import _parking_verdict_source as verdict_source  # noqa: E402
@@ -100,7 +106,7 @@ def _terminal_resolver_errors(tmp: Path, slug: str, drafts: list[dict],
         prepare = resolver.load_prepare_document(
             run_path / "prepare.json", expected_area=slug
         )
-        if prepare["tmp"] != str(tmp.resolve()):
+        if resolver.runtime_tmp(run_path, prepare) != tmp.resolve():
             raise ValueError("resolver run targets a different work directory")
         publication = prepare["source"]["publication"]
         resolver.require_current_source_generation(prepare, generation_capture)
@@ -163,7 +169,9 @@ def _packet_bound(row: object) -> bool:
         or "human_confirmation" in row
         or (isinstance(row.get("override"), dict)
             and type(row["override"].get("version")) is int
-            and row["override"].get("version") in (2, OVERRIDE_VERSION))
+            and row["override"].get("version") in (
+                2, PATH_BOUND_OVERRIDE_VERSION, OVERRIDE_VERSION
+            ))
     )
 
 
@@ -179,8 +187,9 @@ def _bound_packets(tmp: Path, slug: str, drafts: list[dict],
     try:
         if terminal_prepare is not None and terminal_run is not None:
             packets = {
-                item["fid"]: json.loads(
-                    (terminal_run / item["packet_path"]).read_text()
+                item["fid"]: resolver._runtime_packet(
+                    json.loads((terminal_run / item["packet_path"]).read_text()),
+                    terminal_run, terminal_prepare["version"],
                 )
                 for item in terminal_prepare["items"]
             }
@@ -370,29 +379,276 @@ def _authority_source_state_errors(prepare: dict, tmp: Path,
     return errors
 
 
-def _authority_frozen_source_drafts(tmp: Path, slug: str,
-                                    authority_run: Path,
-                                    prepare: dict) -> dict[Path, list[dict]]:
-    """Load planner before-images only from the validated frozen prepare run."""
+def _authority_chain_chunk(
+        tmp: Path, slug: str, authority_run: Path, prepare: dict,
+        source: dict, draft_bytes: bytes, checkpoint_bytes: bytes,
+        ) -> list[dict]:
+    """Validate one current draft as a receipt-backed extension of its frozen source."""
     root = tmp.resolve()
     run_root = authority_run.resolve()
-    if (prepare.get("area") != slug or prepare.get("tmp") != str(root)):
+    frozen_draft = resolver._trusted_artifact_path(
+        run_root / source["frozen_path"], run_root
+    )
+    frozen_checkpoint = resolver._trusted_artifact_path(
+        run_root / source["checkpoint_frozen_path"], run_root
+    )
+    frozen_draft_bytes = resolver._read_bytes_nofollow(frozen_draft)
+    frozen_checkpoint_bytes = resolver._read_bytes_nofollow(frozen_checkpoint)
+    if (resolver._sha(frozen_draft_bytes) != source["file_sha256"]
+            or resolver._sha(frozen_checkpoint_bytes)
+            != source["checkpoint_sha256"]):
+        raise ValueError(
+            f"authority frozen chunk {source['chunk']:02d} changed"
+        )
+    frozen_rows = dossier_output.strict_json_loads(
+        frozen_draft_bytes, f"authority frozen draft {source['chunk']:02d}"
+    )
+    current_rows = dossier_output.strict_json_loads(
+        draft_bytes, f"authority chain draft {source['chunk']:02d}"
+    )
+    frozen_manifest = dossier_output.strict_json_loads(
+        frozen_checkpoint_bytes,
+        f"authority frozen checkpoint {source['chunk']:02d}",
+    )
+    current_manifest = dossier_output.strict_json_loads(
+        checkpoint_bytes,
+        f"authority chain checkpoint {source['chunk']:02d}",
+    )
+    if (not isinstance(frozen_rows, list) or not isinstance(current_rows, list)
+            or not isinstance(frozen_manifest, dict)
+            or not isinstance(current_manifest, dict)):
+        raise ValueError("authority chain source image schema is invalid")
+    frozen_fids = [
+        row.get("fid") if isinstance(row, dict) else None
+        for row in frozen_rows
+    ]
+    current_fids = [
+        row.get("fid") if isinstance(row, dict) else None
+        for row in current_rows
+    ]
+    if (frozen_fids != current_fids
+            or len(frozen_fids) != len(set(frozen_fids))
+            or any(type(fid) is not int for fid in frozen_fids)):
+        raise ValueError("authority chain draft row identity or order changed")
+    prepared_items = {
+        item["fid"]: item for item in prepare["items"]
+        if item["chunk"] == source["chunk"]
+    }
+    if set(prepared_items) != set(frozen_fids):
+        raise ValueError("authority chain prepared-item coverage changed")
+    packets: dict[int, dict] = {}
+    for fid in frozen_fids:
+        item = prepared_items[fid]
+        packet_path = resolver._trusted_artifact_path(
+            run_root / item["packet_path"], run_root
+        )
+        packet = dossier_output.strict_json_loads(
+            resolver._read_bytes_nofollow(packet_path),
+            f"authority frozen packet {fid}",
+        )
+        if not isinstance(packet, dict):
+            raise ValueError(f"authority frozen packet {fid} is not an object")
+        packets[fid] = resolver._runtime_packet(
+            packet, run_root, prepare["version"]
+        )
+    for frozen_row, current_row in zip(frozen_rows, current_rows):
+        if current_row == frozen_row:
+            continue
+        fid = frozen_row["fid"]
+        bound = authority_wrapper(current_row)
+        if bound is None or bound[0] not in (
+                "human_confirmation_v2", "human_confirmation_v3",
+                "override_v3", "override_v4"):
+            raise ValueError(
+                f"authority chain fid {fid} is not current receipt-bound human authority"
+            )
+        kind, wrapper = bound
+        if wrapper.get("source_run_id") != prepare["run_id"]:
+            raise ValueError(
+                f"authority chain fid {fid} was not reviewed from this prepare run"
+            )
+        projected, projection_errors = machine_decision_projection(current_row)
+        if projection_errors or projected != frozen_row:
+            raise ValueError(
+                f"authority chain fid {fid} does not project to its frozen source row"
+            )
+        row_errors, _ = validate_verdict_row(current_row, packets[fid])
+        receipt_errors = validate_authority_receipt(current_row, root)
+        receipt_hash = wrapper.get("authority_receipt_sha256")
+        try:
+            receipt_path = authority_receipt_path(
+                root, slug, receipt_hash
+            )
+            receipt = dossier_output.strict_json_loads(
+                resolver._read_bytes_nofollow(receipt_path),
+                f"authority chain receipt {fid}",
+            )
+            if not isinstance(receipt, dict):
+                raise ValueError("receipt is not an object")
+            receipt_errors.extend(
+                _validate_receipt_source(
+                    receipt, current_row, packets[fid], run_root
+                )
+            )
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            receipt_errors.append(str(error))
+        if row_errors or receipt_errors:
+            raise ValueError(
+                f"authority chain fid {fid} is invalid: "
+                f"{row_errors + receipt_errors}"
+            )
+        if kind != receipt.get("authority_kind"):
+            raise ValueError(
+                f"authority chain fid {fid} receipt kind changed"
+            )
+    expected_manifest = copy.deepcopy(frozen_manifest)
+    expected_manifest["draft_sha256"] = resolver._sha(draft_bytes)
+    if current_manifest != expected_manifest:
+        raise ValueError(
+            f"{source['checkpoint_path']} changed after authority prepare: "
+            "authority chain checkpoint changed beyond exact draft_sha256"
+        )
+    state = judge_packets.inspect_rows(
+        [packets[fid] for fid in frozen_fids], current_rows,
+        f"{slug}_verdict_draft_{source['chunk']:02d}.json",
+    )
+    if (state["status"] != "complete"
+            or state["row_sha256"]
+            != current_manifest.get("judge_row_sha256")
+            or state["resolution_sha256"]
+            != current_manifest.get("resolution_row_sha256")
+            or state["completed"] != current_manifest.get("completed")):
+        raise ValueError(
+            f"authority chain draft/checkpoint semantics are invalid: "
+            f"{state['errors']}"
+        )
+    return copy.deepcopy(current_rows)
+
+
+def _authority_wrapper_matches_request(
+        row: dict, request: dict, prepare: dict) -> bool:
+    bound = authority_wrapper(row)
+    if bound is None or bound[0] != request["authority_kind"]:
+        return False
+    wrapper = bound[1]
+    if (wrapper.get("source_run_id") != prepare["run_id"]
+            or row.get("verdict") != request["verdict"]
+            or wrapper.get("reviewer") != request["reviewer"]
+            or wrapper.get("date") != request["date"]
+            or wrapper.get("note") != request["note"]
+            or wrapper.get("review_receipt_sha256")
+            != request["review_receipt_sha256"]
+            or wrapper.get("review_sheet_sha256")
+            != request["review_sheet_sha256"]
+            or wrapper.get("review_item_sha256")
+            != request["review_item_sha256"]):
+        return False
+    if request["authority_kind"].startswith("human_confirmation_"):
+        return wrapper.get("verdict") == request["verdict"]
+    return all(
+        isinstance(row.get(axis), dict)
+        and row[axis].get("call") == call
+        and row[axis].get("evidence") == request["axis_evidence"][axis]
+        for axis, call in request["axis_calls"].items()
+    )
+
+
+def _authority_frozen_source_drafts(
+        tmp: Path, slug: str, authority_run: Path, prepare: dict,
+        selected_fid: int | None = None, request: dict | None = None,
+        ) -> dict[Path, list[dict]]:
+    """Load validated current chain heads for one frozen review run.
+
+    The legacy function name remains for internal compatibility. Every live
+    difference from the frozen prepare image must be a current, valid human
+    wrapper sourced from this exact run. For an idempotent retry, only the
+    selected request's exact wrapper is removed from the planner before-image.
+    """
+    root = tmp.resolve()
+    run_root = authority_run.resolve()
+    if (prepare.get("area") != slug
+            or resolver.runtime_tmp(run_root, prepare) != root):
         raise ValueError("authority run targets a different area or work directory")
+    if (selected_fid is None) != (request is None):
+        raise ValueError("authority chain selection and request must be paired")
+    if request is not None:
+        request = _canonical_authority_request(request)
     drafts: dict[Path, list[dict]] = {}
     for source in prepare["source"]["drafts"]:
         target = resolver._trusted_artifact_path(root / source["path"], root)
-        frozen = resolver._trusted_artifact_path(
-            run_root / source["frozen_path"], run_root
+        checkpoint = resolver._trusted_artifact_path(
+            root / source["checkpoint_path"], root
         )
-        source_bytes = resolver._read_bytes_nofollow(frozen)
-        if resolver._sha(source_bytes) != source["file_sha256"]:
-            raise ValueError(
-                f"authority frozen draft {source['chunk']:02d} changed"
+        draft_bytes = resolver._read_bytes_nofollow(target)
+        checkpoint_bytes = resolver._read_bytes_nofollow(checkpoint)
+        if selected_fid is not None:
+            raw_rows = dossier_output.strict_json_loads(
+                draft_bytes,
+                f"authority live draft {source['chunk']:02d}",
             )
-        rows = json.loads(source_bytes)
-        if not isinstance(rows, list):
-            raise ValueError(
-                f"authority frozen draft {source['chunk']:02d} is not a list"
+            if not isinstance(raw_rows, list):
+                raise ValueError("authority live draft is not a list")
+            selected_index = next(
+                (index for index, row in enumerate(raw_rows)
+                 if isinstance(row, dict)
+                 and row.get("fid") == selected_fid
+                 and _authority_wrapper_matches_request(
+                     row, request, prepare
+                 )),
+                None,
+            )
+        else:
+            raw_rows = None
+            selected_index = None
+        if selected_index is not None:
+            projected, errors = machine_decision_projection(
+                raw_rows[selected_index]
+            )
+            if errors or projected is None:
+                raise ValueError(
+                    "cannot reconstruct idempotent authority before-image"
+                )
+            raw_rows[selected_index] = projected
+            frozen_draft = resolver._trusted_artifact_path(
+                run_root / source["frozen_path"], run_root
+            )
+            frozen_draft_bytes = resolver._read_bytes_nofollow(frozen_draft)
+            frozen_rows = dossier_output.strict_json_loads(
+                frozen_draft_bytes,
+                f"authority frozen draft {source['chunk']:02d}",
+            )
+            chain_draft_bytes = (
+                frozen_draft_bytes
+                if raw_rows == frozen_rows
+                else json.dumps(
+                    raw_rows, indent=1, ensure_ascii=False, allow_nan=False
+                ).encode("utf-8")
+            )
+            frozen_checkpoint = resolver._trusted_artifact_path(
+                run_root / source["checkpoint_frozen_path"], run_root
+            )
+            frozen_checkpoint_value = dossier_output.strict_json_loads(
+                resolver._read_bytes_nofollow(frozen_checkpoint),
+                f"authority frozen checkpoint {source['chunk']:02d}",
+            )
+            if not isinstance(frozen_checkpoint_value, dict):
+                raise ValueError("authority frozen checkpoint is not an object")
+            frozen_checkpoint_value["draft_sha256"] = resolver._sha(
+                chain_draft_bytes
+            )
+            chain_checkpoint_bytes = (
+                resolver._read_bytes_nofollow(frozen_checkpoint)
+                if chain_draft_bytes == frozen_draft_bytes
+                else resolver._json_bytes(frozen_checkpoint_value)
+            )
+            rows = _authority_chain_chunk(
+                root, slug, run_root, prepare, source,
+                chain_draft_bytes, chain_checkpoint_bytes,
+            )
+        else:
+            rows = _authority_chain_chunk(
+                root, slug, run_root, prepare, source,
+                draft_bytes, checkpoint_bytes,
             )
         drafts[target] = rows
     return drafts
@@ -405,10 +661,10 @@ def _review_bindings(review_context: dict, slug: str, authority_run: Path,
     receipt = review_context.get("receipt")
     item = review_context.get("item")
     if (not isinstance(receipt, dict) or not isinstance(item, dict)
+            or receipt.get("version") != review.REVIEW_RECEIPT_VERSION
             or review_context.get("prepare") != prepare
             or receipt.get("area") != slug
             or receipt.get("source_run_id") != prepare.get("run_id")
-            or receipt.get("source_run_path") != str(authority_run.resolve())
             or item.get("fid") != prepared_item.get("fid")
             or item.get("prepared_item_sha256") != tr.sha256_json(prepared_item)
             or item.get("packet_sha256") != prepared_item.get("packet_sha256")
@@ -416,17 +672,17 @@ def _review_bindings(review_context: dict, slug: str, authority_run: Path,
             != prepared_item.get("primary", {}).get("envelope_sha256")):
         raise ValueError("review evidence differs from the selected frozen item")
     expected_paths = review.artifact_paths(
-        prepare["tmp"], slug, prepare["run_id"]
+        resolver.runtime_tmp(authority_run, prepare), slug, prepare["run_id"]
     )
+    expected_sheet = (receipt.get("sheet_length"), receipt.get("sheet_sha256"))
     if (review_context.get("receipt_path") != expected_paths["receipt"]
             or review_context.get("sheet_path") != expected_paths["sheet"]
-            or receipt.get("sheet_path") != str(expected_paths["sheet"])):
-        raise ValueError("review evidence paths are noncanonical")
+            or review_context.get("sheet_identity") != expected_sheet
+            or receipt.get("sheet_name") != review.REVIEW_SHEET_NAME):
+        raise ValueError("review evidence paths or reconstructed sheet are noncanonical")
     return {
         "review_receipt_sha256": receipt["receipt_sha256"],
-        "review_receipt_path": str(expected_paths["receipt"]),
         "review_sheet_sha256": receipt["sheet_sha256"],
-        "review_sheet_path": str(expected_paths["sheet"]),
         "review_item_sha256": item["review_item_sha256"],
     }
 
@@ -449,7 +705,6 @@ def _build_authority_receipt(tmp: Path, slug: str, authority_run: Path,
         "fid": row["fid"],
         "authority_kind": authority_kind,
         "source_run_id": prepare["run_id"],
-        "source_run_path": str(authority_run.resolve()),
         "source_prepare_sha256": resolver._sha(
             resolver._read_bytes_nofollow(
                 resolver._trusted_artifact_path(
@@ -473,12 +728,20 @@ def _build_authority_receipt(tmp: Path, slug: str, authority_run: Path,
     return receipt_sha, {**body, "receipt_sha256": receipt_sha}
 
 
-def _validate_receipt_source(receipt: dict, row: dict, packet: dict) -> list[str]:
+def _validate_receipt_source(
+        receipt: dict, row: dict, packet: dict,
+        authority_run: Path | None = None) -> list[str]:
     errors = []
     try:
-        authority_run = Path(receipt["source_run_path"]).resolve()
-        if str(authority_run) != receipt.get("source_run_path"):
-            errors.append("authority receipt source run path is noncanonical")
+        receipt_version = receipt.get("version")
+        if receipt_version == AUTHORITY_RECEIPT_VERSION:
+            if authority_run is None:
+                return errors
+            authority_run = Path(authority_run).resolve()
+        else:
+            authority_run = Path(receipt["source_run_path"]).resolve()
+            if str(authority_run) != receipt.get("source_run_path"):
+                errors.append("authority receipt source run path is noncanonical")
         prepare = _load_authority_prepare(authority_run, row["area"])
         if receipt.get("source_run_id") != prepare.get("run_id"):
             errors.append("authority receipt source run id mismatch")
@@ -514,8 +777,12 @@ def _validate_receipt_source(receipt: dict, row: dict, packet: dict) -> list[str
             prepare, prepared_item, packet, source_decision
         ))
         if receipt.get("version") == AUTHORITY_RECEIPT_VERSION:
+            review_receipt = review.artifact_paths(
+                resolver.runtime_tmp(authority_run, prepare),
+                row["area"], prepare["run_id"],
+            )["receipt"]
             review_context = resolver.load_review_receipt(
-                Path(receipt["review_receipt_path"]), authority_run,
+                review_receipt, authority_run,
                 row["area"], expected_fid=row["fid"],
             )
             bindings = _review_bindings(
@@ -528,6 +795,67 @@ def _validate_receipt_source(receipt: dict, row: dict, packet: dict) -> list[str
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
         errors.append(f"authority receipt source run invalid: {error}")
     return errors
+
+
+AUTHORITY_RUNTIME_LOCATOR_VERSION = 1
+AUTHORITY_RUNTIME_LOCATOR_KIND = "parking-human-authority-runtime-locator"
+AUTHORITY_RUNTIME_LOCATOR_DIR = ".human-authority-runtime"
+
+
+def _authority_runtime_locator_path(
+        tmp: Path, area: str, receipt_sha256: str) -> Path:
+    if tr.area_slug(area) != area or _SHA256_RE.fullmatch(receipt_sha256) is None:
+        raise ValueError("authority runtime locator identity is invalid")
+    return resolver._trusted_artifact_path(
+        tmp.resolve() / AUTHORITY_RUNTIME_LOCATOR_DIR / area
+        / f"{receipt_sha256}.json",
+        tmp.resolve(),
+    )
+
+
+def _authority_runtime_locator(plan: _AuthorityPlan) -> dict:
+    return {
+        "version": AUTHORITY_RUNTIME_LOCATOR_VERSION,
+        "kind": AUTHORITY_RUNTIME_LOCATOR_KIND,
+        "area": plan.area,
+        "receipt_sha256": plan.receipt["receipt_sha256"],
+        "source_run_id": plan.prepare["run_id"],
+        "source_run_path": str(plan.authority_run.resolve()),
+    }
+
+
+def _write_authority_runtime_locator(plan: _AuthorityPlan) -> None:
+    path = _authority_runtime_locator_path(
+        plan.tmp, plan.area, plan.receipt["receipt_sha256"]
+    )
+    resolver._write_idempotent(
+        path, resolver._json_bytes(_authority_runtime_locator(plan))
+    )
+
+
+def _load_authority_runtime_run(
+        tmp: Path, area: str, receipt_sha256: str,
+        source_run_id: str) -> Path:
+    path = _authority_runtime_locator_path(tmp, area, receipt_sha256)
+    value = verdict_source._strict_json_loads(
+        resolver._read_bytes_nofollow(path), "authority runtime locator"
+    )
+    required = {
+        "version", "kind", "area", "receipt_sha256",
+        "source_run_id", "source_run_path",
+    }
+    if (not isinstance(value, dict) or set(value) != required
+            or value.get("version") != AUTHORITY_RUNTIME_LOCATOR_VERSION
+            or value.get("kind") != AUTHORITY_RUNTIME_LOCATOR_KIND
+            or value.get("area") != area
+            or value.get("receipt_sha256") != receipt_sha256
+            or value.get("source_run_id") != source_run_id):
+        raise ValueError("authority runtime locator schema mismatch")
+    run = Path(value["source_run_path"])
+    if (not run.is_absolute() or str(run.resolve()) != str(run)
+            or run.name != source_run_id):
+        raise ValueError("authority runtime locator path is noncanonical")
+    return run
 
 
 AUTHORITY_TRANSACTION_VERSION = 2
@@ -576,8 +904,10 @@ def _canonical_authority_request(context: dict) -> dict:
     if (type(context.get("version")) is not int
             or context["version"] != AUTHORITY_TRANSACTION_VERSION
             or context.get("kind") != AUTHORITY_REQUEST_KIND
-            or authority_kind not in ("human_confirmation_v2", "override_v3")
-            or context.get("verdict") not in ("KEEP", "DROP")
+            or authority_kind not in (
+                "human_confirmation_v2", "human_confirmation_v3",
+                "override_v3", "override_v4")
+            or context.get("verdict") not in VERDICTS
             or tr.identity_key(context.get("reviewer")) != context.get("reviewer")
             or not isinstance(context.get("note"), str)
             or not context["note"].strip()):
@@ -591,9 +921,9 @@ def _canonical_authority_request(context: dict) -> dict:
     if (not isinstance(calls, dict) or not isinstance(evidence, dict)
             or set(calls) != set(evidence)):
         raise ValueError("authority request axes are malformed")
-    if authority_kind == "human_confirmation_v2" and calls:
+    if authority_kind.startswith("human_confirmation_") and calls:
         raise ValueError("confirmation authority cannot carry axis changes")
-    if authority_kind == "override_v3" and not calls:
+    if authority_kind.startswith("override_") and not calls:
         raise ValueError("bound decision authority requires axis changes")
     for axis, call in calls.items():
         if (axis not in ("exists", "public", "serves")
@@ -804,7 +1134,8 @@ def _build_authority_plan(staged_drafts: dict[Path, list[dict]],
         )
     root = tmp.resolve()
     run_root = authority_run.resolve()
-    if prepare.get("area") != slug or prepare.get("tmp") != str(root):
+    if (prepare.get("area") != slug
+            or resolver.runtime_tmp(run_root, prepare) != root):
         raise ValueError("authority run targets a different area or work directory")
     request = _canonical_authority_request(request)
     receipt_sha, receipt = next(iter(staged_receipts.items()))
@@ -850,24 +1181,92 @@ def _build_authority_plan(staged_drafts: dict[Path, list[dict]],
     frozen_checkpoint = resolver._trusted_artifact_path(
         run_root / source["checkpoint_frozen_path"], run_root
     )
-    draft_before = resolver._read_bytes_nofollow(frozen_draft)
-    checkpoint_before = resolver._read_bytes_nofollow(frozen_checkpoint)
-    if (resolver._sha(draft_before) != source["file_sha256"]
-            or resolver._sha(checkpoint_before) != source["checkpoint_sha256"]):
+    frozen_draft_bytes = resolver._read_bytes_nofollow(frozen_draft)
+    frozen_checkpoint_bytes = resolver._read_bytes_nofollow(frozen_checkpoint)
+    if (resolver._sha(frozen_draft_bytes) != source["file_sha256"]
+            or resolver._sha(frozen_checkpoint_bytes)
+            != source["checkpoint_sha256"]):
         raise ValueError("authority frozen before-images changed")
-    before_rows = json.loads(draft_before)
-    if (not isinstance(before_rows, list)
-            or not any(row.get("fid") == prepared_item["fid"]
-                       for row in before_rows if isinstance(row, dict))):
-        raise ValueError("authority frozen draft does not contain the requested fid")
+    frozen_rows = dossier_output.strict_json_loads(
+        frozen_draft_bytes, "authority frozen draft"
+    )
+    if not isinstance(frozen_rows, list):
+        raise ValueError("authority frozen draft is not a list")
     draft_after = json.dumps(
         staged_rows, indent=1, ensure_ascii=False, allow_nan=False
     ).encode("utf-8")
-    checkpoint_value = json.loads(checkpoint_before)
-    if not isinstance(checkpoint_value, dict):
+    after_rows = copy.deepcopy(staged_rows)
+    requested_index = next(
+        (index for index, row in enumerate(after_rows)
+         if isinstance(row, dict) and row.get("fid") == prepared_item["fid"]),
+        None,
+    )
+    if requested_index is None:
+        raise ValueError("authority staged draft does not contain the requested fid")
+    requested_after = after_rows[requested_index]
+    if not _authority_wrapper_matches_request(
+            requested_after, request, prepare):
+        raise ValueError("authority staged wrapper differs from the current request")
+    requested_before, projection_errors = machine_decision_projection(
+        requested_after
+    )
+    if projection_errors or requested_before is None:
+        raise ValueError(
+            f"cannot reconstruct authority before-image: {projection_errors}"
+        )
+    before_rows = copy.deepcopy(after_rows)
+    before_rows[requested_index] = requested_before
+    candidate_draft_before = (
+        frozen_draft_bytes
+        if before_rows == frozen_rows
+        else json.dumps(
+            before_rows, indent=1, ensure_ascii=False, allow_nan=False
+        ).encode("utf-8")
+    )
+    frozen_checkpoint_value = dossier_output.strict_json_loads(
+        frozen_checkpoint_bytes, "authority frozen checkpoint"
+    )
+    if not isinstance(frozen_checkpoint_value, dict):
         raise ValueError("authority frozen checkpoint is not an object")
-    checkpoint_value["draft_sha256"] = resolver._sha(draft_after)
-    checkpoint_after = resolver._json_bytes(checkpoint_value)
+    checkpoint_target = resolver._trusted_artifact_path(
+        root / source["checkpoint_path"], root
+    )
+    current_draft = resolver._read_bytes_nofollow(draft_target)
+    current_checkpoint = resolver._read_bytes_nofollow(checkpoint_target)
+    current_rows = dossier_output.strict_json_loads(
+        current_draft, "authority live draft"
+    )
+    if current_rows == before_rows:
+        # Preserve the exact already-validated chain-head bytes; semantic
+        # reconstruction must not invent a different JSON key order.
+        draft_before = current_draft
+        checkpoint_before = current_checkpoint
+    elif current_rows == after_rows:
+        # Exact retry or split recovery: reconstruct the prior chain head from
+        # the immutable source plus every earlier validated human wrapper.
+        draft_before = candidate_draft_before
+        checkpoint_before_value = copy.deepcopy(frozen_checkpoint_value)
+        checkpoint_before_value["draft_sha256"] = resolver._sha(draft_before)
+        checkpoint_before = (
+            frozen_checkpoint_bytes
+            if draft_before == frozen_draft_bytes
+            else resolver._json_bytes(checkpoint_before_value)
+        )
+    else:
+        raise ValueError(
+            "authority live draft is outside the exact chain transition"
+        )
+    checkpoint_after_value = copy.deepcopy(frozen_checkpoint_value)
+    checkpoint_after_value["draft_sha256"] = resolver._sha(draft_after)
+    checkpoint_after = resolver._json_bytes(checkpoint_after_value)
+    if current_checkpoint not in (checkpoint_before, checkpoint_after):
+        raise ValueError(
+            "authority live checkpoint is outside the exact chain transition"
+        )
+    _authority_chain_chunk(
+        root, slug, run_root, prepare, source,
+        draft_before, checkpoint_before,
+    )
 
     packet_path = resolver._trusted_artifact_path(
         run_root / prepared_item["packet_path"], run_root
@@ -875,6 +1274,7 @@ def _build_authority_plan(staged_drafts: dict[Path, list[dict]],
     packet = json.loads(resolver._read_bytes_nofollow(packet_path))
     if not isinstance(packet, dict):
         raise ValueError("authority frozen packet is not an object")
+    packet = resolver._runtime_packet(packet, run_root, prepare["version"])
     receipt_target = resolver._trusted_artifact_path(
         authority_receipt_path(root, slug, receipt_sha), root
     )
@@ -911,7 +1311,8 @@ def _validate_authority_plan(plan: _AuthorityPlan) -> None:
         raise TypeError("authority recovery requires a trusted authority plan")
     request = _canonical_authority_request(plan.request)
     prepare = _load_authority_prepare(plan.authority_run, plan.area)
-    if prepare != plan.prepare or prepare.get("tmp") != str(plan.tmp):
+    if (prepare != plan.prepare
+            or resolver.runtime_tmp(plan.authority_run, prepare) != plan.tmp):
         raise ValueError("authority prepare identity changed during transaction")
     prepare_path = resolver._trusted_artifact_path(
         plan.authority_run / "prepare.json", plan.authority_run
@@ -931,18 +1332,12 @@ def _validate_authority_plan(plan: _AuthorityPlan) -> None:
     )
     if source != plan.source or item != plan.prepared_item:
         raise ValueError("authority source item changed during transaction")
-    frozen_draft = resolver._trusted_artifact_path(
-        plan.authority_run / source["frozen_path"], plan.authority_run
+    draft_before = plan.before_bytes["draft"]
+    checkpoint_before = plan.before_bytes["checkpoint"]
+    _authority_chain_chunk(
+        plan.tmp, plan.area, plan.authority_run, prepare, source,
+        draft_before, checkpoint_before,
     )
-    frozen_checkpoint = resolver._trusted_artifact_path(
-        plan.authority_run / source["checkpoint_frozen_path"],
-        plan.authority_run,
-    )
-    draft_before = resolver._read_bytes_nofollow(frozen_draft)
-    checkpoint_before = resolver._read_bytes_nofollow(frozen_checkpoint)
-    if (plan.before_bytes["draft"] != draft_before
-            or plan.before_bytes["checkpoint"] != checkpoint_before):
-        raise ValueError("authority before-images are not the frozen prepare sources")
 
     receipt_after = resolver._json_bytes(plan.receipt)
     if plan.after_bytes["receipt"] != receipt_after:
@@ -978,11 +1373,14 @@ def _validate_authority_plan(plan: _AuthorityPlan) -> None:
         plan.authority_run / item["packet_path"], plan.authority_run
     )
     packet = json.loads(resolver._read_bytes_nofollow(packet_path))
+    packet = resolver._runtime_packet(
+        packet, plan.authority_run, prepare["version"]
+    )
     if packet != plan.packet:
         raise ValueError("authority frozen packet changed during transaction")
     row_errors, _ = validate_verdict_row(row, packet)
     before_row = before_by_fid[plan.fid]
-    if plan.authority_kind == "human_confirmation_v2":
+    if plan.authority_kind.startswith("human_confirmation_"):
         reconstructed_before = copy.deepcopy(row)
         reconstructed_before.pop("human_confirmation", None)
         source_matches = reconstructed_before == before_row
@@ -1001,7 +1399,9 @@ def _validate_authority_plan(plan: _AuthorityPlan) -> None:
         row, plan.tmp,
         pending={plan.receipt["receipt_sha256"]: plan.receipt},
     )
-    receipt_errors.extend(_validate_receipt_source(plan.receipt, row, packet))
+    receipt_errors.extend(_validate_receipt_source(
+        plan.receipt, row, packet, plan.authority_run
+    ))
     if receipt_errors:
         raise ValueError(
             f"authority receipt after-image is invalid: {receipt_errors}"
@@ -1042,8 +1442,11 @@ def _validate_authority_plan(plan: _AuthorityPlan) -> None:
             plan.authority_run / source_item["packet_path"],
             plan.authority_run,
         )
-        chunk_packets.append(json.loads(
+        serialized_packet = json.loads(
             resolver._read_bytes_nofollow(source_packet_path)
+        )
+        chunk_packets.append(resolver._runtime_packet(
+            serialized_packet, plan.authority_run, prepare["version"]
         ))
     state = judge_packets.inspect_rows(
         chunk_packets, after_rows, plan.paths["draft"].name
@@ -1084,7 +1487,18 @@ def _validate_authority_live_sources(plan: _AuthorityPlan) -> None:
     packet_path = resolver._trusted_artifact_path(
         root / plan.prepare["source"]["packets_path"], root
     )
-    if (resolver._sha(resolver._read_bytes_nofollow(packet_path))
+    packet_bytes = resolver._read_bytes_nofollow(packet_path)
+    live_packets = resolver._parse_packet_map_bytes(
+        packet_path, packet_bytes, plan.area, prepared_generation
+    )
+    comparable_packet_bytes = (
+        resolver._portable_current_packet_bytes(
+            live_packets, plan.authority_run, plan.prepare
+        )
+        if plan.prepare["version"] == resolver.PREPARE_VERSION
+        else packet_bytes
+    )
+    if (resolver._sha(comparable_packet_bytes)
             != plan.prepare["source"]["packets_file_sha256"]):
         raise ValueError("authority live packet source changed after prepare")
     for source in plan.prepare["source"]["drafts"]:
@@ -1096,18 +1510,17 @@ def _validate_authority_live_sources(plan: _AuthorityPlan) -> None:
                     ) != plan.paths["checkpoint"]):
                 raise ValueError("authority target paths differ from prepare")
             continue
-        for path_field, hash_field in (
-            ("path", "file_sha256"),
-            ("checkpoint_path", "checkpoint_sha256"),
-        ):
-            path = resolver._trusted_artifact_path(
-                root / source[path_field], root
-            )
-            if (resolver._sha(resolver._read_bytes_nofollow(path))
-                    != source[hash_field]):
-                raise ValueError(
-                    f"{source[path_field]} changed after authority prepare"
-                )
+        draft_path = resolver._trusted_artifact_path(
+            root / source["path"], root
+        )
+        checkpoint_path = resolver._trusted_artifact_path(
+            root / source["checkpoint_path"], root
+        )
+        _authority_chain_chunk(
+            root, plan.area, plan.authority_run, plan.prepare, source,
+            resolver._read_bytes_nofollow(draft_path),
+            resolver._read_bytes_nofollow(checkpoint_path),
+        )
     publication = plan.prepare["source"]["publication"]
     for path_field, hash_field in (
         ("public_set_path", "public_set_sha256"),
@@ -1242,9 +1655,11 @@ def _commit_authority_changes(staged_drafts: dict[Path, list[dict]],
     _validate_authority_live_sources(plan)
     if plan.recovering:
         _finish_authority_transaction(plan, crash_after=crash_after)
+        _write_authority_runtime_locator(plan)
         return
     states = _authority_target_states(plan)
     if all(states.values()):
+        _write_authority_runtime_locator(plan)
         return
     for prefix in ("receipt", "draft", "checkpoint"):
         resolver._write_idempotent(
@@ -1262,6 +1677,7 @@ def _commit_authority_changes(staged_drafts: dict[Path, list[dict]],
     if crash_after == "journal":
         raise RuntimeError("simulated crash after authority journal")
     _finish_authority_transaction(plan, crash_after=crash_after)
+    _write_authority_runtime_locator(plan)
 
 
 def _authority_binding_errors(prepare: dict, prepared_item: dict, packet: dict,
@@ -1317,8 +1733,9 @@ def apply_confirmations(tmp: Path, slug: str, confirmations: dict[int, str],
             packet_path = resolver._trusted_artifact_path(
                 run_root / item["packet_path"], run_root
             )
-            packets[item["fid"]] = json.loads(
-                resolver._read_bytes_nofollow(packet_path)
+            packets[item["fid"]] = resolver._runtime_packet(
+                json.loads(resolver._read_bytes_nofollow(packet_path)),
+                run_root, prepare["version"],
             )
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
         return [f"  !! cannot bind confirmation authority: {error}"]
@@ -1351,8 +1768,11 @@ def apply_confirmations(tmp: Path, slug: str, confirmations: dict[int, str],
             base.pop("human_confirmation", None)
             packet = packets.get(fid)
             prepared_item = prepared_items.get(fid)
-            if verdict not in ("KEEP", "DROP"):
-                line = f"  !! #{fid}: confirmations require KEEP or DROP, got {verdict}"
+            if verdict not in VERDICTS:
+                line = (
+                    f"  !! #{fid}: confirmations require KEEP, DROP, or REVIEW, "
+                    f"got {verdict}"
+                )
             elif entry.get("override") is not None:
                 line = f"  !! #{fid}: already has a human override; confirmation is redundant"
             elif entry.get("verdict") != verdict:
@@ -1399,7 +1819,7 @@ def apply_confirmations(tmp: Path, slug: str, confirmations: dict[int, str],
                     entry["human_confirmation"] = confirmation
                     receipt_sha, receipt = _build_authority_receipt(
                         tmp, slug, authority_run, prepare, prepared_item, entry,
-                        "human_confirmation_v2", confirmation, review_context,
+                        "human_confirmation_v3", confirmation, review_context,
                     )
                     confirmation["authority_receipt_sha256"] = receipt_sha
                     staged_receipts[receipt_sha] = receipt
@@ -1443,8 +1863,9 @@ def apply_bound_decision(tmp: Path, slug: str, fid: int, verdict: str,
             packet_path = resolver._trusted_artifact_path(
                 run_root / item["packet_path"], run_root
             )
-            packets[item["fid"]] = json.loads(
-                resolver._read_bytes_nofollow(packet_path)
+            packets[item["fid"]] = resolver._runtime_packet(
+                json.loads(resolver._read_bytes_nofollow(packet_path)),
+                run_root, prepare["version"],
             )
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
         return [f"  !! cannot bind human decision: {error}"]
@@ -1487,7 +1908,7 @@ def apply_bound_decision(tmp: Path, slug: str, fid: int, verdict: str,
         effective = copy.deepcopy(source_decision)
         effective["verdict"] = verdict
         effective["confidence"] = "strong"
-        effective["resolve_hint"] = None
+        effective["resolve_hint"] = note if verdict == "REVIEW" else None
         for axis, call in axis_calls.items():
             if axis not in ("exists", "public", "serves") or call not in ("yes", "no", "unclear", "n/a"):
                 return [f"  !! #{fid}: invalid axis update {axis}={call}"]
@@ -1530,7 +1951,7 @@ def apply_bound_decision(tmp: Path, slug: str, fid: int, verdict: str,
         entry["override"] = wrapper
         receipt_sha, receipt = _build_authority_receipt(
             tmp, slug, authority_run, prepare, prepared_item, entry,
-            "override_v3", wrapper, review_context,
+            "override_v4", wrapper, review_context,
         )
         wrapper["authority_receipt_sha256"] = receipt_sha
         staged_receipts[receipt_sha] = receipt
@@ -1685,11 +2106,21 @@ def _preferred_overlap(incoming: dict, holders: list[tuple[str, dict]]) -> dict 
     return holders[0][1]
 
 
-PUBLICATION_PROOF_REGISTRY_VERSION = 1
+LEGACY_PUBLICATION_PROOF_REGISTRY_VERSION = 1
+PUBLICATION_PROOF_REGISTRY_VERSION = 2
+PUBLICATION_PROOF_REGISTRY_KIND = "parking-publication-proof-registry"
 LEGACY_PUBLICATION_PROOF_VERSION = 1
 REVIEW_PUBLICATION_PROOF_VERSION = 2
-PUBLICATION_PROOF_VERSION = 3
+PATH_BOUND_PUBLICATION_PROOF_VERSION = 3
+PUBLICATION_PROOF_VERSION = 4
 PUBLICATION_PROOF_KIND = "parking-publication-proof"
+PUBLICATION_PROOF_MANIFEST_MAX_BYTES = 4 * 1024 * 1024
+PUBLICATION_PROOF_REGISTRY_MAX_BYTES = 1024 * 1024
+LEGACY_REGISTRY_MANUAL_BOUNDARY = (
+    "nonempty legacy proof registry is replay-only; archive the exact v1 "
+    "publication, restore its generation-1 before-image, and regenerate "
+    "portable model/human authority; proof-ID alias migration is forbidden"
+)
 
 
 def publication_proof_path(store_path: Path) -> Path:
@@ -1716,8 +2147,8 @@ def _proof_decision_row(row: dict) -> dict:
     return value
 
 
-def _build_publication_proof(run_path: Path, prepare: dict, tmp: Path,
-                             drafts: list[dict]) -> tuple[str, dict]:
+def _build_legacy_publication_proof(run_path: Path, prepare: dict, tmp: Path,
+                                    drafts: list[dict]) -> tuple[str, dict]:
     output_seal = json.loads(
         resolver._read_bytes_nofollow(run_path / "output-seal.json")
     )
@@ -1841,7 +2272,7 @@ def _build_publication_proof(run_path: Path, prepare: dict, tmp: Path,
             resolver._read_bytes_nofollow(tmp / source["checkpoint_path"])
         ).decode("ascii")
     body = {
-        "version": PUBLICATION_PROOF_VERSION,
+        "version": PATH_BOUND_PUBLICATION_PROOF_VERSION,
         "kind": PUBLICATION_PROOF_KIND,
         "run_id": prepare["run_id"],
         "prepare": copy.deepcopy(prepare),
@@ -1862,28 +2293,415 @@ def _build_publication_proof(run_path: Path, prepare: dict, tmp: Path,
     return proof_sha, {**body, "proof_sha256": proof_sha}
 
 
-def _load_publication_proofs(path: Path) -> dict:
+def _reject_workstation_absolute_paths(value: object, label: str) -> None:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            _reject_workstation_absolute_paths(child, f"{label}.{key}")
+        return
+    if isinstance(value, list):
+        for index, child in enumerate(value):
+            _reject_workstation_absolute_paths(child, f"{label}[{index}]")
+        return
+    if isinstance(value, str) and (
+            value.startswith("/") or re.match(r"^[A-Za-z]:[\\/]", value)):
+        raise ValueError(f"{label} contains a workstation-absolute path")
+
+
+def _capture_structured_publication_source(
+        path: Path, root: Path, label: str,
+) -> bytes:
+    """Capture one owner-only run source before parsing or staging it."""
+    canonical = resolver._trusted_artifact_path(path, root)
+    chunks = []
+    length = 0
+    for chunk in trusted_fs.iter_verified_regular_chunks(
+            canonical, require_owner=True, required_mode=0o600):
+        length += len(chunk)
+        if length > PUBLICATION_PROOF_MANIFEST_MAX_BYTES:
+            raise ValueError(f"{label} exceeds 4 MiB")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+def _build_publication_proof_manifest(
+        run_path: Path, prepare: dict, tmp: Path, drafts: list[dict],
+        data_root: Path,
+) -> tuple[str, dict, publication_objects.ObjectRef,
+           tuple[publication_objects.StagedObject, ...]]:
+    """Stage one path-independent proof-v4 manifest and its object closure."""
+    if (prepare.get("version") != resolver.PREPARE_VERSION
+            or prepare.get("path_scheme") != resolver.PREPARE_PATH_SCHEME):
+        raise ValueError("new publication requires portable prepare v4")
+    run_path = run_path.resolve()
+    tmp = tmp.resolve()
+    data_root = data_root.resolve()
+    stage_root = (
+        data_root / ".trekdex-publication-transactions" / "object-stages"
+        / prepare["run_id"]
+    )
+    logical_objects: dict[str, publication_objects.LogicalObjectRef] = {}
+    staged_by_hash: dict[str, publication_objects.StagedObject] = {}
+
+    def add_stream(chunks) -> str:
+        logical, staged = publication_objects.stage_logical_object(
+            chunks, stage_root
+        )
+        previous = logical_objects.setdefault(logical.sha256, logical)
+        if previous != logical:
+            raise ValueError("publication logical object hash collision")
+        for stage in staged:
+            existing = staged_by_hash.setdefault(stage.ref.sha256, stage)
+            if existing.ref != stage.ref:
+                raise ValueError("publication staged leaf hash collision")
+        return logical.sha256
+
+    def add_bytes(raw: bytes, label: str, *, structured: bool = False) -> str:
+        if structured:
+            if len(raw) > PUBLICATION_PROOF_MANIFEST_MAX_BYTES:
+                raise ValueError(f"{label} exceeds 4 MiB")
+            try:
+                parsed = verdict_source._strict_json_loads(raw, label)
+            except (UnicodeDecodeError, ValueError, json.JSONDecodeError) as error:
+                raise ValueError(f"{label} is not strict JSON: {error}") from error
+            _reject_workstation_absolute_paths(parsed, label)
+        return add_stream((raw,))
+
+    def add_path(path: Path, label: str, *, root: Path,
+                 structured: bool = False) -> str:
+        if structured:
+            return add_bytes(
+                _capture_structured_publication_source(path, root, label),
+                label, structured=True,
+            )
+        canonical = resolver._trusted_artifact_path(path, root)
+        return add_stream(trusted_fs.iter_verified_regular_chunks(
+            canonical, require_owner=True
+        ))
+
+    prepare_bytes = _capture_structured_publication_source(
+        run_path / "prepare.json", run_path, "portable prepare"
+    )
+    prepare_ref = add_bytes(prepare_bytes, "portable prepare", structured=True)
+    if prepare_ref != resolver._sha(prepare_bytes):
+        raise ValueError("portable prepare object identity mismatch")
+    output_seal_path = run_path / "output-seal.json"
+    output_seal_bytes = _capture_structured_publication_source(
+        output_seal_path, run_path, "publication output seal"
+    )
+    output_seal = verdict_source._strict_json_loads(
+        output_seal_bytes, "publication output seal"
+    )
+    output_seal_ref = add_bytes(
+        output_seal_bytes, "publication output seal", structured=True
+    )
+
+    sealed_outputs = {}
+    for relative, expected_hash in sorted(output_seal["outputs"].items()):
+        if expected_hash is None:
+            sealed_outputs[relative] = None
+            continue
+        path = run_path / "sealed-inbox" / Path(relative).name
+        ref = add_path(
+            path, f"sealed output {relative}", root=run_path,
+            structured=True,
+        )
+        if ref != expected_hash:
+            raise ValueError(f"sealed output hash mismatch for {relative}")
+        sealed_outputs[relative] = ref
+
+    chunk_receipts = {}
+    terminal_drafts = {}
+    terminal_checkpoints = {}
+    for source in prepare["source"]["drafts"]:
+        chunk_key = str(source["chunk"])
+        chunk_receipts[chunk_key] = add_path(
+            run_path / "receipts" / f"chunk-{source['chunk']:02d}.json",
+            f"terminal receipt {chunk_key}", root=run_path,
+            structured=True,
+        )
+        terminal_drafts[chunk_key] = add_path(
+            tmp / source["path"], f"terminal draft {chunk_key}",
+            root=tmp, structured=True,
+        )
+        terminal_checkpoints[chunk_key] = add_path(
+            tmp / source["checkpoint_path"],
+            f"terminal checkpoint {chunk_key}", root=tmp,
+            structured=True,
+        )
+
+    packet_bindings = {}
+    packet_objects = {}
+    for item in prepare["items"]:
+        packet_label = f"publication packet {item['fid']}"
+        packet_bytes = _capture_structured_publication_source(
+            run_path / item["packet_path"], run_path, packet_label
+        )
+        serialized_packet = verdict_source._strict_json_loads(
+            packet_bytes, packet_label,
+        )
+        runtime_packet = resolver._runtime_packet(
+            serialized_packet, run_path, prepare["version"]
+        )
+        payload, tile_hashes = tr.packet_components(runtime_packet)
+        packet_bindings[str(item["fid"])] = {
+            "packet": payload,
+            "tile_sha256": tile_hashes,
+        }
+        packet_objects[str(item["fid"])] = add_bytes(
+            packet_bytes, packet_label, structured=True,
+        )
+        for zoom, tile_hash in tile_hashes.items():
+            tile_ref = add_path(
+                run_path / serialized_packet["tiles"][zoom],
+                f"packet {item['fid']} {zoom}", root=run_path,
+            )
+            if tile_ref != tile_hash:
+                raise ValueError(
+                    f"packet {item['fid']} {zoom} object hash mismatch"
+                )
+
+    rendered_prompts = {
+        assignment["prompt_path"]: add_path(
+            run_path / assignment["prompt_path"],
+            f"rendered prompt {assignment['prompt_path']}", root=run_path,
+        )
+        for item in prepare["items"]
+        for assignment in item["assignments"].values()
+    }
+    prompt_templates = {
+        role: add_path(
+            run_path / "templates" / f"{role}.md",
+            f"prompt template {role}", root=run_path,
+        )
+        for role in prepare["prompt_template_sha256"]
+    }
+    normative_documents = {
+        name: add_path(
+            run_path / "rules" / name, f"normative document {name}",
+            root=run_path,
+        )
+        for name in prepare["normative_document_sha256"]
+    }
+
+    human_authority = {}
+    human_reviews = {}
+    final_rows = {str(row["fid"]): _proof_decision_row(row) for row in drafts}
+    for row in drafts:
+        bound = authority_wrapper(row)
+        if bound is None:
+            continue
+        receipt_sha = bound[1]["authority_receipt_sha256"]
+        receipt_path = authority_receipt_path(
+            tmp, prepare["area"], receipt_sha
+        )
+        receipt_bytes = _capture_structured_publication_source(
+            receipt_path, tmp, "portable human authority receipt"
+        )
+        receipt = verdict_source._strict_json_loads(
+            receipt_bytes, "portable human authority receipt"
+        )
+        if receipt.get("version") != AUTHORITY_RECEIPT_VERSION:
+            raise ValueError(
+                "path-bound human authority is replay-only and cannot enter proof v4"
+            )
+        source_run = _load_authority_runtime_run(
+            tmp, prepare["area"], receipt_sha, receipt["source_run_id"]
+        )
+        review_path = review.artifact_paths(
+            resolver.runtime_tmp(
+                source_run,
+                resolver.load_prepare_document(source_run / "prepare.json"),
+            ),
+            prepare["area"], receipt["source_run_id"],
+        )["receipt"]
+        review_context = resolver.load_review_receipt(
+            review_path, source_run, prepare["area"],
+            expected_fid=row["fid"],
+        )
+        review_bindings = _review_bindings(
+            review_context, prepare["area"], source_run,
+            review_context["prepare"],
+            next(item for item in review_context["prepare"]["items"]
+                 if item["fid"] == row["fid"]),
+        )
+        for field, value in review_bindings.items():
+            if receipt.get(field) != value:
+                raise ValueError(
+                    f"human authority receipt {field} differs from review evidence"
+                )
+        source_prepare_bytes = _capture_structured_publication_source(
+            source_run / "prepare.json", source_run, "human review prepare"
+        )
+        if source_prepare_bytes != review_context["prepare_bytes"]:
+            raise ValueError("human review prepare changed during proof capture")
+        source_prepare_ref = add_bytes(
+            source_prepare_bytes, "human review prepare", structured=True,
+        )
+        authority_receipt_ref = add_bytes(
+            receipt_bytes, "human authority receipt", structured=True,
+        )
+        human_authority[receipt_sha] = {
+            "receipt_ref": authority_receipt_ref,
+            "source_prepare_ref": source_prepare_ref,
+        }
+        review_receipt = review_context["receipt"]
+        review_sha = review_receipt["receipt_sha256"]
+        source_artifacts = {}
+        for relative, source_path in sorted(
+                review_context["source_artifacts"].items()):
+            descriptor = review_receipt["source_objects"][relative]
+            structured = relative.endswith(".json")
+            source_ref = add_path(
+                source_path, f"review source {relative}", root=source_run,
+                structured=structured,
+            )
+            if (source_ref != descriptor["sha256"]
+                    or logical_objects[source_ref].length
+                    != descriptor["length"]):
+                raise ValueError(
+                    f"review source descriptor mismatch for {relative}"
+                )
+            source_artifacts[relative] = source_ref
+        review_receipt_bytes = _capture_structured_publication_source(
+            review_path, tmp, "human review receipt"
+        )
+        if review_receipt_bytes != review_context["receipt_bytes"]:
+            raise ValueError("human review receipt changed during proof capture")
+        review_receipt_ref = add_bytes(
+            review_receipt_bytes, "human review receipt", structured=True,
+        )
+        recipe = {
+            "version": 2,
+            "format_version": review.REVIEW_FORMAT_VERSION,
+            "renderer_version": review.REVIEW_RENDERER_VERSION,
+            "prepare_ref": source_prepare_ref,
+            "receipt_ref": review_receipt_ref,
+            "source_artifacts": source_artifacts,
+            "sheet_name": review.REVIEW_SHEET_NAME,
+            "expected_sheet_length": review_receipt["sheet_length"],
+            "expected_sheet_sha256": review_receipt["sheet_sha256"],
+        }
+        review_entry = {
+            "receipt_ref": review_receipt_ref,
+            "source_prepare_ref": source_prepare_ref,
+            "source_artifacts": source_artifacts,
+            "recipe": recipe,
+        }
+        previous = human_reviews.setdefault(review_sha, review_entry)
+        if previous != review_entry:
+            raise ValueError("review receipt deduplication found different objects")
+
+    object_values = sorted(
+        logical_objects.values(), key=lambda value: value.sha256
+    )
+    object_table = {
+        value.sha256: value.to_dict() for value in object_values
+    }
+    body = {
+        "version": PUBLICATION_PROOF_VERSION,
+        "kind": PUBLICATION_PROOF_KIND,
+        "run_id": prepare["run_id"],
+        "area": prepare["area"],
+        "path_scheme": resolver.PREPARE_PATH_SCHEME,
+        "objects": object_table,
+        "object_closure_sha256": publication_objects.object_closure_sha256(
+            object_values
+        ),
+        "prepare_ref": prepare_ref,
+        "output_seal_ref": output_seal_ref,
+        "sealed_outputs": sealed_outputs,
+        "rendered_prompts": rendered_prompts,
+        "prompt_templates": prompt_templates,
+        "normative_documents": normative_documents,
+        "chunk_receipts": chunk_receipts,
+        "terminal_drafts": terminal_drafts,
+        "terminal_checkpoints": terminal_checkpoints,
+        "packet_objects": packet_objects,
+        "packet_bindings": packet_bindings,
+        "final_rows": final_rows,
+        "human_authority": human_authority,
+        "human_reviews": human_reviews,
+    }
+    _reject_workstation_absolute_paths(body, "publication proof manifest")
+    manifest_bytes = resolver._json_bytes(body)
+    if len(manifest_bytes) > PUBLICATION_PROOF_MANIFEST_MAX_BYTES:
+        raise ValueError("publication proof manifest exceeds 4 MiB")
+    manifest_ref, manifest_stages = publication_objects.stage_logical_object(
+        (manifest_bytes,), stage_root
+    )
+    if len(manifest_ref.leaves) != 1:
+        raise ValueError("publication proof manifest must be one bounded leaf")
+    for stage in manifest_stages:
+        existing = staged_by_hash.setdefault(stage.ref.sha256, stage)
+        if existing.ref != stage.ref:
+            raise ValueError("publication manifest stage conflicts")
+    proof_sha = resolver._sha(manifest_bytes)
+    if manifest_ref.sha256 != proof_sha:
+        raise ValueError("publication proof manifest exact hash mismatch")
+    return (
+        proof_sha, body, manifest_ref.leaves[0],
+        tuple(sorted(staged_by_hash.values(), key=lambda value: value.ref.sha256)),
+    )
+
+
+def _empty_publication_registry() -> dict:
+    return {
+        "version": PUBLICATION_PROOF_REGISTRY_VERSION,
+        "kind": PUBLICATION_PROOF_REGISTRY_KIND,
+        "proofs": {},
+    }
+
+
+def _load_publication_proofs(
+        path: Path, *,
+        staged_objects: tuple[publication_objects.StagedObject, ...] = (),
+) -> dict:
     try:
-        raw = resolver._read_bytes_nofollow(path)
+        raw = publication_objects.read_bounded_regular(
+            path, PUBLICATION_PROOF_REGISTRY_MAX_BYTES,
+            "publication proof registry",
+        )
     except FileNotFoundError:
-        return {"version": PUBLICATION_PROOF_REGISTRY_VERSION, "proofs": {}}
+        value = _empty_publication_registry()
+        return publication_objects.PublicationProofRegistry(
+            value, path.parent, staged_objects=staged_objects
+        )
+    except ValueError as error:
+        if "exceeds" in str(error):
+            raise ValueError(
+                publication_objects.registry_cap_message()
+            ) from error
+        raise
     value = verdict_source._strict_json_loads(raw, "publication proof registry")
-    if (not isinstance(value, dict) or set(value) != {"version", "proofs"}
-            or type(value.get("version")) is not int
-            or value["version"] != PUBLICATION_PROOF_REGISTRY_VERSION
-            or not isinstance(value.get("proofs"), dict)):
+    if not isinstance(value, dict) or type(value.get("version")) is not int:
         raise ValueError("publication proof registry is malformed")
-    for proof_sha, proof in value["proofs"].items():
-        if not isinstance(proof_sha, str) or not isinstance(proof, dict):
-            raise ValueError("publication proof registry entry is malformed")
-        body = dict(proof)
-        claimed = body.pop("proof_sha256", None)
-        if claimed != proof_sha or tr.sha256_json(body) != proof_sha:
-            raise ValueError("publication proof registry entry hash mismatch")
-    return value
+    if value["version"] == LEGACY_PUBLICATION_PROOF_REGISTRY_VERSION:
+        if set(value) != {"version", "proofs"} or not isinstance(value.get("proofs"), dict):
+            raise ValueError("legacy publication proof registry is malformed")
+        for proof_sha, proof in value["proofs"].items():
+            if not isinstance(proof_sha, str) or not isinstance(proof, dict):
+                raise ValueError("legacy publication proof registry entry is malformed")
+            body = dict(proof)
+            claimed = body.pop("proof_sha256", None)
+            if claimed != proof_sha or tr.sha256_json(body) != proof_sha:
+                raise ValueError("legacy publication proof registry entry hash mismatch")
+    elif value["version"] == PUBLICATION_PROOF_REGISTRY_VERSION:
+        if (set(value) != {"version", "kind", "proofs"}
+                or value.get("kind") != PUBLICATION_PROOF_REGISTRY_KIND
+                or not isinstance(value.get("proofs"), dict)):
+            raise ValueError("publication proof registry v2 is malformed")
+        for proof_sha, descriptor in value["proofs"].items():
+            ref = publication_objects.validate_object_ref(descriptor)
+            if ref.sha256 != proof_sha:
+                raise ValueError("registry proof key differs from manifest hash")
+    else:
+        raise ValueError("publication proof registry version is unsupported")
+    return publication_objects.PublicationProofRegistry(
+        value, path.parent, staged_objects=staged_objects
+    )
 
 
-PUBLICATION_TRANSACTION_VERSION = 4
+PUBLICATION_TRANSACTION_VERSION = 5
 PUBLICATION_TRANSACTION_KIND = "parking-publication-transaction"
 PUBLICATION_AUTHORIZATION_VERSION = 2
 PUBLICATION_AUTHORIZATION_KIND = "parking-publication-authorization"
@@ -1959,16 +2777,18 @@ def _canonical_publication_authorization(context: dict) -> dict:
 
 def _publication_authorization_context(run_path: Path, prepare: dict,
                                        proof_sha256: str, proof: dict) -> dict:
-    proof_body = copy.deepcopy(proof)
-    claimed_proof_sha = proof_body.pop("proof_sha256", None)
-    if (claimed_proof_sha != proof_sha256
-            or tr.sha256_json(proof_body) != proof_sha256):
-        raise ValueError("publication proof does not match authorization context")
+    manifest_bytes = resolver._json_bytes(proof)
+    if resolver._sha(manifest_bytes) != proof_sha256:
+        raise ValueError("publication manifest does not match authorization hash")
+    prepare_bytes = resolver._read_bytes_nofollow(run_path / "prepare.json")
     if (proof.get("version") != PUBLICATION_PROOF_VERSION
             or proof.get("run_id") != prepare.get("run_id")
-            or proof.get("prepare") != prepare):
+            or proof.get("prepare_ref") != resolver._sha(prepare_bytes)):
         raise ValueError("publication proof resolver identity mismatch")
-    output_seal = proof.get("output_seal")
+    output_seal = verdict_source._strict_json_loads(
+        resolver._read_bytes_nofollow(run_path / "output-seal.json"),
+        "publication output seal",
+    )
     if not isinstance(output_seal, dict):
         raise ValueError("publication proof has no output seal")
     seal_body = dict(output_seal)
@@ -1981,15 +2801,23 @@ def _publication_authorization_context(run_path: Path, prepare: dict,
     if not isinstance(chunk_receipts, dict):
         raise ValueError("publication proof terminal receipts are malformed")
     receipt_vector = []
-    for raw_chunk, receipt in sorted(
-            chunk_receipts.items(), key=lambda item: int(item[0])):
+    for source in prepare["source"]["drafts"]:
+        raw_chunk = str(source["chunk"])
+        if raw_chunk not in chunk_receipts:
+            raise ValueError("publication proof terminal receipt set is incomplete")
+        receipt = verdict_source._strict_json_loads(
+            resolver._read_bytes_nofollow(
+                run_path / "receipts" / f"chunk-{source['chunk']:02d}.json"
+            ),
+            f"publication terminal receipt {raw_chunk}",
+        )
         if (not isinstance(receipt, dict)
-                or receipt.get("chunk") != int(raw_chunk)
+                or receipt.get("chunk") != source["chunk"]
                 or receipt.get("run_id") != prepare.get("run_id")
                 or receipt.get("output_seal_sha256") != seal_sha256):
             raise ValueError("publication proof terminal receipt identity mismatch")
         receipt_vector.append({
-            "chunk": int(raw_chunk),
+            "chunk": source["chunk"],
             "kind": receipt.get("kind"),
             "transaction_id": receipt.get("transaction_id"),
             "receipt_sha256": tr.sha256_json(receipt),
@@ -2003,7 +2831,7 @@ def _publication_authorization_context(run_path: Path, prepare: dict,
         "area": prepare.get("area"),
         "resolver_run_path": str(run_path.resolve()),
         "resolver_run_id": prepare.get("run_id"),
-        "resolver_prepare_sha256": tr.sha256_json(prepare),
+        "resolver_prepare_sha256": resolver._sha(prepare_bytes),
         "output_seal_sha256": seal_sha256,
         "terminal_receipts": receipt_vector,
         "publication_fids": sorted(int(fid) for fid in final_rows),
@@ -2071,11 +2899,64 @@ def _read_optional_bytes(path: Path) -> bytes | None:
         return None
 
 
+def _read_optional_publication_registry(path: Path) -> bytes | None:
+    try:
+        return publication_objects.read_bounded_regular(
+            path, PUBLICATION_PROOF_REGISTRY_MAX_BYTES,
+            "publication proof registry",
+        )
+    except FileNotFoundError:
+        return None
+    except ValueError as error:
+        if "exceeds" in str(error):
+            raise ValueError(
+                f"{path} {publication_objects.registry_cap_message()}"
+            ) from error
+        raise
+
+
+def _preflight_live_publication_archive(
+        store_path: Path, proof_path: Path, floor_path: Path,
+        journal_path: Path,
+) -> None:
+    """Reject a conflicting installed archive before staging retry objects."""
+    try:
+        journal_bytes = resolver._read_bytes_nofollow(journal_path)
+    except FileNotFoundError:
+        return
+    journal = verdict_source._strict_json_loads(
+        journal_bytes, "live publication journal"
+    )
+    if (not isinstance(journal, dict)
+            or journal.get("version") != PUBLICATION_TRANSACTION_VERSION
+            or journal.get("kind") != PUBLICATION_TRANSACTION_KIND
+            or not isinstance(journal.get("plan_id"), str)
+            or _SHA256_RE.fullmatch(journal["plan_id"]) is None
+            or not isinstance(journal.get("transaction_id"), str)
+            or _SHA256_RE.fullmatch(journal["transaction_id"]) is None
+            or resolver._json_bytes(journal) != journal_bytes):
+        raise ValueError("live publication journal is malformed")
+    expected_archive = _publication_transaction_paths(
+        store_path, proof_path, journal["plan_id"],
+        archive_id=journal["transaction_id"], floor_path=floor_path,
+    )["archive"]
+    paths = journal.get("paths")
+    if (not isinstance(paths, dict)
+            or paths.get("archive") != str(expected_archive)):
+        raise ValueError("live publication journal archive path is noncanonical")
+    archive_bytes = _read_optional_bytes(expected_archive)
+    if archive_bytes is not None and archive_bytes != journal_bytes:
+        raise ValueError(
+            "publication transaction archive differs from live journal"
+        )
+
+
 @dataclass(frozen=True)
 class _PublicationPlan:
     store_path: Path
     proof_path: Path
     floor_path: Path
+    staged_objects: tuple[publication_objects.StagedObject, ...]
     before_bytes: dict[str, bytes | None]
     after_bytes: dict[str, bytes]
     authorization: dict
@@ -2111,14 +2992,47 @@ def _publication_root_identity(root_path: Path | None, parent_root,
     }
 
 
+def _canonical_publication_stages(
+        data_root: Path,
+        staged_objects: tuple[publication_objects.StagedObject, ...],
+) -> tuple[tuple[publication_objects.StagedObject, ...], list[dict]]:
+    root = data_root.resolve()
+    stage_namespace = root / ".trekdex-publication-transactions" / "object-stages"
+    by_hash = {}
+    for staged in staged_objects:
+        if not isinstance(staged, publication_objects.StagedObject):
+            raise ValueError("publication object stage vector is malformed")
+        ref = publication_objects.validate_object_ref(staged.ref)
+        path = staged.stage_path.absolute()
+        try:
+            relative = path.relative_to(stage_namespace)
+        except ValueError as error:
+            raise ValueError("publication object stage escapes its namespace") from error
+        if len(relative.parts) < 2 or relative.name != ref.sha256:
+            raise ValueError("publication object stage path is noncanonical")
+        previous = by_hash.setdefault(ref.sha256, staged)
+        if previous.ref != ref or previous.stage_path.absolute() != path:
+            raise ValueError("publication object stage vector conflicts")
+    ordered = tuple(sorted(by_hash.values(), key=lambda value: value.ref.sha256))
+    vector = [
+        {"object": staged.ref.to_dict(), "stage_path": str(staged.stage_path.absolute())}
+        for staged in ordered
+    ]
+    return ordered, vector
+
+
 def _build_publication_plan(
         store_path: Path, store: dict, proof_path: Path, proof_registry: dict,
-        authorization_context: dict, publication_configuration=None
+        authorization_context: dict, publication_configuration=None, *,
+        staged_objects: tuple[publication_objects.StagedObject, ...] = (),
 ) -> _PublicationPlan:
     if not isinstance(store, dict) or not isinstance(proof_registry, dict):
         raise ValueError("publication plan store/proof inputs must be objects")
     authorization = _canonical_publication_authorization(
         authorization_context
+    )
+    staged_objects, object_vector = _canonical_publication_stages(
+        store_path.parent, tuple(staged_objects)
     )
     floor_path = publication_floor_path(store_path)
 
@@ -2150,6 +3064,9 @@ def _build_publication_plan(
         ).encode("utf-8"),
         "proof": resolver._json_bytes(proof_registry),
     }
+    if (proof_registry.get("version") == PUBLICATION_PROOF_REGISTRY_VERSION
+            and len(after_bytes["proof"]) > PUBLICATION_PROOF_REGISTRY_MAX_BYTES):
+        raise ValueError(publication_objects.registry_cap_message())
     fixed_journal = _publication_transaction_paths(
         store_path, proof_path, "fixed", floor_path=floor_path
     )["journal"]
@@ -2182,11 +3099,14 @@ def _build_publication_plan(
             "floor": rooted_entry["publication_floor_sha256"],
         }
         for prefix in ("store", "proof", "floor"):
-            current = _read_optional_bytes(
-                _publication_transaction_paths(
-                    store_path, proof_path, "fixed", floor_path=floor_path
-                )[prefix]
+            current_path = _publication_transaction_paths(
+                store_path, proof_path, "fixed", floor_path=floor_path
+            )[prefix]
+            read_optional = (
+                _read_optional_publication_registry
+                if prefix == "proof" else _read_optional_bytes
             )
+            current = read_optional(current_path)
             expected_hash = expected_hashes[prefix]
             current_is_rooted = (
                 current is None if expected_hash is None
@@ -2195,7 +3115,7 @@ def _build_publication_plan(
             if current_is_rooted or not recovering:
                 before_bytes[prefix] = current
             else:
-                before_bytes[prefix] = _read_optional_bytes(
+                before_bytes[prefix] = read_optional(
                     hinted_paths[f"{prefix}_backup"]
                 )
         if before_bytes["floor"] is None:
@@ -2265,6 +3185,7 @@ def _build_publication_plan(
         "kind": "parking-publication-plan",
         "targets": targets,
         "after_sha256": after_hashes,
+        "objects": object_vector,
         "publication_trust_root": root_identity,
         "authorization": authorization,
     })
@@ -2321,6 +3242,7 @@ def _build_publication_plan(
         "targets": targets,
         "before_sha256": before_hashes,
         "after_sha256": after_hashes,
+        "objects": object_vector,
         "publication_trust_root": root_identity,
         "authorization": authorization,
     }
@@ -2340,6 +3262,7 @@ def _build_publication_plan(
         "proof_after_sha256": after_hashes["proof"],
         "floor_before_sha256": before_hashes["floor"],
         "floor_after_sha256": after_hashes["floor"],
+        "objects": object_vector,
         "publication_trust_root": root_identity,
         "authorization": authorization,
         "paths": {key: str(value) for key, value in paths.items()},
@@ -2348,6 +3271,7 @@ def _build_publication_plan(
         store_path=paths["store"],
         proof_path=paths["proof"],
         floor_path=paths["floor"],
+        staged_objects=staged_objects,
         before_bytes=before_bytes,
         after_bytes=after_bytes,
         authorization=authorization,
@@ -2371,11 +3295,16 @@ _BASELINE_UNSET = object()
 def _validate_publication_after_images(
         store_bytes: bytes, proof_bytes: bytes, floor_bytes: bytes,
         store_name: str = "publication-store.json",
-        *, spec=None, baseline=_BASELINE_UNSET) -> None:
+        *, data_root: Path, spec=None, baseline=_BASELINE_UNSET,
+        staged_objects: tuple[publication_objects.StagedObject, ...] = (),
+) -> None:
     store = json.loads(store_bytes)
-    proof_registry = json.loads(proof_bytes)
-    if not isinstance(store, dict) or not isinstance(proof_registry, dict):
+    proof_value = json.loads(proof_bytes)
+    if not isinstance(store, dict) or not isinstance(proof_value, dict):
         raise ValueError("publication after-images must be JSON objects")
+    proof_registry = publication_objects.PublicationProofRegistry(
+        proof_value, Path(data_root), staged_objects=staged_objects,
+    )
     if spec is None or baseline is _BASELINE_UNSET:
         resolved_spec, resolved_baseline = (
             resolver.replay_trust.publication_store_policy(store_name)
@@ -2391,12 +3320,70 @@ def _validate_publication_after_images(
     resolver.replay_trust.validate_store_floor_image(spec, store, floor)
 
 
+def _validate_publication_registry_transition(
+        before: bytes | None, after: bytes) -> None:
+    after_value = verdict_source._strict_json_loads(
+        after, "publication registry after-image"
+    )
+    if (isinstance(after_value, dict)
+            and set(after_value) == {"version", "proofs"}
+            and after_value.get("version")
+            == LEGACY_PUBLICATION_PROOF_REGISTRY_VERSION
+            and isinstance(after_value.get("proofs"), dict)):
+        if before is not None:
+            before_value = verdict_source._strict_json_loads(
+                before, "legacy publication registry before-image"
+            )
+            if before_value != after_value:
+                raise ValueError("legacy publication registry is replay-only")
+        return
+    if (not isinstance(after_value, dict)
+            or set(after_value) != {"version", "kind", "proofs"}
+            or after_value.get("version") != PUBLICATION_PROOF_REGISTRY_VERSION
+            or after_value.get("kind") != PUBLICATION_PROOF_REGISTRY_KIND
+            or not isinstance(after_value.get("proofs"), dict)):
+        raise ValueError("publication registry after-image is not compact v2")
+    for proof_sha, descriptor in after_value["proofs"].items():
+        ref = publication_objects.validate_object_ref(descriptor)
+        if ref.sha256 != proof_sha:
+            raise ValueError("publication registry manifest key/hash mismatch")
+    previous = {}
+    if before is not None:
+        before_value = verdict_source._strict_json_loads(
+            before, "publication registry before-image"
+        )
+        if (not isinstance(before_value, dict)
+                or type(before_value.get("version")) is not int
+                or not isinstance(before_value.get("proofs"), dict)):
+            raise ValueError("publication registry before-image is malformed")
+        if before_value["version"] == LEGACY_PUBLICATION_PROOF_REGISTRY_VERSION:
+            if set(before_value) != {"version", "proofs"} or before_value["proofs"]:
+                raise ValueError(LEGACY_REGISTRY_MANUAL_BOUNDARY)
+        elif before_value["version"] == PUBLICATION_PROOF_REGISTRY_VERSION:
+            if (set(before_value) != {"version", "kind", "proofs"}
+                    or before_value.get("kind") != PUBLICATION_PROOF_REGISTRY_KIND):
+                raise ValueError("publication registry before-image is not compact v2")
+            previous = before_value["proofs"]
+        else:
+            raise ValueError("publication registry before version is unsupported")
+    for proof_sha, descriptor in previous.items():
+        if after_value["proofs"].get(proof_sha) != descriptor:
+            raise ValueError(
+                f"publication registry attempted to remove or rewrite proof {proof_sha}"
+            )
+
+
 def _validate_publication_plan(plan: _PublicationPlan) -> None:
     if not isinstance(plan, _PublicationPlan):
         raise TypeError("publication recovery requires a trusted publication plan")
     authorization = _canonical_publication_authorization(plan.authorization)
     if authorization != plan.authorization:
         raise ValueError("publication plan authorization is noncanonical")
+    staged_objects, object_vector = _canonical_publication_stages(
+        plan.store_path.parent, plan.staged_objects
+    )
+    if staged_objects != plan.staged_objects:
+        raise ValueError("publication plan object stage order is noncanonical")
     prefixes = ("store", "proof", "floor")
     if (set(plan.before_bytes) != set(prefixes)
             or set(plan.after_bytes) != set(prefixes)):
@@ -2446,6 +3433,7 @@ def _validate_publication_plan(plan: _PublicationPlan) -> None:
         "kind": "parking-publication-plan",
         "targets": targets,
         "after_sha256": after_hashes,
+        "objects": object_vector,
         "publication_trust_root": root_identity,
         "authorization": authorization,
     })
@@ -2466,6 +3454,7 @@ def _validate_publication_plan(plan: _PublicationPlan) -> None:
         "targets": targets,
         "before_sha256": before_hashes,
         "after_sha256": after_hashes,
+        "objects": object_vector,
         "publication_trust_root": root_identity,
         "authorization": authorization,
     })
@@ -2489,6 +3478,7 @@ def _validate_publication_plan(plan: _PublicationPlan) -> None:
         "proof_after_sha256": after_hashes["proof"],
         "floor_before_sha256": before_hashes["floor"],
         "floor_after_sha256": after_hashes["floor"],
+        "objects": object_vector,
         "publication_trust_root": root_identity,
         "authorization": authorization,
         "paths": {key: str(value) for key, value in expected_paths.items()},
@@ -2511,10 +3501,15 @@ def _validate_publication_plan(plan: _PublicationPlan) -> None:
     )
     if expected_floor != plan.after_bytes["floor"]:
         raise ValueError("publication floor after-image is not the exact union")
+    _validate_publication_registry_transition(
+        plan.before_bytes["proof"], plan.after_bytes["proof"]
+    )
     _validate_publication_after_images(
         plan.after_bytes["store"], plan.after_bytes["proof"],
         plan.after_bytes["floor"], plan.store_path.name,
         spec=plan.spec, baseline=plan.baseline,
+        data_root=plan.store_path.parent,
+        staged_objects=plan.staged_objects,
     )
 
 
@@ -2533,6 +3528,35 @@ def _publication_archive_matches(plan: _PublicationPlan) -> bool:
 
 def _publication_artifact_states(plan: _PublicationPlan) -> dict[str, bool]:
     states = {}
+    object_state_keys = []
+    for staged in plan.staged_objects:
+        key = f"object:{staged.ref.sha256}"
+        object_state_keys.append(key)
+        target = publication_objects._object_path(
+            plan.store_path.parent, staged.ref
+        )
+        if publication_objects._linked_install_pair_exact(
+                staged.stage_path, target, staged.ref):
+            states[key] = False
+            continue
+        try:
+            for _chunk in publication_objects.iter_object_bytes(
+                    plan.store_path.parent, staged.ref):
+                pass
+            states[key] = True
+        except FileNotFoundError:
+            try:
+                for _chunk in trusted_fs.iter_verified_regular_chunks(
+                        staged.stage_path, require_owner=True,
+                        require_read_only=True,
+                        expected_length=staged.ref.length,
+                        expected_sha256=staged.ref.sha256):
+                    pass
+            except FileNotFoundError as error:
+                raise ValueError(
+                    f"publication object has neither exact stage nor target: {target}"
+                ) from error
+            states[key] = False
     for prefix in ("proof", "floor", "store"):
         current = _read_optional_bytes(plan.paths[prefix])
         before = plan.before_bytes[prefix]
@@ -2557,6 +3581,8 @@ def _publication_artifact_states(plan: _PublicationPlan) -> dict[str, bool]:
                 f"publication {prefix} stage is missing trusted after-image"
             )
         states[prefix] = is_after
+    if states["proof"] and not all(states[key] for key in object_state_keys):
+        raise ValueError("publication registry advanced before all proof objects")
     floor_advanced = (
         plan.before_bytes["floor"] != plan.after_bytes["floor"]
         and states["floor"]
@@ -2600,7 +3626,8 @@ def _publication_artifact_states(plan: _PublicationPlan) -> dict[str, bool]:
 def _finish_publication_transaction(
         plan: _PublicationPlan, crash_after_proof: bool = False,
         crash_after_floor: bool = False,
-        crash_after_candidate: bool = False) -> None:
+        crash_after_candidate: bool = False,
+        crash_after_object: int | None = None) -> None:
     _validate_publication_plan(plan)
     expected_journal_bytes = resolver._json_bytes(plan.journal)
     try:
@@ -2611,6 +3638,26 @@ def _finish_publication_transaction(
         raise ValueError(
             "live publication journal does not exactly match trusted publication plan"
         )
+    states = _publication_artifact_states(plan)
+    if (crash_after_object is not None
+            and (type(crash_after_object) is not int
+                 or not 0 <= crash_after_object <= len(plan.staged_objects))):
+        raise ValueError("publication object crash cut is invalid")
+    if crash_after_object == 0:
+        raise RuntimeError("simulated crash before first publication object install")
+    installed_count = 0
+    for staged in plan.staged_objects:
+        publication_objects.install_staged_objects(
+            plan.store_path.parent, (staged,)
+        )
+        for _chunk in publication_objects.iter_object_bytes(
+                plan.store_path.parent, staged.ref):
+            pass
+        installed_count += 1
+        if crash_after_object == installed_count:
+            raise RuntimeError(
+                f"simulated crash after publication object {installed_count}"
+            )
     states = _publication_artifact_states(plan)
     for prefix in ("proof", "floor", "store"):
         if states[prefix]:
@@ -2661,10 +3708,13 @@ def _commit_publication(
         proof_registry: dict, authorization_context: dict,
         crash_after_proof: bool = False, crash_after_floor: bool = False,
         crash_after_candidate: bool = False,
-        publication_configuration=None) -> None:
+        publication_configuration=None, *,
+        staged_objects: tuple[publication_objects.StagedObject, ...] = (),
+        crash_after_object: int | None = None) -> None:
     plan = _build_publication_plan(
         store_path, store, proof_path, proof_registry, authorization_context,
         publication_configuration=publication_configuration,
+        staged_objects=staged_objects,
     )
     _validate_publication_plan(plan)
     if plan.recovering:
@@ -2672,6 +3722,7 @@ def _commit_publication(
             plan, crash_after_proof=crash_after_proof,
             crash_after_floor=crash_after_floor,
             crash_after_candidate=crash_after_candidate,
+            crash_after_object=crash_after_object,
         )
         return
     canonical_complete = all(
@@ -2683,7 +3734,16 @@ def _commit_publication(
         or _read_optional_bytes(plan.paths["candidate"])
         == plan.candidate_bytes
     )
-    if canonical_complete and candidate_complete:
+    object_complete = True
+    for staged in plan.staged_objects:
+        try:
+            for _chunk in publication_objects.iter_object_bytes(
+                    plan.store_path.parent, staged.ref):
+                pass
+        except FileNotFoundError:
+            object_complete = False
+            break
+    if canonical_complete and candidate_complete and object_complete:
         return
     for prefix in ("store", "proof", "floor"):
         before = plan.before_bytes[prefix]
@@ -2710,6 +3770,7 @@ def _commit_publication(
         plan, crash_after_proof=crash_after_proof,
         crash_after_floor=crash_after_floor,
         crash_after_candidate=crash_after_candidate,
+        crash_after_object=crash_after_object,
     )
 
 
@@ -2895,6 +3956,18 @@ def _main_under_lock_ownership(argv, area_locks: list) -> int:
     else:
         generation_captures = {}
     live_publication_journal = os.path.lexists(publication_journal)
+    if live_publication_journal and write:
+        try:
+            _preflight_live_publication_archive(
+                store_path, proof_registry_path, floor_registry_path,
+                publication_journal,
+            )
+        except (OSError, ValueError, json.JSONDecodeError) as error:
+            print(
+                f"!! publication recovery required: {error}",
+                file=sys.stderr,
+            )
+            return 1
     if live_publication_journal and not write:
         print(
             "!! publication recovery required: a live journal may only be "
@@ -2954,8 +4027,10 @@ def _main_under_lock_ownership(argv, area_locks: list) -> int:
         if not authority_run_raw:
             sys.exit("--decide requires --authority-run PATH")
         fid_s, _, verdict = decide_raw.partition("=")
-        if not fid_s.isdigit() or verdict not in ("KEEP", "DROP"):
-            sys.exit(f"--decide wants FID=KEEP|DROP, got {decide_raw!r}")
+        if not fid_s.isdigit() or verdict not in VERDICTS:
+            sys.exit(
+                f"--decide wants FID=KEEP|DROP|REVIEW, got {decide_raw!r}"
+            )
         axis_calls: dict[str, str] = {}
         for value in axes_raw:
             axis, separator, call = value.partition("=")
@@ -2990,7 +4065,7 @@ def _main_under_lock_ownership(argv, area_locks: list) -> int:
             authority_request = _canonical_authority_request({
                 "version": AUTHORITY_TRANSACTION_VERSION,
                 "kind": AUTHORITY_REQUEST_KIND,
-                "authority_kind": "override_v3",
+                "authority_kind": "override_v4",
                 "verdict": verdict,
                 "axis_calls": axis_calls,
                 "axis_evidence": axis_evidence,
@@ -3008,7 +4083,8 @@ def _main_under_lock_ownership(argv, area_locks: list) -> int:
                 ],
             })
             authority_source_drafts = _authority_frozen_source_drafts(
-                tmp, slugs[0], authority_run, authority_prepare
+                tmp, slugs[0], authority_run, authority_prepare,
+                int(fid_s), authority_request,
             )
             authority_lines = apply_bound_decision(
                 tmp, slugs[0], int(fid_s), verdict,
@@ -3058,8 +4134,10 @@ def _main_under_lock_ownership(argv, area_locks: list) -> int:
         confirmations: dict[int, str] = {}
         for value in confirms_raw:
             fid_s, _, verdict = value.partition("=")
-            if not fid_s.isdigit() or verdict not in ("KEEP", "DROP"):
-                sys.exit(f"--confirm wants FID=KEEP|DROP, got {value!r}")
+            if not fid_s.isdigit() or verdict not in VERDICTS:
+                sys.exit(
+                    f"--confirm wants FID=KEEP|DROP|REVIEW, got {value!r}"
+                )
             confirmations[int(fid_s)] = verdict
         if len(review_receipts_raw) != 1:
                 sys.exit("--confirm requires exactly one --review-receipt PATH")
@@ -3084,7 +4162,7 @@ def _main_under_lock_ownership(argv, area_locks: list) -> int:
             authority_request = _canonical_authority_request({
                 "version": AUTHORITY_TRANSACTION_VERSION,
                 "kind": AUTHORITY_REQUEST_KIND,
-                "authority_kind": "human_confirmation_v2",
+                "authority_kind": "human_confirmation_v3",
                 "verdict": next(iter(confirmations.values())),
                 "axis_calls": {},
                 "axis_evidence": {},
@@ -3102,7 +4180,8 @@ def _main_under_lock_ownership(argv, area_locks: list) -> int:
                 ],
             })
             authority_source_drafts = _authority_frozen_source_drafts(
-                tmp, slugs[0], authority_run, authority_prepare
+                tmp, slugs[0], authority_run, authority_prepare,
+                selected_fid, authority_request,
             )
             authority_lines = apply_confirmations(
                 tmp, slugs[0], confirmations, note, today, reviewer,
@@ -3378,24 +4457,58 @@ def _main_under_lock_ownership(argv, area_locks: list) -> int:
 
     proof_registry_path = publication_proof_path(store_path)
     proof_registry = _load_publication_proofs(proof_registry_path)
+    if proof_registry["version"] == LEGACY_PUBLICATION_PROOF_REGISTRY_VERSION:
+        if proof_registry["proofs"]:
+            raise ValueError(LEGACY_REGISTRY_MANUAL_BOUNDARY)
+        proof_registry = publication_objects.PublicationProofRegistry(
+            _empty_publication_registry(), store_path.parent
+        )
     publication_proof_sha_by_slug = {}
     publication_authorization_by_slug = {}
+    publication_stages: dict[str, publication_objects.StagedObject] = {}
+    publishing_slugs = (
+        set(terminal_prepares)
+        if live_publication_journal else {
+            slug for slug, entry, _facility in entries
+            if not (
+                overlap_choices.get((slug, entry.get("fid")), ([], None))[0]
+                and overlap_choices[(slug, entry.get("fid"))][1] is not entry
+                and _direct_human_source(
+                    overlap_choices[(slug, entry.get("fid"))][1]
+                ) is not None
+            )
+        }
+    )
     for slug, prepare in terminal_prepares.items():
+        if slug not in publishing_slugs:
+            continue
         run_path = Path(resolver_run_raw).resolve()
-        proof_sha, proof = _build_publication_proof(
-            run_path, prepare, tmp,
-            load_staged_draft(tmp, slug, staged_drafts) or [],
+        proof_sha, proof, manifest_ref, stages = (
+            _build_publication_proof_manifest(
+                run_path, prepare, tmp,
+                load_staged_draft(tmp, slug, staged_drafts) or [],
+                store_path.parent,
+            )
         )
         existing_proof = proof_registry["proofs"].get(proof_sha)
-        if existing_proof is not None and existing_proof != proof:
+        descriptor = manifest_ref.to_dict()
+        if existing_proof is not None and existing_proof != descriptor:
             raise ValueError("publication proof hash collision or registry drift")
-        proof_registry["proofs"][proof_sha] = proof
+        proof_registry["proofs"][proof_sha] = descriptor
+        for stage in stages:
+            previous = publication_stages.setdefault(stage.ref.sha256, stage)
+            if previous.ref != stage.ref:
+                raise ValueError("publication proof stages conflict")
         publication_proof_sha_by_slug[slug] = proof_sha
         publication_authorization_by_slug[slug] = (
             _publication_authorization_context(
                 run_path, prepare, proof_sha, proof
             )
         )
+    proof_registry = publication_objects.PublicationProofRegistry(
+        dict(proof_registry), store_path.parent,
+        staged_objects=tuple(publication_stages.values()),
+    )
 
     before = len(store)
     kept = 0
@@ -3458,21 +4571,21 @@ def _main_under_lock_ownership(argv, area_locks: list) -> int:
                 )
         for oid in ids:
             store[oid] = rec
-    if terminal_prepares:
+    if publication_authorization_by_slug:
         referenced_proofs = {
             row.get("publication_attestation", {}).get("publication_proof_sha256")
             for row in store.values() if isinstance(row, dict)
             and isinstance(row.get("publication_attestation"), dict)
         }
         referenced_proofs.discard(None)
-        proof_registry["proofs"] = {
-            proof_sha: proof_registry["proofs"][proof_sha]
-            for proof_sha in sorted(referenced_proofs)
-            if proof_sha in proof_registry["proofs"]
-        }
-        if set(proof_registry["proofs"]) != referenced_proofs:
-            raise ValueError("publication proof registry is missing a referenced proof")
+        missing_proofs = referenced_proofs - set(proof_registry["proofs"])
+        if missing_proofs:
+            raise ValueError(
+                f"publication proof registry is missing referenced proofs: "
+                f"{sorted(missing_proofs)[:5]}"
+            )
         validated_rows = set()
+        validated_proofs = {}
         for row in store.values():
             if not isinstance(row, dict) or current_authority(row) is None:
                 continue
@@ -3481,9 +4594,33 @@ def _main_under_lock_ownership(argv, area_locks: list) -> int:
                 continue
             validated_rows.add(identity)
             attestation_errors = validate_publication_attestation(row)
-            proof_errors = resolver.replay_trust._validate_publication_proof(
-                row, proof_registry
+            proof_sha = row.get("publication_attestation", {}).get(
+                "publication_proof_sha256"
             )
+            if proof_sha in validated_proofs:
+                proof_errors = (
+                    resolver.replay_trust._validate_publication_proof_v4_row(
+                        row, validated_proofs[proof_sha], proof_registry,
+                        resolver,
+                    )
+                )
+            else:
+                try:
+                    manifest = resolver.replay_trust._load_proof_manifest(
+                        proof_sha, proof_registry
+                    )
+                except (KeyError, TypeError, ValueError, OSError) as error:
+                    proof_errors = [
+                        f"publication proof manifest is unavailable: {error}"
+                    ]
+                else:
+                    proof_errors = (
+                        resolver.replay_trust._validate_publication_proof_v4(
+                            row, proof_sha, manifest, proof_registry
+                        )
+                    )
+                    if not proof_errors:
+                        validated_proofs[proof_sha] = manifest
             if attestation_errors or proof_errors:
                 raise ValueError(
                     f"publication proof precommit failed: {attestation_errors + proof_errors}"
@@ -3493,6 +4630,7 @@ def _main_under_lock_ownership(argv, area_locks: list) -> int:
                 store_path, store, proof_registry_path, proof_registry,
                 publication_authorization_by_slug[slugs[0]],
                 publication_configuration=publication_configuration,
+                staged_objects=tuple(publication_stages.values()),
             )
         except (OSError, ValueError, json.JSONDecodeError) as error:
             print(

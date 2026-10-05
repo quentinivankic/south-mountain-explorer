@@ -1,0 +1,33 @@
+{
+  "assignment_id": "22cd96183ca5874c3734c1bab9776fec5477f0d773f638eb73dcff5104861627",
+  "decision": {
+    "fid": 392,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/91322581"],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Surveyed prior (surface=asphalt, parking=surface, capacity=12, fee=no). Z2 and Z3: light-grey paved rectangular bay (~456 m2) that sits outside the travel lane on the SE side of the park road, bounded by the tree line, with one red vehicle parked inside the red outline. No stripes resolvable, but the parked car plus the delineated paved bay outside the travel lane confirm the prior. No building, lawn or water contradiction."
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Lot-level access=yes and fee=no on way/91322581 (single member, mixed_access=false). Corroborated by a trailhead node 18 m away and SUPPORT context (inside boundary=protected_area 'Red Rocks Park'). No gate visible in Z3, but the explicit lot-level access tag is what carries this axis."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Red Rocks Trail edge 0 m (fallback=false, 4 trails in range); walk to Mount Vernon Creek Trail is 0 m. Z2/Z3 show a yellow trail leaving the lot's SW corner and heading south, and another running along the road edge from the same corner. Trailhead node 18 m away; 5 footways within 60 m. Z1 non-trail owners: a hillside residence to the NW and a residential compound to the S, both reached by their own drives and not attached to this bay. No school, church, commercial or event use better explains it, so this reads as a direct trailhead lot."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {
+      "access": "yes",
+      "fee": "no",
+      "parking": "surface",
+      "surface": "asphalt",
+      "capacity": "12"
+    },
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

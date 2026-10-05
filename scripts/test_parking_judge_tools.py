@@ -7,13 +7,16 @@ from __future__ import annotations
 import base64
 import contextlib
 import copy
+import gc
 import hashlib
 import importlib.util
 import json
 import os
+import stat
 import subprocess
 import sys
 import time
+import weakref
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -205,7 +208,7 @@ def _verdict(fid, verdict, confidence="certain", osm=None, hint=None, prior="bar
             "tags_cited": {}, "resolve_hint": hint}
 
 
-def _area(tmp_path, slug="test-co", drafts=None):
+def _area(tmp_path, slug="test-co", drafts=None, node_only_fids=()):
     """A minimal PADJ_TMP: dossier + _pub.txt + chunk drafts."""
     tmp = tmp_path / "work"
     tmp.mkdir(exist_ok=True)
@@ -213,9 +216,12 @@ def _area(tmp_path, slug="test-co", drafts=None):
                                                 [_verdict(3, "REVIEW", "leaning", hint="fetch a clear frame")]]
     fids = [e["fid"] for d in drafts for e in d]
     by_fid = {e["fid"]: e for d in drafts for e in d}
+    node_only = set(node_only_fids)
     facilities = [{"fid": f, "lat": 40.0 + f * 1e-3, "lon": -105.5,
                    "osm": by_fid[f]["osm"], "prior": by_fid[f]["prior"],
-                   "ring": RING, "rings": [RING], "tags_union": {"name": f"Lot {f}"}}
+                   "ring": None if f in node_only else RING,
+                   "rings": None if f in node_only else [RING],
+                   "tags_union": {"name": f"Lot {f}"}}
                   for f in fids]
     serves_doc = {
         str(fid): {"served": True, "trail": "Test Trail", "dist_m": 50,
@@ -320,9 +326,11 @@ def _write_authority_run(tmp_path, tmp, fid, decision, packet, name,
 
 
 def _review_receipt(authority_run):
-    prepare = json.loads((Path(authority_run) / "prepare.json").read_text())
+    run = Path(authority_run).resolve()
+    prepare = json.loads((run / "prepare.json").read_text())
+    tmp = merge_drafts.resolver.runtime_tmp(run, prepare)
     return review_sheet.review.artifact_paths(
-        prepare["tmp"], prepare["area"], prepare["run_id"]
+        tmp, prepare["area"], prepare["run_id"]
     )["receipt"]
 
 
@@ -588,6 +596,61 @@ def test_bound_human_decision_preserves_full_original_and_requires_coherent_axes
     assert any("effective decision hash mismatch" in error for error in errors)
 
 
+def test_bound_human_decision_can_defer_binary_to_review(tmp_path):
+    tmp = _area(
+        tmp_path,
+        drafts=[[_verdict(2, "DROP", "strong")]],
+    )
+    store = tmp_path / "store.json"
+    packet = json.loads((tmp / "test-co_packets.json").read_text())["2"]
+    original = _drafts(tmp)[2]
+    authority_run, source_run_id = _write_authority_run(
+        tmp_path, tmp, 2, original, packet, "review-deferral-authority-run"
+    )
+    note = "hold until lot-level public parking rights are documented"
+    args = [
+        str(store), "test-co", "--judged", "2026-10-03",
+        "--decide", "2=REVIEW",
+        "--axis", "exists=yes",
+        "--axis", "public=unclear",
+        "--axis", "serves=unclear",
+        "--axis-evidence", "exists=Z3 confirms a delineated parking bay",
+        "--axis-evidence", "public=Lot-level public parking rights are unproven",
+        "--axis-evidence", "serves=Trail use remains gated on public access",
+        "--note", note,
+        "--reviewer", "trekdex-project-owner",
+        "--authority-run", str(authority_run),
+        "--review-receipt", str(_review_receipt(authority_run)),
+    ]
+    assert merge_drafts.main(args) == 0
+
+    entry = _drafts(tmp)[2]
+    assert entry["verdict"] == "REVIEW"
+    assert entry["resolve_hint"] == note
+    assert [entry[axis]["call"] for axis in ("exists", "public", "serves")] == [
+        "yes", "unclear", "unclear",
+    ]
+    assert entry["override"]["version"] == merge_drafts.OVERRIDE_VERSION
+    assert entry["override"]["from_decision"] == original
+    assert entry["override"]["source_run_id"] == source_run_id
+    errors, projection = merge_drafts.validate_verdict_row(entry, packet)
+    assert errors == []
+    assert projection == original
+    assert merge_drafts.validate_authority_receipt(entry, tmp) == []
+
+    items, corpus, sidecar = merge_drafts.resolver.replay_trust.load_work_area(
+        tmp, "test-co"
+    )
+    report = merge_drafts.resolver.trust_engine.build_report(
+        items, {"areas": []}, {}, sidecar, corpus, include_items=True
+    )
+    deferred = next(item for item in report["items"] if item["source_key"] == "2")
+    assert deferred["route"] == merge_drafts.resolver.trust_engine.ROUTE_AUTHORITY
+    assert deferred["effective_verdict"] == "REVIEW"
+    assert deferred["original_verdict"] == "DROP"
+    assert not store.exists()
+
+
 def test_review_flipped_to_drop_nulls_the_hint_and_lands_in_the_store_with_geometry(tmp_path):
     tmp = _area(tmp_path)
     store = tmp_path / "store.json"
@@ -677,6 +740,22 @@ def test_bad_judged_date_and_missing_z3_on_a_surveyed_drop_are_refused(tmp_path,
 
 
 # ----------------------------------------------------------------- calibration
+
+
+def test_calibration_runtime_locator_enumeration_is_directory_nofollow(
+        tmp_path):
+    actual = tmp_path / "actual-runtime"
+    actual.mkdir(mode=0o700)
+    locator = actual / "locator.json"
+    locator.write_bytes(b"{}")
+    locator.chmod(0o600)
+    linked = tmp_path / "runtime"
+    linked.symlink_to(actual, target_is_directory=True)
+
+    with pytest.raises((OSError, ValueError)):
+        calibration._runtime_locator_candidates(linked)
+
+    assert calibration._runtime_locator_candidates(actual) == [locator]
 
 
 def test_wilson_upper_bound_and_review_budget():
@@ -959,9 +1038,10 @@ def test_frozen_review_sample_is_deterministic_and_ignores_live_source_mutation(
     assert review_sheet.main(args) == 0
     receipt_path = _review_receipt(authority_run)
     receipt = json.loads(receipt_path.read_text())
+    assert receipt["version"] == review_sheet.review.REVIEW_RECEIPT_VERSION
     assert len(receipt["sample"]["selected_fids"]) == 3
     assert receipt["sample"]["eligible_fids"] == list(range(1, 7))
-    sheet_path = Path(receipt["sheet_path"])
+    sheet_path = receipt_path.with_name(review_sheet.review.REVIEW_SHEET_NAME)
     before = (sheet_path.read_bytes(), receipt_path.read_bytes())
 
     # Live inputs are not rendering authority after prepare.
@@ -974,6 +1054,69 @@ def test_frozen_review_sample_is_deterministic_and_ignores_live_source_mutation(
             "test-co", "--authority-run", str(authority_run),
             "--sample", "4",
         ])
+
+
+def test_review_v2_is_identical_across_absolute_run_roots_and_keeps_locators_separate(
+        tmp_path):
+    tmp = _area(tmp_path, drafts=[[_verdict(1, "KEEP")]])
+    models = _review_test_models()
+    run_a = merge_drafts.resolver.prepare(
+        "test-co", tmp, models, tmp_path / "review-root-a"
+    )
+    run_b = merge_drafts.resolver.prepare(
+        "test-co", tmp, models, tmp_path / "review-root-b"
+    )
+    assert run_a.name == run_b.name
+    review_sheet.PADJ_TMP = str(tmp)
+    assert review_sheet.main([
+        "test-co", "--authority-run", str(run_a), "--sample", "0",
+    ]) == 0
+    receipt_path = _review_receipt(run_a)
+    first = receipt_path.read_bytes()
+    assert review_sheet.main([
+        "test-co", "--authority-run", str(run_b), "--sample", "0",
+    ]) == 0
+    assert receipt_path.read_bytes() == first
+    receipt = json.loads(first)
+    assert "source_run_path" not in receipt and "sheet_path" not in receipt
+    paths = review_sheet.review.artifact_paths(tmp, "test-co", run_a.name)
+    locators = sorted(paths["runtime_directory"].glob("*.json"))
+    assert len(locators) == 2
+    assert {json.loads(path.read_text())["source_run_path"] for path in locators} == {
+        str(run_a), str(run_b),
+    }
+
+
+def test_review_v2_reconstructs_exact_sheet_with_bounded_reads(
+        tmp_path, monkeypatch):
+    tmp, run, paths = _unrendered_review_case(
+        tmp_path, "review-v2-bounded-reconstruction"
+    )
+    real_read = review_sheet.resolver.trusted_fs.os.read
+    requested = []
+
+    def recording_read(fd, count):
+        requested.append(count)
+        return real_read(fd, count)
+
+    monkeypatch.setattr(
+        review_sheet.resolver.trusted_fs.os, "read", recording_read
+    )
+    assert review_sheet.main([
+        "test-co", "--authority-run", str(run), "--sample", "0",
+    ]) == 0
+    receipt = json.loads(paths["receipt"].read_text())
+    identity = review_sheet.review.review_html_identity_v2(
+        review_sheet.resolver.trusted_fs.iter_verified_regular_chunks(
+            paths["sheet"], require_owner=True, required_mode=0o600
+        )
+    )
+    assert identity == (receipt["sheet_length"], receipt["sheet_sha256"])
+    assert receipt["sheet_sha256"] not in {
+        descriptor["sha256"]
+        for descriptor in receipt["source_objects"].values()
+    }
+    assert requested and max(requested) <= 1024 * 1024
 
 
 def test_sampled_agreement_excludes_out_of_sample_flips_and_rejects_unknown_fids():
@@ -1630,7 +1773,7 @@ def test_human_authority_versions_reject_boolean_and_float_downgrades(
     entry = _drafts(tmp)[2]
     entry["human_confirmation"]["version"] = bad_version
     errors, _ = merge_drafts.validate_verdict_row(entry, packets["2"])
-    assert "human_confirmation.version must be 1 or 2" in errors
+    assert "human_confirmation.version is unsupported" in errors
 
 
 def test_failed_authority_preflight_leaves_draft_and_receipts_untouched(tmp_path, capsys):
@@ -1787,7 +1930,9 @@ def test_receipt_source_run_id_must_match_reopened_prepare(tmp_path):
     assert merge_drafts.validate_authority_receipt(
         row, tmp, pending={new_sha: receipt}
     ) == []
-    errors = merge_drafts._validate_receipt_source(receipt, row, packet)
+    errors = merge_drafts._validate_receipt_source(
+        receipt, row, packet, authority_run
+    )
     assert "authority receipt source run id mismatch" in errors
 
 
@@ -1821,8 +1966,8 @@ def test_receipt_bound_human_publication_replays_from_store_attestation(
     ]) == 0
     stored = json.loads(store.read_text())["way/2"]
     assert merge_drafts.validate_publication_attestation(stored) == []
-    proof_registry = json.loads(
-        merge_drafts.publication_proof_path(store).read_text()
+    proof_registry = merge_drafts.resolver.replay_trust._load_publication_proofs(
+        store.parent, store.name
     )
     assert merge_drafts.resolver.replay_trust._validate_publication_proof(
         stored, proof_registry
@@ -1933,10 +2078,7 @@ def test_real_terminal_run_preserves_direct_human_holder_and_aliases(
     assert written["node/99"]["src"] == "user-curated"
     assert set(written["way/1"]["osm"]) == {"way/1", "node/99"}
     assert "publication_attestation" not in written["way/1"]
-    proof_registry = json.loads(
-        merge_drafts.publication_proof_path(store).read_text()
-    )
-    assert proof_registry["proofs"] == {}
+    assert not merge_drafts.publication_proof_path(store).exists()
 
 
 def test_validation_only_refuses_self_consistent_empty_forged_journal(
@@ -2243,6 +2385,283 @@ def test_publication_proofs_are_isolated_per_store(tmp_path, monkeypatch):
     assert json.loads(second_store.read_text())["way/2"]["verdict"] == "DROP"
 
 
+def test_publication_transaction_journals_before_every_object_and_recovers_all_cuts(
+        tmp_path, monkeypatch):
+    payloads = (b"first object", b"second object", b"manifest object")
+    for crash_cut in range(len(payloads) + 1):
+        root = tmp_path / f"object-crash-{crash_cut}"
+        root.mkdir()
+        store = root / f"store-{crash_cut}.json"
+        proof = merge_drafts.publication_proof_path(store)
+        floor = _install_empty_publication_floor(store)
+        floor_before = floor.read_bytes()
+        desired = {"way/1": {"verdict": "KEEP", "osm": ["way/1"]}}
+        _explicit_publication_baselines(
+            monkeypatch, {store.name: desired}
+        )
+        stage_root = (
+            root / ".trekdex-publication-transactions" / "object-stages"
+            / "synthetic"
+        )
+        stages = []
+        refs = []
+        for payload in payloads:
+            logical, staged = merge_drafts.publication_objects.stage_logical_object(
+                (payload,), stage_root
+            )
+            refs.extend(logical.leaves)
+            stages.extend(staged)
+        authorization = _test_publication_authorization(
+            root, f"object-cut-{crash_cut}"
+        )
+        with pytest.raises(RuntimeError, match="simulated crash"):
+            merge_drafts._commit_publication(
+                store, desired, proof, {"version": 1, "proofs": {}},
+                authorization, staged_objects=tuple(stages),
+                crash_after_object=crash_cut,
+            )
+        journal = merge_drafts._publication_transaction_paths(
+            store, proof, "fixed", floor_path=floor
+        )["journal"]
+        journal_value = json.loads(journal.read_text())
+        assert len(journal_value["objects"]) == len(payloads)
+        assert not store.exists() and not proof.exists()
+        assert floor.read_bytes() == floor_before
+        installed = 0
+        for ref in refs:
+            target = merge_drafts.publication_objects._object_path(root, ref)
+            if target.exists():
+                installed += 1
+        assert installed == crash_cut
+
+        merge_drafts._commit_publication(
+            store, desired, proof, {"version": 1, "proofs": {}},
+            authorization, staged_objects=tuple(stages),
+        )
+        assert json.loads(store.read_text()) == desired
+        assert not journal.exists()
+        for ref in refs:
+            assert b"".join(
+                merge_drafts.publication_objects.iter_object_bytes(root, ref)
+            ) in payloads
+
+
+def test_publication_transaction_recovers_process_death_at_object_link_cut(
+        tmp_path, monkeypatch):
+    root = tmp_path / "object-link-crash"
+    root.mkdir()
+    store = root / "store.json"
+    proof = merge_drafts.publication_proof_path(store)
+    floor = _install_empty_publication_floor(store)
+    floor_before = floor.read_bytes()
+    desired = {"way/1": {"verdict": "KEEP", "osm": ["way/1"]}}
+    _explicit_publication_baselines(monkeypatch, {store.name: desired})
+    stage_root = (
+        root / ".trekdex-publication-transactions" / "object-stages"
+        / "synthetic"
+    )
+    payload = b"journaled link-cut object"
+    logical, stages = merge_drafts.publication_objects.stage_logical_object(
+        (payload,), stage_root
+    )
+    ref = logical.leaves[0]
+    stage = stages[0].stage_path
+    target = merge_drafts.publication_objects._object_path(root, ref)
+    authorization = _test_publication_authorization(root, "object-link-cut")
+    real_recover = merge_drafts.publication_objects._recover_linked_install
+    crashed = False
+
+    def crash_on_linked_pair(stage_path, target_path, object_ref):
+        nonlocal crashed
+        if (not crashed
+                and merge_drafts.publication_objects._linked_install_pair_exact(
+                    stage_path, target_path, object_ref
+                )):
+            crashed = True
+            raise RuntimeError("simulated process death at object link cut")
+        return real_recover(stage_path, target_path, object_ref)
+
+    monkeypatch.setattr(
+        merge_drafts.publication_objects,
+        "_recover_linked_install",
+        crash_on_linked_pair,
+    )
+    with pytest.raises(RuntimeError, match="object link cut"):
+        merge_drafts._commit_publication(
+            store, desired, proof, {"version": 1, "proofs": {}},
+            authorization, staged_objects=stages,
+        )
+    assert crashed and stage.stat().st_ino == target.stat().st_ino
+    assert stage.stat().st_nlink == target.stat().st_nlink == 2
+    assert not store.exists() and not proof.exists()
+    assert floor.read_bytes() == floor_before
+
+    monkeypatch.setattr(
+        merge_drafts.publication_objects,
+        "_recover_linked_install",
+        real_recover,
+    )
+    retry_logical, retry_stages = (
+        merge_drafts.publication_objects.stage_logical_object(
+            (payload,), stage_root
+        )
+    )
+    assert retry_logical == logical
+    merge_drafts._commit_publication(
+        store, desired, proof, {"version": 1, "proofs": {}},
+        authorization, staged_objects=retry_stages,
+    )
+    assert json.loads(store.read_text()) == desired
+    assert stage.stat().st_nlink == target.stat().st_nlink == 1
+    assert stage.stat().st_ino != target.stat().st_ino
+    assert b"".join(
+        merge_drafts.publication_objects.iter_object_bytes(root, logical)
+    ) == payload
+
+
+def test_v4_publication_retry_recovers_process_death_at_object_link_cut(
+        tmp_path, monkeypatch):
+    store, proof, journal, args = _real_publication_case(
+        tmp_path, monkeypatch, "v4-object-link-cut"
+    )
+    real_recover = merge_drafts.publication_objects._recover_linked_install
+    crashed = False
+
+    def crash_on_linked_pair(stage_path, target_path, object_ref):
+        nonlocal crashed
+        if (not crashed
+                and merge_drafts.publication_objects._linked_install_pair_exact(
+                    stage_path, target_path, object_ref
+                )):
+            crashed = True
+            raise RuntimeError("simulated v4 process death at object link cut")
+        return real_recover(stage_path, target_path, object_ref)
+
+    monkeypatch.setattr(
+        merge_drafts.publication_objects,
+        "_recover_linked_install",
+        crash_on_linked_pair,
+    )
+    with pytest.raises(RuntimeError, match="v4 process death"):
+        merge_drafts.main(args)
+    assert crashed and journal.is_file()
+    assert store.read_text() == "{}"
+
+    monkeypatch.setattr(
+        merge_drafts.publication_objects,
+        "_recover_linked_install",
+        real_recover,
+    )
+    assert merge_drafts.main(args) == 0
+    assert not journal.exists()
+    registry = merge_drafts.resolver.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
+    row = json.loads(store.read_text())["way/1"]
+    assert merge_drafts.resolver.replay_trust._validate_publication_proof(
+        row, registry
+    ) == []
+
+
+@pytest.mark.parametrize("loader", ["merge", "replay"])
+@pytest.mark.parametrize("registry_version", [1, 2])
+def test_publication_registry_loaders_refuse_over_cap_before_parse(
+        tmp_path, monkeypatch, loader, registry_version):
+    store = tmp_path / "store.json"
+    proof_path = merge_drafts.publication_proof_path(store)
+    if registry_version == 1:
+        registry = {"version": 1, "proofs": {}}
+    else:
+        registry = {
+            "version": merge_drafts.PUBLICATION_PROOF_REGISTRY_VERSION,
+            "kind": merge_drafts.PUBLICATION_PROOF_REGISTRY_KIND,
+            "proofs": {},
+        }
+    prefix = json.dumps(registry, separators=(",", ":")).encode("utf-8")
+    proof_path.write_bytes(
+        prefix + b" " * (
+            merge_drafts.PUBLICATION_PROOF_REGISTRY_MAX_BYTES + 1
+            - len(prefix)
+        )
+    )
+    real_read = merge_drafts.trusted_fs.os.read
+    requested = []
+
+    def bounded_read(fd, count):
+        requested.append(count)
+        return real_read(fd, count)
+
+    monkeypatch.setattr(merge_drafts.trusted_fs.os, "read", bounded_read)
+    with pytest.raises(
+            ValueError,
+            match="exceeds 1 MiB; see scripts/parking-adjud/README.md#"
+                  "oversized-registry-read-block-and-generation-1-restore"):
+        if loader == "merge":
+            merge_drafts._load_publication_proofs(proof_path)
+        else:
+            merge_drafts.resolver.replay_trust._load_publication_proofs(
+                tmp_path, store.name
+            )
+    assert requested
+    assert max(requested) <= 1024 * 1024
+    assert len(requested) == 2
+
+
+def test_nonempty_legacy_registry_requires_manual_generation_boundary():
+    before = merge_drafts.resolver._json_bytes({
+        "version": 1,
+        "proofs": {"a" * 64: {"proof_sha256": "a" * 64}},
+    })
+    after = merge_drafts.resolver._json_bytes({
+        "version": merge_drafts.PUBLICATION_PROOF_REGISTRY_VERSION,
+        "kind": merge_drafts.PUBLICATION_PROOF_REGISTRY_KIND,
+        "proofs": {},
+    })
+    with pytest.raises(
+            ValueError,
+            match="archive the exact v1 publication.*restore its generation-1 "
+                  "before-image.*regenerate portable model/human authority"):
+        merge_drafts._validate_publication_registry_transition(before, after)
+    assert "proof-ID alias migration is forbidden" in (
+        merge_drafts.LEGACY_REGISTRY_MANUAL_BOUNDARY
+    )
+
+
+def test_compact_publication_registry_transition_is_strictly_append_only():
+    first_sha = "a" * 64
+    second_sha = "b" * 64
+    first = {
+        "path": merge_drafts.publication_objects.canonical_object_path(first_sha),
+        "length": 10,
+        "sha256": first_sha,
+    }
+    second = {
+        "path": merge_drafts.publication_objects.canonical_object_path(second_sha),
+        "length": 11,
+        "sha256": second_sha,
+    }
+
+    def encoded(proofs):
+        return merge_drafts.resolver._json_bytes({
+            "version": merge_drafts.PUBLICATION_PROOF_REGISTRY_VERSION,
+            "kind": merge_drafts.PUBLICATION_PROOF_REGISTRY_KIND,
+            "proofs": proofs,
+        })
+
+    before = encoded({first_sha: first})
+    merge_drafts._validate_publication_registry_transition(
+        before, encoded({first_sha: first, second_sha: second})
+    )
+    with pytest.raises(ValueError, match="remove or rewrite"):
+        merge_drafts._validate_publication_registry_transition(before, encoded({}))
+    rewritten = copy.deepcopy(first)
+    rewritten["length"] += 1
+    with pytest.raises(ValueError, match="remove or rewrite"):
+        merge_drafts._validate_publication_registry_transition(
+            before, encoded({first_sha: rewritten})
+        )
+
+
 def test_verified_replace_rejects_stage_entry_swap_before_rename(tmp_path, monkeypatch):
     source = tmp_path / "stage.json"
     target = tmp_path / "target.json"
@@ -2523,6 +2942,126 @@ def test_confirmation_transaction_recovers_every_crash_boundary(
     assert merge_drafts.main(args) == 0
 
 
+def _chained_confirmation_case(tmp_path):
+    tmp = _area(tmp_path, drafts=[
+        [_verdict(1, "DROP", "strong"), _verdict(2, "DROP", "strong")],
+        [_verdict(3, "DROP", "strong")],
+    ])
+    packets = json.loads((tmp / "test-co_packets.json").read_text())
+    original = _drafts(tmp)[1]
+    authority_run, _ = _write_authority_run(
+        tmp_path, tmp, 1, original, packets["1"],
+        "chained-authority-run",
+    )
+    store = tmp_path / "store.json"
+    review_receipt = _review_receipt(authority_run)
+
+    def arguments(fid):
+        return [
+            str(store), "test-co", "--confirm", f"{fid}=DROP",
+            "--judged", "2026-09-30", "--note", f"accepted fid {fid}",
+            "--reviewer", "trekdex-project-owner",
+            "--authority-run", str(authority_run),
+            "--review-receipt", str(review_receipt),
+        ]
+
+    return tmp, packets, authority_run, arguments
+
+
+def test_receipt_bound_authority_chains_across_same_and_sibling_chunks(
+        tmp_path):
+    tmp, packets, authority_run, arguments = _chained_confirmation_case(
+        tmp_path
+    )
+    checkpoint_before = {
+        index: json.loads(
+            (tmp / f"test-co_checkpoint_{index:02d}.json").read_text()
+        )
+        for index in (0, 1)
+    }
+
+    assert merge_drafts.main(arguments(1)) == 0
+    assert merge_drafts.main(arguments(2)) == 0
+    same_chunk_bytes = (
+        (tmp / "test-co_verdict_draft_00.json").read_bytes(),
+        (tmp / "test-co_checkpoint_00.json").read_bytes(),
+    )
+    assert merge_drafts.main(arguments(2)) == 0
+    assert same_chunk_bytes == (
+        (tmp / "test-co_verdict_draft_00.json").read_bytes(),
+        (tmp / "test-co_checkpoint_00.json").read_bytes(),
+    )
+    assert merge_drafts.main(arguments(3)) == 0
+
+    rows = _drafts(tmp)
+    for fid in (1, 2, 3):
+        wrapper = rows[fid]["human_confirmation"]
+        assert wrapper["source_run_id"] == authority_run.name
+        assert merge_drafts.validate_authority_receipt(
+            rows[fid], tmp
+        ) == []
+        receipt = json.loads(merge_drafts.authority_receipt_path(
+            tmp, "test-co", wrapper["authority_receipt_sha256"]
+        ).read_text())
+        assert merge_drafts._validate_receipt_source(
+            receipt, rows[fid], packets[str(fid)]
+        ) == []
+    for index in (0, 1):
+        current = json.loads(
+            (tmp / f"test-co_checkpoint_{index:02d}.json").read_text()
+        )
+        assert {
+            key for key in current
+            if current.get(key) != checkpoint_before[index].get(key)
+        } == {"draft_sha256"}
+
+
+def test_second_chained_authority_transaction_recovers_after_draft_crash(
+        tmp_path, monkeypatch):
+    tmp, _packets, _authority_run, arguments = _chained_confirmation_case(
+        tmp_path
+    )
+    assert merge_drafts.main(arguments(1)) == 0
+    _crash_authority_main(monkeypatch, arguments(2), "draft")
+    journal, journal_bytes, document = _authority_journal_document(tmp)
+
+    assert merge_drafts.main(arguments(2)) == 0
+    assert not journal.exists()
+    assert Path(document["paths"]["archive"]).read_bytes() == journal_bytes
+    rows = _drafts(tmp)
+    assert set(rows[1]["human_confirmation"]) == set(
+        rows[2]["human_confirmation"]
+    )
+
+
+def test_chained_authority_rejects_rehashed_non_authority_drift(
+        tmp_path, capsys):
+    tmp, _packets, _authority_run, arguments = _chained_confirmation_case(
+        tmp_path
+    )
+    assert merge_drafts.main(arguments(1)) == 0
+    draft = tmp / "test-co_verdict_draft_00.json"
+    checkpoint = tmp / "test-co_checkpoint_00.json"
+    rows = json.loads(draft.read_text())
+    rows[0]["exists"]["evidence"] = "coherently rehashed hostile drift"
+    hostile_bytes = json.dumps(
+        rows, indent=1, ensure_ascii=False, allow_nan=False
+    ).encode("utf-8")
+    draft.write_bytes(hostile_bytes)
+    checkpoint_value = json.loads(checkpoint.read_text())
+    checkpoint_value["draft_sha256"] = merge_drafts.resolver._sha(
+        hostile_bytes
+    )
+    checkpoint.write_bytes(merge_drafts.resolver._json_bytes(checkpoint_value))
+    before = (draft.read_bytes(), checkpoint.read_bytes())
+
+    assert merge_drafts.main(arguments(2)) == 1
+    assert (draft.read_bytes(), checkpoint.read_bytes()) == before
+    output = capsys.readouterr().out
+    assert "does not project to its frozen source row" in output
+    assert not merge_drafts.tr.authority_journal_path(tmp, "test-co").exists()
+
+
 @pytest.mark.parametrize("crash_after", ["draft", "checkpoint"])
 def test_bound_decision_transaction_recovers_split_and_complete_crashes(
         tmp_path, monkeypatch, crash_after):
@@ -2709,7 +3248,7 @@ def test_live_authority_journal_blocks_non_authority_merge_resolver_and_replay(
 
 @pytest.mark.parametrize(
     "mutation",
-    ["reviewer", "date", "note", "verdict", "axis", "evidence", "run", "review"],
+    ["reviewer", "date", "note", "verdict", "axis", "evidence", "run"],
 )
 def test_every_bound_human_request_field_is_required_for_recovery(
         tmp_path, monkeypatch, mutation):
@@ -2924,28 +3463,40 @@ def test_review_sheet_holds_exclusive_area_lock_through_render_and_output(
     tmp, run, paths = _unrendered_review_case(tmp_path, "review-exclusive-lock")
     lock_path = review_sheet.tr.area_lock_path(tmp, "test-co")
     observed = []
-    real_build = review_sheet.review.build_review_artifacts
-    real_write = review_sheet.resolver._write_review_artifact
+    real_build = review_sheet.review.build_review_artifacts_v2
+    real_stream_write = review_sheet.resolver.trusted_fs.atomic_write_stream
+    real_receipt_write = review_sheet.resolver._write_review_artifact
 
     def build_under_lock(*args, **kwargs):
         observed.append(("render", _other_process_can_take_shared_lock(lock_path)))
         return real_build(*args, **kwargs)
 
-    def write_under_lock(*args, **kwargs):
-        observed.append(("write", _other_process_can_take_shared_lock(lock_path)))
-        return real_write(*args, **kwargs)
+    def stream_write_under_lock(*args, **kwargs):
+        observed.append(("sheet", _other_process_can_take_shared_lock(lock_path)))
+        return real_stream_write(*args, **kwargs)
+
+    def receipt_write_under_lock(*args, **kwargs):
+        observed.append(("receipt", _other_process_can_take_shared_lock(lock_path)))
+        return real_receipt_write(*args, **kwargs)
 
     monkeypatch.setattr(
-        review_sheet.review, "build_review_artifacts", build_under_lock
+        review_sheet.review, "build_review_artifacts_v2", build_under_lock
     )
     monkeypatch.setattr(
-        review_sheet.resolver, "_write_review_artifact", write_under_lock
+        review_sheet.resolver.trusted_fs, "atomic_write_stream",
+        stream_write_under_lock,
+    )
+    monkeypatch.setattr(
+        review_sheet.resolver, "_write_review_artifact",
+        receipt_write_under_lock,
     )
     assert review_sheet.main([
         "test-co", "--authority-run", str(run), "--sample", "0",
     ]) == 0
     assert paths["sheet"].is_file() and paths["receipt"].is_file()
-    assert observed == [("render", False), ("write", False), ("write", False)]
+    assert observed == [
+        ("render", False), ("sheet", False), ("receipt", False),
+    ]
     assert _other_process_can_take_exclusive_lock(lock_path)
 
 
@@ -2975,7 +3526,7 @@ def test_review_sheet_detects_noncooperating_journal_after_output(
         nonlocal writes
         result = real_write(*args, **kwargs)
         writes += 1
-        if writes == 2:
+        if writes == 1:
             journal.parent.mkdir(parents=True, exist_ok=True)
             journal.write_text("{}")
         return result
@@ -3000,12 +3551,133 @@ def test_review_sheet_rejects_arbitrary_out_before_creating_artifacts(tmp_path):
     assert not paths["directory"].exists()
 
 
+def test_structured_publication_capture_rejects_unsafe_real_files(tmp_path):
+    root = tmp_path / "run"
+    root.mkdir()
+    source = root / "source.json"
+    source.write_bytes(b'{"safe":true}')
+    source.chmod(0o644)
+    with pytest.raises(ValueError, match="mode"):
+        merge_drafts._capture_structured_publication_source(
+            source, root, "structured source"
+        )
+
+    source.chmod(0o600)
+    outside = tmp_path / "outside.json"
+    outside.write_bytes(b'{"outside":true}')
+    outside.chmod(0o600)
+    with pytest.raises(ValueError, match="escapes trusted root"):
+        merge_drafts._capture_structured_publication_source(
+            outside, root, "structured source"
+        )
+
+    alias = root / "alias.json"
+    os.link(source, alias)
+    with pytest.raises(ValueError, match="link count"):
+        merge_drafts._capture_structured_publication_source(
+            source, root, "structured source"
+        )
+
+
+def test_structured_publication_capture_rejects_entry_rotation_and_drift(
+        tmp_path, monkeypatch):
+    root = tmp_path / "run"
+    root.mkdir()
+    source = root / "source.json"
+    original = b'{"value":"original"}'
+    source.write_bytes(original)
+    source.chmod(0o600)
+    replacement = root / "replacement.json"
+    replacement.write_bytes(original)
+    replacement.chmod(0o600)
+    displaced = root / "displaced.json"
+    real_read = merge_drafts.trusted_fs.os.read
+    rotated = False
+
+    def rotate_after_read(fd, count):
+        nonlocal rotated
+        result = real_read(fd, count)
+        if result and not rotated:
+            rotated = True
+            source.rename(displaced)
+            replacement.rename(source)
+        return result
+
+    monkeypatch.setattr(
+        merge_drafts.trusted_fs.os, "read", rotate_after_read
+    )
+    with pytest.raises(ValueError, match="changed"):
+        merge_drafts._capture_structured_publication_source(
+            source, root, "structured source"
+        )
+    assert rotated
+
+    monkeypatch.setattr(merge_drafts.trusted_fs.os, "read", real_read)
+    source.write_bytes(original)
+    source.chmod(0o600)
+    changed = b'{"value":"tampered"}'
+    assert len(changed) == len(original)
+    writer = os.open(source, os.O_WRONLY)
+    drifted = False
+
+    def drift_after_read(fd, count):
+        nonlocal drifted
+        result = real_read(fd, count)
+        if result and not drifted:
+            drifted = True
+            os.pwrite(writer, changed, 0)
+            os.fsync(writer)
+        return result
+
+    monkeypatch.setattr(
+        merge_drafts.trusted_fs.os, "read", drift_after_read
+    )
+    try:
+        with pytest.raises(ValueError, match="changed"):
+            merge_drafts._capture_structured_publication_source(
+                source, root, "structured source"
+            )
+    finally:
+        os.close(writer)
+    assert drifted
+
+
+def test_structured_publication_capture_caps_before_parse_or_stage(
+        tmp_path, monkeypatch):
+    root = tmp_path / "run"
+    root.mkdir()
+    source = root / "oversized.json"
+    source.write_bytes(
+        b'"' + b"x" * merge_drafts.PUBLICATION_PROOF_MANIFEST_MAX_BYTES + b'"'
+    )
+    source.chmod(0o600)
+    real_read = merge_drafts.trusted_fs.os.read
+    requested = []
+
+    def bounded_read(fd, count):
+        requested.append(count)
+        return real_read(fd, count)
+
+    monkeypatch.setattr(merge_drafts.trusted_fs.os, "read", bounded_read)
+    with pytest.raises(ValueError, match="exceeds 4 MiB"):
+        merge_drafts._capture_structured_publication_source(
+            source, root, "structured source"
+        )
+    assert requested and max(requested) <= 1024 * 1024
+    assert len(requested) == 5
+    assert not (tmp_path / ".trekdex-publication-transactions").exists()
+
+
 # ------------------------------------------------ publication tail recovery
 
 
-def _real_publication_case(tmp_path, monkeypatch, run_name):
+def _real_publication_case(tmp_path, monkeypatch, run_name, *,
+                           node_only=False):
     incoming = _verdict(1, "KEEP", osm=["way/1"])
-    tmp = _area(tmp_path, drafts=[[incoming]])
+    tmp = _area(
+        tmp_path, drafts=[[incoming]],
+        node_only_fids=(1,) if node_only else (),
+    )
     packet = json.loads((tmp / "test-co_packets.json").read_text())["1"]
     run, _ = _terminal_machine_run(
         tmp_path, tmp, 1, incoming, packet, run_name
@@ -3039,6 +3711,287 @@ def _publication_transaction_snapshot(journal):
         for path in sorted(root.rglob("*"))
         if path.is_file()
     }
+
+
+def test_archived_publication_retains_independent_forensic_stages(
+        tmp_path, monkeypatch, capsys):
+    store, _proof, journal, args = _real_publication_case(
+        tmp_path, monkeypatch, "forensic-stage-retention"
+    )
+    assert merge_drafts.main(args) == 0
+    assert not journal.exists()
+    archives = list((journal.parent / "Archive").glob("*.json"))
+    assert len(archives) == 1
+    archived = json.loads(archives[0].read_text())
+    assert archived["paths"]["archive"] == str(archives[0])
+    assert archived["objects"]
+    stage_roots = set()
+    for entry in archived["objects"]:
+        ref = merge_drafts.publication_objects.validate_object_ref(
+            entry["object"]
+        )
+        stage = Path(entry["stage_path"])
+        stage_roots.add(stage.parent)
+        target = store.parent.joinpath(*ref.path.split("/"))
+        assert stage.is_file() and target.is_file()
+        assert stage.stat().st_ino != target.stat().st_ino
+        assert stage.stat().st_nlink == target.stat().st_nlink == 1
+        assert stage.stat().st_size == target.stat().st_size == ref.length
+        assert hashlib.sha256(stage.read_bytes()).hexdigest() == ref.sha256
+        assert hashlib.sha256(target.read_bytes()).hexdigest() == ref.sha256
+
+    assert len(stage_roots) == 1
+    stage_root = stage_roots.pop()
+    verified_paths = [archives[0], *sorted(stage_root.iterdir())]
+    before_verification = {
+        path: (path.read_bytes(), path.stat().st_ino,
+               stat.S_IMODE(path.stat().st_mode))
+        for path in verified_paths
+    }
+    source_report = merge_drafts.publication_objects.verify_archived_stage(
+        archives[0], stage_root
+    )
+    capsys.readouterr()
+    assert merge_drafts.publication_objects.main([
+        "verify-stage", str(archives[0]), str(stage_root),
+    ]) == 0
+    assert json.loads(capsys.readouterr().out) == source_report
+    assert {
+        path: (path.read_bytes(), path.stat().st_ino,
+               stat.S_IMODE(path.stat().st_mode))
+        for path in verified_paths
+    } == before_verification
+    assert source_report["descriptor_count"] == len(archived["objects"])
+    assert source_report["file_count"] == len(archived["objects"])
+    assert source_report["stage_is_in_archive"] is False
+
+    durable_archive = tmp_path / "Archive" / "publication-forensics"
+    durable_archive.mkdir(parents=True, mode=0o700)
+    archived_stage = durable_archive / stage_root.name
+    archived_journal = durable_archive / archives[0].name
+    stage_root.rename(archived_stage)
+    archives[0].rename(archived_journal)
+    destination_report = (
+        merge_drafts.publication_objects.verify_archived_stage(
+            archived_journal, archived_stage
+        )
+    )
+    assert destination_report["stage_is_in_archive"] is True
+    for field in (
+            "transaction_id", "journal_sha256", "stage_run_id",
+            "descriptor_count", "file_count", "unique_bytes",
+            "hash_closure_sha256"):
+        assert destination_report[field] == source_report[field]
+
+    unexpected = archived_stage / "unexpected"
+    unexpected.write_bytes(b"forensic extra")
+    unexpected.chmod(0o400)
+    with pytest.raises(ValueError, match="file set differs"):
+        merge_drafts.publication_objects.verify_archived_stage(
+            archived_journal, archived_stage
+        )
+    assert unexpected.read_bytes() == b"forensic extra"
+    assert all((archived_stage / entry["object"]["sha256"]).is_file()
+               for entry in archived["objects"])
+
+
+def test_node_only_null_rings_publish_as_empty_without_dropping_row(
+        tmp_path, monkeypatch):
+    store, _proof, journal, args = _real_publication_case(
+        tmp_path, monkeypatch, "node-only-publication", node_only=True
+    )
+    assert merge_drafts.main(args) == 0
+    assert not journal.exists()
+    row = json.loads(store.read_text())["way/1"]
+    assert row["verdict"] == "KEEP"
+    assert row["rings"] == []
+    registry = merge_drafts.resolver.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
+    assert merge_drafts.resolver.replay_trust._validate_publication_proof(
+        row, registry
+    ) == []
+
+
+def test_compact_registry_replays_one_manifest_once_for_alias_rows(
+        tmp_path, monkeypatch):
+    incoming = _verdict(1, "KEEP", osm=["way/1", "node/2"])
+    tmp = _area(tmp_path, drafts=[[incoming]])
+    packet = json.loads((tmp / "test-co_packets.json").read_text())["1"]
+    run, _ = _terminal_machine_run(
+        tmp_path, tmp, 1, incoming, packet, "alias-proof-cache"
+    )
+    store = tmp_path / "store.json"
+    store.write_bytes(b"{}")
+    _install_empty_publication_floor(store)
+    _install_rooted_publication_configuration(
+        tmp_path, [store.name], monkeypatch
+    )
+    monkeypatch.setattr(
+        merge_drafts, "_terminal_resolver_errors", _REAL_TERMINAL_GATE
+    )
+    assert merge_drafts.main([
+        str(store), "test-co", "--resolver-run", str(run),
+        "--judged", "2026-09-29", "--write",
+    ]) == 0
+    values = json.loads(store.read_text())
+    assert values["way/1"] == values["node/2"]
+    registry = merge_drafts.resolver.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
+    replay = merge_drafts.resolver.replay_trust
+    real_full = replay._validate_publication_proof_v4
+    full_calls = 0
+
+    def count_full(*args, **kwargs):
+        nonlocal full_calls
+        full_calls += 1
+        return real_full(*args, **kwargs)
+
+    monkeypatch.setattr(replay, "_validate_publication_proof_v4", count_full)
+    spec = verdict_source.StoreSpec(
+        store.name, verdict_source.OSM_KEY, None, None
+    )
+    assert replay.validate_store_proof_image(
+        spec, values, registry, None
+    ) is False
+    assert full_calls == 1
+
+
+def test_proof_v4_replays_outputs_per_assignment_without_base64_aggregate(
+        tmp_path, monkeypatch):
+    store, _proof, _journal, args = _real_publication_case(
+        tmp_path, monkeypatch, "streamed-output-replay"
+    )
+    assert merge_drafts.main(args) == 0
+    row = json.loads(store.read_text())["way/1"]
+    registry = merge_drafts.resolver.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
+
+    def reject_base64_retention(_raw):
+        raise AssertionError("proof v4 retained base64 output")
+
+    replay = merge_drafts.resolver.replay_trust
+    monkeypatch.setattr(replay.base64, "b64encode", reject_base64_retention)
+    assert replay._validate_publication_proof(row, registry) == []
+
+
+def test_proof_v4_multi_assignment_replay_releases_decoded_envelopes(
+        tmp_path, monkeypatch):
+    fids = (1, 2, 10, 11, 20, 21)
+    incoming = [
+        _verdict(fid, "KEEP", osm=[f"way/{fid}"])
+        for fid in fids
+    ]
+    tmp = _area(tmp_path, drafts=[incoming])
+    packets_path = tmp / "test-co_packets.json"
+    packets = json.loads(packets_path.read_text())
+    for fid in (2, 11, 21):
+        packets[str(fid)]["serves"]["fallback"] = True
+    packets_path.write_text(json.dumps(packets))
+    draft_path = tmp / "test-co_verdict_draft_00.json"
+    chunk_packets = [packets[str(fid)] for fid in fids]
+    state = merge_drafts.judge_packets.inspect_draft(
+        chunk_packets, draft_path
+    )
+    decision_input, missing = merge_drafts.judge_packets.decision_fingerprint(
+        chunk_packets
+    )
+    assert state["status"] == "complete" and not missing
+    (tmp / "test-co_checkpoint_00.json").write_text(json.dumps(
+        merge_drafts.judge_packets.manifest_value(
+            "test-co", 0, chunk_packets, decision_input, state
+        )
+    ))
+    run, _run_id = _write_authority_run(
+        tmp_path, tmp, fids[0], incoming[0], packets[str(fids[0])],
+        "multi-assignment-retention",
+    )
+    prepare = json.loads((run / "prepare.json").read_text())
+    assert {item["route"] for item in prepare["items"]} == {
+        "AUTONOMOUS_BLIND_CHALLENGE",
+        "AUTONOMOUS_ARBITER",
+    }
+    for item in prepare["items"]:
+        role = (
+            "arbiter"
+            if item["route"] == "AUTONOMOUS_ARBITER"
+            else "challenger"
+        )
+        assignment = item["assignments"][role]
+        output = run / assignment["output_path"]
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps({
+            "assignment_id": assignment["assignment_id"],
+            "decision": item["primary"]["decision"],
+            "external_evidence": [],
+        }))
+    assert merge_drafts.resolver.apply_chunk(run, 0, apply=True)["state"] == (
+        "APPLIED"
+    )
+
+    store = tmp_path / "store.json"
+    store.write_bytes(b"{}")
+    _install_empty_publication_floor(store)
+    _install_rooted_publication_configuration(
+        tmp_path, [store.name], monkeypatch
+    )
+    monkeypatch.setattr(
+        merge_drafts, "_terminal_resolver_errors", _REAL_TERMINAL_GATE
+    )
+    assert merge_drafts.main([
+        str(store), "test-co", "--resolver-run", str(run),
+        "--judged", "2026-09-29", "--write",
+    ]) == 0
+    rows = json.loads(store.read_text())
+    registry = merge_drafts.resolver.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
+    replay = merge_drafts.resolver.replay_trust
+    real_reconstruct = replay._reconstruct_proof_envelope_bytes
+    prior_item_envelopes = []
+
+    class TrackedEnvelope(dict):
+        pass
+
+    def track_envelope(prepare_doc, item, role, raw_bytes, packet_identity):
+        if role == "challenger":
+            gc.collect()
+            assert all(reference() is None
+                       for reference in prior_item_envelopes), (
+                "a prior assignment envelope remained reachable"
+            )
+            prior_item_envelopes.clear()
+        envelope, errors = real_reconstruct(
+            prepare_doc, item, role, raw_bytes, packet_identity
+        )
+        if envelope is None:
+            return None, errors
+        tracked = TrackedEnvelope(envelope)
+        prior_item_envelopes.append(weakref.ref(tracked))
+        return tracked, errors
+
+    real_json_bytes = merge_drafts.resolver._json_bytes
+
+    def reject_run_wide_packet_map(value):
+        if (isinstance(value, dict) and len(value) > 1
+                and all(isinstance(packet, dict)
+                        and "fid" in packet and "tiles" in packet
+                        for packet in value.values())):
+            raise AssertionError("proof v4 materialized a run-wide packet map")
+        return real_json_bytes(value)
+
+    monkeypatch.setattr(
+        replay, "_reconstruct_proof_envelope_bytes", track_envelope
+    )
+    monkeypatch.setattr(
+        merge_drafts.resolver, "_json_bytes", reject_run_wide_packet_map
+    )
+    assert replay._validate_publication_proof(rows["way/1"], registry) == []
+    gc.collect()
+    assert prior_item_envelopes
+    assert all(reference() is None for reference in prior_item_envelopes)
 
 
 @pytest.mark.parametrize(
@@ -3339,7 +4292,7 @@ def test_confirm_and_decide_require_exactly_one_review_receipt_without_mutation(
 @pytest.mark.parametrize(
     "mutation",
     ["sheet", "coherent-receipt", "frozen-source", "live-publication",
-     "wrong-run", "wrong-fid", "wrong-area"],
+     "wrong-fid", "wrong-area"],
 )
 def test_invalid_review_or_source_blocks_authority_with_zero_canonical_mutation(
         tmp_path, mutation):
@@ -3351,8 +4304,9 @@ def test_invalid_review_or_source_blocks_authority_with_zero_canonical_mutation(
     before = (draft.read_bytes(), checkpoint.read_bytes())
     receipt_path = _review_receipt(authority_run)
     if mutation == "sheet":
-        receipt = json.loads(receipt_path.read_text())
-        Path(receipt["sheet_path"]).write_bytes(b"altered reviewed sheet")
+        receipt_path.with_name(
+            review_sheet.review.REVIEW_SHEET_NAME
+        ).write_bytes(b"altered reviewed sheet")
     elif mutation == "coherent-receipt":
         receipt = json.loads(receipt_path.read_text())
         receipt["sheet_sha256"] = "0" * 64
@@ -3420,8 +4374,8 @@ def _published_human_review_case(tmp_path, monkeypatch, tag):
         "--judged", "2026-09-29", "--write",
     ]) == 0
     stored = json.loads(store.read_text())["way/2"]
-    registry = json.loads(
-        merge_drafts.publication_proof_path(store).read_text()
+    registry = merge_drafts.resolver.replay_trust._load_publication_proofs(
+        store.parent, store.name
     )
     return stored, registry
 
@@ -3444,6 +4398,30 @@ def _rehash_proof_and_attestation(stored, registry, proof):
     }
 
 
+def _rehash_manifest_and_attestation(stored, registry, manifest, stage_root):
+    raw = merge_drafts.resolver._json_bytes(manifest)
+    logical, stages = merge_drafts.publication_objects.stage_logical_object(
+        (raw,), stage_root
+    )
+    merge_drafts.publication_objects.install_staged_objects(
+        registry.data_root, stages
+    )
+    assert len(logical.leaves) == 1
+    proof_sha = logical.sha256
+    value = copy.deepcopy(dict(registry))
+    value["proofs"][proof_sha] = logical.leaves[0].to_dict()
+    forged_registry = merge_drafts.publication_objects.PublicationProofRegistry(
+        value, registry.data_root
+    )
+    row = copy.deepcopy(stored)
+    attestation = row["publication_attestation"]
+    attestation["publication_proof_sha256"] = proof_sha
+    body = dict(attestation)
+    body.pop("attestation_sha256", None)
+    attestation["attestation_sha256"] = merge_drafts.tr.sha256_json(body)
+    return row, forged_registry
+
+
 @pytest.mark.parametrize(
     "tamper",
     ["sheet", "coherent-receipt", "missing-source", "extra-source",
@@ -3455,96 +4433,203 @@ def test_publication_proof_rejects_review_tampering_even_after_coherent_rehash(
         tmp_path, monkeypatch, f"proof-{tamper}"
     )
     original_sha = stored["publication_attestation"]["publication_proof_sha256"]
-    proof = copy.deepcopy(registry["proofs"][original_sha])
+    manifest = copy.deepcopy(
+        merge_drafts.resolver.replay_trust._load_proof_manifest(
+            original_sha, registry
+        )
+    )
     review_sha = stored["human_confirmation"]["review_receipt_sha256"]
     if tamper == "missing-review":
-        proof["human_reviews"].pop(review_sha)
+        manifest["human_reviews"].pop(review_sha)
     else:
-        bundle = proof["human_reviews"][review_sha]
+        entry = manifest["human_reviews"][review_sha]
+        recipe = entry["recipe"]
         if tamper == "sheet":
-            raw = base64.b64decode(bundle["sheet_b64"])
-            bundle["sheet_b64"] = base64.b64encode(raw + b"altered").decode()
+            recipe["expected_sheet_sha256"] = "0" * 64
         elif tamper == "coherent-receipt":
-            receipt = json.loads(base64.b64decode(bundle["receipt_b64"]))
-            receipt["sheet_sha256"] = "0" * 64
-            body = dict(receipt)
-            body.pop("receipt_sha256")
-            receipt["receipt_sha256"] = merge_drafts.tr.sha256_json(body)
-            bundle["receipt_b64"] = base64.b64encode(
-                review_sheet.review.json_bytes(receipt)
-            ).decode()
+            recipe["receipt_ref"] = "0" * 64
         elif tamper == "missing-source":
-            bundle["source_artifacts_b64"].pop(
-                sorted(bundle["source_artifacts_b64"])[0]
-            )
+            relative = sorted(entry["source_artifacts"])[0]
+            entry["source_artifacts"].pop(relative)
+            recipe["source_artifacts"].pop(relative)
         elif tamper == "extra-source":
-            bundle["source_artifacts_b64"]["extra.bin"] = base64.b64encode(
-                b"extra"
-            ).decode()
+            source_ref = next(iter(entry["source_artifacts"].values()))
+            entry["source_artifacts"]["extra.bin"] = source_ref
+            recipe["source_artifacts"]["extra.bin"] = source_ref
         else:
-            receipt = json.loads(base64.b64decode(bundle["receipt_b64"]))
-            receipt["items"][0]["fid"] = 999
-            item_body = dict(receipt["items"][0])
-            item_body.pop("review_item_sha256")
-            receipt["items"][0]["review_item_sha256"] = (
-                merge_drafts.tr.sha256_json(item_body)
-            )
-            body = dict(receipt)
-            body.pop("receipt_sha256")
-            receipt["receipt_sha256"] = merge_drafts.tr.sha256_json(body)
-            bundle["receipt_b64"] = base64.b64encode(
-                review_sheet.review.json_bytes(receipt)
-            ).decode()
-    row, forged_registry = _rehash_proof_and_attestation(
-        stored, registry, proof
+            recipe["expected_sheet_length"] += 1
+    row, forged_registry = _rehash_manifest_and_attestation(
+        stored, registry, manifest, tmp_path / "forged-manifest-stages"
     )
     assert merge_drafts.validate_publication_attestation(row) == []
     errors = merge_drafts.resolver.replay_trust._validate_publication_proof(
         row, forged_registry
     )
     assert errors
-    assert any("review" in error for error in errors)
+    assert any("proof v4" in error or "review" in error for error in errors)
 
 
-def test_current_publication_proof_embeds_exact_closed_review_evidence(
+@pytest.mark.parametrize(
+    "field", ["primary_assignment_sha256", "primary_envelope_sha256"]
+)
+def test_v4_replay_cross_checks_authority_against_review_item(
+        tmp_path, monkeypatch, field):
+    stored, registry = _published_human_review_case(
+        tmp_path, monkeypatch, f"authority-binding-{field}"
+    )
+    proof_sha = stored["publication_attestation"]["publication_proof_sha256"]
+    manifest = copy.deepcopy(
+        merge_drafts.resolver.replay_trust._load_proof_manifest(
+            proof_sha, registry
+        )
+    )
+    receipt_sha = stored["human_confirmation"]["authority_receipt_sha256"]
+    authority_entry = manifest["human_authority"][receipt_sha]
+    old_ref = authority_entry["receipt_ref"]
+    receipt = json.loads(
+        merge_drafts.resolver.replay_trust._load_manifest_object(
+            manifest, registry, old_ref
+        )
+    )
+    receipt[field] = "0" * 64
+    receipt_raw = merge_drafts.resolver._json_bytes(receipt)
+    logical, stages = merge_drafts.publication_objects.stage_logical_object(
+        (receipt_raw,), tmp_path / f"{field}-receipt-stages"
+    )
+    merge_drafts.publication_objects.install_staged_objects(
+        registry.data_root, stages
+    )
+    manifest["objects"].pop(old_ref)
+    manifest["objects"][logical.sha256] = logical.to_dict()
+    authority_entry["receipt_ref"] = logical.sha256
+    manifest["object_closure_sha256"] = (
+        merge_drafts.publication_objects.object_closure_sha256(
+            manifest["objects"].values()
+        )
+    )
+    row, forged_registry = _rehash_manifest_and_attestation(
+        stored, registry, manifest, tmp_path / f"{field}-manifest-stages"
+    )
+
+    # Isolate the transitive check from the receipt's own schema/self-hash
+    # validator; both defenses must independently reject this mismatch.
+    monkeypatch.setattr(
+        merge_drafts.resolver.replay_trust,
+        "validate_authority_receipt",
+        lambda *args, **kwargs: [],
+    )
+    errors = merge_drafts.resolver.replay_trust._validate_publication_proof(
+        row, forged_registry
+    )
+    assert errors == [
+        "publication proof v4 invalid: proof v4 authority/review item "
+        "binding mismatch"
+    ]
+
+
+def test_current_publication_proof_uses_exact_closed_review_recipe_without_sheet_object(
         tmp_path, monkeypatch):
     stored, registry = _published_human_review_case(
         tmp_path, monkeypatch, "proof-exact"
     )
     assert merge_drafts.validate_publication_attestation(stored) == []
-    proof = registry["proofs"][
-        stored["publication_attestation"]["publication_proof_sha256"]
-    ]
-    assert proof["version"] == merge_drafts.PUBLICATION_PROOF_VERSION
-    review_sha = stored["human_confirmation"]["review_receipt_sha256"]
-    assert set(proof["human_reviews"]) == {review_sha}
-    bundle = proof["human_reviews"][review_sha]
-    receipt = json.loads(base64.b64decode(bundle["receipt_b64"]))
-    assert receipt["receipt_sha256"] == review_sha
-    assert hashlib.sha256(base64.b64decode(bundle["sheet_b64"])).hexdigest() == (
-        receipt["sheet_sha256"]
+    proof_sha = stored["publication_attestation"]["publication_proof_sha256"]
+    manifest = merge_drafts.resolver.replay_trust._load_proof_manifest(
+        proof_sha, registry
     )
-    artifact_names = set(bundle["source_artifacts_b64"])
+    assert manifest["version"] == merge_drafts.PUBLICATION_PROOF_VERSION
+    review_sha = stored["human_confirmation"]["review_receipt_sha256"]
+    assert set(manifest["human_reviews"]) == {review_sha}
+    entry = manifest["human_reviews"][review_sha]
+    receipt = json.loads(
+        merge_drafts.resolver.replay_trust._load_manifest_object(
+            manifest, registry, entry["receipt_ref"]
+        )
+    )
+    assert receipt["receipt_sha256"] == review_sha
+    assert entry["recipe"]["expected_sheet_sha256"] == receipt["sheet_sha256"]
+    assert receipt["sheet_sha256"] not in manifest["objects"]
+    artifact_names = set(entry["source_artifacts"])
     assert "source/packets.json" in artifact_names
     assert any(name.startswith("source/draft-") for name in artifact_names)
     assert any(name.startswith("packets/fid-") for name in artifact_names)
     assert any(name.startswith("tiles/") for name in artifact_names)
 
-    # Replay must be self-contained: make both original authority inputs
-    # unavailable before validation, rather than accidentally reading them.
+    # Replay remains self-contained after the operational source run and local
+    # human-visible sheet are archived out of their original namespaces.
+    tmp = tmp_path / "work"
+    receipt_sha = stored["human_confirmation"]["authority_receipt_sha256"]
+    source_run = merge_drafts._load_authority_runtime_run(
+        tmp, "test-co", receipt_sha,
+        stored["human_confirmation"]["source_run_id"],
+    )
+    review_directory = _review_receipt(source_run).parent
     hidden = tmp_path / "hidden-original-review-inputs"
     hidden.mkdir()
-    source_run = Path(receipt["source_run_path"])
-    review_directory = Path(receipt["sheet_path"]).parent
     source_run.rename(hidden / "authority-run")
     review_directory.rename(hidden / "review-artifacts")
-    assert not source_run.exists() and not review_directory.exists()
     assert merge_drafts.resolver.replay_trust._validate_publication_proof(
         stored, registry
     ) == []
 
 
-def test_legacy_authority_receipt_remains_readable_but_current_cli_emits_only_v2(
+def test_new_registry_manifest_and_authority_material_has_no_workstation_paths(
+        tmp_path, monkeypatch):
+    stored, registry = _published_human_review_case(
+        tmp_path, monkeypatch, "portable-material"
+    )
+    registry_path = merge_drafts.publication_proof_path(tmp_path / "store.json")
+    assert len(registry_path.read_bytes()) <= 1024 * 1024
+    registry_value = json.loads(registry_path.read_text())
+    assert registry_value["version"] == 2
+    assert registry_value["kind"] == merge_drafts.PUBLICATION_PROOF_REGISTRY_KIND
+    proof_sha = stored["publication_attestation"]["publication_proof_sha256"]
+    descriptor = merge_drafts.publication_objects.validate_object_ref(
+        registry_value["proofs"][proof_sha]
+    )
+    assert descriptor.path == (
+        merge_drafts.publication_objects.canonical_object_path(proof_sha)
+    )
+    manifest = merge_drafts.resolver.replay_trust._load_proof_manifest(
+        proof_sha, registry
+    )
+    manifest_bytes = merge_drafts.resolver._json_bytes(manifest)
+    assert len(manifest_bytes) <= 4 * 1024 * 1024
+    forbidden = str(tmp_path).encode()
+    assert forbidden not in manifest_bytes
+
+    def assert_portable(value):
+        if isinstance(value, dict):
+            for child in value.values():
+                assert_portable(child)
+        elif isinstance(value, list):
+            for child in value:
+                assert_portable(child)
+        elif isinstance(value, str):
+            assert not value.startswith("/")
+
+    assert_portable(manifest)
+    for object_ref in manifest["objects"].values():
+        logical = merge_drafts.publication_objects.validate_logical_object_ref(
+            object_ref
+        )
+        if logical.length > 4 * 1024 * 1024:
+            continue
+        raw = b"".join(merge_drafts.publication_objects.iter_object_bytes(
+            registry.data_root, logical
+        ))
+        assert forbidden not in raw
+        try:
+            parsed = json.loads(raw)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        assert_portable(parsed)
+    assert manifest["human_reviews"]
+    for entry in manifest["human_reviews"].values():
+        assert entry["recipe"]["expected_sheet_sha256"] not in manifest["objects"]
+
+
+def test_legacy_authority_receipt_remains_readable_but_current_cli_emits_v3(
         tmp_path):
     tmp, _, packet, _, authority_run, args = _authority_confirmation_case(
         tmp_path, "legacy-receipt-control"
@@ -3570,11 +4655,11 @@ def test_legacy_authority_receipt_remains_readable_but_current_cli_emits_only_v2
     legacy_receipt = copy.deepcopy(current_receipt)
     legacy_receipt["version"] = 1
     legacy_receipt["authority_kind"] = "human_confirmation"
+    legacy_receipt["source_run_path"] = str(authority_run.resolve())
     for field in (
-        "review_receipt_sha256", "review_receipt_path",
-        "review_sheet_sha256", "review_sheet_path", "review_item_sha256",
+        "review_receipt_sha256", "review_sheet_sha256", "review_item_sha256",
     ):
-        legacy_receipt.pop(field)
+        legacy_receipt.pop(field, None)
     payload = copy.deepcopy(wrapper)
     payload.pop("authority_receipt_sha256")
     legacy_receipt["authority_payload"] = payload
@@ -3591,64 +4676,94 @@ def test_legacy_authority_receipt_remains_readable_but_current_cli_emits_only_v2
     ) == []
 
 
-def test_generation_bound_publication_proofs_cannot_downgrade(
-        tmp_path, monkeypatch):
-    machine_root = tmp_path / "machine"
-    machine_root.mkdir()
-    store, proof_path, _, args = _real_publication_case(
-        machine_root, monkeypatch, "legacy-proof-machine"
+def test_proof_v4_requires_publication_attestation_v3(tmp_path, monkeypatch):
+    store, _proof_path, _, args = _real_publication_case(
+        tmp_path, monkeypatch, "attestation-version-pair"
     )
     assert merge_drafts.main(args) == 0
-    machine_row = json.loads(store.read_text())["way/1"]
-    registry = json.loads(proof_path.read_text())
-    current_sha = machine_row["publication_attestation"][
-        "publication_proof_sha256"
-    ]
-    legacy_proof = copy.deepcopy(registry["proofs"][current_sha])
-    legacy_proof["version"] = merge_drafts.LEGACY_PUBLICATION_PROOF_VERSION
-    legacy_proof.pop("human_reviews")
-    legacy_row, legacy_registry = _rehash_proof_and_attestation(
-        machine_row, registry, legacy_proof
+    row = json.loads(store.read_text())["way/1"]
+    registry = merge_drafts.resolver.replay_trust._load_publication_proofs(
+        store.parent, store.name
     )
-    attestation = legacy_row["publication_attestation"]
-    attestation["version"] = 1
-    attestation.pop("review_receipt_sha256")
+    attestation = row["publication_attestation"]
+    assert attestation["version"] == merge_drafts.PUBLICATION_ATTESTATION_VERSION
+    attestation["version"] = 2
     body = dict(attestation)
     body.pop("attestation_sha256")
     attestation["attestation_sha256"] = merge_drafts.tr.sha256_json(body)
-    assert merge_drafts.validate_publication_attestation(legacy_row) == []
-    assert "publication proof/prepare generation version mismatch" in (
-        merge_drafts.resolver.replay_trust._validate_publication_proof(
-            legacy_row, legacy_registry
+    assert merge_drafts.validate_publication_attestation(row) == []
+    assert merge_drafts.resolver.replay_trust._validate_publication_proof(
+        row, registry
+    ) == [
+        "publication proof v4 invalid: proof v4 requires publication "
+        "attestation v3"
+    ]
+
+
+@pytest.mark.parametrize(
+    "field", ["rendered_prompts", "prompt_templates", "normative_documents"]
+)
+def test_proof_v4_rejects_extra_logical_map_entries(
+        tmp_path, monkeypatch, field):
+    store, _proof_path, _, args = _real_publication_case(
+        tmp_path, monkeypatch, f"extra-{field}"
+    )
+    assert merge_drafts.main(args) == 0
+    row = json.loads(store.read_text())["way/1"]
+    registry = merge_drafts.resolver.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
+    proof_sha = row["publication_attestation"]["publication_proof_sha256"]
+    manifest = copy.deepcopy(
+        merge_drafts.resolver.replay_trust._load_proof_manifest(
+            proof_sha, registry
         )
     )
-
-    human_root = tmp_path / "human"
-    human_root.mkdir()
-    human_row, human_registry = _published_human_review_case(
-        human_root, monkeypatch, "legacy-proof-human"
+    manifest[field]["unexpected"] = next(iter(manifest[field].values()))
+    forged_row, forged_registry = _rehash_manifest_and_attestation(
+        row, registry, manifest, tmp_path / f"extra-{field}-stages"
     )
-    human_sha = human_row["publication_attestation"][
-        "publication_proof_sha256"
-    ]
-    downgraded = copy.deepcopy(human_registry["proofs"][human_sha])
-    downgraded["version"] = merge_drafts.LEGACY_PUBLICATION_PROOF_VERSION
-    downgraded.pop("human_reviews")
-    downgraded_row, downgraded_registry = _rehash_proof_and_attestation(
-        human_row, human_registry, downgraded
-    )
-    downgraded_attestation = downgraded_row["publication_attestation"]
-    downgraded_attestation["version"] = 1
-    downgraded_attestation.pop("review_receipt_sha256")
-    body = dict(downgraded_attestation)
-    body.pop("attestation_sha256")
-    downgraded_attestation["attestation_sha256"] = (
-        merge_drafts.tr.sha256_json(body)
-    )
-    assert merge_drafts.validate_publication_attestation(downgraded_row)
     assert merge_drafts.resolver.replay_trust._validate_publication_proof(
+        forged_row, forged_registry
+    ) == [
+        "publication proof v4 invalid: proof v4 prompt/rule object maps "
+        "are not closed"
+    ]
+
+
+@pytest.mark.parametrize("authority", ["machine", "human"])
+def test_portable_publication_proof_manifest_cannot_downgrade(
+        tmp_path, monkeypatch, authority):
+    case_root = tmp_path / authority
+    case_root.mkdir()
+    if authority == "machine":
+        store, _proof_path, _, args = _real_publication_case(
+            case_root, monkeypatch, "downgrade-machine"
+        )
+        assert merge_drafts.main(args) == 0
+        row = json.loads(store.read_text())["way/1"]
+        registry = merge_drafts.resolver.replay_trust._load_publication_proofs(
+            store.parent, store.name
+        )
+    else:
+        row, registry = _published_human_review_case(
+            case_root, monkeypatch, "downgrade-human"
+        )
+    proof_sha = row["publication_attestation"]["publication_proof_sha256"]
+    manifest = copy.deepcopy(
+        merge_drafts.resolver.replay_trust._load_proof_manifest(
+            proof_sha, registry
+        )
+    )
+    manifest["version"] = merge_drafts.LEGACY_PUBLICATION_PROOF_VERSION
+    downgraded_row, downgraded_registry = _rehash_manifest_and_attestation(
+        row, registry, manifest, case_root / "downgrade-stages"
+    )
+    assert merge_drafts.validate_publication_attestation(downgraded_row) == []
+    errors = merge_drafts.resolver.replay_trust._validate_publication_proof(
         downgraded_row, downgraded_registry
     )
+    assert errors and any("version" in error for error in errors)
 
 
 def test_review_sheet_releases_area_lock_before_open(tmp_path, monkeypatch):
@@ -3742,7 +4857,7 @@ def test_review_sheet_different_sample_processes_serialize_without_mixed_pair(
         "import judge_review_sheet as sheet\n"
         "marker = pathlib.Path(sys.argv[2])\n"
         "release = pathlib.Path(sys.argv[3])\n"
-        "real = sheet.review.build_review_artifacts\n"
+        "real = sheet.review.build_review_artifacts_v2\n"
         "def blocked(*args, **kwargs):\n"
         "    marker.write_text('locked')\n"
         "    deadline = time.monotonic() + 10\n"
@@ -3751,7 +4866,7 @@ def test_review_sheet_different_sample_processes_serialize_without_mixed_pair(
         "            raise RuntimeError('test release timeout')\n"
         "        time.sleep(0.01)\n"
         "    return real(*args, **kwargs)\n"
-        "sheet.review.build_review_artifacts = blocked\n"
+        "sheet.review.build_review_artifacts_v2 = blocked\n"
         "raise SystemExit(sheet.main([\n"
         "    'test-co', '--authority-run', sys.argv[4], '--sample', '0'\n"
         "]))\n"
@@ -4085,7 +5200,7 @@ def test_review_pair_crash_leaves_sheet_unauthoritative_and_exact_retry_keeps_in
     tmp, run, paths = _unrendered_review_case(
         tmp_path, "review-sheet-installed-crash"
     )
-    real_write = review_sheet.resolver._write_review_artifact
+    real_write = review_sheet.resolver.trusted_fs.atomic_write_stream
 
     def crash_after_sheet(path, *args, **kwargs):
         result = real_write(path, *args, **kwargs)
@@ -4094,7 +5209,8 @@ def test_review_pair_crash_leaves_sheet_unauthoritative_and_exact_retry_keeps_in
         return result
 
     monkeypatch.setattr(
-        review_sheet.resolver, "_write_review_artifact", crash_after_sheet
+        review_sheet.resolver.trusted_fs,
+        "atomic_write_stream", crash_after_sheet,
     )
     with pytest.raises(SystemExit, match="simulated crash after exact sheet install"):
         review_sheet.main([
@@ -4116,7 +5232,8 @@ def test_review_pair_crash_leaves_sheet_unauthoritative_and_exact_retry_keeps_in
     assert not (tmp / merge_drafts.AUTHORITY_RECEIPT_DIR).exists()
 
     monkeypatch.setattr(
-        review_sheet.resolver, "_write_review_artifact", real_write
+        review_sheet.resolver.trusted_fs,
+        "atomic_write_stream", real_write,
     )
     assert review_sheet.main([
         "test-co", "--authority-run", str(run), "--sample", "0",
@@ -4318,27 +5435,50 @@ def test_publication_proof_rejects_noncanonical_embedded_prepare_bytes(
         tmp_path, monkeypatch, f"noncanonical-embedded-{embedded_location}"
     )
     proof_sha = stored["publication_attestation"]["publication_proof_sha256"]
-    proof = copy.deepcopy(registry["proofs"][proof_sha])
+    manifest = copy.deepcopy(
+        merge_drafts.resolver.replay_trust._load_proof_manifest(
+            proof_sha, registry
+        )
+    )
     if embedded_location == "review":
         review_sha = stored["human_confirmation"]["review_receipt_sha256"]
-        bundle = proof["human_reviews"][review_sha]
-        raw = base64.b64decode(bundle["source_prepare_b64"])
-        bundle["source_prepare_b64"] = base64.b64encode(b" " + raw).decode()
+        entry = manifest["human_reviews"][review_sha]
     else:
-        human = next(iter(proof["human_authority"].values()))
-        raw = base64.b64decode(human["source_prepare_b64"])
-        human["source_prepare_b64"] = base64.b64encode(b" " + raw).decode()
-    row, forged_registry = _rehash_proof_and_attestation(
-        stored, registry, proof
+        receipt_sha = stored["human_confirmation"]["authority_receipt_sha256"]
+        entry = manifest["human_authority"][receipt_sha]
+    old_ref = entry["source_prepare_ref"]
+    raw = merge_drafts.resolver.replay_trust._load_manifest_object(
+        manifest, registry, old_ref
+    )
+    logical, stages = merge_drafts.publication_objects.stage_logical_object(
+        (b" " + raw,), tmp_path / "noncanonical-prepare-stages"
+    )
+    merge_drafts.publication_objects.install_staged_objects(
+        registry.data_root, stages
+    )
+    manifest["objects"][logical.sha256] = logical.to_dict()
+    entry["source_prepare_ref"] = logical.sha256
+    if embedded_location == "review":
+        entry["recipe"]["prepare_ref"] = logical.sha256
+        receipt_sha = stored["human_confirmation"][
+            "authority_receipt_sha256"
+        ]
+        manifest["human_authority"][receipt_sha][
+            "source_prepare_ref"
+        ] = logical.sha256
+        manifest["objects"].pop(old_ref)
+    manifest["object_closure_sha256"] = (
+        merge_drafts.publication_objects.object_closure_sha256(
+            manifest["objects"].values()
+        )
+    )
+    row, forged_registry = _rehash_manifest_and_attestation(
+        stored, registry, manifest, tmp_path / "forged-proof-stages"
     )
     errors = merge_drafts.resolver.replay_trust._validate_publication_proof(
         row, forged_registry
     )
-    assert errors
-    if embedded_location == "review":
-        assert any("noncanonical" in error for error in errors)
-    else:
-        assert any("human source prepare mismatch" in error for error in errors)
+    assert errors and any("prepare" in error or "JSON" in error for error in errors)
 
 
 # -------------------------------- publication trust-root candidate boundary
@@ -4686,52 +5826,75 @@ def test_human_authority_generation_drift_has_zero_mutation(
 @pytest.mark.parametrize("tamper", ["prepare", "packet", "checkpoint"])
 def test_publication_proof_rejects_generation_tamper_after_outer_rehash(
         tmp_path, monkeypatch, tamper):
-    store, proof_path, _journal, args = _real_publication_case(
+    store, _proof_path, _journal, args = _real_publication_case(
         tmp_path, monkeypatch, f"generation-proof-{tamper}"
     )
     assert merge_drafts.main(args) == 0
     stored = json.loads(store.read_text())["way/1"]
-    registry = json.loads(proof_path.read_text())
+    registry = merge_drafts.resolver.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
     proof_sha = stored["publication_attestation"]["publication_proof_sha256"]
-    proof = copy.deepcopy(registry["proofs"][proof_sha])
-    if tamper == "prepare":
-        proof["prepare"]["source"]["source_generation"][
-            "manifest_sha256"
-        ] = "f" * 64
-    elif tamper == "packet":
-        proof["packet_bindings"]["1"]["packet"]["source_generation"][
+    manifest = copy.deepcopy(
+        merge_drafts.resolver.replay_trust._load_proof_manifest(
+            proof_sha, registry
+        )
+    )
+    if tamper == "packet":
+        manifest["packet_bindings"]["1"]["packet"]["source_generation"][
             "artifact_sha256"
         ]["walk"] = "f" * 64
     else:
-        checkpoint = json.loads(base64.b64decode(
-            proof["terminal_checkpoints"]["0"]
-        ))
-        checkpoint["source_generation"]["artifact_sha256"]["context"] = "f" * 64
-        proof["terminal_checkpoints"]["0"] = base64.b64encode(
-            json.dumps(checkpoint).encode()
-        ).decode()
-    row, forged_registry = _rehash_proof_and_attestation(
-        stored, registry, proof
+        field = "prepare_ref" if tamper == "prepare" else "terminal_checkpoints"
+        old_ref = (
+            manifest[field] if tamper == "prepare" else manifest[field]["0"]
+        )
+        raw = merge_drafts.resolver.replay_trust._load_manifest_object(
+            manifest, registry, old_ref
+        )
+        value = json.loads(raw)
+        if tamper == "prepare":
+            value["source"]["source_generation"]["manifest_sha256"] = "f" * 64
+        else:
+            value["source_generation"]["artifact_sha256"]["context"] = "f" * 64
+        changed = merge_drafts.resolver._json_bytes(value)
+        logical, stages = merge_drafts.publication_objects.stage_logical_object(
+            (changed,), tmp_path / f"{tamper}-object-stages"
+        )
+        merge_drafts.publication_objects.install_staged_objects(
+            registry.data_root, stages
+        )
+        manifest["objects"][logical.sha256] = logical.to_dict()
+        manifest["objects"].pop(old_ref)
+        if tamper == "prepare":
+            manifest["prepare_ref"] = logical.sha256
+        else:
+            manifest["terminal_checkpoints"]["0"] = logical.sha256
+        manifest["object_closure_sha256"] = (
+            merge_drafts.publication_objects.object_closure_sha256(
+                manifest["objects"].values()
+            )
+        )
+    row, forged_registry = _rehash_manifest_and_attestation(
+        stored, registry, manifest, tmp_path / "generation-forgery-stages"
     )
     errors = merge_drafts.resolver.replay_trust._validate_publication_proof(
         row, forged_registry
     )
-    assert errors
-    assert any("source_generation" in error or "run_id" in error
-               for error in errors)
+    assert errors and any("proof v4" in error for error in errors)
 
 
 def test_publication_proof_replays_after_original_work_generation_is_hidden(
         tmp_path, monkeypatch):
-    store, proof_path, _journal, args = _real_publication_case(
+    store, _proof_path, _journal, args = _real_publication_case(
         tmp_path, monkeypatch, "hidden-original-generation"
     )
     assert merge_drafts.main(args) == 0
     stored = json.loads(store.read_text())["way/1"]
-    registry = json.loads(proof_path.read_text())
-    proof_sha = stored["publication_attestation"]["publication_proof_sha256"]
-    prepare = registry["proofs"][proof_sha]["prepare"]
-    work = Path(prepare["tmp"])
+    registry = merge_drafts.resolver.replay_trust._load_publication_proofs(
+        store.parent, store.name
+    )
+    work = tmp_path / "work"
     hidden = work / "hidden-original-generation"
     hidden.mkdir()
     for suffix in ("generation", "dossier", "serves2", "context", "walk"):

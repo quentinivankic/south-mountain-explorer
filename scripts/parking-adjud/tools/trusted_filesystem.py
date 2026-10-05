@@ -556,6 +556,336 @@ def _read_fd_bytes(fd: int) -> bytes:
         chunks.append(chunk)
 
 
+MAX_STREAM_READ_SIZE = 1024 * 1024
+
+
+def _regular_stream_signature(
+        value: os.stat_result,
+) -> tuple[int, int, int, int, int, int, int, int]:
+    return (
+        value.st_dev,
+        value.st_ino,
+        value.st_mode,
+        value.st_uid,
+        value.st_nlink,
+        value.st_size,
+        value.st_mtime_ns,
+        value.st_ctime_ns,
+    )
+
+
+def _require_stream_file_stat(
+        value: os.stat_result, path: Path, *, require_owner: bool,
+        require_read_only: bool, required_mode: int | None,
+        allowed_nlinks: tuple[int, ...],
+) -> None:
+    if not stat.S_ISREG(value.st_mode):
+        raise ValueError(f"stream source is not a regular file: {path}")
+    if require_owner and value.st_uid != os.geteuid():
+        raise ValueError(f"stream source is not owned by effective uid: {path}")
+    if value.st_nlink not in allowed_nlinks:
+        raise ValueError(
+            f"stream source link count {value.st_nlink} is not allowed: {path}"
+        )
+    mode = stat.S_IMODE(value.st_mode)
+    if require_read_only and mode & 0o222:
+        raise ValueError(f"stream source is writable and not sealed: {path}")
+    if required_mode is not None and mode != required_mode:
+        raise ValueError(
+            f"stream source mode {mode:#05o} is not {required_mode:#05o}: {path}"
+        )
+
+
+def iter_verified_regular_chunks(
+        path: str | Path, *, chunk_size: int = MAX_STREAM_READ_SIZE,
+        require_owner: bool = False, require_read_only: bool = False,
+        required_mode: int | None = None, allowed_nlinks: tuple[int, ...] = (1,),
+        expected_length: int | None = None,
+        expected_sha256: str | None = None,
+):
+    """Yield a stable no-follow regular file in bounded chunks.
+
+    Exact length/hash and final metadata checks complete only when the iterator
+    is exhausted. Callers must consume it fully before treating the bytes as
+    verified. The live directory entry and opened descriptor must identify one
+    unchanged inode before and after the stream.
+    """
+    import hashlib
+
+    if (type(chunk_size) is not int or chunk_size < 1
+            or chunk_size > MAX_STREAM_READ_SIZE):
+        raise ValueError(
+            f"stream chunk size must be 1..{MAX_STREAM_READ_SIZE} bytes"
+        )
+    if (expected_length is not None
+            and (type(expected_length) is not int or expected_length < 0)):
+        raise ValueError("expected stream length must be a nonnegative integer")
+    if (expected_sha256 is not None
+            and (not isinstance(expected_sha256, str)
+                 or len(expected_sha256) != 64
+                 or any(character not in "0123456789abcdef"
+                        for character in expected_sha256))):
+        raise ValueError("expected stream SHA-256 is invalid")
+    if (not isinstance(allowed_nlinks, tuple) or not allowed_nlinks
+            or any(type(value) is not int or value < 1
+                   for value in allowed_nlinks)):
+        raise ValueError("allowed stream link counts are invalid")
+    if required_mode is not None and (
+            type(required_mode) is not int
+            or stat.S_IMODE(required_mode) != required_mode):
+        raise ValueError("required stream mode is invalid")
+
+    canonical = Path(path).absolute()
+    if not canonical.name:
+        raise ValueError("stream source path has no basename")
+    parent_fd = open_trusted_directory_fd(canonical.parent)
+    fd = None
+    try:
+        parent_before = require_trusted_directory_fd(
+            parent_fd, canonical.parent
+        )
+        try:
+            fd = os.open(
+                canonical.name,
+                os.O_RDONLY | _required_flag("O_NOFOLLOW")
+                | getattr(os, "O_CLOEXEC", 0),
+                dir_fd=parent_fd,
+            )
+        except OSError as error:
+            if error.errno == errno.ELOOP:
+                raise ValueError(
+                    f"no-follow stream rejected linked file: {canonical}"
+                ) from error
+            raise
+        before = os.fstat(fd)
+        entry_before = os.stat(
+            canonical.name, dir_fd=parent_fd, follow_symlinks=False
+        )
+        if require_owner:
+            require_trivial_acl_fd(fd, canonical)
+        expected_signature = _regular_stream_signature(before)
+        if _regular_stream_signature(entry_before) != expected_signature:
+            raise ValueError(
+                f"stream descriptor and entry identity differ: {canonical}"
+            )
+        for value in (before, entry_before):
+            _require_stream_file_stat(
+                value, canonical, require_owner=require_owner,
+                require_read_only=require_read_only,
+                required_mode=required_mode,
+                allowed_nlinks=allowed_nlinks,
+            )
+        if (expected_length is not None
+                and before.st_size != expected_length):
+            raise ValueError(
+                f"stream source length {before.st_size} != {expected_length}: "
+                f"{canonical}"
+            )
+
+        digest = hashlib.sha256()
+        length = 0
+        while True:
+            chunk = os.read(fd, chunk_size)
+            if not chunk:
+                break
+            if len(chunk) > chunk_size:
+                raise ValueError(f"stream source returned an oversized read: {canonical}")
+            length += len(chunk)
+            if expected_length is not None and length > expected_length:
+                raise ValueError(f"stream source exceeded expected length: {canonical}")
+            digest.update(chunk)
+            yield chunk
+
+        after = os.fstat(fd)
+        if require_owner:
+            require_trivial_acl_fd(fd, canonical)
+        try:
+            entry_after = os.stat(
+                canonical.name, dir_fd=parent_fd, follow_symlinks=False
+            )
+        except FileNotFoundError as error:
+            raise ValueError(
+                f"stream source disappeared while reading: {canonical}"
+            ) from error
+        parent_after = require_trusted_directory_fd(
+            parent_fd, canonical.parent
+        )
+        for value in (after, entry_after):
+            _require_stream_file_stat(
+                value, canonical, require_owner=require_owner,
+                require_read_only=require_read_only,
+                required_mode=required_mode,
+                allowed_nlinks=allowed_nlinks,
+            )
+            if _regular_stream_signature(value) != expected_signature:
+                raise ValueError(f"stream source changed while reading: {canonical}")
+        if (_directory_identity(parent_before)
+                != _directory_identity(parent_after)):
+            raise ValueError(f"stream source parent changed while reading: {canonical}")
+        if length != before.st_size:
+            raise ValueError(f"stream source returned a short read: {canonical}")
+        if expected_length is not None and length != expected_length:
+            raise ValueError(
+                f"stream source length {length} != {expected_length}: {canonical}"
+            )
+        if (expected_sha256 is not None
+                and digest.hexdigest() != expected_sha256):
+            raise ValueError(f"stream source SHA-256 mismatch: {canonical}")
+    finally:
+        if fd is not None:
+            os.close(fd)
+        os.close(parent_fd)
+
+
+def atomic_write_stream(
+        path: str | Path, chunks, *, expected_length: int,
+        expected_sha256: str, mode: int = 0o600,
+        replace: bool = False) -> None:
+    """Durably install an exact bounded stream without retaining its bytes."""
+    import hashlib
+
+    if type(expected_length) is not int or expected_length < 0:
+        raise ValueError("atomic stream length must be a nonnegative integer")
+    if (not isinstance(expected_sha256, str) or len(expected_sha256) != 64
+            or any(character not in "0123456789abcdef"
+                   for character in expected_sha256)):
+        raise ValueError("atomic stream SHA-256 is invalid")
+    if (type(mode) is not int or stat.S_IMODE(mode) != mode
+            or mode & 0o022):
+        raise ValueError("atomic stream mode must not be group/world writable")
+
+    canonical = Path(path).absolute()
+    parent_fd = open_trusted_directory_fd(
+        canonical.parent, create=True, create_mode=0o700
+    )
+    private_fd = None
+    private_name = None
+    private_stat = None
+    renamed = False
+    try:
+        flags = (os.O_RDWR | os.O_CREAT | os.O_EXCL
+                 | _required_flag("O_NOFOLLOW")
+                 | getattr(os, "O_CLOEXEC", 0))
+        for _ in range(128):
+            candidate = f".{canonical.name}.stream-{secrets.token_hex(24)}"
+            try:
+                private_fd = os.open(
+                    candidate, flags, 0o600, dir_fd=parent_fd
+                )
+            except FileExistsError:
+                continue
+            private_name = candidate
+            private_stat = os.fstat(private_fd)
+            break
+        else:
+            raise FileExistsError("could not allocate a private stream entry")
+
+        require_trivial_acl_fd(private_fd, canonical)
+        digest = hashlib.sha256()
+        length = 0
+        for raw in chunks:
+            if not isinstance(raw, (bytes, bytearray, memoryview)):
+                raise ValueError("atomic stream yielded a non-bytes chunk")
+            view = memoryview(raw)
+            while view:
+                piece = view[:MAX_STREAM_READ_SIZE]
+                written_view = piece
+                while written_view:
+                    written = os.write(private_fd, written_view)
+                    if written <= 0:
+                        raise OSError("atomic stream write made no progress")
+                    written_view = written_view[written:]
+                digest.update(piece)
+                length += len(piece)
+                if length > expected_length:
+                    raise ValueError("atomic stream exceeded expected length")
+                view = view[len(piece):]
+        if length != expected_length:
+            raise ValueError(
+                f"atomic stream length {length} != {expected_length}"
+            )
+        if digest.hexdigest() != expected_sha256:
+            raise ValueError("atomic stream SHA-256 mismatch")
+        os.fchmod(private_fd, mode)
+        os.fsync(private_fd)
+
+        final_private = os.fstat(private_fd)
+        require_trivial_acl_fd(private_fd, canonical)
+        private_entry = os.stat(
+            private_name, dir_fd=parent_fd, follow_symlinks=False
+        )
+        identity = (private_stat.st_dev, private_stat.st_ino)
+        for value in (final_private, private_entry):
+            if (not stat.S_ISREG(value.st_mode)
+                    or value.st_uid != os.geteuid()
+                    or stat.S_IMODE(value.st_mode) != mode
+                    or value.st_nlink != 1
+                    or value.st_size != expected_length
+                    or (value.st_dev, value.st_ino) != identity):
+                raise ValueError(
+                    f"private atomic stream entry is not fd-owned: {canonical}"
+                )
+
+        os.lseek(private_fd, 0, os.SEEK_SET)
+        verify_digest = hashlib.sha256()
+        verify_length = 0
+        while True:
+            chunk = os.read(private_fd, MAX_STREAM_READ_SIZE)
+            if not chunk:
+                break
+            verify_digest.update(chunk)
+            verify_length += len(chunk)
+        if (verify_length != expected_length
+                or verify_digest.hexdigest() != expected_sha256):
+            raise ValueError(f"private atomic stream bytes changed: {canonical}")
+        require_trusted_directory_fd(parent_fd, canonical.parent)
+        if replace:
+            os.replace(
+                private_name, canonical.name,
+                src_dir_fd=parent_fd, dst_dir_fd=parent_fd,
+            )
+            renamed = True
+        else:
+            try:
+                os.link(
+                    private_name, canonical.name,
+                    src_dir_fd=parent_fd, dst_dir_fd=parent_fd,
+                    follow_symlinks=False,
+                )
+            except FileExistsError as error:
+                raise FileExistsError(
+                    f"atomic stream target already exists: {canonical}"
+                ) from error
+            linked_private = os.fstat(private_fd)
+            linked_target = os.stat(
+                canonical.name, dir_fd=parent_fd, follow_symlinks=False
+            )
+            if ((linked_private.st_dev, linked_private.st_ino)
+                    != (linked_target.st_dev, linked_target.st_ino)
+                    or linked_private.st_nlink != 2
+                    or linked_target.st_nlink != 2):
+                raise ValueError(
+                    f"atomic stream exclusive link is not exact: {canonical}"
+                )
+            os.fsync(parent_fd)
+            os.unlink(private_name, dir_fd=parent_fd)
+            renamed = True
+        os.fsync(parent_fd)
+    finally:
+        if (not renamed and private_name is not None
+                and private_stat is not None):
+            _remove_owned_entry(parent_fd, private_name, private_stat)
+        if private_fd is not None:
+            os.close(private_fd)
+        os.close(parent_fd)
+
+    for _chunk in iter_verified_regular_chunks(
+            canonical, require_owner=True, required_mode=mode,
+            expected_length=expected_length,
+            expected_sha256=expected_sha256):
+        pass
+
+
 def _remove_owned_entry(parent_fd: int, name: str,
                         owned: os.stat_result) -> None:
     try:

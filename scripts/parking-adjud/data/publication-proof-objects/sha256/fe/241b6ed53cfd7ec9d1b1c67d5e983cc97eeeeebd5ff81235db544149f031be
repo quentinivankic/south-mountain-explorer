@@ -1,0 +1,18 @@
+{
+  "assignment_id": "ecd5bfd8325f6866d7f9576e504b403e3a9fa55f79b4e7ef36a7fd722224bea6",
+  "decision": {
+    "fid": 876,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/540496164"],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {"call": "yes", "evidence": "Z2/Z3: paved asphalt L-shaped lot matching the red outline, wrapping the west and south sides of a single solar-roofed building; faint painted stall lines on the east arm in Z3; parked cars inside the outline (red car in the west section, silver car in the east arm); driveway throat off the E-W arterial at the south edge"},
+    "public": {"call": "no", "evidence": "Only a bare amenity=parking tag: no access, name, operator, or fee tag. Context is FACILITY, 0 m from landuse=commercial. Z1/Z2/Z3 show the lot as the dedicated surround parking of one standalone commercial/institutional building, which also has its own north drop-off loop. No trailhead node within 120 m and no official access record at the lot. Missing gate or restrictive tag is context only (lesson 11). Doubt: legal permission cannot be seen from the air, and nothing in the packet grants it"},
+    "serves": {"call": "no", "evidence": "PUBLIC is not established, so dual-use/overflow cannot be credited. Rooney Valley Trail edge is 137 m, but its yellow end (orange node, Z1) sits on the far side of the signalized 4-lane N-S arterial intersection, west of the lot. walk_m 258 has a blank connection and walk trail null. No trailhead_nodes_120m. footways_60m=1 is roadside sidewalk only. The building's own use explains the lot better than trail parking"},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

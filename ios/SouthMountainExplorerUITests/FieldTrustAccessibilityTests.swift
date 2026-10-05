@@ -454,15 +454,12 @@ final class FieldTrustAccessibilityTests: XCTestCase {
     private func dismissSearchKeyboard(_ app: XCUIApplication) {
         let keyboard = app.keyboards.firstMatch
         XCTAssertTrue(keyboard.waitForExistence(timeout: 5), "Search action did not focus the keyboard")
-        let searchKey = keyboard.buttons["Search"].firstMatch
-        XCTAssertTrue(searchKey.waitForExistence(timeout: 5), "Keyboard Search action is missing")
-        searchKey.tap()
-        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
-        XCTAssertTrue(trailScroll.waitForExistence(timeout: 5), "Trail list scroll is missing")
-        trailScroll.swipeUp()
+        let done = app.buttons["trail-search-keyboard-done"].firstMatch
+        XCTAssertTrue(done.waitForExistence(timeout: 5), "Search keyboard Done action is missing")
+        done.tap()
         XCTAssertFalse(
             keyboard.waitForExistence(timeout: 5),
-            "Trail-list scroll did not dismiss the search keyboard"
+            "Search keyboard Done action did not dismiss the keyboard"
         )
     }
 

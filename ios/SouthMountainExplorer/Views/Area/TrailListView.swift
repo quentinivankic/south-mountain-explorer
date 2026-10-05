@@ -142,6 +142,7 @@ struct TrailListView: View {
     @Environment(ProgressService.self) private var progress
     @Environment(CoverageService.self) private var coverage
     @Environment(RecordingService.self) private var recording
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @FocusState private var searchFocused: Bool
 
@@ -200,6 +201,18 @@ struct TrailListView: View {
                                     .autocorrectionDisabled()
                                     .focused($searchFocused)
                                     .submitLabel(.search)
+                                    .toolbar {
+                                        ToolbarItemGroup(placement: .keyboard) {
+                                            if dynamicTypeSize.isAccessibilitySize {
+                                                Spacer()
+                                                Button("Done") {
+                                                    searchFocused = false
+                                                }
+                                                .accessibilityLabel("Dismiss Search Keyboard")
+                                                .accessibilityIdentifier("trail-search-keyboard-done")
+                                            }
+                                        }
+                                    }
                                 if !searchQuery.isEmpty {
                                     Button {
                                         searchQuery = ""

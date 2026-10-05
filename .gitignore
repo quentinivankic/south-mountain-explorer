@@ -48,3 +48,4 @@ scripts/parking-adjud/work/
 scripts/parking-adjud/reports/
 **/.trekdex-locks/
 **/.parking-sweep-transactions/
+scripts/parking-adjud/data/.trekdex-publication-transactions/

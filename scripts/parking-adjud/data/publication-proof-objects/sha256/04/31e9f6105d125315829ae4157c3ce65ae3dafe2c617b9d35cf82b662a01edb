@@ -1,0 +1,85 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 950,
+ "building_overlap": false,
+ "context": {
+  "category": "SUPPORT",
+  "evidence": "in boundary=protected_area 'Bear Valley Open Space'",
+  "facility": null,
+  "facility_edge_m": null
+ },
+ "descriptive_tags": [
+  "surface",
+  "parking",
+  "fee",
+  "name"
+ ],
+ "fid": 102,
+ "footprint": "polygon",
+ "footways_60m": 8,
+ "members": [
+  {
+   "osm": "relation/12649204",
+   "tags": {
+    "access": "yes",
+    "addr:city": "Lakewood",
+    "addr:housenumber": "2800,2900",
+    "addr:postcode": "80227",
+    "addr:state": "CO",
+    "addr:street": "South Estes Street",
+    "amenity": "parking",
+    "capacity:disabled": "2",
+    "fee": "no",
+    "name": "Bear Creek Greenbelt",
+    "parking": "surface",
+    "surface": "paved"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "relation/12649204"
+ ],
+ "prior": "surveyed",
+ "serves": {
+  "edge_m": 24,
+  "fallback": false,
+  "n_trails_in_range": 6,
+  "trail": "Stone House Trail & Greenbelt Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "access": "yes",
+  "addr:city": "Lakewood",
+  "addr:housenumber": "2800,2900",
+  "addr:postcode": "80227",
+  "addr:state": "CO",
+  "addr:street": "South Estes Street",
+  "amenity": "parking",
+  "capacity:disabled": "2",
+  "fee": "no",
+  "name": "Bear Creek Greenbelt",
+  "parking": "surface",
+  "surface": "paved"
+ },
+ "tiles": {
+  "z1": "tiles/1f5804362f3ddcbeabbb29f1d9fd2dcc0649ed13c4fefe01008843813bf550ac.png",
+  "z2": "tiles/e556deba252943af26a9639ce423d0444e93c3d76f5ced3390eb84a56bdbbe91.png",
+  "z3": "tiles/fdba91b38f3e172b8825e6dca902b67ce6ab7976beee6df91ec8642e4c155507.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 68
+ }
+}

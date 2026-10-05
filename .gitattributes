@@ -1,0 +1,2 @@
+# Content-addressed evidence bytes are immutable and may be non-textual.
+scripts/parking-adjud/data/publication-proof-objects/** -diff -text

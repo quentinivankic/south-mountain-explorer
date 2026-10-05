@@ -1,0 +1,18 @@
+{
+  "assignment_id": "e9f0874f2a0ca9c8e7634b28845e2a3c98e015411ad6b5cea783965a0ad27f25",
+  "decision": {
+    "fid": 158,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/51380775"],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {"call": "yes", "evidence": "Z2/Z3: two paved asphalt lots with painted stalls, drive aisles, and dozens of parked cars inside the red outline, entered from the arterial and the cross street; Z3 resolves individual cars and stripes."},
+    "public": {"call": "no", "evidence": "Bare amenity=parking with no access/operator/name tag and no official trailhead or access record at the lot. Context classifies it FACILITY (landuse=retail, 0 m edge), and building_overlap=true. Z1/Z2 show a strip-commercial frontage lot: the polygon's east edge runs along the storefronts of a white-roof store and two tan retail/office buildings, with more commercial lots and apartments behind them. This is customer parking for the retail center. A missing gate or restrictive tag does not grant general public trail parking."},
+    "serves": {"call": "no", "evidence": "Greenbelt Trail edge is 48 m, but Z1/Z2 put the trail west of a six-lane divided arterial in the open space, not at the lot. Walk is 405 m with no connection (conn empty, walk.trail null), there are no trailhead nodes within 120 m, and no kiosk, trailhead signage, or trail start is visible at the lot. The retail center is the better explanation for this lot. Distance alone does not turn commercial customer parking into trail overflow (lesson 11). No aerial frame could show parking permission, so this is a DROP rather than a REVIEW."},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

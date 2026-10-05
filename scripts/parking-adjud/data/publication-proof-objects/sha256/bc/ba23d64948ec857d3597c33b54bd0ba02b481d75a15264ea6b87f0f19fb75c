@@ -1,0 +1,27 @@
+{
+  "assignment_id": "eaf5409c6e9e666b0b226e685a73e307381e05d20e63fa353bedea1d6633a684",
+  "decision": {
+    "fid": 320,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/68252593"],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Bare prior, vision decides. Z3: paved asphalt bay fills the red outline (569 m2) with ~5-6 parked cars nose-in along the NW edge in stall positions; vehicle access from the school loop drive at the SW end. Z2 confirms the paved bay is contiguous with the campus's main NE lot. Physical lot exists."
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Only tag is amenity=parking: no access, name, operator, or fee tag; no trailhead node within 120 m; no official access record in the packet. Context: 0 m from amenity=school 'Warren Occupational Technical Center' (FACILITY). Z1/Z2: the lot is an inner campus bay tucked against the school buildings, reached only through the school's internal drive and contiguous with its staff/student lots. School-internal parking with no lot-level public grant is not public trail parking (protocol PUBLIC rule, lesson 11). No aerial frame could establish a parking grant, so REVIEW would have no host-fetchable resolver (lesson 10)."
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "North Green Mountain edge 59 m and walk 115 m are distance-only signals: walk.conn empty, walk.trail null, no trailhead node within 120 m, not a fallback. Z1/Z2: the yellow trail starts east of the arterial road, next to a separate striped lot on that side; this lot is on the opposite (school) side, deep inside the campus. A closer, separate lot at the trail start counts against treating this school lot as overflow, and the school owner is the better explanation. PUBLIC is not proved, so dual-use cannot be credited."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

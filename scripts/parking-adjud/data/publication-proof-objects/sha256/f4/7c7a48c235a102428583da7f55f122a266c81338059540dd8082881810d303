@@ -1,0 +1,58 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 997,
+ "building_overlap": false,
+ "context": {
+  "category": "SUPPORT",
+  "evidence": "in boundary=protected_area 'Red Rocks Park'",
+  "facility": null,
+  "facility_edge_m": null
+ },
+ "descriptive_tags": [],
+ "fid": 366,
+ "footprint": "polygon",
+ "footways_60m": 0,
+ "members": [
+  {
+   "osm": "way/82854200",
+   "tags": {
+    "amenity": "parking"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/82854200"
+ ],
+ "prior": "bare",
+ "serves": {
+  "edge_m": 121,
+  "fallback": false,
+  "n_trails_in_range": 2,
+  "trail": "Geologic Overlook Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking"
+ },
+ "tiles": {
+  "z1": "tiles/f25a5feb59f3bce8724ebf26099ae8a1248995032521bdf2ced63946fa7d7a4d.png",
+  "z2": "tiles/e1c8e96c0474e757d97f5e45ef20b49110022a714876cefeb009e69b5ad554c5.png",
+  "z3": "tiles/f2f533957e479005bc21f172359f3a05e70959d9325fccde54dc5398be6577d0.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 168
+ }
+}

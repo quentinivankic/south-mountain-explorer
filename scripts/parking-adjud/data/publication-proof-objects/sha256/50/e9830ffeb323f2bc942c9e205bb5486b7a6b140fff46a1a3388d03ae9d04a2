@@ -1,0 +1,479 @@
+[
+  {
+    "fid": 760,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/369249614"
+    ],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: delineated paved lot with painted stalls and several vehicles immediately behind the church building"
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Packet context: 25 m from Concordia Lutheran Church; Z2: lot is physically integrated with the church building and has no separate public-trail parking identity"
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Z1: Concordia Lutheran Church is the direct owner and better explanation; South Foothill Drive Access Trail is 212 m away, walk 814 m with no foot-network connection, and no footway or trailhead node supports trail use"
+    },
+    "frames_used": [
+      "z1",
+      "z2"
+    ],
+    "tags_cited": {
+      "amenity": "parking"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  {
+    "fid": 778,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/480306052"
+    ],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: large paved lot with painted stalls and more than a dozen parked vehicles"
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Lot-level name is Apex Park East Trailhead, an official trailhead identity"
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Z2: shipped trail enters the lot at its southwest corner; Argos Trail edge is 13 m with two footways within 60 m"
+    },
+    "frames_used": [
+      "z1",
+      "z2"
+    ],
+    "tags_cited": {
+      "amenity": "parking",
+      "name": "Apex Park East Trailhead"
+    },
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  {
+    "fid": 869,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/524966199"
+    ],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z3: extensive paved surface with striped parking rows and numerous vehicles"
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Packet context identifies The Fort restaurant 25 m away; Z2-Z3: parking aisles directly wrap the restaurant complex, with no lot-level public trail-parking designation"
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Z1: The Fort is the direct owner and no shipped trail appears in the 600 m frame; Two Dog Trail is a 1,950 m fallback and walk is 2,350 m with no connection, footway, or trailhead node"
+    },
+    "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+    ],
+    "tags_cited": {
+      "amenity": "parking",
+      "parking": "surface"
+    },
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  {
+    "fid": 876,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/540496164"
+    ],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: paved, painted parking bays and drive aisles wrap a standalone building; several vehicles are visible"
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Packet context places the lot wholly in commercial landuse; Z2: it is the building's dedicated facility lot, with no lot-level public trail-parking designation"
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Z1-Z2: the commercial building is the direct owner; Rooney Valley Trail is across a divided arterial and major intersection, with no trailhead node and no direct trail approach into the lot"
+    },
+    "frames_used": [
+      "z1",
+      "z2"
+    ],
+    "tags_cited": {
+      "amenity": "parking"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  {
+    "fid": 885,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/619911462"
+    ],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: independently delineated graded parking bay with roughly ten parked vehicles"
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Lot-level name is Green Mountain Trailhead and packet records a highway=trailhead node 44 m away"
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Z2: shipped trails reach the lot's north edge and pass immediately west; Green Mountain Trail edge is 0 m with five footways within 60 m"
+    },
+    "frames_used": [
+      "z1",
+      "z2"
+    ],
+    "tags_cited": {
+      "amenity": "parking",
+      "name": "Green Mountain Trailhead",
+      "parking": "surface"
+    },
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  {
+    "fid": 886,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/620201362"
+    ],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z3: broad independently graded dirt apron containing several vehicles or trailers"
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Lot-level name is Pro Pits; Z1 places it inside the motocross complex, identifying it as restricted participant pit parking rather than general public trail parking"
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Z1: motocross tracks and the Rooney Valley Training Facility are the direct owner; C-470 Trail is 259 m away beyond a separate road corridor, with no footway, trailhead node, or direct trail approach"
+    },
+    "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+    ],
+    "tags_cited": {
+      "amenity": "parking",
+      "name": "Pro Pits",
+      "parking": "surface"
+    },
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  {
+    "fid": 888,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/620205729"
+    ],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2-Z3: large, independently graded surface connected to the motorsport complex; surveyed surface-parking prior is not contradicted by its being empty on capture day"
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Lot-level name is VIP Zone, explicitly identifying restricted venue parking rather than general public trail parking"
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Z1: the bay is internal to Thunder Valley's motocross tracks; C-470 Trail lies beyond a separate road and freeway corridor, with no footway, trailhead node, or direct trail approach"
+    },
+    "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+    ],
+    "tags_cited": {
+      "amenity": "parking",
+      "name": "VIP Zone",
+      "parking": "surface"
+    },
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  {
+    "fid": 889,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/620205731"
+    ],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2-Z3: broad independently graded pad with vehicle-access lanes inside the venue; no positive contradiction to the surveyed surface-parking prior"
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Lot-level name is Pro Pits, identifying participant pit parking inside the motorsport venue rather than general public trail parking"
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Z1-Z3: the pad is integrated with the motocross tracks; Zorro Trail is 238 m away outside the venue, with no trailhead node or direct trail approach into this pit area"
+    },
+    "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+    ],
+    "tags_cited": {
+      "amenity": "parking",
+      "name": "Pro Pits",
+      "parking": "surface"
+    },
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  {
+    "fid": 890,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/620205732"
+    ],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2-Z3: broad independently graded vehicle apron between the motocross tracks and venue access road; surveyed surface-parking prior is not contradicted by an empty capture"
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Lot-level name is Pro Pits, identifying participant pit parking rather than general public trail parking"
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Z1-Z3: the pad directly adjoins motocross tracks and venue buildings; C-470 Trail is across the venue road and freeway corridor, with no footway, trailhead node, or direct trail approach"
+    },
+    "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+    ],
+    "tags_cited": {
+      "amenity": "parking",
+      "name": "Pro Pits",
+      "parking": "surface"
+    },
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  {
+    "fid": 891,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/620206644"
+    ],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2-Z3: large rectangular dirt surface independently graded and reached by venue vehicle lanes; empty capture does not contradict the surveyed parking prior"
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Z1: the pad is wholly inside the Thunder Valley motorsport complex and reached through its internal circulation, with no independent lot-level public parking or trailhead identity"
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Z1: motocross tracks are the direct owner and better explanation; Zorro Trail is 189 m south outside the venue, with no trailhead node or direct shipped-trail approach into the pad"
+    },
+    "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+    ],
+    "tags_cited": {
+      "amenity": "parking",
+      "parking": "surface",
+      "surface": "dirt"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  {
+    "fid": 892,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/685338418"
+    ],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: paved L-shaped parking row with painted stalls and multiple vehicles around the small school building"
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Packet context places the footprint wholly in a school; Z1-Z2 show it integrated with the school building and campus circulation, with no lot-level public trail-parking designation"
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Z1: school campus, bus yard, and associated building are the direct owners; Sixth Ave West Trail is 551 m south with no trailhead node or direct trail approach to this school lot"
+    },
+    "frames_used": [
+      "z1",
+      "z2"
+    ],
+    "tags_cited": {
+      "amenity": "parking"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  }
+,
+  {
+    "fid": 906,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/742236572"
+    ],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2-Z3: paved lot with painted stalls and multiple parked vehicles"
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Lot-level operator is Christ on the Mountain Catholic Church; Z1-Z3 show the lot physically integrated with the church building and its larger north parking area, with no official public trail-parking identity"
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Z1: the church is the direct owner and better explanation; John O. Hayden Trail is 259 m away but walk is 1,252 m with no foot-network connection, footway, trailhead node, or direct trail approach"
+    },
+    "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+    ],
+    "tags_cited": {
+      "amenity": "parking",
+      "operator": "Christ on the Mountain Catholic Church",
+      "handicap": "7"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  {
+    "fid": 908,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/742236575"
+    ],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2-Z3: paved lot with painted perimeter and center-row stalls plus multiple parked vehicles"
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Lot-level operator is Christ on the Mountain Catholic Church; Z1-Z3 show the lot joined by internal pavement to the church building and south lot, with no official public trail-parking identity"
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Z1: the church is the direct owner, with multifamily parking west and homes east as other non-trail context; John O. Hayden Trail is across the arterial, edge 185 m but walk 1,165 m with no foot-network connection or trailhead node and no direct trail approach"
+    },
+    "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+    ],
+    "tags_cited": {
+      "amenity": "parking",
+      "operator": "Christ on the Mountain Catholic Church"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  {
+    "fid": 937,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/755673841"
+    ],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2: independently delineated paved bay with a row of parked vehicles and a vehicle-access throat"
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Packet context places the footprint inside Kyffin Elementary School; Z1-Z2 show the bay on the school building's service edge, with no lot-level public parking or official trailhead identity"
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Z1: the elementary school is the direct owner, with surrounding homes and a larger west parking facility as other non-trail context; no shipped trail appears in frame, North Access Trail edge is 784 m, and walk is 964 m with no foot-network connection or trailhead node"
+    },
+    "frames_used": [
+      "z1",
+      "z2"
+    ],
+    "tags_cited": {
+      "amenity": "parking"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  {
+    "fid": 979,
+    "area": "bear-creek-lake-park-co",
+    "osm": [
+      "way/844884215"
+    ],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Z2-Z3: elongated paved bay with faded painted stalls, several parked vehicles, and a vehicle-access throat at its southwest end"
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Packet context places Warren Occupational Technical Center 38 m away; Z1-Z3 show the bay reached from the school campus perimeter road and associated with its surrounding parking complex, with no lot-level public access or official trailhead record"
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Z3: open ground separates the bay from North Green Mountain trail 27 m east, with no visible connecting path; the 80 m walk and three nearby footways do not overcome the empty foot-network connection, absent trailhead node, and school as the better direct owner"
+    },
+    "frames_used": [
+      "z1",
+      "z2",
+      "z3"
+    ],
+    "tags_cited": {
+      "amenity": "parking"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  }
+]

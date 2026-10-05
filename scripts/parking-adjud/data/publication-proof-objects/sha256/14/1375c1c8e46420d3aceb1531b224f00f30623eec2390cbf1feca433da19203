@@ -1,0 +1,18 @@
+{
+  "assignment_id": "599a3af307a2e3f50b0eac92c61906926cce6257f47f234fb2afcf6ec127c36a",
+  "decision": {
+    "fid": 102,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["relation/12649204"],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {"call": "yes", "evidence": "Prior surveyed (surface/parking/fee/name). Z2+Z3: red outline is the west row of a paved loop lot with painted stalls on both sides of a central aisle and ~11 parked cars; vehicle throat at the north end connects to the arterial on the west; a second striped row lies east beyond a treed island. No building, lawn, water, or through-lane contradiction."},
+    "public": {"call": "yes", "evidence": "Lot-level access=yes, fee=no, name='Bear Creek Greenbelt', parking=surface, capacity:disabled=2 on the relation itself. Context SUPPORT: inside boundary=protected_area 'Bear Valley Open Space'. Z3: no gate or barrier at the north entry."},
+    "serves": {"call": "yes", "evidence": "PUBLIC proved at lot level first. Serving trail Stone House Trail & Greenbelt Trail, edge 24 m, fallback=false, walk 68 m, 6 trails in range, 8 footways within 60 m. The lot name 'Bear Creek Greenbelt' matches Greenbelt Trail. Z2/Z3: paved paths leave the lot's south and east sides; a dirt track continues south to where the yellow Stone House Trail line starts about 60 m away. Z1 alternatives: townhomes to the north and south, a building complex west across the arterial, a ballfield to the NE. None are reached from this loop. The other amenities on this loop (picnic shelters, playground, restroom, pond) belong to the same open-space park."},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"access": "yes", "fee": "no", "name": "Bear Creek Greenbelt", "parking": "surface", "surface": "paved", "capacity:disabled": "2"},
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

@@ -227,13 +227,37 @@ def resource_lock_path(tmp: str | Path, resource: str | Path) -> Path:
     del tmp  # resource locks must not vary with the caller's per-area work directory
     resolved = Path(resource).expanduser().resolve()
     identity = sha256_bytes(str(resolved).encode("utf-8"))[:20]
-    lock_dir = resolved.parent / ".trekdex-locks"
+    transaction_root = next(
+        (
+            candidate
+            for candidate in (resolved, *resolved.parents)
+            if candidate.name == ".trekdex-publication-transactions"
+        ),
+        None,
+    )
+    # Publication transaction trees are themselves archival resources. Anchor
+    # every descendant journal/stage lock beside, never inside, that movable
+    # tree so one held canonical lock cannot be renamed away and recreated.
+    lock_parent = (
+        transaction_root.parent
+        if transaction_root is not None else resolved.parent
+    )
+    lock_dir = lock_parent / ".trekdex-locks"
     if lock_dir.exists() and lock_dir.is_symlink():
         raise ValueError("resource lock directory may not be a symlink")
     path = lock_dir / f"{resolved.name}-{identity}.lock"
     if path.exists() and path.is_symlink():
         raise ValueError("resource lock path may not be a symlink")
     return path
+
+
+def publication_registry_object_resources(
+        registry_path: str | Path,
+) -> tuple[Path, Path]:
+    """Return the exact sorted registry/object-tree writer resources."""
+    registry = Path(registry_path).expanduser().resolve()
+    object_tree = registry.parent / "publication-proof-objects"
+    return tuple(sorted((registry, object_tree), key=str))
 
 
 def model_config(model_id: object, family: object, provider: object = "kiro",

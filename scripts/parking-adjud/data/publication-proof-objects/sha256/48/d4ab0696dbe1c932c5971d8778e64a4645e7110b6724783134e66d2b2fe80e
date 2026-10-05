@@ -1,0 +1,58 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 20725,
+ "building_overlap": true,
+ "context": {
+  "category": "FACILITY",
+  "evidence": "0 m from landuse=residential",
+  "facility": "landuse=residential",
+  "facility_edge_m": 0
+ },
+ "descriptive_tags": [],
+ "fid": 325,
+ "footprint": "polygon",
+ "footways_60m": 21,
+ "members": [
+  {
+   "osm": "way/68513506",
+   "tags": {
+    "amenity": "parking"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/68513506"
+ ],
+ "prior": "bare",
+ "serves": {
+  "edge_m": 389,
+  "fallback": false,
+  "n_trails_in_range": 3,
+  "trail": "North Access Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking"
+ },
+ "tiles": {
+  "z1": "tiles/1622ac1575992252cedcb484afedba1121855873a5313aaed11ee8da7df54f4e.png",
+  "z2": "tiles/567c383d566e12335de1add6dd95e697e71daf8971c927066a832f11c60e4338.png",
+  "z3": "tiles/d5e48b7bb164c4ad5f0e0032ca1070063d20bd3df1faf54d7fbf3911f3585cae.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 800
+ }
+}

@@ -19,6 +19,7 @@ from typing import Iterable
 from calibration import n_for_target, wilson_upper
 from judge_validation import (
     LEGACY_OVERRIDE_VERSION,
+    PATH_BOUND_OVERRIDE_VERSION,
     OVERRIDE_VERSION,
     authority_wrapper,
     original_judge_projection,
@@ -409,7 +410,8 @@ def analyse_item(item: dict, ledger_by_area: dict[str, dict]) -> dict:
         isinstance(override_value, dict)
         and type(override_value.get("version")) is int
         and override_value.get("version") in (
-            LEGACY_OVERRIDE_VERSION, OVERRIDE_VERSION
+            LEGACY_OVERRIDE_VERSION, PATH_BOUND_OVERRIDE_VERSION,
+            OVERRIDE_VERSION
         )
     )
     override = (

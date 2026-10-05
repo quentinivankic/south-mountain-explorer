@@ -1,0 +1,18 @@
+{
+  "assignment_id": "1cb5f5a60db7b42336f6692c5651270056104819812a4ff4ffdb94fce903db31",
+  "decision": {
+    "fid": 760,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/369249614"],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {"call": "yes", "evidence": "Bare prior, decided by vision. Z3: paved lot in the northern half of the red outline with about 8-10 parked cars and faint stall rows, reached by a curving driveway from the east. Z2 shows the same cars and surface. The southern half of the outline sits on white/grey roofs of the adjacent building (packet building_overlap=false, so read as misregistration); the paved, car-filled part is the lot."},
+    "public": {"call": "no", "evidence": "Only tag is amenity=parking: no access tag, name, operator, fee, or trailhead record at the lot. Context is FACILITY: 25 m from amenity=place_of_worship Concordia Lutheran Church. Z1/Z2 show the lot tucked behind that building complex, reached only by its internal driveway, next to a multi-building residential complex to the east. Nothing grants general public parking here; the direct owner (church/facility) is the better explanation. No visible gate is not permission (lesson 11)."},
+    "serves": {"call": "no", "evidence": "Candidate South Foothill Drive Access Trail is 212 m by edge, but walk_m=814 with no connection, footways_60m=0, and no trailhead nodes within 120 m. Z1: the yellow trails are in open space west of a residential street lined with houses, with no path from the lot toward them. PUBLIC was not proved, so overflow cannot apply, and nothing establishes dual use of this church/facility lot."},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

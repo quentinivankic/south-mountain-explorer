@@ -1,0 +1,18 @@
+{
+  "assignment_id": "02253e23d5e7b5f4b8a7053e3c401eefc0cbdd385c093e52c18560d482fc0b4c",
+  "decision": {
+    "fid": 650,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/241879865"],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {"call": "yes", "evidence": "Surveyed prior (parking=surface, capacity=54, name) confirmed: Z2/Z3 show a paved lot with a marked center aisle and ~25+ RVs/trailers parked angled along the west edge inside the red outline, plus one truck in the aisle; no building overlap"},
+    "public": {"call": "no", "evidence": "No lot-level access tag, no trailhead/access record (trailhead_nodes_120m empty). Name 'RV Parking Area \"North\"' plus Z1 context (lot sits beside a drag-racing strip with start tower/staging, pit/hauler parking to the NW, C-470 freeway to the east) reads as venue RV/pit parking for a motorsport facility, not general public parking; packet context NEUTRAL only means no OSM facility polygon was classified within 45 m"},
+    "serves": {"call": "no", "evidence": "Bailout Trail edge 357 m but walk_m 2386 (>1 mi) with no connection or trail named on the walk; 0 footways within 60 m; no trailhead nodes; no yellow trail visible in any frame; the C-470 freeway corridor lies between the lot and the trail side; the motorsport venue is the better explanation for an RV lot"},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking", "parking": "surface", "capacity": "54", "name": "RV Parking Area \"North\""},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

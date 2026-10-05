@@ -1,0 +1,18 @@
+{
+  "assignment_id": "636dfee605c090e9469bb9c663dba2af0c0f6a7ba7d9eeef5a5fc8452daea896",
+  "decision": {
+    "fid": 756,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/368339804"],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {"call": "yes", "evidence": "Surveyed prior (parking=surface) confirmed: Z2/Z3 show a paved L-shaped lot wrapping the church building's west/south/east sides with painted yellow stall stripes in multiple rows and roughly 20+ parked cars along the south rows; building_overlap=false (outline excludes the church footprint)."},
+    "public": {"call": "no", "evidence": "Context FACILITY at 0 m: amenity=place_of_worship 'The Church of Jesus Christ of Latter-day Saints'; Z1/Z2/Z3 show the lot is the church's own wraparound parking with no separate entrance from public roads or trailhead features. Tags are only amenity=parking + parking=surface: no lot-level access=yes/permissive, no trailhead/official access record, and no trailhead_nodes within 120 m. Being ungated and next to public roads does not grant general parking rights; nothing aerial can show a public-permission sign."},
+    "serves": {"call": "no", "evidence": "Green Mountain Trail edge 302 m, walk_m 898 with empty connection, no trailhead node, so no direct or named trail relationship. Z1 shows the yellow trail west of the site across a multi-lane divided arterial, with no path from the lot toward it. The 7 footways within 60 m read as roadside sidewalks and church walks. The church is the better explanation, and distance alone does not make church parking trail overflow."},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking", "parking": "surface"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

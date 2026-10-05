@@ -1,0 +1,45 @@
+{
+ "version": 2,
+ "area": "bear-creek-lake-park-co",
+ "chunk": 3,
+ "fids": [
+  1012,
+  1014,
+  1035,
+  1038,
+  1106
+ ],
+ "source_generation": {
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7",
+  "artifact_sha256": {
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  }
+ },
+ "decision_sha256": "23328eb60babd027727f56675fb6446a92393717f6a57fb1311bb37ace254ea5",
+ "completed": [
+  1012,
+  1014,
+  1035,
+  1038,
+  1106
+ ],
+ "draft_sha256": "960d91eab848af458fb151ac963fd4056fdbeedd2435a0c1609522e923e90474",
+ "judge_row_sha256": [
+  "92b2bb870ca989a7e35a64f5c39bdcc3b477a691a26e45e0622e029fc8307350",
+  "1599cbdc308ac26a7fd7171f97ebab62e5af025dae96eb4fa38894c0f299898c",
+  "bc9e75e3bb1c4ddb460dff673b41c6a1fea8fc5b7b4513de88b49521bb128b64",
+  "9ca3872285c67fac6831bff977a48d8a44f1f286ab35753785ca1c31d40b828e",
+  "b1307df5f892c6b7ad286c81a5bfabdd9f9e2c53095c41fc7c98a1687eead212"
+ ],
+ "resolution_row_sha256": [
+  "92b2bb870ca989a7e35a64f5c39bdcc3b477a691a26e45e0622e029fc8307350",
+  "1599cbdc308ac26a7fd7171f97ebab62e5af025dae96eb4fa38894c0f299898c",
+  "bc9e75e3bb1c4ddb460dff673b41c6a1fea8fc5b7b4513de88b49521bb128b64",
+  "9ca3872285c67fac6831bff977a48d8a44f1f286ab35753785ca1c31d40b828e",
+  "b1307df5f892c6b7ad286c81a5bfabdd9f9e2c53095c41fc7c98a1687eead212"
+ ]
+}

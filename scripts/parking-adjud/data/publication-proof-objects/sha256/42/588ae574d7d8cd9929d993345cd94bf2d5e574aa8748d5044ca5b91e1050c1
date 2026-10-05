@@ -1,0 +1,31 @@
+{
+  "assignment_id": "00da6e7dc8d1c97e6efa7c4b0ca1c64ea5a3d79103ed85c20000a5ea0d8c9301",
+  "decision": {
+    "fid": 885,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/619911462"],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Surveyed prior (amenity=parking + parking=surface + name) confirmed, not contradicted: Z2/Z3 NAIP show a light graded gravel lot filling the red outline (~1770 m2), ~10-12 parked cars in a row along the NW edge plus 2-3 on the SE side, paved access drive from the SW end to a signalized intersection on the divided arterial; no building overlap"
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Lot-level data, not enclosing-park context: the polygon itself is named 'Green Mountain Trailhead' and an OSM trailhead node sits 44 m away, i.e. a named trailhead record at the lot. Z1 shows no competing owner at the lot (it sits alone on the open-hillside side of the arterial; homes and a commercial lot with its own parking are across the road / ~400 m NE). mixed_access=false. No access tag exists, and William Frederick Hayden Park containment plus ungated entry are treated only as context"
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Green Mountain Trail edge 0 m, not fallback, 4 trails in range. Z2/Z3: yellow trail meets the lot's north tip, and a worn dirt path climbs NW from the lot's west edge to the trail. Lot name matches the trail and a trailhead node is at 44 m. The packet walk (887 m, empty connection, trail null) looks like a routing artifact; it is under 1 mile either way and does not outweigh the direct trail contact"
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {
+      "amenity": "parking",
+      "name": "Green Mountain Trailhead",
+      "parking": "surface"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

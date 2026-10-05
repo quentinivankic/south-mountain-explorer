@@ -1,0 +1,32 @@
+{
+  "assignment_id": "1f953f0b171ddd4f6f13692f27eeda8f945892f17c1075d06cc16c4631fd765c",
+  "decision": {
+    "fid": 103,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/45230334"],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Surveyed prior (parking=surface, capacity=12, name) confirmed, not contradicted. Z2/Z3 NAIP: a light graded gravel/dirt pad (~430 m2) distinct from the surrounding dry grass fills the red outline on the NW side of the divided arterial, outside the travel lanes, just before the signalized intersection. Its SE edge runs straight to the arterial shoulder, which gives it a vehicle access throat. Z3 shows one dark vehicle inside the NE corner and two white vehicle-sized objects along the north edge. No building, lawn, water, or through-lane in the footprint."
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "No lot-level access tag. Lot-level trailhead record decides it: the lot itself is named 'Utah Trailhead', and a highway=trailhead node also named 'Utah Trailhead' sits 12 m away (trailhead_nodes_120m). Z1/Z2: the pad stands alone on the park side of the arterial with no school, church, commercial, residential, or event owner adjacent. The homes, condos, and the building with a large lot to the S/SE are all across the 6-lane arterial and have their own parking. Enclosing leisure=park (William Frederick Hayden Park) and the absence of a visible gate are only context, not the basis."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "John O. Hayden Trail edge 1 m, not fallback, 2 trails in range, 4 footways within 60 m. In Z1/Z2/Z3 the yellow trail visibly ends at the pad's west tip, so the trail starts at the lot. The lot and the 12 m trailhead node share the name 'Utah Trailhead', which ties it to a named trailhead. The walk record (958 m, empty connection) disagrees with the visible 1 m trail contact and does not change the call. Nothing in Z1 explains this pad better than the trail."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {
+      "amenity": "parking",
+      "parking": "surface",
+      "capacity": "12",
+      "name": "Utah Trailhead"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

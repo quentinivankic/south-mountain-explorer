@@ -60,8 +60,36 @@ def _authority_run(raw: str) -> Path:
     return path
 
 
-def _preflight_target(path: Path, expected: bytes, tmp: Path,
-                      area: str, run_id: str) -> None:
+def _preflight_stream_target(
+        path: Path, expected_length: int, expected_sha256: str,
+        tmp: Path, area: str, run_id: str) -> bool:
+    paths = review.artifact_paths(tmp, area, run_id)
+    if path != paths["sheet"]:
+        raise ValueError("review sheet path is noncanonical")
+    try:
+        observed = review.review_html_identity_v2(
+            resolver.trusted_fs.iter_verified_regular_chunks(
+                path, require_owner=True, required_mode=0o600,
+                expected_length=expected_length,
+                expected_sha256=expected_sha256,
+            )
+        )
+    except FileNotFoundError:
+        return False
+    except ValueError as error:
+        raise ValueError(
+            f"existing immutable review artifact has different bytes: {path}: "
+            f"{error}"
+        ) from error
+    if observed != (expected_length, expected_sha256):
+        raise ValueError(
+            f"existing immutable review artifact has different bytes: {path}"
+        )
+    return True
+
+
+def _preflight_bytes_target(path: Path, expected: bytes, tmp: Path,
+                            area: str, run_id: str) -> None:
     try:
         current = resolver._review_file_bytes(path, tmp, area, run_id)
     except FileNotFoundError:
@@ -83,49 +111,77 @@ def _main_under_area_lock(args: argparse.Namespace) -> tuple[Path, Path, dict]:
     prepare = resolver.load_prepare_document(
         prepare_path, expected_area=args.slug
     )
-    if prepare["tmp"] != str(tmp):
+    if resolver.runtime_tmp(run_path, prepare) != tmp:
         raise ValueError("authority run targets a different PADJ_TMP")
     if run_path.name != prepare["run_id"]:
         raise ValueError("authority run directory does not match its run id")
     paths = review.artifact_paths(tmp, args.slug, prepare["run_id"])
     prepare_bytes = resolver._read_bytes_nofollow(prepare_path)
-    captured: dict[str, bytes] = {}
+    observed: set[str] = set()
 
     def read_frozen(relative: str) -> bytes:
         artifact = resolver._trusted_artifact_path(run_path / relative, run_path)
-        raw = resolver._read_bytes_nofollow(artifact)
-        previous = captured.setdefault(relative, raw)
-        if previous != raw:
-            raise ValueError(f"frozen artifact changed while rendering: {relative}")
-        return raw
+        observed.add(relative)
+        return resolver._read_bytes_nofollow(artifact)
 
-    sheet_bytes, receipt, consumed = review.build_review_artifacts(
-        prepare, prepare_bytes, run_path, read_frozen,
-        args.sample, paths["sheet"],
+    def iter_frozen(relative: str):
+        artifact = resolver._trusted_artifact_path(run_path / relative, run_path)
+        observed.add(relative)
+        return resolver.trusted_fs.iter_verified_regular_chunks(
+            artifact, require_owner=True, required_mode=0o600
+        )
+
+    render, receipt, consumed = review.build_review_artifacts_v2(
+        prepare, prepare_bytes, run_path, read_frozen, iter_frozen,
+        args.sample,
     )
-    if set(captured) != set(consumed):
+    if observed != set(consumed):
         raise ValueError("review source artifact set is not closed")
     receipt_bytes = review.json_bytes(receipt)
+    sheet_length = receipt["sheet_length"]
+    sheet_sha256 = receipt["sheet_sha256"]
 
     # Reject every hostile existing target before creating either member. A
     # crash after the sheet but before the receipt leaves no usable authority;
-    # an exact retry safely completes the pair.
-    _preflight_target(
-        paths["sheet"], sheet_bytes, tmp, args.slug, prepare["run_id"]
+    # an exact retry safely completes the pair without rotating the sheet.
+    sheet_exists = _preflight_stream_target(
+        paths["sheet"], sheet_length, sheet_sha256,
+        tmp, args.slug, prepare["run_id"],
     )
-    _preflight_target(
+    _preflight_bytes_target(
         paths["receipt"], receipt_bytes, tmp, args.slug, prepare["run_id"]
     )
     _assert_no_authority_journal(tmp, args.slug)
-    resolver._write_review_artifact(
-        paths["sheet"], sheet_bytes, tmp, args.slug, prepare["run_id"]
-    )
+    if not sheet_exists:
+        directory_fd = resolver._open_review_artifact_directory(
+            tmp, args.slug, prepare["run_id"], create=True
+        )
+        os.close(directory_fd)
+        resolver.trusted_fs.atomic_write_stream(
+            paths["sheet"], render(), expected_length=sheet_length,
+            expected_sha256=sheet_sha256, mode=0o600,
+        )
     resolver._write_review_artifact(
         paths["receipt"], receipt_bytes, tmp, args.slug, prepare["run_id"]
     )
-    if (resolver._review_file_bytes(
-            paths["sheet"], tmp, args.slug, prepare["run_id"]
-        ) != sheet_bytes
+    runtime_context = {
+        "version": review.REVIEW_RUNTIME_VERSION,
+        "kind": review.REVIEW_RUNTIME_KIND,
+        "area": args.slug,
+        "source_run_id": prepare["run_id"],
+        "source_run_path": str(run_path),
+    }
+    resolver.trusted_fs.write_idempotent_bytes(
+        review.review_runtime_path(paths, run_path),
+        review.json_bytes(runtime_context),
+    )
+    installed_sheet = review.review_html_identity_v2(
+        resolver.trusted_fs.iter_verified_regular_chunks(
+            paths["sheet"], require_owner=True, required_mode=0o600,
+            expected_length=sheet_length, expected_sha256=sheet_sha256,
+        )
+    )
+    if (installed_sheet != (sheet_length, sheet_sha256)
             or resolver._review_file_bytes(
                 paths["receipt"], tmp, args.slug, prepare["run_id"]
             ) != receipt_bytes):

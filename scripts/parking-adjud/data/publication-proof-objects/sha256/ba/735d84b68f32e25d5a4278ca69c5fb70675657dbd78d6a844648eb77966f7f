@@ -1,0 +1,63 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 813,
+ "building_overlap": true,
+ "context": {
+  "category": "SUPPORT",
+  "evidence": "in boundary=protected_area 'Red Rocks Park'",
+  "facility": null,
+  "facility_edge_m": null
+ },
+ "descriptive_tags": [],
+ "fid": 370,
+ "footprint": "polygon",
+ "footways_60m": 10,
+ "members": [
+  {
+   "osm": "way/82854213",
+   "tags": {
+    "amenity": "parking"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/82854213"
+ ],
+ "prior": "bare",
+ "serves": {
+  "edge_m": 2,
+  "fallback": false,
+  "n_trails_in_range": 2,
+  "trail": "Mount Vernon Creek Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking"
+ },
+ "tiles": {
+  "z1": "tiles/029b32bc7832b94a67b8bce2220a19f2bafc2e4bdb5852b8e15b1b061c7a60a6.png",
+  "z2": "tiles/87a7327e0db47bdac5acdf95f881d8d3e493ea1a7ac76f8f80f0ff2ffa872e9f.png",
+  "z3": "tiles/503b54196f93fa1933709003d512a950c3406042a852f2d287c705f17f8ca674.png"
+ },
+ "trailhead_nodes_120m": [
+  [
+   54,
+   ""
+  ]
+ ],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 17
+ }
+}

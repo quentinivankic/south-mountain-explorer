@@ -1,0 +1,27 @@
+{
+  "assignment_id": "4d8f839b1466cb15350b017c8a03033c8eddb2ee1f2669003ddb9e675d7bd8e6",
+  "decision": {
+    "fid": 318,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/68252587"],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Bare prior, so vision decided. Z2 and Z3 show a paved, curbed lot with aisles and striped stalls in two sections: a northern pod west of the building and a long curved southern lot with planted medians. Several dozen parked cars sit inside the red outline in both frames. No building overlap."
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Only tag is amenity=parking, with no access, operator, name, fee, or trailhead tag and no trailhead node within 120 m. Context puts amenity=school 'McLain Community High School' at 0 m edge distance (FACILITY). In Z1/Z2/Z3 the lot wraps the school building's west entrance and is full of cars on what looks like a school day. Nothing at lot level grants public trail parking. Ungated access and possible public ownership are only context (lesson 11). No aerial frame could show permission, so REVIEW does not apply."
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "PUBLIC is not established, so dual use cannot be credited. The candidate is Sixth Ave West Trail at 510 m edge distance with walk_m 498, but the walk connection is empty and its trail is null. No yellow trail appears in Z2 or Z3. In Z1 our trail only shows at the far bottom-right corner, past garden plots and a maintenance yard. The 6 footways within 60 m read as school sidewalks and a campus path. The school is the better explanation for this lot. Other non-trail owners visible in Z1: a campus complex with its own lots to the NE, a large striped lot to the N, an equipment yard to the SW, and greenhouse/garden plots to the SE."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

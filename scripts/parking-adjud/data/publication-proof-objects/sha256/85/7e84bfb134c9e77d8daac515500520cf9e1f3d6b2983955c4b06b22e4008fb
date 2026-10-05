@@ -1,0 +1,69 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "authority_kind": "override_v4",
+ "authority_payload": {
+  "by": "human",
+  "date": "2026-10-03",
+  "from_decision": {
+   "area": "bear-creek-lake-park-co",
+   "confidence": "strong",
+   "exists": {
+    "call": "yes",
+    "evidence": "Z2: a dedicated asphalt pocket outside the travel lane has painted perpendicular stalls and multiple parked vehicles; tags specify surface=asphalt and capacity=6."
+   },
+   "fid": 1106,
+   "frames_used": [
+    "z1",
+    "z2"
+   ],
+   "osm": [
+    "way/1408649234"
+   ],
+   "prior": "surveyed",
+   "public": {
+    "call": "yes",
+    "evidence": "Packet records a highway=trailhead node 32 m away; Z1/Z2 show the dedicated parking pocket at that trail/road access point, with Red Rocks Park protected-area context and no facility-specific owner."
+   },
+   "resolve_hint": null,
+   "serves": {
+    "call": "yes",
+    "evidence": "Morrison Slide Trail endpoint edge 636 m, with a trailhead node 32 m away and four footways within 60 m; Z1/Z2 show the shipped trail passing directly through the parking access point."
+   },
+   "tags_cited": {
+    "amenity": "parking",
+    "capacity": "6",
+    "surface": "asphalt"
+   },
+   "verdict": "KEEP"
+  },
+  "from_decision_sha256": "b1307df5f892c6b7ad286c81a5bfabdd9f9e2c53095c41fc7c98a1687eead212",
+  "from_evidence_sha256": "94bfc192de0fbf8e10d893f7e43b4995882d5d39c8c3965e6709b77983f2b865",
+  "note": "Hold until a frozen named official access record establishes public parking rights for the Morrison Slide six-space bay.",
+  "packet_sha256": "eb3550cb038fcf08bdf1a86a7ad7cde655c7dda50a1feec4b35c39e1438e3463",
+  "review_item_sha256": "31fe8deb267966f7d0e3364594ddbcbec27b30e1bf9d0aaef2c42da548f38b3c",
+  "review_receipt_sha256": "d792b40e11aa21a46d033442ea84ba15e0a70f3388629539c58d5e2725399866",
+  "review_sheet_sha256": "ccc0dde4594e5bc30ea878127dd5514c03a50864152bec9fb4813af73bf4f939",
+  "reviewer": "quentin",
+  "source_run_id": "6046197b676ae1711aa7992e0c3ab428a453437e789b6627d5cc61a6472c6f24",
+  "to_decision_sha256": "0ac6f50c920dec2bf2ff56d36fe44ccf69cc592ef6b6e541649754360157e7b8",
+  "to_evidence_sha256": "15bcc07c840bcdbae7ab9e74a66af3eb7c23834179e23cb7c020a96499de98f5",
+  "version": 4
+ },
+ "date": "2026-10-03",
+ "effective_decision_sha256": "0ac6f50c920dec2bf2ff56d36fe44ccf69cc592ef6b6e541649754360157e7b8",
+ "effective_evidence_sha256": "15bcc07c840bcdbae7ab9e74a66af3eb7c23834179e23cb7c020a96499de98f5",
+ "fid": 1106,
+ "kind": "parking-human-authority-receipt",
+ "note": "Hold until a frozen named official access record establishes public parking rights for the Morrison Slide six-space bay.",
+ "packet_sha256": "eb3550cb038fcf08bdf1a86a7ad7cde655c7dda50a1feec4b35c39e1438e3463",
+ "primary_assignment_sha256": "001ce68b367dac603468580ac480967e5f15a74d81d5d6e40208b6dd967e8d95",
+ "primary_envelope_sha256": "1052290694b15e224bf8a2d73eb338959c1c08dae5bd9a2c4a28e3617d65dbc4",
+ "receipt_sha256": "5a2daf4f846254454a814d06928605705192f28ecbe80a14b38ad5a13725cb54",
+ "review_item_sha256": "31fe8deb267966f7d0e3364594ddbcbec27b30e1bf9d0aaef2c42da548f38b3c",
+ "review_receipt_sha256": "d792b40e11aa21a46d033442ea84ba15e0a70f3388629539c58d5e2725399866",
+ "review_sheet_sha256": "ccc0dde4594e5bc30ea878127dd5514c03a50864152bec9fb4813af73bf4f939",
+ "reviewer": "quentin",
+ "source_prepare_sha256": "716eb476dee28b72c26b7648be41fc9886da39b79a9ec3b999fc3cd98b43d4ea",
+ "source_run_id": "6046197b676ae1711aa7992e0c3ab428a453437e789b6627d5cc61a6472c6f24",
+ "version": 3
+}

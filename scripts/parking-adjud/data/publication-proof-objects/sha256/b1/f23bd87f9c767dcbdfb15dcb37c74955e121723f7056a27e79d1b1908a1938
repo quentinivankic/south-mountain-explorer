@@ -1,0 +1,26 @@
+{
+  "assignment_id": "d382722051aa1193d0bb3c7de83d0730acb66f254872b8c08728d036f34397fe",
+  "decision": {
+    "fid": 17,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/40722502"],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {"call": "yes", "evidence": "Surveyed prior (parking=surface, surface=asphalt, capacity=84) confirmed: Z2/Z3 NAIP show a delineated paved lot filling the red outline with ~25 parked cars in aisle rows and a paved access road entering from the west off the frontage road; no building/lawn/water contradiction."},
+    "public": {"call": "yes", "evidence": "Lot-level access=permissive plus name=Rooney Road Trailhead (named trailhead record at the lot), operator=City of Lakewood (operator:type=government); capacity:disabled=4; mixed_access=false; no restrictive tag."},
+    "serves": {"call": "yes", "evidence": "Lot is itself named Rooney Road Trailhead; highway=trailhead node 'Rooney Valley Trail/Green Mountain Trail Loop' 55 m; tourism=information 66 m (SUPPORT context); Z1/Z2 show a paved path leaving the lot's SE corner past a small kiosk/structure and crossing the freeway bridge into the yellow trail network; Zorro Trail edge 106 m, walk 204 m, no fallback, 5 trails in range. Z1 non-trail neighbours (electrical substation NW, dirt track/open ground NW, freeway) do not explain this lot better."},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {
+      "access": "permissive",
+      "name": "Rooney Road Trailhead",
+      "operator": "City of Lakewood",
+      "operator:type": "government",
+      "parking": "surface",
+      "surface": "asphalt",
+      "capacity": "84"
+    },
+    "confidence": "certain",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

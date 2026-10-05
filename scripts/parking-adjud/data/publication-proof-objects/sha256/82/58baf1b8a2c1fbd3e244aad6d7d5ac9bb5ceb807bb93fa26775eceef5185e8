@@ -1,0 +1,98 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 1748,
+ "building_overlap": false,
+ "context": {
+  "category": "SUPPORT",
+  "evidence": "in boundary=protected_area 'Matthews/Winters Park'",
+  "facility": null,
+  "facility_edge_m": null
+ },
+ "descriptive_tags": [
+  "surface",
+  "parking",
+  "fee",
+  "capacity",
+  "name",
+  "operator"
+ ],
+ "fid": 11,
+ "footprint": "polygon",
+ "footways_60m": 9,
+ "members": [
+  {
+   "osm": "way/37115952",
+   "tags": {
+    "access": "yes",
+    "addr:city": "Golden",
+    "addr:housenumber": "1103",
+    "addr:postcode": "80401",
+    "addr:state": "CO",
+    "addr:street": "County Highway 73",
+    "amenity": "parking",
+    "capacity": "58",
+    "capacity:disabled": "3",
+    "fee": "no",
+    "name": "Matthews/Winters Park Trailhead",
+    "operator": "Jefferson County Open Space",
+    "operator:type": "government",
+    "parking": "surface",
+    "surface": "asphalt"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/37115952"
+ ],
+ "prior": "surveyed",
+ "serves": {
+  "edge_m": 2,
+  "fallback": false,
+  "n_trails_in_range": 2,
+  "trail": "Village Loop Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "access": "yes",
+  "addr:city": "Golden",
+  "addr:housenumber": "1103",
+  "addr:postcode": "80401",
+  "addr:state": "CO",
+  "addr:street": "County Highway 73",
+  "amenity": "parking",
+  "capacity": "58",
+  "capacity:disabled": "3",
+  "fee": "no",
+  "name": "Matthews/Winters Park Trailhead",
+  "operator": "Jefferson County Open Space",
+  "operator:type": "government",
+  "parking": "surface",
+  "surface": "asphalt"
+ },
+ "tiles": {
+  "z1": "tiles/60e9c3972d67d7f50ce2b64758b83113f668ae623524f03b33b8a5fcbdedb9ae.png",
+  "z2": "tiles/2a82b971af88118e306735d20c54637248c0f809c240e4f726305d90ce283c6a.png",
+  "z3": "tiles/19a63a37cdc75d5586cac20f65083975fa0cae01d1b46764913276cf63f8abeb.png"
+ },
+ "trailhead_nodes_120m": [
+  [
+   47,
+   ""
+  ]
+ ],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 71
+ }
+}

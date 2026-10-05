@@ -1,0 +1,31 @@
+{
+  "assignment_id": "49bafcf45ce1ccfe211c3b9018ce303c8fd3cf11c9697689a02a7f40f3dd5b4e",
+  "decision": {
+    "fid": 778,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/480306052"],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Surveyed prior (name tag). Z3 positively confirms: separately delineated dark asphalt lot with curbed edges, painted diagonal stall stripes along the NW side, and ~25 parked cars on capture day; Z2 shows the same stripes/cars. Red outline sits within ~10-15 m misregistration of the asphalt; no building/lawn/water contradiction (building_overlap=false)."
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Lot-level record: name='Apex Park East Trailhead' on this amenity=parking way itself (named trailhead record at the lot, not merely an enclosing-park inference). Z1-Z3 show a small trailhead structure/kiosk pad at the lot's NW edge with the trail leaving from it. No access/private tag; mixed_access=false. The adjacent, separately paved light-concrete lot to the SE (likely venue/event parking, mostly empty) is a different facility and not part of this member. Caveat: no explicit access=yes tag, so PUBLIC rests on the trailhead name record plus visible trailhead infrastructure."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Argos Trail edge 13 m, walk 17 m, fallback=false, 5 trails in range, 2 footways within 60 m. Z1/Z2 show the yellow trail beginning at the structure on the lot's NW corner and a paved path leaving the lot's west end directly into the trail network; lot name matches Apex Park trailhead. Nearest FACILITY (landuse=residential) is 179 m away, beyond the 45 m adjacency test. No trailhead node within 120 m, but the trail starts at the lot."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {
+      "amenity": "parking",
+      "name": "Apex Park East Trailhead",
+      "addr:street": "Heritage Road"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

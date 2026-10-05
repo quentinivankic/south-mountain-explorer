@@ -46,7 +46,12 @@ import trust_engine  # noqa: E402
 import trust_resolution as tr  # noqa: E402
 
 LEGACY_PREPARE_VERSION = 2
-PREPARE_VERSION = 3
+PATH_BOUND_PREPARE_VERSION = 3
+PREPARE_VERSION = 4
+PREPARE_PATH_SCHEME = "run-relative-posix-v1"
+RUNTIME_CONTEXT_VERSION = 1
+RUNTIME_CONTEXT_KIND = "parking-trust-runtime-context"
+RUNTIME_CONTEXT_NAME = "runtime-context.json"
 OUTPUT_SEAL_VERSION = 1
 _HASH_RE = re.compile(r"^[0-9a-f]{64}$")
 _TOKEN_RE = re.compile(r"\{([A-Z0-9_]+)\}")
@@ -913,25 +918,47 @@ def _assignment_id(run_id: str, fid: int, role: str, model: dict,
 def _prompt(role: str, run_dir: Path, assignment_id: str, packet_path: Path,
             output_path: Path, model: dict,
             normative_hashes: dict[str, str],
-            template_bytes: bytes | None = None) -> bytes:
+            template_bytes: bytes | None = None, *,
+            portable: bool = False) -> bytes:
     template = HERE / f"trust_{role}_prompt.md"
+
+    def prompt_path(path: Path) -> str:
+        if not portable:
+            return str(path.resolve())
+        try:
+            relative = path.absolute().relative_to(run_dir.absolute())
+        except ValueError as error:
+            raise ValueError("portable prompt path escapes its run") from error
+        value = relative.as_posix()
+        if (not value or value.startswith("/") or "\\" in value
+                or any(part in ("", ".", "..") for part in relative.parts)):
+            raise ValueError("portable prompt path is noncanonical")
+        return value
+
     bindings = {
         "ASSIGNMENT_ID": assignment_id,
-        "PACKET_PATH": str(packet_path.resolve()),
-        "OUTPUT_PATH": str(output_path.resolve()),
+        "PACKET_PATH": prompt_path(packet_path),
+        "OUTPUT_PATH": prompt_path(output_path),
         "MODEL_ID": model["id"],
         "MODEL_FAMILY": model["family"],
-        "PROTOCOL_PATH": str((run_dir / "rules" / "judge_protocol.md").resolve()),
+        "PROTOCOL_PATH": prompt_path(run_dir / "rules" / "judge_protocol.md"),
         "PROTOCOL_SHA256": normative_hashes["judge_protocol.md"],
-        "LESSONS_PATH": str((run_dir / "rules" / "judge_lessons.md").resolve()),
+        "LESSONS_PATH": prompt_path(run_dir / "rules" / "judge_lessons.md"),
         "LESSONS_SHA256": normative_hashes["judge_lessons.md"],
     }
     if role == "arbiter":
-        bindings["EXTERNAL_CATALOG_PATH"] = str(
-            (run_dir / "evidence" / "catalog.json").resolve()
+        bindings["EXTERNAL_CATALOG_PATH"] = prompt_path(
+            run_dir / "evidence" / "catalog.json"
         )
     source_bytes = template_bytes if template_bytes is not None else _read_bytes_nofollow(template)
-    return _render_bytes(source_bytes, template.name, bindings)
+    rendered = _render_bytes(source_bytes, template.name, bindings)
+    if portable:
+        rendered = (
+            b"Host contract: the authority run directory is the working directory; "
+            b"every file path below is a canonical run-relative POSIX path.\n\n"
+            + rendered
+        )
+    return rendered
 
 
 def _is_within(path: Path, parent: Path) -> bool:
@@ -1160,12 +1187,117 @@ def _capture_packets(tmp: Path, slug: str, packets: dict[int, dict]) -> tuple[di
     return captures, snapshot_packets
 
 
+def _portable_packet(payload: dict, tile_hashes: dict[str, str]) -> dict:
+    value = copy.deepcopy(payload)
+    value["tiles"] = {
+        zoom: f"tiles/{tile_hashes[zoom]}.png"
+        for zoom in ("z1", "z2", "z3")
+    }
+    return value
+
+
+def _portable_packet_map_bytes(packet_captures: dict[int, tuple]) -> bytes:
+    return _json_bytes({
+        str(fid): _portable_packet(capture[0], capture[1])
+        for fid, capture in sorted(packet_captures.items())
+    })
+
+
+def _runtime_packet(packet: dict, run_dir: Path, version: int) -> dict:
+    if version != PREPARE_VERSION:
+        return packet
+    tiles = packet.get("tiles")
+    if not isinstance(tiles, dict) or set(tiles) != {"z1", "z2", "z3"}:
+        raise ValueError(f"fid {packet.get('fid')}: portable tile set is malformed")
+    value = copy.deepcopy(packet)
+    runtime_tiles = {}
+    for zoom, relative in tiles.items():
+        if (not isinstance(relative, str) or "\\" in relative
+                or not relative.startswith("tiles/")
+                or Path(relative).is_absolute()
+                or Path(relative).parts != ("tiles", Path(relative).name)):
+            raise ValueError(
+                f"fid {packet.get('fid')}: portable {zoom} tile path is noncanonical"
+            )
+        runtime_tiles[zoom] = str(
+            _trusted_artifact_path(run_dir / relative, run_dir)
+        )
+    value["tiles"] = runtime_tiles
+    return value
+
+
+def _portable_current_packet_bytes(
+        packets: dict[int, dict], run_dir: Path, prepare_doc: dict) -> bytes:
+    values = {}
+    for item in prepare_doc["items"]:
+        fid = item["fid"]
+        payload = {
+            key: copy.deepcopy(value)
+            for key, value in packets[fid].items() if key != "tiles"
+        }
+        frozen = _load_json(run_dir / item["packet_path"])
+        payload["tiles"] = copy.deepcopy(frozen.get("tiles"))
+        values[str(fid)] = payload
+    return _json_bytes(values)
+
+
 def _safe_run_root(path: Path) -> Path:
     resolved = path.expanduser().resolve()
     allowed = ROOT / "scripts" / "parking-adjud" / "work"
     if _is_within(resolved, ROOT) and not _is_within(resolved, allowed):
         raise ValueError("resolver run directories inside the repository must be under ignored parking-adjud/work")
     return resolved
+
+
+def _runtime_context_document(tmp: Path, run_root: Path,
+                              run_id: str) -> dict:
+    return {
+        "version": RUNTIME_CONTEXT_VERSION,
+        "kind": RUNTIME_CONTEXT_KIND,
+        "run_id": run_id,
+        "tmp": str(tmp.resolve()),
+        "run_root": str(run_root.resolve()),
+    }
+
+
+def runtime_context(run_dir: Path, prepare_doc: dict) -> dict:
+    """Load operational absolute paths kept outside portable authority bytes."""
+    run = Path(run_dir)
+    if (not run.is_absolute() or str(run) != str(run.resolve())
+            or run.name != prepare_doc.get("run_id")):
+        raise ValueError("resolver runtime directory is noncanonical")
+    if prepare_doc.get("version") != PREPARE_VERSION:
+        return _runtime_context_document(
+            Path(prepare_doc["tmp"]), Path(prepare_doc["run_root"]),
+            prepare_doc["run_id"],
+        )
+    path = _trusted_artifact_path(run / RUNTIME_CONTEXT_NAME, run)
+    raw = _read_bytes_nofollow(path)
+    try:
+        value = json.loads(raw, object_pairs_hook=_reject_duplicate_keys)
+    except (UnicodeDecodeError, ValueError) as error:
+        raise ValueError(f"runtime context is not strict JSON: {error}") from error
+    required = {"version", "kind", "run_id", "tmp", "run_root"}
+    if (not isinstance(value, dict) or set(value) != required
+            or type(value.get("version")) is not int
+            or value.get("version") != RUNTIME_CONTEXT_VERSION
+            or value.get("kind") != RUNTIME_CONTEXT_KIND
+            or value.get("run_id") != prepare_doc.get("run_id")
+            or raw != _json_bytes(value)):
+        raise ValueError("resolver runtime context schema/bytes mismatch")
+    tmp = value.get("tmp")
+    root = value.get("run_root")
+    if (not isinstance(tmp, str) or not Path(tmp).is_absolute()
+            or str(Path(tmp).resolve()) != tmp
+            or not isinstance(root, str) or not Path(root).is_absolute()
+            or str(_safe_run_root(Path(root))) != root
+            or Path(root) != run.parent):
+        raise ValueError("resolver runtime context paths are noncanonical")
+    return value
+
+
+def runtime_tmp(run_dir: Path, prepare_doc: dict) -> Path:
+    return Path(runtime_context(run_dir, prepare_doc)["tmp"])
 
 
 def _current_trust_report(tmp: Path, slug: str,
@@ -1213,9 +1345,12 @@ def _host_external_evidence_catalog(
         manifest_bytes, manifest_path, "external evidence manifest"
     )
     fetched_at = manifest.get("fetched_at")
+    fetched_timestamp = tr._utc_timestamp(fetched_at)
+    capture_timestamp = _dt.datetime.now(_dt.timezone.utc)
     if (manifest.get("kind") != "trekdex-frozen-bulk-evidence"
             or manifest.get("area") != slug
-            or tr._utc_timestamp(fetched_at) is None
+            or fetched_timestamp is None
+            or fetched_timestamp > capture_timestamp
             or not isinstance(manifest.get("sources"), list)):
         raise ValueError(f"{manifest_path}: invalid frozen evidence manifest")
     root = manifest_path.parent
@@ -1225,8 +1360,8 @@ def _host_external_evidence_catalog(
     captured_by_path: dict[Path, bytes] = {manifest_path: manifest_bytes}
     captured_sources: dict[str, dict[str, bytes]] = {}
     required = {
-        "id", "path", "sha256", "query_endpoint", "item_metadata_path",
-        "item_metadata_sha256",
+        "id", "path", "sha256", "query_endpoint", "retrieved_at",
+        "item_metadata_path", "item_metadata_sha256",
     }
 
     def capture_once(path: Path, label: str) -> bytes:
@@ -1274,6 +1409,15 @@ def _host_external_evidence_catalog(
         locator = source.get("query_endpoint")
         if not tr._source_locator(locator):
             raise ValueError(f"{manifest_path}: source {evidence_id} locator is invalid")
+        source_retrieved_at = source.get("retrieved_at")
+        retrieved_timestamp = tr._utc_timestamp(source_retrieved_at)
+        if (retrieved_timestamp is None
+                or retrieved_timestamp < fetched_timestamp
+                or retrieved_timestamp > capture_timestamp):
+            raise ValueError(
+                f"{manifest_path}: source {evidence_id} retrieval time is "
+                "outside manifest fetch and capture bounds"
+            )
         metadata = _json_object_from_capture(
             metadata_bytes, metadata_path, f"source {evidence_id} metadata"
         )
@@ -1290,7 +1434,7 @@ def _host_external_evidence_catalog(
                 raise ValueError(
                     f"{manifest_path}: source {evidence_id} modified time is invalid"
                 ) from error
-            if source_updated > tr._utc_timestamp(fetched_at):
+            if source_updated > retrieved_timestamp:
                 raise ValueError(
                     f"{manifest_path}: source {evidence_id} modified after retrieval"
                 )
@@ -1302,7 +1446,7 @@ def _host_external_evidence_catalog(
             "path": str(artifact),
             "sha256": evidence_hash,
             "source_locator": locator,
-            "retrieved_at": fetched_at,
+            "retrieved_at": source_retrieved_at,
             "source_updated_at": source_updated_at,
             "manifest_sha256": manifest_sha,
             "manifest_path": str(manifest_path),
@@ -1397,10 +1541,10 @@ def _publication_source(tmp: Path, slug: str, packets: dict[int, dict],
         )
         raw_rings = facility.get("rings")
         raw_ring = facility.get("ring")
-        if "rings" in facility and not isinstance(raw_rings, list):
-            raise ValueError(f"{dossier_path}: fid {fid} rings must be a list")
-        if "ring" in facility and not isinstance(raw_ring, list):
-            raise ValueError(f"{dossier_path}: fid {fid} ring must be a list")
+        if raw_rings is not None and not isinstance(raw_rings, list):
+            raise ValueError(f"{dossier_path}: fid {fid} rings must be a list or null")
+        if raw_ring is not None and not isinstance(raw_ring, list):
+            raise ValueError(f"{dossier_path}: fid {fid} ring must be a list or null")
         rings = raw_rings or ([raw_ring] if raw_ring else [])
         normalized_rings = []
         for ring in rings:
@@ -1458,9 +1602,11 @@ def _prepare_under_area_lock(slug: str, tmp: Path,
         tmp, slug, source_generation
     )
     packet_captures, packets = _capture_packets(tmp, slug, source_packets)
+    portable_packet_source_bytes = _portable_packet_map_bytes(packet_captures)
     chunks = _source_chunks(tmp, slug, packets)
     routes, replay = _current_trust_report(
-        tmp, slug, generation_capture, packets, packet_source_bytes, chunks
+        tmp, slug, generation_capture, packets,
+        portable_packet_source_bytes, chunks
     )
     route_by_fid = {int(item["source_key"]): item for item in routes}
     publication = _publication_source(
@@ -1471,7 +1617,7 @@ def _prepare_under_area_lock(slug: str, tmp: Path,
         "publication": publication,
         "packets_path": packet_path.name,
         "packets_frozen_path": "source/packets.json",
-        "packets_file_sha256": _sha(packet_source_bytes),
+        "packets_file_sha256": _sha(portable_packet_source_bytes),
         "replay_sha256": tr.sha256_json(replay),
         "drafts": [{
             "chunk": chunk["chunk"],
@@ -1548,9 +1694,8 @@ def _prepare_under_area_lock(slug: str, tmp: Path,
     identity_document = {
         "version": PREPARE_VERSION,
         "policy_id": tr.POLICY_ID,
+        "path_scheme": PREPARE_PATH_SCHEME,
         "area": slug,
-        "tmp": str(tmp.resolve()),
-        "run_root": str(base),
         "models": models,
         "external_evidence_catalog": external_catalog,
         "normative_document_sha256": normative_hashes,
@@ -1567,7 +1712,7 @@ def _prepare_under_area_lock(slug: str, tmp: Path,
             chunk_by_fid[row["fid"]] = (chunk, row_index, row)
     items = []
     generated: list[tuple[Path, bytes]] = [
-        (run_dir / source["packets_frozen_path"], packet_source_bytes),
+        (run_dir / source["packets_frozen_path"], portable_packet_source_bytes),
     ]
     for chunk, source_entry in zip(chunks, source["drafts"]):
         generated.append((run_dir / source_entry["frozen_path"], chunk["draft_bytes"]))
@@ -1630,7 +1775,7 @@ def _prepare_under_area_lock(slug: str, tmp: Path,
         frozen_tiles = {}
         for zoom in ("z1", "z2", "z3"):
             tile_out = run_dir / "tiles" / f"{tile_hashes[zoom]}.png"
-            frozen_tiles[zoom] = str(tile_out.resolve())
+            frozen_tiles[zoom] = f"tiles/{tile_hashes[zoom]}.png"
             generated.append((tile_out, tile_bytes[zoom]))
         frozen_packet = copy.deepcopy(packet_payload)
         frozen_packet["tiles"] = frozen_tiles
@@ -1671,6 +1816,7 @@ def _prepare_under_area_lock(slug: str, tmp: Path,
             prompt = _prompt(
                 role, run_dir, assignment_id, packet_out, output, models[role],
                 normative_hashes, template_bytes=template_bytes[role],
+                portable=True,
             )
             assignment = {
                 "assignment_id": assignment_id,
@@ -1702,10 +1848,9 @@ def _prepare_under_area_lock(slug: str, tmp: Path,
         "version": PREPARE_VERSION,
         "kind": "parking-trust-prepare",
         "policy_id": tr.POLICY_ID,
+        "path_scheme": PREPARE_PATH_SCHEME,
         "run_id": run_id,
         "area": slug,
-        "tmp": str(tmp.resolve()),
-        "run_root": str(base),
         "models": models,
         "external_evidence_catalog": external_catalog,
         "normative_document_sha256": normative_hashes,
@@ -1713,6 +1858,10 @@ def _prepare_under_area_lock(slug: str, tmp: Path,
         "source": source,
         "items": items,
     }
+    generated.append((
+        run_dir / RUNTIME_CONTEXT_NAME,
+        _json_bytes(_runtime_context_document(tmp, base, run_id)),
+    ))
     generated.append((run_dir / "prepare.json", _json_bytes(document)))
     for path, data in generated:
         _trusted_artifact_path(path, run_dir)
@@ -1786,19 +1935,23 @@ def _identity_item(item: dict) -> dict:
 
 
 def _run_identity(document: dict) -> str:
-    return tr.sha256_json({
+    identity = {
         "version": document["version"],
         "policy_id": document["policy_id"],
         "area": document["area"],
-        "tmp": document["tmp"],
-        "run_root": document["run_root"],
         "source": document["source"],
         "models": document["models"],
         "external_evidence_catalog": document["external_evidence_catalog"],
         "normative_document_sha256": document["normative_document_sha256"],
         "prompt_template_sha256": document["prompt_template_sha256"],
         "items": [_identity_item(item) for item in document["items"]],
-    })
+    }
+    if document.get("version") == PREPARE_VERSION:
+        identity["path_scheme"] = document["path_scheme"]
+    else:
+        identity["tmp"] = document["tmp"]
+        identity["run_root"] = document["run_root"]
+    return tr.sha256_json(identity)
 
 
 def expected_primary_assignment(document: dict, item: dict) -> dict:
@@ -1827,20 +1980,42 @@ def expected_primary_assignment(document: dict, item: dict) -> dict:
 
 def validate_prepare_document(document: object, expected_area: str | None = None,
                               *, allow_legacy: bool = False) -> dict:
-    required = {
-        "version", "kind", "policy_id", "run_id", "area", "tmp", "run_root",
+    common_required = {
+        "version", "kind", "policy_id", "run_id", "area",
         "models", "external_evidence_catalog", "normative_document_sha256",
         "prompt_template_sha256", "source", "items",
     }
-    if not isinstance(document, dict) or set(document) != required:
+    if not isinstance(document, dict):
         raise ValueError("prepare.json schema mismatch")
     version = document.get("version")
-    legacy = allow_legacy and type(version) is int and version == LEGACY_PREPARE_VERSION
     current = type(version) is int and version == PREPARE_VERSION
-    if (not (current or legacy)
+    historical = (
+        allow_legacy and type(version) is int
+        and version in (LEGACY_PREPARE_VERSION, PATH_BOUND_PREPARE_VERSION)
+    )
+    required = common_required | (
+        {"path_scheme"} if current else {"tmp", "run_root"}
+    )
+    if set(document) != required:
+        raise ValueError("prepare.json schema mismatch")
+    if (not (current or historical)
             or document.get("kind") != "parking-trust-prepare"
             or document.get("policy_id") != tr.POLICY_ID):
         raise ValueError("prepare.json version/kind/policy mismatch")
+    generation_bound = version in (PATH_BOUND_PREPARE_VERSION, PREPARE_VERSION)
+    if current:
+        if document.get("path_scheme") != PREPARE_PATH_SCHEME:
+            raise ValueError("prepare.json path scheme is unsupported")
+    else:
+        tmp_value = document.get("tmp")
+        if (not isinstance(tmp_value, str) or not Path(tmp_value).is_absolute()
+                or str(Path(tmp_value).resolve()) != tmp_value):
+            raise ValueError("prepare.json tmp path is noncanonical")
+        run_root_value = document.get("run_root")
+        if (not isinstance(run_root_value, str)
+                or not Path(run_root_value).is_absolute()
+                or str(_safe_run_root(Path(run_root_value))) != run_root_value):
+            raise ValueError("prepare.json run_root path is noncanonical")
     if not _valid_sha(document.get("run_id")):
         raise ValueError("prepare.json run_id is invalid")
     area = document.get("area")
@@ -1848,14 +2023,6 @@ def validate_prepare_document(document: object, expected_area: str | None = None
         raise ValueError("prepare.json area is noncanonical")
     if expected_area is not None and area != expected_area:
         raise ValueError("prepare.json area mismatch")
-    tmp_value = document.get("tmp")
-    if (not isinstance(tmp_value, str) or not Path(tmp_value).is_absolute()
-            or str(Path(tmp_value).resolve()) != tmp_value):
-        raise ValueError("prepare.json tmp path is noncanonical")
-    run_root_value = document.get("run_root")
-    if (not isinstance(run_root_value, str) or not Path(run_root_value).is_absolute()
-            or str(_safe_run_root(Path(run_root_value))) != run_root_value):
-        raise ValueError("prepare.json run_root path is noncanonical")
 
     models = document.get("models")
     if not isinstance(models, dict) or set(models) != set(_MODEL_ROLES):
@@ -1929,12 +2096,12 @@ def validate_prepare_document(document: object, expected_area: str | None = None
         "packets_frozen_path", "replay_sha256",
         "publication",
     }
-    if current:
+    if generation_bound:
         required_source.add("source_generation")
     if set(source) != required_source or not isinstance(source.get("drafts"), list):
         raise ValueError("prepare.json source schema mismatch")
     source_generation = None
-    if current:
+    if generation_bound:
         source_generation = dossier_output.validate_source_generation(
             source.get("source_generation"), area
         )
@@ -2030,7 +2197,7 @@ def validate_prepare_document(document: object, expected_area: str | None = None
                 raise ValueError(f"prepare.json source draft {field} is invalid")
         if not isinstance(draft.get("checkpoint_value"), dict):
             raise ValueError("prepare.json source checkpoint_value is malformed")
-        if current:
+        if generation_bound:
             checkpoint_generation = dossier_output.validate_source_generation(
                 draft["checkpoint_value"].get("source_generation"), area
             )
@@ -2062,7 +2229,7 @@ def validate_prepare_document(document: object, expected_area: str | None = None
         "input_evidence_sha256", "prompt_path",
         "output_path",
     }
-    if current:
+    if generation_bound:
         required_assignment.add("source_generation")
     seen_fids = set()
     seen_coordinates = set()
@@ -2115,7 +2282,8 @@ def validate_prepare_document(document: object, expected_area: str | None = None
                 raise ValueError(f"prepare.json fid {fid} {role} assignment evidence mismatch")
             if assignment.get("normative_document_sha256") != normative_hashes:
                 raise ValueError(f"prepare.json fid {fid} {role} normative hashes mismatch")
-            if current and assignment.get("source_generation") != source_generation:
+            if (generation_bound
+                    and assignment.get("source_generation") != source_generation):
                 raise ValueError(
                     f"prepare.json fid {fid} {role} source_generation mismatch"
                 )
@@ -2154,7 +2322,7 @@ def validate_prepare_document(document: object, expected_area: str | None = None
             raise ValueError(
                 f"prepare.json chunk {chunk:02d} decision vectors do not match item count"
             )
-        if current:
+        if generation_bound:
             checkpoint_packets = [{
                 "fid": item["fid"],
                 "area": area,
@@ -2225,7 +2393,9 @@ def load_prepare_document(path: Path, expected_area: str | None = None, *,
     run_dir = path.parent.resolve()
     if run_dir.name != document["run_id"]:
         raise ValueError("prepare.json parent directory does not match run_id")
-    if str(run_dir.parent) != document["run_root"]:
+    if document["version"] == PREPARE_VERSION:
+        runtime_context(run_dir, document)
+    elif str(run_dir.parent) != document["run_root"]:
         raise ValueError("prepare.json parent root does not match run_root")
     source = document["source"]
     frozen_packets = _trusted_artifact_path(
@@ -2360,14 +2530,14 @@ def _load_prepare(run_dir: Path) -> dict:
 
 def load_review_receipt(review_receipt_path: Path, authority_run: Path,
                         expected_area: str, expected_fid: int | None = None) -> dict:
-    """Rebuild and validate one canonical immutable review artifact chain."""
+    """Reconstruct and validate one portable review without retaining its sheet."""
     run_path = authority_run
     if (not run_path.is_absolute() or str(run_path) != str(run_path.resolve())):
         raise ValueError("authority run path must be canonical and absolute")
     prepare = load_prepare_document(
         run_path / "prepare.json", expected_area=expected_area
     )
-    tmp = Path(prepare["tmp"])
+    tmp = runtime_tmp(run_path, prepare)
     expected_paths = review.artifact_paths(tmp, expected_area, prepare["run_id"])
     if (not review_receipt_path.is_absolute()
             or review_receipt_path != expected_paths["receipt"]
@@ -2385,33 +2555,47 @@ def load_review_receipt(review_receipt_path: Path, authority_run: Path,
     receipt_errors = review.validate_review_receipt(receipt)
     if receipt_errors:
         raise ValueError(f"invalid review receipt: {receipt_errors}")
+    if receipt.get("version") != review.REVIEW_RECEIPT_VERSION:
+        raise ValueError("legacy review receipts are replay-only")
     if review.json_bytes(receipt) != receipt_bytes:
         raise ValueError("review receipt bytes are noncanonical")
-    sheet_bytes = _review_file_bytes(
-        expected_paths["sheet"], tmp, expected_area, prepare["run_id"]
-    )
     prepare_path = _trusted_artifact_path(run_path / "prepare.json", run_path)
     prepare_bytes = _read_bytes_nofollow(prepare_path)
-    source_artifacts: dict[str, bytes] = {}
+    observed: set[str] = set()
 
     def capture(relative: str) -> bytes:
         artifact = _trusted_artifact_path(run_path / relative, run_path)
-        raw = _read_bytes_nofollow(artifact)
-        previous = source_artifacts.setdefault(relative, raw)
-        if previous != raw:
-            raise ValueError(f"frozen review source changed while reading: {relative}")
-        return raw
+        observed.add(relative)
+        return _read_bytes_nofollow(artifact)
 
-    expected_sheet, expected_receipt, consumed = review.build_review_artifacts(
-        prepare, prepare_bytes, run_path, capture,
-        receipt["sample"]["requested"], expected_paths["sheet"],
+    def iter_capture(relative: str):
+        artifact = _trusted_artifact_path(run_path / relative, run_path)
+        observed.add(relative)
+        return trusted_fs.iter_verified_regular_chunks(
+            artifact, require_owner=True, required_mode=0o600
+        )
+
+    render, expected_receipt, consumed = review.build_review_artifacts_v2(
+        prepare, prepare_bytes, run_path, capture, iter_capture,
+        receipt["sample"]["requested"],
     )
     if receipt != expected_receipt:
         raise ValueError("review receipt does not match the exact frozen authority run")
-    if sheet_bytes != expected_sheet:
-        raise ValueError("review sheet does not match the exact frozen authority run")
-    if set(source_artifacts) != set(consumed):
+    if observed != set(consumed):
         raise ValueError("review source artifact capture is not closed")
+    reconstructed = review.review_html_identity_v2(render())
+    expected_sheet = (receipt["sheet_length"], receipt["sheet_sha256"])
+    if reconstructed != expected_sheet:
+        raise ValueError("review sheet reconstruction differs from its receipt")
+    installed = review.review_html_identity_v2(
+        trusted_fs.iter_verified_regular_chunks(
+            expected_paths["sheet"], require_owner=True, required_mode=0o600,
+            expected_length=receipt["sheet_length"],
+            expected_sha256=receipt["sheet_sha256"],
+        )
+    )
+    if installed != expected_sheet:
+        raise ValueError("installed review sheet differs from reconstructed bytes")
     selected_item = None
     if expected_fid is not None:
         selected_item = review.review_item(receipt, expected_fid)
@@ -2421,10 +2605,14 @@ def load_review_receipt(review_receipt_path: Path, authority_run: Path,
         "receipt": receipt,
         "receipt_bytes": receipt_bytes,
         "receipt_path": expected_paths["receipt"],
-        "sheet_bytes": sheet_bytes,
+        "sheet_identity": expected_sheet,
         "sheet_path": expected_paths["sheet"],
         "item": selected_item,
-        "source_artifacts": source_artifacts,
+        "source_artifacts": {
+            relative: _trusted_artifact_path(run_path / relative, run_path)
+            for relative in consumed
+        },
+        "render": render,
     }
 
 
@@ -2649,7 +2837,7 @@ def _load_agent_envelope(run_dir: Path, item: dict, role: str,
 
 
 def _source_draft_state(prepare_doc: dict, source: dict, run_dir: Path) -> tuple[str, list[str]]:
-    tmp_root = Path(prepare_doc["tmp"]).resolve()
+    tmp_root = runtime_tmp(run_dir, prepare_doc).resolve()
     draft = _trusted_artifact_path(tmp_root / source["path"], tmp_root)
     before = source["file_sha256"]
     journal = _trusted_artifact_path(
@@ -2695,10 +2883,17 @@ def _verify_prepared_item(run_dir: Path, prepare_doc: dict, item: dict,
     if frozen_payload != source_payload:
         errors.append(f"fid {item['fid']}: frozen packet payload differs from current packet")
     try:
-        packet_hash = tr.packet_sha256(frozen_packet)
-        _payload, tile_hashes = tr.packet_components(frozen_packet)
+        runtime_frozen_packet = _runtime_packet(
+            frozen_packet, run_dir, prepare_doc["version"]
+        )
+        packet_hash = tr.packet_sha256(runtime_frozen_packet)
+        _payload, tile_hashes = tr.packet_components(runtime_frozen_packet)
         for zoom, tile_hash in tile_hashes.items():
-            expected_tile = str((run_dir / "tiles" / f"{tile_hash}.png").resolve())
+            expected_tile = (
+                f"tiles/{tile_hash}.png"
+                if prepare_doc["version"] == PREPARE_VERSION
+                else str((run_dir / "tiles" / f"{tile_hash}.png").resolve())
+            )
             if frozen_packet["tiles"].get(zoom) != expected_tile:
                 errors.append(f"fid {item['fid']}: frozen {zoom} tile path is noncanonical")
         input_evidence_hashes = sorted(set(
@@ -2772,6 +2967,7 @@ def _verify_prepared_item(run_dir: Path, prepare_doc: dict, item: dict,
                 prepare_doc["models"][role],
                 prepare_doc["normative_document_sha256"],
                 template_bytes=frozen_template,
+                portable=prepare_doc["version"] == PREPARE_VERSION,
             )
             actual_prompt = prompt_path.read_bytes()
             if actual_prompt != expected_prompt or _sha(actual_prompt) != assignment.get("prompt_sha256"):
@@ -2808,8 +3004,8 @@ def evaluate_locked(run_dir: Path, generation_capture) -> tuple[dict, dict]:
     generation_errors = []
     if current_generation != prepared_generation:
         generation_errors.append("source generation changed after prepare")
-    if tr.authority_journal_path(
-            prepare_doc["tmp"], prepare_doc["area"]).exists():
+    tmp = runtime_tmp(run_dir, prepare_doc)
+    if tr.authority_journal_path(tmp, prepare_doc["area"]).exists():
         counts = {
             "items": len(prepare_doc["items"]),
             "pending_challenger": 0,
@@ -2847,12 +3043,17 @@ def evaluate_locked(run_dir: Path, generation_capture) -> tuple[dict, dict]:
             "outputs": {path: None for path in _expected_output_paths(prepare_doc)},
             "seal_sha256": None,
         }
-    tmp = Path(prepare_doc["tmp"])
     packet_path, packets, packet_source_bytes = _packet_map(
         tmp, prepare_doc["area"], prepared_generation
     )
+    del packet_path
     errors = list(generation_errors) + list(seal_errors)
-    if _sha(packet_source_bytes) != prepare_doc["source"]["packets_file_sha256"]:
+    current_packet_bytes = (
+        _portable_current_packet_bytes(packets, run_dir, prepare_doc)
+        if prepare_doc["version"] == PREPARE_VERSION
+        else packet_source_bytes
+    )
+    if _sha(current_packet_bytes) != prepare_doc["source"]["packets_file_sha256"]:
         errors.append("source packets file changed after prepare")
     chunk_states = {}
     for source in prepare_doc["source"]["drafts"]:
@@ -2870,7 +3071,10 @@ def evaluate_locked(run_dir: Path, generation_capture) -> tuple[dict, dict]:
     for item in prepare_doc["items"]:
         fid = item["fid"]
         source_packet = packets[fid]
-        packet = _load_json(run_dir / item["packet_path"])
+        packet = _runtime_packet(
+            _load_json(run_dir / item["packet_path"]),
+            run_dir, prepare_doc["version"],
+        )
         primary = item["primary"]
 
         def validate_plain(decision: dict) -> list[str]:
@@ -2992,7 +3196,7 @@ def evaluate_locked(run_dir: Path, generation_capture) -> tuple[dict, dict]:
 def evaluate(run_dir: Path) -> tuple[dict, dict]:
     """Evaluate current authority under global-before-area shared locks."""
     prepare_doc = _load_prepare(run_dir)
-    tmp = Path(prepare_doc["tmp"])
+    tmp = runtime_tmp(run_dir, prepare_doc)
     inventory_resource = tr.dossier_resource_path(tmp)
     with trusted_fs.locked_resources(
             tmp, [(inventory_resource, fcntl.LOCK_SH)],
@@ -3163,7 +3367,7 @@ def _artifact_paths(run_dir: Path, prepare_doc: dict, source: dict,
     for field in ("path", "checkpoint_path"):
         if Path(source[field]).name != source[field]:
             raise ValueError(f"prepared source {field} is noncanonical")
-    tmp_root = Path(prepare_doc["tmp"]).resolve()
+    tmp_root = runtime_tmp(run_dir, prepare_doc).resolve()
     target = _trusted_artifact_path(tmp_root / source["path"], tmp_root)
     checkpoint = _trusted_artifact_path(
         tmp_root / source["checkpoint_path"], tmp_root
@@ -3347,12 +3551,15 @@ def _finish_transaction(plan: dict, crash_after_replace: bool = False) -> None:
 
 def _verify_current_routes(run_dir: Path, prepare_doc: dict,
                            generation_capture) -> None:
-    tmp = Path(prepare_doc["tmp"])
+    tmp = runtime_tmp(run_dir, prepare_doc)
     packet_source_bytes = _read_bytes_nofollow(
         run_dir / prepare_doc["source"]["packets_frozen_path"]
     )
     frozen_packets = {
-        item["fid"]: _load_json(run_dir / item["packet_path"])
+        item["fid"]: _runtime_packet(
+            _load_json(run_dir / item["packet_path"]),
+            run_dir, prepare_doc["version"],
+        )
         for item in prepare_doc["items"]
     }
     source_chunks = []
@@ -3401,7 +3608,7 @@ def _apply_chunk_under_lock(run_dir: Path, chunk_index: int,
     prepare_doc = _load_prepare(run_dir)
     require_current_source_generation(prepare_doc, generation_capture)
     authority_journal = tr.authority_journal_path(
-        prepare_doc["tmp"], prepare_doc["area"]
+        runtime_tmp(run_dir, prepare_doc), prepare_doc["area"]
     )
     if authority_journal.exists():
         return {
@@ -3541,15 +3748,18 @@ def _apply_chunk_under_lock(run_dir: Path, chunk_index: int,
     return {"state": "APPLIED", "receipt": _load_json(paths["receipt"])}
 
 
-def _canonical_lock_path(prepare_doc: dict, chunk_index: int) -> Path:
+def _canonical_lock_path(run_dir: Path, prepare_doc: dict,
+                         chunk_index: int) -> Path:
     del chunk_index  # authority changes are area-wide, so every chunk shares one lock
-    return tr.area_lock_path(prepare_doc["tmp"], prepare_doc["area"])
+    return tr.area_lock_path(
+        runtime_tmp(run_dir, prepare_doc), prepare_doc["area"]
+    )
 
 
 def apply_chunk(run_dir: Path, chunk_index: int, apply: bool = False,
                 crash_after_replace: bool = False) -> dict:
     prepare_doc = _load_prepare(run_dir)
-    tmp = Path(prepare_doc["tmp"])
+    tmp = runtime_tmp(run_dir, prepare_doc)
     resource_modes = [
         (tr.dossier_resource_path(tmp), fcntl.LOCK_SH),
     ]
@@ -3557,7 +3767,9 @@ def apply_chunk(run_dir: Path, chunk_index: int, apply: bool = False,
         resource_modes.append((DATA / "calibration.json", fcntl.LOCK_EX))
     with trusted_fs.locked_resources(
             tmp, resource_modes, tr.resource_lock_path):
-        area_lock_path = _canonical_lock_path(prepare_doc, chunk_index)
+        area_lock_path = _canonical_lock_path(
+            run_dir, prepare_doc, chunk_index
+        )
         with _open_lock_file(area_lock_path) as area_lock:
             fcntl.flock(
                 area_lock.fileno(), fcntl.LOCK_EX if apply else fcntl.LOCK_SH

@@ -1,0 +1,62 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 8302,
+ "building_overlap": false,
+ "context": {
+  "category": "FACILITY",
+  "evidence": "25 m from amenity=restaurant 'The Fort'",
+  "facility": "amenity=restaurant",
+  "facility_edge_m": 25
+ },
+ "descriptive_tags": [
+  "parking"
+ ],
+ "fid": 869,
+ "footprint": "polygon",
+ "footways_60m": 0,
+ "members": [
+  {
+   "osm": "way/524966199",
+   "tags": {
+    "amenity": "parking",
+    "parking": "surface"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/524966199"
+ ],
+ "prior": "surveyed",
+ "serves": {
+  "edge_m": 1950,
+  "fallback": true,
+  "n_trails_in_range": 5,
+  "trail": "Two Dog Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking",
+  "parking": "surface"
+ },
+ "tiles": {
+  "z1": "tiles/1c3881d69f9de11e51b36e999062126e9d39c6c49b6f2c109540422987f780c5.png",
+  "z2": "tiles/c128058727e36701f326eb684c06de6db83ddb401f3dda3945990a9a52fc6b27.png",
+  "z3": "tiles/bdfb3afeaedaa95d7d81fac2f3b1366c25c3342d44e58e353fdac9533e84ddc6.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 2350
+ }
+}

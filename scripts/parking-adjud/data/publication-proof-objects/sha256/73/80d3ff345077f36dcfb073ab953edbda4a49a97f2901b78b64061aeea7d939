@@ -1,0 +1,65 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 189,
+ "building_overlap": false,
+ "context": {
+  "category": "FACILITY",
+  "evidence": "0 m from landuse=residential",
+  "facility": "landuse=residential",
+  "facility_edge_m": 0
+ },
+ "descriptive_tags": [],
+ "fid": 1014,
+ "footprint": "polygon",
+ "footways_60m": 1,
+ "members": [
+  {
+   "osm": "way/987030584",
+   "tags": {
+    "amenity": "parking"
+   }
+  },
+  {
+   "osm": "way/987030585",
+   "tags": {
+    "amenity": "parking"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/987030584",
+  "way/987030585"
+ ],
+ "prior": "bare",
+ "serves": {
+  "edge_m": 181,
+  "fallback": false,
+  "n_trails_in_range": 2,
+  "trail": "Stone House Trail (North)"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking"
+ },
+ "tiles": {
+  "z1": "tiles/92b9c30907263c0bc14438f3f82c7b901f2aef495d610540c45e1a4f2f643cd0.png",
+  "z2": "tiles/f6e40705e01ac2fb00bd16a80e94417764bf2dbe4eea62eb90db69184d344117.png",
+  "z3": "tiles/73f882f36903aa46d7fed74b3a2df36b1e1860f2d9a6d440f81850671758333f.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 220
+ }
+}

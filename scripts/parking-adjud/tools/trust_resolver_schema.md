@@ -1,4 +1,4 @@
-# Parking trust resolver v3
+# Parking trust resolver v4
 
 This is the executable contract for `resolve_trust.py`. The resolver turns a
 complete primary draft plus blind challenger/arbiter outputs into a
@@ -48,10 +48,16 @@ work/trust-resolver/<area>/<run-id>/
   Archive/transactions/          # completed journals; never deleted
 ```
 
-The v3 run ID binds the absolute source and run-root directories; packet, draft,
-checkpoint, primary-decision, and decision-vector content; every model config;
-every fid/chunk/row/route; static assignment fields; the host evidence catalog;
-all role-prompt template hashes; and the exact byte hashes of `judge_protocol.md` and `judge_lessons.md`.
+The v4 run ID is path-independent. It binds packet, draft, checkpoint,
+primary-decision, and decision-vector content; every model config; every
+fid/chunk/row/route; static assignment fields; the host evidence catalog; all
+prompt-template hashes; and the exact byte hashes of `judge_protocol.md` and
+`judge_lessons.md`. It excludes absolute work/run roots. `prepare.json` declares
+`path_scheme: run-relative-posix-v1`; packet tile refs and generated prompt
+packet/output/rule/catalog refs are closed relative POSIX paths. The absolute
+roots live only in non-authoritative `runtime-context.json`, supplied to loaders
+out of band. Preparing identical inputs in different roots produces identical
+run IDs, prepares, packets, and prompts.
 `prepare.source.source_generation` is a closed portable object with exactly
 `manifest_path`, `manifest_sha256`, and `artifact_sha256`. `manifest_path` is
 exactly `<area>_generation.json`; `artifact_sha256` contains exactly lowercase
@@ -68,6 +74,16 @@ outside that capture. Its parent directory must be named by the run ID. Area
 slugs are separator-free. Prepare acquires dossier-inventory `LOCK_SH` before
 the canonical area `LOCK_EX` and retains both from generation/packet capture
 through every run-artifact write and completed-run reload.
+
+### Producer-valid node-only publication geometry
+
+A dossier facility with both `rings: null` and `ring: null` is intentional
+producer-valid node-only input. Prepare normalizes that exact state to
+`rings: []`; terminal publication retains the row with no polygon, and replay
+requires the same empty geometry. Null does not mean DROP and does not authorize
+polygon synthesis. Any non-null rings value must retain the strict list/point
+schema and malformed values fail before prepare.
+
 `prepare.json` is strict duplicate-free JSON and its exact bytes must equal the
 canonical serialization; whitespace-only and duplicate-key rewrites fail
 before review, authority, or publication. Canonical
@@ -95,17 +111,23 @@ checkpoint/replay tile access, source PNGs are opened beneath the canonical
 ladder descriptor with `O_NOFOLLOW`; pre/post fd and directory-entry
 (device/inode/mode/link/size/mtime/ctime) signatures must remain identical
 around the single content read. External evidence manifest, artifact, and
-metadata files use the same stable one-read capture. Prepare materializes only
+metadata files use the same stable one-read capture. Every source MUST carry a
+UTC `retrieved_at`; an unchanged bulk source uses manifest `fetched_at`, while a
+source added by a later host freeze may use a later value. The value must be no
+earlier than `fetched_at`, no later than the host capture/wall clock, and no
+earlier than its metadata update time. Missing, future, pre-manifest, or
+otherwise incoherent chronology fails before run materialization. Prepare
+materializes only
 captured buffers, fully reloads/validates the completed run, then returns a
 dispatchable path. It writes `tiles/<sha256>.png` and points frozen
 packets only at run-local bytes; all later routing/evaluation/proof uses
 the snapshot. Existing artifacts
 must be byte-identical; prepare never overwrites drift. New live prepare,
 status, apply, terminal publication, and human-authority operations require
-source-generation-bound prepare v3. Unbound prepare v2 remains accepted only
-inside historical publication/review proof replay; it cannot authorize new
-live work. Already-persisted resolver-v1 rows retain their separate replay
-contract.
+source-generation-bound portable prepare v4. Path-bound prepare v2/v3 remains
+accepted only inside historical publication/review proof replay and cannot
+authorize new live work. Already-persisted resolver-v1 rows retain their
+separate replay contract.
 
 Each prompt points only at its frozen packet and imagery. It explicitly forbids
 reading primary/other decisions and states the bound hashes of both normative
@@ -252,26 +274,35 @@ python3 tools/merge_drafts.py STORE "$SLUG" --confirm FID=VERDICT \
   --reviewer ID --note TEXT --judged YYYY-MM-DD
 ```
 
-The renderer validates the prepare and uses only its frozen run. For every item
-it embeds the complete packet payload except replaced tile paths, the full
-normalized publication facility as canonical JSON, the exact primary decision,
-and content-addressed PNG bytes. Under one area `LOCK_EX` it installs
-deterministic owner-only, single-link `review.html` and self-hashed
-`review-receipt.json` under `.review-artifacts/<area>/<run-id>/`; arbitrary
-output paths and live map/file evidence are forbidden. The receipt binds every
-prepared item/source hash and the exact sheet bytes. A sheet-only crash grants
-no authority; exact retry completes the immutable pair without rotating an
-already-correct inode. `calibration.py add --reviewed KEEP=sample` requires the
-canonical absolute `--review-receipt`; the mutually exclusive
-`--legacy-sample-manifest` flag exists only for explicit replay of the obsolete
-manifest.
+The closed v2 renderer validates portable prepare v4 and uses only its frozen
+run. It keeps structured card data small and streams PNG bytes through
+incremental base64, so neither creation nor replay retains the reconstructed
+sheet. Under area `LOCK_EX` it installs deterministic owner-only, single-link
+`review.html` and `review-receipt.json` under
+`.review-artifacts/<area>/<run-id>/`. Receipt v2 binds every prepared
+item/source descriptor, renderer/format version, logical sheet name, and exact
+reconstructed length/SHA-256, but no absolute source/sheet path. Replay invokes
+only the trusted repository renderer and writes no sheet object. A sheet-only
+crash grants no authority; exact retry keeps an already-correct inode.
+Path-keyed append-only runtime locators are operational only and allow the same
+portable review under multiple roots. Calibration still takes an absolute
+receipt path but resolves a run through those locators.
 
-New flips use `--decide` and outer override v3; same-verdict affirmations use
-confirmation v2. Both require the exact canonical `--review-receipt`, preserve
+### REVIEW confirmation shield
+
+New axis-explicit decision changes use `--decide` and outer override v4;
+this includes binary flips and binary-to-REVIEW safety deferrals. Same-verdict
+affirmations use confirmation v3. Confirmation may also bind an explicit
+REVIEW deferral. Either path to REVIEW preserves a receipt-bound non-adding,
+non-dropping shield with a required `resolve_hint`: it cannot gain machine
+resolution or create a calibration flip. Both commands require the exact
+canonical `--review-receipt`, preserve
 the complete original decision, and bind source/effective decision/evidence,
-packet/run, reviewer/date/note, plus review receipt/sheet/item hashes. Legacy
-confirmation v1, override v2, and authority receipt v1 remain replayable but
-cannot be newly emitted or published as current authority.
+packet/run, reviewer/date/note, plus review receipt/sheet/item hashes. Live
+confirmation v3, override v4, and authority receipt v3 contain no absolute
+workstation paths; the supplied run and receipt paths are operational context.
+Confirmation v1/v2, override v2/v3, authority receipt v1/v2, review receipt v1,
+and prepare v2/v3 remain replay-only.
 
 Before either command changes canonical state, pure planner helpers populate
 caller-owned staging. The CLI command is a mutating three-target transaction.
@@ -283,8 +314,17 @@ overlap, `_pub.txt`, packets/tiles, the complete review chain, and whole-area
 packet/draft/checkpoint/source-generation/public-set freshness, stages exact
 after-images/backups, and writes a durable area journal. It installs receipt →
 draft → checkpoint, changing only `draft_sha256`, verifies exact final bytes,
-and archives the journal. Authority receipt v2 lives under
-`.human-authority/<area>/<sha>.json` and binds the full source and review chain.
+and archives the journal. Portable authority receipt v3 lives under
+`.human-authority/<area>/<sha>.json` and binds the full source/review chain by
+IDs and hashes. An append-only non-authoritative runtime locator maps that
+receipt to an operational source run without entering authority bytes.
+Sequential one-fid decisions from the same frozen review run use the validated
+current chain head as the next exact before-image. Every pre-existing difference
+must be a current confirmation-v3 or override-v4 row whose verified receipt is
+bound to that same prepare/review run and whose machine projection exactly
+equals its frozen source row; row order/identity, packets, and every checkpoint
+field except `draft_sha256` remain frozen. Unexplained, cross-run, legacy,
+machine, receipt, or coherently rehashed drift fails before staging.
 
 A failed preflight leaves canonical receipt/draft/checkpoint unchanged. A live
 authority journal blocks merge, judge packet generation, calibration/review
@@ -404,37 +444,112 @@ blocks. Pin-first exact-image validation precedes semantic proof/floor/baseline
 validation. Proofless rows must exactly match the separately self-pinned
 schema-v2 1,273-row/11-dossier `proofless-source-baseline-v1.json`, whose exact
 file bytes and dossier inventory are also rooted; current keys cannot downgrade
-to that baseline through publication. Dossier placement uses only no-follow
-captured bytes.
+to that baseline through publication. Tests additionally read all five exact
+store blobs from pinned source commit
+`140f8c935864ca5fe9b1070256193eee807691e3`, verify all five store hashes, and
+recompute every one of the 1,273 baseline row hashes. Missing commit/blob access
+fails closed; current proof-backed store files are never a corroboration source.
+Dossier placement uses only no-follow captured bytes.
 
-Each newly published current row references publication proof v3 in the
-canonical `<store>_publication_proofs.json` registry. The proof contains the
-actual generation-bound prepare, output seal, byte-exact base64 sealed outputs,
-rendered prompts, and frozen template/normative bytes; chunk receipts with a
-strict complete per-fid terminal vector; packet bindings; exact final
-rows/preserved primaries; terminal draft/checkpoint snapshots; and every current
-human authority receipt. Replay requires exact source-generation equality among
-the prepare, every packet binding, and every final checkpoint. It does not read
-the original work manifest or quartet, so a rooted proof remains self-contained
-after those work files are unavailable. Historical proof v1 requires unbound prepare v2
-with authority receipt v1 and no review bundle. Historical proof v2 requires
-unbound prepare v2 with authority receipt v2 and its review bundle. Proof v3
-requires generation-bound prepare v3, authority receipt v2, and generation-bound
-nested review/source prepares; changing a v3 proof's version cannot downgrade
-it.
-For human rows it also embeds a deduplicated exact review bundle: review receipt,
-sheet bytes, prepare bytes, and the closed frozen source-artifact map needed to
-reconstruct both. Canonical replay independently derives assignment/static/prompt hashes,
-reconstructs persisted envelopes and exact rendered prompts from sealed outputs
-plus frozen template/rule bytes, recomputes the whole-run
-READY snapshot, requires globally exact packet/final-row/human sets and strict
-chunk receipt schemas/vectors, exact-compares final and preserved-primary rows,
-validates terminal draft/checkpoint byte hashes and reconstructs the full
-checkpoint manifest—including completed, draft, primary, resolution, and
-unchanged source fields—then replays v2 consensus and human primary/source
-bindings before crediting
-authority. A coherently rehashed row or prepare assignment with the original
-sealed output fails.
+Each newly published current row uses attestation v3 and names the exact
+proof-manifest v4 byte hash in compact `<store>_publication_proofs.json`
+registry v2. Registry entries contain only a canonical repository-relative
+manifest path, exact length, and SHA-256. Both legacy and compact registry
+loaders enforce the 1 MiB limit while streaming, before materialization or JSON
+parse. Every structured publication source is captured beneath its explicit
+run/work root through owner, ACL, single-link, exact-0600, fd↔entry, and
+pre/post metadata checks. Its 4 MiB limit is enforced before join, parse, or
+staging; each manifest is independently capped at 4 MiB. The manifest's sorted
+object table references portable
+prepares, output seals, sealed outputs, rendered prompts, frozen templates and
+rules, packets, terminal drafts/checkpoints/receipts, human receipts, review
+receipts, and review sources. Raw bytes are deduplicated under
+`data/publication-proof-objects/sha256/HH/<62-hex>`.
+
+Every logical object binds total length/SHA-256 and deterministic ordered leaves;
+each leaf is at most 32 MiB. Object reads use at most 1 MiB, descriptor-walk
+parents with no-follow semantics, and require a stable current-owner,
+trivial-ACL, regular, single-link, non-writable inode whose live entry, length,
+and hash remain exact. Git may restore `0644`, shared-group `0664`, or execute
+bits. `publication_objects.py seal <registry-v2-path>` explicitly verifies and
+streams each such checkout file into a fresh read-only single-link inode,
+atomically replaces the canonical entry, and thereby retires every pre-opened
+writer before reporting success. It clears write/execute bits while preserving
+read bits; normal replay rejects rather than silently repairing permissions.
+Object iterators may use an exact transitional stage only before their first
+yield and never replay a partially consumed leaf.
+
+Review sheets are recipes, never objects. Each review recipe binds closed
+renderer v2, prepare/receipt refs, the complete source-object map, logical sheet
+name, and expected streamed length/SHA-256. Replay reconstructs and hashes the
+sheet without writing or retaining it. It also derives assignment/static/prompt
+hashes, reconstructs one assignment's persisted envelopes at a time, records
+only compact immutable READY/terminal fields, releases decoded
+challenger/arbiter envelopes before the next assignment, incrementally hashes
+the canonical packet-source object, verifies terminal draft/checkpoint/receipt
+semantics and exact final rows, and replays portable human authority before
+crediting any row. Descriptor path/length/hash, leaf order, object-byte, recipe,
+or manifest tampering fails closed.
+
+Historical inline registry v1 remains readable: proof v1 uses prepare v2 and
+authority receipt v1; proof v2 uses prepare v2, authority receipt v2, and review
+bundle v1; proof v3 uses prepare v3 and authority/review v2. Those versions are
+replay-only and cannot be emitted, silently upgraded, or aliased to a v4 hash.
+A nonempty v1 publication crosses generations only through the manual boundary:
+archive its exact store/registry/floor/root image, restore the reviewed
+generation-1 before-image, and regenerate portable model plus human authority
+before publishing registry v2/proof v4. New proof IDs are required; a proof-ID
+alias migration is forbidden.
+
+### Oversized registry read block and generation-1 restore
+
+The 1 MiB registry cap applies before materialization to every legacy/current
+read and to every write. It has no override. Every cap error points to
+`README.md#oversized-registry-read-block-and-generation-1-restore`; the known
+841,565,189-byte Colorado v1 registry therefore requires the parent-owned
+forensic rollback rather than a larger limit.
+
+The exact boundary is: in an exclusive maintenance window, create a new
+owner-only durable path containing `Archive`; record hashes/lengths; move (never
+unlink or overwrite) the complete current Colorado store, registry, floor,
+tracked root, transaction tree, and object tree into it; then restore only these
+tracked blobs from commit
+`140f8c935864ca5fe9b1070256193eee807691e3`:
+`data/co_verdicts_osm.json`,
+`data/co_verdicts_osm_publication_floor.json`, and
+`publication-trust-root-v1.json`. The legacy registry remains absent because its
+current file was moved into Archive. Exact restored hashes are store
+`44f3ac4c6793e1be66e301f6ee46875de92b8e1952351c607ae4e658d861a0cb`,
+floor `5b5d134bec54d6e3e4862cea31231e1701b5d116c4866819128b6e59b40f3cad`,
+and generation-1 root
+`43db143447d90f506d42b273c425e0d048e5580e605ac211750114ba350dfd85`.
+The literal code pin must equal that root, its parent must be null, the proof
+registry and live journal must be absent, and any mismatch blocks regeneration.
+The exact move-only shell skeleton is maintained in the README section named by
+the cap error. It passes a new operation-owned report directory directly to
+`archive-batch`. The command creates that namespace without clobbering, fsyncs a
+canonical plan and PREPARED safety evidence before the first rename, then writes
+one no-clobber hash-chained checkpoint after each fully synced and exactly
+verified move. Complete destination file length/SHA-256 or recursive tree
+evidence and a freshly reverified safety image must equal PREPARED evidence;
+otherwise terminal state is `committed-indeterminate`. While alive, the process
+fsyncs terminal `committed`, `not-committed`, `partially-committed`, or
+`committed-indeterminate` before releasing its globally sorted lease. A SIGKILL
+can leave no terminal, but PREPARED plus checkpoints prove the last durable
+prefix. Stdout has no authority. The recipe must run bounded
+`verify-archive-report` successfully before `git restore`; only a canonical
+terminal-committed chain whose exact destinations and safety images all reopen
+against recorded evidence is accepted.
+
+From the restored image, create a fresh current-schema run and regenerate every
+affected model output and required human review/authority receipt from frozen
+portable sources. Never reuse a legacy envelope/receipt or alias a proof ID.
+Completion requires: a still-verifiable forensic archive; registry v2 no larger
+than 1,048,576 bytes; proof manifest v4; attestation v3; a separately reviewed
+and promoted generation-2 root whose parent is the generation-1 root hash; the
+literal pin promoted with it; successful full build/replay; and all five
+production-corpus tests running without the oversized-registry skip. Failure of
+any condition leaves publication blocked.
 
 `publication-trust-root-v1.json` is strict canonical schema v1 with no
 self-hash. Its exact file SHA-256 is pinned by the literal
@@ -447,29 +562,73 @@ is deliberately outside the root because it is deterministic derived output.
 Replay/build hold root `LOCK_SH`. A rooted terminal publication holds root
 `LOCK_EX`, target store/proof/floor/journal resources exclusively, sibling
 publication resources shared, and the shared baseline/dossier resources in the
-same globally sorted lock set.
+same globally sorted lock set. The explicit registry-object `seal` mutation
+uses that same canonical lock mapping: it holds the exact registry and
+`publication-proof-objects` resources exclusively for its entire read,
+replacement, and verification lifecycle. Archive batches naming either resource
+therefore exclude seal, and seal excludes those archive batches.
 
-Publication pre-serializes exact proof, append-only floor, store, and successor
-candidate after-images; stages and backs up the canonical triple; and writes a
-terminal-run-bound journal containing parent/candidate identity. The only valid
-install prefix is proof → floor → store → candidate. The floor preserves each
-admitted key's first authority/attestation/proof tuple. The candidate increments
-generation, names the pinned parent hash, changes only the target triple, and is
-non-authoritative. Every target is exact-byte verified before journal archival.
-Recovery reruns the complete original single-area `merge_drafts.py STORE SLUG
---resolver-run RUN --judged YYYY-MM-DD --write` command. The current terminal
-invocation must independently reconstruct the same root-anchored before-image,
-plan, after-images, and candidate; a different run/date/image, non-prefix
-canonical state, malformed stage/backup/candidate, or mismatched archive fails
-closed without selecting authority from the journal.
+Publication pre-serializes exact compact registry, append-only floor, store,
+and successor candidate after-images and stages every immutable object. The
+durable transaction journal binds the sorted object descriptors/stage paths and
+is installed before the first object. The only valid prefix is sorted objects →
+registry → floor → store → candidate. Object paths are absent-or-exact and never
+overwritten. Installation atomically claims an absent path by hard-linking its
+sealed journal-bound stage, fsyncs the object directory, reduces the object to a
+single link, and retains an exact stage on a separate sealed inode. A crash at
+either cut leaves an exact recoverable prefix. Every object cut is therefore
+exactly retryable, and unreferenced objects confer no authority. Registry v2 retains every prior entry
+byte-for-byte and may only append; removal or rewrite fails. The floor preserves
+each admitted key's first authority/attestation/proof tuple. The candidate
+increments generation, names the pinned parent hash, changes only the target
+triple, and is non-authoritative. Every object closure and mutable target is
+exactly verified before journal archival. Recovery reruns the complete original
+single-area command and independently reconstructs the same root-anchored
+before-image, object vector, plan, after-images, and candidate; a different
+run/date/image, non-prefix state, malformed object/stage/backup/candidate, or
+mismatched archive fails closed.
+
+Stage retention is intentionally non-destructive. The complete independent
+`object-stages/<run-id>/` copy remains mandatory while a journal is live,
+through journal archival, and until candidate-root promotion plus full replay.
+No automatic reaper unlinks forensic bytes. After those gates,
+`publication_objects.py verify-stage ARCHIVED_JOURNAL STAGE_DIRECTORY` provides
+the required read-only enumeration: it validates the canonical journal and its
+plan/transaction hashes, requires the exact sealed file set, verifies every
+object descriptor/path/length/SHA-256, and emits descriptor count, file count,
+unique bytes, and a deterministic hash closure. It performs no move, replace,
+or unlink.
+
+The only reclamation sequence is: run `verify-stage` against the internal
+archived journal and active stage; create a new owner-only external path with an
+`Archive` component; save that JSON report there; pass a new sibling report
+namespace plus the complete stage/journal pair set and publication resource set
+to `archive-batch`; require `verify-archive-report` to validate terminal
+`committed`, the exact checkpoint order/hash chain, and every destination and
+safety image; then run `verify-stage` against the destination journal/stage and
+retain all reports. The before and after `transaction_id`, `journal_sha256`,
+`stage_run_id`, descriptor/file counts, unique bytes, and
+`hash_closure_sha256` must be identical, and the after report must set
+`stage_is_in_archive` to true. The README contains the exact shell commands. On
+any failure, preserve the current source/destination/report state for
+investigation; never delete, overwrite, copy over, selectively move, or blindly
+retry forensic files. If the archive cannot remain exact and readable, the
+stage stays in place. Capacity planning reserves approximately one extra
+closure byte per unique stage until that verified archival move.
 
 The transaction never writes the tracked root or code pin. After completion,
 replay/build and every second publication remain blocked against the old root
 until a separate reviewed Git change installs the candidate's exact bytes as
 the tracked root and updates the literal pin and pin assertions together.
-Publication proof/attestation v1 and legacy human receipt schemas remain
-replay-only; new publication emits v2 and will not upgrade unreviewed legacy
-human authority implicitly. Legacy unversioned overrides and persisted
+Publication proof v1-v3, attestation v1/v2, confirmation v1/v2, override
+v2/v3, authority receipt v1/v2, and review receipt v1 remain replay-only.
+`trust_engine.analyse_item` intentionally continues to classify historical
+path-bound override v3 as structured human authority when its receipt and
+packet/review hashes validate. Otherwise an already-reviewed row would be
+misreported as model-only and would distort calibration. This compatibility is
+classification-only: new authority still emits portable override v4 and cannot
+create or upgrade v3. New publication emits proof v4, registry v2, and
+attestation v3 and will not upgrade unreviewed legacy human authority implicitly. Legacy unversioned overrides and
 resolver-v1 rows otherwise retain their frozen behavior. The resolver cannot
 invoke publication or root promotion.
 

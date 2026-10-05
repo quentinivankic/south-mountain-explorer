@@ -1,0 +1,153 @@
+{
+ "after_sha256": "79fecc96e20b8fda90485614c7701a77492a71124b7b6a83150ff4c6c66c9f42",
+ "applied_fids": [
+  {
+   "decision_sha256": "9810e564b75dcd0cbbb5329ef0b70a801268c12b6033ec7a1892e63501c7a94e",
+   "fid": 760
+  },
+  {
+   "decision_sha256": "f4892f8aafad8375acb26f943f84b63fc87e232c942514f20d9b3a8585720ecd",
+   "fid": 778
+  },
+  {
+   "decision_sha256": "8540d2e3bb436d36992335b452a2dd9630380c421a1b49549843fcc114652abf",
+   "fid": 876
+  },
+  {
+   "decision_sha256": "fa73dc7a8e81fe818035774077a6ffff0be12d10e3556f33b04ed2c1b8353d7d",
+   "fid": 885
+  },
+  {
+   "decision_sha256": "efa873c0668fc127b7db5b0d1141555a99c016704b2052aff66167e356a04ebd",
+   "fid": 886
+  },
+  {
+   "decision_sha256": "feb6949e650fb6038fdd5c0b52c4a7dccd506072c48e73bd03ea36abfd176b1f",
+   "fid": 888
+  },
+  {
+   "decision_sha256": "c2f0a716a3b8ab5b3888cf60d961f53383904cd266d999512d3968a7c2ab902c",
+   "fid": 889
+  },
+  {
+   "decision_sha256": "fe5cabec3bea13d5c8cfd51337f6f00214437c9f16165916f1fe08072799d5d4",
+   "fid": 890
+  },
+  {
+   "decision_sha256": "e43413c21ce2053e9a76bc4314352f787461e6adc0ca420a5255cb5271ce741b",
+   "fid": 892
+  },
+  {
+   "decision_sha256": "25eb28bc2d46532a71c467a368c94e434acb9676d4527c164bde121f5faec2db",
+   "fid": 906
+  },
+  {
+   "decision_sha256": "6785b0c75e26ea4f4336f14e117aab35b698561958c08da9c6702074fe5485b2",
+   "fid": 908
+  },
+  {
+   "decision_sha256": "beffab9d17368bb13666d87bea4c62d8fa44246089b0325abf34a630c520f56f",
+   "fid": 937
+  }
+ ],
+ "before_sha256": "60b403529541ce4beec368f6d16a2d719b5371552da22c1ce9749a3aa9a6e44a",
+ "checkpoint_after_sha256": "7379f37a3d00cc6d1a68641809f2492bcdfae249ae2f0a5fcbb4e1be231e1172",
+ "chunk": 2,
+ "kind": "parking-trust-receipt",
+ "output_seal_sha256": "4b4c4e7e35f2b9841c84762ffffac8b2387efee2ef124fe3e423b6846d19fd46",
+ "run_id": "4bc3624fcc9183f12ca94fccf204f4cee3d09617a5be3085590016dc4174190e",
+ "terminal_fids": [
+  {
+   "decision_sha256": "9810e564b75dcd0cbbb5329ef0b70a801268c12b6033ec7a1892e63501c7a94e",
+   "fid": 760,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": "f4892f8aafad8375acb26f943f84b63fc87e232c942514f20d9b3a8585720ecd",
+   "fid": 778,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": null,
+   "fid": 869,
+   "selected_role": null,
+   "state": "preserved"
+  },
+  {
+   "decision_sha256": "8540d2e3bb436d36992335b452a2dd9630380c421a1b49549843fcc114652abf",
+   "fid": 876,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": "fa73dc7a8e81fe818035774077a6ffff0be12d10e3556f33b04ed2c1b8353d7d",
+   "fid": 885,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": "efa873c0668fc127b7db5b0d1141555a99c016704b2052aff66167e356a04ebd",
+   "fid": 886,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": "feb6949e650fb6038fdd5c0b52c4a7dccd506072c48e73bd03ea36abfd176b1f",
+   "fid": 888,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": "c2f0a716a3b8ab5b3888cf60d961f53383904cd266d999512d3968a7c2ab902c",
+   "fid": 889,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": "fe5cabec3bea13d5c8cfd51337f6f00214437c9f16165916f1fe08072799d5d4",
+   "fid": 890,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": null,
+   "fid": 891,
+   "selected_role": null,
+   "state": "preserved"
+  },
+  {
+   "decision_sha256": "e43413c21ce2053e9a76bc4314352f787461e6adc0ca420a5255cb5271ce741b",
+   "fid": 892,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": "25eb28bc2d46532a71c467a368c94e434acb9676d4527c164bde121f5faec2db",
+   "fid": 906,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": "6785b0c75e26ea4f4336f14e117aab35b698561958c08da9c6702074fe5485b2",
+   "fid": 908,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": "beffab9d17368bb13666d87bea4c62d8fa44246089b0325abf34a630c520f56f",
+   "fid": 937,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": null,
+   "fid": 979,
+   "selected_role": null,
+   "state": "preserved"
+  }
+ ],
+ "transaction_id": "995b9e288c62f913bda8e53bdeac9221d3284b34148234ce3b20101fc5124980",
+ "version": 1
+}

@@ -1,0 +1,70 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 1770,
+ "building_overlap": false,
+ "context": {
+  "category": "PARK",
+  "evidence": "in leisure=park 'William Frederick Hayden Park' — generic park, weak",
+  "facility": null,
+  "facility_edge_m": null
+ },
+ "descriptive_tags": [
+  "parking",
+  "name"
+ ],
+ "fid": 885,
+ "footprint": "polygon",
+ "footways_60m": 5,
+ "members": [
+  {
+   "osm": "way/619911462",
+   "tags": {
+    "amenity": "parking",
+    "name": "Green Mountain Trailhead",
+    "parking": "surface"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/619911462"
+ ],
+ "prior": "surveyed",
+ "serves": {
+  "edge_m": 0,
+  "fallback": false,
+  "n_trails_in_range": 4,
+  "trail": "Green Mountain Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking",
+  "name": "Green Mountain Trailhead",
+  "parking": "surface"
+ },
+ "tiles": {
+  "z1": "tiles/392a100fc627f5de5828e024fc7392265c2d820fe23ef8a0c9a0081f8ce6a967.png",
+  "z2": "tiles/a351f2df06947d699fb42d4f862f5cb838bd688c208078c7a11cabb21a6617d2.png",
+  "z3": "tiles/960507e7e3112c89688c8e676ed914f45c048e0671f9bb12f33cd91072ab438a.png"
+ },
+ "trailhead_nodes_120m": [
+  [
+   44,
+   ""
+  ]
+ ],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 887
+ }
+}

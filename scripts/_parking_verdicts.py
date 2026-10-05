@@ -313,11 +313,45 @@ def _validate_matching_ring(ring: object, field: str) -> list[list[float]]:
     return coordinates
 
 
+def _is_emoji_style_symbol(character: str) -> bool:
+    codepoint = ord(character)
+    return (
+        unicodedata.category(character) == "So"
+        and (
+            0x1F000 <= codepoint <= 0x1FAFF
+            or 0x2600 <= codepoint <= 0x27FF
+            or 0x2B00 <= codepoint <= 0x2BFF
+        )
+    )
+
+
+def is_emoji_zwj(value: str, index: int) -> bool:
+    """Return whether U+200D joins two bounded emoji-style symbol bases."""
+    if value[index] != "\u200d" or index == 0 or index + 1 >= len(value):
+        return False
+    left = index - 1
+    # Variation selectors and Fitzpatrick modifiers decorate the symbol to
+    # their left; skip them when identifying the base being joined.
+    while left >= 0 and (
+        value[left] in {"\ufe0e", "\ufe0f"}
+        or 0x1F3FB <= ord(value[left]) <= 0x1F3FF
+    ):
+        left -= 1
+    return (
+        left >= 0
+        and _is_emoji_style_symbol(value[left])
+        and _is_emoji_style_symbol(value[index + 1])
+    )
+
+
 def _reject_control_text(value: object, field: str) -> None:
     if isinstance(value, str):
-        if any(unicodedata.category(character) in {"Cc", "Cf", "Zl", "Zp"}
-               for character in value):
-            raise ValueError(f"{field} contains forbidden control text")
+        for index, character in enumerate(value):
+            category = unicodedata.category(character)
+            if category == "Cf" and is_emoji_zwj(value, index):
+                continue
+            if category in {"Cc", "Cf", "Zl", "Zp"}:
+                raise ValueError(f"{field} contains forbidden control text")
     elif isinstance(value, dict):
         for key, child in value.items():
             _reject_control_text(key, f"{field} key")

@@ -1,0 +1,58 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 2989,
+ "building_overlap": false,
+ "context": {
+  "category": "FACILITY",
+  "evidence": "0 m from amenity=school 'Warren Occupational Technical Center'",
+  "facility": "amenity=school",
+  "facility_edge_m": 0
+ },
+ "descriptive_tags": [],
+ "fid": 321,
+ "footprint": "polygon",
+ "footways_60m": 9,
+ "members": [
+  {
+   "osm": "way/68252594",
+   "tags": {
+    "amenity": "parking"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/68252594"
+ ],
+ "prior": "bare",
+ "serves": {
+  "edge_m": 28,
+  "fallback": false,
+  "n_trails_in_range": 1,
+  "trail": "North Green Mountain"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking"
+ },
+ "tiles": {
+  "z1": "tiles/597a5588bf3c09a2cb3b15abd0265fa21ee2e8fd1f09c167ae52ee0032cb4ec3.png",
+  "z2": "tiles/6c2d2b71d29f27d7dc359a13f06364ba50570272fc241b482c370c9e8ce44a16.png",
+  "z3": "tiles/fbdc8f9c4e3db5860b374c3a574d9875af8bee73484072ea25b52bfeca8e7a93.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 109
+ }
+}

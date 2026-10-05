@@ -14,16 +14,22 @@ import html
 import json
 import sys
 from pathlib import Path, PurePosixPath
-from typing import Callable
+from typing import Callable, Iterable, Iterator
 
 import trust_resolution as tr
 
-REVIEW_RECEIPT_VERSION = 1
+LEGACY_REVIEW_RECEIPT_VERSION = 1
+REVIEW_RECEIPT_VERSION = 2
 REVIEW_RECEIPT_KIND = "parking-human-review-receipt"
-REVIEW_FORMAT_VERSION = 1
+LEGACY_REVIEW_FORMAT_VERSION = 1
+REVIEW_FORMAT_VERSION = 2
+REVIEW_RENDERER_VERSION = "review-html-v2"
 REVIEW_ARTIFACT_DIR = ".review-artifacts"
 REVIEW_SHEET_NAME = "review.html"
 REVIEW_RECEIPT_NAME = "review-receipt.json"
+REVIEW_RUNTIME_NAME = "review-runtime.json"
+REVIEW_RUNTIME_VERSION = 1
+REVIEW_RUNTIME_KIND = "parking-human-review-runtime-context"
 SAMPLE_VERSION = 1
 SAMPLE_STRATEGY = "sha256-run-fid-keep-v1"
 _ZOOMS = ("z1", "z2", "z3")
@@ -55,7 +61,16 @@ def artifact_paths(tmp: str | Path, area: str, run_id: str) -> dict[str, Path]:
         "directory": directory,
         "sheet": directory / REVIEW_SHEET_NAME,
         "receipt": directory / REVIEW_RECEIPT_NAME,
+        "runtime_directory": directory / "runtime",
     }
+
+
+def review_runtime_path(paths: dict[str, Path], source_run: Path) -> Path:
+    run = Path(source_run)
+    if not run.is_absolute() or str(run.resolve()) != str(run):
+        raise ValueError("review runtime source run is noncanonical")
+    digest = hashlib.sha256(str(run).encode("utf-8")).hexdigest()
+    return paths["runtime_directory"] / f"{digest}.json"
 
 
 def review_item(receipt: dict, fid: int) -> dict:
@@ -385,9 +400,9 @@ def build_review_artifacts(
     prepare_sha = _sha(prepare_bytes)
     sheet_bytes = _render(prepare, details, sample, prepare_sha)
     body = {
-        "version": REVIEW_RECEIPT_VERSION,
+        "version": LEGACY_REVIEW_RECEIPT_VERSION,
         "kind": REVIEW_RECEIPT_KIND,
-        "format_version": REVIEW_FORMAT_VERSION,
+        "format_version": LEGACY_REVIEW_FORMAT_VERSION,
         "area": prepare["area"],
         "source_run_id": prepare["run_id"],
         "source_run_path": str(run_path),
@@ -403,7 +418,7 @@ def build_review_artifacts(
     return sheet_bytes, receipt, sorted(set(consumed))
 
 
-def validate_review_receipt(receipt: object) -> list[str]:
+def _validate_review_receipt_v1(receipt: object) -> list[str]:
     required = {
         "version", "kind", "format_version", "area", "source_run_id",
         "source_run_path", "source_prepare_sha256", "source_packets_sha256",
@@ -413,10 +428,10 @@ def validate_review_receipt(receipt: object) -> list[str]:
         return ["review receipt schema mismatch"]
     errors: list[str] = []
     if (type(receipt.get("version")) is not int
-            or receipt.get("version") != REVIEW_RECEIPT_VERSION
+            or receipt.get("version") != LEGACY_REVIEW_RECEIPT_VERSION
             or receipt.get("kind") != REVIEW_RECEIPT_KIND
             or type(receipt.get("format_version")) is not int
-            or receipt.get("format_version") != REVIEW_FORMAT_VERSION
+            or receipt.get("format_version") != LEGACY_REVIEW_FORMAT_VERSION
             or tr.area_slug(receipt.get("area")) != receipt.get("area")):
         errors.append("review receipt version/kind/area mismatch")
     for field in (
@@ -522,3 +537,456 @@ def validate_review_receipt(receipt: object) -> list[str]:
     if claimed != expected_receipt_hash:
         errors.append("review receipt self-hash mismatch")
     return errors
+
+
+_REVIEW_STREAM_SIZE = 1024 * 1024
+_BASE64_INPUT_SIZE = 768 * 1024
+_SMALL_REVIEW_OBJECT_LIMIT = 4 * 1024 * 1024
+
+
+def _iter_base64(chunks: Iterable[bytes]) -> Iterator[bytes]:
+    carry = b""
+    for raw in chunks:
+        if not isinstance(raw, (bytes, bytearray, memoryview)):
+            raise ValueError("review source stream yielded non-bytes")
+        view = memoryview(raw)
+        while view:
+            piece = bytes(view[:_BASE64_INPUT_SIZE])
+            view = view[len(piece):]
+            value = carry + piece
+            complete = len(value) - len(value) % 3
+            if complete:
+                yield base64.b64encode(value[:complete])
+            carry = value[complete:]
+    if carry:
+        yield base64.b64encode(carry)
+
+
+def _checked_source_stream(
+        relative: str, iter_artifact: Callable[[str], Iterable[bytes]],
+        expected: dict,
+) -> Iterator[bytes]:
+    digest = hashlib.sha256()
+    length = 0
+    for raw in iter_artifact(relative):
+        if not isinstance(raw, (bytes, bytearray, memoryview)):
+            raise ValueError(f"review source {relative} yielded non-bytes")
+        view = memoryview(raw)
+        while view:
+            piece = bytes(view[:_REVIEW_STREAM_SIZE])
+            view = view[len(piece):]
+            digest.update(piece)
+            length += len(piece)
+            if length > expected["length"]:
+                raise ValueError(f"review source {relative} exceeded its length")
+            yield piece
+    if length != expected["length"]:
+        raise ValueError(f"review source {relative} length mismatch")
+    if digest.hexdigest() != expected["sha256"]:
+        raise ValueError(f"review source {relative} SHA-256 mismatch")
+
+
+def _card_v2(
+        detail: dict, sampled: bool,
+        iter_artifact: Callable[[str], Iterable[bytes]],
+        source_objects: dict[str, dict],
+) -> Iterator[bytes]:
+    packet = detail["packet"]
+    decision = detail["primary"]["decision"]
+    facility = detail["publication_facility"]
+    fid = detail["fid"]
+    verdict = decision.get("verdict") or "REVIEW"
+    shown = "SAMPLE" if sampled else verdict
+    tags = packet.get("tags_union") if isinstance(packet.get("tags_union"), dict) else {}
+    name = facility.get("name") or tags.get("name") or tags.get("operator") or "(unnamed)"
+    yield f"""
+<section class='card {html.escape(str(verdict))} {shown}' data-verdict='{shown}' id='fid{fid}'>
+  <header><span class='badge'>{html.escape(str(verdict))}{' · SAMPLE' if sampled else ''}</span>
+    <span class='conf'>{html.escape(str(decision.get('confidence') or ''))}</span>
+    <span class='fid'>#{fid}</span><span class='name'>{html.escape(str(name))}</span></header>
+  <div class='body'><div class='frames'>""".encode("utf-8")
+    captions = {"z1": "Z1 · 600 m", "z2": "Z2 · 220 m", "z3": "Z3 · 140 m"}
+    for zoom in _ZOOMS:
+        relative = detail["tile_paths"][zoom]
+        expected = source_objects[relative]
+        yield (
+            f"<figure class='{zoom}'><a href='data:image/png;base64,"
+        ).encode("utf-8")
+        yield from _iter_base64(
+            _checked_source_stream(relative, iter_artifact, expected)
+        )
+        yield (
+            "' target='_blank' rel='noopener'><img loading='lazy' "
+            "src='data:image/png;base64,"
+        ).encode("utf-8")
+        yield from _iter_base64(
+            _checked_source_stream(relative, iter_artifact, expected)
+        )
+        yield (
+            f"' alt='fid {fid} {zoom}'></a><figcaption>"
+            f"{captions[zoom]}</figcaption></figure>"
+        ).encode("utf-8")
+    serves = packet.get("serves") if isinstance(packet.get("serves"), dict) else {}
+    walk = packet.get("walk") if isinstance(packet.get("walk"), dict) else {}
+    context = packet.get("context") if isinstance(packet.get("context"), dict) else {}
+    frozen_facts = {
+        "packet": {key: value for key, value in packet.items() if key != "tiles"},
+        "publication_facility": facility,
+    }
+    frozen_facts_html = html.escape(
+        tr.canonical_json(frozen_facts).decode("utf-8"), quote=True
+    )
+    facts = [
+        f"prior <b>{html.escape(str(packet.get('prior') or ''))}</b>",
+        f"coordinates {html.escape(str(facility.get('lat')))}, {html.escape(str(facility.get('lon')))}",
+        "OSM " + html.escape(", ".join(str(value) for value in facility.get("osm") or [])),
+        f"area {html.escape(str(packet.get('area_m2')))} m²" if packet.get("area_m2") else "node lot",
+        f"serves <b>{html.escape(str(serves.get('trail') or ''))}</b> edge {html.escape(str(serves.get('edge_m')))} m",
+        f"walk {html.escape(str(walk.get('walk_m')))} m" + ("" if walk.get("conn") else " (no foot route)"),
+        f"context {html.escape(str(context.get('category') or ''))} {html.escape(str(context.get('evidence') or ''))}".rstrip(),
+    ]
+    hint = decision.get("resolve_hint")
+    coverage = decision.get("coverage_gap")
+    extra = ""
+    if hint:
+        extra += f"<p class='hint'><b>resolve:</b> {html.escape(str(hint))}</p>"
+    if coverage:
+        extra += "<p class='hint'><b>coverage gap</b> flagged</p>"
+    yield f"""</div><div class='text'>
+    <ul class='facts'>{''.join(f'<li>{fact}</li>' for fact in facts)}</ul>
+    <details class='frozen-facts' open><summary>Frozen packet and publication facts · canonical JSON</summary><pre>{frozen_facts_html}</pre></details>
+    <table class='axes'>{_axis_row('EXISTS', decision.get('exists'))}{_axis_row('PUBLIC', decision.get('public'))}{_axis_row('SERVES', decision.get('serves'))}</table>{extra}
+  </div></div>
+</section>""".encode("utf-8")
+
+
+def iter_review_html_v2(
+        prepare: dict, details: list[dict], sample: dict,
+        prepare_sha256: str,
+        iter_artifact: Callable[[str], Iterable[bytes]],
+        source_objects: dict[str, dict],
+) -> Iterator[bytes]:
+    """Yield the closed trusted v2 renderer output without retaining a sheet."""
+    sampled = set(sample["selected_fids"])
+    counts = {verdict: 0 for verdict in ("DROP", "REVIEW", "KEEP")}
+    ordered = []
+    for detail in details:
+        verdict = detail["primary"]["decision"].get("verdict") or "REVIEW"
+        counts[verdict] = counts.get(verdict, 0) + 1
+        shown = "SAMPLE" if detail["fid"] in sampled else verdict
+        ordered.append((_ORDER.get(shown, 9), detail["fid"], detail))
+    ordered.sort(key=lambda value: (value[0], value[1]))
+    counts["SAMPLE"] = len(sampled)
+    summary = " · ".join(
+        f"{key} {counts[key]}" for key in ("DROP", "REVIEW", "KEEP")
+        if counts[key]
+    )
+    if sampled:
+        summary += f" · {len(sampled)} KEEPs sampled"
+    buttons = [f"<button data-f='ALL'>ALL ({len(details)})</button>"]
+    buttons.extend(
+        f"<button data-f='{key}'>{key} ({counts[key]})</button>"
+        for key in ("DROP", "REVIEW", "SAMPLE", "KEEP") if counts.get(key)
+    )
+    area = html.escape(prepare["area"])
+    run_id = html.escape(prepare["run_id"])
+    yield f"""<!doctype html><html><head><meta charset='utf-8'>
+<title>{area} frozen parking review</title><style>{_CSS}</style></head><body>
+<div class='top'><h1>{area}</h1><span>{len(details)} lots · {summary}</span>{''.join(buttons)}
+<span class='meta'>authority run {run_id} · prepare {prepare_sha256}</span>
+<span style='margin-left:auto;color:#666'>Authority is limited to the embedded frozen PNGs and frozen decisions. OSM IDs and coordinates are labels, not live evidence.</span></div>
+""".encode("utf-8")
+    for _order, _fid, detail in ordered:
+        yield from _card_v2(
+            detail, detail["fid"] in sampled,
+            iter_artifact, source_objects,
+        )
+    yield f"<script>{_JS}</script></body></html>".encode("utf-8")
+
+
+def review_html_identity_v2(chunks: Iterable[bytes]) -> tuple[int, str]:
+    digest = hashlib.sha256()
+    length = 0
+    for raw in chunks:
+        if not isinstance(raw, (bytes, bytearray, memoryview)):
+            raise ValueError("review renderer yielded non-bytes")
+        view = memoryview(raw)
+        while view:
+            piece = view[:_REVIEW_STREAM_SIZE]
+            digest.update(piece)
+            length += len(piece)
+            view = view[len(piece):]
+    return length, digest.hexdigest()
+
+
+def build_review_artifacts_v2(
+        prepare: dict, prepare_bytes: bytes, run_path: Path,
+        read_artifact: Callable[[str], bytes],
+        iter_artifact: Callable[[str], Iterable[bytes]],
+        sample_requested: int,
+) -> tuple[Callable[[], Iterator[bytes]], dict, list[str]]:
+    """Build a portable receipt and replayable streamed sheet recipe."""
+    if (prepare.get("version") != 4
+            or prepare.get("path_scheme") != "run-relative-posix-v1"
+            or not run_path.is_absolute() or run_path.name != prepare.get("run_id")):
+        raise ValueError("review v2 requires a portable canonical authority run")
+    parsed_prepare = _parse_json(prepare_bytes, dict, "prepare.json")
+    if parsed_prepare != prepare or prepare_bytes != json_bytes(prepare):
+        raise ValueError("review prepare bytes are noncanonical or mismatched")
+    source_objects: dict[str, dict[str, object]] = {}
+    consumed: set[str] = set()
+
+    def record(relative: str, raw: bytes) -> bytes:
+        canonical = _relative_artifact(relative, run_path, "frozen artifact")
+        if not isinstance(raw, bytes):
+            raise ValueError(f"frozen artifact reader returned non-bytes for {canonical}")
+        if len(raw) > _SMALL_REVIEW_OBJECT_LIMIT:
+            raise ValueError(f"structured review source is unexpectedly large: {canonical}")
+        descriptor = {"length": len(raw), "sha256": _sha(raw)}
+        previous = source_objects.setdefault(canonical, descriptor)
+        if previous != descriptor:
+            raise ValueError(f"frozen artifact changed while reading: {canonical}")
+        consumed.add(canonical)
+        return raw
+
+    def read(relative: str) -> bytes:
+        canonical = _relative_artifact(relative, run_path, "frozen artifact")
+        return record(canonical, read_artifact(canonical))
+
+    def identify(relative: str, *, png: bool = False) -> dict[str, object]:
+        canonical = _relative_artifact(relative, run_path, "frozen artifact")
+        digest = hashlib.sha256()
+        length = 0
+        prefix = b""
+        for raw in iter_artifact(canonical):
+            if not isinstance(raw, (bytes, bytearray, memoryview)):
+                raise ValueError(f"frozen artifact stream returned non-bytes for {canonical}")
+            view = memoryview(raw)
+            while view:
+                piece = bytes(view[:_REVIEW_STREAM_SIZE])
+                view = view[len(piece):]
+                if len(prefix) < 8:
+                    prefix += piece[:8 - len(prefix)]
+                digest.update(piece)
+                length += len(piece)
+        if png and prefix != b"\x89PNG\r\n\x1a\n":
+            raise ValueError(f"frozen artifact is not PNG data: {canonical}")
+        descriptor = {"length": length, "sha256": digest.hexdigest()}
+        previous = source_objects.setdefault(canonical, descriptor)
+        if previous != descriptor:
+            raise ValueError(f"frozen artifact changed while streaming: {canonical}")
+        consumed.add(canonical)
+        return descriptor
+
+    source_packets = read(prepare["source"]["packets_frozen_path"])
+    if _sha(source_packets) != prepare["source"]["packets_file_sha256"]:
+        raise ValueError("frozen source packet bytes changed")
+    source_by_chunk = {
+        source["chunk"]: source for source in prepare["source"]["drafts"]
+    }
+    source_rows: dict[int, list] = {}
+    for chunk, source in sorted(source_by_chunk.items()):
+        draft_bytes = read(source["frozen_path"])
+        checkpoint_bytes = read(source["checkpoint_frozen_path"])
+        if (_sha(draft_bytes) != source["file_sha256"]
+                or _sha(checkpoint_bytes) != source["checkpoint_sha256"]):
+            raise ValueError(f"frozen source chunk {chunk:02d} changed")
+        source_rows[chunk] = _parse_json(
+            draft_bytes, list, f"source draft {chunk:02d}"
+        )
+        checkpoint = _parse_json(
+            checkpoint_bytes, dict, f"source checkpoint {chunk:02d}"
+        )
+        if checkpoint != source["checkpoint_value"]:
+            raise ValueError(f"frozen source checkpoint {chunk:02d} value changed")
+
+    details = []
+    receipt_items = []
+    facilities = prepare["source"]["publication"]["facilities"]
+    for item in sorted(prepare["items"], key=lambda value: value["fid"]):
+        fid = item["fid"]
+        packet_relative = _relative_artifact(
+            item["packet_path"], run_path, f"fid {fid} packet"
+        )
+        packet_bytes = read(packet_relative)
+        packet = _parse_json(packet_bytes, dict, f"fid {fid} packet")
+        tiles = packet.get("tiles")
+        if not isinstance(tiles, dict) or set(tiles) != set(_ZOOMS):
+            raise ValueError(f"fid {fid} frozen tile set is malformed")
+        tile_hashes = {}
+        tile_paths = {}
+        for zoom in _ZOOMS:
+            relative = _relative_artifact(
+                tiles[zoom], run_path, f"fid {fid} {zoom}"
+            )
+            descriptor = identify(relative, png=True)
+            tile_paths[zoom] = relative
+            tile_hashes[zoom] = descriptor["sha256"]
+        payload = {
+            key: copy.deepcopy(value)
+            for key, value in packet.items() if key != "tiles"
+        }
+        packet_sha = tr.sha256_json({
+            "packet": payload, "tile_sha256": tile_hashes,
+        })
+        if packet_sha != item["packet_sha256"]:
+            raise ValueError(f"fid {fid} frozen packet semantic hash changed")
+        source = source_by_chunk[item["chunk"]]
+        rows = source_rows[item["chunk"]]
+        if item["row_index"] >= len(rows) or not isinstance(rows[item["row_index"]], dict):
+            raise ValueError(f"fid {fid} frozen source row is unavailable")
+        source_row = rows[item["row_index"]]
+        if source_row.get("fid") != fid:
+            raise ValueError(f"fid {fid} frozen source row index changed")
+        primary = copy.deepcopy(item["primary"])
+        facility = copy.deepcopy(facilities[str(fid)])
+        receipt_item = {
+            "fid": fid,
+            "chunk": item["chunk"],
+            "row_index": item["row_index"],
+            "prepared_item_sha256": tr.sha256_json(item),
+            "packet_sha256": packet_sha,
+            "packet_file_sha256": _sha(packet_bytes),
+            "tile_sha256": tile_hashes,
+            "source_draft_sha256": source["file_sha256"],
+            "source_checkpoint_sha256": source["checkpoint_sha256"],
+            "source_decision_sha256": tr.sha256_json(
+                tr.decision_projection(primary["decision"])
+            ),
+            "primary_envelope_sha256": primary["envelope_sha256"],
+            "primary": primary,
+            "publication_facility_sha256": tr.sha256_json(facility),
+            "publication_facility": facility,
+        }
+        receipt_item["review_item_sha256"] = tr.sha256_json(receipt_item)
+        receipt_items.append(receipt_item)
+        details.append({
+            "fid": fid,
+            "packet": packet,
+            "tile_paths": tile_paths,
+            "primary": primary,
+            "publication_facility": facility,
+        })
+
+    sample = _sample(prepare, sample_requested)
+    prepare_sha = _sha(prepare_bytes)
+
+    def render() -> Iterator[bytes]:
+        return iter_review_html_v2(
+            prepare, details, sample, prepare_sha,
+            iter_artifact, source_objects,
+        )
+
+    sheet_length, sheet_sha = review_html_identity_v2(render())
+    body = {
+        "version": REVIEW_RECEIPT_VERSION,
+        "kind": REVIEW_RECEIPT_KIND,
+        "format_version": REVIEW_FORMAT_VERSION,
+        "renderer_version": REVIEW_RENDERER_VERSION,
+        "area": prepare["area"],
+        "source_run_id": prepare["run_id"],
+        "source_prepare_sha256": prepare_sha,
+        "source_packets_sha256": prepare["source"]["packets_file_sha256"],
+        "sample": sample,
+        "items": receipt_items,
+        "sheet_name": REVIEW_SHEET_NAME,
+        "sheet_length": sheet_length,
+        "sheet_sha256": sheet_sha,
+        "source_objects": {
+            relative: source_objects[relative] for relative in sorted(source_objects)
+        },
+    }
+    receipt_sha = tr.sha256_json(body)
+    receipt = {**body, "receipt_sha256": receipt_sha}
+    return render, receipt, sorted(consumed)
+
+
+def _validate_review_receipt_v2(receipt: object) -> list[str]:
+    required = {
+        "version", "kind", "format_version", "renderer_version", "area",
+        "source_run_id", "source_prepare_sha256", "source_packets_sha256",
+        "sample", "items", "sheet_name", "sheet_length", "sheet_sha256",
+        "source_objects", "receipt_sha256",
+    }
+    if not isinstance(receipt, dict) or set(receipt) != required:
+        return ["review receipt v2 schema mismatch"]
+    errors = []
+    if (type(receipt.get("version")) is not int
+            or receipt.get("version") != REVIEW_RECEIPT_VERSION
+            or type(receipt.get("format_version")) is not int
+            or receipt.get("format_version") != REVIEW_FORMAT_VERSION
+            or receipt.get("renderer_version") != REVIEW_RENDERER_VERSION
+            or receipt.get("kind") != REVIEW_RECEIPT_KIND
+            or tr.area_slug(receipt.get("area")) != receipt.get("area")):
+        errors.append("review receipt v2 version/kind/area mismatch")
+    for field in (
+        "source_run_id", "source_prepare_sha256", "source_packets_sha256",
+        "sheet_sha256", "receipt_sha256",
+    ):
+        value = receipt.get(field)
+        if (not isinstance(value, str) or len(value) != 64
+                or any(character not in "0123456789abcdef"
+                       for character in value)):
+            errors.append(f"review receipt v2 {field} is invalid")
+    if (receipt.get("sheet_name") != REVIEW_SHEET_NAME
+            or type(receipt.get("sheet_length")) is not int
+            or receipt.get("sheet_length") < 0):
+        errors.append("review receipt v2 sheet identity is malformed")
+    source_objects = receipt.get("source_objects")
+    if not isinstance(source_objects, dict) or not source_objects:
+        errors.append("review receipt v2 source object closure is empty")
+    else:
+        for relative, descriptor in source_objects.items():
+            try:
+                _relative_artifact(relative, Path("/portable-run"), "source object")
+            except ValueError:
+                errors.append(f"review receipt v2 source path is invalid: {relative!r}")
+            if (not isinstance(descriptor, dict)
+                    or set(descriptor) != {"length", "sha256"}
+                    or type(descriptor.get("length")) is not int
+                    or descriptor["length"] < 0
+                    or not isinstance(descriptor.get("sha256"), str)
+                    or len(descriptor["sha256"]) != 64
+                    or any(character not in "0123456789abcdef"
+                           for character in descriptor["sha256"])):
+                errors.append(
+                    f"review receipt v2 source descriptor is invalid: {relative!r}"
+                )
+    synthetic = {
+        "version": LEGACY_REVIEW_RECEIPT_VERSION,
+        "kind": REVIEW_RECEIPT_KIND,
+        "format_version": LEGACY_REVIEW_FORMAT_VERSION,
+        "area": receipt.get("area"),
+        "source_run_id": receipt.get("source_run_id"),
+        "source_run_path": "/portable-run",
+        "source_prepare_sha256": receipt.get("source_prepare_sha256"),
+        "source_packets_sha256": receipt.get("source_packets_sha256"),
+        "sample": copy.deepcopy(receipt.get("sample")),
+        "items": copy.deepcopy(receipt.get("items")),
+        "sheet_path": "/portable-run/review.html",
+        "sheet_sha256": receipt.get("sheet_sha256"),
+    }
+    synthetic["receipt_sha256"] = tr.sha256_json(synthetic)
+    errors.extend(
+        error.replace("review receipt", "review receipt v2", 1)
+        for error in _validate_review_receipt_v1(synthetic)
+    )
+    body = dict(receipt)
+    claimed = body.pop("receipt_sha256", None)
+    try:
+        expected = tr.sha256_json(body)
+    except (TypeError, ValueError):
+        expected = None
+    if claimed != expected:
+        errors.append("review receipt v2 self-hash mismatch")
+    return errors
+
+
+def validate_review_receipt(receipt: object) -> list[str]:
+    if not isinstance(receipt, dict) or type(receipt.get("version")) is not int:
+        return ["review receipt schema mismatch"]
+    if receipt["version"] == LEGACY_REVIEW_RECEIPT_VERSION:
+        return _validate_review_receipt_v1(receipt)
+    if receipt["version"] == REVIEW_RECEIPT_VERSION:
+        return _validate_review_receipt_v2(receipt)
+    return ["review receipt version is unsupported"]

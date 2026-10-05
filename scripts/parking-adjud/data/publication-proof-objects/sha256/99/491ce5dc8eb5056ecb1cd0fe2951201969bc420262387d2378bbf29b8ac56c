@@ -1,0 +1,33 @@
+{
+  "assignment_id": "231be3177b7499a7b2ed05942b825e6e5eacdc47e6323886eb8cde02509c939f",
+  "decision": {
+    "fid": 1035,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/1009503571"],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Surveyed prior (parking=surface, surface=asphalt, capacity=10) confirmed. Z2/Z3: paved bay off the junction's NE arm, outside the travel lanes, separated from the highway by a curbed island. Z3 shows about 3 parked cars inside the red outline and faint diagonal stall lines. Not a through-lane, building, lawn or water."
+    },
+    "public": {
+      "call": "yes",
+      "evidence": "Lot-level access=yes on way/1009503571 (the only member, mixed_access=false). capacity:disabled=1 also fits a general-use public lot. Context SUPPORT: inside boundary=protected_area 'Matthews/Winters Park', with no FACILITY neighbour within 45 m. In Z1 the only non-trail owners are a building with its own lot across the highway to the W and ranch/residences to the SW. None is attached to this bay."
+    },
+    "serves": {
+      "call": "yes",
+      "evidence": "Dinosaur Ridge Trail edge 5 m, walk 25 m, fallback=false, 1 trail in range. In Z1/Z2/Z3 the yellow trail line starts at the lot's SE corner and runs SE, so the trail starts at the lot. No school, church, commercial or event owner better explains this roadside pocket lot. Note: no highway=trailhead node within 120 m, and walk.trail/conn are blank in the packet."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {
+      "access": "yes",
+      "parking": "surface",
+      "surface": "asphalt",
+      "capacity": "10",
+      "capacity:disabled": "1"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

@@ -1,0 +1,18 @@
+{
+  "assignment_id": "f7f2292d07678c2549c2a5402fbb017a9b5a290e52d0aaa35cc216b30be269aa",
+  "decision": {
+    "fid": 325,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/68513506"],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {"call": "yes", "evidence": "Z2/Z3: paved aisles with painted stalls and dozens of parked cars plus a long carport structure, all running between multi-unit residential buildings; the red outline traces these internal aisles (building_overlap=true)"},
+    "public": {"call": "no", "evidence": "Only tag is bare amenity=parking with no access tag, no official trailhead/access record, and no trailhead node within 120 m. Z1/Z2 show internal resident parking for an apartment/condo complex: striped bays serving the buildings, carports, landuse=residential at 0 m (FACILITY context). An ungated, unsigned aerial view does not grant public parking rights."},
+    "serves": {"call": "no", "evidence": "No yellow trail appears in Z1 (600 m), Z2 or Z3. North Access Trail edge is 389 m and walk_m is 800 with an empty connection and trail=null, so there is no direct trail approach. The 21 footways within 60 m read as the complex's internal sidewalks. The direct owner (residential complex) explains the lot better; the school to the east, commercial lot to the NW and surrounding housing are the other visible owners."},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

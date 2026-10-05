@@ -88,7 +88,7 @@ PUBLICATION_TRUST_ROOT_PATH = os.path.join(
     _ROOT, "scripts", "parking-adjud", "publication-trust-root-v1.json"
 )
 PUBLICATION_TRUST_ROOT_SHA256 = (
-    "43db143447d90f506d42b273c425e0d048e5580e605ac211750114ba350dfd85"
+    "f0274ec06ff28b053cf6ce0c68d8b5ae29f51329e1c5ca6a013df02e34846a91"
 )
 
 ValidatedStoreSnapshot = pvs.ValidatedStoreSnapshot

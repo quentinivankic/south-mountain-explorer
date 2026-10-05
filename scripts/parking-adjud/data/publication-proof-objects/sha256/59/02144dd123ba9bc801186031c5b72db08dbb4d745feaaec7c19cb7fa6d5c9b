@@ -1,0 +1,58 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 1969,
+ "building_overlap": false,
+ "context": {
+  "category": "FACILITY",
+  "evidence": "25 m from amenity=place_of_worship Concordia Lutheran Church 'Concordia Lutheran Church'",
+  "facility": "amenity=place_of_worship Concordia Lutheran Church",
+  "facility_edge_m": 25
+ },
+ "descriptive_tags": [],
+ "fid": 760,
+ "footprint": "polygon",
+ "footways_60m": 0,
+ "members": [
+  {
+   "osm": "way/369249614",
+   "tags": {
+    "amenity": "parking"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/369249614"
+ ],
+ "prior": "bare",
+ "serves": {
+  "edge_m": 212,
+  "fallback": false,
+  "n_trails_in_range": 3,
+  "trail": "South Foothill Drive Access Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "amenity": "parking"
+ },
+ "tiles": {
+  "z1": "tiles/e8fa454a469835b1d9712ea9ac1b5f0f8c71c18c72525bf4022a2a315de9135d.png",
+  "z2": "tiles/85268d9ff8a6d096a32756fed4e605e7abf81b6ceab65d7a34f9ce8a50a82435.png",
+  "z3": "tiles/ba45e82e195db723fc09cb189c3321c2d5c922197dfce40d78c985ca0f5efb6c.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 814
+ }
+}

@@ -1,0 +1,27 @@
+{
+  "assignment_id": "e8e30e043832c96d0efee56e31019564afd1c61a064a50c58918f11f71e042d6",
+  "decision": {
+    "fid": 159,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/51381093"],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {
+      "call": "yes",
+      "evidence": "Bare prior (naked amenity=parking), so vision decides. Z2/Z3 (NAIP): the red outline (~595 m2) holds a gray paved pad immediately east of a small white-roofed commercial building, with one white vehicle parked at the NW corner and small dark objects mid-pad, partly under tree canopy. No stripes visible. Paved delineated surface plus a parked vehicle shows a physical parking area. Access appears to come from the paved/gravel apron to the north shared with the commercial lot; the east edge is a continuous curb/sidewalk along the N-S arterial."
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Tags are only amenity=parking: no access tag, no name/operator, no trailhead/official access record, no trailhead nodes within 120 m. Z2/Z3: the pad is the side lot/forecourt of the adjacent small commercial building directly to its west, between the commercial strip to the north and Sienna Park Townhomes to the south (landuse=residential, 12 m edge, context FACILITY). Nothing at lot level grants general public or trail parking. It reads as building customer/employee parking. Being ungated and fronting a public road is context only, not permission."
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Greenbelt Alternate Trail edge 189 m (not fallback, 2 trails in range), but walk 320 m with no recorded connection or trail, no trailhead nodes within 120 m, and only 1 footway within 60 m (the townhome internal path visible in Z2/Z3). Z1: the yellow trail lies SE, across both the major E-W road and the N-S arterial intersection, with no direct trail approach from this lot. Z1 also shows separate paved lots at the greenbelt/pond trail along the south frame edge, closer designated options against calling this lot overflow. The adjacent commercial building and residential neighbours explain the lot better, and distance alone does not establish trail use."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

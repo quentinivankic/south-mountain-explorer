@@ -159,21 +159,25 @@ python3 tools/resolve_trust.py apply --run "$RUN" --chunk 0          # plan, no 
 python3 tools/resolve_trust.py apply --run "$RUN" --chunk 0 --apply  # one atomic chunk
 ```
 
-Preparation schema v2 binds the absolute run root; complete
-source/checkpoint vectors; all model configs; every fid/chunk/row/route; the
-full primary decision; role assignments; the host-frozen evidence catalog; and
-the exact bytes of all role prompts plus `judge_protocol.md` and
-`judge_lessons.md`. Prepare holds the canonical area `LOCK_EX` from source
-capture through completed-run reload. `prepare.json` must be strict
-duplicate-free JSON whose exact bytes equal the canonical serialization;
+Preparation schema v4 is path-independent. Its run ID binds the complete
+source/checkpoint vectors, model configs, fid/chunk/row/route set, primary
+records, host-frozen evidence catalog, prompt templates, and normative-document
+hashes, but never a workstation root. Packet tile refs and generated prompt
+packet/output/rule/catalog refs are canonical run-relative POSIX paths. The
+absolute work and run roots live only in `runtime-context.json`, which loaders
+receive out of band and exclude from authority and publication proof bytes.
+Identical inputs prepared under different absolute roots therefore produce the
+same run ID, `prepare.json`, packets, and prompts. Prepare v2/v3 retain their
+historical path-bound replay contracts but cannot authorize new live work.
+Prepare holds the canonical area `LOCK_EX` from source capture through
+completed-run reload. `prepare.json` is strict duplicate-free canonical JSON;
 whitespace-only or duplicate-key rewrites fail before review, authority, or
-publication. The host copies every assigned evidence artifact, source
-manifest, and source metadata file into content-addressed paths under the run.
-A loaded run must live in its hash-named root and every packet, prompt, evidence,
-manifest, and metadata artifact is re-read before it is authority. Old
-preparation manifests must be regenerated; persisted resolver-v1 rows still
-replay under their frozen v1 policy. Area slugs are separator-free. Canonical
-resolver/authority/publication target installation opens and hashes the source
+publication. The host copies every assigned evidence artifact, source manifest,
+and source metadata file into content-addressed run paths. A loaded run must
+live in its hash-named directory and every packet, prompt, evidence, manifest,
+and metadata artifact is re-read before it is authority. Persisted resolver-v1
+rows still replay under their frozen policy. Area slugs are separator-free.
+Canonical resolver/authority/publication target installation opens and hashes the source
 once, copies those captured bytes into a fresh unpredictable
 `O_EXCL|O_NOFOLLOW` single-link inode in the trusted target directory, fsyncs
 and verifies it, renames that private entry, then verifies the installed inode
@@ -212,11 +216,13 @@ contain URL strings and the frozen catalog retains the host's HTTPS audit
 locator; neither is permission to fetch. `judge_review_sheet.py` is human-only
 and renders a deterministic self-contained sheet from frozen run-local PNGs;
 it displays OSM IDs/coordinates as labels without live map or file evidence.
-The host persists each source's HTTPS locator, UTC
-retrieval/update timestamps, content/manifest/metadata hashes, content-addressed
-paths, structured support, and axis-local `[external:id]` citation. An
-unassigned ID, duplicate support, mismatched call, wrong-axis citation,
-impossible timestamp, or changed frozen byte is invalid. This provenance
+The host persists each source's HTTPS locator, required UTC `retrieved_at`,
+optional update time, content/manifest/metadata hashes, content-addressed paths,
+structured support, and axis-local `[external:id]` citation. `retrieved_at`
+MUST be at or after manifest `fetched_at` and at or before the host capture/wall
+clock; source metadata may not claim an update after retrieval. An unassigned
+ID, duplicate support, mismatched call, wrong-axis citation, impossible
+chronology, or changed frozen byte is invalid. This provenance
 improves auditability; it never turns a same-family conclusion into authority.
 
 Repeat status/dispatch until the **whole run** is READY, then apply one chunk
@@ -242,55 +248,72 @@ python3 tools/judge_review_sheet.py "$SLUG" \
 # $PADJ_TMP/.review-artifacts/$SLUG/<run-id>/
 ```
 
-The sheet embeds each exact primary decision, the complete frozen packet payload
-except replaced tile paths, the full normalized publication facility as
-canonical JSON, and the frozen run-local PNG bytes. Its self-hashed receipt
-binds the complete prepared item/source vector and exact sheet. There is no
-arbitrary `--out`. Artifact creation holds the area lock exclusively through
-both immutable owner-only single-link installs, so different sample requests
-cannot interleave a mixed pair. A sheet-only crash is non-authoritative; exact
-retry completes the pair without rotating an already-correct inode. For
-`calibration.py add --reviewed KEEP=sample`, `--review-receipt` must be the
-canonical absolute receipt path. The mutually exclusive
-`--legacy-sample-manifest` path exists only for explicit replay of the obsolete
-manifest.
+The v2 renderer streams each frozen PNG through incremental base64 and writes
+the human-visible sheet without retaining the complete HTML or any large image
+set. The portable self-hashed receipt binds every prepared item, the complete
+relative source-object closure, renderer/format version, logical
+`review.html`, and exact reconstructed length/SHA-256; it contains no source or
+sheet absolute path. Replay invokes only the closed trusted v2 renderer and
+hashes its output without writing or storing a sheet object. Artifact creation
+holds the area lock exclusively through the owner-only single-link sheet and
+receipt installs, so sample requests cannot interleave. A sheet-only crash is
+non-authoritative; exact retry keeps an already-correct inode. Equivalent runs
+under different roots share receipt/sheet authority while append-only local
+runtime locators remain separate. `calibration.py add --reviewed KEEP=sample`
+still takes the canonical absolute receipt path and resolves an operational run
+only through those non-authoritative locators. `--legacy-sample-manifest` is
+replay-only.
+
+#### REVIEW confirmation is a non-adding, non-dropping shield
+
 The unbound `--set` CLI is disabled; its helper remains solely to replay
-already-persisted legacy overrides. New flips use one `--decide FID=VERDICT
+already-persisted legacy overrides. New decision changes—including binary
+flips and binary-to-REVIEW safety deferrals—use one `--decide FID=VERDICT
 --axis AXIS=CALL --axis-evidence AXIS=TEXT --note ... --reviewer ID
 --authority-run PATH --review-receipt PATH --judged YYYY-MM-DD` invocation so
 the exact reviewed item, full original decision, and coherent effective axes
 are bound. Use one `--confirm FID=VERDICT --note ... --reviewer ID
 --authority-run PATH --review-receipt PATH --judged YYYY-MM-DD` invocation when
-the human explicitly affirms the same binary call. The helpers are pure
-planners; the CLI
+the human explicitly affirms the same KEEP/DROP call or defers an existing
+REVIEW for later adjudication. An effective REVIEW from either path remains a
+non-adding, non-dropping shield; it is not silently promoted to KEEP or DROP.
+The helpers are pure planners; the CLI
 operations mutate one receipt/draft/checkpoint transaction. Under the global
 store lock and area lock, the CLI independently reconstructs the request from
 the frozen authority run, validates packet/schema/overlap and whole-area source
 state, stages exact backups/after-images, writes a durable journal, then installs
 receipt → draft → checkpoint. Only `draft_sha256` changes in the checkpoint.
-The authority receipt binds prepare bytes, primary envelope/assignment, packet,
-source run/path, reviewer/date/note, effective decision/evidence, and the exact
-review receipt/sheet/item hashes. New confirmation v2 and override v3 authority
-therefore cannot be created or recovered with an omitted, stale, altered,
-different-run, or wrong-fid review artifact. A failed preflight leaves canonical
-targets unchanged. A crash leaves a live area journal that blocks merge, packet generation,
+The portable authority receipt binds prepare bytes, primary
+envelope/assignment, packet and run IDs, reviewer/date/note, effective
+decision/evidence, and review receipt/sheet/item hashes. New confirmation v3,
+override v4, and authority receipt v3 contain no workstation-absolute path;
+the supplied absolute authority run is operational context checked out of band.
+They cannot be created or recovered with an omitted, stale, altered, or
+wrong-fid review artifact. Confirmation v1/v2, override v2/v3, authority
+receipt v1/v2, and their prepare/review formats remain replay-only. Historical
+override v3 stays classified as structured human authority in
+`trust_engine.analyse_item` only when its path-bound receipt and packet/review
+hashes validate. This preserves the classification of already-reviewed rows and
+prevents calibration from relabelling them as model-only; it does not permit new
+v3 emission or weaken the portable v4 requirement.
+A failed preflight leaves canonical targets unchanged. A crash leaves a live area journal that blocks merge, packet generation,
 calibration/review-sheet writes, resolver work, and replay. Recovery has no
 generic command: rerun the complete original `--decide` or `--confirm` command,
 including the same `--review-receipt` and explicit `--judged` date. The current invocation must
 independently reconstruct the byte-identical plan; any changed request/run or
 unknown target/stage/backup state fails without advancing canonical files.
 
-Store merge reopens the receipt's source run and the real packet/Z1/Z2/Z3 bytes
-for every v2 authority row. It expands each complete transitive alias-connected component across store and
-dossier IDs before comparing full decision/authority signatures. Every holder,
-including same-area aliases, participates; conflicts block. An agreeing `user*`
-record already in the store takes precedence over incoming machine wrappers on
-the real terminal-run path, while location/rings/name and the complete alias set
-are rebuilt from the run-bound publication source. Published v2 rows reference a separate canonical
-`<store>_publication_proofs.json` entry rather than trusting a row to attest
-itself. That proof contains the actual prepare, output seal, sealed outputs,
-chunk receipts, packet bindings, and any human receipt/source-prepare chain;
-canonical replay validates the full external chain before crediting authority.
+Store merge resolves portable authority through the supplied terminal run and
+locally validated operational locators; those paths never enter receipt or proof
+identity. It expands each complete transitive alias-connected component across
+store and dossier IDs before comparing full decision/authority signatures.
+Every holder, including same-area aliases, participates; conflicts block. An
+agreeing `user*` record already in the store takes precedence over incoming
+machine wrappers, and no unused proof is appended for a fully shadowed result.
+Location/rings/name and aliases come from the bound terminal source. Published
+attestation v3 rows reference a proof-manifest v4 digest in compact registry v2,
+not a row self-assertion. Historical inline registry v1 and proof v1-v3 remain
+replay-only.
 
 `prepare` writes only the ignored resolver run. `status` is read-only. `apply`
 without `--apply` is read-only. With it, a whole-run READY check first copies
@@ -323,22 +346,284 @@ normalized publication fields (complete OSM aliases, location, footprint, and
 name); merge refuses later drift and writes those bound fields rather than a
 mutable dossier. The run must target the same area/work directory/fid set,
 report only APPLIED or durably PRESERVED chunks, and leave every row with current
-machine or receipt-bound human authority. Merge writes a row attestation plus a
-separate canonical `<store>_publication_proofs.json` entry containing the actual
-prepare, whole-run seal, byte-exact base64 sealed outputs/rendered prompts and
-the frozen prompt-template/normative-rule bytes used to reconstruct them,
-chunk receipts with complete per-fid terminal vectors, packet bindings, exact
-final decision/authority rows, and each current human receipt plus its exact
-review receipt, sheet bytes, and frozen review-source bundle. New publication
-proof/attestation v2 independently reconstructs that review evidence; legacy
-v1 proof remains replay-only. Canonical replay
-independently derives assignment IDs/static fields/prompt hashes, reconstructs
-every persisted envelope from sealed output, recomputes the all-items READY
-snapshot, requires each fid in one strict complete chunk terminal vector,
-exact-compares final rows and preserved primary decisions, reconstructs the
-complete checkpoint manifest from its prepared base plus terminal rows, verifies
-terminal draft/checkpoint byte hashes, replays machine consensus, and validates
-human primary/terminal membership before preserving v2 authority.
+machine or receipt-bound human authority. Producer-valid dossier `rings: null`
+(and `ring: null`) intentionally means node-only geometry: prepare normalizes it
+to `rings: []`, publication retains the parking row, and replay verifies that
+empty footprint. It is not interpreted as a DROP or as permission to invent a
+polygon. Malformed non-null ring values still fail closed. Merge writes
+attestation v3 plus compact
+`<store>_publication_proofs.json` registry v2. Each append-only registry entry is
+only `{path,length,sha256}` for one canonical proof-manifest v4 object. The
+manifest contains a sorted logical-object table for prepares, seals, outputs,
+prompts, templates/rules, packets, terminal drafts/checkpoints/receipts, review
+sources, and human receipts. Raw leaves live once under
+`data/publication-proof-objects/sha256/HH/<62-hex>`; reads are at most 1 MiB and
+leaves at most 32 MiB. Every descriptor binds canonical repository-relative
+path, exact length, and SHA-256; logical objects bind ordered leaves plus total
+length/hash. Registry size is capped at 1 MiB at the streaming read edge for
+both legacy and compact loaders. Every structured proof source is owner-only,
+single-link, run-contained, inode-stable, and capped at 4 MiB before byte join,
+JSON parse, or object staging; each manifest is also capped at 4 MiB.
+
+Review HTML is never a proof object. Manifest v4 stores a closed renderer-v2
+recipe, complete source-object map, receipt ref, and expected sheet
+length/SHA-256. Offline replay streams the trusted renderer and fails on any
+byte difference. It also reconstructs assignments/prompts/envelopes, READY and
+terminal states, checkpoint semantics, final rows, and human review/authority
+bindings. Packet-map bytes are hashed incrementally in canonical key order, and
+each decoded challenger/arbiter envelope is released after its compact immutable
+READY/terminal summary is recorded; decoded assignment outputs are never
+retained run-wide. Inline registry v1 proof formats v1-v3 and path-bound prepare,
+receipt, confirmation, override, and attestation versions remain replay-only.
+A nonempty v1 registry has no proof-ID alias migration. The only forward
+boundary is manual and preserving: archive the exact v1 store/registry/floor
+publication and its generation-1 root, restore the reviewed generation-1
+before-image, then regenerate model decisions, human review/authority, and the
+publication under the portable schemas. New proof IDs are expected; never map
+an old proof ID to newly generated authority.
+
+### Oversized registry read block and generation-1 restore
+
+The 1 MiB registry limit is an unconditional read **and** write boundary. There
+is no legacy override: an operator seeing `publication proof registry exceeds 1
+MiB` must follow this section rather than increase the cap. The known
+841,565,189-byte Colorado v1 registry is blocked before materialization or JSON
+parse. Its parent-owned forensic rollback is the same manual generation
+boundary described above.
+
+Use an exclusive maintenance window and preserve, never remove, the current
+image. Set `BASE=140f8c935864ca5fe9b1070256193eee807691e3` and an owner-only durable
+`ARCHIVE_ROOT` whose path contains `Archive`. Before restoring anything:
+
+1. Record hashes, lengths, and names for the current Colorado store, proof
+   registry, floor, tracked root, tracked builder pin, publication transaction
+   tree, and any object tree. Move each complete current path into
+   `ARCHIVE_ROOT`; do not unlink, truncate, overwrite, or omit the
+   841,565,189-byte registry. Preserve relative names and move the transaction
+   journals with their object-stage directories. From the repository root, the
+   move-only restore skeleton is:
+
+   ```bash
+   set -euo pipefail
+   BASE=140f8c935864ca5fe9b1070256193eee807691e3
+   REPO_ROOT=$(pwd -P)
+   ARCHIVE_ROOT=/durable/Archive/trekdex-colorado-legacy-$(date +%Y%m%dT%H%M%S)
+   case "$ARCHIVE_ROOT" in
+     */Archive/*) ;;
+     *) echo "archive destination must contain an Archive component: $ARCHIVE_ROOT" >&2; exit 1 ;;
+   esac
+   if test -e "$ARCHIVE_ROOT"; then
+     echo "archive destination already exists: $ARCHIVE_ROOT" >&2
+     exit 1
+   fi
+   mkdir -m 700 "$ARCHIVE_ROOT"
+   set -C  # noclobber: every redirected evidence file must be new
+   mkdir -m 700 "$ARCHIVE_ROOT/scripts"
+   mkdir -m 700 "$ARCHIVE_ROOT/scripts/parking-adjud"
+   mkdir -m 700 "$ARCHIVE_ROOT/scripts/parking-adjud/data"
+   for path in \
+     scripts/parking-adjud/data/co_verdicts_osm.json \
+     scripts/parking-adjud/data/co_verdicts_osm_publication_proofs.json \
+     scripts/parking-adjud/data/co_verdicts_osm_publication_floor.json \
+     scripts/parking-adjud/publication-trust-root-v1.json \
+     scripts/build-parking-verdicts.py; do
+     bytes=$(wc -c < "$path")
+     printf '%s %s\n' "$path" "$bytes"
+   done > "$ARCHIVE_ROOT/current-image.lengths"
+   shasum -a 256 \
+     scripts/parking-adjud/data/co_verdicts_osm.json \
+     scripts/parking-adjud/data/co_verdicts_osm_publication_proofs.json \
+     scripts/parking-adjud/data/co_verdicts_osm_publication_floor.json \
+     scripts/parking-adjud/publication-trust-root-v1.json \
+     scripts/build-parking-verdicts.py \
+     > "$ARCHIVE_ROOT/current-image.sha256"
+   ARCHIVE_REPORT="$ARCHIVE_ROOT/archive-report"
+   ARCHIVE_BATCH_ARGS=(
+     archive-batch
+     --report-directory "$ARCHIVE_REPORT"
+     --resource "$REPO_ROOT/scripts/parking-adjud/publication-trust-root-v1.json"
+     --resource "$REPO_ROOT/scripts/parking-adjud/data/publication-proof-objects"
+   )
+   for STORE_NAME in \
+     phx_verdicts_osm.json \
+     ne_verdicts_osm.json \
+     zion-wilderness-ut_verdicts2.json \
+     griffith-park-ca_verdicts2.json \
+     co_verdicts_osm.json; do
+     STORE_STEM=${STORE_NAME%.json}
+     ARCHIVE_BATCH_ARGS+=(
+       --resource "$REPO_ROOT/scripts/parking-adjud/data/$STORE_NAME"
+       --resource "$REPO_ROOT/scripts/parking-adjud/data/${STORE_STEM}_publication_proofs.json"
+       --resource "$REPO_ROOT/scripts/parking-adjud/data/${STORE_STEM}_publication_floor.json"
+       --resource "$REPO_ROOT/scripts/parking-adjud/data/.trekdex-publication-transactions/$STORE_NAME.journal.json"
+     )
+   done
+   ARCHIVE_BATCH_ARGS+=(
+     --pair
+     "$REPO_ROOT/scripts/parking-adjud/data/co_verdicts_osm.json"
+     "$ARCHIVE_ROOT/scripts/parking-adjud/data/co_verdicts_osm.json"
+     --pair
+     "$REPO_ROOT/scripts/parking-adjud/data/co_verdicts_osm_publication_proofs.json"
+     "$ARCHIVE_ROOT/scripts/parking-adjud/data/co_verdicts_osm_publication_proofs.json"
+     --pair
+     "$REPO_ROOT/scripts/parking-adjud/data/co_verdicts_osm_publication_floor.json"
+     "$ARCHIVE_ROOT/scripts/parking-adjud/data/co_verdicts_osm_publication_floor.json"
+     --pair
+     "$REPO_ROOT/scripts/parking-adjud/publication-trust-root-v1.json"
+     "$ARCHIVE_ROOT/scripts/parking-adjud/publication-trust-root-v1.json"
+     --pair
+     "$REPO_ROOT/scripts/build-parking-verdicts.py"
+     "$ARCHIVE_ROOT/scripts/build-parking-verdicts.py"
+   )
+   TRANSACTION_TREE="$REPO_ROOT/scripts/parking-adjud/data/.trekdex-publication-transactions"
+   OBJECT_TREE="$REPO_ROOT/scripts/parking-adjud/data/publication-proof-objects"
+   ARCHIVE_BATCH_ARGS+=(
+     --optional-pair "$TRANSACTION_TREE"
+     "$ARCHIVE_ROOT/scripts/parking-adjud/data/.trekdex-publication-transactions"
+     --optional-pair "$OBJECT_TREE"
+     "$ARCHIVE_ROOT/scripts/parking-adjud/data/publication-proof-objects"
+   )
+   python3 "$REPO_ROOT/scripts/parking-adjud/tools/publication_objects.py" \
+     "${ARCHIVE_BATCH_ARGS[@]}"
+   python3 "$REPO_ROOT/scripts/parking-adjud/tools/publication_objects.py" \
+     restore-generation-1 \
+     --report-directory "$ARCHIVE_REPORT" \
+     --repo-root "$REPO_ROOT" \
+     --source-commit "$BASE"
+   (cd "$ARCHIVE_ROOT" && shasum -a 256 -c current-image.sha256)
+   shasum -a 256 scripts/parking-adjud/data/co_verdicts_osm.json | \
+     grep -q '^44f3ac4c6793e1be66e301f6ee46875de92b8e1952351c607ae4e658d861a0cb '
+   shasum -a 256 scripts/parking-adjud/data/co_verdicts_osm_publication_floor.json | \
+     grep -q '^5b5d134bec54d6e3e4862cea31231e1701b5d116c4866819128b6e59b40f3cad '
+   shasum -a 256 scripts/parking-adjud/publication-trust-root-v1.json | \
+     grep -q '^43db143447d90f506d42b273c425e0d048e5580e605ac211750114ba350dfd85 '
+   shasum -a 256 scripts/build-parking-verdicts.py | \
+     grep -q '^a2ab1d97bb949422e539c7769223977090c4a5d449ce71e8e22b00764c9e3fdb '
+   RESTORED_ROOT_SHA256=$(shasum -a 256 \
+     scripts/parking-adjud/publication-trust-root-v1.json)
+   RESTORED_ROOT_SHA256=${RESTORED_ROOT_SHA256%% *}
+   grep -Fqx "    \"$RESTORED_ROOT_SHA256\"" scripts/build-parking-verdicts.py
+   test ! -e scripts/parking-adjud/data/co_verdicts_osm_publication_proofs.json
+   ```
+
+   `archive-batch` accepts canonical absolute required and optional
+   source/destination pairs plus the complete explicit publication resource set.
+   Every optional source, destination, and derived safety path is persisted in
+   PLANNED and added to the globally sorted exclusive lock set before the source
+   is inspected. Only under that lease is each optional source classified as
+   `present` or `absent`: present sources get the same safety-copy, move, and
+   evidence checks as required sources; absent sources get an ordered durable
+   resolution checkpoint and all three paths must remain absent through the
+   terminal report and `verify-archive-report`. It maps every resource through
+   the same `trust_resolution.resource_lock_path` contract as terminal writers,
+   collision-checks and globally sorts the lock set, then holds every lock
+   exclusively through all preflight, moves, syncs, absence checks, and
+   postconditions. All destinations are proved absent before the first source is
+   retired. Each moved child uses macOS `renameatx_np(..., RENAME_EXCL)` or Linux
+   `renameat2(..., RENAME_NOREPLACE)` with no fallback.
+
+   POSIX rename is name-bound, not descriptor-bound. The locks exclude every
+   cooperating Trekdex writer, but cannot exclude a same-UID process that ignores
+   the lock contract. Exact identity-bound no-loss semantics against a malicious
+   same-UID process that can also tamper with the archive or report namespace are
+   impossible on portable POSIX and are not claimed. Before taking locks, the
+   command creates the new owner-only `archive-report` namespace without
+   clobbering any path. Before any rename it creates and cryptographically
+   verifies an independent sealed safety image for every required or
+   present-optional source at the hidden `.*trekdex-archive-safety-*` path, then
+   fsyncs canonical `plan.json` and `prepared.json` documents containing every
+   safety-image digest and every optional present/absent resolution. Retain those
+   images and the report namespace with the archive.
+
+   After each rename it fsyncs destination content, then the destination parent
+   and source parent; recomputes complete destination file length/SHA-256 or
+   recursive tree evidence from held descriptors; reverifies the
+   safety image; and compares both exactly with PREPARED evidence. Only then does
+   it create and fsync that move's new no-clobber checkpoint. It durably creates
+   `terminal.json` with `committed`, `not-committed`, `partially-committed`, or
+   `committed-indeterminate` before releasing locks whenever the process remains
+   alive. SIGKILL can omit the terminal or next checkpoint, but the retained
+   PREPARED/checkpoint chain proves the last durable prefix. Stdout is never the
+   authority. Every non-committed state sets `blind_retry_forbidden: true`;
+   preserve every named path and reconcile explicitly. Never delete a safety
+   image, overwrite a destination, edit a report, or rerun blindly.
+   `verify-archive-report` uses its first validated plan read only to reconstruct
+   the exact globally sorted exclusive lock set. After acquiring every lock, it
+   rereads and revalidates the complete report chain, rejects a plan or state
+   flip, and holds the lease through every source-absence, destination, safety
+   image, and optional-resolution evidence check. Lock acquisition failure
+   refuses verification and does not alter archive or report state.
+   `restore-generation-1` is the sole generation-1 restore boundary. It derives
+   and acquires the exact globally sorted exclusive lock set from the validated
+   archive plan, rereads and revalidates the complete report chain under that
+   lease, and holds the same lease through restore and final evidence checks.
+   It accepts no target paths: the contract fixes the four restore paths, the
+   legacy proof path, both optional trees, commit
+   `140f8c935864ca5fe9b1070256193eee807691e3`, and all four expected SHA-256
+   values. It reads those blobs directly from the immutable commit without
+   checkout or proof execution, stages and verifies all four before installing
+   any, requires the staged builder's literal root pin to equal the restored
+   root hash, atomically installs each absent target with no replacement,
+   verifies final hashes and required absences, and appends no-clobber
+   `generation-1-restore-prepared.json` and
+   `generation-1-restore-terminal.json` with evidence for all four targets
+   before releasing the locks. Never run `git restore`, a checkout, or any other
+   restore outside this lease-held command.
+
+2. Restore these four tracked generation-1 blobs from `BASE`, only after their
+   current versions are in the archive:
+   `scripts/parking-adjud/data/co_verdicts_osm.json`,
+   `scripts/parking-adjud/data/co_verdicts_osm_publication_floor.json`,
+   `scripts/parking-adjud/publication-trust-root-v1.json`, and
+   `scripts/build-parking-verdicts.py`. The generation-1 image intentionally has
+   no `co_verdicts_osm_publication_proofs.json`; moving the legacy file to
+   Archive establishes absence without deleting it.
+3. Verify exact generation-1 identities: store
+   `44f3ac4c6793e1be66e301f6ee46875de92b8e1952351c607ae4e658d861a0cb`,
+   floor `5b5d134bec54d6e3e4862cea31231e1701b5d116c4866819128b6e59b40f3cad`,
+   root `43db143447d90f506d42b273c425e0d048e5580e605ac211750114ba350dfd85`,
+   builder `a2ab1d97bb949422e539c7769223977090c4a5d449ce71e8e22b00764c9e3fdb`,
+   root `generation: 1` with `parent_root_sha256: null`, absent Colorado proof
+   registry, no live publication journal, and the builder's literal pin equal
+   to the restored root hash. A mismatch stops the restore.
+4. Start a new current-schema resolver run from that restored image. Regenerate
+   every affected model decision and every needed human review/authority
+   receipt from frozen portable sources; do not copy a legacy envelope, reuse a
+   legacy path-bound receipt as new authority, or alias an old proof ID. Apply
+   every chunk through its normal transaction, then publish normally.
+
+The migration is complete only when the durable archive still verifies; the
+live registry is canonical v2 and at most 1,048,576 bytes; every new manifest is
+v4 and every new row attestation is v3; the successor root is exactly generation
+2 with parent hash
+`43db143447d90f506d42b273c425e0d048e5580e605ac211750114ba350dfd85`;
+that candidate and literal pin are separately reviewed and promoted together;
+a full build/replay succeeds; and the five deferred production-corpus tests run
+without an oversized-registry skip. Until every condition holds, the rollback
+or regeneration is incomplete and publication remains blocked.
+
+Object files must be current-owner, trivial-ACL, regular, single-link, and
+non-writable. A normal Git checkout may restore `0644`, shared-group `0664`, or
+execute bits, so replay rejects it until the explicit object seal operation
+verifies path/length/hash and streams the bytes into a fresh read-only
+single-link inode. The atomic replacement retires the checkout inode; a writer
+opened before sealing remains attached only to that retired inode and cannot
+alter canonical bytes after success. The seal clears all write and execute bits
+while preserving read bits. Reads never repair permissions implicitly.
+Run the seal explicitly for each compact registry after checkout and before
+replay/build:
+
+```bash
+python3 tools/publication_objects.py seal \
+  data/co_verdicts_osm_publication_proofs.json
+```
+
+The command accepts registry v2 only, acquires the exact registry and
+`publication-proof-objects` resources through the same globally sorted
+`resource_lock_path` lease used by archive and terminal writers, and holds both
+locks through registry read, manifest/object replacement, and final closure
+verification. It seals each manifest first, then its exact transitive leaf
+closure, and prints verified object counts and bytes.
 
 The strict canonical `publication-trust-root-v1.json` is the Git-reviewed trust
 anchor for the complete publication image. Its exact bytes are pinned by the
@@ -351,13 +636,22 @@ is derived and deliberately not rooted. Replay/build take root `LOCK_SH`;
 terminal publication takes root `LOCK_EX`, target publication resources
 exclusively, and sibling resources shared.
 
-Publication is one journaled transaction with one valid install prefix: proof
-→ floor → store → non-authoritative successor candidate. The floor preserves
-every admitted key's first authority, attestation, and proof identity. Every
-stage is exact-byte verified before journal archival. A crash after proof,
-floor, store, candidate, or archive installation recovers only by rerunning the
+Publication is one journaled append-only transaction. It stages every exact
+object first, then writes the durable journal before installing any object. The
+only valid authority prefix is objects (in sorted descriptor order) → registry
+→ floor → store → non-authoritative successor candidate. Existing object paths
+are accepted only after exact verification and are never overwritten;
+unreferenced exact objects left by a crash grant no authority. Each sealed stage
+is bound into the journal; installation hard-links an absent object path, fsyncs
+it, reduces the object to one link, then retains an exact stage on an independent
+sealed inode. A crash at either cut leaves an exact recoverable prefix, so every
+before/after-object cut retries the identical plan without overwriting an object.
+The registry transition may only retain byte-identical entries and append new
+ones; proof removal or rewrite fails. The floor preserves every admitted key's
+first authority, attestation, and proof identity. Every target and complete
+object closure is verified before journal archival. Recovery reruns only the
 exact original single-area command with the same terminal run and explicit
-`--judged YYYY-MM-DD`; different inputs or malformed
+`--judged YYYY-MM-DD`; changed inputs or malformed objects,
 stages/backups/candidates/archives fail closed. The tracked root and literal pin
 never change automatically. After publication, review the candidate named by
 the archived journal, replace the tracked root with those exact bytes, and
@@ -365,6 +659,120 @@ update the literal pin plus pin assertions in one reviewed Git change. Until
 that promotion, replay/build and every second publication reject the live image
 against the old root. A PENDING/BLOCKED run cannot publish primary rows around
 the resolver.
+
+Object-stage retention is explicit and conservative. A stage directory MUST
+remain in `object-stages/<run-id>/` while its journal is live, through journal
+archival, and until the successor root is separately promoted and a full replay
+passes. No writer or background task reaps it. The read-only
+`publication_objects.py verify-stage ARCHIVED_JOURNAL STAGE_DIRECTORY` command
+validates the canonical archived journal and transaction hash, enumerates the exact stage file
+set, verifies every descriptor/path/length/SHA-256 and sealed inode, and reports
+`descriptor_count`, `file_count`, `unique_bytes`, and
+`hash_closure_sha256`. It never moves, replaces, or unlinks a file.
+
+After the promotion/replay gates, reclaim active disk only with this move-only
+procedure. `ARCHIVED_JOURNAL` is the journal already under the transaction
+`Archive/`, `STAGE_DIRECTORY` is its complete
+`object-stages/<run-id>/`, and `DURABLE_ARCHIVE` must be a new owner-only external
+path containing an `Archive` component:
+
+```bash
+set -euo pipefail
+REPO_ROOT=$(cd ../.. && pwd -P)
+DATA_ROOT="$REPO_ROOT/scripts/parking-adjud/data"
+: "${ARCHIVED_JOURNAL:?set the exact archived journal path}"
+: "${STAGE_DIRECTORY:?set its complete object-stage directory}"
+TRANSACTION_ID=replace-with-the-64-character-lowercase-transaction-hash
+DURABLE_ARCHIVE="/durable/Archive/trekdex-publication-$TRANSACTION_ID"
+case "$DURABLE_ARCHIVE" in
+  */Archive/*) ;;
+  *) echo "archive destination must contain an Archive component: $DURABLE_ARCHIVE" >&2; exit 1 ;;
+esac
+if test -e "$DURABLE_ARCHIVE"; then
+  echo "archive destination already exists: $DURABLE_ARCHIVE" >&2
+  exit 1
+fi
+JOURNAL_NAME=$(basename "$ARCHIVED_JOURNAL")
+STAGE_NAME=$(basename "$STAGE_DIRECTORY")
+if test "$JOURNAL_NAME" = "$STAGE_NAME"; then
+  echo "journal and stage destination basenames collide: $JOURNAL_NAME" >&2
+  exit 1
+fi
+mkdir -m 700 "$DURABLE_ARCHIVE"
+set -C  # noclobber: verify-before.json and verify-after.json must be new
+python3 tools/publication_objects.py verify-stage \
+  "$ARCHIVED_JOURNAL" "$STAGE_DIRECTORY" \
+  > "$DURABLE_ARCHIVE/verify-before.json"
+ARCHIVE_REPORT="$DURABLE_ARCHIVE/archive-report"
+ARCHIVE_BATCH_ARGS=(
+  archive-batch
+  --report-directory "$ARCHIVE_REPORT"
+  --resource "$REPO_ROOT/scripts/parking-adjud/publication-trust-root-v1.json"
+  --resource "$DATA_ROOT/publication-proof-objects"
+)
+for STORE_NAME in \
+  phx_verdicts_osm.json \
+  ne_verdicts_osm.json \
+  zion-wilderness-ut_verdicts2.json \
+  griffith-park-ca_verdicts2.json \
+  co_verdicts_osm.json; do
+  STORE_STEM=${STORE_NAME%.json}
+  ARCHIVE_BATCH_ARGS+=(
+    --resource "$DATA_ROOT/$STORE_NAME"
+    --resource "$DATA_ROOT/${STORE_STEM}_publication_proofs.json"
+    --resource "$DATA_ROOT/${STORE_STEM}_publication_floor.json"
+    --resource "$DATA_ROOT/.trekdex-publication-transactions/$STORE_NAME.journal.json"
+  )
+done
+ARCHIVE_BATCH_ARGS+=(
+  --pair "$STAGE_DIRECTORY" "$DURABLE_ARCHIVE/$STAGE_NAME"
+  --pair "$ARCHIVED_JOURNAL" "$DURABLE_ARCHIVE/$JOURNAL_NAME"
+)
+python3 tools/publication_objects.py "${ARCHIVE_BATCH_ARGS[@]}"
+python3 tools/publication_objects.py verify-archive-report "$ARCHIVE_REPORT"
+python3 tools/publication_objects.py verify-stage \
+  "$DURABLE_ARCHIVE/$JOURNAL_NAME" \
+  "$DURABLE_ARCHIVE/$STAGE_NAME" \
+  > "$DURABLE_ARCHIVE/verify-after.json"
+python3 - "$DURABLE_ARCHIVE/verify-before.json" \
+  "$DURABLE_ARCHIVE/verify-after.json" <<'PY'
+import json
+import sys
+
+before, after = (json.load(open(path)) for path in sys.argv[1:])
+keys = (
+    "transaction_id", "journal_sha256", "stage_run_id",
+    "descriptor_count", "file_count", "unique_bytes",
+    "hash_closure_sha256",
+)
+if any(before[key] != after[key] for key in keys):
+    raise SystemExit("archived stage verification differs from source")
+if after["stage_is_in_archive"] is not True:
+    raise SystemExit("destination stage is not under an Archive path")
+PY
+```
+
+Compare the before/after `transaction_id`, `journal_sha256`, `stage_run_id`,
+`descriptor_count`, `file_count`, `unique_bytes`, and
+`hash_closure_sha256`; every value must be identical and the after report must
+say `stage_is_in_archive: true`. The before/after stage reports, immutable
+`archive-report` plan/PREPARED/checkpoint/terminal chain, and hidden verified
+safety images remain beside the moved stage and journal. `verify-archive-report`
+is mandatory immediately after the batch: it accepts only terminal
+`committed`, rejects missing/extra/reordered or hash-invalid moves, and reopens
+every destination and safety image against its exact recorded
+evidence. A failure before any rename durably reports `not-committed`; failure
+after an earlier checkpoint reports `partially-committed`; and any failure after
+a rename without a matching durable checkpoint reports
+`committed-indeterminate`. Namespace and fsync durability may already have
+changed in the latter two states, so do not claim that both original paths
+remain. Preserve every path named by the report and investigate; do not retry by
+deleting, copying over, or selectively moving files. If that exact external
+archive cannot remain readable and verified, keep the stage in place. Budget
+roughly one additional closure byte per unique staged object for the required
+safety image until archival. Installed content-addressed objects remain
+authoritative; the archived stage, journal, and safety images remain
+forensic-only.
 
 The exact schemas, hash identities, consensus rules, and recovery states are in
 `tools/trust_resolver_schema.md`.
@@ -435,13 +843,14 @@ independent.
 
 ## Shipping verdicts (runs anywhere, no extracts needed)
 
-**Operational/manual freeze — not a code bypass:** do not publish
-`bear-creek-lake-park-co` in this task. Its available resolver run and four
-historical human decisions predate the current prepare/review-receipt authority
-schemas and cannot be newly published; regenerate/re-evaluate all 50 rows,
-rebind accepted decisions through a current frozen review receipt, close every
-human exception, pass the hostile gate, and obtain an explicit thaw before
-store merge, sidecar, geom, pool, R2, or live publication.
+**Bear Creek freeze satisfied:** the original path-bound
+`bear-creek-lake-park-co` run and four historical human decisions were not
+publishable under the portable authority schemas. Quentin explicitly thawed
+this scope on 2026-10-03/04 after all 50 rows were regenerated, 19 decisions
+were rebound through current frozen review receipts, every human exception was
+closed, and the hostile publication gates passed. The rooted generation-2
+closure and sweep receipt are recorded in the publication-accounting section
+below; future revisions still require the normal resolver/review gates.
 
 The stores in `data/` are authoritative inputs;
 `public/areas/parking-verdicts.json` is the committed derived sidecar. Builder
@@ -453,7 +862,13 @@ journal blocks. Current rows require a complete attestation/proof and their OSM
 dictionary key must be inside the attested alias vector. Proofless rows are
 accepted only when store+key+full row exactly match the separately self-pinned
 1,273-row/11-dossier `proofless-source-baseline-v1.json`, whose exact file bytes
-are also rooted. Current authority cannot downgrade back to that baseline.
+are also rooted. Current authority cannot downgrade back to that baseline. The
+corroboration test reads all five store blobs at pinned commit
+`140f8c935864ca5fe9b1070256193eee807691e3`, verifies all five exact store
+hashes, and recomputes all 1,273 row hashes. It intentionally fails if the
+commit/blob is unavailable: this production corroboration test requires full,
+non-shallow Git history and cannot run from a source tarball. It never derives
+legacy authority from current proof-backed rows.
 Captured dossiers and emitted source/date defaults feed the same
 provenance-complete alias fold in builder and replay. A tail-crashed, forged,
 key-extended, coherently rolled-back, or authority-stripped image therefore
@@ -486,7 +901,12 @@ distinct vertices, nonzero area, finite coordinates, at most a 2,000 m
 diagonal, and a verdict position inside it or within 100 m of its edge. Empty
 footprints remain valid. Sidecar and geom strings containing control, format,
 or line-separator characters are rejected, and report fields are still
-single-line escaped.
+single-line escaped. Since sweep preflight validates the complete geom corpus
+before any mutation, pre-existing format characters must be repaired as
+text-only prerequisites. The current corpus required removal of leading U+200B
+characters from the St. Vrain State Park area name and one embedded U+200B from
+the Ann Arbor Hot Springs trail name; those repairs change no parking or trail
+coordinates.
 
 `--dry-run` is recursively nonmutating and begins `DRY-RUN — would remove`.
 For an approved empty case it prints the exact `REVIEWED-EMPTY ... exact
@@ -531,6 +951,62 @@ cannot bring a judged-out lot back. How a shipped lot is matched to a verdict
 footprint: ring bbox-centre, inside a ring, within 10 m of an edge, within
 20 m of the position) is one function in `scripts/_parking_verdicts.py`; the
 decision behind it is in `TASKS.md` #53.
+
+### Publication accounting: adjudications versus source rows
+
+Publication reports both semantic adjudications and alias-expanded source rows.
+Bear Creek contains **50 adjudicated fid clusters** but produces **53 Colorado
+store/floor rows**: fid 1012 has three OSM aliases and fid 1014 has two. All 53
+rows carry publication attestation v3 and share their cluster's exact decision,
+authority, proof, and attestation identities. The 53 floor rows divide into 34
+`machine_v2`, 16 `human_confirmation_v3`, and 3 `override_v4` entries. Never
+compare the 50-cluster verdict totals (`11 KEEP / 32 DROP / 7 REVIEW`) directly
+to alias-expanded store-key counts.
+
+Path-free publication receipt: archived transaction
+`1e0644679d07f4fe17326bb404b6461fd8e461c697da5e2688e3655107ffe7e9`
+installed store
+`c2713639b10045a902b1acb5a2b1a950f54df61780d0c7473e974c6e449abc82`,
+registry `4f0828917dc9e3ed9b60850fdbdb3677203ce91e3f9492ccc8e4d3f113f55012`,
+floor bytes
+`24277e7dc21425d61c72d89f81f6415ca74122967eb1c431e3af03c2895d7675`
+(self-hash
+`c8884282d397f0b78a74f85811427e05fe0780cc898a5a8b0f2e5cfdad6bd02d`),
+and proof manifest
+`87a4e0f3681d7e003b7aca61694c4385946ebb1f8095393947ebb0eb60cd18f1`;
+the promoted generation-2 root is
+`f0274ec06ff28b053cf6ce0c68d8b5ae29f51329e1c5ca6a013df02e34846a91`
+over parent
+`43db143447d90f506d42b273c425e0d048e5580e605ac211750114ba350dfd85`.
+The permanent content-addressed proof closure is 395 blobs / 88,854,223 bytes
+(394 leaves plus one manifest); this repository-size cost is intentional so a
+fresh clone can replay authority without an external object service.
+
+The rooted sweep input is `public/areas/parking-verdicts.json`, SHA-256
+`6e109573d860d07c70d9f26f8fcda9695005e87c8d840ffd16f91a086db7be1d`
+(1,888,918 bytes; 1,253 clusters). The `parking-verdict-sweep-v2` transaction
+reached `APPLIED` over a 9,074-file geom inventory and removed 16 exact
+DROP matches: 5 from `bear-valley-open-space-co`, 1 from
+`red-rocks-park-co`, and 10 from `william-frederick-hayden-park-co`
+(13 `not-public`, 2 `not-a-lot`, 1 `too-far`). A second pure sweep plan removes
+zero. Bear Creek authority intentionally reaches neighbouring area files through
+the area-agnostic OSM-id/footprint/position matcher; it also reaches
+`matthewswinters-park-co`, where REVIEW fid 391 shields the existing lot and
+keeps that area's parking count at 4.
+
+The R2-style runtime pool is a derived preview, not the sweep input or a tracked
+artifact. Reproduce it with:
+
+```bash
+python3 scripts/build-parking-pool.py --out <scratch>/parking.json \
+  --extra public/areas/parking-pool.json \
+  --verdicts public/areas/parking-verdicts.json --add-keeps
+```
+
+For this closure it emits 30,934 lots with SHA-256
+`66ae82a88233b7e7414c4234819e1e253415680a0f73fb12eed29a9550aaeb2c`:
+195 certain/strong KEEPs added, 2 merged into neighbouring pins, and 62 leaning
+KEEPs held.
 
 ## Known state
 

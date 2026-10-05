@@ -1,0 +1,87 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 3621,
+ "building_overlap": false,
+ "context": {
+  "category": "SUPPORT",
+  "evidence": "66 m from tourism=information",
+  "facility": null,
+  "facility_edge_m": null
+ },
+ "descriptive_tags": [
+  "surface",
+  "parking",
+  "capacity",
+  "name",
+  "operator"
+ ],
+ "fid": 17,
+ "footprint": "polygon",
+ "footways_60m": 1,
+ "members": [
+  {
+   "osm": "way/40722502",
+   "tags": {
+    "access": "permissive",
+    "amenity": "parking",
+    "capacity": "84",
+    "capacity:disabled": "4",
+    "lit": "no",
+    "name": "Rooney Road Trailhead",
+    "operator": "City of Lakewood",
+    "operator:type": "government",
+    "parking": "surface",
+    "surface": "asphalt"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/40722502"
+ ],
+ "prior": "surveyed",
+ "serves": {
+  "edge_m": 106,
+  "fallback": false,
+  "n_trails_in_range": 5,
+  "trail": "Zorro Trail"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "access": "permissive",
+  "amenity": "parking",
+  "capacity": "84",
+  "capacity:disabled": "4",
+  "lit": "no",
+  "name": "Rooney Road Trailhead",
+  "operator": "City of Lakewood",
+  "operator:type": "government",
+  "parking": "surface",
+  "surface": "asphalt"
+ },
+ "tiles": {
+  "z1": "tiles/434938fb7158f65478384c7799df5384961df409070d9cc287dd947718437177.png",
+  "z2": "tiles/d19c95b007d1c25579c41bfcadc3f1047f43d2039e2a3065c5d366fb3165b928.png",
+  "z3": "tiles/0b2a0ab58da676b18184e2974df91285556828fefaddb63ca5e3ae8863d7a636.png"
+ },
+ "trailhead_nodes_120m": [
+  [
+   55,
+   "Rooney Valley Trail/Green Mountain Trail Loop"
+  ]
+ ],
+ "walk": {
+  "conn": "",
+  "trail": null,
+  "walk_m": 204
+ }
+}

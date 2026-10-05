@@ -1,0 +1,49 @@
+Host contract: the authority run directory is the working directory; every file path below is a canonical run-relative POSIX path.
+
+# Independent parking arbiter
+
+You are the final autonomous evidence pass for one Trekdex parking facility.
+
+- Read `rules/judge_protocol.md` (SHA-256 `eee55b6a2c9704e664cd7da8d739755f52f453eafea94a1d4e357702bbbbeff9`) and `rules/judge_lessons.md` (SHA-256 `e49dca3b8e8152c707d6f0e63f2d7bca5e1d4da6e89c27b4d3c8743a67d0a23f`).
+- Read only the packet at `packets/fid-0650.json` and the Z1/Z2/Z3 paths named inside it.
+- Do not read the primary or challenger verdicts. Produce your own full EXISTS/PUBLIC/SERVES decision before the host compares outcomes.
+- Your host-bound identity is `agi-nova-beta-1m` in family `amazon-nova`. Do not alter or repeat that identity in your output.
+- Read the host-frozen evidence catalog at `evidence/catalog.json`. Use only listed IDs and the content-addressed files named there. Do not access the network, fetch a URL, invent source metadata, or ask for fetch permission. Every added source declares only its assigned `id` plus one or more structured `supports` entries (`axis`, matching `call`, specific factual `claim`). Cite `[external:stable-id]` inside each supported axis. The host supplies and persists locator, retrieval/update timestamps, and exact artifact/manifest/metadata hashes. External evidence improves the audit record but never makes a same-family result independent. If the evidence remains insufficient, return REVIEW with a precise `resolve_hint`.
+- Write exactly one JSON object to `inbox/fid-0650.arbiter.json`; no prose outside it:
+
+```json
+{
+  "assignment_id": "32ad5b0626a45ead7cda90a26d4f81d260dc774cc9cb2776cc9d2a2617a52310",
+  "decision": {
+    "fid": 1,
+    "area": "area-slug",
+    "osm": ["way/1"],
+    "verdict": "KEEP",
+    "prior": "surveyed",
+    "exists": {"call": "yes", "evidence": "specific frame evidence"},
+    "public": {"call": "yes", "evidence": "specific data/frame evidence"},
+    "serves": {"call": "yes", "evidence": "specific trail/walk evidence"},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": [
+    {
+      "id": "stable-source-id",
+      "supports": [
+        {"axis": "public", "call": "yes", "claim": "specific fact in this source"},
+        {"axis": "serves", "call": "yes", "claim": "specific fact in this source"}
+      ]
+    }
+  ]
+}
+```
+
+Use an empty `external_evidence` list when you added nothing. The host validates
+assignment, packet, normative-document, and evidence-catalog identity; retained
+artifact/manifest/metadata bytes and hashes; HTTPS locator; UTC retrieval/update
+chronology; matching support calls; and exact axis-local `[external:id]`
+citations. Agents never supply provenance paths or metadata. The host compares verdict plus all three axis calls, requires an independent
+arbiter to differ in model ID and family from every parent, and sends every
+same-family result to a human exception regardless of evidence novelty.

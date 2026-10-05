@@ -1,0 +1,30 @@
+{
+  "assignment_id": "b82461e9ef6edccb55e5a8cb841b23640a133b7d0d540349b2c8f1bac52f5aab",
+  "decision": {
+    "fid": 908,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/742236575"],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {
+      "call": "yes",
+      "evidence": "Surveyed prior (operator tag) confirmed: Z2/Z3 NAIP show a paved asphalt lot filling the red outline with painted stall stripes on every row, landscaped tree islands, a curbed end island, several parked cars, and two driveway throats off the arterial to the NE; footprint 2868 m2, no building overlap."
+    },
+    "public": {
+      "call": "no",
+      "evidence": "Lot-level operator=Christ on the Mountain Catholic Church; no access tag, no trailhead/official access record, no trailhead node within 120 m. Context FACILITY: place_of_worship 60 m away. Z1/Z2/Z3 show the lot is the north wing of the church campus, continuous with the church's main striped lot running south past the church building. A church operator plus no lot-level grant of public parking makes this church parking, not general public parking (lesson 11). Absence of a gate is only context."
+    },
+    "serves": {
+      "call": "no",
+      "evidence": "Only candidate is John O. Hayden Trail, edge 185 m, not fallback, but walk 1165 m with no connection (conn empty, walk trail null). Z1 shows the yellow trail end NW across a multi-lane divided highway, with open grass between it and the lot and no visible trail approach from the lot. One footway within 60 m, but no trail starts at or in the lot and nothing names it a trailhead. The church is the better direct explanation; distance alone does not turn church parking into trail overflow."
+    },
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {
+      "amenity": "parking",
+      "operator": "Christ on the Mountain Catholic Church"
+    },
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

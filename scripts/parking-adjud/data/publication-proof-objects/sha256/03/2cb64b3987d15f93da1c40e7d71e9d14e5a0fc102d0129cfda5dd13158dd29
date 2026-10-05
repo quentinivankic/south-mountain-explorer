@@ -1,0 +1,18 @@
+{
+  "assignment_id": "75018cb1a34ab2fe98558f0305c0790ddf58bec161f63d38bc100789624e79a2",
+  "decision": {
+    "fid": 890,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/620205732"],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {"call": "yes", "evidence": "Surveyed prior (parking=surface + name) not contradicted. Z2/Z3: a large graded, delineated dirt pad (~5,626 m2) west of the two-lane road, reached from the motocross facility's internal yard next to the green-roofed building. Cars sit just north of it by the building and one vehicle is at its south end. No building, lawn, water, or through-lane inside the outline."},
+    "public": {"call": "no", "evidence": "No lot-level access tag, no official trailhead/access record, and no trailhead node within 120 m. name='Pro Pits' marks motorsport pit parking. Z1 shows it inside a motocross complex: dirt race-track loops immediately west and south, plus the facility building and yard to the north. Lesson 11 and the protocol both say pit spaces inside a venue are not public trail parking, whatever access the wider property has. Context is FACILITY ('Beer Garden' pub 117 m)."},
+    "serves": {"call": "no", "evidence": "Nearest shipped trail is the C-470 Trail: 237 m edge distance, not fallback, but the 603 m walk has no connection (conn empty, walk trail null). footways_60m=0 and there are no trailhead nodes. Z1: the yellow trail sits NE, beyond the two-lane road, an open field, and the C-470 freeway, with no direct approach from the lot. The motocross track is the obvious owner; nothing shows trail-user dual use."},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking", "name": "Pro Pits", "parking": "surface"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

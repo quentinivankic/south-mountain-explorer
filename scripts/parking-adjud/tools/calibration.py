@@ -55,6 +55,7 @@ from judge_validation import (  # noqa: E402
     original_judge_projection,
 )
 import trust_resolution as tr  # noqa: E402
+import review_evidence as review  # noqa: E402
 import trusted_filesystem as trusted_fs  # noqa: E402
 
 PADJ_TMP = os.environ.get("PADJ_TMP") or os.path.join(_HERE, "..", "work")
@@ -136,6 +137,21 @@ def load_sample_manifest(tmp: str, slug: str, drafts: list[dict]) -> tuple[list[
     return sample, hashlib.sha256(raw).hexdigest()
 
 
+def _runtime_locator_candidates(runtime_directory: Path) -> list[Path]:
+    """Enumerate JSON runtime locators through a no-follow directory fd."""
+    directory_fd = trusted_fs.open_trusted_directory_fd(runtime_directory)
+    try:
+        names = os.listdir(directory_fd)
+    finally:
+        os.close(directory_fd)
+    return [
+        runtime_directory / name
+        for name in sorted(names)
+        if isinstance(name, str) and Path(name).name == name
+        and name.endswith(".json")
+    ]
+
+
 def load_sample_review_receipt(path: Path, slug: str,
                                drafts: list[dict]) -> tuple[list[int], str]:
     """Validate the canonical frozen review chain and return its sampled fids."""
@@ -150,12 +166,53 @@ def load_sample_review_receipt(path: Path, slug: str,
         receipt = json.loads(receipt_bytes)
         if not isinstance(receipt, dict):
             raise ValueError("review receipt root is not an object")
-        source_run_path = receipt.get("source_run_path")
-        if not isinstance(source_run_path, str):
-            raise ValueError("review receipt has no source run path")
-        context = resolver.load_review_receipt(
-            path, Path(source_run_path), slug
-        )
+        if receipt.get("version") == review.REVIEW_RECEIPT_VERSION:
+            runtime_directory = path.parent / "runtime"
+            candidates = _runtime_locator_candidates(runtime_directory)
+            if not candidates:
+                raise ValueError("review receipt has no operational source run")
+            context = None
+            failures = []
+            for runtime_path in candidates:
+                try:
+                    runtime_bytes = trusted_fs.read_regular_bytes(
+                        runtime_path, require_owner_only=True
+                    )
+                    runtime = json.loads(runtime_bytes)
+                    required = {
+                        "version", "kind", "area", "source_run_id",
+                        "source_run_path",
+                    }
+                    if (not isinstance(runtime, dict) or set(runtime) != required
+                            or runtime.get("version") != review.REVIEW_RUNTIME_VERSION
+                            or runtime.get("kind") != review.REVIEW_RUNTIME_KIND
+                            or runtime.get("area") != slug
+                            or runtime.get("source_run_id")
+                            != receipt.get("source_run_id")
+                            or review.json_bytes(runtime) != runtime_bytes):
+                        raise ValueError("review runtime context is invalid")
+                    source_run_path = runtime.get("source_run_path")
+                    if not isinstance(source_run_path, str):
+                        raise ValueError("review runtime source path is invalid")
+                    context = resolver.load_review_receipt(
+                        path, Path(source_run_path), slug
+                    )
+                    break
+                except (OSError, ValueError, TypeError,
+                        json.JSONDecodeError) as error:
+                    failures.append(str(error))
+            if context is None:
+                raise ValueError(
+                    "no review runtime locator revalidated the receipt: "
+                    + "; ".join(failures)
+                )
+        else:
+            source_run_path = receipt.get("source_run_path")
+            if not isinstance(source_run_path, str):
+                raise ValueError("review receipt has no operational source run")
+            context = resolver.load_review_receipt(
+                path, Path(source_run_path), slug
+            )
     except (OSError, ValueError, TypeError, json.JSONDecodeError) as error:
         sys.exit(f"sample review receipt is invalid: {error}")
     validated = context["receipt"]

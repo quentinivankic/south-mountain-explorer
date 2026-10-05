@@ -1,0 +1,18 @@
+{
+  "assignment_id": "2eb9e08aeffb4cd8059c291a176f799cd8985f2ac651ff31801c436a5dc22a4d",
+  "decision": {
+    "fid": 889,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/620205731"],
+    "verdict": "DROP",
+    "prior": "surveyed",
+    "exists": {"call": "yes", "evidence": "Surveyed prior (parking=surface, name) with no positive contradiction. Z2/Z3: the red outline sits on a graded, compacted dirt pad with a dark rectangular patch inside it. The pad opens off the road on its east side, and dirt tracks lead west into the motocross complex. No cars or stripes on capture day, but the surface is clearly delineated, not lawn, water, building, or a through-lane."},
+    "public": {"call": "no", "evidence": "No lot-level access tag, official access record, or trailhead record. The lot is named 'Pro Pits'. Z1 shows it sits right next to an active motocross track complex (winding dirt race circuits fill the western half of the frame), and context puts it inside 'Thunder Valley Park'. Racer pit parking at a motorsport venue is internal participant space. Under protocol and lesson 11, being inside an open park/venue or having no visible gate does not make pit spaces public trail parking."},
+    "serves": {"call": "no", "evidence": "The motocross venue is the better direct explanation (motorsport pit lot). Zorro Trail edge is 238 m; walk is 345 m with an empty connection and no walk trail; no trailhead nodes within 120 m. The 2 footways within 60 m read in Z1/Z2 as motocross/pit dirt tracks heading west into the race complex, not a trail approach. Z1 also shows a separate paved, striped lot with many parked cars south-east across the road, past the substation, nearer the eastern trail. That is evidence against treating this pit pad as trail overflow."},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking", "parking": "surface", "name": "Pro Pits", "source": "Bing"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

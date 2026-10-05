@@ -1,0 +1,3307 @@
+{
+ "1012": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 603,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "0 m from landuse=residential",
+   "facility": "landuse=residential",
+   "facility_edge_m": 0
+  },
+  "descriptive_tags": [],
+  "fid": 1012,
+  "footprint": "polygon",
+  "footways_60m": 0,
+  "members": [
+   {
+    "osm": "way/987030579",
+    "tags": {
+     "amenity": "parking"
+    }
+   },
+   {
+    "osm": "way/987030580",
+    "tags": {
+     "amenity": "parking"
+    }
+   },
+   {
+    "osm": "way/987030581",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/987030579",
+   "way/987030580",
+   "way/987030581"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 164,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Stone House Trail (North)"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/ae6c12e7b09353dab53d56229f481da8f32ec0a93cfb5c06894c695074e4320f.png",
+   "z2": "tiles/687acd7f80d785e622e5e067b619effc2ba4f6f27d297587b3adac2a93c3b2db.png",
+   "z3": "tiles/eb9e887aa6d4d6564a2460734d1d269b4978f75558f116156dc337d6bb212261.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 188
+  }
+ },
+ "1014": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 189,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "0 m from landuse=residential",
+   "facility": "landuse=residential",
+   "facility_edge_m": 0
+  },
+  "descriptive_tags": [],
+  "fid": 1014,
+  "footprint": "polygon",
+  "footways_60m": 1,
+  "members": [
+   {
+    "osm": "way/987030584",
+    "tags": {
+     "amenity": "parking"
+    }
+   },
+   {
+    "osm": "way/987030585",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/987030584",
+   "way/987030585"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 181,
+   "fallback": false,
+   "n_trails_in_range": 2,
+   "trail": "Stone House Trail (North)"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/92b9c30907263c0bc14438f3f82c7b901f2aef495d610540c45e1a4f2f643cd0.png",
+   "z2": "tiles/f6e40705e01ac2fb00bd16a80e94417764bf2dbe4eea62eb90db69184d344117.png",
+   "z3": "tiles/73f882f36903aa46d7fed74b3a2df36b1e1860f2d9a6d440f81850671758333f.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 220
+  }
+ },
+ "102": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 950,
+  "building_overlap": false,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "in boundary=protected_area 'Bear Valley Open Space'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "surface",
+   "parking",
+   "fee",
+   "name"
+  ],
+  "fid": 102,
+  "footprint": "polygon",
+  "footways_60m": 8,
+  "members": [
+   {
+    "osm": "relation/12649204",
+    "tags": {
+     "access": "yes",
+     "addr:city": "Lakewood",
+     "addr:housenumber": "2800,2900",
+     "addr:postcode": "80227",
+     "addr:state": "CO",
+     "addr:street": "South Estes Street",
+     "amenity": "parking",
+     "capacity:disabled": "2",
+     "fee": "no",
+     "name": "Bear Creek Greenbelt",
+     "parking": "surface",
+     "surface": "paved"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "relation/12649204"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 24,
+   "fallback": false,
+   "n_trails_in_range": 6,
+   "trail": "Stone House Trail & Greenbelt Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "access": "yes",
+   "addr:city": "Lakewood",
+   "addr:housenumber": "2800,2900",
+   "addr:postcode": "80227",
+   "addr:state": "CO",
+   "addr:street": "South Estes Street",
+   "amenity": "parking",
+   "capacity:disabled": "2",
+   "fee": "no",
+   "name": "Bear Creek Greenbelt",
+   "parking": "surface",
+   "surface": "paved"
+  },
+  "tiles": {
+   "z1": "tiles/1f5804362f3ddcbeabbb29f1d9fd2dcc0649ed13c4fefe01008843813bf550ac.png",
+   "z2": "tiles/e556deba252943af26a9639ce423d0444e93c3d76f5ced3390eb84a56bdbbe91.png",
+   "z3": "tiles/fdba91b38f3e172b8825e6dca902b67ce6ab7976beee6df91ec8642e4c155507.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 68
+  }
+ },
+ "103": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 430,
+  "building_overlap": false,
+  "context": {
+   "category": "PARK",
+   "evidence": "in leisure=park 'William Frederick Hayden Park' — generic park, weak",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "parking",
+   "capacity",
+   "name"
+  ],
+  "fid": 103,
+  "footprint": "polygon",
+  "footways_60m": 4,
+  "members": [
+   {
+    "osm": "way/45230334",
+    "tags": {
+     "amenity": "parking",
+     "capacity": "12",
+     "name": "Utah Trailhead",
+     "parking": "surface"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/45230334"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 1,
+   "fallback": false,
+   "n_trails_in_range": 2,
+   "trail": "John O. Hayden Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "capacity": "12",
+   "name": "Utah Trailhead",
+   "parking": "surface"
+  },
+  "tiles": {
+   "z1": "tiles/8ec079ee0355e576754c7f72ecc369b3a4da9defd0f906d3d122b23da89c9e25.png",
+   "z2": "tiles/0602eb4911f7d466debb27c9943dfcd4e6ddeab443e97d7764e15450c9f6c8fb.png",
+   "z3": "tiles/13cd49bda5a51f1c7b722132f88c0fd22d75355aacece7b19ddaca2cea6c31e2.png"
+  },
+  "trailhead_nodes_120m": [
+   [
+    12,
+    "Utah Trailhead"
+   ]
+  ],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 958
+  }
+ },
+ "1035": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 299,
+  "building_overlap": false,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "in boundary=protected_area 'Matthews/Winters Park'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "surface",
+   "parking",
+   "capacity"
+  ],
+  "fid": 1035,
+  "footprint": "polygon",
+  "footways_60m": 0,
+  "members": [
+   {
+    "osm": "way/1009503571",
+    "tags": {
+     "access": "yes",
+     "amenity": "parking",
+     "capacity": "10",
+     "capacity:disabled": "1",
+     "parking": "surface",
+     "source": "Mapbox",
+     "surface": "asphalt"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/1009503571"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 5,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Dinosaur Ridge Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "access": "yes",
+   "amenity": "parking",
+   "capacity": "10",
+   "capacity:disabled": "1",
+   "parking": "surface",
+   "source": "Mapbox",
+   "surface": "asphalt"
+  },
+  "tiles": {
+   "z1": "tiles/07191b37767988dcbef6af30c785c36c5b8119dd70b4dbbd893335b364d34eed.png",
+   "z2": "tiles/f03e7d0e381d3d5cdd4d71dc95fb9ec59420c960e0455966e35d683caaa90e97.png",
+   "z3": "tiles/f540002907049e550619a241e296ea1245850b508f12552ba74b4b086953fc5b.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 25
+  }
+ },
+ "1038": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 148,
+  "building_overlap": false,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "in boundary=protected_area 'Red Rocks Park'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "surface",
+   "parking",
+   "fee",
+   "capacity"
+  ],
+  "fid": 1038,
+  "footprint": "polygon",
+  "footways_60m": 8,
+  "members": [
+   {
+    "osm": "way/1013948712",
+    "tags": {
+     "amenity": "parking",
+     "capacity": "5",
+     "fee": "no",
+     "parking": "surface",
+     "surface": "unpaved"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/1013948712"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 3,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Will Call Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "capacity": "5",
+   "fee": "no",
+   "parking": "surface",
+   "surface": "unpaved"
+  },
+  "tiles": {
+   "z1": "tiles/c82431f78bd956256293be0dfc2e4e3cd965004d78cdb106d623852403efe7d6.png",
+   "z2": "tiles/50f13f790afac150ce061fc3bce191c4637e5ebea98d4647a699c74d97eb1e23.png",
+   "z3": "tiles/c906b78765250746f92e243ebf624d9ab5e0ce455dccccef415dae7be5e5b0a5.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 14
+  }
+ },
+ "11": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 1748,
+  "building_overlap": false,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "in boundary=protected_area 'Matthews/Winters Park'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "surface",
+   "parking",
+   "fee",
+   "capacity",
+   "name",
+   "operator"
+  ],
+  "fid": 11,
+  "footprint": "polygon",
+  "footways_60m": 9,
+  "members": [
+   {
+    "osm": "way/37115952",
+    "tags": {
+     "access": "yes",
+     "addr:city": "Golden",
+     "addr:housenumber": "1103",
+     "addr:postcode": "80401",
+     "addr:state": "CO",
+     "addr:street": "County Highway 73",
+     "amenity": "parking",
+     "capacity": "58",
+     "capacity:disabled": "3",
+     "fee": "no",
+     "name": "Matthews/Winters Park Trailhead",
+     "operator": "Jefferson County Open Space",
+     "operator:type": "government",
+     "parking": "surface",
+     "surface": "asphalt"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/37115952"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 2,
+   "fallback": false,
+   "n_trails_in_range": 2,
+   "trail": "Village Loop Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "access": "yes",
+   "addr:city": "Golden",
+   "addr:housenumber": "1103",
+   "addr:postcode": "80401",
+   "addr:state": "CO",
+   "addr:street": "County Highway 73",
+   "amenity": "parking",
+   "capacity": "58",
+   "capacity:disabled": "3",
+   "fee": "no",
+   "name": "Matthews/Winters Park Trailhead",
+   "operator": "Jefferson County Open Space",
+   "operator:type": "government",
+   "parking": "surface",
+   "surface": "asphalt"
+  },
+  "tiles": {
+   "z1": "tiles/60e9c3972d67d7f50ce2b64758b83113f668ae623524f03b33b8a5fcbdedb9ae.png",
+   "z2": "tiles/2a82b971af88118e306735d20c54637248c0f809c240e4f726305d90ce283c6a.png",
+   "z3": "tiles/19a63a37cdc75d5586cac20f65083975fa0cae01d1b46764913276cf63f8abeb.png"
+  },
+  "trailhead_nodes_120m": [
+   [
+    47,
+    ""
+   ]
+  ],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 71
+  }
+ },
+ "1106": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 154,
+  "building_overlap": false,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "in boundary=protected_area 'Red Rocks Park'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "surface",
+   "capacity"
+  ],
+  "fid": 1106,
+  "footprint": "polygon",
+  "footways_60m": 4,
+  "members": [
+   {
+    "osm": "way/1408649234",
+    "tags": {
+     "amenity": "parking",
+     "capacity": "6",
+     "surface": "asphalt"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/1408649234"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 636,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Morrison Slide Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "capacity": "6",
+   "surface": "asphalt"
+  },
+  "tiles": {
+   "z1": "tiles/e090db4be89e529e29b4cb05a75f2cf5752c2228c0dc59f62e329a095734a046.png",
+   "z2": "tiles/d7b271d9cb13ebe4fbb840e73decc3d7471084bd0d12e8313eca8a086d67f00d.png",
+   "z3": "tiles/abe981ae0dd4b5e05e7e234bc299a86c9ebed26d5fee88827852cdbceef34dcc.png"
+  },
+  "trailhead_nodes_120m": [
+   [
+    32,
+    ""
+   ]
+  ],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 28
+  }
+ },
+ "115": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 23170,
+  "building_overlap": false,
+  "context": {
+   "category": "NEUTRAL",
+   "evidence": "",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "parking",
+   "name"
+  ],
+  "fid": 115,
+  "footprint": "polygon",
+  "footways_60m": 1,
+  "members": [
+   {
+    "osm": "way/45535929",
+    "tags": {
+     "amenity": "parking",
+     "name": "Heritage Square",
+     "parking": "surface"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/45535929"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 18,
+   "fallback": false,
+   "n_trails_in_range": 5,
+   "trail": "Apex Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "name": "Heritage Square",
+   "parking": "surface"
+  },
+  "tiles": {
+   "z1": "tiles/033cbce1b426137f423b44540d233c9dd04e5b5c54442a6bc9a7d1f8df8d1371.png",
+   "z2": "tiles/66cff0086262686a9ece21c441647d64e987a943db63c291b2a5d67e45a3d86d.png",
+   "z3": "tiles/698a8157c48baa33eaf9297132c5efc94044debfe63d8b03cc74d11a34297ae3.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 692
+  }
+ },
+ "12": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 13382,
+  "building_overlap": false,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "in boundary=protected_area 'Red Rocks Park'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "name"
+  ],
+  "fid": 12,
+  "footprint": "polygon",
+  "footways_60m": 2,
+  "members": [
+   {
+    "osm": "way/37115986",
+    "tags": {
+     "amenity": "parking",
+     "name": "Lower North Lot"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/37115986"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 0,
+   "fallback": false,
+   "n_trails_in_range": 3,
+   "trail": "Geologic Overlook Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "name": "Lower North Lot"
+  },
+  "tiles": {
+   "z1": "tiles/16d9dbacf2137464cbf55e4c38fe730569844f9f9273415e37475b30f65176c5.png",
+   "z2": "tiles/1917124dd95c7a935462a9387270e46670e23d190136aee333739a9759c3496b.png",
+   "z3": "tiles/1ec0b8f5d276734fe36b36f3283dedd579011c6b28bbf45d0d44055c16a0b2a7.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 33
+  }
+ },
+ "158": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 7395,
+  "building_overlap": true,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "0 m from landuse=retail",
+   "facility": "landuse=retail",
+   "facility_edge_m": 0
+  },
+  "descriptive_tags": [],
+  "fid": 158,
+  "footprint": "polygon",
+  "footways_60m": 3,
+  "members": [
+   {
+    "osm": "way/51380775",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/51380775"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 48,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Greenbelt Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/6538f85a49c941fa18468fdbf2e637d1946d76a3e8daff21d68fbfd5034abd3a.png",
+   "z2": "tiles/39d7e1b3d6f0bf06be91bb80e44d1724cd37be001b9e88770d6d11b1d1c90bb4.png",
+   "z3": "tiles/3876863a570275968b76d9a434757620834f2e68be90242fc10d3f22fa875b7a.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 405
+  }
+ },
+ "159": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 595,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "12 m from landuse=residential 'Sienna Park Townhomes'",
+   "facility": "landuse=residential",
+   "facility_edge_m": 12
+  },
+  "descriptive_tags": [],
+  "fid": 159,
+  "footprint": "polygon",
+  "footways_60m": 1,
+  "members": [
+   {
+    "osm": "way/51381093",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/51381093"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 189,
+   "fallback": false,
+   "n_trails_in_range": 2,
+   "trail": "Greenbelt Alternate Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/c1af18db985d5d66055cdfe57a2f92c058e2b0a79b291579444c0bc1431b5346.png",
+   "z2": "tiles/658bd97f26b85eebb222a4762f3494c7adfd5f3889d03169b4719f692cdf3be2.png",
+   "z3": "tiles/ea28964f84fa6405881501911cb37209489b98f4c2a1435a1ce980a9a10ab0ba.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 320
+  }
+ },
+ "17": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 3621,
+  "building_overlap": false,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "66 m from tourism=information",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "surface",
+   "parking",
+   "capacity",
+   "name",
+   "operator"
+  ],
+  "fid": 17,
+  "footprint": "polygon",
+  "footways_60m": 1,
+  "members": [
+   {
+    "osm": "way/40722502",
+    "tags": {
+     "access": "permissive",
+     "amenity": "parking",
+     "capacity": "84",
+     "capacity:disabled": "4",
+     "lit": "no",
+     "name": "Rooney Road Trailhead",
+     "operator": "City of Lakewood",
+     "operator:type": "government",
+     "parking": "surface",
+     "surface": "asphalt"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/40722502"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 106,
+   "fallback": false,
+   "n_trails_in_range": 5,
+   "trail": "Zorro Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "access": "permissive",
+   "amenity": "parking",
+   "capacity": "84",
+   "capacity:disabled": "4",
+   "lit": "no",
+   "name": "Rooney Road Trailhead",
+   "operator": "City of Lakewood",
+   "operator:type": "government",
+   "parking": "surface",
+   "surface": "asphalt"
+  },
+  "tiles": {
+   "z1": "tiles/434938fb7158f65478384c7799df5384961df409070d9cc287dd947718437177.png",
+   "z2": "tiles/d19c95b007d1c25579c41bfcadc3f1047f43d2039e2a3065c5d366fb3165b928.png",
+   "z3": "tiles/0b2a0ab58da676b18184e2974df91285556828fefaddb63ca5e3ae8863d7a636.png"
+  },
+  "trailhead_nodes_120m": [
+   [
+    55,
+    "Rooney Valley Trail/Green Mountain Trail Loop"
+   ]
+  ],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 204
+  }
+ },
+ "171": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 2231,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "0 m from amenity=school 'Westgate Elementary School'",
+   "facility": "amenity=school",
+   "facility_edge_m": 0
+  },
+  "descriptive_tags": [],
+  "fid": 171,
+  "footprint": "polygon",
+  "footways_60m": 1,
+  "members": [
+   {
+    "osm": "way/51474671",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/51474671"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 88,
+   "fallback": false,
+   "n_trails_in_range": 2,
+   "trail": "Greenbelt Alternate Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/049d093ab29ba5d346d8ba306881a9a50c56ba8689e6191c841acc376aef9523.png",
+   "z2": "tiles/af999b0eb3ae8949ed5eff251bcd3c52a440cfc6ff7471354cc7b3b6274b8459.png",
+   "z3": "tiles/20fa86062def1f97af04e78009d3ead3f5ab9eab28a247716d761039de8182ea.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 116
+  }
+ },
+ "240": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 945,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "0 m from landuse=residential 'The Terrace at Green Mountain'",
+   "facility": "landuse=residential",
+   "facility_edge_m": 0
+  },
+  "descriptive_tags": [],
+  "fid": 240,
+  "footprint": "polygon",
+  "footways_60m": 2,
+  "members": [
+   {
+    "osm": "way/57446062",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/57446062"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 262,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "South Foothill Drive Access Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/43d564f577c4bf8408048aea126ed242da3386929c7399e9e6e39fcb7099f913.png",
+   "z2": "tiles/57422937618cc778e8fd2f9af4111630e517940a271d9a7fcda593a8c996cdbe.png",
+   "z3": "tiles/1993ba0f67822b0a8258376af307e30f450333ce46b1c169c16f317c0dde80ae.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 912
+  }
+ },
+ "317": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 3302,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "0 m from amenity=school 'McLain Community High School'",
+   "facility": "amenity=school",
+   "facility_edge_m": 0
+  },
+  "descriptive_tags": [],
+  "fid": 317,
+  "footprint": "polygon",
+  "footways_60m": 1,
+  "members": [
+   {
+    "osm": "way/68252581",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/68252581"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 545,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Sixth Ave West Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/ce39d23764cac0e7c6ddba82a9a8b20d610903510e66360f8e1b0509630dfd7f.png",
+   "z2": "tiles/5935b3455f3a676110aebef3eaefb2062a194ad9ec43295f0fec614f3d59d182.png",
+   "z3": "tiles/aee8b2f05fa51efd1b3847e7fb0795d6c2514ac5c5f8481e992f096887adca97.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 477
+  }
+ },
+ "318": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 7879,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "0 m from amenity=school 'McLain Community High School'",
+   "facility": "amenity=school",
+   "facility_edge_m": 0
+  },
+  "descriptive_tags": [],
+  "fid": 318,
+  "footprint": "polygon",
+  "footways_60m": 6,
+  "members": [
+   {
+    "osm": "way/68252587",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/68252587"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 510,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Sixth Ave West Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/574375bd3f626da78b35ce22cc174b1e7611e3e6c3aab2c093b93530a3e85af3.png",
+   "z2": "tiles/f162ee837e352161d65b5b47435c55ef5ca84fa34b68db723156ada3ee1a7017.png",
+   "z3": "tiles/28fc065ec41d15a528f1eff5dc7e2d072c884ef80e6f9acbc866ab417d01d3da.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 498
+  }
+ },
+ "320": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 569,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "0 m from amenity=school 'Warren Occupational Technical Center'",
+   "facility": "amenity=school",
+   "facility_edge_m": 0
+  },
+  "descriptive_tags": [],
+  "fid": 320,
+  "footprint": "polygon",
+  "footways_60m": 9,
+  "members": [
+   {
+    "osm": "way/68252593",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/68252593"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 59,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "North Green Mountain"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/8af70b5d717c8b556a691fe96b00a3597d09bd0028907e787515905c69d0fee9.png",
+   "z2": "tiles/6fbd8816e3a2feffd5cccf6b7019000f7ac98c40c03b40ae144f87f5a1c46748.png",
+   "z3": "tiles/8a9abad3fbabbfad9def1d9d56ef46269d23f39b51f14f76e9497fc845ea7ca8.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 115
+  }
+ },
+ "321": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 2989,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "0 m from amenity=school 'Warren Occupational Technical Center'",
+   "facility": "amenity=school",
+   "facility_edge_m": 0
+  },
+  "descriptive_tags": [],
+  "fid": 321,
+  "footprint": "polygon",
+  "footways_60m": 9,
+  "members": [
+   {
+    "osm": "way/68252594",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/68252594"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 28,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "North Green Mountain"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/597a5588bf3c09a2cb3b15abd0265fa21ee2e8fd1f09c167ae52ee0032cb4ec3.png",
+   "z2": "tiles/6c2d2b71d29f27d7dc359a13f06364ba50570272fc241b482c370c9e8ce44a16.png",
+   "z3": "tiles/fbdc8f9c4e3db5860b374c3a574d9875af8bee73484072ea25b52bfeca8e7a93.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 109
+  }
+ },
+ "325": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 20725,
+  "building_overlap": true,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "0 m from landuse=residential",
+   "facility": "landuse=residential",
+   "facility_edge_m": 0
+  },
+  "descriptive_tags": [],
+  "fid": 325,
+  "footprint": "polygon",
+  "footways_60m": 21,
+  "members": [
+   {
+    "osm": "way/68513506",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/68513506"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 389,
+   "fallback": false,
+   "n_trails_in_range": 3,
+   "trail": "North Access Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/1622ac1575992252cedcb484afedba1121855873a5313aaed11ee8da7df54f4e.png",
+   "z2": "tiles/567c383d566e12335de1add6dd95e697e71daf8971c927066a832f11c60e4338.png",
+   "z3": "tiles/d5e48b7bb164c4ad5f0e0032ca1070063d20bd3df1faf54d7fbf3911f3585cae.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 800
+  }
+ },
+ "366": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 997,
+  "building_overlap": false,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "in boundary=protected_area 'Red Rocks Park'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [],
+  "fid": 366,
+  "footprint": "polygon",
+  "footways_60m": 0,
+  "members": [
+   {
+    "osm": "way/82854200",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/82854200"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 121,
+   "fallback": false,
+   "n_trails_in_range": 2,
+   "trail": "Geologic Overlook Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/f25a5feb59f3bce8724ebf26099ae8a1248995032521bdf2ced63946fa7d7a4d.png",
+   "z2": "tiles/e1c8e96c0474e757d97f5e45ef20b49110022a714876cefeb009e69b5ad554c5.png",
+   "z3": "tiles/f2f533957e479005bc21f172359f3a05e70959d9325fccde54dc5398be6577d0.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 168
+  }
+ },
+ "368": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 926,
+  "building_overlap": false,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "in boundary=protected_area 'Red Rocks Park'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [],
+  "fid": 368,
+  "footprint": "polygon",
+  "footways_60m": 12,
+  "members": [
+   {
+    "osm": "way/82854210",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/82854210"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 245,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Will Call Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/824c46af155d77f7cc6dd314f206ea2ea1deba4fa7eec90d486f0940d6ac2af1.png",
+   "z2": "tiles/86416ef55635169100c75b56d8d16b1a758695f6d9de061781f9ccf56c916881.png",
+   "z3": "tiles/139747bae7a6151b6b790e7f5b629a7ee57741dfecb9e722083539cb10c97e0e.png"
+  },
+  "trailhead_nodes_120m": [
+   [
+    62,
+    ""
+   ]
+  ],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 52
+  }
+ },
+ "369": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 2093,
+  "building_overlap": false,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "in boundary=protected_area 'Red Rocks Park'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "parking",
+   "fee"
+  ],
+  "fid": 369,
+  "footprint": "polygon",
+  "footways_60m": 4,
+  "members": [
+   {
+    "osm": "way/82854212",
+    "tags": {
+     "access": "yes",
+     "amenity": "parking",
+     "fee": "no",
+     "parking": "surface"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/82854212"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 0,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Trading Post Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "access": "yes",
+   "amenity": "parking",
+   "fee": "no",
+   "parking": "surface"
+  },
+  "tiles": {
+   "z1": "tiles/5149160abab8ac74e0fc53550ea23f2c9d8351772f5b4ebb0d47ba0eaaedb3ac.png",
+   "z2": "tiles/adef6008299e7a8f0c72df6cc0f9f5c0d9751521806863815ec486e837a1e41e.png",
+   "z3": "tiles/f15ffd458273ab9d2065bd4562a2ae008110a3040046227712d60b530a41f724.png"
+  },
+  "trailhead_nodes_120m": [
+   [
+    13,
+    ""
+   ]
+  ],
+  "walk": {
+   "conn": "",
+   "trail": "Trading Post Trail",
+   "walk_m": 0
+  }
+ },
+ "370": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 813,
+  "building_overlap": true,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "in boundary=protected_area 'Red Rocks Park'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [],
+  "fid": 370,
+  "footprint": "polygon",
+  "footways_60m": 10,
+  "members": [
+   {
+    "osm": "way/82854213",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/82854213"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 2,
+   "fallback": false,
+   "n_trails_in_range": 2,
+   "trail": "Mount Vernon Creek Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/029b32bc7832b94a67b8bce2220a19f2bafc2e4bdb5852b8e15b1b061c7a60a6.png",
+   "z2": "tiles/87a7327e0db47bdac5acdf95f881d8d3e493ea1a7ac76f8f80f0ff2ffa872e9f.png",
+   "z3": "tiles/503b54196f93fa1933709003d512a950c3406042a852f2d287c705f17f8ca674.png"
+  },
+  "trailhead_nodes_120m": [
+   [
+    54,
+    ""
+   ]
+  ],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 17
+  }
+ },
+ "373": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 4860,
+  "building_overlap": false,
+  "context": {
+   "category": "NEUTRAL",
+   "evidence": "",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "surface",
+   "parking",
+   "name",
+   "operator"
+  ],
+  "fid": 373,
+  "footprint": "polygon",
+  "footways_60m": 1,
+  "members": [
+   {
+    "osm": "way/82864827",
+    "tags": {
+     "amenity": "parking",
+     "name": "Stegosaurus Park-and-Ride Lot",
+     "operator": "RTD",
+     "park_ride": "yes",
+     "parking": "surface",
+     "source": "Bing",
+     "surface": "asphalt"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/82864827"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 26,
+   "fallback": false,
+   "n_trails_in_range": 2,
+   "trail": "Dakota Ridge Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "name": "Stegosaurus Park-and-Ride Lot",
+   "operator": "RTD",
+   "park_ride": "yes",
+   "parking": "surface",
+   "source": "Bing",
+   "surface": "asphalt"
+  },
+  "tiles": {
+   "z1": "tiles/5641090088876a0395bb1315d94fa6a4516cc77a0ae7ccb2ce6825e9e055209c.png",
+   "z2": "tiles/a982457a07da98474b7b0aff4c4fe5c1c65039aae9306814f3aa4ec46ea1accd.png",
+   "z3": "tiles/3defccc8889851dcbc116a08c2363d5869adeff78483001602f53fd11e31e606.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 183
+  }
+ },
+ "391": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 1067,
+  "building_overlap": false,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "in boundary=protected_area 'Matthews/Winters Park'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [],
+  "fid": 391,
+  "footprint": "polygon",
+  "footways_60m": 2,
+  "members": [
+   {
+    "osm": "way/91322571",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/91322571"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 3,
+   "fallback": false,
+   "n_trails_in_range": 3,
+   "trail": "Dakota Ridge Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/166e974473bc39aef5535475e436e9bc197c06b326044cacc779c4d78c3f7434.png",
+   "z2": "tiles/9dfbfb68f060823cc0ba97dc3adb4e664687317b12c37b383ee1b3f8c66702e6.png",
+   "z3": "tiles/885e0a81f30f81fe635ed4d37db427491cd3430a0ddc95d1847745c7dabbef32.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": "Dinosaur Ridge Trail",
+   "walk_m": 0
+  }
+ },
+ "392": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 456,
+  "building_overlap": false,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "in boundary=protected_area 'Red Rocks Park'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "surface",
+   "parking",
+   "fee",
+   "capacity"
+  ],
+  "fid": 392,
+  "footprint": "polygon",
+  "footways_60m": 5,
+  "members": [
+   {
+    "osm": "way/91322581",
+    "tags": {
+     "access": "yes",
+     "amenity": "parking",
+     "capacity": "12",
+     "capacity:disabled": "1",
+     "fee": "no",
+     "lit": "yes",
+     "parking": "surface",
+     "surface": "asphalt"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/91322581"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 0,
+   "fallback": false,
+   "n_trails_in_range": 4,
+   "trail": "Red Rocks Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "access": "yes",
+   "amenity": "parking",
+   "capacity": "12",
+   "capacity:disabled": "1",
+   "fee": "no",
+   "lit": "yes",
+   "parking": "surface",
+   "surface": "asphalt"
+  },
+  "tiles": {
+   "z1": "tiles/2f198df4161d12901276abadc2ef88ed9d3c6eeebac647573f9fcee7a5ccc183.png",
+   "z2": "tiles/a85d0ab49c0e8513b9eb79fcb8f15f3223c0406de97f3da8f39bcc218c54b76b.png",
+   "z3": "tiles/803a8aa35ae32f9ec8c38172e59d303c6f3f0bffad488a7fb67757bc54486e62.png"
+  },
+  "trailhead_nodes_120m": [
+   [
+    18,
+    ""
+   ]
+  ],
+  "walk": {
+   "conn": "",
+   "trail": "Mount Vernon Creek Trail",
+   "walk_m": 0
+  }
+ },
+ "393": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 290,
+  "building_overlap": false,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "in boundary=protected_area 'Matthews/Winters Park'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [],
+  "fid": 393,
+  "footprint": "polygon",
+  "footways_60m": 0,
+  "members": [
+   {
+    "osm": "way/91322590",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/91322590"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 155,
+   "fallback": false,
+   "n_trails_in_range": 2,
+   "trail": "Dakota Ridge Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/118ae787309561ffda9f2f6d1c431b8334eddf79b05d4cb4f69884da5f1d1a35.png",
+   "z2": "tiles/93e6f4c7255a4ccf1f1b55f81702fd27db5c658c470ba11471cbe3c816a1f3a7.png",
+   "z3": "tiles/f4caad9e4af2425f6f3b673cc4561d1448048250ecdee5cfb62b5c9f5e007445.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": "Dinosaur Ridge Trail",
+   "walk_m": 0
+  }
+ },
+ "408": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 1209,
+  "building_overlap": false,
+  "context": {
+   "category": "SUPPORT",
+   "evidence": "in boundary=protected_area 'Red Rocks Park'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [],
+  "fid": 408,
+  "footprint": "polygon",
+  "footways_60m": 11,
+  "members": [
+   {
+    "osm": "relation/1341586",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "relation/1341586"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 0,
+   "fallback": false,
+   "n_trails_in_range": 2,
+   "trail": "Geologic Overlook Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/146b35ae4f6faa20269afd85cb1ae83e287167cfbdefb4c1196f6fecc8556807.png",
+   "z2": "tiles/7273ba03718336374b85d7a13ecd9988bbcebce2a7bc29651feb1625e96dede6.png",
+   "z3": "tiles/6bf3f60597dbfb86b958279b1f4b8da8c2fc237b2134d5e947128a56780348e3.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 25
+  }
+ },
+ "477": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 397,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "25 m from landuse=residential",
+   "facility": "landuse=residential",
+   "facility_edge_m": 25
+  },
+  "descriptive_tags": [
+   "parking",
+   "fee",
+   "capacity",
+   "operator"
+  ],
+  "fid": 477,
+  "footprint": "polygon",
+  "footways_60m": 1,
+  "members": [
+   {
+    "osm": "way/131465822",
+    "tags": {
+     "access": "yes",
+     "amenity": "parking",
+     "capacity": "8",
+     "designation": "Bear Creek Greenbelt Parking",
+     "fee": "no",
+     "operator": "City of Lakewood",
+     "parking": "surface",
+     "source": "bing"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/131465822"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 0,
+   "fallback": false,
+   "n_trails_in_range": 2,
+   "trail": "Yale Ave Access"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "access": "yes",
+   "amenity": "parking",
+   "capacity": "8",
+   "designation": "Bear Creek Greenbelt Parking",
+   "fee": "no",
+   "operator": "City of Lakewood",
+   "parking": "surface",
+   "source": "bing"
+  },
+  "tiles": {
+   "z1": "tiles/78ff18dcb5d7c00bc82a579c2d177b1d4abae2ae7bc7c4159a0ce6ea9a1f6060.png",
+   "z2": "tiles/bd0eaf0ccb9108285ccb6f43c60bee5f08cd3d6de01a8992a3fffbb10f9889ac.png",
+   "z3": "tiles/56313dbfbd6e53c41e92e0384bf90322eef0a3d305652fc51f4e11c57b42b456.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": "Yale Ave Access",
+   "walk_m": 0
+  }
+ },
+ "478": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 2108,
+  "building_overlap": false,
+  "context": {
+   "category": "NEUTRAL",
+   "evidence": "",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "parking",
+   "fee",
+   "capacity",
+   "name",
+   "operator"
+  ],
+  "fid": 478,
+  "footprint": "polygon",
+  "footways_60m": 0,
+  "members": [
+   {
+    "osm": "way/133916328",
+    "tags": {
+     "access": "yes",
+     "amenity": "parking",
+     "capacity": "77",
+     "fee": "no",
+     "name": "US285 & Twin Forks Park-n-Ride",
+     "operator": "RTD",
+     "park_ride": "yes",
+     "parking": "surface"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/133916328"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 2573,
+   "fallback": true,
+   "n_trails_in_range": 4,
+   "trail": "Olde Ute Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "access": "yes",
+   "amenity": "parking",
+   "capacity": "77",
+   "fee": "no",
+   "name": "US285 & Twin Forks Park-n-Ride",
+   "operator": "RTD",
+   "park_ride": "yes",
+   "parking": "surface"
+  },
+  "tiles": {
+   "z1": "tiles/23604ebc4681ca03bf04469097f9f6462e85f1a66b1c763897055484b93cb65a.png",
+   "z2": "tiles/c45a8d280528d2c0a3e62019f07a651a00675413c85fc302405edba599929f2f.png",
+   "z3": "tiles/7e5f1dc2aa6a0815b6a83e1f8b1874635c48b61a432385ff666363540dded119.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "no route",
+   "trail": null,
+   "walk_m": null
+  }
+ },
+ "499": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 78,
+  "building_overlap": false,
+  "context": {
+   "category": "NEUTRAL",
+   "evidence": "",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [],
+  "fid": 499,
+  "footprint": "polygon",
+  "footways_60m": 1,
+  "members": [
+   {
+    "osm": "way/139211035",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/139211035"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 2,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Rooney Valley Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/520904338bcab0b5524e93d1f48131b259463b61c866823419462358a370dfba.png",
+   "z2": "tiles/d93c38489d2b22922dd8ce18129fe2a51bd95e59c302679143857de2b3c155ec.png",
+   "z3": "tiles/ed4d2cf46f13cdfe018949c9f3e4f2ced2efbac51c258e847137c4608f110e9d.png"
+  },
+  "trailhead_nodes_120m": [
+   [
+    3,
+    ""
+   ]
+  ],
+  "walk": {
+   "conn": "",
+   "trail": "Rooney Valley Trail",
+   "walk_m": 0
+  }
+ },
+ "650": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 6554,
+  "building_overlap": false,
+  "context": {
+   "category": "NEUTRAL",
+   "evidence": "",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "parking",
+   "capacity",
+   "name"
+  ],
+  "fid": 650,
+  "footprint": "polygon",
+  "footways_60m": 0,
+  "members": [
+   {
+    "osm": "way/241879865",
+    "tags": {
+     "amenity": "parking",
+     "capacity": "54",
+     "name": "RV Parking Area \"North\"",
+     "parking": "surface",
+     "source": "Bing"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/241879865"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 357,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Bailout Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "capacity": "54",
+   "name": "RV Parking Area \"North\"",
+   "parking": "surface",
+   "source": "Bing"
+  },
+  "tiles": {
+   "z1": "tiles/1c58305e424cca5d10dd3757417712c3edd407388023e1a66ddf7a469796b0c8.png",
+   "z2": "tiles/c89922a1f95a6b3342dc0d87bc86d73ad84ef49c6e2ca6a3ba41dbf289f369c6.png",
+   "z3": "tiles/b46caf16a65b8f8c679c415d95d7e1dc1984e3ee51db4c2dad75a1d649b8176b.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 2386
+  }
+ },
+ "662": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 3591,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "58 m from amenity=fuel 'Sinclair'",
+   "facility": "amenity=fuel",
+   "facility_edge_m": 58
+  },
+  "descriptive_tags": [
+   "name",
+   "operator"
+  ],
+  "fid": 662,
+  "footprint": "polygon",
+  "footways_60m": 0,
+  "members": [
+   {
+    "osm": "way/297689373",
+    "tags": {
+     "amenity": "parking",
+     "name": "Wooly Mammoth Park-and-Ride",
+     "operator": "RTD",
+     "park_ride": "yes",
+     "source": "Bing"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/297689373"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 342,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Village Loop Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "name": "Wooly Mammoth Park-and-Ride",
+   "operator": "RTD",
+   "park_ride": "yes",
+   "source": "Bing"
+  },
+  "tiles": {
+   "z1": "tiles/53616e467f3beddcc3a0a387021211cae02dc41695366e421f852f261712efc3.png",
+   "z2": "tiles/a931bd3f9cc292faf6cdc5e474c5ea8f2d273f5d68167c0dcef956c36672fda4.png",
+   "z3": "tiles/a42e76fddb8e5d341d9197890e6581fbc60522ea9fb9f11c6c431c744a39d04c.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 1163
+  }
+ },
+ "756": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 6011,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "0 m from amenity=place_of_worship The Church of Jesus Christ of Latter-day Saints 'The Church of Jesus Christ of Latter-day Saints'",
+   "facility": "amenity=place_of_worship The Church of Jesus Christ of Latter-day Saints",
+   "facility_edge_m": 0
+  },
+  "descriptive_tags": [
+   "parking"
+  ],
+  "fid": 756,
+  "footprint": "polygon",
+  "footways_60m": 7,
+  "members": [
+   {
+    "osm": "way/368339804",
+    "tags": {
+     "amenity": "parking",
+     "parking": "surface"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/368339804"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 302,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Green Mountain Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "parking": "surface"
+  },
+  "tiles": {
+   "z1": "tiles/1563a5deb561ba0ee88bd97afc2d678cb9a626a2e3253aebd550fe431cb9d7bd.png",
+   "z2": "tiles/b6b1882354e385bc296ed2b2becc6e080eb829b68d7d14ff74d27f3e29471d57.png",
+   "z3": "tiles/018ac9f1cbeb9b72e394fad223eb7bc70f32e3b00bd77cc70d29cd10eabafc32.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 898
+  }
+ },
+ "760": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 1969,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "25 m from amenity=place_of_worship Concordia Lutheran Church 'Concordia Lutheran Church'",
+   "facility": "amenity=place_of_worship Concordia Lutheran Church",
+   "facility_edge_m": 25
+  },
+  "descriptive_tags": [],
+  "fid": 760,
+  "footprint": "polygon",
+  "footways_60m": 0,
+  "members": [
+   {
+    "osm": "way/369249614",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/369249614"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 212,
+   "fallback": false,
+   "n_trails_in_range": 3,
+   "trail": "South Foothill Drive Access Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/e8fa454a469835b1d9712ea9ac1b5f0f8c71c18c72525bf4022a2a315de9135d.png",
+   "z2": "tiles/85268d9ff8a6d096a32756fed4e605e7abf81b6ceab65d7a34f9ce8a50a82435.png",
+   "z3": "tiles/ba45e82e195db723fc09cb189c3321c2d5c922197dfce40d78c985ca0f5efb6c.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 814
+  }
+ },
+ "778": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 5330,
+  "building_overlap": false,
+  "context": {
+   "category": "PARK",
+   "evidence": "in leisure=park 'Apex Park' — generic park, weak",
+   "facility": "landuse=residential",
+   "facility_edge_m": 179
+  },
+  "descriptive_tags": [
+   "name"
+  ],
+  "fid": 778,
+  "footprint": "polygon",
+  "footways_60m": 2,
+  "members": [
+   {
+    "osm": "way/480306052",
+    "tags": {
+     "addr:city": "Golden",
+     "addr:housenumber": "121",
+     "addr:postcode": "80401",
+     "addr:state": "CO",
+     "addr:street": "Heritage Road",
+     "amenity": "parking",
+     "name": "Apex Park East Trailhead"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/480306052"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 13,
+   "fallback": false,
+   "n_trails_in_range": 5,
+   "trail": "Argos Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "addr:city": "Golden",
+   "addr:housenumber": "121",
+   "addr:postcode": "80401",
+   "addr:state": "CO",
+   "addr:street": "Heritage Road",
+   "amenity": "parking",
+   "name": "Apex Park East Trailhead"
+  },
+  "tiles": {
+   "z1": "tiles/cd0dcafaaea2623926bd614822009b1be9e475d89f4043d27abbc6931f79bb43.png",
+   "z2": "tiles/f2be0e010a11c2b4cb711cdb46d48fdc366b45dba0a7d50305d75c221be1cc37.png",
+   "z3": "tiles/de8ffe2d28da0633b6d82871a4fe41ba00b7028d30e4d65005fb67b8cb77906d.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 17
+  }
+ },
+ "869": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 8302,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "25 m from amenity=restaurant 'The Fort'",
+   "facility": "amenity=restaurant",
+   "facility_edge_m": 25
+  },
+  "descriptive_tags": [
+   "parking"
+  ],
+  "fid": 869,
+  "footprint": "polygon",
+  "footways_60m": 0,
+  "members": [
+   {
+    "osm": "way/524966199",
+    "tags": {
+     "amenity": "parking",
+     "parking": "surface"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/524966199"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 1950,
+   "fallback": true,
+   "n_trails_in_range": 5,
+   "trail": "Two Dog Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "parking": "surface"
+  },
+  "tiles": {
+   "z1": "tiles/1c3881d69f9de11e51b36e999062126e9d39c6c49b6f2c109540422987f780c5.png",
+   "z2": "tiles/c128058727e36701f326eb684c06de6db83ddb401f3dda3945990a9a52fc6b27.png",
+   "z3": "tiles/bdfb3afeaedaa95d7d81fac2f3b1366c25c3342d44e58e353fdac9533e84ddc6.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 2350
+  }
+ },
+ "876": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 3241,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "0 m from landuse=commercial",
+   "facility": "landuse=commercial",
+   "facility_edge_m": 0
+  },
+  "descriptive_tags": [],
+  "fid": 876,
+  "footprint": "polygon",
+  "footways_60m": 1,
+  "members": [
+   {
+    "osm": "way/540496164",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/540496164"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 137,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Rooney Valley Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/ebdee9ac6e0e7a2ab278dfb1d77dac60cb3c50c4847d883a7e7c7fa5d94cff66.png",
+   "z2": "tiles/dd83002f207f824811a584707f7ba1ea808f39560d699ff3376694933168bc36.png",
+   "z3": "tiles/053fe637d4cdecc3f8f2b05239986c6264c395eb67a5a0860a2202a2caa495fd.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 258
+  }
+ },
+ "885": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 1770,
+  "building_overlap": false,
+  "context": {
+   "category": "PARK",
+   "evidence": "in leisure=park 'William Frederick Hayden Park' — generic park, weak",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "parking",
+   "name"
+  ],
+  "fid": 885,
+  "footprint": "polygon",
+  "footways_60m": 5,
+  "members": [
+   {
+    "osm": "way/619911462",
+    "tags": {
+     "amenity": "parking",
+     "name": "Green Mountain Trailhead",
+     "parking": "surface"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/619911462"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 0,
+   "fallback": false,
+   "n_trails_in_range": 4,
+   "trail": "Green Mountain Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "name": "Green Mountain Trailhead",
+   "parking": "surface"
+  },
+  "tiles": {
+   "z1": "tiles/392a100fc627f5de5828e024fc7392265c2d820fe23ef8a0c9a0081f8ce6a967.png",
+   "z2": "tiles/a351f2df06947d699fb42d4f862f5cb838bd688c208078c7a11cabb21a6617d2.png",
+   "z3": "tiles/960507e7e3112c89688c8e676ed914f45c048e0671f9bb12f33cd91072ab438a.png"
+  },
+  "trailhead_nodes_120m": [
+   [
+    44,
+    ""
+   ]
+  ],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 887
+  }
+ },
+ "886": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 3864,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "60 m from amenity=school 'Rooney Valley Training Facility'",
+   "facility": "amenity=school",
+   "facility_edge_m": 60
+  },
+  "descriptive_tags": [
+   "parking",
+   "name"
+  ],
+  "fid": 886,
+  "footprint": "polygon",
+  "footways_60m": 0,
+  "members": [
+   {
+    "osm": "way/620201362",
+    "tags": {
+     "amenity": "parking",
+     "name": "Pro Pits",
+     "parking": "surface",
+     "source": "Bing"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/620201362"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 259,
+   "fallback": false,
+   "n_trails_in_range": 3,
+   "trail": "C-470 Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "name": "Pro Pits",
+   "parking": "surface",
+   "source": "Bing"
+  },
+  "tiles": {
+   "z1": "tiles/32a1fbf9ea86066882e3476515f7a56782a448ba6f6a7e389352a075b1e58101.png",
+   "z2": "tiles/5e90602d922d9513e4403f9b2afc009daec3e312060ea6ecf999f072b049b739.png",
+   "z3": "tiles/15cbcef79f7732e4ed6d546baf75893244c3b0e9ff32b6bcf34c6dd7c4954e73.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 756
+  }
+ },
+ "888": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 7876,
+  "building_overlap": false,
+  "context": {
+   "category": "PARK",
+   "evidence": "in leisure=park 'Thunder Valley Park' — generic park, weak",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "parking",
+   "name"
+  ],
+  "fid": 888,
+  "footprint": "polygon",
+  "footways_60m": 0,
+  "members": [
+   {
+    "osm": "way/620205729",
+    "tags": {
+     "amenity": "parking",
+     "name": "VIP Zone",
+     "parking": "surface",
+     "source": "Bing"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/620205729"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 270,
+   "fallback": false,
+   "n_trails_in_range": 4,
+   "trail": "C-470 Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "name": "VIP Zone",
+   "parking": "surface",
+   "source": "Bing"
+  },
+  "tiles": {
+   "z1": "tiles/a7e914282071b649497e1a90452fa65cdb91f11f99e715de4d1126922a1e030f.png",
+   "z2": "tiles/d49e9caaeac01be70205a44446700dfb2d6509c4a987d39c4a8c4b7207571c77.png",
+   "z3": "tiles/2ae7402bff2a7da8c49b1f9f52dfa8147afc97a63eeb704e7443d54359b6c986.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 452
+  }
+ },
+ "889": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 4610,
+  "building_overlap": false,
+  "context": {
+   "category": "PARK",
+   "evidence": "in leisure=park 'Thunder Valley Park' — generic park, weak",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "parking",
+   "name"
+  ],
+  "fid": 889,
+  "footprint": "polygon",
+  "footways_60m": 2,
+  "members": [
+   {
+    "osm": "way/620205731",
+    "tags": {
+     "amenity": "parking",
+     "name": "Pro Pits",
+     "parking": "surface",
+     "source": "Bing"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/620205731"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 238,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Zorro Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "name": "Pro Pits",
+   "parking": "surface",
+   "source": "Bing"
+  },
+  "tiles": {
+   "z1": "tiles/91e767bd7e3d47edebb9dfbfafe00ec91df5e5752161da98fed7d60dc14ee292.png",
+   "z2": "tiles/a583bd35edb30ce66bf603993f21b2dc9ea565357671b142951774fd36f9186d.png",
+   "z3": "tiles/8e73e8a302fec078996fda5c6ff2a366fdab7277ee8a7e6684bbe176c33b577a.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 345
+  }
+ },
+ "890": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 5626,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "117 m from amenity=pub 'Beer Garden'",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "parking",
+   "name"
+  ],
+  "fid": 890,
+  "footprint": "polygon",
+  "footways_60m": 0,
+  "members": [
+   {
+    "osm": "way/620205732",
+    "tags": {
+     "amenity": "parking",
+     "name": "Pro Pits",
+     "parking": "surface",
+     "source": "Bing"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/620205732"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 237,
+   "fallback": false,
+   "n_trails_in_range": 4,
+   "trail": "C-470 Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "name": "Pro Pits",
+   "parking": "surface",
+   "source": "Bing"
+  },
+  "tiles": {
+   "z1": "tiles/5a47fa4799be813c60f6e44eb5295e6b83a88aed6f092c7bf28cdc51a16e8607.png",
+   "z2": "tiles/09dbf21e648b98d2a23b9d7b8a9eaefc90bb8906c48a868e6a436286f1419d7b.png",
+   "z3": "tiles/50970bc0879abc4a9907e1e79be3db5502ff505333687d784e2271ed0eb5554d.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 603
+  }
+ },
+ "891": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 6254,
+  "building_overlap": false,
+  "context": {
+   "category": "PARK",
+   "evidence": "in leisure=park 'Thunder Valley Park' — generic park, weak",
+   "facility": null,
+   "facility_edge_m": null
+  },
+  "descriptive_tags": [
+   "surface",
+   "parking"
+  ],
+  "fid": 891,
+  "footprint": "polygon",
+  "footways_60m": 1,
+  "members": [
+   {
+    "osm": "way/620206644",
+    "tags": {
+     "amenity": "parking",
+     "parking": "surface",
+     "source": "Bing",
+     "surface": "dirt"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/620206644"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 189,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "Zorro Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "parking": "surface",
+   "source": "Bing",
+   "surface": "dirt"
+  },
+  "tiles": {
+   "z1": "tiles/b20457b72bacc33d0704ae503ab8aa3e8f4d8968e5853f6e4c93532f96eba482.png",
+   "z2": "tiles/484ae770e49bcbb46641511742f03c7ad5c36de0c7056a3a9ffff93d37b03096.png",
+   "z3": "tiles/fe9d2bfd4fe29e581b742fd36f54b00cac53b5038efb8bdaaa6e9c11b4b58b30.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 598
+  }
+ },
+ "892": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 547,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "0 m from amenity=school",
+   "facility": "amenity=school",
+   "facility_edge_m": 0
+  },
+  "descriptive_tags": [],
+  "fid": 892,
+  "footprint": "polygon",
+  "footways_60m": 1,
+  "members": [
+   {
+    "osm": "way/685338418",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/685338418"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 551,
+   "fallback": false,
+   "n_trails_in_range": 2,
+   "trail": "Sixth Ave West Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/ad5f9dbe23179c27fd0d42388fb8fadf68a1d52c98d050460cecf771a75e12b4.png",
+   "z2": "tiles/07be74eccf67c67edba6047ffdef869dd4031f698797fbc81e8793ad5ec15382.png",
+   "z3": "tiles/89a5bc26b0343fce9634c0c4967a2af2382577d9247c9d5562578696c5f37f98.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 384
+  }
+ },
+ "906": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 3916,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "32 m from landuse=residential",
+   "facility": "landuse=residential",
+   "facility_edge_m": 32
+  },
+  "descriptive_tags": [
+   "operator"
+  ],
+  "fid": 906,
+  "footprint": "polygon",
+  "footways_60m": 0,
+  "members": [
+   {
+    "osm": "way/742236572",
+    "tags": {
+     "amenity": "parking",
+     "handicap": "7",
+     "operator": "Christ on the Mountain Catholic Church"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/742236572"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 259,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "John O. Hayden Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "handicap": "7",
+   "operator": "Christ on the Mountain Catholic Church"
+  },
+  "tiles": {
+   "z1": "tiles/6d85b2a359085c2ec4acdfc6d2828a80fd9c9884e9f1b4887c1fdc2c7c2144cd.png",
+   "z2": "tiles/f73a2b0a352bed72a81dfcb15b2b2fc0bfd0059c93feb5659a8c80bf3184514a.png",
+   "z3": "tiles/1635e6146e44e10617fbce90595a0f0862921fa5d768e32aad826ce71c05de03.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 1252
+  }
+ },
+ "908": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 2868,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "60 m from amenity=place_of_worship Christ on the Mountain Catholic Church 'Christ on the Mountain Catholic Church'",
+   "facility": "amenity=place_of_worship Christ on the Mountain Catholic Church",
+   "facility_edge_m": 60
+  },
+  "descriptive_tags": [
+   "operator"
+  ],
+  "fid": 908,
+  "footprint": "polygon",
+  "footways_60m": 1,
+  "members": [
+   {
+    "osm": "way/742236575",
+    "tags": {
+     "amenity": "parking",
+     "operator": "Christ on the Mountain Catholic Church"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/742236575"
+  ],
+  "prior": "surveyed",
+  "serves": {
+   "edge_m": 185,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "John O. Hayden Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking",
+   "operator": "Christ on the Mountain Catholic Church"
+  },
+  "tiles": {
+   "z1": "tiles/41ecd30dfd58181fca827140ffe9e1216a0ec8e067c8e13c4f98747e7c837fd4.png",
+   "z2": "tiles/828bf3c5a6bc097f77e20a52426a32e5367457e7ec4b6863b27c9b56cc874727.png",
+   "z3": "tiles/c9db184e8e0c577bf54455bc53472ce88038621d553161e8947be51723a2fd7e.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 1165
+  }
+ },
+ "937": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 566,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "0 m from amenity=school 'Kyffin Elementary School'",
+   "facility": "amenity=school",
+   "facility_edge_m": 0
+  },
+  "descriptive_tags": [],
+  "fid": 937,
+  "footprint": "polygon",
+  "footways_60m": 6,
+  "members": [
+   {
+    "osm": "way/755673841",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/755673841"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 784,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "North Access Trail"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/5d0d59ceb6c9290a312c67eca9211b71fb8e626ed43453a5bf525726a00d4630.png",
+   "z2": "tiles/c67cf766441500eae3c1e77450dd4d335314c8b9a103fa275215357e9b782445.png",
+   "z3": "tiles/0ad715a574235cba651952e1a5051d6e9232a1d3926add500d05e0103276423d.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 964
+  }
+ },
+ "979": {
+  "area": "bear-creek-lake-park-co",
+  "area_m2": 1357,
+  "building_overlap": false,
+  "context": {
+   "category": "FACILITY",
+   "evidence": "38 m from amenity=school 'Warren Occupational Technical Center'",
+   "facility": "amenity=school",
+   "facility_edge_m": 38
+  },
+  "descriptive_tags": [],
+  "fid": 979,
+  "footprint": "polygon",
+  "footways_60m": 3,
+  "members": [
+   {
+    "osm": "way/844884215",
+    "tags": {
+     "amenity": "parking"
+    }
+   }
+  ],
+  "mixed_access": false,
+  "osm": [
+   "way/844884215"
+  ],
+  "prior": "bare",
+  "serves": {
+   "edge_m": 27,
+   "fallback": false,
+   "n_trails_in_range": 1,
+   "trail": "North Green Mountain"
+  },
+  "source_generation": {
+   "artifact_sha256": {
+    "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+    "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+    "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+    "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+   },
+   "manifest_path": "bear-creek-lake-park-co_generation.json",
+   "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+  },
+  "tags_union": {
+   "amenity": "parking"
+  },
+  "tiles": {
+   "z1": "tiles/2f17ad965ee24280a7b634c867c6c5cb06f8f950fd04326964aa70bd94ef4281.png",
+   "z2": "tiles/c672faf7aef527e253c2b14454f73652bbd1d81590eaae08612885fa5e1712ba.png",
+   "z3": "tiles/55304290dbf536e50ca917f9b37f2b377758b0a147506a867fb865379a597d31.png"
+  },
+  "trailhead_nodes_120m": [],
+  "walk": {
+   "conn": "",
+   "trail": null,
+   "walk_m": 80
+  }
+ }
+}

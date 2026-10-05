@@ -1,0 +1,18 @@
+{
+  "assignment_id": "ec77da79efc1d0448eb07fa265ca0fb7e5d8cd994ab1aac31484c2d1b1d542fb",
+  "decision": {
+    "fid": 171,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/51474671"],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {"call": "yes", "evidence": "Z2/Z3: paved lot with a central double-loaded row and east perimeter row holding ~45-50 parked cars, plus a south access drive linking the west street to the school entrance; matches the red 2231 m2 polygon. Bare prior, but vision decides clearly."},
+    "public": {"call": "no", "evidence": "Only tag is naked amenity=parking; no access tag, name, operator, or trailhead record. Context puts it 0 m from amenity=school 'Westgate Elementary School' and Z1/Z2 show it as the school's own front lot, sharing the school driveway, full on a school-day capture. Per protocol, school parking is not public trail parking without lot-level public evidence, and none exists in the packet. No visible gate is not permission."},
+    "serves": {"call": "no", "evidence": "Greenbelt Alternate Trail edge 88 m / walk 116 m is a distance signal only; walk.conn is empty and walk.trail null, trailhead_nodes_120m is empty, and Z1 shows the yellow trails south of the arterial with no trail starting at or in the lot. The school is the better direct-owner explanation, and dual use cannot be credited because PUBLIC is not proved."},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

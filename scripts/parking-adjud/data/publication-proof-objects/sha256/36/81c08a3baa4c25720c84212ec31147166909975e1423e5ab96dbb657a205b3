@@ -1,0 +1,77 @@
+{
+ "area": "bear-creek-lake-park-co",
+ "area_m2": 397,
+ "building_overlap": false,
+ "context": {
+  "category": "FACILITY",
+  "evidence": "25 m from landuse=residential",
+  "facility": "landuse=residential",
+  "facility_edge_m": 25
+ },
+ "descriptive_tags": [
+  "parking",
+  "fee",
+  "capacity",
+  "operator"
+ ],
+ "fid": 477,
+ "footprint": "polygon",
+ "footways_60m": 1,
+ "members": [
+  {
+   "osm": "way/131465822",
+   "tags": {
+    "access": "yes",
+    "amenity": "parking",
+    "capacity": "8",
+    "designation": "Bear Creek Greenbelt Parking",
+    "fee": "no",
+    "operator": "City of Lakewood",
+    "parking": "surface",
+    "source": "bing"
+   }
+  }
+ ],
+ "mixed_access": false,
+ "osm": [
+  "way/131465822"
+ ],
+ "prior": "surveyed",
+ "serves": {
+  "edge_m": 0,
+  "fallback": false,
+  "n_trails_in_range": 2,
+  "trail": "Yale Ave Access"
+ },
+ "source_generation": {
+  "artifact_sha256": {
+   "context": "0bba0c6e91b749101cc4150df364864514aa012a3dd86559d5fd74c8ce832124",
+   "dossier": "0fa04bcafde8eaee79e0b0af85ae8b3818a84f3ab9a10ae615f19666743245db",
+   "serves": "0445ea23c28861af4cdfae4815a38b1b7ca4e3617dfa59f242cb2a68030e5948",
+   "walk": "b0b9031cebdb51baee837fbed674ea4dba5273e97e84a05d97951a79143c9c20"
+  },
+  "manifest_path": "bear-creek-lake-park-co_generation.json",
+  "manifest_sha256": "bbda42339cda3912e516db9d47dda9b64185366016c7dc71c006e07f979089c7"
+ },
+ "tags_union": {
+  "access": "yes",
+  "amenity": "parking",
+  "capacity": "8",
+  "designation": "Bear Creek Greenbelt Parking",
+  "fee": "no",
+  "operator": "City of Lakewood",
+  "parking": "surface",
+  "source": "bing"
+ },
+ "tiles": {
+  "z1": "tiles/78ff18dcb5d7c00bc82a579c2d177b1d4abae2ae7bc7c4159a0ce6ea9a1f6060.png",
+  "z2": "tiles/bd0eaf0ccb9108285ccb6f43c60bee5f08cd3d6de01a8992a3fffbb10f9889ac.png",
+  "z3": "tiles/56313dbfbd6e53c41e92e0384bf90322eef0a3d305652fc51f4e11c57b42b456.png"
+ },
+ "trailhead_nodes_120m": [],
+ "walk": {
+  "conn": "",
+  "trail": "Yale Ave Access",
+  "walk_m": 0
+ }
+}

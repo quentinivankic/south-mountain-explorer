@@ -1,0 +1,125 @@
+{
+ "after_sha256": "61b4081d65a4f2c63fc946a273fb78b1341279f9bc2e1289bbe3c453d154d12e",
+ "applied_fids": [
+  {
+   "decision_sha256": "47b5df8d5ebe6d3185c3a5c64bf5e3b6ba2f2d87e8824b1ab8f40c561564c845",
+   "fid": 369
+  },
+  {
+   "decision_sha256": "7d4a31df10b174ae307dd5f03d4b451099faa949f3ba7f9a4881a8e4239aabe4",
+   "fid": 392
+  },
+  {
+   "decision_sha256": "ec89638efbff8ddd8a24946a2de0afa4cadded76085866fb21c2608924c9344d",
+   "fid": 477
+  },
+  {
+   "decision_sha256": "d9cc4f44db5f910be632aa1fba99601e050d6d6345a6a0481c8c7138e8545f74",
+   "fid": 650
+  },
+  {
+   "decision_sha256": "68c7b2e288dad23817106c856a4070c0de5bbccdad18774474c6e32d42132510",
+   "fid": 756
+  }
+ ],
+ "before_sha256": "26ecac8df08d3140af88c91d160c7f5dd221a971f639940a0c264a7e84c340c7",
+ "checkpoint_after_sha256": "3182b1e413ff79ed570701363160e4c7076267e162652159d58dbb48f0ac0859",
+ "chunk": 1,
+ "kind": "parking-trust-receipt",
+ "output_seal_sha256": "4b4c4e7e35f2b9841c84762ffffac8b2387efee2ef124fe3e423b6846d19fd46",
+ "run_id": "4bc3624fcc9183f12ca94fccf204f4cee3d09617a5be3085590016dc4174190e",
+ "terminal_fids": [
+  {
+   "decision_sha256": null,
+   "fid": 366,
+   "selected_role": null,
+   "state": "preserved"
+  },
+  {
+   "decision_sha256": null,
+   "fid": 368,
+   "selected_role": null,
+   "state": "preserved"
+  },
+  {
+   "decision_sha256": "47b5df8d5ebe6d3185c3a5c64bf5e3b6ba2f2d87e8824b1ab8f40c561564c845",
+   "fid": 369,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": null,
+   "fid": 370,
+   "selected_role": null,
+   "state": "preserved"
+  },
+  {
+   "decision_sha256": null,
+   "fid": 373,
+   "selected_role": null,
+   "state": "preserved"
+  },
+  {
+   "decision_sha256": null,
+   "fid": 391,
+   "selected_role": null,
+   "state": "preserved"
+  },
+  {
+   "decision_sha256": "7d4a31df10b174ae307dd5f03d4b451099faa949f3ba7f9a4881a8e4239aabe4",
+   "fid": 392,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": null,
+   "fid": 393,
+   "selected_role": null,
+   "state": "preserved"
+  },
+  {
+   "decision_sha256": null,
+   "fid": 408,
+   "selected_role": null,
+   "state": "preserved"
+  },
+  {
+   "decision_sha256": "ec89638efbff8ddd8a24946a2de0afa4cadded76085866fb21c2608924c9344d",
+   "fid": 477,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": null,
+   "fid": 478,
+   "selected_role": null,
+   "state": "preserved"
+  },
+  {
+   "decision_sha256": null,
+   "fid": 499,
+   "selected_role": null,
+   "state": "preserved"
+  },
+  {
+   "decision_sha256": "d9cc4f44db5f910be632aa1fba99601e050d6d6345a6a0481c8c7138e8545f74",
+   "fid": 650,
+   "selected_role": "challenger",
+   "state": "resolved"
+  },
+  {
+   "decision_sha256": null,
+   "fid": 662,
+   "selected_role": null,
+   "state": "preserved"
+  },
+  {
+   "decision_sha256": "68c7b2e288dad23817106c856a4070c0de5bbccdad18774474c6e32d42132510",
+   "fid": 756,
+   "selected_role": "challenger",
+   "state": "resolved"
+  }
+ ],
+ "transaction_id": "6fcb572b7693673817edf41bfbbb5cc60f8e6cbf11013af9e6c0220b23fe6614",
+ "version": 1
+}

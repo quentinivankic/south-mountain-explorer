@@ -25,15 +25,19 @@ CALLS = ("yes", "no", "unclear", "n/a")
 FRAME_RE = re.compile(r"^z[123](?:_naip)?$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 LEGACY_CONFIRMATION_VERSION = 1
-CONFIRMATION_VERSION = 2
+PATH_BOUND_CONFIRMATION_VERSION = 2
+CONFIRMATION_VERSION = 3
 LEGACY_OVERRIDE_VERSION = 2
-OVERRIDE_VERSION = 3
+PATH_BOUND_OVERRIDE_VERSION = 3
+OVERRIDE_VERSION = 4
 LEGACY_AUTHORITY_RECEIPT_VERSION = 1
-AUTHORITY_RECEIPT_VERSION = 2
+PATH_BOUND_AUTHORITY_RECEIPT_VERSION = 2
+AUTHORITY_RECEIPT_VERSION = 3
 AUTHORITY_RECEIPT_KIND = "parking-human-authority-receipt"
 AUTHORITY_RECEIPT_DIR = ".human-authority"
 LEGACY_PUBLICATION_ATTESTATION_VERSION = 1
-PUBLICATION_ATTESTATION_VERSION = 2
+PATH_BOUND_PUBLICATION_ATTESTATION_VERSION = 2
+PUBLICATION_ATTESTATION_VERSION = 3
 PUBLICATION_ATTESTATION_KIND = "parking-publication-attestation"
 
 
@@ -89,7 +93,10 @@ def validate_publication_attestation(row: object) -> list[str]:
     required = (
         common if type(version) is int and version == LEGACY_PUBLICATION_ATTESTATION_VERSION
         else common | {"review_receipt_sha256"}
-        if type(version) is int and version == PUBLICATION_ATTESTATION_VERSION
+        if type(version) is int and version in (
+            PATH_BOUND_PUBLICATION_ATTESTATION_VERSION,
+            PUBLICATION_ATTESTATION_VERSION,
+        )
         else set()
     )
     if not required or set(attestation) != required:
@@ -116,11 +123,17 @@ def validate_publication_attestation(row: object) -> list[str]:
             and bound is not None
             and bound[0] not in ("human_confirmation", "override_v2")):
         errors.append("current human authority cannot use a legacy publication attestation")
-    if (version == PUBLICATION_ATTESTATION_VERSION
+    if (version == PATH_BOUND_PUBLICATION_ATTESTATION_VERSION
             and bound is not None
             and bound[0] not in ("human_confirmation_v2", "override_v3")):
-        errors.append("legacy human authority cannot use a current publication attestation")
-    if version == PUBLICATION_ATTESTATION_VERSION:
+        errors.append("portable human authority cannot use a path-bound attestation")
+    if (version == PUBLICATION_ATTESTATION_VERSION
+            and bound is not None
+            and bound[0] not in ("human_confirmation_v3", "override_v4")):
+        errors.append("historical human authority cannot use a portable attestation")
+    if version in (
+            PATH_BOUND_PUBLICATION_ATTESTATION_VERSION,
+            PUBLICATION_ATTESTATION_VERSION):
         expected["review_receipt_sha256"] = (
             bound[1].get("review_receipt_sha256") if bound is not None else None
         )
@@ -136,7 +149,9 @@ def validate_publication_attestation(row: object) -> list[str]:
         value = attestation.get(field)
         if not isinstance(value, str) or SHA256_RE.fullmatch(value) is None:
             errors.append(f"publication_attestation {field} is invalid")
-    if version == PUBLICATION_ATTESTATION_VERSION:
+    if version in (
+            PATH_BOUND_PUBLICATION_ATTESTATION_VERSION,
+            PUBLICATION_ATTESTATION_VERSION):
         review_hash = attestation.get("review_receipt_sha256")
         if review_hash is not None and (
                 not isinstance(review_hash, str)
@@ -153,15 +168,19 @@ def authority_wrapper(row: object) -> tuple[str, dict] | None:
         version = confirmation.get("version")
         if type(version) is int and version == LEGACY_CONFIRMATION_VERSION:
             return "human_confirmation", confirmation
-        if type(version) is int and version == CONFIRMATION_VERSION:
+        if type(version) is int and version == PATH_BOUND_CONFIRMATION_VERSION:
             return "human_confirmation_v2", confirmation
+        if type(version) is int and version == CONFIRMATION_VERSION:
+            return "human_confirmation_v3", confirmation
     override = row.get("override")
     if isinstance(override, dict):
         version = override.get("version")
         if type(version) is int and version == LEGACY_OVERRIDE_VERSION:
             return "override_v2", override
-        if type(version) is int and version == OVERRIDE_VERSION:
+        if type(version) is int and version == PATH_BOUND_OVERRIDE_VERSION:
             return "override_v3", override
+        if type(version) is int and version == OVERRIDE_VERSION:
+            return "override_v4", override
     return None
 
 
@@ -202,27 +221,41 @@ def validate_authority_receipt(row: object, tmp: str | Path,
             receipt = json.loads(path.read_text())
         except (OSError, ValueError, json.JSONDecodeError) as error:
             return [f"{authority_kind} authority receipt is unavailable: {error}"]
-    legacy_required = {
+    shared_required = {
         "version", "kind", "area", "fid", "authority_kind", "source_run_id",
-        "source_run_path", "source_prepare_sha256", "primary_envelope_sha256",
+        "source_prepare_sha256", "primary_envelope_sha256",
         "primary_assignment_sha256", "packet_sha256", "reviewer", "date", "note",
         "authority_payload", "effective_decision_sha256",
         "effective_evidence_sha256", "receipt_sha256",
     }
-    current_required = legacy_required | {
+    legacy_required = shared_required | {"source_run_path"}
+    path_bound_required = legacy_required | {
         "review_receipt_sha256", "review_receipt_path",
         "review_sheet_sha256", "review_sheet_path", "review_item_sha256",
     }
+    portable_required = shared_required | {
+        "review_receipt_sha256", "review_sheet_sha256", "review_item_sha256",
+    }
     version = receipt.get("version") if isinstance(receipt, dict) else None
     legacy = type(version) is int and version == LEGACY_AUTHORITY_RECEIPT_VERSION
+    path_bound = (
+        type(version) is int and version == PATH_BOUND_AUTHORITY_RECEIPT_VERSION
+    )
     current = type(version) is int and version == AUTHORITY_RECEIPT_VERSION
-    required = legacy_required if legacy else current_required if current else set()
+    required = (
+        legacy_required if legacy else path_bound_required if path_bound
+        else portable_required if current else set()
+    )
     if not required or not isinstance(receipt, dict) or set(receipt) != required:
         return [f"{authority_kind} authority receipt schema mismatch"]
     if legacy and authority_kind not in ("human_confirmation", "override_v2"):
         return [f"{authority_kind} cannot use a legacy authority receipt"]
-    if current and authority_kind not in ("human_confirmation_v2", "override_v3"):
-        return [f"{authority_kind} cannot use a current authority receipt"]
+    if (path_bound
+            and authority_kind not in ("human_confirmation_v2", "override_v3")):
+        return [f"{authority_kind} cannot use a path-bound authority receipt"]
+    if (current
+            and authority_kind not in ("human_confirmation_v3", "override_v4")):
+        return [f"{authority_kind} cannot use a portable authority receipt"]
     errors = []
     body = dict(receipt)
     receipt_hash = body.pop("receipt_sha256", None)
@@ -245,7 +278,7 @@ def validate_authority_receipt(row: object, tmp: str | Path,
         "effective_decision_sha256": tr.sha256_json(tr.decision_projection(row)),
         "effective_evidence_sha256": tr.evidence_sha256(row),
     }
-    if current:
+    if path_bound or current:
         expected.update({
             "review_receipt_sha256": wrapper.get("review_receipt_sha256"),
             "review_sheet_sha256": wrapper.get("review_sheet_sha256"),
@@ -258,7 +291,7 @@ def validate_authority_receipt(row: object, tmp: str | Path,
         "source_run_id", "source_prepare_sha256", "primary_envelope_sha256",
         "primary_assignment_sha256", "packet_sha256", "receipt_sha256",
     ]
-    if current:
+    if path_bound or current:
         hash_fields.extend([
             "review_receipt_sha256", "review_sheet_sha256", "review_item_sha256",
         ])
@@ -266,8 +299,10 @@ def validate_authority_receipt(row: object, tmp: str | Path,
         value = receipt.get(field)
         if not isinstance(value, str) or SHA256_RE.fullmatch(value) is None:
             errors.append(f"{authority_kind} authority receipt {field} is invalid")
-    path_fields = ["source_run_path"]
-    if current:
+    path_fields = []
+    if legacy or path_bound:
+        path_fields.append("source_run_path")
+    if path_bound:
         path_fields.extend(["review_receipt_path", "review_sheet_path"])
     for field in path_fields:
         value = receipt.get(field)
@@ -382,7 +417,9 @@ def machine_decision_projection(row: dict) -> tuple[dict | None, list[str]]:
                 "review_receipt_sha256", "review_sheet_sha256",
                 "review_item_sha256",
             }
-            if type(version) is int and version == CONFIRMATION_VERSION
+            if type(version) is int and version in (
+                PATH_BOUND_CONFIRMATION_VERSION, CONFIRMATION_VERSION
+            )
             else set()
         )
         if not required_confirmation or set(confirmation) != required_confirmation:
@@ -391,10 +428,10 @@ def machine_decision_projection(row: dict) -> tuple[dict | None, list[str]]:
                 f"{sorted(required_confirmation)}"
             )
         if type(version) is not int or version not in (
-                LEGACY_CONFIRMATION_VERSION, CONFIRMATION_VERSION):
+                LEGACY_CONFIRMATION_VERSION, PATH_BOUND_CONFIRMATION_VERSION,
+                CONFIRMATION_VERSION):
             errors.append(
-                f"human_confirmation.version must be "
-                f"{LEGACY_CONFIRMATION_VERSION} or {CONFIRMATION_VERSION}"
+                "human_confirmation.version is unsupported"
             )
         if confirmation.get("by") != "human":
             errors.append("human_confirmation.by must be human")
@@ -407,15 +444,15 @@ def machine_decision_projection(row: dict) -> tuple[dict | None, list[str]]:
             errors.append("human_confirmation.date must be YYYY-MM-DD")
         if not isinstance(confirmation.get("note"), str) or not confirmation["note"].strip():
             errors.append("human_confirmation.note must be a non-empty string")
-        if confirmation.get("verdict") not in ("KEEP", "DROP"):
-            errors.append("human_confirmation.verdict must be KEEP or DROP")
+        if confirmation.get("verdict") not in VERDICTS:
+            errors.append("human_confirmation.verdict must be KEEP, DROP, or REVIEW")
         if row.get("verdict") != confirmation.get("verdict"):
             errors.append("human_confirmation.verdict does not match the current verdict")
         confirmation_hash_fields = [
             "decision_sha256", "evidence_sha256", "packet_sha256", "source_run_id",
             "authority_receipt_sha256",
         ]
-        if version == CONFIRMATION_VERSION:
+        if version in (PATH_BOUND_CONFIRMATION_VERSION, CONFIRMATION_VERSION):
             confirmation_hash_fields.extend([
                 "review_receipt_sha256", "review_sheet_sha256",
                 "review_item_sha256",
@@ -440,7 +477,8 @@ def machine_decision_projection(row: dict) -> tuple[dict | None, list[str]]:
         return None, ["override.version must be an integer"]
     override_version = override.get("version")
     if type(override_version) is int and override_version in (
-            LEGACY_OVERRIDE_VERSION, OVERRIDE_VERSION):
+            LEGACY_OVERRIDE_VERSION, PATH_BOUND_OVERRIDE_VERSION,
+            OVERRIDE_VERSION):
         label = f"override v{override_version}"
         required_override = {
             "version", "from_decision", "from_decision_sha256",
@@ -448,7 +486,7 @@ def machine_decision_projection(row: dict) -> tuple[dict | None, list[str]]:
             "by", "reviewer", "date", "note", "packet_sha256", "source_run_id",
             "authority_receipt_sha256",
         }
-        if override_version == OVERRIDE_VERSION:
+        if override_version in (PATH_BOUND_OVERRIDE_VERSION, OVERRIDE_VERSION):
             required_override.update({
                 "review_receipt_sha256", "review_sheet_sha256",
                 "review_item_sha256",
@@ -473,7 +511,7 @@ def machine_decision_projection(row: dict) -> tuple[dict | None, list[str]]:
             "to_decision_sha256", "to_evidence_sha256",
             "packet_sha256", "source_run_id", "authority_receipt_sha256",
         ]
-        if override_version == OVERRIDE_VERSION:
+        if override_version in (PATH_BOUND_OVERRIDE_VERSION, OVERRIDE_VERSION):
             override_hash_fields.extend([
                 "review_receipt_sha256", "review_sheet_sha256",
                 "review_item_sha256",
@@ -697,7 +735,10 @@ def validate_verdict_row(row: object, packet: dict | None = None,
         authority_packet_hashes.append(("human_confirmation", confirmation.get("packet_sha256")))
     override = row.get("override")
     if (isinstance(override, dict)
-            and override.get("version") in (LEGACY_OVERRIDE_VERSION, OVERRIDE_VERSION)):
+            and override.get("version") in (
+                LEGACY_OVERRIDE_VERSION, PATH_BOUND_OVERRIDE_VERSION,
+                OVERRIDE_VERSION,
+            )):
         authority_packet_hashes.append((
             f"override v{override.get('version')}", override.get("packet_sha256")
         ))

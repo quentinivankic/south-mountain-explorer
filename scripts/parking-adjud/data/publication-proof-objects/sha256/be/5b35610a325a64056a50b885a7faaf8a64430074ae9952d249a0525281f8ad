@@ -1,0 +1,18 @@
+{
+  "assignment_id": "9c0717465ed5fa535525c17433a7e780da80b123e30fcfe88606336e5f2c7fb4",
+  "decision": {
+    "fid": 892,
+    "area": "bear-creek-lake-park-co",
+    "osm": ["way/685338418"],
+    "verdict": "DROP",
+    "prior": "bare",
+    "exists": {"call": "yes", "evidence": "Bare prior, decided by vision. Z3: paved L-shaped lot wrapping the NE and SE sides of a small building, about 10 parked cars in a regular stall row along the NE edge plus 2 cars in the SE leg; Z2 shows the same delineated asphalt with an access throat off the loop road at the NW corner."},
+    "public": {"call": "no", "evidence": "Only tag is naked amenity=parking: no access, name, operator, fee, or trailhead record at the lot. Context classifier puts it 0 m from amenity=school (FACILITY). Z1 shows it inside a campus loop road beside a fenced storage/maintenance yard with parked trailers (west) and a cultivated garden/greenhouse plot (east), with large campus building lots to the north. Nothing at lot level grants general public parking; school ownership and no visible gate are context only."},
+    "serves": {"call": "no", "evidence": "Gate candidate only: Sixth Ave West Trail edge 551 m, not fallback, 2 trails in range, walk 384 m with no recorded connection (conn empty, walk trail null), 0 trailhead nodes within 120 m, no building overlap. The single nearby footway (Z2) is a paved campus path running north toward the school buildings, not toward the trail. Z1: the yellow trail runs along the creek corridor about 300 m south across open ground with no direct approach from this lot. The school/campus facility explains this lot better than trail overflow."},
+    "frames_used": ["z1", "z2", "z3"],
+    "tags_cited": {"amenity": "parking"},
+    "confidence": "strong",
+    "resolve_hint": null
+  },
+  "external_evidence": []
+}

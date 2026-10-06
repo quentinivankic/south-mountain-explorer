@@ -1641,13 +1641,18 @@ def test_real_osmium_tiny_dynamic_pbf_forms_and_commands(tmp_path):
           '<tag k="amenity" v="parking"/></relation>\n'
         + '</osm>\n'
     )
+    raw_source = tmp_path / "tiny-raw.osm.pbf"
+    census._run_osmium(
+        [str(osmium_path), "cat", str(xml), "-o", str(raw_source)],
+        "test osmium XML to raw PBF",
+    )
     source = tmp_path / "tiny.osm.pbf"
     census._run_osmium(
         [
-            str(osmium_path), "cat", str(xml), "-o", str(source),
+            str(osmium_path), "cat", str(raw_source), "-o", str(source),
             f"--output-header=timestamp={timestamp}",
         ],
-        "test osmium XML to PBF",
+        "test osmium timestamped PBF rewrite",
     )
     source_inventory, source_memberships = census._pbf_inventory(
         source, tool, source_side=True

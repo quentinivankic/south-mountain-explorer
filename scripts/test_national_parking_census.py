@@ -1645,7 +1645,7 @@ def test_real_osmium_tiny_dynamic_pbf_forms_and_commands(tmp_path):
     census._run_osmium(
         [
             str(osmium_path), "cat", str(xml), "-o", str(source),
-            "--output-header", f"timestamp={timestamp}",
+            f"--output-header=timestamp={timestamp}",
         ],
         "test osmium XML to PBF",
     )

@@ -1650,6 +1650,8 @@ def test_real_osmium_tiny_dynamic_pbf_forms_and_commands(tmp_path):
     census._run_osmium(
         [
             str(osmium_path), "cat", str(raw_source), "-o", str(source),
+            "--output-header=osmosis_replication_sequence_number=1",
+            f"--output-header=osmosis_replication_timestamp={timestamp}",
             f"--output-header=timestamp={timestamp}",
         ],
         "test osmium timestamped PBF rewrite",
@@ -1658,9 +1660,11 @@ def test_real_osmium_tiny_dynamic_pbf_forms_and_commands(tmp_path):
         source, tool, source_side=True
     )
     metadata = census._pbf_metadata(
-        source, tool, require_replication=False
+        source, tool, require_replication=True
     )
-    assert metadata["timestamp"]
+    assert metadata["timestamp"] == timestamp
+    assert metadata["replication_timestamp"] == timestamp
+    assert metadata["sequence"] == "1"
     assert set(source_inventory) == {
         "node/1", "way/10", "way/20", "way/30", "way/31", "way/32",
         "relation/40",

@@ -1235,12 +1235,12 @@ final class AreaSheetAuditTests: XCTestCase {
                 "Mark Trail Complete,"
             )).allElementsBoundByIndex
             if let secondary = completionActions
-                .filter {
+                .filter({
                     $0.exists
                         && $0.isHittable
                         && $0.frame.minY > rowBandTop
                         && $0.frame.maxY <= app.frame.maxY
-                }
+                })
                 .min(by: { $0.frame.minY < $1.frame.minY }) {
                 let suffix = String(
                     secondary.identifier.dropFirst("trail-secondary-".count)

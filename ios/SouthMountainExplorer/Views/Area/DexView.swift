@@ -138,7 +138,13 @@ struct DexView: View {
             }
         )
         .accessibilityIdentifier(
-            isFinalDedication ? "collection-dedication-final" : "collection-badge"
+            achievement.id == "completionist"
+                ? "collection-milestone-representative"
+                : achievement.id == "easy-first"
+                    ? "collection-difficulty-representative"
+                    : isFinalDedication
+                        ? "collection-dedication-final"
+                        : "collection-badge"
         )
     }
 

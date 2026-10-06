@@ -120,7 +120,7 @@ struct AreaView: View {
     @State private var measuredMapControlsBottom: CGFloat = 72
 
     private var mapControlSize: CGFloat {
-        dynamicTypeSize.isAccessibilitySize ? 48 : 36
+        dynamicTypeSize.isAccessibilitySize ? 48 : 44
     }
 
     private var mapControlIconFont: Font {
@@ -1701,7 +1701,7 @@ struct AreaView: View {
         let completed = progress.completionCount(in: area.id, trails: area.trails)
         let areaComplete = area.resolvedTrailCount > 0 && completed >= area.resolvedTrailCount
 
-        return Group {
+        return VStack(spacing: 0) {
             if dynamicTypeSize.isAccessibilitySize {
                 ScrollView {
                     areaHeaderContent(
@@ -1711,7 +1711,7 @@ struct AreaView: View {
                     )
                 }
                 .scrollIndicators(.visible)
-                .frame(maxHeight: isRecording ? 80 : 120)
+                .frame(maxHeight: 120)
                 .accessibilityIdentifier("area-header-scroll")
             } else {
                 areaHeaderContent(
@@ -1748,7 +1748,9 @@ struct AreaView: View {
                 .fixedSize(horizontal: false, vertical: dynamicTypeSize.isAccessibilitySize)
                 .frame(maxWidth: .infinity,
                        alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .center)
-                .accessibilityIdentifier("area-header-title")
+                .accessibilityIdentifier(
+                    isRecording ? "recording-area-header-title" : "area-header-title"
+                )
 
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: 6) {

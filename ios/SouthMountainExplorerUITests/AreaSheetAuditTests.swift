@@ -157,6 +157,15 @@ final class AreaSheetAuditTests: XCTestCase {
         let browseRowIdentifier = tapFirstTrailRow(app)
         settle(3)
         assertSelectedMapFraming(app)
+        if let browseRowIdentifier {
+            assertTrailActionFrames(
+                app,
+                rowIdentifier: browseRowIdentifier,
+                selectLabelPrefix: "Deselect Trail,",
+                secondaryLabelPrefix: "Record Trail,",
+                tag: "trail-actions-browse-record"
+            )
+        }
         capture(app, "sheet-07b-selected-from-browse")
         logFrames(app, "selected-from-browse")
         if let identifier = browseRowIdentifier {
@@ -194,6 +203,7 @@ final class AreaSheetAuditTests: XCTestCase {
         // the sheet toolbar, presented as its own nested sheet.
         dragSheet(app, toBottom: true)
         settle(2)
+        let collectionUsesFullWidthRows = isAccessibilityLayout(app)
         openCollection(app)
         settle(3)
         capture(app, "sheet-08-collection-open")
@@ -201,6 +211,33 @@ final class AreaSheetAuditTests: XCTestCase {
 
         let collectionScroll = app.scrollViews["collection-scroll"].firstMatch
         XCTAssertTrue(collectionScroll.waitForExistence(timeout: 10), "Collection scroll is missing")
+
+        let milestone = app.descendants(matching: .any)[
+            "collection-milestone-representative"
+        ].firstMatch
+        assertCollectionRepresentative(
+            milestone,
+            in: collectionScroll,
+            app: app,
+            expectedWholeWord: "Completionist",
+            requiresFullWidth: collectionUsesFullWidthRows,
+            tag: "collection-completionist"
+        )
+        capture(app, "sheet-08b-collection-completionist")
+
+        let difficulty = app.descendants(matching: .any)[
+            "collection-difficulty-representative"
+        ].firstMatch
+        assertCollectionRepresentative(
+            difficulty,
+            in: collectionScroll,
+            app: app,
+            expectedWholeWord: "Easygoer",
+            requiresFullWidth: collectionUsesFullWidthRows,
+            tag: "collection-difficulty"
+        )
+        capture(app, "sheet-08c-collection-difficulty")
+
         let finalCollectionContent = app.descendants(matching: .any)[
             "collection-dedication-final"
         ].firstMatch
@@ -209,7 +246,13 @@ final class AreaSheetAuditTests: XCTestCase {
             "Collection final content is not reachable"
         )
         logElementFrame(app, finalCollectionContent, tag: "collection-lower-content")
-        capture(app, "sheet-08b-collection-lower-content")
+        if collectionUsesFullWidthRows {
+            XCTAssertGreaterThan(
+                finalCollectionContent.frame.width,
+                app.frame.width * 0.7,
+                "Accessibility Collection final row is not full width"
+            )
+        }
 
         // ---- 8. Close the Collection: the sheet underneath must be exactly
         // the idle min-stop layout it was before the presentation.
@@ -242,6 +285,7 @@ final class AreaSheetAuditTests: XCTestCase {
             )
         }
         logElementFrame(app, status, tag: "gps-recovered")
+        assertRecordingAreaHeader(app)
         XCTAssertEqual(stopControlCount(app), 1, "Recovered state must expose exactly one Stop control")
         XCTAssertEqual(app.buttons.matching(identifier: "recording-stop-button").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "active-recording-stop-button").count, 0)
@@ -314,6 +358,7 @@ final class AreaSheetAuditTests: XCTestCase {
             )
         }
         logElementFrame(app, status, tag: "gps-paused")
+        assertRecordingAreaHeader(app)
         XCTAssertEqual(stopControlCount(app), 1, "Paused state must expose exactly one Stop control")
         XCTAssertEqual(app.buttons.matching(identifier: "recording-stop-button").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "active-recording-stop-button").count, 0)
@@ -345,6 +390,8 @@ final class AreaSheetAuditTests: XCTestCase {
         )
         capture(app, "field-trust-00-explore-continue-card")
 
+        auditExploreLocationEmptyState(app)
+
         let open = app.buttons["area-open-\(areaId)"].firstMatch
         guard scrollIntoExploreViewport(open, app: app) else {
             dumpTree(app, "area-card-actions-not-visible")
@@ -363,10 +410,19 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(areaActionLabelsAreDistinct, "Area actions must have distinct labels")
         assertInsideFrame(open, frame: safeFrame, tag: "explore-area-card-open")
         assertInsideFrame(save, frame: safeFrame, tag: "explore-area-card-save")
+        let areaTitle = app.descendants(matching: .any)[
+            "area-card-title-\(areaId)"
+        ].firstMatch
         assertCompleteAreaTitle(
-            app.descendants(matching: .any)["area-card-title-\(areaId)"].firstMatch,
+            areaTitle,
             app: app,
             tag: "explore-area-card-title"
+        )
+        assertAreaCardTitleClearance(
+            areaTitle,
+            open: open,
+            save: save,
+            visibleFrame: safeFrame
         )
         capture(app, "field-trust-00-explore-area-card")
 
@@ -386,6 +442,363 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(app.tabBars.buttons["Settings"].firstMatch.isHittable)
     }
 
+    private func auditExploreLocationEmptyState(_ app: XCUIApplication) {
+        let state = app.descendants(matching: .any)[
+            "explore-location-empty-state"
+        ].firstMatch
+        let title = app.descendants(matching: .any)[
+            "explore-location-empty-title"
+        ].firstMatch
+        let detail = app.descendants(matching: .any)[
+            "explore-location-empty-detail"
+        ].firstMatch
+        let primaryAction = app.buttons["explore-location-primary-action"].firstMatch
+        let browseAction = app.buttons["explore-location-browse-action"].firstMatch
+        XCTAssertTrue(
+            state.waitForExistence(timeout: 10),
+            "Location empty state is missing"
+        )
+
+        let elements: [(String, XCUIElement)] = [
+            ("location-title", title),
+            ("location-detail", detail),
+            ("location-primary", primaryAction),
+            ("location-browse", browseAction),
+        ]
+        let tabBar = app.tabBars.firstMatch
+        for (tag, element) in elements {
+            XCTAssertTrue(
+                scrollIntoExploreViewport(element, app: app),
+                "Location empty-state content is not reachable"
+            )
+            let visibleFrame = exploreVisibleContentFrame(app)
+            assertInsideFrame(element, frame: visibleFrame, tag: "explore-\(tag)")
+            if tabBar.exists {
+                XCTAssertTrue(
+                    element.frame.intersection(tabBar.frame).isEmpty,
+                    "Location empty-state content intersects the tab bar"
+                )
+            }
+        }
+
+        let titleIsExpected = title.label == "Trails near you"
+        XCTAssertTrue(titleIsExpected, "Location empty-state title is incomplete")
+        XCTAssertTrue(
+            settleExplorePair(detail, primaryAction, app: app),
+            "Location detail and primary action cannot be shown together"
+        )
+        let settledFrame = exploreVisibleContentFrame(app)
+        assertInsideFrame(detail, frame: settledFrame, tag: "explore-location-detail-settled")
+        assertInsideFrame(
+            primaryAction,
+            frame: settledFrame,
+            tag: "explore-location-primary-settled"
+        )
+        if tabBar.exists {
+            XCTAssertTrue(
+                detail.frame.intersection(tabBar.frame).isEmpty,
+                "Location detail intersects the tab bar"
+            )
+            XCTAssertTrue(
+                primaryAction.frame.intersection(tabBar.frame).isEmpty,
+                "Location primary action intersects the tab bar"
+            )
+        }
+        capture(app, "field-trust-00-explore-location-empty-state")
+    }
+
+    private func settleExplorePair(
+        _ first: XCUIElement,
+        _ second: XCUIElement,
+        app: XCUIApplication
+    ) -> Bool {
+        let scrollView = app.scrollViews["explore-scroll"].firstMatch
+        for attempt in 0...20 {
+            let visibleFrame = exploreVisibleContentFrame(app)
+            if first.exists,
+               second.exists,
+               first.isHittable,
+               second.isHittable,
+               visibleFrame.contains(first.frame),
+               visibleFrame.contains(second.frame) {
+                return true
+            }
+            if attempt < 20 {
+                let contentIsAbove = first.exists
+                    && second.exists
+                    && min(first.frame.minY, second.frame.minY) < visibleFrame.minY
+                nudgeExploreScroll(
+                    scrollView.exists ? scrollView : app,
+                    towardTop: contentIsAbove
+                )
+                settle(1)
+            }
+        }
+        return false
+    }
+
+    private func assertAreaCardTitleClearance(
+        _ title: XCUIElement,
+        open: XCUIElement,
+        save: XCUIElement,
+        visibleFrame: CGRect
+    ) {
+        let isInsideOpen = title.exists && open.frame.contains(title.frame)
+        let isInsideViewport = title.exists && visibleFrame.contains(title.frame)
+        let overlapsSave = title.exists && !title.frame.intersection(save.frame).isEmpty
+        print(
+            "AUDIT[explore-area-title-save] overlap=\(overlapsSave) "
+            + "insideOpen=\(isInsideOpen) insideViewport=\(isInsideViewport)"
+        )
+        XCTAssertTrue(isInsideOpen, "Area title extends outside its Open card")
+        XCTAssertTrue(isInsideViewport, "Area title extends outside the Explore viewport")
+        XCTAssertFalse(overlapsSave, "Area title intersects the Save control")
+    }
+
+    private func assertMapControlFrames(_ app: XCUIApplication) {
+        let controls: [(String, XCUIElement)] = [
+            ("close", app.buttons["area-close-button"].firstMatch),
+            ("options", app.buttons["area-map-options-button"].firstMatch),
+            ("favorite", app.buttons["area-map-favorite-button"].firstMatch),
+        ]
+        let expectedSize: CGFloat = isAccessibilityLayout(app) ? 48 : 44
+        for (tag, control) in controls {
+            XCTAssertTrue(control.waitForExistence(timeout: 10), "Map control is missing")
+            let isInside = isOnScreenAndHittable(control, app: app)
+            print(
+                "AUDIT[map-control-\(tag)] w=\(Int(control.frame.width)) "
+                + "h=\(Int(control.frame.height)) inside=\(isInside)"
+            )
+            XCTAssertEqual(
+                control.frame.width,
+                expectedSize,
+                accuracy: 1,
+                "Map control has an unexpected hit width"
+            )
+            XCTAssertEqual(
+                control.frame.height,
+                expectedSize,
+                accuracy: 1,
+                "Map control has an unexpected hit height"
+            )
+            XCTAssertTrue(isInside, "Map control extends outside the app frame")
+        }
+
+        XCTAssertEqual(
+            Set(controls.map { $0.1.identifier }).count,
+            controls.count,
+            "Map controls must have distinct identifiers"
+        )
+        XCTAssertEqual(
+            Set(controls.map { $0.1.label }).count,
+            controls.count,
+            "Map controls must have distinct labels"
+        )
+        for firstIndex in controls.indices {
+            for secondIndex in controls.indices where secondIndex > firstIndex {
+                XCTAssertTrue(
+                    controls[firstIndex].1.frame
+                        .intersection(controls[secondIndex].1.frame).isEmpty,
+                    "Map controls overlap"
+                )
+            }
+        }
+    }
+
+    private func assertTrailActionFrames(
+        _ app: XCUIApplication,
+        rowIdentifier: String,
+        selectLabelPrefix: String,
+        secondaryLabelPrefix: String,
+        tag: String
+    ) {
+        guard rowIdentifier.hasPrefix("trail-select-") else {
+            XCTFail("Trail Select action has an unexpected identifier")
+            return
+        }
+        let suffix = String(rowIdentifier.dropFirst("trail-select-".count))
+        let select = app.buttons[rowIdentifier].firstMatch
+        let secondary = app.buttons["trail-secondary-\(suffix)"].firstMatch
+        XCTAssertTrue(select.waitForExistence(timeout: 10), "Trail Select action is missing")
+        XCTAssertTrue(secondary.waitForExistence(timeout: 10), "Trail secondary action is missing")
+
+        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+        if trailScroll.exists {
+            XCTAssertTrue(
+                scrollToReachable(select, in: trailScroll, app: app),
+                "Trail Select action is not reachable"
+            )
+            XCTAssertTrue(
+                scrollToReachable(secondary, in: trailScroll, app: app),
+                "Trail secondary action is not reachable"
+            )
+        }
+
+        let selectIsInside = isOnScreenAndHittable(select, app: app)
+        let secondaryIsInside = isOnScreenAndHittable(secondary, app: app)
+        let actionsDoNotOverlap = select.frame.intersection(secondary.frame).isEmpty
+        let identifiersAreDistinct = select.identifier != secondary.identifier
+        let labelsAreDistinct = select.label != secondary.label
+        let selectHasExpectedRole = select.label.hasPrefix(selectLabelPrefix)
+        let secondaryHasExpectedRole = secondary.label.hasPrefix(secondaryLabelPrefix)
+        print(
+            "AUDIT[\(tag)] selectW=\(Int(select.frame.width)) "
+            + "selectH=\(Int(select.frame.height)) secondaryW=\(Int(secondary.frame.width)) "
+            + "secondaryH=\(Int(secondary.frame.height)) overlap=\(!actionsDoNotOverlap)"
+        )
+        XCTAssertGreaterThanOrEqual(select.frame.width, 44, "Trail Select hit width is too small")
+        XCTAssertGreaterThanOrEqual(select.frame.height, 44, "Trail Select hit height is too small")
+        XCTAssertGreaterThanOrEqual(
+            secondary.frame.width,
+            44,
+            "Trail secondary hit width is too small"
+        )
+        XCTAssertGreaterThanOrEqual(
+            secondary.frame.height,
+            44,
+            "Trail secondary hit height is too small"
+        )
+        if !isAccessibilityLayout(app) {
+            XCTAssertEqual(
+                secondary.frame.width,
+                44,
+                accuracy: 1,
+                "Standard trail secondary hit width is not exact"
+            )
+            XCTAssertEqual(
+                secondary.frame.height,
+                44,
+                accuracy: 1,
+                "Standard trail secondary hit height is not exact"
+            )
+        }
+        XCTAssertTrue(selectIsInside, "Trail Select action extends outside the app frame")
+        XCTAssertTrue(secondaryIsInside, "Trail secondary action extends outside the app frame")
+        XCTAssertTrue(actionsDoNotOverlap, "Trail actions overlap")
+        XCTAssertTrue(identifiersAreDistinct, "Trail actions must have distinct identifiers")
+        XCTAssertTrue(labelsAreDistinct, "Trail actions must have distinct labels")
+        XCTAssertTrue(selectHasExpectedRole, "Trail Select action has unexpected semantics")
+        XCTAssertTrue(secondaryHasExpectedRole, "Trail secondary action has unexpected semantics")
+    }
+
+    private func assertCollectionRepresentative(
+        _ row: XCUIElement,
+        in collectionScroll: XCUIElement,
+        app: XCUIApplication,
+        expectedWholeWord: String,
+        requiresFullWidth: Bool,
+        tag: String
+    ) {
+        XCTAssertTrue(
+            scrollToReachable(row, in: collectionScroll, app: app),
+            "Collection representative row is not reachable"
+        )
+        let isInside = isOnScreenAndHittable(row, app: app)
+        let hasWholeTitle = label(row.label, containsWholeWord: expectedWholeWord)
+        let isFullWidth = !requiresFullWidth || row.frame.width > app.frame.width * 0.7
+        print(
+            "AUDIT[\(tag)] wholeTitle=\(hasWholeTitle) inside=\(isInside) "
+            + "fullWidth=\(isFullWidth)"
+        )
+        XCTAssertTrue(isInside, "Collection representative row extends outside the app frame")
+        XCTAssertTrue(hasWholeTitle, "Collection representative title is incomplete")
+        XCTAssertTrue(isFullWidth, "Accessibility Collection row is not full width")
+    }
+
+    private func label(_ label: String, containsWholeWord word: String) -> Bool {
+        let pattern = "\\b" + NSRegularExpression.escapedPattern(for: word) + "\\b"
+        guard let expression = try? NSRegularExpression(pattern: pattern) else { return false }
+        let range = NSRange(label.startIndex..<label.endIndex, in: label)
+        return expression.firstMatch(in: label, range: range) != nil
+    }
+
+    private func assertRecordingAreaHeader(_ app: XCUIApplication) {
+        let header = app.descendants(matching: .any)["area-header"].firstMatch
+        let headerScroll = app.scrollViews["area-header-scroll"].firstMatch
+        let title = app.descendants(matching: .any)[
+            "recording-area-header-title"
+        ].firstMatch
+        XCTAssertTrue(header.waitForExistence(timeout: 10), "Recording area header is missing")
+        XCTAssertTrue(title.waitForExistence(timeout: 10), "Recording area title is missing")
+
+        if headerScroll.exists {
+            for attempt in 0...20 {
+                let titleIsSettled = title.exists
+                    && title.isHittable
+                    && header.frame.insetBy(dx: -1, dy: -1).contains(title.frame)
+                    && title.frame.minY >= header.frame.minY + 19
+                if titleIsSettled { break }
+                if attempt < 20 {
+                    let moveContentDown = title.exists
+                        && title.frame.minY < header.frame.minY + 20
+                    let start = headerScroll.coordinate(
+                        withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.35 : 0.65)
+                    )
+                    let end = headerScroll.coordinate(
+                        withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.60 : 0.40)
+                    )
+                    start.press(forDuration: 0.05, thenDragTo: end)
+                    settle(1)
+                }
+            }
+        }
+
+        let titleIsComplete = title.label == "South Mountain Park and Preserve"
+        let titleIsInsideHeader = header.frame.insetBy(dx: -1, dy: -1).contains(title.frame)
+        let titleIsInsideScreen = app.frame.insetBy(dx: -1, dy: -1).contains(title.frame)
+        let titleClearsGrabber = title.frame.minY >= header.frame.minY + 19
+        let dashboardScroll = app.scrollViews["recording-dashboard-scroll"].firstMatch
+        if headerScroll.exists {
+            XCTAssertTrue(
+                dashboardScroll.waitForExistence(timeout: 10),
+                "Accessibility recording dashboard is missing"
+            )
+        }
+        let headerClearsDashboard = !dashboardScroll.exists
+            || header.frame.intersection(dashboardScroll.frame).isEmpty
+
+        let dashboardElements = [
+            app.descendants(matching: .any)["recording-gps-status"].firstMatch,
+            app.descendants(matching: .any)["recording-elevation-profile"].firstMatch,
+            app.descendants(matching: .any)["recording-metrics"].firstMatch,
+            app.buttons["recording-stop-button"].firstMatch,
+        ]
+        for element in dashboardElements {
+            if headerScroll.exists {
+                XCTAssertTrue(
+                    element.waitForExistence(timeout: 10),
+                    "Accessibility recording dashboard component is missing"
+                )
+            }
+            if element.exists {
+                XCTAssertTrue(
+                    title.frame.intersection(element.frame).isEmpty,
+                    "Recording area title intersects dashboard content"
+                )
+            }
+        }
+
+        let controls = app.descendants(matching: .any)["area-map-controls"].firstMatch
+        XCTAssertTrue(controls.waitForExistence(timeout: 10), "Map controls are missing")
+        let mapRegionHeight = header.frame.minY - controls.frame.maxY
+        print(
+            "AUDIT[recording-area-header] complete=\(titleIsComplete) "
+            + "insideHeader=\(titleIsInsideHeader) insideScreen=\(titleIsInsideScreen) "
+            + "grabberClear=\(titleClearsGrabber) dashboardClear=\(headerClearsDashboard) "
+            + "mapHeight=\(Int(mapRegionHeight))"
+        )
+        XCTAssertTrue(titleIsComplete, "Recording area title is incomplete")
+        XCTAssertTrue(titleIsInsideHeader, "Recording area title extends outside its header")
+        XCTAssertTrue(titleIsInsideScreen, "Recording area title extends outside the app frame")
+        XCTAssertTrue(title.isHittable, "Recording area title is not reachable")
+        XCTAssertTrue(titleClearsGrabber, "Recording area title intersects the drag-indicator zone")
+        XCTAssertTrue(headerClearsDashboard, "Recording header intersects the dashboard")
+        XCTAssertGreaterThan(mapRegionHeight, 0, "Recording state hides the map region")
+        XCTAssertEqual(stopControlCount(app), 1, "Recording state must expose exactly one Stop control")
+        XCTAssertEqual(app.buttons.matching(identifier: "recording-stop-button").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "active-recording-stop-button").count, 0)
+    }
+
     private func assertFitAreaPresentation(_ app: XCUIApplication) {
         let header = app.descendants(matching: .any)["area-header"].firstMatch
         let title = app.descendants(matching: .any)["area-header-title"].firstMatch
@@ -399,6 +812,7 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertEqual(app.buttons.matching(identifier: "area-record-button").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "area-search-button").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "area-collection-button").count, 1)
+        assertMapControlFrames(app)
     }
 
     private func assertSelectedTrailPresentation(
@@ -416,10 +830,13 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(select.exists, "Selected trail action is missing")
         XCTAssertTrue(secondary.exists, "Selected trail secondary action is missing")
         XCTAssertTrue(profile.exists, "Selected trail profile is missing")
-        let actionIdentifiersAreDistinct = select.identifier != secondary.identifier
-        let actionLabelsAreDistinct = select.label != secondary.label
-        XCTAssertTrue(actionIdentifiersAreDistinct, "Selected trail actions must be distinct")
-        XCTAssertTrue(actionLabelsAreDistinct, "Selected trail action labels must be distinct")
+        assertTrailActionFrames(
+            app,
+            rowIdentifier: rowIdentifier,
+            selectLabelPrefix: "Deselect Trail,",
+            secondaryLabelPrefix: "Record Trail,",
+            tag: "trail-actions-fit-record"
+        )
         if isAccessibilityLayout(app) {
             // The fit capture above intentionally preserves the compact stop.
             // Full selected-row reachability is exercised from Browse by the
@@ -498,7 +915,7 @@ final class AreaSheetAuditTests: XCTestCase {
     }
 
     private func isAccessibilityLayout(_ app: XCUIApplication) -> Bool {
-        app.scrollViews["area-header"].firstMatch.exists
+        app.scrollViews["area-header-scroll"].firstMatch.exists
     }
 
     private func stopControlCount(_ app: XCUIApplication) -> Int {
@@ -732,7 +1149,7 @@ final class AreaSheetAuditTests: XCTestCase {
         let name = app.staticTexts["South Mountain Park and Preserve"].firstMatch
         let from: XCUICoordinate
         if isAccessibilityLayout(app) {
-            let header = app.scrollViews["area-header"].firstMatch
+            let header = app.scrollViews["area-header-scroll"].firstMatch
             let anchorY = header.exists ? header.frame.minY + 8 : app.frame.height * 0.62
             from = app.coordinate(withNormalizedOffset: .zero)
                 .withOffset(CGVector(dx: app.frame.width / 2, dy: anchorY))
@@ -795,29 +1212,69 @@ final class AreaSheetAuditTests: XCTestCase {
         tapElement(done)
     }
 
-    /// Tap the first visible trail's semantic Select button and return its
-    /// stable identifier so callers can address the same row after its label
-    /// changes to Deselect. This avoids guessing from localized/static text.
+    /// Tap the first reachable incomplete trail's semantic Select button and
+    /// return its stable identifier so callers can address the same row after
+    /// its label changes to Deselect. The bounded search first proves the
+    /// independent Mark Complete target without exposing trail data.
     private func tapFirstTrailRow(_ app: XCUIApplication) -> String? {
         let start = app.buttons["area-record-button"].firstMatch
         guard start.exists else {
             dumpTree(app, "no-toolbar-before-row-tap")
             return nil
         }
-        let rowBandTop = start.frame.maxY + 4
-        let candidates = app.buttons.matching(
-            NSPredicate(format: "identifier BEGINSWITH %@", "trail-select-")
-        ).allElementsBoundByIndex
-        let row = candidates
-            .filter { $0.exists && $0.frame.minY > rowBandTop && $0.frame.minY < app.frame.maxY }
-            .min { $0.frame.minY < $1.frame.minY }
-        guard let row else {
-            dumpTree(app, "no-trail-row-found")
+        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+        guard trailScroll.exists else {
+            dumpTree(app, "no-trail-scroll-before-row-tap")
             return nil
         }
-        print("AUDIT tapping first trail row")
-        tapElement(row)
-        return row.identifier
+        let rowBandTop = start.frame.maxY + 4
+        for attempt in 0...20 {
+            let completionActions = app.buttons.matching(NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label BEGINSWITH %@",
+                "trail-secondary-",
+                "Mark Trail Complete,"
+            )).allElementsBoundByIndex
+            if let secondary = completionActions
+                .filter {
+                    $0.exists
+                        && $0.isHittable
+                        && $0.frame.minY > rowBandTop
+                        && $0.frame.maxY <= app.frame.maxY
+                }
+                .min(by: { $0.frame.minY < $1.frame.minY }) {
+                let suffix = String(
+                    secondary.identifier.dropFirst("trail-secondary-".count)
+                )
+                let row = app.buttons["trail-select-\(suffix)"].firstMatch
+                guard scrollToReachable(row, in: trailScroll, app: app) else {
+                    XCTFail("Paired trail Select action is not reachable")
+                    return nil
+                }
+                assertTrailActionFrames(
+                    app,
+                    rowIdentifier: row.identifier,
+                    selectLabelPrefix: "Select Trail,",
+                    secondaryLabelPrefix: "Mark Trail Complete,",
+                    tag: "trail-actions-complete"
+                )
+                print("AUDIT tapping first incomplete trail row")
+                tapElement(row)
+                return row.identifier
+            }
+            if attempt < 20 {
+                let from = trailScroll.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8)
+                )
+                let to = trailScroll.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)
+                )
+                from.press(forDuration: 0.05, thenDragTo: to)
+                settle(1)
+            }
+        }
+        dumpTree(app, "no-incomplete-trail-row-found")
+        XCTFail("No reachable Mark Complete trail action was found")
+        return nil
     }
 
     // MARK: - Frame logging

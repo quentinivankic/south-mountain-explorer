@@ -752,7 +752,7 @@ struct TrailRow: View {
     }
 
     private var compactRowHeader: some View {
-        ZStack(alignment: .topTrailing) {
+        HStack(alignment: .top, spacing: 8) {
             Button(action: toggleSelection) {
                 HStack(spacing: 14) {
                     TrailShapeThumb(
@@ -801,13 +801,11 @@ struct TrailRow: View {
                         }
                     }
 
-                    Spacer()
-                    Color.clear
-                        .frame(width: 24, height: 24)
-                        .accessibilityHidden(true)
+                    Spacer(minLength: 0)
                 }
             }
             .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             .contentShape(Rectangle())
             .accessibilityIdentifier("trail-select-\(trail.id)")
             .accessibilityLabel(
@@ -823,6 +821,8 @@ struct TrailRow: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
             .accessibilityIdentifier("trail-secondary-\(trail.id)")
             .accessibilityLabel(secondaryActionLabel)
             .accessibilityHint(secondaryActionHint)
@@ -884,10 +884,11 @@ struct TrailRow: View {
                         .foregroundStyle(.tint)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .contentShape(Rectangle())
             .accessibilityIdentifier("trail-select-\(trail.id)")
             .accessibilityLabel(
                 isSelected ? "Deselect Trail, \(trail.name)" : "Select Trail, \(trail.name)"
@@ -898,12 +899,13 @@ struct TrailRow: View {
                 Label(accessibilitySecondaryTitle, systemImage: recordControlSymbol)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(recordControlStyle)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 12))
             }
             .buttonStyle(.plain)
+            .contentShape(Rectangle())
             .accessibilityIdentifier("trail-secondary-\(trail.id)")
             .accessibilityLabel(secondaryActionLabel)
             .accessibilityHint(secondaryActionHint)

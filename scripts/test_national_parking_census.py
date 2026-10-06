@@ -451,6 +451,32 @@ def test_stream_canonicalizes_area_id_prefers_polygon_and_is_order_independent(t
     assert results[0].counters == results[1].counters
 
 
+def test_stream_declared_non_area_way_prefers_line_over_area_copy(tmp_path):
+    endpoint_grid = census.EndpointGrid((census.Endpoint(0.0, 0.0),))
+    line = _geojson_feature(
+        "w1", {"type": "LineString", "coordinates": [
+            [-0.0001, -0.0001], [0.0001, -0.0001],
+            [0.0001, 0.0001], [-0.0001, 0.0001], [-0.0001, -0.0001],
+        ]}, area="false",
+    )
+    area_copy = _geojson_feature(
+        "a2", {"type": "MultiPolygon", "coordinates": [[[
+            [-0.0001, -0.0001], [0.0001, -0.0001],
+            [0.0001, 0.0001], [-0.0001, 0.0001], [-0.0001, -0.0001],
+        ]]]}, area="false",
+    )
+    for index, rows in enumerate(((line, area_copy), (area_copy, line))):
+        path = tmp_path / f"non-area-{index}.geojsonseq"
+        path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+        result = census.stream_parking_source(
+            path, "geojsonseq", endpoint_grid
+        )
+        assert len(result.features) == 1
+        assert result.features[0].alias == "way/1"
+        assert result.features[0].geometry_type == "LineString"
+        assert result.counters["canonical_export_duplicates"] == 1
+
+
 def test_malformed_feature_records_are_explicitly_accounted(tmp_path):
     endpoint_grid = census.EndpointGrid((census.Endpoint(0.0, 0.0),))
     rows = [
@@ -1543,21 +1569,28 @@ def test_closed_false_values_require_lines_while_ordinary_closed_way_requires_po
         },
     }
     exported = {
-        alias: {
-            "geometry_types": [
-                "LineString" if alias != "way/33" else "Polygon"
-            ],
-            "source_forms": [alias],
-        }
-        for alias in source
+        "way/30": {
+            "geometry_types": ["LineString"], "source_forms": ["way/30"],
+        },
+        "way/31": {
+            "geometry_types": ["LineString", "MultiPolygon"],
+            "source_forms": ["way/31"],
+        },
+        "way/32": {
+            "geometry_types": ["LineString", "MultiPolygon"],
+            "source_forms": ["way/32"],
+        },
+        "way/33": {
+            "geometry_types": ["MultiPolygon"], "source_forms": ["way/33"],
+        },
     }
     result = census._reconcile_pbf_export(
         source, exported, enforce_national_floor=False
     )
     assert result["way_geometry_policy"] == {
         "open": "LineString-required",
-        "closed_default": "Polygon-required",
-        "closed_non_area": "LineString-required",
+        "closed_default": "Polygon-or-MultiPolygon-required",
+        "closed_non_area": "LineString-required-area-copies-ignored",
         "closed_non_area_values": ["0", "false", "no"],
     }
     normalized_source = copy.deepcopy(source)
@@ -1701,14 +1734,15 @@ def test_real_osmium_tiny_dynamic_pbf_forms_and_commands(tmp_path):
     assert reconciliation["exact_identity_reconciliation"] is True
     assert exported["node/1"]["geometry_types"] == ["Point"]
     assert exported["way/10"]["geometry_types"] == ["LineString"]
-    assert "Polygon" in exported["way/20"]["geometry_types"]
+    assert exported["way/20"]["geometry_types"] == ["MultiPolygon"]
     assert exported["way/30"]["geometry_types"] == ["LineString"]
-    assert exported["way/31"]["geometry_types"] == ["LineString"]
-    assert exported["way/32"]["geometry_types"] == ["LineString"]
-    assert set(exported["relation/40"]["geometry_types"]) <= {
-        "Polygon", "MultiPolygon"
-    }
-    assert exported["relation/40"]["geometry_types"]
+    assert exported["way/31"]["geometry_types"] == [
+        "LineString", "MultiPolygon",
+    ]
+    assert exported["way/32"]["geometry_types"] == [
+        "LineString", "MultiPolygon",
+    ]
+    assert exported["relation/40"]["geometry_types"] == ["MultiPolygon"]
 
 
 def test_national_pbf_floor_is_exclusive_and_fixture_opt_out_is_explicit(
@@ -1839,7 +1873,7 @@ def test_stream_pbf_uses_native_filter_and_binds_osmium_identity(
         "tags-filter -R -f opl"
     )
     assert artifact["filter"]["closed_way_non_area_policy"] == (
-        "LineString-required"
+        "LineString-required-area-copies-ignored"
     )
     assert artifact["filter"]["closed_way_non_area_values"] == [
         "0", "false", "no"

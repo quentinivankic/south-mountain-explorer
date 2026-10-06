@@ -1481,8 +1481,20 @@ def normalize_feature(
     )
 
 
-def _geometry_rank(geometry_type: str) -> int:
-    return {"Point": 0, "LineString": 1, "Polygon": 2, "MultiPolygon": 2}[geometry_type]
+def _geometry_rank(geometry_type: str, tags: dict[str, str]) -> int:
+    declared_non_area = _normalized_declared_area(
+        tags.get("area")
+    ) in CLOSED_NON_AREA_VALUES
+    if declared_non_area:
+        # osmium 1.16 can emit both a LineString and a MultiPolygon for closed
+        # ways tagged area=false/0. The source explicitly says this is not an
+        # area, so preserve the line geometry rather than the derived area copy.
+        return {
+            "Point": 0, "Polygon": 1, "MultiPolygon": 1, "LineString": 2,
+        }[geometry_type]
+    return {
+        "Point": 0, "LineString": 1, "Polygon": 2, "MultiPolygon": 2,
+    }[geometry_type]
 
 
 def _merge_duplicate_feature(
@@ -1493,8 +1505,8 @@ def _merge_duplicate_feature(
         )
     if previous.alias != current.alias:
         raise AssertionError("duplicate merge requires one canonical alias")
-    previous_rank = _geometry_rank(previous.geometry_type)
-    current_rank = _geometry_rank(current.geometry_type)
+    previous_rank = _geometry_rank(previous.geometry_type, previous.tags)
+    current_rank = _geometry_rank(current.geometry_type, current.tags)
     if previous_rank == current_rank and previous.geometry != current.geometry:
         raise CensusError(
             f"canonical alias {previous.alias} has conflicting export geometry"
@@ -2138,7 +2150,7 @@ def _reconcile_pbf_export(
             export_forms[geometry_type] += 1
         allowed = {
             "node": {"Point"},
-            "way": {"LineString", "Polygon"},
+            "way": {"LineString", "Polygon", "MultiPolygon"},
             "relation": {"Polygon", "MultiPolygon"},
         }[source_type]
         if not geometry_types or not geometry_types.issubset(allowed):
@@ -2149,10 +2161,11 @@ def _reconcile_pbf_export(
             declared_non_area = _normalized_declared_area(
                 source_inventory[alias].get("declared_area")
             ) in CLOSED_NON_AREA_VALUES
-            required_form = (
-                "LineString" if not closed_way or declared_non_area else "Polygon"
-            )
-            if required_form not in geometry_types:
+            if not closed_way or declared_non_area:
+                required_forms = {"LineString"}
+            else:
+                required_forms = {"Polygon", "MultiPolygon"}
+            if geometry_types.isdisjoint(required_forms):
                 unsupported.append((alias, sorted(geometry_types)))
     if unsupported:
         raise CensusError(
@@ -2180,8 +2193,8 @@ def _reconcile_pbf_export(
         "export_geometry_forms": dict(sorted(export_forms.items())),
         "way_geometry_policy": {
             "open": "LineString-required",
-            "closed_default": "Polygon-required",
-            "closed_non_area": "LineString-required",
+            "closed_default": "Polygon-or-MultiPolygon-required",
+            "closed_non_area": "LineString-required-area-copies-ignored",
             "closed_non_area_values": sorted(CLOSED_NON_AREA_VALUES),
         },
         "identity_sha256": _canonical_hash(identity_rows),
@@ -2245,7 +2258,9 @@ def _filtered_pbf_policy() -> dict:
             "--geometry-types=point,linestring,polygon "
             "--add-unique-id=type_id"
         ),
-        "closed_way_non_area_policy": "LineString-required",
+        "closed_way_non_area_policy": (
+            "LineString-required-area-copies-ignored"
+        ),
         "closed_way_non_area_values": sorted(CLOSED_NON_AREA_VALUES),
     }
 

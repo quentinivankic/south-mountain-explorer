@@ -1481,10 +1481,12 @@ def normalize_feature(
     )
 
 
+def _declared_non_area(tags: dict[str, str]) -> bool:
+    return _normalized_declared_area(tags.get("area")) in CLOSED_NON_AREA_VALUES
+
+
 def _geometry_rank(geometry_type: str, tags: dict[str, str]) -> int:
-    declared_non_area = _normalized_declared_area(
-        tags.get("area")
-    ) in CLOSED_NON_AREA_VALUES
+    declared_non_area = _declared_non_area(tags)
     if declared_non_area:
         # osmium 1.16 can emit both a LineString and a MultiPolygon for closed
         # ways tagged area=false/0. The source explicitly says this is not an
@@ -1598,6 +1600,14 @@ class FeatureAccumulator:
             )
         self.exported_forms[feature.alias].add(feature.geometry_type)
         self.exported_source_forms[feature.alias].add(feature.source_form)
+        if (feature.alias.startswith("way/")
+                and _declared_non_area(feature.tags)
+                and feature.geometry_type in ("Polygon", "MultiPolygon")):
+            # osmium 1.16 can emit a derived area copy alongside the source
+            # line for area=false/0. Reconcile that form, but never let it
+            # establish endpoint proximity or canonical candidate geometry.
+            self.counters["ignored_non_area_area_copies"] += 1
+            return
         if not feature.near_endpoint_ids:
             self.counters["outside_fallback_envelope"] += 1
             return
@@ -1617,6 +1627,7 @@ class FeatureAccumulator:
             "records_total", "blank_records", "metadata_records",
             "ignored_nonparking", "parking_features",
             "outside_fallback_envelope", "canonical_export_duplicates",
+            "ignored_non_area_area_copies",
             "coarse_endpoint_candidates_total",
             "coarse_outside_fallback_envelope",
             "exact_endpoint_distance_checks", "endpoint_associations_total",
@@ -1641,6 +1652,7 @@ class FeatureAccumulator:
                 values["outside_fallback_envelope"]
                 + values["retained_canonical_features"]
                 + values["canonical_export_duplicates"]
+                + values["ignored_non_area_area_copies"]
             ),
         }
         if values["record_equation"]["records_total"] != values["record_equation"][

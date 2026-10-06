@@ -474,7 +474,34 @@ def test_stream_declared_non_area_way_prefers_line_over_area_copy(tmp_path):
         assert len(result.features) == 1
         assert result.features[0].alias == "way/1"
         assert result.features[0].geometry_type == "LineString"
-        assert result.counters["canonical_export_duplicates"] == 1
+        assert result.counters["canonical_export_duplicates"] == 0
+        assert result.counters["ignored_non_area_area_copies"] == 1
+
+
+def test_declared_non_area_copy_cannot_survive_line_envelope_pruning(tmp_path):
+    endpoint_grid = census.EndpointGrid((census.Endpoint(0.0, 0.0),))
+    ring = [
+        [-0.06, -0.06], [0.06, -0.06], [0.06, 0.06],
+        [-0.06, 0.06], [-0.06, -0.06],
+    ]
+    line = _geojson_feature(
+        "w1", {"type": "LineString", "coordinates": ring}, area="false"
+    )
+    area_copy = _geojson_feature(
+        "a2", {"type": "MultiPolygon", "coordinates": [[[point for point in ring]]]},
+        area="false",
+    )
+    for index, rows in enumerate(((line, area_copy), (area_copy, line))):
+        path = tmp_path / f"non-area-envelope-{index}.geojsonseq"
+        path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+        result = census.stream_parking_source(
+            path, "geojsonseq", endpoint_grid
+        )
+        assert result.features == ()
+        assert result.counters["outside_fallback_envelope"] == 1
+        assert result.counters["ignored_non_area_area_copies"] == 1
+        assert result.counters["canonical_export_duplicates"] == 0
+        assert result.inventory == {}
 
 
 def test_malformed_feature_records_are_explicitly_accounted(tmp_path):

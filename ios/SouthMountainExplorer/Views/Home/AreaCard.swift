@@ -187,6 +187,7 @@ struct AreaCard: View {
             Group {
                 if accessibilityLayout {
                     areaTitle
+                        .padding(.trailing, 72)
                 } else {
                     areaTitle
                         .lineLimit(2, reservesSpace: true)

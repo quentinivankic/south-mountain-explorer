@@ -203,7 +203,7 @@ jobs:
           rm -rf "$RESULT_BUNDLE"
           ONLY_ARGS=()
           if [ "${{ inputs.test_class }}" = "AreaSheetAuditTests" ]; then
-            # Every configuration runs the 18-capture visual audit. The focused
+            # Every configuration runs the 20-capture visual audit. The focused
             # semantic/reachability class runs on the accessibility matrix,
             # where its explicit large-content assertions are meaningful.
             ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/AreaSheetAuditTests")
@@ -244,9 +244,11 @@ jobs:
             exit 1
           fi
           if [ "${{ inputs.test_class }}" = "AreaSheetAuditTests" ]; then
+            EXPECTED_PER_MATRIX=20
             EXPECTED_SCREENSHOTS=(
               field-trust-00-explore-continue-card
               field-trust-00-explore-area-card
+              field-trust-00-explore-location-empty-state
               sheet-01-fit-initial
               sheet-02-min-idle
               sheet-03-min-after-scroll-up
@@ -257,20 +259,22 @@ jobs:
               sheet-07b-selected-from-browse
               sheet-07c-deselected-back-to-browse
               sheet-08-collection-open
-              sheet-08b-collection-lower-content
+              sheet-08b-collection-completionist
+              sheet-08c-collection-difficulty
               sheet-09-collection-closed
               field-trust-01-gps-recovered
               field-trust-02-gap-summary
               field-trust-02b-summary-lower-content
               field-trust-03-gps-paused
             )
-            if [ "$PNG_COUNT" -ne "${#EXPECTED_SCREENSHOTS[@]}" ]; then
-              echo "Field-trust audit produced $PNG_COUNT PNGs; expected ${#EXPECTED_SCREENSHOTS[@]}" >&2
+            if [ "$PNG_COUNT" -ne "$EXPECTED_PER_MATRIX" ]; then
+              echo "Field-trust audit produced $PNG_COUNT PNGs; expected $EXPECTED_PER_MATRIX" >&2
               exit 1
             fi
             for expected in "${EXPECTED_SCREENSHOTS[@]}"; do
-              if ! find "$SCREENSHOT_DIR" -type f -name "*${expected}*.png" -print -quit | grep -q .; then
-                echo "Field-trust audit is missing expected capture: $expected" >&2
+              MATCHING_COUNT=$(find "$SCREENSHOT_DIR" -type f -name "*${expected}*.png" | wc -l | tr -d ' ')
+              if [ "$MATCHING_COUNT" -ne 1 ]; then
+                echo "Field-trust capture count for $expected is $MATCHING_COUNT; expected exactly 1" >&2
                 exit 1
               fi
             done
@@ -293,3 +297,59 @@ jobs:
           name: screenshot-xcresult-${{ matrix.id }}
           path: ios/ScreenshotResults-${{ matrix.id }}.xcresult
           if-no-files-found: error
+
+  verify-field-trust-artifact-set:
+    name: Verify field-trust screenshot artifact set
+    if: ${{ always() && inputs.test_class == 'AreaSheetAuditTests' }}
+    needs: screenshots
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download large default screenshots
+        uses: actions/download-artifact@v4
+        with:
+          name: screenshots-6.9-default
+          path: ${{ runner.temp }}/field-trust-screenshots/6.9-default
+
+      - name: Download small default screenshots
+        uses: actions/download-artifact@v4
+        with:
+          name: screenshots-small-default
+          path: ${{ runner.temp }}/field-trust-screenshots/small-default
+
+      - name: Download large accessibility screenshots
+        uses: actions/download-artifact@v4
+        with:
+          name: screenshots-6.9-accessibility
+          path: ${{ runner.temp }}/field-trust-screenshots/6.9-accessibility
+
+      - name: Verify exact screenshot totals
+        run: |
+          EXPECTED_PER_MATRIX=20
+          EXPECTED_TOTAL=60
+          ARTIFACT_ROOT="$RUNNER_TEMP/field-trust-screenshots"
+          CONFIG_DIR_COUNT=$(find "$ARTIFACT_ROOT" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+          if [ "$CONFIG_DIR_COUNT" -ne 3 ]; then
+            echo "Field-trust artifact root contains $CONFIG_DIR_COUNT configuration directories; expected 3" >&2
+            exit 1
+          fi
+
+          TOTAL_PNG_COUNT=0
+          for configuration in 6.9-default small-default 6.9-accessibility; do
+            CONFIGURATION_DIR="$ARTIFACT_ROOT/$configuration"
+            if [ ! -d "$CONFIGURATION_DIR" ]; then
+              echo "Missing field-trust artifact directory for $configuration" >&2
+              exit 1
+            fi
+            PNG_COUNT=$(find "$CONFIGURATION_DIR" -type f -name '*.png' | wc -l | tr -d ' ')
+            if [ "$PNG_COUNT" -ne "$EXPECTED_PER_MATRIX" ]; then
+              echo "Field-trust artifact $configuration contains $PNG_COUNT PNGs; expected $EXPECTED_PER_MATRIX" >&2
+              exit 1
+            fi
+            TOTAL_PNG_COUNT=$((TOTAL_PNG_COUNT + PNG_COUNT))
+          done
+
+          if [ "$TOTAL_PNG_COUNT" -ne "$EXPECTED_TOTAL" ]; then
+            echo "Field-trust artifact set contains $TOTAL_PNG_COUNT PNGs; expected $EXPECTED_TOTAL" >&2
+            exit 1
+          fi
+          echo "AUDIT[field-trust-artifacts] matrices=3 perMatrix=$EXPECTED_PER_MATRIX total=$TOTAL_PNG_COUNT"

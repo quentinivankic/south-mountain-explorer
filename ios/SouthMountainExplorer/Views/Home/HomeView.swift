@@ -514,19 +514,25 @@ struct HomeView: View {
             Text(title)
                 .font(.title2)
                 .fontWeight(.semibold)
+                .accessibilityIdentifier("explore-location-empty-title")
             Text(detail)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
+                .accessibilityIdentifier("explore-location-empty-detail")
             VStack(spacing: 10) {
                 if let actionTitle, let action {
                     Button(actionTitle, action: action)
                         .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("explore-location-primary-action")
                 }
                 Button("Browse All Areas") { showAllAreasMap = true }
+                    .accessibilityIdentifier("explore-location-browse-action")
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("explore-location-empty-state")
     }
 
     private func refreshLocation() async {
@@ -597,6 +603,7 @@ struct HomeView: View {
 }
 
 private struct ExploreScrollViewportModifier: ViewModifier {
+    private let floatingTabBodyAllowance: CGFloat = 64
     private let breathingSpace: CGFloat = 8
 
     func body(content: Content) -> some View {
@@ -609,7 +616,7 @@ private struct ExploreScrollViewportModifier: ViewModifier {
                 )
                 .contentMargins(
                     .bottom,
-                    geometry.safeAreaInsets.bottom + breathingSpace,
+                    geometry.safeAreaInsets.bottom + floatingTabBodyAllowance + breathingSpace,
                     for: .scrollContent
                 )
                 .toolbarBackground(.regularMaterial, for: .navigationBar, .tabBar)

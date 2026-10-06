@@ -201,18 +201,6 @@ struct TrailListView: View {
                                     .autocorrectionDisabled()
                                     .focused($searchFocused)
                                     .submitLabel(.search)
-                                    .toolbar {
-                                        ToolbarItemGroup(placement: .keyboard) {
-                                            if dynamicTypeSize.isAccessibilitySize {
-                                                Spacer()
-                                                Button("Done") {
-                                                    searchFocused = false
-                                                }
-                                                .accessibilityLabel("Dismiss Search Keyboard")
-                                                .accessibilityIdentifier("trail-search-keyboard-done")
-                                            }
-                                        }
-                                    }
                                 if !searchQuery.isEmpty {
                                     Button {
                                         searchQuery = ""
@@ -230,7 +218,16 @@ struct TrailListView: View {
                                     .fill(.quaternary.opacity(0.5))
                             )
 
-                            filterMenu
+                            if dynamicTypeSize.isAccessibilitySize && searchFocused {
+                                Button("Done") {
+                                    searchFocused = false
+                                }
+                                .font(.body.weight(.semibold))
+                                .accessibilityLabel("Dismiss Search Keyboard")
+                                .accessibilityIdentifier("trail-search-keyboard-done")
+                            } else {
+                                filterMenu
+                            }
                         }
                         .padding(.horizontal)
                         .padding(.top, 8)

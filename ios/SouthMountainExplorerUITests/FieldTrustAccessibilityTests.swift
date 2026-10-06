@@ -103,14 +103,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(continueButton.waitForExistence(timeout: 30))
         continueButton.tap()
         XCTAssertTrue(app.buttons["area-recenter-button"].firstMatch.waitForExistence(timeout: 60))
-        let search = app.buttons["area-search-button"].firstMatch
-        XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
-        search.tap()
-        let searchField = app.textFields["Search trails"].firstMatch
-        XCTAssertTrue(
-            searchField.waitForExistence(timeout: 10),
-            "Browse search did not appear after the Search action"
-        )
+        _ = openBrowseSearch(app)
         dismissSearchKeyboard(app)
 
         let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
@@ -214,13 +207,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertEqual(app.textFields.matching(identifier: "Search trails").count, 0)
         XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 0)
 
-        let search = app.buttons["area-search-button"].firstMatch
-        XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
-        search.tap()
-        XCTAssertTrue(
-            app.textFields["Search trails"].firstMatch.waitForExistence(timeout: 10),
-            "Browse search did not appear after the Search action"
-        )
+        _ = openBrowseSearch(app)
         dismissSearchKeyboard(app)
         XCTAssertEqual(app.textFields.matching(identifier: "Search trails").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 1)
@@ -233,6 +220,10 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let suffix = String(select.identifier.dropFirst("trail-select-".count))
         let secondary = app.buttons["trail-secondary-\(suffix)"].firstMatch
         XCTAssertTrue(secondary.waitForExistence(timeout: 10), "Trail secondary action is missing")
+        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+        XCTAssertTrue(trailScroll.waitForExistence(timeout: 10), "Trail list scroll is missing")
+        XCTAssertTrue(scrollToReachable(select, in: trailScroll, app: app))
+        XCTAssertTrue(scrollToReachable(secondary, in: trailScroll, app: app))
         assertInsideScreen(select, app: app)
         assertInsideScreen(secondary, app: app)
         select.tap()
@@ -243,8 +234,6 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
         let profile = app.descendants(matching: .any)["trail-profile-\(suffix)"].firstMatch
         XCTAssertTrue(profile.waitForExistence(timeout: 10), "Trail profile is missing")
-        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
-        XCTAssertTrue(trailScroll.waitForExistence(timeout: 10), "Trail list scroll is missing")
         XCTAssertTrue(
             scrollToVisible(profile, in: trailScroll, app: app),
             "Trail profile is not reachable"
@@ -449,6 +438,21 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         // Marker-to-control clearance is gated by the small-phone Area audit.
         // This accessibility class verifies that generic markers and all three
         // top controls remain exposed while prioritizing semantic reachability.
+    }
+
+    private func openBrowseSearch(_ app: XCUIApplication) -> XCUIElement {
+        let search = app.buttons["area-search-button"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
+        let searchField = app.textFields["Search trails"].firstMatch
+        search.tap()
+        for attempt in 0..<3 {
+            if searchField.waitForExistence(timeout: 7) { return searchField }
+            if attempt < 2, search.exists, search.isHittable {
+                search.tap()
+            }
+        }
+        XCTFail("Browse search did not appear after bounded Search actions")
+        return searchField
     }
 
     private func dismissSearchKeyboard(_ app: XCUIApplication) {

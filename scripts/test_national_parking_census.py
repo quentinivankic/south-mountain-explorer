@@ -1643,7 +1643,10 @@ def test_real_osmium_tiny_dynamic_pbf_forms_and_commands(tmp_path):
     )
     source = tmp_path / "tiny.osm.pbf"
     census._run_osmium(
-        [str(osmium_path), "cat", str(xml), "-o", str(source)],
+        [
+            str(osmium_path), "cat", str(xml), "-o", str(source),
+            "--output-header", f"timestamp={timestamp}",
+        ],
         "test osmium XML to PBF",
     )
     source_inventory, source_memberships = census._pbf_inventory(

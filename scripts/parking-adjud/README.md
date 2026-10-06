@@ -180,9 +180,11 @@ ways using each standard false OSM boolean (`area=no`, `area=false`, and
 `area=0`), and a multipolygon relation. It skips only when osmium is absent;
 no binary fixture is committed. Inventory normalizes declared `area` values
 with strip/casefold. Open ways and closed ways whose normalized value is one of
-`0`, `false`, or `no` require a `LineString`; other closed ways require a
-`Polygon`. The same ordered false-value set is bound into filtered-artifact
-policy and inventory provenance.
+`0`, `false`, or `no` require a `LineString`; derived polygonal copies for those
+ways are reconciled but ignored before endpoint association. Other closed ways
+require a `Polygon` or `MultiPolygon`. The same ordered false-value set and
+suppression stage are bound into filtered-artifact policy and inventory
+provenance.
 
 The input-side identity inventory is independently produced with osmium
 `tags-filter -R -f opl`, then reconciled exactly to both the normal filtered

@@ -501,6 +501,11 @@ def test_declared_non_area_copy_cannot_survive_line_envelope_pruning(tmp_path):
         assert result.counters["outside_fallback_envelope"] == 1
         assert result.counters["ignored_non_area_area_copies"] == 1
         assert result.counters["canonical_export_duplicates"] == 0
+        assert result.counters["coarse_endpoint_candidates_total"] == 1
+        assert result.counters["exact_endpoint_distance_checks"] == 1
+        assert result.counters["max_coarse_endpoint_candidates"] == 1
+        assert result.counters["endpoint_associations_total"] == 0
+        assert result.counters["max_endpoint_associations"] == 0
         assert result.inventory == {}
 
 
@@ -1617,7 +1622,7 @@ def test_closed_false_values_require_lines_while_ordinary_closed_way_requires_po
     assert result["way_geometry_policy"] == {
         "open": "LineString-required",
         "closed_default": "Polygon-or-MultiPolygon-required",
-        "closed_non_area": "LineString-required-area-copies-ignored",
+        "closed_non_area": "LineString-required-area-copies-ignored-before-endpoint-association",
         "closed_non_area_values": ["0", "false", "no"],
     }
     normalized_source = copy.deepcopy(source)
@@ -1900,7 +1905,7 @@ def test_stream_pbf_uses_native_filter_and_binds_osmium_identity(
         "tags-filter -R -f opl"
     )
     assert artifact["filter"]["closed_way_non_area_policy"] == (
-        "LineString-required-area-copies-ignored"
+        "LineString-required-area-copies-ignored-before-endpoint-association"
     )
     assert artifact["filter"]["closed_way_non_area_values"] == [
         "0", "false", "no"

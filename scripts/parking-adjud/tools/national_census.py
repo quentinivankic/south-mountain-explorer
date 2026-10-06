@@ -1418,28 +1418,9 @@ def _normalize_relation_members(value: object) -> tuple[str, ...]:
     return tuple(sorted(set(aliases)))
 
 
-def normalize_feature(
-        record: object, endpoint_grid: EndpointGrid,
-        relation_memberships: dict[str, tuple[str, ...]],
-        metrics: collections.Counter | None = None) -> ParkingFeature | None:
-    if not isinstance(record, dict) or record.get("type") != "Feature":
-        raise FeatureRejection("malformed_feature", "record is not a GeoJSON Feature")
-    properties = record.get("properties")
-    if not isinstance(properties, dict):
-        raise FeatureRejection("malformed_tags", "feature properties are not an object")
-    amenity = properties.get("amenity")
-    if amenity is None or (isinstance(amenity, str) and amenity != "parking"):
-        return None
-    tags = _normalized_tags(properties)
-    if tags.get("amenity") != "parking":
-        raise FeatureRejection(
-            "malformed_tags", "potential parking amenity value is not a string"
-        )
-    alias, source_form = canonical_osm_alias(
-        record.get("id", tags.get("@id"))
-    )
-    geometry = normalize_geometry(record.get("geometry"))
-    latitude, longitude = geometry_representative(geometry)
+def _associate_feature_endpoints(
+        alias: str, geometry: dict, endpoint_grid: EndpointGrid,
+        metrics: collections.Counter | None = None) -> tuple[int, ...]:
     coarse_ids = endpoint_grid.candidate_ids(
         geometry,
         FALLBACK_M,
@@ -1467,6 +1448,36 @@ def normalize_feature(
         metrics["max_endpoint_associations"] = max(
             metrics["max_endpoint_associations"], len(near_endpoint_ids)
         )
+    return near_endpoint_ids
+
+
+def normalize_feature(
+        record: object, endpoint_grid: EndpointGrid,
+        relation_memberships: dict[str, tuple[str, ...]],
+        metrics: collections.Counter | None = None, *,
+        associate_endpoints: bool = True) -> ParkingFeature | None:
+    if not isinstance(record, dict) or record.get("type") != "Feature":
+        raise FeatureRejection("malformed_feature", "record is not a GeoJSON Feature")
+    properties = record.get("properties")
+    if not isinstance(properties, dict):
+        raise FeatureRejection("malformed_tags", "feature properties are not an object")
+    amenity = properties.get("amenity")
+    if amenity is None or (isinstance(amenity, str) and amenity != "parking"):
+        return None
+    tags = _normalized_tags(properties)
+    if tags.get("amenity") != "parking":
+        raise FeatureRejection(
+            "malformed_tags", "potential parking amenity value is not a string"
+        )
+    alias, source_form = canonical_osm_alias(
+        record.get("id", tags.get("@id"))
+    )
+    geometry = normalize_geometry(record.get("geometry"))
+    latitude, longitude = geometry_representative(geometry)
+    near_endpoint_ids = (
+        _associate_feature_endpoints(alias, geometry, endpoint_grid, metrics)
+        if associate_endpoints else ()
+    )
     members = set(relation_memberships.get(alias, ()))
     members.update(_normalize_relation_members(record.get("parking_members")))
     return ParkingFeature(
@@ -1581,7 +1592,7 @@ class FeatureAccumulator:
         try:
             feature = normalize_feature(
                 record, self.endpoint_grid, self.relation_memberships,
-                self.counters,
+                associate_endpoints=False,
             )
         except FeatureRejection as error:
             self.rejections[error.code] += 1
@@ -1608,6 +1619,9 @@ class FeatureAccumulator:
             # establish endpoint proximity or canonical candidate geometry.
             self.counters["ignored_non_area_area_copies"] += 1
             return
+        feature.near_endpoint_ids = _associate_feature_endpoints(
+            feature.alias, feature.geometry, self.endpoint_grid, self.counters
+        )
         if not feature.near_endpoint_ids:
             self.counters["outside_fallback_envelope"] += 1
             return
@@ -2206,7 +2220,7 @@ def _reconcile_pbf_export(
         "way_geometry_policy": {
             "open": "LineString-required",
             "closed_default": "Polygon-or-MultiPolygon-required",
-            "closed_non_area": "LineString-required-area-copies-ignored",
+            "closed_non_area": "LineString-required-area-copies-ignored-before-endpoint-association",
             "closed_non_area_values": sorted(CLOSED_NON_AREA_VALUES),
         },
         "identity_sha256": _canonical_hash(identity_rows),
@@ -2271,7 +2285,7 @@ def _filtered_pbf_policy() -> dict:
             "--add-unique-id=type_id"
         ),
         "closed_way_non_area_policy": (
-            "LineString-required-area-copies-ignored"
+            "LineString-required-area-copies-ignored-before-endpoint-association"
         ),
         "closed_way_non_area_values": sorted(CLOSED_NON_AREA_VALUES),
     }

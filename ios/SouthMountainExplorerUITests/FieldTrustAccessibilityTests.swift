@@ -244,7 +244,8 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let selectedControl = app.buttons["trail-select-\(suffix)"].firstMatch
         XCTAssertTrue(scrollToReachable(selectedControl, in: trailScroll, app: app))
         selectedControl.tap()
-        XCTAssertTrue(waitForLabelPrefix("Select Trail,", element: selectedControl))
+        let deselectedControl = app.buttons["trail-select-\(suffix)"].firstMatch
+        XCTAssertTrue(waitForLabelPrefix("Select Trail,", element: deselectedControl))
 
         let collection = app.buttons["area-collection-button"].firstMatch
         XCTAssertTrue(collection.waitForExistence(timeout: 10), "Collection action is missing")

@@ -48,6 +48,25 @@ PRODUCTION_BASELINE = HERE / "parking-adjud" / "production-baseline-v1.json"
 APPROVED_BASELINES = (
     HERE / "parking-adjud" / "approved-production-baselines-v1.json"
 )
+MALFORMED_RELATIONS_FIXTURE = (
+    HERE / "parking-adjud" / "test-fixtures"
+    / "malformed-relations-seq2401-6b5ac0402.geojsonseq"
+)
+MALFORMED_RELATIONS_FIXTURE_SHA256 = (
+    "ac1d36c8cd40074edf262fad812e163ccd3c419de854122d87a46738f6ae4a15"
+)
+REAL_NEAR_ZERO_RELATION_CASES = (
+    (
+        "a14191209", "relation/7095604", (0, 2),
+        -2.000014271810943e-13,
+        census.Endpoint(40.90059875506795, -73.11006574999999), 8_217.779,
+    ),
+    (
+        "a32909295", "relation/16454647", (0, 0),
+        3.9999978197516556e-14,
+        census.Endpoint(30.392075117349737, -97.76307924999998), 8_371.861,
+    ),
+)
 
 
 def _offset(latitude=0.0, longitude=0.0, north_m=0.0, east_m=0.0):
@@ -423,6 +442,22 @@ def _geojson_feature(alias, geometry, **tags):
     }
 
 
+def _real_near_zero_relation_rows():
+    raw = MALFORMED_RELATIONS_FIXTURE.read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == (
+        MALFORMED_RELATIONS_FIXTURE_SHA256
+    )
+    rows = tuple(
+        json.loads(line.lstrip(b"\x1e"))
+        for line in raw.splitlines()
+        if line
+    )
+    assert tuple(row["id"] for row in rows) == (
+        "a14191209", "a32909295",
+    )
+    return rows
+
+
 def test_stream_canonicalizes_area_id_prefers_polygon_and_is_order_independent(tmp_path):
     endpoint_grid = census.EndpointGrid((census.Endpoint(0.0, 0.0),))
     line = _geojson_feature(
@@ -532,6 +567,47 @@ def test_declared_non_area_copy_adds_zero_endpoint_or_topology_work_in_both_orde
         assert result.inventory[
             "topology_unvalidated_non_candidates"
         ]["records"] == 0
+
+
+def test_declared_non_area_degenerate_copy_is_excluded_in_both_orders(
+        tmp_path):
+    ring = [
+        [50.0, 50.0], [50.001, 50.0], [50.002, 50.0],
+        [50.0, 50.0],
+    ]
+    line = _geojson_feature(
+        "w1", {"type": "LineString", "coordinates": ring}, area="false"
+    )
+    area_copy = _geojson_feature(
+        "a2", {"type": "Polygon", "coordinates": [ring]}, area="false"
+    )
+    results = []
+    for index, rows in enumerate(((line, area_copy), (area_copy, line))):
+        path = tmp_path / f"non-area-degenerate-copy-{index}.geojsonseq"
+        path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+        result = census.stream_parking_source(
+            path,
+            "geojsonseq",
+            census.EndpointGrid((census.Endpoint(0.0, 0.0),)),
+        )
+        results.append(result)
+        assert result.counters["parking_features"] == 2
+        assert result.counters["ignored_non_area_area_copies"] == 1
+        for name in (
+                "staged_degenerate_polygon_records",
+                "staged_degenerate_rings",
+                "staged_degenerate_outer_rings",
+                "staged_degenerate_inner_rings",
+                "staged_degenerate_components",
+                "topology_unvalidated_degenerate_records",
+                "topology_rejected_degenerate_records"):
+            assert result.counters[name] == 0
+        assert result.counters["coarse_endpoint_candidates_total"] == 0
+        assert result.counters["topology_validation_calls"] == 0
+        assert result.counters["rejected_total"] == 0
+    assert results[0].features == results[1].features == ()
+    assert results[0].inventory == results[1].inventory
+    assert results[0].counters == results[1].counters
 
 
 def test_malformed_feature_records_are_explicitly_accounted(tmp_path):
@@ -1420,6 +1496,23 @@ def test_end_to_end_bytes_hashes_scope_order_and_live_union_are_deterministic(tm
         "topology_unvalidated_non_candidates"
     ]
     assert len(topology_inventory["record_identity_sha256"]) == 64
+    for inventory_name, counter_name in (
+            ("degenerate_records", "topology_unvalidated_degenerate_records"),
+            ("degenerate_rings", "topology_unvalidated_degenerate_rings"),
+            ("degenerate_outer_rings",
+             "topology_unvalidated_degenerate_outer_rings"),
+            ("degenerate_inner_rings",
+             "topology_unvalidated_degenerate_inner_rings"),
+            ("degenerate_components",
+             "topology_unvalidated_degenerate_components")):
+        assert topology_inventory[inventory_name] == manifest[
+            "parking_stream"
+        ][counter_name]
+    assert topology_inventory["degenerate_rings"] == (
+        topology_inventory["degenerate_outer_rings"]
+        + topology_inventory["degenerate_inner_rings"]
+    )
+    assert len(topology_inventory["degenerate_identity_sha256"]) == 64
     assert manifest["parking_stream"]["seen_authority_aliases"] == 1
     assert manifest["parking_stream"][
         "peak_endpoint_grid_retained_window_bytes"
@@ -3195,6 +3288,698 @@ def test_streaming_osmium_child_is_terminated_and_reaped_on_consumer_error(
     assert process.waited >= 1
 
 
+def _parsed_geometry_binary_float_structure(
+        geometry, *, canonicalize_signed_zero=False):
+    def visit(value):
+        if isinstance(value, list):
+            return tuple(visit(item) for item in value)
+        assert isinstance(value, (int, float)) and not isinstance(value, bool)
+        number = float(value)
+        if canonicalize_signed_zero and number == 0:
+            number = 0.0
+        return number.hex()
+
+    return geometry["type"], visit(geometry["coordinates"])
+
+
+def test_degenerate_ring_twice_area_threshold_is_exactly_pinned_above_and_below():
+    threshold = census.DEGENERATE_RING_TWICE_SIGNED_AREA_EPSILON
+    assert threshold == 1e-15
+    below = math.nextafter(threshold, 0.0)
+    above = math.nextafter(threshold, math.inf)
+
+    def geometry(twice_area):
+        return {"type": "Polygon", "coordinates": [[
+            [0.0, 0.0], [1.0, 0.0], [0.0, twice_area], [0.0, 0.0],
+        ]]}
+
+    for twice_area in (below, threshold):
+        candidate = geometry(twice_area)
+        assert census._ring_twice_area(candidate["coordinates"][0]) == twice_area
+        assert census._polygon_degeneracy_locations(candidate) == (
+            ((0, 0),), (0,),
+        )
+    candidate = geometry(above)
+    assert census._ring_twice_area(candidate["coordinates"][0]) == above
+    assert census._polygon_degeneracy_locations(candidate) == ((), ())
+
+
+def _modulo_first_relative_ring_twice_area(ring):
+    anchor_longitude, anchor_latitude = ring[0]
+
+    def local(point):
+        return (
+            (point[0] - anchor_longitude + 180.0) % 360.0 - 180.0,
+            point[1] - anchor_latitude,
+        )
+
+    return abs(math.fsum(
+        local(first)[0] * local(second)[1]
+        - local(second)[0] * local(first)[1]
+        for first, second in zip(ring, ring[1:])
+    ))
+
+
+def _head_global_ring_twice_area(ring):
+    anchor_longitude = ring[0][0]
+    points = [
+        (census._unwrapped_longitude(point[0], anchor_longitude), point[1])
+        for point in ring
+    ]
+    return abs(sum(
+        first[0] * second[1] - second[0] * first[1]
+        for first, second in zip(points, points[1:])
+    ))
+
+
+@pytest.mark.parametrize(
+    (
+        "anchor_longitude,anchor_latitude,width,nextafter_direction,"
+        "expected_stable,expected_modulo,stable_is_degenerate"
+    ),
+    (
+        (
+            30.99996301615232,
+            19.582394390998843,
+            1.1974244593737686e-06,
+            0.0,
+            9.999999958627043e-16,
+            1.0000000017966296e-15,
+            True,
+        ),
+        (
+            93.16895123800197,
+            0.05021513057999982,
+            3.0313282280813685e-06,
+            math.inf,
+            1.0000000038714703e-15,
+            9.999999991834742e-16,
+            False,
+        ),
+    ),
+    ids=("modulo-false-admission", "modulo-false-rejection"),
+)
+def test_nonzero_anchor_direct_delta_pins_both_threshold_directions(
+        anchor_longitude, anchor_latitude, width, nextafter_direction,
+        expected_stable, expected_modulo, stable_is_degenerate):
+    threshold = census.DEGENERATE_RING_TWICE_SIGNED_AREA_EPSILON
+    longitude = anchor_longitude + width
+    height = math.nextafter(
+        threshold / (longitude - anchor_longitude), nextafter_direction
+    )
+    ring = [
+        [anchor_longitude, anchor_latitude],
+        [longitude, anchor_latitude],
+        [anchor_longitude, anchor_latitude + height],
+        [anchor_longitude, anchor_latitude],
+    ]
+    geometry = {"type": "Polygon", "coordinates": [ring]}
+    stable = census._ring_twice_area(ring)
+    modulo = _modulo_first_relative_ring_twice_area(ring)
+    assert stable == expected_stable
+    assert modulo == expected_modulo
+    assert (stable <= threshold) is stable_is_degenerate
+    assert (modulo <= threshold) is not stable_is_degenerate
+    assert census._polygon_degeneracy_locations(geometry) == (
+        (((0, 0),), (0,)) if stable_is_degenerate else ((), ())
+    )
+    shape, _explain_validity = census._require_shapely()
+    assert shape(geometry).is_valid
+
+
+def test_ring_delta_pins_dateline_wrap_and_positive_180_tie_policy():
+    assert census._ring_longitude_delta(180.0, 0.0) == -180.0
+    assert census._ring_longitude_delta(-180.0, 0.0) == -180.0
+    assert census._ring_longitude_delta(180.0, 0.0) == (
+        census._longitude_delta(0.0, 180.0)
+    )
+    anchor_longitude = 179.999
+    other_longitude = -179.999
+    anchor_latitude = 10.0
+    other_latitude = 10.001
+    ring = [
+        [anchor_longitude, anchor_latitude],
+        [other_longitude, anchor_latitude],
+        [anchor_longitude, other_latitude],
+        [anchor_longitude, anchor_latitude],
+    ]
+    expected = (
+        (other_longitude - anchor_longitude + 360.0)
+        * (other_latitude - anchor_latitude)
+    )
+    assert census._ring_twice_signed_area(ring) == expected
+
+
+def test_candidate_degeneracy_reuses_staged_locations_and_has_dedicated_counters(
+        monkeypatch):
+    threshold = census.DEGENERATE_RING_TWICE_SIGNED_AREA_EPSILON
+    geometry = {"type": "Polygon", "coordinates": [[
+        [0.0, 0.0], [1.0, 0.0],
+        [0.0, math.nextafter(threshold, 0.0)], [0.0, 0.0],
+    ]]}
+    real_detector = census._polygon_degeneracy_locations
+    detector_calls = 0
+
+    def track_detector(candidate):
+        nonlocal detector_calls
+        detector_calls += 1
+        return real_detector(candidate)
+
+    monkeypatch.setattr(census, "_polygon_degeneracy_locations", track_detector)
+    accumulator = census.FeatureAccumulator(
+        census.EndpointGrid((census.Endpoint(0.0, 0.0),)), {}
+    )
+    accumulator.consume_line((json.dumps(
+        _geojson_feature("w998", geometry)
+    ) + "\n").encode())
+    counters = accumulator.final_counters()
+    assert detector_calls == 1
+    assert counters["staged_degenerate_polygon_records"] == 1
+    assert counters["topology_rejected_degenerate_records"] == 1
+    assert counters["topology_rejected_degenerate_rings"] == 1
+    assert counters["topology_rejected_degenerate_outer_rings"] == 1
+    assert counters["topology_rejected_degenerate_inner_rings"] == 0
+    assert counters["topology_rejected_degenerate_components"] == 1
+    assert counters["topology_rejected_shapely_records"] == 0
+    assert counters["topology_validation_failures"] == 1
+    assert counters["exact_endpoint_distance_checks"] == 0
+    assert "near-zero signed-area ring" in counters[
+        "rejection_contexts"
+    ]["malformed_geometry"]
+    assert "1e-15 square degrees" in counters[
+        "rejection_contexts"
+    ]["malformed_geometry"]
+    expected_identity = census._canonical_bytes([
+        "way/998", "w998", "Polygon", [[0, 0]], [0],
+    ])
+    assert counters["topology_rejected_degenerate_identity_sha256"] == (
+        hashlib.sha256(expected_identity).hexdigest()
+    )
+
+
+def test_private_staged_degeneracy_cannot_be_suppressed_or_mismatched():
+    geometry = {"type": "Polygon", "coordinates": [[
+        [0.0, 0.0], [1.0, 0.0], [0.0, 0.0], [0.0, 0.0],
+    ]]}
+    staged = census._normalize_feature_structure(
+        _geojson_feature("w997", geometry), {}
+    )
+    assert staged is not None
+    with pytest.raises(
+            census.CensusError, match="diagnostics do not match geometry"):
+        census._validate_polygon_topology(
+            staged.geometry,
+            _staged_degeneracy=(),
+        )
+    with pytest.raises(
+            census.CensusError, match="diagnostics do not match geometry"):
+        census._validate_polygon_topology(
+            copy.deepcopy(staged.geometry),
+            _staged_degeneracy=staged._polygon_degeneracy,
+        )
+    with pytest.raises(census.FeatureRejection, match="near-zero signed-area"):
+        census._validate_polygon_topology(staged.geometry)
+
+
+def test_stable_measurement_rejects_head_noise_admitted_near_ring():
+    ring = [
+        [-97.7631455, 30.4675338],
+        [-97.76314548999899, 30.4675338],
+        [-97.7631455, 30.467533899989974],
+        [-97.7631455, 30.4675338],
+    ]
+    threshold = census.DEGENERATE_RING_TWICE_SIGNED_AREA_EPSILON
+    assert census._ring_twice_area(ring) == 9.999999777899136e-16
+    assert census._ring_twice_area(ring) <= threshold
+    assert _head_global_ring_twice_area(ring) == 4.547473508864641e-13
+    assert _head_global_ring_twice_area(ring) > threshold
+    shape, _explain_validity = census._require_shapely()
+    assert shape({"type": "Polygon", "coordinates": [ring]}).is_valid
+
+    accumulator = census.FeatureAccumulator(
+        census.EndpointGrid((census.Endpoint(30.4675338, -97.7631455),)),
+        {},
+    )
+    accumulator.consume_line((json.dumps(_geojson_feature(
+        "w996", {"type": "Polygon", "coordinates": [ring]}
+    )) + "\n").encode())
+    counters = accumulator.final_counters()
+    assert counters["topology_validation_failures"] == 1
+    assert counters["topology_rejected_degenerate_records"] == 1
+    assert counters["topology_rejected_shapely_records"] == 0
+    assert counters["exact_endpoint_distance_checks"] == 0
+    assert counters["rejections"] == {"malformed_geometry": 1}
+
+
+def test_ring_centroid_uses_first_relative_fsum_and_stays_within_bounds():
+    ring = [
+        [-97.7631455, 30.4675338],
+        [-97.76314547525068, 30.4675338],
+        [-97.7631455, 30.467535566715654],
+        [-97.7631455, 30.4675338],
+    ]
+    latitude, longitude, weight = census._ring_centroid(ring)
+    assert weight == 4.372499676850837e-14
+    assert latitude == pytest.approx(30.467534388905218, abs=1e-15)
+    assert longitude == pytest.approx(-97.76314549175022, abs=1e-15)
+    assert min(point[1] for point in ring) <= latitude <= max(
+        point[1] for point in ring
+    )
+    assert min(point[0] for point in ring) <= longitude <= max(
+        point[0] for point in ring
+    )
+
+    anchor = ring[0][0]
+    points = [
+        (census._unwrapped_longitude(point[0], anchor), point[1])
+        for point in ring
+    ]
+    cross_sum = sum(
+        first[0] * second[1] - second[0] * first[1]
+        for first, second in zip(points, points[1:])
+    )
+    x_sum = sum(
+        (first[0] + second[0])
+        * (first[0] * second[1] - second[0] * first[1])
+        for first, second in zip(points, points[1:])
+    )
+    y_sum = sum(
+        (first[1] + second[1])
+        * (first[0] * second[1] - second[0] * first[1])
+        for first, second in zip(points, points[1:])
+    )
+    noisy_centroid = (
+        y_sum / (3.0 * cross_sum), x_sum / (3.0 * cross_sum)
+    )
+    assert noisy_centroid == (19.335182189941406, -62.04204813639323)
+    assert not (
+        min(point[1] for point in ring) <= noisy_centroid[0]
+        <= max(point[1] for point in ring)
+    )
+
+
+def test_ring_centroid_bounds_sanity_falls_back_to_vertex_mean():
+    ring = [
+        [0.4685659066798089, 1.5605542128102003],
+        [-0.1740511208157618, 0.8456190372316783],
+        [1.7479252135129313, 0.08223931076245661],
+        [0.9353606836391113, 0.9121297309164911],
+        [1.432746467861095, -1.8528302636349752],
+        [0.4685659066798089, 1.5605542128102003],
+    ]
+    assert census._ring_twice_area(ring) == 0.7569993134802989
+    latitude, longitude, weight = census._ring_centroid(ring)
+    assert weight == 0.0
+    assert latitude == ring[0][1] + math.fsum(
+        point[1] - ring[0][1] for point in ring[:-1]
+    ) / 5
+    assert longitude == census._wrap_longitude(
+        ring[0][0] + math.fsum(
+            point[0] - ring[0][0] for point in ring[:-1]
+        ) / 5
+    )
+    assert min(point[1] for point in ring) <= latitude <= max(
+        point[1] for point in ring
+    )
+    assert min(point[0] for point in ring) <= longitude <= max(
+        point[0] for point in ring
+    )
+
+
+@pytest.mark.parametrize("geometry", (
+    {"type": "Point", "coordinates": [-0.0, 0.0]},
+    {"type": "LineString", "coordinates": [[-0.0, 0.0], [1.0, -0.0]]},
+    {"type": "Polygon", "coordinates": [[
+        [-0.0, -0.0], [1.0, -0.0], [1.0, 1.0], [-0.0, 1.0],
+        [0.0, 0.0],
+    ]]},
+    {"type": "MultiPolygon", "coordinates": [[[
+        [-0.0, -0.0], [1.0, -0.0], [1.0, 1.0], [-0.0, 1.0],
+        [0.0, 0.0],
+    ]]]},
+))
+def test_every_exactly_2d_geojson_position_canonicalizes_signed_zero(geometry):
+    row = _geojson_feature("r999", geometry)
+    staged = census._normalize_feature_structure(row, {})
+    assert staged is not None
+    assert _parsed_geometry_binary_float_structure(staged.geometry) == (
+        _parsed_geometry_binary_float_structure(
+            geometry, canonicalize_signed_zero=True
+        )
+    )
+    assert census._finite_number(-0.0, "value").hex() == "0x0.0p+0"
+    longitude, latitude = census._coordinate([-0.0, -0.0], "position")
+    assert longitude.hex() == "0x0.0p+0"
+    assert latitude.hex() == "0x0.0p+0"
+    if staged.geometry["type"] in ("Polygon", "MultiPolygon"):
+        ring = next(census._iter_polygons(staged.geometry))[0]
+        assert ring[0] == ring[-1] == [0.0, 0.0]
+        assert census._canonical_bytes(ring[0]) == census._canonical_bytes(
+            ring[-1]
+        )
+
+
+def test_signed_zero_canonicalization_preserves_trail_and_live_identity(
+        tmp_path):
+    assert census._trail_coordinate(
+        [-0.0, -0.0], "trail position"
+    ) == (0.0, 0.0)
+    assert all(
+        value.hex() == "0x0.0p+0"
+        for value in census._trail_coordinate([-0.0, -0.0], "trail position")
+    )
+
+    negative_path = tmp_path / "negative-zero-live.json"
+    positive_path = tmp_path / "positive-zero-live.json"
+    negative_path.write_text("[[-0.0,-0.0],[1.0,1.0]]")
+    positive_path.write_text("[[0.0,0.0],[1.0,1.0]]")
+    negative = census._load_live_pool(negative_path)
+    positive = census._load_live_pool(positive_path)
+    assert negative.pins == positive.pins
+    assert [
+        (pin["lat"], pin["lon"]) for pin in negative.pins
+    ] == [(0.0, 0.0), (1.0, 1.0)]
+    base = census._canonical_hash({"lat": 0.0, "lon": 0.0})
+    expected_live_id = "live-" + hashlib.sha256(
+        f"{base}#0".encode()
+    ).hexdigest()
+    assert negative.pins[0] == {
+        "lat": 0.0,
+        "lon": 0.0,
+        "live_id": expected_live_id,
+    }
+
+
+@pytest.mark.parametrize("geometry", (
+    {"type": "Point", "coordinates": [0.0, 0.0, 10.0]},
+    {"type": "LineString", "coordinates": [
+        [0.0, 0.0], [1.0, 1.0, 10.0],
+    ]},
+    {"type": "Polygon", "coordinates": [[
+        [0.0, 0.0], [1.0, 0.0, 10.0], [1.0, 1.0], [0.0, 0.0],
+    ]]},
+    {"type": "MultiPolygon", "coordinates": [[[
+        [0.0, 0.0], [1.0, 0.0], [1.0, 1.0, 10.0], [0.0, 0.0],
+    ]]]},
+))
+def test_geojson_positions_with_extra_ordinates_are_structurally_rejected(
+        geometry):
+    with pytest.raises(
+            census.FeatureRejection, match="exactly two-dimensional"):
+        census._normalize_feature_structure(
+            _geojson_feature("r999", geometry), {}
+        )
+
+
+@pytest.mark.parametrize(
+    (
+        "source_id,alias,near_zero_ring_location,expected_twice_signed_area,"
+        "far_endpoint,nearest_m"
+    ),
+    REAL_NEAR_ZERO_RELATION_CASES,
+    ids=("relation-7095604-inner", "relation-16454647-outer"),
+)
+def test_real_near_zero_relation_preserves_parsed_coordinate_sequence_and_structure(
+        source_id, alias, near_zero_ring_location, expected_twice_signed_area,
+        far_endpoint, nearest_m):
+    del far_endpoint, nearest_m
+    row = {item["id"]: item for item in _real_near_zero_relation_rows()}[
+        source_id
+    ]
+    original = copy.deepcopy(row)
+    staged = census._normalize_feature_structure(row, {})
+    assert staged is not None
+    assert staged.alias == alias
+    assert _parsed_geometry_binary_float_structure(staged.geometry) == (
+        _parsed_geometry_binary_float_structure(row["geometry"])
+    )
+    assert staged.degenerate_ring_locations == ()
+    assert staged.degenerate_component_indices == ()
+    polygon_index, ring_index = near_zero_ring_location
+    ring = staged.geometry["coordinates"][polygon_index][ring_index]
+    assert len(ring) >= 4
+    assert ring[0] == ring[-1]
+    twice_signed_area = census._ring_twice_signed_area(ring)
+    assert twice_signed_area == expected_twice_signed_area
+    assert abs(twice_signed_area) > (
+        census.DEGENERATE_RING_TWICE_SIGNED_AREA_EPSILON
+    )
+    assert row == original
+
+
+def test_relation_16454647_lexeme_normalizes_without_parsed_geometry_drift():
+    raw = MALFORMED_RELATIONS_FIXTURE.read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == (
+        MALFORMED_RELATIONS_FIXTURE_SHA256
+    )
+    source_fragment = (
+        b"[-97.7641664,30.467533800000003],[-97.7641607,30.4675369]"
+    )
+    staged_fragment = b"[-97.7641664,30.4675338],[-97.7641607,30.4675369]"
+    assert raw.count(source_fragment) == 1
+
+    row = next(
+        item for item in _real_near_zero_relation_rows()
+        if item["id"] == "a32909295"
+    )
+    staged = census._normalize_feature_structure(row, {})
+    assert staged is not None
+    assert staged.alias == "relation/16454647"
+    assert staged.source_form == "a32909295"
+    assert staged.degenerate_ring_locations == ()
+    assert staged.degenerate_component_indices == ()
+    assert _parsed_geometry_binary_float_structure(staged.geometry) == (
+        _parsed_geometry_binary_float_structure(row["geometry"])
+    )
+
+    source_value = row["geometry"]["coordinates"][1][2][2][1]
+    staged_value = staged.geometry["coordinates"][1][2][2][1]
+    expected_binary_float = float("30.4675338").hex()
+    assert float("30.467533800000003").hex() == expected_binary_float
+    assert source_value.hex() == expected_binary_float
+    assert staged_value.hex() == expected_binary_float
+
+    canonical_staged_geometry = census._canonical_bytes(staged.geometry)
+    assert source_fragment not in canonical_staged_geometry
+    assert canonical_staged_geometry.count(staged_fragment) == 1
+
+
+def test_real_near_zero_relations_are_far_topology_unvalidated_noncandidates_and_bind_run_id():
+    rows = _real_near_zero_relation_rows()
+    endpoints = tuple(case[4] for case in REAL_NEAR_ZERO_RELATION_CASES)
+    for row, case in zip(rows, REAL_NEAR_ZERO_RELATION_CASES):
+        endpoint = case[4]
+        nearest_m = census.geometry_distance_to_point_m(
+            row["geometry"], endpoint.latitude, endpoint.longitude
+        )
+        assert nearest_m == pytest.approx(case[5], abs=1e-6)
+        assert nearest_m > census.FALLBACK_M
+
+    sidecar_aliases = {case[1] for case in REAL_NEAR_ZERO_RELATION_CASES}
+    result = census.stream_parking_source(
+        MALFORMED_RELATIONS_FIXTURE,
+        "geojsonseq",
+        census.EndpointGrid(endpoints),
+        sidecar_aliases=sidecar_aliases,
+    )
+    assert result.binding.sha256 == MALFORMED_RELATIONS_FIXTURE_SHA256
+    assert result.features == ()
+    assert result.seen_authority_aliases == tuple(sorted(sidecar_aliases))
+    assert result.counters["records_total"] == 2
+    assert result.counters["parking_features"] == 0
+    assert result.counters["coarse_endpoint_candidates_total"] == 0
+    assert result.counters["coarse_outside_fallback_envelope"] == 2
+    assert result.counters["topology_not_required_outside"] == 2
+    assert result.counters["topology_unvalidated_non_candidates"] == 2
+    assert result.counters["topology_validation_calls"] == 0
+    assert result.counters["topology_validation_failures"] == 0
+    assert result.counters["exact_endpoint_distance_checks"] == 0
+    assert result.counters["rejected_total"] == 0
+    assert {
+        key: result.counters[key]
+        for key in (
+            "staged_degenerate_polygon_records",
+            "staged_degenerate_rings",
+            "staged_degenerate_outer_rings",
+            "staged_degenerate_inner_rings",
+            "staged_degenerate_components",
+            "topology_unvalidated_degenerate_records",
+            "topology_unvalidated_degenerate_rings",
+            "topology_unvalidated_degenerate_outer_rings",
+            "topology_unvalidated_degenerate_inner_rings",
+            "topology_unvalidated_degenerate_components",
+        )
+    } == {
+        "staged_degenerate_polygon_records": 0,
+        "staged_degenerate_rings": 0,
+        "staged_degenerate_outer_rings": 0,
+        "staged_degenerate_inner_rings": 0,
+        "staged_degenerate_components": 0,
+        "topology_unvalidated_degenerate_records": 0,
+        "topology_unvalidated_degenerate_rings": 0,
+        "topology_unvalidated_degenerate_outer_rings": 0,
+        "topology_unvalidated_degenerate_inner_rings": 0,
+        "topology_unvalidated_degenerate_components": 0,
+    }
+    assert result.counters["record_equation"] == {
+        "records_total": 2, "classified_records": 2,
+    }
+    assert result.counters["parking_equation"] == {
+        "parking_features": 0, "reconciled_parking_records": 0,
+    }
+    assert result.inventory == {
+        "topology_unvalidated_non_candidates": {
+            "status": census.TOPOLOGY_UNVALIDATED_NONCANDIDATE_STATUS,
+            "records": 2,
+            "record_identity_sha256": (
+                "2b7b0618bde5c86c86126f9eaab97ca627796363c176119e2b0b9b564fa53301"
+            ),
+            "degenerate_records": 0,
+            "degenerate_rings": 0,
+            "degenerate_outer_rings": 0,
+            "degenerate_inner_rings": 0,
+            "degenerate_components": 0,
+            "degenerate_identity_sha256": hashlib.sha256().hexdigest(),
+        }
+    }
+
+    sources = copy.deepcopy(_output_contract(0)[1]["sources"])
+    sources["parking"]["inventory"] = result.inventory
+    algorithm = {
+        "parking_capture_geometry_policy": census._parking_geometry_policy()
+    }
+    run_id = census._deterministic_run_id(sources, algorithm)
+    changed_sources = copy.deepcopy(sources)
+    changed_sources["parking"]["inventory"][
+        "topology_unvalidated_non_candidates"
+    ]["records"] += 1
+    assert census._deterministic_run_id(changed_sources, algorithm) != run_id
+    changed_algorithm = copy.deepcopy(algorithm)
+    changed_algorithm["parking_capture_geometry_policy"][
+        "degenerate_polygon_staging"
+    ]["twice_signed_area_epsilon"] *= 2
+    assert census._deterministic_run_id(
+        sources, changed_algorithm
+    ) != run_id
+
+
+@pytest.mark.parametrize(
+    (
+        "source_id,alias,near_zero_ring_location,expected_twice_signed_area,"
+        "far_endpoint,nearest_m"
+    ),
+    REAL_NEAR_ZERO_RELATION_CASES,
+    ids=("relation-7095604-inner", "relation-16454647-outer"),
+)
+def test_real_near_zero_relations_are_shapely_valid_when_coarsely_near(
+        source_id, alias, near_zero_ring_location, expected_twice_signed_area,
+        far_endpoint, nearest_m):
+    del expected_twice_signed_area, far_endpoint, nearest_m
+    row = copy.deepcopy({
+        item["id"]: item for item in _real_near_zero_relation_rows()
+    }[source_id])
+    original = copy.deepcopy(row)
+    polygon_index, ring_index = near_zero_ring_location
+    longitude, latitude = row["geometry"]["coordinates"][
+        polygon_index
+    ][ring_index][0]
+    accumulator = census.FeatureAccumulator(
+        census.EndpointGrid((census.Endpoint(latitude, longitude),)), {},
+        {alias},
+    )
+    accumulator.consume_line((json.dumps(row) + "\n").encode())
+    counters = accumulator.final_counters()
+    assert tuple(accumulator.features) == (alias,)
+    retained = accumulator.features[alias]
+    assert _parsed_geometry_binary_float_structure(retained.geometry) == (
+        _parsed_geometry_binary_float_structure(original["geometry"])
+    )
+    assert row == original
+    assert retained.near_endpoint_ids == (0,)
+    assert accumulator.export_inventory() == {
+        alias: {
+            "geometry_types": ["MultiPolygon"],
+            "source_forms": [source_id],
+        }
+    }
+    assert tuple(sorted(accumulator.seen_authority_aliases)) == (alias,)
+    assert counters["parking_features"] == 1
+    assert counters["staged_degenerate_polygon_records"] == 0
+    assert counters["staged_degenerate_rings"] == 0
+    assert counters["coarse_endpoint_candidates_total"] == 1
+    assert counters["topology_unvalidated_non_candidates"] == 0
+    assert counters["topology_validation_calls"] == 1
+    assert counters["topology_validation_failures"] == 0
+    assert counters["topology_rejected_degenerate_records"] == 0
+    assert counters["topology_rejected_shapely_records"] == 0
+    assert counters["exact_endpoint_distance_checks"] == 1
+    assert counters["endpoint_associations_total"] == 1
+    assert counters["retained_canonical_features"] == 1
+    assert counters["rejections"] == {}
+
+
+@pytest.mark.parametrize(
+    "geometry,ring_locations,component_indices",
+    (
+        (
+            {"type": "MultiPolygon", "coordinates": [
+                [[[-0.001, 0.0], [0.0, 0.0], [0.001, 0.0],
+                  [-0.001, 0.0]]],
+                [[[50.0, 50.0], [50.01, 50.0], [50.01, 50.01],
+                  [50.0, 50.01], [50.0, 50.0]]],
+            ]},
+            ((0, 0),),
+            (0,),
+        ),
+        (
+            {"type": "MultiPolygon", "coordinates": [[
+                [[50.0, 50.0], [50.01, 50.0], [50.01, 50.01],
+                 [50.0, 50.01], [50.0, 50.0]],
+                [[-0.001, 0.0], [0.0, 0.0], [0.001, 0.0],
+                 [-0.001, 0.0]],
+            ]]},
+            ((0, 1),),
+            (),
+        ),
+    ),
+    ids=("mixed-degenerate-outer-component", "isolated-degenerate-inner"),
+)
+def test_coarse_envelope_keeps_every_degenerate_ring_segment(
+        geometry, ring_locations, component_indices):
+    endpoint_grid = census.EndpointGrid((census.Endpoint(0.0, 0.0),))
+    staged = census._normalize_feature_structure(
+        _geojson_feature("r30", geometry), {}
+    )
+    assert staged is not None
+    assert staged.geometry == geometry
+    assert staged.degenerate_ring_locations == ring_locations
+    assert staged.degenerate_component_indices == component_indices
+    assert endpoint_grid.candidate_ids(
+        staged.geometry, census.FALLBACK_M, _coordinates_validated=True
+    ) == {0}
+
+    accumulator = census.FeatureAccumulator(endpoint_grid, {})
+    accumulator.consume_line((json.dumps(
+        _geojson_feature("r30", geometry)
+    ) + "\n").encode())
+    counters = accumulator.final_counters()
+    assert counters["coarse_endpoint_candidates_total"] == 1
+    assert counters["topology_validation_calls"] == 1
+    assert counters["topology_validation_failures"] == 1
+    assert counters["topology_rejected_degenerate_records"] == 1
+    assert counters["topology_rejected_degenerate_rings"] == len(
+        ring_locations
+    )
+    assert counters["topology_rejected_degenerate_components"] == len(
+        component_indices
+    )
+    assert counters["topology_rejected_shapely_records"] == 0
+    assert counters["exact_endpoint_distance_checks"] == 0
+    assert counters["topology_unvalidated_non_candidates"] == 0
+    assert counters["rejections"] == {"malformed_geometry": 1}
+    assert accumulator.features == {}
+
+
 def test_coarse_envelope_rejection_skips_topology_at_scale(monkeypatch):
     topology_calls = 0
 
@@ -3267,6 +4052,8 @@ def test_near_invalid_hole_blocks_before_exact_distance(tmp_path):
     assert result.counters["parking_features"] == 0
     assert result.counters["topology_validation_calls"] == 1
     assert result.counters["topology_validation_failures"] == 1
+    assert result.counters["topology_rejected_degenerate_records"] == 0
+    assert result.counters["topology_rejected_shapely_records"] == 1
     assert result.counters["exact_endpoint_distance_checks"] == 0
     assert result.counters["rejections"] == {"malformed_geometry": 1}
     with pytest.raises(census.CensusError, match="complete census refused"):
@@ -3315,6 +4102,12 @@ def test_far_topologically_invalid_polygon_is_nonblocking_outside(monkeypatch):
             "record_identity_sha256": hashlib.sha256(
                 census._canonical_bytes(["way/2", "w2", "Polygon"])
             ).hexdigest(),
+            "degenerate_records": 0,
+            "degenerate_rings": 0,
+            "degenerate_outer_rings": 0,
+            "degenerate_inner_rings": 0,
+            "degenerate_components": 0,
+            "degenerate_identity_sha256": hashlib.sha256().hexdigest(),
         }
     }
 
@@ -3360,6 +4153,8 @@ def test_asymmetric_bow_tie_is_nonblocking_far_but_fatal_near():
     assert near_counters["parking_features"] == 0
     assert near_counters["topology_validation_calls"] == 1
     assert near_counters["topology_validation_failures"] == 1
+    assert near_counters["topology_rejected_degenerate_records"] == 0
+    assert near_counters["topology_rejected_shapely_records"] == 1
     assert near_counters["topology_unvalidated_non_candidates"] == 0
     assert near_counters["rejections"] == {"malformed_geometry": 1}
     assert "parking feature way/22" in near_counters[
@@ -3372,7 +4167,7 @@ def test_asymmetric_bow_tie_is_nonblocking_far_but_fatal_near():
 
 
 @pytest.mark.parametrize("offset", [0.0, 50.0], ids=("near", "far"))
-def test_symmetric_bow_tie_remains_structurally_degenerate(offset):
+def test_symmetric_zero_area_bow_tie_is_staged_then_topology_gated(offset):
     geometry = {"type": "Polygon", "coordinates": [[
         [offset, offset], [offset + 0.02, offset + 0.02],
         [offset, offset + 0.02], [offset + 0.02, offset],
@@ -3386,36 +4181,84 @@ def test_symmetric_bow_tie_remains_structurally_degenerate(offset):
     ) + "\n").encode())
     counters = accumulator.final_counters()
     assert counters["parking_features"] == 0
-    assert counters["topology_validation_calls"] == 0
-    assert counters["rejections"] == {"malformed_geometry": 1}
-    assert accumulator.export_inventory() == {}
+    assert counters["staged_degenerate_polygon_records"] == 1
+    assert counters["staged_degenerate_rings"] == 1
+    assert counters["staged_degenerate_outer_rings"] == 1
+    assert counters["staged_degenerate_inner_rings"] == 0
+    assert counters["staged_degenerate_components"] == 1
+    assert accumulator.export_inventory() == {
+        "way/23": {"geometry_types": ["Polygon"], "source_forms": ["w23"]}
+    }
+    if offset == 0.0:
+        assert counters["coarse_endpoint_candidates_total"] == 1
+        assert counters["topology_validation_calls"] == 1
+        assert counters["topology_validation_failures"] == 1
+        assert counters["topology_rejected_degenerate_records"] == 1
+        assert counters["topology_rejected_degenerate_rings"] == 1
+        assert counters["topology_rejected_degenerate_components"] == 1
+        assert counters["topology_rejected_shapely_records"] == 0
+        assert counters["topology_unvalidated_non_candidates"] == 0
+        assert counters["exact_endpoint_distance_checks"] == 0
+        assert counters["rejections"] == {"malformed_geometry": 1}
+    else:
+        assert counters["coarse_endpoint_candidates_total"] == 0
+        assert counters["topology_validation_calls"] == 0
+        assert counters["topology_validation_failures"] == 0
+        assert counters["topology_unvalidated_non_candidates"] == 1
+        assert counters["topology_unvalidated_degenerate_records"] == 1
+        assert counters["topology_rejected_degenerate_records"] == 0
+        assert counters["topology_rejected_shapely_records"] == 0
+        assert counters["rejected_total"] == 0
 
 
-def test_far_structurally_malformed_polygon_remains_fatal_before_coarse():
+@pytest.mark.parametrize(
+    "geometry",
+    (
+        {"type": "Polygon", "coordinates": [[
+            [50.0, 50.0], [50.01, 50.0], [50.01, 50.01],
+            [50.0, 50.01],
+        ]]},
+        {"type": "Polygon", "coordinates": [[
+            [50.0, 50.0], [50.01, 50.0], [50.0, 50.0],
+        ]]},
+        {"type": "Polygon", "coordinates": [[
+            [50.0, 50.0], ["NONFINITE", 50.0], [50.01, 50.01],
+            [50.0, 50.01], [50.0, 50.0],
+        ]]},
+    ),
+    ids=("unclosed", "too-few-points", "nonfinite"),
+)
+def test_far_structurally_malformed_polygon_remains_fatal_before_coarse(
+        geometry):
     accumulator = census.FeatureAccumulator(
         census.EndpointGrid((census.Endpoint(0.0, 0.0),)), {}
     )
-    unclosed = {"type": "Polygon", "coordinates": [[
-        [50.0, 50.0], [50.01, 50.0], [50.01, 50.01], [50.0, 50.01],
-    ]]}
-    accumulator.consume_line(
-        (json.dumps(_geojson_feature("w3", unclosed)) + "\n").encode()
+    raw = json.dumps(_geojson_feature("w3", geometry)).replace(
+        '"NONFINITE"', "1e309"
     )
+    accumulator.consume_line((raw + "\n").encode())
     counters = accumulator.final_counters()
     assert counters["parking_features"] == 0
+    assert counters["staged_degenerate_polygon_records"] == 0
     assert counters["coarse_endpoint_candidates_total"] == 0
+    assert counters["coarse_outside_fallback_envelope"] == 0
     assert counters["topology_validation_calls"] == 0
     assert counters["rejections"] == {"malformed_geometry": 1}
+    assert accumulator.export_inventory() == {}
+    with pytest.raises(census.CensusError, match="complete census refused"):
+        census._assert_stream_complete(census.ParkingStreamResult(
+            (), None, {}, counters, {}, (), {}
+        ))
 
 
 def test_dateline_high_latitude_near_polygon_reaches_topology(monkeypatch):
     real_validator = census._validate_polygon_topology
     topology_calls = 0
 
-    def track_topology(geometry):
+    def track_topology(geometry, **kwargs):
         nonlocal topology_calls
         topology_calls += 1
-        real_validator(geometry)
+        real_validator(geometry, **kwargs)
 
     monkeypatch.setattr(census, "_validate_polygon_topology", track_topology)
     accumulator = census.FeatureAccumulator(
@@ -3441,10 +4284,10 @@ def test_boundary_just_inside_coarse_mask_cannot_skip_topology(monkeypatch):
     real_validator = census._validate_polygon_topology
     topology_calls = 0
 
-    def track_topology(geometry):
+    def track_topology(geometry, **kwargs):
         nonlocal topology_calls
         topology_calls += 1
-        real_validator(geometry)
+        real_validator(geometry, **kwargs)
 
     monkeypatch.setattr(census, "_validate_polygon_topology", track_topology)
     centre = math.degrees((census.FALLBACK_M - 1.0) / census.EARTH_RADIUS_M)
@@ -3483,7 +4326,9 @@ def test_parking_stream_progress_is_record_deterministic(monkeypatch, capsys):
         )) + "\n").encode())
     assert capsys.readouterr().err == (
         "national_census: parking-stream progress records=2 parking=2 "
-        "topology_calls=0 topology_failures=0 coarse_outside=2 "
+        "topology_calls=0 topology_failures=0 "
+        "topology_rejected_degenerate_records=0 "
+        "topology_rejected_shapely_records=0 coarse_outside=2 "
         "topology_noncandidates=0 exact_outside=0 retained=0\n"
     )
 
@@ -5603,10 +6448,10 @@ def test_default_geometry_and_feature_normalizers_validate_topology(monkeypatch)
     real_validator = census._validate_polygon_topology
     topology_calls = 0
 
-    def track_topology(geometry):
+    def track_topology(geometry, **kwargs):
         nonlocal topology_calls
         topology_calls += 1
-        real_validator(geometry)
+        real_validator(geometry, **kwargs)
 
     monkeypatch.setattr(census, "_validate_polygon_topology", track_topology)
     polygon = {"type": "Polygon", "coordinates": [[
@@ -5628,7 +6473,11 @@ def test_topology_engine_is_exactly_shapely_206(monkeypatch):
         "engine": "Shapely",
         "version": "2.0.6",
         "requirement": "Shapely==2.0.6",
-        "validity": "complete Polygon/MultiPolygon topology",
+        "validity": (
+            "complete Polygon/MultiPolygon topology with explicit near-zero "
+            "ring rejection at absolute twice-signed area <= 1e-15 square "
+            "degrees"
+        ),
         "capture_validation_scope": (
             "polygonal parking with a nonempty conservative 5km EndpointGrid "
             "candidate set after non-area area-copy suppression; polygonal "
@@ -5638,6 +6487,89 @@ def test_topology_engine_is_exactly_shapely_206(monkeypatch):
         "default_validation_scope": "eager for normalize_geometry/normalize_feature",
     }
     policy = census._parking_geometry_policy()
+    assert policy["structure_validation"] == (
+        "strict-feature-tags-id-finite-in-range-exactly-two-dimensional-"
+        "coordinates-with-signed-zero-value-equality-positive-zero-"
+        "canonicalization-and-explicitly-closed-rings-with-at-least-four-"
+        "points-before-spatial-gating"
+    )
+    assert policy["degenerate_polygon_staging"] == {
+        "ring_detection": (
+            "absolute-first-coordinate-relative-direct-longitude-delta-"
+            "conditional-shortest-wrap-fsum-shoelace-near-zero-ring-when-"
+            "twice-signed-area-is-at-or-below-the-exact-threshold"
+        ),
+        "head_threshold_compatibility": (
+            "same-1e-15-threshold-with-stable-first-coordinate-relative-fsum-"
+            "can-admit-above-threshold-rings-or-reject-at-or-below-threshold-"
+            "rings-opposite-of-global-coordinate-sum-noise"
+        ),
+        "twice_signed_area_epsilon": 1e-15,
+        "twice_signed_area_epsilon_units": "square-degrees",
+        "component_definition": (
+            "polygon-component-whose-outer-ring-is-degenerate"
+        ),
+        "stream_policy": (
+            "retain-complete-parsed-coordinate-sequence-and-diagnostics-"
+            "through-coarse-candidate-gating"
+        ),
+        "json_numeric_lexical_policy": (
+            "source-spellings-normalize-under-parse-and-canonical-staging-"
+            "serialization-not-preserved-as-raw-token-bytes"
+        ),
+        "parsed_coordinate_sequence_preservation": (
+            "exactly-two-dimensional-positions-with-exact-nonzero-binary-"
+            "float-values-and-signed-zero-value-equality-canonicalized-to-"
+            "positive-zero-plus-ring-component-structure-order-and-explicit-"
+            "closure"
+        ),
+        "staged_identity_preservation": (
+            "exact-canonical-alias-source-form-and-private-typed-geometry-"
+            "paired-degeneracy-locations"
+        ),
+        "source_byte_authority": (
+            "source-binding-sha256-separate-from-staged-geometry-"
+            "representation"
+        ),
+        "coarse_coverage": (
+            "every-retained-coordinate-and-segment-in-every-ring-and-component"
+        ),
+        "empty_coarse_candidates": (
+            census.TOPOLOGY_UNVALIDATED_NONCANDIDATE_STATUS
+        ),
+        "nonempty_coarse_candidates": (
+            "reject-sub-threshold-near-zero-or-shapely-invalid-complete-"
+            "topology-before-exact-association"
+        ),
+        "candidate_rejection_counters": (
+            "partition-topology-failures-into-staged-near-zero-threshold-"
+            "rejections-with-stream-order-identity-sha256-and-shapely-"
+            "topology-rejections"
+        ),
+        "public_normalization": (
+            "eager-pinned-Shapely-plus-strict-near-zero-threshold-contract"
+        ),
+        "geometry_mutation": (
+            "forbidden-no-ring-or-component-dropping-or-candidate-conversion"
+        ),
+        "staged_counter_scope": (
+            "polygonal-records-after-declared-non-area-area-copy-suppression"
+        ),
+        "inventory": (
+            "staged-and-terminal-counts-plus-separate-far-noncandidate-and-"
+            "candidate-rejection-sha256-values-over-concatenated-canonical-"
+            "json-lines-alias-source_form-geometry_type-ring_locations-"
+            "component_indices-in-stream-order"
+        ),
+    }
+    assert policy["polygon_representative"] == {
+        "ring_centroid": (
+            "first-coordinate-relative-direct-longitude-delta-conditional-"
+            "shortest-wrap-fsum-shoelace-moments"
+        ),
+        "sanity": "centroid-must-remain-within-local-ring-coordinate-bounds",
+        "fallback": "first-coordinate-relative-fsum-open-ring-vertex-mean",
+    }
     assert policy["topology_engine"] == "Shapely==2.0.6"
     assert policy["coarse_radius_m"] == 5_000.0
     assert policy["coarse_index"] == (
@@ -5787,7 +6719,8 @@ def test_topology_engine_is_exactly_shapely_206(monkeypatch):
     assert policy["far_topology_policy"] == {
         "status": census.TOPOLOGY_UNVALIDATED_NONCANDIDATE_STATUS,
         "scope": (
-            "structurally-valid-Polygon-or-MultiPolygon-proven-outside-every-"
+            "structurally-admissible-Polygon-or-MultiPolygon-including-"
+            "diagnosed-near-zero-sub-threshold-rings-proven-outside-every-"
             "conservative-5km-endpoint-envelope"
         ),
         "candidate": False,
@@ -5796,8 +6729,9 @@ def test_topology_engine_is_exactly_shapely_206(monkeypatch):
             "record-accounting-and-export-reconciliation-close"
         ),
         "inventory_authority": (
-            "record-count-and-stream-order-record-identity-sha256-in-parking-"
-            "source-inventory"
+            "record-count-and-stream-order-record-identity-sha256-plus-"
+            "degenerate-record-ring-outer-inner-component-counts-and-location-"
+            "identity-sha256-in-parking-source-inventory"
         ),
         "run_id_compatibility": (
             "intentional-delta-from-HEAD-preserves-candidate-denominator-"
@@ -5806,6 +6740,11 @@ def test_topology_engine_is_exactly_shapely_206(monkeypatch):
     }
     filtered_policy = census._filtered_pbf_policy()
     assert "parking_geometry_policy" not in filtered_policy
+    filtered_policy_bytes = census._canonical_bytes(filtered_policy)
+    assert b"DEGENERATE_RING_TWICE_SIGNED_AREA_EPSILON" not in (
+        filtered_policy_bytes
+    )
+    assert b"degenerate_polygon_staging" not in filtered_policy_bytes
     first_run_id = census._deterministic_run_id(
         _output_contract(0)[1]["sources"], {"geometry": policy}
     )
@@ -5839,6 +6778,8 @@ def test_topology_engine_is_exactly_shapely_206(monkeypatch):
              "coarse_grid_query", "spherical_maximum_cell_probes"),
             ("MAX_ENDPOINT_GRID_HEAD_PARITY_CELL_PROBES",
              "coarse_grid_query", "head_parity_maximum_cell_probes"),
+            ("DEGENERATE_RING_TWICE_SIGNED_AREA_EPSILON",
+             "degenerate_polygon_staging", "twice_signed_area_epsilon"),
             ("STREAM_STRUCTURAL_PREPARSE_MIN_BYTES",
              "coarse_vertex_scan",
              "structural_preparse_minimum_record_bytes"),

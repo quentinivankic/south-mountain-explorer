@@ -15,6 +15,7 @@ scripts/parking-adjud/
   approved-production-baselines-v1.json  reviewed approval registry, independently hash-pinned in code
   production-baseline-v1.json  current self-hashed exact authority for a complete US census
   requirements.txt  exact national-census geometry dependency (`Shapely==2.0.6`)
+  test-fixtures/  SHA-pinned real GeoJSON-sequence regression inputs
   publication-trust-root-v1.json  exact canonical corpus root; SHA-256 literally pinned in scripts/build-parking-verdicts.py
   proofless-source-baseline-v1.json  schema-v2 exact 1,273-row and 11-dossier legacy baseline
   data/      five stores, five publication floors, 11 rooted dossiers, and supporting adjudication data
@@ -73,12 +74,14 @@ census:
 /absolute/path/to/python -c 'import shapely; assert shapely.__version__ == "2.0.6"'
 ```
 
-Evidence claims are repository-reproducible: the review baseline was 1,116
-passed with one expected osmium-only skip, and the checked-in generated-superset
-case performs exactly 16,172 `geometry_distance_to_point_m` evaluations across
-320 generated geometries. Larger external probe totals are withdrawn and are
-not an acceptance gate; every new run must report its own collected/pass/skip
-counts plus the fixed generated-case total.
+Evidence claims are repository-reproducible: every change must report its own
+exact full-scripts collected/pass/skip counts; the real-osmium integration is
+the only expected local skip when osmium is unavailable. The checked-in
+generated-superset case performs exactly 16,172
+`geometry_distance_to_point_m` evaluations across 320 generated geometries.
+Larger external probe totals are withdrawn and are not an acceptance gate;
+every new run must report its own collected/pass/skip counts plus the fixed
+generated-case total.
 
 `tools/national_census.py` has two structurally distinct modes:
 
@@ -214,9 +217,20 @@ globally, so an envelope-dropped exact lot remains a tombstone and can never be
 reassigned to a positional neighbour. Conflicting sidecar ownership of one OSM
 alias fails closed.
 
-Parking capture performs strict JSON, tag, identity, finite-coordinate, and
-closed/nondegenerate-ring normalization first. It then captures export forms
-and sidecar aliases and runs the conservative 5 km `EndpointGrid` query. The
+Parking capture performs strict JSON, tag, identity, and coordinate
+normalization first. Every GeoJSON position must have exactly two ordinates;
+extra elevation or measure ordinates are structural errors. Both ordinates must
+be finite and in range. Every nonzero parsed binary-float value is preserved;
+IEEE `-0.0` and `+0.0` compare by numeric value and canonicalize to `+0.0`,
+matching the unchanged trail-coordinate and live-pool identity paths. Every
+polygon ring must contain at least four points and be explicitly closed by
+coordinate-value equality; canonicalization also makes its opening and closing
+zero tokens agree. Rings at or below the exact `1e-15`
+square-degree absolute twice-signed-area threshold remain intact in this stream
+structural stage. Their component/ring locations are diagnosed without dropping
+an outer ring, inner ring, or MultiPolygon component, and the conservative 5 km
+`EndpointGrid` query receives every retained coordinate and segment. Capture
+then records export forms and sidecar aliases before spatial classification. The
 public `EndpointGrid` surface accepts only normalized Point, LineString,
 Polygon, or MultiPolygon coordinates in longitude ±180° and latitude ±90°;
 violations raise a feature-context `CensusError`. A polygon ring with fewer than
@@ -341,44 +355,161 @@ not a promised national scan. A passing smaller inventory charges and scans one
 global window with incremental candidate refusal. An empty coarse set is
 classified without centroid or exact-distance work. Point/LineString records
 need no polygon topology engine and remain ordinary outside parking records.
-A structurally valid Polygon/MultiPolygon proven outside every conservative 5
-km endpoint envelope receives the explicit
-`structurally-valid-topology-unvalidated-noncandidate` status: it is export-
-reconciled and sidecar-reserved but excluded from `parking_features`, retained
-features, and every candidate denominator. Its record count and stream-order
-identity digest are emitted under
-`sources.parking.inventory.topology_unvalidated_non_candidates`. This is an
-intentional, authority-bound run-ID delta from HEAD that preserves denominator
-correctness without restoring O(n²) ring intersection work or running Shapely
-on far geometry. A nonempty coarse set still requires complete
-`Polygon`/`MultiPolygon` topology validation under exactly Shapely 2.0.6 before
-exact endpoint association. Structurally malformed records remain rejections at
-any location. Public `normalize_geometry` and `normalize_feature` callers remain
-eager topology validators. An asymmetric bow tie proven far is therefore an
-explicit noncandidate diagnostic; the same bow tie near an endpoint fails
-Shapely topology and blocks completion, while a zero-area symmetric bow tie
-remains structurally rejected everywhere. The complete spherical-envelope,
-global-fallback, ambiguity, far-topology status, and numeric-padding policy is
-hash-bound into the census algorithm and run ID. In particular,
-`SPHERICAL_ENVELOPE_EPSILON_DEGREES` is declared with value and degree units;
-it is deliberately absent from filtered-PBF byte identity.
+A structurally admissible Polygon/MultiPolygon proven outside every
+conservative 5 km endpoint envelope receives the explicit
+`structurally-valid-topology-unvalidated-noncandidate` status, including when
+one or more retained rings has zero or near-zero signed area. The entire feature
+is export-reconciled and sidecar-reserved but excluded from `parking_features`,
+retained features, and every candidate denominator; no ring or component is
+silently dropped or converted into a candidate. Its record count and
+stream-order identity digest are emitted under
+`sources.parking.inventory.topology_unvalidated_non_candidates`, together with
+threshold-degenerate record/ring/outer/inner/component counts and a
+location-bound identity digest.
 
-The stream reports `topology_unvalidated_non_candidates`,
-`topology_not_required_outside`, `topology_validation_calls`,
-`topology_validation_failures`, and `exact_outside_fallback_envelope`
-separately. `record_equation` includes the explicit noncandidate terminal class;
-`parking_equation` covers only topology-validated or topology-not-applicable
-parking features. The staged topology fields remain branch observations, not
-independent closure equations. During capture it emits one deterministic stderr
-progress line every 100,000 records containing record, topology,
-coarse-outside, topology-noncandidate, exact-outside, and retained counts; these
-lines contain no timestamps or authority paths. Treat
-90 minutes of GeoJSON-export wall-clock time as an operator diagnosis threshold,
-not a tool-enforced timeout: preserve the stage and inspect these counters
-instead of blindly rerunning it. The actual default timeout is 3,600 seconds per
-osmium command; the documented national invocation overrides it to 21,600
-seconds with `--osmium-timeout-seconds 21600`, and the tool enforces that
-selected per-command value.
+The threshold-degenerate class computes each longitude offset directly as
+`point_longitude - anchor_longitude`, adjusts it by ±360° only across the
+shortest-wrap boundary (with the existing +180° tie policy), translates
+latitude to the first coordinate, and uses streaming `fsum` shoelace terms.
+Absolute twice-signed area at or below exactly `1e-15` square degrees remains
+degenerate; the constant did not change. The stable measurement changes noisy
+HEAD outcomes in both directions: it admits truly above-threshold rings that
+HEAD cancelled to `<= 1e-15`, including the two real relations below, and
+rejects truly at-or-below-threshold rings that HEAD rounded above `1e-15`. The
+latter remains fatal only when the complete polygon is coarsely near an
+endpoint; the regression suite pins a Shapely-valid near control and the
+degenerate-versus-Shapely counter split. Because square degrees are not a
+metric unit, the threshold's approximate polygon-area equivalent varies with
+latitude: about 0.062 cm² at the equator, 0.047 cm² at 40°N, and 0.031 cm² at
+60°N. These diagnostics and the exact identity payload contract are bound into
+the algorithm policy and run ID.
+
+Polygon representative points use the same first-coordinate-relative direct
+longitude deltas and `fsum` for ring area and centroid moments. A derived
+centroid must remain inside the ring's local longitude/latitude bounds;
+otherwise the code falls back to a first-relative `fsum` vertex mean. No
+centroid calculation accumulates global-coordinate products.
+
+This remains an intentional, authority-bound run-ID delta from HEAD: far
+polygon topology is no longer allowed to restore O(n²) ring intersection work
+or invoke Shapely. A nonempty coarse set requires complete `Polygon` or
+`MultiPolygon` construction under exactly Shapely 2.0.6. A diagnosed
+at-or-below-threshold ring rejects before exact association with an operator
+message naming `1e-15`; any other Shapely construction or validity failure is
+also `malformed_geometry` and blocks authoritative completion. The emitted
+`topology_rejected_degenerate_*` counters distinguish the former from
+`topology_rejected_shapely_records`, and together they close exactly to
+`topology_validation_failures`. Candidate-rejected degeneracy also emits
+`topology_rejected_degenerate_identity_sha256` over the same ordered alias,
+source form, geometry type, ring locations, and component indices used by the
+far-class digest. Staged locations travel only in a private typed token paired
+by geometry object identity, so callers cannot replace them with an empty tuple
+to suppress threshold validation. Staged degeneracy counts exclude declared
+non-area area copies suppressed before spatial work, in either arrival order.
+
+Structurally malformed records—wrong-dimensional, unclosed, too short,
+nonfinite, or out of range—remain rejections before coarse lookup at any
+location. Public `normalize_geometry` and `normalize_feature` callers remain
+eager topology validators. The complete spherical-envelope, global-fallback,
+ambiguity, staged-degeneracy, far-topology status, and numeric-padding policy is
+hash-bound into the census algorithm and run ID. In particular,
+`SPHERICAL_ENVELOPE_EPSILON_DEGREES` is declared with value and degree units; it
+is deliberately absent from filtered-PBF byte identity.
+
+The stream reports `topology_unvalidated_non_candidates`, staged,
+noncandidate, and candidate-rejected threshold-degeneracy
+record/ring/outer/inner/component counters, the candidate-rejection identity
+digest, `topology_rejected_shapely_records`, `topology_not_required_outside`,
+`topology_validation_calls`, `topology_validation_failures`, and
+`exact_outside_fallback_envelope` separately. `record_equation` includes the
+explicit noncandidate terminal class; `parking_equation` covers only
+topology-validated or topology-not-applicable parking features. The staged
+topology fields remain branch observations, not independent closure equations.
+
+The checked-in fixture
+`test-fixtures/malformed-relations-seq2401-6b5ac0402.geojsonseq` comes from the
+sequence-2401 US parking PBF in retained diagnostic stage
+`.parking-filter-stage-20261007T041012Z-a05sdem4`, preserved after the
+authoritative run at `6b5ac0402e68c14b3fdf53a7d32e3923c7e8c25d` failed
+closed. That run used HEAD's global-coordinate shoelace sum, whose
+catastrophic cancellation misclassified these tiny nonzero rings under the
+existing `1e-15` threshold; the failure was not true ring degeneracy or Shapely
+invalidity. The fixture contains exactly OSM relations `7095604` and `16454647`,
+exported as osmium area IDs `a14191209` and `a32909295`. Its exact SHA-256 is
+`ac1d36c8cd40074edf262fad812e163ccd3c419de854122d87a46738f6ae4a15`.
+The source cache was the 123,036,435-byte sequence-2401
+`parking-only.osm.pbf` stamped `2026-10-03T20:20:50Z`. In the complete staged
+GeoJSON-sequence export, `a14191209`/relation `7095604` was record `863535` and
+`a32909295`/relation `16454647` was record `2219777`; the checked-in fixture
+retains those area records in that order. The retained stage `parking.pbf` is 122,612,259 bytes with SHA-256
+`e40bf09a2fa39d9c654b7e6d1b5426330cd40c8e304e90a5e1058a0d73a9b151`;
+its osmium header records replication sequence `2401` and timestamp
+`2026-10-03T20:20:50Z`. Those values were independently recomputed from the
+preserved homelab file before this fixture was committed, so fixture provenance
+does not depend on the retained stage remaining available. Regenerate from an
+exact copy of that filtered PBF without rewriting numeric tokens:
+
+```bash
+STAGE=/absolute/path/to/.parking-filter-stage-20261007T041012Z-a05sdem4
+SOURCE="$STAGE/parking.pbf"
+SUBSET=/absolute/operator-owned/work/malformed-relations-seq2401.osm.pbf
+FIXTURE=scripts/parking-adjud/test-fixtures/\
+malformed-relations-seq2401-6b5ac0402.geojsonseq
+osmium getid --add-referenced "$SOURCE" r7095604 r16454647 -o "$SUBSET"
+osmium export "$SUBSET" -f geojsonseq --geometry-types=polygon \
+  --add-unique-id=type_id | \
+python3 -c '
+import sys
+wanted = (b"\"id\":\"a14191209\"", b"\"id\":\"a32909295\"")
+sys.stdout.buffer.writelines(
+    line for line in sys.stdin.buffer if any(key in line for key in wanted)
+)
+' > "$FIXTURE"
+printf 'ac1d36c8cd40074edf262fad812e163ccd3c419de854122d87a46738f6ae4a15  %s\n' \
+  "$FIXTURE" | shasum -a 256 -c -
+```
+
+The two relevant rings are nonzero and above the restored threshold: twice
+signed area `-2.000014271810943e-13` for relation `7095604` component 0 inner
+ring 2 and `3.9999978197516556e-14` for relation `16454647` component 0 outer
+ring 0. Pinned Shapely 2.0.6 reports both complete relations valid. Both
+records still travel unchanged through coarse gating and are explicit
+topology-unvalidated far noncandidates at 8,217.779 m and 8,371.861 m in the
+deterministic controls. If an endpoint makes either intact geometry a coarse
+candidate, it passes Shapely topology and may proceed to exact association; the
+census does not invent a wider tiny-ring rejection. Synthetic exact/sub-`1e-15`
+rings and genuinely Shapely-invalid near polygons remain fatal before exact
+association.
+
+The fixture SHA binds its exact original bytes; authoritative PBF runs
+separately bind source and filtered-PBF SHA-256 values. Staging does not promise
+raw GeoJSON geometry-token preservation: JSON numeric lexical spellings
+normalize when parsed into binary floats and when staged geometry is canonically
+serialized. For relation/16454647, source spelling `30.467533800000003`
+therefore serializes as `30.4675338`; both spellings resolve to the identical
+binary float. The fixture contract requires every position to be exactly 2D and
+preserves geometry type, component/ring nesting, component/ring/coordinate
+order, explicit closure, every nonzero coordinate's binary-float value,
+signed-zero value equality with `+0.0` canonicalization, diagnosed degeneracy
+locations, canonical aliases, source forms, and source binding SHA. Extra
+ordinates are rejected instead of projected away. No
+ring or component is dropped or converted. Canonical staged geometry bytes must
+not be described or tested as original JSON token bytes. Mixed
+valid/threshold-degenerate components and isolated inner/outer coarse coverage
+are tested separately.
+
+During capture the tool emits one deterministic stderr progress line every
+100,000 records containing record and topology totals, the live
+`topology_rejected_degenerate_records` versus
+`topology_rejected_shapely_records` split, coarse-outside,
+topology-noncandidate, exact-outside, and retained counts; these lines contain
+no timestamps or authority paths. Treat 90 minutes of GeoJSON-export wall-clock
+time as an operator diagnosis threshold, not a tool-enforced timeout: preserve
+the stage and inspect these counters instead of blindly rerunning it. The actual
+default timeout is 3,600 seconds per osmium command; the documented national
+invocation overrides it to 21,600 seconds with
+`--osmium-timeout-seconds 21600`, and the tool enforces that selected
+per-command value.
 
 An exact rerun scans installed content addresses before creating a stage and
 reuses one only after no-follow owner/mode checks, canonical manifest and

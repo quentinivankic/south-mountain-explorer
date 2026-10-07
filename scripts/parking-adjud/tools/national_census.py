@@ -143,6 +143,7 @@ UNASSIGNED_OWNER = "__unassigned__"
 TOPOLOGY_UNVALIDATED_NONCANDIDATE_STATUS = (
     "structurally-valid-topology-unvalidated-noncandidate"
 )
+DEGENERATE_RING_TWICE_SIGNED_AREA_EPSILON = 1e-15
 LEGACY_CLOSED_WAY_NON_AREA_POLICIES = frozenset({
     "LineString-required",
     "LineString-required-area-copies-ignored",
@@ -256,6 +257,17 @@ class ScopeCapture:
     trails_without_endpoints: int
 
 
+_STAGED_POLYGON_DEGENERACY_PROOF = object()
+
+
+@dataclass(frozen=True)
+class _StagedPolygonDegeneracy:
+    geometry: dict = field(compare=False, repr=False)
+    ring_locations: tuple[tuple[int, int], ...]
+    component_indices: tuple[int, ...]
+    proof: object = field(compare=False, repr=False)
+
+
 @dataclass(frozen=True)
 class StagedParkingFeature:
     alias: str
@@ -263,10 +275,19 @@ class StagedParkingFeature:
     geometry: dict
     tags: dict[str, str]
     relation_members: tuple[str, ...]
+    _polygon_degeneracy: _StagedPolygonDegeneracy = field(repr=False)
 
     @property
     def geometry_type(self) -> str:
         return self.geometry["type"]
+
+    @property
+    def degenerate_ring_locations(self) -> tuple[tuple[int, int], ...]:
+        return self._polygon_degeneracy.ring_locations
+
+    @property
+    def degenerate_component_indices(self) -> tuple[int, ...]:
+        return self._polygon_degeneracy.component_indices
 
 
 @dataclass
@@ -618,8 +639,10 @@ def _finite_number(value: object, label: str) -> float:
 
 
 def _coordinate(value: object, label: str) -> tuple[float, float]:
-    if not isinstance(value, list) or len(value) < 2:
-        raise CensusError(f"{label} must be a coordinate pair")
+    if not isinstance(value, list) or len(value) != 2:
+        raise CensusError(
+            f"{label} must be an exactly two-dimensional coordinate pair"
+        )
     longitude = _finite_number(value[0], f"{label} longitude")
     latitude = _finite_number(value[1], f"{label} latitude")
     if not -180.0 <= longitude <= 180.0 or not -90.0 <= latitude <= 90.0:
@@ -1094,22 +1117,99 @@ def _normalize_line(value: object, label: str, minimum: int) -> list[list[float]
     return normalized
 
 
+def _ring_longitude_delta(longitude: float, anchor_longitude: float) -> float:
+    delta = longitude - anchor_longitude
+    if delta < -180.0:
+        delta += 360.0
+    elif delta >= 180.0:
+        delta -= 360.0
+    return delta
+
+
+def _ring_twice_signed_area(ring: list[list[float]]) -> float:
+    anchor_longitude, anchor_latitude = ring[0]
+
+    def terms() -> Iterator[float]:
+        points = iter(ring)
+        first = next(points)
+        previous = (
+            _ring_longitude_delta(first[0], anchor_longitude),
+            first[1] - anchor_latitude,
+        )
+        for point in points:
+            current = (
+                _ring_longitude_delta(point[0], anchor_longitude),
+                point[1] - anchor_latitude,
+            )
+            yield (
+                previous[0] * current[1]
+                - current[0] * previous[1]
+            )
+            previous = current
+
+    return math.fsum(terms())
+
+
 def _ring_twice_area(ring: list[list[float]]) -> float:
-    anchor = ring[0][0]
-    points = [(_unwrapped_longitude(point[0], anchor), point[1]) for point in ring]
-    return abs(sum(
-        first[0] * second[1] - second[0] * first[1]
-        for first, second in zip(points, points[1:])
-    ))
+    return abs(_ring_twice_signed_area(ring))
 
 
 def _normalize_ring(value: object, label: str) -> list[list[float]]:
     ring = _normalize_line(value, label, 4)
     if ring[0] != ring[-1]:
         raise FeatureRejection("malformed_geometry", f"{label} is not explicitly closed")
-    if len({tuple(point) for point in ring[:-1]}) < 3 or _ring_twice_area(ring) <= 1e-15:
-        raise FeatureRejection("malformed_geometry", f"{label} is degenerate")
     return ring
+
+
+def _polygon_degeneracy_locations(
+        geometry: dict) -> tuple[tuple[tuple[int, int], ...], tuple[int, ...]]:
+    degenerate_rings = []
+    degenerate_components = []
+    for polygon_index, polygon in enumerate(_iter_polygons(geometry)):
+        for ring_index, ring in enumerate(polygon):
+            if (_ring_twice_area(ring)
+                    <= DEGENERATE_RING_TWICE_SIGNED_AREA_EPSILON):
+                degenerate_rings.append((polygon_index, ring_index))
+                if ring_index == 0:
+                    degenerate_components.append(polygon_index)
+    return tuple(degenerate_rings), tuple(degenerate_components)
+
+
+def _stage_polygon_degeneracy(geometry: dict) -> _StagedPolygonDegeneracy:
+    ring_locations, component_indices = _polygon_degeneracy_locations(
+        geometry
+    )
+    return _StagedPolygonDegeneracy(
+        geometry,
+        ring_locations,
+        component_indices,
+        _STAGED_POLYGON_DEGENERACY_PROOF,
+    )
+
+
+def _paired_polygon_degeneracy(
+        geometry: dict,
+        staged: _StagedPolygonDegeneracy | None) -> _StagedPolygonDegeneracy:
+    if staged is None:
+        return _stage_polygon_degeneracy(geometry)
+    if (not isinstance(staged, _StagedPolygonDegeneracy)
+            or staged.proof is not _STAGED_POLYGON_DEGENERACY_PROOF
+            or staged.geometry is not geometry):
+        raise CensusError(
+            "staged polygon degeneracy diagnostics do not match geometry"
+        )
+    return staged
+
+
+def _polygon_degeneracy_identity_bytes(
+        feature: StagedParkingFeature) -> bytes:
+    return _canonical_bytes([
+        feature.alias,
+        feature.source_form,
+        feature.geometry_type,
+        [list(location) for location in feature.degenerate_ring_locations],
+        list(feature.degenerate_component_indices),
+    ])
 
 
 def _require_shapely():
@@ -1137,7 +1237,11 @@ def _geometry_engine_manifest() -> dict:
         "engine": "Shapely",
         "version": SHAPELY_REQUIRED_VERSION,
         "requirement": f"Shapely=={SHAPELY_REQUIRED_VERSION}",
-        "validity": "complete Polygon/MultiPolygon topology",
+        "validity": (
+            "complete Polygon/MultiPolygon topology with explicit near-zero "
+            "ring rejection at absolute twice-signed area <= "
+            f"{DEGENERATE_RING_TWICE_SIGNED_AREA_EPSILON:.0e} square degrees"
+        ),
         "capture_validation_scope": (
             "polygonal parking with a nonempty conservative 5km EndpointGrid "
             "candidate set after non-area area-copy suppression; polygonal "
@@ -1151,9 +1255,93 @@ def _geometry_engine_manifest() -> dict:
 def _parking_geometry_policy() -> dict:
     return {
         "structure_validation": (
-            "strict-feature-tags-id-finite-coordinates-and-closed-"
-            "nondegenerate-rings-before-spatial-gating"
+            "strict-feature-tags-id-finite-in-range-exactly-two-dimensional-"
+            "coordinates-with-signed-zero-value-equality-positive-zero-"
+            "canonicalization-and-explicitly-closed-rings-with-at-least-four-"
+            "points-before-spatial-gating"
         ),
+        "degenerate_polygon_staging": {
+            "ring_detection": (
+                "absolute-first-coordinate-relative-direct-longitude-delta-"
+                "conditional-shortest-wrap-fsum-shoelace-near-zero-ring-when-"
+                "twice-signed-area-is-at-or-below-the-exact-threshold"
+            ),
+            "head_threshold_compatibility": (
+                "same-1e-15-threshold-with-stable-first-coordinate-relative-"
+                "fsum-can-admit-above-threshold-rings-or-reject-at-or-below-"
+                "threshold-rings-opposite-of-global-coordinate-sum-noise"
+            ),
+            "twice_signed_area_epsilon": (
+                DEGENERATE_RING_TWICE_SIGNED_AREA_EPSILON
+            ),
+            "twice_signed_area_epsilon_units": "square-degrees",
+            "component_definition": (
+                "polygon-component-whose-outer-ring-is-degenerate"
+            ),
+            "stream_policy": (
+                "retain-complete-parsed-coordinate-sequence-and-diagnostics-"
+                "through-coarse-candidate-gating"
+            ),
+            "json_numeric_lexical_policy": (
+                "source-spellings-normalize-under-parse-and-canonical-staging-"
+                "serialization-not-preserved-as-raw-token-bytes"
+            ),
+            "parsed_coordinate_sequence_preservation": (
+                "exactly-two-dimensional-positions-with-exact-nonzero-binary-"
+                "float-values-and-signed-zero-value-equality-canonicalized-to-"
+                "positive-zero-plus-ring-component-structure-order-and-"
+                "explicit-closure"
+            ),
+            "staged_identity_preservation": (
+                "exact-canonical-alias-source-form-and-private-typed-geometry-"
+                "paired-degeneracy-locations"
+            ),
+            "source_byte_authority": (
+                "source-binding-sha256-separate-from-staged-geometry-"
+                "representation"
+            ),
+            "coarse_coverage": (
+                "every-retained-coordinate-and-segment-in-every-ring-and-"
+                "component"
+            ),
+            "empty_coarse_candidates": (
+                TOPOLOGY_UNVALIDATED_NONCANDIDATE_STATUS
+            ),
+            "nonempty_coarse_candidates": (
+                "reject-sub-threshold-near-zero-or-shapely-invalid-complete-"
+                "topology-before-exact-association"
+            ),
+            "candidate_rejection_counters": (
+                "partition-topology-failures-into-staged-near-zero-threshold-"
+                "rejections-with-stream-order-identity-sha256-and-shapely-"
+                "topology-rejections"
+            ),
+            "public_normalization": (
+                "eager-pinned-Shapely-plus-strict-near-zero-threshold-contract"
+            ),
+            "geometry_mutation": (
+                "forbidden-no-ring-or-component-dropping-or-candidate-"
+                "conversion"
+            ),
+            "staged_counter_scope": (
+                "polygonal-records-after-declared-non-area-area-copy-"
+                "suppression"
+            ),
+            "inventory": (
+                "staged-and-terminal-counts-plus-separate-far-noncandidate-and-"
+                "candidate-rejection-sha256-values-over-concatenated-"
+                "canonical-json-lines-alias-source_form-geometry_type-ring_"
+                "locations-component_indices-in-stream-order"
+            ),
+        },
+        "polygon_representative": {
+            "ring_centroid": (
+                "first-coordinate-relative-direct-longitude-delta-conditional-"
+                "shortest-wrap-fsum-shoelace-moments"
+            ),
+            "sanity": "centroid-must-remain-within-local-ring-coordinate-bounds",
+            "fallback": "first-coordinate-relative-fsum-open-ring-vertex-mean",
+        },
         "coarse_index": "conservative-spherical-segment-union-EndpointGrid",
         "coarse_geometry_model": (
             "local-convex-spherical-caps-or-great-circle-segment-tubes-plus-"
@@ -1315,8 +1503,9 @@ def _parking_geometry_policy() -> dict:
         "far_topology_policy": {
             "status": TOPOLOGY_UNVALIDATED_NONCANDIDATE_STATUS,
             "scope": (
-                "structurally-valid-Polygon-or-MultiPolygon-proven-outside-"
-                "every-conservative-5km-endpoint-envelope"
+                "structurally-admissible-Polygon-or-MultiPolygon-including-"
+                "diagnosed-near-zero-sub-threshold-rings-proven-outside-every-"
+                "conservative-5km-endpoint-envelope"
             ),
             "candidate": False,
             "denominator_policy": (
@@ -1324,8 +1513,9 @@ def _parking_geometry_policy() -> dict:
                 "while-record-accounting-and-export-reconciliation-close"
             ),
             "inventory_authority": (
-                "record-count-and-stream-order-record-identity-sha256-in-"
-                "parking-source-inventory"
+                "record-count-and-stream-order-record-identity-sha256-plus-"
+                "degenerate-record-ring-outer-inner-component-counts-and-"
+                "location-identity-sha256-in-parking-source-inventory"
             ),
             "run_id_compatibility": (
                 "intentional-delta-from-HEAD-preserves-candidate-denominator-"
@@ -1345,8 +1535,27 @@ def _parking_geometry_policy() -> dict:
     }
 
 
-def _validate_polygon_topology(geometry: dict) -> None:
+def _validate_polygon_topology(
+        geometry: dict, *,
+        _staged_degeneracy: _StagedPolygonDegeneracy | None = None) -> None:
     shape, explain_validity = _require_shapely()
+    staged_degeneracy = _paired_polygon_degeneracy(
+        geometry, _staged_degeneracy
+    )
+    if staged_degeneracy.ring_locations:
+        locations = ", ".join(
+            f"component {polygon_index} "
+            f"{'outer' if ring_index == 0 else 'inner'} ring {ring_index}"
+            for polygon_index, ring_index
+            in staged_degeneracy.ring_locations
+        )
+        raise FeatureRejection(
+            "malformed_geometry",
+            "invalid complete polygon topology: near-zero signed-area ring "
+            "with absolute twice-signed area at or below "
+            f"{DEGENERATE_RING_TWICE_SIGNED_AREA_EPSILON:.0e} square degrees "
+            f"at {locations}",
+        )
     anchor = next(_iter_vertices(geometry))[1]
     try:
         value = shape(_unwrap_geometry(geometry, anchor))
@@ -1415,25 +1624,69 @@ def normalize_geometry(value: object) -> dict:
 
 
 def _ring_centroid(ring: list[list[float]]) -> tuple[float, float, float]:
-    anchor = ring[0][0]
-    points = [(_unwrapped_longitude(point[0], anchor), point[1]) for point in ring]
-    cross_sum = 0.0
-    x_sum = 0.0
-    y_sum = 0.0
-    for first, second in zip(points, points[1:]):
-        cross = first[0] * second[1] - second[0] * first[1]
-        cross_sum += cross
-        x_sum += (first[0] + second[0]) * cross
-        y_sum += (first[1] + second[1]) * cross
-    if abs(cross_sum) <= 1e-15:
-        longitudes = [point[0] for point in ring[:-1]]
-        latitudes = [point[1] for point in ring[:-1]]
-        return sum(latitudes) / len(latitudes), _wrap_longitude(
-            sum(longitudes) / len(longitudes)
-        ), 0.0
-    longitude = x_sum / (3.0 * cross_sum)
-    latitude = y_sum / (3.0 * cross_sum)
-    return latitude, _wrap_longitude(longitude), abs(cross_sum)
+    anchor_longitude, anchor_latitude = ring[0]
+
+    def local_point(point: list[float]) -> tuple[float, float]:
+        return (
+            _ring_longitude_delta(point[0], anchor_longitude),
+            point[1] - anchor_latitude,
+        )
+
+    def edges() -> Iterator[
+            tuple[tuple[float, float], tuple[float, float]]]:
+        points = iter(ring)
+        previous = local_point(next(points))
+        for point in points:
+            current = local_point(point)
+            yield previous, current
+            previous = current
+
+    def cross(first: tuple[float, float],
+              second: tuple[float, float]) -> float:
+        return first[0] * second[1] - second[0] * first[1]
+
+    def vertex_mean() -> tuple[float, float, float]:
+        count = len(ring) - 1
+        latitude = anchor_latitude + math.fsum(
+            ring[index][1] - anchor_latitude for index in range(count)
+        ) / count
+        longitude = anchor_longitude + math.fsum(
+            _ring_longitude_delta(ring[index][0], anchor_longitude)
+            for index in range(count)
+        ) / count
+        return latitude, _wrap_longitude(longitude), 0.0
+
+    cross_sum = math.fsum(cross(first, second) for first, second in edges())
+    if abs(cross_sum) <= DEGENERATE_RING_TWICE_SIGNED_AREA_EPSILON:
+        return vertex_mean()
+    longitude_offset = math.fsum(
+        (first[0] + second[0]) * cross(first, second)
+        for first, second in edges()
+    ) / (3.0 * cross_sum)
+    latitude_offset = math.fsum(
+        (first[1] + second[1]) * cross(first, second)
+        for first, second in edges()
+    ) / (3.0 * cross_sum)
+    count = len(ring) - 1
+    minimum_longitude = math.inf
+    maximum_longitude = -math.inf
+    minimum_latitude = math.inf
+    maximum_latitude = -math.inf
+    for index in range(count):
+        longitude, latitude = local_point(ring[index])
+        minimum_longitude = min(minimum_longitude, longitude)
+        maximum_longitude = max(maximum_longitude, longitude)
+        minimum_latitude = min(minimum_latitude, latitude)
+        maximum_latitude = max(maximum_latitude, latitude)
+    if not (
+            minimum_longitude <= longitude_offset <= maximum_longitude
+            and minimum_latitude <= latitude_offset <= maximum_latitude):
+        return vertex_mean()
+    return (
+        anchor_latitude + latitude_offset,
+        _wrap_longitude(anchor_longitude + longitude_offset),
+        abs(cross_sum),
+    )
 
 
 def geometry_representative(geometry: dict) -> tuple[float, float]:
@@ -2746,16 +2999,46 @@ def _associate_feature_endpoints(
 
 
 def _validate_feature_topology(
-        geometry: dict, metrics: collections.Counter | None = None) -> None:
+        geometry: dict, metrics: collections.Counter | None = None, *,
+        _staged_degeneracy: _StagedPolygonDegeneracy | None = None) -> None:
     if geometry["type"] not in ("Polygon", "MultiPolygon"):
         return
+    staged_degeneracy = _paired_polygon_degeneracy(
+        geometry, _staged_degeneracy
+    )
+    degenerate_ring_locations = staged_degeneracy.ring_locations
+    degenerate_component_indices = staged_degeneracy.component_indices
     if metrics is not None:
         metrics["topology_validation_calls"] += 1
     try:
-        _validate_polygon_topology(geometry)
+        _validate_polygon_topology(
+            geometry,
+            _staged_degeneracy=staged_degeneracy,
+        )
     except FeatureRejection:
         if metrics is not None:
             metrics["topology_validation_failures"] += 1
+            if degenerate_ring_locations:
+                outer_rings = sum(
+                    ring_index == 0
+                    for _polygon_index, ring_index
+                    in degenerate_ring_locations
+                )
+                metrics["topology_rejected_degenerate_records"] += 1
+                metrics["topology_rejected_degenerate_rings"] += len(
+                    degenerate_ring_locations
+                )
+                metrics["topology_rejected_degenerate_outer_rings"] += (
+                    outer_rings
+                )
+                metrics["topology_rejected_degenerate_inner_rings"] += (
+                    len(degenerate_ring_locations) - outer_rings
+                )
+                metrics["topology_rejected_degenerate_components"] += len(
+                    degenerate_component_indices
+                )
+            else:
+                metrics["topology_rejected_shapely_records"] += 1
         raise
 
 
@@ -2779,6 +3062,7 @@ def _normalize_feature_structure(
         record.get("id", tags.get("@id"))
     )
     geometry = _normalize_geometry_structure(record.get("geometry"))
+    polygon_degeneracy = _stage_polygon_degeneracy(geometry)
     members = set(relation_memberships.get(alias, ()))
     members.update(_normalize_relation_members(record.get("parking_members")))
     return StagedParkingFeature(
@@ -2787,6 +3071,7 @@ def _normalize_feature_structure(
         geometry=geometry,
         tags=tags,
         relation_members=tuple(sorted(members)),
+        _polygon_degeneracy=polygon_degeneracy,
     )
 
 
@@ -2798,7 +3083,11 @@ def normalize_feature(
     staged = _normalize_feature_structure(record, relation_memberships)
     if staged is None:
         return None
-    _validate_feature_topology(staged.geometry, metrics)
+    _validate_feature_topology(
+        staged.geometry,
+        metrics,
+        _staged_degeneracy=staged._polygon_degeneracy,
+    )
     latitude, longitude = geometry_representative(staged.geometry)
     near_endpoint_ids = (
         _associate_feature_endpoints(
@@ -3034,6 +3323,8 @@ class FeatureAccumulator:
         self.rejections = collections.Counter()
         self.rejection_contexts: dict[str, str] = {}
         self.topology_unvalidated_non_candidate_hasher = hashlib.sha256()
+        self.topology_unvalidated_degenerate_hasher = hashlib.sha256()
+        self.topology_rejected_degenerate_hasher = hashlib.sha256()
         self.metadata: dict = {}
 
     def _reject_record(self, code: str, context: str, detail: str) -> None:
@@ -3078,6 +3369,26 @@ class FeatureAccumulator:
             return False
         return True
 
+    def _record_staged_polygon_degeneracy(
+            self, feature: StagedParkingFeature) -> None:
+        if not feature.degenerate_ring_locations:
+            return
+        outer_rings = sum(
+            ring_index == 0
+            for _polygon_index, ring_index in feature.degenerate_ring_locations
+        )
+        self.counters["staged_degenerate_polygon_records"] += 1
+        self.counters["staged_degenerate_rings"] += len(
+            feature.degenerate_ring_locations
+        )
+        self.counters["staged_degenerate_outer_rings"] += outer_rings
+        self.counters["staged_degenerate_inner_rings"] += (
+            len(feature.degenerate_ring_locations) - outer_rings
+        )
+        self.counters["staged_degenerate_components"] += len(
+            feature.degenerate_component_indices
+        )
+
     def _record_topology_unvalidated_non_candidate(
             self, feature: StagedParkingFeature) -> None:
         self.counters["topology_unvalidated_non_candidates"] += 1
@@ -3085,6 +3396,30 @@ class FeatureAccumulator:
             _canonical_bytes([
                 feature.alias, feature.source_form, feature.geometry_type,
             ])
+        )
+        if not feature.degenerate_ring_locations:
+            return
+        outer_rings = sum(
+            ring_index == 0
+            for _polygon_index, ring_index in feature.degenerate_ring_locations
+        )
+        self.counters[
+            "topology_unvalidated_degenerate_records"
+        ] += 1
+        self.counters["topology_unvalidated_degenerate_rings"] += len(
+            feature.degenerate_ring_locations
+        )
+        self.counters[
+            "topology_unvalidated_degenerate_outer_rings"
+        ] += outer_rings
+        self.counters[
+            "topology_unvalidated_degenerate_inner_rings"
+        ] += len(feature.degenerate_ring_locations) - outer_rings
+        self.counters[
+            "topology_unvalidated_degenerate_components"
+        ] += len(feature.degenerate_component_indices)
+        self.topology_unvalidated_degenerate_hasher.update(
+            _polygon_degeneracy_identity_bytes(feature)
         )
 
     def topology_unvalidated_non_candidate_inventory(self) -> dict:
@@ -3096,6 +3431,24 @@ class FeatureAccumulator:
                 ],
                 "record_identity_sha256": (
                     self.topology_unvalidated_non_candidate_hasher.hexdigest()
+                ),
+                "degenerate_records": self.counters[
+                    "topology_unvalidated_degenerate_records"
+                ],
+                "degenerate_rings": self.counters[
+                    "topology_unvalidated_degenerate_rings"
+                ],
+                "degenerate_outer_rings": self.counters[
+                    "topology_unvalidated_degenerate_outer_rings"
+                ],
+                "degenerate_inner_rings": self.counters[
+                    "topology_unvalidated_degenerate_inner_rings"
+                ],
+                "degenerate_components": self.counters[
+                    "topology_unvalidated_degenerate_components"
+                ],
+                "degenerate_identity_sha256": (
+                    self.topology_unvalidated_degenerate_hasher.hexdigest()
                 ),
             }
         }
@@ -3115,6 +3468,10 @@ class FeatureAccumulator:
             f"parking={self.counters['parking_features']} "
             f"topology_calls={self.counters['topology_validation_calls']} "
             f"topology_failures={self.counters['topology_validation_failures']} "
+            f"topology_rejected_degenerate_records="
+            f"{self.counters['topology_rejected_degenerate_records']} "
+            f"topology_rejected_shapely_records="
+            f"{self.counters['topology_rejected_shapely_records']} "
             f"coarse_outside={self.counters['coarse_outside_fallback_envelope']} "
             f"topology_noncandidates="
             f"{self.counters['topology_unvalidated_non_candidates']} "
@@ -3254,10 +3611,12 @@ class FeatureAccumulator:
                 and _declared_non_area(feature.tags)
                 and feature.geometry_type in ("Polygon", "MultiPolygon")):
             # Reconcile the osmium-derived area form and reserve its sidecar
-            # alias, but do no coarse, topology, representative, or exact work.
+            # alias, but do no degeneracy accounting, coarse, topology,
+            # representative, or exact work.
             self.counters["parking_features"] += 1
             self.counters["ignored_non_area_area_copies"] += 1
             return
+        self._record_staged_polygon_degeneracy(feature)
         coarse_ids = _coarse_feature_endpoint_candidates(
             feature.alias, feature.geometry, self.endpoint_grid, self.counters
         )
@@ -3270,8 +3629,16 @@ class FeatureAccumulator:
                 self.counters["outside_fallback_envelope"] += 1
             return
         try:
-            _validate_feature_topology(feature.geometry, self.counters)
+            _validate_feature_topology(
+                feature.geometry,
+                self.counters,
+                _staged_degeneracy=feature._polygon_degeneracy,
+            )
         except FeatureRejection as error:
+            if feature.degenerate_ring_locations:
+                self.topology_rejected_degenerate_hasher.update(
+                    _polygon_degeneracy_identity_bytes(feature)
+                )
             if context is None:
                 context = _safe_stream_record_context(
                     payload, self.counters["records_total"]
@@ -3322,6 +3689,22 @@ class FeatureAccumulator:
             "coarse_outside_fallback_envelope",
             "topology_not_required_outside",
             "topology_unvalidated_non_candidates",
+            "staged_degenerate_polygon_records",
+            "staged_degenerate_rings",
+            "staged_degenerate_outer_rings",
+            "staged_degenerate_inner_rings",
+            "staged_degenerate_components",
+            "topology_unvalidated_degenerate_records",
+            "topology_unvalidated_degenerate_rings",
+            "topology_unvalidated_degenerate_outer_rings",
+            "topology_unvalidated_degenerate_inner_rings",
+            "topology_unvalidated_degenerate_components",
+            "topology_rejected_degenerate_records",
+            "topology_rejected_degenerate_rings",
+            "topology_rejected_degenerate_outer_rings",
+            "topology_rejected_degenerate_inner_rings",
+            "topology_rejected_degenerate_components",
+            "topology_rejected_shapely_records",
             "topology_validation_calls", "topology_validation_failures",
             "exact_outside_fallback_envelope",
             "exact_endpoint_distance_checks", "endpoint_associations_total",
@@ -3344,6 +3727,72 @@ class FeatureAccumulator:
         values["rejection_contexts"] = dict(sorted(
             self.rejection_contexts.items()
         ))
+        values["topology_rejected_degenerate_identity_sha256"] = (
+            self.topology_rejected_degenerate_hasher.hexdigest()
+        )
+        if values["staged_degenerate_rings"] != (
+                values["staged_degenerate_outer_rings"]
+                + values["staged_degenerate_inner_rings"]):
+            raise CensusError("staged degenerate ring accounting did not close")
+        if values["staged_degenerate_components"] != values[
+                "staged_degenerate_outer_rings"]:
+            raise CensusError("staged degenerate component accounting did not close")
+        if values["topology_unvalidated_degenerate_rings"] != (
+                values["topology_unvalidated_degenerate_outer_rings"]
+                + values["topology_unvalidated_degenerate_inner_rings"]):
+            raise CensusError(
+                "topology-unvalidated degenerate ring accounting did not close"
+            )
+        if values["topology_unvalidated_degenerate_components"] != values[
+                "topology_unvalidated_degenerate_outer_rings"]:
+            raise CensusError(
+                "topology-unvalidated degenerate component accounting did not close"
+            )
+        if values["topology_rejected_degenerate_rings"] != (
+                values["topology_rejected_degenerate_outer_rings"]
+                + values["topology_rejected_degenerate_inner_rings"]):
+            raise CensusError(
+                "topology-rejected degenerate ring accounting did not close"
+            )
+        if values["topology_rejected_degenerate_components"] != values[
+                "topology_rejected_degenerate_outer_rings"]:
+            raise CensusError(
+                "topology-rejected degenerate component accounting did not close"
+            )
+        if values["topology_validation_failures"] != (
+                values["topology_rejected_degenerate_records"]
+                + values["topology_rejected_shapely_records"]):
+            raise CensusError(
+                "topology failure classification accounting did not close"
+            )
+        staged_partitions = (
+            ("staged_degenerate_polygon_records",
+             "topology_unvalidated_degenerate_records",
+             "topology_rejected_degenerate_records"),
+            ("staged_degenerate_rings",
+             "topology_unvalidated_degenerate_rings",
+             "topology_rejected_degenerate_rings"),
+            ("staged_degenerate_outer_rings",
+             "topology_unvalidated_degenerate_outer_rings",
+             "topology_rejected_degenerate_outer_rings"),
+            ("staged_degenerate_inner_rings",
+             "topology_unvalidated_degenerate_inner_rings",
+             "topology_rejected_degenerate_inner_rings"),
+            ("staged_degenerate_components",
+             "topology_unvalidated_degenerate_components",
+             "topology_rejected_degenerate_components"),
+        )
+        if any(
+                values[staged] != values[unvalidated] + values[rejected]
+                for staged, unvalidated, rejected in staged_partitions):
+            raise CensusError(
+                "staged degeneracy branch accounting did not close"
+            )
+        if values["topology_unvalidated_degenerate_records"] > values[
+                "staged_degenerate_polygon_records"]:
+            raise CensusError(
+                "topology-unvalidated degeneracy exceeds staged diagnostics"
+            )
         values["record_equation"] = {
             "records_total": values["records_total"],
             "classified_records": (

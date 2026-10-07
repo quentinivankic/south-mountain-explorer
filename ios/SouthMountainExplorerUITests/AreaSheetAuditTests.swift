@@ -21,6 +21,24 @@ final class AreaSheetAuditTests: XCTestCase {
     private let areaRowId = "area-progress-south-mountain-park-and-preserve-az"
     private let deselectTrailLabelPrefix = "Deselect Trail,"
 
+    private struct TrailSelection {
+        let selectIdentifier: String
+        let secondaryIdentifier: String
+        let profileIdentifier: String
+        let subject: String
+        let idleSecondaryLabel: String
+    }
+
+    private struct ScrollVisibilityResult {
+        let isVisible: Bool
+        let didScroll: Bool
+    }
+
+    private enum KnownTargetPosition {
+        case earlier
+        case later
+    }
+
     /// Layout anchors per state tag, so the test can ASSERT the layout rather
     /// than only photograph it. Filled by `logFrames`. The search field is no
     /// longer the anchor — it exists ONLY at the browse stop now — so the fit
@@ -35,6 +53,7 @@ final class AreaSheetAuditTests: XCTestCase {
     }
 
     func testAuditAreaSheetStates() {
+        assertNavigationRegressionControls()
         let app = XCUIApplication()
         app.launchArguments = ["--uitest-seed"]
         app.launch()
@@ -88,18 +107,27 @@ final class AreaSheetAuditTests: XCTestCase {
         logFrames(app, "min-after-scroll-back")
 
         // ---- 4. Select a trail at the min stop ----------------------------
-        guard let firstRowIdentifier = tapFirstTrailRow(app) else { return }
+        guard let firstSelection = tapFirstTrailRow(app) else { return }
         settle(3)
-        assertSelectedTrailPresentation(app, rowIdentifier: firstRowIdentifier)
+        assertSelectedTrailPresentation(
+            app,
+            rowIdentifier: firstSelection.selectIdentifier
+        )
         assertSelectedMapFraming(app)
         capture(app, "sheet-05-min-trail-selected")
         logFrames(app, "min-trail-selected")
 
         // ---- 5. Deselect: the toolbar and rows must return to idle --------
-        guard deselectTrailAndWait(app, rowIdentifier: firstRowIdentifier) else { return }
+        guard deselectTrailAndWait(app, selection: firstSelection) else { return }
         dragSheet(app, toBottom: true)
         settle(2)
-        guard waitForDeselectedTrailState(app, rowIdentifier: firstRowIdentifier) else {
+        let deselectedTrailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+        guard deselectedTrailScroll.waitForExistence(timeout: 10),
+              waitForDeselectedTrailState(
+                app,
+                selection: firstSelection,
+                in: deselectedTrailScroll
+              ) else {
             return
         }
         capture(app, "sheet-06-min-trail-deselected")
@@ -150,22 +178,35 @@ final class AreaSheetAuditTests: XCTestCase {
         // ---- 6b. Select from browse: the sheet hands off to the map -------
         // Tapping a trail is a question about WHERE it is, so selecting from
         // the tall stop drops the sheet to fit and the trail is framed above.
-        guard let browseRowIdentifier = tapFirstTrailRow(app) else { return }
+        guard let browseSelection = tapFirstTrailRow(app) else { return }
         guard waitForFitChrome(app) else { return }
         settle(3)
         assertTrailActionFrames(
             app,
-            rowIdentifier: browseRowIdentifier,
+            rowIdentifier: browseSelection.selectIdentifier,
             selectLabelPrefix: "Deselect Trail,",
             secondaryLabelPrefix: "Record Trail,",
             tag: "trail-actions-browse-record"
         )
-        assertSelectedProfileLayout(app, rowIdentifier: browseRowIdentifier)
-        capture(app, "sheet-07b-selected-from-browse")
+        assertSelectedProfileLayout(
+            app,
+            rowIdentifier: browseSelection.selectIdentifier
+        )
+        let selectedFromBrowsePixels = capture(app, "sheet-07b-selected-from-browse")
         logFrames(app, "selected-from-browse")
-        guard scrollSelectedProfileLowerContent(app) else { return }
+        guard let lowerContentDidScroll = scrollSelectedProfileLowerContent(app) else {
+            return
+        }
         assertSelectedMapFraming(app)
-        capture(app, "sheet-07d-selected-profile-lower-content")
+        let lowerContentPixels = capture(app, "sheet-07d-selected-profile-lower-content")
+        if lowerContentDidScroll {
+            let lowerContentIsPixelDistinct = lowerContentPixels
+                != selectedFromBrowsePixels
+            XCTAssertTrue(
+                lowerContentIsPixelDistinct,
+                "Lower-content capture must be pixel-distinct after scrolling"
+            )
+        }
 
         if !isAccessibilityLayout(app) {
             if let atBrowse = toolbarY["browse-after-deselect"],
@@ -184,7 +225,7 @@ final class AreaSheetAuditTests: XCTestCase {
         }
 
         // Deselect returns to Browse, since the drop was for the selection.
-        guard deselectTrailAndWait(app, rowIdentifier: browseRowIdentifier) else { return }
+        guard deselectTrailAndWait(app, selection: browseSelection) else { return }
         guard waitForBrowseChrome(app, requiresKeyboard: false) else { return }
         settle(2)
         capture(app, "sheet-07c-deselected-back-to-browse")
@@ -672,26 +713,23 @@ final class AreaSheetAuditTests: XCTestCase {
             let secondaryMatches = app.descendants(matching: .any).matching(
                 identifier: secondaryIdentifier
             )
-            let select = selectMatches.firstMatch
-            let secondary = secondaryMatches.firstMatch
-            let subject = actionSubject(select.label, after: "Select Trail,")
-            let pairIsReachable = selectMatches.count == 1
-                && secondaryMatches.count == 1
-                && select.exists
-                && secondary.exists
-                && isOnScreenAndHittable(select, app: app)
-                && isOnScreenAndHittable(secondary, app: app)
-                && select.frame.width >= 44
-                && select.frame.height >= 44
-                && secondary.frame.width >= 44
-                && secondary.frame.height >= 44
-                && select.identifier != secondary.identifier
-                && select.label != secondary.label
-                && select.frame.intersection(secondary.frame).isEmpty
-                && subject != nil
-                && secondary.label == "Mark Trail Complete, \(subject ?? "")"
-            if pairIsReachable, let subject {
-                return (select, secondary, subject)
+            if let select = uniqueExistingElement(selectMatches),
+               let secondary = uniqueExistingElement(secondaryMatches) {
+                let subject = actionSubject(select.label, after: "Select Trail,")
+                let pairIsReachable = isOnScreenAndHittable(select, app: app)
+                    && isOnScreenAndHittable(secondary, app: app)
+                    && select.frame.width >= 44
+                    && select.frame.height >= 44
+                    && secondary.frame.width >= 44
+                    && secondary.frame.height >= 44
+                    && select.identifier != secondary.identifier
+                    && select.label != secondary.label
+                    && select.frame.intersection(secondary.frame).isEmpty
+                    && subject != nil
+                    && secondary.label == "Mark Trail Complete, \(subject ?? "")"
+                if pairIsReachable, let subject {
+                    return (select, secondary, subject)
+                }
             }
             if attempt < 20 {
                 let start = trailScroll.coordinate(
@@ -1048,58 +1086,67 @@ final class AreaSheetAuditTests: XCTestCase {
         )
     }
 
-    private func scrollSelectedProfileLowerContent(_ app: XCUIApplication) -> Bool {
+    private func scrollSelectedProfileLowerContent(_ app: XCUIApplication) -> Bool? {
         let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
         guard trailScroll.waitForExistence(timeout: 10) else {
             XCTFail("Trail list scroll is missing for selected-profile proof")
-            return false
+            return nil
         }
-        let range = app.descendants(matching: .any)["trail-profile-range"].firstMatch
+
+        var didScroll = false
         if isAccessibilityLayout(app) {
-            guard scrollToVisible(
+            let rangeResult = scrollToVisibleResult(
                 identifier: "trail-profile-range",
                 in: trailScroll,
                 app: app
-            ) else {
+            )
+            guard rangeResult.isVisible else {
                 XCTFail("Selected profile lower range is not reachable")
-                return false
+                return nil
+            }
+            didScroll = didScroll || rangeResult.didScroll
+            let rangeMatches = app.descendants(matching: .any).matching(
+                identifier: "trail-profile-range"
+            )
+            guard let range = uniqueExistingElement(rangeMatches) else {
+                XCTFail("Selected profile lower range is not uniquely materialized")
+                return nil
             }
             logElementFrame(app, range, tag: "selected-profile-range")
         }
-        guard scrollToVisible(
+
+        let parkingResult = scrollToVisibleResult(
             identifier: "selected-trail-parking-detail",
             in: trailScroll,
             app: app
-        ) else {
+        )
+        guard parkingResult.isVisible else {
             XCTFail("Selected profile lower parking content is not reachable")
-            return false
+            return nil
         }
-        let parkingMatches = app.descendants(matching: .any).matching(
-            identifier: "selected-trail-parking-detail"
-        )
-        XCTAssertEqual(parkingMatches.count, 1, "Selected parking detail must be unique")
-        let parking = parkingMatches.firstMatch
-        let parkingViewport = trailScroll.frame.intersection(app.frame).insetBy(dx: -1, dy: -1)
-        XCTAssertTrue(
-            parking.elementType == .staticText,
-            "Selected parking detail must remain informational text"
-        )
-        XCTAssertTrue(
-            parkingViewport.contains(parking.frame),
-            "Selected parking detail extends outside the visible trail list"
-        )
-        XCTAssertTrue(
-            hasNearestParkingDistanceLabel(parking.label),
-            "Selected parking detail violates the distance contract"
-        )
+        didScroll = didScroll || parkingResult.didScroll
+        guard let parking = exactContainedParkingDetail(
+            app,
+            in: trailScroll
+        ) else {
+            return nil
+        }
         logElementFrame(app, parking, tag: "selected-profile-lower-content")
+
         if isAccessibilityLayout(app) {
+            let rangeMatches = app.descendants(matching: .any).matching(
+                identifier: "trail-profile-range"
+            )
+            guard let range = uniqueExistingElement(rangeMatches) else {
+                XCTFail("Profile range disappeared before lower-content proof")
+                return nil
+            }
             XCTAssertTrue(
                 range.frame.intersection(parking.frame).isEmpty,
                 "Profile range overlaps selected parking content"
             )
         }
-        return true
+        return didScroll
     }
 
     /// Near and intentional far-fallback annotations expose distinct generic
@@ -1182,32 +1229,51 @@ final class AreaSheetAuditTests: XCTestCase {
                 identifier: "selected-trail-parking-detail",
                 in: trailScroll,
                 app: app
-              ) else {
+              ),
+              exactContainedParkingDetail(
+                app,
+                in: trailScroll
+              ) != nil else {
             XCTFail("Far-only selected parking detail is not visible")
             return
         }
+    }
+
+    private func exactContainedParkingDetail(
+        _ app: XCUIApplication,
+        in trailScroll: XCUIElement
+    ) -> XCUIElement? {
         let parkingMatches = app.descendants(matching: .any).matching(
             identifier: "selected-trail-parking-detail"
         )
         XCTAssertEqual(
             parkingMatches.count,
             1,
-            "Far-only selection must expose one selected parking detail"
+            "Selected parking detail must be unique"
         )
-        let parking = parkingMatches.firstMatch
-        let viewport = trailScroll.frame.intersection(app.frame).insetBy(dx: -1, dy: -1)
+        guard let parking = uniqueExistingElement(parkingMatches) else { return nil }
+
+        let viewport = trailScroll.frame.intersection(app.frame)
+        let frame = parking.frame
+        let elementType = parking.elementType
+        let label = parking.label
+        let isInformationalText = elementType == .staticText
+        let isFullyContained = viewport.contains(frame)
+        let hasExactDistance = hasNearestParkingDistanceLabel(label)
         XCTAssertTrue(
-            parking.elementType == .staticText,
-            "Far-only selected parking detail must remain informational text"
+            isInformationalText,
+            "Selected parking detail must remain informational text"
         )
         XCTAssertTrue(
-            viewport.contains(parking.frame),
-            "Far-only selected parking detail extends outside the visible trail list"
+            isFullyContained,
+            "Selected parking detail extends outside the visible trail list"
         )
         XCTAssertTrue(
-            hasNearestParkingDistanceLabel(parking.label),
-            "Far-only selected parking detail violates the distance contract"
+            hasExactDistance,
+            "Selected parking detail violates the distance contract"
         )
+        guard isInformationalText, isFullyContained, hasExactDistance else { return nil }
+        return parking
     }
 
     private func hasNearestParkingDistanceLabel(_ label: String) -> Bool {
@@ -1284,30 +1350,272 @@ final class AreaSheetAuditTests: XCTestCase {
         in scrollView: XCUIElement,
         app: XCUIApplication
     ) -> Bool {
+        scrollToVisibleResult(
+            identifier: identifier,
+            in: scrollView,
+            app: app
+        ).isVisible
+    }
+
+    private func scrollToVisibleResult(
+        identifier: String,
+        in scrollView: XCUIElement,
+        app: XCUIApplication
+    ) -> ScrollVisibilityResult {
+        var previousCorrection: CGFloat?
+        var didScroll = false
+
         for attempt in 0...20 {
-            let matches = app.descendants(matching: .any).matching(identifier: identifier)
-            let element = matches.firstMatch
-            let viewport = scrollView.frame.intersection(app.frame).insetBy(dx: -1, dy: -1)
-            if matches.count == 1,
-               element.exists,
-               viewport.contains(element.frame) {
-                return true
+            let viewport = scrollView.frame.intersection(app.frame)
+            guard !viewport.isNull, viewport.width > 0, viewport.height > 0 else {
+                return ScrollVisibilityResult(isVisible: false, didScroll: didScroll)
             }
-            if attempt < 20 {
-                let moveContentDown = matches.count == 1
-                    && element.exists
-                    && element.frame.midY < viewport.midY
-                let start = scrollView.coordinate(
-                    withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.35 : 0.65)
-                )
-                let end = scrollView.coordinate(
-                    withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.55 : 0.45)
-                )
-                start.press(forDuration: 0.05, thenDragTo: end)
-                settle(1)
+
+            let matches = app.descendants(matching: .any).matching(
+                identifier: identifier
+            )
+            let element = uniqueExistingElement(matches)
+            let elementFrame: CGRect?
+            if let element {
+                let frame = element.frame
+                if viewport.contains(frame) {
+                    return ScrollVisibilityResult(isVisible: true, didScroll: didScroll)
+                }
+                elementFrame = frame
+            } else {
+                // Selected profile and parking content is later in its known row.
+                elementFrame = nil
             }
+
+            guard attempt < 20 else { break }
+            let correction = parkingContainmentCorrection(
+                elementFrame: elementFrame,
+                viewport: viewport,
+                previousCorrection: previousCorrection
+            )
+            guard correction != 0 else { break }
+            performLowMomentumContentCorrection(
+                correction,
+                in: scrollView,
+                viewport: viewport
+            )
+            previousCorrection = correction
+            didScroll = true
+            settle(1)
         }
-        return false
+
+        return ScrollVisibilityResult(isVisible: false, didScroll: didScroll)
+    }
+
+    /// A negative correction is a finger-up/content-up move; a positive one
+    /// is finger-down/content-down. Edge overflow, not midpoint, determines it.
+    private func parkingContainmentCorrection(
+        elementFrame: CGRect?,
+        viewport: CGRect,
+        previousCorrection: CGFloat?
+    ) -> CGFloat {
+        let tinyMargin: CGFloat = 2
+        let baseCap = min(64, max(24, viewport.height * 0.28))
+        let requested: CGFloat
+        if let elementFrame {
+            if elementFrame.maxY > viewport.maxY {
+                requested = -(elementFrame.maxY - viewport.maxY + tinyMargin)
+            } else if elementFrame.minY < viewport.minY {
+                requested = viewport.minY - elementFrame.minY + tinyMargin
+            } else {
+                return 0
+            }
+        } else {
+            requested = -baseCap
+        }
+
+        var cap = baseCap
+        if let previousCorrection,
+           previousCorrection != 0,
+           requested * previousCorrection < 0 {
+            cap = min(cap, max(1, abs(previousCorrection) * 0.5))
+        }
+        let magnitude = min(abs(requested), cap)
+        return requested < 0 ? -magnitude : magnitude
+    }
+
+    private func performLowMomentumContentCorrection(
+        _ correction: CGFloat,
+        in scrollView: XCUIElement,
+        viewport: CGRect
+    ) {
+        let gestureFrame = viewport.insetBy(dx: 8, dy: 8)
+        let scrollFrame = scrollView.frame
+        guard gestureFrame.width > 0,
+              gestureFrame.height > 0,
+              scrollFrame.width > 0,
+              scrollFrame.height > 0 else {
+            return
+        }
+        let distance = min(abs(correction), gestureFrame.height * 0.45)
+        guard distance > 0 else { return }
+        let direction: CGFloat = correction < 0 ? -1 : 1
+        let startY = gestureFrame.midY - direction * distance / 2
+        let endY = gestureFrame.midY + direction * distance / 2
+        let normalizedX = (gestureFrame.midX - scrollFrame.minX) / scrollFrame.width
+        let start = scrollView.coordinate(
+            withNormalizedOffset: CGVector(
+                dx: normalizedX,
+                dy: (startY - scrollFrame.minY) / scrollFrame.height
+            )
+        )
+        let end = scrollView.coordinate(
+            withNormalizedOffset: CGVector(
+                dx: normalizedX,
+                dy: (endY - scrollFrame.minY) / scrollFrame.height
+            )
+        )
+        start.press(
+            forDuration: 0.15,
+            thenDragTo: end,
+            withVelocity: .slow,
+            thenHoldForDuration: 0.10
+        )
+    }
+
+    private func exactMatchAllowsPropertyRead(
+        matchCount: Int,
+        exists: Bool
+    ) -> Bool {
+        matchCount == 1 && exists
+    }
+
+    private func uniqueExistingElement(
+        _ matches: XCUIElementQuery
+    ) -> XCUIElement? {
+        let matchCount = matches.count
+        guard matchCount == 1 else { return nil }
+        let element = matches.firstMatch
+        guard exactMatchAllowsPropertyRead(
+            matchCount: matchCount,
+            exists: element.exists
+        ) else {
+            return nil
+        }
+        return element
+    }
+
+    private func knownTargetGestureOffsets(
+        _ position: KnownTargetPosition
+    ) -> (start: CGFloat, end: CGFloat) {
+        switch position {
+        case .earlier:
+            return (0.35, 0.55)
+        case .later:
+            return (0.80, 0.20)
+        }
+    }
+
+    private func performKnownTargetRecovery(
+        _ position: KnownTargetPosition,
+        in trailScroll: XCUIElement
+    ) {
+        let offsets = knownTargetGestureOffsets(position)
+        let start = trailScroll.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.5, dy: offsets.start)
+        )
+        let end = trailScroll.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.5, dy: offsets.end)
+        )
+        start.press(
+            forDuration: 0.15,
+            thenDragTo: end,
+            withVelocity: .slow,
+            thenHoldForDuration: 0.10
+        )
+    }
+
+    private func pairedTrailIdentifiers(
+        for selectIdentifier: String
+    ) -> (secondary: String, profile: String)? {
+        guard selectIdentifier.hasPrefix("trail-select-") else { return nil }
+        let suffix = String(selectIdentifier.dropFirst("trail-select-".count))
+        guard !suffix.isEmpty else { return nil }
+        return (
+            secondary: "trail-secondary-\(suffix)",
+            profile: "trail-profile-\(suffix)"
+        )
+    }
+
+    private func primaryDeselectIsReady(
+        label: String,
+        frame: CGRect,
+        appFrame: CGRect,
+        isHittable: Bool
+    ) -> Bool {
+        actionSubject(label, after: "Deselect Trail,") != nil
+            && appFrame.contains(frame)
+            && isHittable
+    }
+
+    private func assertNavigationRegressionControls() {
+        XCTAssertFalse(
+            exactMatchAllowsPropertyRead(matchCount: 0, exists: false),
+            "An unmatched query must not permit element property access"
+        )
+        XCTAssertFalse(
+            exactMatchAllowsPropertyRead(matchCount: 2, exists: true),
+            "A non-unique query must not permit element property access"
+        )
+        XCTAssertTrue(
+            exactMatchAllowsPropertyRead(matchCount: 1, exists: true),
+            "A unique existing query must permit guarded property access"
+        )
+
+        let earlier = knownTargetGestureOffsets(.earlier)
+        let repeatedEarlier = knownTargetGestureOffsets(.earlier)
+        let later = knownTargetGestureOffsets(.later)
+        XCTAssertGreaterThan(
+            earlier.end - earlier.start,
+            0,
+            "A known earlier target must move content down"
+        )
+        XCTAssertLessThan(
+            later.end - later.start,
+            0,
+            "A known later target must move content up"
+        )
+        XCTAssertEqual(earlier.start, repeatedEarlier.start)
+        XCTAssertEqual(earlier.end, repeatedEarlier.end)
+
+        let viewport = CGRect(x: 0, y: 0, width: 100, height: 100)
+        let below = parkingContainmentCorrection(
+            elementFrame: CGRect(x: 0, y: 90, width: 100, height: 30),
+            viewport: viewport,
+            previousCorrection: nil
+        )
+        let crossedAbove = parkingContainmentCorrection(
+            elementFrame: CGRect(x: 0, y: -20, width: 100, height: 30),
+            viewport: viewport,
+            previousCorrection: below
+        )
+        XCTAssertLessThan(below, 0, "Bottom overflow must move content up")
+        XCTAssertGreaterThan(crossedAbove, 0, "Top overflow must reverse direction")
+        XCTAssertLessThan(
+            abs(crossedAbove),
+            abs(below),
+            "A correction must shrink after crossing the visible interval"
+        )
+
+        XCTAssertTrue(
+            primaryDeselectIsReady(
+                label: "Deselect Trail, Regression Trail",
+                frame: CGRect(x: 10, y: 10, width: 80, height: 44),
+                appFrame: viewport,
+                isHittable: true
+            ),
+            "Primary restoration must not require secondary hittability"
+        )
+
+        let retainedSelectIdentifier = "trail-select-regression-trail"
+        let retained = pairedTrailIdentifiers(for: retainedSelectIdentifier)
+        XCTAssertEqual(retained?.secondary, "trail-secondary-regression-trail")
+        XCTAssertEqual(retained?.profile, "trail-profile-regression-trail")
     }
 
     private func scrollToReachable(
@@ -1614,44 +1922,126 @@ final class AreaSheetAuditTests: XCTestCase {
         identifier: String,
         in trailScroll: XCUIElement
     ) -> XCUIElement? {
-        guard identifier.hasPrefix("trail-select-") else { return nil }
-        let suffix = String(identifier.dropFirst("trail-select-".count))
-        let secondaryIdentifier = "trail-secondary-\(suffix)"
-        // Lower profile/parking proof moves this lazy row above the viewport.
-        // Always drag a finger downward to reveal earlier content; when the
-        // target is absent, never fall back to scrolling farther away.
+        guard pairedTrailIdentifiers(for: identifier) != nil else { return nil }
+
+        // Lower profile/parking proof places this known selected row earlier
+        // than the viewport. Restore only its primary Deselect action; the
+        // vertically stacked Record action is proved independently below.
         for attempt in 0...20 {
-            let selectedMatches = app.descendants(matching: .any).matching(
-                identifier: identifier
-            )
-            let secondaryMatches = app.descendants(matching: .any).matching(
-                identifier: secondaryIdentifier
-            )
-            let selected = selectedMatches.firstMatch
-            let secondary = secondaryMatches.firstMatch
-            let subject = actionSubject(selected.label, after: "Deselect Trail,")
-            if selectedMatches.count == 1,
-               secondaryMatches.count == 1,
-               selected.exists,
-               secondary.exists,
-               isOnScreenAndHittable(selected, app: app),
-               isOnScreenAndHittable(secondary, app: app),
-               subject != nil,
-               secondary.label == "Record Trail, \(subject ?? "")" {
-                return selected
+            let selectedMatches = trailActionMatches(app, identifier: identifier)
+            if let selected = uniqueExistingElement(selectedMatches) {
+                let label = selected.label
+                let frame = selected.frame
+                let isHittable = selected.isHittable
+                if primaryDeselectIsReady(
+                    label: label,
+                    frame: frame,
+                    appFrame: app.frame,
+                    isHittable: isHittable
+                ) {
+                    return selected
+                }
             }
             if attempt < 20 {
-                let start = trailScroll.coordinate(
-                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)
-                )
-                let end = trailScroll.coordinate(
-                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55)
-                )
-                start.press(forDuration: 0.05, thenDragTo: end)
+                performKnownTargetRecovery(.earlier, in: trailScroll)
                 settle(1)
             }
         }
         return nil
+    }
+
+    private func proveSelectedTrailContextBeforeDeselect(
+        _ app: XCUIApplication,
+        selection: TrailSelection,
+        in trailScroll: XCUIElement
+    ) -> Bool {
+        var secondaryWasProved = false
+        var profileWasProved = false
+
+        for attempt in 0...20 {
+            if !secondaryWasProved {
+                let secondaryMatches = trailActionMatches(
+                    app,
+                    identifier: selection.secondaryIdentifier
+                )
+                if let secondary = uniqueExistingElement(secondaryMatches) {
+                    secondaryWasProved = secondary.label
+                        == "Record Trail, \(selection.subject)"
+                }
+            }
+            if !profileWasProved {
+                let profileMatches = app.descendants(matching: .any).matching(
+                    identifier: selection.profileIdentifier
+                )
+                profileWasProved = uniqueExistingElement(profileMatches) != nil
+            }
+            if secondaryWasProved, profileWasProved { return true }
+
+            if attempt < 20 {
+                // Record and profile are known later content in this exact row.
+                performKnownTargetRecovery(.later, in: trailScroll)
+                settle(1)
+            }
+        }
+        return false
+    }
+
+    private func freshDeselectActionAfterLowerContent(
+        _ app: XCUIApplication,
+        selection: TrailSelection,
+        in trailScroll: XCUIElement
+    ) -> XCUIElement? {
+        guard restoreSelectedTrailActionAfterLowerContent(
+            app,
+            identifier: selection.selectIdentifier,
+            in: trailScroll
+        ) != nil,
+              proveSelectedTrailContextBeforeDeselect(
+                app,
+                selection: selection,
+                in: trailScroll
+              ),
+              restoreSelectedTrailActionAfterLowerContent(
+                app,
+                identifier: selection.selectIdentifier,
+                in: trailScroll
+              ) != nil else {
+            return nil
+        }
+
+        // Every element used by the final state proof is freshly queried after
+        // the last recovery gesture. Record need not be simultaneously hittable.
+        let freshMatches = trailActionMatches(
+            app,
+            identifier: selection.selectIdentifier
+        )
+        let freshSecondaryMatches = trailActionMatches(
+            app,
+            identifier: selection.secondaryIdentifier
+        )
+        let freshProfileMatches = app.descendants(matching: .any).matching(
+            identifier: selection.profileIdentifier
+        )
+        guard let freshDeselect = uniqueExistingElement(freshMatches),
+              let freshSecondary = uniqueExistingElement(freshSecondaryMatches),
+              uniqueExistingElement(freshProfileMatches) != nil else {
+            return nil
+        }
+        let label = freshDeselect.label
+        let frame = freshDeselect.frame
+        let isHittable = freshDeselect.isHittable
+        let secondaryLabel = freshSecondary.label
+        guard label == "Deselect Trail, \(selection.subject)",
+              secondaryLabel == "Record Trail, \(selection.subject)",
+              primaryDeselectIsReady(
+                label: label,
+                frame: frame,
+                appFrame: app.frame,
+                isHittable: isHittable
+              ) else {
+            return nil
+        }
+        return freshDeselect
     }
 
     private func actionSubject(_ label: String, after prefix: String) -> String? {
@@ -1663,100 +2053,96 @@ final class AreaSheetAuditTests: XCTestCase {
 
     private func deselectTrailAndWait(
         _ app: XCUIApplication,
-        rowIdentifier: String
+        selection: TrailSelection
     ) -> Bool {
-        guard rowIdentifier.hasPrefix("trail-select-") else {
-            XCTFail("Selected trail action has an unexpected identifier")
+        guard let identifiers = pairedTrailIdentifiers(
+            for: selection.selectIdentifier
+        ),
+              identifiers.secondary == selection.secondaryIdentifier,
+              identifiers.profile == selection.profileIdentifier else {
+            XCTFail("Selected trail identity changed before deselection")
             return false
         }
-        let suffix = String(rowIdentifier.dropFirst("trail-select-".count))
-        let secondaryIdentifier = "trail-secondary-\(suffix)"
         let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
         guard trailScroll.waitForExistence(timeout: 10) else {
             XCTFail("Trail list scroll is missing for deselection")
             return false
         }
-        guard let selected = restoreSelectedTrailActionAfterLowerContent(
+        guard let freshDeselect = freshDeselectActionAfterLowerContent(
             app,
-            identifier: rowIdentifier,
+            selection: selection,
             in: trailScroll
-        ),
-              let expectedSubject = actionSubject(
-                selected.label,
-                after: "Deselect Trail,"
-              ) else {
-            XCTFail("Selected trail action is not restored for deselection")
-            return false
-        }
-
-        let selectedMatches = trailActionMatches(app, identifier: rowIdentifier)
-        let secondaryMatches = trailActionMatches(app, identifier: secondaryIdentifier)
-        let secondary = secondaryMatches.firstMatch
-        let profile = app.descendants(matching: .any)["trail-profile-\(suffix)"].firstMatch
-        guard selectedMatches.count == 1,
-              secondaryMatches.count == 1,
-              selected.exists,
-              selected.isHittable,
-              selected.label == "Deselect Trail, \(expectedSubject)",
-              secondary.exists,
-              secondary.label == "Record Trail, \(expectedSubject)",
-              profile.exists else {
+        ) else {
             XCTFail("Selected trail row did not restore its exact action and profile semantics")
             return false
         }
 
-        selected.tap()
+        freshDeselect.tap()
         return waitForDeselectedTrailState(
             app,
-            rowIdentifier: rowIdentifier,
-            suffix: suffix,
-            expectedSubject: expectedSubject,
-            expectedSecondaryLabel: "Mark Trail Complete, \(expectedSubject)"
+            selection: selection,
+            in: trailScroll
         )
     }
 
     private func waitForDeselectedTrailState(
         _ app: XCUIApplication,
-        rowIdentifier: String,
-        suffix: String? = nil,
-        expectedSubject: String? = nil,
-        expectedSecondaryLabel: String? = nil
+        selection: TrailSelection,
+        in trailScroll: XCUIElement
     ) -> Bool {
-        guard rowIdentifier.hasPrefix("trail-select-") else {
-            XCTFail("Deselected trail action has an unexpected identifier")
+        guard let identifiers = pairedTrailIdentifiers(
+            for: selection.selectIdentifier
+        ),
+              identifiers.secondary == selection.secondaryIdentifier,
+              identifiers.profile == selection.profileIdentifier else {
+            XCTFail("Deselected trail identity changed")
             return false
         }
-        let pairedSuffix = suffix
-            ?? String(rowIdentifier.dropFirst("trail-select-".count))
-        let secondaryIdentifier = "trail-secondary-\(pairedSuffix)"
+
         for attempt in 0...10 {
-            let selectMatches = trailActionMatches(app, identifier: rowIdentifier)
-            let secondaryMatches = trailActionMatches(app, identifier: secondaryIdentifier)
-            let select = selectMatches.firstMatch
-            let secondary = secondaryMatches.firstMatch
-            let record = app.buttons["area-record-button"].firstMatch
-            let selectSubject = actionSubject(select.label, after: "Select Trail,")
-            let secondarySubject = actionSubject(
-                secondary.label,
-                after: "Mark Trail Complete,"
-            ) ?? actionSubject(
-                secondary.label,
-                after: "Mark Trail Incomplete,"
+            // Every iteration recreates both exact-ID queries because the fit
+            // deselection intentionally resets the lazy list to its first row.
+            let selectMatches = trailActionMatches(
+                app,
+                identifier: selection.selectIdentifier
             )
-            let stateIsIdle = selectMatches.count == 1
-                && secondaryMatches.count == 1
-                && select.exists
-                && secondary.exists
-                && selectSubject != nil
-                && secondarySubject == selectSubject
-                && (expectedSubject == nil || selectSubject == expectedSubject)
-                && (expectedSecondaryLabel == nil || secondary.label == expectedSecondaryLabel)
-                && record.exists
-                && record.label == "Start a hike"
-            if stateIsIdle { return true }
-            if attempt < 10 { settle(1) }
+            let secondaryMatches = trailActionMatches(
+                app,
+                identifier: selection.secondaryIdentifier
+            )
+            let select = uniqueExistingElement(selectMatches)
+            let secondary = uniqueExistingElement(secondaryMatches)
+            let exactPairIsMaterialized = select != nil && secondary != nil
+
+            if let select, let secondary {
+                let recordMatches = app.buttons.matching(
+                    identifier: "area-record-button"
+                )
+                if let record = uniqueExistingElement(recordMatches) {
+                    let selectLabel = select.label
+                    let secondaryLabel = secondary.label
+                    let recordLabel = record.label
+                    let retainedIdentity = select.identifier
+                        == selection.selectIdentifier
+                        && secondary.identifier == selection.secondaryIdentifier
+                    let stateIsIdle = retainedIdentity
+                        && selectLabel == "Select Trail, \(selection.subject)"
+                        && secondaryLabel == selection.idleSecondaryLabel
+                        && selectLabel != secondaryLabel
+                        && recordLabel == "Start a hike"
+                    if stateIsIdle { return true }
+                }
+            }
+
+            if attempt < 10 {
+                if !exactPairIsMaterialized {
+                    // The retained row is known later than the reset first row.
+                    performKnownTargetRecovery(.later, in: trailScroll)
+                }
+                settle(1)
+            }
         }
-        XCTFail("Trail deselection did not settle exact idle semantics")
+        XCTFail("Trail deselection did not settle exact retained-row idle semantics")
         return false
     }
 
@@ -1836,7 +2222,7 @@ final class AreaSheetAuditTests: XCTestCase {
     /// return its stable identifier so callers can address the same row after
     /// its label changes to Deselect. The bounded search first proves the
     /// independent Mark Complete target without exposing trail data.
-    private func tapFirstTrailRow(_ app: XCUIApplication) -> String? {
+    private func tapFirstTrailRow(_ app: XCUIApplication) -> TrailSelection? {
         let start = app.buttons["area-record-button"].firstMatch
         guard start.exists else {
             dumpTree(app, "no-toolbar-before-row-tap")
@@ -1880,27 +2266,34 @@ final class AreaSheetAuditTests: XCTestCase {
                     tag: "trail-actions-complete"
                 )
                 let row = pair.select
+                let idleSecondaryLabel = pair.secondary.label
                 print("AUDIT tapping first incomplete trail row")
                 tapElement(row)
 
-                let suffix = String(rowIdentifier.dropFirst("trail-select-".count))
-                let selectedSecondaryIdentifier = "trail-secondary-\(suffix)"
+                guard let identifiers = pairedTrailIdentifiers(for: rowIdentifier) else {
+                    XCTFail("Paired trail identity is invalid")
+                    return nil
+                }
                 for postconditionAttempt in 0...5 {
-                    let selectedMatches = app.descendants(matching: .any).matching(
+                    let selectedMatches = trailActionMatches(
+                        app,
                         identifier: rowIdentifier
                     )
-                    let secondaryMatches = app.descendants(matching: .any).matching(
-                        identifier: selectedSecondaryIdentifier
+                    let secondaryMatches = trailActionMatches(
+                        app,
+                        identifier: identifiers.secondary
                     )
-                    let selected = selectedMatches.firstMatch
-                    let secondary = secondaryMatches.firstMatch
-                    if selectedMatches.count == 1,
-                       secondaryMatches.count == 1,
-                       selected.exists,
-                       secondary.exists,
+                    if let selected = uniqueExistingElement(selectedMatches),
+                       let secondary = uniqueExistingElement(secondaryMatches),
                        selected.label == "\(deselectTrailLabelPrefix) \(pair.subject)",
                        secondary.label == "Record Trail, \(pair.subject)" {
-                        return rowIdentifier
+                        return TrailSelection(
+                            selectIdentifier: rowIdentifier,
+                            secondaryIdentifier: identifiers.secondary,
+                            profileIdentifier: identifiers.profile,
+                            subject: pair.subject,
+                            idleSecondaryLabel: idleSecondaryLabel
+                        )
                     }
                     if postconditionAttempt < 5 { settle(1) }
                 }
@@ -2024,12 +2417,14 @@ final class AreaSheetAuditTests: XCTestCase {
         sleep(seconds)
     }
 
-    private func capture(_ app: XCUIApplication, _ name: String) {
+    @discardableResult
+    private func capture(_ app: XCUIApplication, _ name: String) -> Data {
         let shot = XCUIScreen.main.screenshot()
         let attachment = XCTAttachment(screenshot: shot)
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
+        return shot.pngRepresentation
     }
 
     private func dumpTree(_ app: XCUIApplication, _ tag: String) {

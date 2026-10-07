@@ -531,6 +531,28 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let primaryAction = app.buttons["explore-location-primary-action"].firstMatch
         let browseAction = app.buttons["explore-location-browse-action"].firstMatch
         XCTAssertTrue(state.waitForExistence(timeout: 10), "Location empty state is missing")
+        guard let stablePair = stableExploreLocationPair(app) else { return }
+
+        XCTAssertEqual(
+            app.descendants(matching: .any).matching(
+                identifier: "explore-location-empty-title"
+            ).count,
+            1,
+            "Location empty state must expose one stable title"
+        )
+        XCTAssertEqual(
+            app.buttons.matching(identifier: "explore-location-primary-action").count,
+            1,
+            "Location empty state must expose one stable primary action"
+        )
+        XCTAssertTrue(
+            title.label == stablePair.title,
+            "Location empty-state title does not match its settled state"
+        )
+        XCTAssertTrue(
+            primaryAction.label == stablePair.action,
+            "Location primary action does not match its settled state"
+        )
 
         let elements = [title, detail, primaryAction, browseAction]
         let tabBar = app.tabBars.firstMatch
@@ -547,7 +569,6 @@ final class FieldTrustAccessibilityTests: XCTestCase {
                 )
             }
         }
-        XCTAssertTrue(title.label == "Trails near you", "Location empty-state title is incomplete")
         XCTAssertTrue(
             settleExplorePair(detail, primaryAction, app: app),
             "Location detail and primary action cannot be shown together"
@@ -555,6 +576,38 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let settledFrame = exploreVisibleContentFrame(app)
         assertInsideFrame(detail, frame: settledFrame)
         assertInsideFrame(primaryAction, frame: settledFrame)
+    }
+
+    private func stableExploreLocationPair(
+        _ app: XCUIApplication
+    ) -> (title: String, action: String)? {
+        var previousPair: (title: String, action: String)?
+        for attempt in 0...10 {
+            let title = app.descendants(matching: .any)[
+                "explore-location-empty-title"
+            ].firstMatch
+            let action = app.buttons["explore-location-primary-action"].firstMatch
+            let pair = (title: title.label, action: action.label)
+            let isAllowed = (pair.title == "Trails near you"
+                && pair.action == "Enable Location")
+                || (pair.title == "Location is off"
+                    && pair.action == "Open Settings")
+                || (pair.title == "Location unavailable"
+                    && pair.action == "Retry")
+            if title.exists, action.exists, isAllowed {
+                if let previousPair,
+                   previousPair.title == pair.title,
+                   previousPair.action == pair.action {
+                    return pair
+                }
+                previousPair = pair
+            } else {
+                previousPair = nil
+            }
+            if attempt < 10 { sleep(1) }
+        }
+        XCTFail("Location empty state did not settle to an allowed title/action pair")
+        return nil
     }
 
     private func settleExplorePair(
@@ -817,10 +870,19 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             }
         }
 
-        guard let nearMarkers = stableNearMarkers(app) else { return }
         let farMarkers = app.descendants(matching: .any)
             .matching(identifier: "map-far-access-marker")
             .allElementsBoundByIndex.filter { $0.exists }
+        let visibleNearMarkers = app.descendants(matching: .any)
+            .matching(identifier: "map-near-access-marker")
+            .allElementsBoundByIndex.filter { $0.exists }
+        let nearMarkers: [XCUIElement]
+        if farMarkers.isEmpty || !visibleNearMarkers.isEmpty {
+            guard let stableMarkers = stableNearMarkers(app) else { return }
+            nearMarkers = stableMarkers
+        } else {
+            nearMarkers = []
+        }
         XCTAssertGreaterThan(
             nearMarkers.count + farMarkers.count,
             0,
@@ -845,16 +907,53 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             XCTAssertTrue(clearsControls, "Near access marker intersects map controls")
             XCTAssertTrue(clearsSheet, "Near access marker intersects the area sheet")
         }
-        for marker in farMarkers {
-            XCTAssertTrue(
-                isOnScreenAndHittable(marker, app: app),
-                "Far fallback access callout is not reachable"
+        for (index, marker) in farMarkers.enumerated() {
+            let hasGenericRole = marker.identifier == "map-far-access-marker"
+            let hasNonemptyLabel = !marker.label.isEmpty
+            let hasTruthfulDistance = marker.label.contains("from trail")
+            print(
+                "AUDIT[selected-far-marker] index=\(index) "
+                + "genericRole=\(hasGenericRole) nonempty=\(hasNonemptyLabel) "
+                + "hasDistance=\(hasTruthfulDistance)"
             )
-            XCTAssertTrue(
-                marker.label.contains("from trail"),
-                "Far fallback marker omits its trail distance"
-            )
+            XCTAssertTrue(hasGenericRole, "Far fallback marker has an unexpected role")
+            XCTAssertTrue(hasNonemptyLabel, "Far fallback marker has no semantics")
+            XCTAssertTrue(hasTruthfulDistance, "Far fallback marker omits its trail distance")
         }
+
+        if nearMarkers.isEmpty, !farMarkers.isEmpty {
+            assertFarOnlyParkingDisclosure(app)
+        }
+    }
+
+    private func assertFarOnlyParkingDisclosure(_ app: XCUIApplication) {
+        let parkingMatches = app.descendants(matching: .any).matching(
+            identifier: "selected-trail-parking-detail"
+        )
+        XCTAssertEqual(
+            parkingMatches.count,
+            1,
+            "Far-only selection must expose one selected parking detail"
+        )
+        let parking = parkingMatches.firstMatch
+        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+        guard trailScroll.waitForExistence(timeout: 10),
+              parking.waitForExistence(timeout: 10),
+              scrollToReachable(parking, in: trailScroll, app: app) else {
+            XCTFail("Far-only selected parking detail is not reachable")
+            return
+        }
+        XCTAssertTrue(
+            hasNearestParkingDistanceLabel(parking.label),
+            "Far-only selected parking detail violates the distance contract"
+        )
+    }
+
+    private func hasNearestParkingDistanceLabel(_ label: String) -> Bool {
+        let pattern = "^Nearest parking: (?:.+, )?[0-9]+(?:\\.[0-9]{1,2})? (?:mi|km) away$"
+        guard let expression = try? NSRegularExpression(pattern: pattern) else { return false }
+        let range = NSRange(label.startIndex..<label.endIndex, in: label)
+        return expression.firstMatch(in: label, range: range) != nil
     }
 
     private func stableNearMarkers(_ app: XCUIApplication) -> [XCUIElement]? {

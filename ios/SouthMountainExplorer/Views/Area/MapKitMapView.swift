@@ -559,6 +559,22 @@ struct MapKitMapView: UIViewRepresentable {
         return correction
     }
 
+    /// Consume one selected-marker audit generation only for a correction that
+    /// will actually be emitted. A complete zero-correction observation leaves
+    /// the generation open so a later callback for the same camera generation
+    /// can report newly occluded rendered frames.
+    nonisolated static func consumeMarkerAuditGenerationIfNeeded(
+        generation: Int,
+        correction: MapViewportInsets,
+        lastConsumedGeneration: inout Int
+    ) -> Bool {
+        guard generation > 0,
+              generation != lastConsumedGeneration,
+              correction != .zero else { return false }
+        lastConsumedGeneration = generation
+        return true
+    }
+
     // MARK: - Camera helpers
 
     private static func applyCameraTarget(_ target: MapTarget,
@@ -1221,16 +1237,18 @@ struct MapKitMapView: UIViewRepresentable {
             }
 
             pendingSelectedMarkerAuditGeneration = nil
-            lastSelectedMarkerAuditGeneration = generation
             guard !frames.isEmpty else { return }
             let correction = MapKitMapView.markerOcclusionCorrection(
                 markerFrames: frames,
                 mapBounds: mapView.bounds,
                 visibleInsets: parent.selectedMarkerVisibleInsets
             )
-            if correction != .zero {
-                parent.onSelectedNearMarkerOcclusion?(correction)
-            }
+            guard MapKitMapView.consumeMarkerAuditGenerationIfNeeded(
+                generation: generation,
+                correction: correction,
+                lastConsumedGeneration: &lastSelectedMarkerAuditGeneration
+            ) else { return }
+            parent.onSelectedNearMarkerOcclusion?(correction)
         }
 
         private func renderedNearMarkerFrames(

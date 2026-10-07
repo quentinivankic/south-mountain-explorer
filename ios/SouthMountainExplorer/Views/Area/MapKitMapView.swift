@@ -82,6 +82,13 @@ final class RecordingPolyline: MKPolyline {}
 /// trailhead marker so we never mislabel a trail start as a parking lot.
 final class ParkingAnnotation: MKPointAnnotation {
     var isTrailhead = false
+    /// True only for a lot inside the selected trail's near threshold. Area-wide
+    /// "show all" markers have neither selected-trail role.
+    var isNearSelectedTrail = false
+    /// True only for an intentional closest-known fallback outside the near
+    /// trailhead threshold. Camera containment applies to near access markers;
+    /// fallback markers instead carry an explicit distance in their semantics.
+    var isFarFallback = false
 }
 
 struct MapKitMapView: UIViewRepresentable {
@@ -161,6 +168,16 @@ struct MapKitMapView: UIViewRepresentable {
     /// TrailMapView only ever passes non-nil under DEBUG +
     /// `--uitest-recording`; every production path leaves it nil.
     var demoUserDot: CLLocationCoordinate2D? = nil
+
+    /// Real rendered viewport boundaries for selected-marker auditing. These
+    /// are measured from the map's top edge and physical sheet extent and do
+    /// not include optional aesthetic margins used by route framing.
+    var selectedMarkerVisibleInsets: MapViewportInsets = .zero
+    /// Changes only when TrailMapView requests a post-settle selected-marker
+    /// audit. A correction camera move advances it again for one bounded
+    /// recheck after animation.
+    var selectedMarkerAuditGeneration: Int = 0
+    var onSelectedNearMarkerOcclusion: ((MapViewportInsets) -> Void)? = nil
 
     /// Fires when a user gesture (pinch / pan / double-tap) changes
     /// the visible region. TrailMapView uses this to re-snap the
@@ -462,6 +479,72 @@ struct MapKitMapView: UIViewRepresentable {
         coord.applyHeadingRotation(on: mapView)
     }
 
+    /// Extra route-fit insets needed to place complete rendered marker frames
+    /// inside the real control-to-sheet viewport. Fully visible frames return
+    /// zero even when they cross an optional aesthetic edge margin.
+    nonisolated static func markerOcclusionCorrection(
+        markerFrames: [CGRect],
+        mapBounds: CGRect,
+        visibleInsets: MapViewportInsets,
+        padding: CGFloat = 6
+    ) -> MapViewportInsets {
+        let values = [
+            mapBounds.minX, mapBounds.minY, mapBounds.maxX, mapBounds.maxY,
+            visibleInsets.top, visibleInsets.leading,
+            visibleInsets.bottom, visibleInsets.trailing, padding,
+        ]
+        guard values.allSatisfy({ $0.isFinite }),
+              mapBounds.width > 0,
+              mapBounds.height > 0,
+              padding >= 0 else { return .zero }
+
+        let visible = CGRect(
+            x: mapBounds.minX + max(0, visibleInsets.leading),
+            y: mapBounds.minY + max(0, visibleInsets.top),
+            width: max(
+                0,
+                mapBounds.width - max(0, visibleInsets.leading)
+                    - max(0, visibleInsets.trailing)
+            ),
+            height: max(
+                0,
+                mapBounds.height - max(0, visibleInsets.top)
+                    - max(0, visibleInsets.bottom)
+            )
+        )
+        guard visible.width > 0, visible.height > 0 else { return .zero }
+
+        var correction = MapViewportInsets.zero
+        for frame in markerFrames {
+            let frameValues = [frame.minX, frame.minY, frame.maxX, frame.maxY]
+            guard frameValues.allSatisfy({ $0.isFinite }),
+                  frame.width > 0,
+                  frame.height > 0 else { continue }
+            if frame.minY < visible.minY {
+                correction.top = max(correction.top, visible.minY - frame.minY + padding)
+            }
+            if frame.minX < visible.minX {
+                correction.leading = max(
+                    correction.leading,
+                    visible.minX - frame.minX + padding
+                )
+            }
+            if frame.maxY > visible.maxY {
+                correction.bottom = max(
+                    correction.bottom,
+                    frame.maxY - visible.maxY + padding
+                )
+            }
+            if frame.maxX > visible.maxX {
+                correction.trailing = max(
+                    correction.trailing,
+                    frame.maxX - visible.maxX + padding
+                )
+            }
+        }
+        return correction
+    }
+
     // MARK: - Camera helpers
 
     private static func applyCameraTarget(_ target: MapTarget,
@@ -714,6 +797,10 @@ struct MapKitMapView: UIViewRepresentable {
         /// never drawn.
         var lastParkingSig: Int = -2
         var lastSelectedTrailWalkedHash: Int = 0
+        /// Last post-settle request whose rendered near markers were measured.
+        /// One report per generation prevents duplicate delegate callbacks from
+        /// accumulating the same correction before the camera moves.
+        var lastSelectedMarkerAuditGeneration: Int = 0
 
         init(parent: MapKitMapView) {
             self.parent = parent
@@ -1047,9 +1134,41 @@ struct MapKitMapView: UIViewRepresentable {
             applyHeadingRotation(on: mapView)
             if pendingProgrammaticRegionChanges > 0 {
                 pendingProgrammaticRegionChanges -= 1
+                reportSelectedNearMarkerOcclusionIfNeeded(on: mapView)
                 return
             }
             parent.onUserGestureRegionChange?()
+        }
+
+        private func reportSelectedNearMarkerOcclusionIfNeeded(on mapView: MKMapView) {
+            let generation = parent.selectedMarkerAuditGeneration
+            guard generation > 0,
+                  generation != lastSelectedMarkerAuditGeneration else { return }
+
+            // A programmatic region has finished and the native sheet was
+            // already allowed to settle before this generation was requested.
+            // Force the annotation container's pending layout, then measure
+            // each rendered near-marker frame in full-screen map coordinates.
+            mapView.layoutIfNeeded()
+            let frames = mapView.annotations.compactMap { annotation -> CGRect? in
+                guard let parking = annotation as? ParkingAnnotation,
+                      parking.isNearSelectedTrail,
+                      let view = mapView.view(for: parking),
+                      !view.isHidden,
+                      view.alpha > 0 else { return nil }
+                view.layoutIfNeeded()
+                return view.convert(view.bounds, to: mapView)
+            }
+            guard !frames.isEmpty else { return }
+            lastSelectedMarkerAuditGeneration = generation
+            let correction = MapKitMapView.markerOcclusionCorrection(
+                markerFrames: frames,
+                mapBounds: mapView.bounds,
+                visibleInsets: parent.selectedMarkerVisibleInsets
+            )
+            if correction != .zero {
+                parent.onSelectedNearMarkerOcclusion?(correction)
+            }
         }
 
         /// Renders the screenshot-only synthetic user dot (see
@@ -1075,10 +1194,31 @@ struct MapKitMapView: UIViewRepresentable {
             // only 16% of trails have one within the 805 m endpoint radius, so
             // browsing trail by trail reads as "no parking here".
             let lots: [ParkingLot]
+            var nearLots: Set<String> = []
             var farLots: Set<String> = []
             var farMeters: [String: Double] = [:]
             if showAll {
                 lots = candidates
+                // Keep selected-trail roles even while every area marker is
+                // visible. Unrelated show-all pins remain area markers and do
+                // not participate in selected-camera correction.
+                if let selectedTrailId,
+                   let trail = area.trails.first(where: { $0.id == selectedTrailId }) {
+                    let ranked = Area.nearestParkingWithFallback(
+                        lots: candidates,
+                        for: trail
+                    )
+                    nearLots = Set(ranked.filter { $0.isNear }.map {
+                        "\($0.lot.lat),\($0.lot.lon)"
+                    })
+                    farLots = Set(ranked.filter { !$0.isNear }.map {
+                        "\($0.lot.lat),\($0.lot.lon)"
+                    })
+                    farMeters = Dictionary(
+                        ranked.map { ("\($0.lot.lat),\($0.lot.lon)", $0.meters) },
+                        uniquingKeysWith: min
+                    )
+                }
                 mapLog.notice("parkingPins area=\(area.id, privacy: .public) ALL shown=\(lots.count)")
             } else {
                 // No selection → no parking (browsing stays uncluttered). With a
@@ -1098,6 +1238,7 @@ struct MapKitMapView: UIViewRepresentable {
                 // banner names a lot with no pin under it.
                 let ranked = Area.nearestParkingWithFallback(lots: candidates, for: trail)
                 lots = ranked.map(\.lot)
+                nearLots = Set(ranked.filter { $0.isNear }.map { "\($0.lot.lat),\($0.lot.lon)" })
                 farLots = Set(ranked.filter { !$0.isNear }.map { "\($0.lot.lat),\($0.lot.lon)" })
                 // `uniquingKeysWith`, not `uniqueKeysWithValues`: that initialiser
                 // TRAPS on a duplicate key, and two lots at identical coordinates
@@ -1112,8 +1253,10 @@ struct MapKitMapView: UIViewRepresentable {
                 ann.coordinate = CLLocationCoordinate2D(latitude: lot.lat, longitude: lot.lon)
                 // A federal BLM/USFS point is a trailhead, not a parking lot.
                 ann.isTrailhead = Self.isTrailheadSource(lot.source)
-                ann.title = lot.name ?? (ann.isTrailhead ? "Trailhead" : "Parking")
                 let key = "\(lot.lat),\(lot.lon)"
+                ann.isNearSelectedTrail = nearLots.contains(key)
+                ann.isFarFallback = farLots.contains(key)
+                ann.title = lot.name ?? (ann.isTrailhead ? "Trailhead" : "Parking")
                 var sub = Self.parkingSubtitle(for: lot, isTrailhead: ann.isTrailhead)
                 // State the distance when this is NOT at the trail. Saying it is
                 // what makes offering a far lot honest rather than a trailhead
@@ -1207,9 +1350,16 @@ struct MapKitMapView: UIViewRepresentable {
                 view.canShowCallout = true
                 view.displayPriority = .required        // a few per area — always show
                 view.isAccessibilityElement = true
-                view.accessibilityIdentifier = parking.isTrailhead
-                    ? "map-trailhead-marker"
-                    : "map-parking-marker"
+                view.accessibilityIdentifier = parking.isFarFallback
+                    ? "map-far-access-marker"
+                    : parking.isNearSelectedTrail
+                        ? "map-near-access-marker"
+                        : "map-area-access-marker"
+                let semanticParts = [parking.title, parking.subtitle]
+                    .compactMap { $0 }
+                    .filter { !$0.isEmpty }
+                view.accessibilityLabel = semanticParts.joined(separator: ", ")
+                view.accessibilityHint = "Shows access details"
                 return view
             }
             return nil

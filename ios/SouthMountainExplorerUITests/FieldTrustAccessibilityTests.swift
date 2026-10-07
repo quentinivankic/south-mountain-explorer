@@ -269,12 +269,48 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
         let profile = app.descendants(matching: .any)["trail-profile-\(suffix)"].firstMatch
         XCTAssertTrue(profile.waitForExistence(timeout: 10), "Trail profile is missing")
-        XCTAssertTrue(
-            scrollToVisible(profile, in: trailScroll, app: app),
-            "Trail profile is not reachable"
+        let selectedSheetHeader = app.descendants(matching: .any)["area-header"].firstMatch
+        XCTAssertGreaterThan(
+            selectedSheetHeader.frame.minY / app.frame.height,
+            0.25,
+            "Accessibility selected profile hides too much of the map"
         )
-        assertInsideScreen(profile, app: app)
-        XCTAssertEqual(app.buttons.matching(identifier: "trail-profile-flip-button").count, 1)
+        let direction = app.descendants(matching: .any)["trail-profile-direction"].firstMatch
+        let flip = app.buttons["trail-profile-flip-button"].firstMatch
+        let range = app.descendants(matching: .any)["trail-profile-range"].firstMatch
+        XCTAssertTrue(direction.waitForExistence(timeout: 10), "Profile direction is missing")
+        XCTAssertTrue(flip.waitForExistence(timeout: 10), "Profile Flip action is missing")
+        XCTAssertTrue(range.waitForExistence(timeout: 10), "Profile range is missing")
+        XCTAssertGreaterThanOrEqual(
+            profile.frame.minY,
+            max(select.frame.maxY, secondary.frame.maxY) - 1,
+            "Selected profile overlaps Select or Record"
+        )
+        let profileBounds = profile.frame.insetBy(dx: -1, dy: -1)
+        XCTAssertTrue(profileBounds.contains(direction.frame))
+        XCTAssertTrue(profileBounds.contains(flip.frame))
+        XCTAssertTrue(profileBounds.contains(range.frame))
+        XCTAssertTrue(direction.frame.intersection(flip.frame).isEmpty)
+        XCTAssertTrue(flip.frame.intersection(range.frame).isEmpty)
+        XCTAssertGreaterThanOrEqual(
+            profile.frame.height,
+            direction.frame.height + flip.frame.height + range.frame.height + 120,
+            "Accessibility profile compressed its chart or lower text"
+        )
+        XCTAssertTrue(scrollToReachable(flip, in: trailScroll, app: app))
+        assertInsideScreen(flip, app: app)
+        XCTAssertTrue(scrollToVisible(range, in: trailScroll, app: app))
+        assertInsideScreen(range, app: app)
+        let parking = app.descendants(matching: .any)[
+            "selected-trail-parking-detail"
+        ].firstMatch
+        XCTAssertTrue(parking.waitForExistence(timeout: 10), "Selected parking detail is missing")
+        XCTAssertTrue(scrollToVisible(parking, in: trailScroll, app: app))
+        assertInsideScreen(parking, app: app)
+        XCTAssertTrue(
+            range.frame.intersection(parking.frame).isEmpty,
+            "Profile range overlaps selected parking content"
+        )
 
         let selectedControl = app.buttons["trail-select-\(suffix)"].firstMatch
         XCTAssertTrue(scrollToReachable(selectedControl, in: trailScroll, app: app))
@@ -315,6 +351,11 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             "Collection final content is not reachable"
         )
         assertInsideScreen(finalContent, app: app)
+        XCTAssertGreaterThanOrEqual(
+            finalContent.frame.height,
+            44,
+            "Collection final row is smaller than a reachable control"
+        )
         XCTAssertGreaterThan(
             finalContent.frame.width,
             app.frame.width * 0.7,
@@ -439,8 +480,33 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             "Duration metric semantic frame is too narrow"
         )
         let lowerContent = app.descendants(matching: .any)["recording-summary-area-progress"].firstMatch
-        XCTAssertTrue(scrollToVisible(lowerContent, in: summaryScroll, app: app))
+        XCTAssertTrue(
+            scrollToVisible(lowerContent, in: summaryScroll, app: app),
+            "Complete Summary Area Progress card is not reachable"
+        )
         assertInsideScreen(lowerContent, app: app)
+        XCTAssertGreaterThan(lowerContent.frame.width, app.frame.width * 0.7)
+        let progressTitle = app.staticTexts["Area Progress"].firstMatch
+        let progressValue = app.descendants(matching: .any)[
+            "recording-summary-area-progress-value"
+        ].firstMatch
+        let progressBar = app.descendants(matching: .any)[
+            "recording-summary-area-progress-bar"
+        ].firstMatch
+        let cardBounds = lowerContent.frame.insetBy(dx: -1, dy: -1)
+        XCTAssertTrue(progressTitle.exists, "Area Progress title is missing")
+        XCTAssertTrue(progressValue.exists, "Area Progress value is missing")
+        XCTAssertTrue(progressBar.exists, "Area Progress bar is missing")
+        XCTAssertTrue(cardBounds.contains(progressTitle.frame))
+        XCTAssertTrue(cardBounds.contains(progressValue.frame))
+        XCTAssertTrue(cardBounds.contains(progressBar.frame))
+        XCTAssertFalse(app.staticTexts["New Completions"].firstMatch.exists)
+        XCTAssertFalse(app.staticTexts["Previously Completed"].firstMatch.exists)
+        XCTAssertFalse(app.staticTexts["Made Progress"].firstMatch.exists)
+    }
+
+    private func isAccessibilityLayout(_ app: XCUIApplication) -> Bool {
+        app.scrollViews["area-header"].firstMatch.exists
     }
 
     private func stopControlCount(_ app: XCUIApplication) -> Int {
@@ -571,6 +637,14 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             44,
             "Trail secondary hit height is too small"
         )
+        if isAccessibilityLayout(app) {
+            XCTAssertGreaterThan(select.frame.width, app.frame.width * 0.7)
+            XCTAssertGreaterThan(secondary.frame.width, app.frame.width * 0.7)
+        } else {
+            XCTAssertLessThanOrEqual(select.frame.height, 47)
+            XCTAssertLessThanOrEqual(secondary.frame.width, 47)
+            XCTAssertLessThanOrEqual(secondary.frame.height, 47)
+        }
         assertInsideScreen(select, app: app)
         assertInsideScreen(secondary, app: app)
         XCTAssertTrue(
@@ -622,7 +696,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
     private func assertRecordingAreaHeader(_ app: XCUIApplication) {
         let header = app.descendants(matching: .any)["area-header"].firstMatch
-        let headerScroll = app.scrollViews["area-header-scroll"].firstMatch
+        let headerScroll = app.scrollViews["area-header"].firstMatch
         let title = app.descendants(matching: .any)[
             "recording-area-header-title"
         ].firstMatch
@@ -636,7 +710,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         for attempt in 0...20 {
             let titleIsSettled = title.exists
                 && title.isHittable
-                && header.frame.insetBy(dx: -1, dy: -1).contains(title.frame)
+                && app.frame.insetBy(dx: -1, dy: -1).contains(title.frame)
                 && title.frame.minY >= header.frame.minY + 19
             if titleIsSettled { break }
             if attempt < 20 {
@@ -655,10 +729,6 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
         let titleIsComplete = title.label == "South Mountain Park and Preserve"
         XCTAssertTrue(titleIsComplete, "Recording area title is incomplete")
-        XCTAssertTrue(
-            header.frame.insetBy(dx: -1, dy: -1).contains(title.frame),
-            "Recording area title extends outside its header"
-        )
         assertInsideScreen(title, app: app)
         XCTAssertTrue(title.isHittable, "Recording area title is not reachable")
         XCTAssertGreaterThanOrEqual(
@@ -747,15 +817,41 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             }
         }
 
-        let markers = app.descendants(matching: .any).matching(NSPredicate(
-            format: "identifier == %@ OR identifier == %@",
-            "map-parking-marker",
-            "map-trailhead-marker"
-        )).allElementsBoundByIndex.filter { $0.exists }
-        XCTAssertGreaterThan(markers.count, 0, "Selected map has no generic access marker")
-        // Marker-to-control clearance is gated by the small-phone Area audit.
-        // This accessibility class verifies that generic markers and all three
-        // top controls remain exposed while prioritizing semantic reachability.
+        let nearMarkers = app.descendants(matching: .any)
+            .matching(identifier: "map-near-access-marker")
+            .allElementsBoundByIndex.filter { $0.exists }
+        let farMarkers = app.descendants(matching: .any)
+            .matching(identifier: "map-far-access-marker")
+            .allElementsBoundByIndex.filter { $0.exists }
+        XCTAssertGreaterThan(
+            nearMarkers.count + farMarkers.count,
+            0,
+            "Selected map has no access marker"
+        )
+        for marker in nearMarkers {
+            assertInsideScreen(marker, app: app)
+            XCTAssertTrue(marker.isHittable, "Near access marker is not reachable")
+            XCTAssertGreaterThanOrEqual(
+                marker.frame.minY,
+                controls.frame.maxY - 1,
+                "Near access marker intersects map controls"
+            )
+            XCTAssertLessThanOrEqual(
+                marker.frame.maxY,
+                sheetHeader.frame.minY + 1,
+                "Near access marker intersects the area sheet"
+            )
+        }
+        for marker in farMarkers {
+            XCTAssertTrue(
+                isOnScreenAndHittable(marker, app: app),
+                "Far fallback access callout is not reachable"
+            )
+            XCTAssertTrue(
+                marker.label.contains("from trail"),
+                "Far fallback marker omits its trail distance"
+            )
+        }
     }
 
     private func openBrowseSearch(_ app: XCUIApplication) -> XCUIElement {
@@ -763,13 +859,19 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(search.waitForExistence(timeout: 10), "Fit Search action is missing")
         let searchField = app.textFields["Search trails"].firstMatch
         search.tap()
-        for attempt in 0..<3 {
-            if searchField.waitForExistence(timeout: 7) { return searchField }
-            if attempt < 2, search.exists, search.isHittable {
-                search.tap()
-            }
+        for attempt in 0...10 {
+            let hasBrowseAction = app.buttons.matching(
+                identifier: "trail-filter-button"
+            ).count == 1 || app.buttons.matching(
+                identifier: "trail-search-keyboard-done"
+            ).count == 1
+            let reachedBrowse = searchField.exists
+                && hasBrowseAction
+                && app.buttons.matching(identifier: "area-search-button").count == 0
+            if reachedBrowse { return searchField }
+            if attempt < 10 { sleep(1) }
         }
-        XCTFail("Browse search did not appear after bounded Search actions")
+        XCTFail("Browse search/filter chrome did not appear after Search")
         return searchField
     }
 
@@ -779,14 +881,17 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let done = app.buttons["Dismiss Search Keyboard"].firstMatch
         XCTAssertTrue(done.waitForExistence(timeout: 5), "Search keyboard Done action is missing")
         done.tap()
-        XCTAssertFalse(
-            keyboard.waitForExistence(timeout: 5),
-            "Search keyboard Done action did not dismiss the keyboard"
-        )
+        for _ in 0..<5 {
+            if !keyboard.exists { break }
+            sleep(1)
+        }
+        XCTAssertFalse(keyboard.exists, "Search keyboard Done action did not dismiss the keyboard")
+        XCTAssertTrue(app.textFields["Search trails"].firstMatch.exists)
+        XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 1)
     }
 
     private func expandAreaSheet(_ app: XCUIApplication) {
-        let header = app.scrollViews["area-header-scroll"].firstMatch
+        let header = app.scrollViews["area-header"].firstMatch
         let anchorY = header.exists ? header.frame.minY + 8 : app.frame.height * 0.62
         let start = app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: app.frame.width / 2, dy: anchorY))

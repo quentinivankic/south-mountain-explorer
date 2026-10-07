@@ -115,6 +115,7 @@ struct TrailElevationProfileView: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("trail-profile-direction")
                 flipButton
             }
         } else {
@@ -122,6 +123,7 @@ struct TrailElevationProfileView: View {
                 Text(startEndLabel.map { "Starts: \($0)" } ?? "Start of trail")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("trail-profile-direction")
                 Spacer(minLength: 0)
                 flipButton
             }
@@ -272,7 +274,12 @@ struct TrailElevationProfileView: View {
                 }
             }
         }
-        // No baked-in height — callers size it, matching ElevationProfileView.
+        // Accessibility keeps a real chart region while every surrounding
+        // label grows intrinsically. The selected profile itself has no fixed
+        // AX height, so this reserve cannot compress Starts/Flip/range text.
+        .frame(minHeight: dynamicTypeSize.isAccessibilitySize ? 120 : nil)
+        // No baked-in standard height — the compact caller sizes it, matching
+        // ElevationProfileView.
     }
 
     /// Nice ticks in FEET (the series' native unit), rounded outward so the

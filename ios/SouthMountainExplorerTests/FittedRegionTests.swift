@@ -400,6 +400,31 @@ struct FittedRegionTests {
         #expect(shiftedSpan > 0.14)
     }
 
+    @Test func markerOcclusionCorrection_movesOnlyForRealSheetOverlap() {
+        let correction = MapKitMapView.markerOcclusionCorrection(
+            markerFrames: [CGRect(x: 150, y: 272, width: 28, height: 24)],
+            mapBounds: CGRect(x: 0, y: 0, width: 375, height: 667),
+            visibleInsets: MapViewportInsets(top: 88, bottom: 372),
+            padding: 6
+        )
+        #expect(correction.top == 0)
+        #expect(correction.leading == 0)
+        #expect(correction.bottom == 7)
+        #expect(correction.trailing == 0)
+    }
+
+    @Test func markerOcclusionCorrection_keepsVisibleLargeMarkerUnchanged() {
+        let correction = MapKitMapView.markerOcclusionCorrection(
+            // Fully inside the physical screen/control/sheet viewport, while
+            // deliberately crossing the old synthetic 20-point side inset.
+            markerFrames: [CGRect(x: 4, y: 220, width: 28, height: 40)],
+            mapBounds: CGRect(x: 0, y: 0, width: 440, height: 956),
+            visibleInsets: MapViewportInsets(top: 134, bottom: 388),
+            padding: 6
+        )
+        #expect(correction == .zero)
+    }
+
     @Test func selectedRouteRegion_malformedPointFailsClosed() {
         #expect(TrailMapView.selectedRoutePoints(
             segments: [[[33.3, -112], [33.4]]]

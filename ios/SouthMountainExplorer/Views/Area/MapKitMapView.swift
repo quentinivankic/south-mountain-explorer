@@ -500,7 +500,7 @@ struct MapKitMapView: UIViewRepresentable {
         markerFrames: [CGRect],
         mapBounds: CGRect,
         visibleInsets: MapViewportInsets,
-        padding: CGFloat = 6
+        padding: CGFloat = 8
     ) -> MapViewportInsets {
         let values = [
             mapBounds.minX, mapBounds.minY, mapBounds.maxX, mapBounds.maxY,

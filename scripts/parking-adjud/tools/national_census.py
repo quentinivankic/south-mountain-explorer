@@ -84,8 +84,44 @@ DEFAULT_SHARD_SIZE = 1_000
 MIN_SHARD_SIZE = 500
 MAX_SHARD_SIZE = 2_000
 ENDPOINT_GRID_DEGREES = math.degrees(FALLBACK_M / EARTH_RADIUS_M)
+SPHERICAL_ENVELOPE_AMBIGUITY_RAD = 1e-7
+SPHERICAL_ENVELOPE_LOCAL_CAP_RAD = math.radians(1.0)
+SPHERICAL_ENVELOPE_EPSILON_DEGREES = 1e-10
 MAX_ENDPOINT_CANDIDATES_PER_FEATURE = 100_000
-MAX_ENDPOINT_GRID_QUERY_CELLS = 500_000
+MAX_STREAM_RECORD_BYTES = 16 * 1024 * 1024
+MAX_STREAM_JSON_NESTING_DEPTH = 128
+MIN_COMPACT_GEOJSON_COORDINATE_BYTES = len(b"[0,0],")
+STREAM_STRUCTURAL_PREPARSE_MIN_BYTES = MAX_STREAM_RECORD_BYTES // 4
+MAX_ENDPOINT_GRID_SEGMENT_ENVELOPES = (
+    MAX_STREAM_RECORD_BYTES + MIN_COMPACT_GEOJSON_COORDINATE_BYTES - 1
+) // MIN_COMPACT_GEOJSON_COORDINATE_BYTES
+MAX_ENDPOINT_GRID_SPHERICAL_QUERY_WINDOWS = (
+    3 * MAX_ENDPOINT_GRID_SEGMENT_ENVELOPES
+)
+MAX_ENDPOINT_GRID_HEAD_PARITY_QUERY_WINDOWS = 1
+MAX_ENDPOINT_GRID_QUERY_WINDOWS = (
+    MAX_ENDPOINT_GRID_SPHERICAL_QUERY_WINDOWS
+    + MAX_ENDPOINT_GRID_HEAD_PARITY_QUERY_WINDOWS
+)
+ENDPOINT_GRID_RETAINED_WINDOW_SLOT_BYTES = 512
+MAX_ENDPOINT_GRID_RETAINED_WINDOW_BYTES = 64 * 1024 * 1024
+MAX_ENDPOINT_GRID_RETAINED_WINDOW_SLOTS = (
+    MAX_ENDPOINT_GRID_RETAINED_WINDOW_BYTES
+    // ENDPOINT_GRID_RETAINED_WINDOW_SLOT_BYTES
+)
+HEAD_ENDPOINT_GRID_QUERY_CELLS = 500_000
+MAX_ENDPOINT_GRID_SPHERICAL_ROW_PROBES = HEAD_ENDPOINT_GRID_QUERY_CELLS
+MAX_ENDPOINT_GRID_HEAD_PARITY_ROW_PROBES = HEAD_ENDPOINT_GRID_QUERY_CELLS
+MAX_ENDPOINT_GRID_ROW_PROBES = (
+    MAX_ENDPOINT_GRID_SPHERICAL_ROW_PROBES
+    + MAX_ENDPOINT_GRID_HEAD_PARITY_ROW_PROBES
+)
+MAX_ENDPOINT_GRID_SPHERICAL_CELL_PROBES = HEAD_ENDPOINT_GRID_QUERY_CELLS
+MAX_ENDPOINT_GRID_HEAD_PARITY_CELL_PROBES = HEAD_ENDPOINT_GRID_QUERY_CELLS
+MAX_ENDPOINT_GRID_CELL_PROBES = (
+    MAX_ENDPOINT_GRID_SPHERICAL_CELL_PROBES
+    + MAX_ENDPOINT_GRID_HEAD_PARITY_CELL_PROBES
+)
 MAX_COMPONENTS_PER_ENDPOINT = 100_000
 MAX_TRAIL_CANDIDATE_COMPONENTS = 100_000
 MAX_TRAILS_PER_ENDPOINT = 100_000
@@ -98,12 +134,30 @@ MAX_SPATIAL_PAIRS = 5_000_000
 MAX_PARKING_IDENTITIES = 2_000_000
 MAX_RETAINED_FEATURES = 2_000_000
 MAX_WORK_UNITS = 2_000_000
-MAX_STREAM_RECORD_BYTES = 16 * 1024 * 1024
+PARKING_STREAM_PROGRESS_EVERY = 100_000
 OSMIUM_TIMEOUT_S = 3_600.0
 OSMIUM_TERM_GRACE_S = 5.0
 MIN_PBF_ARTIFACT_FREE_BYTES = 10 * 1024 * 1024 * 1024
 MIN_NATIONAL_PBF_PARKING_IDENTITIES = 500_000
 UNASSIGNED_OWNER = "__unassigned__"
+TOPOLOGY_UNVALIDATED_NONCANDIDATE_STATUS = (
+    "structurally-valid-topology-unvalidated-noncandidate"
+)
+LEGACY_CLOSED_WAY_NON_AREA_POLICIES = frozenset({
+    "LineString-required",
+    "LineString-required-area-copies-ignored",
+    "LineString-required-area-copies-ignored-before-endpoint-association",
+})
+LEGACY_FILTERED_PBF_METADATA = {
+    "input_inventory_command": "tags-filter -R -f opl",
+    "filtered_inventory_command": "cat -f opl",
+    "export_command": (
+        "export INPUT -f geojsonseq "
+        "--geometry-types=point,linestring,polygon "
+        "--add-unique-id=type_id"
+    ),
+    "closed_way_non_area_values": ["0", "false", "no"],
+}
 
 HARD_NON_PUBLIC_ACCESS = frozenset({"private", "no", "customers"})
 CURRENT_EXCLUDED_ACCESS = frozenset({"private", "no", "customers", "permit"})
@@ -200,6 +254,19 @@ class ScopeCapture:
     trails_without_source_id: int
     anonymous_trail_refs: tuple[str, ...]
     trails_without_endpoints: int
+
+
+@dataclass(frozen=True)
+class StagedParkingFeature:
+    alias: str
+    source_form: str
+    geometry: dict
+    tags: dict[str, str]
+    relation_members: tuple[str, ...]
+
+    @property
+    def geometry_type(self) -> str:
+        return self.geometry["type"]
 
 
 @dataclass
@@ -895,16 +962,19 @@ def _iter_vertices(geometry: dict) -> Iterator[tuple[float, float]]:
 
 def _point_in_ring(
         latitude: float, longitude: float, ring: list[list[float]]) -> bool:
+    anchor = ring[0][0]
+    query_x = _unwrapped_longitude(longitude, anchor)
     inside = False
-    x = 0.0
     for index in range(len(ring) - 1):
         longitude1, latitude1 = ring[index]
         longitude2, latitude2 = ring[index + 1]
-        x1 = _longitude_delta(longitude, longitude1)
-        x2 = _longitude_delta(longitude, longitude2)
+        x1 = _unwrapped_longitude(longitude1, anchor)
+        x2 = _unwrapped_longitude(longitude2, anchor)
         if (latitude1 > latitude) != (latitude2 > latitude):
-            crossing = x1 + (x2 - x1) * (latitude - latitude1) / (latitude2 - latitude1)
-            if x < crossing:
+            crossing = x1 + (x2 - x1) * (latitude - latitude1) / (
+                latitude2 - latitude1
+            )
+            if query_x < crossing:
                 inside = not inside
     return inside
 
@@ -929,21 +999,36 @@ def geometry_distance_to_point_m(
         return 0.0
     best = math.inf
     for line in _iter_lines(geometry):
-        for first, second in zip(line, line[1:]):
+        points = iter(line)
+        try:
+            previous = next(points)
+        except StopIteration:
+            continue
+        for current in points:
             best = min(best, _segment_distance_m(
                 latitude,
                 longitude,
-                (first[1], first[0]),
-                (second[1], second[0]),
+                (previous[1], previous[0]),
+                (current[1], current[0]),
             ))
+            previous = current
     return best
 
 
 def _line_segments(geometry: dict) -> Iterator[
         tuple[tuple[float, float], tuple[float, float]]]:
     for line in _iter_lines(geometry):
-        for first, second in zip(line, line[1:]):
-            yield (first[1], first[0]), (second[1], second[0])
+        points = iter(line)
+        try:
+            previous = next(points)
+        except StopIteration:
+            continue
+        for current in points:
+            yield (
+                (previous[1], previous[0]),
+                (current[1], current[0]),
+            )
+            previous = current
 
 
 def _orientation(a, b, c, anchor: float) -> float:
@@ -1018,72 +1103,12 @@ def _ring_twice_area(ring: list[list[float]]) -> float:
     ))
 
 
-def _ring_self_intersects(ring: list[list[float]]) -> bool:
-    anchor = ring[0][0]
-    points = [
-        (_unwrapped_longitude(point[0], anchor), point[1])
-        for point in ring
-    ]
-
-    def orientation(first, second, third) -> float:
-        return (
-            (second[0] - first[0]) * (third[1] - first[1])
-            - (second[1] - first[1]) * (third[0] - first[0])
-        )
-
-    def on_segment(first, second, point) -> bool:
-        epsilon = 1e-12
-        return (
-            min(first[0], second[0]) - epsilon <= point[0]
-            <= max(first[0], second[0]) + epsilon
-            and min(first[1], second[1]) - epsilon <= point[1]
-            <= max(first[1], second[1]) + epsilon
-        )
-
-    def intersects(first, second, third, fourth) -> bool:
-        epsilon = 1e-12
-        values = (
-            orientation(first, second, third),
-            orientation(first, second, fourth),
-            orientation(third, fourth, first),
-            orientation(third, fourth, second),
-        )
-        if ((values[0] > epsilon and values[1] < -epsilon)
-                or (values[0] < -epsilon and values[1] > epsilon)):
-            if ((values[2] > epsilon and values[3] < -epsilon)
-                    or (values[2] < -epsilon and values[3] > epsilon)):
-                return True
-        return (
-            (abs(values[0]) <= epsilon and on_segment(first, second, third))
-            or (abs(values[1]) <= epsilon and on_segment(first, second, fourth))
-            or (abs(values[2]) <= epsilon and on_segment(third, fourth, first))
-            or (abs(values[3]) <= epsilon and on_segment(third, fourth, second))
-        )
-
-    segment_count = len(points) - 1
-    for first_index in range(segment_count):
-        for second_index in range(first_index + 1, segment_count):
-            if second_index == first_index + 1:
-                continue
-            if first_index == 0 and second_index == segment_count - 1:
-                continue
-            if intersects(
-                    points[first_index], points[first_index + 1],
-                    points[second_index], points[second_index + 1]):
-                return True
-    return False
-
-
 def _normalize_ring(value: object, label: str) -> list[list[float]]:
     ring = _normalize_line(value, label, 4)
     if ring[0] != ring[-1]:
         raise FeatureRejection("malformed_geometry", f"{label} is not explicitly closed")
     if len({tuple(point) for point in ring[:-1]}) < 3 or _ring_twice_area(ring) <= 1e-15:
         raise FeatureRejection("malformed_geometry", f"{label} is degenerate")
-    if _ring_self_intersects(ring):
-        raise FeatureRejection(
-            "malformed_geometry", f"{label} is topologically self-intersecting"
-        )
     return ring
 
 
@@ -1113,6 +1138,210 @@ def _geometry_engine_manifest() -> dict:
         "version": SHAPELY_REQUIRED_VERSION,
         "requirement": f"Shapely=={SHAPELY_REQUIRED_VERSION}",
         "validity": "complete Polygon/MultiPolygon topology",
+        "capture_validation_scope": (
+            "polygonal parking with a nonempty conservative 5km EndpointGrid "
+            "candidate set after non-area area-copy suppression; polygonal "
+            "records outside every envelope are explicit topology-unvalidated "
+            "noncandidates"
+        ),
+        "default_validation_scope": "eager for normalize_geometry/normalize_feature",
+    }
+
+
+def _parking_geometry_policy() -> dict:
+    return {
+        "structure_validation": (
+            "strict-feature-tags-id-finite-coordinates-and-closed-"
+            "nondegenerate-rings-before-spatial-gating"
+        ),
+        "coarse_index": "conservative-spherical-segment-union-EndpointGrid",
+        "coarse_geometry_model": (
+            "local-convex-spherical-caps-or-great-circle-segment-tubes-plus-"
+            "anchor-unwrapped-polygon-interiors"
+        ),
+        "polygon_interior_predicate": (
+            "fixed-first-vertex-anchor-unwrapped-even-odd"
+        ),
+        "coarse_radius_m": FALLBACK_M,
+        "coarse_local_cap_radians": SPHERICAL_ENVELOPE_LOCAL_CAP_RAD,
+        "spherical_envelope_epsilon": {
+            "name": "SPHERICAL_ENVELOPE_EPSILON_DEGREES",
+            "value": SPHERICAL_ENVELOPE_EPSILON_DEGREES,
+            "units": "degrees",
+        },
+        "coarse_ambiguous_segment_radians": SPHERICAL_ENVELOPE_AMBIGUITY_RAD,
+        "coarse_ambiguous_segment_policy": (
+            "query-all-endpoint-cells-or-fail-resource-caps"
+        ),
+        "coarse_vertex_scan": {
+            "policy": (
+                "record-byte-admission-then-parsed-amenity-relevance-before-"
+                "delimiter-count-depth-proof-or-no-copy-structural-scan"
+            ),
+            "admission": (
+                "all-valid-json-records-at-or-below-maximum-record-bytes-"
+                "regardless-of-coordinate-count-or-numeric-spelling"
+            ),
+            "accounting": "vertices-inspected-diagnostic-only",
+            "maximum_json_nesting_depth": MAX_STREAM_JSON_NESTING_DEPTH,
+            "json_depth_fastpath": (
+                "total-opening-delimiters-at-most-maximum-proves-depth-bound"
+            ),
+            "structural_preparse_minimum_record_bytes": (
+                STREAM_STRUCTURAL_PREPARSE_MIN_BYTES
+            ),
+            "structural_preparse_diagnostics": (
+                "potentially-parking-record-depth-and-large-record-coordinate-"
+                "pair-arrays; definitely-nonparking-records-not-scanned"
+            ),
+            "coordinate_units": "GeoJSON coordinate-pair arrays",
+            "record_bound_kind": "processing-not-buffering-or-peak-memory",
+            "record_framing": (
+                "maximum-applies-to-JSON-payload-after-removing-one-optional-"
+                "record-separator-and-one-LF-CRLF-or-CR-line-terminator"
+            ),
+            "maximum_record_bytes": MAX_STREAM_RECORD_BYTES,
+        },
+        "coarse_segment_planning": {
+            "maximum_segment_envelopes": (
+                MAX_ENDPOINT_GRID_SEGMENT_ENVELOPES
+            ),
+            "derivation": (
+                "ceil(max_stream_record_bytes / "
+                "minimum_compact_geojson_coordinate_bytes)"
+            ),
+            "minimum_compact_geojson_coordinate_bytes": (
+                MIN_COMPACT_GEOJSON_COORDINATE_BYTES
+            ),
+            "units": "precharged spherical segment envelopes",
+            "policy": (
+                "precharge-before-each-tight-segment-envelope-computation-"
+                "or-retention"
+            ),
+        },
+        "coarse_grid_query": {
+            "maximum_windows": MAX_ENDPOINT_GRID_QUERY_WINDOWS,
+            "spherical_maximum_windows": (
+                MAX_ENDPOINT_GRID_SPHERICAL_QUERY_WINDOWS
+            ),
+            "head_parity_maximum_windows": (
+                MAX_ENDPOINT_GRID_HEAD_PARITY_QUERY_WINDOWS
+            ),
+            "window_derivation": (
+                "sum-of-three-times-maximum-segment-envelopes-for-spherical-"
+                "seam-splits-and-polygon-interiors-plus-one-separate-literal-"
+                "HEAD-expanded-query-window"
+            ),
+            "maximum_retained_window_slots": (
+                MAX_ENDPOINT_GRID_RETAINED_WINDOW_SLOTS
+            ),
+            "maximum_retained_window_bytes": (
+                MAX_ENDPOINT_GRID_RETAINED_WINDOW_BYTES
+            ),
+            "reserved_bytes_per_window_slot": (
+                ENDPOINT_GRID_RETAINED_WINDOW_SLOT_BYTES
+            ),
+            "retention_derivation": (
+                "64MiB-conservative-budget-at-512-bytes-per-live-window-for-"
+                "four-float-tuple-list-run-sort-and-final-output-worst-case"
+            ),
+            "maximum_row_probes": MAX_ENDPOINT_GRID_ROW_PROBES,
+            "spherical_maximum_row_probes": (
+                MAX_ENDPOINT_GRID_SPHERICAL_ROW_PROBES
+            ),
+            "head_parity_maximum_row_probes": (
+                MAX_ENDPOINT_GRID_HEAD_PARITY_ROW_PROBES
+            ),
+            "maximum_cell_probes": MAX_ENDPOINT_GRID_CELL_PROBES,
+            "spherical_maximum_cell_probes": (
+                MAX_ENDPOINT_GRID_SPHERICAL_CELL_PROBES
+            ),
+            "head_parity_maximum_cell_probes": (
+                MAX_ENDPOINT_GRID_HEAD_PARITY_CELL_PROBES
+            ),
+            "head_expanded_query_parity_maximum_cells": (
+                HEAD_ENDPOINT_GRID_QUERY_CELLS
+            ),
+            "head_expanded_query_parity_policy": (
+                "literal-HEAD-expanded-cell-window-with-latitude-expansion-"
+                "expanded-maximum-absolute-latitude-linear-radius-over-cos-"
+                "longitude-padding-cell-rounding-and-dateline-wrap-only-when-"
+                "raw-longitude-span-is-less-than-180-degrees; wrapping-parity-"
+                "disabled-while-spherical-superset-query-remains-authoritative"
+            ),
+            "row_cell_derivation": (
+                "sum-of-independent-500000-spherical-and-500000-literal-HEAD-"
+                "expanded-query-lanes-with-global-cell-deduplication"
+            ),
+            "units": {
+                "windows": (
+                    "precharged spherical/global plus separate literal-HEAD-"
+                    "expanded-query windows actually scanned"
+                ),
+                "retained_window_slots": (
+                    "pre-reserved simultaneous merge input/output slots"
+                ),
+                "retained_window_bytes": (
+                    "512-byte conservative reservations for tuple/list/run/"
+                    "sort/final-output live memory"
+                ),
+                "rows": (
+                    "precharged occupied latitude-row probes in separate-"
+                    "spherical and HEAD-parity lanes"
+                ),
+                "cells": (
+                    "precharged globally-deduplicated longitude/occupied-cell-"
+                    "probes in separate spherical and HEAD-parity lanes"
+                ),
+            },
+            "aggregate_query_work_units": "diagnostic-only-not-a-limit",
+        },
+        "coarse_global_fallback": {
+            "maximum_candidates": MAX_ENDPOINT_CANDIDATES_PER_FEATURE,
+            "policy": (
+                "total-endpoint-candidate-preflight-then-one-global-window-"
+                "over-all-occupied-cells-with-incremental-candidate-cap"
+            ),
+            "candidate_preflight": (
+                "fail-before-global-scan-whenever-total-endpoints-exceed-"
+                "maximum-candidates"
+            ),
+        },
+        "endpoint_grid_cell_degrees": ENDPOINT_GRID_DEGREES,
+        "coarse_outside": (
+            "nonpolygonal-parking-is-outside;-polygonal-parking-is-explicit-"
+            "topology-unvalidated-noncandidate-with-no-Shapely-or-exact-distance"
+        ),
+        "far_topology_policy": {
+            "status": TOPOLOGY_UNVALIDATED_NONCANDIDATE_STATUS,
+            "scope": (
+                "structurally-valid-Polygon-or-MultiPolygon-proven-outside-"
+                "every-conservative-5km-endpoint-envelope"
+            ),
+            "candidate": False,
+            "denominator_policy": (
+                "excluded-from-parking_features-and-candidate-denominator-"
+                "while-record-accounting-and-export-reconciliation-close"
+            ),
+            "inventory_authority": (
+                "record-count-and-stream-order-record-identity-sha256-in-"
+                "parking-source-inventory"
+            ),
+            "run_id_compatibility": (
+                "intentional-delta-from-HEAD-preserves-candidate-denominator-"
+                "without-restoring-quadratic-or-far-Shapely-topology-work"
+            ),
+        },
+        "topology_engine": f"Shapely=={SHAPELY_REQUIRED_VERSION}",
+        "topology_validation_scope": (
+            "Polygon/MultiPolygon with nonempty coarse endpoint candidates"
+        ),
+        "topology_before_exact_distance": True,
+        "default_normalization_validates_topology": True,
+        "non_area_area_copy": (
+            "capture-form-and-sidecar-alias-then-ignore-before-coarse-topology-"
+            "and-exact-distance"
+        ),
     }
 
 
@@ -1132,7 +1361,7 @@ def _validate_polygon_topology(geometry: dict) -> None:
         )
 
 
-def normalize_geometry(value: object) -> dict:
+def _normalize_geometry_structure(value: object) -> dict:
     if not isinstance(value, dict) or not isinstance(value.get("type"), str):
         raise FeatureRejection("malformed_geometry", "geometry is not an object with a type")
     geometry_type = value["type"]
@@ -1151,15 +1380,13 @@ def normalize_geometry(value: object) -> dict:
     if geometry_type == "Polygon":
         if not isinstance(coordinates, list) or not coordinates:
             raise FeatureRejection("malformed_geometry", "polygon has no rings")
-        normalized = {
+        return {
             "type": "Polygon",
             "coordinates": [
                 _normalize_ring(ring, f"polygon ring {index}")
                 for index, ring in enumerate(coordinates)
             ],
         }
-        _validate_polygon_topology(normalized)
-        return normalized
     if geometry_type == "MultiPolygon":
         if not isinstance(coordinates, list) or not coordinates:
             raise FeatureRejection("malformed_geometry", "multipolygon has no polygons")
@@ -1173,12 +1400,18 @@ def normalize_geometry(value: object) -> dict:
                 _normalize_ring(ring, f"multipolygon {polygon_index} ring {ring_index}")
                 for ring_index, ring in enumerate(polygon)
             ])
-        normalized = {"type": "MultiPolygon", "coordinates": polygons}
-        _validate_polygon_topology(normalized)
-        return normalized
+        return {"type": "MultiPolygon", "coordinates": polygons}
     raise FeatureRejection(
         "unsupported_geometry", f"unsupported geometry type {geometry_type!r}"
     )
+
+
+def normalize_geometry(value: object) -> dict:
+    """Normalize geometry and eagerly validate complete polygon topology."""
+    normalized = _normalize_geometry_structure(value)
+    if normalized["type"] in ("Polygon", "MultiPolygon"):
+        _validate_polygon_topology(normalized)
+    return normalized
 
 
 def _ring_centroid(ring: list[list[float]]) -> tuple[float, float, float]:
@@ -1246,6 +1479,786 @@ def geometry_bbox_center(geometry: dict) -> tuple[float, float]:
     )
 
 
+def _unit_sphere_point(
+        latitude: float, longitude: float) -> tuple[float, float, float]:
+    latitude_radians = math.radians(latitude)
+    longitude_radians = math.radians(longitude)
+    cosine = math.cos(latitude_radians)
+    return (
+        cosine * math.cos(longitude_radians),
+        cosine * math.sin(longitude_radians),
+        math.sin(latitude_radians),
+    )
+
+
+def _spherical_cap_envelope(
+        latitude: float, longitude: float,
+        angular_radius: float) -> tuple[float, float, float, float]:
+    angular_radius = max(0.0, min(math.pi, angular_radius))
+    latitude_pad = (
+        math.degrees(angular_radius) + SPHERICAL_ENVELOPE_EPSILON_DEGREES
+    )
+    south = max(-90.0, latitude - latitude_pad)
+    north = min(90.0, latitude + latitude_pad)
+    latitude_radians = math.radians(latitude)
+    if angular_radius + abs(latitude_radians) >= math.pi / 2.0 - 1e-15:
+        return south, north, 0.0, 360.0
+    ratio = math.sin(angular_radius) / math.cos(latitude_radians)
+    longitude_pad = (
+        math.degrees(math.asin(max(0.0, min(1.0, ratio))))
+        + SPHERICAL_ENVELOPE_EPSILON_DEGREES
+    )
+    return (
+        south,
+        north,
+        (longitude - longitude_pad) % 360.0,
+        min(360.0, 2.0 * longitude_pad),
+    )
+
+
+def _segment_path_envelope(
+        first: tuple[float, float],
+        second: tuple[float, float]) -> tuple[float, float, float, float]:
+    """Bound the same shortest great-circle arc used by segment distance."""
+    first_latitude, first_longitude = first
+    second_latitude, second_longitude = second
+    angle = haversine_m(
+        first_latitude, first_longitude,
+        second_latitude, second_longitude,
+    ) / EARTH_RADIUS_M
+    if angle <= SPHERICAL_ENVELOPE_AMBIGUITY_RAD:
+        return _spherical_cap_envelope(
+            first_latitude,
+            first_longitude,
+            angle + 1e-15,
+        )
+    if math.pi - angle <= SPHERICAL_ENVELOPE_AMBIGUITY_RAD:
+        return -90.0, 90.0, 0.0, 360.0
+
+    first_vector = _unit_sphere_point(first_latitude, first_longitude)
+    second_vector = _unit_sphere_point(second_latitude, second_longitude)
+    normal = (
+        first_vector[1] * second_vector[2]
+        - first_vector[2] * second_vector[1],
+        first_vector[2] * second_vector[0]
+        - first_vector[0] * second_vector[2],
+        first_vector[0] * second_vector[1]
+        - first_vector[1] * second_vector[0],
+    )
+    normal_length = math.sqrt(sum(value * value for value in normal))
+    if normal_length <= 1e-15:
+        return -90.0, 90.0, 0.0, 360.0
+    tangent = (
+        (normal[1] * first_vector[2] - normal[2] * first_vector[1])
+        / normal_length,
+        (normal[2] * first_vector[0] - normal[0] * first_vector[2])
+        / normal_length,
+        (normal[0] * first_vector[1] - normal[1] * first_vector[0])
+        / normal_length,
+    )
+
+    latitudes = [first_latitude, second_latitude]
+    phase = math.atan2(tangent[2], first_vector[2])
+    for stationary in (phase, phase + math.pi):
+        for rotation in range(-2, 3):
+            position = stationary + rotation * 2.0 * math.pi
+            if -1e-12 <= position <= angle + 1e-12:
+                position = max(0.0, min(angle, position))
+                z = (
+                    first_vector[2] * math.cos(position)
+                    + tangent[2] * math.sin(position)
+                )
+                latitudes.append(math.degrees(math.asin(max(-1.0, min(1.0, z)))))
+    minimum_latitude = max(
+        -90.0, min(latitudes) - SPHERICAL_ENVELOPE_EPSILON_DEGREES
+    )
+    maximum_latitude = min(
+        90.0, max(latitudes) + SPHERICAL_ENVELOPE_EPSILON_DEGREES
+    )
+    if (minimum_latitude <= -90.0 + SPHERICAL_ENVELOPE_EPSILON_DEGREES
+            or maximum_latitude
+            >= 90.0 - SPHERICAL_ENVELOPE_EPSILON_DEGREES):
+        return minimum_latitude, maximum_latitude, 0.0, 360.0
+
+    signed_longitude_span = _longitude_delta(
+        first_longitude, second_longitude
+    )
+    if abs(abs(signed_longitude_span) - 180.0) <= 1e-12:
+        return minimum_latitude, maximum_latitude, 0.0, 360.0
+    longitude_epsilon = SPHERICAL_ENVELOPE_EPSILON_DEGREES
+    if signed_longitude_span >= 0.0:
+        start = first_longitude - longitude_epsilon
+        span = signed_longitude_span + 2.0 * longitude_epsilon
+    else:
+        start = second_longitude - longitude_epsilon
+        span = -signed_longitude_span + 2.0 * longitude_epsilon
+    return (
+        minimum_latitude, maximum_latitude,
+        start % 360.0, min(360.0, span),
+    )
+
+
+def _validate_endpoint_grid_geometry(geometry: dict, context: str) -> None:
+    """Validate the public grid surface without allocating vertex copies."""
+    if not isinstance(geometry, dict):
+        raise CensusError(f"{context} geometry must be an object")
+    geometry_type = geometry.get("type")
+    coordinates = geometry.get("coordinates")
+    if geometry_type == "Point":
+        if coordinates in (None, []):
+            return
+        _coordinate(coordinates, f"{context} point")
+        return
+    if geometry_type == "LineString":
+        if not isinstance(coordinates, list):
+            raise CensusError(f"{context} line coordinates must be an array")
+        labelled_lines = (("line", coordinates),)
+    elif geometry_type in ("Polygon", "MultiPolygon"):
+        if not isinstance(coordinates, list):
+            raise CensusError(f"{context} polygon coordinates must be an array")
+        polygons = [coordinates] if geometry_type == "Polygon" else coordinates
+        labelled_lines = []
+        for polygon_index, polygon in enumerate(polygons):
+            if not isinstance(polygon, list):
+                raise CensusError(
+                    f"{context} polygon {polygon_index} rings must be an array"
+                )
+            for ring_index, ring in enumerate(polygon):
+                if not isinstance(ring, list) or len(ring) < 4:
+                    raise CensusError(
+                        f"{context} polygon {polygon_index} ring {ring_index} "
+                        "has fewer than 4 vertices"
+                    )
+                labelled_lines.append((
+                    f"polygon {polygon_index} ring {ring_index}", ring
+                ))
+    else:
+        raise CensusError(
+            f"{context} has unsupported endpoint-grid geometry type "
+            f"{geometry_type!r}"
+        )
+    for line_label, line in labelled_lines:
+        for point_index, point in enumerate(line):
+            _coordinate(point, f"{context} {line_label}[{point_index}]")
+
+
+class _EndpointGridResourceLedger:
+    """Keep independently derived planner and grid resource ledgers."""
+
+    def __init__(
+            self, context: str,
+            stats: dict[str, int | str] | None = None):
+        self.context = context
+        self.stats = stats
+        self.grid_cell_probes = int(stats["grid_cell_probes"]) if stats else 0
+        self.head_parity_cell_probes = (
+            int(stats.get("head_parity_cell_probes", 0)) if stats else 0
+        )
+        self.spherical_cell_probes = (
+            int(stats.get(
+                "spherical_cell_probes",
+                self.grid_cell_probes - self.head_parity_cell_probes,
+            )) if stats else 0
+        )
+        self.occupied_cell_probes = (
+            int(stats["occupied_cell_probes"]) if stats else 0
+        )
+        self.query_work_units = int(stats["query_work_units"]) if stats else 0
+        self.row_probes = int(stats["row_probes"]) if stats else 0
+        self.head_parity_row_probes = (
+            int(stats.get("head_parity_row_probes", 0)) if stats else 0
+        )
+        self.spherical_row_probes = (
+            int(stats.get(
+                "spherical_row_probes",
+                self.row_probes - self.head_parity_row_probes,
+            )) if stats else 0
+        )
+        self.segment_envelopes_planned = (
+            int(stats["segment_envelopes_planned"]) if stats else 0
+        )
+        self.vertices_inspected = int(stats["vertices_inspected"]) if stats else 0
+        self.window_cell_probes = (
+            int(stats["window_cell_probes"]) if stats else 0
+        )
+        self.retained_window_slots = (
+            int(stats.get("retained_window_slots", 0)) if stats else 0
+        )
+        self.peak_retained_window_slots = (
+            int(stats.get("peak_retained_window_slots", 0)) if stats else 0
+        )
+        self.retained_window_bytes = (
+            int(stats.get("retained_window_bytes", 0)) if stats else 0
+        )
+        self.peak_retained_window_bytes = (
+            int(stats.get("peak_retained_window_bytes", 0)) if stats else 0
+        )
+        self.windows_scanned = int(stats["windows_scanned"]) if stats else 0
+        self.head_parity_windows = (
+            int(stats.get("head_parity_windows", 0)) if stats else 0
+        )
+        self.spherical_windows_scanned = (
+            int(stats.get(
+                "spherical_windows_scanned",
+                self.windows_scanned - self.head_parity_windows,
+            )) if stats else 0
+        )
+
+    def set_plan(self, plan: str) -> None:
+        if self.stats is not None:
+            self.stats["plan"] = plan
+
+    def set_head_parity_status(self, status: str) -> None:
+        if self.stats is not None:
+            self.stats["head_parity_status"] = status
+
+    def inspect_vertices(self, amount: int = 1) -> None:
+        if self.stats is None:
+            return
+        self.vertices_inspected += amount
+        self.stats["vertices_inspected"] = self.vertices_inspected
+
+    def _charge(
+            self, name: str, amount: int, limit: int,
+            label: str, units: str) -> None:
+        value = int(getattr(self, name)) + amount
+        setattr(self, name, value)
+        self.query_work_units += amount
+        if self.stats is not None:
+            self.stats[name] = value
+            self.stats["query_work_units"] = self.query_work_units
+        if value > limit:
+            raise CensusError(
+                f"{self.context} endpoint-grid {label} exceeds {limit:,} "
+                f"{units}; the operation was precharged before compute/retain"
+            )
+
+    def charge_segment_envelope(self) -> None:
+        self._charge(
+            "segment_envelopes_planned", 1,
+            MAX_ENDPOINT_GRID_SEGMENT_ENVELOPES,
+            "spherical segment planning", "segment envelopes",
+        )
+
+    def reserve_window_slots(self, amount: int = 1) -> None:
+        if amount < 0:
+            raise CensusError(
+                f"{self.context} endpoint-grid retention invariant: negative "
+                f"window-slot reservation {amount}"
+            )
+        retained_slots = self.retained_window_slots + amount
+        additional_bytes = (
+            amount * ENDPOINT_GRID_RETAINED_WINDOW_SLOT_BYTES
+        )
+        retained_bytes = self.retained_window_bytes + additional_bytes
+        if (retained_slots > MAX_ENDPOINT_GRID_RETAINED_WINDOW_SLOTS
+                or retained_bytes > MAX_ENDPOINT_GRID_RETAINED_WINDOW_BYTES):
+            raise CensusError(
+                f"{self.context} endpoint-grid merge retention exceeds "
+                f"{MAX_ENDPOINT_GRID_RETAINED_WINDOW_BYTES:,} reserved bytes "
+                f"or {MAX_ENDPOINT_GRID_RETAINED_WINDOW_SLOTS:,} simultaneous "
+                "window slots; tuple/list/run/sort/final-output capacity was "
+                "reserved before compute, append, or allocation"
+            )
+        self.retained_window_slots = retained_slots
+        self.retained_window_bytes = retained_bytes
+        self.peak_retained_window_slots = max(
+            self.peak_retained_window_slots, retained_slots
+        )
+        self.peak_retained_window_bytes = max(
+            self.peak_retained_window_bytes, retained_bytes
+        )
+        if self.stats is not None:
+            self.stats["retained_window_slots"] = retained_slots
+            self.stats["peak_retained_window_slots"] = (
+                self.peak_retained_window_slots
+            )
+            self.stats["retained_window_bytes"] = retained_bytes
+            self.stats["peak_retained_window_bytes"] = (
+                self.peak_retained_window_bytes
+            )
+
+    def release_window_slots(self, amount: int = 1) -> None:
+        if amount < 0 or amount > self.retained_window_slots:
+            raise CensusError(
+                f"{self.context} endpoint-grid retention invariant: cannot "
+                f"release {amount} window slots from "
+                f"{self.retained_window_slots} retained slots"
+            )
+        released_bytes = amount * ENDPOINT_GRID_RETAINED_WINDOW_SLOT_BYTES
+        if released_bytes > self.retained_window_bytes:
+            raise CensusError(
+                f"{self.context} endpoint-grid retention invariant: cannot "
+                f"release {released_bytes} reserved bytes from "
+                f"{self.retained_window_bytes} retained bytes"
+            )
+        self.retained_window_slots -= amount
+        self.retained_window_bytes -= released_bytes
+        if self.stats is not None:
+            self.stats["retained_window_slots"] = self.retained_window_slots
+            self.stats["retained_window_bytes"] = self.retained_window_bytes
+
+    def _charge_query_lane(
+            self, lane_name: str, total_name: str, amount: int,
+            lane_limit: int, total_limit: int, label: str, units: str) -> None:
+        lane_value = int(getattr(self, lane_name)) + amount
+        total_value = int(getattr(self, total_name)) + amount
+        setattr(self, lane_name, lane_value)
+        setattr(self, total_name, total_value)
+        self.query_work_units += amount
+        if self.stats is not None:
+            self.stats[lane_name] = lane_value
+            self.stats[total_name] = total_value
+            self.stats["query_work_units"] = self.query_work_units
+        if lane_value > lane_limit or total_value > total_limit:
+            raise CensusError(
+                f"{self.context} endpoint-grid {label} exceeds {lane_limit:,} "
+                f"{units} in its independent lane; combined ceiling is "
+                f"{total_limit:,}; the operation was precharged before "
+                "compute/lookup"
+            )
+
+    def charge_window(self, *, head_parity: bool = False) -> None:
+        if head_parity:
+            self._charge_query_lane(
+                "head_parity_windows", "windows_scanned", 1,
+                MAX_ENDPOINT_GRID_HEAD_PARITY_QUERY_WINDOWS,
+                MAX_ENDPOINT_GRID_QUERY_WINDOWS,
+                "literal HEAD-parity window scanning", "expanded windows",
+            )
+        else:
+            self._charge_query_lane(
+                "spherical_windows_scanned", "windows_scanned", 1,
+                MAX_ENDPOINT_GRID_SPHERICAL_QUERY_WINDOWS,
+                MAX_ENDPOINT_GRID_QUERY_WINDOWS,
+                "spherical window scanning", "merged/global windows",
+            )
+
+    def charge_row(self, *, head_parity: bool = False) -> None:
+        if head_parity:
+            self._charge_query_lane(
+                "head_parity_row_probes", "row_probes", 1,
+                MAX_ENDPOINT_GRID_HEAD_PARITY_ROW_PROBES,
+                MAX_ENDPOINT_GRID_ROW_PROBES,
+                "literal HEAD-parity row probing", "occupied latitude rows",
+            )
+        else:
+            self._charge_query_lane(
+                "spherical_row_probes", "row_probes", 1,
+                MAX_ENDPOINT_GRID_SPHERICAL_ROW_PROBES,
+                MAX_ENDPOINT_GRID_ROW_PROBES,
+                "spherical row probing", "occupied latitude rows",
+            )
+
+    def charge_cell(self, name: str, *, head_parity: bool = False) -> None:
+        value = int(getattr(self, name)) + 1
+        setattr(self, name, value)
+        if self.stats is not None:
+            self.stats[name] = value
+        if head_parity:
+            self._charge_query_lane(
+                "head_parity_cell_probes", "grid_cell_probes", 1,
+                MAX_ENDPOINT_GRID_HEAD_PARITY_CELL_PROBES,
+                MAX_ENDPOINT_GRID_CELL_PROBES,
+                "literal HEAD-parity cell probing", "unique grid cells",
+            )
+        else:
+            self._charge_query_lane(
+                "spherical_cell_probes", "grid_cell_probes", 1,
+                MAX_ENDPOINT_GRID_SPHERICAL_CELL_PROBES,
+                MAX_ENDPOINT_GRID_CELL_PROBES,
+                "spherical cell probing", "unique grid cells",
+            )
+
+
+def _polygon_interior_envelopes(
+        geometry: dict, ledger: _EndpointGridResourceLedger | None = None,
+) -> Iterator[tuple[float, float, float, float]]:
+    """Bound anchor-unwrapped polygon interiors; holes can only subtract."""
+    for polygon in _iter_polygons(geometry):
+        outer = polygon[0]
+        anchor = outer[0][0]
+        minimum_longitude = math.inf
+        maximum_longitude = -math.inf
+        minimum_latitude = math.inf
+        maximum_latitude = -math.inf
+        for longitude, latitude in outer:
+            unwrapped = _unwrapped_longitude(longitude, anchor)
+            minimum_longitude = min(minimum_longitude, unwrapped)
+            maximum_longitude = max(maximum_longitude, unwrapped)
+            minimum_latitude = min(minimum_latitude, latitude)
+            maximum_latitude = max(maximum_latitude, latitude)
+        if ledger is not None:
+            ledger.reserve_window_slots()
+        try:
+            start = minimum_longitude - SPHERICAL_ENVELOPE_EPSILON_DEGREES
+            span = (
+                maximum_longitude - minimum_longitude
+                + 2.0 * SPHERICAL_ENVELOPE_EPSILON_DEGREES
+            )
+            yield (
+                max(-90.0, minimum_latitude - SPHERICAL_ENVELOPE_EPSILON_DEGREES),
+                min(90.0, maximum_latitude + SPHERICAL_ENVELOPE_EPSILON_DEGREES),
+                start % 360.0,
+                min(360.0, span),
+            )
+        finally:
+            if ledger is not None:
+                ledger.release_window_slots()
+
+
+def _append_retained_window(
+        target: list[tuple[float, float, float, float]],
+        start: float, end: float, south: float, north: float,
+        ledger: _EndpointGridResourceLedger) -> None:
+    """Reserve worst-case live bytes before tuple/list allocation."""
+    ledger.reserve_window_slots()
+    try:
+        target.append((start, end, south, north))
+    except (MemoryError, RecursionError):
+        ledger.release_window_slots()
+        raise
+
+
+def _replace_retained_window(
+        target: list[tuple[float, float, float, float]], index: int,
+        start: float, end: float, south: float, north: float,
+        ledger: _EndpointGridResourceLedger) -> None:
+    """Charge the replacement tuple while the prior tuple remains live."""
+    ledger.reserve_window_slots()
+    try:
+        target[index] = (start, end, south, north)
+    except (MemoryError, RecursionError):
+        ledger.release_window_slots()
+        raise
+    ledger.release_window_slots()
+
+
+def _coalesce_sorted_envelope_intervals(
+        values: Iterable[tuple[float, float, float, float]],
+        ledger: _EndpointGridResourceLedger,
+) -> list[tuple[float, float, float, float]]:
+    """Coalesce sorted (start, end, south, north) interval groups."""
+    merged: list[tuple[float, float, float, float]] = []
+    for start, end, south, north in values:
+        if (merged and start
+                <= merged[-1][1] + SPHERICAL_ENVELOPE_EPSILON_DEGREES):
+            (
+                previous_start, previous_end,
+                previous_south, previous_north,
+            ) = merged[-1]
+            _replace_retained_window(
+                merged, -1,
+                previous_start, max(previous_end, end),
+                min(previous_south, south), max(previous_north, north),
+                ledger,
+            )
+        else:
+            _append_retained_window(
+                merged, start, end, south, north, ledger
+            )
+    return merged
+
+
+def _merge_sorted_envelope_runs(
+        first: list[tuple[float, float, float, float]],
+        second: list[tuple[float, float, float, float]],
+        ledger: _EndpointGridResourceLedger,
+) -> list[tuple[float, float, float, float]]:
+    """Merge two sorted, already-coalesced interval runs in linear time."""
+    first_index = 0
+    second_index = 0
+
+    def ordered() -> Iterator[tuple[float, float, float, float]]:
+        nonlocal first_index, second_index
+        while first_index < len(first) and second_index < len(second):
+            first_key = (first[first_index][0], first[first_index][1])
+            second_key = (second[second_index][0], second[second_index][1])
+            if first_key <= second_key:
+                yield first[first_index]
+                first_index += 1
+            else:
+                yield second[second_index]
+                second_index += 1
+        while first_index < len(first):
+            yield first[first_index]
+            first_index += 1
+        while second_index < len(second):
+            yield second[second_index]
+            second_index += 1
+
+    return _coalesce_sorted_envelope_intervals(ordered(), ledger)
+
+
+def _merge_geometry_envelopes(
+        envelopes: Iterable[tuple[float, float, float, float]], *,
+        ledger: _EndpointGridResourceLedger | None = None,
+        context: str = "geometry",
+) -> tuple[tuple[float, float, float, float], ...]:
+    """Stream-merge longitude groups under a simultaneous retention bound."""
+    if ledger is None:
+        ledger = _EndpointGridResourceLedger(context)
+    chunk_size = 4_096
+    chunk: list[tuple[float, float, float, float]] = []
+    runs: list[list[tuple[float, float, float, float]] | None] = []
+
+    def flush_chunk() -> None:
+        nonlocal chunk
+        if not chunk:
+            return
+        chunk.sort(key=lambda value: (value[0], value[1]))
+        source = chunk
+        run = _coalesce_sorted_envelope_intervals(source, ledger)
+        chunk = []
+        source_slots = len(source)
+        del source
+        ledger.release_window_slots(source_slots)
+        level = 0
+        while True:
+            if level == len(runs):
+                runs.append(run)
+                return
+            previous = runs[level]
+            if previous is None:
+                runs[level] = run
+                return
+            runs[level] = None
+            combined = _merge_sorted_envelope_runs(previous, run, ledger)
+            released_slots = len(previous) + len(run)
+            del previous, run
+            ledger.release_window_slots(released_slots)
+            run = combined
+            level += 1
+
+    for south, north, start, span in envelopes:
+        start %= 360.0
+        bounded_span = min(360.0, max(0.0, span))
+        end = start + bounded_span
+        if bounded_span >= 360.0:
+            _append_retained_window(
+                chunk, 0.0, 360.0, south, north, ledger
+            )
+        elif end <= 360.0:
+            _append_retained_window(
+                chunk, start, end, south, north, ledger
+            )
+        else:
+            _append_retained_window(
+                chunk, start, 360.0, south, north, ledger
+            )
+            _append_retained_window(
+                chunk, 0.0, end - 360.0, south, north, ledger
+            )
+        if len(chunk) >= chunk_size:
+            flush_chunk()
+    flush_chunk()
+
+    merged: list[tuple[float, float, float, float]] | None = None
+    for index, current in enumerate(runs):
+        runs[index] = None
+        if not current:
+            continue
+        if merged is None:
+            merged = current
+            continue
+        combined = _merge_sorted_envelope_runs(merged, current, ledger)
+        released_slots = len(merged) + len(current)
+        del merged, current
+        ledger.release_window_slots(released_slots)
+        merged = combined
+    if merged is None:
+        return ()
+    runs.clear()
+    current = None
+
+    source_slots = len(merged)
+    if (len(merged) > 1
+            and merged[0][0] <= SPHERICAL_ENVELOPE_EPSILON_DEGREES
+            and merged[-1][1]
+            >= 360.0 - SPHERICAL_ENVELOPE_EPSILON_DEGREES):
+        first = merged[0]
+        last = merged[-1]
+        ledger.reserve_window_slots()
+        try:
+            seam = (
+                last[0], first[1] + 360.0,
+                min(first[2], last[2]), max(first[3], last[3]),
+            )
+        except (MemoryError, RecursionError):
+            ledger.release_window_slots()
+            raise
+        for index in range(len(merged) - 2):
+            merged[index] = merged[index + 1]
+        merged[-2] = seam
+        del merged[-1]
+        del first, last, seam
+        ledger.release_window_slots(2)
+        source_slots = len(merged)
+
+    output_slots = len(merged)
+    ledger.reserve_window_slots(output_slots)
+    try:
+        result = tuple(
+            (south, north, start % 360.0, min(360.0, end - start))
+            for start, end, south, north in merged
+        )
+    except (MemoryError, RecursionError):
+        ledger.release_window_slots(output_slots)
+        raise
+    merged = None
+    ledger.release_window_slots(source_slots)
+    return result
+
+
+def _head_parity_is_exact_nonwrapping(
+        minimum_longitude: float, maximum_longitude: float) -> bool:
+    """Whether raw bounds exactly equal HEAD's minimal longitude arc."""
+    return maximum_longitude - minimum_longitude < 180.0
+
+
+def _head_parity_geometry_bounds(
+        geometry: dict) -> tuple[float, float, float, float] | None:
+    """Stream HEAD-equivalent bounds for raw-nonwrapping geometry."""
+    minimum_latitude = math.inf
+    maximum_latitude = -math.inf
+    minimum_longitude = math.inf
+    maximum_longitude = -math.inf
+    for latitude, longitude in _iter_vertices(geometry):
+        minimum_latitude = min(minimum_latitude, latitude)
+        maximum_latitude = max(maximum_latitude, latitude)
+        minimum_longitude = min(minimum_longitude, longitude)
+        maximum_longitude = max(maximum_longitude, longitude)
+    if not _head_parity_is_exact_nonwrapping(
+            minimum_longitude, maximum_longitude):
+        return None
+    start = minimum_longitude % 360.0
+    if minimum_longitude == maximum_longitude:
+        span = 0.0
+    else:
+        normalized_maximum = maximum_longitude % 360.0
+        largest_gap = (start - normalized_maximum) % 360.0
+        span = 360.0 - largest_gap
+    return minimum_latitude, maximum_latitude, start, span
+
+
+def _geometry_envelope_plan(
+        geometry: dict, *, ledger: _EndpointGridResourceLedger,
+        context: str = "geometry",
+) -> tuple[
+        tuple[tuple[float, float, float, float], ...], str, int, int, int,
+]:
+    """Plan a bounded conservative query with constant-memory extent scanning."""
+    if geometry["type"] == "Point":
+        if not geometry["coordinates"]:
+            raise CensusError(f"{context} has no vertices")
+        longitude, latitude = geometry["coordinates"]
+        if ledger.stats is not None:
+            ledger.inspect_vertices()
+        ledger.set_plan("point")
+        ledger.reserve_window_slots()
+        point_envelope = (latitude, latitude, longitude % 360.0, 0.0)
+        return (
+            (point_envelope,),
+            "point",
+            1,
+            0,
+            0,
+        )
+
+    anchor: tuple[float, float] | None = None
+    maximum_latitude_delta = 0.0
+    maximum_longitude_delta = 0.0
+    vertex_count = 0
+    segment_count = 0
+    capture_vertex_diagnostics = ledger.stats is not None
+    for line in _iter_lines(geometry):
+        segment_count += max(0, len(line) - 1)
+        for longitude, latitude in line:
+            vertex_count += 1
+            if capture_vertex_diagnostics:
+                ledger.inspect_vertices()
+            if anchor is None:
+                anchor = (latitude, longitude)
+            maximum_latitude_delta = max(
+                maximum_latitude_delta, abs(latitude - anchor[0])
+            )
+            maximum_longitude_delta = max(
+                maximum_longitude_delta,
+                abs(_longitude_delta(anchor[1], longitude)),
+            )
+    if anchor is None:
+        raise CensusError(f"{context} has no vertices")
+
+    # A meridian-then-parallel route bounds every point in the anchor-unwrapped
+    # coordinate rectangle. This cheap bound covers both edges and the exact
+    # planar polygon interior without per-vertex haversines or retained vertices.
+    cap_radius = math.radians(
+        maximum_latitude_delta + maximum_longitude_delta
+    )
+    if cap_radius <= SPHERICAL_ENVELOPE_LOCAL_CAP_RAD:
+        ledger.set_plan("local-cap")
+        ledger.reserve_window_slots()
+        local_envelope = _spherical_cap_envelope(
+            anchor[0], anchor[1], cap_radius + 1e-15
+        )
+        return (
+            (local_envelope,),
+            "local-cap",
+            vertex_count,
+            segment_count,
+            0,
+        )
+
+    # Each tight envelope is charged before spherical computation. The
+    # streaming merger retains only sorted/coalesced interval runs rather than
+    # a second list proportional to segment count.
+    ledger.set_plan("merged-segments")
+    segment_envelopes_planned = 0
+    fallback_plan: str | None = None
+
+    def planned_envelopes() -> Iterator[
+            tuple[float, float, float, float]]:
+        nonlocal segment_envelopes_planned, fallback_plan
+        for first, second in _line_segments(geometry):
+            ledger.charge_segment_envelope()
+            segment_envelopes_planned += 1
+            ledger.reserve_window_slots()
+            try:
+                envelope = _segment_path_envelope(first, second)
+                if envelope[3] >= 360.0:
+                    fallback_plan = "global-ambiguous-fallback"
+                    return
+                yield envelope
+            finally:
+                ledger.release_window_slots()
+        if geometry["type"] in ("Polygon", "MultiPolygon"):
+            for envelope in _polygon_interior_envelopes(geometry, ledger):
+                if envelope[3] >= 360.0:
+                    fallback_plan = "global-interior-fallback"
+                    return
+                yield envelope
+
+    merged = _merge_geometry_envelopes(
+        planned_envelopes(), ledger=ledger, context=context
+    )
+    if fallback_plan is not None:
+        retained_slots = len(merged)
+        merged = ()
+        ledger.release_window_slots(retained_slots)
+        ledger.set_plan(fallback_plan)
+        return (
+            (), fallback_plan, vertex_count, segment_count,
+            segment_envelopes_planned,
+        )
+    return (
+        merged,
+        "merged-segments",
+        vertex_count,
+        segment_count,
+        segment_envelopes_planned,
+    )
+
+
 class EndpointGrid:
     """Dateline-safe geographic cell index for immutable endpoint ids."""
 
@@ -1263,6 +2276,8 @@ class EndpointGrid:
             self.rows.setdefault(latitude_cell, {}).setdefault(
                 longitude_cell, []
             ).append(endpoint_id)
+        self.occupied_latitude_cells = tuple(sorted(self.rows))
+        self.occupied_cell_count = sum(len(row) for row in self.rows.values())
 
     def _latitude_cell(self, latitude: float) -> int:
         return max(0, min(
@@ -1275,21 +2290,31 @@ class EndpointGrid:
 
     @staticmethod
     def _longitude_pad(radius_m: float, maximum_abs_latitude: float) -> float:
-        cosine = math.cos(math.radians(min(90.0, maximum_abs_latitude)))
-        if cosine <= 1e-8:
+        angular_radius = min(math.pi, radius_m / EARTH_RADIUS_M)
+        latitude_radians = math.radians(min(90.0, maximum_abs_latitude))
+        if angular_radius + latitude_radians >= math.pi / 2.0 - 1e-15:
             return 180.0
-        return min(180.0, math.degrees(radius_m / EARTH_RADIUS_M) / cosine)
+        ratio = math.sin(angular_radius) / math.cos(latitude_radians)
+        return min(
+            180.0,
+            math.degrees(math.asin(max(0.0, min(1.0, ratio))))
+            + SPHERICAL_ENVELOPE_EPSILON_DEGREES,
+        )
 
-    def candidate_ids(
-            self, geometry: dict, radius_m: float, *,
-            limit: int | None = None,
-            context: str = "geometry") -> set[int]:
-        minimum_latitude, maximum_latitude, start, span = geometry_bounds(geometry)
+    def _head_parity_query_window(
+            self, envelope: tuple[float, float, float, float],
+            radius_m: float) -> tuple[int, int, int, int, int]:
+        """Return HEAD's fully expanded and rounded grid-cell window."""
+        minimum_latitude, maximum_latitude, start, span = envelope
         latitude_pad = math.degrees(radius_m / EARTH_RADIUS_M)
         south = max(-90.0, minimum_latitude - latitude_pad)
         north = min(90.0, maximum_latitude + latitude_pad)
         maximum_abs = max(abs(south), abs(north))
-        longitude_pad = self._longitude_pad(radius_m, maximum_abs)
+        cosine = math.cos(math.radians(min(90.0, maximum_abs)))
+        longitude_pad = (
+            180.0 if cosine <= 1e-8
+            else min(180.0, latitude_pad / cosine)
+        )
         expanded_span = span + 2.0 * longitude_pad
         expanded_start = (start - longitude_pad) % 360.0
         first_latitude_cell = self._latitude_cell(south)
@@ -1298,39 +2323,287 @@ class EndpointGrid:
             self.longitude_cells if expanded_span >= 360.0
             else int(math.ceil(expanded_span / self.cell)) + 3
         )
+        first_longitude_cell = (
+            int(math.floor(expanded_start / self.cell)) - 1
+        ) % self.longitude_cells
         query_cells = (
             last_latitude_cell - first_latitude_cell + 1
         ) * longitude_cell_count
-        if query_cells > MAX_ENDPOINT_GRID_QUERY_CELLS:
-            raise CensusError(
-                f"{context} spans {query_cells:,} endpoint-grid cells; "
-                f"limit is {MAX_ENDPOINT_GRID_QUERY_CELLS:,}"
-            )
-        result: set[int] = set()
+        return (
+            first_latitude_cell,
+            last_latitude_cell,
+            first_longitude_cell,
+            longitude_cell_count,
+            query_cells,
+        )
 
-        def add(ids: Iterable[int]) -> None:
-            result.update(ids)
-            if limit is not None and len(result) > limit:
+    def candidate_ids(
+            self, geometry: dict, radius_m: float, *,
+            limit: int | None = None,
+            context: str = "geometry",
+            diagnostics: dict | None = None,
+            _coordinates_validated: bool = False,
+            _resource_metrics: collections.Counter | None = None) -> set[int]:
+        result: set[int] = set()
+        probed_cells: set[int] = set()
+        stats: dict[str, int | str] | None = None
+        if diagnostics is not None:
+            stats = {
+                "candidate_ids": 0,
+                "envelopes_generated": 0,
+                "global_fallbacks": 0,
+                "grid_cell_probes": 0,
+                "head_parity_cell_probes": 0,
+                "head_parity_query_cells": 0,
+                "head_parity_row_probes": 0,
+                "head_parity_status": "not-applicable",
+                "head_parity_windows": 0,
+                "occupied_cell_probes": 0,
+                "peak_retained_window_bytes": 0,
+                "peak_retained_window_slots": 0,
+                "plan": "none",
+                "query_work_units": 0,
+                "retained_window_bytes": 0,
+                "retained_window_slots": 0,
+                "row_probes": 0,
+                "segment_envelopes_planned": 0,
+                "spherical_cell_probes": 0,
+                "spherical_row_probes": 0,
+                "spherical_windows_scanned": 0,
+                "vertices_inspected": 0,
+                "window_cell_probes": 0,
+                "windows_scanned": 0,
+            }
+            diagnostics.clear()
+            diagnostics.update(stats)
+        ledger = _EndpointGridResourceLedger(context, stats)
+        retained_plan_slots = 0
+        envelopes: tuple[tuple[float, float, float, float], ...] = ()
+
+        def reserve_cell(
+                latitude_cell: int, longitude_cell: int, name: str, *,
+                head_parity: bool = False) -> bool:
+            cell_id = latitude_cell * self.longitude_cells + longitude_cell
+            if cell_id in probed_cells:
+                return False
+            ledger.charge_cell(name, head_parity=head_parity)
+            probed_cells.add(cell_id)
+            return True
+
+        def add_ids(endpoint_ids: Iterable[int]) -> None:
+            for endpoint_id in endpoint_ids:
+                result.add(endpoint_id)
+                if limit is not None and len(result) > limit:
+                    raise CensusError(
+                        f"{context} has more than {limit:,} coarse endpoint "
+                        "candidates"
+                    )
+
+        def scan_grid_window(
+                first_latitude_cell: int,
+                last_latitude_cell: int,
+                first_longitude_cell: int,
+                longitude_cell_count: int, *,
+                head_parity: bool = False) -> None:
+            ledger.charge_window(head_parity=head_parity)
+            first_row = bisect.bisect_left(
+                self.occupied_latitude_cells, first_latitude_cell
+            )
+            after_last_row = bisect.bisect_right(
+                self.occupied_latitude_cells, last_latitude_cell
+            )
+            for row_index in range(first_row, after_last_row):
+                ledger.charge_row(head_parity=head_parity)
+                latitude_cell = self.occupied_latitude_cells[row_index]
+                row = self.rows[latitude_cell]
+                if longitude_cell_count >= self.longitude_cells:
+                    for longitude_cell, endpoint_ids in row.items():
+                        if reserve_cell(
+                                latitude_cell, longitude_cell,
+                                "occupied_cell_probes",
+                                head_parity=head_parity):
+                            add_ids(endpoint_ids)
+                elif longitude_cell_count < len(row):
+                    for offset in range(longitude_cell_count):
+                        longitude_cell = (
+                            first_longitude_cell + offset
+                        ) % self.longitude_cells
+                        if not reserve_cell(
+                                latitude_cell, longitude_cell,
+                                "window_cell_probes",
+                                head_parity=head_parity):
+                            continue
+                        endpoint_ids = row.get(longitude_cell)
+                        if endpoint_ids is not None:
+                            add_ids(endpoint_ids)
+                else:
+                    for longitude_cell, endpoint_ids in row.items():
+                        if ((longitude_cell - first_longitude_cell)
+                                % self.longitude_cells
+                                >= longitude_cell_count):
+                            continue
+                        if reserve_cell(
+                                latitude_cell, longitude_cell,
+                                "occupied_cell_probes",
+                                head_parity=head_parity):
+                            add_ids(endpoint_ids)
+
+        def scan_literal_head_parity() -> None:
+            envelope = _head_parity_geometry_bounds(geometry)
+            if envelope is None:
+                ledger.set_head_parity_status(
+                    "disabled-literal-HEAD-expanded-query-wrapping-longitudes"
+                )
+                return
+            ledger.reserve_window_slots()
+            try:
+                (
+                    first_latitude_cell,
+                    last_latitude_cell,
+                    first_longitude_cell,
+                    longitude_cell_count,
+                    head_query_cells,
+                ) = self._head_parity_query_window(envelope, radius_m)
+                if stats is not None:
+                    stats["head_parity_query_cells"] = head_query_cells
+                if head_query_cells > HEAD_ENDPOINT_GRID_QUERY_CELLS:
+                    ledger.set_head_parity_status(
+                        "omitted-literal-HEAD-expanded-query-over-cell-budget"
+                    )
+                    return
+                ledger.set_head_parity_status(
+                    "included-literal-HEAD-expanded-query"
+                )
+                scan_grid_window(
+                    first_latitude_cell,
+                    last_latitude_cell,
+                    first_longitude_cell,
+                    longitude_cell_count,
+                    head_parity=True,
+                )
+            finally:
+                ledger.release_window_slots()
+
+        try:
+            if not math.isfinite(radius_m) or radius_m < 0.0:
                 raise CensusError(
-                    f"{context} has more than {limit:,} coarse endpoint "
-                    "candidates"
+                    f"{context} radius must be finite and nonnegative"
+                )
+            if not _coordinates_validated:
+                _validate_endpoint_grid_geometry(geometry, context)
+            if not self.rows:
+                if geometry["type"] == "Point":
+                    has_vertices = bool(geometry["coordinates"])
+                else:
+                    has_vertices = next(
+                        _iter_vertices(geometry), None
+                    ) is not None
+                if not has_vertices:
+                    raise CensusError(f"{context} has no vertices")
+                ledger.set_plan("empty-grid")
+                return result
+
+            (
+                envelopes,
+                plan,
+                _vertex_count,
+                _segment_count,
+                _segment_envelopes_planned,
+            ) = _geometry_envelope_plan(
+                geometry,
+                ledger=ledger,
+                context=context,
+            )
+            retained_plan_slots = len(envelopes)
+            if stats is not None:
+                stats["envelopes_generated"] = retained_plan_slots
+
+            if not envelopes:
+                if stats is not None:
+                    stats["global_fallbacks"] = 1
+                ledger.set_head_parity_status("not-applicable-global-fallback")
+                # A global query necessarily returns every endpoint id. When a
+                # candidate limit is supplied, this preflight is exact and avoids
+                # pretending an occupied-cell pass ran before the refusal.
+                if limit is not None and len(self.endpoints) > limit:
+                    raise CensusError(
+                        f"{context} has more than {limit:,} coarse endpoint "
+                        f"candidates under {plan} before global cell scanning"
+                    )
+                scan_grid_window(
+                    0,
+                    self.latitude_cells - 1,
+                    0,
+                    self.longitude_cells,
+                )
+                return result
+
+            latitude_pad = math.degrees(radius_m / EARTH_RADIUS_M)
+            for minimum_latitude, maximum_latitude, start, span in envelopes:
+                south = max(-90.0, minimum_latitude - latitude_pad)
+                north = min(90.0, maximum_latitude + latitude_pad)
+                maximum_abs = max(
+                    abs(minimum_latitude), abs(maximum_latitude)
+                )
+                longitude_pad = self._longitude_pad(radius_m, maximum_abs)
+                expanded_span = span + 2.0 * longitude_pad
+                expanded_start = (start - longitude_pad) % 360.0
+                first_latitude_cell = self._latitude_cell(south)
+                last_latitude_cell = self._latitude_cell(north)
+                longitude_cell_count = (
+                    self.longitude_cells if expanded_span >= 360.0
+                    else int(math.ceil(expanded_span / self.cell)) + 3
+                )
+                first_longitude_cell = (
+                    int(math.floor(expanded_start / self.cell)) - 1
+                ) % self.longitude_cells
+                scan_grid_window(
+                    first_latitude_cell,
+                    last_latitude_cell,
+                    first_longitude_cell,
+                    longitude_cell_count,
                 )
 
-        for latitude_cell in range(first_latitude_cell, last_latitude_cell + 1):
-            row = self.rows.get(latitude_cell)
-            if not row:
-                continue
-            if expanded_span >= 360.0:
-                for ids in row.values():
-                    add(ids)
-                continue
-            first = int(math.floor(expanded_start / self.cell)) - 1
-            count = int(math.ceil(expanded_span / self.cell)) + 3
-            for offset in range(count):
-                ids = row.get((first + offset) % self.longitude_cells)
-                if ids:
-                    add(ids)
-        return result
+            # The literal HEAD window is derived and scanned only after all
+            # spherical plan storage is released. It therefore gets independent
+            # work allowance without adding one retained-window availability
+            # cliff to the existing 64 MiB spherical planner budget.
+            if retained_plan_slots:
+                envelopes = ()
+                ledger.release_window_slots(retained_plan_slots)
+                retained_plan_slots = 0
+            scan_literal_head_parity()
+            return result
+        except MemoryError as error:
+            raise CensusError(
+                f"{context} endpoint-grid processing exhausted host memory"
+            ) from error
+        except RecursionError as error:
+            raise CensusError(
+                f"{context} endpoint-grid processing exhausted recursion "
+                "resources"
+            ) from error
+        finally:
+            if retained_plan_slots:
+                envelopes = ()
+                ledger.release_window_slots(retained_plan_slots)
+                retained_plan_slots = 0
+            if _resource_metrics is not None:
+                if ledger.peak_retained_window_slots > _resource_metrics[
+                        "peak_endpoint_grid_retained_window_slots"]:
+                    _resource_metrics[
+                        "peak_endpoint_grid_retained_window_slots"
+                    ] = ledger.peak_retained_window_slots
+                if ledger.peak_retained_window_bytes > _resource_metrics[
+                        "peak_endpoint_grid_retained_window_bytes"]:
+                    _resource_metrics[
+                        "peak_endpoint_grid_retained_window_bytes"
+                    ] = ledger.peak_retained_window_bytes
+            if stats is not None:
+                stats["candidate_ids"] = len(result)
+                assert diagnostics is not None
+                diagnostics.clear()
+                diagnostics.update(stats)
 
     def within_candidates(
             self, geometry: dict, candidate_ids: Iterable[int],
@@ -1418,14 +2691,16 @@ def _normalize_relation_members(value: object) -> tuple[str, ...]:
     return tuple(sorted(set(aliases)))
 
 
-def _associate_feature_endpoints(
+def _coarse_feature_endpoint_candidates(
         alias: str, geometry: dict, endpoint_grid: EndpointGrid,
-        metrics: collections.Counter | None = None) -> tuple[int, ...]:
+        metrics: collections.Counter | None = None) -> set[int]:
     coarse_ids = endpoint_grid.candidate_ids(
         geometry,
         FALLBACK_M,
         limit=MAX_ENDPOINT_CANDIDATES_PER_FEATURE,
         context=f"parking feature {alias}",
+        _coordinates_validated=True,
+        _resource_metrics=metrics,
     )
     if len(coarse_ids) > MAX_ENDPOINT_CANDIDATES_PER_FEATURE:
         raise CensusError(
@@ -1434,14 +2709,33 @@ def _associate_feature_endpoints(
         )
     if metrics is not None:
         metrics["coarse_endpoint_candidates_total"] += len(coarse_ids)
-        metrics["exact_endpoint_distance_checks"] += len(coarse_ids)
         metrics["max_coarse_endpoint_candidates"] = max(
             metrics["max_coarse_endpoint_candidates"], len(coarse_ids)
         )
         if not coarse_ids:
             metrics["coarse_outside_fallback_envelope"] += 1
+    return coarse_ids
+
+
+def _associate_feature_endpoints(
+        alias: str, geometry: dict, endpoint_grid: EndpointGrid,
+        metrics: collections.Counter | None = None, *,
+        coarse_ids: set[int] | None = None) -> tuple[int, ...]:
+    candidates = (
+        _coarse_feature_endpoint_candidates(
+            alias, geometry, endpoint_grid, metrics
+        )
+        if coarse_ids is None else coarse_ids
+    )
+    if len(candidates) > MAX_ENDPOINT_CANDIDATES_PER_FEATURE:
+        raise CensusError(
+            f"parking feature {alias} has {len(candidates):,} coarse endpoint "
+            f"associations; limit is {MAX_ENDPOINT_CANDIDATES_PER_FEATURE:,}"
+        )
+    if metrics is not None:
+        metrics["exact_endpoint_distance_checks"] += len(candidates)
     near_endpoint_ids = endpoint_grid.within_candidates(
-        geometry, coarse_ids, FALLBACK_M
+        geometry, candidates, FALLBACK_M
     )
     if metrics is not None:
         metrics["endpoint_associations_total"] += len(near_endpoint_ids)
@@ -1451,11 +2745,23 @@ def _associate_feature_endpoints(
     return near_endpoint_ids
 
 
-def normalize_feature(
-        record: object, endpoint_grid: EndpointGrid,
-        relation_memberships: dict[str, tuple[str, ...]],
-        metrics: collections.Counter | None = None, *,
-        associate_endpoints: bool = True) -> ParkingFeature | None:
+def _validate_feature_topology(
+        geometry: dict, metrics: collections.Counter | None = None) -> None:
+    if geometry["type"] not in ("Polygon", "MultiPolygon"):
+        return
+    if metrics is not None:
+        metrics["topology_validation_calls"] += 1
+    try:
+        _validate_polygon_topology(geometry)
+    except FeatureRejection:
+        if metrics is not None:
+            metrics["topology_validation_failures"] += 1
+        raise
+
+
+def _normalize_feature_structure(
+        record: object,
+        relation_memberships: dict[str, tuple[str, ...]]) -> StagedParkingFeature | None:
     if not isinstance(record, dict) or record.get("type") != "Feature":
         raise FeatureRejection("malformed_feature", "record is not a GeoJSON Feature")
     properties = record.get("properties")
@@ -1472,23 +2778,43 @@ def normalize_feature(
     alias, source_form = canonical_osm_alias(
         record.get("id", tags.get("@id"))
     )
-    geometry = normalize_geometry(record.get("geometry"))
-    latitude, longitude = geometry_representative(geometry)
-    near_endpoint_ids = (
-        _associate_feature_endpoints(alias, geometry, endpoint_grid, metrics)
-        if associate_endpoints else ()
-    )
+    geometry = _normalize_geometry_structure(record.get("geometry"))
     members = set(relation_memberships.get(alias, ()))
     members.update(_normalize_relation_members(record.get("parking_members")))
-    return ParkingFeature(
+    return StagedParkingFeature(
         alias=alias,
         source_form=source_form,
         geometry=geometry,
+        tags=tags,
+        relation_members=tuple(sorted(members)),
+    )
+
+
+def normalize_feature(
+        record: object, endpoint_grid: EndpointGrid,
+        relation_memberships: dict[str, tuple[str, ...]],
+        metrics: collections.Counter | None = None, *,
+        associate_endpoints: bool = True) -> ParkingFeature | None:
+    staged = _normalize_feature_structure(record, relation_memberships)
+    if staged is None:
+        return None
+    _validate_feature_topology(staged.geometry, metrics)
+    latitude, longitude = geometry_representative(staged.geometry)
+    near_endpoint_ids = (
+        _associate_feature_endpoints(
+            staged.alias, staged.geometry, endpoint_grid, metrics
+        )
+        if associate_endpoints else ()
+    )
+    return ParkingFeature(
+        alias=staged.alias,
+        source_form=staged.source_form,
+        geometry=staged.geometry,
         latitude=latitude,
         longitude=longitude,
-        tags=tags,
+        tags=staged.tags,
         near_endpoint_ids=near_endpoint_ids,
-        relation_members=tuple(sorted(members)),
+        relation_members=staged.relation_members,
     )
 
 
@@ -1539,6 +2865,159 @@ def _merge_duplicate_feature(
     )
 
 
+_STREAM_IDENTITY_PATTERN = re.compile(
+    rb'"(?:id|@id)"\s*:\s*"(?:(node|way|relation)/([1-9][0-9]*)|'
+    rb'([nwr])([1-9][0-9]*))"'
+)
+_JSON_WHITESPACE = frozenset((9, 10, 13, 32))
+
+
+def _stream_record_context(payload: bytes, record_number: int) -> str:
+    match = _STREAM_IDENTITY_PATTERN.search(payload)
+    if match is None:
+        return f"parking stream record {record_number}"
+    if match.group(1) is not None:
+        kind = match.group(1).decode("ascii")
+        identifier = match.group(2).decode("ascii")
+    else:
+        kind = {
+            b"n": "node", b"w": "way", b"r": "relation",
+        }[match.group(3)]
+        identifier = match.group(4).decode("ascii")
+    return f"parking feature {kind}/{identifier}"
+
+
+def _skip_json_whitespace(payload: bytes, index: int) -> int:
+    while index < len(payload) and payload[index] in _JSON_WHITESPACE:
+        index += 1
+    return index
+
+
+def _json_number_end(payload: bytes, index: int) -> int | None:
+    """Return the end of one JSON number without allocating a substring."""
+    if index < len(payload) and payload[index] == 45:
+        index += 1
+    if index >= len(payload):
+        return None
+    if payload[index] == 48:
+        index += 1
+    elif 49 <= payload[index] <= 57:
+        index += 1
+        while index < len(payload) and 48 <= payload[index] <= 57:
+            index += 1
+    else:
+        return None
+    if index < len(payload) and payload[index] == 46:
+        index += 1
+        if index >= len(payload) or not 48 <= payload[index] <= 57:
+            return None
+        while index < len(payload) and 48 <= payload[index] <= 57:
+            index += 1
+    if index < len(payload) and payload[index] in (69, 101):
+        index += 1
+        if index < len(payload) and payload[index] in (43, 45):
+            index += 1
+        if index >= len(payload) or not 48 <= payload[index] <= 57:
+            return None
+        while index < len(payload) and 48 <= payload[index] <= 57:
+            index += 1
+    return index
+
+
+def _safe_stream_record_context(payload: bytes, record_number: int) -> str:
+    """Recover record context without leaking a secondary resource failure."""
+    try:
+        return _stream_record_context(payload, record_number)
+    except (MemoryError, RecursionError):
+        return f"parking stream record {record_number}"
+
+
+def _preparse_stream_structure(payload: bytes) -> tuple[int, int]:
+    """Return no-copy structural diagnostics without deciding admission."""
+    coordinate_pairs = 0
+    depth = 0
+    maximum_depth = 0
+    in_string = False
+    escaped = False
+    cursor = 0
+    while cursor < len(payload):
+        value = payload[cursor]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif value == 92:
+                escaped = True
+            elif value == 34:
+                in_string = False
+            cursor += 1
+            continue
+        if value == 34:
+            in_string = True
+        elif value in (91, 123):
+            depth += 1
+            maximum_depth = max(maximum_depth, depth)
+            if value == 91:
+                first_end = _json_number_end(
+                    payload, _skip_json_whitespace(payload, cursor + 1)
+                )
+                if first_end is not None:
+                    comma = _skip_json_whitespace(payload, first_end)
+                    if comma < len(payload) and payload[comma] == 44:
+                        second_end = _json_number_end(
+                            payload,
+                            _skip_json_whitespace(payload, comma + 1),
+                        )
+                        if second_end is not None:
+                            closing = _skip_json_whitespace(
+                                payload, second_end
+                            )
+                            if (closing < len(payload)
+                                    and payload[closing] == 93):
+                                coordinate_pairs += 1
+        elif value in (93, 125):
+            depth = max(0, depth - 1)
+        cursor += 1
+    return coordinate_pairs, maximum_depth
+
+
+def _stream_structure_scan_required(payload: bytes) -> bool:
+    """Use total opening delimiters as a cheap upper bound on JSON depth."""
+    if len(payload) >= STREAM_STRUCTURAL_PREPARSE_MIN_BYTES:
+        return True
+    array_openings = payload.count(b"[")
+    if array_openings > MAX_STREAM_JSON_NESTING_DEPTH:
+        return True
+    return (
+        array_openings + payload.count(b"{")
+        > MAX_STREAM_JSON_NESTING_DEPTH
+    )
+
+
+def _is_definitely_nonparking_record(record: object) -> bool:
+    if not isinstance(record, dict) or record.get("type") != "Feature":
+        return False
+    properties = record.get("properties")
+    if not isinstance(properties, dict):
+        return False
+    amenity = properties.get("amenity")
+    return amenity is None or (
+        isinstance(amenity, str) and amenity != "parking"
+    )
+
+
+def _framed_stream_json_payload_bounds(raw_line: bytes) -> tuple[int, int]:
+    """Exclude one optional RS and one CR/LF line terminator from size."""
+    start = 1 if raw_line.startswith(b"\x1e") else 0
+    end = len(raw_line)
+    if end > start and raw_line[end - 1] == 10:
+        end -= 1
+        if end > start and raw_line[end - 1] == 13:
+            end -= 1
+    elif end > start and raw_line[end - 1] == 13:
+        end -= 1
+    return start, end
+
+
 class FeatureAccumulator:
     def __init__(
             self, endpoint_grid: EndpointGrid,
@@ -1553,30 +3032,167 @@ class FeatureAccumulator:
         self.exported_source_forms: dict[str, set[str]] = collections.defaultdict(set)
         self.counters = collections.Counter()
         self.rejections = collections.Counter()
+        self.rejection_contexts: dict[str, str] = {}
+        self.topology_unvalidated_non_candidate_hasher = hashlib.sha256()
         self.metadata: dict = {}
+
+    def _reject_record(self, code: str, context: str, detail: str) -> None:
+        self.rejections[code] += 1
+        self.rejection_contexts.setdefault(code, f"{context}: {detail}")
+
+    def _scan_stream_structure(self, payload: bytes, context: str) -> bool:
+        try:
+            coordinate_pairs, maximum_depth = _preparse_stream_structure(
+                payload
+            )
+        except (MemoryError, RecursionError):
+            self._reject_record(
+                "resource_exhaustion", context,
+                "host resources exhausted during structural JSON scan",
+            )
+            return False
+        self.counters["json_depth_scanned_records"] += 1
+        self.counters["max_json_nesting_depth"] = max(
+            self.counters["max_json_nesting_depth"], maximum_depth
+        )
+        if len(payload) >= STREAM_STRUCTURAL_PREPARSE_MIN_BYTES:
+            self.counters["structural_preparse_records"] += 1
+            self.counters["structural_preparse_coordinate_pairs"] += (
+                coordinate_pairs
+            )
+            self.counters["max_structural_preparse_coordinate_pairs"] = max(
+                self.counters["max_structural_preparse_coordinate_pairs"],
+                coordinate_pairs,
+            )
+            self.counters["max_structural_preparse_nesting_depth"] = max(
+                self.counters["max_structural_preparse_nesting_depth"],
+                maximum_depth,
+            )
+        if maximum_depth > MAX_STREAM_JSON_NESTING_DEPTH:
+            self.counters["json_nesting_depth_rejections"] += 1
+            self._reject_record(
+                "invalid_json", context,
+                f"JSON nesting depth {maximum_depth} exceeds "
+                f"{MAX_STREAM_JSON_NESTING_DEPTH}",
+            )
+            return False
+        return True
+
+    def _record_topology_unvalidated_non_candidate(
+            self, feature: StagedParkingFeature) -> None:
+        self.counters["topology_unvalidated_non_candidates"] += 1
+        self.topology_unvalidated_non_candidate_hasher.update(
+            _canonical_bytes([
+                feature.alias, feature.source_form, feature.geometry_type,
+            ])
+        )
+
+    def topology_unvalidated_non_candidate_inventory(self) -> dict:
+        return {
+            "topology_unvalidated_non_candidates": {
+                "status": TOPOLOGY_UNVALIDATED_NONCANDIDATE_STATUS,
+                "records": self.counters[
+                    "topology_unvalidated_non_candidates"
+                ],
+                "record_identity_sha256": (
+                    self.topology_unvalidated_non_candidate_hasher.hexdigest()
+                ),
+            }
+        }
 
     def consume_line(self, raw_line: bytes) -> None:
         self.counters["records_total"] += 1
-        if len(raw_line) > MAX_STREAM_RECORD_BYTES:
-            self.rejections["oversized_record"] += 1
+        try:
+            self._consume_line(raw_line)
+        finally:
+            if self.counters["records_total"] % PARKING_STREAM_PROGRESS_EVERY == 0:
+                self._emit_progress()
+
+    def _emit_progress(self) -> None:
+        print(
+            "national_census: parking-stream progress "
+            f"records={self.counters['records_total']} "
+            f"parking={self.counters['parking_features']} "
+            f"topology_calls={self.counters['topology_validation_calls']} "
+            f"topology_failures={self.counters['topology_validation_failures']} "
+            f"coarse_outside={self.counters['coarse_outside_fallback_envelope']} "
+            f"topology_noncandidates="
+            f"{self.counters['topology_unvalidated_non_candidates']} "
+            f"exact_outside={self.counters['exact_outside_fallback_envelope']} "
+            f"retained={len(self.features)}",
+            file=sys.stderr,
+            flush=True,
+        )
+
+    def _consume_line(self, raw_line: bytes) -> None:
+        fallback_context = (
+            f"parking stream record {self.counters['records_total']}"
+        )
+        payload_start, payload_end = _framed_stream_json_payload_bounds(
+            raw_line
+        )
+        payload_bytes = payload_end - payload_start
+        if payload_bytes > MAX_STREAM_RECORD_BYTES:
+            self._reject_record(
+                "oversized_record", fallback_context,
+                f"JSON payload exceeds {MAX_STREAM_RECORD_BYTES} bytes",
+            )
             return
-        payload = raw_line.strip().lstrip(b"\x1e")
-        if not payload:
+        try:
+            # Admission happens before this bounded slice, so sequence framing
+            # cannot reject an exact-limit payload and an oversized input never
+            # triggers a proportional payload copy here.
+            payload = raw_line[payload_start:payload_end]
+            payload_is_blank = not payload or not payload.strip()
+        except (MemoryError, RecursionError):
+            self._reject_record(
+                "resource_exhaustion", fallback_context,
+                "host resources exhausted before JSON parsing",
+            )
+            return
+        if payload_is_blank:
             self.counters["blank_records"] += 1
             return
+        context: str | None = None
         try:
             record = json.loads(
                 payload.decode("utf-8"),
                 object_pairs_hook=_reject_duplicate_keys,
                 parse_constant=_reject_nonfinite,
             )
-        except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
-            self.rejections["invalid_json"] += 1
+        except RecursionError:
+            context = _safe_stream_record_context(
+                payload, self.counters["records_total"]
+            )
+            if self._scan_stream_structure(payload, context):
+                self._reject_record(
+                    "resource_exhaustion", context,
+                    "JSON parser exhausted recursion below the explicit "
+                    "nesting-depth ceiling",
+                )
+            return
+        except MemoryError:
+            context = _safe_stream_record_context(
+                payload, self.counters["records_total"]
+            )
+            self._reject_record(
+                "resource_exhaustion", context,
+                "host memory exhausted during JSON parsing",
+            )
+            return
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+            context = _safe_stream_record_context(
+                payload, self.counters["records_total"]
+            )
+            self._reject_record("invalid_json", context, str(error))
             return
         if isinstance(record, dict) and set(record) == {"_meta"}:
             meta = record["_meta"]
             if not isinstance(meta, dict):
-                self.rejections["malformed_meta"] += 1
+                self._reject_record(
+                    "malformed_meta", fallback_context,
+                    "metadata record payload is not an object",
+                )
                 return
             normalized = {
                 key: meta[key]
@@ -1589,18 +3205,41 @@ class FeatureAccumulator:
             self.metadata = normalized
             self.counters["metadata_records"] += 1
             return
-        try:
-            feature = normalize_feature(
-                record, self.endpoint_grid, self.relation_memberships,
-                associate_endpoints=False,
+        if _is_definitely_nonparking_record(record):
+            self.counters["ignored_nonparking"] += 1
+            return
+        if _stream_structure_scan_required(payload):
+            context = _safe_stream_record_context(
+                payload, self.counters["records_total"]
             )
+            if not self._scan_stream_structure(payload, context):
+                return
+        else:
+            self.counters["json_depth_fastpath_records"] += 1
+        try:
+            feature = _normalize_feature_structure(
+                record, self.relation_memberships
+            )
+        except (MemoryError, RecursionError):
+            if context is None:
+                context = _safe_stream_record_context(
+                    payload, self.counters["records_total"]
+                )
+            self._reject_record(
+                "resource_exhaustion", context,
+                "host resources exhausted during geometry normalization",
+            )
+            return
         except FeatureRejection as error:
-            self.rejections[error.code] += 1
+            if context is None:
+                context = _safe_stream_record_context(
+                    payload, self.counters["records_total"]
+                )
+            self._reject_record(error.code, context, str(error))
             return
         if feature is None:
             self.counters["ignored_nonparking"] += 1
             return
-        self.counters["parking_features"] += 1
         if feature.alias in self.sidecar_alias_allow_set:
             self.seen_authority_aliases.add(feature.alias)
         if (feature.alias not in self.exported_forms
@@ -1614,27 +3253,64 @@ class FeatureAccumulator:
         if (feature.alias.startswith("way/")
                 and _declared_non_area(feature.tags)
                 and feature.geometry_type in ("Polygon", "MultiPolygon")):
-            # osmium 1.16 can emit a derived area copy alongside the source
-            # line for area=false/0. Reconcile that form, but never let it
-            # establish endpoint proximity or canonical candidate geometry.
+            # Reconcile the osmium-derived area form and reserve its sidecar
+            # alias, but do no coarse, topology, representative, or exact work.
+            self.counters["parking_features"] += 1
             self.counters["ignored_non_area_area_copies"] += 1
             return
-        feature.near_endpoint_ids = _associate_feature_endpoints(
+        coarse_ids = _coarse_feature_endpoint_candidates(
             feature.alias, feature.geometry, self.endpoint_grid, self.counters
         )
-        if not feature.near_endpoint_ids:
-            self.counters["outside_fallback_envelope"] += 1
+        if not coarse_ids:
+            self.counters["topology_not_required_outside"] += 1
+            if feature.geometry_type in ("Polygon", "MultiPolygon"):
+                self._record_topology_unvalidated_non_candidate(feature)
+            else:
+                self.counters["parking_features"] += 1
+                self.counters["outside_fallback_envelope"] += 1
             return
-        previous = self.features.get(feature.alias)
+        try:
+            _validate_feature_topology(feature.geometry, self.counters)
+        except FeatureRejection as error:
+            if context is None:
+                context = _safe_stream_record_context(
+                    payload, self.counters["records_total"]
+                )
+            self._reject_record(error.code, context, str(error))
+            return
+        near_endpoint_ids = _associate_feature_endpoints(
+            feature.alias,
+            feature.geometry,
+            self.endpoint_grid,
+            self.counters,
+            coarse_ids=coarse_ids,
+        )
+        self.counters["parking_features"] += 1
+        if not near_endpoint_ids:
+            self.counters["outside_fallback_envelope"] += 1
+            self.counters["exact_outside_fallback_envelope"] += 1
+            return
+        latitude, longitude = geometry_representative(feature.geometry)
+        retained = ParkingFeature(
+            alias=feature.alias,
+            source_form=feature.source_form,
+            geometry=feature.geometry,
+            latitude=latitude,
+            longitude=longitude,
+            tags=feature.tags,
+            near_endpoint_ids=near_endpoint_ids,
+            relation_members=feature.relation_members,
+        )
+        previous = self.features.get(retained.alias)
         if previous is not None:
             self.counters["canonical_export_duplicates"] += 1
-            feature = _merge_duplicate_feature(previous, feature)
+            retained = _merge_duplicate_feature(previous, retained)
         elif len(self.features) >= MAX_RETAINED_FEATURES:
             raise CensusError(
                 f"retained parking features exceed {MAX_RETAINED_FEATURES:,}; "
-                f"latest identity={feature.alias}"
+                f"latest identity={retained.alias}"
             )
-        self.features[feature.alias] = feature
+        self.features[retained.alias] = retained
 
     def final_counters(self) -> dict:
         names = (
@@ -1644,19 +3320,36 @@ class FeatureAccumulator:
             "ignored_non_area_area_copies",
             "coarse_endpoint_candidates_total",
             "coarse_outside_fallback_envelope",
+            "topology_not_required_outside",
+            "topology_unvalidated_non_candidates",
+            "topology_validation_calls", "topology_validation_failures",
+            "exact_outside_fallback_envelope",
             "exact_endpoint_distance_checks", "endpoint_associations_total",
             "max_coarse_endpoint_candidates", "max_endpoint_associations",
+            "peak_endpoint_grid_retained_window_slots",
+            "peak_endpoint_grid_retained_window_bytes",
+            "json_depth_fastpath_records", "json_depth_scanned_records",
+            "max_json_nesting_depth",
+            "json_nesting_depth_rejections",
+            "structural_preparse_records",
+            "structural_preparse_coordinate_pairs",
+            "max_structural_preparse_coordinate_pairs",
+            "max_structural_preparse_nesting_depth",
         )
         values = {name: self.counters[name] for name in names}
         values["retained_canonical_features"] = len(self.features)
         values["seen_authority_aliases"] = len(self.seen_authority_aliases)
         values["rejected_total"] = sum(self.rejections.values())
         values["rejections"] = dict(sorted(self.rejections.items()))
+        values["rejection_contexts"] = dict(sorted(
+            self.rejection_contexts.items()
+        ))
         values["record_equation"] = {
             "records_total": values["records_total"],
             "classified_records": (
                 values["blank_records"] + values["metadata_records"]
                 + values["ignored_nonparking"] + values["parking_features"]
+                + values["topology_unvalidated_non_candidates"]
                 + values["rejected_total"]
             ),
         }
@@ -1667,6 +3360,23 @@ class FeatureAccumulator:
                 + values["retained_canonical_features"]
                 + values["canonical_export_duplicates"]
                 + values["ignored_non_area_area_copies"]
+            ),
+        }
+        values["staged_topology_observations"] = {
+            "coarse_outside": values["coarse_outside_fallback_envelope"],
+            "topology_not_required_outside": values[
+                "topology_not_required_outside"
+            ],
+            "topology_unvalidated_non_candidates": values[
+                "topology_unvalidated_non_candidates"
+            ],
+            "topology_validation_calls": values["topology_validation_calls"],
+            "topology_validation_failures": values[
+                "topology_validation_failures"
+            ],
+            "exact_outside": values["exact_outside_fallback_envelope"],
+            "contract": (
+                "branch-observation-counters-not-independent-closure-equations"
             ),
         }
         if values["record_equation"]["records_total"] != values["record_equation"][
@@ -1733,6 +3443,7 @@ def _stream_fixture(
         accumulator.final_counters(),
         {},
         tuple(sorted(accumulator.seen_authority_aliases)),
+        accumulator.topology_unvalidated_non_candidate_inventory(),
     )
 
 
@@ -2274,21 +3985,60 @@ def _self_hashed_document(payload: dict) -> dict:
 
 
 def _filtered_pbf_policy() -> dict:
+    """Return only inputs that can change the filtered PBF bytes."""
     return {
         "expression": FILTER_EXPRESSION,
-        "input_inventory_command": "tags-filter -R -f opl",
-        "filtered_inventory_command": "cat -f opl",
         "filter_command": "tags-filter INPUT nwr/amenity=parking -o OUTPUT",
-        "export_command": (
-            "export INPUT -f geojsonseq "
-            "--geometry-types=point,linestring,polygon "
-            "--add-unique-id=type_id"
-        ),
-        "closed_way_non_area_policy": (
-            "LineString-required-area-copies-ignored-before-endpoint-association"
-        ),
-        "closed_way_non_area_values": sorted(CLOSED_NON_AREA_VALUES),
     }
+
+
+def _filtered_pbf_policy_identity(value: object) -> dict | None:
+    """Project only exact current or shipped legacy manifests to byte identity."""
+    if not isinstance(value, dict):
+        return None
+    current_policy = _filtered_pbf_policy()
+    current_keys = set(current_policy)
+    legacy_metadata_keys = {
+        *LEGACY_FILTERED_PBF_METADATA,
+        "closed_way_non_area_policy",
+    }
+    keys = set(value)
+    if keys == current_keys:
+        if value != current_policy:
+            return None
+        return dict(sorted(current_policy.items()))
+    if keys != current_keys | legacy_metadata_keys:
+        return None
+    if any(value.get(key) != expected for key, expected in current_policy.items()):
+        return None
+    if any(
+            value.get(key) != expected
+            for key, expected in LEGACY_FILTERED_PBF_METADATA.items()):
+        return None
+    if value.get("closed_way_non_area_policy") not in (
+            LEGACY_CLOSED_WAY_NON_AREA_POLICIES):
+        return None
+    return {key: value.get(key) for key in sorted(current_keys)}
+
+
+def _filtered_pbf_policy_matches(value: object) -> bool:
+    return _filtered_pbf_policy_identity(value) == _filtered_pbf_policy()
+
+
+def _filtered_artifact_documents_equivalent(
+        existing: dict, expected: dict) -> bool:
+    if set(existing) != set(expected):
+        return False
+    for key in existing:
+        if key == "filter":
+            existing_identity = _filtered_pbf_policy_identity(existing[key])
+            expected_identity = _filtered_pbf_policy_identity(expected[key])
+            if (existing_identity is None or expected_identity is None
+                    or existing_identity != expected_identity):
+                return False
+        elif key != "self_sha256" and existing[key] != expected[key]:
+            return False
+    return True
 
 
 def _source_inventory_provenance(
@@ -2309,6 +4059,7 @@ def _artifact_inventory(inventory: dict) -> dict:
     run_policy_keys = {
         "national_floor_enforced", "national_floor_exclusive_minimum",
         "artifact_minimum_free_bytes",
+        "topology_unvalidated_non_candidates",
     }
     return {
         key: value for key, value in inventory.items()
@@ -2448,10 +4199,10 @@ def _read_filtered_artifact_manifest(
             f"existing filtered artifact {artifact_path} has no osmium version"
         )
     if (require_current_filter_policy
-            and root["filter"] != _filtered_pbf_policy()):
+            and not _filtered_pbf_policy_matches(root["filter"])):
         raise CensusError(
-            f"existing filtered artifact {artifact_path} filter provenance "
-            "does not match current policy"
+            f"existing filtered artifact {artifact_path} filter-byte "
+            "provenance does not match current tags-filter policy"
         )
     if not isinstance(root["inventory"], dict):
         raise CensusError(
@@ -2503,10 +4254,13 @@ def _verify_filtered_artifact(
         raise CensusError(
             f"existing filtered artifact {artifact_path} byte hash/length mismatch"
         )
-    if expected_document is not None and document != expected_document:
+    if (expected_document is not None
+            and not _filtered_artifact_documents_equivalent(
+                document, expected_document
+            )):
         raise CensusError(
             f"existing filtered artifact {artifact_path} has the same filtered "
-            "digest but mismatched source/osmium/filter/inventory provenance"
+            "digest but mismatched source/osmium/tags-filter/inventory provenance"
         )
     _verify_binding(manifest_binding)
     _verify_binding(filtered_binding)
@@ -2519,7 +4273,7 @@ def _artifact_matches_source(
         document: dict, source: SourceBinding, tool: OsmiumTool,
         input_inventory: dict[str, dict],
         input_memberships: dict[str, tuple[str, ...]]) -> bool:
-    if document["filter"] != _filtered_pbf_policy():
+    if not _filtered_pbf_policy_matches(document["filter"]):
         return False
     if document["source_pbf"] != {
             "sha256": source.sha256, "size_bytes": source.size_bytes}:
@@ -2598,8 +4352,9 @@ def _process_filtered_pbf(
     counters = accumulator.final_counters()
     if counters["rejected_total"]:
         raise CensusError(
-            "PBF parking export rejected malformed records before identity "
-            f"reconciliation: {counters['rejections']}"
+            "PBF parking export rejected malformed/resource records before "
+            f"identity reconciliation: {counters['rejections']}; "
+            f"contexts={counters['rejection_contexts']}"
         )
     exported_inventory = accumulator.export_inventory()
     try:
@@ -2619,6 +4374,9 @@ def _process_filtered_pbf(
     inventory["filtered_pbf_sha256"] = filtered.sha256
     inventory["filtered_pbf_size_bytes"] = filtered.size_bytes
     inventory["artifact_minimum_free_bytes"] = minimum_artifact_free_bytes
+    inventory.update(
+        accumulator.topology_unvalidated_non_candidate_inventory()
+    )
     return accumulator, counters, inventory
 
 
@@ -2666,10 +4424,11 @@ def _stream_pbf(
         expected_document = _self_hashed_document(_filtered_artifact_payload(
             binding, tool, reusable.filtered_binding, inventory
         ))
-        if reusable.document != expected_document:
+        if not _filtered_artifact_documents_equivalent(
+                reusable.document, expected_document):
             raise CensusError(
                 f"existing filtered artifact {reusable.path} has mismatched "
-                "source/osmium/filter/inventory provenance after exact "
+                "source/osmium/tags-filter/inventory provenance after exact "
                 "reconciliation"
             )
         filtered_binding = reusable.filtered_binding
@@ -5327,8 +7086,10 @@ def _count_manifest(
 def _assert_stream_complete(parking: ParkingStreamResult) -> None:
     if parking.counters["rejected_total"]:
         raise CensusError(
-            "parking stream rejected records of unknown or malformed relevance; "
-            f"complete census refused: {parking.counters['rejections']}"
+            "parking stream rejected records of unknown, malformed, or "
+            "resource-exhausted relevance; complete census refused: "
+            f"{parking.counters['rejections']}; "
+            f"contexts={parking.counters['rejection_contexts']}"
         )
 
 
@@ -5351,11 +7112,6 @@ def _deterministic_run_id(sources: dict, algorithm: dict) -> str:
         ),
         "filtered_pbf": (
             sources["parking"].get("filtered_pbf", {}).get("sha256")
-        ),
-        "filtered_artifact_manifest": (
-            sources["parking"].get(
-                "filtered_artifact_manifest", {}
-            ).get("sha256")
         ),
         "parking_inventory": _canonical_hash(
             sources["parking"].get("inventory", {})
@@ -5701,6 +7457,8 @@ def run_census(
         "mode": "authoritative-production" if authoritative else "non-authoritative",
         "anonymous_trail_ref": ANONYMOUS_TRAIL_REF_SCHEME,
         "geometry_topology": geometry_engine,
+        "parking_capture_geometry_policy": _parking_geometry_policy(),
+        "parking_filtered_pbf_byte_policy": _filtered_pbf_policy(),
         "canonical_must_link": [
             "identical canonical OSM alias/export duplicate",
             "aliases in one verdict sidecar cluster",
@@ -5737,7 +7495,148 @@ def run_census(
         "resource_policy": {
             "endpoint_associations": "exact-and-untruncated",
             "max_endpoint_candidates_per_feature": MAX_ENDPOINT_CANDIDATES_PER_FEATURE,
-            "max_endpoint_grid_query_cells": MAX_ENDPOINT_GRID_QUERY_CELLS,
+            "max_endpoint_grid_segment_envelopes": (
+                MAX_ENDPOINT_GRID_SEGMENT_ENVELOPES
+            ),
+            "max_endpoint_grid_query_windows": MAX_ENDPOINT_GRID_QUERY_WINDOWS,
+            "max_endpoint_grid_spherical_query_windows": (
+                MAX_ENDPOINT_GRID_SPHERICAL_QUERY_WINDOWS
+            ),
+            "max_endpoint_grid_head_parity_query_windows": (
+                MAX_ENDPOINT_GRID_HEAD_PARITY_QUERY_WINDOWS
+            ),
+            "max_endpoint_grid_retained_window_slots": (
+                MAX_ENDPOINT_GRID_RETAINED_WINDOW_SLOTS
+            ),
+            "max_endpoint_grid_retained_window_bytes": (
+                MAX_ENDPOINT_GRID_RETAINED_WINDOW_BYTES
+            ),
+            "endpoint_grid_retained_window_slot_bytes": (
+                ENDPOINT_GRID_RETAINED_WINDOW_SLOT_BYTES
+            ),
+            "head_endpoint_grid_query_cells": HEAD_ENDPOINT_GRID_QUERY_CELLS,
+            "max_endpoint_grid_row_probes": MAX_ENDPOINT_GRID_ROW_PROBES,
+            "max_endpoint_grid_spherical_row_probes": (
+                MAX_ENDPOINT_GRID_SPHERICAL_ROW_PROBES
+            ),
+            "max_endpoint_grid_head_parity_row_probes": (
+                MAX_ENDPOINT_GRID_HEAD_PARITY_ROW_PROBES
+            ),
+            "max_endpoint_grid_cell_probes": MAX_ENDPOINT_GRID_CELL_PROBES,
+            "max_endpoint_grid_spherical_cell_probes": (
+                MAX_ENDPOINT_GRID_SPHERICAL_CELL_PROBES
+            ),
+            "max_endpoint_grid_head_parity_cell_probes": (
+                MAX_ENDPOINT_GRID_HEAD_PARITY_CELL_PROBES
+            ),
+            "stream_structural_preparse_minimum_record_bytes": (
+                STREAM_STRUCTURAL_PREPARSE_MIN_BYTES
+            ),
+            "max_stream_json_nesting_depth": MAX_STREAM_JSON_NESTING_DEPTH,
+            "endpoint_grid_vertex_scan": {
+                "units": "GeoJSON coordinate-pair arrays",
+                "admission": "maximum-record-bytes-only",
+                "numeric_spelling_policy": "no-coordinate-count-ceiling",
+                "maximum_json_nesting_depth": MAX_STREAM_JSON_NESTING_DEPTH,
+                "json_depth_fastpath": (
+                    "total-opening-delimiters-at-most-maximum-proves-bound"
+                ),
+                "structural_preparse_minimum_record_bytes": (
+                    STREAM_STRUCTURAL_PREPARSE_MIN_BYTES
+                ),
+                "structural_preparse_diagnostics": (
+                    "potentially-parking-depth-and-large-record-coordinate-"
+                    "pairs-after-parsed-amenity-relevance"
+                ),
+                "nonparking_preparse": "disabled",
+                "record_framing": (
+                    "maximum-applies-to-JSON-payload-after-removing-one-"
+                    "optional-record-separator-and-one-LF-CRLF-or-CR-line-terminator"
+                ),
+                "vertices_inspected": "diagnostic-only-not-grid-work",
+            },
+            "endpoint_grid_segment_planning": {
+                "units": "precharged spherical segment envelopes",
+                "maximum": MAX_ENDPOINT_GRID_SEGMENT_ENVELOPES,
+                "derivation": (
+                    "ceil(max_stream_record_bytes / "
+                    "minimum_compact_geojson_coordinate_bytes)"
+                ),
+                "minimum_compact_geojson_coordinate_bytes": (
+                    MIN_COMPACT_GEOJSON_COORDINATE_BYTES
+                ),
+            },
+            "endpoint_grid_window_probes": {
+                "units": (
+                    "precharged spherical/global and separate literal-HEAD-"
+                    "expanded-query windows actually scanned"
+                ),
+                "maximum": MAX_ENDPOINT_GRID_QUERY_WINDOWS,
+                "spherical_maximum": (
+                    MAX_ENDPOINT_GRID_SPHERICAL_QUERY_WINDOWS
+                ),
+                "head_parity_maximum": (
+                    MAX_ENDPOINT_GRID_HEAD_PARITY_QUERY_WINDOWS
+                ),
+                "derivation": (
+                    "sum-of-three-times-segment-envelope-maximum-for-"
+                    "spherical-seam-splits-and-polygon-interiors-plus-one-"
+                    "literal-HEAD-expanded-query-window"
+                ),
+            },
+            "endpoint_grid_window_retention": {
+                "units": (
+                    "pre-reserved simultaneous merge input/output slots-and-bytes"
+                ),
+                "maximum_slots": MAX_ENDPOINT_GRID_RETAINED_WINDOW_SLOTS,
+                "maximum_bytes": MAX_ENDPOINT_GRID_RETAINED_WINDOW_BYTES,
+                "reserved_bytes_per_slot": (
+                    ENDPOINT_GRID_RETAINED_WINDOW_SLOT_BYTES
+                ),
+                "derivation": (
+                    "64MiB-conservative-budget-at-512-bytes-per-live-window-"
+                    "for-four-float-tuple-list-run-sort-and-final-output-"
+                    "worst-case"
+                ),
+                "policy": (
+                    "reserve-before-transient-tuple-compute-each-proportional-"
+                    "append-or-replacement-and-final-freeze"
+                ),
+                "reporting": "current-and-peak-reserved-slots-and-bytes",
+            },
+            "endpoint_grid_row_probes": {
+                "units": (
+                    "precharged occupied latitude rows in independent-"
+                    "spherical and literal-HEAD lanes"
+                ),
+                "maximum": MAX_ENDPOINT_GRID_ROW_PROBES,
+                "spherical_maximum": MAX_ENDPOINT_GRID_SPHERICAL_ROW_PROBES,
+                "head_parity_maximum": (
+                    MAX_ENDPOINT_GRID_HEAD_PARITY_ROW_PROBES
+                ),
+                "derivation": (
+                    "sum-of-independent-500000-spherical-and-500000-literal-"
+                    "HEAD-expanded-query-lanes"
+                ),
+            },
+            "endpoint_grid_cell_probes": {
+                "units": (
+                    "precharged globally-deduplicated longitude/occupied-grid-"
+                    "cells in independent spherical and literal-HEAD lanes"
+                ),
+                "maximum": MAX_ENDPOINT_GRID_CELL_PROBES,
+                "spherical_maximum": MAX_ENDPOINT_GRID_SPHERICAL_CELL_PROBES,
+                "head_parity_maximum": (
+                    MAX_ENDPOINT_GRID_HEAD_PARITY_CELL_PROBES
+                ),
+                "derivation": (
+                    "sum-of-independent-500000-spherical-and-500000-literal-"
+                    "HEAD-expanded-query-lanes"
+                ),
+            },
+            "endpoint_grid_query_work_units": (
+                "sum-of-segment-window-row-cell-diagnostics-only-not-a-limit"
+            ),
             "max_components_per_endpoint": MAX_COMPONENTS_PER_ENDPOINT,
             "max_trail_candidate_components": MAX_TRAIL_CANDIDATE_COMPONENTS,
             "max_trails_per_endpoint": MAX_TRAILS_PER_ENDPOINT,
@@ -5755,6 +7654,9 @@ def run_census(
             "max_retained_features": MAX_RETAINED_FEATURES,
             "max_work_units": MAX_WORK_UNITS,
             "max_stream_record_bytes": MAX_STREAM_RECORD_BYTES,
+            "parking_stream_progress_every_records": (
+                PARKING_STREAM_PROGRESS_EVERY
+            ),
             "national_pbf_parking_identity_floor_exclusive": (
                 MIN_NATIONAL_PBF_PARKING_IDENTITIES
             ),
@@ -5765,10 +7667,12 @@ def run_census(
             "failed_stages": "preserve-for-operator-Archive; never-auto-delete",
             "memory_model": (
                 "filtered inventories released after reconciliation; export-form "
-                "maps released before census assembly; only the sidecar-bounded "
+                "maps released before census assembly; endpoint-window retention "
+                "has an authority-bound conservative 64MiB preallocation budget "
+                "with peak reserved bytes reported; only the sidecar-bounded "
                 "seen-authority-alias intersection survives capture; full SQLite "
-                "spill remains future work; peak RSS is an external homelab gate "
-                "and is not included in authority bytes"
+                "spill remains future work; whole-process peak RSS remains an "
+                "external homelab gate and is not included in authority bytes"
             ),
         },
     }

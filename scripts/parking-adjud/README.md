@@ -73,6 +73,13 @@ census:
 /absolute/path/to/python -c 'import shapely; assert shapely.__version__ == "2.0.6"'
 ```
 
+Evidence claims are repository-reproducible: the review baseline was 1,116
+passed with one expected osmium-only skip, and the checked-in generated-superset
+case performs exactly 16,172 `geometry_distance_to_point_m` evaluations across
+320 generated geometries. Larger external probe totals are withdrawn and are
+not an acceptance gate; every new run must report its own collected/pass/skip
+counts plus the fixed generated-case total.
+
 `tools/national_census.py` has two structurally distinct modes:
 
 - GeoJSON-sequence fixtures and subnational PBF rehearsals emit
@@ -181,10 +188,18 @@ ways using each standard false OSM boolean (`area=no`, `area=false`, and
 no binary fixture is committed. Inventory normalizes declared `area` values
 with strip/casefold. Open ways and closed ways whose normalized value is one of
 `0`, `false`, or `no` require a `LineString`; derived polygonal copies for those
-ways are reconciled but ignored before endpoint association. Other closed ways
-require a `Polygon` or `MultiPolygon`. The same ordered false-value set and
-suppression stage are bound into filtered-artifact policy and inventory
-provenance.
+ways are reconciled and their sidecar aliases reserved, but they are ignored
+before coarse lookup, topology validation, representative geometry, and exact
+endpoint work. Other closed ways require a `Polygon` or `MultiPolygon`. The
+ordered false-value set and full staged geometry policy are bound into the
+census algorithm manifest and run ID. Filtered-PBF manifests intentionally bind
+only the source, osmium executable/version, true `tags-filter` byte policy,
+filtered bytes, and reconciled inventory; downstream geometry/topology policy
+cannot change those bytes and is not part of filtered-byte identity. The census
+`run_id` likewise binds the filtered bytes and current policy, but deliberately
+does **not** bind the filtered-artifact manifest's own digest or legacy/current
+representation. That omission lets byte-identical legacy manifests reuse the
+same run identity without weakening any byte- or policy-affecting authority.
 
 The input-side identity inventory is independently produced with osmium
 `tags-filter -R -f opl`, then reconciled exactly to both the normal filtered
@@ -199,14 +214,195 @@ globally, so an envelope-dropped exact lot remains a tombstone and can never be
 reassigned to a positional neighbour. Conflicting sidecar ownership of one OSM
 alias fails closed.
 
+Parking capture performs strict JSON, tag, identity, finite-coordinate, and
+closed/nondegenerate-ring normalization first. It then captures export forms
+and sidecar aliases and runs the conservative 5 km `EndpointGrid` query. The
+public `EndpointGrid` surface accepts only normalized Point, LineString,
+Polygon, or MultiPolygon coordinates in longitude ±180° and latitude ±90°;
+violations raise a feature-context `CensusError`. A polygon ring with fewer than
+four vertices is likewise a fatal public-query contract error. The normalizer's
+corresponding per-feature structural failure remains `FeatureRejection`, so
+stream callers can account it before the complete-census rejection gate.
+
+Record admission has one content-size ceiling: every valid JSON payload at or
+below `MAX_STREAM_RECORD_BYTES` (16 MiB) remains parser-eligible regardless of
+its coordinate count or numeric spelling. Payload size excludes exactly one
+optional leading GeoJSON-sequence RS byte and one trailing line terminator (LF,
+CRLF, or CR); all other bytes count. Thus a 16,777,216-byte JSON payload is
+eligible with either LF or RS+LF framing, while a 16,777,217-byte payload is
+rejected. Framing bounds are computed before the bounded payload slice, so an
+oversized record does not trigger another proportional copy. Parsed amenity
+relevance is checked before the no-copy structural scan, so definitely
+nonparking records never pay that scan. Potentially parking records first use a
+C-level total-opening-delimiter count as a conservative depth upper bound;
+shallow records need no Python scan. Large or potentially deep records take the
+full escape-aware scan for the explicit 128-level JSON nesting ceiling, and
+records at or above 4 MiB also report coordinate-pair-array diagnostics.
+Over-depth JSON is a contextual per-record `invalid_json` rejection, and
+parser/scanner/normalizer `MemoryError` or `RecursionError` is a contextual
+per-record `resource_exhaustion` rejection. Streaming continues so
+`record_equation` and rejection diagnostics close, but authoritative
+finalization still refuses any rejected record. The regression suite processes
+the reviewer's 699,052-pair, 4,893,475-byte record, drives a
+greater-than-99%-of-16-MiB compact nonparking record through the parser while
+proving it performs zero structural scans, and exercises the exact framed limit
+through the real line iterator. The 16 MiB ceiling is a per-payload
+**processing** bound, not a buffering or whole-process peak-memory bound: the
+unchanged line reader has already buffered the payload and its framing before
+this check. Size hosts from the mandatory peak-RSS gate above; the separate
+planner-retention budget below is deterministic authority. `vertices_inspected`
+remains a separate cheap-scan diagnostic and is never charged to a grid-work
+ceiling.
+
+The common local geometry path streams a running anchor-relative
+latitude/longitude extent in constant extra memory. One geodesically convex
+spherical-cap window covers edges and the fixed-anchor planar polygon interior
+without per-vertex haversines, retained vertex copies, or a second interior
+list. Only geometry first proven wider than the one-degree local cap proceeds
+to exact shortest-great-circle segment bounds, including interior latitude
+extrema, signed wrapped longitude traversal, dateline crossings, and pole
+crossings. Each segment envelope is precharged before spherical computation.
+The 2,796,203-envelope ceiling is
+`ceil(16 MiB / 6 bytes)`, where six bytes is the absolute compact JSON form
+`[0,0],`; it therefore cannot create a tighter segment cliff than the record
+processing contract. Segment traversal uses only iterator-held previous/current
+points in both coarse planning and exact distance, and the segment charge occurs
+before envelope computation. Envelope merging is incremental in 4,096-item
+sorted runs. A conservative 512-byte reservation covers each live four-float
+tuple plus worst-case list slot/overallocation, run reference, sort workspace,
+and final-output container share. Transient segment/interior tuples,
+proportional appends and replacements, simultaneous merge input/output, seam
+replacement, and the final tuple freeze are all reserved before allocation or
+compute. Current and peak reserved slots and bytes are reported. Only spherical
+segment/interior envelopes enter the incremental merge. Each merged longitude
+group keeps only that group's conservative minimum/maximum latitude, and groups
+touching across 0°/360° merge with only their own latitude union.
+
+HEAD parity now means literal expanded candidate-query parity, not raw-arc
+parity. For every geometry whose raw longitude span is less than 180°, the raw
+extrema identify HEAD's `_minimal_longitude_arc`. The planner recreates HEAD's
+normalized endpoint subtraction/modulo and `360.0 - largest_gap` operation
+order, including zero span for equal longitude, before independently
+reproducing HEAD's full query construction: latitude-radius expansion; linear
+`latitude_pad / cos(maximum absolute expanded latitude)` longitude padding;
+exact latitude/longitude cell rounding; and modulo dateline wrap. If that
+unchanged expanded rectangle uses at most 500,000 cells, the already expanded
+cell window is scanned separately and unioned with the spherical candidates.
+It is never passed through spherical padding. Spherical windows still run
+first, so they retain every great-circle extension that HEAD missed; candidate
+cells and endpoint IDs are globally deduplicated across both passes. The
+spherical retained plan is released before constructing the one HEAD window,
+so literal parity does not subtract a slot from the existing 64 MiB planner
+allowance. The 60° reviewer line from `-83.61891773293743` to
+`-80.02182929758645` returns all 264 unchanged-HEAD candidate IDs, including
+the three cells omitted by the former arc-only path. The 0° floating-point
+boundary line from `-83.61891773293743` to `-82.31490143205083` retains HEAD's
+`1.3040163008866443` span, scans 35 longitude cells and 105 total cells, and
+recovers endpoint IDs 34, 69, and 104.
+For raw-wrapping geometry, including the Aleutian/dateline and normalized
+0°/120°/240° controls, status is
+`disabled-literal-HEAD-expanded-query-wrapping-longitudes`; the conservative
+spherical segment/interior query remains authoritative and no unchanged-HEAD
+claim is made. The five non-wrapping national-shaped controls (15°×15°,
+24°×12°, 27°×15°, 400 parts across 2°, and 120 parts across 6°) contain every
+HEAD candidate ID with no omissions; spherical extensions may add candidates.
+Wider geometry keeps the tighter segment/interior plan instead of inheriting a
+global latitude band.
+
+Resource refusal uses independent ledgers, not one arbitrary combined cliff:
+2,796,203 precharged spherical segment envelopes; 8,388,609 precharged
+spherical/global windows plus one separately precharged literal-HEAD window
+(8,388,610 combined); a conservative 64 MiB retention budget at 512 bytes per
+live window (131,072 simultaneous slots); separate 500,000-row spherical and
+500,000-row HEAD lanes (1,000,000 combined); and separate 500,000-cell spherical
+and 500,000-cell HEAD lanes (1,000,000 combined). The literal-HEAD pass is also
+admitted only when HEAD's complete expanded rectangle is at most 500,000 cells.
+Its row and cell operations are precharged in that lane; cells already visited
+by spherical windows are deduplicated before another lookup or charge. These
+sum-derived combined ceilings preserve the entire former spherical allowance
+instead of making literal parity a new availability cliff. The byte and slot
+gates refuse before a tuple/list/run/sort/final-output allocation can exceed
+the planner budget; large dense and national-shaped valid controls remain below
+it. `query_work_units` is only the sum of segment, scanned-window, row, and cell
+diagnostics and never decides admission; retention reservations report current
+and peak slots and bytes separately. Every expensive segment, retained
+slot/byte, scanned window, row, and cell operation is charged or reserved before
+compute, append/freeze, lookup, or candidate retention. Every refusal names the
+feature; these paths broaden or fail closed and never return a partial answer.
+Every ceiling, unit, and derivation above is emitted in the algorithm manifest
+and therefore binds the `run_id`.
+
+Antipodal, near-antipodal, pole-wide, or numerically ambiguous geometry uses
+the fail-closed global path. A global query necessarily returns every endpoint,
+so it performs an exact total-endpoint preflight against the 100,000-candidate
+cap before scanning. The current national inventory has 172,830 endpoints and
+therefore cannot pass that preflight; the global path is an ambiguity safeguard,
+not a promised national scan. A passing smaller inventory charges and scans one
+global window with incremental candidate refusal. An empty coarse set is
+classified without centroid or exact-distance work. Point/LineString records
+need no polygon topology engine and remain ordinary outside parking records.
+A structurally valid Polygon/MultiPolygon proven outside every conservative 5
+km endpoint envelope receives the explicit
+`structurally-valid-topology-unvalidated-noncandidate` status: it is export-
+reconciled and sidecar-reserved but excluded from `parking_features`, retained
+features, and every candidate denominator. Its record count and stream-order
+identity digest are emitted under
+`sources.parking.inventory.topology_unvalidated_non_candidates`. This is an
+intentional, authority-bound run-ID delta from HEAD that preserves denominator
+correctness without restoring O(n²) ring intersection work or running Shapely
+on far geometry. A nonempty coarse set still requires complete
+`Polygon`/`MultiPolygon` topology validation under exactly Shapely 2.0.6 before
+exact endpoint association. Structurally malformed records remain rejections at
+any location. Public `normalize_geometry` and `normalize_feature` callers remain
+eager topology validators. An asymmetric bow tie proven far is therefore an
+explicit noncandidate diagnostic; the same bow tie near an endpoint fails
+Shapely topology and blocks completion, while a zero-area symmetric bow tie
+remains structurally rejected everywhere. The complete spherical-envelope,
+global-fallback, ambiguity, far-topology status, and numeric-padding policy is
+hash-bound into the census algorithm and run ID. In particular,
+`SPHERICAL_ENVELOPE_EPSILON_DEGREES` is declared with value and degree units;
+it is deliberately absent from filtered-PBF byte identity.
+
+The stream reports `topology_unvalidated_non_candidates`,
+`topology_not_required_outside`, `topology_validation_calls`,
+`topology_validation_failures`, and `exact_outside_fallback_envelope`
+separately. `record_equation` includes the explicit noncandidate terminal class;
+`parking_equation` covers only topology-validated or topology-not-applicable
+parking features. The staged topology fields remain branch observations, not
+independent closure equations. During capture it emits one deterministic stderr
+progress line every 100,000 records containing record, topology,
+coarse-outside, topology-noncandidate, exact-outside, and retained counts; these
+lines contain no timestamps or authority paths. Treat
+90 minutes of GeoJSON-export wall-clock time as an operator diagnosis threshold,
+not a tool-enforced timeout: preserve the stage and inspect these counters
+instead of blindly rerunning it. The actual default timeout is 3,600 seconds per
+osmium command; the documented national invocation overrides it to 21,600
+seconds with `--osmium-timeout-seconds 21600`, and the tool enforces that
+selected per-command value.
+
 An exact rerun scans installed content addresses before creating a stage and
-reuses one only after no-follow owner/mode checks, canonical
-manifest and self-hash validation, exact source/osmium/filter/input-inventory
+reuses one only after no-follow owner/mode checks, canonical manifest and
+self-hash validation, exact source/osmium/true-tags-filter/input-inventory
 matching, filtered byte hash/length verification, and fresh filtered/export
-reconciliation. It does not rerun `tags-filter` or create a stage. A matching
-filtered digest with different provenance fails and names the existing artifact.
-If another process wins promotion with the exact artifact, the winner is fully
-verified and reused; the losing stage remains preserved. Missing replication
+reconciliation. It does not rerun `tags-filter`, create a stage, or rewrite the
+installed manifest. The reader accepts only the exact current filter shape or
+the exact shipped legacy shape carrying all five exact historical metadata
+values. Regression coverage accepts only the three shipped
+`closed_way_non_area_policy` values (`LineString-required`,
+`LineString-required-area-copies-ignored`, and
+`LineString-required-area-copies-ignored-before-endpoint-association`) and pins
+the inventory, export, and ordered `0`/`false`/`no` metadata literally. Any
+unknown value makes policy projection return `None`, and artifact equivalence
+fails locally even when both compared projections are invalid; `None == None`
+can never authorize reuse. Valid legacy shapes project onto the true filter-byte
+policy and reuse the same bytes deterministically. The current geometry policy
+remains independently authoritative in the census algorithm and run ID. A
+changed source, osmium identity, true filter expression/command,
+filtered digest, or inventory still fails closed. If a differing true
+provenance produces an already occupied filtered-byte digest, the existing
+artifact is preserved and the diagnostic stage is retained. If another process
+wins promotion with an equivalent artifact, the winner is fully verified and
+reused; the losing stage remains preserved. Missing replication
 headers are allowed only for a non-authoritative local extract.
 
 Every failed output or PBF stage is retained with a dated diagnostic name. The

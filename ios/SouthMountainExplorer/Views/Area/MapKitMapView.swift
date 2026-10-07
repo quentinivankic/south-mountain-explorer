@@ -1166,7 +1166,7 @@ struct MapKitMapView: UIViewRepresentable {
                   }) else { return }
 
             mapView.layoutIfNeeded()
-            let nearAnnotations = mapView.annotations.compactMap { annotation in
+            let nearAnnotations = mapView.annotations.compactMap { annotation -> ParkingAnnotation? in
                 guard let parking = annotation as? ParkingAnnotation,
                       parking.isNearSelectedTrail else { return nil }
                 return parking
@@ -1200,7 +1200,7 @@ struct MapKitMapView: UIViewRepresentable {
             // Force the annotation container's pending layout, then measure
             // every expected near marker in full-screen map coordinates.
             mapView.layoutIfNeeded()
-            let nearAnnotations = mapView.annotations.compactMap { annotation in
+            let nearAnnotations = mapView.annotations.compactMap { annotation -> ParkingAnnotation? in
                 guard let parking = annotation as? ParkingAnnotation,
                       parking.isNearSelectedTrail else { return nil }
                 return parking

@@ -678,6 +678,11 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             "Complete Summary Area Progress card is not reachable"
         )
         assertInsideScreen(lowerContent, app: app)
+        XCTAssertLessThanOrEqual(
+            lowerContent.frame.maxY,
+            app.frame.maxY + 1,
+            "Summary Area Progress card extends below the physical screen"
+        )
         XCTAssertGreaterThan(lowerContent.frame.width, app.frame.width * 0.7)
         let progressTitle = app.staticTexts["Area Progress"].firstMatch
         let progressValue = app.descendants(matching: .any)[

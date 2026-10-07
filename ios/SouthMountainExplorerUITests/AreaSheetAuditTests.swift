@@ -397,6 +397,11 @@ final class AreaSheetAuditTests: XCTestCase {
             + "wide=\(wholeCardIsWide) complete=\(wholeCardHasContent)"
         )
         XCTAssertTrue(wholeCardIsInside, "Summary Area Progress card is clipped")
+        XCTAssertLessThanOrEqual(
+            lowerContent.frame.maxY,
+            app.frame.maxY + 1,
+            "Summary Area Progress card extends below the physical screen"
+        )
         XCTAssertTrue(wholeCardIsWide, "Summary Area Progress card is not full width")
         XCTAssertTrue(wholeCardHasContent, "Summary Area Progress card semantics are incomplete")
         XCTAssertFalse(app.staticTexts["New Completions"].firstMatch.exists)

@@ -115,75 +115,117 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
         let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
         XCTAssertTrue(trailScroll.waitForExistence(timeout: 10), "Trail list scroll is missing")
-        let secondary = app.buttons.matching(NSPredicate(
+        let secondaryCandidate = app.descendants(matching: .any).matching(NSPredicate(
             format: "identifier BEGINSWITH %@ AND label BEGINSWITH %@",
             "trail-secondary-",
             "Mark Trail Complete,"
         )).firstMatch
         XCTAssertTrue(
-            scrollToReachable(secondary, in: trailScroll, app: app),
+            scrollToReachable(secondaryCandidate, in: trailScroll, app: app),
             "No incomplete trail action appeared"
         )
-        let trailSuffix = String(secondary.identifier.dropFirst("trail-secondary-".count))
-        let select = app.buttons["trail-select-\(trailSuffix)"].firstMatch
+        let trailSuffix = String(
+            secondaryCandidate.identifier.dropFirst("trail-secondary-".count)
+        )
+        let selectIdentifier = "trail-select-\(trailSuffix)"
+        let secondaryIdentifier = "trail-secondary-\(trailSuffix)"
+        let select = trailAction(app, identifier: selectIdentifier)
+        let secondary = trailAction(app, identifier: secondaryIdentifier)
         XCTAssertTrue(
             scrollToReachable(select, in: trailScroll, app: app),
-            "No paired semantic trail Select button appeared"
+            "No paired semantic trail Select action appeared"
         )
         assertTrailActionFrames(
             app,
-            select: select,
-            secondary: secondary,
+            selectIdentifier: selectIdentifier,
+            secondaryIdentifier: secondaryIdentifier,
             selectLabelPrefix: "Select Trail,",
             secondaryLabelPrefix: "Mark Trail Complete,"
         )
-        let trailActionIdentifiersAreDistinct = select.identifier != secondary.identifier
-        XCTAssertTrue(trailActionIdentifiersAreDistinct, "Trail actions must have distinct identifiers")
-        let actionLabelsAreDistinct = select.label != secondary.label
-        XCTAssertTrue(actionLabelsAreDistinct, "Trail action labels must be distinct")
-        let selectHasExpectedLabel = select.label.hasPrefix("Select Trail,")
-        XCTAssertTrue(selectHasExpectedLabel, "Trail Select action has an unexpected label")
-        let initialWasComplete = secondary.label.hasPrefix("Mark Trail Incomplete,")
-        let hasExpectedCompletionAction =
-            initialWasComplete || secondary.label.hasPrefix("Mark Trail Complete,")
-        XCTAssertTrue(hasExpectedCompletionAction, "Unexpected trail completion action")
-        let toggledPrefix = initialWasComplete ? "Mark Trail Complete," : "Mark Trail Incomplete,"
+        guard let trailName = actionSubject(select.label, after: "Select Trail,") else {
+            XCTFail("Trail Select action has no semantic subject")
+            return
+        }
+        XCTAssertTrue(
+            secondary.label == "Mark Trail Complete, \(trailName)",
+            "Trail completion action does not address the selected trail row"
+        )
+        let toggledPrefix = "Mark Trail Incomplete,"
 
-        secondary.tap()
-        let toggledSecondary = app.buttons["trail-secondary-\(trailSuffix)"].firstMatch
+        trailAction(app, identifier: secondaryIdentifier).tap()
+        let toggledSecondary = trailAction(app, identifier: secondaryIdentifier)
         XCTAssertTrue(
             waitForLabelPrefix(toggledPrefix, element: toggledSecondary),
             "Completion action did not toggle completion"
         )
-        let inactiveSelect = app.buttons["trail-select-\(trailSuffix)"].firstMatch
-        let selectionStayedInactive = inactiveSelect.label.hasPrefix("Select Trail,")
-        XCTAssertTrue(selectionStayedInactive, "Mark Complete selected the trail")
+        XCTAssertTrue(
+            toggledSecondary.label == "\(toggledPrefix) \(trailName)",
+            "Completion action has unexpected toggled semantics"
+        )
+        let inactiveSelect = trailAction(app, identifier: selectIdentifier)
+        XCTAssertTrue(
+            inactiveSelect.label == "Select Trail, \(trailName)",
+            "Mark Complete selected the trail"
+        )
 
         inactiveSelect.tap()
-        let selectedControl = app.buttons["trail-select-\(trailSuffix)"].firstMatch
-        let recordControl = app.buttons["trail-secondary-\(trailSuffix)"].firstMatch
+        let selectedControl = trailAction(app, identifier: selectIdentifier)
+        let recordControl = trailAction(app, identifier: secondaryIdentifier)
         XCTAssertTrue(waitForLabelPrefix("Deselect Trail,", element: selectedControl))
         XCTAssertTrue(
             waitForLabelPrefix("Record Trail,", element: recordControl),
             "Selecting a trail did not expose its independent Record action"
         )
+        XCTAssertTrue(
+            selectedControl.label == "Deselect Trail, \(trailName)",
+            "Selected trail action has unexpected semantics"
+        )
+        XCTAssertTrue(
+            recordControl.label == "Record Trail, \(trailName)",
+            "Selected trail secondary action has unexpected semantics"
+        )
         assertTrailActionFrames(
             app,
-            select: selectedControl,
-            secondary: recordControl,
+            selectIdentifier: selectIdentifier,
+            secondaryIdentifier: secondaryIdentifier,
             selectLabelPrefix: "Deselect Trail,",
             secondaryLabelPrefix: "Record Trail,"
         )
         sleep(3)
         assertSelectedMapFraming(app)
 
-        selectedControl.tap()
-        let finalSelect = app.buttons["trail-select-\(trailSuffix)"].firstMatch
-        let finalSecondary = app.buttons["trail-secondary-\(trailSuffix)"].firstMatch
+        guard let restoredControl = restoreSelectedTrailActionAfterLowerContent(
+            app,
+            identifier: selectIdentifier,
+            in: trailScroll
+        ) else {
+            XCTFail("Selected trail action was not restored after parking proof")
+            return
+        }
+        XCTAssertTrue(
+            restoredControl.label == "Deselect Trail, \(trailName)",
+            "Restored trail action has unexpected selected semantics"
+        )
+        XCTAssertTrue(
+            trailAction(app, identifier: secondaryIdentifier).label
+                == "Record Trail, \(trailName)",
+            "Restored trail secondary action has unexpected selected semantics"
+        )
+        restoredControl.tap()
+        let finalSelect = trailAction(app, identifier: selectIdentifier)
+        let finalSecondary = trailAction(app, identifier: secondaryIdentifier)
         XCTAssertTrue(waitForLabelPrefix("Select Trail,", element: finalSelect))
         XCTAssertTrue(
             waitForLabelPrefix(toggledPrefix, element: finalSecondary),
             "Selecting and deselecting changed completion state"
+        )
+        XCTAssertTrue(
+            finalSelect.label == "Select Trail, \(trailName)",
+            "Final trail action has unexpected unselected semantics"
+        )
+        XCTAssertTrue(
+            finalSecondary.label == "\(toggledPrefix) \(trailName)",
+            "Final completion action did not preserve exact semantics"
         )
     }
 
@@ -234,38 +276,65 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "area-search-button").count, 0)
 
-        let select = app.buttons.matching(
+        let selectCandidate = app.descendants(matching: .any).matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "trail-select-")
         ).firstMatch
-        XCTAssertTrue(select.waitForExistence(timeout: 30), "Trail Select action is missing")
-        let suffix = String(select.identifier.dropFirst("trail-select-".count))
-        let secondary = app.buttons["trail-secondary-\(suffix)"].firstMatch
+        XCTAssertTrue(selectCandidate.waitForExistence(timeout: 30), "Trail Select action is missing")
+        let suffix = String(selectCandidate.identifier.dropFirst("trail-select-".count))
+        let selectIdentifier = "trail-select-\(suffix)"
+        let secondaryIdentifier = "trail-secondary-\(suffix)"
+        let select = trailAction(app, identifier: selectIdentifier)
+        let secondary = trailAction(app, identifier: secondaryIdentifier)
         XCTAssertTrue(secondary.waitForExistence(timeout: 10), "Trail secondary action is missing")
         let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
         XCTAssertTrue(trailScroll.waitForExistence(timeout: 10), "Trail list scroll is missing")
         XCTAssertTrue(scrollToReachable(select, in: trailScroll, app: app))
         XCTAssertTrue(scrollToReachable(secondary, in: trailScroll, app: app))
-        assertInsideScreen(select, app: app)
-        assertInsideScreen(secondary, app: app)
         assertTrailActionFrames(
             app,
-            select: select,
-            secondary: secondary,
+            selectIdentifier: selectIdentifier,
+            secondaryIdentifier: secondaryIdentifier,
             selectLabelPrefix: "Select Trail,",
             secondaryLabelPrefix: "Mark Trail "
         )
-        select.tap()
-        XCTAssertTrue(waitForLabelPrefix("Deselect Trail,", element: select))
-        XCTAssertTrue(waitForLabelPrefix("Record Trail,", element: secondary))
+        guard let trailName = actionSubject(select.label, after: "Select Trail,") else {
+            XCTFail("Trail Select action has no semantic subject")
+            return
+        }
+        let initialSecondaryLabel = secondary.label
+        let initialSecondarySubject = actionSubject(
+            initialSecondaryLabel,
+            after: "Mark Trail Complete,"
+        ) ?? actionSubject(
+            initialSecondaryLabel,
+            after: "Mark Trail Incomplete,"
+        )
+        XCTAssertTrue(
+            initialSecondarySubject == trailName,
+            "Trail completion action does not address the selected trail row"
+        )
+
+        trailAction(app, identifier: selectIdentifier).tap()
+        let selectedControl = trailAction(app, identifier: selectIdentifier)
+        let recordControl = trailAction(app, identifier: secondaryIdentifier)
+        XCTAssertTrue(waitForLabelPrefix("Deselect Trail,", element: selectedControl))
+        XCTAssertTrue(waitForLabelPrefix("Record Trail,", element: recordControl))
+        XCTAssertTrue(
+            selectedControl.label == "Deselect Trail, \(trailName)",
+            "Selected trail action has unexpected semantics"
+        )
+        XCTAssertTrue(
+            recordControl.label == "Record Trail, \(trailName)",
+            "Selected trail secondary action has unexpected semantics"
+        )
         assertTrailActionFrames(
             app,
-            select: select,
-            secondary: secondary,
+            selectIdentifier: selectIdentifier,
+            secondaryIdentifier: secondaryIdentifier,
             selectLabelPrefix: "Deselect Trail,",
             secondaryLabelPrefix: "Record Trail,"
         )
         sleep(3)
-        assertSelectedMapFraming(app)
 
         let profile = app.descendants(matching: .any)["trail-profile-\(suffix)"].firstMatch
         XCTAssertTrue(profile.waitForExistence(timeout: 10), "Trail profile is missing")
@@ -283,7 +352,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(range.waitForExistence(timeout: 10), "Profile range is missing")
         XCTAssertGreaterThanOrEqual(
             profile.frame.minY,
-            max(select.frame.maxY, secondary.frame.maxY) - 1,
+            max(selectedControl.frame.maxY, recordControl.frame.maxY) - 1,
             "Selected profile overlaps Select or Record"
         )
         let profileBounds = profile.frame.insetBy(dx: -1, dy: -1)
@@ -297,6 +366,9 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             direction.frame.height + flip.frame.height + range.frame.height + 120,
             "Accessibility profile compressed its chart or lower text"
         )
+
+        // The selected actions and profile are verified before this single
+        // downward pass through profile and informational parking content.
         XCTAssertTrue(scrollToReachable(flip, in: trailScroll, app: app))
         assertInsideScreen(flip, app: app)
         XCTAssertTrue(scrollToVisible(range, in: trailScroll, app: app))
@@ -308,15 +380,47 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertTrue(scrollToVisible(parking, in: trailScroll, app: app))
         assertInsideScreen(parking, app: app)
         XCTAssertTrue(
+            trailScroll.frame.intersection(app.frame).insetBy(dx: -1, dy: -1)
+                .contains(parking.frame),
+            "Selected parking detail extends outside the visible trail list"
+        )
+        XCTAssertTrue(
             range.frame.intersection(parking.frame).isEmpty,
             "Profile range overlaps selected parking content"
         )
 
-        let selectedControl = app.buttons["trail-select-\(suffix)"].firstMatch
-        XCTAssertTrue(scrollToReachable(selectedControl, in: trailScroll, app: app))
-        selectedControl.tap()
-        let deselectedControl = app.buttons["trail-select-\(suffix)"].firstMatch
+        // The far-only map contract can now inspect the same visible parking
+        // detail without moving a lazily absent profile target farther away.
+        assertSelectedMapFraming(app)
+        guard let restoredControl = restoreSelectedTrailActionAfterLowerContent(
+            app,
+            identifier: selectIdentifier,
+            in: trailScroll
+        ) else {
+            XCTFail("Selected trail action was not restored after lower-content proof")
+            return
+        }
+        XCTAssertTrue(
+            restoredControl.label == "Deselect Trail, \(trailName)",
+            "Restored trail action has unexpected selected semantics"
+        )
+        XCTAssertTrue(
+            trailAction(app, identifier: secondaryIdentifier).label
+                == "Record Trail, \(trailName)",
+            "Restored trail secondary action has unexpected selected semantics"
+        )
+        restoredControl.tap()
+        let deselectedControl = trailAction(app, identifier: selectIdentifier)
+        let deselectedSecondary = trailAction(app, identifier: secondaryIdentifier)
         XCTAssertTrue(waitForLabelPrefix("Select Trail,", element: deselectedControl))
+        XCTAssertTrue(
+            deselectedControl.label == "Select Trail, \(trailName)",
+            "Deselected trail action has unexpected semantics"
+        )
+        XCTAssertTrue(
+            deselectedSecondary.label == initialSecondaryLabel,
+            "Deselecting changed the exact completion action semantics"
+        )
 
         let collection = app.buttons["area-collection-button"].firstMatch
         XCTAssertTrue(collection.waitForExistence(timeout: 10), "Collection action is missing")
@@ -660,13 +764,36 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         )
     }
 
+    private func trailActionMatches(
+        _ app: XCUIApplication,
+        identifier: String
+    ) -> XCUIElementQuery {
+        app.descendants(matching: .any).matching(identifier: identifier)
+    }
+
+    private func trailAction(
+        _ app: XCUIApplication,
+        identifier: String
+    ) -> XCUIElement {
+        trailActionMatches(app, identifier: identifier).firstMatch
+    }
+
     private func assertTrailActionFrames(
         _ app: XCUIApplication,
-        select: XCUIElement,
-        secondary: XCUIElement,
+        selectIdentifier: String,
+        secondaryIdentifier: String,
         selectLabelPrefix: String,
         secondaryLabelPrefix: String
     ) {
+        let selectMatches = trailActionMatches(app, identifier: selectIdentifier)
+        let secondaryMatches = trailActionMatches(app, identifier: secondaryIdentifier)
+        let select = selectMatches.firstMatch
+        let secondary = secondaryMatches.firstMatch
+        XCTAssertTrue(select.waitForExistence(timeout: 10), "Trail Select action is missing")
+        XCTAssertTrue(secondary.waitForExistence(timeout: 10), "Trail secondary action is missing")
+        XCTAssertEqual(selectMatches.count, 1, "Trail Select action must be unique")
+        XCTAssertEqual(secondaryMatches.count, 1, "Trail secondary action must be unique")
+
         let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
         if trailScroll.exists {
             XCTAssertTrue(
@@ -700,6 +827,8 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         }
         assertInsideScreen(select, app: app)
         assertInsideScreen(secondary, app: app)
+        XCTAssertTrue(select.isHittable, "Trail Select action is not hittable")
+        XCTAssertTrue(secondary.isHittable, "Trail secondary action is not hittable")
         XCTAssertTrue(
             select.frame.intersection(secondary.frame).isEmpty,
             "Trail actions overlap"
@@ -716,6 +845,44 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             secondary.label.hasPrefix(secondaryLabelPrefix),
             "Trail secondary action has unexpected semantics"
         )
+    }
+
+    private func restoreSelectedTrailActionAfterLowerContent(
+        _ app: XCUIApplication,
+        identifier: String,
+        in trailScroll: XCUIElement
+    ) -> XCUIElement? {
+        // Lower parking/profile checks place the lazy selected row above this
+        // viewport. Re-query after every bounded finger-down gesture and never
+        // default to scrolling farther into later content when it is absent.
+        for attempt in 0...20 {
+            let matches = trailActionMatches(app, identifier: identifier)
+            let action = matches.firstMatch
+            if matches.count == 1,
+               action.exists,
+               isOnScreenAndHittable(action, app: app),
+               action.label.hasPrefix("Deselect Trail,") {
+                return action
+            }
+            if attempt < 20 {
+                let start = trailScroll.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)
+                )
+                let end = trailScroll.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55)
+                )
+                start.press(forDuration: 0.05, thenDragTo: end)
+                sleep(1)
+            }
+        }
+        return nil
+    }
+
+    private func actionSubject(_ label: String, after prefix: String) -> String? {
+        guard label.hasPrefix(prefix) else { return nil }
+        let subject = String(label.dropFirst(prefix.count))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return subject.isEmpty ? nil : subject
     }
 
     private func assertCollectionRepresentative(
@@ -939,10 +1106,19 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
         guard trailScroll.waitForExistence(timeout: 10),
               parking.waitForExistence(timeout: 10),
-              scrollToReachable(parking, in: trailScroll, app: app) else {
-            XCTFail("Far-only selected parking detail is not reachable")
+              scrollToVisible(parking, in: trailScroll, app: app) else {
+            XCTFail("Far-only selected parking detail is not visible")
             return
         }
+        XCTAssertTrue(
+            isOnScreen(parking, app: app),
+            "Far-only selected parking detail extends outside the screen"
+        )
+        XCTAssertTrue(
+            trailScroll.frame.intersection(app.frame).insetBy(dx: -1, dy: -1)
+                .contains(parking.frame),
+            "Far-only selected parking detail extends outside the visible trail list"
+        )
         XCTAssertTrue(
             hasNearestParkingDistanceLabel(parking.label),
             "Far-only selected parking detail violates the distance contract"

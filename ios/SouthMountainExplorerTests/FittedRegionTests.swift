@@ -441,7 +441,7 @@ struct FittedRegionTests {
     @Test func markerFramesAreComplete_rejectsInvalidCompleteSet() {
         let frames = [
             CGRect(x: 20, y: 20, width: 28, height: 40),
-            CGRect(x: .nan, y: 30, width: 28, height: 40),
+            CGRect(x: CGFloat.nan, y: 30, width: 28, height: 40),
             CGRect(x: 40, y: 40, width: 0, height: 40),
         ]
         #expect(!MapKitMapView.markerFramesAreComplete(frames, expectedCount: 3))
@@ -497,6 +497,87 @@ struct FittedRegionTests {
             padding: 6
         )
         #expect(correction == .zero)
+    }
+
+    @Test func markerAudit_completeZeroObservationLeavesGenerationOpen() {
+        let frames = [CGRect(x: 40, y: 40, width: 28, height: 40)]
+        #expect(MapKitMapView.markerFramesAreComplete(frames, expectedCount: 1))
+        let correction = MapKitMapView.markerOcclusionCorrection(
+            markerFrames: frames,
+            mapBounds: CGRect(x: 0, y: 0, width: 100, height: 100),
+            visibleInsets: .zero,
+            padding: 0
+        )
+        #expect(correction == .zero)
+
+        var lastConsumedGeneration = 0
+        let emitted = MapKitMapView.consumeMarkerAuditGenerationIfNeeded(
+            generation: 7,
+            correction: correction,
+            lastConsumedGeneration: &lastConsumedGeneration
+        )
+        #expect(!emitted)
+        #expect(lastConsumedGeneration == 0)
+    }
+
+    @Test func markerAudit_laterSameGenerationOcclusionEmitsOnce() {
+        var lastConsumedGeneration = 0
+        var reportCount = 0
+        let generation = 11
+
+        if MapKitMapView.consumeMarkerAuditGenerationIfNeeded(
+            generation: generation,
+            correction: .zero,
+            lastConsumedGeneration: &lastConsumedGeneration
+        ) {
+            reportCount += 1
+        }
+        if MapKitMapView.consumeMarkerAuditGenerationIfNeeded(
+            generation: generation,
+            correction: MapViewportInsets(bottom: 7),
+            lastConsumedGeneration: &lastConsumedGeneration
+        ) {
+            reportCount += 1
+        }
+
+        #expect(reportCount == 1)
+        #expect(lastConsumedGeneration == generation)
+    }
+
+    @Test func markerAudit_nonzeroReportConsumesBeforeCallback() {
+        var lastConsumedGeneration = 0
+        var generationObservedByCallback = 0
+        let generation = 13
+
+        if MapKitMapView.consumeMarkerAuditGenerationIfNeeded(
+            generation: generation,
+            correction: MapViewportInsets(leading: 4),
+            lastConsumedGeneration: &lastConsumedGeneration
+        ) {
+            generationObservedByCallback = lastConsumedGeneration
+        }
+
+        #expect(generationObservedByCallback == generation)
+    }
+
+    @Test func markerAudit_duplicateNonzeroReportIsBlocked() {
+        var lastConsumedGeneration = 0
+        var reportCount = 0
+        let generation = 17
+        let correction = MapViewportInsets(trailing: 5)
+
+        for _ in 0..<2 {
+            if MapKitMapView.consumeMarkerAuditGenerationIfNeeded(
+                generation: generation,
+                correction: correction,
+                lastConsumedGeneration: &lastConsumedGeneration
+            ) {
+                reportCount += 1
+            }
+        }
+
+        #expect(reportCount == 1)
+        #expect(lastConsumedGeneration == generation)
     }
 
     @Test func selectedRouteRegion_malformedPointFailsClosed() {

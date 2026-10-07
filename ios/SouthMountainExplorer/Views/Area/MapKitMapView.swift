@@ -479,6 +479,20 @@ struct MapKitMapView: UIViewRepresentable {
         coord.applyHeadingRotation(on: mapView)
     }
 
+    /// A selected-marker audit is complete only when every expected annotation
+    /// produced one finite, positive-sized rendered frame.
+    nonisolated static func markerFramesAreComplete(
+        _ frames: [CGRect],
+        expectedCount: Int
+    ) -> Bool {
+        guard expectedCount >= 0, frames.count == expectedCount else { return false }
+        return frames.allSatisfy { frame in
+            [frame.minX, frame.minY, frame.maxX, frame.maxY].allSatisfy(\.isFinite)
+                && frame.width > 0
+                && frame.height > 0
+        }
+    }
+
     /// Extra route-fit insets needed to place complete rendered marker frames
     /// inside the real control-to-sheet viewport. Fully visible frames return
     /// zero even when they cross an optional aesthetic edge margin.
@@ -801,6 +815,9 @@ struct MapKitMapView: UIViewRepresentable {
         /// One report per generation prevents duplicate delegate callbacks from
         /// accumulating the same correction before the camera moves.
         var lastSelectedMarkerAuditGeneration: Int = 0
+        /// One incomplete generation may wait for MapKit's remaining annotation
+        /// views. The first complete `didAdd` callback consumes this one-shot.
+        var pendingSelectedMarkerAuditGeneration: Int?
 
         init(parent: MapKitMapView) {
             self.parent = parent
@@ -1140,7 +1157,40 @@ struct MapKitMapView: UIViewRepresentable {
             parent.onUserGestureRegionChange?()
         }
 
-        private func reportSelectedNearMarkerOcclusionIfNeeded(on mapView: MKMapView) {
+        func mapView(_ mapView: MKMapView, didAdd views: [MKAnnotationView]) {
+            guard let generation = pendingSelectedMarkerAuditGeneration,
+                  generation == parent.selectedMarkerAuditGeneration,
+                  generation != lastSelectedMarkerAuditGeneration,
+                  views.contains(where: {
+                      ($0.annotation as? ParkingAnnotation)?.isNearSelectedTrail == true
+                  }) else { return }
+
+            mapView.layoutIfNeeded()
+            let nearAnnotations = mapView.annotations.compactMap { annotation in
+                guard let parking = annotation as? ParkingAnnotation,
+                      parking.isNearSelectedTrail else { return nil }
+                return parking
+            }
+            let frames = renderedNearMarkerFrames(
+                on: mapView,
+                annotations: nearAnnotations
+            )
+            guard MapKitMapView.markerFramesAreComplete(
+                frames,
+                expectedCount: nearAnnotations.count
+            ) else { return }
+
+            pendingSelectedMarkerAuditGeneration = nil
+            reportSelectedNearMarkerOcclusionIfNeeded(
+                on: mapView,
+                allowRescheduling: false
+            )
+        }
+
+        private func reportSelectedNearMarkerOcclusionIfNeeded(
+            on mapView: MKMapView,
+            allowRescheduling: Bool = true
+        ) {
             let generation = parent.selectedMarkerAuditGeneration
             guard generation > 0,
                   generation != lastSelectedMarkerAuditGeneration else { return }
@@ -1148,19 +1198,31 @@ struct MapKitMapView: UIViewRepresentable {
             // A programmatic region has finished and the native sheet was
             // already allowed to settle before this generation was requested.
             // Force the annotation container's pending layout, then measure
-            // each rendered near-marker frame in full-screen map coordinates.
+            // every expected near marker in full-screen map coordinates.
             mapView.layoutIfNeeded()
-            let frames = mapView.annotations.compactMap { annotation -> CGRect? in
+            let nearAnnotations = mapView.annotations.compactMap { annotation in
                 guard let parking = annotation as? ParkingAnnotation,
-                      parking.isNearSelectedTrail,
-                      let view = mapView.view(for: parking),
-                      !view.isHidden,
-                      view.alpha > 0 else { return nil }
-                view.layoutIfNeeded()
-                return view.convert(view.bounds, to: mapView)
+                      parking.isNearSelectedTrail else { return nil }
+                return parking
             }
-            guard !frames.isEmpty else { return }
+            let frames = renderedNearMarkerFrames(
+                on: mapView,
+                annotations: nearAnnotations
+            )
+            guard MapKitMapView.markerFramesAreComplete(
+                frames,
+                expectedCount: nearAnnotations.count
+            ) else {
+                if allowRescheduling,
+                   pendingSelectedMarkerAuditGeneration != generation {
+                    pendingSelectedMarkerAuditGeneration = generation
+                }
+                return
+            }
+
+            pendingSelectedMarkerAuditGeneration = nil
             lastSelectedMarkerAuditGeneration = generation
+            guard !frames.isEmpty else { return }
             let correction = MapKitMapView.markerOcclusionCorrection(
                 markerFrames: frames,
                 mapBounds: mapView.bounds,
@@ -1168,6 +1230,19 @@ struct MapKitMapView: UIViewRepresentable {
             )
             if correction != .zero {
                 parent.onSelectedNearMarkerOcclusion?(correction)
+            }
+        }
+
+        private func renderedNearMarkerFrames(
+            on mapView: MKMapView,
+            annotations: [ParkingAnnotation]
+        ) -> [CGRect] {
+            annotations.compactMap { parking in
+                guard let view = mapView.view(for: parking),
+                      !view.isHidden,
+                      view.alpha > 0 else { return nil }
+                view.layoutIfNeeded()
+                return view.convert(view.bounds, to: mapView)
             }
         }
 

@@ -1024,9 +1024,7 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(sheetHeader.waitForExistence(timeout: 10), "Area sheet header is missing")
         guard controls.exists, sheetHeader.exists else { return }
 
-        let nearMarkers = app.descendants(matching: .any)
-            .matching(identifier: "map-near-access-marker")
-            .allElementsBoundByIndex.filter { $0.exists }
+        guard let nearMarkers = stableNearMarkers(app) else { return }
         let farMarkers = app.descendants(matching: .any)
             .matching(identifier: "map-far-access-marker")
             .allElementsBoundByIndex.filter { $0.exists }
@@ -1041,16 +1039,21 @@ final class AreaSheetAuditTests: XCTestCase {
         )
 
         let physicalScreen = app.frame.insetBy(dx: -1, dy: -1)
-        for marker in nearMarkers {
-            let isContained = physicalScreen.contains(marker.frame)
-            let clearsControls = marker.frame.minY >= controls.frame.maxY - 1
-            let clearsSheet = marker.frame.maxY <= sheetHeader.frame.minY + 1
+        for (index, marker) in nearMarkers.enumerated() {
+            let frame = marker.frame
+            let isContained = physicalScreen.contains(frame)
+            let clearsControls = frame.minY >= controls.frame.maxY - 1
+            let clearsSheet = frame.maxY <= sheetHeader.frame.minY + 1
+            let isHittable = marker.isHittable
             print(
-                "AUDIT[selected-near-marker] contained=\(isContained) "
-                + "clearsControls=\(clearsControls) clearsSheet=\(clearsSheet)"
+                "AUDIT[selected-near-marker] index=\(index) "
+                + "x=\(Int(frame.minX)) y=\(Int(frame.minY)) "
+                + "w=\(Int(frame.width)) h=\(Int(frame.height)) "
+                + "contained=\(isContained) clearsControls=\(clearsControls) "
+                + "clearsSheet=\(clearsSheet) hittable=\(isHittable)"
             )
             XCTAssertTrue(isContained, "Near selected marker extends outside the screen")
-            XCTAssertTrue(marker.isHittable, "Near selected marker is not reachable")
+            XCTAssertTrue(isHittable, "Near selected marker is not reachable")
             XCTAssertTrue(clearsControls, "Near selected marker intersects top map controls")
             XCTAssertTrue(clearsSheet, "Near selected marker intersects the area sheet")
         }
@@ -1065,6 +1068,55 @@ final class AreaSheetAuditTests: XCTestCase {
             XCTAssertTrue(isReachable, "Far fallback access callout is not reachable")
             XCTAssertTrue(hasTruthfulDistance, "Far fallback marker omits its trail distance")
         }
+    }
+
+    private func stableNearMarkers(_ app: XCUIApplication) -> [XCUIElement]? {
+        var previousFrames: [CGRect]?
+        var stableObservationCount = 0
+
+        for attempt in 0..<10 {
+            let markers = app.descendants(matching: .any)
+                .matching(identifier: "map-near-access-marker")
+                .allElementsBoundByIndex
+                .filter { $0.exists }
+                .sorted { lhs, rhs in
+                    let left = lhs.frame
+                    let right = rhs.frame
+                    return (left.minX, left.minY, left.width, left.height)
+                        < (right.minX, right.minY, right.width, right.height)
+                }
+            let frames = markers.map(\.frame)
+            let framesAreValid = !frames.isEmpty && frames.allSatisfy { frame in
+                [frame.minX, frame.minY, frame.maxX, frame.maxY].allSatisfy(\.isFinite)
+                    && frame.width > 0
+                    && frame.height > 0
+            }
+
+            if framesAreValid {
+                if let previousFrames,
+                   frames.count == previousFrames.count,
+                   zip(frames, previousFrames).allSatisfy({ current, previous in
+                       abs(current.minX - previous.minX) <= 1
+                           && abs(current.minY - previous.minY) <= 1
+                           && abs(current.width - previous.width) <= 1
+                           && abs(current.height - previous.height) <= 1
+                   }) {
+                    stableObservationCount += 1
+                } else {
+                    stableObservationCount = 1
+                }
+                previousFrames = frames
+                if stableObservationCount == 3 { return markers }
+            } else {
+                previousFrames = nil
+                stableObservationCount = 0
+            }
+
+            if attempt < 9 { settle(1) }
+        }
+
+        XCTFail("Near selected markers did not produce a stable complete frame set")
+        return nil
     }
 
     private func isAccessibilityLayout(_ app: XCUIApplication) -> Bool {

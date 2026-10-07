@@ -376,6 +376,11 @@ struct TrailListView: View {
                 // LazyVStack — the scroll view's CONTENT — where it did nothing
                 // about the scroll view's own inset.
                 .accessibilityIdentifier("trail-list-scroll")
+                // The selected parking disclosure measured six points beyond
+                // the strict visible-list viewport at the terminal offset on
+                // the smallest phone. Eight points preserves the existing
+                // two-point containment margin without changing row geometry.
+                .contentMargins(.bottom, 8, for: .scrollContent)
                 .ignoresSafeArea(edges: .bottom)
                 // A scroll gesture puts the keyboard away — with the search
                 // field only present at browse, the list fills the sheet

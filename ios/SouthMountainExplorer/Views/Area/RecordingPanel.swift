@@ -697,6 +697,7 @@ struct RecordingSummarySheet: View {
                 }
             }
             .accessibilityIdentifier("recording-summary-scroll")
+            .contentMargins(.bottom, 28, for: .scrollContent)
             .navigationTitle("Summary")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

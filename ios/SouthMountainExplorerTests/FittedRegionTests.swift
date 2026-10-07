@@ -305,16 +305,49 @@ struct FittedRegionTests {
     }
 
     @Test func selectedRouteRegion_includesRouteEndpointsAndNearbyParking() {
-        guard let points = TrailMapView.selectedRoutePoints(
+        let trail = Trail(
+            id: "selected-route",
+            name: "Selected Route",
+            distanceMi: 1,
+            difficulty: .easy,
             segments: [[
                 [33.30, -112.00],
                 [33.40, -111.90],
-            ]],
-            additionalPoints: [(33.35, -112.05)]
+            ]]
+        )
+        let near = ParkingLot(
+            lat: 33.3005,
+            lon: -112.0005,
+            name: nil,
+            fee: nil,
+            trailhead: nil,
+            source: "osm"
+        )
+        let far = ParkingLot(
+            lat: 33.50,
+            lon: -112.50,
+            name: nil,
+            fee: nil,
+            trailhead: nil,
+            source: "osm"
+        )
+        let nearbyParking = Area.nearestParking(lots: [near, far], for: trail)
+        let farFallback = Area.nearestParkingWithFallback(lots: [far], for: trail)
+        #expect(nearbyParking == [near])
+        #expect(farFallback.count == 1)
+        #expect(farFallback.first?.lot == far)
+        #expect(farFallback.first?.isNear == false)
+
+        guard let points = TrailMapView.selectedRoutePoints(
+            segments: trail.segments,
+            additionalPoints: nearbyParking.map { (lat: $0.lat, lon: $0.lon) }
         ) else {
             Issue.record("Expected valid route and nearby parking points")
             return
         }
+        #expect(points.contains { $0.lat == near.lat && $0.lon == near.lon })
+        #expect(!points.contains { $0.lat == far.lat && $0.lon == far.lon })
+
         let target = TrailMapView.selectedRouteRegion(
             points: points,
             viewportInsets: .zero,

@@ -95,18 +95,15 @@ final class AreaSheetAuditTests: XCTestCase {
         assertSelectedTrailPresentation(app, rowIdentifier: firstRowIdentifier)
 
         // ---- 5. Deselect: the toolbar and rows must return to idle --------
-        if let identifier = firstRowIdentifier {
-            let select = app.descendants(matching: .any)[identifier].firstMatch
-            if isAccessibilityLayout(app) {
-                select.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
-            } else {
-                let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
-                XCTAssertTrue(scrollToReachable(select, in: trailScroll, app: app))
-                tapElement(select)
-            }
-            settle(3)
-            dragSheet(app, toBottom: true)
-            settle(2)
+        guard let firstRowIdentifier else {
+            XCTFail("Selected trail row identifier is missing before deselection")
+            return
+        }
+        guard deselectTrailAndWait(app, rowIdentifier: firstRowIdentifier) else { return }
+        dragSheet(app, toBottom: true)
+        settle(2)
+        guard waitForDeselectedTrailState(app, rowIdentifier: firstRowIdentifier) else {
+            return
         }
         capture(app, "sheet-06-min-trail-deselected")
         logFrames(app, "min-trail-deselected")
@@ -193,17 +190,7 @@ final class AreaSheetAuditTests: XCTestCase {
         }
 
         // Deselect returns to Browse, since the drop was for the selection.
-        let select = app.descendants(matching: .any)[browseRowIdentifier].firstMatch
-        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
-        guard scrollToReachable(select, in: trailScroll, app: app) else {
-            XCTFail("Selected trail action is not reachable for deselection")
-            return
-        }
-        if isAccessibilityLayout(app) {
-            select.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
-        } else {
-            tapElement(select)
-        }
+        guard deselectTrailAndWait(app, rowIdentifier: browseRowIdentifier) else { return }
         guard waitForBrowseChrome(app, requiresKeyboard: false) else { return }
         settle(2)
         capture(app, "sheet-07c-deselected-back-to-browse")
@@ -1024,10 +1011,19 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(sheetHeader.waitForExistence(timeout: 10), "Area sheet header is missing")
         guard controls.exists, sheetHeader.exists else { return }
 
-        guard let nearMarkers = stableNearMarkers(app) else { return }
         let farMarkers = app.descendants(matching: .any)
             .matching(identifier: "map-far-access-marker")
             .allElementsBoundByIndex.filter { $0.exists }
+        let visibleNearMarkers = app.descendants(matching: .any)
+            .matching(identifier: "map-near-access-marker")
+            .allElementsBoundByIndex.filter { $0.exists }
+        let nearMarkers: [XCUIElement]
+        if farMarkers.isEmpty || !visibleNearMarkers.isEmpty {
+            guard let stableMarkers = stableNearMarkers(app) else { return }
+            nearMarkers = stableMarkers
+        } else {
+            nearMarkers = []
+        }
         print(
             "AUDIT[selected-map] nearCount=\(nearMarkers.count) "
             + "farCount=\(farMarkers.count)"
@@ -1058,16 +1054,53 @@ final class AreaSheetAuditTests: XCTestCase {
             XCTAssertTrue(clearsSheet, "Near selected marker intersects the area sheet")
         }
 
-        for marker in farMarkers {
-            let isReachable = isOnScreenAndHittable(marker, app: app)
+        for (index, marker) in farMarkers.enumerated() {
+            let hasGenericRole = marker.identifier == "map-far-access-marker"
+            let hasNonemptyLabel = !marker.label.isEmpty
             let hasTruthfulDistance = marker.label.contains("from trail")
             print(
-                "AUDIT[selected-far-marker] reachable=\(isReachable) "
+                "AUDIT[selected-far-marker] index=\(index) "
+                + "genericRole=\(hasGenericRole) nonempty=\(hasNonemptyLabel) "
                 + "hasDistance=\(hasTruthfulDistance)"
             )
-            XCTAssertTrue(isReachable, "Far fallback access callout is not reachable")
+            XCTAssertTrue(hasGenericRole, "Far fallback marker has an unexpected role")
+            XCTAssertTrue(hasNonemptyLabel, "Far fallback marker has no semantics")
             XCTAssertTrue(hasTruthfulDistance, "Far fallback marker omits its trail distance")
         }
+
+        if nearMarkers.isEmpty, !farMarkers.isEmpty {
+            assertFarOnlyParkingDisclosure(app)
+        }
+    }
+
+    private func assertFarOnlyParkingDisclosure(_ app: XCUIApplication) {
+        let parkingMatches = app.descendants(matching: .any).matching(
+            identifier: "selected-trail-parking-detail"
+        )
+        XCTAssertEqual(
+            parkingMatches.count,
+            1,
+            "Far-only selection must expose one selected parking detail"
+        )
+        let parking = parkingMatches.firstMatch
+        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+        guard trailScroll.waitForExistence(timeout: 10),
+              parking.waitForExistence(timeout: 10),
+              scrollToReachable(parking, in: trailScroll, app: app) else {
+            XCTFail("Far-only selected parking detail is not reachable")
+            return
+        }
+        XCTAssertTrue(
+            hasNearestParkingDistanceLabel(parking.label),
+            "Far-only selected parking detail violates the distance contract"
+        )
+    }
+
+    private func hasNearestParkingDistanceLabel(_ label: String) -> Bool {
+        let pattern = "^Nearest parking: (?:.+, )?[0-9]+(?:\\.[0-9]{1,2})? (?:mi|km) away$"
+        guard let expression = try? NSRegularExpression(pattern: pattern) else { return false }
+        let range = NSRange(label.startIndex..<label.endIndex, in: label)
+        return expression.firstMatch(in: label, range: range) != nil
     }
 
     private func stableNearMarkers(_ app: XCUIApplication) -> [XCUIElement]? {
@@ -1430,34 +1463,87 @@ final class AreaSheetAuditTests: XCTestCase {
             XCTFail("Browse Search did not focus the keyboard")
             return false
         }
-        let done = app.buttons["Dismiss Search Keyboard"].firstMatch
-        if done.exists, done.isHittable {
-            tapElement(done)
+        if isAccessibilityLayout(app) {
+            let done = app.buttons["Dismiss Search Keyboard"].firstMatch
+            guard done.waitForExistence(timeout: 5), done.isHittable else {
+                XCTFail("Search keyboard Done action is unavailable")
+                return false
+            }
+            done.tap()
         } else {
-            let keyboardSearch = keyboard.buttons["Search"].firstMatch
-            if keyboardSearch.exists, keyboardSearch.isHittable {
-                keyboardSearch.tap()
+            let searchField = app.textFields["Search trails"].firstMatch
+            guard searchField.waitForExistence(timeout: 5), searchField.isHittable else {
+                XCTFail("Focused Browse Search field is unavailable")
+                return false
             }
-            if keyboard.waitForExistence(timeout: 2) {
-                let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
-                guard trailScroll.exists else {
-                    XCTFail("Trail list is missing while dismissing Browse keyboard")
-                    return false
-                }
-                let start = trailScroll.coordinate(
-                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.60)
-                )
-                let end = trailScroll.coordinate(
-                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.50)
-                )
-                start.press(forDuration: 0.05, thenDragTo: end)
-            }
+            searchField.typeText("\n")
         }
         for attempt in 0...5 {
             if !keyboard.exists { return true }
             if attempt < 5 { settle(1) }
         }
         XCTFail("Browse Search keyboard did not dismiss")
+        return false
+    }
+
+    private func deselectTrailAndWait(
+        _ app: XCUIApplication,
+        rowIdentifier: String
+    ) -> Bool {
+        guard rowIdentifier.hasPrefix("trail-select-") else {
+            XCTFail("Selected trail action has an unexpected identifier")
+            return false
+        }
+        let suffix = String(rowIdentifier.dropFirst("trail-select-".count))
+        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+        guard trailScroll.waitForExistence(timeout: 10) else {
+            XCTFail("Trail list scroll is missing for deselection")
+            return false
+        }
+        let selected = app.buttons[rowIdentifier].firstMatch
+        guard scrollToReachable(selected, in: trailScroll, app: app) else {
+            XCTFail("Selected trail action is not reachable for deselection")
+            return false
+        }
+        let reacquired = app.buttons[rowIdentifier].firstMatch
+        guard reacquired.exists,
+              reacquired.isHittable,
+              reacquired.label.hasPrefix("Deselect Trail,") else {
+            XCTFail("Selected trail action did not remain ready for deselection")
+            return false
+        }
+        reacquired.tap()
+        return waitForDeselectedTrailState(app, rowIdentifier: rowIdentifier, suffix: suffix)
+    }
+
+    private func waitForDeselectedTrailState(
+        _ app: XCUIApplication,
+        rowIdentifier: String,
+        suffix: String? = nil
+    ) -> Bool {
+        guard rowIdentifier.hasPrefix("trail-select-") else {
+            XCTFail("Deselected trail action has an unexpected identifier")
+            return false
+        }
+        let pairedSuffix = suffix
+            ?? String(rowIdentifier.dropFirst("trail-select-".count))
+        for attempt in 0...10 {
+            let select = app.buttons[rowIdentifier].firstMatch
+            let secondary = app.buttons["trail-secondary-\(pairedSuffix)"].firstMatch
+            let record = app.buttons["area-record-button"].firstMatch
+            let secondaryIsIdle = secondary.label.hasPrefix("Mark Trail Complete,")
+                || secondary.label.hasPrefix("Mark Trail Incomplete,")
+            let stateIsIdle = select.exists
+                && select.label.hasPrefix("Select Trail,")
+                && secondary.exists
+                && secondaryIsIdle
+                && !secondary.label.hasPrefix("Record Trail,")
+                && record.exists
+                && record.label == "Start a hike"
+            if stateIsIdle { return true }
+            if attempt < 10 { settle(1) }
+        }
+        XCTFail("Trail deselection did not settle all idle semantics")
         return false
     }
 

@@ -982,12 +982,31 @@ struct TrailMapView: View {
         setCameraTarget(target)
     }
 
+    /// A rendered-marker correction may move the camera only while the
+    /// selected-route fit still owns it, and only for a finite nonzero inset.
+    nonisolated static func authorizesSelectedMarkerCorrection(
+        isArmed: Bool,
+        correction: MapViewportInsets
+    ) -> Bool {
+        let values = [
+            correction.top,
+            correction.leading,
+            correction.bottom,
+            correction.trailing,
+        ]
+        return isArmed
+            && correction != .zero
+            && values.allSatisfy(\.isFinite)
+    }
+
     /// Apply only the additional room proven necessary by rendered near-marker
     /// bounds. Each correction is re-audited after its camera move; far fallback
     /// annotations never enter this path, and a user-owned camera disables it.
     private func applySelectedMarkerCorrection(_ correction: MapViewportInsets) {
-        guard allowsSelectedMarkerCorrection,
-              correction != .zero,
+        guard Self.authorizesSelectedMarkerCorrection(
+            isArmed: allowsSelectedMarkerCorrection,
+            correction: correction
+        ),
               let id = selectedTrailId,
               let trail = area.trails.first(where: { $0.id == id }) else { return }
         func accumulated(_ current: CGFloat, _ extra: CGFloat) -> CGFloat {
@@ -1354,7 +1373,8 @@ struct TrailMapView: View {
         latDelta: Double, lonDelta: Double,
         viewportInsets: MapViewportInsets,
         screenHeight: CGFloat,
-        screenWidth: CGFloat
+        screenWidth: CGFloat,
+        maximumVerticalObstructionFraction: Double = 0.70
     ) -> MapTarget {
         if viewportInsets.top == 0,
            viewportInsets.leading == 0,
@@ -1372,31 +1392,41 @@ struct TrailMapView: View {
 
         let height = max(Double(screenHeight), 1)
         let width = max(Double(screenWidth), 1)
+        let verticalObstructionLimit = maximumVerticalObstructionFraction.isFinite
+            && (0..<1).contains(maximumVerticalObstructionFraction)
+            ? maximumVerticalObstructionFraction
+            : 0.70
 
         func obstructionFractions(
             first: CGFloat,
             second: CGFloat,
-            dimension: Double
+            dimension: Double,
+            maximumTotal: Double
         ) -> (first: Double, second: Double) {
             let rawFirst = max(0, Double(first)) / dimension
             let rawSecond = max(0, Double(second)) / dimension
             let rawTotal = rawFirst + rawSecond
-            guard rawTotal > 0.7 else { return (rawFirst, rawSecond) }
-            let scale = 0.7 / rawTotal
+            guard rawTotal > maximumTotal else { return (rawFirst, rawSecond) }
+            let scale = maximumTotal / rawTotal
             return (rawFirst * scale, rawSecond * scale)
         }
 
         let vertical = obstructionFractions(
             first: viewportInsets.top,
             second: viewportInsets.bottom,
-            dimension: height
+            dimension: height,
+            maximumTotal: verticalObstructionLimit
         )
         let horizontal = obstructionFractions(
             first: viewportInsets.leading,
             second: viewportInsets.trailing,
-            dimension: width
+            dimension: width,
+            maximumTotal: 0.70
         )
-        let visibleHeight = max(0.3, 1 - vertical.first - vertical.second)
+        let visibleHeight = max(
+            1 - verticalObstructionLimit,
+            1 - vertical.first - vertical.second
+        )
         let visibleWidth = max(0.3, 1 - horizontal.first - horizontal.second)
 
         let regionLatDelta = min(max(latDelta / visibleHeight, 0.005), 180)
@@ -1487,7 +1517,8 @@ struct TrailMapView: View {
             lonDelta: max(longitude.span * 1.4, 0.005),
             viewportInsets: viewportInsets,
             screenHeight: screenHeight,
-            screenWidth: screenWidth
+            screenWidth: screenWidth,
+            maximumVerticalObstructionFraction: 0.85
         )
     }
 

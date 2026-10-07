@@ -418,8 +418,15 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         )
         sleep(3)
 
-        let profile = app.descendants(matching: .any)["trail-profile-\(suffix)"].firstMatch
-        XCTAssertTrue(profile.waitForExistence(timeout: 10), "Trail profile is missing")
+        guard let profile = materializeSelectedRowElement(
+            identifier: "trail-profile-\(suffix)",
+            anchorIdentifier: secondaryIdentifier,
+            in: trailScroll,
+            app: app
+        ) else {
+            XCTFail("Trail profile is missing")
+            return
+        }
         let selectedSheetHeader = app.descendants(matching: .any)["area-header"].firstMatch
         XCTAssertGreaterThan(
             selectedSheetHeader.frame.minY / app.frame.height,
@@ -1136,6 +1143,41 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             }
         }
         return false
+    }
+
+    private func materializeSelectedRowElement(
+        identifier: String,
+        anchorIdentifier: String,
+        in trailScroll: XCUIElement,
+        app: XCUIApplication
+    ) -> XCUIElement? {
+        for attempt in 0...20 {
+            let matches = app.descendants(matching: .any).matching(identifier: identifier)
+            guard matches.count <= 1 else {
+                XCTFail("Selected row content query is not unique")
+                return nil
+            }
+            if let element = uniqueExistingElement(matches) { return element }
+            guard attempt < 20 else { break }
+
+            let anchorMatches = trailActionMatches(app, identifier: anchorIdentifier)
+            guard anchorMatches.count <= 1 else {
+                XCTFail("Selected row anchor query is not unique")
+                return nil
+            }
+            if uniqueExistingElement(anchorMatches) != nil {
+                guard performMeasuredMicroCorrection(
+                    identifier: anchorIdentifier,
+                    toward: .later,
+                    in: trailScroll,
+                    app: app
+                ) else { return nil }
+            } else if !performRowTraversal(.earlier, in: trailScroll, app: app) {
+                return nil
+            }
+        }
+        XCTFail("Selected row content did not materialize")
+        return nil
     }
 
     private func assertTrailActionFrames(
@@ -2357,7 +2399,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         toward fallback: KnownTargetPosition
     ) -> XCUIElement? {
         for attempt in 0...20 {
-            let matches = app.descendants(matching: .any).matching(identifier: identifier)
+            let matches = scrollView.descendants(matching: .any).matching(identifier: identifier)
             let matchCount = matches.count
             guard matchCount <= 1 else {
                 XCTFail("Exact reachability query is not unique")

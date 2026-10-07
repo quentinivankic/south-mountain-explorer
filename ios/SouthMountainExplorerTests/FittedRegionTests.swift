@@ -659,6 +659,23 @@ struct FittedRegionTests {
         #expect(correction.trailing == 0)
     }
 
+    @Test func markerOcclusionCorrection_clearsMeasuredAccessibilitySheetOverlap() {
+        let correction = MapKitMapView.markerOcclusionCorrection(
+            markerFrames: [CGRect(x: 241, y: 256, width: 31, height: 34)],
+            mapBounds: CGRect(x: 0, y: 0, width: 440, height: 956),
+            visibleInsets: MapViewportInsets(top: 134, bottom: 667)
+        )
+        #expect(correction == MapViewportInsets(bottom: 9))
+        #expect(TrailMapView.authorizesSelectedMarkerCorrection(
+            isArmed: true,
+            correction: correction
+        ))
+        #expect(!TrailMapView.authorizesSelectedMarkerCorrection(
+            isArmed: false,
+            correction: correction
+        ))
+    }
+
     @Test func markerOcclusionCorrection_keepsVisibleLargeMarkerUnchanged() {
         let correction = MapKitMapView.markerOcclusionCorrection(
             // Fully inside the physical screen/control/sheet viewport, while

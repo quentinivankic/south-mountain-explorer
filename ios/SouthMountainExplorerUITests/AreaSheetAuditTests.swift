@@ -810,6 +810,41 @@ final class AreaSheetAuditTests: XCTestCase {
         return nil
     }
 
+    private func materializeSelectedRowElement(
+        identifier: String,
+        anchorIdentifier: String,
+        in trailScroll: XCUIElement,
+        app: XCUIApplication
+    ) -> XCUIElement? {
+        for attempt in 0...20 {
+            let matches = app.descendants(matching: .any).matching(identifier: identifier)
+            guard matches.count <= 1 else {
+                XCTFail("Selected row content query is not unique")
+                return nil
+            }
+            if let element = uniqueExistingElement(matches) { return element }
+            guard attempt < 20 else { break }
+
+            let anchorMatches = trailActionMatches(app, identifier: anchorIdentifier)
+            guard anchorMatches.count <= 1 else {
+                XCTFail("Selected row anchor query is not unique")
+                return nil
+            }
+            if uniqueExistingElement(anchorMatches) != nil {
+                guard performMeasuredMicroCorrection(
+                    identifier: anchorIdentifier,
+                    toward: .later,
+                    in: trailScroll,
+                    app: app
+                ) else { return nil }
+            } else if !performRowTraversal(.earlier, in: trailScroll, app: app) {
+                return nil
+            }
+        }
+        XCTFail("Selected row content did not materialize")
+        return nil
+    }
+
     private func assertTrailActionFrames(
         _ app: XCUIApplication,
         rowIdentifier: String,
@@ -1088,11 +1123,20 @@ final class AreaSheetAuditTests: XCTestCase {
             "Selected trail secondary action is not reachable"
         )
         logElementFrame(app, secondary, tag: "trail-secondary")
+        guard let freshProfile = materializeSelectedRowElement(
+            identifier: "trail-profile-\(suffix)",
+            anchorIdentifier: secondaryIdentifier,
+            in: trailScroll,
+            app: app
+        ) else {
+            XCTFail("Selected trail profile is not reachable")
+            return
+        }
         XCTAssertTrue(
-            scrollToReachable(profile, in: trailScroll, app: app),
+            scrollToReachable(freshProfile, in: trailScroll, app: app),
             "Selected trail profile is not reachable"
         )
-        logElementFrame(app, profile, tag: "trail-profile")
+        logElementFrame(app, freshProfile, tag: "trail-profile")
     }
 
     private func assertSelectedProfileLayout(

@@ -623,11 +623,16 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         if dashboardScroll.frame.intersection(app.frame).isEmpty {
             expandAreaSheet(app)
         }
-        XCTAssertTrue(
-            scrollToReachable(status, in: dashboardScroll, app: app),
-            "Recording GPS status is not reachable"
-        )
-        assertInsideScreen(status, app: app)
+        guard let visibleStatus = exactReachableElement(
+            identifier: "recording-gps-status",
+            in: dashboardScroll,
+            app: app,
+            toward: .earlier
+        ) else {
+            return
+        }
+        XCTAssertEqual(visibleStatus.label, "GPS recovered", "Recording GPS status changed while scrolling")
+        assertInsideScreen(visibleStatus, app: app)
         XCTAssertEqual(stopControlCount(app), 1, "A contextual recording screen must expose one Stop control")
         XCTAssertEqual(app.buttons.matching(identifier: "recording-stop-button").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "active-recording-stop-button").count, 0)
@@ -650,23 +655,25 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         )
         let elevation = app.descendants(matching: .any)["recording-elevation-summary"].firstMatch
         XCTAssertTrue(elevation.waitForExistence(timeout: 15), "Recording elevation summary is missing")
-        XCTAssertTrue(
-            scrollToVisible(
-                identifier: "recording-elevation-summary",
-                in: reopenedDashboardScroll,
-                app: app
-            )
-        )
-        assertInsideScreen(elevation, app: app)
+        guard let visibleElevation = exactReachableElement(
+            identifier: "recording-elevation-summary",
+            in: reopenedDashboardScroll,
+            app: app,
+            toward: .later
+        ) else {
+            return
+        }
+        assertInsideScreen(visibleElevation, app: app)
         let metrics = app.descendants(matching: .any)["recording-metrics"].firstMatch
-        XCTAssertTrue(
-            scrollToVisible(
-                identifier: "recording-metrics",
-                in: reopenedDashboardScroll,
-                app: app
-            )
-        )
-        assertInsideScreen(metrics, app: app)
+        guard let visibleMetrics = exactReachableElement(
+            identifier: "recording-metrics",
+            in: reopenedDashboardScroll,
+            app: app,
+            toward: .later
+        ) else {
+            return
+        }
+        assertInsideScreen(visibleMetrics, app: app)
         let estimates = app.descendants(matching: .any)["recording-estimates"].firstMatch
         XCTAssertFalse(
             estimates.exists,
@@ -702,21 +709,23 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         ].firstMatch
         XCTAssertTrue(distanceRow.waitForExistence(timeout: 10), "Distance metric row is missing")
         XCTAssertTrue(durationRow.waitForExistence(timeout: 10), "Duration metric row is missing")
-        XCTAssertTrue(
-            scrollToVisible(
-                identifier: "recording-summary-stat-distance",
-                in: summaryScroll,
-                app: app
-            )
-        )
+        guard let distanceRow = exactReachableElement(
+            identifier: "recording-summary-stat-distance",
+            in: summaryScroll,
+            app: app,
+            toward: .earlier
+        ) else {
+            return
+        }
         assertInsideScreen(distanceRow, app: app)
-        XCTAssertTrue(
-            scrollToVisible(
-                identifier: "recording-summary-stat-duration",
-                in: summaryScroll,
-                app: app
-            )
-        )
+        guard let durationRow = exactReachableElement(
+            identifier: "recording-summary-stat-duration",
+            in: summaryScroll,
+            app: app,
+            toward: .later
+        ) else {
+            return
+        }
         assertInsideScreen(durationRow, app: app)
         XCTAssertEqual(distanceRow.label, "Distance", "Distance metric label is unexpected")
         XCTAssertEqual(durationRow.label, "Duration", "Duration metric label is unexpected")
@@ -739,14 +748,14 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             "Duration metric semantic frame is too narrow"
         )
         let lowerContent = app.descendants(matching: .any)["recording-summary-area-progress"].firstMatch
-        XCTAssertTrue(
-            scrollToVisible(
-                identifier: "recording-summary-area-progress",
-                in: summaryScroll,
-                app: app
-            ),
-            "Complete Summary Area Progress card is not reachable"
-        )
+        guard let lowerContent = exactReachableElement(
+            identifier: "recording-summary-area-progress",
+            in: summaryScroll,
+            app: app,
+            toward: .later
+        ) else {
+            return
+        }
         assertInsideScreen(lowerContent, app: app)
         XCTAssertLessThanOrEqual(
             lowerContent.frame.maxY,
@@ -1696,6 +1705,16 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         sleep(2)
     }
 
+    private func shouldTraverseForMissingTarget(
+        matchCount: Int,
+        scrollIdentifier: String,
+        attempt: Int
+    ) -> Bool {
+        matchCount == 0
+            && scrollIdentifier == "trail-list-scroll"
+            && attempt < 20
+    }
+
     private func scrollToVisible(
         identifier: String,
         in scrollView: XCUIElement,
@@ -1728,7 +1747,18 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             }
             let containmentViewport = viewport.insetBy(dx: -1, dy: -1)
             let matches = app.descendants(matching: .any).matching(identifier: identifier)
-            guard let element = uniqueExistingElement(matches) else {
+            let element: XCUIElement
+            if let unique = uniqueExistingElement(matches) {
+                element = unique
+            } else if shouldTraverseForMissingTarget(
+                matchCount: matches.count,
+                scrollIdentifier: scrollView.identifier,
+                attempt: attempt
+            ),
+                      performRowTraversal(.later, in: scrollView, app: app) {
+                didScroll = true
+                continue
+            } else {
                 XCTFail("Parking scroll target is missing or not unique")
                 return ScrollVisibilityResult(isVisible: false, didScroll: didScroll)
             }
@@ -1998,8 +2028,8 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let visible = trailScroll.frame.intersection(app.frame).insetBy(dx: 8, dy: 8)
         guard visible.width > 0, visible.height >= 44 else { return }
         let offsets: (start: CGFloat, end: CGFloat) = position == .earlier
-            ? (0.35, 0.55)
-            : (0.65, 0.45)
+            ? (0.20, 0.80)
+            : (0.80, 0.20)
         let start = app.coordinate(withNormalizedOffset: .zero).withOffset(
             CGVector(dx: visible.midX, dy: visible.minY + visible.height * offsets.start)
         )
@@ -2150,6 +2180,34 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         XCTAssertFalse(exactMatchAllowsPropertyRead(matchCount: 0, exists: false))
         XCTAssertFalse(exactMatchAllowsPropertyRead(matchCount: 2, exists: true))
         XCTAssertTrue(exactMatchAllowsPropertyRead(matchCount: 1, exists: true))
+        XCTAssertTrue(
+            shouldTraverseForMissingTarget(
+                matchCount: 0,
+                scrollIdentifier: "trail-list-scroll",
+                attempt: 0
+            )
+        )
+        XCTAssertFalse(
+            shouldTraverseForMissingTarget(
+                matchCount: 2,
+                scrollIdentifier: "trail-list-scroll",
+                attempt: 0
+            )
+        )
+        XCTAssertFalse(
+            shouldTraverseForMissingTarget(
+                matchCount: 0,
+                scrollIdentifier: "recording-summary-scroll",
+                attempt: 0
+            )
+        )
+        XCTAssertFalse(
+            shouldTraverseForMissingTarget(
+                matchCount: 0,
+                scrollIdentifier: "trail-list-scroll",
+                attempt: 20
+            )
+        )
 
         let earlier = knownTargetGestureOffsets(.earlier)
         let later = knownTargetGestureOffsets(.later)
@@ -2290,6 +2348,49 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let retained = pairedTrailIdentifiers(for: "trail-select-regression-trail")
         XCTAssertEqual(retained?.secondary, "trail-secondary-regression-trail")
         XCTAssertEqual(retained?.profile, "trail-profile-regression-trail")
+    }
+
+    private func exactReachableElement(
+        identifier: String,
+        in scrollView: XCUIElement,
+        app: XCUIApplication,
+        toward fallback: KnownTargetPosition
+    ) -> XCUIElement? {
+        for attempt in 0...20 {
+            let matches = app.descendants(matching: .any).matching(identifier: identifier)
+            let matchCount = matches.count
+            guard matchCount <= 1 else {
+                XCTFail("Exact reachability query is not unique")
+                return nil
+            }
+
+            let direction: KnownTargetPosition
+            if let element = uniqueExistingElement(matches) {
+                let frame = element.frame
+                let isHittable = element.isHittable
+                if isHittable, isOnScreen(element, app: app) {
+                    return element
+                }
+                direction = frame.midY < app.frame.midY ? .earlier : .later
+            } else {
+                direction = fallback
+            }
+
+            guard attempt < 20 else { break }
+            let offsets: (start: CGFloat, end: CGFloat) = direction == .earlier
+                ? (0.35, 0.55)
+                : (0.65, 0.45)
+            let start = scrollView.coordinate(
+                withNormalizedOffset: CGVector(dx: 0.5, dy: offsets.start)
+            )
+            let end = scrollView.coordinate(
+                withNormalizedOffset: CGVector(dx: 0.5, dy: offsets.end)
+            )
+            start.press(forDuration: 0.05, thenDragTo: end)
+            sleep(1)
+        }
+        XCTFail("Exact reachability target did not become visible")
+        return nil
     }
 
     private func scrollToReachable(

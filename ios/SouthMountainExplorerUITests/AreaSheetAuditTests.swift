@@ -1435,6 +1435,16 @@ final class AreaSheetAuditTests: XCTestCase {
         )).count
     }
 
+    private func shouldTraverseForMissingTarget(
+        matchCount: Int,
+        scrollIdentifier: String,
+        attempt: Int
+    ) -> Bool {
+        matchCount == 0
+            && scrollIdentifier == "trail-list-scroll"
+            && attempt < 20
+    }
+
     private func scrollToVisible(
         identifier: String,
         in scrollView: XCUIElement,
@@ -1467,7 +1477,18 @@ final class AreaSheetAuditTests: XCTestCase {
             }
             let containmentViewport = viewport.insetBy(dx: -1, dy: -1)
             let matches = app.descendants(matching: .any).matching(identifier: identifier)
-            guard let element = uniqueExistingElement(matches) else {
+            let element: XCUIElement
+            if let unique = uniqueExistingElement(matches) {
+                element = unique
+            } else if shouldTraverseForMissingTarget(
+                matchCount: matches.count,
+                scrollIdentifier: scrollView.identifier,
+                attempt: attempt
+            ),
+                      performRowTraversal(.later, in: scrollView, app: app) {
+                didScroll = true
+                continue
+            } else {
                 XCTFail("Parking scroll target is missing or not unique")
                 return ScrollVisibilityResult(isVisible: false, didScroll: didScroll)
             }
@@ -1737,8 +1758,8 @@ final class AreaSheetAuditTests: XCTestCase {
         let visible = trailScroll.frame.intersection(app.frame).insetBy(dx: 8, dy: 8)
         guard visible.width > 0, visible.height >= 44 else { return }
         let offsets: (start: CGFloat, end: CGFloat) = position == .earlier
-            ? (0.35, 0.55)
-            : (0.65, 0.45)
+            ? (0.20, 0.80)
+            : (0.80, 0.20)
         let start = app.coordinate(withNormalizedOffset: .zero).withOffset(
             CGVector(dx: visible.midX, dy: visible.minY + visible.height * offsets.start)
         )
@@ -1889,6 +1910,34 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertFalse(exactMatchAllowsPropertyRead(matchCount: 0, exists: false))
         XCTAssertFalse(exactMatchAllowsPropertyRead(matchCount: 2, exists: true))
         XCTAssertTrue(exactMatchAllowsPropertyRead(matchCount: 1, exists: true))
+        XCTAssertTrue(
+            shouldTraverseForMissingTarget(
+                matchCount: 0,
+                scrollIdentifier: "trail-list-scroll",
+                attempt: 0
+            )
+        )
+        XCTAssertFalse(
+            shouldTraverseForMissingTarget(
+                matchCount: 2,
+                scrollIdentifier: "trail-list-scroll",
+                attempt: 0
+            )
+        )
+        XCTAssertFalse(
+            shouldTraverseForMissingTarget(
+                matchCount: 0,
+                scrollIdentifier: "recording-summary-scroll",
+                attempt: 0
+            )
+        )
+        XCTAssertFalse(
+            shouldTraverseForMissingTarget(
+                matchCount: 0,
+                scrollIdentifier: "trail-list-scroll",
+                attempt: 20
+            )
+        )
         XCTAssertTrue(
             exploreLocationEmptyStateMatches(
                 title: "Trails near you",

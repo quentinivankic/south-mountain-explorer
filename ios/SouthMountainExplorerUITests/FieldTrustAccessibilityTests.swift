@@ -48,10 +48,14 @@ final class FieldTrustAccessibilityTests: XCTestCase {
     override func setUp() {
         super.setUp()
         continueAfterFailure = false
+        addUIInterruptionMonitor(withDescription: "Unexpected system alert") { _ in
+            XCTFail("AUDIT[unexpected-system-alert]")
+            return true
+        }
     }
 
     func testAreaCardOpenAndSaveAreIndependentButtons() {
-        let app = launchSeededApp()
+        guard let app = launchSeededApp() else { return }
         let visibleFrame = exploreVisibleContentFrame(app)
 
         let continueButton = app.buttons["continue-card"].firstMatch
@@ -123,6 +127,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         app.terminate()
         app.launchArguments = ["--uitest-seed"]
         app.launch()
+        guard assertAuditedAppEnvironment(app) else { return }
         _ = app.tabBars.buttons["Explore"].waitForExistence(timeout: 30)
 
         let resetOpen = app.buttons["area-open-\(areaId)"].firstMatch
@@ -147,7 +152,9 @@ final class FieldTrustAccessibilityTests: XCTestCase {
 
     func testTrailSelectAndCompleteAreIndependentButtons() {
         assertNavigationRegressionControls()
-        let app = launchSeededApp(arguments: ["--uitest-completed", "0"])
+        guard let app = launchSeededApp(arguments: ["--uitest-completed", "0"]) else {
+            return
+        }
         let continueButton = app.buttons["continue-card"].firstMatch
         XCTAssertTrue(continueButton.waitForExistence(timeout: 30))
         continueButton.tap()
@@ -304,6 +311,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             "UICTContentSizeCategoryAccessibilityXXXL",
         ]
         app.launch()
+        guard assertAuditedAppEnvironment(app) else { return }
 
         let continueButton = app.buttons["continue-card"].firstMatch
         XCTAssertTrue(continueButton.waitForExistence(timeout: 30))
@@ -595,6 +603,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             "UICTContentSizeCategoryAccessibilityXXXL",
         ]
         app.launch()
+        guard assertAuditedAppEnvironment(app) else { return }
 
         let banner = app.buttons["active-recording-banner"].firstMatch
         XCTAssertTrue(banner.waitForExistence(timeout: 30), "Active recording banner is missing")
@@ -1703,6 +1712,9 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         in scrollView: XCUIElement,
         app: XCUIApplication
     ) -> ScrollVisibilityResult {
+        guard assertAuditedAppEnvironment(app) else {
+            return ScrollVisibilityResult(isVisible: false, didScroll: false)
+        }
         var previousCorrection: CGFloat?
         var activation = ParkingActivation.normal
         var didScroll = false
@@ -1952,6 +1964,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         in trailScroll: XCUIElement,
         app: XCUIApplication
     ) -> Bool {
+        guard assertAuditedAppEnvironment(app) else { return false }
         for _ in 0..<2 {
             let visible = trailScroll.frame.intersection(app.frame)
             guard !visible.isNull, visible.width > 0, visible.height >= 44 else {
@@ -2268,12 +2281,32 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         return false
     }
 
-    private func launchSeededApp(arguments: [String] = []) -> XCUIApplication {
+    private func launchSeededApp(arguments: [String] = []) -> XCUIApplication? {
         let app = XCUIApplication()
         app.launchArguments = ["--uitest-seed"] + arguments
         app.launch()
+        guard assertAuditedAppEnvironment(app) else { return nil }
         _ = app.tabBars.buttons["Explore"].waitForExistence(timeout: 30)
         return app
+    }
+
+    private func assertAuditedAppEnvironment(_ app: XCUIApplication) -> Bool {
+        guard app.wait(for: .runningForeground, timeout: 60),
+              app.state == .runningForeground else {
+            XCTFail("AUDIT[audited-app-not-foreground]")
+            return false
+        }
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        guard !springboard.alerts.firstMatch.exists else {
+            XCTFail("AUDIT[unexpected-system-alert]")
+            return false
+        }
+        let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+        guard settings.state != .runningForeground else {
+            XCTFail("AUDIT[settings-foreground]")
+            return false
+        }
+        return true
     }
 
     private func exploreVisibleContentFrame(_ app: XCUIApplication) -> CGRect {

@@ -74,6 +74,10 @@ final class AreaSheetAuditTests: XCTestCase {
     override func setUp() {
         super.setUp()
         continueAfterFailure = true
+        addUIInterruptionMonitor(withDescription: "Unexpected system alert") { _ in
+            XCTFail("AUDIT[unexpected-system-alert]")
+            return true
+        }
     }
 
     func testAuditAreaSheetStates() {
@@ -81,6 +85,7 @@ final class AreaSheetAuditTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--uitest-seed"]
         app.launch()
+        guard assertAuditedAppEnvironment(app) else { return }
 
         // Let the launch burst (silhouette fetches, R2 prefetch, history
         // rebuild) finish before the first accessibility query — an early
@@ -335,7 +340,9 @@ final class AreaSheetAuditTests: XCTestCase {
 
     func testAuditRecoveredGpsAndGapSummary() {
         assertNavigationRegressionControls()
-        let app = launchRecordingAudit(arguments: ["--uitest-recording-gap"])
+        guard let app = launchRecordingAudit(arguments: ["--uitest-recording-gap"]) else {
+            return
+        }
         guard openRecordingArea(app) else { return }
 
         let status = app.descendants(matching: .any)["recording-gps-status"].firstMatch
@@ -443,7 +450,9 @@ final class AreaSheetAuditTests: XCTestCase {
     }
 
     func testAuditPausedGpsState() {
-        let app = launchRecordingAudit(arguments: ["--uitest-recording-paused"])
+        guard let app = launchRecordingAudit(arguments: ["--uitest-recording-paused"]) else {
+            return
+        }
         guard openRecordingArea(app) else { return }
 
         let status = app.descendants(matching: .any)["recording-gps-status"].firstMatch
@@ -1424,6 +1433,9 @@ final class AreaSheetAuditTests: XCTestCase {
         in scrollView: XCUIElement,
         app: XCUIApplication
     ) -> ScrollVisibilityResult {
+        guard assertAuditedAppEnvironment(app) else {
+            return ScrollVisibilityResult(isVisible: false, didScroll: false)
+        }
         var previousCorrection: CGFloat?
         var activation = ParkingActivation.normal
         var didScroll = false
@@ -1673,6 +1685,7 @@ final class AreaSheetAuditTests: XCTestCase {
         in trailScroll: XCUIElement,
         app: XCUIApplication
     ) -> Bool {
+        guard assertAuditedAppEnvironment(app) else { return false }
         for _ in 0..<2 {
             let visible = trailScroll.frame.intersection(app.frame)
             guard !visible.isNull, visible.width > 0, visible.height >= 44 else {
@@ -2084,12 +2097,32 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(isWithinStandardLineLimit, "Area title exceeds two standard lines")
     }
 
-    private func launchRecordingAudit(arguments: [String]) -> XCUIApplication {
+    private func launchRecordingAudit(arguments: [String]) -> XCUIApplication? {
         let app = XCUIApplication()
         app.launchArguments = ["--uitest-seed"] + arguments
         app.launch()
+        guard assertAuditedAppEnvironment(app) else { return nil }
         settle(25)
         return app
+    }
+
+    private func assertAuditedAppEnvironment(_ app: XCUIApplication) -> Bool {
+        guard app.wait(for: .runningForeground, timeout: 60),
+              app.state == .runningForeground else {
+            XCTFail("AUDIT[audited-app-not-foreground]")
+            return false
+        }
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        guard !springboard.alerts.firstMatch.exists else {
+            XCTFail("AUDIT[unexpected-system-alert]")
+            return false
+        }
+        let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+        guard settings.state != .runningForeground else {
+            XCTFail("AUDIT[settings-foreground]")
+            return false
+        }
+        return true
     }
 
     private func openRecordingArea(_ app: XCUIApplication) -> Bool {

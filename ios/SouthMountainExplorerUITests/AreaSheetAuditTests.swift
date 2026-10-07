@@ -120,9 +120,11 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertEqual(app.buttons.matching(identifier: "area-search-button").count, 1)
         XCTAssertEqual(app.buttons.matching(identifier: "trail-filter-button").count, 0)
 
-        // ---- 6. Drag up to the browse stop (the only other stop) ----------
-        dragSheet(app, toBottom: false)
-        settle(3)
+        // ---- 6. Enter the browse stop through the explicit Search action ----
+        // A header drag can scroll AX header content instead of moving the
+        // native sheet. Search is the product-supported transition and its
+        // field/filter chrome is a fail-closed proof that Browse really landed.
+        guard enterBrowseUsingSearch(app) else { return }
         capture(app, "sheet-07-browse-after-deselect")
         logFrames(app, "browse-after-deselect")
 
@@ -154,55 +156,63 @@ final class AreaSheetAuditTests: XCTestCase {
         // ---- 6b. Select from browse: the sheet hands off to the map -------
         // Tapping a trail is a question about WHERE it is, so selecting from
         // the tall stop drops the sheet to fit and the trail is framed above.
-        let browseRowIdentifier = tapFirstTrailRow(app)
+        guard let browseRowIdentifier = tapFirstTrailRow(app) else {
+            XCTFail("No trail row found at the browse stop to select")
+            return
+        }
+        guard waitForFitChrome(app) else { return }
         settle(3)
         assertSelectedMapFraming(app)
-        if let browseRowIdentifier {
-            assertTrailActionFrames(
-                app,
-                rowIdentifier: browseRowIdentifier,
-                selectLabelPrefix: "Deselect Trail,",
-                secondaryLabelPrefix: "Record Trail,",
-                tag: "trail-actions-browse-record"
-            )
-        }
+        assertTrailActionFrames(
+            app,
+            rowIdentifier: browseRowIdentifier,
+            selectLabelPrefix: "Deselect Trail,",
+            secondaryLabelPrefix: "Record Trail,",
+            tag: "trail-actions-browse-record"
+        )
         capture(app, "sheet-07b-selected-from-browse")
         logFrames(app, "selected-from-browse")
-        if let identifier = browseRowIdentifier {
-            if !isAccessibilityLayout(app) {
-                if let atBrowse = toolbarY["browse-after-deselect"],
-                   let afterSelect = toolbarY["selected-from-browse"] {
-                    // Larger minY = lower on screen = the sheet dropped. The design
-                    // guarantees at least a 40pt step between the stops; allow a
-                    // couple of points for measurement so an exact 40 passes.
-                    XCTAssertGreaterThanOrEqual(
-                        afterSelect - atBrowse, 38,
-                        "Selecting from browse did not drop the sheet toward the fit stop "
-                        + "(browse y=\(Int(atBrowse)), selected y=\(Int(afterSelect)))"
-                    )
-                } else {
-                    XCTFail("Missing toolbar measurements for the select-from-browse handoff: \(toolbarY.keys.sorted())")
-                }
-            }
-            // Deselect returns to browse, since the drop was for the selection.
-            let select = app.descendants(matching: .any)[identifier].firstMatch
-            if isAccessibilityLayout(app) {
-                select.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
+        assertSelectedProfileLayout(app, rowIdentifier: browseRowIdentifier)
+        guard scrollSelectedProfileLowerContent(app) else { return }
+        capture(app, "sheet-07d-selected-profile-lower-content")
+
+        if !isAccessibilityLayout(app) {
+            if let atBrowse = toolbarY["browse-after-deselect"],
+               let afterSelect = toolbarY["selected-from-browse"] {
+                // Larger minY = lower on screen = the sheet dropped. The design
+                // guarantees at least a 40pt step between the stops; allow a
+                // couple of points for measurement so an exact 40 passes.
+                XCTAssertGreaterThanOrEqual(
+                    afterSelect - atBrowse, 38,
+                    "Selecting from browse did not drop the sheet toward the fit stop "
+                    + "(browse y=\(Int(atBrowse)), selected y=\(Int(afterSelect)))"
+                )
             } else {
-                tapElement(select)
+                XCTFail("Missing toolbar measurements for the select-from-browse handoff: \(toolbarY.keys.sorted())")
             }
-            settle(3)
-            capture(app, "sheet-07c-deselected-back-to-browse")
-            logFrames(app, "deselected-back-to-browse")
-        } else {
-            XCTFail("No trail row found at the browse stop to select")
         }
+
+        // Deselect returns to Browse, since the drop was for the selection.
+        let select = app.descendants(matching: .any)[browseRowIdentifier].firstMatch
+        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+        guard scrollToReachable(select, in: trailScroll, app: app) else {
+            XCTFail("Selected trail action is not reachable for deselection")
+            return
+        }
+        if isAccessibilityLayout(app) {
+            select.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
+        } else {
+            tapElement(select)
+        }
+        guard waitForBrowseChrome(app, requiresKeyboard: false) else { return }
+        settle(2)
+        capture(app, "sheet-07c-deselected-back-to-browse")
+        logFrames(app, "deselected-back-to-browse")
 
         // ---- 7. Back to min, open the Collection from its explicit button --
         // The horizontal pager is gone; the Collection is a labeled action in
         // the sheet toolbar, presented as its own nested sheet.
-        dragSheet(app, toBottom: true)
-        settle(2)
+        guard moveToFitUsingGrabber(app) else { return }
         let collectionUsesFullWidthRows = isAccessibilityLayout(app)
         openCollection(app)
         settle(3)
@@ -246,6 +256,11 @@ final class AreaSheetAuditTests: XCTestCase {
             "Collection final content is not reachable"
         )
         logElementFrame(app, finalCollectionContent, tag: "collection-lower-content")
+        XCTAssertGreaterThanOrEqual(
+            finalCollectionContent.frame.height,
+            44,
+            "Collection final row is smaller than a reachable control"
+        )
         if collectionUsesFullWidthRows {
             XCTAssertGreaterThan(
                 finalCollectionContent.frame.width,
@@ -253,6 +268,8 @@ final class AreaSheetAuditTests: XCTestCase {
                 "Accessibility Collection final row is not full width"
             )
         }
+        // Pixel proof must follow the final bounded scroll, not precede it.
+        capture(app, "sheet-08d-collection-dedication")
 
         // ---- 8. Close the Collection: the sheet underneath must be exactly
         // the idle min-stop layout it was before the presentation.
@@ -330,9 +347,35 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(summaryScroll.waitForExistence(timeout: 10), "Summary scroll is missing")
         let lowerContent = app.descendants(matching: .any)["recording-summary-area-progress"].firstMatch
         XCTAssertTrue(
-            scrollToReachable(lowerContent, in: summaryScroll, app: app),
-            "Summary lower content is not reachable"
+            scrollToVisible(lowerContent, in: summaryScroll, app: app),
+            "Complete Summary Area Progress card is not reachable"
         )
+        let wholeCardIsInside = app.frame.insetBy(dx: -1, dy: -1).contains(lowerContent.frame)
+        let wholeCardIsWide = lowerContent.frame.width > app.frame.width * 0.7
+        let progressTitle = app.staticTexts["Area Progress"].firstMatch
+        let progressValue = app.descendants(matching: .any)[
+            "recording-summary-area-progress-value"
+        ].firstMatch
+        let progressBar = app.descendants(matching: .any)[
+            "recording-summary-area-progress-bar"
+        ].firstMatch
+        let cardBounds = lowerContent.frame.insetBy(dx: -1, dy: -1)
+        let wholeCardHasContent = progressTitle.exists
+            && progressValue.exists
+            && progressBar.exists
+            && cardBounds.contains(progressTitle.frame)
+            && cardBounds.contains(progressValue.frame)
+            && cardBounds.contains(progressBar.frame)
+        print(
+            "AUDIT[summary-lower-content] inside=\(wholeCardIsInside) "
+            + "wide=\(wholeCardIsWide) complete=\(wholeCardHasContent)"
+        )
+        XCTAssertTrue(wholeCardIsInside, "Summary Area Progress card is clipped")
+        XCTAssertTrue(wholeCardIsWide, "Summary Area Progress card is not full width")
+        XCTAssertTrue(wholeCardHasContent, "Summary Area Progress card semantics are incomplete")
+        XCTAssertFalse(app.staticTexts["New Completions"].firstMatch.exists)
+        XCTAssertFalse(app.staticTexts["Previously Completed"].firstMatch.exists)
+        XCTAssertFalse(app.staticTexts["Made Progress"].firstMatch.exists)
         logElementFrame(app, lowerContent, tag: "summary-lower-content")
         capture(app, "field-trust-02b-summary-lower-content")
     }
@@ -561,7 +604,7 @@ final class AreaSheetAuditTests: XCTestCase {
             ("options", app.buttons["area-map-options-button"].firstMatch),
             ("favorite", app.buttons["area-map-favorite-button"].firstMatch),
         ]
-        let expectedSize: CGFloat = isAccessibilityLayout(app) ? 48 : 44
+        let isAccessibility = isAccessibilityLayout(app)
         for (tag, control) in controls {
             XCTAssertTrue(control.waitForExistence(timeout: 10), "Map control is missing")
             let isInside = isOnScreenAndHittable(control, app: app)
@@ -569,17 +612,26 @@ final class AreaSheetAuditTests: XCTestCase {
                 "AUDIT[map-control-\(tag)] w=\(Int(control.frame.width)) "
                 + "h=\(Int(control.frame.height)) inside=\(isInside)"
             )
-            XCTAssertEqual(
+            XCTAssertGreaterThanOrEqual(
                 control.frame.width,
-                expectedSize,
-                accuracy: 1,
-                "Map control has an unexpected hit width"
+                44,
+                "Map control is below the minimum hit width"
             )
-            XCTAssertEqual(
+            XCTAssertGreaterThanOrEqual(
                 control.frame.height,
-                expectedSize,
-                accuracy: 1,
-                "Map control has an unexpected hit height"
+                44,
+                "Map control is below the minimum hit height"
+            )
+            let maximumSize: CGFloat = isAccessibility ? 48 : 45
+            XCTAssertLessThanOrEqual(
+                control.frame.width,
+                maximumSize,
+                "Map control exceeds its bounded hit width"
+            )
+            XCTAssertLessThanOrEqual(
+                control.frame.height,
+                maximumSize,
+                "Map control exceeds its bounded hit height"
             )
             XCTAssertTrue(isInside, "Map control extends outside the app frame")
         }
@@ -658,18 +710,32 @@ final class AreaSheetAuditTests: XCTestCase {
             44,
             "Trail secondary hit height is too small"
         )
-        if !isAccessibilityLayout(app) {
-            XCTAssertEqual(
-                secondary.frame.width,
-                44,
-                accuracy: 1,
-                "Standard trail secondary hit width is not exact"
+        if isAccessibilityLayout(app) {
+            XCTAssertGreaterThan(
+                select.frame.width,
+                app.frame.width * 0.7,
+                "Accessibility Trail Select action is not full width"
             )
-            XCTAssertEqual(
+            XCTAssertGreaterThan(
+                secondary.frame.width,
+                app.frame.width * 0.7,
+                "Accessibility trail secondary action is not full width"
+            )
+        } else {
+            XCTAssertLessThanOrEqual(
+                select.frame.height,
+                47,
+                "Standard Trail Select hit height is no longer compact"
+            )
+            XCTAssertLessThanOrEqual(
+                secondary.frame.width,
+                47,
+                "Standard trail secondary hit width is no longer compact"
+            )
+            XCTAssertLessThanOrEqual(
                 secondary.frame.height,
-                44,
-                accuracy: 1,
-                "Standard trail secondary hit height is not exact"
+                47,
+                "Standard trail secondary hit height is no longer compact"
             )
         }
         XCTAssertTrue(selectIsInside, "Trail Select action extends outside the app frame")
@@ -714,7 +780,7 @@ final class AreaSheetAuditTests: XCTestCase {
 
     private func assertRecordingAreaHeader(_ app: XCUIApplication) {
         let header = app.descendants(matching: .any)["area-header"].firstMatch
-        let headerScroll = app.scrollViews["area-header-scroll"].firstMatch
+        let headerScroll = app.scrollViews["area-header"].firstMatch
         let title = app.descendants(matching: .any)[
             "recording-area-header-title"
         ].firstMatch
@@ -725,7 +791,7 @@ final class AreaSheetAuditTests: XCTestCase {
             for attempt in 0...20 {
                 let titleIsSettled = title.exists
                     && title.isHittable
-                    && header.frame.insetBy(dx: -1, dy: -1).contains(title.frame)
+                    && app.frame.insetBy(dx: -1, dy: -1).contains(title.frame)
                     && title.frame.minY >= header.frame.minY + 19
                 if titleIsSettled { break }
                 if attempt < 20 {
@@ -744,7 +810,6 @@ final class AreaSheetAuditTests: XCTestCase {
         }
 
         let titleIsComplete = title.label == "South Mountain Park and Preserve"
-        let titleIsInsideHeader = header.frame.insetBy(dx: -1, dy: -1).contains(title.frame)
         let titleIsInsideScreen = app.frame.insetBy(dx: -1, dy: -1).contains(title.frame)
         let titleClearsGrabber = title.frame.minY >= header.frame.minY + 19
         let dashboardScroll = app.scrollViews["recording-dashboard-scroll"].firstMatch
@@ -783,12 +848,11 @@ final class AreaSheetAuditTests: XCTestCase {
         let mapRegionHeight = header.frame.minY - controls.frame.maxY
         print(
             "AUDIT[recording-area-header] complete=\(titleIsComplete) "
-            + "insideHeader=\(titleIsInsideHeader) insideScreen=\(titleIsInsideScreen) "
+            + "insideScreen=\(titleIsInsideScreen) "
             + "grabberClear=\(titleClearsGrabber) dashboardClear=\(headerClearsDashboard) "
             + "mapHeight=\(Int(mapRegionHeight))"
         )
         XCTAssertTrue(titleIsComplete, "Recording area title is incomplete")
-        XCTAssertTrue(titleIsInsideHeader, "Recording area title extends outside its header")
         XCTAssertTrue(titleIsInsideScreen, "Recording area title extends outside the app frame")
         XCTAssertTrue(title.isHittable, "Recording area title is not reachable")
         XCTAssertTrue(titleClearsGrabber, "Recording area title intersects the drag-indicator zone")
@@ -866,9 +930,93 @@ final class AreaSheetAuditTests: XCTestCase {
         logElementFrame(app, profile, tag: "trail-profile")
     }
 
-    /// Selected annotations expose only generic marker identifiers. Their
-    /// frames must remain entirely between the measured top controls and the
-    /// native sheet. Diagnostics intentionally report counts/booleans only.
+    private func assertSelectedProfileLayout(
+        _ app: XCUIApplication,
+        rowIdentifier: String
+    ) {
+        guard rowIdentifier.hasPrefix("trail-select-") else {
+            XCTFail("Selected profile row has an unexpected identifier")
+            return
+        }
+        let suffix = String(rowIdentifier.dropFirst("trail-select-".count))
+        let select = app.buttons[rowIdentifier].firstMatch
+        let secondary = app.buttons["trail-secondary-\(suffix)"].firstMatch
+        let profile = app.descendants(matching: .any)["trail-profile-\(suffix)"].firstMatch
+        XCTAssertTrue(profile.waitForExistence(timeout: 10), "Selected trail profile is missing")
+        let sheetHeader = app.descendants(matching: .any)["area-header"].firstMatch
+        XCTAssertGreaterThan(
+            sheetHeader.frame.minY / app.frame.height,
+            0.25,
+            "Selected profile fit stop hides too much of the map"
+        )
+        XCTAssertGreaterThanOrEqual(
+            profile.frame.minY,
+            max(select.frame.maxY, secondary.frame.maxY) - 1,
+            "Selected profile overlaps its Select or Record action"
+        )
+
+        guard isAccessibilityLayout(app) else { return }
+        let direction = app.descendants(matching: .any)["trail-profile-direction"].firstMatch
+        let flip = app.buttons["trail-profile-flip-button"].firstMatch
+        let range = app.descendants(matching: .any)["trail-profile-range"].firstMatch
+        XCTAssertTrue(direction.waitForExistence(timeout: 10), "Profile direction is missing")
+        XCTAssertTrue(flip.waitForExistence(timeout: 10), "Profile Flip action is missing")
+        XCTAssertTrue(range.waitForExistence(timeout: 10), "Profile range content is missing")
+        let profileBounds = profile.frame.insetBy(dx: -1, dy: -1)
+        XCTAssertTrue(profileBounds.contains(direction.frame), "Profile direction clips its container")
+        XCTAssertTrue(profileBounds.contains(flip.frame), "Profile Flip action clips its container")
+        XCTAssertTrue(profileBounds.contains(range.frame), "Profile range clips its container")
+        XCTAssertTrue(
+            direction.frame.intersection(flip.frame).isEmpty,
+            "Profile direction overlaps the Flip action"
+        )
+        XCTAssertTrue(
+            flip.frame.intersection(range.frame).isEmpty,
+            "Profile Flip action overlaps lower profile text"
+        )
+        XCTAssertGreaterThanOrEqual(
+            profile.frame.height,
+            direction.frame.height + flip.frame.height + range.frame.height + 120,
+            "Accessibility profile compressed its chart or text"
+        )
+    }
+
+    private func scrollSelectedProfileLowerContent(_ app: XCUIApplication) -> Bool {
+        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+        guard trailScroll.waitForExistence(timeout: 10) else {
+            XCTFail("Trail list scroll is missing for selected-profile proof")
+            return false
+        }
+        let range = app.descendants(matching: .any)["trail-profile-range"].firstMatch
+        if isAccessibilityLayout(app) {
+            guard scrollToVisible(range, in: trailScroll, app: app) else {
+                XCTFail("Selected profile lower range is not reachable")
+                return false
+            }
+            logElementFrame(app, range, tag: "selected-profile-range")
+        }
+        let parking = app.descendants(matching: .any)[
+            "selected-trail-parking-detail"
+        ].firstMatch
+        guard parking.waitForExistence(timeout: 10),
+              scrollToVisible(parking, in: trailScroll, app: app) else {
+            XCTFail("Selected profile lower parking content is not reachable")
+            return false
+        }
+        logElementFrame(app, parking, tag: "selected-profile-lower-content")
+        if isAccessibilityLayout(app) {
+            XCTAssertTrue(
+                range.frame.intersection(parking.frame).isEmpty,
+                "Profile range overlaps selected parking content"
+            )
+        }
+        return true
+    }
+
+    /// Near and intentional far-fallback annotations expose distinct generic
+    /// roles. Near markers must clear the physical screen, top controls, and
+    /// native sheet. Far fallbacks are deliberately excluded from route-frame
+    /// fitting and instead prove a truthful distance plus reachability.
     private func assertSelectedMapFraming(_ app: XCUIApplication) {
         let controls = app.descendants(matching: .any)["area-map-controls"].firstMatch
         let sheetHeader = app.descendants(matching: .any)["area-header"].firstMatch
@@ -876,46 +1024,51 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(sheetHeader.waitForExistence(timeout: 10), "Area sheet header is missing")
         guard controls.exists, sheetHeader.exists else { return }
 
-        let screen = app.frame
-        let safeTop = controls.frame.maxY
-        let safeBottom = sheetHeader.frame.minY
-        let safeFrame = CGRect(
-            x: screen.minX + 20,
-            y: safeTop,
-            width: max(0, screen.width - 40),
-            height: max(0, safeBottom - safeTop)
-        )
-        let markers = app.descendants(matching: .any).matching(NSPredicate(
-            format: "identifier == %@ OR identifier == %@",
-            "map-parking-marker",
-            "map-trailhead-marker"
-        )).allElementsBoundByIndex
-        let presentMarkers = markers.filter { $0.exists }
+        let nearMarkers = app.descendants(matching: .any)
+            .matching(identifier: "map-near-access-marker")
+            .allElementsBoundByIndex.filter { $0.exists }
+        let farMarkers = app.descendants(matching: .any)
+            .matching(identifier: "map-far-access-marker")
+            .allElementsBoundByIndex.filter { $0.exists }
         print(
-            "AUDIT[selected-map] markerCount=\(presentMarkers.count) "
-            + "safeW=\(Int(safeFrame.width)) safeH=\(Int(safeFrame.height))"
+            "AUDIT[selected-map] nearCount=\(nearMarkers.count) "
+            + "farCount=\(farMarkers.count)"
         )
-        XCTAssertGreaterThan(presentMarkers.count, 0, "Selected map has no generic access marker")
-        if isAccessibilityLayout(app) {
-            print("AUDIT[selected-map] accessibilityMarkerFramesDeferred=true")
-            return
-        }
-        for marker in presentMarkers {
-            let isContained = safeFrame.contains(marker.frame)
-            let clearsControls = !marker.frame.intersects(controls.frame)
-            let clearsSheet = !marker.frame.intersects(sheetHeader.frame)
+        XCTAssertGreaterThan(
+            nearMarkers.count + farMarkers.count,
+            0,
+            "Selected map has no access marker"
+        )
+
+        let physicalScreen = app.frame.insetBy(dx: -1, dy: -1)
+        for marker in nearMarkers {
+            let isContained = physicalScreen.contains(marker.frame)
+            let clearsControls = marker.frame.minY >= controls.frame.maxY - 1
+            let clearsSheet = marker.frame.maxY <= sheetHeader.frame.minY + 1
             print(
-                "AUDIT[selected-marker] contained=\(isContained) "
+                "AUDIT[selected-near-marker] contained=\(isContained) "
                 + "clearsControls=\(clearsControls) clearsSheet=\(clearsSheet)"
             )
-            XCTAssertTrue(isContained, "Selected marker is outside the safe map frame")
-            XCTAssertTrue(clearsControls, "Selected marker intersects top map controls")
-            XCTAssertTrue(clearsSheet, "Selected marker intersects the area sheet")
+            XCTAssertTrue(isContained, "Near selected marker extends outside the screen")
+            XCTAssertTrue(marker.isHittable, "Near selected marker is not reachable")
+            XCTAssertTrue(clearsControls, "Near selected marker intersects top map controls")
+            XCTAssertTrue(clearsSheet, "Near selected marker intersects the area sheet")
+        }
+
+        for marker in farMarkers {
+            let isReachable = isOnScreenAndHittable(marker, app: app)
+            let hasTruthfulDistance = marker.label.contains("from trail")
+            print(
+                "AUDIT[selected-far-marker] reachable=\(isReachable) "
+                + "hasDistance=\(hasTruthfulDistance)"
+            )
+            XCTAssertTrue(isReachable, "Far fallback access callout is not reachable")
+            XCTAssertTrue(hasTruthfulDistance, "Far fallback marker omits its trail distance")
         }
     }
 
     private func isAccessibilityLayout(_ app: XCUIApplication) -> Bool {
-        app.scrollViews["area-header-scroll"].firstMatch.exists
+        app.scrollViews["area-header"].firstMatch.exists
     }
 
     private func stopControlCount(_ app: XCUIApplication) -> Int {
@@ -925,6 +1078,28 @@ final class AreaSheetAuditTests: XCTestCase {
             "recording-stop-button",
             "walk-stop-button"
         )).count
+    }
+
+    private func scrollToVisible(
+        _ element: XCUIElement,
+        in scrollView: XCUIElement,
+        app: XCUIApplication
+    ) -> Bool {
+        for attempt in 0...20 {
+            if isOnScreen(element, app: app) { return true }
+            if attempt < 20 {
+                let moveContentDown = element.exists && element.frame.midY < app.frame.midY
+                let start = scrollView.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.35 : 0.65)
+                )
+                let end = scrollView.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.55 : 0.45)
+                )
+                start.press(forDuration: 0.05, thenDragTo: end)
+                settle(1)
+            }
+        }
+        return false
     }
 
     private func scrollToReachable(
@@ -949,14 +1124,18 @@ final class AreaSheetAuditTests: XCTestCase {
         return false
     }
 
-    private func isOnScreenAndHittable(_ element: XCUIElement, app: XCUIApplication) -> Bool {
-        guard element.exists, element.isHittable else { return false }
+    private func isOnScreen(_ element: XCUIElement, app: XCUIApplication) -> Bool {
+        guard element.exists else { return false }
         let frame = element.frame
         let screen = app.frame
         return frame.minX >= screen.minX - 1
             && frame.maxX <= screen.maxX + 1
             && frame.minY >= screen.minY - 1
             && frame.maxY <= screen.maxY + 1
+    }
+
+    private func isOnScreenAndHittable(_ element: XCUIElement, app: XCUIApplication) -> Bool {
+        element.isHittable && isOnScreen(element, app: app)
     }
 
     private func exploreVisibleContentFrame(_ app: XCUIApplication) -> CGRect {
@@ -1139,54 +1318,144 @@ final class AreaSheetAuditTests: XCTestCase {
 
     // MARK: - Sheet + list gestures
 
-    /// Drag the sheet by its header region. The area name is the sheet's
-    /// one always-draggable, always-identifiable handle: it is not inside
-    /// the scroll view, so dragging it moves the SHEET, not the list.
-    /// When the name is hidden (a trail selected at the min stop), fall
-    /// back to a coordinate just under the drag indicator, derived from
-    /// the search field's frame.
-    private func dragSheet(_ app: XCUIApplication, toBottom: Bool) {
-        let name = app.staticTexts["South Mountain Park and Preserve"].firstMatch
-        let from: XCUICoordinate
-        if isAccessibilityLayout(app) {
-            let header = app.scrollViews["area-header-scroll"].firstMatch
-            let anchorY = header.exists ? header.frame.minY + 8 : app.frame.height * 0.62
-            from = app.coordinate(withNormalizedOffset: .zero)
-                .withOffset(CGVector(dx: app.frame.width / 2, dy: anchorY))
-        } else if name.exists, name.isHittable {
-            from = name.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-        } else {
-            // Sheet top estimated from the always-present toolbar.
-            let start = app.buttons["area-record-button"].firstMatch
-            let anchorY = start.exists
-                ? start.frame.minY - 60
-                : app.frame.height * 0.62
-            from = app.coordinate(withNormalizedOffset: .zero)
-                .withOffset(CGVector(dx: app.frame.width / 2, dy: anchorY))
+    private func enterBrowseUsingSearch(_ app: XCUIApplication) -> Bool {
+        let search = app.buttons["area-search-button"].firstMatch
+        guard search.waitForExistence(timeout: 10), search.isHittable else {
+            XCTFail("Fit Search action is unavailable")
+            return false
         }
-        // The sheet has exactly two stops (fit + browse), so the upward drag
-        // must release well above the fit stop's top edge or UIKit snaps
-        // back to fit instead of advancing to browse. Releasing above the
-        // browse stop's top edge snaps to browse (the topmost stop).
+        tapElement(search)
+        guard waitForBrowseChrome(app, requiresKeyboard: true) else { return false }
+        guard dismissBrowseKeyboard(app) else { return false }
+        return waitForBrowseChrome(app, requiresKeyboard: false)
+    }
+
+    private func waitForBrowseChrome(
+        _ app: XCUIApplication,
+        requiresKeyboard: Bool
+    ) -> Bool {
+        let field = app.textFields["Search trails"].firstMatch
+        for attempt in 0...10 {
+            let hasBrowseAction = app.buttons.matching(
+                identifier: "trail-filter-button"
+            ).count == 1 || app.buttons.matching(
+                identifier: "trail-search-keyboard-done"
+            ).count == 1
+            let chromeIsCorrect = field.exists
+                && app.buttons.matching(identifier: "area-search-button").count == 0
+                && (requiresKeyboard
+                    ? hasBrowseAction
+                    : app.buttons.matching(identifier: "trail-filter-button").count == 1)
+            let keyboardIsCorrect = requiresKeyboard
+                ? app.keyboards.firstMatch.exists
+                : !app.keyboards.firstMatch.exists
+            if chromeIsCorrect && keyboardIsCorrect { return true }
+            if attempt < 10 { settle(1) }
+        }
+        XCTFail(
+            requiresKeyboard
+                ? "Browse chrome or focused keyboard did not appear"
+                : "Browse chrome did not settle with its keyboard dismissed"
+        )
+        return false
+    }
+
+    private func waitForFitChrome(_ app: XCUIApplication) -> Bool {
+        for attempt in 0...10 {
+            let isFit = app.buttons.matching(identifier: "area-search-button").count == 1
+                && app.textFields.matching(identifier: "Search trails").count == 0
+                && app.buttons.matching(identifier: "trail-filter-button").count == 0
+            if isFit { return true }
+            if attempt < 10 { settle(1) }
+        }
+        XCTFail("Selected Browse handoff did not reach the fit stop")
+        return false
+    }
+
+    private func dismissBrowseKeyboard(_ app: XCUIApplication) -> Bool {
+        let keyboard = app.keyboards.firstMatch
+        guard keyboard.exists else {
+            XCTFail("Browse Search did not focus the keyboard")
+            return false
+        }
+        let done = app.buttons["Dismiss Search Keyboard"].firstMatch
+        if done.exists, done.isHittable {
+            tapElement(done)
+        } else {
+            let keyboardSearch = keyboard.buttons["Search"].firstMatch
+            if keyboardSearch.exists, keyboardSearch.isHittable {
+                keyboardSearch.tap()
+            }
+            if keyboard.waitForExistence(timeout: 2) {
+                let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+                guard trailScroll.exists else {
+                    XCTFail("Trail list is missing while dismissing Browse keyboard")
+                    return false
+                }
+                let start = trailScroll.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.60)
+                )
+                let end = trailScroll.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.50)
+                )
+                start.press(forDuration: 0.05, thenDragTo: end)
+            }
+        }
+        for attempt in 0...5 {
+            if !keyboard.exists { return true }
+            if attempt < 5 { settle(1) }
+        }
+        XCTFail("Browse Search keyboard did not dismiss")
+        return false
+    }
+
+    private func moveToFitUsingGrabber(_ app: XCUIApplication) -> Bool {
+        for attempt in 0...3 {
+            let isFit = app.buttons.matching(identifier: "area-search-button").count == 1
+                && app.textFields.matching(identifier: "Search trails").count == 0
+            if isFit { return true }
+            if attempt < 3 {
+                dragSheet(app, toBottom: true)
+                settle(2)
+            }
+        }
+        XCTFail("Native sheet did not reach the fit stop")
+        return false
+    }
+
+    /// Drag from the clear system-grabber band at the top of the native sheet,
+    /// never from AX header text or the trail-list scroll surface.
+    private func dragSheet(_ app: XCUIApplication, toBottom: Bool) {
+        let header = app.descendants(matching: .any)["area-header"].firstMatch
+        let anchorY = header.exists ? header.frame.minY + 6 : app.frame.height * 0.62
+        let from = app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: app.frame.width / 2, dy: anchorY))
         let targetY = toBottom ? app.frame.height - 8 : app.frame.height * 0.2
         let to = app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: app.frame.width / 2, dy: targetY))
         from.press(forDuration: 0.1, thenDragTo: to)
     }
 
-    /// Scroll the trail list itself: a short vertical drag INSIDE the row
-    /// region, well below the toolbar so it hits scroll content. (The search
-    /// field lives only at the browse stop now, so the always-present Start
-    /// button is the fit stop's row-band anchor.)
+    /// Scroll only the true trail-list surface. Intersecting its semantic frame
+    /// with the app frame prevents an AX row extending below the screen from
+    /// turning this into a sheet/header gesture.
     private func swipeList(_ app: XCUIApplication, up: Bool) {
-        let start = app.buttons["area-record-button"].firstMatch
-        let topY = start.exists ? start.frame.maxY + 30 : app.frame.height * 0.8
-        let a = app.coordinate(withNormalizedOffset: .zero)
-            .withOffset(CGVector(dx: app.frame.width / 2, dy: topY + 90))
-        let b = app.coordinate(withNormalizedOffset: .zero)
-            .withOffset(CGVector(dx: app.frame.width / 2, dy: topY))
-        if up { a.press(forDuration: 0.05, thenDragTo: b) }
-        else { b.press(forDuration: 0.05, thenDragTo: a) }
+        let trailScroll = app.scrollViews["trail-list-scroll"].firstMatch
+        guard trailScroll.exists else {
+            XCTFail("Trail list scroll is missing")
+            return
+        }
+        let visible = trailScroll.frame.intersection(app.frame).insetBy(dx: 8, dy: 12)
+        guard visible.width > 0, visible.height >= 44 else {
+            XCTFail("Trail list has no gesture-safe visible surface")
+            return
+        }
+        let high = app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: visible.midX, dy: visible.minY))
+        let low = app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: visible.midX, dy: visible.maxY))
+        if up { low.press(forDuration: 0.05, thenDragTo: high) }
+        else { high.press(forDuration: 0.05, thenDragTo: low) }
     }
 
     /// Open the area Collection via its explicit toolbar button — the

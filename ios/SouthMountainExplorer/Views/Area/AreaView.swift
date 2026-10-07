@@ -141,6 +141,18 @@ struct AreaView: View {
         )
     }
 
+    /// The physical map viewport, without aesthetic edge margins. MapKit uses
+    /// this only to compare rendered near-marker bounds against real controls,
+    /// screen edges, and the settled native sheet. A fully visible edge marker
+    /// therefore never causes a camera move merely for crossing a 20-point
+    /// design inset.
+    private var selectedMapVisibleInsets: MapViewportInsets {
+        MapViewportInsets(
+            top: measuredMapControlsBottom,
+            bottom: effectiveBottomInset
+        )
+    }
+
     /// Trail-list sheet detents — exactly TWO stops, and the MAP IS VISIBLE
     /// AT BOTH. There is no full-screen stop: this is a map screen, and a
     /// menu that can cover the map defeats the reason the screen exists.
@@ -211,8 +223,9 @@ struct AreaView: View {
     @State private var minHeightCommit: Task<Void, Never>? = nil
     /// Collection is a deliberate secondary destination, not a hidden page.
     @State private var showCollection = false
-    /// Bumped by the toolbar search button after expanding to browse, so the
-    /// just-mounted search field grabs focus and the keyboard is ready.
+    /// Bumped by the toolbar search button before expanding to Browse. The
+    /// list persists the request until its conditionally mounted field appears,
+    /// so focus does not depend on a guessed animation delay.
     @State private var searchFocusTick = 0
     /// Set when selecting a trail from the browse stop dropped the sheet to
     /// fit so the map could show the trail. Deselecting then returns the sheet
@@ -477,6 +490,7 @@ struct AreaView: View {
                     visibleTrailIds: visibleTrailIds,
                     bottomInset: effectiveBottomInset,
                     selectedViewportInsets: selectedMapViewportInsets,
+                    selectedVisibleInsets: selectedMapVisibleInsets,
                     trackingMode: $trackingMode
                 )
                 .ignoresSafeArea()
@@ -1641,11 +1655,11 @@ struct AreaView: View {
 
     private var areaSearchButton: some View {
         Button {
+            // Persist the request before Browse chrome mounts. TrailListView
+            // consumes it only after the TextField appears, so both a clean
+            // header and a previously scrolled AX header focus deterministically.
+            searchFocusTick &+= 1
             sheetDetent = browseDetent
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(400))
-                searchFocusTick &+= 1
-            }
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: hasActiveFilter

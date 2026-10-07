@@ -203,7 +203,7 @@ jobs:
           rm -rf "$RESULT_BUNDLE"
           ONLY_ARGS=()
           if [ "${{ inputs.test_class }}" = "AreaSheetAuditTests" ]; then
-            # Every configuration runs the 20-capture visual audit. The focused
+            # Every configuration runs the 22-capture visual audit. The focused
             # semantic/reachability class runs on the accessibility matrix,
             # where its explicit large-content assertions are meaningful.
             ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/AreaSheetAuditTests")
@@ -244,7 +244,7 @@ jobs:
             exit 1
           fi
           if [ "${{ inputs.test_class }}" = "AreaSheetAuditTests" ]; then
-            EXPECTED_PER_MATRIX=20
+            EXPECTED_PER_MATRIX=22
             EXPECTED_SCREENSHOTS=(
               field-trust-00-explore-continue-card
               field-trust-00-explore-area-card
@@ -257,10 +257,12 @@ jobs:
               sheet-06-min-trail-deselected
               sheet-07-browse-after-deselect
               sheet-07b-selected-from-browse
+              sheet-07d-selected-profile-lower-content
               sheet-07c-deselected-back-to-browse
               sheet-08-collection-open
               sheet-08b-collection-completionist
               sheet-08c-collection-difficulty
+              sheet-08d-collection-dedication
               sheet-09-collection-closed
               field-trust-01-gps-recovered
               field-trust-02-gap-summary
@@ -324,8 +326,8 @@ jobs:
 
       - name: Verify exact screenshot totals
         run: |
-          EXPECTED_PER_MATRIX=20
-          EXPECTED_TOTAL=60
+          EXPECTED_PER_MATRIX=22
+          EXPECTED_TOTAL=66
           ARTIFACT_ROOT="$RUNNER_TEMP/field-trust-screenshots"
           CONFIG_DIR_COUNT=$(find "$ARTIFACT_ROOT" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
           if [ "$CONFIG_DIR_COUNT" -ne 3 ]; then

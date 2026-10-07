@@ -604,6 +604,7 @@ struct RecordingSummarySheet: View {
                                         .font(.body)
                                         .foregroundStyle(.secondary)
                                         .monospacedDigit()
+                                        .accessibilityIdentifier("recording-summary-area-progress-value")
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                             } else {
@@ -615,15 +616,21 @@ struct RecordingSummarySheet: View {
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                         .monospacedDigit()
+                                        .accessibilityIdentifier("recording-summary-area-progress-value")
                                 }
                             }
                             ProgressView(value: areaCompletionFraction)
                                 .tint(.cyan)
+                                .accessibilityIdentifier("recording-summary-area-progress-bar")
                         }
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .compatibleGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .padding(.horizontal)
+                        // Expose the complete rendered card as one truthful
+                        // frame; the prior identifier collapsed onto its title
+                        // and could not prove the progress value/bar were visible.
+                        .accessibilityElement(children: .contain)
                         .accessibilityIdentifier("recording-summary-area-progress")
                     }
 

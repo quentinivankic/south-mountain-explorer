@@ -122,8 +122,8 @@ struct TrailListView: View {
     /// typing makes sense — the chrome is present and the keyboard has
     /// nothing to expand.
     var showsChrome: Bool = true
-    /// Bumped by AreaView's search button after it expands the sheet to
-    /// browse, so the search field is focused and the keyboard is ready.
+    /// Bumped by AreaView's Search action before the sheet expands. This view
+    /// holds the request until Browse chrome and its field have appeared.
     var focusSearchTick: Int = 0
     /// Bumped by AreaView on a deselect that leaves the sheet at the fit stop,
     /// where the shrunken card would otherwise leave a stale half-row offset.
@@ -145,6 +145,11 @@ struct TrailListView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @FocusState private var searchFocused: Bool
+    /// A Search request can arrive while Browse chrome is still mounting.
+    /// Keep it until the text field exists instead of relying on a delayed tick
+    /// to land after a conditional view happens to appear.
+    @State private var pendingFocusSearchTick: Int? = nil
+    @State private var searchFieldIsMounted = false
 
     private var trimmedQuery: String {
         searchQuery.trimmingCharacters(in: .whitespaces)
@@ -201,6 +206,15 @@ struct TrailListView: View {
                                     .autocorrectionDisabled()
                                     .focused($searchFocused)
                                     .submitLabel(.search)
+                                    .onSubmit { searchFocused = false }
+                                    .onAppear {
+                                        searchFieldIsMounted = true
+                                        applyPendingSearchFocus()
+                                    }
+                                    .onDisappear {
+                                        searchFieldIsMounted = false
+                                        searchFocused = false
+                                    }
                                 if !searchQuery.isEmpty {
                                     Button {
                                         searchQuery = ""
@@ -257,9 +271,6 @@ struct TrailListView: View {
                 // `fixedSize` so the chrome is never squeezed by a short
                 // proposal — it renders whole or not at all.
                 .fixedSize(horizontal: false, vertical: true)
-                .onChange(of: focusSearchTick) { _, _ in
-                    searchFocused = true
-                }
                 }
 
                 ScrollView {
@@ -440,6 +451,31 @@ struct TrailListView: View {
                     }
                 }
             }
+            .onChange(of: focusSearchTick, initial: true) { _, tick in
+                guard tick > 0 else { return }
+                pendingFocusSearchTick = tick
+                applyPendingSearchFocus()
+            }
+            .onChange(of: showsChrome, initial: true) { _, isVisible in
+                guard isVisible else { return }
+                applyPendingSearchFocus()
+            }
+        }
+    }
+
+    private func applyPendingSearchFocus() {
+        guard showsChrome,
+              searchFieldIsMounted,
+              let request = pendingFocusSearchTick else { return }
+        Task { @MainActor in
+            // Let the conditional Browse subtree and its TextField enter the
+            // hierarchy before assigning FocusState. The request remains
+            // pending if Browse disappears during that hop.
+            await Task.yield()
+            guard searchFieldIsMounted,
+                  pendingFocusSearchTick == request else { return }
+            searchFocused = true
+            pendingFocusSearchTick = nil
         }
     }
 
@@ -547,6 +583,11 @@ struct TrailRow: View {
     @Environment(LocationService.self) private var location
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
+
+    /// The native sheet presents compact row content at about 95.7% of its
+    /// local size on supported phones. Reserve a non-compressible 46-point
+    /// wrapper so the final screen-space activation frame remains at least 44.
+    private static let compactActionTargetSize: CGFloat = 46
 
     /// Chart orientation, LATCHED when the profile opens.
     ///
@@ -699,7 +740,17 @@ struct TrailRow: View {
                     )
                 }
             )
-            .frame(height: dynamicTypeSize.isAccessibilitySize ? 180 : 96)
+            // Standard text keeps the compact 96-point chart. Accessibility
+            // content uses the profile's intrinsic height (including its
+            // uncapped labels) and is never vertically compressed; the whole
+            // selected row is measured below and feeds AreaView's fit detent.
+            .frame(
+                minHeight: dynamicTypeSize.isAccessibilitySize ? nil : 96,
+                idealHeight: dynamicTypeSize.isAccessibilitySize ? nil : 96,
+                maxHeight: dynamicTypeSize.isAccessibilitySize ? nil : 96,
+                alignment: .top
+            )
+            .fixedSize(horizontal: false, vertical: dynamicTypeSize.isAccessibilitySize)
             .padding(.trailing, dynamicTypeSize.isAccessibilitySize ? 0 : 4)
             .transition(.opacity.combined(with: .move(edge: .top)))
             .accessibilityElement(children: .contain)
@@ -723,6 +774,8 @@ struct TrailRow: View {
             }
             .padding(.top, 3)
             .transition(.opacity)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("selected-trail-parking-detail")
             .accessibilityLabel(pk.text)
         }
         }
@@ -805,7 +858,12 @@ struct TrailRow: View {
                 }
             }
             .buttonStyle(.plain)
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .frame(
+                maxWidth: .infinity,
+                minHeight: Self.compactActionTargetSize,
+                alignment: .leading
+            )
+            .fixedSize(horizontal: false, vertical: true)
             .contentShape(Rectangle())
             .accessibilityIdentifier("trail-select-\(trail.id)")
             .accessibilityLabel(
@@ -821,7 +879,11 @@ struct TrailRow: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
-            .frame(width: 44, height: 44)
+            .frame(
+                width: Self.compactActionTargetSize,
+                height: Self.compactActionTargetSize
+            )
+            .fixedSize()
             .contentShape(Rectangle())
             .accessibilityIdentifier("trail-secondary-\(trail.id)")
             .accessibilityLabel(secondaryActionLabel)

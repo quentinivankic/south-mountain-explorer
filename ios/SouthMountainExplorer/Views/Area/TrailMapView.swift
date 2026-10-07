@@ -148,6 +148,10 @@ struct TrailMapView: View {
     /// route (and the explicit user + retarget action). Changes to this value
     /// never move the camera by themselves.
     let selectedViewportInsets: MapViewportInsets
+    /// Physical control-to-sheet viewport used to audit rendered near-marker
+    /// bounds after a selected-route camera move. Unlike the framing insets,
+    /// this carries no aesthetic horizontal margin.
+    let selectedVisibleInsets: MapViewportInsets
     /// Three-state camera tracking cycle. AreaView owns the state via
     /// `@State`; the rotation button there reads it for the icon and
     /// flips it on tap. TrailMapView reacts via `.onChange` to apply
@@ -197,6 +201,12 @@ struct TrailMapView: View {
     @State private var cameraTick: Int = 0
     @State private var recenterState: RecenterLocationState = .idle
     @State private var recenterGeneration = 0
+    /// Extra edge room accumulated only when MapKit reports that a rendered
+    /// near-marker crosses the real control-to-sheet viewport. It is reset on
+    /// every selection and never reacts to far fallback annotations.
+    @State private var selectedMarkerCorrection: MapViewportInsets = .zero
+    @State private var selectedMarkerAuditGeneration = 0
+    @State private var allowsSelectedMarkerCorrection = false
 
     /// Does the camera still show the framing this view chose on open — the
     /// whole-area overview, or the trail the area was opened on — rather
@@ -250,6 +260,7 @@ struct TrailMapView: View {
         visibleTrailIds: Set<String>? = nil,
         bottomInset: CGFloat = 0,
         selectedViewportInsets: MapViewportInsets = .zero,
+        selectedVisibleInsets: MapViewportInsets = .zero,
         trackingMode: Binding<MapTrackingMode>
     ) {
         self.area = area
@@ -262,6 +273,7 @@ struct TrailMapView: View {
         self.visibleTrailIds = visibleTrailIds
         self.bottomInset = bottomInset
         self.selectedViewportInsets = selectedViewportInsets
+        self.selectedVisibleInsets = selectedVisibleInsets
         self._trackingMode = trackingMode
         // Compute the initial camera target synchronously so the
         // first frame paints the right region — no flash to a
@@ -314,6 +326,9 @@ struct TrailMapView: View {
                 userTrackingMode: .none,
                 userHeading: location.liveHeading,
                 demoUserDot: demoUserDot,
+                selectedMarkerVisibleInsets: selectedVisibleInsets,
+                selectedMarkerAuditGeneration: selectedMarkerAuditGeneration,
+                onSelectedNearMarkerOcclusion: applySelectedMarkerCorrection,
                 onUserGestureRegionChange: {
                     // User gesture-driven region change (pinch / pan).
                     // In follow modes, snap the camera back to the
@@ -334,6 +349,7 @@ struct TrailMapView: View {
                     // is never re-applied over where they put it. It also
                     // invalidates a pending one-shot recenter so a late fix
                     // cannot take the camera back.
+                    allowsSelectedMarkerCorrection = false
                     releaseOpeningFraming()
                     cancelPendingRecenter(for: .gesture)
                 }
@@ -431,6 +447,10 @@ struct TrailMapView: View {
             cachedHaloSegments = [trailSnappedHaloRuns()]
         }
         .onChange(of: selectedTrailId) { _, newId in
+            // A new selection gets a fresh measured-marker correction after
+            // the native sheet settles; a deselection discards the old one.
+            selectedMarkerCorrection = .zero
+            allowsSelectedMarkerCorrection = false
             // Any change of selection — a tap on the map or in the list, or a
             // banner clearing it — ends the opening framing. A selected trail
             // has its own framing (below, plus `fitSelectedTrailTick` as the
@@ -472,6 +492,7 @@ struct TrailMapView: View {
             // active trail PLUS the user's current location so they
             // can see both. Falls back to centerOn(trail:) if we
             // don't have a fresh location fix yet.
+            allowsSelectedMarkerCorrection = false
             releaseOpeningFraming()
             cancelPendingRecenter(for: .switchedTrail)
             guard let id = selectedTrailId,
@@ -496,15 +517,20 @@ struct TrailMapView: View {
                   let trail = area.trails.first(where: { $0.id == id }) else {
                 return
             }
+            allowsSelectedMarkerCorrection = true
+            selectedMarkerAuditGeneration &+= 1
             centerOn(trail: trail)
         }
         .onChange(of: recenterTick) { _, _ in
+            allowsSelectedMarkerCorrection = false
             performRecenter()
         }
         .onChange(of: trackingMode, initial: false) { _, newMode in
             // Engaging a follow mode hands the camera to the user's position;
-            // the overview must not come back when the sheet moves.
+            // the overview and selected-marker correction must not come back
+            // when the sheet moves.
             if newMode != .free {
+                allowsSelectedMarkerCorrection = false
                 cancelPendingRecenter(for: .follow)
                 releaseOpeningFraming()
             }
@@ -538,7 +564,8 @@ struct TrailMapView: View {
                 lastLiveHaloRecomputeAt = 0
             } else {
                 // A hike just started: the camera follows the hike from
-                // here, never the overview.
+                // here, never the overview or a pending marker correction.
+                allowsSelectedMarkerCorrection = false
                 cancelPendingRecenter(for: .recording)
                 releaseOpeningFraming()
             }
@@ -934,15 +961,54 @@ struct TrailMapView: View {
         )
     }
 
-    private func centerOn(trail: Trail) {
+    private func centerOn(
+        trail: Trail,
+        markerCorrection: MapViewportInsets? = nil
+    ) {
+        let correction = markerCorrection ?? selectedMarkerCorrection
+        let insets = MapViewportInsets(
+            top: selectedViewportInsets.top + correction.top,
+            leading: selectedViewportInsets.leading + correction.leading,
+            bottom: selectedViewportInsets.bottom + correction.bottom,
+            trailing: selectedViewportInsets.trailing + correction.trailing
+        )
         guard let points = selectedFramingPoints(for: trail),
               let target = Self.selectedRouteRegion(
                 points: points,
-                viewportInsets: selectedViewportInsets,
+                viewportInsets: insets,
                 screenHeight: UIScreen.main.bounds.height,
                 screenWidth: UIScreen.main.bounds.width
               ) else { return }
         setCameraTarget(target)
+    }
+
+    /// Apply only the additional room proven necessary by rendered near-marker
+    /// bounds. Each correction is re-audited after its camera move; far fallback
+    /// annotations never enter this path, and a user-owned camera disables it.
+    private func applySelectedMarkerCorrection(_ correction: MapViewportInsets) {
+        guard allowsSelectedMarkerCorrection,
+              correction != .zero,
+              let id = selectedTrailId,
+              let trail = area.trails.first(where: { $0.id == id }) else { return }
+        func accumulated(_ current: CGFloat, _ extra: CGFloat) -> CGFloat {
+            // A marker view is smaller than this bound. If 64 additional points
+            // still cannot clear the viewport, stop moving the camera and let
+            // the explicit UI assertion fail rather than creating a refit loop.
+            min(current + extra, 64)
+        }
+        let updated = MapViewportInsets(
+            top: accumulated(selectedMarkerCorrection.top, correction.top),
+            leading: accumulated(selectedMarkerCorrection.leading, correction.leading),
+            bottom: accumulated(selectedMarkerCorrection.bottom, correction.bottom),
+            trailing: accumulated(selectedMarkerCorrection.trailing, correction.trailing)
+        )
+        guard updated != selectedMarkerCorrection else {
+            allowsSelectedMarkerCorrection = false
+            return
+        }
+        selectedMarkerCorrection = updated
+        selectedMarkerAuditGeneration &+= 1
+        centerOn(trail: trail, markerCorrection: updated)
     }
 
     /// Like `centerOn(trail:)` but expands the bbox to also include

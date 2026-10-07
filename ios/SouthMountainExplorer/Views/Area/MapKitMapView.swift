@@ -834,6 +834,10 @@ struct MapKitMapView: UIViewRepresentable {
         /// One incomplete generation may wait for MapKit's remaining annotation
         /// views. The first complete `didAdd` callback consumes this one-shot.
         var pendingSelectedMarkerAuditGeneration: Int?
+        /// The latest generation granted a complete-zero next-run-loop recheck.
+        /// It stays generation-sticky so later callbacks cannot schedule a
+        /// second pass for the same camera result.
+        var lastScheduledSelectedMarkerAuditGeneration: Int = 0
 
         init(parent: MapKitMapView) {
             self.parent = parent
@@ -1243,12 +1247,33 @@ struct MapKitMapView: UIViewRepresentable {
                 mapBounds: mapView.bounds,
                 visibleInsets: parent.selectedMarkerVisibleInsets
             )
-            guard MapKitMapView.consumeMarkerAuditGenerationIfNeeded(
+            if MapKitMapView.consumeMarkerAuditGenerationIfNeeded(
                 generation: generation,
                 correction: correction,
                 lastConsumedGeneration: &lastSelectedMarkerAuditGeneration
-            ) else { return }
-            parent.onSelectedNearMarkerOcclusion?(correction)
+            ) {
+                parent.onSelectedNearMarkerOcclusion?(correction)
+                return
+            }
+
+            // Annotation frames can settle one run-loop after the camera's
+            // completion callback. A complete zero result gets exactly one
+            // generation-current recheck; that final pass cannot reschedule.
+            guard allowRescheduling,
+                  correction == .zero,
+                  lastScheduledSelectedMarkerAuditGeneration != generation else { return }
+            lastScheduledSelectedMarkerAuditGeneration = generation
+            DispatchQueue.main.async { [weak self, weak mapView] in
+                guard let self,
+                      self.lastScheduledSelectedMarkerAuditGeneration == generation,
+                      let mapView,
+                      self.parent.selectedMarkerAuditGeneration == generation,
+                      self.lastSelectedMarkerAuditGeneration != generation else { return }
+                self.reportSelectedNearMarkerOcclusionIfNeeded(
+                    on: mapView,
+                    allowRescheduling: false
+                )
+            }
         }
 
         private func renderedNearMarkerFrames(

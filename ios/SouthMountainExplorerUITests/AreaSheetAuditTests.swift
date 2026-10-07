@@ -1118,7 +1118,7 @@ final class AreaSheetAuditTests: XCTestCase {
                     return (left.minX, left.minY, left.width, left.height)
                         < (right.minX, right.minY, right.width, right.height)
                 }
-            let frames = markers.map(\.frame)
+            let frames = markers.map { $0.frame }
             let framesAreValid = !frames.isEmpty && frames.allSatisfy { frame in
                 [frame.minX, frame.minY, frame.maxX, frame.maxY].allSatisfy(\.isFinite)
                     && frame.width > 0

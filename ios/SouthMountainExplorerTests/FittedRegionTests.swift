@@ -400,6 +400,47 @@ struct FittedRegionTests {
         #expect(shiftedSpan > 0.14)
     }
 
+    @Test func markerFramesAreComplete_rejectsIncompleteSet() {
+        let frames = [CGRect(x: 20, y: 20, width: 28, height: 40)]
+        #expect(!MapKitMapView.markerFramesAreComplete(frames, expectedCount: 3))
+    }
+
+    @Test func markerFramesAreComplete_rejectsInvalidCompleteSet() {
+        let frames = [
+            CGRect(x: 20, y: 20, width: 28, height: 40),
+            CGRect(x: .nan, y: 30, width: 28, height: 40),
+            CGRect(x: 40, y: 40, width: 0, height: 40),
+        ]
+        #expect(!MapKitMapView.markerFramesAreComplete(frames, expectedCount: 3))
+    }
+
+    @Test func markerFramesAreComplete_acceptsFiniteThreeOfThreeSet() {
+        let frames = [
+            CGRect(x: 20, y: 20, width: 28, height: 40),
+            CGRect(x: 60, y: 30, width: 28, height: 40),
+            CGRect(x: 100, y: 40, width: 28, height: 40),
+        ]
+        #expect(MapKitMapView.markerFramesAreComplete(frames, expectedCount: 3))
+    }
+
+    @Test func markerOcclusionCorrection_aggregatesEveryFrame() {
+        let correction = MapKitMapView.markerOcclusionCorrection(
+            markerFrames: [
+                CGRect(x: 40, y: 4, width: 10, height: 10),
+                CGRect(x: 4, y: 40, width: 10, height: 10),
+                CGRect(x: 40, y: 84, width: 10, height: 10),
+                CGRect(x: 84, y: 40, width: 10, height: 10),
+            ],
+            mapBounds: CGRect(x: 0, y: 0, width: 100, height: 100),
+            visibleInsets: MapViewportInsets(top: 10, leading: 10, bottom: 10, trailing: 10),
+            padding: 0
+        )
+        #expect(correction.top == 6)
+        #expect(correction.leading == 6)
+        #expect(correction.bottom == 4)
+        #expect(correction.trailing == 4)
+    }
+
     @Test func markerOcclusionCorrection_movesOnlyForRealSheetOverlap() {
         let correction = MapKitMapView.markerOcclusionCorrection(
             markerFrames: [CGRect(x: 150, y: 272, width: 28, height: 24)],

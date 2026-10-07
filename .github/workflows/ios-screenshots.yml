@@ -167,9 +167,6 @@ jobs:
             --cellularBars 4 \
             --wifiBars 3 \
             --dataNetwork wifi
-          xcrun simctl privacy "$SIM_UDID" grant location com.southmountainexplorer.app
-          xcrun simctl location "$SIM_UDID" set 33.330353,-112.104609
-
           DEVICE_SHOT="$RUNNER_TEMP/$CONFIG_ID-device.png"
           xcrun simctl io "$SIM_UDID" screenshot "$DEVICE_SHOT"
           read -r PIXEL_WIDTH PIXEL_HEIGHT < <(sips -g pixelWidth -g pixelHeight "$DEVICE_SHOT" | python3 -c '
@@ -196,7 +193,42 @@ jobs:
             dd-screenshots-${{ matrix.id }}-${{ runner.os }}-${{ hashFiles('ios/project.yml') }}-
             dd-screenshots-${{ matrix.id }}-${{ runner.os }}-
 
-      - name: Capture screenshots (UI test)
+      - name: Build audited app for testing
+        working-directory: ios
+        run: |
+          xcodebuild build-for-testing \
+            -project SouthMountainExplorer.xcodeproj \
+            -scheme SouthMountainExplorerUITests \
+            -configuration Debug \
+            -destination "id=$SIM_UDID" \
+            -derivedDataPath "$PWD/DerivedData" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Install audited app
+        working-directory: ios
+        run: |
+          APP_PATHS=()
+          while IFS= read -r path; do
+            APP_PATHS+=("$path")
+          done < <(find "$PWD/DerivedData/Build/Products/Debug-iphonesimulator" \
+            -maxdepth 1 -type d -name 'SouthMountainExplorer.app' -print)
+          if [ "${#APP_PATHS[@]}" -ne 1 ]; then
+            echo "Expected exactly one audited app; found ${#APP_PATHS[@]}" >&2
+            exit 1
+          fi
+          xcrun simctl install "$SIM_UDID" "${APP_PATHS[0]}"
+          xcrun simctl get_app_container \
+            "$SIM_UDID" com.southmountainexplorer.app app >/dev/null
+
+      - name: Grant location to installed audited app
+        run: |
+          xcrun simctl privacy "$SIM_UDID" reset location com.southmountainexplorer.app
+          xcrun simctl privacy "$SIM_UDID" grant location com.southmountainexplorer.app
+          xcrun simctl location "$SIM_UDID" set 33.330353,-112.104609
+
+      - name: Capture screenshots without rebuilding
         working-directory: ios
         run: |
           RESULT_BUNDLE="ScreenshotResults-$CONFIG_ID.xcresult"
@@ -213,7 +245,7 @@ jobs:
           elif [ -n "${{ inputs.test_class }}" ]; then
             ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/${{ inputs.test_class }}")
           fi
-          xcodebuild test \
+          xcodebuild test-without-building \
             -project SouthMountainExplorer.xcodeproj \
             -scheme SouthMountainExplorerUITests \
             -configuration Debug \

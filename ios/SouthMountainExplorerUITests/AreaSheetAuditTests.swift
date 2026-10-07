@@ -595,8 +595,14 @@ final class AreaSheetAuditTests: XCTestCase {
             }
         }
 
-        let titleIsExpected = title.label == "Trails near you"
-        XCTAssertTrue(titleIsExpected, "Location empty-state title is incomplete")
+        let locationStateIsExact = exploreLocationEmptyStateMatches(
+            title: title.label,
+            primaryAction: primaryAction.label
+        )
+        XCTAssertTrue(
+            locationStateIsExact,
+            "Location empty-state title and primary action are inconsistent"
+        )
         XCTAssertTrue(
             settleExplorePair(detail, primaryAction, app: app),
             "Location detail and primary action cannot be shown together"
@@ -910,6 +916,19 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertTrue(isInside, "Collection representative row extends outside the app frame")
         XCTAssertTrue(hasWholeTitle, "Collection representative title is incomplete")
         XCTAssertTrue(isFullWidth, "Accessibility Collection row is not full width")
+    }
+
+    private func exploreLocationEmptyStateMatches(
+        title: String,
+        primaryAction: String
+    ) -> Bool {
+        switch (title, primaryAction) {
+        case ("Trails near you", "Enable Location"),
+             ("Location unavailable", "Retry"):
+            return true
+        default:
+            return false
+        }
     }
 
     private func label(_ label: String, containsWholeWord word: String) -> Bool {
@@ -1770,6 +1789,14 @@ final class AreaSheetAuditTests: XCTestCase {
         return isHittable && visible.width >= 44 && visible.height >= 44
     }
 
+    private func actionIsReturnable(
+        frame: CGRect,
+        appFrame: CGRect,
+        isHittable: Bool
+    ) -> Bool {
+        isHittable && appFrame.insetBy(dx: -1, dy: -1).contains(frame)
+    }
+
     private func reachTrailAction(
         _ app: XCUIApplication,
         identifier: String,
@@ -1785,15 +1812,23 @@ final class AreaSheetAuditTests: XCTestCase {
             if let action = uniqueExistingElement(matches) {
                 let viewport = trailScroll.frame.intersection(app.frame)
                 let frame = action.frame
-                if actionIsReachable(
+                let isHittable = action.isHittable
+                let independentlyReachable = actionIsReachable(
                     frame: frame,
                     viewport: viewport,
-                    isHittable: action.isHittable
-                ) {
+                    isHittable: isHittable
+                )
+                if independentlyReachable,
+                   actionIsReturnable(
+                       frame: frame,
+                       appFrame: app.frame,
+                       isHittable: isHittable
+                   ) {
                     return action
                 }
                 guard attempt < 20 else { break }
-                let direction: KnownTargetPosition = frame.minY < viewport.minY
+                let directionFrame = independentlyReachable ? app.frame : viewport
+                let direction: KnownTargetPosition = frame.minY < directionFrame.minY
                     ? .earlier
                     : .later
                 if !performMeasuredMicroCorrection(
@@ -1854,6 +1889,24 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertFalse(exactMatchAllowsPropertyRead(matchCount: 0, exists: false))
         XCTAssertFalse(exactMatchAllowsPropertyRead(matchCount: 2, exists: true))
         XCTAssertTrue(exactMatchAllowsPropertyRead(matchCount: 1, exists: true))
+        XCTAssertTrue(
+            exploreLocationEmptyStateMatches(
+                title: "Trails near you",
+                primaryAction: "Enable Location"
+            )
+        )
+        XCTAssertTrue(
+            exploreLocationEmptyStateMatches(
+                title: "Location unavailable",
+                primaryAction: "Retry"
+            )
+        )
+        XCTAssertFalse(
+            exploreLocationEmptyStateMatches(
+                title: "Location unavailable",
+                primaryAction: "Enable Location"
+            )
+        )
 
         let earlier = knownTargetGestureOffsets(.earlier)
         let later = knownTargetGestureOffsets(.later)
@@ -1961,6 +2014,21 @@ final class AreaSheetAuditTests: XCTestCase {
         XCTAssertGreaterThan(tallSelect.height + 8 + secondary.height, actionViewport.height)
         XCTAssertTrue(actionIsReachable(frame: tallSelect, viewport: actionViewport, isHittable: true))
         XCTAssertTrue(actionIsReachable(frame: secondary, viewport: actionViewport, isHittable: true))
+        let actionAppFrame = CGRect(x: 0, y: 0, width: 440, height: 956)
+        XCTAssertFalse(
+            actionIsReturnable(
+                frame: tallSelect,
+                appFrame: actionAppFrame,
+                isHittable: true
+            )
+        )
+        XCTAssertTrue(
+            actionIsReturnable(
+                frame: tallSelect.offsetBy(dx: 0, dy: 80),
+                appFrame: actionAppFrame,
+                isHittable: true
+            )
+        )
 
         XCTAssertEqual(postDeselectRecovery(hasSelect: false, hasSecondary: false, labelsSettled: false), .macroLater)
         XCTAssertEqual(postDeselectRecovery(hasSelect: true, hasSecondary: false, labelsSettled: false), .microLater)

@@ -722,12 +722,12 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             app.buttons["area-map-favorite-button"].firstMatch,
         ]
         XCTAssertEqual(
-            Set(mapControls.map(\.identifier)).count,
+            Set(mapControls.map { $0.identifier }).count,
             mapControls.count,
             "Accessibility map controls must have distinct identifiers"
         )
         XCTAssertEqual(
-            Set(mapControls.map(\.label)).count,
+            Set(mapControls.map { $0.label }).count,
             mapControls.count,
             "Accessibility map controls must have distinct labels"
         )

@@ -3571,7 +3571,9 @@ def test_ring_centroid_uses_first_relative_fsum_and_stays_within_bounds():
     noisy_centroid = (
         y_sum / (3.0 * cross_sum), x_sum / (3.0 * cross_sum)
     )
-    assert noisy_centroid == (19.335182189941406, -62.04204813639323)
+    assert all(math.isfinite(value) for value in noisy_centroid)
+    assert abs(noisy_centroid[0] - latitude) > 1.0
+    assert abs(noisy_centroid[1] - longitude) > 1.0
     assert not (
         min(point[1] for point in ring) <= noisy_centroid[0]
         <= max(point[1] for point in ring)

@@ -41,8 +41,9 @@ SPUR_ROLES = {"approach", "connection"}
 VARIANT_ROLES = {"alternative", "excursion", "alternate"}
 RETAINED_ROUTE_INGEST_CATEGORY = "retained-signed-route-member"
 
-# Destination POI signatures — a way ending at one of these is "reaching
-# the payoff" (SPEC.md §1). Keyed (tag, value); value None means any.
+# Legacy destination signatures remain the default outside exact-quality
+# Denmark assembly. The Denmark pilot has a narrower, externally sealed policy
+# whose order is also the deterministic eligibility-class precedence.
 DESTINATION_POIS = {
     ("natural", "peak"), ("natural", "arch"), ("natural", "volcano"),
     ("natural", "saddle"), ("natural", "cliff"), ("natural", "hot_spring"),
@@ -50,6 +51,21 @@ DESTINATION_POIS = {
     ("tourism", "alpine_hut"), ("tourism", "wilderness_hut"),
     ("mountain_pass", "yes"),
 }
+DK_DESTINATION_POI_CLASSES = (
+    (("natural", "peak"), "natural=peak"),
+    (("natural", "arch"), "natural=arch"),
+    (("natural", "saddle"), "natural=saddle"),
+    (("natural", "cliff"), "natural=cliff"),
+    (("natural", "rock"), "natural=rock"),
+    (("natural", "stone"), "natural=stone"),
+    (("tourism", "viewpoint"), "tourism=viewpoint"),
+    (("tourism", "attraction"), "tourism=attraction"),
+    (("historic", "archaeological_site"), "historic=archaeological_site"),
+    (("historic", "castle"), "historic=castle"),
+    (("historic", "ruins"), "historic=ruins"),
+    (("amenity", "shelter"), "amenity=shelter"),
+    (("highway", "trailhead"), "highway=trailhead"),
+)
 
 # Spur-attach guardrails.
 SPUR_MAX_MI = 0.6            # a payoff spur is short; don't weld long ways
@@ -90,6 +106,48 @@ def display_name(tags: dict[str, str]) -> str | None:
     for k, v in tags.items():
         if k.startswith("name:") and v:
             return v
+    return None
+
+
+def _dk_display_name(tags: dict[str, str]) -> str | None:
+    """Deterministic exact-quality Denmark name without changing legacy order."""
+    if tags.get("name"):
+        return tags["name"]
+    for key in sorted(tags):
+        if key.startswith("name:") and tags[key]:
+            return tags[key]
+    return None
+
+
+def normalized_destination_display_name(tags: dict[str, str]) -> str | None:
+    """Return the deterministic NFC display name sealed for Denmark POIs."""
+    keys = ["name", *sorted(
+        key for key in tags if key.startswith("name:"))]
+    for key in keys:
+        value = tags.get(key)
+        if not isinstance(value, str):
+            continue
+        normalized = " ".join(unicodedata.normalize("NFC", value).split())
+        if normalized:
+            return normalized
+    return None
+
+
+def destination_eligibility_class(tags: dict[str, str], *,
+                                  exact_denmark: bool = False) -> str | None:
+    """Return a canonical POI class under the selected destination policy."""
+    normalized = {
+        str(key).strip().casefold(): str(value).strip().casefold()
+        for key, value in tags.items()
+    }
+    if exact_denmark:
+        for (key, value), eligibility_class in DK_DESTINATION_POI_CLASSES:
+            if normalized.get(key) == value:
+                return eligibility_class
+        return None
+    for key, value in sorted(DESTINATION_POIS):
+        if normalized.get(key) == value:
+            return f"{key}={value}"
     return None
 
 
@@ -419,16 +477,44 @@ def route_relation_hierarchy(rel_id: int, relations: dict,
 
 
 def _audit_relation_name(tags: dict) -> str | None:
-    if tags.get("name"):
-        return tags["name"]
-    for key in sorted(tags):
-        if key.startswith("name:") and tags[key]:
-            return tags[key]
-    return None
+    return _dk_display_name(tags)
 
 
-def _build_relation_member_audit(rel_id: int, relations: dict, ways: dict
-                                 ) -> tuple[dict, list[int], list[int]]:
+def _scope_direct_way(relation_scope_evidence: dict | None, scope: str,
+                      relation_id: int, way_id: int) -> dict | None:
+    if not relation_scope_evidence:
+        return None
+    relation = (relation_scope_evidence.get(scope) or {}).get(
+        "relations", {}).get(relation_id)
+    if relation is None:
+        return None
+    return relation.get("direct_ways", {}).get(way_id)
+
+
+def _scope_relation_statuses(relation_scope_evidence: dict | None,
+                             relation_ids: list[int]) -> dict[str, dict]:
+    if not relation_scope_evidence:
+        return {}
+    out = {}
+    for relation_id in relation_ids:
+        out[str(relation_id)] = {
+            "raw_status": (
+                "present" if relation_id in relation_scope_evidence[
+                    "raw-denmark"]["relations"] else "missing"),
+            "prefilter_status": (
+                "present" if relation_id in relation_scope_evidence[
+                    "prefiltered-denmark"]["relations"] else "missing"),
+            "aoi_status": (
+                "present" if relation_id in relation_scope_evidence[
+                    "aoi"]["relations"] else "missing"),
+        }
+    return out
+
+
+def _build_relation_member_audit(
+        rel_id: int, relations: dict, ways: dict,
+        relation_scope_evidence: dict | None = None
+        ) -> tuple[dict, list[int], list[int]]:
     """Build complete Denmark direct-member evidence for one accepted route."""
     relation = relations[rel_id]
     hierarchy = route_relation_hierarchy(rel_id, relations)
@@ -467,9 +553,28 @@ def _build_relation_member_audit(rel_id: int, relations: dict, ways: dict
             main_ways.append(way_id)
         elif included and effective_role in SPUR_ROLES:
             spur_ways.append(way_id)
+        raw_evidence = _scope_direct_way(
+            relation_scope_evidence, "raw-denmark", entry["relation_id"], way_id)
+        prefilter_evidence = _scope_direct_way(
+            relation_scope_evidence, "prefiltered-denmark",
+            entry["relation_id"], way_id)
+        aoi_evidence = _scope_direct_way(
+            relation_scope_evidence, "aoi", entry["relation_id"], way_id)
+        raw_status = (raw_evidence or {}).get(
+            "status", "present" if way is not None else "missing")
         records.append({
             **entry,
-            "source_status": "available" if way is not None else "missing",
+            "source_status": (
+                "available" if raw_status == "present" else raw_status),
+            "raw_status": raw_status,
+            "prefilter_status": (prefilter_evidence or {}).get(
+                "status", raw_status if not relation_scope_evidence else "missing"),
+            "aoi_status": (aoi_evidence or {}).get(
+                "status", raw_status if not relation_scope_evidence else "missing"),
+            "source_node_ids": (raw_evidence or {}).get("node_ids"),
+            "source_coordinates": (raw_evidence or {}).get("coordinates"),
+            "source_missing_node_ids": (raw_evidence or {}).get(
+                "missing_node_ids"),
             "tags": member_safety.decisive_tags((way or {}).get("tags") or {}),
             "status": "included" if included else "excluded",
             "exclusion_reason": None if included else decision.reason,
@@ -477,9 +582,15 @@ def _build_relation_member_audit(rel_id: int, relations: dict, ways: dict
         })
     return ({
         "relation_id": rel_id,
-        "name": _audit_relation_name(relation.get("tags") or {}),
+        "name": (_audit_relation_name(relation.get("tags") or {})
+                 or _first_named(
+                     list(dict.fromkeys(main_ways)), ways,
+                     deterministic_localized=True)),
         "tags": dict(sorted((relation.get("tags") or {}).items())),
         "relation_ids": hierarchy,
+        "relation_scope_statuses": _scope_relation_statuses(
+            relation_scope_evidence,
+            list(dict.fromkeys(hierarchy + missing_relations))),
         "direct_relation_way_ids": direct,
         "missing_relation_ids": missing_relations,
         "direct_way_members": records,
@@ -591,6 +702,18 @@ def attach_spurs(trails: list["Trail"], leftover_ways: list[int], ways: dict,
 # Trail record + orchestration
 # ---------------------------------------------------------------------------
 
+GEOMETRY_DUPLICATE_ABSORBED_CATEGORY = "geometry-duplicate-absorbed"
+GEOMETRY_DUPLICATE_ABSORBED_REASON = (
+    "Geometry-duplicate relation candidate was absorbed by the identified "
+    "surviving candidate with exact preclip linework coverage."
+)
+TERMINAL_GEOMETRY_DUPLICATE_ABSORBED_REASON = (
+    "Geometry-duplicate relation candidate was absorbed only after exact-area "
+    "clipping and quality disposition into the identified final survivor."
+)
+TERMINAL_ABSORPTION_EVIDENCE_REASON = "exact-area-linework-coverage"
+
+
 class Trail:
     def __init__(self, name: str | None, source: str, member_ways: list[int],
                  lines: list[list[tuple[float, float]]], tags: dict,
@@ -603,6 +726,7 @@ class Trail:
         # treated as unexplained main-line gaps.
         self.geometry_ways = list(member_ways)
         self.relation_ids: list[int] = []
+        self.root_relation_ids: list[int] = []
         self.direct_relation_ways: dict[int, list[int]] = {}
         # Denmark-only main-line members admitted by the signed-route road
         # restoration rather than the standalone trail gate.
@@ -611,11 +735,38 @@ class Trail:
         self.tags = tags
         self.terminal_nodes = list(terminal_nodes)
         self.destinations: list[str] = []
+        # Exact-Denmark QA-only evidence for the deterministic promoted payoff.
+        # App conversion intentionally ignores this field.
+        self.destination_evidence: list[dict[str, Any]] = []
         self.welds: list[dict] = []     # QA: what got attached and why
         self.hike = False               # tier-1 promoted canonical hike (SPEC §6c)
         self.area: str | None = None    # park area assigned for per-area merge (§6b)
         self.removed_reason: str | None = None  # QA: why curation dropped it (§5)
         self.removed_category: str | None = None  # QA: short slug of that rule
+        # The legacy audited-dedupe path serializes an immediate survivor.
+        self.absorbed_by: "Trail | None" = None
+        # Exact-area Denmark instead preserves relation candidates until every
+        # rename, coalesce, clip, and quality disposition has completed. These
+        # private links never serialize; assemble.py resolves them only against
+        # the terminal published population.
+        self._deferred_absorption_targets: list["Trail"] = []
+        self._terminal_successor: "Trail | None" = None
+        # Exact-Denmark terminal IDs are assigned before model curation so a
+        # deferred edge can still identify a target removed by that curation.
+        self._terminal_absorption_candidate_id: int | None = None
+        # Per-root exact-Denmark display names and relation tags are captured
+        # before any fusion so final identity and eligibility never depend on
+        # which object _fuse_cluster happens to retain.
+        self._exact_denmark_root_identities: dict[int, dict[str, Any]] = {}
+        # Multi-root exact-Denmark candidates expose their authority-selected
+        # primary root to QA only; app conversion does not serialize it.
+        self._identity_root_relation_id: int | None = None
+        # Per-root, pre-weld main-way endpoints. These private witnesses keep
+        # unnamed welded linework from creating destination naming authority.
+        self._promotion_endpoint_sources: dict[int, list[dict[str, Any]]] = {}
+        # Exact-Denmark's typed decision is emitted in the assembly QA ledger,
+        # never in app-facing trail output.
+        self._promotion_decision: dict[str, Any] | None = None
 
     def weld_spur(self, wid, coords, poi):
         self.member_ways.append(wid)
@@ -630,29 +781,52 @@ class Trail:
         return round(sum(line_mi(l) for l in self.lines), 3)
 
     def to_feature(self) -> dict:
+        properties = {
+            "name": self.name,
+            "kind": "hike" if self.hike else classify_kind(self.name, self.tags),
+            "area": self.area,
+            "source": self.source,
+            "length_mi": self.length_mi,
+            "member_ways": self.member_ways,
+            "destinations": self.destinations,
+            "welds": self.welds,
+            "network": self.tags.get("network", ""),
+            "operator": self.tags.get("operator", ""),
+            "sac_scale": self.tags.get("sac_scale", ""),
+            "trail_visibility": self.tags.get("trail_visibility", ""),
+            "removed_reason": self.removed_reason,
+            "removed_category": self.removed_category,
+            # Stable per-trail key for run-to-run diff review (member OSM
+            # ways don't change when only a curation rule is re-tuned).
+            "ckey": _trail_ckey(self),
+        }
+        if self.destination_evidence:
+            properties["destination_evidence"] = self.destination_evidence
+        if self.absorbed_by is not None:
+            covered, equal = _exact_linework_coverage(
+                self, self.absorbed_by)
+            properties["drop_evidence"] = {
+                "kind": GEOMETRY_DUPLICATE_ABSORBED_CATEGORY,
+                "reason": "exact-preclip-linework-coverage",
+                "survivor": {
+                    "ckey": _trail_ckey(self.absorbed_by),
+                    "name": self.absorbed_by.name,
+                    "source": self.absorbed_by.source,
+                },
+                "geometry_proof": {
+                    "method": "exact-linework-difference",
+                    "absorbed_covered_by_survivor": covered,
+                    "survivor_covered_by_absorbed": equal,
+                    "relationship": (
+                        "equal" if equal else "covered-by-survivor"),
+                },
+            }
         return {
             "type": "Feature",
-            "properties": {
-                "name": self.name,
-                "kind": "hike" if self.hike else classify_kind(self.name, self.tags),
-                "area": self.area,
-                "source": self.source,
-                "length_mi": self.length_mi,
-                "member_ways": self.member_ways,
-                "destinations": self.destinations,
-                "welds": self.welds,
-                "network": self.tags.get("network", ""),
-                "operator": self.tags.get("operator", ""),
-                "sac_scale": self.tags.get("sac_scale", ""),
-                "trail_visibility": self.tags.get("trail_visibility", ""),
-                "removed_reason": self.removed_reason,
-                "removed_category": self.removed_category,
-                # Stable per-trail key for run-to-run diff review (member OSM
-                # ways don't change when only a curation rule is re-tuned).
-                "ckey": "w" + "-".join(str(w) for w in sorted(self.member_ways)),
-            },
+            "properties": properties,
             "geometry": {"type": "MultiLineString",
-                         "coordinates": [[list(p) for p in line] for line in self.lines]},
+                         "coordinates": [[list(p) for p in line]
+                                         for line in self.lines]},
         }
 
 
@@ -771,9 +945,21 @@ def assemble(nodes: dict, ways: dict, relations: dict,
              collect_removed: list | None = None,
              region: str | None = None,
              collect_ingest_dropped: list | None = None,
-             collect_relation_member_audit: list | None = None) -> list[Trail]:
+             collect_relation_member_audit: list | None = None,
+             relation_scope_evidence: dict | None = None,
+             standalone_way_ids: set[int] | frozenset[int] | None = None,
+             defer_relation_absorption: bool = False,
+             exact_denmark: bool = False,
+             defer_promotion: bool = False
+             ) -> list[Trail]:
+    if exact_denmark != defer_promotion:
+        raise ValueError(
+            "exact-Denmark model assembly must defer destination promotion")
     trails: list[Trail] = []
     claimed: set[int] = set()
+    relation_output_way_ids: set[int] = set()
+    standalone_ids = (set(ways) if standalone_way_ids is None
+                      else set(standalone_way_ids).intersection(ways))
 
     # Diagnostic: NAMED ways whose highway type is trail-ish but which a tag
     # gate filters out before assembly (foot=no, ski piste, road-like track,
@@ -782,6 +968,8 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     # drops (sidewalks, pistes) are skipped: pure noise, no false-negative risk.
     if collect_ingest_dropped is not None:
         for wid, w in ways.items():
+            if wid not in standalone_ids:
+                continue
             nm = display_name(w["tags"])
             if not nm:
                 continue
@@ -832,8 +1020,16 @@ def assemble(nodes: dict, ways: dict, relations: dict,
 
     # 1. relations-first
     denmark = member_safety.normalize(region) == "dk"
-    relation_items = (sorted(relations.items()) if denmark
-                      else relations.items())
+    if denmark and relation_scope_evidence:
+        selected_roots = relation_scope_evidence["raw-denmark"][
+            "root_relation_ids"]
+        relation_items = [
+            (relation_id, relations[relation_id])
+            for relation_id in selected_roots if relation_id in relations
+        ]
+    else:
+        relation_items = (sorted(relations.items()) if denmark
+                          else relations.items())
     for rid, rel in relation_items:
         if not _is_route(rel["tags"]):
             continue
@@ -841,7 +1037,7 @@ def assemble(nodes: dict, ways: dict, relations: dict,
         audit = None
         if denmark:
             audit, main_ways, spur_ways = _build_relation_member_audit(
-                rid, relations, ways)
+                rid, relations, ways, relation_scope_evidence)
             if collect_relation_member_audit is not None:
                 collect_relation_member_audit.append(audit)
             direct_members = audit["direct_relation_way_ids"]
@@ -868,12 +1064,24 @@ def assemble(nodes: dict, ways: dict, relations: dict,
             if audit is not None:
                 audit["assembly_status"] = "no-renderable-geometry"
             continue
-        rel_name = norm_name(display_name(rel["tags"]))
-        t = Trail(display_name(rel["tags"]) or _first_named(main_ways, ways),
+        relation_name = (_dk_display_name(rel["tags"])
+                         if exact_denmark else display_name(rel["tags"]))
+        rel_name = norm_name(relation_name)
+        t = Trail(relation_name or _first_named(
+                      main_ways, ways,
+                      deterministic_localized=exact_denmark),
                   "relation", main_ways, lines, rel["tags"],
                   _terminal_nodes(chains, ways))
         contributing = set(main_ways + spur_ways)
         t.relation_ids = relation_ids
+        t.root_relation_ids = [rid]
+        if exact_denmark:
+            t._exact_denmark_root_identities = {
+                rid: {"name": t.name, "tags": dict(rel["tags"])},
+            }
+            t._promotion_endpoint_sources = {
+                rid: _source_endpoint_records(rid, main_ways, ways, nodes),
+            }
         if denmark:
             # Full source authority, including excluded and missing direct ways.
             # Rendering remains represented separately by geometry_ways.
@@ -919,11 +1127,45 @@ def assemble(nodes: dict, ways: dict, relations: dict,
             continue
         if audit is not None:
             audit["assembly_status"] = "emitted"
+        relation_output_way_ids.update(contributing)
         trails.append(t)
 
-    # 2. name-stitch the remainder
+    # 2. Name-stitch only ways rendered by the AOI PBF. Raw-authority ways are
+    # available solely to selected signed relations and connectivity evidence.
+    # In the Denmark quality path, every closed pedestrian polygon is context
+    # rather than centerline; only a named, unclaimed polygon is a standalone
+    # checklist candidate that needs an auditable removal row. Other regions
+    # retain the legacy name-stitch behavior exactly.
+    for way_id, way in ways.items():
+        if way_id not in standalone_ids or not denmark:
+            continue
+        nodes_for_way = way.get("nodes") or []
+        closed = (len(nodes_for_way) >= 4
+                  and nodes_for_way[0] == nodes_for_way[-1])
+        if not member_safety.closed_pedestrian_area(
+                way.get("tags") or {}, closed=closed):
+            continue
+        claimed.add(way_id)
+        if not member_safety.standalone_pedestrian_area_candidate(
+                way.get("tags") or {}, closed=closed,
+                relation_claimed=way_id in relation_output_way_ids):
+            continue
+        chains = order_ways([way_id], ways)
+        lines = chains_to_multiline(chains, ways, nodes)
+        if not lines or collect_removed is None:
+            continue
+        trail = Trail(display_name(way["tags"]), "name-stitch", [way_id],
+                      lines, way["tags"], _terminal_nodes(chains, ways))
+        trail.removed_category = "standalone-pedestrian-area"
+        trail.removed_reason = (
+            "Closed standalone highway=pedestrian OSM area; retained as its "
+            "exterior source-ring diagnostic, not emitted as a completion trail."
+        )
+        collect_removed.append(trail)
+
     named_leftover = [wid for wid, w in ways.items()
-                      if wid not in claimed and w["tags"].get("name")
+                      if wid in standalone_ids and wid not in claimed
+                      and w["tags"].get("name")
                       and _is_trailish(w["tags"])]
     for group in stitch_by_name(named_leftover, ways):
         chains = order_ways(group, ways)
@@ -938,7 +1180,8 @@ def assemble(nodes: dict, ways: dict, relations: dict,
 
     # 3. spur-attach unnamed/steps leftovers that reach a POI
     unnamed_leftover = [wid for wid, w in ways.items()
-                        if wid not in claimed and _is_trailish(w["tags"])]
+                        if wid in standalone_ids and wid not in claimed
+                        and _is_trailish(w["tags"])]
     attach_spurs(trails, unnamed_leftover, ways, nodes, pois)
 
     # 4. one object per named trail WITHIN an area — fuse same-name pieces that
@@ -950,7 +1193,22 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     # 4b. drop geometry-duplicate trails the name-merge missed — a route
     #     relation and a name-stitch built over the same ways under names that
     #     normalize differently ('Casner Canyon Trail' vs 'Casner Canyon #11').
-    merged = dedupe_duplicate_trails(merged)
+    merged = dedupe_duplicate_trails(
+        merged,
+        collect_absorbed=(collect_removed if denmark
+                          and relation_scope_evidence is not None
+                          and not defer_relation_absorption else None),
+        require_relation_absorption_evidence=(
+            denmark and relation_scope_evidence is not None),
+        defer_relation_absorption=defer_relation_absorption,
+        min_length_mi=min_length_mi,
+        region=region,
+    )
+    if defer_relation_absorption:
+        # This identity belongs to the complete pre-curation population. It is
+        # intentionally not recomputed after removals, promotion, or coalescing.
+        for candidate_id, trail in enumerate(merged):
+            trail._terminal_absorption_candidate_id = candidate_id
 
     # 5. curation: drop name-flagged-closed trails, sub-threshold stubs (tiny
     #    connectors), and pure-generic-named objects with no identity ("Trail",
@@ -968,8 +1226,22 @@ def assemble(nodes: dict, ways: dict, relations: dict,
 
     # 6. tier-1 canonical hikes: promote local routes that reach a named
     #    destination POI into a 'hike', renamed from the payoff, and absorb the
-    #    redundant physical fragment the hike covers (SPEC §6c).
-    promoted = promote_hikes(kept, pois)
+    #    redundant physical fragment the hike covers (SPEC §6c). Exact-Denmark
+    #    defers this stage until its geometry has been clipped to the trusted
+    #    boundary, while every legacy caller keeps the original model stage.
+    if defer_promotion:
+        promoted = kept
+    else:
+        promoted = promote_hikes(
+            kept, pois,
+            collect_absorbed=(collect_removed if denmark
+                              and relation_scope_evidence is not None
+                              and not defer_relation_absorption else None),
+            require_relation_absorption_evidence=(
+                denmark and relation_scope_evidence is not None),
+            defer_relation_absorption=defer_relation_absorption,
+            exact_denmark=exact_denmark,
+        )
 
     # 7. checklist coalesce: one object per (name, area). The spread-gate splits
     #    a long trail into contiguous pieces for clean map geometry, but for a
@@ -1039,6 +1311,63 @@ def reconcile_ingest_dropped(ingest_dropped: list[dict],
         )
         properties["retained_in_route"] = True
         properties["relation_ids"] = sorted(relation_ids)
+
+
+def terminal_relation_absorption_targets(
+        trails: list["Trail"]) -> dict[int, list[int]]:
+    """Map preserved relation candidates to stable pre-curation targets.
+
+    Definite folds are followed transitively. A target removed by model
+    curation has no successor but retains its pre-curation ID, so its intended
+    edge reaches the terminal resolver instead of disappearing here.
+    """
+    used_ids = {
+        candidate_id for trail in trails
+        if isinstance((candidate_id := getattr(
+            trail, "_terminal_absorption_candidate_id", None)), int)
+        and not isinstance(candidate_id, bool)
+    }
+    next_fallback = 0
+    for trail in trails:
+        candidate_id = getattr(
+            trail, "_terminal_absorption_candidate_id", None)
+        if isinstance(candidate_id, int) and not isinstance(candidate_id, bool):
+            continue
+        while next_fallback in used_ids:
+            next_fallback += 1
+        trail._terminal_absorption_candidate_id = next_fallback
+        used_ids.add(next_fallback)
+        next_fallback += 1
+
+    def terminal_target_id(target: "Trail") -> int | None:
+        seen: set[int] = set()
+        while True:
+            identity = id(target)
+            if identity in seen:
+                return None
+            seen.add(identity)
+            successor = getattr(target, "_terminal_successor", None)
+            if successor is None:
+                candidate_id = getattr(
+                    target, "_terminal_absorption_candidate_id", None)
+                return (candidate_id if isinstance(candidate_id, int)
+                        and not isinstance(candidate_id, bool) else None)
+            target = successor
+
+    out: dict[int, list[int]] = {}
+    for trail in trails:
+        if getattr(trail, "source", None) != "relation":
+            continue
+        candidate_id = trail._terminal_absorption_candidate_id
+        targets = []
+        for target in getattr(trail, "_deferred_absorption_targets", []):
+            target_id = terminal_target_id(target)
+            if (target_id is not None and target_id != candidate_id
+                    and target_id not in targets):
+                targets.append(target_id)
+        if targets:
+            out[candidate_id] = targets
+    return out
 
 
 def coalesce_by_area(trails: list["Trail"]) -> list["Trail"]:
@@ -1166,6 +1495,7 @@ def _fuse_cluster(cluster: list["Trail"]) -> "Trail":
     for t in cluster:
         if t is base:
             continue
+        t._terminal_successor = base
         base.lines.extend(t.lines)
         base.member_ways.extend(w for w in t.member_ways if w not in base.member_ways)
         base.geometry_ways.extend(
@@ -1173,13 +1503,33 @@ def _fuse_cluster(cluster: list["Trail"]) -> "Trail":
         base.relation_ids.extend(
             relation_id for relation_id in t.relation_ids
             if relation_id not in base.relation_ids)
+        base.root_relation_ids.extend(
+            relation_id for relation_id in t.root_relation_ids
+            if relation_id not in base.root_relation_ids)
         base.restored_relation_ways.extend(
             way_id for way_id in t.restored_relation_ways
             if way_id not in base.restored_relation_ways)
         for relation_id, member_ids in t.direct_relation_ways.items():
             target = base.direct_relation_ways.setdefault(relation_id, [])
             target.extend(way_id for way_id in member_ids if way_id not in target)
+        for root_id, identity in t._exact_denmark_root_identities.items():
+            existing = base._exact_denmark_root_identities.setdefault(
+                root_id, identity)
+            if existing != identity:
+                raise ValueError(
+                    "exact-Denmark root identity changed during fusion")
+        for root_id, endpoint_sources in t._promotion_endpoint_sources.items():
+            target = base._promotion_endpoint_sources.setdefault(root_id, [])
+            target.extend(
+                source for source in endpoint_sources if source not in target)
+        base._deferred_absorption_targets.extend(
+            target for target in t._deferred_absorption_targets
+            if target not in base._deferred_absorption_targets)
         base.destinations.extend(t.destinations)
+        base.destination_evidence.extend(
+            evidence for evidence in t.destination_evidence
+            if evidence not in base.destination_evidence)
+        base.hike = base.hike or t.hike
         base.welds.extend(t.welds)
         base.terminal_nodes.extend(t.terminal_nodes)
         if base.source != "relation" and t.source == "relation":
@@ -1263,6 +1613,27 @@ def _coord_set(t: "Trail") -> frozenset:
                      for line in t.lines for c in line if len(c) >= 2)
 
 
+def _trail_ckey(trail: "Trail") -> str:
+    return "w" + "-".join(str(way_id)
+                           for way_id in sorted(trail.member_ways))
+
+
+def _exact_linework_coverage(absorbed: "Trail",
+                             survivor: "Trail") -> tuple[bool, bool]:
+    """Return exact absorbed coverage and equality for preclip linework."""
+    from shapely.geometry import MultiLineString
+
+    try:
+        absorbed_geometry = MultiLineString(absorbed.lines)
+        survivor_geometry = MultiLineString(survivor.lines)
+        covered = absorbed_geometry.difference(survivor_geometry).is_empty
+        equal = covered and survivor_geometry.difference(
+            absorbed_geometry).is_empty
+    except Exception:  # noqa: BLE001 - an unprovable relation must not disappear
+        return False, False
+    return covered, equal
+
+
 def _trail_sig(t: "Trail") -> tuple:
     """(member-way set, coord set, length) — the values the duplicate test
     needs, computed once so an O(n^2) area scan doesn't rebuild them per pair
@@ -1305,41 +1676,72 @@ def _prefer(a: "Trail", b: "Trail") -> "Trail":
     return a
 
 
-def dedupe_duplicate_trails(trails: list["Trail"]) -> list["Trail"]:
-    """Drop trails that duplicate another trail's geometry within the same
-    area — e.g. a route relation 'Casner Canyon Trail' over the same ways a
-    name-stitch emits as 'Casner Canyon #11'. merge_same_name misses these
-    because the names normalize differently; matching on GEOMETRY collapses
-    only provably-identical trails and never fuses two DISTINCT trails that
-    merely share a base name (Bear Canyon #29 vs #31 differ in geometry -> both
-    kept). Keeps the better-named object; area-scoped via the area set by
-    merge_same_name."""
+def dedupe_duplicate_trails(
+        trails: list["Trail"], *, collect_absorbed: list | None = None,
+        require_relation_absorption_evidence: bool = False,
+        defer_relation_absorption: bool = False,
+        min_length_mi: float = 0.0, region: str | None = None) -> list["Trail"]:
+    """Drop geometry duplicates while auditing exact-quality relation loss.
+
+    The legacy behavior is unchanged by default. Evidence mode keeps its
+    immediate audited removal for existing callers. Deferral mode records the
+    same logical winner but preserves a relation loser for terminal resolution
+    after exact clipping and Denmark quality disposition.
+    """
     from collections import defaultdict
     by_area: dict = defaultdict(list)
     for t in trails:
         by_area[t.area].append(t)
-    drop: set = set()
+    drop: set[int] = set()
+    inactive: set[int] = set()
     dropped: list = []          # (loser, keeper) names — logged for review
     for group in by_area.values():
         sig = {id(t): _trail_sig(t) for t in group}   # once per trail, not per pair
         n = len(group)
         for i in range(n):
             a = group[i]
-            if id(a) in drop:
+            if id(a) in inactive:
                 continue
             sa = sig[id(a)]
             for j in range(i + 1, n):
                 b = group[j]
-                if id(b) in drop or not _sig_duplicate(sa, sig[id(b)]):
+                if id(b) in inactive or not _sig_duplicate(sa, sig[id(b)]):
                     continue
                 keep = _prefer(a, b)
                 lose = b if keep is a else a
-                drop.add(id(lose))
-                dropped.append((lose.name, keep.name))
+                deferred = False
+                if ((require_relation_absorption_evidence
+                     or defer_relation_absorption)
+                        and lose.source == "relation"):
+                    covered, _equal = _exact_linework_coverage(lose, keep)
+                    if not covered:
+                        continue
+                    if defer_relation_absorption:
+                        lose._deferred_absorption_targets.append(keep)
+                        deferred = True
+                    else:
+                        # The immediate compatibility path may name only a
+                        # survivor that passes model curation.
+                        survivor_category, _survivor_reason = _removal_verdict(
+                            keep, min_length_mi, region)
+                        if (collect_absorbed is None
+                                or survivor_category is not None):
+                            continue
+                        lose.removed_category = \
+                            GEOMETRY_DUPLICATE_ABSORBED_CATEGORY
+                        lose.removed_reason = GEOMETRY_DUPLICATE_ABSORBED_REASON
+                        lose.absorbed_by = keep
+                        collect_absorbed.append(lose)
+                inactive.add(id(lose))
+                if not deferred:
+                    drop.add(id(lose))
+                    lose._terminal_successor = keep
+                    dropped.append((lose.name, keep.name))
                 if lose is a:
                     break
-    # Every drop is logged with the trail it deferred to, so a review can
-    # confirm each removal really had a surviving twin (not an over-merge).
+    # Every immediate drop is logged with the trail it deferred to. Deferred
+    # exact-Denmark candidates are not reported as dropped until terminally
+    # bound after clipping and quality disposition.
     if dropped:
         print(f"dedupe: dropped {len(dropped)} geometry-duplicate trails",
               file=sys.stderr)
@@ -1348,20 +1750,378 @@ def dedupe_duplicate_trails(trails: list["Trail"]) -> list["Trail"]:
     return [t for t in trails if id(t) not in drop]
 
 
-def _reached_destination(trail: "Trail", dest_pois: list[dict]) -> dict | None:
-    """The named destination POI a trail terminates at/near (its payoff), or
-    None. Checks the endpoints of every line — a summit/arch sits at an end."""
-    ends = [c for line in trail.lines if line for c in (line[0], line[-1])]
-    best, bestd = None, SPUR_POI_REACH_FT / 5280.0
-    for c in ends:
-        for p in dest_pois:
-            d = haversine_mi(c, p["coord"])
-            if d <= bestd:
-                best, bestd = p, d
-    return best
+def _true_geometry_endpoints(
+        lines: list[list[tuple[float, float]]]) -> list[tuple[float, float]]:
+    """Return degree-one geometry vertices in stable coordinate order."""
+    degree: dict[tuple[float, float], int] = {}
+    segments: set[tuple[tuple[float, float], tuple[float, float]]] = set()
+    for line in lines:
+        points = [tuple((float(point[0]), float(point[1]))) for point in line]
+        for left, right in zip(points, points[1:]):
+            if left == right:
+                continue
+            segment = tuple(sorted((left, right)))
+            if segment in segments:
+                continue
+            segments.add(segment)
+            degree[left] = degree.get(left, 0) + 1
+            degree[right] = degree.get(right, 0) + 1
+    return sorted(point for point, count in degree.items() if count == 1)
 
 
-def promote_hikes(trails: list["Trail"], pois: list[dict]) -> list["Trail"]:
+def _source_endpoint_records(root_relation_id: int, way_ids: list[int],
+                             ways: dict, nodes: dict) -> list[dict[str, Any]]:
+    """Capture one root's degree-one main-way endpoints before any weld."""
+    source_lines = []
+    source_nodes = []
+    for way_id in way_ids:
+        way = ways.get(way_id) or {}
+        node_ids = list(way.get("nodes") or [])
+        coordinates = [
+            (float(nodes[node_id][0]), float(nodes[node_id][1]))
+            for node_id in node_ids if node_id in nodes
+        ]
+        if len(coordinates) < 2:
+            continue
+        source_lines.append(coordinates)
+        source_nodes.append((way_id, [
+            (node_id, (float(nodes[node_id][0]), float(nodes[node_id][1])))
+            for node_id in node_ids if node_id in nodes
+        ]))
+    endpoints = set(_true_geometry_endpoints(source_lines))
+    records = []
+    seen = set()
+    for way_id, node_values in source_nodes:
+        for node_id, coordinate in node_values:
+            identity = (coordinate, way_id, node_id)
+            if coordinate not in endpoints or identity in seen:
+                continue
+            seen.add(identity)
+            records.append({
+                "root_relation_id": root_relation_id,
+                "way_id": way_id,
+                "node_id": node_id,
+                "coordinate": coordinate,
+            })
+    return sorted(records, key=lambda value: (
+        value["coordinate"], value["way_id"], value["node_id"]))
+
+
+def _exact_denmark_promotion_endpoints(trail: "Trail") -> list[dict[str, Any]]:
+    """Return pre-weld root endpoints that remain endpoints after welding."""
+    final_endpoints = set(_true_geometry_endpoints(trail.lines))
+    grouped: dict[tuple[float, float], list[dict[str, Any]]] = {}
+    root_order = list(dict.fromkeys(trail.root_relation_ids))
+    for root_id in root_order:
+        for source in trail._promotion_endpoint_sources.get(root_id, []):
+            coordinate = tuple(source.get("coordinate") or ())
+            if len(coordinate) != 2 or coordinate not in final_endpoints:
+                continue
+            normalized = {
+                "root_relation_id": root_id,
+                "way_id": source.get("way_id"),
+                "node_id": source.get("node_id"),
+            }
+            values = grouped.setdefault(coordinate, [])
+            if normalized not in values:
+                values.append(normalized)
+    return [{
+        "coordinate": coordinate,
+        "sources": sorted(grouped[coordinate], key=lambda value: (
+            value["root_relation_id"], value["way_id"], value["node_id"])),
+    } for coordinate in sorted(grouped)]
+
+
+def _ambiguous_destination_record(
+        poi: dict, endpoint: dict[str, Any], distance_mi: float,
+        selection_rank: int) -> dict[str, Any]:
+    """Serialize one ranked POI skipped for non-unique endpoint authority."""
+    return {
+        "osm_node_id": poi["id"],
+        "name": poi["name"],
+        "selected_endpoint_coordinate": list(endpoint["coordinate"]),
+        "distance_ft": round(distance_mi * 5280.0, 6),
+        "selection_rank": selection_rank,
+        "endpoint_sources": [dict(source) for source in endpoint["sources"]],
+    }
+
+
+def _exact_denmark_destination_proposal(
+        trail: "Trail", dest_pois: list[dict]
+        ) -> tuple[dict | None, str | None, list[dict[str, Any]]]:
+    """Rank trusted POIs and fall through ambiguous endpoint authorities."""
+    endpoints = _exact_denmark_promotion_endpoints(trail)
+    if not endpoints:
+        return None, "no-authoritative-endpoints", []
+
+    ranked = []
+    for poi in dest_pois:
+        tags = poi.get("tags")
+        poi_id = poi.get("id")
+        coord = poi.get("coord")
+        if (not isinstance(tags, dict)
+                or not isinstance(poi_id, int) or isinstance(poi_id, bool)
+                or poi_id <= 0
+                or not isinstance(coord, (list, tuple)) or len(coord) != 2
+                or not all(isinstance(value, (int, float))
+                           and not isinstance(value, bool)
+                           and math.isfinite(float(value)) for value in coord)):
+            continue
+        eligibility_class = destination_eligibility_class(
+            tags, exact_denmark=True)
+        name = normalized_destination_display_name(tags)
+        if eligibility_class is None or name is None:
+            continue
+        coordinate = (float(coord[0]), float(coord[1]))
+        distances = [
+            (haversine_mi(endpoint["coordinate"], coordinate), endpoint_index,
+             endpoint)
+            for endpoint_index, endpoint in enumerate(endpoints)
+        ]
+        distance_mi, endpoint_index, endpoint = min(
+            distances, key=lambda value: (value[0], value[1]))
+        if distance_mi * 5280.0 > SPUR_POI_REACH_FT:
+            continue
+        normalized_tags = {
+            str(key): str(value) for key, value in sorted(tags.items())
+        }
+        ranked.append((distance_mi, poi_id, endpoint_index, {
+            **poi,
+            "id": poi_id,
+            "name": name,
+            "coord": coordinate,
+            "_eligibility_class": eligibility_class,
+            "_normalized_tags": normalized_tags,
+            "_endpoint": endpoint,
+        }))
+    ranked.sort(key=lambda value: (value[0], value[1], value[2]))
+    if not ranked:
+        return None, "no-eligible-poi-in-reach", []
+
+    skipped = []
+    for selection_rank, (distance_mi, _poi_id, endpoint_index,
+                         selected) in enumerate(ranked, 1):
+        endpoint = selected["_endpoint"]
+        endpoint_sources = endpoint["sources"]
+        root_ids = {
+            source["root_relation_id"] for source in endpoint_sources
+        }
+        source_identities = {
+            (source["root_relation_id"], source["way_id"], source["node_id"])
+            for source in endpoint_sources
+        }
+        if len(root_ids) != 1 or len(source_identities) != 1:
+            skipped.append(_ambiguous_destination_record(
+                selected, endpoint, distance_mi, selection_rank))
+            continue
+        root_id, way_id, node_id = next(iter(source_identities))
+        evidence = {
+            "osm_node_id": selected["id"],
+            "name": selected["name"],
+            "tags": selected["_normalized_tags"],
+            "eligibility_class": selected["_eligibility_class"],
+            "coordinate": list(selected["coord"]),
+            "selected_endpoint_index": endpoint_index,
+            "selected_endpoint_coordinate": list(endpoint["coordinate"]),
+            "distance_ft": round(distance_mi * 5280.0, 6),
+            "reach_limit_ft": SPUR_POI_REACH_FT,
+            "selection_rank": selection_rank,
+            "promotion_root_relation_id": root_id,
+            "endpoint_source_way_id": way_id,
+            "endpoint_source_node_id": node_id,
+        }
+        if skipped:
+            evidence["skipped_ambiguous_pois"] = skipped
+        proposal = {
+            **selected,
+            "_distance_mi": distance_mi,
+            "_destination_evidence": evidence,
+            "_skipped_ambiguous_pois": skipped,
+        }
+        return proposal, None, skipped
+    return None, "ambiguous-endpoint-authority", skipped
+
+
+def _reached_destination(trail: "Trail", dest_pois: list[dict], *,
+                         exact_denmark: bool = False) -> dict | None:
+    """Return the deterministic named destination reached by a true endpoint."""
+    if not exact_denmark:
+        ends = [c for line in trail.lines if line for c in (line[0], line[-1])]
+        best, bestd = None, SPUR_POI_REACH_FT / 5280.0
+        for c in ends:
+            for p in dest_pois:
+                d = haversine_mi(c, p["coord"])
+                if d <= bestd:
+                    best, bestd = p, d
+        return best
+    selected, _reason, _skipped = _exact_denmark_destination_proposal(
+        trail, dest_pois)
+    return selected
+
+
+def _exact_denmark_promotions(
+        trails: list["Trail"], dest_pois: list[dict],
+        authoritative_root_order: list[int] | None) -> list["Trail"]:
+    """Decide exact-Denmark promotions once over final candidate geometry."""
+    if authoritative_root_order is None:
+        authoritative_root_order = list(dict.fromkeys(
+            root_id for trail in trails for root_id in trail.root_relation_ids
+        ))
+    root_positions = {
+        root_id: position
+        for position, root_id in enumerate(authoritative_root_order)
+    }
+    proposals: dict[int, dict] = {}
+    promoted: list["Trail"] = []
+    for candidate_index, trail in enumerate(trails):
+        trail.destination_evidence = []
+        trail.hike = False
+        trail._promotion_decision = None
+        trail._identity_root_relation_id = None
+        if trail.source != "relation":
+            continue
+
+        ordered_roots = sorted(
+            dict.fromkeys(trail.root_relation_ids),
+            key=lambda root_id: (
+                root_positions.get(root_id, len(root_positions)), root_id),
+        )
+        trail.root_relation_ids = ordered_roots
+        blocking_roots = []
+        if len(ordered_roots) > 1:
+            identities = trail._exact_denmark_root_identities
+            if any(root_id not in identities for root_id in ordered_roots):
+                raise ValueError(
+                    "multi-root exact-Denmark candidate lacks root identity")
+            primary_root_id = ordered_roots[0]
+            primary_identity = identities[primary_root_id]
+            primary_tags = primary_identity.get("tags")
+            if (not isinstance(primary_identity.get("name"), str)
+                    or not isinstance(primary_tags, dict)):
+                raise ValueError(
+                    "multi-root exact-Denmark primary identity is malformed")
+            trail._identity_root_relation_id = primary_root_id
+            trail.name = primary_identity["name"]
+            trail.tags = dict(primary_tags)
+            for root_id in ordered_roots:
+                identity = identities[root_id]
+                root_tags = identity.get("tags")
+                root_name = identity.get("name")
+                if not isinstance(root_name, str) or not isinstance(root_tags, dict):
+                    raise ValueError(
+                        "multi-root exact-Denmark root identity is malformed")
+                reason = None
+                if str(root_tags.get("network", "")).strip().lower() \
+                        in _ROUTE_NETWORKS:
+                    reason = "not-local-route"
+                elif classify_kind(root_name, root_tags) != "route":
+                    reason = "not-route-candidate"
+                if reason is not None:
+                    blocking_roots.append({
+                        "root_relation_id": root_id,
+                        "reason": reason,
+                    })
+        else:
+            if str(trail.tags.get("network", "")).strip().lower() \
+                    in _ROUTE_NETWORKS:
+                trail._promotion_decision = {
+                    "decision": "declined",
+                    "reason": "not-local-route",
+                    "skipped_ambiguous_pois": [],
+                }
+                continue
+            if classify_kind(trail.name, trail.tags) != "route":
+                trail._promotion_decision = {
+                    "decision": "declined",
+                    "reason": "not-route-candidate",
+                    "skipped_ambiguous_pois": [],
+                }
+                continue
+
+        if blocking_roots:
+            reason = (
+                "not-local-route"
+                if any(blocker["reason"] == "not-local-route"
+                       for blocker in blocking_roots)
+                else "not-route-candidate"
+            )
+            trail._promotion_decision = {
+                "decision": "declined",
+                "reason": reason,
+                "blocking_roots": blocking_roots,
+                "skipped_ambiguous_pois": [],
+            }
+            continue
+        proposal, reason, skipped = _exact_denmark_destination_proposal(
+            trail, dest_pois)
+        if proposal is None:
+            trail._promotion_decision = {
+                "decision": "declined",
+                "reason": reason,
+                "skipped_ambiguous_pois": skipped,
+            }
+            continue
+        proposals[candidate_index] = proposal
+
+    ownership_groups: dict[str, list[tuple[int, dict]]] = {}
+    for candidate_index, proposal in proposals.items():
+        key = merge_key(_hike_name(proposal["name"]))
+        ownership_groups.setdefault(key, []).append((candidate_index, proposal))
+    owners = set()
+    for contenders in ownership_groups.values():
+        owner_index, _proposal = min(contenders, key=lambda value: (
+            value[1]["_distance_mi"],
+            value[1]["id"],
+            root_positions.get(
+                value[1]["_destination_evidence"][
+                    "promotion_root_relation_id"],
+                len(root_positions)),
+            getattr(
+                trails[value[0]], "_terminal_absorption_candidate_id", None)
+            if isinstance(getattr(
+                trails[value[0]], "_terminal_absorption_candidate_id", None),
+                          int)
+            else value[0],
+        ))
+        owners.add(owner_index)
+
+    for candidate_index, proposal in proposals.items():
+        trail = trails[candidate_index]
+        skipped = proposal["_skipped_ambiguous_pois"]
+        evidence = proposal["_destination_evidence"]
+        if candidate_index not in owners:
+            trail._promotion_decision = {
+                "decision": "declined",
+                "reason": "destination-already-claimed",
+                "skipped_ambiguous_pois": skipped,
+            }
+            continue
+        trail.destinations = [proposal["name"]]
+        trail.destination_evidence = [evidence]
+        trail.name = _hike_name(proposal["name"])
+        trail.hike = True
+        trail._promotion_decision = {
+            "decision": "promoted",
+            "poi_osm_node_id": evidence["osm_node_id"],
+            "promotion_root_relation_id": evidence[
+                "promotion_root_relation_id"],
+            "endpoint_source_way_id": evidence["endpoint_source_way_id"],
+            "endpoint_source_node_id": evidence["endpoint_source_node_id"],
+            "distance_ft": evidence["distance_ft"],
+            "selection_rank": evidence["selection_rank"],
+            "skipped_ambiguous_pois": skipped,
+        }
+        promoted.append(trail)
+    return promoted
+
+
+def promote_hikes(
+        trails: list["Trail"], pois: list[dict], *,
+        collect_absorbed: list | None = None,
+        require_relation_absorption_evidence: bool = False,
+        defer_relation_absorption: bool = False,
+        exact_denmark: bool = False,
+        authoritative_root_order: list[int] | None = None) -> list["Trail"]:
     """Tier 1 — HARVEST, don't synthesize. Promote a *local* route that
     reaches a named destination POI into a canonical 'hike', renamed from the
     payoff: OSM's 'Angels Landing Trail--West Rim Trail' route (which ends at
@@ -1379,21 +2139,32 @@ def promote_hikes(trails: list["Trail"], pois: list[dict]) -> list["Trail"]:
     Trail' spur that sits inside the promoted 2.17 mi hike) is redundant and
     dropped, so the checklist doesn't list the same payoff twice.
     """
-    dest_pois = [p for p in pois if p.get("name")]
-    if not dest_pois:
-        return trails
-    promoted: list["Trail"] = []
-    for t in trails:
-        if str(t.tags.get("network", "")).strip().lower() in _ROUTE_NETWORKS:
-            continue                                  # thru-route, not one hike
-        if classify_kind(t.name, t.tags) != "route":
-            continue                                  # only promote route-ish objects
-        dest = _reached_destination(t, dest_pois)
-        if dest:
-            t.destinations = [dest["name"]]
-            t.name = _hike_name(dest["name"])
-            t.hike = True
-            promoted.append(t)
+    if exact_denmark:
+        dest_pois = [
+            p for p in pois
+            if isinstance(p.get("tags"), dict)
+            and destination_eligibility_class(
+                p["tags"], exact_denmark=True) is not None
+            and normalized_destination_display_name(p["tags"]) is not None
+        ]
+        promoted = _exact_denmark_promotions(
+            trails, dest_pois, authoritative_root_order)
+    else:
+        dest_pois = [p for p in pois if p.get("name")]
+        if not dest_pois:
+            return trails
+        promoted = []
+        for t in trails:
+            if str(t.tags.get("network", "")).strip().lower() in _ROUTE_NETWORKS:
+                continue                              # thru-route, not one hike
+            if classify_kind(t.name, t.tags) != "route":
+                continue                              # only route-ish objects
+            dest = _reached_destination(t, dest_pois)
+            if dest:
+                t.destinations = [dest["name"]]
+                t.name = _hike_name(dest["name"])
+                t.hike = True
+                promoted.append(t)
     if not promoted:
         return trails
 
@@ -1403,8 +2174,34 @@ def promote_hikes(trails: list["Trail"], pois: list[dict]) -> list["Trail"]:
     out: list["Trail"] = []
     for t in trails:
         if not t.hike:
-            covers = hikes_by_key.get(merge_key(t.name))
-            if covers and any(t.length_mi < h.length_mi for h in covers):
+            covers = hikes_by_key.get(merge_key(t.name)) or []
+            longer_hikes = [h for h in covers if t.length_mi < h.length_mi]
+            if longer_hikes:
+                if ((require_relation_absorption_evidence
+                     or defer_relation_absorption)
+                        and t.source == "relation"):
+                    covering_hikes = [
+                        hike for hike in longer_hikes
+                        if _exact_linework_coverage(t, hike)[0]
+                    ]
+                    if not covering_hikes:
+                        out.append(t)
+                        continue
+                    if defer_relation_absorption:
+                        t._deferred_absorption_targets.extend(covering_hikes)
+                        out.append(t)
+                        continue
+                    covering_hike = covering_hikes[0]
+                    if collect_absorbed is None:
+                        out.append(t)
+                        continue
+                    t.removed_category = GEOMETRY_DUPLICATE_ABSORBED_CATEGORY
+                    t.removed_reason = GEOMETRY_DUPLICATE_ABSORBED_REASON
+                    t.absorbed_by = covering_hike
+                    collect_absorbed.append(t)
+                    t._terminal_successor = covering_hike
+                else:
+                    t._terminal_successor = longer_hikes[0]
                 continue                              # absorbed into its hike
         out.append(t)
     return out
@@ -1693,9 +2490,12 @@ def _is_trailish(tags: dict) -> bool:
     return ingest_drop_reason(tags) is None
 
 
-def _first_named(way_ids: list[int], ways: dict) -> str | None:
+def _first_named(way_ids: list[int], ways: dict, *,
+                 deterministic_localized: bool = False) -> str | None:
     for wid in way_ids:
-        nm = display_name(ways[wid]["tags"])
+        tags = ways[wid]["tags"]
+        nm = (_dk_display_name(tags) if deterministic_localized
+              else display_name(tags))
         if nm:
             return nm
     return None

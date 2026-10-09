@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "record_id": "mols-bjerge-bjergetapen-8350111",
+  "purpose": "validation-only-identity-and-approximate-length",
+  "trail": {
+    "name": "Mols Bjerge-stien Bjergetapen",
+    "osm_relation_id": 8350111
+  },
+  "official_fact": {
+    "publisher": "VisitDenmark / VisitAarhus",
+    "source_url": "https://www.visitdenmark.com/denmark/explore/hiking-mols-bjerge-7-km-gdk1122338",
+    "retrieved_on": "2026-10-02",
+    "retrieval_note": "Locally stored, rephrased official fact; no network retrieval is performed by TrailForge.",
+    "approximate_complete_stage_km": 20,
+    "precision": "approximate",
+    "official_geometry_available": false
+  },
+  "osm_measurement": {
+    "status": "generated-from-current-raw-authority-and-assembled-output"
+  },
+  "identity_disposition": {
+    "kiro": "supports-relation-8350111-as-the-complete-named-mountain-stage",
+    "human": "not-yet-recorded",
+    "basis": "Matching OSM relation name and approximately 20 km OSM-derived length; numeric proximity alone is not geometry authority."
+  },
+  "geometry_policy": {
+    "exclusive_source": "OpenStreetMap",
+    "official_geometry_used": false,
+    "competitor_data_used": false,
+    "connector_geometry_invented": false
+  },
+  "acceptance_tolerance": null,
+  "attribution": "© OpenStreetMap contributors"
+}

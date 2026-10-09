@@ -3,6 +3,7 @@
 # full-planet DB import. See HOMELAB.md for the full loop.
 
 SHELL := /bin/bash
+PYTHON ?= python3
 DATA  := data
 
 # Geofabrik extract for the bootstrap phase (planet comes later):
@@ -79,5 +80,6 @@ qa:
 	python3 viewer/serve.py
 
 test:
-	python3 -m unittest discover -s tools -p 'test_*.py'
-	python3 -m unittest discover -s assemble -p 'test_*.py'
+	$(PYTHON) -m unittest discover -s tools -p 'test_*.py'
+	$(PYTHON) -m unittest discover -s assemble -p 'test_*.py'
+	$(PYTHON) -m unittest discover -s serve -p 'test_*.py'

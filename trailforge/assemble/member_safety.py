@@ -16,7 +16,7 @@ TRAILISH_HIGHWAYS = frozenset({
 })
 RESTORABLE_RELATION_HIGHWAYS = frozenset({
     "track", "residential", "service", "unclassified", "living_street",
-    "pedestrian",
+    "pedestrian", "primary", "tertiary",
 })
 POSITIVE_FOOT_VALUES = frozenset({"yes", "designated", "permissive"})
 # Canonical spellings after service-token space/hyphen/underscore folding.
@@ -35,7 +35,7 @@ DECISIVE_TAG_KEYS = (
     "sac_scale", "trail_visibility", "designation", "network", "access",
     "indoor", "motor_vehicle", "motorcar", "atv", "ohv", "4wd_only",
     "snowmobile", "motorcycle", "bicycle", "tracktype", "surface", "lanes",
-    "service", "piste:type", "mtb:type", "mtb:scale:imba", "oneway",
+    "service", "area", "piste:type", "mtb:type", "mtb:scale:imba", "oneway",
 )
 
 _BIKE_ONLY_NAME = re.compile(r"\bmtb\b|\bmountain\s*bike\b")
@@ -74,6 +74,27 @@ def _normalize_service_token(value: Any) -> str:
 def decisive_tags(tags: Mapping[str, Any]) -> dict[str, Any]:
     """Return raw decisive tags in a stable key order for audit evidence."""
     return {key: tags[key] for key in DECISIVE_TAG_KEYS if key in tags}
+
+
+def closed_pedestrian_area(tags: Mapping[str, Any], *, closed: bool) -> bool:
+    """Return whether one OSM way is pedestrian polygon context."""
+    return (closed
+            and normalize(tags.get("highway")) == "pedestrian"
+            and normalize(tags.get("area")) != "no")
+
+
+def standalone_pedestrian_area_candidate(
+        tags: Mapping[str, Any], *, closed: bool,
+        relation_claimed: bool) -> bool:
+    """Return whether a named pedestrian area needs a standalone disposition.
+
+    Unnamed polygons were never checklist candidates. A ring claimed by an
+    emitted signed route remains auditable through that route rather than a
+    duplicate standalone removal row.
+    """
+    return (closed_pedestrian_area(tags, closed=closed)
+            and bool(normalize(tags.get("name")))
+            and not relation_claimed)
 
 
 def service_tokens(tags: Mapping[str, Any]) -> tuple[str, ...]:
@@ -245,7 +266,13 @@ def _service_exclusion(tags: Mapping[str, Any]) -> tuple[str | None, tuple[str, 
 
 
 def dk_relation_member_decision(tags: Mapping[str, Any]) -> MemberDecision:
-    """Decide Denmark hiking-relation main-line eligibility with a reason."""
+    """Decide Denmark hiking-relation main-line eligibility with a reason.
+
+    A signed hiking relation supplies walking purpose, but never overrides an
+    explicit pedestrian prohibition or a known unsafe/malformed road subtype.
+    This relation-only default must not be reused for standalone checklist
+    admission.
+    """
     foot = normalize(tags.get("foot"))
     explicit_foot = foot in POSITIVE_FOOT_VALUES
     if foot in {"no", "private"}:
@@ -253,8 +280,9 @@ def dk_relation_member_decision(tags: Mapping[str, Any]) -> MemberDecision:
     access = normalize(tags.get("access"))
     if access in {"no", "private"} and not explicit_foot:
         return MemberDecision(False, False, f"access-{access}")
-    if normalize(tags.get("footway")) in {"sidewalk", "crossing"}:
-        return MemberDecision(False, False, "footway-sidewalk-or-crossing")
+    footway = normalize(tags.get("footway"))
+    if footway == "sidewalk":
+        return MemberDecision(False, False, "footway-sidewalk")
     if normalize(tags.get("indoor")) == "yes":
         return MemberDecision(False, False, "indoor")
     if normalize(tags.get("trail")) == "no":
@@ -271,17 +299,33 @@ def dk_relation_member_decision(tags: Mapping[str, Any]) -> MemberDecision:
         normalize(tags.get(key)) in {"yes", "designated"}
         for key in ("motor_vehicle", "motorcar")
     )
-    if explicit_motor_access and not explicit_foot:
+    motor_default_classes = {
+        "primary", "tertiary", "residential", "pedestrian",
+    }
+    # A motor permission is not a pedestrian permission. In particular, an
+    # ordinary service road must not bypass the same explicit-foot gate used by
+    # unclassified and living-street members.
+    if (explicit_motor_access and not explicit_foot
+            and highway not in motor_default_classes):
         return MemberDecision(False, False, "motor-access-without-positive-foot")
 
-    tokens: tuple[str, ...] = ()
     if highway == "service":
-        if not explicit_foot:
-            return MemberDecision(False, False, "service-without-positive-foot")
+        # Subtype safety precedes access-default handling so parking aisles and
+        # driveways retain their decisive fail-closed reason even with foot=yes.
         service_error, tokens = _service_exclusion(tags)
         if service_error is not None:
             return MemberDecision(False, False, service_error,
                                   service_tokens=tokens)
+        # An ordinary no-subtype service road has default pedestrian access.
+        # Explicitly classified alleys retain the existing positive-foot gate.
+        if tokens and not explicit_foot:
+            return MemberDecision(False, False, "service-without-positive-foot",
+                                  service_tokens=tokens)
+        return MemberDecision(True, True, "restored-service",
+                              service_tokens=tokens)
+
+    if footway == "crossing" and highway == "footway":
+        return MemberDecision(True, True, "restored-footway-crossing")
 
     if highway == "track":
         road_kind = road_like_track_kind(
@@ -301,5 +345,4 @@ def dk_relation_member_decision(tags: Mapping[str, Any]) -> MemberDecision:
         if explicit_foot and explicit_motor_access:
             return MemberDecision(True, True, "restored-shared-motor-track")
         return MemberDecision(False, False, standalone.reason)
-    return MemberDecision(True, True, f"restored-{highway}",
-                          service_tokens=tokens)
+    return MemberDecision(True, True, f"restored-{highway}")

@@ -161,7 +161,9 @@ def _line_parts(geom) -> list:
 
 def clip_features_to_area(features: list[dict[str, Any]], area_union,
                           min_inside_mi: float = 0.05,
-                          area_name: str | None = None) -> list[dict[str, Any]]:
+                          area_name: str | None = None,
+                          collect_dropped: list[dict[str, Any]] | None = None
+                          ) -> list[dict[str, Any]]:
     """Clip each trail to the area boundary, keeping only its in-park portion.
 
     When the caller selected one exact boundary, ``area_name`` stamps that
@@ -176,10 +178,30 @@ def clip_features_to_area(features: list[dict[str, Any]], area_union,
     `full_length_mi`, and `clipped: true` is flagged). A trail whose in-park
     remnant is below `min_inside_mi` — a mere boundary sliver — is dropped.
     A trail that dips out and back in becomes a MultiLineString of its
-    in-park pieces.
+    in-park pieces. When requested, exact-area drops retain their full source
+    geometry plus typed evidence for independent final validation.
     """
     import model
     from shapely.geometry import shape
+
+    def record_drop(feature: dict[str, Any], *, category: str,
+                    reason: str, inside_mi: float) -> None:
+        if collect_dropped is None:
+            return
+        properties = dict(feature.get("properties") or {})
+        if area_name is not None:
+            properties["area"] = area_name
+        properties.update({
+            "removed_category": category,
+            "removed_reason": reason,
+            "drop_evidence": {
+                "kind": category,
+                "area": area_name,
+                "min_inside_mi": float(min_inside_mi),
+                "inside_mi": round(float(inside_mi), 12),
+            },
+        })
+        collect_dropped.append({**feature, "properties": properties})
 
     kept = []
     for f in features:
@@ -190,6 +212,9 @@ def clip_features_to_area(features: list[dict[str, Any]], area_union,
             continue
         parts = _line_parts(clipped_geometry)
         if not parts:
+            record_drop(
+                f, category="outside-exact-area", inside_mi=0.0,
+                reason="No line geometry intersects the exact selected area.")
             continue
         lines = [[(c[0], c[1]) for c in ln.coords] for ln in parts]
         unrounded_inside_mi = sum(model.line_mi(line) for line in lines)
@@ -198,6 +223,10 @@ def clip_features_to_area(features: list[dict[str, Any]], area_union,
         # The legacy path intentionally preserves HEAD's rounded floor.
         floor_miles = unrounded_inside_mi if area_name is not None else inside_mi
         if floor_miles < min_inside_mi:
+            record_drop(
+                f, category="min-inside-mi", inside_mi=unrounded_inside_mi,
+                reason=(f"Exact-area remnant is {inside_mi} mi, below the "
+                        f"{min_inside_mi} mi inside-area minimum."))
             continue
         props = dict(f["properties"])
         if area_name is not None:

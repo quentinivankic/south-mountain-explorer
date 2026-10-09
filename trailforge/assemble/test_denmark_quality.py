@@ -27,6 +27,7 @@ def T(name, source, way_ids, lines, *, relation_id=None, tags=None):
     trail = m.Trail(name, source, list(way_ids), lines, tags or {}, [])
     if relation_id is not None:
         trail.relation_ids = [relation_id]
+        trail.root_relation_ids = [relation_id]
         trail.direct_relation_ways = {relation_id: list(way_ids)}
     return trail
 
@@ -200,6 +201,119 @@ class RelationConnectivity(unittest.TestCase):
                             [[[x, y] for x, y in line] for line in original])
         self.assertEqual(len(kept[0]["geometry"]["coordinates"]), 2)
 
+    def test_out_of_area_unsafe_member_explains_source_gap(self):
+        nodes = {
+            1: (0, 0), 2: (3, 0), 3: (7, 0), 4: (10, 0),
+        }
+        ways = {
+            10: W([1, 2], highway="path"),
+            11: W([2, 3], highway="service", service="parking_aisle"),
+            12: W([3, 4], highway="path"),
+        }
+        relations = {700: {
+            "tags": {"type": "route", "route": "hiking",
+                     "name": "Boundary Excursion"},
+            "members": [("w", 10, ""), ("w", 11, ""), ("w", 12, "")],
+        }}
+        audits = []
+        trails = m.assemble(
+            nodes, ways, relations, [], region="dk",
+            collect_relation_member_audit=audits)
+        features = prepared(trails, ways)
+        boundary = MultiPolygon([
+            box(-0.5, -1, 1, 1), box(9, -1, 10.5, 1),
+        ])
+        clipped = areas.clip_features_to_area(
+            features, boundary, min_inside_mi=0, area_name=AREA)
+
+        kept, removed, report = quality.curate_exact_area(
+            clipped, ways=ways, nodes=nodes, area_union=boundary,
+            area_name=AREA, region="dk", relation_member_audit=audits)
+
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(removed, [])
+        connectivity = kept[0]["properties"]["connectivity"]
+        self.assertEqual(connectivity["source_components"], 2)
+        self.assertEqual(connectivity["postclip_components"], 2)
+        self.assertEqual(connectivity["accepted_reasons"], [
+            "out-of-area-member-gap", "boundary-induced-split",
+        ])
+        excluded = report["relation_member_audit"][0]["direct_way_members"][1]
+        self.assertEqual(excluded["exact_area_status"], "outside")
+        self.assertEqual(excluded["render_disposition"],
+                         "unsafe-outside-exact-area")
+        self.assertIsNone(excluded["terminal_reason"])
+        self.assertEqual(report["relation_member_unresolved_count"], 0)
+        self.assertEqual(report["signed_relation_unresolved_count"], 0)
+
+    def test_fused_roots_require_outside_gap_proof_for_every_root(self):
+        nodes = {
+            1: (10.000, 56.0), 2: (10.005, 56.0),
+            3: (10.010, 56.0), 4: (10.015, 56.0),
+            5: (10.000, 56.01), 6: (10.005, 56.01),
+            7: (10.010, 56.01), 8: (10.015, 56.01),
+        }
+        boundary = MultiPolygon([
+            box(9.999, 55.999, 10.005, 56.011),
+            box(10.010, 55.999, 10.016, 56.011),
+        ])
+
+        def run(second_proof):
+            ways = {
+                10: W([1, 2], highway="path"),
+                11: W([2, 3], highway="service", service="parking_aisle"),
+                12: W([3, 4], highway="path"),
+                20: W([5, 6], highway="path"),
+                22: W([7, 8], highway="path"),
+            }
+            if second_proof:
+                ways[21] = W(
+                    [6, 7], highway="service", service="parking_aisle")
+            relations = {
+                700: {
+                    "tags": {"type": "route", "route": "hiking",
+                             "name": "Fused Route"},
+                    "members": [("w", 10, ""), ("w", 11, ""),
+                                ("w", 12, "")],
+                },
+                701: {
+                    "tags": {"type": "route", "route": "hiking",
+                             "name": "Fused Route"},
+                    "members": ([("w", 20, ""), ("w", 21, ""),
+                                 ("w", 22, "")] if second_proof else
+                                [("w", 20, ""), ("w", 22, "")]),
+                },
+            }
+            audits = []
+            trails = m.assemble(
+                nodes, ways, relations, [], region="dk",
+                collect_relation_member_audit=audits)
+            self.assertEqual(len(trails), 1)
+            self.assertEqual(trails[0].root_relation_ids, [700, 701])
+            features = prepared(trails, ways)
+            clipped = areas.clip_features_to_area(
+                features, boundary, min_inside_mi=0, area_name=AREA)
+            return quality.curate_exact_area(
+                clipped, ways=ways, nodes=nodes, area_union=boundary,
+                area_name=AREA, region="dk", relation_member_audit=audits)
+
+        failed, _, failed_report = run(False)
+        self.assertEqual(failed[0]["properties"]["connectivity"]["status"],
+                         "rejected")
+        self.assertEqual(
+            failed[0]["properties"]["quality_disposition"],
+            "unresolved-relation-gap")
+        self.assertEqual(failed_report["signed_relation_unresolved_count"], 1)
+
+        passed, removed, passed_report = run(True)
+        self.assertEqual(removed, [])
+        self.assertEqual(passed[0]["properties"]["connectivity"]["status"],
+                         "accepted")
+        self.assertIn(
+            "out-of-area-member-gap",
+            passed[0]["properties"]["connectivity"]["accepted_reasons"])
+        self.assertEqual(passed_report["signed_relation_unresolved_count"], 0)
+
     def test_small_coordinate_gap_with_distinct_nodes_stays_unresolved(self):
         nodes = {1: (0, 0), 2: (1, 0), 3: (1.000001, 0), 4: (2, 0)}
         ways = {1: W([1, 2], highway="path"), 2: W([3, 4], highway="path")}
@@ -278,6 +392,10 @@ class RelationConnectivity(unittest.TestCase):
         self.assertEqual(report["signed_relation_unresolved_count"], 0)
         restored = report["restored_road_relations"][0]
         self.assertEqual(restored["restored_way_ids"], [11])
+        self.assertEqual(restored["restored_ways"], [{
+            "way_id": 11,
+            "tags": {"highway": "residential", "name": "Synthetic Road"},
+        }])
         self.assertEqual(restored["restored_way_count"], 1)
         self.assertLess(restored["restored_share"], 0.10)
         self.assertLess(restored["restored_miles"], 1.0)
@@ -331,34 +449,24 @@ class RelationConnectivity(unittest.TestCase):
         trails = m.assemble(nodes, ways, relations, [], region="dk")
         return curate(trails, ways, nodes)
 
-    def test_restored_road_share_threshold_below_equal_and_above(self):
-        cases = ((0.099, False), (0.100, False), (0.101, True))
-        for share, rejected in cases:
+    def test_restored_road_share_is_diagnostic_without_threshold(self):
+        for share in (0.099, 0.100, 0.101):
             with self.subTest(share=share):
                 kept, removed, report = self._curate_road_fraction(share, 1.0)
                 self.assertEqual(len(kept), 1)
                 self.assertEqual(removed, [])
                 row = report["restored_road_relations"][0]
                 self.assertAlmostEqual(row["restored_share"], share, places=6)
-                failures = [message for message in report["validation_failures"]
-                            if "restored-road-share-limit" in message]
-                self.assertEqual(bool(failures), rejected)
-                aggregate_failures = [
-                    message for message in report["validation_failures"]
-                    if "restored-road-aggregate-share-limit" in message]
-                self.assertEqual(bool(aggregate_failures), rejected)
+                self.assertFalse(any("restored-road" in message and "limit" in message
+                                     for message in report["validation_failures"]))
 
-    def test_restored_road_mile_threshold_below_equal_and_above(self):
-        cases = ((0.999, False), (1.000, False), (1.001, True))
-        for road_miles, rejected in cases:
+    def test_restored_road_miles_are_diagnostic_without_threshold(self):
+        for road_miles in (0.999, 1.000, 1.001):
             with self.subTest(road_miles=road_miles):
                 _, _, report = self._curate_road_fraction(road_miles, 20.0)
                 row = report["restored_road_relations"][0]
                 self.assertAlmostEqual(row["restored_miles"], road_miles, places=6)
-                failures = [message for message in report["validation_failures"]
-                            if "restored-road-mile-limit" in message]
-                self.assertEqual(bool(failures), rejected)
-                self.assertFalse(any("restored-road-share-limit" in message
+                self.assertFalse(any("restored-road" in message and "limit" in message
                                      for message in report["validation_failures"]))
 
     def test_relation_only_denominator_ignores_absorbed_same_name_path(self):
@@ -395,8 +503,8 @@ class RelationConnectivity(unittest.TestCase):
         self.assertAlmostEqual(measurement["total_relation_miles"], 0.11, places=5)
         self.assertAlmostEqual(measurement["restored_share"], 0.02 / 0.11,
                                places=5)
-        self.assertTrue(any("restored-road-share-limit" in failure
-                            for failure in report["validation_failures"]))
+        self.assertFalse(any("restored-road" in failure and "limit" in failure
+                             for failure in report["validation_failures"]))
 
     def test_multi_relation_measurements_use_unique_relation_way_tuples(self):
         nodes = {1: (0, 0), 2: (0.01, 0), 3: (0.011, 0), 4: (0.021, 0)}
@@ -408,6 +516,7 @@ class RelationConnectivity(unittest.TestCase):
         trail = T("Coalesced Relations", "relation", [10, 11, 12],
                   [[nodes[1], nodes[2], nodes[3], nodes[4]]])
         trail.relation_ids = [700, 701]
+        trail.root_relation_ids = [700, 701]
         trail.direct_relation_ways = {700: [10, 11], 701: [11, 12]}
         trail.restored_relation_ways = [11]
 

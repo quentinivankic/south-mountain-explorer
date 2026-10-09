@@ -33,6 +33,22 @@ class SharedMemberSafety(unittest.TestCase):
         self.assertEqual(validator._relation_member_should_render(tags), eligible)
         self.assertEqual(validator._is_expected_restored_member(tags), restored)
 
+    def test_standalone_pedestrian_area_candidate_matrix(self):
+        base = {"name": "Maltgården", "highway": "pedestrian"}
+        self.assertTrue(safety.standalone_pedestrian_area_candidate(
+            base, closed=True, relation_claimed=False))
+        self.assertTrue(safety.standalone_pedestrian_area_candidate(
+            {**base, "area": "yes", "surface": "sett", "lit": "yes"},
+            closed=True, relation_claimed=False))
+        for tags, closed, claimed in (
+                ({"highway": "pedestrian", "area": "yes"}, True, False),
+                ({**base, "area": "no"}, True, False),
+                (base, False, False),
+                (base, True, True)):
+            with self.subTest(tags=tags, closed=closed, claimed=claimed):
+                self.assertFalse(safety.standalone_pedestrian_area_candidate(
+                    tags, closed=closed, relation_claimed=claimed))
+
     def test_service_tokens_use_one_fail_closed_allowlist(self):
         denied = {
             "driveway;parking_aisle": "service-forbidden-driveway",
@@ -82,6 +98,28 @@ class SharedMemberSafety(unittest.TestCase):
         ):
             with self.subTest(tags=tags):
                 self.assert_decision(tags, eligible=True, restored=True)
+
+    def test_service_motor_access_requires_explicit_positive_foot(self):
+        for highway in ("service", "unclassified", "living_street"):
+            for motor_key in ("motor_vehicle", "motorcar"):
+                for motor_value in ("yes", "designated"):
+                    for foot in (None, "yes", "designated", "permissive"):
+                        tags = {
+                            "highway": highway,
+                            motor_key: motor_value,
+                        }
+                        if foot is not None:
+                            tags["foot"] = foot
+                        with self.subTest(
+                                highway=highway, motor_key=motor_key,
+                                motor_value=motor_value, foot=foot):
+                            if foot is None:
+                                self.assert_decision(
+                                    tags, eligible=False,
+                                    reason="motor-access-without-positive-foot")
+                            else:
+                                self.assert_decision(
+                                    tags, eligible=True, restored=True)
 
     def test_agency_road_codes_keep_legacy_prefix_semantics(self):
         names = (
@@ -178,11 +216,18 @@ class SharedMemberSafety(unittest.TestCase):
               "motorcar": "yes", "foot": "yes",
               "name": "Provstskovvej"}, True),
             ({"highway": "residential"}, True),
+            ({"highway": "residential", "motor_vehicle": "yes"}, True),
+            ({"highway": "primary"}, True),
+            ({"highway": "tertiary"}, True),
             ({"highway": "unclassified"}, True),
             ({"highway": "living_street"}, True),
+            ({"highway": "footway", "footway": "crossing"}, True),
             ({"highway": "pedestrian"}, False),
+            ({"highway": "pedestrian", "motor_vehicle": "yes"}, True),
             ({"highway": "pedestrian", "motor_vehicle": "yes",
               "foot": "permissive"}, True),
+            ({"highway": "service"}, True),
+            ({"highway": "service", "foot": "destination"}, True),
             ({"highway": "service", "foot": "yes"}, True),
             ({"highway": "service", "service": "alley",
               "foot": "designated"}, True),
@@ -209,7 +254,6 @@ class SharedMemberSafety(unittest.TestCase):
              "mtb:scale:imba": "3"},
             {"highway": "track", "4wd_only": "yes", "foot": "yes"},
             {"highway": "track", "atv": "designated", "foot": "yes"},
-            {"highway": "residential", "motor_vehicle": "yes"},
             {"highway": "track", "motor_vehicle": "yes"},
             {"highway": "track", "motorcar": "yes"},
             {"highway": "track", "lanes": "2", "foot": "yes"},
@@ -218,8 +262,7 @@ class SharedMemberSafety(unittest.TestCase):
              "motor_vehicle": " YES ", "foot": " YES "},
             {"highway": "track", "name": "NF-418C", "foot": "yes"},
             {"highway": "track", "name": "3900 East", "foot": "yes"},
-            {"highway": "service"},
-            {"highway": "service", "foot": "destination"},
+            {"highway": "service", "service": "alley"},
             {"highway": "service", "service": "drive-through",
              "foot": "yes"},
             {"highway": "service", "service": "emergency_access",

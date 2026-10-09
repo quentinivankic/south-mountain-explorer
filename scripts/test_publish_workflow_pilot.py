@@ -117,6 +117,11 @@ def test_runner_local_copy_is_created_and_pipeline_never_runs_in_checkout():
     assert "${RUNNER_TEMP:?}/mols-bjerge-qa." in _PILOT
     assert 'git archive HEAD | tar -x -C "$PILOT_REPO"' in _PILOT
     assert 'cd "$PILOT_REPO"' in _PILOT
+    for tool in (
+            "build_pbf_receipt.py", "build_relation_slice.py",
+            "export_relation_members.py", "export_way_topology.py",
+            "validate_publish_pilot.py"):
+        assert f'test -f "$PILOT_REPO/trailforge/tools/{tool}"' in _PILOT
     assert _PILOT.count('cd "$PILOT_REPO/trailforge"') >= 4
     assert "working-directory: ${{ github.workspace }}" in _PILOT
     assert "../public/areas" not in _PILOT
@@ -136,8 +141,15 @@ def test_discovery_identity_and_one_row_index_are_structurally_verified():
 
 def test_denmark_prefilter_aoi_exact_assembly_and_routes_are_preserved():
     assert "https://download.geofabrik.de/europe/denmark-latest.osm.pbf" in _PILOT
-    assert "bash extract/prefilter.sh data/raw/denmark.osm.pbf data/hiking.osm.pbf" in _PILOT
-    assert 'HIKING=data/hiking.osm.pbf NAME=mols-bjerge BBOX="$PILOT_BBOX"' in _PILOT
+    assert "bash extract/prefilter.sh \\" in _PILOT
+    assert "data/raw/denmark.osm.pbf data/hiking.osm.pbf \\" in _PILOT
+    assert "mols-bjerge.prefilter-transformation.json" in _PILOT
+    assert "HIKING=data/hiking.osm.pbf" in _PILOT
+    assert "NAME=mols-bjerge" in _PILOT
+    assert 'BBOX="$PILOT_BBOX"' in _PILOT
+    assert 'AOI_RECEIPT="$PILOT_QA_ROOT/data/aoi/mols-bjerge.scope.aoi.json"' in _PILOT
+    assert "AOI_WAY_TOPOLOGY=data/aoi/mols-bjerge.way-topology.json" in _PILOT
+    assert "bash extract/aoi.sh" in _PILOT
     for argument in (
         "--in data/aoi/mols-bjerge.osm.pbf",
         "--out data/aoi/mols-bjerge.trails.geojson",
@@ -153,22 +165,83 @@ def test_denmark_prefilter_aoi_exact_assembly_and_routes_are_preserved():
     assert "--no-routes" not in _PILOT
 
 
-def test_independent_relation_graph_is_sealed_before_assembly_and_validated():
-    export_step = _PILOT.index(
-        "- name: Export independent Mols relation-member evidence")
+def test_three_scope_relation_authority_is_sealed_before_assembly_and_validated():
+    prefilter_step = _PILOT.index("- name: Download and prefilter Denmark")
+    aoi_step = _PILOT.index("- name: Cut and seal padded Mols AOI")
+    raw_step = _PILOT.index("- name: Build and seal raw Denmark root closure")
+    filtered_step = _PILOT.index(
+        "- name: Build and seal prefiltered Denmark root closure")
     assemble_step = _PILOT.index("- name: Assemble exact Mols boundary")
-    assert export_step < assemble_step
-    assert "tools/export_relation_members.py" in _PILOT
-    assert "--in data/aoi/mols-bjerge.osm.pbf" in _PILOT[export_step:assemble_step]
-    assert 'EVIDENCE="$PILOT_QA_ROOT/data/aoi/mols-bjerge.relation-members.json"' \
-        in _PILOT
-    assert 'manifest["relation_members_evidence"]' in _PILOT
-    assert '"source_pbf_sha256": evidence["source"]["sha256"]' in _PILOT
-    assert "hashlib.sha256(canonical).hexdigest()" in _PILOT
+    seal_step = _PILOT.index("- name: Seal every validation input")
+    trust_step = _PILOT.index(
+        "- name: Materialize non-package scope trust from stage outputs")
+    validate_step = _PILOT.index("- name: Validate complete Mols QA package")
+    assert (prefilter_step < aoi_step < raw_step < filtered_step <
+            assemble_step < seal_step < trust_step < validate_step)
+
+    prefilter = _PILOT[prefilter_step:aoi_step]
+    aoi = _PILOT[aoi_step:raw_step]
+    raw = _PILOT[raw_step:filtered_step]
+    filtered = _PILOT[filtered_step:assemble_step]
+    assert "id: prefilter_source" in prefilter
+    assert 'RECEIPT_GITHUB_OUTPUT="$GITHUB_OUTPUT"' in prefilter
+    assert "id: aoi_scope" in aoi
+    assert 'AOI_GITHUB_OUTPUT="$GITHUB_OUTPUT"' in aoi
+    assert "AOI_RELATION_MEMBERS=" in aoi
+    assert "AOI_WAY_TOPOLOGY=" in aoi
+    assert "AOI_RECEIPT=" in aoi
+    assert "bash extract/aoi.sh" in aoi
+    assert "AOI_COMMAND_JSON" not in aoi
+    assert "tools/build_pbf_receipt.py" not in aoi
+    assert 'cp data/aoi/mols-bjerge.osm.pbf \\' in aoi
+    assert "id: raw_scope" in raw
+    assert "id: prefilter_scope" in filtered
+    for scope_step, scope, source_label, filename in (
+            (raw, "raw-denmark", "data/raw/denmark.osm.pbf",
+             "mols-bjerge.scope.raw.json"),
+            (filtered, "prefiltered-denmark", "data/hiking.osm.pbf",
+             "mols-bjerge.scope.prefilter.json")):
+        assert scope_step.count("tools/build_relation_slice.py") == 1
+        assert scope_step.count("tools/export_relation_members.py") == 1
+        assert f"--scope {scope}" in scope_step
+        assert f"--source-label {source_label}" in scope_step
+        assert filename in scope_step
+        assert scope_step.count('--github-output "$GITHUB_OUTPUT"') == 2
+        assert scope_step.count('--roots-from "$AOI"') == 2
+
+    assert _PILOT.count("python3 tools/export_relation_members.py") == 2
+    assert _PILOT.count("python3 tools/build_relation_slice.py") == 2
+    assert "mols-bjerge.scope.aoi.json" in aoi
+    assert "mols-bjerge.relation-members.aoi.json" in aoi
+    assert "--relation-authority" in _PILOT
+    assert "--prefilter-authority" in _PILOT
+    assert "--aoi-relation-members" in _PILOT
+    assert 'manifest["artifacts"] = artifacts' in _PILOT
+    assert "hashlib.sha256(raw).hexdigest()" in _PILOT
     assert "os.replace(temporary, manifest_path)" in _PILOT
-    assert '--relation-members \\' in _PILOT
-    assert '"$PILOT_QA_ROOT/data/aoi/mols-bjerge.relation-members.json"' \
-        in _PILOT
+
+    seal = _PILOT[seal_step:trust_step]
+    trust = _PILOT[trust_step:validate_step]
+    validate = _PILOT[validate_step:]
+    assert '"data/raw/denmark.osm.pbf"' not in seal
+    assert "mols-bjerge.prefilter-transformation.json" in seal
+    assert seal.count("mols-bjerge.scope.") >= 3
+    assert '[[ "$PILOT_SCOPE_TRUST" != "$PILOT_QA_ROOT/"* ]]' in trust
+    assert "steps.raw_scope.outputs.parent_sha256" in trust
+    assert "steps.raw_scope.outputs.relation_ledger_sha256" in trust
+    assert "steps.prefilter_scope.outputs.slice_sha256" in trust
+    assert "steps.prefilter_scope.outputs.relation_ledger_sha256" in trust
+    assert "steps.aoi_scope.outputs.receipt_sha256" in trust
+    assert "steps.aoi_scope.outputs.relation_ledger_sha256" in trust
+    assert "steps.aoi_scope.outputs.way_topology_sha256" in trust
+    assert "steps.aoi_scope.outputs.root_bbox_sha256" in trust
+    assert "steps.prefilter_source.outputs.receipt_sha256" in trust
+    assert 'with path.open("x", encoding="utf-8")' in trust
+    assert "path.chmod(0o400)" in trust
+    assert '"prefilter_transformation"' in trust
+    assert '--scope-trust-file "$PILOT_SCOPE_TRUST"' in validate
+    assert "--raw-relation-members" in validate
+    assert "--prefilter-relation-members" in validate
 
 
 def test_publisher_is_temporary_dry_run_with_structured_final_validation():
@@ -178,6 +251,14 @@ def test_publisher_is_temporary_dry_run_with_structured_final_validation():
     assert '--index "$PILOT_INDEX"' in _PILOT
     assert '--out-dir "$PILOT_WORK_ROOT/publish-output"' in _PILOT
     assert '--report-json "$PILOT_QA_ROOT/reports/publish.json"' in _PILOT
+    assert '--preview-root "$PILOT_QA_ROOT"' in _PILOT
+    assert '--preview-json "$PILOT_QA_ROOT/reports/app-preview.json"' in _PILOT
+    assert "--exact-boundary data/aoi/mols-bjerge.exact-area.geojson" in _PILOT
+    assert "mols-bjerge.way-topology.json" in _PILOT
+    assert "build_mols_pilot_visual.py" in _PILOT
+    assert "build_mols_golden.py" in _PILOT
+    assert '--source-sha "$GITHUB_SHA"' in _PILOT
+    assert "golden/mols-bjerge.json" in _PILOT
     assert "--no-boundary-fetch" in _PILOT
     assert "--no-elevation" in _PILOT
     assert "--touch-report" not in _PILOT
@@ -187,7 +268,18 @@ def test_publisher_is_temporary_dry_run_with_structured_final_validation():
 
 def test_complete_sha_named_artifact_upload_is_fail_closed_and_always_runs():
     for filename in (
-        "mols-bjerge.relation-members.json",
+        "mols-bjerge.relation-members.raw.json",
+        "mols-bjerge.relation-members.prefilter.json",
+        "mols-bjerge.relation-members.aoi.json",
+        "mols-bjerge.raw.osm.pbf",
+        "mols-bjerge.prefilter.osm.pbf",
+        "mols-bjerge.osm.pbf",
+        "mols-bjerge.scope.raw.json",
+        "mols-bjerge.scope.prefilter.json",
+        "mols-bjerge.scope.aoi.json",
+        "mols-bjerge.prefilter-transformation.json",
+        "mols-bjerge.way-topology.json",
+        "mols-bjerge.exact-area.geojson",
         "mols-bjerge.raw.geojson",
         "mols-bjerge.trails.geojson",
         "mols-bjerge.removed.geojson",
@@ -199,7 +291,11 @@ def test_complete_sha_named_artifact_upload_is_fail_closed_and_always_runs():
         "discovery/report.json",
         "discovery/selected.json",
         "reports/publish.json",
+        "reports/app-preview.json",
         "reports/publish.log",
+        "golden/mols-bjerge.json",
+        "visual/mols-bjerge.svg",
+        "visual/review.json",
         "viewer/index.html",
         "viewer/serve.py",
     ):

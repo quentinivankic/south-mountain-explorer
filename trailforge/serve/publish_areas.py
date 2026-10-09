@@ -23,10 +23,13 @@ Usage:
 """
 from __future__ import annotations
 import argparse
+import hashlib
 import json
 import os
+from pathlib import Path
 import re
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
@@ -53,10 +56,266 @@ _NONHIKING = _load_nonhiking()
 
 _DEFAULT_INDEX = os.path.join(os.path.dirname(__file__), "..", "..",
                               "ios", "SouthMountainExplorer", "Resources", "areas-index.json")
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_CANONICAL_PUBLIC_ROOT = _REPO_ROOT / "public"
+_CANONICAL_IOS_RESOURCES = (
+    _REPO_ROOT / "ios" / "SouthMountainExplorer" / "Resources")
+_MOLS_AREA_ID = "nationalpark-mols-bjerge-dk"
+_MOLS_AREA_NAME = "Nationalpark Mols Bjerge"
+_MOLS_RELATION_ID = 7046785
+
+
+def _lexical_absolute(value: str | os.PathLike) -> Path:
+    return Path(os.path.abspath(os.fspath(value)))
+
+
+def _strictly_within(path: Path, root: Path) -> bool:
+    try:
+        return path != root and path.is_relative_to(root)
+    except AttributeError:  # pragma: no cover - Python <3.9 compatibility
+        try:
+            path.relative_to(root)
+        except ValueError:
+            return False
+        return path != root
+
+
+def _same_target(left: Path, right: Path) -> bool:
+    """Compare canonical path targets and existing inodes."""
+    if left == right:
+        return True
+    try:
+        return left.exists() and right.exists() and left.samefile(right)
+    except OSError:
+        return False
+
+
+def _paths_overlap(left: Path, right: Path) -> bool:
+    return (_same_target(left, right)
+            or _strictly_within(left, right)
+            or _strictly_within(right, left))
+
+
+def _resolved_target(value: str | os.PathLike) -> Path:
+    return _lexical_absolute(value).resolve(strict=False)
+
+
+def _preview_output_path(args, parser) -> Path | None:
+    """Return a runner-temp-confined preview target with no path aliases."""
+    if not args.preview_json:
+        if args.preview_root:
+            parser.error("--preview-root requires --preview-json")
+        return None
+    if not args.dry_run:
+        parser.error("--preview-json requires --dry-run")
+    if not args.preview_root:
+        parser.error("--preview-json requires --preview-root")
+    if ".." in Path(args.preview_json).parts:
+        parser.error("--preview-json cannot contain '..' path aliases")
+    if ".." in Path(args.preview_root).parts:
+        parser.error("--preview-root cannot contain '..' path aliases")
+
+    trusted_alias = _lexical_absolute(
+        os.environ.get("RUNNER_TEMP") or tempfile.gettempdir())
+    if not trusted_alias.is_dir():
+        parser.error("trusted runner temp root must be an existing directory")
+    try:
+        trusted_root = trusted_alias.resolve(strict=True)
+    except OSError:
+        parser.error("trusted runner temp root cannot be resolved")
+
+    root_alias = _lexical_absolute(args.preview_root)
+    candidate_alias = _lexical_absolute(args.preview_json)
+    if not root_alias.is_dir() or root_alias.is_symlink():
+        parser.error("--preview-root must be an existing non-symlink directory")
+    try:
+        root = root_alias.resolve(strict=True)
+    except OSError:
+        parser.error("--preview-root cannot be resolved")
+    if not _strictly_within(root, trusted_root):
+        parser.error("--preview-root must be strictly below the trusted temp root")
+
+    protected_roots = [
+        _REPO_ROOT.resolve(strict=True),
+        _CANONICAL_PUBLIC_ROOT.resolve(strict=False),
+        _CANONICAL_IOS_RESOURCES.resolve(strict=False),
+    ]
+    if any(root == protected or _strictly_within(root, protected)
+           for protected in protected_roots):
+        parser.error("--preview-root cannot be inside repository/public/iOS paths")
+
+    if not _strictly_within(candidate_alias, root_alias):
+        parser.error("--preview-json must be strictly under --preview-root")
+    relative = candidate_alias.relative_to(root_alias)
+    candidate = root.joinpath(relative)
+    current = root
+    for component in relative.parts:
+        current = current / component
+        if current.is_symlink():
+            parser.error("--preview-json cannot use symlink components or targets")
+    if not candidate.parent.is_dir():
+        parser.error("--preview-json parent must already exist under --preview-root")
+    if candidate.exists() and not candidate.is_file():
+        parser.error("--preview-json target must be a regular file")
+    candidate = candidate.resolve(strict=False)
+    if not _strictly_within(candidate, root):
+        parser.error("--preview-json resolves outside --preview-root")
+
+    dropped_base = str(args.trails)
+    for suffix in (".trails.geojson", ".geojson"):
+        if dropped_base.endswith(suffix):
+            dropped_base = dropped_base[:-len(suffix)]
+            break
+    exact_paths = [
+        _resolved_target(value)
+        for value in (args.index, args.trails, args.hiking, args.report_json,
+                      getattr(args, "exact_boundary", None),
+                      dropped_base + ".dropped-routes.geojson")
+        if value
+    ]
+    for protected in exact_paths:
+        if (_same_target(candidate, protected)
+                or (protected.exists() and protected.is_dir()
+                    and _paths_overlap(candidate, protected))):
+            parser.error("--preview-json collides with an input or output path")
+        if protected.exists() and protected.is_dir() \
+                and _paths_overlap(root, protected):
+            parser.error("--preview-root overlaps an input or output directory")
+
+    out_dir = _resolved_target(args.out_dir)
+    if _paths_overlap(root, out_dir):
+        parser.error("--preview-root must be outside --out-dir")
+    if _same_target(candidate, out_dir) or _strictly_within(candidate, out_dir):
+        parser.error("--preview-json collides with --out-dir")
+
+    for protected in protected_roots:
+        if _same_target(candidate, protected) or _strictly_within(
+                candidate, protected):
+            parser.error("--preview-json cannot target repository/public/iOS paths")
+    return candidate
 
 
 def _canonical(tid: str) -> str:
     return re.sub(r"-\d{1,3}$", "", tid or "")
+
+
+def _canonical_json_sha256(value) -> str:
+    raw = json.dumps(
+        value, ensure_ascii=False, sort_keys=True,
+        separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _postclip_evidence(assembly_sha256: str, boundary, features: list[dict]) -> dict:
+    """Bind publisher-clipped geometry back to assembly and exact boundary."""
+    return {
+        "assembly_sha256": assembly_sha256,
+        "boundary_geometry_sha256": _canonical_json_sha256(
+            boundary.__geo_interface__),
+        "feature_count": len(features),
+        "features": [
+            {
+                "key": (feature.get("properties") or {}).get("ckey"),
+                "name": (feature.get("properties") or {}).get("name"),
+                "geometry_sha256": _canonical_json_sha256(
+                    feature.get("geometry") or {}),
+                "length_mi": (feature.get("properties") or {}).get(
+                    "length_mi"),
+            }
+            for feature in features
+        ],
+    }
+
+
+def _load_exact_boundary(path: str) -> tuple[dict, object, dict]:
+    """Load one assembly-sealed Polygon/MultiPolygon without widening it."""
+    from shapely.geometry import shape
+
+    with open(path, encoding="utf-8") as source:
+        document = json.load(source)
+    if not isinstance(document, dict):
+        raise ValueError("exact boundary must be a GeoJSON object")
+    features = document.get("features")
+    if (document.get("type") != "FeatureCollection"
+            or not isinstance(features, list) or len(features) != 1
+            or not isinstance(features[0], dict)):
+        raise ValueError("exact boundary must contain exactly one GeoJSON feature")
+    feature = features[0]
+    properties = feature.get("properties")
+    if not isinstance(properties, dict):
+        raise ValueError("exact boundary properties are missing")
+    geometry_value = feature.get("geometry")
+    geometry = shape(geometry_value or {})
+    if (geometry.geom_type not in {"Polygon", "MultiPolygon"}
+            or geometry.is_empty or not geometry.is_valid):
+        raise ValueError("exact boundary geometry must be a valid polygon")
+    geometry_sha256 = _canonical_json_sha256(geometry.__geo_interface__)
+    if properties.get("geometry_sha256") != geometry_sha256:
+        raise ValueError("exact boundary geometry hash is invalid")
+    if (not isinstance(properties.get("name"), str)
+            or properties.get("osm_type") != "relation"
+            or not isinstance(properties.get("osm_id"), int)
+            or isinstance(properties.get("osm_id"), bool)
+            or properties["osm_id"] <= 0):
+        raise ValueError("exact boundary identity is invalid")
+    evidence = {
+        "enabled": True,
+        "name": properties["name"],
+        "osm_type": "relation",
+        "osm_id": properties["osm_id"],
+        "geometry_sha256": geometry_sha256,
+    }
+    return feature, geometry, evidence
+
+
+def finalize_app_row(row: dict, *, nonhiking_ids=None,
+                     prior_parking=None) -> tuple[dict, dict]:
+    """Apply every deterministic post-convert app-row stage.
+
+    The publisher uses this for all areas. The Mols validator independently
+    reconstructs the same stages from sealed inputs rather than trusting this
+    summary.
+    """
+    requested = dict(nonhiking_ids or {})
+    original_trails = list(row.get("trails") or [])
+    removed_nonhiking = [
+        trail.get("id") for trail in original_trails
+        if trail.get("id") in requested
+    ]
+    nonhiking_would_empty = False
+    if removed_nonhiking:
+        kept = [trail for trail in original_trails
+                if trail.get("id") not in requested]
+        if kept:
+            row["trails"] = kept
+            row["trail_count"] = len(kept)
+            row["total_mi"] = degenerate.area_miles(kept)
+        else:
+            nonhiking_would_empty = True
+            removed_nonhiking = []
+
+    before_prune = list(row.get("trails") or [])
+    verdicts = degenerate.classify(before_prune)
+    pruned, why = degenerate.prune(before_prune)
+    removed_degenerate = [
+        {"id": trail.get("id"), "reason": verdict}
+        for trail, verdict in zip(before_prune, verdicts) if verdict
+    ] if why else []
+    if why:
+        row["trails"] = pruned
+        row["trail_count"] = len(pruned)
+        row["total_mi"] = degenerate.area_miles(pruned)
+    if prior_parking is not None:
+        row["parking"] = prior_parking
+    return row, {
+        "nonhiking_sidecar_ids": sorted(str(value) for value in requested),
+        "nonhiking_removed_ids": removed_nonhiking,
+        "nonhiking_would_empty": nonhiking_would_empty,
+        "degenerate_removed": removed_degenerate,
+        "prior_parking_present": prior_parking is not None,
+        "trail_count": row.get("trail_count"),
+        "total_mi": row.get("total_mi"),
+    }
 
 
 def validate(row: dict) -> list[str]:
@@ -319,6 +578,15 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
     ap.add_argument("--dry-run", action="store_true", help="report matches; write nothing")
     ap.add_argument("--report-json",
                     help="write a versioned machine-readable publication summary")
+    ap.add_argument(
+        "--preview-json",
+        help="dry-run-only app-row preview confined below --preview-root")
+    ap.add_argument(
+        "--preview-root",
+        help="required existing runner QA root for --preview-json")
+    ap.add_argument(
+        "--exact-boundary",
+        help="pilot-only one-feature exact-area GeoJSON; requires dry-run preview")
     ap.add_argument("--no-boundary-fetch", action="store_true",
                     help="skip the Overpass fetch-by-rel-id rescue of multi-state "
                          "areas whose boundary is clipped in the per-state PBF")
@@ -344,6 +612,12 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                     "..", "data", "dem-cache"), help="disk cache for DEM tiles")
     ap.add_argument("--dem-zoom", type=int, default=elevation.DEM_ZOOM)
     args = ap.parse_args(argv)
+    if args.exact_boundary and (
+            not args.dry_run or not args.preview_json or not args.preview_root):
+        ap.error("--exact-boundary requires --dry-run, --preview-json, and --preview-root")
+    if args.exact_boundary and not args.no_boundary_fetch:
+        ap.error("--exact-boundary requires --no-boundary-fetch")
+    preview_path = _preview_output_path(args, ap)
     if args.multi_area_report:
         args.dry_run = True             # pure diagnostic — never write
     if (not _guarded and not args.dry_run
@@ -383,6 +657,21 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
     print(f"index: {len(az)} '{args.state}' areas", file=sys.stderr)
 
     fc = json.load(open(args.trails))
+    assembly_sha256 = _canonical_json_sha256(fc.get("features") or [])
+    assembly_preview_source = [
+        {
+            "key": (feature.get("properties") or {}).get("ckey"),
+            "name": (feature.get("properties") or {}).get("name"),
+            "length_mi": (feature.get("properties") or {}).get("length_mi"),
+        }
+        for feature in fc.get("features") or []
+    ]
+    assembly_property_miles = round(sum(
+        float(record["length_mi"])
+        for record in assembly_preview_source
+        if isinstance(record.get("length_mi"), (int, float))
+        and not isinstance(record.get("length_mi"), bool)
+    ), 6)
 
     print("assembling park boundaries from the PBF…", file=sys.stderr)
     from shapely.ops import unary_union
@@ -392,24 +681,39 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
     # relation wins over a way when both carry the name: the app can only use a
     # relation id, and the containment gate can use either.
     boundary_src: dict[str, tuple[str, int]] = {}
-    for b in areamod.merge_areas(args.hiking):
-        if b.get("name"):
-            g = _union_from_rings(b["rings"])
-            if g is not None:
-                if b.get("osm_id"):
-                    prev = boundary_src.get(b["name"])
-                    if prev is None or (prev[0] == "way" and b["osm_type"] == "relation"):
-                        boundary_src[b["name"]] = (b["osm_type"], int(b["osm_id"]))
-                # OSM often carries MORE THAN ONE boundary relation under the
-                # same name (a park split into several relations/multipolygons).
-                # A plain dict assignment keeps only the last and silently clips
-                # away every trail that fell in the others — that's the South
-                # Mountain 78->76 drop, which the different-name sibling-fold
-                # below can't reach (a same-named piece is skipped by the
-                # index_names guard AND never lands in geoms). Union same-named
-                # boundaries so every piece contributes.
-                geoms[b["name"]] = (unary_union([geoms[b["name"]], g])
-                                    if b["name"] in geoms else g)
+    exact_boundary_evidence = None
+    if args.exact_boundary:
+        if len(az) != 1:
+            ap.error("--exact-boundary requires exactly one indexed area")
+        try:
+            _feature, exact_geometry, exact_boundary_evidence = \
+                _load_exact_boundary(args.exact_boundary)
+        except (OSError, ValueError, json.JSONDecodeError) as error:
+            ap.error(f"invalid --exact-boundary: {error}")
+        slug, meta = next(iter(az.items()))
+        if (args.state != "Denmark" or slug != _MOLS_AREA_ID
+                or meta["name"] != _MOLS_AREA_NAME
+                or meta["osm_rel"] != _MOLS_RELATION_ID):
+            ap.error("--exact-boundary is restricted to the pinned Mols pilot")
+        if (exact_boundary_evidence["name"] != meta["name"]
+                or exact_boundary_evidence["osm_id"] != meta["osm_rel"]):
+            ap.error("--exact-boundary identity disagrees with the indexed area")
+        geoms[meta["name"]] = exact_geometry
+        boundary_src[meta["name"]] = (
+            "relation", exact_boundary_evidence["osm_id"])
+    else:
+        for b in areamod.merge_areas(args.hiking):
+            if b.get("name"):
+                g = _union_from_rings(b["rings"])
+                if g is not None:
+                    if b.get("osm_id"):
+                        prev = boundary_src.get(b["name"])
+                        if prev is None or (prev[0] == "way" and b["osm_type"] == "relation"):
+                            boundary_src[b["name"]] = (b["osm_type"], int(b["osm_id"]))
+                    # OSM often carries MORE THAN ONE boundary relation under the
+                    # same name. Preserve the legacy generic publisher union.
+                    geoms[b["name"]] = (unary_union([geoms[b["name"]], g])
+                                        if b["name"] in geoms else g)
     index_names = {m["name"].casefold() for m in az.values()}
 
     # Selection is now TOUCH-based (see the per-area loop): a trail belongs to
@@ -464,6 +768,10 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
     published, skipped, failed, changes = [], [], [], []
     validated_records: list[dict] = []
     published_records: list[dict] = []
+    preview_rows: list[dict] = []
+    preview_postclip: dict[str, dict] = {}
+    preview_finalization: dict[str, dict] = {}
+    preview_sealed_inputs: dict[str, dict] = {}
     touch_gain = []                     # (slug, name, full_length_mi) for --touch-report
     # merge_key -> {name, kind, full, slugs[]} for --multi-area-report: which
     # trails a "one home park" (argmax) rule would move out of a second area.
@@ -549,14 +857,18 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
         if primary is None:
             skipped.append((slug, "no boundary in PBF")); continue
         primary_name_for[slug] = primary
-        u = unary_union([geoms[n] for n in siblings(primary)])
+        u = (geoms[primary] if args.exact_boundary
+             else unary_union([geoms[n] for n in siblings(primary)]))
         area_unions[slug] = (u, u.bounds)
 
     # Union of EVERY park — the clamp target. A trail's geometry outside this
     # (a residential/unmanaged tail) is clipped off; geometry inside any park
     # (including a neighbour park it crosses into) is kept. Clamp is cached per
     # trail in clamp_cache. `all_parks` is None only when no area has a boundary.
-    all_parks = unary_union([u for u, _ in area_unions.values()]) if area_unions else None
+    all_parks = (next(iter(area_unions.values()))[0]
+                 if args.exact_boundary and len(area_unions) == 1
+                 else (unary_union([u for u, _ in area_unions.values()])
+                       if area_unions else None))
     clamp_cache = {}
 
     # THRU-ROUTE decision (global, geometric, nesting-immune). A route is a real
@@ -632,6 +944,8 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                 m["slugs"].append(slug)
         if not clipped:
             skipped.append((slug, "no trails touch this area")); continue
+        postclip_record = _postclip_evidence(
+            assembly_sha256, union, clipped)
         # The way id of the polygon this area was actually clipped to, when the
         # seed gave us no relation. Matched by the same name the clip used, so it
         # names the SAME boundary rather than a look-alike elsewhere.
@@ -640,38 +954,37 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
         row = conv.convert({"features": clipped}, slug, meta["name"], meta["state"],
                            meta["center"], meta["osm_rel"], kinds,
                            osm_way=way_id)
-        # Boundary clipping can reduce a trail that lies mostly OUTSIDE this area
-        # to a sliver or a single point — a named 0.00 mi row nobody can walk or
-        # complete. `_MIN_AREA_MI` below catches an area that is ENTIRELY that;
-        # this catches the individual trails inside an otherwise real area.
-        # Connectors are kept: a ~zero-length way with both ends on other trails
-        # IS the junction holding the network together. See serve/degenerate.py.
-        # Honour the non-hiking sidecar: trails the LANDOWNER says are not for
-        # walking (USFS snow routes). Applied here so a republish cannot
-        # resurrect them, and read from a file so publish needs no agency
-        # network call. Reversible — remove the entry and the trail comes back.
+        # Apply the complete deterministic post-convert pipeline through one
+        # helper so preview and publish rows cannot diverge. The exact-boundary
+        # pilot requires fresh, sealed-empty sidecar/parking inputs.
         drop_ids = _NONHIKING.get(slug) or {}
-        if drop_ids:
-            before = len(row["trails"])
-            row["trails"] = [t for t in row["trails"] if t.get("id") not in drop_ids]
-            if len(row["trails"]) != before:
-                if not row["trails"]:
-                    # Never let the sidecar empty an area; that would remove it
-                    # from Browse on the strength of an external dataset.
-                    print(f"  {slug}: sidecar would empty the area — ignoring it")
-                    row["trails"] = conv.convert(
-                        {"features": clipped}, slug, meta["name"], meta["state"],
-                        meta["center"], meta["osm_rel"], kinds)["trails"]
-                else:
-                    row["trail_count"] = len(row["trails"])
-                    row["total_mi"] = degenerate.area_miles(row["trails"])
-                    print(f"  {slug}: dropped {before - len(row['trails'])} "
-                          f"non-hiking trail(s) per the sidecar")
-        pruned, why = degenerate.prune(row["trails"])
-        if why:
-            row["trails"] = pruned
-            row["trail_count"] = len(pruned)
-            row["total_mi"] = degenerate.area_miles(pruned)
+        _out = os.path.join(args.out_dir, f"{slug}.json")
+        prior_output_exists = os.path.exists(_out)
+        prior_parking = None
+        if prior_output_exists:
+            try:
+                previous = json.load(open(_out))
+                if previous.get("parking"):
+                    prior_parking = previous["parking"]
+            except Exception as error:  # noqa: BLE001
+                if args.exact_boundary:
+                    ap.error(f"exact-boundary prior output is unreadable: {error}")
+        if args.exact_boundary and drop_ids:
+            ap.error("exact-boundary pilot requires an empty nonhiking sidecar")
+        if args.exact_boundary and prior_parking is not None:
+            ap.error("exact-boundary pilot requires no prior parking")
+        row, finalization = finalize_app_row(
+            row, nonhiking_ids=drop_ids, prior_parking=prior_parking)
+        if finalization["nonhiking_would_empty"]:
+            print(f"  {slug}: sidecar would empty the area — ignoring it")
+        elif finalization["nonhiking_removed_ids"]:
+            print(f"  {slug}: dropped "
+                  f"{len(finalization['nonhiking_removed_ids'])} "
+                  "non-hiking trail(s) per the sidecar")
+        if finalization["degenerate_removed"]:
+            from collections import Counter
+            why = Counter(record["reason"] for record in
+                          finalization["degenerate_removed"])
             print(f"  {slug}: dropped {sum(why.values())} degenerate trail(s) "
                   f"{dict(why)}")
         if row["total_mi"] < _MIN_AREA_MI:
@@ -687,21 +1000,6 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                 elevation.process_area(row, sampler)
             except Exception as e:
                 print(f"  ! elevation sampling failed for {slug}: {e}", file=sys.stderr)
-        # Preserve the parking layer add-parking.py wrote into the shipped geom.
-        # Publish rebuilds `row` fresh from assembly (which has no parking), so
-        # without this a republish silently drops every area's parking pins — the
-        # exact class of regression the DEM-elevation inline sampling above was
-        # added to prevent. add-parking.py re-runs periodically to refresh/add;
-        # publish must not destroy its output between runs. (Read the shipped
-        # geom, not the assembly, so this is a no-op on a fresh artifact dir.)
-        _out = os.path.join(args.out_dir, f"{slug}.json")
-        if os.path.exists(_out):
-            try:
-                _prev = json.load(open(_out))
-                if _prev.get("parking"):
-                    row["parking"] = _prev["parking"]
-            except Exception:
-                pass
         problems = validate(row)
         if problems:
             failed.append((slug, problems)); continue
@@ -713,6 +1011,19 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
             "total_miles": row["total_mi"],
         }
         validated_records.append(area_record)
+        if args.preview_json:
+            # The exact validated app-visible row and publisher postclip witness
+            # remain only in the explicit runner-local preview package.
+            preview_rows.append(row)
+            preview_postclip[slug] = postclip_record
+            preview_finalization[slug] = finalization
+            if args.exact_boundary:
+                preview_sealed_inputs[slug] = {
+                    "area_id": slug,
+                    "nonhiking_sidecar_entry": drop_ids,
+                    "prior_output_exists": prior_output_exists,
+                    "prior_parking": prior_parking,
+                }
         d = existing_diff(slug, row)
         if d and (d[0] or d[1] or d[2]):
             changes.append((slug, d[0], d[1], d[2]))
@@ -811,12 +1122,25 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
             print(f"  {m['name']!r} — {mi} — {', '.join(slugs)}")
         if len(multi) > 60:
             print(f"  … and {len(multi) - 60} more")
+    if preview_path is not None:
+        preview = {
+            "schema_version": 1,
+            "state": args.state,
+            "write_mode": "dry-run-preview",
+            "canonical_write": False,
+            "sealed_inputs": ([preview_sealed_inputs[row.get("id")]
+                               for row in preview_rows]
+                              if args.exact_boundary else None),
+            "areas": preview_rows,
+        }
+        geom_guard.atomic_write_json(preview_path, preview)
     if args.report_json:
         report_dir = os.path.dirname(os.path.abspath(args.report_json))
         os.makedirs(report_dir, exist_ok=True)
         report = {
             "schema_version": 1,
             "state": args.state,
+            "exact_boundary": exact_boundary_evidence,
             "dry_run": bool(args.dry_run),
             "write_mode": (
                 "dry-run" if args.dry_run
@@ -827,6 +1151,40 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                 not args.dry_run
                 and geom_guard.is_canonical_geom_dir(args.out_dir)
             ),
+            "preview": {
+                "enabled": bool(args.preview_json),
+                "area_count": len(preview_rows),
+                "area_ids": [row.get("id") for row in preview_rows],
+                "assembly_feature_count": len(assembly_preview_source),
+                "assembly_property_miles": assembly_property_miles,
+                "preview_distance_miles": round(sum(
+                    float(trail.get("distanceMi", 0))
+                    for row in preview_rows
+                    for trail in row.get("trails") or []
+                ), 6),
+                "publisher_total_miles": (
+                    preview_rows[0].get("total_mi")
+                    if len(preview_rows) == 1 else None),
+                "postclip": (
+                    preview_postclip.get(preview_rows[0].get("id"))
+                    if len(preview_rows) == 1 else None),
+                "finalization": (
+                    preview_finalization.get(preview_rows[0].get("id"))
+                    if len(preview_rows) == 1 else None),
+                "trails": ([
+                    {
+                        "id": trail.get("id"),
+                        "name": trail.get("name"),
+                        "distance_mi": trail.get("distanceMi"),
+                        "assembly_length_mi": next((
+                            record.get("length_mi")
+                            for record in assembly_preview_source
+                            if record.get("name") == trail.get("name")
+                        ), None),
+                    }
+                    for trail in preview_rows[0].get("trails") or []
+                ] if len(preview_rows) == 1 else []),
+            },
             "index_area_count": len(az),
             "validated_areas": validated_records,
             "published_areas": published_records,

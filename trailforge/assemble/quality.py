@@ -12,11 +12,9 @@ from typing import Any
 
 OVERLAP_THRESHOLD = 0.90
 
-# First-pilot auto-accept limits. These are deliberately conservative and must
-# not be loosened from one Action result without a separate policy decision.
-RESTORED_ROAD_MAX_RELATION_SHARE = 0.10
-RESTORED_ROAD_MAX_RELATION_MILES = 1.0
-RESTORED_ROAD_MAX_AGGREGATE_SHARE = 0.10
+# Signed-route road miles and shares are evidence for manual review, never an
+# arbitrary terminal threshold. Exact-area unsafe/missing/inconsistent members
+# and unexplained topology own publication safety.
 
 _FOOT_IDENTITY = {"yes", "designated", "permissive"}
 _TRAIL_HIGHWAYS = {
@@ -27,7 +25,7 @@ _DECISIVE_TAGS = (
     "sac_scale", "trail_visibility", "designation", "network", "access",
     "indoor", "motor_vehicle", "motorcar", "atv", "ohv", "4wd_only",
     "snowmobile", "motorcycle", "bicycle", "tracktype", "surface", "lanes",
-    "service", "piste:type", "mtb:type", "mtb:scale:imba", "oneway",
+    "service", "area", "piste:type", "mtb:type", "mtb:scale:imba", "oneway",
 )
 _QUALITY_REMOVAL_REASONS = {
     "disconnected-name-stitch": (
@@ -72,6 +70,8 @@ def prepare_feature_sources(features: list[dict[str, Any]], trails: list,
         geometry_ways = list(dict.fromkeys(
             getattr(trail, "geometry_ways", trail.member_ways)))
         relation_ids = list(dict.fromkeys(getattr(trail, "relation_ids", [])))
+        root_relation_ids = list(dict.fromkeys(
+            getattr(trail, "root_relation_ids", [])))
         direct = {
             int(relation_id): list(dict.fromkeys(member_ids))
             for relation_id, member_ids in
@@ -85,10 +85,51 @@ def prepare_feature_sources(features: list[dict[str, Any]], trails: list,
         feature["properties"]["_quality_source"] = {
             "geometry_way_ids": geometry_ways,
             "relation_ids": relation_ids,
+            "root_relation_ids": root_relation_ids,
             "direct_relation_way_ids": direct,
             "restored_relation_way_ids": restored,
             "missing_way_ids": missing,
         }
+
+
+def finalize_dropped_feature_sources(
+        features: list[dict[str, Any]], *, ways: dict[int, dict],
+        nodes: dict[int, tuple[float, float]], area_union,
+        area_name: str, min_length_mi: float) -> None:
+    """Persist relation authority on curation and exact-clip drop rows."""
+    for feature in features:
+        properties = feature.get("properties") or {}
+        source = properties.pop("_quality_source", None)
+        if properties.get("source") != "relation" or not isinstance(source, dict):
+            continue
+        records, missing = _source_way_records(source, ways, nodes, area_union)
+        properties.update({
+            "area": area_name,
+            "relation_ids": list(source.get("relation_ids") or []),
+            "root_relation_ids": list(source.get("root_relation_ids") or []),
+            "direct_relation_way_ids": {
+                int(relation_id): list(member_ids)
+                for relation_id, member_ids in
+                (source.get("direct_relation_way_ids") or {}).items()
+            },
+            "source_geometry_way_ids": list(
+                source.get("geometry_way_ids") or []),
+            "restored_relation_way_ids": list(
+                source.get("restored_relation_way_ids") or []),
+            "source_ways": records,
+            "rendered_source_way_ids": [
+                record["way_id"] for record in records
+                if record.get("renders_in_area") is True
+            ],
+        })
+        if missing:
+            properties["missing_source_way_ids"] = missing
+        if not isinstance(properties.get("drop_evidence"), dict):
+            properties["drop_evidence"] = {
+                "kind": "curation",
+                "category": properties.get("removed_category"),
+                "min_length_mi": float(min_length_mi),
+            }
 
 
 def _geometry_lines(feature: dict[str, Any]) -> list[list[list[float]]]:
@@ -207,18 +248,20 @@ def _exact_boundary_clip_matches(feature: dict[str, Any], records: list[dict],
 
 
 def _connectivity(feature: dict[str, Any], records: list[dict],
-                  missing_way_ids: list[int], area_union) -> dict:
+                  missing_way_ids: list[int], area_union,
+                  outside_gap_explained: bool = False) -> dict:
     source_components = _source_component_count(records)
     postclip_components = geometry_component_count(feature)
     exact_clip = _exact_boundary_clip_matches(feature, records, area_union)
+    source_complete_for_area = source_components == 1 or outside_gap_explained
     boundary_split = (
-        source_components == 1
+        source_complete_for_area
         and postclip_components > 1
         and exact_clip
     )
     accepted = (
         not missing_way_ids
-        and source_components == 1
+        and source_complete_for_area
         and postclip_components > 0
         and exact_clip
         and (postclip_components == 1 or boundary_split)
@@ -226,6 +269,8 @@ def _connectivity(feature: dict[str, Any], records: list[dict],
     reasons = []
     if source_components == 1:
         reasons.append("shared-osm-node")
+    if outside_gap_explained:
+        reasons.append("out-of-area-member-gap")
     if boundary_split:
         reasons.append("boundary-induced-split")
     status = "accepted" if accepted else "rejected"
@@ -310,6 +355,13 @@ def _restored_relation_measurements(
             "relation_id": relation_id,
             "relation_way_ids": relation_way_ids,
             "restored_way_ids": restored_way_ids_for_relation,
+            "restored_ways": [
+                {
+                    "way_id": way_id,
+                    "tags": dict(records_by_id[way_id].get("tags") or {}),
+                }
+                for way_id in restored_way_ids_for_relation
+            ],
             "restored_way_count": len(restored_way_ids_for_relation),
             "restored_miles": round(restored_miles, 6),
             "total_relation_miles": round(total_miles, 6),
@@ -414,10 +466,244 @@ def _pair_disposition(left: dict, right: dict) -> str:
     return "preserved-nonweak-overlap"
 
 
+def _audit_way_exact_area_status(record: dict, ways: dict, nodes: dict,
+                                 area_union) -> str:
+    """Classify raw source geometry against the exact boundary."""
+    from shapely.geometry import LineString
+
+    coordinates = record.get("source_coordinates")
+    if not isinstance(coordinates, list) or len(coordinates) < 2 \
+            or any(point is None for point in coordinates):
+        way = ways.get(record.get("way_id")) or {}
+        node_ids = way.get("nodes") or []
+        if len(node_ids) < 2 or any(node_id not in nodes for node_id in node_ids):
+            return "unknown"
+        coordinates = [nodes[node_id] for node_id in node_ids]
+        record["source_node_ids"] = list(node_ids)
+        record["source_coordinates"] = [
+            [float(lon), float(lat)] for lon, lat in coordinates
+        ]
+        record["source_missing_node_ids"] = []
+    try:
+        geometry = LineString(coordinates)
+        clipped = geometry.intersection(area_union)
+    except Exception:  # noqa: BLE001 - malformed authority fails closed
+        return "unknown"
+    return ("intersects" if not clipped.is_empty and clipped.length > 0
+            else "outside")
+
+
+def _relation_exact_area_status(relation_id: int, raw_scope: dict,
+                                area_union) -> str:
+    """Classify a relation's recursive canonical/main raw geometry."""
+    from shapely.geometry import LineString
+
+    relations = raw_scope.get("relations", {}) if raw_scope else {}
+    seen: set[int] = set()
+
+    def walk(current_id: int) -> list[str]:
+        if current_id in seen:
+            return []
+        seen.add(current_id)
+        relation = relations.get(current_id)
+        if relation is None:
+            return ["unknown"]
+        statuses = []
+        direct_ways = relation.get("direct_ways", {})
+        for member in relation.get("members", []):
+            role = str(member.get("role") or "").strip().casefold()
+            if role not in {"", "main"}:
+                continue
+            if member.get("type") == "relation":
+                statuses.extend(walk(member.get("ref")))
+                continue
+            if member.get("type") != "way":
+                continue
+            way = direct_ways.get(member.get("ref"))
+            coordinates = (way or {}).get("coordinates")
+            if ((way or {}).get("status") != "present"
+                    or not isinstance(coordinates, list)
+                    or len(coordinates) < 2
+                    or any(point is None for point in coordinates)):
+                statuses.append("unknown")
+                continue
+            try:
+                clipped = LineString(coordinates).intersection(area_union)
+            except Exception:  # noqa: BLE001
+                statuses.append("unknown")
+                continue
+            statuses.append(
+                "intersects" if not clipped.is_empty and clipped.length > 0
+                else "outside")
+        return statuses
+
+    statuses = walk(relation_id)
+    if "intersects" in statuses:
+        return "intersects"
+    if not statuses or "unknown" in statuses:
+        return "unknown"
+    return "outside"
+
+
+def _classify_relation_audits(audits: list[dict], ways: dict, nodes: dict,
+                              area_union,
+                              relation_scope_evidence: dict | None) -> None:
+    """Annotate every direct member and relation with scope/area disposition."""
+    has_three_scopes = relation_scope_evidence is not None
+    raw_scope = ((relation_scope_evidence or {}).get("raw-denmark") or {})
+    for audit in audits:
+        removed_root = audit.get("assembly_status") == "removed-thru-hike"
+        for relation_key, status in (
+                audit.get("relation_scope_statuses") or {}).items():
+            try:
+                relation_id = int(relation_key)
+            except (TypeError, ValueError):
+                relation_id = 0
+            exact_status = _relation_exact_area_status(
+                relation_id, raw_scope, area_union)
+            status["exact_area_status"] = exact_status
+            terminal_reason = None
+            if removed_root:
+                disposition = "removed-thru-hike-informational"
+            elif status.get("raw_status") != "present":
+                disposition = "missing-source-relation"
+                terminal_reason = "missing-source-relation"
+            elif status.get("prefilter_status") != "present":
+                if exact_status == "outside":
+                    disposition = "out-of-area-prefilter-relation-absence"
+                elif exact_status == "intersects":
+                    disposition = "prefilter-data-loss-relation"
+                    terminal_reason = "prefilter-data-loss-relation"
+                else:
+                    disposition = "relation-location-unknown"
+                    terminal_reason = "relation-location-unknown"
+            elif status.get("aoi_status") != "present":
+                if exact_status == "outside":
+                    disposition = "out-of-aoi-relation-informational"
+                elif exact_status == "intersects":
+                    disposition = "aoi-relation-loss"
+                    terminal_reason = "aoi-relation-loss"
+                else:
+                    disposition = "relation-location-unknown"
+                    terminal_reason = "relation-location-unknown"
+            else:
+                disposition = "relation-present-in-aoi"
+            status["render_disposition"] = disposition
+            status["terminal_reason"] = terminal_reason
+        for record in audit.get("direct_way_members") or []:
+            raw_status = record.get("raw_status") or (
+                "present" if record.get("source_status") == "available"
+                else "missing")
+            prefilter_status = record.get("prefilter_status") or (
+                raw_status if not has_three_scopes else "missing")
+            aoi_status = record.get("aoi_status") or (
+                raw_status if not has_three_scopes else "missing")
+            record["raw_status"] = raw_status
+            record["prefilter_status"] = prefilter_status
+            record["aoi_status"] = aoi_status
+            exact_status = _audit_way_exact_area_status(
+                record, ways, nodes, area_union)
+            record["exact_area_status"] = exact_status
+            terminal_reason = None
+            if removed_root:
+                disposition = "removed-thru-hike-informational"
+            elif raw_status != "present":
+                disposition = "raw-source-unavailable"
+                terminal_reason = "raw-missing-relevant-member"
+            elif prefilter_status != "present":
+                disposition = "prefilter-data-loss"
+                if exact_status != "outside":
+                    terminal_reason = "prefilter-data-loss"
+                else:
+                    disposition = "out-of-area-prefilter-absence"
+            elif aoi_status != "present":
+                disposition = "aoi-absent"
+                if exact_status == "intersects":
+                    terminal_reason = "aoi-extraction-loss"
+                    disposition = "aoi-extraction-loss"
+                elif exact_status == "outside":
+                    disposition = "out-of-aoi-informational"
+                else:
+                    terminal_reason = "aoi-loss-location-unknown"
+            elif record.get("status") == "excluded":
+                role = record.get("effective_role")
+                if role in {"alternative", "alternate", "excursion"}:
+                    disposition = "variant-role-informational"
+                elif exact_status == "outside":
+                    disposition = "unsafe-outside-exact-area"
+                else:
+                    disposition = "unsafe-member-in-exact-area"
+                    terminal_reason = "unsafe-member-in-exact-area"
+            elif exact_status == "intersects":
+                disposition = "exact-area-render-member"
+            elif exact_status == "outside":
+                disposition = "out-of-area-informational"
+            else:
+                disposition = "member-location-unknown"
+                terminal_reason = "member-location-unknown"
+            record["render_disposition"] = disposition
+            record["terminal_reason"] = terminal_reason
+
+
+def _audit_record_component_count(records: list[dict]) -> int:
+    by_way = {}
+    for record in records:
+        way_id = record.get("way_id")
+        node_ids = record.get("source_node_ids")
+        if (not isinstance(way_id, int) or not isinstance(node_ids, list)
+                or len(node_ids) < 2):
+            continue
+        prior = by_way.get(way_id)
+        current = set(node_ids)
+        if prior is not None and prior != current:
+            return 0
+        by_way[way_id] = current
+    if not by_way:
+        return 0
+    union = _UF(by_way)
+    owner = {}
+    for way_id, node_ids in by_way.items():
+        for node_id in node_ids:
+            if node_id in owner:
+                union.union(way_id, owner[node_id])
+            else:
+                owner[node_id] = way_id
+    return len({union.find(way_id) for way_id in by_way})
+
+
+def _relation_outside_gap_evidence(audits: list[dict]) -> set[int]:
+    """Roots whose exact source disconnection is closed only outside the area."""
+    accepted = set()
+    for audit in audits:
+        if audit.get("assembly_status") != "emitted":
+            continue
+        members = audit.get("direct_way_members") or []
+        included = [
+            record for record in members
+            if record.get("status") == "included"
+            and record.get("effective_role") in {"", "main"}
+        ]
+        outside_connectors = [
+            record for record in members
+            if record.get("status") == "excluded"
+            and record.get("effective_role") in {"", "main"}
+            and record.get("exact_area_status") == "outside"
+            and record.get("terminal_reason") is None
+        ]
+        if (outside_connectors
+                and _audit_record_component_count(included) > 1
+                and _audit_record_component_count(
+                    [*included, *outside_connectors]) == 1):
+            accepted.add(audit["relation_id"])
+    return accepted
+
+
 def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                        nodes: dict[int, tuple[float, float]], area_union,
                        area_name: str, region: str | None,
-                       relation_member_audit: list[dict] | None = None
+                       relation_member_audit: list[dict] | None = None,
+                       relation_scope_evidence: dict | None = None,
+                       promotion_decisions: list[dict] | None = None
                        ) -> tuple[list, list, dict]:
     """Disposition exact-area candidates and return (kept, removed, evidence).
 
@@ -436,6 +722,11 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
             "validation_failures": [],
         }
 
+    relation_audits = copy.deepcopy(relation_member_audit or [])
+    _classify_relation_audits(
+        relation_audits, ways, nodes, area_union, relation_scope_evidence)
+    outside_gap_relation_ids = _relation_outside_gap_evidence(relation_audits)
+
     states = []
     validation_failures: list[str] = []
     unresolved_relations = []
@@ -446,6 +737,7 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         properties = feature.get("properties") or {}
         source = properties.get("_quality_source") or {}
         relation_ids = list(source.get("relation_ids") or [])
+        root_relation_ids = list(source.get("root_relation_ids") or [])
         direct = {
             int(relation_id): list(member_ids)
             for relation_id, member_ids in
@@ -467,12 +759,19 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
             restored_way_ids = []
         records, missing = _source_way_records(source, ways, nodes, area_union)
         rendered_records = [record for record in records if record["renders_in_area"]]
-        connectivity = _connectivity(feature, records, missing, area_union)
+        outside_gap_explained = bool(
+            root_relation_ids
+            and all(relation_id in outside_gap_relation_ids
+                    for relation_id in root_relation_ids))
+        connectivity = _connectivity(
+            feature, records, missing, area_union,
+            outside_gap_explained=outside_gap_explained)
         identity = walking_identity(rendered_records)
 
         properties.update({
             "quality_candidate_index": index,
             "relation_ids": relation_ids,
+            "root_relation_ids": root_relation_ids,
             "direct_relation_way_ids": direct,
             "source_geometry_way_ids": geometry_way_ids,
             "restored_relation_way_ids": restored_way_ids,
@@ -556,19 +855,6 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                             f"{relation_way!r}")
                     aggregate_relation_way_miles.setdefault(relation_way, miles)
                 aggregate_restored_relation_ways.update(restored_relation_ways)
-                share = (restored_miles / relation_miles
-                         if relation_miles > 0 else 0.0)
-                relation_id = measurement["relation_id"]
-                if restored_miles > RESTORED_ROAD_MAX_RELATION_MILES + 1e-12:
-                    validation_failures.append(
-                        f"restored-road-mile-limit: {properties.get('name')!r} "
-                        f"relation {relation_id} {restored_miles:.6f} > "
-                        f"{RESTORED_ROAD_MAX_RELATION_MILES:.6f}")
-                if share > RESTORED_ROAD_MAX_RELATION_SHARE + 1e-12:
-                    validation_failures.append(
-                        f"restored-road-share-limit: {properties.get('name')!r} "
-                        f"relation {relation_id} {share:.6f} > "
-                        f"{RESTORED_ROAD_MAX_RELATION_SHARE:.6f}")
 
         if source_kind == "name-stitch" and identity == "unknown" \
                 and removed_category is None:
@@ -588,9 +874,8 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         })
 
     # Preserve a complete relation-level ledger even when no trail feature was
-    # emitted. These records are later rebound to the independent AOI relation
-    # graph by the final validator.
-    relation_audits = copy.deepcopy(relation_member_audit or [])
+    # emitted. Scope/area dispositions were attached before feature topology so
+    # the same evidence can explain non-blocking out-of-area source gaps.
     emitted_relation_ids = {
         relation_id
         for state in states
@@ -609,27 +894,40 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         excluded = [record for record in members
                     if isinstance(record, dict)
                     and record.get("status") == "excluded"]
+        terminal_members = [record for record in members
+                            if isinstance(record, dict)
+                            and record.get("terminal_reason")]
         missing_way_ids = list(dict.fromkeys(
             record.get("way_id") for record in members
             if isinstance(record, dict)
-            and record.get("source_status") == "missing"
+            and record.get("raw_status") != "present"
             and isinstance(record.get("way_id"), int)
+        ))
+        terminal_way_ids = list(dict.fromkeys(
+            record.get("way_id") for record in terminal_members
+            if isinstance(record.get("way_id"), int)
         ))
         missing_relation_ids = audit.get("missing_relation_ids") or []
         assembly_status = audit.get("assembly_status")
         unresolved_reasons = []
-        if missing_relation_ids:
-            unresolved_reasons.append("missing-source-relation")
-        if missing_way_ids:
-            unresolved_reasons.append("missing-source-way")
-        if assembly_status == "entirely-filtered":
+        relation_statuses = audit.get("relation_scope_statuses") or {}
+        if assembly_status != "removed-thru-hike":
+            for status in relation_statuses.values():
+                terminal_reason = status.get("terminal_reason")
+                if terminal_reason:
+                    unresolved_reasons.append(terminal_reason)
+            if not relation_statuses and missing_relation_ids:
+                unresolved_reasons.append("missing-source-relation")
+        unresolved_reasons.extend(
+            record["terminal_reason"] for record in terminal_members)
+        if assembly_status == "entirely-filtered" \
+                and assembly_status != "removed-thru-hike":
             unresolved_reasons.append("entirely-filtered-route")
         elif assembly_status == "no-renderable-geometry":
             unresolved_reasons.append("no-renderable-route-geometry")
         elif assembly_status not in {"emitted", "removed-thru-hike"}:
             unresolved_reasons.append("invalid-assembly-status")
-        if excluded:
-            unresolved_reasons.append("excluded-direct-member")
+        unresolved_reasons = list(dict.fromkeys(unresolved_reasons))
         audit["emitted_in_exact_area"] = relation_id in emitted_relation_ids
         audit["review_status"] = (
             "unresolved" if unresolved_reasons else "accepted")
@@ -644,6 +942,7 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                     record.get("way_id") for record in excluded
                     if isinstance(record.get("way_id"), int)
                 )),
+                "terminal_way_ids": terminal_way_ids,
                 "missing_way_ids": missing_way_ids,
                 "missing_relation_ids": missing_relation_ids,
             }
@@ -754,10 +1053,6 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         aggregate_restored_miles / aggregate_relation_miles
         if aggregate_relation_miles > 0 else 0.0
     )
-    if aggregate_share > RESTORED_ROAD_MAX_AGGREGATE_SHARE + 1e-12:
-        validation_failures.append(
-            f"restored-road-aggregate-share-limit: {aggregate_share:.6f} > "
-            f"{RESTORED_ROAD_MAX_AGGREGATE_SHARE:.6f}")
     restored_road_aggregate = {
         "restored_way_count": aggregate_restored_count,
         "restored_miles": round(aggregate_restored_miles, 6),
@@ -765,7 +1060,7 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         "restored_share": round(aggregate_share, 6),
     }
     return kept, removed, {
-        "schema_version": 5,
+        "schema_version": 7,
         "enabled": True,
         "region": "dk",
         "area": area_name,
@@ -781,14 +1076,119 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         "relation_member_audit": relation_audits,
         "relation_member_unresolved_count": len(relation_member_unresolved),
         "relation_member_unresolved": relation_member_unresolved,
-        "restored_road_limits": {
-            "max_relation_share": RESTORED_ROAD_MAX_RELATION_SHARE,
-            "max_relation_miles": RESTORED_ROAD_MAX_RELATION_MILES,
-            "max_aggregate_share": RESTORED_ROAD_MAX_AGGREGATE_SHARE,
-        },
+        "restored_road_policy": "diagnostic-only-member-safety-gated",
         "restored_road_relations": restored_road_relations,
         "restored_road_aggregate": restored_road_aggregate,
         "overlap_evidence": overlap_evidence,
         "remaining_overlaps": remaining_overlaps,
+        "terminal_absorption_unresolved_count": 0,
+        "terminal_absorption_unresolved": [],
+        "promotion_decisions": copy.deepcopy(promotion_decisions or []),
         "validation_failures": list(dict.fromkeys(validation_failures)),
     }
+
+
+def reconcile_terminal_absorptions(report: dict, kept: list[dict],
+                                    removed: list[dict], area_union,
+                                    unresolved: list[dict]) -> None:
+    """Reconcile quality evidence after terminal relation absorption."""
+    candidates = [*kept, *removed]
+    counts = Counter(
+        feature.get("properties", {}).get("removed_category")
+        for feature in removed)
+    counts.pop(None, None)
+    report.update({
+        "candidate_count": len(candidates),
+        "kept_count": len(kept),
+        "removed_count": len(removed),
+        "removed_counts": dict(sorted(counts.items())),
+        "terminal_absorption_unresolved_count": len(unresolved),
+        "terminal_absorption_unresolved": unresolved,
+    })
+
+    emitted_relation_ids = {
+        relation_id
+        for feature in kept
+        if feature.get("properties", {}).get("source") == "relation"
+        for relation_id in feature.get("properties", {}).get(
+            "relation_ids", [])
+    }
+    for audit in report.get("relation_member_audit") or []:
+        if isinstance(audit, dict):
+            audit["emitted_in_exact_area"] = (
+                audit.get("relation_id") in emitted_relation_ids)
+
+    restored_road_relations = []
+    aggregate_relation_way_miles: dict[tuple[int, int], float] = {}
+    aggregate_restored_relation_ways: set[tuple[int, int]] = set()
+    for feature in kept:
+        properties = feature.get("properties") or {}
+        if properties.get("source") != "relation":
+            continue
+        measurements = _restored_relation_measurements(
+            feature, properties.get("source_ways") or [],
+            properties.get("restored_relation_way_ids") or [],
+            {
+                int(relation_id): list(member_ids)
+                for relation_id, member_ids in
+                (properties.get("direct_relation_way_ids") or {}).items()
+            }, area_union)
+        for (measurement, _restored_miles, _relation_miles,
+             relation_way_miles, restored_relation_ways) in measurements:
+            restored_road_relations.append(measurement)
+            for relation_way, miles in relation_way_miles.items():
+                aggregate_relation_way_miles.setdefault(relation_way, miles)
+            aggregate_restored_relation_ways.update(restored_relation_ways)
+    aggregate_relation_miles = sum(aggregate_relation_way_miles.values())
+    aggregate_restored_miles = sum(
+        aggregate_relation_way_miles[relation_way]
+        for relation_way in aggregate_restored_relation_ways
+        if relation_way in aggregate_relation_way_miles)
+    aggregate_share = (
+        aggregate_restored_miles / aggregate_relation_miles
+        if aggregate_relation_miles > 0 else 0.0)
+    report["restored_road_relations"] = restored_road_relations
+    report["restored_road_aggregate"] = {
+        "restored_way_count": len(aggregate_restored_relation_ways),
+        "restored_miles": round(aggregate_restored_miles, 6),
+        "total_relation_miles": round(aggregate_relation_miles, 6),
+        "restored_share": round(aggregate_share, 6),
+    }
+
+    indexed = {
+        feature.get("properties", {}).get("quality_candidate_index"): feature
+        for feature in candidates
+    }
+    evidence = report.get("overlap_evidence") or []
+    remaining = []
+    for record in evidence:
+        indexes = record.get("candidate_indexes") if isinstance(record, dict) else None
+        if (not isinstance(indexes, list) or len(indexes) != 2
+                or indexes[0] not in indexed or indexes[1] not in indexed):
+            continue
+        states = []
+        for index in indexes:
+            feature = indexed[index]
+            properties = feature.get("properties") or {}
+            states.append({
+                "index": index,
+                "feature": feature,
+                "identity": properties.get("walking_identity"),
+                "removed_category": properties.get("removed_category"),
+            })
+        left, right = states
+        record["final_dispositions"] = [
+            state["removed_category"]
+            or state["feature"].get("properties", {}).get(
+                "quality_disposition", "kept")
+            for state in states
+        ]
+        record["removed_candidates"] = [
+            _removed_record(state, side)
+            for state, side in ((left, "left"), (right, "right"))
+            if state["removed_category"]
+        ]
+        record["disposition"] = _pair_disposition(left, right)
+        if not record["removed_candidates"]:
+            remaining.append(record)
+    report["remaining_overlaps"] = remaining

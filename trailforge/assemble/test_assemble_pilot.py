@@ -6,7 +6,7 @@ import io
 import json
 import sys
 import unittest
-from contextlib import redirect_stderr
+from contextlib import nullcontext, redirect_stderr
 from pathlib import Path
 from types import SimpleNamespace
 from tempfile import TemporaryDirectory
@@ -32,12 +32,32 @@ class _Trail:
                  coordinates=None, relation_ids=None):
         member_ways = list(member_ways or [10])
         coordinates = coordinates or [[[10.5, 56.15], [10.6, 56.2]]]
+        self.name = name
+        self.source = source
+        self.area = area
+        self.tags = {}
+        self.lines = [
+            [(float(point[0]), float(point[1])) for point in line]
+            for line in coordinates
+        ]
         self.member_ways = member_ways
         self.geometry_ways = list(member_ways)
         self.relation_ids = list(relation_ids or [])
+        self.root_relation_ids = list(relation_ids or [])
         self.direct_relation_ways = {
             relation_id: list(member_ways) for relation_id in self.relation_ids
         }
+        self.restored_relation_ways = []
+        self.destinations = []
+        self.destination_evidence = []
+        self.welds = []
+        self.terminal_nodes = []
+        self.hike = kind == "hike"
+        self._deferred_absorption_targets = []
+        self._terminal_successor = None
+        self._terminal_absorption_candidate_id = None
+        self._promotion_endpoint_sources = {}
+        self._promotion_decision = None
         self._feature = {
             "type": "Feature",
             "properties": {
@@ -64,7 +84,28 @@ class _Trail:
         }
 
     def to_feature(self):
-        return copy.deepcopy(self._feature)
+        feature = copy.deepcopy(self._feature)
+        properties = feature["properties"]
+        properties.update({
+            "name": self.name,
+            "kind": "hike" if self.hike else properties["kind"],
+            "area": self.area,
+            "source": self.source,
+            "member_ways": list(self.member_ways),
+            "destinations": list(self.destinations),
+            "welds": list(self.welds),
+            "ckey": "w" + "-".join(
+                str(way_id) for way_id in self.member_ways),
+        })
+        if self.destination_evidence:
+            properties["destination_evidence"] = copy.deepcopy(
+                self.destination_evidence)
+        else:
+            properties.pop("destination_evidence", None)
+        feature["geometry"]["coordinates"] = [
+            [list(point) for point in line] for line in self.lines
+        ]
+        return feature
 
 
 def _boundary(name="Nationalpark Mols Bjerge", osm_type="relation", osm_id=7046785):
@@ -121,11 +162,229 @@ class PbfRelationMemberLoading(unittest.TestCase):
         self.assertEqual(loaded_ways[10]["tags"], {"surface": "ground"})
         self.assertEqual(loaded_nodes, {1: (1.0, 0.0), 2: (2.0, 0.0)})
         self.assertEqual(loaded_relations[700]["members"], [("w", 10, "")])
+    def test_exact_denmark_and_legacy_poi_loading_policies_do_not_leak(self):
+        poi_nodes = [
+            SimpleNamespace(
+                id=90,
+                tags=[SimpleNamespace(k="tourism", v="attraction"),
+                      SimpleNamespace(k="name", v="Attraction")],
+                location=SimpleNamespace(lon=10.5, lat=56.15)),
+            SimpleNamespace(
+                id=91,
+                tags=[SimpleNamespace(k="waterway", v="waterfall"),
+                      SimpleNamespace(k="name", v="Waterfall")],
+                location=SimpleNamespace(lon=10.6, lat=56.15)),
+        ]
+
+        class FakeHandler:
+            def apply_file(self, _path):
+                if hasattr(self, "node"):
+                    for node in poi_nodes:
+                        self.node(node)
+
+        with patch.dict(sys.modules, {
+                "osmium": SimpleNamespace(SimpleHandler=FakeHandler)}):
+            *_, legacy = assemble.read_pbf("synthetic.osm.pbf")
+            *_, denmark = assemble.read_pbf(
+                "synthetic.osm.pbf", exact_denmark=True)
+
+        self.assertEqual([poi["id"] for poi in legacy], [91])
+        self.assertEqual([poi["id"] for poi in denmark], [90])
+
+    def test_non_exact_dk_producer_preserves_legacy_poi_promotion(self):
+        nodes = {
+            1: (10.50, 56.15), 2: (10.52, 56.15),
+            3: (10.50, 56.25), 4: (10.52, 56.25),
+        }
+        ways = {
+            10: {"nodes": [1, 2], "tags": {"highway": "path"}},
+            20: {"nodes": [3, 4], "tags": {"highway": "path"}},
+        }
+        relations = {
+            700: {
+                "tags": {"type": "route", "route": "hiking",
+                         "name": "Falls Access Route"},
+                "members": [("w", 10, "")],
+            },
+            701: {
+                "tags": {"type": "route", "route": "hiking",
+                         "name": "Hut Access Route"},
+                "members": [("w", 20, "")],
+            },
+        }
+        legacy_pois = [{
+            "id": 90, "name": "Legacy Falls", "coord": nodes[2],
+            "tags": {"name": "Legacy Falls", "waterway": "waterfall"},
+        }, {
+            "id": 91, "name": "Legacy Hut", "coord": nodes[4],
+            "tags": {"name": "Legacy Hut", "tourism": "alpine_hut"},
+        }]
+        exact_only_poi = {
+            "id": 92, "name": "Pilot Attraction", "coord": nodes[2],
+            "tags": {"name": "Pilot Attraction", "tourism": "attraction"},
+        }
+        read_modes = []
+
+        def read_pbf(_path, *, exact_denmark=False):
+            read_modes.append(exact_denmark)
+            pois = [*legacy_pois]
+            if exact_denmark:
+                pois.append(exact_only_poi)
+            return (copy.deepcopy(nodes), copy.deepcopy(ways),
+                    copy.deepcopy(relations), copy.deepcopy(pois))
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            outputs = {}
+            with (
+                patch.object(assemble, "read_pbf", side_effect=read_pbf),
+                patch.object(areas, "assemble_areas", return_value=[]),
+            ):
+                for region in ("dk", "az"):
+                    output = root / f"{region}.trails.geojson"
+                    rc = assemble.main([
+                        "--in", str(root / "synthetic.osm.pbf"),
+                        "--out", str(output), "--region", region,
+                    ])
+                    self.assertEqual(rc, 0)
+                    outputs[region] = json.loads(output.read_text())
+
+        self.assertEqual(read_modes, [False, False])
+        self.assertEqual(outputs["dk"], outputs["az"])
+        properties = [
+            feature["properties"] for feature in outputs["dk"]["features"]
+        ]
+        self.assertEqual(
+            [(value["name"], value["kind"], value["destinations"])
+             for value in properties],
+            [("Legacy Falls Trail", "hike", ["Legacy Falls"]),
+             ("Legacy Hut Trail", "hike", ["Legacy Hut"])])
+        self.assertTrue(all(
+            "destination_evidence" not in value for value in properties))
+
+
+class ThreeScopeAuthorityLoading(unittest.TestCase):
+    def _ledger(self, scope, source, *, way_status="present", highway="path",
+                way_name=None):
+        if way_status == "missing":
+            way = {
+                "way_id": 10, "status": "missing", "tags": None,
+                "node_ids": None, "coordinates": None,
+                "missing_node_ids": None,
+            }
+            missing = [10]
+        else:
+            tags = {"highway": highway}
+            if way_name is not None:
+                tags["name"] = way_name
+            way = {
+                "way_id": 10, "status": "present",
+                "tags": tags,
+                "node_ids": [1, 2],
+                "coordinates": [[10.5, 56.15], [10.6, 56.2]],
+                "missing_node_ids": [],
+            }
+            missing = []
+        return {
+            "schema_version": 2,
+            "scope": scope,
+            "source": {
+                "kind": "runner-local-osm-pbf",
+                "artifact": assemble._RELATION_SOURCE_ARTIFACTS[scope],
+                **source,
+            },
+            "attribution": "© OpenStreetMap contributors",
+            "accepted_route_values": ["foot", "hiking", "running", "walking"],
+            "root_relation_ids": [700],
+            "relation_count": 1,
+            "missing_relation_ids": [],
+            "missing_direct_way_ids": missing,
+            "incomplete_direct_way_ids": [],
+            "relations": [{
+                "relation_id": 700,
+                "accepted_hiking_route": True,
+                "tags": {"type": "route", "route": "hiking",
+                         "name": "Scoped Route"},
+                "members": [{
+                    "sequence": 0, "type": "way", "ref": 10, "role": "",
+                }],
+                "direct_way_ids": [10],
+                "direct_ways": [way],
+            }],
+        }
+
+    def _load(self, *, prefilter_highway="path", aoi_status="missing",
+              aoi_identity=None, way_name=None):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_identity = {
+                "sha256": hashlib.sha256(b"aoi").hexdigest(), "bytes": 3,
+            }
+            documents = {
+                "raw": self._ledger(
+                    "raw-denmark", {"sha256": "a" * 64, "bytes": 100},
+                    way_name=way_name),
+                "prefilter": self._ledger(
+                    "prefiltered-denmark",
+                    {"sha256": "b" * 64, "bytes": 80},
+                    highway=prefilter_highway, way_name=way_name),
+                "aoi": self._ledger(
+                    "aoi", aoi_identity or input_identity,
+                    way_status=aoi_status, way_name=way_name),
+            }
+            paths = {}
+            for label, document in documents.items():
+                path = root / f"{label}.json"
+                path.write_text(json.dumps(document), encoding="utf-8")
+                paths[label] = path
+            scopes = assemble._load_relation_scopes(
+                str(paths["raw"]), str(paths["prefilter"]), str(paths["aoi"]),
+                input_identity)
+            return scopes
+
+    def test_raw_authority_augments_geometry_while_aoi_absence_stays_scope_only(self):
+        scopes = self._load()
+        nodes, ways, relations = {}, {}, {}
+
+        assemble._augment_with_raw_authority(nodes, ways, relations, scopes)
+
+        self.assertEqual(nodes, {1: (10.5, 56.15), 2: (10.6, 56.2)})
+        self.assertEqual(ways[10], {
+            "tags": {"highway": "path"}, "nodes": [1, 2],
+        })
+        self.assertEqual(relations[700]["members"], [("w", 10, "")])
+        self.assertEqual(scopes["aoi"]["ways"][10]["status"], "missing")
+
+    def test_raw_only_distinct_name_is_relation_geometry_not_standalone(self):
+        scopes = self._load(way_name="Raw-only Distinct Trail")
+        nodes, ways, relations = {}, {}, {}
+        aoi_way_ids = frozenset(ways)
+        assemble._augment_with_raw_authority(nodes, ways, relations, scopes)
+        removed = []
+
+        trails = assemble.model.assemble(
+            nodes, ways, relations, [], collect_removed=removed, region="dk",
+            relation_scope_evidence=scopes,
+            standalone_way_ids=aoi_way_ids)
+
+        self.assertEqual([trail.name for trail in trails], ["Scoped Route"])
+        self.assertEqual(trails[0].member_ways, [10])
+        self.assertEqual(trails[0].source, "relation")
+        self.assertEqual(removed, [])
+
+    def test_prefilter_tag_mismatch_fails_before_assembly(self):
+        with self.assertRaisesRegex(ValueError, "contradicts raw Denmark"):
+            self._load(prefilter_highway="service")
+
+    def test_aoi_ledger_must_bind_exact_input_pbf(self):
+        with self.assertRaisesRegex(ValueError, "source disagrees"):
+            self._load(aoi_identity={"sha256": "d" * 64, "bytes": 3})
 
 
 @unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
 class ExactPilotAssembly(unittest.TestCase):
-    def _run(self, boundaries, *, nodes=None, ways=None, trails=None, extra_args=()):
+    def _run(self, boundaries, *, nodes=None, ways=None, trails=None,
+             extra_args=(), unresolved_terminal=False):
         nodes = nodes if nodes is not None else {
             1: (10.5, 56.15),
             2: (10.6, 56.2),
@@ -151,11 +410,24 @@ class ExactPilotAssembly(unittest.TestCase):
                 *extra_args,
             ]
             stderr = io.StringIO()
+            unresolved = [{
+                "reason": "missing-target",
+                "source_candidate": {},
+                "target_candidates": [{}],
+            }]
+            terminal_patch = (
+                patch.object(
+                    assemble, "_resolve_terminal_relation_absorptions",
+                    side_effect=lambda features, _targets, **_kwargs:
+                    (features, [], unresolved))
+                if unresolved_terminal else nullcontext()
+            )
             with (
                 patch.object(assemble, "read_pbf", return_value=(nodes, ways, {}, [])),
                 patch.object(areas, "assemble_areas", return_value=boundaries),
                 patch.object(areas, "merge_areas", return_value=[]),
                 patch.object(assemble.model, "assemble", return_value=trails) as build,
+                terminal_patch,
                 redirect_stderr(stderr),
             ):
                 rc = assemble.main(argv)
@@ -222,6 +494,126 @@ class ExactPilotAssembly(unittest.TestCase):
             trails = json.loads(output.read_text())
             return rc, trails, ingest
 
+    def test_terminal_resolver_collapses_chains_and_reports_every_failure_reason(self):
+        marker = assemble._TERMINAL_CANDIDATE_ID
+
+        def feature(index, name=None, coordinates=None, *, category=None):
+            properties = {
+                marker: index,
+                "name": name or f"Candidate {index}",
+                "source": "relation",
+                "ckey": f"w{index + 1}",
+                "root_relation_ids": [700 + index],
+                "quality_disposition": "kept",
+            }
+            if category is not None:
+                properties["removed_category"] = category
+            return {
+                "type": "Feature",
+                "properties": properties,
+                "geometry": {
+                    "type": "MultiLineString",
+                    "coordinates": coordinates or [
+                        [[10.5, 56.15], [10.55, 56.15]]],
+                },
+            }
+
+        chain = [feature(0), feature(1), feature(2, "Terminal")]
+        kept, removed, unresolved = \
+            assemble._resolve_terminal_relation_absorptions(
+                chain, {0: [1], 1: [2]})
+        self.assertEqual(unresolved, [])
+        self.assertEqual([row["properties"][marker] for row in kept], [2])
+        self.assertEqual(
+            [row["properties"][marker] for row in removed], [0, 1])
+        self.assertTrue(all(
+            row["properties"]["drop_evidence"]["survivor"]["name"] ==
+            "Terminal" for row in removed))
+        kept[0]["properties"]["ckey"] = "w-shared"
+        removed[0]["properties"]["ckey"] = "w-shared"
+        self.assertEqual(
+            assemble._curation_snapshot(
+                kept, removed, published_wins=True)["w-shared"], "kept")
+        self.assertEqual(
+            assemble._curation_snapshot(kept, removed)["w-shared"],
+            assemble.model.GEOMETRY_DUPLICATE_ABSORBED_CATEGORY)
+
+        clipped = feature(1, category="outside-exact-area")
+        quality_removed = feature(1, category="dk-unqualified-road-track")
+        model_removed = feature(1, category="closed")
+        model_removed["properties"].update({
+            assemble._TERMINAL_REMOVAL_STAGE: "model-curation",
+            "removed_reason": "Closed by authoritative model curation.",
+            assemble._TERMINAL_SUCCESSOR_IDS: [],
+        })
+        different = feature(1, coordinates=[[
+            [10.5, 56.16], [10.55, 56.16],
+        ]])
+        cases = (
+            ("cycle", [feature(0), feature(1)], {0: [1], 1: [0]}, [],
+             ["cycle", "cycle"]),
+            ("divergent", [feature(0), feature(1), feature(2)], {0: [1, 2]},
+             [], ["divergent-targets"]),
+            ("missing", [feature(0)], {0: [99]}, [], ["missing-target"]),
+            ("clipped", [feature(0)], {0: [1]}, [clipped],
+             ["clipped-target"]),
+            ("model-curation", [feature(0)], {0: [1]}, [model_removed],
+             ["model-curation-removed-target"]),
+            ("quality-removed", [feature(0)], {0: [1]}, [quality_removed],
+             ["quality-removed-target"]),
+            ("coverage", [feature(0), different], {0: [1]}, [],
+             ["coverage-failure"]),
+            ("ambiguous", [feature(0), feature(1), feature(1)], {0: [1]}, [],
+             ["ambiguous-survivor"]),
+            ("nested-ambiguous",
+             [feature(0), feature(1), feature(2), feature(3)],
+             {0: [1], 1: [2, 3]}, [],
+             ["ambiguous-survivor", "divergent-targets"]),
+        )
+        for label, candidates, targets, removed_targets, expected_reasons in cases:
+            with self.subTest(label=label):
+                kept, removed, unresolved = \
+                    assemble._resolve_terminal_relation_absorptions(
+                        candidates, targets, removed_targets=removed_targets)
+                self.assertEqual(kept, candidates)
+                self.assertEqual(removed, [])
+                self.assertEqual(
+                    [record["reason"] for record in unresolved],
+                    expected_reasons)
+                for record in unresolved:
+                    self.assertEqual(
+                        record["source_candidate"]["population"], "published")
+                    self.assertEqual(
+                        record["source_candidate"]["source"], "relation")
+                    self.assertTrue(
+                        record["source_candidate"]["root_relation_ids"])
+                    self.assertRegex(
+                        record["source_candidate"]["geometry_sha256"],
+                        r"^[0-9a-f]{64}$")
+                    self.assertTrue(record["target_candidates"])
+                    for target in record["target_candidates"]:
+                        if target["population"] == "missing":
+                            self.assertIsNone(target["geometry_sha256"])
+                        else:
+                            self.assertRegex(
+                                target["geometry_sha256"], r"^[0-9a-f]{64}$")
+                    if label == "model-curation":
+                        target = record["target_candidates"][0]
+                        self.assertEqual(target["removal_stage"],
+                                         "model-curation")
+                        self.assertEqual(target["removed_category"], "closed")
+                        self.assertEqual(
+                            target["removed_reason"],
+                            "Closed by authoritative model curation.")
+                        self.assertEqual(target["successor_candidate_ids"], [])
+
+        distinct = [feature(0), different]
+        kept, removed, unresolved = \
+            assemble._resolve_terminal_relation_absorptions(distinct, {})
+        self.assertEqual(kept, distinct)
+        self.assertEqual(removed, [])
+        self.assertEqual(unresolved, [])
+
     def test_ingest_relation_fully_outside_remains_ordinary_drop(self):
         rc, trails, ingest = self._run_ingest_reconciliation(
             [[11.0, 56.15], [11.1, 56.15]])
@@ -287,6 +679,24 @@ class ExactPilotAssembly(unittest.TestCase):
         self.assertEqual(len(output["features"]), 1)
         self.assertIn("mols-bjerge.areas.geojson", files)
         self.assertIn("mols-bjerge.curation-diff.json", files)
+
+    def test_mols_pilot_fails_closed_and_reports_unresolved_absorption(self):
+        rc, report, output, _, _, stderr = self._run(
+            [_boundary()], extra_args=("--region", "dk"),
+            unresolved_terminal=True)
+
+        self.assertEqual(rc, 2)
+        self.assertEqual(report["status"], "failed")
+        self.assertEqual(report["failure"],
+                         "unresolved terminal relation absorptions: 1")
+        self.assertEqual(
+            report["quality"]["terminal_absorption_unresolved_count"], 1)
+        self.assertEqual(
+            report["quality"]["terminal_absorption_unresolved"][0]["reason"],
+            "missing-target")
+        self.assertEqual(len(output["features"]), 1)
+        self.assertIn("ERROR: unresolved terminal relation absorptions: 1",
+                      stderr)
 
     def test_exact_clip_assigns_area_to_run33_producer_patterns(self):
         nodes = {

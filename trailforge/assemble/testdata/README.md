@@ -33,3 +33,21 @@ PY=/Users/ivanquen/Documents/Kiro/.venvs/trekdex-parking-20260928/bin/python
 "$PY" -m unittest trailforge/assemble/test_generate_mols_run33_replay.py
 "$PY" -m unittest trailforge/assemble/test_mols_run33_replay.py
 ```
+
+`mols-run34-root-cause-replay.json` is the separate compact, canonical
+root-cause fixture for GitHub run `37213946834` at
+`c2357749ed06dc1860c8ce469a926ed9f108ade8`. It freezes the five root missing
+sets, the 128 available exclusions, all 11 topology rows, Maltgården's exact
+closed OSM ring, and all 27 restored-road rows with member tags. Its test
+independently reconstructs the 1,479/86/106 and 117/7/3/1 partitions. The
+fixture is ODbL-attributed, test-only, and not imported by runtime code.
+Regenerate network-free from the locally archived run directory with:
+
+```bash
+"$PY" trailforge/assemble/testdata/generate_mols_run34_root_cause_replay.py \
+  --run-dir "/Users/ivanquen/Documents/Kiro/Archive/Trekdex Denmark Trails 2026-10-02/GitHub Run 37213946834"
+"$PY" -m unittest trailforge.assemble.test_mols_run34_root_cause_replay
+```
+
+The generator verifies every pinned source byte/hash in the fixture manifest;
+`--update-manifest` is only for an intentional, reviewed source/schema change.

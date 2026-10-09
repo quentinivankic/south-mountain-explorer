@@ -29,3 +29,19 @@ make aoi                       # Sedona bbox -> data/aoi/sedona.raw.geojson
 make verify-golden             # golden.json structural check
 make qa                        # viewer at http://localhost:8000/viewer/
 ```
+
+`make aoi` uses the original generic contract: `osmium extract`, then a
+`linestring,point` raw viewer export. It does not run Python, require pyosmium,
+or create source-topology evidence. The Denmark publish pilot opts into the
+provenance path by setting `AOI_RECEIPT`, `AOI_RELATION_MEMBERS`, and
+`AOI_WAY_TOPOLOGY` together; `AOI_GITHUB_OUTPUT` is optional and may be set only
+with that complete trio. Provenance mode checks `osmium`, Python, pyosmium, and
+all three local exporter/receipt tools before extraction. It widens only the
+pilot raw viewer export to `linestring,polygon,point`, records every AOI way and
+relation, and records every exact-policy destination POI node with its complete
+tags, normalized name, class, and coordinate from the extracted PBF. Each ledger creator immediately appends the
+exact durable ledger SHA-256 and byte count to the producing step's
+`GITHUB_OUTPUT`; the AOI step emits separate relation and topology identities,
+then emits receipt/PBF trust only after all evidence exports complete. Final
+validation compares those stage-owned ledger identities before parsing their
+semantics.

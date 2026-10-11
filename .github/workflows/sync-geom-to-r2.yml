@@ -7,9 +7,12 @@ name: Sync Geom to R2 from an approved immutable source
 # and mutable-main reconciliation are not accepted release identities.
 #
 # The remote inventory is mandatory. A failed, empty, malformed, duplicate, or
-# implausibly incomplete listing aborts before staging and before every upload.
-# scripts/stage-changed-r2.py emits an exact per-object manifest; this workflow
-# verifies each staged SHA-256/MD5 and uploads each named object individually.
+# incomplete listing aborts before staging and before every write. The receipt
+# binds privacy-safe identity references, all page/token closure, every exact
+# key/preimage, the protected set, denominator, digest, and anchor state.
+# scripts/stage-changed-r2.py emits one complete producer population and the
+# exact changed-leaf-plus-four-global conditional manifest. Apply accepts only
+# its separately reviewed SHA-256 and emits a typed terminal receipt.
 
 on:
   workflow_dispatch:
@@ -22,6 +25,35 @@ on:
         description: "Exact full 40-character Git tree for source_sha"
         required: true
         type: string
+      root_approval_ref:
+        description: "Immutable privacy-safe sha256 reference to root approval"
+        required: true
+        type: string
+      account_identity_ref:
+        description: "Precomputed privacy-safe sha256 reference to the provider account"
+        required: true
+        type: string
+      endpoint_identity_ref:
+        description: "Precomputed privacy-safe sha256 reference to the provider endpoint"
+        required: true
+        type: string
+      inventory_anchor_ref:
+        description: "Verified independent inventory-anchor sha256 reference"
+        required: true
+        type: string
+      authoritative_denominator:
+        description: "Reviewed exact total object count for the complete bucket inventory"
+        required: true
+        type: number
+      plan_only:
+        description: "Build canonical evidence only; perform no provider writes"
+        required: true
+        type: boolean
+        default: true
+      approved_manifest_sha256:
+        description: "Exact reviewed manifest hash; required when plan_only is false"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -32,6 +64,7 @@ concurrency:
 
 jobs:
   sync:
+    environment: trekdex-r2-release
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -70,42 +103,44 @@ jobs:
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
           echo "verified detached source commit=$SOURCE_SHA tree=$SOURCE_TREE"
 
-      - name: Build exact upload set and synchronize R2
+      - name: Build canonical plan and optionally apply the exact reviewed manifest
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ROOT_APPROVAL_ASSERTION_JSON: ${{ secrets.R2_ROOT_APPROVAL_ASSERTION_JSON }}
+          R2_ROOT_APPROVAL_HMAC_KEY: ${{ secrets.R2_ROOT_APPROVAL_HMAC_KEY }}
           SOURCE_SHA: ${{ inputs.source_sha }}
           SOURCE_TREE: ${{ inputs.source_tree }}
+          ROOT_APPROVAL_REF: ${{ inputs.root_approval_ref }}
+          ACCOUNT_IDENTITY_REF: ${{ inputs.account_identity_ref }}
+          ENDPOINT_IDENTITY_REF: ${{ inputs.endpoint_identity_ref }}
+          INVENTORY_ANCHOR_REF: ${{ inputs.inventory_anchor_ref }}
+          AUTHORITATIVE_DENOMINATOR: ${{ inputs.authoritative_denominator }}
+          PLAN_ONLY: ${{ inputs.plan_only }}
+          APPROVED_MANIFEST_SHA256: ${{ inputs.approved_manifest_sha256 }}
         run: |
           set -euo pipefail
           if [ -z "$R2_ACCOUNT_ID" ] || [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-            echo "Missing one of R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY repo secrets."
+            echo "::error::required provider identity or credential is unavailable"
             exit 1
           fi
+          [[ "$ROOT_APPROVAL_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$ACCOUNT_IDENTITY_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$ENDPOINT_IDENTITY_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$INVENTORY_ANCHOR_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$AUTHORITATIVE_DENOMINATOR" =~ ^[1-9][0-9]*$ ]]
+
           ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-          WORK_ROOT="$(mktemp -d "${RUNNER_TEMP:-/tmp}/trekdex-r2-sync.XXXXXX")"
-          INVENTORY="$WORK_ROOT/r2-inventory.json"
+          WORK_ROOT="${RUNNER_TEMP}/trekdex-r2-sync-contract"
+          test ! -e "$WORK_ROOT"
+          mkdir -m 700 "$WORK_ROOT"
+          INVENTORY="$WORK_ROOT/inventory-receipt.json"
           STAGE_ROOT="$WORK_ROOT/stage"
+          TERMINAL="$WORK_ROOT/terminal-receipt.json"
+          WORKFLOW_SHA256=$(sha256sum .github/workflows/sync-geom-to-r2.yml | awk '{print $1}')
 
-          echo "Fetching and validating every R2 inventory page..."
-          python3 scripts/stage-changed-r2.py fetch-inventory \
-            --bucket trekdex-areas \
-            --endpoint-url "$ENDPOINT" \
-            --output "$INVENTORY"
-          test -s "$INVENTORY"
-
-          echo "Requiring complete local-key coverage and building an exact upload manifest..."
-          python3 scripts/stage-changed-r2.py stage \
-            --inventory "$INVENTORY" \
-            --bucket trekdex-areas \
-            --stage-root "$STAGE_ROOT"
-          UPLOAD_MANIFEST="$STAGE_ROOT/upload-manifest.tsv"
-          test -f "$UPLOAD_MANIFEST"
-
-          # Build every global object before the first write. A build failure
-          # therefore cannot leave a run that already uploaded an inferred set.
           TRAIL_SEARCH="$WORK_ROOT/trail-search.json"
           PARKING="$WORK_ROOT/parking.json"
           TRAIL_SHAPES="$WORK_ROOT/trail-shapes.json"
@@ -120,69 +155,63 @@ jobs:
           test -s "$PARKING"
           test -s "$TRAIL_SHAPES"
 
-          # Recheck the approved immutable source at the last local boundary
-          # before any provider mutation.
-          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
-          test "$(git rev-parse 'HEAD^{tree}')" = "$SOURCE_TREE"
-          if git symbolic-ref -q HEAD; then
-            echo "::error::source became attached to a mutable ref"
-            exit 1
+          python3 scripts/stage-changed-r2.py fetch-inventory \
+            --bucket trekdex-areas \
+            --endpoint-url "$ENDPOINT" \
+            --account-identity-ref "$ACCOUNT_IDENTITY_REF" \
+            --endpoint-identity-ref "$ENDPOINT_IDENTITY_REF" \
+            --authoritative-denominator "$AUTHORITATIVE_DENOMINATOR" \
+            --area-index public/areas/index.json \
+            --anchor-ref "$INVENTORY_ANCHOR_REF" \
+            --output "$INVENTORY"
+
+          APPROVED_ARGS=()
+          if [ "$PLAN_ONLY" != "true" ]; then
+            [[ "$APPROVED_MANIFEST_SHA256" =~ ^[0-9a-f]{64}$ ]]
+            APPROVED_ARGS=(--approved-manifest-sha256 "$APPROVED_MANIFEST_SHA256")
           fi
-          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          python3 scripts/stage-changed-r2.py stage \
+            --inventory "$INVENTORY" \
+            --bucket trekdex-areas \
+            --stage-root "$STAGE_ROOT" \
+            --global-object "index.json=ios/SouthMountainExplorer/Resources/areas-index.json" \
+            --global-object "parking.json=$PARKING" \
+            --global-object "trail-search.json=$TRAIL_SEARCH" \
+            --global-object "trail-shapes.json=$TRAIL_SHAPES" \
+            --source-sha "$SOURCE_SHA" \
+            --source-tree "$SOURCE_TREE" \
+            --workflow-sha256 "$WORKFLOW_SHA256" \
+            --root-approval-ref "$ROOT_APPROVAL_REF" \
+            --anchor-ref "$INVENTORY_ANCHOR_REF" \
+            "${APPROVED_ARGS[@]}"
 
-          upload_count=0
-          while IFS=$'\t' read -r dataset name expected_md5 expected_sha256 extra; do
-            [ -z "${extra:-}" ] || { echo "::error::malformed upload manifest row"; exit 1; }
-            [ -n "$dataset" ] || continue
-            case "$dataset" in
-              geom) key="$name" ;;
-              silhouettes) key="silhouettes/$name" ;;
-              *) echo "::error::unknown upload dataset: $dataset"; exit 1 ;;
-            esac
-            case "$name" in
-              */*|*$'\n'*|*$'\r'*|*$'\t'*)
-                echo "::error::unsafe upload basename"
-                exit 1
-                ;;
-            esac
-            file="$STAGE_ROOT/$dataset/$name"
-            test -f "$file"
-            test ! -L "$file"
-            test "$(md5sum "$file" | awk '{print $1}')" = "$expected_md5"
-            test "$(sha256sum "$file" | awk '{print $1}')" = "$expected_sha256"
-            aws s3 cp "$file" "s3://trekdex-areas/$key" \
-              --endpoint-url "$ENDPOINT" \
-              --content-type "application/json" \
-              --cache-control "public, max-age=86400" \
-              --no-progress
-            upload_count=$((upload_count + 1))
-          done < "$UPLOAD_MANIFEST"
-          manifest_count=$(awk -F '\t' 'NF { count += 1 } END { print count + 0 }' "$UPLOAD_MANIFEST")
-          test "$upload_count" -eq "$manifest_count"
+          if [ "$PLAN_ONLY" = "true" ]; then
+            echo "Plan-only complete: no provider write was attempted."
+            exit 0
+          fi
+          python3 scripts/stage-changed-r2.py apply-manifest \
+            --inventory "$INVENTORY" \
+            --manifest "$STAGE_ROOT/upload-manifest.json" \
+            --approved-manifest-sha256 "$APPROVED_MANIFEST_SHA256" \
+            --endpoint-url "$ENDPOINT" \
+            --geom-dir public/areas/geom \
+            --silhouettes-dir public/areas/silhouettes \
+            --area-index public/areas/index.json \
+            --global-object "index.json=ios/SouthMountainExplorer/Resources/areas-index.json" \
+            --global-object "parking.json=$PARKING" \
+            --global-object "trail-search.json=$TRAIL_SEARCH" \
+            --global-object "trail-shapes.json=$TRAIL_SHAPES" \
+            --workflow .github/workflows/sync-geom-to-r2.yml \
+            --terminal-receipt "$TERMINAL"
 
-          aws s3 cp ios/SouthMountainExplorer/Resources/areas-index.json \
-            s3://trekdex-areas/index.json \
-            --endpoint-url "$ENDPOINT" \
-            --content-type "application/json" \
-            --cache-control "public, max-age=300" \
-            --no-progress
-          aws s3 cp "$TRAIL_SEARCH" \
-            s3://trekdex-areas/trail-search.json \
-            --endpoint-url "$ENDPOINT" \
-            --content-type "application/json" \
-            --cache-control "public, max-age=300" \
-            --no-progress
-          aws s3 cp "$PARKING" \
-            s3://trekdex-areas/parking.json \
-            --endpoint-url "$ENDPOINT" \
-            --content-type "application/json" \
-            --cache-control "public, max-age=300" \
-            --no-progress
-          aws s3 cp "$TRAIL_SHAPES" \
-            s3://trekdex-areas/trail-shapes.json \
-            --endpoint-url "$ENDPOINT" \
-            --content-type "application/json" \
-            --cache-control "public, max-age=300" \
-            --no-progress
-
-          echo "Sync complete from approved commit=$SOURCE_SHA tree=$SOURCE_TREE; exact changed-object uploads=$upload_count."
+      - name: Upload exact release contract evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: r2-sync-evidence-${{ inputs.source_sha }}
+          path: |
+            ${{ runner.temp }}/trekdex-r2-sync-contract/inventory-receipt.json
+            ${{ runner.temp }}/trekdex-r2-sync-contract/stage/upload-manifest.json
+            ${{ runner.temp }}/trekdex-r2-sync-contract/terminal-receipt.json
+          if-no-files-found: warn
+          retention-days: 7

@@ -21,6 +21,22 @@ on:
         description: "Exact full 40-character Git tree for source_sha"
         required: true
         type: string
+      root_approval_ref:
+        description: "sha256 of exact behavior/toolchain/input/geometry candidate config"
+        required: true
+        type: string
+      approved_input_manifest_b64:
+        description: "Base64 canonical JSON: exact inputs and generated geom bytes for all 51 lanes"
+        required: true
+        type: string
+      approved_toolchain_manifest_b64:
+        description: "Base64 canonical JSON: exact local files, Python, and package versions"
+        required: true
+        type: string
+      artifact_service_ref:
+        description: "Root-approved privacy-safe immutable artifact-service attestation"
+        required: true
+        type: string
       elevation:
         description: "Bake DEM elevation gain and gain-aware difficulty into candidate geom"
         type: boolean
@@ -128,13 +144,126 @@ jobs:
           fi
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
 
+
+      - name: Authenticate root approval before any candidate work
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_TREE: ${{ inputs.source_tree }}
+          ROOT_APPROVAL_REF: ${{ inputs.root_approval_ref }}
+          APPROVED_INPUT_MANIFEST_B64: ${{ inputs.approved_input_manifest_b64 }}
+          APPROVED_TOOLCHAIN_MANIFEST_B64: ${{ inputs.approved_toolchain_manifest_b64 }}
+          ARTIFACT_SERVICE_REF_INPUT: ${{ inputs.artifact_service_ref }}
+          ELEVATION_INPUT: ${{ inputs.elevation }}
+          NO_ROUTES_INPUT: ${{ inputs.no_routes }}
+          TRAILFORGE_ROOT_APPROVAL_ASSERTION_JSON: ${{ secrets.TRAILFORGE_ROOT_APPROVAL_ASSERTION_JSON }}
+          TRAILFORGE_ROOT_APPROVAL_HMAC_KEY: ${{ secrets.TRAILFORGE_ROOT_APPROVAL_HMAC_KEY }}
+          TRAILFORGE_ROOT_APPROVAL_KEY_ID: ${{ vars.TRAILFORGE_ROOT_APPROVAL_KEY_ID }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64
+          import hashlib
+          import json
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path("scripts").resolve()))
+          from trailforge_candidate_contract import (
+              derive_approved_candidate_manifest,
+              derive_authoritative_lane_semantics,
+              validate_root_approval_assertion,
+          )
+
+          def required(name):
+              value = os.environ.get(name)
+              if not value:
+                  raise ValueError(f"required root approval input is unavailable: {name}")
+              return value
+
+          def boolean(name):
+              value = required(name)
+              if value not in {"true", "false"}:
+                  raise ValueError(f"root approval boolean is invalid: {name}")
+              return value == "true"
+
+          canonical = lambda value: (
+              json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n"
+          ).encode()
+          approved_inputs_bytes = base64.b64decode(
+              required("APPROVED_INPUT_MANIFEST_B64"), validate=True
+          )
+          approval_authority = derive_approved_candidate_manifest(
+              approved_inputs_bytes,
+              authoritative_source_index=Path("public/areas/index.json"),
+          )
+          approved_toolchain_bytes = base64.b64decode(
+              required("APPROVED_TOOLCHAIN_MANIFEST_B64"), validate=True
+          )
+          approved_toolchain = json.loads(approved_toolchain_bytes)
+          if (
+              approved_toolchain_bytes != canonical(approved_toolchain)
+              or not isinstance(approved_toolchain, dict)
+              or set(approved_toolchain)
+              != {"schema", "python_version", "files", "packages"}
+              or approved_toolchain["schema"]
+              != "trekdex-trailforge-approved-toolchain-v1"
+          ):
+              raise ValueError("approved toolchain manifest is not exact canonical JSON")
+          service_ref = required("ARTIFACT_SERVICE_REF_INPUT")
+          if not re.fullmatch(r"sha256:[0-9a-f]{64}", service_ref):
+              raise ValueError("artifact service attestation is not immutable")
+          source_authority = derive_authoritative_lane_semantics(
+              Path("public/areas/index.json")
+          )
+          config = {
+              "schema": "trekdex-trailforge-candidate-config-v3",
+              "source_sha": required("SOURCE_SHA"),
+              "source_tree": required("SOURCE_TREE"),
+              "workflow_sha256": hashlib.sha256(
+                  Path(".github/workflows/trailforge-publish-us.yml").read_bytes()
+              ).hexdigest(),
+              "elevation": boolean("ELEVATION_INPUT"),
+              "no_routes": boolean("NO_ROUTES_INPUT"),
+              "toolchain_manifest_sha256": hashlib.sha256(
+                  approved_toolchain_bytes
+              ).hexdigest(),
+              "approved_input_set_sha256": approval_authority["approved_input_set_sha256"],
+              "approved_input_population_sha256": approval_authority["approved_input_population_sha256"],
+              "approved_geometry_population_sha256": approval_authority["approved_geometry_population_sha256"],
+              "artifact_service_ref": service_ref,
+              "source_index_sha256": source_authority["source_index_sha256"],
+              "lane_authority_sha256": source_authority["authority_sha256"],
+          }
+          config_bytes = canonical(config)
+          root_approval_ref = required("ROOT_APPROVAL_REF")
+          if root_approval_ref != "sha256:" + hashlib.sha256(config_bytes).hexdigest():
+              raise ValueError("root approval ref does not name exact candidate config")
+          validate_root_approval_assertion(
+              required("TRAILFORGE_ROOT_APPROVAL_ASSERTION_JSON"),
+              config_bytes,
+              approved_candidate_manifest=approved_inputs_bytes,
+              authoritative_source_index=Path("public/areas/index.json"),
+              root_approval_ref=root_approval_ref,
+              run_id=required("GITHUB_RUN_ID"),
+              run_attempt=int(required("GITHUB_RUN_ATTEMPT")),
+              key=required("TRAILFORGE_ROOT_APPROVAL_HMAC_KEY"),
+              expected_authority_key_id=required("TRAILFORGE_ROOT_APPROVAL_KEY_ID"),
+          )
+          print("root approval authority authenticated for exact run/config")
+          PY
+
       - name: Install osmium, pyosmium, shapely, and Pillow
         run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely python3-pil
 
       - name: Build exact state candidate "${{ matrix.state }}"
+        id: build_lane
+        continue-on-error: true
         env:
           SOURCE_SHA: ${{ inputs.source_sha }}
           SOURCE_TREE: ${{ inputs.source_tree }}
+          APPROVED_INPUT_MANIFEST_B64: ${{ inputs.approved_input_manifest_b64 }}
         run: |
           set -euo pipefail
           RUN_OUT="$GITHUB_WORKSPACE/out"
@@ -150,60 +279,87 @@ jobs:
           mkdir -p data/raw data/aoi
 
           slug="${{ matrix.state }}"
-          NAME=$(python3 tools/state_slug.py name "$slug")
-          python3 - ../public/areas/index.json "$NAME" "$EXPECTED" <<'PY'
+          NAME=$(
+            python3 - ../public/areas/index.json "$slug" "$EXPECTED" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path("../scripts").resolve()))
+          from trailforge_candidate_contract import derive_authoritative_lane_semantics
+
+          index_path, lane, output_path = sys.argv[1:]
+          authority = derive_authoritative_lane_semantics(Path(index_path))
+          semantics = authority["lanes"][lane]
+          document = {
+              "schema": "trekdex-pinned-state-area-set-v1",
+              "state": semantics["display_state"],
+              "area_count": semantics["area_count"],
+              "area_ids_sha256": semantics["area_ids_sha256"],
+              "area_ids": semantics["area_ids"],
+          }
+          Path(output_path).write_text(
+              json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+          )
+          print(semantics["display_state"])
+          PY
+          )
+
+          raw="data/raw/$slug.osm.pbf"
+          INPUT_URL="https://download.geofabrik.de/north-america/us/$slug-latest.osm.pbf"
+          if ! curl -fL --retry 5 --retry-delay 5 --connect-timeout 20 \
+               --speed-limit 2000 --speed-time 30 -o "$raw" "$INPUT_URL"; then
+            echo "::error::no extract for $slug"
+            exit 1
+          fi
+          python3 - "$raw" "$RUN_OUT/input-manifest.json" "$slug" "$SOURCE_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$INPUT_URL" "$APPROVED_INPUT_MANIFEST_B64" <<'PY'
+          import base64
           import hashlib
           import json
           import sys
           from pathlib import Path
 
-          index_path, expected_state, output_path = sys.argv[1:]
+          sys.path.insert(0, str(Path("../scripts").resolve()))
+          from trailforge_candidate_contract import derive_approved_candidate_manifest
 
-          def reject_duplicates(pairs):
-              document = {}
-              for key, value in pairs:
-                  if key in document:
-                      raise ValueError(f"duplicate JSON key {key!r}")
-                  document[key] = value
-              return document
-
-          index = json.loads(Path(index_path).read_text(), object_pairs_hook=reject_duplicates)
-          if not isinstance(index, list):
-              raise SystemExit("pinned index is not an array")
-          area_to_state = {}
-          for number, row in enumerate(index, start=1):
-              if (not isinstance(row, list) or len(row) < 3 or
-                      not isinstance(row[0], str) or not row[0] or
-                      not isinstance(row[2], str) or not row[2]):
-                  raise SystemExit(f"pinned index row {number} lacks exact id/state authority")
-              if row[0] in area_to_state:
-                  raise SystemExit(f"pinned index repeats area id: {row[0]}")
-              area_to_state[row[0]] = row[2]
-          area_ids = sorted(
-              area_id for area_id, state in area_to_state.items() if state == expected_state
-          )
-          if not area_ids:
-              raise SystemExit(f"pinned index has no areas for state {expected_state!r}")
-          encoded = ("\n".join(area_ids) + "\n").encode()
+          raw, output, lane, source_sha, run_id, run_attempt, url, encoded_manifest = sys.argv[1:]
+          try:
+              manifest_bytes = base64.b64decode(encoded_manifest, validate=True)
+              authority = derive_approved_candidate_manifest(
+                  manifest_bytes,
+                  authoritative_source_index=Path("../public/areas/index.json"),
+              )
+          except Exception as error:
+              raise SystemExit(
+                  f"approved input/geometry manifest is invalid: {type(error).__name__}"
+              )
+          expected = authority["lanes"].get(lane)
+          payload = Path(raw).read_bytes()
+          actual_sha = hashlib.sha256(payload).hexdigest()
+          if (
+              expected is None
+              or expected["url"] != url
+              or expected["bytes"] != len(payload)
+              or expected["sha256"] != actual_sha
+          ):
+              raise SystemExit("downloaded external input differs from root-approved exact bytes")
           document = {
-              "schema": "trekdex-pinned-state-area-set-v1",
-              "state": expected_state,
-              "area_count": len(area_ids),
-              "area_ids_sha256": hashlib.sha256(encoded).hexdigest(),
-              "area_ids": area_ids,
+              "schema": "trekdex-trailforge-input-v2",
+              "lane": lane,
+              "source_sha": source_sha,
+              "run_id": run_id,
+              "run_attempt": int(run_attempt),
+              "approved_input_set_sha256": authority["approved_input_set_sha256"],
+              "approved_input_population_sha256": authority["approved_input_population_sha256"],
+              "approved_geometry_population_sha256": authority["approved_geometry_population_sha256"],
+              "url": url,
+              "bytes": len(payload),
+              "sha256": actual_sha,
           }
-          Path(output_path).write_text(
-              json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+          Path(output).write_text(
+              json.dumps(document, sort_keys=True, separators=(",", ":")) + "\n"
           )
           PY
-
-          raw="data/raw/$slug.osm.pbf"
-          if ! curl -fL --retry 5 --retry-delay 5 --connect-timeout 20 \
-               --speed-limit 2000 --speed-time 30 -o "$raw" \
-               "https://download.geofabrik.de/north-america/us/$slug-latest.osm.pbf"; then
-            echo "::error::no extract for $slug"
-            exit 1
-          fi
           if ! bash extract/prefilter.sh "$raw" data/hiking.osm.pbf; then
             echo "::error::prefilter failed for $slug"
             exit 1
@@ -312,17 +468,236 @@ jobs:
           print(f"lane {lane}: exact authoritative output {len(area_ids)}/{len(area_ids)}")
           PY
 
-      - name: Upload exact state geom artifact
+      - name: Record typed lane terminal
+        if: ${{ always() }}
+        env:
+          BUILD_OUTCOME: ${{ steps.build_lane.outcome }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_TREE: ${{ inputs.source_tree }}
+          ROOT_APPROVAL_REF: ${{ inputs.root_approval_ref }}
+          APPROVED_INPUT_MANIFEST_B64: ${{ inputs.approved_input_manifest_b64 }}
+          APPROVED_TOOLCHAIN_MANIFEST_B64: ${{ inputs.approved_toolchain_manifest_b64 }}
+          ARTIFACT_SERVICE_REF_INPUT: ${{ inputs.artifact_service_ref }}
+          TRAILFORGE_ROOT_APPROVAL_ASSERTION_JSON: ${{ secrets.TRAILFORGE_ROOT_APPROVAL_ASSERTION_JSON }}
+          TRAILFORGE_ROOT_APPROVAL_HMAC_KEY: ${{ secrets.TRAILFORGE_ROOT_APPROVAL_HMAC_KEY }}
+          TRAILFORGE_ROOT_APPROVAL_KEY_ID: ${{ vars.TRAILFORGE_ROOT_APPROVAL_KEY_ID }}
+        run: |
+          set -euo pipefail
+          case "$BUILD_OUTCOME" in
+            success) outcome=SUCCESS; reason="" ;;
+            failure) outcome=FAILED; reason="lane build failed" ;;
+            cancelled) outcome=CANCELLED; reason="lane build was cancelled" ;;
+            skipped) outcome=SKIPPED; reason="lane build was skipped" ;;
+            *) outcome=CORRUPT; reason="lane build returned an unknown orchestration outcome" ;;
+          esac
+          mkdir -p out/lane-evidence
+          WORKFLOW_SHA256=$(sha256sum .github/workflows/trailforge-publish-us.yml | awk '{print $1}')
+          python3 - "$WORKFLOW_SHA256" "$SOURCE_SHA" "$SOURCE_TREE" "${{ inputs.elevation }}" "${{ inputs.no_routes }}" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "${{ matrix.state }}" "$ROOT_APPROVAL_REF" "$APPROVED_INPUT_MANIFEST_B64" "$APPROVED_TOOLCHAIN_MANIFEST_B64" "$ARTIFACT_SERVICE_REF_INPUT" <<'PY'
+          import base64
+          import hashlib
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path("scripts").resolve()))
+          from trailforge_candidate_contract import (
+              INHERITED_LANE_SCHEMA,
+              derive_approved_candidate_manifest,
+              derive_authoritative_lane_semantics,
+              validate_root_approval_assertion,
+          )
+
+          workflow_sha, source_sha, source_tree, elevation, no_routes, run_id, run_attempt, lane, approval, encoded_inputs, encoded_toolchain, service_ref = sys.argv[1:]
+          authority = derive_authoritative_lane_semantics(
+              Path("public/areas/index.json")
+          )
+          lane_semantics = authority["lanes"][lane]
+          canonical = lambda value: (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+          if not re.fullmatch(r"sha256:[0-9a-f]{64}", service_ref):
+              raise SystemExit("artifact service attestation is not a privacy-safe immutable reference")
+          try:
+              approved_inputs_bytes = base64.b64decode(encoded_inputs, validate=True)
+              approval_authority = derive_approved_candidate_manifest(
+                  approved_inputs_bytes,
+                  authoritative_source_index=Path("public/areas/index.json"),
+              )
+              approved_toolchain_bytes = base64.b64decode(encoded_toolchain, validate=True)
+              approved_toolchain = json.loads(approved_toolchain_bytes)
+          except Exception as error:
+              raise SystemExit(f"approved input/toolchain manifest is invalid: {type(error).__name__}")
+          if approved_toolchain_bytes != canonical(approved_toolchain):
+              raise SystemExit("approved toolchain manifest is not canonical")
+          authority_root = Path(os.environ["RUNNER_TEMP"])
+          approved_manifest_path = authority_root / f"approved-candidate-{run_id}-{run_attempt}-{lane}.json"
+          if approved_manifest_path.exists() or approved_manifest_path.is_symlink():
+              raise SystemExit("isolated approved candidate manifest path already exists")
+          tool_paths = [
+              ".github/workflows/trailforge-publish-us.yml",
+              "trailforge/extract/prefilter.sh",
+              "trailforge/assemble/assemble.py",
+              "trailforge/serve/publish_areas.py",
+              "trailforge/tools/state_slug.py",
+              "scripts/trailforge_candidate_contract.py",
+              "scripts/merge-published-geom.py",
+              "scripts/silhouettes-from-geom.py",
+              "scripts/filter-ios-bundle.py",
+          ]
+          tool_rows = [
+              {"path": path, "sha256": hashlib.sha256(Path(path).read_bytes()).hexdigest()}
+              for path in tool_paths
+          ]
+          packages = ["osmium-tool", "python3-pyosmium", "python3-shapely", "python3-pil"]
+          package_rows = [
+              {
+                  "name": package,
+                  "version": subprocess.check_output(
+                      ["dpkg-query", "-W", "-f=${Version}", package], text=True
+                  ).strip(),
+              }
+              for package in packages
+          ]
+          observed_toolchain = {
+              "schema": "trekdex-trailforge-approved-toolchain-v1",
+              "python_version": sys.version.split()[0],
+              "files": tool_rows,
+              "packages": package_rows,
+          }
+          if approved_toolchain != observed_toolchain:
+              raise SystemExit("runtime toolchain differs from root-approved exact manifest")
+          toolchain = hashlib.sha256(approved_toolchain_bytes).hexdigest()
+          config = {
+              "schema": "trekdex-trailforge-candidate-config-v3",
+              "source_sha": source_sha,
+              "source_tree": source_tree,
+              "workflow_sha256": workflow_sha,
+              "elevation": elevation == "true",
+              "no_routes": no_routes == "true",
+              "toolchain_manifest_sha256": toolchain,
+              "approved_input_set_sha256": approval_authority["approved_input_set_sha256"],
+              "approved_input_population_sha256": approval_authority["approved_input_population_sha256"],
+              "approved_geometry_population_sha256": approval_authority["approved_geometry_population_sha256"],
+              "artifact_service_ref": service_ref,
+              "source_index_sha256": authority["source_index_sha256"],
+              "lane_authority_sha256": authority["authority_sha256"],
+          }
+          config_bytes = canonical(config)
+          config_sha = hashlib.sha256(config_bytes).hexdigest()
+          candidate_config_path = authority_root / f"candidate-config-{run_id}-{run_attempt}-{lane}.json"
+          if candidate_config_path.exists() or candidate_config_path.is_symlink():
+              raise SystemExit("isolated candidate config path already exists")
+          if approval != "sha256:" + config_sha:
+              raise SystemExit("root approval ref does not name exact candidate behavior/toolchain config")
+          validate_root_approval_assertion(
+              os.environ.get("TRAILFORGE_ROOT_APPROVAL_ASSERTION_JSON"),
+              config_bytes,
+              approved_candidate_manifest=approved_inputs_bytes,
+              authoritative_source_index=Path("public/areas/index.json"),
+              root_approval_ref=approval,
+              run_id=run_id,
+              run_attempt=int(run_attempt),
+              key=os.environ.get("TRAILFORGE_ROOT_APPROVAL_HMAC_KEY"),
+              expected_authority_key_id=os.environ.get(
+                  "TRAILFORGE_ROOT_APPROVAL_KEY_ID"
+              ),
+          )
+          approved_manifest_path.write_bytes(approved_inputs_bytes)
+          candidate_config_path.write_bytes(config_bytes)
+          retry = hashlib.sha256(canonical({
+              "run_id": run_id, "run_attempt": int(run_attempt), "config": config_sha
+          })).hexdigest()
+          matrix = hashlib.sha256(f"{run_id}:{run_attempt}:{lane}".encode()).hexdigest()
+          if Path("out/input-manifest.json").is_file() and Path("out/geom/trekdex-lane-receipt.json").is_file():
+              input_sha = hashlib.sha256(Path("out/input-manifest.json").read_bytes()).hexdigest()
+              receipt_path = Path("out/geom/trekdex-lane-receipt.json")
+              receipt = json.loads(receipt_path.read_text())
+              if (
+                  receipt.get("lane") != lane
+                  or receipt.get("display_state") != lane_semantics["display_state"]
+                  or receipt.get("expected_area_count") != lane_semantics["area_count"]
+                  or receipt.get("expected_area_ids_sha256")
+                  != lane_semantics["area_ids_sha256"]
+              ):
+                  raise SystemExit(
+                      "lane receipt differs from pinned source-index authority"
+                  )
+              receipt.update({
+                  "schema": INHERITED_LANE_SCHEMA,
+                  "workflow_sha256": workflow_sha,
+                  "candidate_config_sha256": config_sha,
+                  "run_id": run_id,
+                  "run_attempt": int(run_attempt),
+                  "toolchain_manifest_sha256": toolchain,
+                  "input_manifest_sha256": input_sha,
+                  "approved_input_set_sha256": approval_authority["approved_input_set_sha256"],
+                  "approved_input_population_sha256": approval_authority["approved_input_population_sha256"],
+                  "approved_geometry_population_sha256": approval_authority["approved_geometry_population_sha256"],
+                  "source_index_sha256": authority["source_index_sha256"],
+                  "authority_sha256": authority["authority_sha256"],
+              })
+              receipt["receipt_sha256"] = hashlib.sha256(canonical(receipt)).hexdigest()
+              receipt_path.write_bytes(canonical(receipt))
+          Path("out/identity.env").write_text(
+              f"CANDIDATE_CONFIG_SHA256={config_sha}\n"
+              f"CANDIDATE_CONFIG_PATH={candidate_config_path}\n"
+              f"APPROVED_CANDIDATE_MANIFEST_PATH={approved_manifest_path}\n"
+              f"TOOLCHAIN_MANIFEST_SHA256={toolchain}\n"
+              f"APPROVED_INPUT_SET_SHA256={approval_authority['approved_input_set_sha256']}\n"
+              f"APPROVED_INPUT_POPULATION_SHA256={approval_authority['approved_input_population_sha256']}\n"
+              f"APPROVED_GEOMETRY_POPULATION_SHA256={approval_authority['approved_geometry_population_sha256']}\n"
+              f"ARTIFACT_SERVICE_REF={service_ref}\n"
+              f"MATRIX_JOB_REF={matrix}\n"
+              f"RETRY_LINEAGE_REF={retry}\n"
+          )
+          PY
+          source out/identity.env
+          rm out/identity.env
+          args=(
+            record-lane
+            --lane "${{ matrix.state }}"
+            --outcome "$outcome"
+            --source-sha "$SOURCE_SHA"
+            --source-tree "$SOURCE_TREE"
+            --workflow-sha256 "$WORKFLOW_SHA256"
+            --root-approval-ref "$ROOT_APPROVAL_REF"
+            --run-id "$GITHUB_RUN_ID"
+            --run-attempt "$GITHUB_RUN_ATTEMPT"
+            --candidate-config "$CANDIDATE_CONFIG_PATH"
+            --approved-candidate-manifest "$APPROVED_CANDIDATE_MANIFEST_PATH"
+            --matrix-job-ref "$MATRIX_JOB_REF"
+            --retry-lineage-ref "$RETRY_LINEAGE_REF"
+            --input-manifest out/input-manifest.json
+            --publisher-log out/publisher.log
+            --inherited-receipt out/geom/trekdex-lane-receipt.json
+            --expected out/expected-state-areas.json
+            --source-index public/areas/index.json
+            --geom-dir out/geom
+            --output out/lane-evidence/lane-terminal.json
+          )
+          if [ -n "$reason" ]; then args+=(--reason "$reason"); fi
+          python3 scripts/trailforge_candidate_contract.py "${args[@]}"
+
+      - name: Upload exact state lane evidence
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: geom-${{ matrix.state }}
-          path: out/geom
+          name: lane-evidence-${{ matrix.state }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out
           if-no-files-found: error
           retention-days: 1
 
+      - name: Preserve adverse lane result
+        if: ${{ always() && steps.build_lane.outcome != 'success' }}
+        run: exit 1
+
+  # If the hosting platform cancels the whole workflow before this collector can
+  # run, local truth remains explicitly PENDING_HOSTED_CANCELLATION; this file
+  # does not claim that hosted cancellation evidence has been proven.
   merge:
     needs: publish
-    if: ${{ needs.publish.result == 'success' }}
+    if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the approved commit, detached
@@ -357,11 +732,161 @@ jobs:
       - name: Download the exact state artifact set
         uses: actions/download-artifact@v4
         with:
-          pattern: geom-*
+          pattern: lane-evidence-*-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts
           merge-multiple: false
 
+      - name: Reduce all 51 typed lane terminals
+        id: fan_in
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_TREE: ${{ inputs.source_tree }}
+          ROOT_APPROVAL_REF: ${{ inputs.root_approval_ref }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
+          APPROVED_INPUT_MANIFEST_B64: ${{ inputs.approved_input_manifest_b64 }}
+          APPROVED_TOOLCHAIN_MANIFEST_B64: ${{ inputs.approved_toolchain_manifest_b64 }}
+          ARTIFACT_SERVICE_REF_INPUT: ${{ inputs.artifact_service_ref }}
+          TRAILFORGE_ROOT_APPROVAL_ASSERTION_JSON: ${{ secrets.TRAILFORGE_ROOT_APPROVAL_ASSERTION_JSON }}
+          TRAILFORGE_ROOT_APPROVAL_HMAC_KEY: ${{ secrets.TRAILFORGE_ROOT_APPROVAL_HMAC_KEY }}
+          TRAILFORGE_ROOT_APPROVAL_KEY_ID: ${{ vars.TRAILFORGE_ROOT_APPROVAL_KEY_ID }}
+        run: |
+          set -euo pipefail
+          workflow_outcome=FAILED
+          case "$PUBLISH_RESULT" in
+            success) workflow_outcome=SUCCESS ;;
+            cancelled) workflow_outcome=CANCELLED ;;
+            skipped) workflow_outcome=SKIPPED ;;
+          esac
+          WORKFLOW_SHA256=$(sha256sum .github/workflows/trailforge-publish-us.yml | awk '{print $1}')
+          python3 - "$WORKFLOW_SHA256" "$SOURCE_SHA" "$SOURCE_TREE" "${{ inputs.elevation }}" "${{ inputs.no_routes }}" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$ROOT_APPROVAL_REF" "$APPROVED_INPUT_MANIFEST_B64" "$APPROVED_TOOLCHAIN_MANIFEST_B64" "$ARTIFACT_SERVICE_REF_INPUT" <<'PY'
+          import base64
+          import hashlib
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path("scripts").resolve()))
+          from trailforge_candidate_contract import (
+              derive_approved_candidate_manifest,
+              derive_authoritative_lane_semantics,
+              validate_root_approval_assertion,
+          )
+
+          workflow_sha, source_sha, source_tree, elevation, no_routes, run_id, run_attempt, approval, encoded_inputs, encoded_toolchain, service_ref = sys.argv[1:]
+          authority = derive_authoritative_lane_semantics(
+              Path("public/areas/index.json")
+          )
+          canonical = lambda value: (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+          if not re.fullmatch(r"sha256:[0-9a-f]{64}", service_ref):
+              raise SystemExit("artifact service attestation is not immutable")
+          try:
+              approved_inputs_bytes = base64.b64decode(encoded_inputs, validate=True)
+              approval_authority = derive_approved_candidate_manifest(
+                  approved_inputs_bytes,
+                  authoritative_source_index=Path("public/areas/index.json"),
+              )
+              approved_toolchain_bytes = base64.b64decode(encoded_toolchain, validate=True)
+              approved_toolchain = json.loads(approved_toolchain_bytes)
+          except Exception as error:
+              raise SystemExit(f"approved input/toolchain manifest is invalid: {type(error).__name__}")
+          if approved_toolchain_bytes != canonical(approved_toolchain):
+              raise SystemExit("approved toolchain manifest is not canonical")
+          if (
+              not isinstance(approved_toolchain, dict)
+              or approved_toolchain.get("schema") != "trekdex-trailforge-approved-toolchain-v1"
+              or set(approved_toolchain) != {"schema", "python_version", "files", "packages"}
+          ):
+              raise SystemExit("approved toolchain manifest schema is not exact")
+          tool_paths = [
+              ".github/workflows/trailforge-publish-us.yml",
+              "trailforge/extract/prefilter.sh",
+              "trailforge/assemble/assemble.py",
+              "trailforge/serve/publish_areas.py",
+              "trailforge/tools/state_slug.py",
+              "scripts/trailforge_candidate_contract.py",
+              "scripts/merge-published-geom.py",
+              "scripts/silhouettes-from-geom.py",
+              "scripts/filter-ios-bundle.py",
+          ]
+          observed_files = [
+              {"path": path, "sha256": hashlib.sha256(Path(path).read_bytes()).hexdigest()}
+              for path in tool_paths
+          ]
+          if approved_toolchain["files"] != observed_files:
+              raise SystemExit("fan-in tool bytes differ from root-approved manifest")
+          toolchain = hashlib.sha256(approved_toolchain_bytes).hexdigest()
+          config = {
+              "schema": "trekdex-trailforge-candidate-config-v3",
+              "source_sha": source_sha,
+              "source_tree": source_tree,
+              "workflow_sha256": workflow_sha,
+              "elevation": elevation == "true",
+              "no_routes": no_routes == "true",
+              "toolchain_manifest_sha256": toolchain,
+              "approved_input_set_sha256": approval_authority["approved_input_set_sha256"],
+              "approved_input_population_sha256": approval_authority["approved_input_population_sha256"],
+              "approved_geometry_population_sha256": approval_authority["approved_geometry_population_sha256"],
+              "artifact_service_ref": service_ref,
+              "source_index_sha256": authority["source_index_sha256"],
+              "lane_authority_sha256": authority["authority_sha256"],
+          }
+          config_bytes = canonical(config)
+          config_sha = hashlib.sha256(config_bytes).hexdigest()
+          if approval != "sha256:" + config_sha:
+              raise SystemExit("root approval ref does not name exact candidate behavior/toolchain config")
+          validate_root_approval_assertion(
+              os.environ.get("TRAILFORGE_ROOT_APPROVAL_ASSERTION_JSON"),
+              config_bytes,
+              approved_candidate_manifest=approved_inputs_bytes,
+              authoritative_source_index=Path("public/areas/index.json"),
+              root_approval_ref=approval,
+              run_id=run_id,
+              run_attempt=int(run_attempt),
+              key=os.environ.get("TRAILFORGE_ROOT_APPROVAL_HMAC_KEY"),
+              expected_authority_key_id=os.environ.get(
+                  "TRAILFORGE_ROOT_APPROVAL_KEY_ID"
+              ),
+          )
+          retry = hashlib.sha256(canonical({"run_id": run_id, "run_attempt": int(run_attempt), "config": config_sha})).hexdigest()
+          candidate_root = Path("candidate")
+          candidate_root.mkdir()
+          approved_manifest_path = candidate_root / "approved-candidate-manifest.json"
+          candidate_config_path = candidate_root / "candidate-config.json"
+          approved_manifest_path.write_bytes(approved_inputs_bytes)
+          candidate_config_path.write_bytes(config_bytes)
+          Path("candidate-identity.env").write_text(
+              f"CANDIDATE_CONFIG_SHA256={config_sha}\n"
+              f"CANDIDATE_CONFIG_PATH={candidate_config_path}\n"
+              f"APPROVED_CANDIDATE_MANIFEST_PATH={approved_manifest_path}\n"
+              f"TOOLCHAIN_MANIFEST_SHA256={toolchain}\n"
+              f"APPROVED_INPUT_SET_SHA256={approval_authority['approved_input_set_sha256']}\n"
+              f"APPROVED_INPUT_POPULATION_SHA256={approval_authority['approved_input_population_sha256']}\n"
+              f"APPROVED_GEOMETRY_POPULATION_SHA256={approval_authority['approved_geometry_population_sha256']}\n"
+              f"ARTIFACT_SERVICE_REF={service_ref}\n"
+              f"RETRY_LINEAGE_REF={retry}\n"
+          )
+          PY
+          source candidate-identity.env
+          rm candidate-identity.env
+          python3 scripts/trailforge_candidate_contract.py fan-in \
+            --artifacts-root artifacts \
+            --source-index public/areas/index.json \
+            --source-sha "$SOURCE_SHA" \
+            --source-tree "$SOURCE_TREE" \
+            --workflow-sha256 "$WORKFLOW_SHA256" \
+            --root-approval-ref "$ROOT_APPROVAL_REF" \
+            --run-id "$GITHUB_RUN_ID" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --candidate-config "$CANDIDATE_CONFIG_PATH" \
+            --approved-candidate-manifest "$APPROVED_CANDIDATE_MANIFEST_PATH" \
+            --retry-lineage-ref "$RETRY_LINEAGE_REF" \
+            --workflow-outcome "$workflow_outcome" \
+            --output candidate/fan-in-terminal.json \
+            --github-output "$GITHUB_OUTPUT"
+
       - name: Verify all 51 required lanes and exact artifacts
+        if: ${{ steps.fan_in.outputs.review_candidate_allowed == 'true' }}
         env:
           SOURCE_SHA: ${{ inputs.source_sha }}
           SOURCE_TREE: ${{ inputs.source_tree }}
@@ -373,7 +898,11 @@ jobs:
           import os
           import re
           import subprocess
+          import sys
           from pathlib import Path
+
+          sys.path.insert(0, str(Path("scripts").resolve()))
+          import trailforge_candidate_contract as candidate_contract
 
           def strict_json(path):
               def reject_duplicates(pairs):
@@ -400,53 +929,62 @@ jobs:
           root = Path("artifacts")
           if root.is_symlink() or not root.is_dir():
               raise SystemExit("artifact root is missing or unsafe")
+          fan_in_receipt = strict_json(Path("candidate/fan-in-terminal.json"))
           entries = sorted(root.iterdir(), key=lambda path: path.name)
-          if any(entry.is_symlink() or not entry.is_dir() or not entry.name.startswith("geom-")
-                 for entry in entries):
+          suffix = f"-{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}"
+          if any(entry.is_symlink() or not entry.is_dir() or not entry.name.startswith("lane-evidence-")
+                 or not entry.name.endswith(suffix) for entry in entries):
               raise SystemExit("artifact root contains an unexpected entry")
-          actual = {entry.name.removeprefix("geom-") for entry in entries}
+          actual = {
+              entry.name.removeprefix("lane-evidence-").removesuffix(suffix)
+              for entry in entries
+              if entry.name.endswith(suffix)
+          }
           if actual != expected:
               raise SystemExit(
                   f"lane set mismatch: missing={sorted(expected - actual)} "
                   f"unexpected={sorted(actual - expected)}"
               )
 
-          index = strict_json(Path("public/areas/index.json"))
-          if not isinstance(index, list):
-              raise SystemExit("pinned index is not an array")
-          area_to_state: dict[str, str] = {}
-          for number, row in enumerate(index, start=1):
-              if (not isinstance(row, list) or len(row) < 3 or
-                      not isinstance(row[0], str) or not row[0] or
-                      not isinstance(row[2], str) or not row[2]):
-                  raise SystemExit(f"pinned index row {number} lacks exact id/state authority")
-              if row[0] in area_to_state:
-                  raise SystemExit(f"pinned index repeats area id: {row[0]}")
-              area_to_state[row[0]] = row[2]
-
+          authority = candidate_contract.derive_authoritative_lane_semantics(
+              Path("public/areas/index.json")
+          )
+          if set(authority["lanes"]) != expected:
+              raise SystemExit("shared authority does not contain the exact 51 lanes")
           display_for_lane = {
-              state: subprocess.check_output(
-                  ["python3", "trailforge/tools/state_slug.py", "name", state], text=True
-              ).strip()
+              state: authority["lanes"][state]["display_state"]
               for state in sorted(expected)
           }
-          if len(set(display_for_lane.values())) != len(display_for_lane):
-              raise SystemExit("two required lanes resolve to the same display state")
           expected_by_lane = {
-              state: sorted(
-                  area_id for area_id, authoritative_state in area_to_state.items()
-                  if authoritative_state == display_state
-              )
-              for state, display_state in display_for_lane.items()
+              state: authority["lanes"][state]["area_ids"]
+              for state in sorted(expected)
           }
-          empty_expected = sorted(state for state, area_ids in expected_by_lane.items() if not area_ids)
-          if empty_expected:
-              raise SystemExit(f"pinned index has no authoritative areas for lanes: {empty_expected}")
+          area_to_state = {
+              area_id: display_for_lane[state]
+              for state in sorted(expected)
+              for area_id in expected_by_lane[state]
+          }
 
           seen: dict[str, str] = {}
           lanes: dict[str, list[dict[str, object]]] = {}
           for state in sorted(expected):
-              lane = root / f"geom-{state}"
+              artifact = root / f"lane-evidence-{state}{suffix}"
+              try:
+                  terminal = candidate_contract.validate_success_artifact_against_fan_in(
+                      artifact,
+                      fan_in_receipt,
+                      expected_lane=state,
+                      authoritative_source_index=Path("public/areas/index.json"),
+                      candidate_config=Path("candidate/candidate-config.json"),
+                      approved_candidate_manifest=Path(
+                          "candidate/approved-candidate-manifest.json"
+                      ),
+                  )
+              except (TypeError, ValueError) as error:
+                  raise SystemExit(
+                      f"lane {state} fails shared fan-in artifact contract: {error}"
+                  ) from error
+              lane = artifact / "geom"
               receipt_path = lane / "trekdex-lane-receipt.json"
               children = sorted(lane.iterdir(), key=lambda path: path.name)
               if any(path.is_symlink() or not path.is_file() for path in children):
@@ -469,25 +1007,9 @@ jobs:
                       f"extra={extra[:12]} expected={len(expected_ids)} actual={len(actual_ids)}"
                   )
 
-              lane_receipt = strict_json(receipt_path)
-              if set(lane_receipt) != {
-                  "schema", "lane", "display_state", "source_sha", "source_tree",
-                  "expected_area_count", "expected_area_ids_sha256", "files"
-              }:
-                  raise SystemExit(f"lane {state} receipt schema is not exact")
-              if lane_receipt["schema"] != "trekdex-state-geom-lane-v2":
-                  raise SystemExit(f"lane {state} receipt version is invalid")
-              if lane_receipt["lane"] != state or lane_receipt["display_state"] != display_state:
-                  raise SystemExit(f"lane {state} receipt identity is invalid")
-              if (lane_receipt["source_sha"] != os.environ["SOURCE_SHA"] or
-                      lane_receipt["source_tree"] != os.environ["SOURCE_TREE"]):
-                  raise SystemExit(f"lane {state} receipt has the wrong source identity")
-              if (lane_receipt["expected_area_count"] != len(expected_ids) or
-                      lane_receipt["expected_area_ids_sha256"] != expected_digest):
-                  raise SystemExit(f"lane {state} receipt has the wrong authoritative set")
-              declared = lane_receipt["files"]
+              declared = terminal["files"]
               if not isinstance(declared, list) or not declared:
-                  raise SystemExit(f"lane {state} receipt has no declared files")
+                  raise SystemExit(f"lane {state} shared terminal has no declared files")
               if any(not isinstance(record, dict) or set(record) != {"name", "bytes", "sha256"}
                      for record in declared):
                   raise SystemExit(f"lane {state} receipt file schema is invalid")
@@ -548,19 +1070,27 @@ jobs:
           print(f"verified {len(lanes)}/51 lanes and {len(seen)} unique geom artifacts")
           PY
 
-      - name: Merge geom and refresh the master index
+      - name: Merge geom and refresh the primary index
+        if: ${{ steps.fan_in.outputs.review_candidate_allowed == 'true' }}
         run: python3 scripts/merge-published-geom.py --artifacts-root artifacts
 
       - name: Regenerate silhouettes from candidate geom
+        if: ${{ steps.fan_in.outputs.review_candidate_allowed == 'true' }}
         run: python3 scripts/silhouettes-from-geom.py
 
       - name: Regenerate the candidate app bundle
+        if: ${{ steps.fan_in.outputs.review_candidate_allowed == 'true' }}
         run: python3 scripts/filter-ios-bundle.py
 
       - name: Build review-only candidate receipt and patch
+        if: ${{ steps.fan_in.outputs.review_candidate_allowed == 'true' }}
         env:
           SOURCE_SHA: ${{ inputs.source_sha }}
           SOURCE_TREE: ${{ inputs.source_tree }}
+          ROOT_APPROVAL_REF: ${{ inputs.root_approval_ref }}
+          TRAILFORGE_ROOT_APPROVAL_ASSERTION_JSON: ${{ secrets.TRAILFORGE_ROOT_APPROVAL_ASSERTION_JSON }}
+          TRAILFORGE_ROOT_APPROVAL_HMAC_KEY: ${{ secrets.TRAILFORGE_ROOT_APPROVAL_HMAC_KEY }}
+          TRAILFORGE_ROOT_APPROVAL_KEY_ID: ${{ vars.TRAILFORGE_ROOT_APPROVAL_KEY_ID }}
         run: |
           set -euo pipefail
           scope=(public/areas ios/SouthMountainExplorer/Resources/areas-index.json)
@@ -570,7 +1100,7 @@ jobs:
             git ls-files --others --exclude-standard -- "${scope[@]}"
             exit 1
           fi
-          mkdir candidate
+          mkdir -p candidate
           git diff --binary --full-index -- "${scope[@]}" > candidate/changes.patch
           git diff --name-status -- "${scope[@]}" > candidate/changed-paths.txt
           cp verified-lanes.json candidate/verified-lanes.json
@@ -579,8 +1109,17 @@ jobs:
           import json
           import os
           import subprocess
+          import sys
           from pathlib import Path
 
+          sys.path.insert(0, str(Path("scripts").resolve()))
+          import trailforge_candidate_contract as candidate_contract
+
+          canonical = lambda value: (
+              json.dumps(
+                  value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+              ) + "\n"
+          ).encode()
           scope = ["public/areas", "ios/SouthMountainExplorer/Resources/areas-index.json"]
           raw = subprocess.check_output(["git", "diff", "--name-only", "-z", "--", *scope])
           changed = [os.fsdecode(item) for item in raw.split(b"\0") if item]
@@ -594,26 +1133,91 @@ jobs:
           ]
           patch = Path("candidate/changes.patch")
           lanes = Path("candidate/verified-lanes.json")
-          receipt = {
-              "schema": "trekdex-whole-us-review-candidate-v1",
-              "source_sha": os.environ["SOURCE_SHA"],
-              "source_tree": os.environ["SOURCE_TREE"],
-              "changed_files": files,
-              "patch_sha256": hashlib.sha256(patch.read_bytes()).hexdigest(),
-              "lane_receipt_sha256": hashlib.sha256(lanes.read_bytes()).hexdigest(),
-              "committed": False,
-              "pushed": False,
-              "synchronization_dispatched": False,
-          }
-          Path("candidate/candidate-receipt.json").write_text(
-              json.dumps(receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+          fan_in_path = Path("candidate/fan-in-terminal.json")
+          config_path = Path("candidate/candidate-config.json")
+          approved_path = Path("candidate/approved-candidate-manifest.json")
+          workflow = Path(".github/workflows/trailforge-publish-us.yml")
+          fan_in_bytes = fan_in_path.read_bytes()
+          fan_in = json.loads(fan_in_bytes)
+
+          def build(validated):
+              if (
+                  validated["source_sha"] != os.environ["SOURCE_SHA"]
+                  or validated["source_tree"] != os.environ["SOURCE_TREE"]
+                  or validated["workflow_sha256"]
+                  != hashlib.sha256(workflow.read_bytes()).hexdigest()
+                  or validated["root_approval_ref"] != os.environ["ROOT_APPROVAL_REF"]
+                  or validated["candidate_config_sha256"]
+                  != hashlib.sha256(config_path.read_bytes()).hexdigest()
+                  or validated["approved_input_set_sha256"]
+                  != hashlib.sha256(approved_path.read_bytes()).hexdigest()
+              ):
+                  raise ValueError("candidate transaction differs from exact pinned bytes")
+              receipt = {
+                  "schema": "trekdex-whole-us-review-candidate-v3",
+                  "source_sha": validated["source_sha"],
+                  "source_tree": validated["source_tree"],
+                  "workflow_sha256": validated["workflow_sha256"],
+                  "root_approval_ref": validated["root_approval_ref"],
+                  "run_id": validated["run_id"],
+                  "run_attempt": validated["run_attempt"],
+                  "candidate_config_sha256": validated["candidate_config_sha256"],
+                  "toolchain_manifest_sha256": validated["toolchain_manifest_sha256"],
+                  "approved_input_set_sha256": validated["approved_input_set_sha256"],
+                  "approved_input_population_sha256": validated["approved_input_population_sha256"],
+                  "approved_geometry_population_sha256": validated["approved_geometry_population_sha256"],
+                  "source_index_sha256": validated["source_index_sha256"],
+                  "lane_authority_sha256": validated["authority_sha256"],
+                  "artifact_service_ref": validated["artifact_service_ref"],
+                  "retry_lineage_ref": validated["retry_lineage_ref"],
+                  "provider_result_transaction_sha256": validated["provider_result_transaction_sha256"],
+                  "fan_in_receipt_sha256": validated["receipt_sha256"],
+                  "fan_in_terminal_raw_sha256": hashlib.sha256(fan_in_bytes).hexdigest(),
+                  "changed_files": files,
+                  "patch_sha256": hashlib.sha256(patch.read_bytes()).hexdigest(),
+                  "lane_receipt_sha256": hashlib.sha256(lanes.read_bytes()).hexdigest(),
+                  "committed": False,
+                  "pushed": False,
+                  "synchronization_dispatched": False,
+              }
+              receipt["receipt_sha256"] = hashlib.sha256(canonical(receipt)).hexdigest()
+              return receipt
+
+          receipt = candidate_contract.build_review_candidate(
+              fan_in,
+              build,
+              authoritative_source_index=Path("public/areas/index.json"),
+              candidate_config=config_path,
+              approved_candidate_manifest=approved_path,
+              approval_assertion=os.environ.get(
+                  "TRAILFORGE_ROOT_APPROVAL_ASSERTION_JSON"
+              ),
+              approval_key=os.environ.get("TRAILFORGE_ROOT_APPROVAL_HMAC_KEY"),
+              expected_authority_key_id=os.environ.get(
+                  "TRAILFORGE_ROOT_APPROVAL_KEY_ID"
+              ),
           )
+          Path("candidate/candidate-receipt.json").write_bytes(canonical(receipt))
           PY
 
       - name: Upload review-only whole-US candidate
+        if: ${{ steps.fan_in.outputs.review_candidate_allowed == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: whole-us-candidate-${{ inputs.source_sha }}
           path: candidate
           if-no-files-found: error
           retention-days: 1
+
+      - name: Upload fan-in terminal evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: whole-us-fan-in-evidence-${{ inputs.source_sha }}
+          path: candidate/fan-in-terminal.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Preserve non-promotable aggregate result
+        if: ${{ always() && steps.fan_in.outputs.review_candidate_allowed != 'true' }}
+        run: exit 1

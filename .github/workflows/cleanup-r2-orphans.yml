@@ -1,59 +1,178 @@
-name: Cleanup R2 Orphans
+name: Quarantine R2 Orphans (no final deletion)
 
-# Manual-dispatch cleanup of orphaned area objects in the Cloudflare R2
-# bucket — geom / silhouette files whose area slug is no longer in
-# public/areas/index.json (a pruned seed row, a removed red-flag area,
-# a tightened curation/degenerate filter). The regular sync-geom-to-r2
-# workflow can't do this with `aws s3 sync --delete` because geom lives
-# at the bucket root next to index.json and the silhouettes/ prefix, so
-# a blanket delete would nuke those. scripts/cleanup-r2-orphans.py
-# instead diffs bucket keys against the current index and deletes only
-# the orphans, never index.json / trail-search.json / trail-shapes.json,
-# with safety belts that abort on a short-loaded index or an implausible
-# orphan fraction (> 60%).
-#
-# Defaults to a DRY RUN. Set the `apply` input to "true" to delete.
-#
-# Required secrets (same as sync-geom-to-r2):
-#   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
+# Manual only. The default plan_only path produces canonical evidence and zero
+# provider writes. Apply performs only no-clobber copy -> exact verification ->
+# conditional source removal. Quarantined bytes are never finally deleted here.
 
 on:
   workflow_dispatch:
     inputs:
-      apply:
-        description: "Set to true to actually delete. Otherwise dry-run."
+      source_sha:
+        description: "Root-approved full 40-character source commit SHA"
+        required: true
+        type: string
+      source_tree:
+        description: "Exact full 40-character Git tree for source_sha"
+        required: true
+        type: string
+      root_approval_ref:
+        description: "Immutable privacy-safe sha256 reference to root approval"
+        required: true
+        type: string
+      account_identity_ref:
+        description: "Precomputed privacy-safe sha256 reference to the provider account"
+        required: true
+        type: string
+      endpoint_identity_ref:
+        description: "Precomputed privacy-safe sha256 reference to the provider endpoint"
+        required: true
+        type: string
+      inventory_anchor_ref:
+        description: "Verified independent inventory-anchor sha256 reference"
+        required: true
+        type: string
+      authoritative_denominator:
+        description: "Reviewed exact total object count for the complete bucket inventory"
+        required: true
+        type: number
+      receipt_id:
+        description: "Canonical immutable quarantine receipt identifier"
+        required: true
+        type: string
+      plan_only:
+        description: "Build canonical evidence only; perform no provider writes"
+        required: true
+        type: boolean
+        default: true
+      apply_quarantine:
+        description: "Apply only the exact separately reviewed quarantine plan"
+        required: true
         type: boolean
         default: false
+      approved_quarantine_plan_sha256:
+        description: "Exact reviewed plan hash; required for apply_quarantine"
+        required: false
+        type: string
+
+permissions:
+  contents: read
 
 concurrency:
-  group: r2-mutation
+  group: r2-quarantine
   cancel-in-progress: false
 
 jobs:
-  cleanup:
+  quarantine:
+    environment: trekdex-r2-release
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
+      - name: Checkout the approved commit, detached
+        uses: actions/checkout@v4
         with:
-          python-version: "3.12"
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
 
-      - name: Delete orphaned R2 objects
+      - name: Verify immutable source identity
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_TREE: ${{ inputs.source_tree }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" = "$SOURCE_SHA"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git rev-parse 'HEAD^{tree}')" = "$SOURCE_TREE"
+          ! git symbolic-ref -q HEAD
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Build canonical quarantine plan and optionally apply it
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ROOT_APPROVAL_ASSERTION_JSON: ${{ secrets.R2_ROOT_APPROVAL_ASSERTION_JSON }}
+          R2_ROOT_APPROVAL_HMAC_KEY: ${{ secrets.R2_ROOT_APPROVAL_HMAC_KEY }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_TREE: ${{ inputs.source_tree }}
+          ROOT_APPROVAL_REF: ${{ inputs.root_approval_ref }}
+          ACCOUNT_IDENTITY_REF: ${{ inputs.account_identity_ref }}
+          ENDPOINT_IDENTITY_REF: ${{ inputs.endpoint_identity_ref }}
+          INVENTORY_ANCHOR_REF: ${{ inputs.inventory_anchor_ref }}
+          AUTHORITATIVE_DENOMINATOR: ${{ inputs.authoritative_denominator }}
+          RECEIPT_ID: ${{ inputs.receipt_id }}
+          PLAN_ONLY: ${{ inputs.plan_only }}
+          APPLY_QUARANTINE: ${{ inputs.apply_quarantine }}
+          APPROVED_PLAN_SHA256: ${{ inputs.approved_quarantine_plan_sha256 }}
         run: |
-          set -e
-          if [ -z "$R2_ACCOUNT_ID" ] || [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-            echo "Missing one of R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY repo secrets."
-            exit 1
+          set -euo pipefail
+          test "$PLAN_ONLY" = "true" || test "$APPLY_QUARANTINE" = "true"
+          if [ "$APPLY_QUARANTINE" = "true" ]; then
+            test "$PLAN_ONLY" = "false"
+            [[ "$APPROVED_PLAN_SHA256" =~ ^[0-9a-f]{64}$ ]]
           fi
-          if [ "${{ inputs.apply }}" = "true" ]; then
-            python3 scripts/cleanup-r2-orphans.py --apply
-          else
-            python3 scripts/cleanup-r2-orphans.py
+          [[ "$ROOT_APPROVAL_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$ACCOUNT_IDENTITY_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$ENDPOINT_IDENTITY_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$INVENTORY_ANCHOR_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$AUTHORITATIVE_DENOMINATOR" =~ ^[1-9][0-9]*$ ]]
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          WORK_ROOT="${RUNNER_TEMP}/trekdex-r2-quarantine-contract"
+          test ! -e "$WORK_ROOT"
+          mkdir -m 700 "$WORK_ROOT"
+          INVENTORY="$WORK_ROOT/inventory-receipt.json"
+          PLAN="$WORK_ROOT/quarantine-plan.json"
+          TERMINAL="$WORK_ROOT/quarantine-receipt.json"
+          WORKFLOW_SHA256=$(sha256sum .github/workflows/cleanup-r2-orphans.yml | awk '{print $1}')
+
+          python3 scripts/stage-changed-r2.py fetch-inventory \
+            --bucket trekdex-areas \
+            --endpoint-url "$ENDPOINT" \
+            --account-identity-ref "$ACCOUNT_IDENTITY_REF" \
+            --endpoint-identity-ref "$ENDPOINT_IDENTITY_REF" \
+            --authoritative-denominator "$AUTHORITATIVE_DENOMINATOR" \
+            --area-index public/areas/index.json \
+            --anchor-ref "$INVENTORY_ANCHOR_REF" \
+            --output "$INVENTORY"
+
+          PLAN_ARGS=()
+          if [ "$APPLY_QUARANTINE" = "true" ]; then
+            PLAN_ARGS=(--approved-quarantine-plan-sha256 "$APPROVED_PLAN_SHA256")
           fi
+          python3 scripts/cleanup-r2-orphans.py plan \
+            --inventory "$INVENTORY" \
+            --index ios/SouthMountainExplorer/Resources/areas-index.json \
+            --registry public/areas/index.json \
+            --source-sha "$SOURCE_SHA" \
+            --source-tree "$SOURCE_TREE" \
+            --workflow-sha256 "$WORKFLOW_SHA256" \
+            --root-approval-ref "$ROOT_APPROVAL_REF" \
+            --receipt-id "$RECEIPT_ID" \
+            --output "$PLAN" \
+            "${PLAN_ARGS[@]}"
+
+          if [ "$PLAN_ONLY" = "true" ]; then
+            echo "Plan-only complete: no provider write was attempted."
+            exit 0
+          fi
+          python3 scripts/cleanup-r2-orphans.py apply-quarantine \
+            --inventory "$INVENTORY" \
+            --plan "$PLAN" \
+            --approved-quarantine-plan-sha256 "$APPROVED_PLAN_SHA256" \
+            --endpoint-url "$ENDPOINT" \
+            --terminal-receipt "$TERMINAL"
+
+      - name: Upload exact quarantine evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: r2-quarantine-evidence-${{ inputs.source_sha }}
+          path: |
+            ${{ runner.temp }}/trekdex-r2-quarantine-contract/inventory-receipt.json
+            ${{ runner.temp }}/trekdex-r2-quarantine-contract/quarantine-plan.json
+            ${{ runner.temp }}/trekdex-r2-quarantine-contract/quarantine-receipt.json
+          if-no-files-found: warn
+          retention-days: 7

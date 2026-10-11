@@ -624,6 +624,40 @@ class RelationConnectivity(unittest.TestCase):
         self.assertEqual(parent.direct_relation_ways, {700: [], 701: [11, 12]})
         self.assertNotIn(11, parent.direct_relation_ways[700])
 
+    def test_raw_source_order_and_local_reversed_lineage_are_separate(self):
+        nodes = {1: (0, 0), 2: (1, 0), 3: (2, 0)}
+        ways = {
+            10: W([1, 2], highway="path"),
+            11: W([3, 2], highway="footway"),
+        }
+        relations = {700: {
+            "tags": {"type": "route", "route": "hiking", "name": "Route"},
+            "members": [("w", 10, ""), ("w", 11, "")],
+        }}
+        raw_before = {way_id: list(way["nodes"])
+                      for way_id, way in ways.items()}
+        trails = m.assemble(nodes, ways, relations, [], region="dk")
+
+        kept, removed, report = curate(trails, ways, nodes)
+
+        self.assertEqual(removed, [])
+        self.assertEqual(report["schema_version"], 8)
+        self.assertEqual(
+            {way_id: way["nodes"] for way_id, way in ways.items()}, raw_before)
+        properties = kept[0]["properties"]
+        self.assertEqual(properties["source_evidence_schema_version"], 2)
+        self.assertEqual(properties["rendered_way_lineage_version"], 1)
+        self.assertEqual(
+            [record["node_ids"] for record in properties["source_ways"]],
+            [[1, 2], [3, 2]])
+        lineage = {record["way_id"]: record
+                   for record in properties["rendered_way_lineage"]}
+        self.assertEqual(lineage[10]["orientation"], "source")
+        self.assertEqual(lineage[11]["orientation"], "reversed")
+        self.assertEqual(kept[0]["geometry"]["coordinates"], [[
+            [0.0, 0.0], [1.0, 0.0], [2.0, 0.0],
+        ]])
+
 
 @unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
 class DenmarkRoadTrackCuration(unittest.TestCase):

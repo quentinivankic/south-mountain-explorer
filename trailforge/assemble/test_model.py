@@ -4,6 +4,7 @@ The founding case is `test_devils_bridge_*`: a named path + an unnamed
 staircase spur to an arch POI must assemble into ONE trail that reaches the
 arch — the exact failure Systems 1/2 shipped.
 """
+import copy
 import unittest
 from pathlib import Path
 import sys
@@ -34,6 +35,73 @@ class Geometry(unittest.TestCase):
         self.assertEqual(len(lines), 1)
         self.assertEqual(lines[0][0], (0, 0))
         self.assertEqual(lines[0][-1], (0, 3))
+
+    def test_order_ways_preserves_raw_records_and_returns_orientation_views(self):
+        ways = {
+            1: W([1, 2], highway="path"),
+            2: W([3, 2], highway="path"),
+        }
+        before = copy.deepcopy(ways)
+
+        chains = m.order_ways([1, 2], ways)
+
+        self.assertEqual(ways, before)
+        self.assertEqual(chains, [[
+            m.OrientedWay(1, "source"),
+            m.OrientedWay(2, "reversed"),
+        ]])
+        self.assertEqual(m.rendered_way_lineage(chains), [{
+            "occurrence_index": 0,
+            "way_id": 1,
+            "chain_index": 0,
+            "chain_position": 0,
+            "orientation": "source",
+        }, {
+            "occurrence_index": 1,
+            "way_id": 2,
+            "chain_index": 0,
+            "chain_position": 1,
+            "orientation": "reversed",
+        }])
+
+    def test_shared_way_orientation_is_candidate_local(self):
+        ways = {
+            1: W([1, 2], highway="path"),
+            2: W([2, 3], highway="path"),
+            3: W([1, 4], highway="path"),
+        }
+        before = copy.deepcopy(ways)
+
+        forward = m.order_ways([1, 2], ways)
+        reversed_candidate = m.order_ways([3, 1], ways)
+
+        self.assertEqual(ways, before)
+        forward_orientation = next(
+            reference.orientation for chain in forward for reference in chain
+            if reference.way_id == 1)
+        reversed_orientation = next(
+            reference.orientation for chain in reversed_candidate
+            for reference in chain if reference.way_id == 1)
+        self.assertEqual((forward_orientation, reversed_orientation),
+                         ("source", "reversed"))
+
+    def test_full_assembly_keeps_way_records_deep_equal(self):
+        ways = {
+            1: W([1, 2], highway="path"),
+            2: W([3, 2], highway="path"),
+        }
+        nodes = {1: (0, 0), 2: (0, 1), 3: (0, 2)}
+        relations = {10: {
+            "tags": {"type": "route", "route": "hiking", "name": "Route"},
+            "members": [("w", 1, ""), ("w", 2, "")],
+        }}
+        before = copy.deepcopy(ways)
+
+        trails = m.assemble(nodes, ways, relations, [])
+
+        self.assertEqual(ways, before)
+        self.assertEqual(len(trails), 1)
+        self.assertEqual(trails[0].lines, [[(0, 0), (0, 1), (0, 2)]])
 
 
 class RelationsFirst(unittest.TestCase):
@@ -66,6 +134,27 @@ class RelationsFirst(unittest.TestCase):
         self.assertEqual(m.route_relation_hierarchy(700, relations), [700, 701])
         self.assertEqual(m.direct_relation_way_members(700, relations), [10])
         self.assertEqual(m.direct_relation_way_members(701, relations), [11, 12])
+
+    def test_repeated_child_relation_occurrences_survive_cycle_guard(self):
+        relations = {
+            700: {
+                "tags": {"type": "route", "route": "hiking", "name": "Parent"},
+                "members": [("r", 701, ""), ("r", 701, "")],
+            },
+            701: {
+                "tags": {},
+                "members": [("w", 10, ""), ("r", 700, "")],
+            },
+        }
+
+        entries = m.resolve_route_member_entries(700, relations)
+
+        self.assertEqual([entry["way_id"] for entry in entries], [10, 10])
+        self.assertEqual([entry["root_relation_id"] for entry in entries],
+                         [700, 700])
+        self.assertEqual([entry["relation_id"] for entry in entries],
+                         [701, 701])
+        self.assertEqual([entry["member_index"] for entry in entries], [0, 0])
 
     def test_superroute_of_route_children_is_dropped(self):
         # A long-distance thru-hike (Arizona Trail): a parent route relation
@@ -755,6 +844,87 @@ class NameStitch(unittest.TestCase):
         self.assertEqual(len(bst_uwc), 1)                 # a + b coalesced
         self.assertEqual(len(bst_uwc[0].lines), 2)        # both segments kept
         self.assertEqual(set(bst_uwc[0].member_ways), {1, 2})
+
+    def test_coalesce_concatenates_root_occurrences_without_duplicate_geometry(self):
+        line = [(0.0, 0.0), (1.0, 0.0)]
+        left = m.Trail("Shared Route", "relation", [10], [list(line)], {}, [])
+        right = m.Trail("Shared Route", "relation", [10], [list(line)], {}, [])
+        for trail, root_id in ((left, 700), (right, 701)):
+            trail.area = "Mols"
+            trail.geometry_ways = [10]
+            trail.root_relation_ids = [root_id]
+            trail.relation_ids = [root_id]
+            trail.member_way_occurrences = [{
+                "root_relation_id": root_id,
+                "relation_id": root_id,
+                "member_index": 0,
+                "way_id": 10,
+                "role": "",
+                "effective_role": "main",
+            }]
+            trail.rendered_way_lineage = [{
+                "occurrence_index": 0,
+                "way_id": 10,
+                "chain_index": 0,
+                "chain_position": 0,
+                "orientation": "source",
+            }]
+
+        fused = m.coalesce_by_area([left, right])
+
+        self.assertEqual(fused, [left])
+        self.assertEqual(left.member_ways, [10, 10])
+        self.assertEqual(
+            [row["root_relation_id"] for row in left.member_way_occurrences],
+            [700, 701])
+        self.assertEqual(left.geometry_ways, [10])
+        self.assertEqual(left.lines, [line])
+        self.assertEqual(len(left.rendered_way_lineage), 1)
+
+    def test_coalesce_preserves_duplicate_occurrences_but_unique_shared_linework(self):
+        shared = [(0.0, 0.0), (1.0, 0.0)]
+        extended = [(0.0, 0.0), (1.0, 0.0), (2.0, 0.0)]
+        left = m.Trail("Shared Route", "relation", [10], [shared], {}, [])
+        right = m.Trail(
+            "Shared Route", "relation", [10, 11], [extended], {}, [])
+        for trail, root_id, way_ids in (
+                (left, 700, [10]), (right, 701, [10, 11])):
+            trail.area = "Mols"
+            trail.geometry_ways = list(way_ids)
+            trail.root_relation_ids = [root_id]
+            trail.relation_ids = [root_id]
+            trail.member_way_occurrences = [{
+                "root_relation_id": root_id,
+                "relation_id": root_id,
+                "member_index": index,
+                "way_id": way_id,
+                "role": "",
+                "effective_role": "main",
+            } for index, way_id in enumerate(way_ids)]
+            trail.rendered_way_lineage = [{
+                "occurrence_index": index,
+                "way_id": way_id,
+                "chain_index": 0,
+                "chain_position": index,
+                "orientation": "source",
+            } for index, way_id in enumerate(way_ids)]
+
+        fused = m.coalesce_by_area([left, right])
+
+        self.assertEqual(fused, [left])
+        self.assertEqual(left.member_ways, [10, 10, 11])
+        self.assertEqual(left.geometry_ways, [10, 11])
+        self.assertEqual(
+            [row["way_id"] for row in left.rendered_way_lineage], [10, 11])
+        segments = [
+            tuple(sorted((start, end)))
+            for line in left.lines for start, end in zip(line, line[1:])
+        ]
+        self.assertEqual(len(segments), len(set(segments)))
+        self.assertEqual(set(segments), {
+            ((0.0, 0.0), (1.0, 0.0)),
+            ((1.0, 0.0), (2.0, 0.0)),
+        })
 
 
 class SpurAttach(unittest.TestCase):

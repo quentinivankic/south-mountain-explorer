@@ -11,6 +11,8 @@ import copy
 from typing import Any
 
 OVERLAP_THRESHOLD = 0.90
+SOURCE_EVIDENCE_SCHEMA_VERSION = 2
+RENDERED_WAY_LINEAGE_VERSION = 1
 
 # Signed-route road miles and shares are evidence for manual review, never an
 # arbitrary terminal threshold. Exact-area unsafe/missing/inconsistent members
@@ -63,7 +65,7 @@ class _UF:
 
 def prepare_feature_sources(features: list[dict[str, Any]], trails: list,
                             ways: dict[int, dict]) -> None:
-    """Attach temporary source identity needed by post-clip quality checks."""
+    """Attach immutable raw identity and candidate-local render provenance."""
     if len(features) != len(trails):
         raise ValueError("feature/trail count mismatch while preparing quality evidence")
     for feature, trail in zip(features, trails):
@@ -82,7 +84,41 @@ def prepare_feature_sources(features: list[dict[str, Any]], trails: list,
             getattr(trail, "restored_relation_ways", [])))
         if any(way_id not in geometry_ways for way_id in restored):
             raise ValueError("restored relation way is not rendered geometry")
+
+        raw_occurrences = [
+            dict(record) for record in
+            getattr(trail, "member_way_occurrences", [])
+        ]
+        # Fusion may select a relation object that was not first in its cluster.
+        # Canonicalize only root groups; source order within each root is fixed.
+        occurrences = [
+            record for root_id in root_relation_ids
+            for record in raw_occurrences
+            if record.get("root_relation_id") == root_id
+        ]
+        occurrences.extend(
+            record for record in raw_occurrences
+            if record.get("root_relation_id") not in root_relation_ids)
+        lineage = []
+        raw_lineage = [
+            dict(record) for record in
+            getattr(trail, "rendered_way_lineage", [])
+        ]
+        for record in raw_lineage:
+            occurrence_indexes = [
+                index for index, occurrence in enumerate(occurrences)
+                if occurrence.get("way_id") == record.get("way_id")
+                and occurrence.get("effective_role") in {"", "main"}
+            ]
+            lineage.append({
+                **record,
+                "member_occurrence_indexes": occurrence_indexes,
+            })
         feature["properties"]["_quality_source"] = {
+            "source_evidence_schema_version": SOURCE_EVIDENCE_SCHEMA_VERSION,
+            "rendered_way_lineage_version": RENDERED_WAY_LINEAGE_VERSION,
+            "member_way_occurrences": occurrences,
+            "rendered_way_lineage": lineage,
             "geometry_way_ids": geometry_ways,
             "relation_ids": relation_ids,
             "root_relation_ids": root_relation_ids,
@@ -104,6 +140,14 @@ def finalize_dropped_feature_sources(
             continue
         records, missing = _source_way_records(source, ways, nodes, area_union)
         properties.update({
+            "source_evidence_schema_version": source.get(
+                "source_evidence_schema_version"),
+            "member_way_occurrences": copy.deepcopy(
+                source.get("member_way_occurrences") or []),
+            "rendered_way_lineage_version": source.get(
+                "rendered_way_lineage_version"),
+            "rendered_way_lineage": _rendered_lineage(
+                source, records, feature, area_union),
             "area": area_name,
             "relation_ids": list(source.get("relation_ids") or []),
             "root_relation_ids": list(source.get("root_relation_ids") or []),
@@ -209,6 +253,38 @@ def _source_way_records(source: dict[str, Any], ways: dict[int, dict],
             "renders_in_area": renders,
         })
     return records, sorted(missing)
+
+
+def _rendered_lineage(source: dict[str, Any], records: list[dict],
+                       feature: dict[str, Any], area_union) -> list[dict]:
+    """Bind immutable raw ways and local orientation to postclip line parts."""
+    from shapely.geometry import LineString
+
+    records_by_id = {record["way_id"]: record for record in records}
+    rendered_lines = [LineString(line) for line in _geometry_lines(feature)
+                      if isinstance(line, list) and len(line) >= 2]
+    out = []
+    for lineage in source.get("rendered_way_lineage") or []:
+        record = records_by_id.get(lineage.get("way_id"))
+        if record is None:
+            continue
+        coordinates = list(record["coordinates"])
+        if lineage.get("orientation") == "reversed":
+            coordinates.reverse()
+        try:
+            clipped = LineString(coordinates).intersection(area_union)
+            part_indexes = [
+                index for index, rendered in enumerate(rendered_lines)
+                if (not clipped.is_empty
+                    and clipped.intersection(rendered).length > 0)
+            ]
+        except Exception:  # noqa: BLE001 - malformed lineage stays unbound
+            part_indexes = []
+        out.append({
+            **lineage,
+            "postclip_part_indexes": part_indexes,
+        })
+    return out
 
 
 def _source_component_count(records: list[dict]) -> int:
@@ -769,6 +845,14 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         identity = walking_identity(rendered_records)
 
         properties.update({
+            "source_evidence_schema_version": source.get(
+                "source_evidence_schema_version"),
+            "member_way_occurrences": copy.deepcopy(
+                source.get("member_way_occurrences") or []),
+            "rendered_way_lineage_version": source.get(
+                "rendered_way_lineage_version"),
+            "rendered_way_lineage": _rendered_lineage(
+                source, records, feature, area_union),
             "quality_candidate_index": index,
             "relation_ids": relation_ids,
             "root_relation_ids": root_relation_ids,
@@ -1060,7 +1144,7 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         "restored_share": round(aggregate_share, 6),
     }
     return kept, removed, {
-        "schema_version": 7,
+        "schema_version": 8,
         "enabled": True,
         "region": "dk",
         "area": area_name,

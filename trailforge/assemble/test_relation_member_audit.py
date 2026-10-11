@@ -127,6 +127,38 @@ class RelationMemberAudit(unittest.TestCase):
                          "accepted")
         self.assertEqual(report["validation_failures"], [])
 
+    def test_repeated_member_occurrences_remain_ordered_but_geometry_is_unique(self):
+        nodes = {1: (0, 0), 2: (1, 0), 3: (2, 0)}
+        ways = {
+            10: _way([1, 2], highway="path"),
+            11: _way([2, 3], highway="footway"),
+        }
+        trails, audits = _assemble(
+            ways, nodes,
+            [("w", 10, ""), ("w", 10, "main"), ("w", 11, "")])
+
+        kept, removed, report = _curate(trails, audits, ways, nodes)
+
+        self.assertEqual(removed, [])
+        self.assertEqual(report["relation_member_unresolved"], [])
+        properties = kept[0]["properties"]
+        self.assertEqual(properties["member_ways"], [10, 10, 11])
+        self.assertEqual(
+            [row["member_index"] for row in
+             properties["member_way_occurrences"]], [0, 1, 2])
+        self.assertEqual(
+            [row["way_id"] for row in
+             properties["member_way_occurrences"]], [10, 10, 11])
+        self.assertEqual(properties["source_geometry_way_ids"], [10, 11])
+        self.assertEqual(
+            [row["way_id"] for row in properties["source_ways"]], [10, 11])
+        lineage_by_way = {
+            row["way_id"]: row for row in properties["rendered_way_lineage"]
+        }
+        self.assertEqual(
+            lineage_by_way[10]["member_occurrence_indexes"], [0, 1])
+        self.assertEqual(properties["ckey"], "w10-10-11")
+
     def test_removed_thru_hike_exclusion_is_visible_but_informational(self):
         nodes = {1: (0, 0), 2: (1, 0), 3: (2, 0)}
         ways = {

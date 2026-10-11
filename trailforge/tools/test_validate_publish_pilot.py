@@ -207,6 +207,65 @@ def _source_record(way_id, node_ids, coordinates, tags, *, direct=(),
     }
 
 
+def _occurrence(root_id, relation_id, member_index, way_id, *, role="",
+                effective_role="main"):
+    return {
+        "root_relation_id": root_id,
+        "relation_id": relation_id,
+        "member_index": member_index,
+        "way_id": way_id,
+        "role": role,
+        "effective_role": effective_role,
+    }
+
+
+def _lineage(way_ids, *, member_occurrences=(), postclip=True,
+             orientations=None):
+    orientations = orientations or ["source"] * len(way_ids)
+    return [{
+        "occurrence_index": index,
+        "way_id": way_id,
+        "chain_index": 0,
+        "chain_position": index,
+        "orientation": orientations[index],
+        "member_occurrence_indexes": [
+            occurrence_index
+            for occurrence_index, occurrence in enumerate(member_occurrences)
+            if occurrence["way_id"] == way_id
+            and occurrence["effective_role"] in {"", "main"}
+        ],
+        "postclip_part_indexes": [0] if postclip else [],
+    } for index, way_id in enumerate(way_ids)]
+
+
+def _record_lineage(records, member_occurrences, rendered_lines):
+    from shapely.geometry import LineString
+
+    ways = {
+        record["way_id"]: {"nodes": list(record["node_ids"]), "tags": {}}
+        for record in records
+    }
+    chains = validator.assembly_model.order_ways(list(ways), ways)
+    lineage = validator.assembly_model.rendered_way_lineage(chains)
+    records_by_id = {record["way_id"]: record for record in records}
+    output_lines = [LineString(line) for line in rendered_lines]
+    for row in lineage:
+        row["member_occurrence_indexes"] = [
+            index for index, occurrence in enumerate(member_occurrences)
+            if occurrence["way_id"] == row["way_id"]
+            and occurrence["effective_role"] in {"", "main"}
+        ]
+        coordinates = list(records_by_id[row["way_id"]]["coordinates"])
+        if row["orientation"] == "reversed":
+            coordinates.reverse()
+        source_line = LineString(coordinates)
+        row["postclip_part_indexes"] = [
+            index for index, output in enumerate(output_lines)
+            if source_line.intersection(output).length > 0
+        ]
+    return lineage
+
+
 class CheckedInGoldenRecord(unittest.TestCase):
     def test_bjergetapen_template_is_validation_only_and_tolerance_free(self):
         path = _HERE.parent / "golden" / "mols-bjerge.json"
@@ -340,6 +399,31 @@ class IndependentRelationScopeValidation(unittest.TestCase):
             validator._authoritative_root_display_name(
                 700, expected, authority),
             "Relation Route")
+
+    def test_graph_member_entries_preserve_repeated_child_occurrences(self):
+        relations = {
+            700: {
+                "members": [
+                    {"type": "relation", "ref": 701, "role": "", "sequence": 0},
+                    {"type": "relation", "ref": 701, "role": "", "sequence": 1},
+                ],
+            },
+            701: {
+                "members": [
+                    {"type": "way", "ref": 10, "role": "", "sequence": 0},
+                    {"type": "relation", "ref": 700, "role": "", "sequence": 1},
+                ],
+            },
+        }
+
+        entries = validator._graph_member_entries(700, relations)
+
+        self.assertEqual([entry["way_id"] for entry in entries], [10, 10])
+        self.assertEqual([entry["root_relation_id"] for entry in entries],
+                         [700, 700])
+        self.assertEqual([entry["relation_id"] for entry in entries],
+                         [701, 701])
+        self.assertEqual([entry["member_index"] for entry in entries], [0, 0])
 
     def test_thru_hike_status_is_derived_from_raw_route_relation_edges(self):
         relations = {
@@ -502,6 +586,27 @@ class IndependentRelationScopeValidation(unittest.TestCase):
 
         self.assertEqual(errors, [])
 
+    def test_informational_removed_relation_allows_duplicate_occurrences(self):
+        removed = [{
+            "type": "Feature",
+            "properties": {
+                "name": "Nordsøvandreruten",
+                "source": "relation",
+                "member_ways": [10, 10],
+                "removed_category": "thru-hike",
+                "removed_reason": "Long-distance route.",
+            },
+            "geometry": {
+                "type": "MultiLineString",
+                "coordinates": [[[0.0, 0.0], [1.0, 0.0]]],
+            },
+        }]
+        errors = []
+
+        validator._validate_maltgaarden([], removed, {}, set(), errors)
+
+        self.assertEqual(errors, [])
+
 
 class _QA:
     def __init__(self, root):
@@ -517,6 +622,10 @@ class _QA:
                 "source": "name-stitch",
                 "length_mi": 1.0,
                 "member_ways": [10],
+                "member_way_occurrences": [],
+                "source_evidence_schema_version": 2,
+                "rendered_way_lineage_version": 1,
+                "rendered_way_lineage": _lineage([10]),
                 "ckey": "w10",
                 "quality_candidate_index": 0,
                 "quality_disposition": "kept",
@@ -642,6 +751,15 @@ class _QA:
                 "source": "relation",
                 "length_mi": golden_miles,
                 "member_ways": [835],
+                "member_way_occurrences": [
+                    _occurrence(8350111, 8350111, 0, 835),
+                ],
+                "source_evidence_schema_version": 2,
+                "rendered_way_lineage_version": 1,
+                "rendered_way_lineage": _lineage(
+                    [835], member_occurrences=[
+                        _occurrence(8350111, 8350111, 0, 835),
+                    ]),
                 "ckey": "w835",
                 "quality_candidate_index": 1,
                 "quality_disposition": "kept",
@@ -857,6 +975,14 @@ class _QA:
             },
             "selected_discovery": selected,
             "discovery_report": _discovery_report([candidate]),
+            "discovery_validation": {
+                "schema_version": 1,
+                "stage": "discovery",
+                "status": "ok",
+                "area_id": validator.AREA_ID,
+                "expected_osm_relation_id": RELATION_ID,
+                "errors": [],
+            },
             "assembly_report": {
                 "schema_version": 1,
                 "status": "ok",
@@ -904,7 +1030,7 @@ class _QA:
                     "destination_pois": 0,
                 },
                 "quality": {
-                    "schema_version": 7,
+                    "schema_version": 8,
                     "enabled": True,
                     "region": "dk",
                     "area": validator.AREA_NAME,
@@ -1066,6 +1192,9 @@ class _QA:
                f"Visual review: {validator.VISUAL_REVIEW_URL}\n\n"
                f"Attribution: {validator.ATTRIBUTION}\n")
         _write(root / "discovery/discovery.log", "discovery completed\n")
+        _write(root / "discovery/validation.log", "")
+        _write(root / "reports/input-validation.log", "inputs validated\n")
+        _write(root / "reports/assembly.log", "assembly completed\n")
         _write(root / "reports/publish.log", "publisher completed\n")
         _write(root / "viewer/index.html", "<!doctype html><title>QA</title>\n")
         _write(root / "viewer/serve.py", "print('serve')\n")
@@ -1720,6 +1849,14 @@ class _QA:
         way_ids = [record["way_id"] for record in records]
         direct = direct or {700: way_ids}
         relation_ids = list(direct)
+        member_occurrences = [
+            _occurrence(root_id, root_id, member_index, way_id)
+            for root_id in relation_ids
+            for member_index, way_id in enumerate(direct[root_id])
+        ]
+        member_way_ids = [
+            occurrence["way_id"] for occurrence in member_occurrences
+        ]
         for record in records:
             record["direct_relation_ids"] = [
                 relation_id for relation_id, member_ids in direct.items()
@@ -1733,8 +1870,14 @@ class _QA:
         properties.update({
             "source": "relation",
             "kind": "trail",
-            "member_ways": way_ids,
-            "ckey": "w" + "-".join(str(value) for value in way_ids),
+            "member_ways": member_way_ids,
+            "member_way_occurrences": member_occurrences,
+            "source_evidence_schema_version": 2,
+            "rendered_way_lineage_version": 1,
+            "rendered_way_lineage": _record_lineage(
+                records, member_occurrences, coordinates),
+            "ckey": "w" + "-".join(
+                str(value) for value in sorted(member_way_ids)),
             "relation_ids": relation_ids,
             "root_relation_ids": relation_ids,
             "direct_relation_way_ids": direct,
@@ -1852,6 +1995,7 @@ class _QA:
             "quality_candidate_index": 1,
             "source_geometry_way_ids": [20],
             "rendered_source_way_ids": [20],
+            "rendered_way_lineage": _lineage([20]),
             "source_ways": [_source_record(
                 20, [3, 4], [[10.5, 56.15], [10.6, 56.2]],
                 {"name": "Second Trail", "highway": "path"})],
@@ -2164,6 +2308,139 @@ class FinalValidation(unittest.TestCase):
         self.assertEqual(rc, 1)
         self.assertTrue(any("raw authority node order" in error
                             for error in result["errors"]), result["errors"])
+
+    def test_reversed_sorted_and_false_render_orientation_attacks_fail(self):
+        def reversed_raw_evidence(qa):
+            record = _source_record(
+                10, [1, 2, 3],
+                [[10.5, 56.15], [10.55, 56.15], [10.6, 56.15]],
+                {"highway": "path"}, direct=[700])
+            qa.set_relation([record], [record["coordinates"]])
+            properties = qa.documents["trails"]["features"][0]["properties"]
+            source = properties["source_ways"][0]
+            source["node_ids"].reverse()
+            source["coordinates"].reverse()
+            properties["rendered_way_lineage"][0]["orientation"] = "reversed"
+            qa.rewrite("trails")
+
+        def sorted_raw_evidence(qa):
+            record = _source_record(
+                10, [3, 1, 2],
+                [[10.5, 56.15], [10.55, 56.15], [10.6, 56.15]],
+                {"highway": "path"}, direct=[700])
+            qa.set_relation([record], [record["coordinates"]])
+            properties = qa.documents["trails"]["features"][0]["properties"]
+            source = properties["source_ways"][0]
+            coordinates_by_node = dict(zip(source["node_ids"],
+                                           source["coordinates"]))
+            source["node_ids"] = sorted(source["node_ids"])
+            source["coordinates"] = [
+                coordinates_by_node[node_id] for node_id in source["node_ids"]
+            ]
+            qa.rewrite("trails")
+
+        def false_single_way_orientation(qa):
+            record = _source_record(
+                10, [1, 2, 3],
+                [[10.5, 56.15], [10.55, 56.15], [10.6, 56.15]],
+                {"highway": "path"}, direct=[700])
+            qa.set_relation([record], [record["coordinates"]])
+            properties = qa.documents["trails"]["features"][0]["properties"]
+            properties["rendered_way_lineage"][0]["orientation"] = "reversed"
+            qa.rewrite("trails")
+
+        def false_render_orientation(qa):
+            records = [
+                _source_record(
+                    10, [1, 2], [[10.5, 56.15], [10.55, 56.15]],
+                    {"highway": "path"}, direct=[700]),
+                _source_record(
+                    11, [3, 2], [[10.6, 56.15], [10.55, 56.15]],
+                    {"highway": "path"}, direct=[700]),
+            ]
+            qa.set_relation(records, [[
+                [10.5, 56.15], [10.55, 56.15], [10.6, 56.15],
+            ]])
+            properties = qa.documents["trails"]["features"][0]["properties"]
+            row = next(record for record in properties["rendered_way_lineage"]
+                       if record["way_id"] == 11)
+            self.assertEqual(row["orientation"], "reversed")
+            row["orientation"] = "source"
+            qa.rewrite("trails")
+
+        for mutate, fragment in (
+                (reversed_raw_evidence, "raw authority node order"),
+                (sorted_raw_evidence, "raw authority node order"),
+                (false_single_way_orientation, "false orientation"),
+                (false_render_orientation, "false orientation")):
+            with self.subTest(mutate=mutate.__name__):
+                rc, result = self._run(mutate)
+                self.assertEqual(rc, 1)
+                self.assertTrue(any(fragment in error
+                                    for error in result["errors"]),
+                                result["errors"])
+
+    def test_duplicate_rendered_lineage_identity_fails(self):
+        def mutate(qa):
+            properties = qa.documents["trails"]["features"][0]["properties"]
+            duplicate = copy.deepcopy(properties["rendered_way_lineage"][0])
+            duplicate.update({
+                "occurrence_index": 1,
+                "chain_index": 1,
+                "chain_position": 0,
+            })
+            properties["rendered_way_lineage"].append(duplicate)
+            qa.rewrite("trails")
+
+        rc, result = self._run(mutate)
+
+        self.assertEqual(rc, 1)
+        self.assertTrue(any(
+            "rendered way lineage repeats source geometry identity" in error
+            for error in result["errors"]), result["errors"])
+
+    def test_occurrence_deletion_invention_role_and_ckey_multiplicity_fail(self):
+        def golden_properties(qa):
+            return next(
+                feature["properties"]
+                for feature in qa.documents["trails"]["features"]
+                if feature["properties"].get("root_relation_ids") == [8350111]
+            )
+
+        def delete_occurrence(qa):
+            golden_properties(qa)["member_way_occurrences"] = []
+            qa.rewrite("trails")
+
+        def invent_occurrence(qa):
+            properties = golden_properties(qa)
+            invented = {**properties["member_way_occurrences"][0],
+                        "member_index": 1}
+            properties["member_way_occurrences"].append(invented)
+            properties["member_ways"].append(835)
+            properties["ckey"] = "w835-835"
+            properties["rendered_way_lineage"][0][
+                "member_occurrence_indexes"] = [0, 1]
+            qa.rewrite("trails")
+
+        def alter_role(qa):
+            golden_properties(qa)["member_way_occurrences"][0][
+                "effective_role"] = "connection"
+            qa.rewrite("trails")
+
+        def forge_ckey_multiplicity(qa):
+            properties = golden_properties(qa)
+            properties["member_ways"].append(835)
+            properties["ckey"] = "w835-835"
+            qa.rewrite("trails")
+
+        for mutate in (delete_occurrence, invent_occurrence, alter_role,
+                       forge_ckey_multiplicity):
+            with self.subTest(mutate=mutate.__name__):
+                rc, result = self._run(mutate)
+                self.assertEqual(rc, 1)
+                self.assertTrue(any(
+                    "occurrence" in error or "member ways contradict" in error
+                    for error in result["errors"]), result["errors"])
 
     def test_entirely_filtered_relation_remains_a_failing_audit_record(self):
         def mutate(qa):
@@ -2718,6 +2995,8 @@ class FinalValidation(unittest.TestCase):
                 "restored_relation_way_ids": [],
                 "source_ways": [record],
                 "rendered_source_way_ids": [10],
+                "rendered_way_lineage": _record_lineage(
+                    [record], [], rendered["coordinates"]),
                 "walking_identity": "other",
                 "boundary_induced_split": True,
                 "quality_disposition": "preserved-other-needs-review",
@@ -2858,6 +3137,7 @@ class FinalValidation(unittest.TestCase):
                 "removed_category": "dk-unqualified-road-track",
                 "removed_reason": "Unqualified Denmark track.",
                 "source_geometry_way_ids": [20],
+                "rendered_way_lineage": _lineage([20]),
                 "source_ways": [_source_record(
                     20, [3, 4], coordinates,
                     {"name": "Synthetic Farm Track", "highway": "track"})],
@@ -4407,6 +4687,33 @@ class FinalValidation(unittest.TestCase):
             with self.subTest(relative=relative):
                 self.assert_rejected(remove=relative)
 
+    def test_each_new_prevalidation_evidence_file_is_digest_sealed(self):
+        sealed_relatives = [
+            *[relative for label, relative in validator.REQUIRED_JSON_FILES.items()
+              if label != "manifest"],
+            *validator.REQUIRED_TEXT_FILES.values(),
+            *validator.PBF_RELATIVES_BY_SCOPE.values(),
+        ]
+        self.assertEqual(len(sealed_relatives), 36)
+        self.assertEqual(len(sealed_relatives), len(set(sealed_relatives)))
+        relatives = (
+            "discovery/validation.json",
+            "discovery/validation.log",
+            "reports/input-validation.log",
+            "reports/assembly.log",
+        )
+        for relative in relatives:
+            with self.subTest(relative=relative):
+                def mutate(qa, relative=relative):
+                    path = qa.root / relative
+                    path.write_bytes(path.read_bytes() + b"tampered")
+
+                rc, result = self._run(mutate)
+                self.assertEqual(rc, 1)
+                self.assertIn(
+                    f"manifest artifact seal is invalid: {relative}",
+                    result["errors"])
+
 
 @unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
 class ProducerValidatorRoundTrip(unittest.TestCase):
@@ -4463,7 +4770,8 @@ class ProducerValidatorRoundTrip(unittest.TestCase):
                     "tags": {"highway": "path", "name": "Tiny Route"},
                 }}
                 boundary_geometry = box(10.4, 56.1, 10.9, 56.35)
-            elif case in {"clip-sliver-drop", "outside-drop"}:
+            elif case in {"clip-sliver-drop", "outside-drop",
+                           "duplicate-outside-drop"}:
                 nodes = {
                     1: (10.5000, 56.15), 2: (10.5200, 56.15),
                 }
@@ -5351,7 +5659,8 @@ class ProducerValidatorRoundTrip(unittest.TestCase):
                                   "ref": "U1"}
                 elif case == "min-length-drop":
                     route_tags["name"] = "Tiny Route"
-                elif case in {"clip-sliver-drop", "outside-drop"}:
+                elif case in {"clip-sliver-drop", "outside-drop",
+                           "duplicate-outside-drop"}:
                     route_tags["name"] = (
                         "Sliver Route" if case == "clip-sliver-drop"
                         else "Outside Route")
@@ -5365,7 +5674,10 @@ class ProducerValidatorRoundTrip(unittest.TestCase):
                 relations = {700: {
                     "tags": route_tags,
                     "members": [
-                        ("w", way_id, "") for way_id in ways
+                        ("w", way_id, "")
+                        for way_id in ways
+                        for _occurrence in range(
+                            2 if case == "duplicate-outside-drop" else 1)
                         if case != "diluted-restoration" or way_id != 12
                     ],
                 }}
@@ -5816,6 +6128,25 @@ class ProducerValidatorRoundTrip(unittest.TestCase):
                     audit for audit in report["quality"][
                         "relation_member_audit"]
                     if audit["relation_id"] == 700)["emitted_in_exact_area"])
+
+    def test_duplicate_occurrence_outside_drop_preserves_multiset_and_unique_geometry(self):
+        rc, result, trails, removed, _ = self._run("duplicate-outside-drop")
+        self.assertEqual(rc, 0, result["errors"])
+        self.assertEqual(len(trails["features"]), 1)
+        row = next(
+            feature for feature in removed["features"]
+            if (feature.get("properties") or {}).get(
+                "root_relation_ids") == [700])
+        properties = row["properties"]
+        self.assertEqual(properties["member_ways"], [10, 10])
+        self.assertEqual(
+            [occurrence["way_id"] for occurrence in
+             properties["member_way_occurrences"]], [10, 10])
+        self.assertEqual(properties["ckey"], "w10-10")
+        self.assertEqual(properties["source_geometry_way_ids"], [10])
+        self.assertEqual(
+            [record["way_id"] for record in properties["source_ways"]], [10])
+        self.assertEqual(properties["rendered_source_way_ids"], [])
 
     def test_forged_curation_drop_root_source_and_geometry_are_rejected(self):
         def wrong_root(qa):

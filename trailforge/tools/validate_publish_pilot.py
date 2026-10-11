@@ -134,6 +134,7 @@ REQUIRED_JSON_FILES = {
     "curation_diff": "data/aoi/mols-bjerge.curation-diff.json",
     "selected_discovery": "discovery/selected.json",
     "discovery_report": "discovery/report.json",
+    "discovery_validation": "discovery/validation.json",
     "assembly_report": "reports/assembly.json",
     "publish_report": "reports/publish.json",
     "preview": PREVIEW_RELATIVE,
@@ -143,11 +144,15 @@ REQUIRED_JSON_FILES = {
 REQUIRED_TEXT_FILES = {
     "readme": "README.md",
     "discovery_log": "discovery/discovery.log",
+    "discovery_validation_log": "discovery/validation.log",
+    "input_validation_log": "reports/input-validation.log",
+    "assembly_log": "reports/assembly.log",
     "publish_log": "reports/publish.log",
     "viewer_index": "viewer/index.html",
     "viewer_server": "viewer/serve.py",
     "visual": VISUAL_RELATIVE,
 }
+_ALLOWED_EMPTY_TEXT_FILES = {"discovery_validation_log"}
 OPTIONAL_DROPPED_ROUTES = "data/aoi/mols-bjerge.dropped-routes.geojson"
 
 
@@ -664,16 +669,20 @@ def _graph_hierarchy(root_id: int, relations: dict[int, dict],
 
 def _graph_member_entries(root_id: int, relations: dict[int, dict],
                           seen: set[int] | None = None,
-                          ancestor_spur_role: str | None = None) -> list[dict]:
-    reached = seen if seen is not None else set()
-    if root_id in reached or root_id not in relations:
+                          ancestor_spur_role: str | None = None,
+                          occurrence_root_id: int | None = None) -> list[dict]:
+    stack = set(seen or ())
+    occurrence_root_id = (root_id if occurrence_root_id is None
+                          else occurrence_root_id)
+    if root_id in stack or root_id not in relations:
         return []
-    reached.add(root_id)
+    stack.add(root_id)
     out = []
     for member in relations[root_id]["members"]:
         role = member["role"]
         if member["type"] == "way":
             out.append({
+                "root_relation_id": occurrence_root_id,
                 "relation_id": root_id,
                 "member_index": member["sequence"],
                 "way_id": member["ref"],
@@ -685,7 +694,8 @@ def _graph_member_entries(root_id: int, relations: dict[int, dict],
             if inherited is None and role in {"approach", "connection"}:
                 inherited = role
             out.extend(_graph_member_entries(
-                member["ref"], relations, reached, inherited))
+                member["ref"], relations, stack, inherited,
+                occurrence_root_id))
     return out
 
 
@@ -1787,6 +1797,47 @@ def _nonnegative_int_list(value: Any) -> bool:
                     for item in value))
 
 
+_MEMBER_WAY_OCCURRENCE_KEYS = {
+    "root_relation_id", "relation_id", "member_index", "way_id", "role",
+    "effective_role",
+}
+
+
+def _normalize_member_way_occurrences(
+        value: Any, label: str, errors: list[str]) -> list[dict] | None:
+    """Validate ordered relation occurrences without imposing uniqueness."""
+    if not isinstance(value, list):
+        errors.append(f"{label} member way occurrences are invalid")
+        return None
+    normalized = []
+    for index, record in enumerate(value):
+        if (not isinstance(record, dict)
+                or set(record) != _MEMBER_WAY_OCCURRENCE_KEYS
+                or any(not isinstance(record.get(key), int)
+                       or isinstance(record.get(key), bool)
+                       or record[key] <= 0
+                       for key in ("root_relation_id", "relation_id", "way_id"))
+                or not isinstance(record.get("member_index"), int)
+                or isinstance(record.get("member_index"), bool)
+                or record["member_index"] < 0
+                or not isinstance(record.get("role"), str)
+                or not isinstance(record.get("effective_role"), str)):
+            errors.append(
+                f"{label} member way occurrence[{index}] is invalid")
+            return None
+        normalized.append(dict(record))
+    return normalized
+
+
+def _expected_member_way_occurrences(
+        root_ids: list[int], root_records: dict[int, dict]) -> list[dict]:
+    return [
+        dict(record)
+        for root_id in root_ids
+        for record in root_records[root_id].get("member_way_occurrences", [])
+    ]
+
+
 def _source_component_count(records: list[dict]) -> int:
     if not records:
         return 0
@@ -2457,6 +2508,41 @@ def _drop_descriptor_matches_root(descriptor: dict, root: dict,
         return False
 
 
+def _dropped_root_output_contamination(
+        dropped_root: dict, output: dict,
+        authorized_roots: list[dict]) -> tuple[list[int], bool]:
+    """Return dropped-only way IDs/linework after output-root authorization."""
+    from shapely.ops import unary_union
+
+    authorized_way_ids = {
+        way_id for root in authorized_roots
+        for way_id in root.get("eligible_main_way_ids", [])
+    }
+    unauthorized_way_ids = sorted(
+        set(dropped_root.get("eligible_main_way_ids", []))
+        .intersection(output.get("way_ids", set()))
+        .difference(authorized_way_ids)
+    )
+    geometry_overlap = False
+    dropped_geometry = dropped_root.get("geometry")
+    output_geometry = output.get("geometry")
+    if dropped_geometry is not None and output_geometry is not None:
+        authorized_geometries = [
+            root.get("geometry") for root in authorized_roots
+            if root.get("geometry") is not None
+        ]
+        try:
+            dropped_only = (
+                dropped_geometry.difference(unary_union(authorized_geometries))
+                if authorized_geometries else dropped_geometry
+            )
+            overlap = dropped_only.intersection(output_geometry)
+            geometry_overlap = not overlap.is_empty and overlap.length > 0
+        except Exception:  # noqa: BLE001 - unprovable lineage fails closed
+            geometry_overlap = True
+    return unauthorized_way_ids, geometry_overlap
+
+
 def _validate_relation_drop_descriptor(
         descriptor: dict, root_ids: list[int], root_records: dict[int, dict],
         authority: dict, raw_ways: dict[int, dict], boundary,
@@ -2468,21 +2554,24 @@ def _validate_relation_drop_descriptor(
     properties = descriptor["properties"]
     label = descriptor["label"]
     category = descriptor["category"]
+    if properties.get("source_evidence_schema_version") != 2:
+        errors.append(f"{label} source evidence schema_version must be 2")
+    if properties.get("rendered_way_lineage_version") != 1:
+        errors.append(f"{label} rendered way lineage version must be 1")
     seen_relations = set()
     expected_relation_ids = []
     expected_direct = {}
     required_way_ids = []
-    expected_member_way_ids = []
+    expected_occurrences = _expected_member_way_occurrences(
+        root_ids, root_records)
+    expected_member_way_ids = [
+        occurrence["way_id"] for occurrence in expected_occurrences
+    ]
     for root_id in root_ids:
         root = root_records[root_id]
         for way_id in root["eligible_main_way_ids"]:
             if way_id not in required_way_ids:
                 required_way_ids.append(way_id)
-            if way_id not in expected_member_way_ids:
-                expected_member_way_ids.append(way_id)
-        for way_id in root["included_spur_way_ids"]:
-            if way_id not in expected_member_way_ids:
-                expected_member_way_ids.append(way_id)
         for relation_id in _graph_hierarchy(
                 root_id, authority.get("relations", {}), seen_relations):
             expected_relation_ids.append(relation_id)
@@ -2495,12 +2584,19 @@ def _validate_relation_drop_descriptor(
                 f"{label} name contradicts authority-derived root r{root_id}")
 
     member_ways = properties.get("member_ways")
+    occurrences = _normalize_member_way_occurrences(
+        properties.get("member_way_occurrences"), label, errors)
     geometry_way_ids = properties.get("source_geometry_way_ids")
     rendered_way_ids = properties.get("rendered_source_way_ids")
-    if (not _positive_int_list(member_ways)
-            or len(member_ways) != len(set(member_ways))):
+    if not _positive_int_list(member_ways):
         errors.append(f"{label} member identity is invalid")
         member_ways = []
+    if occurrences is None:
+        occurrences = []
+    if occurrences != expected_occurrences:
+        errors.append(
+            f"{label} member way occurrences contradict complete authoritative "
+            "preclip identity")
     if (not _positive_int_list(geometry_way_ids)
             or len(geometry_way_ids) != len(set(geometry_way_ids))):
         errors.append(f"{label} source geometry identity is invalid")
@@ -2597,6 +2693,11 @@ def _validate_relation_drop_descriptor(
             expected_rendered.append(way_id)
     if rendered_way_ids != expected_rendered:
         errors.append(f"{label} rendered source ways contradict exact area")
+    _validate_rendered_way_lineage(
+        properties,
+        [record for record in source_records if isinstance(record, dict)],
+        descriptor["feature"], boundary, occurrences, label, errors,
+        preclip_geometry=(category not in _ABSORPTION_REMOVAL_CATEGORIES))
     if len(source_lines) != len(required_way_ids):
         errors.append(f"{label} lacks complete authoritative preclip geometry")
     elif descriptor.get("geometry") is not None:
@@ -3539,6 +3640,18 @@ def _validate_relation_member_audit(quality: dict, authority: dict,
             "name": display_name,
             "name_key": _publisher_merge_key(display_name),
             "hierarchy": expected["relation_ids"],
+            "member_way_occurrences": [
+                {
+                    "root_relation_id": relation_id,
+                    "relation_id": member["relation_id"],
+                    "member_index": member["member_index"],
+                    "way_id": member["way_id"],
+                    "role": member["role"],
+                    "effective_role": member["effective_role"],
+                }
+                for member in expected["direct_way_members"]
+                if member.get("status") == "included"
+            ],
             "direct": {
                 int(key): list(value) for key, value in
                 expected["direct_relation_way_ids"].items()
@@ -3606,15 +3719,18 @@ def _validate_relation_member_audit(quality: dict, authority: dict,
         name = properties.get("name")
         name_key = _publisher_merge_key(name if isinstance(name, str) else None)
         member_ways = properties.get("member_ways")
+        member_occurrences = _normalize_member_way_occurrences(
+            properties.get("member_way_occurrences"), label, errors)
         geometry_way_ids = properties.get("source_geometry_way_ids")
         if (not isinstance(candidate_index, int)
                 or isinstance(candidate_index, bool) or candidate_index < 0):
             errors.append(f"{label} candidate identity index is invalid")
             continue
-        if (not _positive_int_list(member_ways)
-                or len(member_ways) != len(set(member_ways))):
+        if not _positive_int_list(member_ways):
             errors.append(f"{label} member identity is invalid")
             member_ways = []
+        if member_occurrences is None:
+            member_occurrences = []
         expected_ckey = (
             "w" + "-".join(str(way_id) for way_id in sorted(member_ways))
             if member_ways else None)
@@ -3647,6 +3763,7 @@ def _validate_relation_member_audit(quality: dict, authority: dict,
             "name_key": name_key,
             "ckey": ckey,
             "member_ways": list(member_ways),
+            "member_way_occurrences": member_occurrences,
             "geometry_way_ids": list(geometry_way_ids),
             "geometry": candidate_geometry,
         })
@@ -3688,12 +3805,12 @@ def _validate_relation_member_audit(quality: dict, authority: dict,
     matched_roots_by_candidate: dict[int, list[int]] = {}
     dropped_roots_by_position: dict[int, list[int]] = {}
     root_candidates: dict[int, int] = {}
+    pending_drop_contamination: list[tuple[int, dict, set[int]]] = []
     authority_root_order = authority.get("root_relation_ids", [])
     for root_id in authority_root_order:
         root = emitted_roots.get(root_id)
         if root is None:
             continue
-        required_way_ids = set(root["eligible_main_way_ids"])
         match_way_ids = set(
             root["rendered_main_way_ids"] or root["eligible_main_way_ids"])
         matches = []
@@ -3799,18 +3916,25 @@ def _validate_relation_member_audit(quality: dict, authority: dict,
                             output.get("geometry_document") or {}),
                     }
                 }
+        pending_drop_contamination.append(
+            (root_id, root, allowed_survivor_positions))
+
+    for root_id, root, allowed_survivor_positions in pending_drop_contamination:
         for output in output_descriptors:
             if output["position"] in allowed_survivor_positions:
                 continue
-            way_overlap = required_way_ids.intersection(output["way_ids"])
-            geometry_overlap = False
-            if root["geometry"] is not None and output["geometry"] is not None:
-                try:
-                    geometry_overlap = root["geometry"].intersection(
-                        output["geometry"]).length > 1e-12
-                except Exception:  # noqa: BLE001
-                    geometry_overlap = True
-            if way_overlap or geometry_overlap:
+            candidate_index = output["properties"].get(
+                "quality_candidate_index")
+            authorized_roots = [
+                root_records[authorized_root_id]
+                for authorized_root_id in matched_roots_by_candidate.get(
+                    candidate_index, [])
+                if authorized_root_id in root_records
+            ]
+            unauthorized_way_ids, geometry_overlap = \
+                _dropped_root_output_contamination(
+                    root, output, authorized_roots)
+            if unauthorized_way_ids or geometry_overlap:
                 errors.append(
                     f"dropped relation root r{root_id} unexpectedly ships in "
                     f"output candidate[{output['position']}]")
@@ -3848,6 +3972,24 @@ def _validate_relation_member_audit(quality: dict, authority: dict,
                 expected_relation_ids.append(relation_id)
                 expected_direct[relation_id] = list(
                     authority["relations"][relation_id]["direct_way_ids"])
+        expected_occurrences = _expected_member_way_occurrences(
+            derived_roots, root_records)
+        if descriptor["member_way_occurrences"] != expected_occurrences:
+            errors.append(
+                f"{label} member way occurrences contradict authority-derived "
+                "root order, multiplicity, or roles")
+        expected_occurrence_ids = [
+            occurrence["way_id"] for occurrence in expected_occurrences
+        ]
+        expected_member_way_ids = [
+            *expected_occurrence_ids,
+            *(way_id for way_id in descriptor["geometry_way_ids"]
+              if way_id not in expected_occurrence_ids),
+        ]
+        if descriptor["member_ways"] != expected_member_way_ids:
+            errors.append(
+                f"{label} member ways contradict authoritative occurrences "
+                "and unique geometry extras")
         declared_direct = _normalize_direct_members(
             properties.get("direct_relation_way_ids"), label, errors)
         if properties.get("root_relation_ids") != derived_roots:
@@ -3909,6 +4051,7 @@ def _validate_relation_member_audit(quality: dict, authority: dict,
             "name": descriptor["name"],
             "name_key": descriptor["name_key"],
             "ckey": descriptor["ckey"],
+            "member_way_occurrences": expected_occurrences,
             "source_geometry_way_ids": descriptor["geometry_way_ids"],
             "required_authority_way_ids": required_way_ids,
             "root_relation_ids": derived_roots,
@@ -3975,6 +4118,177 @@ def _validate_relation_member_audit(quality: dict, authority: dict,
     return claims
 
 
+def _validate_rendered_way_lineage(
+        properties: dict, records: list[dict], feature: dict, boundary,
+        member_occurrences: list[dict], label: str,
+        errors: list[str], *, preclip_geometry: bool = False) -> None:
+    """Rebuild candidate-local render chains without relaxing raw ordering."""
+    from shapely.geometry import LineString
+
+    value = properties.get("rendered_way_lineage")
+    if not isinstance(value, list):
+        errors.append(f"{label} rendered way lineage is invalid")
+        return
+    required_keys = {
+        "occurrence_index", "way_id", "chain_index", "chain_position",
+        "orientation", "member_occurrence_indexes", "postclip_part_indexes",
+    }
+    records_by_id = {record["way_id"]: record for record in records}
+    geometry_way_ids = properties.get("source_geometry_way_ids") or []
+    rendered_point_lines = []
+    rendered_lines = []
+    for line in _geometry_lines_for_validation(feature):
+        points = [_point(point) for point in line]
+        if len(points) >= 2 and all(point is not None for point in points):
+            rendered_point_lines.append(points)
+            rendered_lines.append(LineString(points))
+    normalized = []
+    for index, row in enumerate(value):
+        if (not isinstance(row, dict) or set(row) != required_keys
+                or row.get("occurrence_index") != index
+                or not isinstance(row.get("way_id"), int)
+                or isinstance(row.get("way_id"), bool)
+                or row["way_id"] <= 0
+                or not isinstance(row.get("chain_index"), int)
+                or isinstance(row.get("chain_index"), bool)
+                or row["chain_index"] < 0
+                or not isinstance(row.get("chain_position"), int)
+                or isinstance(row.get("chain_position"), bool)
+                or row["chain_position"] < 0
+                or row.get("orientation") not in {"source", "reversed"}
+                or not isinstance(row.get("member_occurrence_indexes"), list)
+                or any(not isinstance(position, int)
+                       or isinstance(position, bool) or position < 0
+                       for position in row["member_occurrence_indexes"])
+                or len(row["member_occurrence_indexes"]) != len(set(
+                    row["member_occurrence_indexes"]))
+                or not isinstance(row.get("postclip_part_indexes"), list)
+                or any(not isinstance(position, int)
+                       or isinstance(position, bool) or position < 0
+                       or position >= len(rendered_lines)
+                       for position in row["postclip_part_indexes"])
+                or len(row["postclip_part_indexes"]) != len(set(
+                    row["postclip_part_indexes"]))):
+            errors.append(f"{label} rendered way lineage[{index}] is invalid")
+            continue
+        way_id = row["way_id"]
+        expected_occurrence_indexes = [
+            occurrence_index
+            for occurrence_index, occurrence in enumerate(member_occurrences)
+            if occurrence.get("way_id") == way_id
+            and occurrence.get("effective_role") in {"", "main"}
+        ]
+        if row["member_occurrence_indexes"] != expected_occurrence_indexes:
+            errors.append(
+                f"{label} rendered way lineage[{index}] occurrence binding is invalid")
+        record = records_by_id.get(way_id)
+        if record is None:
+            errors.append(
+                f"{label} rendered way lineage[{index}] lacks one raw source way")
+            continue
+        coordinates = [_point(point) for point in record["coordinates"]]
+        if any(point is None for point in coordinates):
+            continue
+        if row["orientation"] == "reversed":
+            coordinates.reverse()
+        try:
+            clipped = (LineString(coordinates).intersection(boundary)
+                       if boundary is not None else LineString(coordinates))
+            expected_parts = [
+                part_index for part_index, rendered in enumerate(rendered_lines)
+                if (not clipped.is_empty
+                    and clipped.intersection(rendered).length > 0)
+            ]
+        except Exception:  # noqa: BLE001 - malformed lineage is a gate failure
+            expected_parts = []
+        if row["postclip_part_indexes"] != expected_parts:
+            errors.append(
+                f"{label} rendered way lineage[{index}] postclip binding is invalid")
+        normalized.append((row, coordinates))
+
+    lineage_way_ids = [row["way_id"] for row, _coordinates in normalized]
+    if len(lineage_way_ids) != len(set(lineage_way_ids)):
+        errors.append(
+            f"{label} rendered way lineage repeats source geometry identity")
+    if (len(lineage_way_ids) != len(geometry_way_ids)
+            or set(lineage_way_ids) != set(geometry_way_ids)):
+        errors.append(
+            f"{label} rendered way lineage does not cover unique source geometry")
+    by_chain: dict[int, list[tuple[dict, list[tuple[float, float]]]]] = {}
+    for row, coordinates in normalized:
+        by_chain.setdefault(row["chain_index"], []).append((row, coordinates))
+    if sorted(by_chain) != list(range(len(by_chain))):
+        errors.append(f"{label} rendered way lineage chain indexes are invalid")
+    matched_rendered_parts = set()
+    for chain_index, rows in by_chain.items():
+        rows.sort(key=lambda value: value[0]["chain_position"])
+        if [row["chain_position"] for row, _coordinates in rows] != \
+                list(range(len(rows))):
+            errors.append(
+                f"{label} rendered way lineage chain {chain_index} positions are invalid")
+            continue
+        chain_coordinates = []
+        false_orientation = False
+        for row_position, (_row, coordinates) in enumerate(rows):
+            if row_position and (
+                    not chain_coordinates or not coordinates
+                    or chain_coordinates[-1] != coordinates[0]):
+                errors.append(
+                    f"{label} rendered way lineage chain {chain_index} "
+                    "has false orientation")
+                false_orientation = True
+                break
+            chain_coordinates.extend(
+                coordinates[1:] if chain_coordinates else coordinates)
+        if false_orientation or len(chain_coordinates) < 2:
+            continue
+        try:
+            rendered_chain = LineString(chain_coordinates)
+            if boundary is not None and not preclip_geometry:
+                rendered_chain = rendered_chain.intersection(boundary)
+            expected_chain_parts = [
+                [(float(x), float(y)) for x, y in part.coords]
+                for part in _shapely_line_parts(rendered_chain)
+            ]
+            if preclip_geometry:
+                source_chain = LineString(chain_coordinates)
+                bound_indexes = [
+                    index for index, rendered in enumerate(rendered_lines)
+                    if source_chain.intersection(rendered).length > 0
+                ]
+            else:
+                bound_indexes = []
+                for row, _coordinates in rows:
+                    for part_index in row["postclip_part_indexes"]:
+                        if part_index not in bound_indexes:
+                            bound_indexes.append(part_index)
+                bound_indexes.sort()
+            direct_parts = [
+                list(rendered_point_lines[part_index])
+                for part_index in bound_indexes
+            ]
+            reconstructed_parts = []
+            for rendered in direct_parts:
+                if (reconstructed_parts
+                        and reconstructed_parts[-1][-1] == rendered[0]):
+                    reconstructed_parts[-1].extend(rendered[1:])
+                else:
+                    reconstructed_parts.append(list(rendered))
+            if (sorted(direct_parts) != sorted(expected_chain_parts)
+                    and sorted(reconstructed_parts) !=
+                    sorted(expected_chain_parts)):
+                errors.append(
+                    f"{label} rendered way lineage chain {chain_index} "
+                    "has false orientation")
+            else:
+                matched_rendered_parts.update(bound_indexes)
+        except Exception:  # noqa: BLE001 - reconstruction must be exact
+            errors.append(
+                f"{label} rendered way lineage chain {chain_index} cannot be rebuilt")
+    if matched_rendered_parts != set(range(len(rendered_point_lines))):
+        errors.append(f"{label} rendered way lineage omits postclip geometry")
+
+
 def _candidate_source_evidence(feature: dict, boundary_feature: dict | None,
                                raw_ways: dict[int, dict],
                                relation_authority: dict,
@@ -3985,6 +4299,14 @@ def _candidate_source_evidence(feature: dict, boundary_feature: dict | None,
 
     properties = feature.get("properties") or {}
     source_kind = properties.get("source")
+    if properties.get("source_evidence_schema_version") != 2:
+        errors.append(f"{label} source evidence schema_version must be 2")
+    if properties.get("rendered_way_lineage_version") != 1:
+        errors.append(f"{label} rendered way lineage version must be 1")
+    member_occurrences = _normalize_member_way_occurrences(
+        properties.get("member_way_occurrences"), label, errors)
+    if member_occurrences is None:
+        member_occurrences = []
     member_ways = properties.get("member_ways")
     root_relation_ids = properties.get("root_relation_ids", [])
     relation_ids = properties.get("relation_ids", [])
@@ -4081,6 +4403,8 @@ def _candidate_source_evidence(feature: dict, boundary_feature: dict | None,
         if (source_kind == "relation" and authority_way is not None
                 and authority_way.get("status") == "present"):
             raw = {
+                "node_ids": authority_way.get("node_ids"),
+                "missing_node_ids": authority_way.get("missing_node_ids") or [],
                 "coordinates": [tuple(point) for point in
                                 authority_way.get("coordinates") or []],
                 "tags": member_safety.decisive_tags(
@@ -4090,11 +4414,15 @@ def _candidate_source_evidence(feature: dict, boundary_feature: dict | None,
             raw = raw_ways.get(way_id)
         raw_bound = False
         authority_identity_matches = True
-        if (source_kind == "relation" and authority_way is not None
-                and authority_way.get("status") == "present"):
-            if (node_ids != authority_way.get("node_ids")
-                    or coordinates != authority_way.get("coordinates")
-                    or missing_node_ids != authority_way.get("missing_node_ids")):
+        if raw is not None:
+            raw_node_ids = raw.get("node_ids")
+            raw_coordinates_for_identity = [
+                list(point) for point in raw.get("coordinates") or []
+            ]
+            raw_missing = raw.get("missing_node_ids") or []
+            if (node_ids != raw_node_ids
+                    or coordinates != raw_coordinates_for_identity
+                    or missing_node_ids != raw_missing):
                 authority_identity_matches = False
                 errors.append(
                     f"{record_label} contradicts raw authority node order w{way_id}")
@@ -4166,6 +4494,9 @@ def _candidate_source_evidence(feature: dict, boundary_feature: dict | None,
         set(missing_records) | raw_missing_way_ids | raw_absent
         | missing_node_way_ids)
     source_components = _source_component_count(records)
+    _validate_rendered_way_lineage(
+        properties, records, feature, boundary, member_occurrences,
+        label, errors)
 
     rendered_geometry = None
     exact_clip = False
@@ -4269,6 +4600,8 @@ def _candidate_source_evidence(feature: dict, boundary_feature: dict | None,
                 and isinstance(direct, dict)
                 and list(direct) == list(expected_direct)
             )
+            occurrence_matches = (
+                member_occurrences == claim["member_way_occurrences"])
             identity_matches = (
                 properties.get("name") == claim["name"]
                 and properties.get("ckey") == claim["ckey"]
@@ -4283,11 +4616,15 @@ def _candidate_source_evidence(feature: dict, boundary_feature: dict | None,
             if not direct_matches:
                 errors.append(
                     f"{label} direct relation membership contradicts independent graph")
+            if not occurrence_matches:
+                errors.append(
+                    f"{label} member occurrence multiplicity or roles contradict "
+                    "independent graph")
             if not identity_matches:
                 errors.append(f"{label} name/ckey authority binding is inconsistent")
             root_identity_valid = all((
                 relation_matches, roots_match, direct_matches,
-                identity_matches, bool(expected_roots),
+                occurrence_matches, identity_matches, bool(expected_roots),
             ))
             if root_identity_valid:
                 confirmed_direct = expected_direct
@@ -4296,6 +4633,8 @@ def _candidate_source_evidence(feature: dict, boundary_feature: dict | None,
     elif source == "name-stitch":
         if relation_ids != [] or direct not in ({}, None):
             errors.append(f"{label} rootless stitch carries relation identity")
+        if member_occurrences:
+            errors.append(f"{label} rootless stitch carries relation occurrences")
     else:
         errors.append(f"{label} has unknown assembly source")
 
@@ -4613,8 +4952,8 @@ def _validate_quality_report(quality: Any, trail_features: list,
     if not isinstance(quality, dict) or quality.get("enabled") is not True:
         errors.append("assembly Denmark quality evidence is missing")
         return
-    if quality.get("schema_version") != 7:
-        errors.append("assembly Denmark quality schema_version must be 7")
+    if quality.get("schema_version") != 8:
+        errors.append("assembly Denmark quality schema_version must be 8")
     if quality.get("region") != "dk" or quality.get("area") != AREA_NAME:
         errors.append("assembly Denmark quality scope is invalid")
     if quality.get("connectivity_authority") != \
@@ -6007,8 +6346,7 @@ def _validate_maltgaarden(trails: list, removed: list,
         members = properties.get("member_ways")
         if (not isinstance(category, str) or not category
                 or not isinstance(reason, str) or not reason.strip()
-                or not _positive_int_list(members)
-                or len(members) != len(set(members))):
+                or not _positive_int_list(members)):
             errors.append(f"removed[{index}] category row is structurally invalid")
             continue
         if category != "standalone-pedestrian-area":
@@ -6192,7 +6530,7 @@ def _run_final(args: argparse.Namespace) -> int:
         except (OSError, UnicodeError) as error:
             errors.append(f"invalid {label}: {error}")
             continue
-        if not text.strip():
+        if not text.strip() and label not in _ALLOWED_EMPTY_TEXT_FILES:
             errors.append(f"{label} is empty")
         texts[label] = text
 

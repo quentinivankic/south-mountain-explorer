@@ -226,6 +226,17 @@ def test_three_scope_relation_authority_is_sealed_before_assembly_and_validated(
     assert '"data/raw/denmark.osm.pbf"' not in seal
     assert "mols-bjerge.prefilter-transformation.json" in seal
     assert seal.count("mols-bjerge.scope.") >= 3
+    for relative in (
+            "discovery/validation.json",
+            "discovery/validation.log",
+            "reports/input-validation.log",
+            "reports/assembly.log"):
+        assert seal.count(f'"{relative}"') == 1
+    assert '"validation/final.json"' not in seal
+    assert '"validation/final.log"' not in seal
+    assert 'manifest_path = root / "manifest.json"' in seal
+    assert 'relatives = [' in seal
+    assert 'for relative in sorted(relatives):' in seal
     assert '[[ "$PILOT_SCOPE_TRUST" != "$PILOT_QA_ROOT/"* ]]' in trust
     assert "steps.raw_scope.outputs.parent_sha256" in trust
     assert "steps.raw_scope.outputs.relation_ledger_sha256" in trust

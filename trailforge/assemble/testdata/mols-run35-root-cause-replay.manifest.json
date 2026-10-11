@@ -1,0 +1,57 @@
+{
+  "output": {
+    "bytes": 1369687,
+    "file": "mols-run35-root-cause-replay.json",
+    "sha256": "fa04ca1087d561dd6829a0bf03b60dbe05d5f2a2c556cdaf4a555a0fae98df15"
+  },
+  "projection": {
+    "emitted_reversal_count": 591,
+    "emitted_unique_reversed_way_count": 418,
+    "occurrence_counts": {
+      "bjergetapen": 85,
+      "djurslandstien": 373,
+      "kystbefaestningsstien": 21,
+      "nordsoevandreruten": 3338
+    },
+    "raw_way_record_count": 957,
+    "removed_reversal_count": 38,
+    "residual_error_count": 9,
+    "restored_candidate_count": 26,
+    "restored_row_count": 27
+  },
+  "schema_version": 1,
+  "source": {
+    "artifact_name": "mols-bjerge-qa-b1db2afb4fdb51191551fc372411c04a515c0869",
+    "attribution": "© OpenStreetMap contributors",
+    "github_run_id": 37941658802,
+    "github_run_number": 35,
+    "license": "Open Database License (ODbL) 1.0",
+    "source_sha": "b1db2afb4fdb51191551fc372411c04a515c0869"
+  },
+  "source_files": {
+    "data/aoi/mols-bjerge.exact-area.geojson": {
+      "bytes": 70646,
+      "sha256": "e43288c89a24b0fc509bdeb1c62341384d7f7f46f4e2c43ad714ffa0c909d0ba"
+    },
+    "data/aoi/mols-bjerge.removed.geojson": {
+      "bytes": 5017842,
+      "sha256": "28c81728cffa39ad1dab7400940dc4aeb0b76c8ccdd844a73365c6413ccf078c"
+    },
+    "data/aoi/mols-bjerge.trails.geojson": {
+      "bytes": 1162788,
+      "sha256": "a743dc00f552eacd29cbaf2888febe45a074c14c7da3c1dfb437dc010cdfb544"
+    },
+    "data/source/mols-bjerge.relation-members.raw.json": {
+      "bytes": 3356716,
+      "sha256": "d1e2475b5c4e3dcd59b78919b95639538799160644598e69f21210fb78d0e263"
+    },
+    "manifest.json": {
+      "bytes": 9272,
+      "sha256": "e56a3a212e3a42b4394b219d5129879be8b0a1560995c29d8e9bda23567f14ff"
+    },
+    "reports/assembly.json": {
+      "bytes": 16935569,
+      "sha256": "c9d4a47c814a18abcd400140bddc3f3a10259d7cb018ccaef5cae1602454867d"
+    }
+  }
+}

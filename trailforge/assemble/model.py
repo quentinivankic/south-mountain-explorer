@@ -31,6 +31,7 @@ import math
 import re
 import sys
 import unicodedata
+from dataclasses import dataclass
 from typing import Any
 
 import member_safety
@@ -315,13 +316,30 @@ def _pick_unused(cands: set[int] | None, used: set[int]) -> int | None:
     return None
 
 
-def order_ways(way_ids: list[int], ways: dict) -> list[list[int]]:
-    """Order a set of ways into connected chains by shared endpoint nodes.
+@dataclass(frozen=True)
+class OrientedWay:
+    """A candidate-local view of one immutable source way."""
 
-    Returns a list of chains (each a list of way_ids in walkable order,
-    with member way node-orientation normalized so consecutive ways join
-    head-to-tail). A set with a gap yields more than one chain — surfaced,
-    not hidden. Grows each chain from its tail node, then its head node.
+    way_id: int
+    orientation: str = "source"
+
+
+def _oriented_node_ids(reference: OrientedWay, ways: dict) -> list[int]:
+    node_ids = list(ways[reference.way_id]["nodes"])
+    if reference.orientation == "reversed":
+        node_ids.reverse()
+    elif reference.orientation != "source":
+        raise ValueError(f"invalid way orientation: {reference.orientation!r}")
+    return node_ids
+
+
+def order_ways(way_ids: list[int], ways: dict) -> list[list[OrientedWay]]:
+    """Order source ways into connected candidate-local oriented chains.
+
+    Source records are immutable authority. A chain therefore stores an
+    explicit orientation for each way instead of rewriting ``ways[wid]``.
+    Repeated relation occurrences remain in relation provenance but geometry
+    is emitted once per unique way identity.
     """
     remaining = list(dict.fromkeys(way_ids))
     by_end: dict[int, set[int]] = {}
@@ -332,12 +350,12 @@ def order_ways(way_ids: list[int], ways: dict) -> list[list[int]]:
             by_end.setdefault(ep[1], set()).add(wid)
 
     used: set[int] = set()
-    chains: list[list[int]] = []
+    chains: list[list[OrientedWay]] = []
     for seed in remaining:
         if seed in used:
             continue
         used.add(seed)
-        chain = [seed]
+        chain = [OrientedWay(seed)]
         nds = ways[seed]["nodes"]
         head_node, tail_node = nds[0], nds[-1]
 
@@ -346,36 +364,40 @@ def order_ways(way_ids: list[int], ways: dict) -> list[list[int]]:
             if nxt is None:
                 break
             used.add(nxt)
-            wn = ways[nxt]["nodes"]
-            if wn[0] != tail_node:                     # orient to continue
-                ways[nxt] = {**ways[nxt], "nodes": list(reversed(wn))}
-                wn = ways[nxt]["nodes"]
-            chain.append(nxt)
-            tail_node = wn[-1]
+            source_nodes = ways[nxt]["nodes"]
+            reversed_view = source_nodes[0] != tail_node
+            reference = OrientedWay(
+                nxt, "reversed" if reversed_view else "source")
+            oriented_nodes = _oriented_node_ids(reference, ways)
+            chain.append(reference)
+            tail_node = oriented_nodes[-1]
 
         while True:                                   # grow the head
             nxt = _pick_unused(by_end.get(head_node), used)
             if nxt is None:
                 break
             used.add(nxt)
-            wn = ways[nxt]["nodes"]
-            if wn[-1] != head_node:                    # far end becomes new head
-                ways[nxt] = {**ways[nxt], "nodes": list(reversed(wn))}
-                wn = ways[nxt]["nodes"]
-            chain.insert(0, nxt)
-            head_node = wn[0]
+            source_nodes = ways[nxt]["nodes"]
+            reversed_view = source_nodes[-1] != head_node
+            reference = OrientedWay(
+                nxt, "reversed" if reversed_view else "source")
+            oriented_nodes = _oriented_node_ids(reference, ways)
+            chain.insert(0, reference)
+            head_node = oriented_nodes[0]
 
         chains.append(chain)
     return chains
 
 
-def chains_to_multiline(chains: list[list[int]], ways: dict,
+def chains_to_multiline(chains: list[list[OrientedWay]], ways: dict,
                         nodes: dict) -> list[list[tuple[float, float]]]:
     out = []
     for chain in chains:
         coords: list[tuple[float, float]] = []
-        for wid in chain:
-            c = way_coords(ways[wid], nodes)
+        for reference in chain:
+            c = [nodes[node_id]
+                 for node_id in _oriented_node_ids(reference, ways)
+                 if node_id in nodes]
             if coords and c and coords[-1] == c[0]:
                 coords.extend(c[1:])
             else:
@@ -385,24 +407,47 @@ def chains_to_multiline(chains: list[list[int]], ways: dict,
     return out
 
 
+def rendered_way_lineage(
+        chains: list[list[OrientedWay]]) -> list[dict[str, Any]]:
+    """Serialize the candidate-local source-chain orientation."""
+    return [
+        {
+            "occurrence_index": occurrence_index,
+            "way_id": reference.way_id,
+            "chain_index": chain_index,
+            "chain_position": chain_position,
+            "orientation": reference.orientation,
+        }
+        for occurrence_index, (chain_index, chain_position, reference) in
+        enumerate(
+            (chain_index, chain_position, reference)
+            for chain_index, chain in enumerate(chains)
+            for chain_position, reference in enumerate(chain)
+        )
+    ]
+
+
 # ---------------------------------------------------------------------------
 # step 1 — relations-first
 # ---------------------------------------------------------------------------
 
 def resolve_route_member_entries(
         rel_id: int, relations: dict, _seen: set[int] | None = None,
-        _ancestor_spur_role: str | None = None) -> list[dict]:
-    """Resolve route ways while retaining direct owner, order, and raw role."""
-    seen = _seen if _seen is not None else set()
-    if rel_id in seen or rel_id not in relations:
+        _ancestor_spur_role: str | None = None,
+        _root_relation_id: int | None = None) -> list[dict]:
+    """Resolve ordered route occurrences with path-local cycle protection."""
+    stack = set(_seen or ())
+    root_relation_id = rel_id if _root_relation_id is None else _root_relation_id
+    if rel_id in stack or rel_id not in relations:
         return []
-    seen.add(rel_id)
+    stack.add(rel_id)
     out = []
     for member_index, (member_type, ref, role) in enumerate(
             relations[rel_id]["members"]):
         direct_role = role or ""
         if member_type == "w":
             out.append({
+                "root_relation_id": root_relation_id,
                 "relation_id": rel_id,
                 "member_index": member_index,
                 "way_id": ref,
@@ -417,7 +462,7 @@ def resolve_route_member_entries(
             if inherited is None and direct_role in SPUR_ROLES:
                 inherited = direct_role
             out.extend(resolve_route_member_entries(
-                ref, relations, seen, inherited))
+                ref, relations, stack, inherited, root_relation_id))
     return out
 
 
@@ -693,8 +738,9 @@ def attach_spurs(trails: list["Trail"], leftover_ways: list[int], ways: dict,
             if not poi:
                 continue
             t = next(iter(uniq.values()))
-            oriented = coords if near_node == a else list(reversed(coords))
-            t.weld_spur(wid, oriented, poi)
+            orientation = "source" if near_node == a else "reversed"
+            oriented = coords if orientation == "source" else list(reversed(coords))
+            t.weld_spur(wid, oriented, poi, orientation=orientation)
             break
 
 
@@ -721,6 +767,12 @@ class Trail:
         self.name = name
         self.source = source            # "relation" | "name-stitch"
         self.member_ways = list(member_ways)
+        # Relation occurrence identity is separate from unique source geometry.
+        # Exact-Denmark assembly fills this ordered, duplicate-preserving ledger.
+        self.member_way_occurrences: list[dict[str, Any]] = []
+        # Candidate-local render order/orientation. Source way node arrays remain
+        # immutable and are serialized independently in raw authority order.
+        self.rendered_way_lineage: list[dict[str, Any]] = []
         # Ways that actually render linework. Relation approach/connection
         # members remain in member_ways for signed-route identity but are not
         # treated as unexplained main-line gaps.
@@ -768,9 +820,19 @@ class Trail:
         # never in app-facing trail output.
         self._promotion_decision: dict[str, Any] | None = None
 
-    def weld_spur(self, wid, coords, poi):
+    def weld_spur(self, wid, coords, poi, *, orientation="source"):
         self.member_ways.append(wid)
         self.geometry_ways.append(wid)
+        chain_index = 1 + max(
+            (row["chain_index"] for row in self.rendered_way_lineage),
+            default=-1)
+        self.rendered_way_lineage.append({
+            "occurrence_index": len(self.rendered_way_lineage),
+            "way_id": wid,
+            "chain_index": chain_index,
+            "chain_position": 0,
+            "orientation": orientation,
+        })
         self.lines.append(coords)
         nm = poi.get("name") or f"{poi['tags']}"
         self.destinations.append(nm)
@@ -830,12 +892,12 @@ class Trail:
         }
 
 
-def _terminal_nodes(chains: list[list[int]], ways: dict) -> list[int]:
+def _terminal_nodes(chains: list[list[OrientedWay]], ways: dict) -> list[int]:
     ends = []
     for chain in chains:
         if chain:
-            ends.append(ways[chain[0]]["nodes"][0])
-            ends.append(ways[chain[-1]]["nodes"][-1])
+            ends.append(_oriented_node_ids(chain[0], ways)[0])
+            ends.append(_oriented_node_ids(chain[-1], ways)[-1])
     return ends
 
 
@@ -1072,6 +1134,7 @@ def assemble(nodes: dict, ways: dict, relations: dict,
                       deterministic_localized=exact_denmark),
                   "relation", main_ways, lines, rel["tags"],
                   _terminal_nodes(chains, ways))
+        t.rendered_way_lineage = rendered_way_lineage(chains)
         contributing = set(main_ways + spur_ways)
         t.relation_ids = relation_ids
         t.root_relation_ids = [rid]
@@ -1083,6 +1146,21 @@ def assemble(nodes: dict, ways: dict, relations: dict,
                 rid: _source_endpoint_records(rid, main_ways, ways, nodes),
             }
         if denmark:
+            # Preserve every included recursive occurrence, including repeats,
+            # independently from the unique geometry-way domain.
+            t.member_way_occurrences = [
+                {
+                    key: record[key]
+                    for key in (
+                        "root_relation_id", "relation_id", "member_index",
+                        "way_id", "role", "effective_role")
+                }
+                for record in (audit or {}).get("direct_way_members", [])
+                if record.get("status") == "included"
+            ]
+            t.member_ways = [
+                record["way_id"] for record in t.member_way_occurrences
+            ]
             # Full source authority, including excluded and missing direct ways.
             # Rendering remains represented separately by geometry_ways.
             t.direct_relation_ways = {
@@ -1101,9 +1179,11 @@ def assemble(nodes: dict, ways: dict, relations: dict,
                 for relation_id in relation_ids
             }
             t.restored_relation_ways = []
-        # approach/connection spurs are signed members but not main linework
-        for sw in spur_ways:
-            t.member_ways.append(sw)
+        # approach/connection spurs are signed members but not main linework.
+        # Exact-Denmark already preserved them in authority occurrence order.
+        if not denmark:
+            for sw in spur_ways:
+                t.member_ways.append(sw)
         # Claim ONLY members without their own distinct identity — unnamed
         # connectors or ways sharing the route's name. A member with its OWN
         # different name (e.g. "Bursera Canyon" inside the umbrella "Maricopa
@@ -1156,6 +1236,7 @@ def assemble(nodes: dict, ways: dict, relations: dict,
             continue
         trail = Trail(display_name(way["tags"]), "name-stitch", [way_id],
                       lines, way["tags"], _terminal_nodes(chains, ways))
+        trail.rendered_way_lineage = rendered_way_lineage(chains)
         trail.removed_category = "standalone-pedestrian-area"
         trail.removed_reason = (
             "Closed standalone highway=pedestrian OSM area; retained as its "
@@ -1175,6 +1256,7 @@ def assemble(nodes: dict, ways: dict, relations: dict,
         rep = ways[group[0]]["tags"]
         t = Trail(display_name(rep), "name-stitch", group, lines, rep,
                   _terminal_nodes(chains, ways))
+        t.rendered_way_lineage = rendered_way_lineage(chains)
         claimed.update(group)
         trails.append(t)
 
@@ -1483,21 +1565,123 @@ def _connectivity_clusters(group: list["Trail"]) -> list[list["Trail"]]:
     return list(buckets.values())
 
 
+def _append_unique_render_lineage(
+        target: list[dict[str, Any]], source: list[dict[str, Any]],
+        novel_way_ids: set[int]) -> None:
+    """Append only novel geometry rows, splitting chains around shared tread."""
+    next_chain_index = 1 + max(
+        (row["chain_index"] for row in target), default=-1)
+    by_chain: dict[int, list[dict[str, Any]]] = {}
+    for row in source:
+        by_chain.setdefault(row["chain_index"], []).append(row)
+    for rows in by_chain.values():
+        rows.sort(key=lambda row: row["chain_position"])
+        run: list[dict[str, Any]] = []
+        for row in rows:
+            if row["way_id"] not in novel_way_ids:
+                if run:
+                    for position, item in enumerate(run):
+                        target.append({
+                            **item,
+                            "occurrence_index": len(target),
+                            "chain_index": next_chain_index,
+                            "chain_position": position,
+                        })
+                    next_chain_index += 1
+                    run = []
+                continue
+            run.append(row)
+        if run:
+            for position, item in enumerate(run):
+                target.append({
+                    **item,
+                    "occurrence_index": len(target),
+                    "chain_index": next_chain_index,
+                    "chain_position": position,
+                })
+            next_chain_index += 1
+
+
+def _deduplicate_exact_linework(
+        lines: list[list[tuple[float, float]]]
+        ) -> list[list[tuple[float, float]]]:
+    """Keep each exact undirected OSM segment once, in first-seen order."""
+    seen: set[tuple[tuple[float, float], tuple[float, float]]] = set()
+    output: list[list[tuple[float, float]]] = []
+    for line in lines:
+        run: list[tuple[float, float]] = []
+        for left, right in zip(line, line[1:]):
+            key = tuple(sorted((left, right)))
+            if left == right or key in seen:
+                if len(run) >= 2:
+                    output.append(run)
+                run = []
+                continue
+            seen.add(key)
+            if run and run[-1] == left:
+                run.append(right)
+            else:
+                if len(run) >= 2:
+                    output.append(run)
+                run = [left, right]
+        if len(run) >= 2:
+            output.append(run)
+    return output
+
+
 def _fuse_cluster(cluster: list["Trail"]) -> "Trail":
-    """Fuse one connected same-name cluster into a single Trail. A route
-    relation is the base so its metadata wins; otherwise the piece with the
-    most member ways. Geometry, member ways, destinations and welds all
-    accumulate onto the base."""
+    """Fuse one connected same-name cluster into a single Trail.
+
+    Relation occurrences concatenate in original candidate/root order, while
+    source geometry identities and source records stay unique. Render lineage
+    is rebased to the base candidate's local chain domain without changing any
+    source-way node array.
+    """
     if len(cluster) == 1:
         return cluster[0]
     base = next((t for t in cluster if t.source == "relation"), None) \
         or max(cluster, key=lambda t: len(t.member_ways))
+    preserve_occurrences = any(t.member_way_occurrences for t in cluster)
+    combined_occurrences = [
+        dict(occurrence) for trail in cluster
+        for occurrence in trail.member_way_occurrences
+    ]
+    occurrence_way_ids = [
+        occurrence["way_id"] for occurrence in combined_occurrences
+    ]
+    geometry_extras = []
+    for trail in cluster:
+        for way_id in trail.geometry_ways:
+            if way_id not in occurrence_way_ids and way_id not in geometry_extras:
+                geometry_extras.append(way_id)
+    combined_member_ways = [*occurrence_way_ids, *geometry_extras]
     for t in cluster:
         if t is base:
             continue
         t._terminal_successor = base
-        base.lines.extend(t.lines)
-        base.member_ways.extend(w for w in t.member_ways if w not in base.member_ways)
+        known_geometry_way_ids = set(base.geometry_ways)
+        novel_geometry_way_ids = {
+            way_id for way_id in t.geometry_ways
+            if way_id not in known_geometry_way_ids
+        }
+        adds_geometry = bool(novel_geometry_way_ids)
+        if adds_geometry:
+            base.lines.extend(t.lines)
+            if preserve_occurrences:
+                _append_unique_render_lineage(
+                    base.rendered_way_lineage,
+                    t.rendered_way_lineage,
+                    novel_geometry_way_ids)
+            else:
+                chain_offset = 1 + max(
+                    (row["chain_index"] for row in base.rendered_way_lineage),
+                    default=-1)
+                for row in t.rendered_way_lineage:
+                    base.rendered_way_lineage.append({
+                        **row,
+                        "occurrence_index": len(base.rendered_way_lineage),
+                        "chain_index": row["chain_index"] + chain_offset,
+                    })
         base.geometry_ways.extend(
             w for w in t.geometry_ways if w not in base.geometry_ways)
         base.relation_ids.extend(
@@ -1534,6 +1718,12 @@ def _fuse_cluster(cluster: list["Trail"]) -> "Trail":
         base.terminal_nodes.extend(t.terminal_nodes)
         if base.source != "relation" and t.source == "relation":
             base.source, base.tags, base.name = "relation", t.tags, t.name
+    if preserve_occurrences:
+        base.lines = _deduplicate_exact_linework(base.lines)
+        base.member_ways = combined_member_ways
+        base.member_way_occurrences = combined_occurrences
+    else:
+        base.member_ways = list(dict.fromkeys(combined_member_ways))
     return base
 
 

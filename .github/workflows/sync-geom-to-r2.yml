@@ -1,103 +1,30 @@
-name: Sync Geom to R2
+name: Sync Geom to R2 from an approved immutable source
 
-# Mirrors `public/areas/geom/*.json`, `public/areas/silhouettes/*.json`,
-# AND the iOS-bundle index (`ios/.../areas-index.json`) to the Cloudflare
-# R2 bucket the app reads from. R2 is S3-compatible, so the AWS CLI
-# (pre-installed on `ubuntu-latest`) talks to it with a custom
-# `--endpoint-url`. geom + silhouettes upload by CONTENT (each file's MD5
-# vs the R2 ETag, via scripts/stage-changed-r2.py) — NOT `--size-only`,
-# which silently skipped same-size content changes like a difficulty-code
-# flip (the Abalone Cove stale-silhouette bug); see the note by the sync step.
+# This is intentionally manual-only. Every run must name one root-approved
+# full commit and its exact tree. The workflow definition must itself run at
+# that commit, checkout is detached, and identity is rechecked immediately
+# before the first provider write. Branch names, tips, schedules, merge events,
+# and mutable-main reconciliation are not accepted release identities.
 #
-# Index publishing note: we deliberately publish the **iOS bundle**
-# version of areas-index.json (the NA-filtered subset produced by
-# `scripts/filter-ios-bundle.py`), NOT the unfiltered master at
-# `public/areas/index.json`. The bundle file is the shipped truth;
-# mirroring it to R2 means the runtime fetch returns the same row set
-# users would get from a fresh install. Re-enabling EU regions later is
-# a one-line edit in `scripts/filter-ios-bundle.py` — both bundle and
-# R2 inherit it.
-#
-# Triggers:
-#
-# 1. `workflow_dispatch` — manual one-shot, used for the initial
-#    bulk upload and any time you want to force a re-sync.
-# 2. `push` on main when geom / silhouettes / iOS-bundle index
-#    changes — keeps the bucket in lock-step with whatever an
-#    upstream workflow commits. Note: bot-authored pushes by
-#    GITHUB_TOKEN don't trigger downstream workflows.
-# 3. `pull_request: closed` on those same paths — fires the moment a
-#    DATA PR is MERGED (guarded on `merged == true`). This closes the
-#    gap where a PR merged via the API/a GitHub App pushes to main
-#    WITHOUT triggering the `push` trigger above, which used to leave
-#    R2 serving stale silhouettes/geom until someone dispatched a
-#    manual sync (the Abalone Cove difficulty-color mismatch). The
-#    checkout pins `ref: main`, so it syncs the post-merge tip.
-# 4. `schedule` — a once-daily reconcile backstop so R2 converges to
-#    the repo regardless of how a commit landed.
-#
-# Required repo secrets (Settings → Secrets and variables →
-# Actions):
-#   - R2_ACCOUNT_ID         (e.g. cef9652b6e340f839f8f52a0fe2063a6)
-#   - R2_ACCESS_KEY_ID      (from Cloudflare R2 → Manage API Tokens)
-#   - R2_SECRET_ACCESS_KEY  (same)
-#
-# Bucket name `trekdex-areas` is hard-coded below. Change there if
-# the bucket is ever renamed. Per-area silhouettes land under a
-# `silhouettes/` prefix in the same bucket so a single API token
-# covers both datasets.
+# The remote inventory is mandatory. A failed, empty, malformed, duplicate, or
+# implausibly incomplete listing aborts before staging and before every upload.
+# scripts/stage-changed-r2.py emits an exact per-object manifest; this workflow
+# verifies each staged SHA-256/MD5 and uploads each named object individually.
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'public/areas/geom/**'
-      - 'public/areas/silhouettes/**'
-      # The pre-ownership parking sidecar (task #44). A parking roll can change
-      # ONLY this file — a state whose areas all already had OSM parking still
-      # contributes federal trailheads to the pool — and without this path such
-      # a roll would commit the sidecar and never rebuild the pool from it.
-      - 'public/areas/parking-pool.json'
-      # The per-lot KEEP/DROP verdicts from the vision adjudication (task #53).
-      # A verdict change must rebuild the pool it gates; so must a change to
-      # the matcher every consumer shares.
-      - 'public/areas/parking-verdicts.json'
-      - 'scripts/_parking_verdicts.py'
-      - 'ios/SouthMountainExplorer/Resources/areas-index.json'
-      # The derived companions are BUILT here, never committed, so a change to
-      # a builder must republish it — otherwise the new logic sits on main
-      # while R2 keeps serving the old output until some unrelated geom push
-      # happens to fire this workflow.
-      - 'scripts/build-parking-pool.py'
-      - 'scripts/build-trail-search-index.py'
-      - 'scripts/build-trail-shapes.py'
-      - '.github/workflows/sync-geom-to-r2.yml'
-  pull_request:
-    types: [closed]
-    paths:
-      - 'public/areas/geom/**'
-      - 'public/areas/silhouettes/**'
-      # The pre-ownership parking sidecar (task #44). A parking roll can change
-      # ONLY this file — a state whose areas all already had OSM parking still
-      # contributes federal trailheads to the pool — and without this path such
-      # a roll would commit the sidecar and never rebuild the pool from it.
-      - 'public/areas/parking-pool.json'
-      # The per-lot KEEP/DROP verdicts from the vision adjudication (task #53).
-      # A verdict change must rebuild the pool it gates; so must a change to
-      # the matcher every consumer shares.
-      - 'public/areas/parking-verdicts.json'
-      - 'scripts/_parking_verdicts.py'
-      - 'ios/SouthMountainExplorer/Resources/areas-index.json'
-      - 'scripts/build-parking-pool.py'
-      - 'scripts/build-trail-search-index.py'
-      - 'scripts/build-trail-shapes.py'
-      - '.github/workflows/sync-geom-to-r2.yml'
-  schedule:
-    # Daily reconcile backstop (07:23 UTC) — converges R2 to the repo even
-    # if a merge landed without firing the push/PR triggers. Off-minute on
-    # purpose (avoids the top-of-hour scheduler crush).
-    - cron: '23 7 * * *'
+    inputs:
+      source_sha:
+        description: "Root-approved full 40-character source commit SHA"
+        required: true
+        type: string
+      source_tree:
+        description: "Exact full 40-character Git tree for source_sha"
+        required: true
+        type: string
+
+permissions:
+  contents: read
 
 concurrency:
   group: sync-geom-to-r2
@@ -105,148 +32,157 @@ concurrency:
 
 jobs:
   sync:
-    # Run for push / dispatch / schedule; for pull_request, ONLY when the PR
-    # actually merged (a plain "closed without merge" must not sync).
-    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # Always sync main's TIP, not the SHA that triggered this run. A
-      # workflow_dispatch fired right after an upstream push (trailforge-
-      # publish's "Trigger R2 sync" step) resolves to the PRE-push commit, so
-      # the default checkout would sync stale data and silently skip the new
-      # geom. Pinning ref: main fetches the just-pushed data.
-      - uses: actions/checkout@v4
+      - name: Checkout the approved commit, detached
+        uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
 
-      - name: Sync area data to R2
+      - name: Verify immutable source identity
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_TREE: ${{ inputs.source_tree }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::source_sha must be one full lowercase commit SHA"
+            exit 1
+          fi
+          if [[ ! "$SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::source_tree must be one full lowercase tree SHA"
+            exit 1
+          fi
+          if [ "$GITHUB_SHA" != "$SOURCE_SHA" ]; then
+            echo "::error::workflow definition ref is not the approved source_sha"
+            exit 1
+          fi
+          git cat-file -e "${SOURCE_SHA}^{commit}"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git rev-parse 'HEAD^{tree}')" = "$SOURCE_TREE"
+          if git symbolic-ref -q HEAD; then
+            echo "::error::approved source checkout is attached to a mutable ref"
+            exit 1
+          fi
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          echo "verified detached source commit=$SOURCE_SHA tree=$SOURCE_TREE"
+
+      - name: Build exact upload set and synchronize R2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_TREE: ${{ inputs.source_tree }}
         run: |
-          set -e
+          set -euo pipefail
           if [ -z "$R2_ACCOUNT_ID" ] || [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
             echo "Missing one of R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY repo secrets."
             exit 1
           fi
           ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          WORK_ROOT="$(mktemp -d "${RUNNER_TEMP:-/tmp}/trekdex-r2-sync.XXXXXX")"
+          INVENTORY="$WORK_ROOT/r2-inventory.json"
+          STAGE_ROOT="$WORK_ROOT/stage"
 
-          # Upload geom + silhouettes by CONTENT, not size or mtime. We had
-          # `aws s3 sync --size-only`, which compares only byte size — so a
-          # difficulty recompute that flips a code in place ("e" -> "m", same
-          # size) was judged unchanged and never re-uploaded, stranding stale
-          # silhouettes on R2 (the Abalone Cove all-green bug; #377 flipped
-          # thousands of short-steep trails). Plain `aws s3 sync` (size+mtime)
-          # fixes correctness but a fresh checkout stamps every mtime to "now",
-          # so it re-uploads all ~18k files every run (slow, risks timeout).
-          #
-          # Instead: diff each local file's MD5 against the R2 object's ETag
-          # (a single-part PUT's ETag IS the body MD5) and upload only the ones
-          # that differ. Correct (a same-size flip changes the MD5) AND
-          # incremental (steady-state uploads ~nothing).
-          echo "Listing R2 ETags..."
-          aws s3api list-objects-v2 --bucket trekdex-areas \
+          echo "Fetching and validating every R2 inventory page..."
+          python3 scripts/stage-changed-r2.py fetch-inventory \
+            --bucket trekdex-areas \
             --endpoint-url "$ENDPOINT" \
-            --query 'Contents[].[Key,ETag]' --output text > /tmp/r2_etags.tsv || true
+            --output "$INVENTORY"
+          test -s "$INVENTORY"
 
-          echo "Staging content-changed files (MD5 vs ETag)..."
-          python3 scripts/stage-changed-r2.py
+          echo "Requiring complete local-key coverage and building an exact upload manifest..."
+          python3 scripts/stage-changed-r2.py stage \
+            --inventory "$INVENTORY" \
+            --bucket trekdex-areas \
+            --stage-root "$STAGE_ROOT"
+          UPLOAD_MANIFEST="$STAGE_ROOT/upload-manifest.tsv"
+          test -f "$UPLOAD_MANIFEST"
 
-          if [ -d /tmp/up_geom ]; then
-            echo "Uploading changed geom..."
-            aws s3 cp /tmp/up_geom/ s3://trekdex-areas/ --recursive \
+          # Build every global object before the first write. A build failure
+          # therefore cannot leave a run that already uploaded an inferred set.
+          TRAIL_SEARCH="$WORK_ROOT/trail-search.json"
+          PARKING="$WORK_ROOT/parking.json"
+          TRAIL_SHAPES="$WORK_ROOT/trail-shapes.json"
+          python3 scripts/build-trail-search-index.py --out "$TRAIL_SEARCH"
+          python3 scripts/build-parking-pool.py --out "$PARKING" \
+            --extra public/areas/parking-pool.json \
+            --verdicts public/areas/parking-verdicts.json \
+            --add-keeps
+          python3 scripts/build-trail-shapes.py --out "$TRAIL_SHAPES"
+          test -s ios/SouthMountainExplorer/Resources/areas-index.json
+          test -s "$TRAIL_SEARCH"
+          test -s "$PARKING"
+          test -s "$TRAIL_SHAPES"
+
+          # Recheck the approved immutable source at the last local boundary
+          # before any provider mutation.
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git rev-parse 'HEAD^{tree}')" = "$SOURCE_TREE"
+          if git symbolic-ref -q HEAD; then
+            echo "::error::source became attached to a mutable ref"
+            exit 1
+          fi
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+          upload_count=0
+          while IFS=$'\t' read -r dataset name expected_md5 expected_sha256 extra; do
+            [ -z "${extra:-}" ] || { echo "::error::malformed upload manifest row"; exit 1; }
+            [ -n "$dataset" ] || continue
+            case "$dataset" in
+              geom) key="$name" ;;
+              silhouettes) key="silhouettes/$name" ;;
+              *) echo "::error::unknown upload dataset: $dataset"; exit 1 ;;
+            esac
+            case "$name" in
+              */*|*$'\n'*|*$'\r'*|*$'\t'*)
+                echo "::error::unsafe upload basename"
+                exit 1
+                ;;
+            esac
+            file="$STAGE_ROOT/$dataset/$name"
+            test -f "$file"
+            test ! -L "$file"
+            test "$(md5sum "$file" | awk '{print $1}')" = "$expected_md5"
+            test "$(sha256sum "$file" | awk '{print $1}')" = "$expected_sha256"
+            aws s3 cp "$file" "s3://trekdex-areas/$key" \
               --endpoint-url "$ENDPOINT" \
               --content-type "application/json" \
               --cache-control "public, max-age=86400" \
               --no-progress
-          else
-            echo "No geom changes to upload."
-          fi
+            upload_count=$((upload_count + 1))
+          done < "$UPLOAD_MANIFEST"
+          manifest_count=$(awk -F '\t' 'NF { count += 1 } END { print count + 0 }' "$UPLOAD_MANIFEST")
+          test "$upload_count" -eq "$manifest_count"
 
-          if [ -d /tmp/up_sil ]; then
-            echo "Uploading changed silhouettes..."
-            aws s3 cp /tmp/up_sil/ s3://trekdex-areas/silhouettes/ --recursive \
-              --endpoint-url "$ENDPOINT" \
-              --content-type "application/json" \
-              --cache-control "public, max-age=86400" \
-              --no-progress
-          else
-            echo "No silhouette changes to upload."
-          fi
-
-          # Index.json gets a short cache TTL (300s vs 86400s on
-          # per-area data) so new regions reach existing TF users
-          # on their next foreground rather than in 24h. The
-          # client also uses ETag / If-None-Match for cheap 304s,
-          # which makes the TTL effectively irrelevant in steady
-          # state — but it guards against very stale edge cache
-          # when ETag checks hit a Cloudflare PoP that lagged the
-          # origin write.
-          #
-          # Source is the iOS bundle, NOT public/areas/index.json,
-          # per the filter rationale at the top of this file.
-          echo "Syncing index..."
           aws s3 cp ios/SouthMountainExplorer/Resources/areas-index.json \
             s3://trekdex-areas/index.json \
             --endpoint-url "$ENDPOINT" \
             --content-type "application/json" \
             --cache-control "public, max-age=300" \
             --no-progress
-
-          # Global trail-name search index — lets the app's Browse trail search
-          # match EVERY trail name, not just areas whose geom is already cached
-          # (see scripts/build-trail-search-index.py). Generated fresh from the
-          # geom the bundle ships, so it can't drift. R2/CloudFlare compresses
-          # on the wire (6 MB JSON -> ~1 MB gzipped). NOT committed — it's a
-          # pure R2 artifact rebuilt here every sync.
-          echo "Building + syncing trail-search index..."
-          python3 scripts/build-trail-search-index.py --out /tmp/trail-search.json
-          aws s3 cp /tmp/trail-search.json \
+          aws s3 cp "$TRAIL_SEARCH" \
             s3://trekdex-areas/trail-search.json \
             --endpoint-url "$ENDPOINT" \
             --content-type "application/json" \
             --cache-control "public, max-age=300" \
             --no-progress
-
-          # Global parking pool — every qualifying lot ONCE, owned by nobody, so
-          # a lot near a trail reaches the hiker whether or not the pipeline
-          # decided that area "owns" it (see scripts/build-parking-pool.py).
-          # ~0.33 MB gzipped, a quarter of the trail-search index. Geom `parking`
-          # keeps shipping unchanged, so old builds are unaffected.
-          # --extra folds in the PRE-OWNERSHIP sidecar the parking roll commits
-          # (task #44): road-gated federal trailheads that ownership assignment
-          # would have thrown away because an overlapping unit already had
-          # parking. A missing sidecar is not an error — the pool is still valid
-          # without it, it is just the narrower shipped-geom set.
-          echo "Building + syncing parking pool..."
-          # --verdicts keeps every lot the vision adjudication DROPped out of
-          # the pool (task #53). --add-keeps ships the judged-KEEP lots the pool
-          # lacks (certain + strong; leaning ones are listed as held) — turned on
-          # 2026-09-13 after the first list of 66 was read.
-          python3 scripts/build-parking-pool.py --out /tmp/parking.json \
-            --extra public/areas/parking-pool.json \
-            --verdicts public/areas/parking-verdicts.json \
-            --add-keeps
-          aws s3 cp /tmp/parking.json \
+          aws s3 cp "$PARKING" \
             s3://trekdex-areas/parking.json \
             --endpoint-url "$ENDPOINT" \
             --content-type "application/json" \
             --cache-control "public, max-age=300" \
             --no-progress
-
-          # Per-trail thumbnail shapes — a bigger (~3 MB) companion the app
-          # loads in the BACKGROUND (off the search path) to draw trail linework
-          # for un-visited areas. Regenerated fresh from the geom every sync.
-          echo "Building + syncing trail-shapes..."
-          python3 scripts/build-trail-shapes.py --out /tmp/trail-shapes.json
-          aws s3 cp /tmp/trail-shapes.json \
+          aws s3 cp "$TRAIL_SHAPES" \
             s3://trekdex-areas/trail-shapes.json \
             --endpoint-url "$ENDPOINT" \
             --content-type "application/json" \
             --cache-control "public, max-age=300" \
             --no-progress
 
-          echo "Sync complete."
+          echo "Sync complete from approved commit=$SOURCE_SHA tree=$SOURCE_TREE; exact changed-object uploads=$upload_count."

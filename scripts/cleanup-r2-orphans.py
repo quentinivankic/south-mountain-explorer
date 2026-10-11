@@ -3,42 +3,27 @@
 geom / silhouette files whose area slug is no longer in the shipped
 `public/areas/index.json`.
 
-WHY THIS EXISTS. `sync-geom-to-r2.yml` uses `aws s3 sync` WITHOUT
-`--delete` (a blanket delete would nuke index.json / trail-search.json /
-trail-shapes.json / the silhouettes prefix, which live alongside the geom
-at the bucket root). So when an area is dropped from the index — a stale
-seed row pruned, a red-flag area removed, a curation/degenerate filter
-tightened — its geom/silhouette lingers on R2 forever. The app never
-requests those keys (it fetches by index id), but they're dead storage.
-This script diffs the bucket against the CURRENT index and removes only
-the objects no id references.
-
-HISTORY. v1 deleted "any object not in index" and was scoped down to a
-Europe-only allowlist after the EU-data removal, out of caution. This
-version restores the general behavior on purpose (task #36) — but with
-hard safety belts (below), because deleting against a bad/empty index
-would wipe the bucket.
+WHY THIS EXISTS. `sync-geom-to-r2.yml` publishes without blanket deletion
+because global objects and the silhouettes prefix share the bucket root with
+per-area geom. This cleaner therefore classifies only exact per-area JSON keys.
 
 SAFETY BELTS (all abort before any delete):
   * the index must load and carry a sane number of ids (>= MIN_INDEX);
   * per-area objects that ARE in the index are never touched;
-  * the protected root files (index.json, trail-search.json,
-    trail-shapes.json) and any non-`silhouettes/` prefix are never touched;
-  * if orphans exceed MAX_FRAC of the area-objects, abort unless --force
-    (guards against an index that silently loaded short).
+  * every enumerated global root object, including `parking.json`, is protected;
+  * unknown prefixes and non-JSON objects are never classified as areas;
+  * the protected-key contract self-checks before bucket access;
+  * if orphans exceed MAX_FRAC of area objects, abort unless --force.
 
 Bucket layout (see .github/workflows/sync-geom-to-r2.yml):
   s3://trekdex-areas/<slug>.json              geom, at root
   s3://trekdex-areas/silhouettes/<slug>.json  silhouettes
-  s3://trekdex-areas/index.json               the index (NEVER deleted)
-  s3://trekdex-areas/trail-search.json        (NEVER deleted)
-  s3://trekdex-areas/trail-shapes.json        (NEVER deleted)
+  s3://trekdex-areas/index.json               global (NEVER deleted)
+  s3://trekdex-areas/trail-search.json        global (NEVER deleted)
+  s3://trekdex-areas/trail-shapes.json        global (NEVER deleted)
+  s3://trekdex-areas/parking.json             global (NEVER deleted)
 
-Dry-run by default. Pass --apply to actually delete. Run from the repo
-root (needs public/areas/index.json); the workflow checks the repo out.
-
-    python3 scripts/cleanup-r2-orphans.py            # dry run
-    python3 scripts/cleanup-r2-orphans.py --apply    # delete
+Dry-run by default. Pass --apply to actually delete. Run from the repo root.
 """
 from __future__ import annotations
 
@@ -47,14 +32,20 @@ import json
 import os
 import subprocess
 import sys
+import unicodedata
 from collections import Counter
 from pathlib import Path
 
 BUCKET = "trekdex-areas"
 DEFAULT_INDEX = Path(__file__).resolve().parent.parent / "public" / "areas" / "index.json"
 
-# Root objects that are NOT per-area geom and must never be deleted.
-PROTECTED_KEYS = {"index.json", "trail-search.json", "trail-shapes.json"}
+# Versioned-by-source bucket-root contract. These are global/control objects,
+# never per-area geom. Keep this immutable at runtime so classification cannot
+# accidentally narrow it after the preflight check.
+REQUIRED_PROTECTED_KEYS = frozenset(
+    {"index.json", "trail-search.json", "trail-shapes.json", "parking.json"}
+)
+PROTECTED_KEYS = REQUIRED_PROTECTED_KEYS
 
 # Safety thresholds.
 MIN_INDEX = 1000     # a healthy index has ~30k rows; refuse to run if it loaded short
@@ -78,28 +69,74 @@ def region_code(slug: str) -> str:
     return slug.rsplit("-", 1)[-1].upper()
 
 
+# Keys that must remain unclassifiable even if the classifier is later edited.
+# This sentinel set is checked before index, endpoint, inventory, or deletion.
+REQUIRED_REJECTED_KEYS = frozenset({
+    "",
+    "archive/control.json",
+    "silhouettes/",
+    "silhouettes/.json",
+    "silhouettes//control.json",
+    "silhouettes/archive/control.json",
+    "silhouettes/control/.json",
+    "silhouettes/../control.json",
+    "silhouettes/Control.json",
+    "silhouettes/control_name.json",
+    "silhouettes/control.json\n",
+    *(f"silhouettes/{key}" for key in REQUIRED_PROTECTED_KEYS),
+})
+
+
+def _canonical_area_filename(filename: str) -> str | None:
+    """Return the canonical flat area slug represented by ``filename``."""
+    if not isinstance(filename, str) or filename in PROTECTED_KEYS:
+        return None
+    if any(unicodedata.category(char).startswith("C") for char in filename):
+        return None
+    if not filename.endswith(".json"):
+        return None
+    stem = filename[:-len(".json")]
+    if (not stem or stem != unicodedata.normalize("NFC", stem) or
+            stem != stem.casefold() or stem.startswith("-") or stem.endswith("-") or
+            not any(char.isalnum() for char in stem) or
+            any(not (char.isalnum() or char == "-") for char in stem)):
+        return None
+    return stem
+
+
 def slug_for_key(key: str) -> str | None:
-    """The area slug a key belongs to, or None if it isn't a per-area
-    object we're allowed to consider for deletion (protected root files,
-    unknown prefixes)."""
-    if not key.endswith(".json") or key in PROTECTED_KEYS:
+    """Return a canonical area slug, or None for every other bucket key."""
+    if not isinstance(key, str) or key in PROTECTED_KEYS:
         return None
     if key.startswith("silhouettes/"):
-        return key[len("silhouettes/"):-len(".json")]
-    if "/" in key:
-        return None   # unknown prefix — leave it alone
-    return key[:-len(".json")]
+        filename = key[len("silhouettes/"):]
+    elif "/" in key:
+        return None  # unknown namespace
+    else:
+        filename = key
+    # The filename grammar rejects nested separators after a recognized prefix.
+    return _canonical_area_filename(filename)
+
+
+def validate_protected_key_contract() -> None:
+    """Fail closed before access if protected or hostile keys can classify."""
+    if PROTECTED_KEYS != REQUIRED_PROTECTED_KEYS:
+        raise RuntimeError("protected root-key contract drifted")
+    candidates = set(REQUIRED_PROTECTED_KEYS) | set(REQUIRED_REJECTED_KEYS)
+    misclassified = sorted(repr(key) for key in candidates if slug_for_key(key) is not None)
+    if misclassified:
+        raise RuntimeError(f"non-area keys classified as areas: {misclassified}")
 
 
 def load_index_ids(path: Path) -> set[str]:
     data = json.loads(path.read_text())
     rows = data["areas"] if isinstance(data, dict) and "areas" in data else data
     ids: set[str] = set()
-    for r in rows:
-        if isinstance(r, list) and r:
-            ids.add(r[0])
-        elif isinstance(r, dict) and r.get("id"):
-            ids.add(r["id"])
+    for row in rows:
+        if isinstance(row, list) and row:
+            ids.add(row[0])
+        elif isinstance(row, dict) and row.get("id"):
+            ids.add(row["id"])
     return ids
 
 
@@ -122,9 +159,9 @@ def list_keys(ep: str) -> list[str]:
 
 
 def delete_keys(ep: str, keys: list[str]) -> None:
-    for i in range(0, len(keys), 1000):
-        batch = keys[i:i + 1000]
-        payload = json.dumps({"Objects": [{"Key": k} for k in batch], "Quiet": True})
+    for offset in range(0, len(keys), 1000):
+        batch = keys[offset:offset + 1000]
+        payload = json.dumps({"Objects": [{"Key": key} for key in batch], "Quiet": True})
         subprocess.run(
             ["aws", "s3api", "delete-objects",
              "--bucket", BUCKET, "--endpoint-url", ep, "--delete", payload],
@@ -134,12 +171,15 @@ def delete_keys(ep: str, keys: list[str]) -> None:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--apply", action="store_true", help="Actually delete. Without this, dry-run only.")
-    ap.add_argument("--index", default=str(DEFAULT_INDEX), help="Path to the shipped index.json.")
-    ap.add_argument("--force", action="store_true",
-                    help="Bypass the MAX_FRAC safety abort (use only after eyeballing a dry run).")
-    args = ap.parse_args()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--apply", action="store_true", help="Actually delete. Without this, dry-run only.")
+    parser.add_argument("--index", default=str(DEFAULT_INDEX), help="Path to the shipped index.json.")
+    parser.add_argument("--force", action="store_true",
+                        help="Bypass the MAX_FRAC safety abort (use only after reviewing a dry run).")
+    args = parser.parse_args()
+
+    # This precedes endpoint construction, inventory, and every delete path.
+    validate_protected_key_contract()
 
     index_ids = load_index_ids(Path(args.index))
     print(f"Index carries {len(index_ids)} area ids ({args.index}).")
@@ -151,33 +191,33 @@ def main() -> int:
     keys = list_keys(ep)
     print(f"Bucket has {len(keys)} objects.")
 
-    area_objs, orphans = 0, []
-    for k in keys:
-        slug = slug_for_key(k)
+    area_objects, orphans = 0, []
+    for key in keys:
+        slug = slug_for_key(key)
         if slug is None:
-            continue          # protected / non-area object
-        area_objs += 1
+            continue
+        area_objects += 1
         if slug not in index_ids:
-            orphans.append(k)
+            orphans.append(key)
 
-    print(f"Per-area objects: {area_objs}   |   orphaned (slug not in index): {len(orphans)}")
+    print(f"Per-area objects: {area_objects}   |   orphaned (slug not in index): {len(orphans)}")
     if not orphans:
         print("Nothing to delete.")
         return 0
 
-    frac = len(orphans) / max(1, area_objs)
-    by_region = Counter(region_code(slug_for_key(k)) for k in orphans)
-    print(f"Orphan fraction: {frac:.1%}   top regions: "
-          f"{', '.join(f'{r}:{n}' for r, n in by_region.most_common(12))}")
-    for k in orphans[:20]:
-        print(f"  - {k}")
+    fraction = len(orphans) / max(1, area_objects)
+    by_region = Counter(region_code(slug_for_key(key)) for key in orphans)
+    print(f"Orphan fraction: {fraction:.1%}   top regions: "
+          f"{', '.join(f'{region}:{count}' for region, count in by_region.most_common(12))}")
+    for key in orphans[:20]:
+        print(f"  - {key}")
     if len(orphans) > 20:
         print(f"  … and {len(orphans) - 20} more")
 
-    if frac > MAX_FRAC and not args.force:
-        sys.exit(f"\nABORT: {frac:.1%} of area-objects look orphaned (> {MAX_FRAC:.0%}). "
-                 f"That usually means the index loaded wrong. Eyeball the list above; "
-                 f"re-run with --force if this is genuinely intended.")
+    if fraction > MAX_FRAC and not args.force:
+        sys.exit(f"\nABORT: {fraction:.1%} of area-objects look orphaned (> {MAX_FRAC:.0%}). "
+                 f"That usually means the index loaded wrong. Review the list above; "
+                 f"re-run with --force only if this is genuinely intended.")
 
     if not args.apply:
         print("\nDRY RUN — re-run with --apply to delete the above.")

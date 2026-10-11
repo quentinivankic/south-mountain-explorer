@@ -1,70 +1,46 @@
-name: Trailforge — publish the ENTIRE US (parallel fan-out)
+name: Trailforge — build the ENTIRE US candidate (parallel fan-out)
 
-# One dispatch → ~13 PARALLEL region jobs, each publishing its states' clean
-# geom into an ARTIFACT (no commit) → one FAN-IN job that merges the geom,
-# refreshes the master index, regenerates the app bundle, and does ONE commit +
-# one R2 sync. This sidesteps the two problems with a single giant job:
-#   * the 350-min per-job time limit (each region is small, runs in parallel);
-#   * the commit races that block naive parallelism (only the fan-in commits).
+# This workflow builds a review-only candidate. It never commits, pushes, or
+# dispatches synchronization. Every run is bound to one root-approved full
+# source commit/tree; the workflow definition and both checkout boundaries
+# must match that immutable identity and remain detached.
 #
-# Default is a DRY RUN: each region prints its per-state summary in its log,
-# uploads nothing, and the fan-in is skipped — so you can validate the whole
-# country in ~one parallel pass before flipping dry_run=false for the real
-# publish.
+# All 51 state lanes must succeed and each must provide its exact named geom
+# artifact. A failed, skipped, cancelled, missing, duplicate, malformed, or
+# unexpected lane blocks fan-in. The successful fan-in emits only a patch and
+# cryptographic review receipt as a short-lived workflow artifact.
 
 on:
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: "Preview only — per-region summaries, write/commit nothing"
-        type: boolean
-        default: true
+      source_sha:
+        description: "Root-approved full 40-character source commit SHA"
+        required: true
+        type: string
+      source_tree:
+        description: "Exact full 40-character Git tree for source_sha"
+        required: true
+        type: string
       elevation:
-        description: "Bake DEM elevation gain + gain-aware difficulty into the geom while publishing (durable across republishes). Uncheck only to skip sampling."
+        description: "Bake DEM elevation gain and gain-aware difficulty into candidate geom"
         type: boolean
         default: true
       no_routes:
-        description: "Drop thru-routes (Colorado Trail, PCT) from the checklist"
+        description: "Drop thru-routes from the candidate checklist"
         type: boolean
         default: false
 
 concurrency:
-  # Shares the publish group so the fan-in commit never races a single-state or
-  # batch publish. Matrix jobs within THIS run still fan out in parallel.
   group: trailforge-publish
   cancel-in-progress: false
 
 permissions:
-  contents: write
-  actions: write
+  contents: read
 
 jobs:
   publish:
     strategy:
       fail-fast: false
-      # ONE JOB PER STATE, not per region bucket.
-      #
-      # The buckets used to hide a 4x imbalance, because wall clock was set by the
-      # slowest BUCKET, not the slowest state. Measured 2026-07-19 on run
-      # 29690745615: plains (6 states) 17 min, newengland (6) 40, greatlakes (6)
-      # 46 — but northwest (6: washington,oregon,idaho,montana,wyoming,nevada)
-      # ran 2h42m, since six large trail-dense western states were bucketed
-      # together and processed SERIALLY inside one job. The whole ~3h run was
-      # waiting on one bucket while twelve runners sat idle.
-      #
-      # The loop body was already per-state and fully independent — each state
-      # downloads its own extract, prefilters, assembles and publishes into
-      # out/geom with no cross-state state — so fanning out per state is a pure
-      # win and deletes the bucket-balancing problem by construction. Wall clock
-      # is now bounded by the slowest SINGLE state (california, ~46 min measured)
-      # instead of the slowest bucket.
-      #
-      # max-parallel caps how many run at once. The cap is deliberate: the
-      # boundary fetch talks to Overpass, and 13 concurrent regions already
-      # induced rate-limiting severe enough to stretch one region to 83 min
-      # (fixed by bounding each fetch in #441). 51 unbounded jobs would be worse,
-      # so hold concurrency near today's level while still removing the serial
-      # tail. Raise only with evidence from a dry run.
       max-parallel: 16
       matrix:
         state:
@@ -120,150 +96,524 @@ jobs:
           - wisconsin
           - wyoming
     runs-on: ubuntu-latest
-    # Was 350 for a whole BUCKET of states run serially. One state needs a
-    # fraction of that; the slowest measured single state (california) was 46 min.
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout the approved commit, detached
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
 
-      - name: Install osmium + pyosmium + shapely + Pillow
+      - name: Verify immutable source identity
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_TREE: ${{ inputs.source_tree }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || [[ ! "$SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::source_sha and source_tree must be full lowercase Git identities"
+            exit 1
+          fi
+          if [ "$GITHUB_SHA" != "$SOURCE_SHA" ]; then
+            echo "::error::workflow definition ref is not the approved source_sha"
+            exit 1
+          fi
+          git cat-file -e "${SOURCE_SHA}^{commit}"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git rev-parse 'HEAD^{tree}')" = "$SOURCE_TREE"
+          if git symbolic-ref -q HEAD; then
+            echo "::error::approved source checkout is attached to a mutable ref"
+            exit 1
+          fi
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Install osmium, pyosmium, shapely, and Pillow
         run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely python3-pil
 
-      - name: Publish state "${{ matrix.state }}" into an artifact dir
+      - name: Build exact state candidate "${{ matrix.state }}"
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_TREE: ${{ inputs.source_tree }}
         run: |
-          set -uo pipefail
-          OUT="$GITHUB_WORKSPACE/out/geom"; mkdir -p "$OUT"
+          set -euo pipefail
+          RUN_OUT="$GITHUB_WORKSPACE/out"
+          OUT="$RUN_OUT/geom"
+          EXPECTED="$RUN_OUT/expected-state-areas.json"
+          PUBLISH_LOG="$RUN_OUT/publisher.log"
+          if [ -e "$RUN_OUT" ]; then
+            echo "::error::state output root already exists"
+            exit 1
+          fi
+          mkdir -p "$OUT"
           cd trailforge
           mkdir -p data/raw data/aoi
 
-          DRY=""; [ "${{ inputs.dry_run }}" = "true" ]  && DRY="--dry-run"
+          slug="${{ matrix.state }}"
+          NAME=$(python3 tools/state_slug.py name "$slug")
+          python3 - ../public/areas/index.json "$NAME" "$EXPECTED" <<'PY'
+          import hashlib
+          import json
+          import sys
+          from pathlib import Path
+
+          index_path, expected_state, output_path = sys.argv[1:]
+
+          def reject_duplicates(pairs):
+              document = {}
+              for key, value in pairs:
+                  if key in document:
+                      raise ValueError(f"duplicate JSON key {key!r}")
+                  document[key] = value
+              return document
+
+          index = json.loads(Path(index_path).read_text(), object_pairs_hook=reject_duplicates)
+          if not isinstance(index, list):
+              raise SystemExit("pinned index is not an array")
+          area_to_state = {}
+          for number, row in enumerate(index, start=1):
+              if (not isinstance(row, list) or len(row) < 3 or
+                      not isinstance(row[0], str) or not row[0] or
+                      not isinstance(row[2], str) or not row[2]):
+                  raise SystemExit(f"pinned index row {number} lacks exact id/state authority")
+              if row[0] in area_to_state:
+                  raise SystemExit(f"pinned index repeats area id: {row[0]}")
+              area_to_state[row[0]] = row[2]
+          area_ids = sorted(
+              area_id for area_id, state in area_to_state.items() if state == expected_state
+          )
+          if not area_ids:
+              raise SystemExit(f"pinned index has no areas for state {expected_state!r}")
+          encoded = ("\n".join(area_ids) + "\n").encode()
+          document = {
+              "schema": "trekdex-pinned-state-area-set-v1",
+              "state": expected_state,
+              "area_count": len(area_ids),
+              "area_ids_sha256": hashlib.sha256(encoded).hexdigest(),
+              "area_ids": area_ids,
+          }
+          Path(output_path).write_text(
+              json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+          )
+          PY
+
+          raw="data/raw/$slug.osm.pbf"
+          if ! curl -fL --retry 5 --retry-delay 5 --connect-timeout 20 \
+               --speed-limit 2000 --speed-time 30 -o "$raw" \
+               "https://download.geofabrik.de/north-america/us/$slug-latest.osm.pbf"; then
+            echo "::error::no extract for $slug"
+            exit 1
+          fi
+          if ! bash extract/prefilter.sh "$raw" data/hiking.osm.pbf; then
+            echo "::error::prefilter failed for $slug"
+            exit 1
+          fi
+          rm -f "$raw"
+          if ! python3 assemble/assemble.py --in data/hiking.osm.pbf \
+               --out data/aoi/state.trails.geojson --min-length-mi 0.1 --per-area-merge; then
+            echo "::error::assemble failed for $slug"
+            exit 1
+          fi
+
           NOROUTES=""; [ "${{ inputs.no_routes }}" = "true" ] && NOROUTES="--no-routes"
           ELEV=""; [ "${{ inputs.elevation }}" = "true" ] && ELEV="--elevation"
+          set +e
+          python3 serve/publish_areas.py \
+            --trails data/aoi/state.trails.geojson --hiking data/hiking.osm.pbf \
+            --state "$NAME" --index ../public/areas/index.json \
+            --out-dir "$OUT" $NOROUTES $ELEV 2>&1 | tee "$PUBLISH_LOG"
+          PUBLISH_STATUS=${PIPESTATUS[0]}
+          set -e
+          if [ "$PUBLISH_STATUS" -ne 0 ]; then
+            echo "::error::publisher exited nonzero for $slug"
+            exit 1
+          fi
+          if grep -Fq "FAILED validation" "$PUBLISH_LOG"; then
+            echo "::error::publisher reported per-area validation failure for $slug"
+            exit 1
+          fi
 
-          ok=""; failed=""; skipped=""
-          # One state per job now; the loop stays so the per-state error
-          # handling and SUMMARY block below are untouched.
-          SLUGS=("${{ matrix.state }}")
-          for slug in "${SLUGS[@]}"; do
-            slug=$(echo "$slug" | xargs)
-            [ -z "$slug" ] && continue
-            echo "==================== $slug ===================="
-            NAME=$(python3 tools/state_slug.py name "$slug")
-            raw="data/raw/$slug.osm.pbf"
+          python3 - "$OUT" "$EXPECTED" "$slug" "$NAME" "$SOURCE_SHA" "$SOURCE_TREE" <<'PY'
+          import hashlib
+          import json
+          import re
+          import sys
+          from pathlib import Path
 
-            if ! curl -fL --retry 5 --retry-delay 5 --connect-timeout 20 \
-                 --speed-limit 2000 --speed-time 30 -o "$raw" \
-                 "https://download.geofabrik.de/north-america/us/$slug-latest.osm.pbf"; then
-              echo "!! no extract for $slug"; skipped="$skipped $slug"; rm -f "$raw"; continue
-            fi
-            if ! bash extract/prefilter.sh "$raw" data/hiking.osm.pbf; then
-              echo "!! prefilter failed for $slug"; failed="$failed $slug"; rm -f "$raw"; continue
-            fi
-            rm -f "$raw"                                   # free disk before assemble
-            if ! python3 assemble/assemble.py --in data/hiking.osm.pbf \
-                 --out data/aoi/state.trails.geojson --min-length-mi 0.1 --per-area-merge; then
-              echo "!! assemble failed for $slug"; failed="$failed $slug"; continue
-            fi
-            # Publish reads the SEEDED master index (../public/areas/index.json)
-            # to find this state's area rows, and writes clean geom into $OUT.
-            # Its own index writeback is local to this runner and discarded — the
-            # fan-in re-derives counts from the geom it uploads.
-            if ! python3 serve/publish_areas.py \
-                 --trails data/aoi/state.trails.geojson --hiking data/hiking.osm.pbf \
-                 --state "$NAME" --index ../public/areas/index.json \
-                 --out-dir "$OUT" $DRY $NOROUTES $ELEV; then
-              echo "!! publish failed for $slug"; failed="$failed $slug"; continue
-            fi
-            ok="$ok $slug"
-          done
+          output, expected_path, lane, display_state, source_sha, source_tree = sys.argv[1:]
 
-          echo "==================== SUMMARY (${{ matrix.state }}) ===================="
-          echo "published:${ok:- none}"
-          echo "skipped:  ${skipped:- none}"
-          echo "failed:   ${failed:- none}"
+          def strict_json(path):
+              def reject_duplicates(pairs):
+                  document = {}
+                  for key, value in pairs:
+                      if key in document:
+                          raise ValueError(f"duplicate JSON key {key!r} in {path}")
+                      document[key] = value
+                  return document
+              return json.loads(Path(path).read_text(), object_pairs_hook=reject_duplicates)
 
-      - name: Upload state geom artifact
-        if: ${{ !inputs.dry_run }}
+          expected = strict_json(expected_path)
+          if set(expected) != {
+              "schema", "state", "area_count", "area_ids_sha256", "area_ids"
+          } or expected["schema"] != "trekdex-pinned-state-area-set-v1":
+              raise SystemExit("expected state-area contract schema is not exact")
+          if expected["state"] != display_state:
+              raise SystemExit("expected state-area contract names the wrong state")
+          area_ids = expected["area_ids"]
+          if (not isinstance(area_ids, list) or not area_ids or
+                  area_ids != sorted(area_ids) or len(area_ids) != len(set(area_ids)) or
+                  any(not isinstance(area_id, str) or not area_id for area_id in area_ids)):
+              raise SystemExit("expected state-area set is not canonical")
+          expected_digest = hashlib.sha256(("\n".join(area_ids) + "\n").encode()).hexdigest()
+          if (expected["area_count"] != len(area_ids) or
+                  expected["area_ids_sha256"] != expected_digest or
+                  not re.fullmatch(r"[0-9a-f]{64}", expected_digest)):
+              raise SystemExit("expected state-area contract digest mismatch")
+
+          root = Path(output)
+          children = sorted(root.iterdir(), key=lambda path: path.name)
+          if any(path.is_symlink() or not path.is_file() or path.suffix != ".json"
+                 for path in children):
+              raise SystemExit("state output contains a non-regular or non-JSON entry")
+          actual_ids = [path.stem for path in children]
+          if actual_ids != area_ids:
+              missing = sorted(set(area_ids) - set(actual_ids))
+              extra = sorted(set(actual_ids) - set(area_ids))
+              raise SystemExit(
+                  f"state output is not authoritative-exact: missing={missing[:12]} "
+                  f"extra={extra[:12]} expected={len(area_ids)} actual={len(actual_ids)}"
+              )
+
+          records = []
+          for path in children:
+              document = strict_json(path)
+              if (not isinstance(document, dict) or document.get("id") != path.stem or
+                      document.get("state") != display_state or
+                      "trail_count" not in document or "total_mi" not in document):
+                  raise SystemExit(f"malformed or state-mismatched geom: {path.name}")
+              records.append({
+                  "name": path.name,
+                  "bytes": path.stat().st_size,
+                  "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+              })
+          receipt = {
+              "schema": "trekdex-state-geom-lane-v2",
+              "lane": lane,
+              "display_state": display_state,
+              "source_sha": source_sha,
+              "source_tree": source_tree,
+              "expected_area_count": len(area_ids),
+              "expected_area_ids_sha256": expected_digest,
+              "files": records,
+          }
+          (root / "trekdex-lane-receipt.json").write_text(
+              json.dumps(receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+          )
+          print(f"lane {lane}: exact authoritative output {len(area_ids)}/{len(area_ids)}")
+          PY
+
+      - name: Upload exact state geom artifact
         uses: actions/upload-artifact@v4
         with:
           name: geom-${{ matrix.state }}
           path: out/geom
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 1
 
   merge:
     needs: publish
-    # `always()` — NOT `success()`. One straggling region must not discard every
-    # good one. Measured 2026-07-19: 12 of 13 regions finished in 7-66 min while
-    # northwest ran 2h42m against timeout-minutes: 350. Had it timed out, the old
-    # `needs: publish` gate would have skipped this job and thrown away twelve
-    # successful regions along with their 1-day artifacts.
-    #
-    # Safe because the fan-in is strictly ADDITIVE: merge-published-geom.py only
-    # copies slugs present in the artifacts and refreshes only those index rows —
-    # areas from a missing region keep the geom and counts they already have. A
-    # partial publish is therefore a partial UPDATE, never a truncation. Publish
-    # is self-healing, so a dropped region is picked up on the next run.
-    #
-    # Still skipped on cancellation: a cancelled run is a human saying stop.
-    if: ${{ always() && !inputs.dry_run && needs.publish.result != 'cancelled' }}
+    if: ${{ needs.publish.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Download all region geom artifacts
-        uses: actions/download-artifact@v4
+      - name: Checkout the approved commit, detached
+        uses: actions/checkout@v4
         with:
-          path: artifacts
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
 
-      - name: Report region coverage (and refuse an empty merge)
+      - name: Reverify immutable source identity
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_TREE: ${{ inputs.source_tree }}
         run: |
-          set -e
-          found=$(find artifacts -mindepth 1 -maxdepth 1 -type d -name 'geom-*' | wc -l)
-          echo "region artifacts present: $found"
-          find artifacts -mindepth 1 -maxdepth 1 -type d -name 'geom-*' \
-            | sed 's|.*/geom-|  region: |' | sort
-          if [ "$found" -eq 0 ]; then
-            echo "::error::No region artifacts at all — every region failed. Nothing to merge."
+          set -euo pipefail
+          if [[ ! "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || [[ ! "$SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::source_sha and source_tree must be full lowercase Git identities"
             exit 1
           fi
-          if [ "${{ needs.publish.result }}" != "success" ]; then
-            echo "::warning::publish result was '${{ needs.publish.result }}' — merging $found region(s) that DID succeed. Missing regions keep their existing geom and will be picked up on the next publish."
+          if [ "$GITHUB_SHA" != "$SOURCE_SHA" ]; then
+            echo "::error::workflow definition ref is not the approved source_sha"
+            exit 1
           fi
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git rev-parse 'HEAD^{tree}')" = "$SOURCE_TREE"
+          if git symbolic-ref -q HEAD; then
+            echo "::error::fan-in checkout is attached to a mutable ref"
+            exit 1
+          fi
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
 
-      - name: Merge geom + refresh master index
+      - name: Download the exact state artifact set
+        uses: actions/download-artifact@v4
+        with:
+          pattern: geom-*
+          path: artifacts
+          merge-multiple: false
+
+      - name: Verify all 51 required lanes and exact artifacts
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_TREE: ${{ inputs.source_tree }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+
+          def strict_json(path):
+              def reject_duplicates(pairs):
+                  document = {}
+                  for key, value in pairs:
+                      if key in document:
+                          raise ValueError(f"duplicate JSON key {key!r} in {path}")
+                      document[key] = value
+                  return document
+              return json.loads(path.read_text(), object_pairs_hook=reject_duplicates)
+
+          expected = set("""
+          alabama alaska arizona arkansas california colorado connecticut delaware
+          district-of-columbia florida georgia hawaii idaho illinois indiana iowa
+          kansas kentucky louisiana maine maryland massachusetts michigan minnesota
+          mississippi missouri montana nebraska nevada new-hampshire new-jersey
+          new-mexico new-york north-carolina north-dakota ohio oklahoma oregon
+          pennsylvania rhode-island south-carolina south-dakota tennessee texas utah
+          vermont virginia washington west-virginia wisconsin wyoming
+          """.split())
+          if len(expected) != 51:
+              raise SystemExit("internal expected-lane set is not exactly 51")
+
+          root = Path("artifacts")
+          if root.is_symlink() or not root.is_dir():
+              raise SystemExit("artifact root is missing or unsafe")
+          entries = sorted(root.iterdir(), key=lambda path: path.name)
+          if any(entry.is_symlink() or not entry.is_dir() or not entry.name.startswith("geom-")
+                 for entry in entries):
+              raise SystemExit("artifact root contains an unexpected entry")
+          actual = {entry.name.removeprefix("geom-") for entry in entries}
+          if actual != expected:
+              raise SystemExit(
+                  f"lane set mismatch: missing={sorted(expected - actual)} "
+                  f"unexpected={sorted(actual - expected)}"
+              )
+
+          index = strict_json(Path("public/areas/index.json"))
+          if not isinstance(index, list):
+              raise SystemExit("pinned index is not an array")
+          area_to_state: dict[str, str] = {}
+          for number, row in enumerate(index, start=1):
+              if (not isinstance(row, list) or len(row) < 3 or
+                      not isinstance(row[0], str) or not row[0] or
+                      not isinstance(row[2], str) or not row[2]):
+                  raise SystemExit(f"pinned index row {number} lacks exact id/state authority")
+              if row[0] in area_to_state:
+                  raise SystemExit(f"pinned index repeats area id: {row[0]}")
+              area_to_state[row[0]] = row[2]
+
+          display_for_lane = {
+              state: subprocess.check_output(
+                  ["python3", "trailforge/tools/state_slug.py", "name", state], text=True
+              ).strip()
+              for state in sorted(expected)
+          }
+          if len(set(display_for_lane.values())) != len(display_for_lane):
+              raise SystemExit("two required lanes resolve to the same display state")
+          expected_by_lane = {
+              state: sorted(
+                  area_id for area_id, authoritative_state in area_to_state.items()
+                  if authoritative_state == display_state
+              )
+              for state, display_state in display_for_lane.items()
+          }
+          empty_expected = sorted(state for state, area_ids in expected_by_lane.items() if not area_ids)
+          if empty_expected:
+              raise SystemExit(f"pinned index has no authoritative areas for lanes: {empty_expected}")
+
+          seen: dict[str, str] = {}
+          lanes: dict[str, list[dict[str, object]]] = {}
+          for state in sorted(expected):
+              lane = root / f"geom-{state}"
+              receipt_path = lane / "trekdex-lane-receipt.json"
+              children = sorted(lane.iterdir(), key=lambda path: path.name)
+              if any(path.is_symlink() or not path.is_file() for path in children):
+                  raise SystemExit(f"lane {state} contains a non-regular entry")
+              geom_files = [path for path in children if path.name != receipt_path.name]
+              if not geom_files or any(path.suffix != ".json" for path in geom_files):
+                  raise SystemExit(f"lane {state} has a missing or unexpected geom set")
+              if receipt_path not in children:
+                  raise SystemExit(f"lane {state} is missing its exact-set receipt")
+
+              display_state = display_for_lane[state]
+              expected_ids = expected_by_lane[state]
+              expected_digest = hashlib.sha256(("\n".join(expected_ids) + "\n").encode()).hexdigest()
+              actual_ids = [path.stem for path in geom_files]
+              if actual_ids != expected_ids:
+                  missing = sorted(set(expected_ids) - set(actual_ids))
+                  extra = sorted(set(actual_ids) - set(expected_ids))
+                  raise SystemExit(
+                      f"lane {state} is not authoritative-exact: missing={missing[:12]} "
+                      f"extra={extra[:12]} expected={len(expected_ids)} actual={len(actual_ids)}"
+                  )
+
+              lane_receipt = strict_json(receipt_path)
+              if set(lane_receipt) != {
+                  "schema", "lane", "display_state", "source_sha", "source_tree",
+                  "expected_area_count", "expected_area_ids_sha256", "files"
+              }:
+                  raise SystemExit(f"lane {state} receipt schema is not exact")
+              if lane_receipt["schema"] != "trekdex-state-geom-lane-v2":
+                  raise SystemExit(f"lane {state} receipt version is invalid")
+              if lane_receipt["lane"] != state or lane_receipt["display_state"] != display_state:
+                  raise SystemExit(f"lane {state} receipt identity is invalid")
+              if (lane_receipt["source_sha"] != os.environ["SOURCE_SHA"] or
+                      lane_receipt["source_tree"] != os.environ["SOURCE_TREE"]):
+                  raise SystemExit(f"lane {state} receipt has the wrong source identity")
+              if (lane_receipt["expected_area_count"] != len(expected_ids) or
+                      lane_receipt["expected_area_ids_sha256"] != expected_digest):
+                  raise SystemExit(f"lane {state} receipt has the wrong authoritative set")
+              declared = lane_receipt["files"]
+              if not isinstance(declared, list) or not declared:
+                  raise SystemExit(f"lane {state} receipt has no declared files")
+              if any(not isinstance(record, dict) or set(record) != {"name", "bytes", "sha256"}
+                     for record in declared):
+                  raise SystemExit(f"lane {state} receipt file schema is invalid")
+              declared_by_name = {record["name"]: record for record in declared}
+              if len(declared_by_name) != len(declared):
+                  raise SystemExit(f"lane {state} receipt has duplicate filenames")
+              if set(declared_by_name) != {path.name for path in geom_files}:
+                  raise SystemExit(f"lane {state} receipt/file set mismatch")
+
+              records: list[dict[str, object]] = []
+              for path in geom_files:
+                  if any(char in path.name for char in "\r\n\t\0"):
+                      raise SystemExit(f"lane {state} contains an unsafe filename")
+                  slug = path.stem
+                  if area_to_state.get(slug) != display_state:
+                      raise SystemExit(f"lane {state} violates pinned state authority: {slug}")
+                  if slug in seen:
+                      raise SystemExit(f"duplicate geom slug {slug} in {seen[slug]} and {state}")
+                  document = strict_json(path)
+                  if (not isinstance(document, dict) or document.get("id") != slug or
+                          document.get("state") != display_state or
+                          "trail_count" not in document or "total_mi" not in document):
+                      raise SystemExit(f"lane {state} has malformed or cross-state geom: {path.name}")
+                  record = {
+                      "name": path.name,
+                      "bytes": path.stat().st_size,
+                      "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                  }
+                  if (declared_by_name[path.name] != record or
+                          not re.fullmatch(r"[0-9a-f]{64}", record["sha256"])):
+                      raise SystemExit(f"lane {state} receipt digest mismatch: {path.name}")
+                  seen[slug] = state
+                  records.append(record)
+              lanes[state] = records
+
+          authoritative_ids = sorted(
+              area_id for state in sorted(expected) for area_id in expected_by_lane[state]
+          )
+          if sorted(seen) != authoritative_ids:
+              raise SystemExit("aggregate output does not equal the authoritative US area set")
+          mapping_bytes = ("\n".join(
+              f"{area_id}\t{area_to_state[area_id]}" for area_id in authoritative_ids
+          ) + "\n").encode()
+          receipt = {
+              "schema": "trekdex-exact-us-lanes-v2",
+              "source_sha": os.environ["SOURCE_SHA"],
+              "source_tree": os.environ["SOURCE_TREE"],
+              "required_lane_count": 51,
+              "observed_lane_count": len(lanes),
+              "authoritative_area_count": len(authoritative_ids),
+              "authoritative_area_state_sha256": hashlib.sha256(mapping_bytes).hexdigest(),
+              "unique_geom_count": len(seen),
+              "lanes": lanes,
+          }
+          Path("verified-lanes.json").write_text(
+              json.dumps(receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+          )
+          print(f"verified {len(lanes)}/51 lanes and {len(seen)} unique geom artifacts")
+          PY
+
+      - name: Merge geom and refresh the master index
         run: python3 scripts/merge-published-geom.py --artifacts-root artifacts
 
-      - name: Regenerate silhouettes from the clean geom (Explore/Browse art)
+      - name: Regenerate silhouettes from candidate geom
         run: python3 scripts/silhouettes-from-geom.py
 
-      - name: Regenerate app bundle (only areas with clean trailforge geom)
+      - name: Regenerate the candidate app bundle
         run: python3 scripts/filter-ios-bundle.py
 
-      - name: Commit + push (one commit)
-        run: |
-          set -e
-          git config user.name "trailforge-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add public/areas ios/SouthMountainExplorer/Resources/areas-index.json
-          if git diff --cached --quiet; then
-            echo "No data changes to commit."; exit 0
-          fi
-          git commit -m "trailforge: publish ENTIRE US (parallel fan-out)"
-          # main can move during the long parallel run — rebase + retry the push.
-          for i in 1 2 3 4 5; do
-            if git push; then exit 0; fi
-            git pull --rebase origin main || true
-            sleep $((i * 5))
-          done
-          git push
-
-      - name: Trigger R2 sync
-        # The commit above is pushed with GITHUB_TOKEN, and GitHub deliberately
-        # does NOT let a token-push trigger another workflow (loop prevention).
-        # So sync-geom-to-r2's `push` trigger never fires for our commit —
-        # dispatch it explicitly (needs the actions:write permission above).
-        # Mirrors trailforge-publish.yml / -batch.yml, which already do this.
+      - name: Build review-only candidate receipt and patch
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run sync-geom-to-r2.yml
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_TREE: ${{ inputs.source_tree }}
+        run: |
+          set -euo pipefail
+          scope=(public/areas ios/SouthMountainExplorer/Resources/areas-index.json)
+          git diff --check -- "${scope[@]}"
+          if [ -n "$(git ls-files --others --exclude-standard -- "${scope[@]}")" ]; then
+            echo "::error::candidate contains untracked output and cannot be represented exactly"
+            git ls-files --others --exclude-standard -- "${scope[@]}"
+            exit 1
+          fi
+          mkdir candidate
+          git diff --binary --full-index -- "${scope[@]}" > candidate/changes.patch
+          git diff --name-status -- "${scope[@]}" > candidate/changed-paths.txt
+          cp verified-lanes.json candidate/verified-lanes.json
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          scope = ["public/areas", "ios/SouthMountainExplorer/Resources/areas-index.json"]
+          raw = subprocess.check_output(["git", "diff", "--name-only", "-z", "--", *scope])
+          changed = [os.fsdecode(item) for item in raw.split(b"\0") if item]
+          files = [
+              {
+                  "path": name,
+                  "bytes": Path(name).stat().st_size,
+                  "sha256": hashlib.sha256(Path(name).read_bytes()).hexdigest(),
+              }
+              for name in changed
+          ]
+          patch = Path("candidate/changes.patch")
+          lanes = Path("candidate/verified-lanes.json")
+          receipt = {
+              "schema": "trekdex-whole-us-review-candidate-v1",
+              "source_sha": os.environ["SOURCE_SHA"],
+              "source_tree": os.environ["SOURCE_TREE"],
+              "changed_files": files,
+              "patch_sha256": hashlib.sha256(patch.read_bytes()).hexdigest(),
+              "lane_receipt_sha256": hashlib.sha256(lanes.read_bytes()).hexdigest(),
+              "committed": False,
+              "pushed": False,
+              "synchronization_dispatched": False,
+          }
+          Path("candidate/candidate-receipt.json").write_text(
+              json.dumps(receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+          )
+          PY
+
+      - name: Upload review-only whole-US candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: whole-us-candidate-${{ inputs.source_sha }}
+          path: candidate
+          if-no-files-found: error
+          retention-days: 1

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import json
 import math
@@ -154,6 +155,33 @@ REQUIRED_TEXT_FILES = {
 }
 _ALLOWED_EMPTY_TEXT_FILES = {"discovery_validation_log"}
 OPTIONAL_DROPPED_ROUTES = "data/aoi/mols-bjerge.dropped-routes.geojson"
+OVERPASS_RECEIPT_RELATIVE = "discovery/overpass-receipt.json"
+_OVERPASS_ENDPOINT_HOSTS = {
+    1: "overpass-api.de",
+    2: "overpass.kumi.systems",
+}
+_OVERPASS_QUERY_SHA256 = {
+    "candidate": "eb775e6373e1d6ccf31e33619c536044be7a43e082f38c6241994a8825f37742",
+    "bbox": "cf418fa67d09b8d02e9ffb42afda815af704a4df5787b7409f306f816af8b9f8",
+}
+_OVERPASS_REJECTION_KEYS = {
+    "failed_included_safety_floor",
+    "failed_quality_filter",
+    "missing_center",
+    "missing_osm_id",
+    "outside_region_bbox",
+    "manual_exclude",
+    "duplicate_slug",
+}
+_OVERPASS_TIMESTAMP = re.compile(
+    r"[0-9]{4}-[0-9]{2}-[0-9]{2}T"
+    r"[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z")
+_OVERPASS_MAX_RECEIPT_BYTES = 256 * 1024
+_OVERPASS_MAX_DIAGNOSTICS = 32
+_OVERPASS_MAX_ATTEMPT_DURATION_MS = 15 * 60 * 1000
+_OVERPASS_CLOCK_TOLERANCE_MS = 100
+_OVERPASS_MIRROR_DELAY_MS = 3000
+_OVERPASS_OUTER_BACKOFF_MS = {1: 60_000, 2: 180_000}
 
 
 def _positive_decimal(value: str) -> int | None:
@@ -264,12 +292,572 @@ def _validate_discovery_document(document: Any, expected_relation_id: int,
     return targets[0]
 
 
+def _receipt_nonnegative_int(value: Any) -> bool:
+    return (isinstance(value, int) and not isinstance(value, bool)
+            and value >= 0)
+
+
+def _receipt_positive_int(value: Any) -> bool:
+    return _receipt_nonnegative_int(value) and value > 0
+
+
+def _receipt_sha256(value: Any) -> bool:
+    return bool(isinstance(value, str)
+                and re.fullmatch(r"[0-9a-f]{64}", value))
+
+
+def _receipt_enum(value: Any, allowed: set[str]) -> bool:
+    return isinstance(value, str) and value in allowed
+
+
+def _receipt_utc_timestamp(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not _OVERPASS_TIMESTAMP.fullmatch(value):
+        return None
+    try:
+        parsed = datetime.strptime(
+            value, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+    return parsed
+
+
+def _receipt_elapsed_ms(start: datetime, end: datetime) -> int:
+    return int((end - start).total_seconds() * 1000)
+
+
+def _receipt_contains_forbidden_key(value: Any) -> bool:
+    forbidden = {
+        "url", "uri", "body", "raw", "headers", "header", "token",
+        "authorization", "cookie", "credential", "credentials", "secret",
+        "message", "reason_phrase", "path", "traceback", "query",
+    }
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if not isinstance(key, str):
+                return True
+            normalized = re.sub(r"[^a-z0-9]+", "_", key.casefold()).strip("_")
+            parts = set(normalized.split("_")) if normalized else set()
+            if normalized not in {"query_role", "query_sha256"} and (
+                    normalized in forbidden or parts.intersection(forbidden)):
+                return True
+            if _receipt_contains_forbidden_key(item):
+                return True
+    elif isinstance(value, list):
+        return any(_receipt_contains_forbidden_key(item) for item in value)
+    return False
+
+
+def _receipt_strict_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    document: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in document:
+            raise ValueError("duplicate receipt key")
+        document[key] = value
+    return document
+
+
+def _receipt_reject_constant(_value: str) -> None:
+    raise ValueError("invalid receipt constant")
+
+
+def _load_overpass_receipt(path: Path, errors: list[str]) -> Any:
+    if path.is_symlink() or not path.is_file():
+        errors.append("missing or unsafe Overpass observability receipt")
+        return None
+    try:
+        raw = path.read_bytes()
+        if len(raw) > _OVERPASS_MAX_RECEIPT_BYTES:
+            errors.append("Overpass observability receipt is too large")
+            return None
+        return json.loads(
+            raw,
+            object_pairs_hook=_receipt_strict_object,
+            parse_constant=_receipt_reject_constant,
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError,
+            ValueError):
+        errors.append("invalid Overpass observability receipt JSON")
+        return None
+
+
+_OVERPASS_ATTEMPT_KEYS = {
+    "attempt_id", "sequence", "query_role", "region_code",
+    "outer_attempt", "parent_candidate_outer_attempt", "endpoint_ordinal",
+    "endpoint_host", "request_method", "query_sha256", "started_at",
+    "ended_at", "duration_ms", "outcome", "http_status",
+    "exception_category", "exception_type", "exception_errno",
+    "response_byte_count", "response_sha256", "json_shape_verdict",
+    "relation_count", "way_count", "other_element_count",
+    "accepted_count", "rejection_breakdown",
+}
+_OVERPASS_OUTCOMES = {
+    "transport-error", "http-error", "malformed-json",
+    "invalid-json-shape", "payload-accepted",
+    "ambiguous-empty-primary-response",
+}
+_OVERPASS_SHAPES = {
+    "not-observed", "not-evaluated-http-error", "malformed-json",
+    "duplicate-json-key", "top-level-not-object", "elements-missing",
+    "elements-not-list", "elements-entry-not-object", "elements-list",
+}
+_OVERPASS_EXCEPTION_CATEGORIES = {
+    "http", "timeout", "dns", "tls", "connection", "url", "os",
+    "json", "other",
+}
+
+
+def _validate_overpass_attempt(
+        value: Any, index: int, errors: list[str]) -> dict | None:
+    label = f"Overpass attempt[{index}]"
+    if not isinstance(value, dict) or set(value) != _OVERPASS_ATTEMPT_KEYS:
+        errors.append(f"{label} schema is invalid")
+        return None
+
+    sequence = value.get("sequence")
+    role = value.get("query_role")
+    region = value.get("region_code")
+    outer = value.get("outer_attempt")
+    parent = value.get("parent_candidate_outer_attempt")
+    ordinal = value.get("endpoint_ordinal")
+    host = value.get("endpoint_host")
+    role_valid = _receipt_enum(role, {"candidate", "bbox"})
+    outer_valid = _receipt_positive_int(outer)
+    ordinal_valid = (
+        _receipt_positive_int(ordinal)
+        and ordinal in _OVERPASS_ENDPOINT_HOSTS
+    )
+
+    if (not _receipt_positive_int(sequence)
+            or sequence != index + 1):
+        errors.append(f"{label} sequence is invalid")
+    if not role_valid or region != "DK":
+        errors.append(f"{label} query scope is invalid")
+    if not outer_valid:
+        errors.append(f"{label} outer attempt is invalid")
+    if not ordinal_valid:
+        errors.append(f"{label} endpoint ordinal is invalid")
+    elif host != _OVERPASS_ENDPOINT_HOSTS[ordinal]:
+        errors.append(f"{label} endpoint host is not approved")
+    if role == "candidate" and parent is not None:
+        errors.append(f"{label} candidate parent context must be null")
+    if role == "bbox" and not _receipt_positive_int(parent):
+        errors.append(f"{label} bbox parent context is invalid")
+    if outer_valid and ordinal_valid and role_valid and region == "DK":
+        expected_id = f"{role}-DK-o{outer:04d}-e{ordinal:04d}"
+        if value.get("attempt_id") != expected_id:
+            errors.append(f"{label} attempt id is invalid")
+    else:
+        errors.append(f"{label} attempt identity is invalid")
+    if value.get("request_method") != "POST":
+        errors.append(f"{label} request method is invalid")
+    query_sha = value.get("query_sha256")
+    if not _receipt_sha256(query_sha):
+        errors.append(f"{label} query identity is invalid")
+    elif role_valid and query_sha != _OVERPASS_QUERY_SHA256[role]:
+        errors.append(f"{label} query identity is not the pinned DK query")
+
+    started_at = _receipt_utc_timestamp(value.get("started_at"))
+    ended_at = _receipt_utc_timestamp(value.get("ended_at"))
+    duration_ms = value.get("duration_ms")
+    if (started_at is None or ended_at is None
+            or not _receipt_nonnegative_int(duration_ms)
+            or duration_ms > _OVERPASS_MAX_ATTEMPT_DURATION_MS):
+        errors.append(f"{label} timing is invalid")
+    else:
+        wall_duration_ms = _receipt_elapsed_ms(started_at, ended_at)
+        if (wall_duration_ms < 0
+                or abs(wall_duration_ms - duration_ms)
+                > _OVERPASS_CLOCK_TOLERANCE_MS):
+            errors.append(f"{label} timing is inconsistent")
+
+    outcome = value.get("outcome")
+    shape = value.get("json_shape_verdict")
+    status = value.get("http_status")
+    category = value.get("exception_category")
+    error_type = value.get("exception_type")
+    numeric_errno = value.get("exception_errno")
+    response_count = value.get("response_byte_count")
+    response_sha = value.get("response_sha256")
+    counts = [value.get(key) for key in (
+        "relation_count", "way_count", "other_element_count")]
+    accepted = value.get("accepted_count")
+    rejection = value.get("rejection_breakdown")
+    outcome_valid = _receipt_enum(outcome, _OVERPASS_OUTCOMES)
+    shape_valid = _receipt_enum(shape, _OVERPASS_SHAPES)
+    category_valid = (
+        category is None
+        or _receipt_enum(category, _OVERPASS_EXCEPTION_CATEGORIES)
+    )
+
+    if not outcome_valid:
+        errors.append(f"{label} outcome is invalid")
+    if not shape_valid:
+        errors.append(f"{label} JSON shape verdict is invalid")
+    if status is not None and (
+            not _receipt_nonnegative_int(status) or not 100 <= status <= 599):
+        errors.append(f"{label} HTTP status is invalid")
+    if not category_valid:
+        errors.append(f"{label} exception category is invalid")
+    if error_type is not None and (
+            not isinstance(error_type, str) or len(error_type) > 160
+            or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.]*", error_type)):
+        errors.append(f"{label} exception type is invalid")
+    if numeric_errno is not None and (
+            not isinstance(numeric_errno, int) or isinstance(numeric_errno, bool)):
+        errors.append(f"{label} exception errno is invalid")
+    if (response_count is None) != (response_sha is None):
+        errors.append(f"{label} response identity nullability is invalid")
+    if response_count is not None and not _receipt_nonnegative_int(response_count):
+        errors.append(f"{label} response byte count is invalid")
+    if response_sha is not None and not _receipt_sha256(response_sha):
+        errors.append(f"{label} response digest is invalid")
+
+    transport_categories = {
+        "timeout", "dns", "tls", "connection", "url", "os", "other",
+    }
+    if outcome_valid and outcome == "transport-error":
+        if (status is not None or response_count is not None
+                or shape != "not-observed"
+                or any(count is not None for count in counts)
+                or accepted is not None or rejection is not None
+                or not _receipt_enum(category, transport_categories)
+                or error_type is None):
+            errors.append(f"{label} transport-error fields are inconsistent")
+    elif outcome_valid and outcome == "http-error":
+        http_status_valid = (
+            _receipt_nonnegative_int(status) and not 200 <= status <= 299)
+        if (not http_status_valid
+                or shape != "not-evaluated-http-error"
+                or any(count is not None for count in counts)
+                or accepted is not None or rejection is not None
+                or not _receipt_enum(category, _OVERPASS_EXCEPTION_CATEGORIES)
+                or (response_count is not None and category != "http")
+                or error_type is None):
+            errors.append(f"{label} HTTP-error fields are inconsistent")
+    elif outcome_valid and outcome == "malformed-json":
+        success_status = (
+            _receipt_nonnegative_int(status) and 200 <= status <= 299)
+        if (not success_status or response_count is None
+                or not _receipt_enum(
+                    shape, {"malformed-json", "duplicate-json-key"})
+                or any(count is not None for count in counts)
+                or accepted is not None or rejection is not None
+                or category != "json" or error_type is None
+                or numeric_errno is not None):
+            errors.append(f"{label} malformed-JSON fields are inconsistent")
+    elif outcome_valid and outcome == "invalid-json-shape":
+        success_status = (
+            _receipt_nonnegative_int(status) and 200 <= status <= 299)
+        invalid_shapes = {
+            "top-level-not-object", "elements-missing",
+            "elements-not-list", "elements-entry-not-object",
+        }
+        if (not success_status or response_count is None
+                or not _receipt_enum(shape, invalid_shapes)
+                or any(count is not None for count in counts)
+                or accepted is not None or rejection is not None
+                or category is not None or error_type is not None
+                or numeric_errno is not None):
+            errors.append(f"{label} invalid-shape fields are inconsistent")
+    elif outcome_valid and outcome in {
+            "payload-accepted", "ambiguous-empty-primary-response"}:
+        success_status = (
+            _receipt_nonnegative_int(status) and 200 <= status <= 299)
+        counts_valid = all(
+            _receipt_nonnegative_int(count) for count in counts)
+        if (not success_status or response_count is None
+                or shape != "elements-list" or not counts_valid
+                or category is not None or error_type is not None
+                or numeric_errno is not None):
+            errors.append(f"{label} accepted-payload fields are inconsistent")
+        elif role == "bbox":
+            if (outcome != "payload-accepted" or accepted is not None
+                    or rejection is not None):
+                errors.append(f"{label} bbox evaluation fields are inconsistent")
+        elif role == "candidate":
+            rejection_valid = (
+                isinstance(rejection, dict)
+                and set(rejection) == _OVERPASS_REJECTION_KEYS
+                and all(_receipt_nonnegative_int(item)
+                        for item in rejection.values())
+            )
+            if (not _receipt_nonnegative_int(accepted)
+                    or not rejection_valid):
+                errors.append(f"{label} candidate evaluation is invalid")
+            else:
+                candidate_count = counts[0] + counts[1]
+                if candidate_count != accepted + sum(rejection.values()):
+                    errors.append(
+                        f"{label} candidate occurrence equation is invalid")
+                if candidate_count == 0:
+                    if (outcome != "ambiguous-empty-primary-response"
+                            or accepted != 0 or any(rejection.values())):
+                        errors.append(
+                            f"{label} valid-empty classification is invalid")
+                elif outcome != "payload-accepted":
+                    errors.append(f"{label} nonempty classification is invalid")
+    return value
+
+
+def _expected_overpass_delay_ms(previous: dict, current: dict) -> int | None:
+    previous_role = previous.get("query_role")
+    current_role = current.get("query_role")
+    previous_outer = previous.get("outer_attempt")
+    current_outer = current.get("outer_attempt")
+    previous_ordinal = previous.get("endpoint_ordinal")
+    current_ordinal = current.get("endpoint_ordinal")
+    if (previous_role == current_role
+            and previous_outer == current_outer
+            and _receipt_positive_int(previous_ordinal)
+            and current_ordinal == previous_ordinal + 1):
+        return _OVERPASS_MIRROR_DELAY_MS
+    if (previous_role == current_role == "candidate"
+            and _receipt_positive_int(previous_outer)
+            and current_outer == previous_outer + 1
+            and current_ordinal == 1):
+        backoff = _OVERPASS_OUTER_BACKOFF_MS.get(previous_outer)
+        if backoff is not None:
+            return _OVERPASS_MIRROR_DELAY_MS + backoff
+    if previous_role == "candidate" and current_role == "bbox":
+        return 0
+    return None
+
+
+def _validate_overpass_receipt_unchecked(
+        document: Any, discovery_report: Any, errors: list[str]) -> None:
+    """Independently validate receipt schema, policy, counts, and report bind."""
+    if not isinstance(document, dict):
+        errors.append("Overpass observability receipt must be an object")
+        return
+    if _receipt_contains_forbidden_key(document):
+        errors.append("Overpass observability receipt contains a forbidden field")
+    expected_top_keys = {
+        "schema_version", "receipt_kind", "producer", "attribution",
+        "requested_region_codes", "attempts", "regions", "completion",
+    }
+    if set(document) != expected_top_keys:
+        errors.append("Overpass observability receipt top-level schema is invalid")
+    if (not _receipt_positive_int(document.get("schema_version"))
+            or document.get("schema_version") != 1
+            or document.get("receipt_kind") !=
+            "overpass-query-observability"
+            or document.get("producer") != "scripts/seed-areas.py"
+            or document.get("attribution") != ATTRIBUTION
+            or document.get("requested_region_codes") != ["DK"]):
+        errors.append("Overpass observability receipt identity is invalid")
+
+    completion = document.get("completion")
+    if not isinstance(completion, dict) or set(completion) != {"state", "reason"}:
+        errors.append("Overpass observability completion schema is invalid")
+    elif completion != {
+            "state": "complete", "reason": "candidate-processing-complete"}:
+        if completion.get("state") == "in-progress":
+            errors.append("Overpass observability receipt is incomplete")
+        else:
+            errors.append("Overpass observability receipt is not successful")
+
+    attempt_values = document.get("attempts")
+    if not isinstance(attempt_values, list) or not attempt_values:
+        errors.append("Overpass observability attempts must be a nonempty list")
+        attempt_values = []
+    if len(attempt_values) > 8:
+        errors.append("Overpass observability request count exceeds pinned policy")
+    attempts = []
+    for index, attempt in enumerate(attempt_values[:8]):
+        normalized = _validate_overpass_attempt(attempt, index, errors)
+        if normalized is not None:
+            attempts.append(normalized)
+
+    for index in range(1, len(attempts)):
+        previous = attempts[index - 1]
+        current = attempts[index]
+        previous_end = _receipt_utc_timestamp(previous.get("ended_at"))
+        current_start = _receipt_utc_timestamp(current.get("started_at"))
+        if previous_end is None or current_start is None:
+            continue
+        gap_ms = _receipt_elapsed_ms(previous_end, current_start)
+        if gap_ms < 0:
+            errors.append(
+                f"Overpass attempt[{index}] starts before the prior attempt ends")
+            continue
+        expected_delay_ms = _expected_overpass_delay_ms(previous, current)
+        if (expected_delay_ms is not None
+                and gap_ms + _OVERPASS_CLOCK_TOLERANCE_MS
+                < expected_delay_ms):
+            errors.append(
+                f"Overpass attempt[{index}] retry delay is below pinned policy")
+
+    roles = [attempt.get("query_role") for attempt in attempts]
+    if "bbox" in roles:
+        first_bbox = roles.index("bbox")
+        if any(role != "candidate" for role in roles[:first_bbox]) \
+                or any(role != "bbox" for role in roles[first_bbox:]):
+            errors.append("Overpass observability call order is invalid")
+    elif attempts:
+        errors.append("Overpass observability receipt omits the bbox call")
+
+    candidate_attempts = [
+        attempt for attempt in attempts
+        if attempt.get("query_role") == "candidate"
+    ]
+    bbox_attempts = [
+        attempt for attempt in attempts if attempt.get("query_role") == "bbox"
+    ]
+    candidate_successes = [
+        attempt for attempt in candidate_attempts
+        if _receipt_enum(attempt.get("outcome"), {
+            "payload-accepted", "ambiguous-empty-primary-response"})
+    ]
+    if len(candidate_successes) != 1:
+        errors.append("Overpass observability candidate success count is invalid")
+    candidate_success = (
+        candidate_successes[0] if len(candidate_successes) == 1 else None)
+    if candidate_success is not None \
+            and candidate_attempts[-1] is not candidate_success:
+        errors.append("Overpass observability continued after candidate success")
+
+    candidate_groups: dict[int, list[dict]] = {}
+    for attempt in candidate_attempts:
+        outer = attempt.get("outer_attempt")
+        if _receipt_positive_int(outer):
+            candidate_groups.setdefault(outer, []).append(attempt)
+    if candidate_groups:
+        outer_values = list(candidate_groups)
+        if (outer_values != list(range(1, max(outer_values) + 1))
+                or max(outer_values) > 3):
+            errors.append("Overpass observability candidate retry sequence is invalid")
+        for outer, rows in candidate_groups.items():
+            ordinals = [row.get("endpoint_ordinal") for row in rows]
+            success = any(_receipt_enum(row.get("outcome"), {
+                "payload-accepted", "ambiguous-empty-primary-response"})
+                for row in rows)
+            if ordinals not in ([1], [1, 2]) or (not success and ordinals != [1, 2]):
+                errors.append(
+                    f"Overpass candidate outer attempt {outer} endpoint order is invalid")
+            if success and not _receipt_enum(rows[-1].get("outcome"), {
+                    "payload-accepted", "ambiguous-empty-primary-response"}):
+                errors.append(
+                    f"Overpass candidate outer attempt {outer} continued after success")
+    if candidate_attempts and any(
+            attempt.get("query_sha256") != _OVERPASS_QUERY_SHA256["candidate"]
+            for attempt in candidate_attempts):
+        errors.append("Overpass candidate query identity is inconsistent")
+
+    bbox_successes = [
+        attempt for attempt in bbox_attempts
+        if attempt.get("outcome") == "payload-accepted"
+    ]
+    if len(bbox_successes) > 1:
+        errors.append("Overpass observability bbox success count is invalid")
+    if bbox_successes and bbox_attempts[-1] is not bbox_successes[0]:
+        errors.append("Overpass observability continued after bbox success")
+    bbox_ordinals = [attempt.get("endpoint_ordinal") for attempt in bbox_attempts]
+    if bbox_attempts and bbox_ordinals not in ([1], [1, 2]):
+        errors.append("Overpass observability bbox endpoint order is invalid")
+    if bbox_attempts and not bbox_successes and bbox_ordinals != [1, 2]:
+        errors.append("Overpass observability bbox exhaustion is incomplete")
+    for attempt in bbox_attempts:
+        if attempt.get("outer_attempt") != 1:
+            errors.append("Overpass observability bbox outer attempt is invalid")
+        if (candidate_success is not None
+                and attempt.get("parent_candidate_outer_attempt") !=
+                candidate_success.get("outer_attempt")):
+            errors.append("Overpass observability bbox parent context is invalid")
+    if bbox_attempts and any(
+            attempt.get("query_sha256") != _OVERPASS_QUERY_SHA256["bbox"]
+            for attempt in bbox_attempts):
+        errors.append("Overpass bbox query identity is inconsistent")
+
+    regions = document.get("regions")
+    expected_region_keys = {
+        "region_code", "candidate_attempt_id", "candidate_result",
+        "bbox_result", "report_candidate_count",
+    }
+    if (not isinstance(regions, list) or len(regions) != 1
+            or not isinstance(regions[0], dict)
+            or set(regions[0]) != expected_region_keys):
+        errors.append("Overpass observability region schema is invalid")
+        return
+    region = regions[0]
+    if region.get("region_code") != "DK":
+        errors.append("Overpass observability region identity is invalid")
+    candidate_result = region.get("candidate_result")
+    if not _receipt_enum(candidate_result, {
+            "candidates-available", "ambiguous-empty-primary-response",
+            "query-exhausted", "not-run"}):
+        errors.append("Overpass observability candidate result is invalid")
+    bbox_result = region.get("bbox_result")
+    if not _receipt_enum(bbox_result, {
+            "usable-bbox", "no-usable-bbox", "query-exhausted", "not-run"}):
+        errors.append("Overpass observability bbox result is invalid")
+    if candidate_success is not None:
+        expected_result = (
+            "ambiguous-empty-primary-response"
+            if candidate_success.get("outcome") ==
+            "ambiguous-empty-primary-response"
+            else "candidates-available"
+        )
+        if (region.get("candidate_attempt_id") !=
+                candidate_success.get("attempt_id")
+                or candidate_result != expected_result):
+            errors.append("Overpass observability candidate summary is inconsistent")
+        report_count = region.get("report_candidate_count")
+        if (not _receipt_nonnegative_int(report_count)
+                or report_count != candidate_success.get("accepted_count")):
+            errors.append("Overpass observability report count is inconsistent")
+        discovery_count = (
+            discovery_report.get("candidate_count")
+            if isinstance(discovery_report, dict) else None)
+        if report_count != discovery_count:
+            errors.append("Overpass receipt disagrees with discovery candidate count")
+        if expected_result == "ambiguous-empty-primary-response":
+            errors.append("Overpass receipt records ambiguous empty primary response")
+    else:
+        if (region.get("candidate_attempt_id") is not None
+                or not _receipt_enum(
+                    candidate_result, {"query-exhausted", "not-run"})
+                or region.get("report_candidate_count") is not None):
+            errors.append("Overpass observability candidate summary is inconsistent")
+
+    if bbox_successes:
+        if not _receipt_enum(
+                bbox_result, {"usable-bbox", "no-usable-bbox"}):
+            errors.append("Overpass observability bbox summary is inconsistent")
+    elif bbox_attempts:
+        if bbox_result != "query-exhausted":
+            errors.append("Overpass observability bbox summary is inconsistent")
+    elif bbox_result != "not-run":
+        errors.append("Overpass observability bbox summary is inconsistent")
+
+
+def _validate_overpass_receipt(
+        document: Any, discovery_report: Any, errors: list[str]) -> None:
+    """Fail closed with bounded diagnostics on any malformed receipt value."""
+    receipt_errors: list[str] = []
+    try:
+        _validate_overpass_receipt_unchecked(
+            document, discovery_report, receipt_errors)
+    except Exception:  # noqa: BLE001 - untrusted evidence must never crash
+        receipt_errors.append(
+            "Overpass observability receipt validation failed safely")
+    unique_errors = list(dict.fromkeys(receipt_errors))
+    errors.extend(unique_errors[:_OVERPASS_MAX_DIAGNOSTICS])
+    if len(unique_errors) > _OVERPASS_MAX_DIAGNOSTICS:
+        errors.append(
+            "Additional Overpass observability diagnostics were omitted")
+
+
 def _run_discovery(args: argparse.Namespace) -> int:
     errors: list[str] = []
     expected = _positive_decimal(args.expected_osm_relation_id)
     if expected is None:
         errors.append("expected relation id must be a positive decimal")
     document = _load_json(Path(args.discovery_report), "discovery report", errors)
+    if args.overpass_receipt:
+        overpass_receipt = _load_overpass_receipt(
+            Path(args.overpass_receipt), errors)
+        if overpass_receipt is not None:
+            _validate_overpass_receipt(overpass_receipt, document, errors)
     selected = None
     if expected is not None and document is not None:
         selected = _validate_discovery_document(document, expected, errors)
@@ -6434,6 +7022,7 @@ def _validate_artifact_seals(root: Path, manifest: Any,
         GOLDEN_RELATIVE: "validation-only-no-geometry",
         VISUAL_RELATIVE: "offline-osm-visual",
         VISUAL_REVIEW_RELATIVE: "offline-osm-visual-review",
+        OVERPASS_RECEIPT_RELATIVE: "overpass-query-observability",
     }
     for relative, scope in expected_scopes.items():
         if isinstance(seals.get(relative), dict) \
@@ -6519,6 +7108,18 @@ def _run_final(args: argparse.Namespace) -> int:
         label: _load_json(root / relative, label, errors)
         for label, relative in REQUIRED_JSON_FILES.items()
     }
+    overpass_path = root / OVERPASS_RECEIPT_RELATIVE
+    overpass_unsafe = overpass_path.is_symlink()
+    overpass_present = overpass_path.is_file() and not overpass_unsafe
+    overpass_receipt = None
+    if overpass_present or overpass_unsafe or args.require_overpass_receipt:
+        overpass_receipt = _load_overpass_receipt(overpass_path, errors)
+        if overpass_receipt is not None:
+            _validate_overpass_receipt(
+                overpass_receipt,
+                documents.get("discovery_report"),
+                errors,
+            )
     texts = {}
     for label, relative in REQUIRED_TEXT_FILES.items():
         path = root / relative
@@ -6544,6 +7145,7 @@ def _run_final(args: argparse.Namespace) -> int:
           if label != "manifest"],
         *REQUIRED_TEXT_FILES.values(),
         *PBF_RELATIVES_BY_SCOPE.values(),
+        *([OVERPASS_RECEIPT_RELATIVE] if overpass_present else []),
         *([OPTIONAL_DROPPED_ROUTES] if optional_path.exists() else []),
     ])
     _validate_artifact_seals(
@@ -6668,6 +7270,7 @@ def _run_final(args: argparse.Namespace) -> int:
             *REQUIRED_JSON_FILES.values(),
             *REQUIRED_TEXT_FILES.values(),
             *PBF_RELATIVES_BY_SCOPE.values(),
+            *([OVERPASS_RECEIPT_RELATIVE] if overpass_present else []),
             *([OPTIONAL_DROPPED_ROUTES] if optional_path.exists() else []),
         ]),
         "assembled_trail_count": len(trail_features),
@@ -6687,6 +7290,7 @@ def _parser() -> argparse.ArgumentParser:
     discovery = subparsers.add_parser(
         "discovery", help="verify discovery and build a one-row temporary index")
     discovery.add_argument("--discovery-report", required=True)
+    discovery.add_argument("--overpass-receipt")
     discovery.add_argument("--expected-osm-relation-id", required=True)
     discovery.add_argument("--selected-record-out", required=True)
     discovery.add_argument("--index-out", required=True)
@@ -6700,6 +7304,7 @@ def _parser() -> argparse.ArgumentParser:
     final.add_argument("--prefilter-relation-members", required=True)
     final.add_argument("--aoi-relation-members", required=True)
     final.add_argument("--expected-osm-relation-id", required=True)
+    final.add_argument("--require-overpass-receipt", action="store_true")
     final.add_argument("--result-json", required=True)
     return parser
 

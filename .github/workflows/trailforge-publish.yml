@@ -279,6 +279,8 @@ jobs:
           if ! python3 scripts/seed-areas.py \
             --dry-run "$PILOT_SEED_CODE" \
             --discovery-report "$PILOT_QA_ROOT/discovery/report.json" \
+            --overpass-receipt \
+              "$PILOT_QA_ROOT/discovery/overpass-receipt.json" \
             > "$PILOT_QA_ROOT/discovery/discovery.log" 2>&1; then
             cat "$PILOT_QA_ROOT/discovery/discovery.log"
             exit 1
@@ -286,6 +288,8 @@ jobs:
           cat "$PILOT_QA_ROOT/discovery/discovery.log"
           python3 trailforge/tools/validate_publish_pilot.py discovery \
             --discovery-report "$PILOT_QA_ROOT/discovery/report.json" \
+            --overpass-receipt \
+              "$PILOT_QA_ROOT/discovery/overpass-receipt.json" \
             --expected-osm-relation-id "$PILOT_EXPECTED_RELATION_ID" \
             --selected-record-out "$PILOT_QA_ROOT/discovery/selected.json" \
             --index-out "$PILOT_INDEX" \
@@ -509,6 +513,7 @@ jobs:
               "data/source/mols-bjerge.relation-members.prefilter.json",
               "data/source/mols-bjerge.relation-members.raw.json",
               "discovery/discovery.log",
+              "discovery/overpass-receipt.json",
               "discovery/report.json",
               "discovery/selected.json",
               "discovery/validation.json",
@@ -545,6 +550,8 @@ jobs:
                   "prefiltered-scope-provenance",
               "data/source/mols-bjerge.prefilter-transformation.json":
                   "prefilter-transformation-provenance",
+              "discovery/overpass-receipt.json":
+                  "overpass-query-observability",
               "reports/app-preview.json": "runner-local-app-preview",
               "golden/mols-bjerge.json": "validation-only-no-geometry",
               "visual/mols-bjerge.svg": "offline-osm-visual",
@@ -751,6 +758,7 @@ jobs:
             --aoi-relation-members \
               "$PILOT_QA_ROOT/data/aoi/mols-bjerge.relation-members.aoi.json" \
             --expected-osm-relation-id "$PILOT_EXPECTED_RELATION_ID" \
+            --require-overpass-receipt \
             --result-json "$PILOT_QA_ROOT/validation/final.json" \
             2>&1 | tee "$PILOT_QA_ROOT/validation/final.log"
 

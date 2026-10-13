@@ -355,6 +355,34 @@ def test_generic_publish_commands_and_conditions_remain_present():
     assert "gh workflow run sync-geom-to-r2.yml" in _PUBLISH
 
 
+def test_overpass_receipt_is_runner_local_required_and_sealed_once():
+    receipt_path = '$PILOT_QA_ROOT/discovery/overpass-receipt.json'
+    discovery_start = _PILOT.index(
+        "- name: Discover and verify exact Mols relation")
+    discovery_end = _PILOT.index(
+        "- name: Install osmium + pyosmium + shapely + Pillow")
+    discovery = _PILOT[discovery_start:discovery_end]
+    assert discovery.count("--overpass-receipt") == 2
+    assert discovery.count(receipt_path) == 2
+    assert "scripts/seed-areas.py" in discovery
+    assert "validate_publish_pilot.py discovery" in discovery
+
+    seal_start = _PILOT.index("- name: Seal every validation input")
+    seal_end = _PILOT.index(
+        "- name: Materialize non-package scope trust from stage outputs")
+    seal = _PILOT[seal_start:seal_end]
+    assert seal.count('"discovery/overpass-receipt.json"') == 2
+    assert seal.count('"overpass-query-observability"') == 1
+
+    final_start = _PILOT.index("- name: Validate complete Mols QA package")
+    final = _PILOT[final_start:]
+    assert final.count("--require-overpass-receipt") == 1
+    assert _PILOT.count("--require-overpass-receipt") == 1
+    assert "$PILOT_REPO/discovery/overpass-receipt.json" not in _PILOT
+    assert "$GITHUB_WORKSPACE/discovery/overpass-receipt.json" not in _PILOT
+    assert "public/areas/overpass-receipt.json" not in _PILOT
+
+
 if __name__ == "__main__":
     tests = [value for name, value in sorted(globals().items())
              if name.startswith("test_")]

@@ -1,5 +1,6 @@
 """Synthetic and producer-round-trip tests for the Mols pilot validator."""
 import copy
+from datetime import datetime, timedelta, timezone
 import hashlib
 import importlib.util
 import json
@@ -77,6 +78,101 @@ def _discovery_report(candidates):
         "candidate_count": len(candidates),
         "candidates": candidates,
         "attribution": validator.ATTRIBUTION,
+    }
+
+
+def _utc_stamp(value):
+    return value.astimezone(timezone.utc).isoformat(
+        timespec="milliseconds").replace("+00:00", "Z")
+
+
+def _overpass_attempt(
+        sequence, role, *, outcome="payload-accepted", outer=1,
+        ordinal=1, relation_count=1, way_count=0, other_count=0,
+        accepted_count=1, rejection_breakdown=None, duration_ms=125):
+    host = validator._OVERPASS_ENDPOINT_HOSTS[ordinal]
+    shape = "elements-list"
+    response = f"synthetic-{role}-{outer}-{ordinal}".encode()
+    start = (
+        datetime(2026, 10, 12, 12, 0, tzinfo=timezone.utc)
+        + timedelta(milliseconds=(sequence - 1) * 125)
+    )
+    end = start + timedelta(milliseconds=duration_ms)
+    if role == "bbox":
+        accepted_count = None
+        rejection_breakdown = None
+    elif rejection_breakdown is None:
+        rejection_breakdown = {
+            key: 0 for key in validator._OVERPASS_REJECTION_KEYS}
+    return {
+        "attempt_id": f"{role}-DK-o{outer:04d}-e{ordinal:04d}",
+        "sequence": sequence,
+        "query_role": role,
+        "region_code": "DK",
+        "outer_attempt": outer,
+        "parent_candidate_outer_attempt": 1 if role == "bbox" else None,
+        "endpoint_ordinal": ordinal,
+        "endpoint_host": host,
+        "request_method": "POST",
+        "query_sha256": validator._OVERPASS_QUERY_SHA256[role],
+        "started_at": _utc_stamp(start),
+        "ended_at": _utc_stamp(end),
+        "duration_ms": duration_ms,
+        "outcome": outcome,
+        "http_status": 200,
+        "exception_category": None,
+        "exception_type": None,
+        "exception_errno": None,
+        "response_byte_count": len(response),
+        "response_sha256": hashlib.sha256(response).hexdigest(),
+        "json_shape_verdict": shape,
+        "relation_count": relation_count,
+        "way_count": way_count,
+        "other_element_count": other_count,
+        "accepted_count": accepted_count,
+        "rejection_breakdown": rejection_breakdown,
+    }
+
+
+def _overpass_receipt(candidate_count=1, *, ambiguous=False,
+                      completion=None):
+    if ambiguous:
+        candidate = _overpass_attempt(
+            1, "candidate",
+            outcome="ambiguous-empty-primary-response",
+            relation_count=0,
+            accepted_count=0,
+        )
+        candidate_result = "ambiguous-empty-primary-response"
+    else:
+        candidate = _overpass_attempt(
+            1, "candidate",
+            relation_count=max(1, candidate_count),
+            accepted_count=candidate_count,
+            rejection_breakdown={
+                **{key: 0 for key in validator._OVERPASS_REJECTION_KEYS},
+                "failed_quality_filter": max(0, 1 - candidate_count),
+            },
+        )
+        candidate_result = "candidates-available"
+    bbox = _overpass_attempt(
+        2, "bbox", relation_count=1, accepted_count=None)
+    return {
+        "schema_version": 1,
+        "receipt_kind": "overpass-query-observability",
+        "producer": "scripts/seed-areas.py",
+        "attribution": validator.ATTRIBUTION,
+        "requested_region_codes": ["DK"],
+        "attempts": [candidate, bbox],
+        "regions": [{
+            "region_code": "DK",
+            "candidate_attempt_id": candidate["attempt_id"],
+            "candidate_result": candidate_result,
+            "bbox_result": "usable-bbox",
+            "report_candidate_count": candidate_count,
+        }],
+        "completion": completion or {
+            "state": "complete", "reason": "candidate-processing-complete"},
     }
 
 
@@ -280,22 +376,29 @@ class CheckedInGoldenRecord(unittest.TestCase):
 
 
 class DiscoveryValidation(unittest.TestCase):
-    def _run(self, report):
+    def _run(self, report, receipt=None):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
             report_path = root / "report.json"
+            receipt_path = root / "overpass-receipt.json"
             selected_path = root / "selected.json"
             index_path = root / "index.json"
             result_path = root / "result.json"
             _write(report_path, report)
-            rc = validator.main([
+            arguments = [
                 "discovery",
                 "--discovery-report", str(report_path),
                 "--expected-osm-relation-id", str(RELATION_ID),
                 "--selected-record-out", str(selected_path),
                 "--index-out", str(index_path),
                 "--result-json", str(result_path),
-            ])
+            ]
+            if receipt is not None:
+                _write(receipt_path, receipt)
+                arguments.extend([
+                    "--overpass-receipt", str(receipt_path),
+                ])
+            rc = validator.main(arguments)
             return {
                 "rc": rc,
                 "result": json.loads(result_path.read_text()),
@@ -346,6 +449,357 @@ class DiscoveryValidation(unittest.TestCase):
         self.assertEqual(result["rc"], 1)
         self.assertTrue(any("invalid discovery report" in error
                             for error in result["result"]["errors"]))
+
+    def test_complete_receipt_and_exact_target_write_one_row(self):
+        other = {
+            "index_row": ["nationalpark-thy-dk", "Nationalpark Thy",
+                          "Denmark", 56.9, 8.4],
+            "osm_relation_id": 7045682,
+        }
+        report = _discovery_report([other, _candidate()])
+        result = self._run(report, _overpass_receipt(2))
+        self.assertEqual(result["rc"], 0, result["result"]["errors"])
+        self.assertEqual(result["selected"]["osm_relation_id"], RELATION_ID)
+        self.assertEqual(len(result["index"]), 1)
+
+    def test_ambiguous_empty_receipt_rejects_forged_target(self):
+        report = _discovery_report([_candidate()])
+        result = self._run(
+            report, _overpass_receipt(0, ambiguous=True))
+        self.assertEqual(result["rc"], 1)
+        self.assertIsNone(result["selected"])
+        self.assertIsNone(result["index"])
+        self.assertIn(
+            "Overpass receipt records ambiguous empty primary response",
+            result["result"]["errors"],
+        )
+        self.assertIn(
+            "Overpass receipt disagrees with discovery candidate count",
+            result["result"]["errors"],
+        )
+
+    def test_nonempty_all_rejected_is_not_mislabeled_ambiguous(self):
+        report = _discovery_report([])
+        receipt = _overpass_receipt(0)
+        result = self._run(report, receipt)
+        self.assertEqual(result["rc"], 1)
+        self.assertFalse(any(
+            "ambiguous empty" in error
+            for error in result["result"]["errors"]))
+        self.assertIsNone(result["selected"])
+        self.assertIsNone(result["index"])
+
+    def test_http_body_read_failure_metadata_allows_existing_mirror_recovery(self):
+        receipt = _overpass_receipt(1)
+        candidate = receipt["attempts"][0]
+        candidate.update({
+            "attempt_id": "candidate-DK-o0001-e0002",
+            "sequence": 2,
+            "endpoint_ordinal": 2,
+            "endpoint_host": "overpass.kumi.systems",
+            "started_at": "2026-10-12T12:00:03.125Z",
+            "ended_at": "2026-10-12T12:00:03.250Z",
+        })
+        http_error = copy.deepcopy(candidate)
+        http_error.update({
+            "attempt_id": "candidate-DK-o0001-e0001",
+            "sequence": 1,
+            "endpoint_ordinal": 1,
+            "endpoint_host": "overpass-api.de",
+            "outcome": "http-error",
+            "http_status": 500,
+            "exception_category": "timeout",
+            "exception_type": "builtins.TimeoutError",
+            "exception_errno": None,
+            "response_byte_count": None,
+            "response_sha256": None,
+            "json_shape_verdict": "not-evaluated-http-error",
+            "started_at": "2026-10-12T12:00:00.000Z",
+            "ended_at": "2026-10-12T12:00:00.125Z",
+            "relation_count": None,
+            "way_count": None,
+            "other_element_count": None,
+            "accepted_count": None,
+            "rejection_breakdown": None,
+        })
+        bbox = receipt["attempts"][1]
+        bbox.update({
+            "sequence": 3,
+            "started_at": "2026-10-12T12:00:03.250Z",
+            "ended_at": "2026-10-12T12:00:03.375Z",
+        })
+        receipt["attempts"] = [http_error, candidate, bbox]
+        receipt["regions"][0]["candidate_attempt_id"] = candidate["attempt_id"]
+        result = self._run(_discovery_report([_candidate()]), receipt)
+        self.assertEqual(result["rc"], 0, result["result"]["errors"])
+        self.assertIsNotNone(result["selected"])
+
+    def test_receipt_tamper_matrix_fails_before_outputs(self):
+        mutations = {
+            "status": lambda receipt: receipt["attempts"][0].update(
+                http_status=500),
+            "response-hash": lambda receipt: receipt["attempts"][0].update(
+                response_sha256="bad"),
+            "response-count": lambda receipt: receipt["attempts"][0].update(
+                response_byte_count=-1),
+            "sequence": lambda receipt: receipt["attempts"][0].update(
+                sequence=2),
+            "attempt-id": lambda receipt: receipt["attempts"][0].update(
+                attempt_id="candidate-DK-o9999-e0001"),
+            "host": lambda receipt: receipt["attempts"][0].update(
+                endpoint_host="unapproved.invalid"),
+            "query": lambda receipt: receipt["attempts"][0].update(
+                query_sha256="0" * 64),
+            "counts": lambda receipt: receipt["attempts"][0].update(
+                relation_count=2),
+            "rejection": lambda receipt: receipt["attempts"][0][
+                "rejection_breakdown"].update(missing_center=1),
+            "region-summary": lambda receipt: receipt["regions"][0].update(
+                report_candidate_count=2),
+            "enum": lambda receipt: receipt["attempts"][0].update(
+                outcome="unknown"),
+            "unknown-field": lambda receipt: receipt["attempts"][0].update(
+                extra_field=True),
+            "nullability": lambda receipt: receipt["attempts"][0].update(
+                response_byte_count=None),
+            "unknown-schema": lambda receipt: receipt.update(
+                schema_version=2),
+        }
+        for label, mutate in mutations.items():
+            with self.subTest(label=label):
+                receipt = _overpass_receipt(1)
+                mutate(receipt)
+                result = self._run(
+                    _discovery_report([_candidate()]), receipt)
+                self.assertEqual(result["rc"], 1)
+                self.assertTrue(result["result"]["errors"])
+                self.assertIsNone(result["selected"])
+                self.assertIsNone(result["index"])
+
+    def test_reviewer_wrong_type_rejection_breakdown_fails_bounded(self):
+        receipt = _overpass_receipt(0, ambiguous=True)
+        receipt["attempts"][0]["rejection_breakdown"] = "wrong-type"
+        result = self._run(_discovery_report([]), receipt)
+        self.assertEqual(result["rc"], 1)
+        self.assertIn(
+            "Overpass attempt[0] candidate evaluation is invalid",
+            result["result"]["errors"],
+        )
+        self.assertIsNone(result["selected"])
+        self.assertIsNone(result["index"])
+        self.assertNotIn("Traceback", json.dumps(result["result"]))
+
+    def test_every_consumer_inspected_receipt_field_rejects_adjacent_types(self):
+        paths = [
+            ("schema_version",), ("receipt_kind",), ("producer",),
+            ("attribution",), ("requested_region_codes",), ("attempts",),
+            ("attempts", 0), ("regions",), ("regions", 0),
+            ("completion",),
+            ("completion", "state"), ("completion", "reason"),
+            *[("attempts", 0, field) for field in (
+                "attempt_id", "sequence", "query_role", "region_code",
+                "outer_attempt", "parent_candidate_outer_attempt",
+                "endpoint_ordinal", "endpoint_host", "request_method",
+                "query_sha256", "started_at", "ended_at", "duration_ms",
+                "outcome", "http_status", "exception_category",
+                "exception_type", "exception_errno", "response_byte_count",
+                "response_sha256", "json_shape_verdict", "relation_count",
+                "way_count", "other_element_count", "accepted_count",
+                "rejection_breakdown",
+            )],
+            *[("attempts", 0, "rejection_breakdown", key)
+              for key in sorted(validator._OVERPASS_REJECTION_KEYS)],
+            *[("regions", 0, field) for field in (
+                "region_code", "candidate_attempt_id", "candidate_result",
+                "bbox_result", "report_candidate_count",
+            )],
+        ]
+        wrong_values_by_type = {
+            str: ({}, [], 17, 1.25, True, None),
+            int: ({}, [], "wrong-type", 1.25, True, None),
+            list: ({}, "wrong-type", 17, 1.25, True, None),
+            dict: ([], "wrong-type", 17, 1.25, True, None),
+            type(None): ({}, [], "wrong-type", 17, 1.25, True),
+        }
+
+        for path in paths:
+            base = _overpass_receipt(1)
+            target = base
+            for component in path[:-1]:
+                target = target[component]
+            original = target[path[-1]]
+            values = wrong_values_by_type[type(original)]
+            for wrong_value in values:
+                with self.subTest(path=path, wrong_type=type(wrong_value).__name__):
+                    receipt = _overpass_receipt(1)
+                    target = receipt
+                    for component in path[:-1]:
+                        target = target[component]
+                    target[path[-1]] = copy.deepcopy(wrong_value)
+                    result = self._run(
+                        _discovery_report([_candidate()]), receipt)
+                    self.assertEqual(result["rc"], 1)
+                    self.assertTrue(result["result"]["errors"])
+                    self.assertLessEqual(len(result["result"]["errors"]), 24)
+                    self.assertTrue(all(
+                        isinstance(error, str) and len(error) <= 256
+                        for error in result["result"]["errors"]))
+                    serialized = json.dumps(result["result"])
+                    self.assertNotIn("Traceback", serialized)
+                    self.assertNotIn("AttributeError", serialized)
+                    self.assertNotIn("TypeError", serialized)
+                    self.assertIsNone(result["selected"])
+                    self.assertIsNone(result["index"])
+
+    def test_timing_format_order_duration_and_retry_delay_tampering_fails(self):
+        mutations = {
+            "start-format": lambda receipt: receipt["attempts"][0].update(
+                started_at="2026-10-12T12:00:00Z"),
+            "end-offset": lambda receipt: receipt["attempts"][0].update(
+                ended_at="2026-10-12T12:00:00.125+00:00"),
+            "end-before-start": lambda receipt: receipt["attempts"][0].update(
+                ended_at="2026-10-12T11:59:59.999Z"),
+            "negative-duration": lambda receipt: receipt["attempts"][0].update(
+                duration_ms=-1),
+            "duration-mismatch": lambda receipt: receipt["attempts"][0].update(
+                duration_ms=5000),
+            "duration-over-bound": lambda receipt: receipt["attempts"][0].update(
+                duration_ms=validator._OVERPASS_MAX_ATTEMPT_DURATION_MS + 1),
+            "overlap": lambda receipt: receipt["attempts"][1].update(
+                started_at="2026-10-12T12:00:00.100Z"),
+        }
+        for label, mutate in mutations.items():
+            with self.subTest(label=label):
+                receipt = _overpass_receipt(1)
+                mutate(receipt)
+                result = self._run(
+                    _discovery_report([_candidate()]), receipt)
+                self.assertEqual(result["rc"], 1)
+                self.assertTrue(any(
+                    "timing" in error or "starts before" in error
+                    for error in result["result"]["errors"]),
+                    result["result"]["errors"])
+                self.assertIsNone(result["selected"])
+                self.assertIsNone(result["index"])
+
+        receipt = _overpass_receipt(1)
+        success = receipt["attempts"][0]
+        success.update({
+            "attempt_id": "candidate-DK-o0001-e0002",
+            "sequence": 2,
+            "endpoint_ordinal": 2,
+            "endpoint_host": "overpass.kumi.systems",
+            "started_at": "2026-10-12T12:00:00.125Z",
+            "ended_at": "2026-10-12T12:00:00.250Z",
+        })
+        failure = copy.deepcopy(success)
+        failure.update({
+            "attempt_id": "candidate-DK-o0001-e0001",
+            "sequence": 1,
+            "endpoint_ordinal": 1,
+            "endpoint_host": "overpass-api.de",
+            "started_at": "2026-10-12T12:00:00.000Z",
+            "ended_at": "2026-10-12T12:00:00.125Z",
+            "outcome": "transport-error",
+            "http_status": None,
+            "exception_category": "timeout",
+            "exception_type": "builtins.TimeoutError",
+            "response_byte_count": None,
+            "response_sha256": None,
+            "json_shape_verdict": "not-observed",
+            "relation_count": None,
+            "way_count": None,
+            "other_element_count": None,
+            "accepted_count": None,
+            "rejection_breakdown": None,
+        })
+        bbox = receipt["attempts"][1]
+        bbox.update({
+            "sequence": 3,
+            "started_at": "2026-10-12T12:00:00.250Z",
+            "ended_at": "2026-10-12T12:00:00.375Z",
+        })
+        receipt["attempts"] = [failure, success, bbox]
+        receipt["regions"][0]["candidate_attempt_id"] = success["attempt_id"]
+        result = self._run(_discovery_report([_candidate()]), receipt)
+        self.assertEqual(result["rc"], 1)
+        self.assertIn(
+            "Overpass attempt[1] retry delay is below pinned policy",
+            result["result"]["errors"],
+        )
+        self.assertIsNone(result["selected"])
+        self.assertIsNone(result["index"])
+
+    def test_oversized_and_deep_receipts_fail_without_process_crash(self):
+        cases = {
+            "oversized": " " * (validator._OVERPASS_MAX_RECEIPT_BYTES + 1),
+            "deep": "[" * 1200 + "0" + "]" * 1200,
+        }
+        for label, raw in cases.items():
+            with self.subTest(label=label):
+                result = self._run(
+                    _discovery_report([_candidate()]), raw)
+                self.assertEqual(result["rc"], 1)
+                self.assertTrue(result["result"]["errors"])
+                self.assertLessEqual(len(result["result"]["errors"]), 4)
+                self.assertNotIn("Traceback", json.dumps(result["result"]))
+                self.assertIsNone(result["selected"])
+                self.assertIsNone(result["index"])
+
+    def test_forbidden_nested_fields_are_rejected_without_echoing_values(self):
+        for forbidden_key in (
+                "raw_body", "query", "url", "headers", "message",
+                "token_value"):
+            with self.subTest(forbidden_key=forbidden_key):
+                receipt = _overpass_receipt(1)
+                receipt["regions"][0][forbidden_key] = (
+                    "token=SUPER-SECRET /Users/person/private")
+                result = self._run(
+                    _discovery_report([_candidate()]), receipt)
+                serialized = json.dumps(result["result"], ensure_ascii=False)
+                self.assertEqual(result["rc"], 1)
+                self.assertIn(
+                    "Overpass observability receipt contains a forbidden field",
+                    result["result"]["errors"],
+                )
+                self.assertNotIn("SUPER-SECRET", serialized)
+                self.assertNotIn("/Users/person", serialized)
+                self.assertIsNone(result["selected"])
+                self.assertIsNone(result["index"])
+
+    def test_incomplete_receipt_is_rejected(self):
+        receipt = _overpass_receipt(
+            1, completion={"state": "in-progress", "reason": "running"})
+        result = self._run(_discovery_report([_candidate()]), receipt)
+        self.assertEqual(result["rc"], 1)
+        self.assertIn(
+            "Overpass observability receipt is incomplete",
+            result["result"]["errors"],
+        )
+        self.assertIsNone(result["selected"])
+        self.assertIsNone(result["index"])
+
+    def test_duplicate_keys_and_nonstandard_constants_fail_strict_json(self):
+        base = json.dumps(_overpass_receipt(1), separators=(",", ":"))
+        cases = {
+            "duplicate": base.replace(
+                '"schema_version":1',
+                '"schema_version":1,"schema_version":1',
+                1,
+            ),
+            "nan": base.replace('"http_status":200', '"http_status":NaN', 1),
+        }
+        for label, raw in cases.items():
+            with self.subTest(label=label):
+                result = self._run(
+                    _discovery_report([_candidate()]), raw)
+                self.assertEqual(result["rc"], 1)
+                self.assertIn(
+                    "invalid Overpass observability receipt JSON",
+                    result["result"]["errors"],
+                )
+                self.assertIsNone(result["selected"])
+                self.assertIsNone(result["index"])
 
 
 class IndependentRelationScopeValidation(unittest.TestCase):
@@ -1518,6 +1972,13 @@ class _QA:
         }
         _write(self.scope_trust_path, trust)
 
+    def add_overpass_receipt(self, receipt=None):
+        value = receipt or _overpass_receipt(
+            len(self.documents["discovery_report"]["candidates"]))
+        self.documents["overpass_receipt"] = value
+        _write(self.root / validator.OVERPASS_RECEIPT_RELATIVE, value)
+        self._refresh_manifest_seals()
+
     def _refresh_manifest_seals(self):
         relatives = sorted([
             *[relative for label, relative in validator.REQUIRED_JSON_FILES.items()
@@ -1528,6 +1989,9 @@ class _QA:
         optional = self.root / validator.OPTIONAL_DROPPED_ROUTES
         if optional.is_file():
             relatives.append(validator.OPTIONAL_DROPPED_ROUTES)
+        overpass = self.root / validator.OVERPASS_RECEIPT_RELATIVE
+        if overpass.is_file():
+            relatives.append(validator.OVERPASS_RECEIPT_RELATIVE)
         scopes = {
             validator.RAW_RELATION_MEMBERS_RELATIVE: "raw-denmark",
             validator.PREFILTER_RELATION_MEMBERS_RELATIVE:
@@ -1548,6 +2012,8 @@ class _QA:
             validator.GOLDEN_RELATIVE: "validation-only-no-geometry",
             validator.VISUAL_RELATIVE: "offline-osm-visual",
             validator.VISUAL_REVIEW_RELATIVE: "offline-osm-visual-review",
+            validator.OVERPASS_RECEIPT_RELATIVE:
+                "overpass-query-observability",
         }
         artifacts = {}
         for relative in relatives:
@@ -2044,7 +2510,7 @@ class _QA:
 
 class FinalValidation(unittest.TestCase):
     def _run(self, mutate=None, *, remove=None, malformed=None, optional=None,
-             trust_in_package=False):
+             trust_in_package=False, require_overpass_receipt=False):
         with TemporaryDirectory() as tmp:
             root = Path(tmp) / "qa"
             qa = _QA(root)
@@ -2062,7 +2528,7 @@ class FinalValidation(unittest.TestCase):
                 _write(root / validator.OPTIONAL_DROPPED_ROUTES, optional)
                 qa._refresh_manifest_seals()
             result_path = root / "validation/final.json"
-            rc = validator.main([
+            arguments = [
                 "final",
                 "--qa-dir", str(root),
                 "--scope-trust-file", str(trust_path),
@@ -2074,7 +2540,10 @@ class FinalValidation(unittest.TestCase):
                     root / validator.AOI_RELATION_MEMBERS_RELATIVE),
                 "--expected-osm-relation-id", str(RELATION_ID),
                 "--result-json", str(result_path),
-            ])
+            ]
+            if require_overpass_receipt:
+                arguments.append("--require-overpass-receipt")
+            rc = validator.main(arguments)
             return rc, json.loads(result_path.read_text())
 
     def assert_rejected(self, mutate=None, **kwargs):
@@ -2087,6 +2556,83 @@ class FinalValidation(unittest.TestCase):
         rc, result = self._run()
         self.assertEqual(rc, 0, result["errors"])
         self.assertEqual(result["assembled_trail_count"], 2)
+        self.assertNotIn(
+            validator.OVERPASS_RECEIPT_RELATIVE, result["checked_files"])
+
+    def test_new_package_requires_and_seals_valid_overpass_receipt(self):
+        def add_receipt(qa):
+            qa.add_overpass_receipt()
+
+        rc, result = self._run(
+            add_receipt, require_overpass_receipt=True)
+        self.assertEqual(rc, 0, result["errors"])
+        self.assertIn(
+            validator.OVERPASS_RECEIPT_RELATIVE, result["checked_files"])
+
+    def test_required_missing_and_present_incomplete_receipts_fail(self):
+        rc, result = self._run(require_overpass_receipt=True)
+        self.assertEqual(rc, 1)
+        self.assertIn(
+            "missing or unsafe Overpass observability receipt",
+            result["errors"],
+        )
+
+        def incomplete(qa):
+            qa.add_overpass_receipt(_overpass_receipt(
+                1,
+                completion={"state": "in-progress", "reason": "running"},
+            ))
+
+        rc, result = self._run(incomplete)
+        self.assertEqual(rc, 1)
+        self.assertIn(
+            "Overpass observability receipt is incomplete",
+            result["errors"],
+        )
+
+    def test_symlinked_receipt_is_unsafe_and_never_accepted(self):
+        def symlink_receipt(qa):
+            path = qa.root / validator.OVERPASS_RECEIPT_RELATIVE
+            path.symlink_to(qa.root / "discovery/report.json")
+
+        rc, result = self._run(
+            symlink_receipt, require_overpass_receipt=True)
+        self.assertEqual(rc, 1)
+        self.assertIn(
+            "missing or unsafe Overpass observability receipt",
+            result["errors"],
+        )
+
+    def test_receipt_manifest_scope_and_post_seal_bytes_are_enforced(self):
+        def wrong_scope(qa):
+            qa.add_overpass_receipt()
+            manifest = qa.documents["manifest"]
+            manifest["artifacts"][validator.OVERPASS_RECEIPT_RELATIVE][
+                "source_scope"] = "runner-local-qa"
+            _write(qa.root / "manifest.json", manifest)
+
+        rc, result = self._run(wrong_scope)
+        self.assertEqual(rc, 1)
+        self.assertIn(
+            "manifest source scope is invalid: "
+            + validator.OVERPASS_RECEIPT_RELATIVE,
+            result["errors"],
+        )
+
+        def tamper_after_seal(qa):
+            qa.add_overpass_receipt()
+            path = qa.root / validator.OVERPASS_RECEIPT_RELATIVE
+            receipt = json.loads(path.read_text())
+            receipt["attempts"][0]["response_sha256"] = "0" * 64
+            _write(path, receipt)
+
+        rc, result = self._run(tamper_after_seal)
+        self.assertEqual(rc, 1)
+        self.assertIn(
+            "manifest artifact seal is invalid: "
+            + validator.OVERPASS_RECEIPT_RELATIVE,
+            result["errors"],
+        )
 
     def test_scope_trust_must_remain_outside_rewriteable_package(self):
         rc, result = self._run(trust_in_package=True)

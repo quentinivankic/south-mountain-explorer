@@ -213,7 +213,7 @@ jobs:
               "branch_ref": os.environ["GITHUB_REF_NAME"],
               "source_sha": os.environ["GITHUB_SHA"],
               "inputs": inputs,
-              "visual_review_url": "http://localhost:8000/viewer/?aoi=mols-bjerge",
+              "visual_review_url": "http://127.0.0.1:8000/viewer/?aoi=mols-bjerge",
               "attribution": "© OpenStreetMap contributors",
           }
           (root / "manifest.json").write_text(
@@ -226,9 +226,10 @@ jobs:
               "includes sealed raw-Denmark authority, full-prefilter witness, "
               "and AOI render-scope relation ledgers plus the compact AOI PBF, "
               "exact app preview, validation-only golden record, and a "
-              "network-free SVG. Download this artifact, "
-              "run `python3 viewer/serve.py` from any directory, and open "
-              "http://localhost:8000/viewer/?aoi=mols-bjerge.\n\n"
+              "network-free SVG. Download this artifact, start its loopback-only "
+              "viewer (bound only to 127.0.0.1) by running "
+              "`python3 viewer/serve.py` from any directory, and open "
+              "http://127.0.0.1:8000/viewer/?aoi=mols-bjerge.\n\n"
               "Dispatch inputs:\n```json\n"
               + json.dumps(inputs, indent=2)
               + "\n```\n\n© OpenStreetMap contributors\n",

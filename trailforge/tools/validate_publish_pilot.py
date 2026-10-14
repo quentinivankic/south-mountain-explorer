@@ -30,7 +30,7 @@ AREA_ID = "nationalpark-mols-bjerge-dk"
 AREA_NAME = "Nationalpark Mols Bjerge"
 STATE = "Denmark"
 ATTRIBUTION = "© OpenStreetMap contributors"
-VISUAL_REVIEW_URL = "http://localhost:8000/viewer/?aoi=mols-bjerge"
+VISUAL_REVIEW_URL = "http://127.0.0.1:8000/viewer/?aoi=mols-bjerge"
 _UNNAMED = re.compile(r"Unnamed \d+")
 OVERLAP_THRESHOLD = 0.90
 _DESTINATION_POI_CLASSES = (

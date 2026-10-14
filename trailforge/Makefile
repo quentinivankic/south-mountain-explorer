@@ -24,7 +24,7 @@ help:
 	@echo "  assemble          assemble trails (NAME=sedona [AREA=\"south mountain\"] [MINLEN=0.1] [MININ=0.05] [REGION=vt])"
 	@echo "  golden            run the full golden-trail regression suite"
 	@echo "  verify-golden     validate golden.json (SNAP=1 on homelab to snap coords to OSM)"
-	@echo "  qa                serve the local viewer at http://localhost:8000"
+	@echo "  qa                serve the local viewer at http://127.0.0.1:8000"
 	@echo "  test              run unit tests"
 
 setup:

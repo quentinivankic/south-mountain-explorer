@@ -83,7 +83,7 @@ transitively (the Te Araroa fix). Reuse the approach in the assembler.
    (SPEC.md §4/§7 Q1).
 2. **Prove Devils Bridge on real data:**
    `make aoi && make assemble && make qa` → open
-   `http://localhost:8000/viewer/?aoi=sedona`. Check the assembled
+   `http://127.0.0.1:8000/viewer/?aoi=sedona`. Check the assembled
    "Devils Bridge Trail" (orange) now reaches the arch — the founding
    fix, on real OSM this time.
 3. **Snap the golden coords:** `make verify-golden SNAP=1` → writes
@@ -102,7 +102,7 @@ transitively (the Te Araroa fix). Reuse the approach in the assembler.
    — that split is the honest read on "is OSM good enough?": lots of
    `missing-data` = a coverage problem; lots of `assembly-gap` = a
    tune-the-code problem. Then `make qa` →
-   `http://localhost:8000/viewer/?aoi=golden` for the visual version
+   `http://127.0.0.1:8000/viewer/?aoi=golden` for the visual version
    (markers colored by result; click one for its diagnosis + welds).
    Iterate against the `assembly-gap` reds first; send me the table and I
    hand you exact threshold edits.

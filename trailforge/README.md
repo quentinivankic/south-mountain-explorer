@@ -27,7 +27,7 @@ make download-extract          # north-america first; planet later
 make prefilter                 # stream-filter -> data/hiking.osm.pbf
 make aoi                       # Sedona bbox -> data/aoi/sedona.raw.geojson
 make verify-golden             # golden.json structural check
-make qa                        # viewer at http://localhost:8000/viewer/
+make qa                        # viewer at http://127.0.0.1:8000/viewer/
 ```
 
 `make aoi` uses the original generic contract: `osmium extract`, then a

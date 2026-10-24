@@ -1,0 +1,50 @@
+name: Release contract safety (offline, no secrets)
+
+on:
+  pull_request: {}
+  push: {}
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  offline-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AWS_EC2_METADATA_DISABLED: "true"
+      NO_PROXY: "*"
+      no_proxy: "*"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PIP_NO_INDEX: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.8"
+      - name: Compile exact contracts, tests, and pinned key producers
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            scripts/stage-changed-r2.py \
+            scripts/cleanup-r2-orphans.py \
+            scripts/r2_release_contract.py \
+            scripts/trailforge_candidate_contract.py \
+            scripts/test_r2_release_contract.py \
+            scripts/test_trailforge_candidate_contract.py \
+            trailforge/serve/publish_areas.py \
+            scripts/build-trail-search-index.py \
+            scripts/build-parking-pool.py \
+            scripts/build-trail-shapes.py \
+            scripts/merge-published-geom.py \
+            scripts/silhouettes-from-geom.py \
+            scripts/filter-ios-bundle.py
+      - name: Run R2 release, quarantine, and exact producer-graph suite
+        run: python3 scripts/test_r2_release_contract.py
+      - name: Run Trailforge 51-lane candidate contract suite
+        run: python3 scripts/test_trailforge_candidate_contract.py
+      - name: Revalidate the exact workflow contract
+        run: python3 scripts/trailforge_candidate_contract.py validate-workflow .github/workflows/trailforge-publish-us.yml

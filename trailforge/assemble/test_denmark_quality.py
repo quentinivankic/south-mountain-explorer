@@ -297,13 +297,21 @@ class RelationConnectivity(unittest.TestCase):
                 clipped, ways=ways, nodes=nodes, area_union=boundary,
                 area_name=AREA, region="dk", relation_member_audit=audits)
 
-        failed, _, failed_report = run(False)
-        self.assertEqual(failed[0]["properties"]["connectivity"]["status"],
+        failed, failed_removed, failed_report = run(False)
+        self.assertEqual(failed, [])
+        self.assertEqual(len(failed_removed), 1)
+        failed_properties = failed_removed[0]["properties"]
+        self.assertEqual(failed_properties["connectivity"]["status"],
                          "rejected")
-        self.assertEqual(
-            failed[0]["properties"]["quality_disposition"],
-            "unresolved-relation-gap")
+        self.assertEqual(failed_properties["removed_category"],
+                         "unresolved-relation-gap")
+        self.assertEqual(failed_properties["drop_evidence"], {
+            "kind": "denmark-quality",
+            "category": "unresolved-relation-gap",
+            "reason": "unresolved-source-connectivity",
+        })
         self.assertEqual(failed_report["signed_relation_unresolved_count"], 1)
+        self.assertEqual(failed_report["validation_failures"], [])
 
         passed, removed, passed_report = run(True)
         self.assertEqual(removed, [])
@@ -323,16 +331,15 @@ class RelationConnectivity(unittest.TestCase):
 
         kept, removed, report = curate([trail], ways, nodes)
 
-        self.assertEqual(len(kept), 1)
-        self.assertEqual(removed, [])
-        self.assertEqual(kept[0]["geometry"]["coordinates"], original)
-        self.assertEqual(kept[0]["properties"]["quality_disposition"],
+        self.assertEqual(kept, [])
+        self.assertEqual(len(removed), 1)
+        self.assertEqual(removed[0]["geometry"]["coordinates"], original)
+        self.assertEqual(removed[0]["properties"]["removed_category"],
                          "unresolved-relation-gap")
         self.assertEqual(report["signed_relation_unresolved_count"], 1)
         self.assertEqual(report["signed_relation_unresolved"][0]["name"],
                          "Distinct Node Gap")
-        self.assertTrue(any(error.startswith("unresolved-relation-gap:")
-                            for error in report["validation_failures"]))
+        self.assertEqual(report["validation_failures"], [])
         self.assertNotIn("relation_endpoint_tolerance_m", report)
 
     def test_shared_node_t_junction_is_connected(self):
@@ -358,10 +365,14 @@ class RelationConnectivity(unittest.TestCase):
 
         kept, removed, report = curate([trail], ways, nodes)
 
-        self.assertEqual(len(kept), 1)
-        self.assertEqual(removed, [])
+        self.assertEqual(kept, [])
+        self.assertEqual(len(removed), 1)
+        self.assertEqual(
+            removed[0]["properties"]["removed_category"],
+            "unresolved-relation-gap")
         self.assertEqual(report["signed_relation_unresolved_count"], 1)
-        self.assertEqual(kept[0]["properties"]["connectivity"]["source_components"], 2)
+        self.assertEqual(
+            removed[0]["properties"]["connectivity"]["source_components"], 2)
 
     def test_signed_hiking_relation_retains_walkable_road_member_only_in_route(self):
         nodes = {1: (0, 0), 2: (0.01, 0),
@@ -420,12 +431,26 @@ class RelationConnectivity(unittest.TestCase):
                     "tags": {"type": "route", "route": "hiking", "name": "Restricted"},
                     "members": [("w", 10, ""), ("w", 11, ""), ("w", 12, "")],
                 }}
-                trail = m.assemble(nodes, ways, relations, [], region="dk")[0]
+                audits = []
+                trail = m.assemble(
+                    nodes, ways, relations, [], region="dk",
+                    collect_relation_member_audit=audits)[0]
                 self.assertEqual(trail.member_ways, [10, 12])
-                kept, removed, report = curate([trail], ways, nodes)
-                self.assertEqual(len(kept), 1)
-                self.assertEqual(removed, [])
+                kept, removed, report = quality.curate_exact_area(
+                    prepared([trail], ways), ways=ways, nodes=nodes,
+                    area_union=box(-2, -2, 20, 20), area_name=AREA,
+                    region="dk", relation_member_audit=audits)
+                self.assertEqual(kept, [])
+                self.assertEqual(len(removed), 1)
+                self.assertEqual(
+                    removed[0]["properties"]["removed_category"],
+                    "unresolved-relation-gap")
                 self.assertEqual(report["signed_relation_unresolved_count"], 1)
+                self.assertEqual(report["relation_member_unresolved_count"], 1)
+                self.assertIn(
+                    "unsafe-member-in-exact-area",
+                    report["relation_member_unresolved"][0]["reasons"])
+                self.assertEqual(report["validation_failures"], [])
 
     def _curate_road_fraction(self, road_miles, total_miles):
         miles_per_degree = math.pi * 3958.7613 / 180.0

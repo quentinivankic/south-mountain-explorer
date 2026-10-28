@@ -30,6 +30,7 @@ _EXPECTED_UNRESOLVED = [
     "Toggerbo-stien", "Tinghulestien", "Langs Kysten", "Den gamle købstad",
 ]
 _EXPECTED_REMOVED = {
+    "unresolved-relation-gap": _EXPECTED_UNRESOLVED,
     "disconnected-name-stitch": [
         "Lyngevej", "Skolestien", "Gl. Møllevej", "Provstskovvej",
         "Ved Mølleåen", "Møgelbjergvej", "Gravlevstien", "Jægergårdsvej",
@@ -182,8 +183,8 @@ class Run33Replay(unittest.TestCase):
                 properties.get("name"))
 
         self.assertEqual(report["candidate_count"], 70)
-        self.assertEqual(report["kept_count"], 35)
-        self.assertEqual(report["removed_count"], 35)
+        self.assertEqual(report["kept_count"], 19)
+        self.assertEqual(report["removed_count"], 51)
         self.assertEqual(dispositions, _EXPECTED_DISPOSITION_SEQUENCE)
         self.assertEqual(removed_by_category, _EXPECTED_REMOVED)
         self.assertEqual(

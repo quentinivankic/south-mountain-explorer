@@ -3798,6 +3798,91 @@ class FinalValidation(unittest.TestCase):
         self.assertTrue(any("unresolved-relation-gap" in error
                             for error in result["errors"]))
 
+    def test_unresolved_relation_is_valid_only_as_typed_quality_exclusion(self):
+        def qualify(qa, *, reported_components=2):
+            records = [
+                _source_record(10, [1, 2], [[10.5, 56.15], [10.52, 56.15]],
+                               {"highway": "path"}, direct=[700]),
+                _source_record(11, [3, 4], [[10.7, 56.2], [10.75, 56.2]],
+                               {"highway": "path"}, direct=[700]),
+            ]
+            qa.set_relation(
+                records, [record["coordinates"] for record in records],
+                reported_components=reported_components)
+            feature = qa.documents["trails"]["features"].pop(0)
+            properties = feature["properties"]
+            properties.update({
+                "quality_disposition":
+                    validator._UNRESOLVED_RELATION_REMOVAL_CATEGORY,
+                "removed_category":
+                    validator._UNRESOLVED_RELATION_REMOVAL_CATEGORY,
+                "removed_reason":
+                    validator._UNRESOLVED_RELATION_REMOVAL_REASON,
+                "drop_evidence": copy.deepcopy(
+                    validator._UNRESOLVED_RELATION_DROP_EVIDENCE),
+            })
+            qa.documents["removed"]["features"].append(feature)
+            report = qa.documents["assembly_report"]
+            quality = report["quality"]
+            quality.update({
+                "kept_count": 1,
+                "removed_count": 1,
+                "removed_counts": {"unresolved-relation-gap": 1},
+                "signed_relation_unresolved_count": 1,
+                "signed_relation_unresolved_miles": 1.0,
+                "signed_relation_unresolved": [{
+                    "name": properties["name"],
+                    "key": properties["ckey"],
+                    "relation_ids": [700],
+                    "miles": 1.0,
+                    "source_components": reported_components,
+                    "postclip_components": 2,
+                    "missing_way_ids": [],
+                }],
+                "validation_failures": [],
+            })
+            audit = next(
+                row for row in quality["relation_member_audit"]
+                if row["relation_id"] == 700)
+            audit["emitted_in_exact_area"] = False
+            quality["restored_road_relations"] = [
+                row for row in quality["restored_road_relations"]
+                if row["relation_id"] != 700
+            ]
+            rows = quality["restored_road_relations"]
+            restored = sum(row["restored_miles"] for row in rows)
+            total = sum(row["total_relation_miles"] for row in rows)
+            quality["restored_road_aggregate"] = {
+                "restored_way_count": sum(
+                    row["restored_way_count"] for row in rows),
+                "restored_miles": round(restored, 6),
+                "total_relation_miles": round(total, 6),
+                "restored_share": round(restored / total, 6) if total else 0.0,
+            }
+            report["post_clip_trail_count"] = 1
+            report["assembled_trail_count"] = 1
+            qa._sync_declined_promotion_decisions()
+            qa.rewrite("trails")
+            qa.rewrite("removed")
+            qa.rewrite("assembly_report")
+
+        rc, result = self._run(qualify)
+        self.assertEqual(rc, 0, result["errors"])
+        self.assertEqual(result["assembled_trail_count"], 1)
+
+        def tampered_evidence(qa):
+            qualify(qa)
+            feature = qa.documents["removed"]["features"][-1]
+            feature["properties"]["drop_evidence"]["reason"] = "hidden"
+            qa.rewrite("removed")
+
+        self.assert_rejected(tampered_evidence)
+
+        def connected_candidate(qa):
+            qualify(qa, reported_components=1)
+
+        self.assert_rejected(connected_candidate)
+
     def test_publisher_cardinality_and_write_failures_are_rejected(self):
         def zero_index(qa):
             qa.documents["publish_report"]["index_area_count"] = 0
@@ -5262,6 +5347,293 @@ class FinalValidation(unittest.TestCase):
 
 
 @unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
+class UnresolvedDroppedRootContamination(unittest.TestCase):
+    """Fail closed when an unresolved dropped root leaks into an output."""
+
+    def setUp(self):
+        self.boundary_feature = {
+            "type": "Feature",
+            "properties": {},
+            "geometry": _polygon_geometry(),
+        }
+        self.boundary = shape(self.boundary_feature["geometry"])
+        self.dropped_a = _source_record(
+            10, [1, 2], [[10.50, 56.15], [10.55, 56.15]],
+            {"highway": "path", "name": "Dropped A"})
+        self.dropped_b = _source_record(
+            11, [3, 4], [[10.70, 56.20], [10.75, 56.20]],
+            {"highway": "path", "name": "Dropped B"})
+        self.clean_way = _source_record(
+            20, [20, 21], [[10.70, 56.30], [10.75, 56.30]],
+            {"highway": "path", "name": "Clean Output"})
+        self.authority = self._authority(
+            {700: [10, 11]}, [self.dropped_a, self.dropped_b],
+            {700: {
+                "name": "Dropped Trail", "route": "hiking",
+                "type": "route",
+            }})
+        self.raw_ways = self._raw_way_map([
+            self.dropped_a, self.dropped_b, self.clean_way])
+        self.removed = self._feature(
+            700, [self.dropped_a, self.dropped_b], 0, "Dropped Trail",
+            validator._UNRESOLVED_RELATION_REMOVAL_CATEGORY)
+        self.clean = self._feature(
+            None, [self.clean_way], 1, "Clean Output", "kept")
+        self.quality = self._quality(
+            self.authority, emitted_roots=set(),
+            relation_features=[self.removed])
+
+    def _authority(self, direct, records, relation_tags):
+        parsed = {}
+        errors = []
+        for scope in ("raw-denmark", "prefiltered-denmark", "aoi"):
+            document = _relation_graph(
+                direct, records, relation_tags=relation_tags, scope=scope)
+            parsed[scope] = validator._validate_relation_ledger_v2(
+                document, scope, errors)
+        self.assertEqual(errors, [])
+        authority = parsed["raw-denmark"]
+        authority["scopes"] = parsed
+        return authority
+
+    @staticmethod
+    def _raw_way_map(records):
+        return {
+            record["way_id"]: {
+                "node_ids": list(record["node_ids"]),
+                "missing_node_ids": list(
+                    record.get("missing_node_ids") or []),
+                "coordinates": [
+                    tuple(point) for point in record["coordinates"]],
+                "tags": dict(record["tags"]),
+            }
+            for record in records
+        }
+
+    @staticmethod
+    def _feature(root_id, records, index, name, disposition, rendered=None):
+        source = "relation" if root_id is not None else "name-stitch"
+        records = [
+            {
+                **copy.deepcopy(record),
+                "direct_relation_ids": (
+                    [root_id] if root_id is not None else []),
+            }
+            for record in records
+        ]
+        way_ids = [record["way_id"] for record in records]
+        occurrences = (
+            [_occurrence(root_id, root_id, position, way_id)
+             for position, way_id in enumerate(way_ids)]
+            if root_id is not None else [])
+        lines = copy.deepcopy(
+            rendered if rendered is not None
+            else [record["coordinates"] for record in records])
+        source_components = validator._source_component_count(records)
+        postclip_components = validator._line_component_count(lines)
+        accepted = source_components == 1 and postclip_components == 1
+        properties = {
+            "name": name,
+            "area": validator.AREA_NAME,
+            "kind": "trail",
+            "source": source,
+            "length_mi": round(validator._linework_miles(lines), 3),
+            "member_ways": way_ids,
+            "member_way_occurrences": occurrences,
+            "source_evidence_schema_version": 2,
+            "rendered_way_lineage_version": 1,
+            "rendered_way_lineage": _record_lineage(
+                records, occurrences, lines),
+            "ckey": "w" + "-".join(
+                str(way_id) for way_id in sorted(way_ids)),
+            "quality_candidate_index": index,
+            "quality_disposition": disposition,
+            "boundary_induced_split": False,
+            "relation_ids": [root_id] if root_id is not None else [],
+            "root_relation_ids": [root_id] if root_id is not None else [],
+            "direct_relation_way_ids": (
+                {root_id: way_ids} if root_id is not None else {}),
+            "source_geometry_way_ids": way_ids,
+            "restored_relation_way_ids": [],
+            "source_ways": records,
+            "walking_identity": validator._walking_identity(records),
+            "rendered_source_way_ids": way_ids,
+            "connectivity": {
+                "status": "accepted" if accepted else "rejected",
+                "accepted_reasons": (
+                    ["shared-osm-node"] if source_components == 1 else []),
+                "source_components": source_components,
+                "postclip_components": postclip_components,
+                "missing_way_ids": [],
+                "exact_boundary_clip": True,
+            },
+        }
+        if disposition == validator._UNRESOLVED_RELATION_REMOVAL_CATEGORY:
+            properties.update({
+                "removed_category": disposition,
+                "removed_reason":
+                    validator._UNRESOLVED_RELATION_REMOVAL_REASON,
+                "drop_evidence": copy.deepcopy(
+                    validator._UNRESOLVED_RELATION_DROP_EVIDENCE),
+            })
+        return {
+            "type": "Feature",
+            "properties": properties,
+            "geometry": {"type": "MultiLineString", "coordinates": lines},
+        }
+
+    def _quality(self, authority, emitted_roots, relation_features):
+        audits = []
+        unresolved = []
+        for root_id in authority["accepted_relation_ids"]:
+            expected = validator._expected_relation_audit(
+                root_id, authority, self.boundary)
+            status = validator._derived_assembly_status(
+                root_id, expected, authority)
+            reasons, record = validator._audit_resolution({
+                **expected, "assembly_status": status,
+            })
+            audits.append({
+                **expected,
+                "assembly_status": status,
+                "emitted_in_exact_area": root_id in emitted_roots,
+                "review_status": "unresolved" if reasons else "accepted",
+                "unresolved_reasons": reasons,
+            })
+            if record is not None:
+                unresolved.append(record)
+        decisions = []
+        for feature in sorted(
+                relation_features,
+                key=lambda row: row["properties"]["quality_candidate_index"]):
+            properties = feature["properties"]
+            decisions.append({
+                "candidate_index": properties["quality_candidate_index"],
+                "candidate_ckey": properties["ckey"],
+                "root_relation_ids": properties["root_relation_ids"],
+                "decision": "declined",
+                "reason": "not-route-candidate",
+                "skipped_ambiguous_pois": [],
+            })
+        return {
+            "relation_member_audit": audits,
+            "relation_member_unresolved": unresolved,
+            "relation_member_unresolved_count": len(unresolved),
+            "promotion_decisions": decisions,
+        }
+
+    def _audit_errors(self, authority, quality, candidates, removed, raw_ways):
+        errors = []
+        validator._validate_relation_member_audit(
+            copy.deepcopy(quality), copy.deepcopy(authority), candidates,
+            removed, raw_ways, self.boundary, errors)
+        return errors
+
+    def _assert_valid_rootless(self, feature, raw_ways):
+        errors = []
+        rebuilt = validator._candidate_source_evidence(
+            feature, self.boundary_feature, raw_ways,
+            copy.deepcopy(self.authority), "rootless oracle", errors)
+        self.assertTrue(rebuilt["accepted"], errors)
+        self.assertEqual(rebuilt["identity"], "explicit")
+        validator._validate_trails(
+            [feature], self.boundary_feature, raw_ways,
+            copy.deepcopy(self.authority), errors)
+        self.assertEqual(errors, [])
+
+    def _assert_contamination_rejected(self, feature, raw_ways):
+        self._assert_valid_rootless(feature, raw_ways)
+        errors = self._audit_errors(
+            self.authority, self.quality,
+            [self.clean, feature, self.removed], [self.removed], raw_ways)
+        self.assertEqual(errors, [
+            "dropped relation root r700 unexpectedly ships in "
+            "output candidate[1]",
+        ])
+
+    def test_clean_uncontaminated_unresolved_removal_is_accepted(self):
+        self._assert_valid_rootless(self.clean, self.raw_ways)
+        self.assertEqual(self._audit_errors(
+            self.authority, self.quality, [self.clean, self.removed],
+            [self.removed], self.raw_ways), [])
+
+    def test_unresolved_removal_rejects_shared_dropped_way_identity(self):
+        output = self._feature(
+            None, [self.dropped_a], 2, "Shared Identity Output", "kept")
+        self._assert_contamination_rejected(output, self.raw_ways)
+
+    def test_unresolved_removal_rejects_different_way_exact_geometry_alias(self):
+        alias = _source_record(
+            30, [30, 31], self.dropped_a["coordinates"],
+            {"highway": "path", "name": "Geometry Alias"})
+        raw_ways = {**self.raw_ways, **self._raw_way_map([alias])}
+        output = self._feature(
+            None, [alias], 2, "Geometry Alias Output", "kept")
+        self._assert_contamination_rejected(output, raw_ways)
+
+    def test_unresolved_removal_rejects_fused_alias_linework(self):
+        alias = _source_record(
+            30, [30, 31], self.dropped_a["coordinates"],
+            {"highway": "path", "name": "Fused Alias"})
+        extension = _source_record(
+            31, [29, 30], [[10.49, 56.15], [10.50, 56.15]],
+            {"highway": "path", "name": "Fused Alias"})
+        raw_ways = {
+            **self.raw_ways, **self._raw_way_map([alias, extension])}
+        output = self._feature(
+            None, [alias, extension], 2, "Fused Alias Output", "kept",
+            rendered=[[
+                [10.49, 56.15], [10.50, 56.15], [10.55, 56.15],
+            ]])
+        self._assert_contamination_rejected(output, raw_ways)
+
+    def test_shared_linework_owned_by_matched_survivor_is_accepted(self):
+        authority = self._authority(
+            {700: [10, 11], 701: [10]},
+            [self.dropped_a, self.dropped_b], {
+                700: {
+                    "name": "Dropped Trail", "route": "hiking",
+                    "type": "route",
+                },
+                701: {
+                    "name": "Survivor Trail", "route": "hiking",
+                    "type": "route",
+                },
+            })
+        removed = self._feature(
+            700, [self.dropped_a, self.dropped_b], 0, "Dropped Trail",
+            validator._UNRESOLVED_RELATION_REMOVAL_CATEGORY)
+        survivor = self._feature(
+            701, [self.dropped_a], 1, "Survivor Trail", "kept")
+        quality = self._quality(
+            authority, emitted_roots={701},
+            relation_features=[removed, survivor])
+        observed = []
+        original = validator._dropped_root_output_contamination
+
+        def capture(dropped_root, output, authorized_roots):
+            result = original(dropped_root, output, authorized_roots)
+            observed.append((dropped_root, output, authorized_roots, result))
+            return result
+
+        with patch.object(
+                validator, "_dropped_root_output_contamination",
+                side_effect=capture):
+            errors = self._audit_errors(
+                authority, quality, [survivor, removed], [removed],
+                self._raw_way_map([self.dropped_a, self.dropped_b]))
+        self.assertEqual(errors, [])
+        self.assertEqual(len(observed), 1)
+        dropped_root, output, authorized_roots, result = observed[0]
+        self.assertEqual(dropped_root["eligible_main_way_ids"], [10, 11])
+        self.assertEqual(output["way_ids"], {10})
+        self.assertEqual(
+            [root["eligible_main_way_ids"] for root in authorized_roots],
+            [[10]])
+        self.assertEqual(result, ([], False))
+
+
+@unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
 class ProducerValidatorRoundTrip(unittest.TestCase):
     def _run(self, case, mutate=None):
         with TemporaryDirectory() as tmp:
@@ -6526,21 +6898,22 @@ class ProducerValidatorRoundTrip(unittest.TestCase):
                         member_90[0]["properties"]["source"], "name-stitch")
 
     def test_fused_roots_producer_to_final_requires_every_proof(self):
-        failed_rc, failed_result, failed_trails, _, failed_report = self._run(
-            "fused-one-proof")
-        self.assertEqual(failed_rc, 1)
+        failed_rc, failed_result, failed_trails, failed_removed, \
+            failed_report = self._run("fused-one-proof")
+        self.assertEqual(failed_rc, 0, failed_result["errors"])
+        self.assertFalse(any(
+            (feature.get("properties") or {}).get("root_relation_ids") ==
+            [700, 701] for feature in failed_trails["features"]))
         fused = next(
-            feature for feature in failed_trails["features"]
+            feature for feature in failed_removed["features"]
             if (feature.get("properties") or {}).get("root_relation_ids") ==
             [700, 701])
         self.assertEqual(
-            fused["properties"]["quality_disposition"],
+            fused["properties"]["removed_category"],
             "unresolved-relation-gap")
         self.assertEqual(
             failed_report["quality"]["signed_relation_unresolved_count"], 1)
-        self.assertTrue(any("unresolved-relation-gap" in error
-                            for error in failed_result["errors"]),
-                        failed_result["errors"])
+        self.assertEqual(failed_report["quality"]["validation_failures"], [])
 
         passed_rc, passed_result, passed_trails, _, passed_report = self._run(
             "fused-both-proofs")
@@ -6576,14 +6949,23 @@ class ProducerValidatorRoundTrip(unittest.TestCase):
         )
         for service, accepted in cases:
             with self.subTest(service=service):
-                rc, result, trails, _, report = self._run(
+                rc, result, trails, removed, report = self._run(
                     f"service:{service}")
-                self.assertEqual(rc == 0, accepted, result["errors"])
-                properties = trails["features"][0]["properties"]
+                self.assertEqual(rc, 0, result["errors"])
+                population = (trails if accepted else removed)["features"]
+                feature = next(
+                    row for row in population
+                    if (row.get("properties") or {}).get(
+                        "root_relation_ids") == [700])
+                properties = feature["properties"]
                 self.assertEqual(11 in properties["member_ways"], accepted)
                 self.assertEqual(
                     properties["direct_relation_way_ids"]["700"],
                     [10, 11, 12])
+                if not accepted:
+                    self.assertEqual(
+                        properties["removed_category"],
+                        "unresolved-relation-gap")
                 audit = report["quality"]["relation_member_audit"][0]
                 self.assertEqual(
                     audit["direct_way_members"][1]["status"],
@@ -6606,10 +6988,15 @@ class ProducerValidatorRoundTrip(unittest.TestCase):
         )
         for lanes, accepted in cases:
             with self.subTest(lanes=lanes):
-                rc, result, trails, _, report = self._run(
+                rc, result, trails, removed, report = self._run(
                     f"track-lanes:{lanes}")
-                self.assertEqual(rc == 0, accepted, result["errors"])
-                properties = trails["features"][0]["properties"]
+                self.assertEqual(rc, 0, result["errors"])
+                population = (trails if accepted else removed)["features"]
+                feature = next(
+                    row for row in population
+                    if (row.get("properties") or {}).get(
+                        "root_relation_ids") == [700])
+                properties = feature["properties"]
                 self.assertEqual(11 in properties["member_ways"], accepted)
                 audit = report["quality"]["relation_member_audit"][0]
                 member = audit["direct_way_members"][1]
@@ -6620,6 +7007,9 @@ class ProducerValidatorRoundTrip(unittest.TestCase):
                     self.assertEqual(properties["restored_relation_way_ids"],
                                      [11])
                 else:
+                    self.assertEqual(
+                        properties["removed_category"],
+                        "unresolved-relation-gap")
                     self.assertEqual(member["exclusion_reason"],
                                      "road-like-track-tag")
                     self.assertIn("unsafe-member-in-exact-area",
@@ -8345,14 +8735,19 @@ class ProducerValidatorRoundTrip(unittest.TestCase):
                          "boundary-induced-split")
         self.assertEqual(report["quality"]["validation_failures"], [])
 
-    def test_real_exact_area_producer_keeps_but_rejects_unresolved_relation(self):
+    def test_real_exact_area_producer_excludes_unresolved_relation(self):
         rc, result, trails, removed, report = self._run("disconnected")
-        self.assertEqual(rc, 1)
-        self.assertEqual(len(trails["features"]), 2)
-        self.assertEqual(removed["features"], [])
+        self.assertEqual(rc, 0, result["errors"])
+        self.assertEqual(len(trails["features"]), 1)
+        excluded = next(
+            feature for feature in removed["features"]
+            if (feature.get("properties") or {}).get(
+                "root_relation_ids") == [700])
+        self.assertEqual(
+            excluded["properties"]["removed_category"],
+            "unresolved-relation-gap")
         self.assertEqual(report["quality"]["signed_relation_unresolved_count"], 1)
-        self.assertTrue(any("unresolved-relation-gap" in error
-                            for error in result["errors"]))
+        self.assertEqual(report["quality"]["validation_failures"], [])
 
 
 if __name__ == "__main__":

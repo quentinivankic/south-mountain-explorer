@@ -43,6 +43,11 @@ _QUALITY_REMOVAL_REASONS = {
         "Low-authority rootless name stitch is at least 90% nested in a signed "
         "relation-backed object."
     ),
+    "unresolved-relation-gap": (
+        "Signed relation source linework is disconnected under exact OSM node "
+        "identity; excluded from publishable trails and retained in QA "
+        "diagnostics."
+    ),
 }
 
 
@@ -502,6 +507,12 @@ def _mark_removed(feature: dict[str, Any], category: str) -> dict[str, Any]:
     properties["quality_disposition"] = category
     properties["removed_category"] = category
     properties["removed_reason"] = _QUALITY_REMOVAL_REASONS[category]
+    if category == "unresolved-relation-gap":
+        properties["drop_evidence"] = {
+            "kind": "denmark-quality",
+            "category": category,
+            "reason": "unresolved-source-connectivity",
+        }
     return feature
 
 
@@ -783,9 +794,9 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                        ) -> tuple[list, list, dict]:
     """Disposition exact-area candidates and return (kept, removed, evidence).
 
-    Outside Denmark this is a no-op. In Denmark, signed relations are never
-    deleted for a source gap: unresolved routes remain in diagnostic output and
-    make terminal validation fail closed as ``unresolved-relation-gap``.
+    Outside Denmark this is a no-op. In Denmark, a signed relation with an
+    unresolved source gap is excluded from publishable trails, retained in the
+    removed sidecar, and preserved in the unresolved diagnostic ledger.
     """
     normalized_region = (region or "").strip().lower()
     if normalized_region != "dk":
@@ -902,7 +913,8 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                 validation_failures.append(
                     f"invalid-source-geometry: {properties.get('name')!r}")
         elif source_kind == "relation" and connectivity["status"] != "accepted":
-            properties["quality_disposition"] = "unresolved-relation-gap"
+            removed_category = "unresolved-relation-gap"
+            properties["quality_disposition"] = removed_category
             unresolved = {
                 "name": properties.get("name"),
                 "key": properties.get("ckey"),
@@ -913,8 +925,6 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                 "missing_way_ids": connectivity["missing_way_ids"],
             }
             unresolved_relations.append(unresolved)
-            validation_failures.append(
-                f"unresolved-relation-gap: {properties.get('name')!r}")
         elif source_kind == "relation" and not relation_ids:
             validation_failures.append(
                 f"{properties.get('name')!r} is relation-backed but has no relation id")
@@ -957,6 +967,13 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
             "removed_category": removed_category,
         })
 
+    qualified_relation_ids = {
+        relation_id
+        for state in states
+        if state["removed_category"] == "unresolved-relation-gap"
+        for relation_id in state["feature"].get("properties", {}).get(
+            "relation_ids", [])
+    }
     # Preserve a complete relation-level ledger even when no trail feature was
     # emitted. Scope/area dispositions were attached before feature topology so
     # the same evidence can explain non-blocking out-of-area source gaps.
@@ -1031,9 +1048,10 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                 "missing_relation_ids": missing_relation_ids,
             }
             relation_member_unresolved.append(unresolved)
-            validation_failures.append(
-                "relation-member-audit unresolved: "
-                f"relation {relation_id!r} {unresolved_reasons!r}")
+            if relation_id not in qualified_relation_ids:
+                validation_failures.append(
+                    "relation-member-audit unresolved: "
+                    f"relation {relation_id!r} {unresolved_reasons!r}")
 
     # Measure the complete postclip population before applying any quality
     # removal. Nested decisions use this frozen pair set; the final ledger is

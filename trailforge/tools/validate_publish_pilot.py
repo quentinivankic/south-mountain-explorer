@@ -91,10 +91,22 @@ VISUAL_RELATIVE = "visual/mols-bjerge.svg"
 VISUAL_REVIEW_RELATIVE = "visual/review.json"
 PILOT_MIN_LENGTH_MI = 0.1
 PILOT_MIN_INSIDE_MI = 0.05
+_UNRESOLVED_RELATION_REMOVAL_CATEGORY = "unresolved-relation-gap"
+_UNRESOLVED_RELATION_REMOVAL_REASON = (
+    "Signed relation source linework is disconnected under exact OSM node "
+    "identity; excluded from publishable trails and retained in QA "
+    "diagnostics."
+)
+_UNRESOLVED_RELATION_DROP_EVIDENCE = {
+    "kind": "denmark-quality",
+    "category": _UNRESOLVED_RELATION_REMOVAL_CATEGORY,
+    "reason": "unresolved-source-connectivity",
+}
 _QUALITY_REMOVAL_CATEGORIES = {
     "disconnected-name-stitch",
     "dk-unqualified-road-track",
     "nested-name-stitch-overlap",
+    _UNRESOLVED_RELATION_REMOVAL_CATEGORY,
     assembly_model.GEOMETRY_DUPLICATE_ABSORBED_CATEGORY,
 }
 _CURATION_REMOVAL_CATEGORIES = {
@@ -3068,6 +3080,17 @@ def _drop_descriptor_matches_root(descriptor: dict, root: dict,
     elif category in _CLIP_REMOVAL_CATEGORIES:
         if evidence.get("kind") != category:
             return False
+    elif category == _UNRESOLVED_RELATION_REMOVAL_CATEGORY:
+        if evidence != _UNRESOLVED_RELATION_DROP_EVIDENCE:
+            return False
+        geometry = descriptor.get("geometry")
+        exact_geometry = root.get("geometry")
+        if geometry is None or exact_geometry is None:
+            return False
+        try:
+            return exact_geometry.difference(geometry).is_empty
+        except Exception:  # noqa: BLE001 - malformed evidence fails closed
+            return False
     elif category in _ABSORPTION_REMOVAL_CATEGORIES:
         if evidence.get("kind") != category:
             return False
@@ -3134,7 +3157,8 @@ def _dropped_root_output_contamination(
 def _validate_relation_drop_descriptor(
         descriptor: dict, root_ids: list[int], root_records: dict[int, dict],
         authority: dict, raw_ways: dict[int, dict], boundary,
-        output_descriptors: list[dict], errors: list[str]) -> None:
+        output_descriptors: list[dict], claims: dict[int, dict],
+        errors: list[str]) -> None:
     """Bind one producer drop row to raw graph identity and exact geometry."""
     from shapely.geometry import LineString
     from shapely.ops import unary_union
@@ -3214,6 +3238,31 @@ def _validate_relation_drop_descriptor(
         properties.get("direct_relation_way_ids"), label, errors)
     if declared_direct != expected_direct:
         errors.append(f"{label} direct relation membership contradicts authority")
+    if category == _UNRESOLVED_RELATION_REMOVAL_CATEGORY:
+        candidate_index = properties.get("quality_candidate_index")
+        if (not isinstance(candidate_index, int)
+                or isinstance(candidate_index, bool) or candidate_index < 0
+                or candidate_index in claims):
+            errors.append(f"{label} candidate identity index is invalid")
+        else:
+            claims[candidate_index] = {
+                "name": properties.get("name"),
+                "name_key": descriptor["name_key"],
+                "ckey": expected_ckey,
+                "member_way_occurrences": expected_occurrences,
+                "source_geometry_way_ids": required_way_ids,
+                "required_authority_way_ids": required_way_ids,
+                "root_relation_ids": root_ids,
+                "relation_ids": expected_relation_ids,
+                "direct_relation_way_ids": expected_direct,
+                "way_direct_relation_ids": {
+                    way_id: [
+                        relation_id for relation_id in expected_relation_ids
+                        if way_id in expected_direct.get(relation_id, [])
+                    ]
+                    for way_id in required_way_ids
+                },
+            }
 
     source_records = properties.get("source_ways")
     if not isinstance(source_records, list):
@@ -3285,7 +3334,9 @@ def _validate_relation_drop_descriptor(
         properties,
         [record for record in source_records if isinstance(record, dict)],
         descriptor["feature"], boundary, occurrences, label, errors,
-        preclip_geometry=(category not in _ABSORPTION_REMOVAL_CATEGORIES))
+        preclip_geometry=(category not in (
+            _ABSORPTION_REMOVAL_CATEGORIES
+            | {_UNRESOLVED_RELATION_REMOVAL_CATEGORY})))
     if len(source_lines) != len(required_way_ids):
         errors.append(f"{label} lacks complete authoritative preclip geometry")
     elif descriptor.get("geometry") is not None:
@@ -3293,7 +3344,8 @@ def _validate_relation_drop_descriptor(
             authoritative_preclip = unary_union(source_lines)
             expected_geometry = (
                 authoritative_preclip.intersection(boundary)
-                if category in _ABSORPTION_REMOVAL_CATEGORIES
+                if category in (_ABSORPTION_REMOVAL_CATEGORIES | {
+                    _UNRESOLVED_RELATION_REMOVAL_CATEGORY})
                 else authoritative_preclip)
             if not expected_geometry.equals(descriptor["geometry"]):
                 errors.append(f"{label} geometry contradicts raw source ways")
@@ -3303,6 +3355,20 @@ def _validate_relation_drop_descriptor(
     evidence = properties.get("drop_evidence")
     if not isinstance(evidence, dict):
         errors.append(f"{label} typed drop evidence is missing")
+        return
+    if category == _UNRESOLVED_RELATION_REMOVAL_CATEGORY:
+        if evidence != _UNRESOLVED_RELATION_DROP_EVIDENCE:
+            errors.append(f"{label} unresolved-relation drop evidence is invalid")
+        if properties.get("removed_reason") != \
+                _UNRESOLVED_RELATION_REMOVAL_REASON:
+            errors.append(f"{label} unresolved-relation reason is invalid")
+        connectivity = properties.get("connectivity")
+        if (properties.get("source") != "relation"
+                or not isinstance(connectivity, dict)
+                or connectivity.get("status") != "rejected"
+                or connectivity.get("missing_way_ids") != []):
+            errors.append(
+                f"{label} unresolved-relation qualification is invalid")
         return
     if category in _ABSORPTION_REMOVAL_CATEGORIES:
         survivor_claim = evidence.get("survivor")
@@ -4176,6 +4242,7 @@ def _validate_relation_member_audit(quality: dict, authority: dict,
             if isinstance(audit, dict)] != authority["accepted_relation_ids"]:
         errors.append("assembly relation-member audit relation order is incomplete")
     unresolved = []
+    unresolved_messages: dict[int, tuple[str, list[str]]] = {}
     outside_gap_relation_ids = set()
     emitted_roots = {}
     root_records = {}
@@ -4217,9 +4284,7 @@ def _validate_relation_member_audit(quality: dict, authority: dict,
             errors.append(f"{label} unresolved reasons are inconsistent")
         if record is not None:
             unresolved.append(record)
-            errors.append(
-                f"{label} contains unresolved member exclusions or evidence: "
-                f"{reasons!r}")
+            unresolved_messages[relation_id] = (label, reasons)
         way_ids, geometry = _authoritative_exact_area_root(expected, boundary)
         preclip_way_ids, preclip_geometry = _authoritative_preclip_root(expected)
         display_name = _authoritative_root_display_name(
@@ -4364,7 +4429,8 @@ def _validate_relation_member_audit(quality: dict, authority: dict,
         category = properties.get("removed_category")
         if category not in (_CURATION_REMOVAL_CATEGORIES
                             | _CLIP_REMOVAL_CATEGORIES
-                            | _ABSORPTION_REMOVAL_CATEGORIES):
+                            | _ABSORPTION_REMOVAL_CATEGORIES
+                            | {_UNRESOLVED_RELATION_REMOVAL_CATEGORY}):
             continue
         label = f"removed relation[{removed_position}]"
         geometry_way_ids = properties.get("source_geometry_way_ids")
@@ -4504,6 +4570,10 @@ def _validate_relation_member_audit(quality: dict, authority: dict,
                             output.get("geometry_document") or {}),
                     }
                 }
+        # Every verified drop remains excluded from unrelated outputs. The
+        # contamination helper still subtracts linework independently owned by
+        # each output's matched surviving roots, while absorption retains its
+        # separately verified survivor-position allowance above.
         pending_drop_contamination.append(
             (root_id, root, allowed_survivor_positions))
 
@@ -4527,17 +4597,29 @@ def _validate_relation_member_audit(quality: dict, authority: dict,
                     f"dropped relation root r{root_id} unexpectedly ships in "
                     f"output candidate[{output['position']}]")
 
+    qualified_unresolved_relation_ids: set[int] = set()
     for descriptor in drop_descriptors:
         derived_roots = dropped_roots_by_position.get(descriptor["position"], [])
         if derived_roots:
             _validate_relation_drop_descriptor(
                 descriptor, derived_roots, root_records, authority, raw_ways,
-                boundary, output_descriptors, errors)
+                boundary, output_descriptors, claims, errors)
+            if descriptor["category"] == \
+                    _UNRESOLVED_RELATION_REMOVAL_CATEGORY:
+                for root_id in derived_roots:
+                    qualified_unresolved_relation_ids.update(
+                        root_records[root_id]["hierarchy"])
             continue
         declared_roots = descriptor["properties"].get("root_relation_ids") or []
         if any(root_id in emitted_roots for root_id in declared_roots):
             errors.append(
                 f"{descriptor['label']} has no unambiguous emitted-root authority")
+
+    for relation_id, (label, reasons) in unresolved_messages.items():
+        if relation_id not in qualified_unresolved_relation_ids:
+            errors.append(
+                f"{label} contains unresolved member exclusions or evidence: "
+                f"{reasons!r}")
 
     for descriptor in descriptors:
         properties = descriptor["properties"]
@@ -5383,6 +5465,16 @@ def _validate_quality_removals(features: list, boundary_feature: dict | None,
                     or not rebuilt["accepted"]
                     or rebuilt["identity"] != "weak-track"):
                 errors.append(f"{label} weak-track evidence is invalid")
+        elif category == _UNRESOLVED_RELATION_REMOVAL_CATEGORY:
+            if (properties.get("source") != "relation"
+                    or rebuilt["accepted"]
+                    or rebuilt["missing_way_ids"]
+                    or properties.get("drop_evidence") !=
+                    _UNRESOLVED_RELATION_DROP_EVIDENCE
+                    or properties.get("removed_reason") !=
+                    _UNRESOLVED_RELATION_REMOVAL_REASON):
+                errors.append(
+                    f"{label} unresolved relation exclusion is invalid")
     return {category: count for category, count in counts.items() if count}
 
 
@@ -5553,9 +5645,6 @@ def _validate_quality_report(quality: Any, trail_features: list,
     if quality.get("kept_count") != len(trail_features):
         errors.append("assembly quality kept count disagrees with trails GeoJSON")
 
-    removal_counts = _validate_quality_removals(
-        removed_features, boundary_feature, raw_ways, relation_authority,
-        errors)
     quality_removed = [
         feature for feature in removed_features
         if isinstance(feature, dict) and isinstance(feature.get("properties"), dict)
@@ -5566,8 +5655,6 @@ def _validate_quality_report(quality: Any, trail_features: list,
         errors.append("assembly quality candidate count disagrees with dispositions")
     if quality.get("removed_count") != len(quality_removed):
         errors.append("assembly quality removed count disagrees with sidecar")
-    if quality.get("removed_counts") != removal_counts:
-        errors.append("assembly quality removal categories disagree with sidecar")
 
     candidates = trail_features + quality_removed
     indexed = {}
@@ -5677,18 +5764,25 @@ def _validate_quality_report(quality: Any, trail_features: list,
     _validate_relation_member_audit(
         quality, relation_authority, candidates, removed_features,
         raw_ways, boundary, errors)
+    removal_counts = _validate_quality_removals(
+        removed_features, boundary_feature, raw_ways, relation_authority,
+        errors)
+    if quality.get("removed_counts") != removal_counts:
+        errors.append("assembly quality removal categories disagree with sidecar")
 
     unresolved = []
-    for feature in trail_features:
+    published_unresolved = []
+    for feature in ordered:
         if (not isinstance(feature, dict)
                 or not isinstance(feature.get("properties"), dict)):
             continue
         properties = feature["properties"]
         if (properties.get("source") == "relation"
                 and properties.get("quality_disposition") in {
-                    "unresolved-relation-gap", "missing-source-way"}):
+                    _UNRESOLVED_RELATION_REMOVAL_CATEGORY,
+                    "missing-source-way"}):
             connectivity = properties.get("connectivity") or {}
-            unresolved.append({
+            record = {
                 "name": properties.get("name"),
                 "key": properties.get("ckey"),
                 "relation_ids": properties.get("relation_ids"),
@@ -5696,7 +5790,11 @@ def _validate_quality_report(quality: Any, trail_features: list,
                 "source_components": connectivity.get("source_components"),
                 "postclip_components": connectivity.get("postclip_components"),
                 "missing_way_ids": connectivity.get("missing_way_ids"),
-            })
+            }
+            unresolved.append(record)
+            if properties.get("removed_category") != \
+                    _UNRESOLVED_RELATION_REMOVAL_CATEGORY:
+                published_unresolved.append(record)
     unresolved_miles = round(sum(
         float(record["miles"]) for record in unresolved
         if _number(record.get("miles"))
@@ -5707,8 +5805,9 @@ def _validate_quality_report(quality: Any, trail_features: list,
         errors.append("assembly signed-relation unresolved count is inconsistent")
     if quality.get("signed_relation_unresolved_miles") != unresolved_miles:
         errors.append("assembly signed-relation unresolved miles are inconsistent")
-    if unresolved:
-        names = ", ".join(repr(record.get("name")) for record in unresolved)
+    if published_unresolved:
+        names = ", ".join(
+            repr(record.get("name")) for record in published_unresolved)
         errors.append(f"unresolved-relation-gap population is nonzero: {names}")
 
     if quality.get("restored_road_policy") != \

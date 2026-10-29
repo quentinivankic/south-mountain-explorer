@@ -16,11 +16,12 @@ def test_region_code_input_exists():
 
 def test_region_flag_is_conditional_on_region_code():
     text = _WF.read_text()
-    # Flag is set only when region_code is non-empty.
-    assert 'REGION_FLAG=""' in text
-    assert '[ -n "${{ github.event.inputs.region_code }}" ]' in text
-    assert 'REGION_FLAG="--region ${{ github.event.inputs.region_code }}"' in text
-    assert "--per-area-merge $REGION_FLAG" in text
+    # Flag is populated only when the shape-validated region code is non-empty.
+    assert "PUBLISH_REGION_CODE: ${{ steps.input_shape.outputs.region_code }}" in text
+    assert "REGION_FLAG=()" in text
+    assert 'if [ -n "$PUBLISH_REGION_CODE" ]; then' in text
+    assert 'REGION_FLAG=(--region "$PUBLISH_REGION_CODE")' in text
+    assert '"${REGION_FLAG[@]}"' in text
 
 
 def test_default_assemble_flags_intact():

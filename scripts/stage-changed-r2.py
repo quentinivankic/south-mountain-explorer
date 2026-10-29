@@ -298,15 +298,21 @@ def _write_default_json_atomic(path: Path, document: Any) -> None:
         os.close(directory_fd)
 
 
-def merge_mols_index_v2(args: argparse.Namespace) -> int:
-    """Merge one signed, published Mols row into the canonical master index."""
+def _verified_release_input_digest(value: Any, context: str) -> str:
     contract = _contract_module()
-    receipt = contract.decode_mols_release_input_receipt(
-        os.environ.get("MOLS_RELEASE_INPUT_RECEIPT_B64", ""),
-        key=os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", ""),
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+        raise contract.ManifestError(
+            f"{context} lacks the verified release-input receipt digest"
+        )
+    return value
+
+
+def merge_mols_index_v2(args: argparse.Namespace) -> int:
+    """Merge one verified, published Mols row into the canonical master index."""
+    contract = _contract_module()
+    release_input_digest = _verified_release_input_digest(
+        args.expected_receipt_sha256, "Mols index merge"
     )
-    if receipt["receipt_sha256"] != args.expected_receipt_sha256:
-        raise contract.ManifestError("Mols index merge uses a different release receipt")
     source = args.source.resolve()
     target = args.target.resolve()
     expected_target = (Path.cwd() / "public/areas/index.json").resolve()
@@ -331,14 +337,14 @@ def merge_mols_index_v2(args: argparse.Namespace) -> int:
     row = source_rows[0]
     if (
         not isinstance(row, list) or len(row) < 8
-        or row[0] != receipt["area_id"]
-        or row[1] != receipt["area_name"]
-        or row[2] != receipt["state"]
-        or row[3] != receipt["center_lat"]
-        or row[4] != receipt["center_lon"]
+        or row[0] != contract.MOLS_AREA_ID
+        or row[1] != contract.MOLS_AREA_NAME
+        or row[2] != contract.MOLS_STATE
+        or row[3] != contract.MOLS_CENTER_LAT
+        or row[4] != contract.MOLS_CENTER_LON
         or not isinstance(row[5], int) or isinstance(row[5], bool) or row[5] <= 0
         or not isinstance(row[6], (int, float)) or isinstance(row[6], bool) or row[6] <= 0
-        or row[7] != receipt["osm_relation_id"]
+        or row[7] != contract.MOLS_RELATION_ID
     ):
         raise contract.ManifestError("published Mols row differs from signed identity or has no trails")
     if not isinstance(target_rows, list) or any(
@@ -364,8 +370,8 @@ def merge_mols_index_v2(args: argparse.Namespace) -> int:
         raise contract.ManifestError("Mols insertion would reorder non-Mols rows")
     _write_default_json_atomic(target, candidate)
     print(
-        "merged exact signed Mols row into canonical master index "
-        f"receipt={receipt['receipt_sha256']}"
+        "merged exact verified Mols row into canonical master index "
+        f"receipt={release_input_digest}"
     )
     return 0
 
@@ -460,12 +466,9 @@ def _verify_mols_index_transition(
 def verify_mols_staged_diff_v2(args: argparse.Namespace) -> int:
     """Refuse commit/push unless the staged tree is the exact Mols delta."""
     contract = _contract_module()
-    receipt = contract.decode_mols_release_input_receipt(
-        os.environ.get("MOLS_RELEASE_INPUT_RECEIPT_B64", ""),
-        key=os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", ""),
+    release_input_digest = _verified_release_input_digest(
+        args.expected_receipt_sha256, "staged diff"
     )
-    if receipt["receipt_sha256"] != args.expected_receipt_sha256:
-        raise contract.ManifestError("staged diff uses a different signed release receipt")
     repo = args.repo.resolve()
     if not (repo / ".git").is_dir() or repo.is_symlink():
         raise contract.ManifestError("staged-diff repository path is invalid")
@@ -515,7 +518,7 @@ def verify_mols_staged_diff_v2(args: argparse.Namespace) -> int:
         )
     summary: dict[str, Any] = {
         "schema": "trekdex-mols-staged-diff-v1",
-        "release_input_receipt_sha256": receipt["receipt_sha256"],
+        "release_input_receipt_sha256": release_input_digest,
         "allowed_paths": list(contract.MOLS_REPOSITORY_PATHS),
         "index_transitions": transitions,
     }
@@ -531,12 +534,9 @@ def verify_mols_staged_diff_v2(args: argparse.Namespace) -> int:
 def verify_mols_commit_v2(args: argparse.Namespace) -> int:
     """Recheck the committed Mols delta after hooks and before push."""
     contract = _contract_module()
-    receipt = contract.decode_mols_release_input_receipt(
-        os.environ.get("MOLS_RELEASE_INPUT_RECEIPT_B64", ""),
-        key=os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", ""),
+    release_input_digest = _verified_release_input_digest(
+        args.expected_receipt_sha256, "commit verification"
     )
-    if receipt["receipt_sha256"] != args.expected_receipt_sha256:
-        raise contract.ManifestError("commit verification uses a different release receipt")
     repo = args.repo.resolve()
     if not (repo / ".git").is_dir() or repo.is_symlink():
         raise contract.ManifestError("commit verification repository path is invalid")
@@ -580,7 +580,7 @@ def verify_mols_commit_v2(args: argparse.Namespace) -> int:
     ]
     summary: dict[str, Any] = {
         "schema": "trekdex-mols-commit-diff-v1",
-        "release_input_receipt_sha256": receipt["receipt_sha256"],
+        "release_input_receipt_sha256": release_input_digest,
         "commit_sha": _git_bytes(repo, "rev-parse", "HEAD").decode().strip(),
         "parent_sha": _git_bytes(repo, "rev-parse", "HEAD^").decode().strip(),
         "allowed_paths": list(contract.MOLS_REPOSITORY_PATHS),

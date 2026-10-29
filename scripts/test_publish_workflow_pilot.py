@@ -361,21 +361,25 @@ def test_pilot_contains_no_persistent_or_release_mutation_commands():
 
 def test_generic_publish_commands_and_conditions_remain_present():
     assert "actions/checkout@v4" in _PUBLISH
-    assert "${{ github.event.inputs.extract }}-latest.osm.pbf" in _PUBLISH
-    assert 'REGION_FLAG=""' in _PUBLISH
-    assert '[ -n "${{ github.event.inputs.region_code }}" ]' in _PUBLISH
-    assert "--per-area-merge $REGION_FLAG" in _PUBLISH
+    assert "persist-credentials: false" in _PUBLISH
+    assert "PUBLISH_EXTRACT: ${{ steps.input_shape.outputs.extract }}" in _PUBLISH
+    assert '"https://download.geofabrik.de/${PUBLISH_EXTRACT}-latest.osm.pbf"' in _PUBLISH
+    assert "REGION_FLAG=()" in _PUBLISH
+    assert 'if [ -n "$PUBLISH_REGION_CODE" ]; then' in _PUBLISH
+    assert 'REGION_FLAG=(--region "$PUBLISH_REGION_CODE")' in _PUBLISH
+    assert '"${REGION_FLAG[@]}"' in _PUBLISH
     assert "serve/publish_areas.py" in _PUBLISH
     assert 'INDEX_PATH="../public/areas/index.json"' in _PUBLISH
     assert 'INDEX_PATH="$VERIFIED_INDEX_PATH"' in _PUBLISH
+    assert '--state "$PUBLISH_STATE"' in _PUBLISH
     assert '--index "$INDEX_PATH"' in _PUBLISH
-    assert '--out-dir ../public/areas/geom "${ONLY_AREA[@]}" $FLAGS' in _PUBLISH
+    assert '--out-dir ../public/areas/geom "${ONLY_AREA[@]}" "${FLAGS[@]}"' in _PUBLISH
     assert 'ONLY_AREA=()' in _PUBLISH
     assert 'if [ "$RELEASE_MODE" = "mols" ]; then' in _PUBLISH
     assert 'ONLY_AREA=(--only-area "$VERIFIED_AREA_ID")' in _PUBLISH
     assert "verify-release-input" in _PUBLISH
     assert "verify-mols-staged-diff" in _PUBLISH
-    assert _PUBLISH.count("if: ${{ github.event.inputs.dry_run == 'false' }}") == 4
+    assert _PUBLISH.count("if: ${{ steps.input_shape.outputs.dry_run == 'false' }}") == 4
     assert "git push" in _PUBLISH
     assert "gh workflow run sync-geom-to-r2.yml" in _PUBLISH
 

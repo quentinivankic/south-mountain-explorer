@@ -866,6 +866,57 @@ def _workflow_scalar(text: str, path: tuple[str, ...]) -> str:
         if indent == expected_indent and tuple(stack[:-1]) == parents and key == path[-1]:
             return value.strip('"\'')
     raise AssertionError(f"workflow scalar path is absent: {path}")
+
+
+def _workflow_run_scalars(text: str) -> list[tuple[str, int, str]]:
+    """Parse canonical step run scalars without evaluating GitHub expressions."""
+    lines = text.splitlines()
+    parsed: list[tuple[str, int, str]] = []
+    for index, raw in enumerate(lines):
+        match = re.fullmatch(r" {8}run:\s*(.*?)\s*", raw)
+        if not match:
+            continue
+        value = match.group(1)
+        name = "unnamed step"
+        for prior in range(index - 1, -1, -1):
+            if re.match(r"^      - ", lines[prior]):
+                named = re.fullmatch(r"      - name:\s*(.+?)\s*", lines[prior])
+                name = named.group(1) if named else lines[prior].strip()
+                break
+        if value in {"|", "|-", "|+", ">", ">-", ">+"}:
+            body: list[str] = []
+            cursor = index + 1
+            while cursor < len(lines):
+                candidate = lines[cursor]
+                if candidate.strip() and len(candidate) - len(candidate.lstrip(" ")) <= 8:
+                    break
+                if candidate and not candidate.startswith(" " * 10):
+                    raise AssertionError(
+                        f"workflow run block at line {index + 1} has invalid indentation"
+                    )
+                body.append(candidate[10:] if candidate else "")
+                cursor += 1
+            if not body:
+                raise AssertionError(
+                    f"workflow run block at line {index + 1} is empty"
+                )
+            value = "\n".join(body)
+        parsed.append((name, index + 1, value))
+    if not parsed:
+        raise AssertionError("workflow contains no parsed run scalars")
+    return parsed
+
+
+def _workflow_named_step(text: str, name: str) -> str:
+    marker = f"      - name: {name}\n"
+    start = text.find(marker)
+    if start < 0:
+        raise AssertionError(f"workflow step is absent: {name}")
+    tail = text[start + len(marker):]
+    match = re.search(r"(?m)^      - ", tail)
+    return text[start:] if match is None else text[start:start + len(marker) + match.start()]
+
+
 class TestMolsScopedPublication(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
@@ -1335,10 +1386,7 @@ class TestMolsReleaseInputAndStagedDiff(unittest.TestCase):
                 expected_receipt_sha256=self.receipt["receipt_sha256"],
                 output=output,
             )
-            with mock.patch.dict(os.environ, {
-                "MOLS_RELEASE_INPUT_RECEIPT_B64": self.encoded,
-                "R2_ROOT_APPROVAL_HMAC_KEY": APPROVAL_KEY,
-            }, clear=True), mock.patch.object(
+            with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
                 self.module, "_git_bytes", side_effect=git_bytes
             ):
                 self.assertEqual(self.module.verify_mols_staged_diff_v2(args), 0)
@@ -1371,10 +1419,7 @@ class TestMolsReleaseInputAndStagedDiff(unittest.TestCase):
                 56.2, 10.6, 12, 31.4, 7046785,
             ]
             source.write_text(json.dumps([mols]))
-            with mock.patch.dict(os.environ, {
-                "MOLS_RELEASE_INPUT_RECEIPT_B64": self.encoded,
-                "R2_ROOT_APPROVAL_HMAC_KEY": APPROVAL_KEY,
-            }, clear=True), mock.patch.object(
+            with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
                 self.module.Path, "cwd", return_value=root
             ):
                 self.assertEqual(self.module.merge_mols_index_v2(
@@ -1419,10 +1464,7 @@ class TestMolsReleaseInputAndStagedDiff(unittest.TestCase):
                     return ("2" * 40 + "\n").encode()
                 raise AssertionError(arguments)
 
-            with mock.patch.dict(os.environ, {
-                "MOLS_RELEASE_INPUT_RECEIPT_B64": self.encoded,
-                "R2_ROOT_APPROVAL_HMAC_KEY": APPROVAL_KEY,
-            }, clear=True), mock.patch.object(
+            with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
                 self.module, "_git_bytes", side_effect=git_bytes
             ):
                 self.assertEqual(self.module.verify_mols_commit_v2(
@@ -1442,10 +1484,7 @@ class TestMolsReleaseInputAndStagedDiff(unittest.TestCase):
             (root / ".git").mkdir()
             output = root / "must-not-exist.json"
             names = sorted((*MOLS_REPOSITORY_PATHS, "public/areas/geom/other-area-dk.json"))
-            with mock.patch.dict(os.environ, {
-                "MOLS_RELEASE_INPUT_RECEIPT_B64": self.encoded,
-                "R2_ROOT_APPROVAL_HMAC_KEY": APPROVAL_KEY,
-            }, clear=True), mock.patch.object(
+            with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
                 self.module, "_git_bytes",
                 return_value=("\0".join(names) + "\0").encode(),
             ), self.assertRaises(ManifestError):
@@ -3655,6 +3694,199 @@ class TestRepositoryWiring(unittest.TestCase):
         self.assertNotRegex(publish, r"(?m)^\s*pull_request:\s*$")
         self.assertNotRegex(sync, r"(?m)^\s*pull_request:\s*$")
 
+    def test_secret_bearing_workflow_run_scalars_use_validated_env_only(self) -> None:
+        workflows = {
+            path: (ROOT / ".github/workflows" / path).read_text(encoding="utf-8")
+            for path in ("trailforge-publish.yml", "sync-geom-to-r2.yml")
+        }
+        forbidden = re.compile(
+            r"(?:^|[^A-Za-z0-9_])inputs\.|github\.event(?:\.|$)|"
+            r"steps\.[A-Za-z0-9_-]+\.outputs(?:\.|\[|$)"
+        )
+        parsed: dict[str, dict[str, str]] = {}
+        for path, text in workflows.items():
+            runs = _workflow_run_scalars(text)
+            self.assertEqual(
+                len(runs),
+                len(re.findall(r"(?m)^\s+run:\s*", text)),
+                f"unparsed run scalar in {path}",
+            )
+            parsed[path] = {name: script for name, _line, script in runs}
+            for name, line, script in runs:
+                syntax = subprocess.run(
+                    ["/bin/bash", "-n"],
+                    input=script,
+                    env=MINIMAL_SUBPROCESS_ENV,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                with self.subTest(path=path, step=name, line=line, check="bash-syntax"):
+                    self.assertEqual(syntax.returncode, 0, syntax.stderr)
+                for expression in re.findall(r"\$\{\{\s*(.*?)\s*\}\}", script):
+                    with self.subTest(path=path, step=name, line=line):
+                        self.assertIsNone(
+                            forbidden.search(expression),
+                            f"unsafe workflow expression in run scalar: {expression}",
+                        )
+
+        publish = workflows["trailforge-publish.yml"]
+        shape_name = "Validate publication input shape before secrets"
+        verify_name = "Verify canonical Mols release input after shape validation"
+        shape_step = _workflow_named_step(publish, shape_name)
+        verify_step = _workflow_named_step(publish, verify_name)
+        self.assertNotIn("secrets.", shape_step)
+        self.assertNotIn("${{ inputs.", publish.replace(shape_step, ""))
+        self.assertEqual(publish.count("R2_ROOT_APPROVAL_HMAC_KEY: ${{ secrets.R2_ROOT_APPROVAL_HMAC_KEY }}"), 1)
+        self.assertIn("steps.input_shape.outputs.mols_release_input_receipt_b64", verify_step)
+        self.assertNotRegex(verify_step, r"\$\{\{\s*(?:inputs\.|github\.event)")
+        self.assertLess(publish.index(shape_name), publish.index("actions/checkout@v4"))
+        self.assertLess(publish.index("actions/checkout@v4"), publish.index(verify_name))
+        self.assertIn("persist-credentials: false", publish[:publish.index(verify_name)])
+        for later_name in (
+            "Merge signed Mols row into canonical master index",
+            "Commit published data and seal pushed identity",
+        ):
+            later = _workflow_named_step(publish, later_name)
+            self.assertNotIn("R2_ROOT_APPROVAL_HMAC_KEY", later)
+            self.assertNotIn("MOLS_RELEASE_INPUT_RECEIPT_B64", later)
+
+        sync = workflows["sync-geom-to-r2.yml"]
+        sync_shape_name = "Validate sync input shape before secrets"
+        sync_shape = _workflow_named_step(sync, sync_shape_name)
+        provider = _workflow_named_step(
+            sync,
+            "Build canonical plan and optionally apply the exact reviewed manifest",
+        )
+        self.assertNotIn("secrets.", sync_shape)
+        self.assertNotIn("${{ inputs.", sync.replace(sync_shape, ""))
+        self.assertLess(sync.index(sync_shape_name), sync.index("actions/checkout@v4"))
+        self.assertNotIn("${{ inputs.", provider)
+        self.assertIn("steps.input_shape.outputs.source_sha", provider)
+        self.assertIn("steps.input_shape.outputs.approved_manifest_sha256", provider)
+
+        payload = 'europe/denmark"; printf injected > "$MARKER"; #'
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            marker = root / "marker"
+            output = root / "github-output"
+            output.write_text("", encoding="utf-8")
+            environment = {
+                **MINIMAL_SUBPROCESS_ENV,
+                "GITHUB_OUTPUT": str(output),
+                "GITHUB_REF_TYPE": "branch",
+                "GITHUB_REF_NAME": "main",
+                "MARKER": str(marker),
+                "RAW_EXTRACT": payload,
+                "RAW_STATE": "Denmark",
+                "RAW_DRY_RUN": "false",
+                "RAW_NO_ROUTES": "false",
+                "RAW_TOUCH_REPORT": "false",
+                "RAW_ELEVATION": "false",
+                "RAW_REGION_CODE": "dk",
+                "RAW_PILOT_AREA_ID": "",
+                "RAW_PILOT_BBOX": "10.40,56.08,10.90,56.35",
+                "RAW_MOLS_RELEASE_INPUT_RECEIPT_B64": "e30K",
+            }
+            completed = subprocess.run(
+                ["/bin/bash", "-c", parsed["trailforge-publish.yml"][shape_name]],
+                cwd=ROOT,
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertNotEqual(completed.returncode, 0)
+            self.assertFalse(marker.exists())
+            self.assertEqual(output.read_text(encoding="utf-8"), "")
+
+            generic_output = root / "generic-output"
+            generic_output.write_text("", encoding="utf-8")
+            generic_environment = {
+                **environment,
+                "GITHUB_OUTPUT": str(generic_output),
+                "RAW_EXTRACT": "north-america/us/arizona",
+                "RAW_STATE": "Arizona",
+                "RAW_DRY_RUN": "true",
+                "RAW_NO_ROUTES": "false",
+                "RAW_TOUCH_REPORT": "false",
+                "RAW_ELEVATION": "true",
+                "RAW_REGION_CODE": "",
+                "RAW_PILOT_BBOX": "",
+                "RAW_MOLS_RELEASE_INPUT_RECEIPT_B64": "",
+            }
+            generic = subprocess.run(
+                ["/bin/bash", "-c", parsed["trailforge-publish.yml"][shape_name]],
+                cwd=ROOT,
+                env=generic_environment,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertEqual(generic.returncode, 0, generic.stderr)
+            generic_values = dict(
+                line.split("=", 1)
+                for line in generic_output.read_text(encoding="utf-8").splitlines()
+            )
+            self.assertEqual(generic_values["release_mode"], "generic")
+            self.assertEqual(generic_values["extract"], "north-america/us/arizona")
+            self.assertEqual(generic_values["state"], "Arizona")
+
+            mols_output = root / "mols-output"
+            mols_output.write_text("", encoding="utf-8")
+            mols_environment = {
+                **environment,
+                "GITHUB_OUTPUT": str(mols_output),
+                "RAW_EXTRACT": "europe/denmark",
+            }
+            mols = subprocess.run(
+                ["/bin/bash", "-c", parsed["trailforge-publish.yml"][shape_name]],
+                cwd=ROOT,
+                env=mols_environment,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertEqual(mols.returncode, 0, mols.stderr)
+            mols_values = dict(
+                line.split("=", 1)
+                for line in mols_output.read_text(encoding="utf-8").splitlines()
+            )
+            self.assertEqual(mols_values["release_mode"], "mols")
+            self.assertEqual(mols_values["mols_release_input_receipt_b64"], "e30K")
+
+            sync_output = root / "sync-output"
+            sync_output.write_text("", encoding="utf-8")
+            sync_environment = {
+                **MINIMAL_SUBPROCESS_ENV,
+                "GITHUB_OUTPUT": str(sync_output),
+                "RAW_SOURCE_SHA": COMMIT,
+                "RAW_SOURCE_TREE": TREE,
+                "RAW_ROOT_APPROVAL_REF": APPROVAL,
+                "RAW_ACCOUNT_IDENTITY_REF": ACCOUNT,
+                "RAW_ENDPOINT_IDENTITY_REF": ENDPOINT,
+                "RAW_INVENTORY_ANCHOR_REF": ANCHOR,
+                "RAW_AUTHORITATIVE_DENOMINATOR": "12345",
+                "RAW_PLAN_ONLY": "true",
+                "RAW_APPROVED_MANIFEST_SHA256": "",
+                "RAW_RECONCILE_RUN_ID": "",
+            }
+            sync_shape_run = subprocess.run(
+                ["/bin/bash", "-c", parsed["sync-geom-to-r2.yml"][sync_shape_name]],
+                cwd=ROOT,
+                env=sync_environment,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertEqual(sync_shape_run.returncode, 0, sync_shape_run.stderr)
+            sync_values = dict(
+                line.split("=", 1)
+                for line in sync_output.read_text(encoding="utf-8").splitlines()
+            )
+            self.assertEqual(sync_values["source_sha"], COMMIT)
+            self.assertEqual(sync_values["plan_only"], "true")
+
     def test_every_r2_writer_and_credential_holder_shares_sync_lock(self) -> None:
         workflow_root = ROOT / ".github/workflows"
         workflows = {
@@ -3765,5 +3997,5 @@ class TestRepositoryWiring(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print("R2 campaign: classification_hostile=21 classification_random=10000 quarantine_encoding=59704 inventory_faults=25 manifest_mutations=15 release_receipt_mutations=8 release_boundaries=20 provider_faults=26 quarantine_faults=8 quarantine_receipt_mutations=8 scoped_mols=16 provider_adapter=11 release_input=7 scoped_reconciliation=4 wiring=38 replay=100 consumer_smokes=5")
+    print("R2 campaign: classification_hostile=21 classification_random=10000 quarantine_encoding=59704 inventory_faults=25 manifest_mutations=15 release_receipt_mutations=8 release_boundaries=20 provider_faults=26 quarantine_faults=8 quarantine_receipt_mutations=8 scoped_mols=16 provider_adapter=11 release_input=7 scoped_reconciliation=4 wiring=38 workflow_injection=1 replay=100 consumer_smokes=5")
     unittest.main(verbosity=2)

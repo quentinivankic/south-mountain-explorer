@@ -18,15 +18,17 @@ A Mols publication supplies one canonical base64-encoded `trekdex-mols-release-i
 - exact workflow source commit and tree
 - reviewed one-row center: latitude `56.2`, longitude `10.6`
 
-The source binding prevents replay after the workflow code or main tree changes. The verifier also requires `dry_run=false`, `no_routes=false`, `touch_report=false`, `elevation=false`, and no read-only pilot selector. Denmark publication without this receipt fails before publication work. Ordinary non-Denmark dispatches with a blank receipt retain the existing state-wide behavior.
+The source binding prevents replay after the workflow code or main tree changes. Before checkout or any secret-bearing step, a non-secret gate constrains every dispatch value to its expected shape. A nonempty receipt requires the exact Mols tuple and canonical Base64 characters; generic US-state values keep their existing defaults and behavior. Every later shell command receives values through `env:` and references quoted shell variables. No `run:` scalar embeds an input, event value, or step output as GitHub expression source.
 
-The verifier emits safe fields as step outputs. The chained sync dispatch consumes only those verified outputs plus the commit step's exact pushed SHA and tree. No release reference is copied directly from a free-form workflow input.
+Only the conditional receipt-verification step receives the HMAC key. It consumes outputs from the non-secret shape gate, not raw dispatch expressions, and requires `dry_run=false`, `no_routes=false`, `touch_report=false`, `elevation=false`, and no read-only pilot selector. Denmark publication without this receipt fails before publication work. Ordinary non-Denmark dispatches with a blank receipt never enter the HMAC step and retain the existing state-wide behavior. Checkout credentials are not persisted; the GitHub token is scoped separately to commit/push and plan-dispatch steps.
+
+The verifier emits safe fields as step outputs. The chained sync dispatch consumes only those verified outputs plus the commit step's exact pushed SHA and tree. No release reference is copied directly from a free-form workflow input. `sync-geom-to-r2.yml` likewise validates every raw dispatch value in a non-secret first step; its credentialed provider step consumes only those validated outputs.
 
 ## Exact repository effect
 
 Verified Mols mode materializes a runner-local one-row index directly from the signed receipt and passes that file plus `--only-area nationalpark-mols-bjerge-dk` to the state publisher. The publisher must return that same row with positive trail count and mileage. A guarded merge inserts or replaces only that row in `public/areas/index.json`, without changing or reordering any other row. Generic US mode keeps using the canonical state-wide index and receives no exact-area selector.
 
-After generation, the workflow stages its existing publication roots and then runs a second verification of the same signed receipt. Commit and push are refused unless the staged file set is exactly:
+After generation, the workflow stages its existing publication roots. The merge, staged-diff, and committed-diff guards consume the receipt SHA-256 emitted by the sole HMAC verifier and recheck exact Mols constants; they do not receive the HMAC key or raw receipt. Commit and push are refused unless the staged file set is exactly:
 
 - `public/areas/geom/nationalpark-mols-bjerge-dk.json`
 - `public/areas/silhouettes/nationalpark-mols-bjerge-dk.json`

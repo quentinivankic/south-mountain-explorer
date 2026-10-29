@@ -4274,6 +4274,9 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
         'python3 scripts/build-trail-shapes.py --out "$TRAIL_SHAPES"',
         "PUBLICATION_AREA_ID", "--publication-area-id",
         "AWS_CLI_VERSION", "AWS_CLI_ARCHIVE_SHA256", "sha256sum --check --strict",
+        "Validate sync input shape before secrets",
+        "steps.input_shape.outputs.source_sha",
+        "steps.input_shape.outputs.approved_manifest_sha256",
         "reconcile_run_id", "reconcile-scoped",
         "group: sync-geom-to-r2", "stage/rollback-manifest.json", "stage/rollback/**",
     ),
@@ -4287,6 +4290,9 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
     ),
     ".github/workflows/trailforge-publish.yml": (
         "mols_release_input_receipt_b64", "verify-release-input",
+        "Validate publication input shape before secrets",
+        "steps.input_shape.outputs.mols_release_input_receipt_b64",
+        "persist-credentials: false",
         "mols-release-index.json", "merge-mols-index",
         "R2_ROOT_APPROVAL_HMAC_KEY", "--only-area \"$VERIFIED_AREA_ID\"",
         "verify-mols-staged-diff", "verify-mols-commit",
@@ -4332,7 +4338,10 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
     "scripts/cleanup-r2-orphans.py": ("r2_release_contract", "apply-quarantine"),
     "scripts/r2_release_contract.py": (CONTRACT_VERSION,),
     "scripts/trailforge_candidate_contract.py": ("trekdex-trailforge-candidate-contract-v3",),
-    "scripts/test_r2_release_contract.py": ("RR2-ORIGINAL-CLAUSES-R2-V1",),
+    "scripts/test_r2_release_contract.py": (
+        "RR2-ORIGINAL-CLAUSES-R2-V1",
+        "test_secret_bearing_workflow_run_scalars_use_validated_env_only",
+    ),
     "scripts/test_trailforge_candidate_contract.py": ("RR2-ORIGINAL-CLAUSES-TRAILFORGE-V1",),
 }
 

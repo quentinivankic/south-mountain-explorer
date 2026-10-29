@@ -10,9 +10,10 @@ name: Sync Geom to R2 from an approved immutable source
 # incomplete listing aborts before staging and before every write. The receipt
 # binds privacy-safe identity references, all page/token closure, every exact
 # key/preimage, the protected set, denominator, digest, and anchor state.
-# scripts/stage-changed-r2.py emits one complete producer population and the
-# exact changed-leaf-plus-four-global conditional manifest. Apply accepts only
-# its separately reviewed SHA-256 and emits a typed terminal receipt.
+# scripts/stage-changed-r2.py emits one complete producer population and an
+# exact byte-different Mols-only conditional manifest. Apply accepts only its
+# separately reviewed SHA-256, freezes a first-class rollback manifest, and
+# emits a typed terminal receipt.
 
 on:
   workflow_dispatch:
@@ -23,6 +24,10 @@ on:
         type: string
       source_tree:
         description: "Exact full 40-character Git tree for source_sha"
+        required: true
+        type: string
+      publication_area_id:
+        description: "Exact single-area release scope; this guarded path accepts nationalpark-mols-bjerge-dk"
         required: true
         type: string
       root_approval_ref:
@@ -113,6 +118,7 @@ jobs:
           R2_ROOT_APPROVAL_HMAC_KEY: ${{ secrets.R2_ROOT_APPROVAL_HMAC_KEY }}
           SOURCE_SHA: ${{ inputs.source_sha }}
           SOURCE_TREE: ${{ inputs.source_tree }}
+          PUBLICATION_AREA_ID: ${{ inputs.publication_area_id }}
           ROOT_APPROVAL_REF: ${{ inputs.root_approval_ref }}
           ACCOUNT_IDENTITY_REF: ${{ inputs.account_identity_ref }}
           ENDPOINT_IDENTITY_REF: ${{ inputs.endpoint_identity_ref }}
@@ -131,6 +137,7 @@ jobs:
           [[ "$ENDPOINT_IDENTITY_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
           [[ "$INVENTORY_ANCHOR_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
           [[ "$AUTHORITATIVE_DENOMINATOR" =~ ^[1-9][0-9]*$ ]]
+          test "$PUBLICATION_AREA_ID" = "nationalpark-mols-bjerge-dk"
 
           ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
           WORK_ROOT="${RUNNER_TEMP}/trekdex-r2-sync-contract"
@@ -183,6 +190,7 @@ jobs:
             --workflow-sha256 "$WORKFLOW_SHA256" \
             --root-approval-ref "$ROOT_APPROVAL_REF" \
             --anchor-ref "$INVENTORY_ANCHOR_REF" \
+            --publication-area-id "$PUBLICATION_AREA_ID" \
             "${APPROVED_ARGS[@]}"
 
           if [ "$PLAN_ONLY" = "true" ]; then
@@ -193,6 +201,7 @@ jobs:
             --inventory "$INVENTORY" \
             --manifest "$STAGE_ROOT/upload-manifest.json" \
             --approved-manifest-sha256 "$APPROVED_MANIFEST_SHA256" \
+            --publication-area-id "$PUBLICATION_AREA_ID" \
             --endpoint-url "$ENDPOINT" \
             --geom-dir public/areas/geom \
             --silhouettes-dir public/areas/silhouettes \
@@ -212,6 +221,8 @@ jobs:
           path: |
             ${{ runner.temp }}/trekdex-r2-sync-contract/inventory-receipt.json
             ${{ runner.temp }}/trekdex-r2-sync-contract/stage/upload-manifest.json
+            ${{ runner.temp }}/trekdex-r2-sync-contract/stage/rollback-manifest.json
+            ${{ runner.temp }}/trekdex-r2-sync-contract/stage/rollback/**
             ${{ runner.temp }}/trekdex-r2-sync-contract/terminal-receipt.json
           if-no-files-found: warn
           retention-days: 7

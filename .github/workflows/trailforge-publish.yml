@@ -46,6 +46,24 @@ on:
       expected_osm_relation_id:
         description: "Expected current OSM relation id for the pilot area"
         default: ""
+      publication_area_id:
+        description: "Exact single area for the sealed R2 plan"
+        default: "nationalpark-mols-bjerge-dk"
+      root_approval_ref:
+        description: "Immutable privacy-safe sha256 reference to root approval; required only for a non-dry-run commit"
+        default: ""
+      account_identity_ref:
+        description: "Reviewed privacy-safe provider-account reference; required only for a non-dry-run commit"
+        default: ""
+      endpoint_identity_ref:
+        description: "Reviewed privacy-safe provider-endpoint reference; required only for a non-dry-run commit"
+        default: ""
+      inventory_anchor_ref:
+        description: "Reviewed independent inventory-anchor reference; required only for a non-dry-run commit"
+        default: ""
+      authoritative_denominator:
+        description: "Reviewed exact pre-publication R2 object count; required only for a non-dry-run commit"
+        default: ""
 
 concurrency:
   group: trailforge-publish
@@ -114,32 +132,81 @@ jobs:
         if: ${{ github.event.inputs.dry_run == 'false' }}
         run: python3 scripts/filter-ios-bundle.py
 
-      - name: Commit published data
+      - name: Commit published data and seal pushed identity
+        id: published_commit
         if: ${{ github.event.inputs.dry_run == 'false' }}
         run: |
-          set -e
+          set -euo pipefail
+          test "$GITHUB_REF_TYPE" = "branch"
+          test "$GITHUB_REF_NAME" = "main"
           git config user.name "trailforge-bot"
           git config user.email "actions@users.noreply.github.com"
           # public/areas covers geom + the master index; the bundle is the app's.
           git add public/areas ios/SouthMountainExplorer/Resources/areas-index.json
           if git diff --cached --quiet; then
-            echo "No data changes to commit."; exit 0
+            echo "No data changes to commit."
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           git commit -m "trailforge: publish ${{ github.event.inputs.state }} areas to app"
-          # main can move during the run (a code merge, another publish), which
-          # rejects a plain push — rebase our data commit on top and retry.
+          # main can move during the run. Rebase the one data commit and seal the
+          # resulting exact identity only after a successful normal push.
+          pushed=false
           for i in 1 2 3 4 5; do
-            if git push; then exit 0; fi
+            if git push; then
+              pushed=true
+              break
+            fi
             echo "push rejected (attempt $i) — rebasing on latest main"
-            git pull --rebase origin main || git rebase --abort || true
+            git pull --rebase origin main || { git rebase --abort || true; exit 1; }
           done
-          echo "push failed after retries"; exit 1
+          test "$pushed" = "true"
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          SOURCE_TREE="$(git rev-parse 'HEAD^{tree}')"
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]
+          echo "published=true" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "source_tree=$SOURCE_TREE" >> "$GITHUB_OUTPUT"
+          echo "sealed pushed commit=$SOURCE_SHA tree=$SOURCE_TREE"
 
-      - name: Trigger R2 sync
+      - name: Dispatch exact plan-only R2 sync and stop for manifest review
         if: ${{ github.event.inputs.dry_run == 'false' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run sync-geom-to-r2.yml
+          PUBLISHED: ${{ steps.published_commit.outputs.published }}
+          SOURCE_SHA: ${{ steps.published_commit.outputs.source_sha }}
+          SOURCE_TREE: ${{ steps.published_commit.outputs.source_tree }}
+          PUBLICATION_AREA_ID: ${{ inputs.publication_area_id }}
+          ROOT_APPROVAL_REF: ${{ inputs.root_approval_ref }}
+          ACCOUNT_IDENTITY_REF: ${{ inputs.account_identity_ref }}
+          ENDPOINT_IDENTITY_REF: ${{ inputs.endpoint_identity_ref }}
+          INVENTORY_ANCHOR_REF: ${{ inputs.inventory_anchor_ref }}
+          AUTHORITATIVE_DENOMINATOR: ${{ inputs.authoritative_denominator }}
+        run: |
+          set -euo pipefail
+          if [ "$PUBLISHED" != "true" ]; then
+            echo "No pushed publication commit; R2 plan dispatch skipped."
+            exit 0
+          fi
+          test "$PUBLICATION_AREA_ID" = "nationalpark-mols-bjerge-dk"
+          [[ "$ROOT_APPROVAL_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$ACCOUNT_IDENTITY_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$ENDPOINT_IDENTITY_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$INVENTORY_ANCHOR_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$AUTHORITATIVE_DENOMINATOR" =~ ^[1-9][0-9]*$ ]]
+          # This chained dispatch is always evidence-only. A separate reviewed
+          # manual dispatch supplies approved_manifest_sha256 with plan_only=false.
+          gh workflow run sync-geom-to-r2.yml --ref main \
+            -f source_sha="$SOURCE_SHA" \
+            -f source_tree="$SOURCE_TREE" \
+            -f publication_area_id="$PUBLICATION_AREA_ID" \
+            -f root_approval_ref="$ROOT_APPROVAL_REF" \
+            -f account_identity_ref="$ACCOUNT_IDENTITY_REF" \
+            -f endpoint_identity_ref="$ENDPOINT_IDENTITY_REF" \
+            -f inventory_anchor_ref="$INVENTORY_ANCHOR_REF" \
+            -f authoritative_denominator="$AUTHORITATIVE_DENOMINATOR" \
+            -f plan_only=true
 
   pilot:
     if: ${{ github.event.inputs.pilot_area_id != '' }}

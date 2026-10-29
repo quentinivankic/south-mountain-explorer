@@ -58,7 +58,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: r2-quarantine
+  # Every repository path with R2 write credentials shares this exact lock.
+  group: sync-geom-to-r2
   cancel-in-progress: false
 
 jobs:

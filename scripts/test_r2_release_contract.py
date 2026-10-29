@@ -7,14 +7,15 @@ import copy
 import hashlib
 import importlib.util
 import json
-import os
 import random
+import re
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "scripts"
@@ -27,14 +28,21 @@ from r2_release_contract import (  # noqa: E402
     GLOBAL_OBJECTS,
     INVENTORY_FAULT_NAMES,
     MAX_INVENTORY_PAGES,
+    MOLS_AREA_ID,
+    MOLS_FORWARD_KEYS,
+    MOLS_OBJECT_KEYS,
     PRODUCTION_PRODUCER_BOUNDARIES,
+    ConditionalRequestRefused,
     InventoryError,
     KeyClass,
     ManifestError,
     TerminalState,
     audit_repository_contract,
+    build_mols_index_delta,
     build_producer_population,
     build_release_preflight,
+    build_rollback_manifest,
+    build_scoped_release_preflight,
     build_quarantine_plan,
     build_upload_manifest as build_upload_manifest_contract,
     canonical_sha256,
@@ -42,6 +50,7 @@ from r2_release_contract import (  # noqa: E402
     derive_production_producer_graph,
     execute_quarantine as execute_quarantine_contract,
     execute_release as execute_release_contract,
+    execute_scoped_release,
     fetch_complete_inventory,
     identity_ref,
     inventory_objects,
@@ -59,8 +68,22 @@ from r2_release_contract import (  # noqa: E402
     validate_quarantine_receipt,
     validate_release_preflight,
     validate_release_receipt,
+    validate_rollback_manifest,
+    validate_scoped_release_preflight,
+    validate_scoped_release_receipt,
     validate_upload_manifest,
 )
+
+MINIMAL_SUBPROCESS_ENV = {
+    "PATH": "/usr/bin:/bin",
+    "HOME": "/tmp",
+    "LC_ALL": "C",
+    "LANG": "C",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "GIT_CONFIG_NOSYSTEM": "1",
+    "GIT_TERMINAL_PROMPT": "0",
+    "GIT_OPTIONAL_LOCKS": "0",
+}
 
 CONTRACT_TEST_SENTINEL = "RR2-ORIGINAL-CLAUSES-R2-V1"
 SHA = "a" * 64
@@ -373,9 +396,1143 @@ class FakeWriter:
         }
 
 
+def _scoped_fixture(
+    root: Path,
+    *,
+    existing_mols: bool = False,
+    unchanged: bool = False,
+    change_other_area: bool = False,
+) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], dict[str, bytes]]:
+    alpha = "alpha-trail-az"
+    old_mols_row = [MOLS_AREA_ID, "Old Mols", "Denmark", 56.2, 10.6, 1, 1.0, 7046785]
+    new_mols_row = [MOLS_AREA_ID, "Nationalpark Mols Bjerge", "Denmark", 56.2, 10.6, 12, 31.4, 7046785]
+    baseline_index_rows: list[list[Any]] = [[alpha]]
+    if existing_mols:
+        baseline_index_rows.append(old_mols_row)
+    candidate_index_rows = copy.deepcopy(baseline_index_rows if unchanged else [[alpha], new_mols_row])
+    baseline: dict[str, bytes] = {
+        "index.json": json.dumps(baseline_index_rows, separators=(",", ":")).encode(),
+        "parking.json": b'{"parking":[]}\n',
+        "trail-search.json": b'{"trails":[]}\n',
+        "trail-shapes.json": b'{"shapes":[]}\n',
+        f"{alpha}.json": b'{"id":"alpha-trail-az","trails":[]}\n',
+        f"silhouettes/{alpha}.json": b'{"id":"alpha-trail-az","shape":[]}\n',
+    }
+    if existing_mols:
+        baseline[MOLS_OBJECT_KEYS[0]] = b'{"id":"nationalpark-mols-bjerge-dk","revision":"old"}\n'
+        baseline[MOLS_OBJECT_KEYS[1]] = b'{"id":"nationalpark-mols-bjerge-dk","shape":"old"}\n'
+    keys = sorted(baseline)
+    source = PageSource({
+        None: page([remote(key, baseline[key]) for key in keys])
+    })
+    inventory = fetch_complete_inventory(
+        source,
+        bucket=BUCKET,
+        account_identity_ref=ACCOUNT,
+        endpoint_identity_ref=ENDPOINT,
+        authoritative_denominator=len(keys),
+        authoritative_area_ids={alpha, MOLS_AREA_ID},
+        anchor_state="ASSERTED_PENDING_APPROVAL",
+        anchor_ref=ANCHOR,
+    )
+    candidate = copy.deepcopy(baseline)
+    candidate["index.json"] = json.dumps(
+        candidate_index_rows, separators=(",", ":")
+    ).encode()
+    if existing_mols and unchanged:
+        candidate[MOLS_OBJECT_KEYS[0]] = baseline[MOLS_OBJECT_KEYS[0]]
+        candidate[MOLS_OBJECT_KEYS[1]] = baseline[MOLS_OBJECT_KEYS[1]]
+    else:
+        candidate[MOLS_OBJECT_KEYS[0]] = b'{"id":"nationalpark-mols-bjerge-dk","revision":"new"}\n'
+        candidate[MOLS_OBJECT_KEYS[1]] = b'{"id":"nationalpark-mols-bjerge-dk","shape":"new"}\n'
+    if change_other_area:
+        candidate[f"{alpha}.json"] = b'{"id":"alpha-trail-az","trails":["forbidden"]}\n'
+    object_root = root / "objects"
+    object_root.mkdir()
+    local_rows: list[dict[str, Any]] = []
+    for key in sorted(candidate):
+        relative = Path("objects") / f"{key.encode('utf-8').hex()}.object"
+        path = root / relative
+        path.write_bytes(candidate[key])
+        local_rows.append(local_object_contract(
+            key,
+            path,
+            logical_path=str(relative),
+            authoritative_area_ids={alpha, MOLS_AREA_ID},
+        ))
+    population = build_producer_population(
+        local_rows,
+        source_tree=TREE,
+        authoritative_area_ids={alpha, MOLS_AREA_ID},
+        published_area_ids={alpha, MOLS_AREA_ID},
+    )
+    manifest = build_upload_manifest_contract(
+        inventory,
+        local_rows,
+        population,
+        source_sha=COMMIT,
+        source_tree=TREE,
+        workflow_sha256=WORKFLOW,
+        root_approval_ref=APPROVAL,
+        prior_anchor_ref=ANCHOR,
+        publication_area_id=MOLS_AREA_ID,
+    )
+    return inventory, local_rows, manifest, baseline
+
+
+class ScopedFakeWriter:
+    """Lock-serialized in-memory writer with exact before/after byte identities."""
+
+    def __init__(
+        self,
+        root: Path,
+        manifest: dict[str, Any],
+        baseline: dict[str, bytes],
+        *,
+        refuse_forward_at: int | None = None,
+        malformed_forward_at: int | None = None,
+        preflight_mismatch_at: int | None = None,
+        fail_rollback_at: int | None = None,
+    ):
+        self.root = root
+        self.manifest = manifest
+        self.objects: dict[str, dict[str, Any]] = {}
+        reviewed_preimages = {
+            row["key"]: row["remote_preimage"]
+            for row in manifest["objects"]
+            if row["remote_preimage"] is not None
+        }
+        for key, payload in baseline.items():
+            created = self._object(key, payload, version="baseline-" + etag(key)[:12])
+            if key in reviewed_preimages:
+                created.update(reviewed_preimages[key])
+            self.objects[key] = created
+        self.forward_calls: list[str] = []
+        self.rollback_calls: list[tuple[str, str]] = []
+        self.refuse_forward_at = refuse_forward_at
+        self.malformed_forward_at = malformed_forward_at
+        self.preflight_mismatch_at = preflight_mismatch_at
+        self.fail_rollback_at = fail_rollback_at
+
+    @staticmethod
+    def _object(key: str, payload: bytes, *, version: str) -> dict[str, Any]:
+        return {
+            "key": key,
+            "payload": payload,
+            "etag": hashlib.md5(payload, usedforsecurity=False).hexdigest(),
+            "bytes": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "version_id": version,
+        }
+
+    @staticmethod
+    def _identity(value: dict[str, Any] | None) -> dict[str, Any] | None:
+        if value is None:
+            return None
+        return {field: value[field] for field in ("etag", "bytes", "sha256", "version_id")}
+
+    def attest_identity(self) -> dict[str, Any]:
+        return provider_identity_attestation(ACCOUNT_ID, ENDPOINT_URL)
+
+    def preflight_scoped_release(
+        self, manifest: dict[str, Any], *, execution_id: str
+    ) -> dict[str, Any]:
+        rollback_root = self.root / "rollback"
+        rollback_root.mkdir(exist_ok=True)
+        observed: list[dict[str, Any] | None] = []
+        baselines: list[dict[str, Any] | None] = []
+        index_delta = None
+        for index, row in enumerate(manifest["objects"]):
+            current = self.objects.get(row["key"])
+            identity = self._identity(current)
+            if self.preflight_mismatch_at == index:
+                identity = None if identity is not None else {
+                    "etag": etag("unexpected"), "bytes": 1,
+                    "sha256": hashlib.sha256(b"x").hexdigest(),
+                    "version_id": "unexpected-version",
+                }
+            observed.append(copy.deepcopy(identity))
+            if row["conditional_mode"] == "IF_NONE_MATCH" or current is None:
+                baselines.append(None)
+                continue
+            relative = Path("rollback") / f"{row['key'].encode('utf-8').hex()}.object"
+            path = self.root / relative
+            path.write_bytes(current["payload"])
+            baselines.append({
+                "local_path": str(relative),
+                "bytes": current["bytes"],
+                "md5": current["etag"],
+                "sha256": current["sha256"],
+                "etag": current["etag"],
+                "version_id": current["version_id"],
+            })
+            if row["key"] == "index.json":
+                index_delta = build_mols_index_delta(
+                    current["payload"], (self.root / row["local_path"]).read_bytes()
+                )
+        return build_scoped_release_preflight(
+            manifest,
+            execution_id=execution_id,
+            observed_preimages=observed,
+            baseline_objects=baselines,
+            index_delta=index_delta,
+        )
+
+    def put_conditional(
+        self,
+        row: dict[str, Any],
+        *,
+        attempt_id: str,
+        preflight_row: dict[str, Any],
+        preflight_sha256: str,
+    ) -> dict[str, Any]:
+        index = len(self.forward_calls)
+        current = self._identity(self.objects.get(row["key"]))
+        if current != row["remote_preimage"]:
+            raise ConditionalRequestRefused("stale preimage")
+        if self.refuse_forward_at == index:
+            raise ConditionalRequestRefused("deterministic conditional refusal")
+        self.forward_calls.append(row["key"])
+        payload = (self.root / row["local_path"]).read_bytes()
+        written = self._object(row["key"], payload, version=f"forward-version-{index}")
+        self.objects[row["key"]] = written
+        if self.malformed_forward_at == index:
+            return {"key": row["key"], "etag": written["etag"]}
+        return {
+            "key": row["key"],
+            "etag": written["etag"],
+            "bytes": written["bytes"],
+            "sha256": written["sha256"],
+            "version_id": written["version_id"],
+            "transaction_id": f"forward-tx-{index}",
+            "attempt_id": attempt_id,
+        }
+
+    def _maybe_fail_rollback(self) -> None:
+        if self.fail_rollback_at == len(self.rollback_calls):
+            raise RuntimeError("indeterminate rollback outcome")
+
+    def rollback_put_conditional(
+        self,
+        rollback_row: dict[str, Any],
+        *,
+        postimage: dict[str, Any],
+        attempt_id: str,
+        scoped_preflight_sha256: str,
+    ) -> dict[str, Any]:
+        self._maybe_fail_rollback()
+        key = rollback_row["key"]
+        self.rollback_calls.append(("RESTORE_IF_MATCH", key))
+        if self._identity(self.objects.get(key)) != {
+            field: postimage[field] for field in ("etag", "bytes", "sha256", "version_id")
+        }:
+            raise RuntimeError("postimage changed")
+        baseline = rollback_row["baseline_object"]
+        payload = (self.root / baseline["local_path"]).read_bytes()
+        restored = self._object(key, payload, version="restored-version")
+        self.objects[key] = restored
+        return {
+            "key": key,
+            "etag": restored["etag"],
+            "bytes": restored["bytes"],
+            "sha256": restored["sha256"],
+            "version_id": restored["version_id"],
+            "transaction_id": "restore-tx-" + str(len(self.rollback_calls)),
+            "attempt_id": attempt_id,
+        }
+
+    def rollback_delete_created(
+        self,
+        rollback_row: dict[str, Any],
+        *,
+        postimage: dict[str, Any],
+        attempt_id: str,
+        scoped_preflight_sha256: str,
+    ) -> dict[str, Any]:
+        self._maybe_fail_rollback()
+        key = rollback_row["key"]
+        if key not in MOLS_OBJECT_KEYS or rollback_row["baseline_preimage"] is not None:
+            raise AssertionError("delete escaped exact absent Mols scope")
+        self.rollback_calls.append(("DELETE_CREATED_IF_MATCH", key))
+        if self._identity(self.objects.get(key)) != {
+            field: postimage[field] for field in ("etag", "bytes", "sha256", "version_id")
+        }:
+            raise RuntimeError("postimage changed")
+        del self.objects[key]
+        return {
+            "attempt_id": attempt_id,
+            "key": key,
+            "postimage_sha256": rollback_row["expected_postimage"]["sha256"],
+            "transaction_id": "delete-tx-" + str(len(self.rollback_calls)),
+            "verified_absent": True,
+        }
+
+    def verify_rollback(
+        self,
+        rollback_manifest: dict[str, Any],
+        *,
+        rollback_results: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        absent: list[str] = []
+        index_restored = not any(
+            row["key"] == "index.json" for row in rollback_manifest["objects"]
+        )
+        for row in rollback_manifest["objects"]:
+            if row["rollback_operation"] == "DELETE_CREATED_IF_MATCH":
+                if row["key"] in self.objects:
+                    raise RuntimeError("created key remains")
+                absent.append(row["key"])
+                continue
+            baseline = row["baseline_object"]
+            current = self.objects.get(row["key"])
+            if current is None or any(
+                current[field] != baseline[field] for field in ("etag", "bytes", "sha256")
+            ):
+                raise RuntimeError("baseline not restored")
+            if row["key"] == "index.json":
+                index_restored = True
+        receipt: dict[str, Any] = {
+            "schema": "trekdex-r2-rollback-verification-v1",
+            "rollback_manifest_sha256": rollback_manifest["rollback_manifest_sha256"],
+            "all_rows_restored": True,
+            "verified_absent_keys": absent,
+            "index_baseline_restored": index_restored,
+            "non_target_index_entries_unchanged": True,
+        }
+        receipt["receipt_sha256"] = canonical_sha256(receipt)
+        return receipt
+
+
+def _execute_scoped(
+    manifest: dict[str, Any], writer: ScopedFakeWriter, **kwargs: Any
+) -> dict[str, Any]:
+    kwargs.setdefault("approval_assertion", make_approval_assertion(
+        manifest,
+        operation="RELEASE",
+        key=APPROVAL_KEY,
+        authorization_nonce="scoped-mols-test-approval",
+    ))
+    kwargs.setdefault("approval_key", APPROVAL_KEY)
+    kwargs.setdefault("execution_id", "scoped-mols-test-execution")
+    return execute_scoped_release(manifest, writer, **kwargs)
+
+
+
+
+def _workflow_mapping_keys(text: str, path: tuple[str, ...]) -> list[str]:
+    """Parse direct mapping keys under one exact indentation path."""
+    target_indent = 2 * (len(path) - 1)
+    stack: list[str] = []
+    collecting = False
+    keys: list[str] = []
+    for raw in text.splitlines():
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        indent = len(raw) - len(raw.lstrip(" "))
+        if "\t" in raw[:indent] or indent % 2:
+            raise AssertionError("workflow indentation is not canonical two-space YAML")
+        stripped = raw.strip()
+        match = re.fullmatch(r"([A-Za-z_][A-Za-z0-9_-]*):(?:\s*(.*))?", stripped)
+        if not match:
+            continue
+        key, value = match.groups()
+        depth = indent // 2
+        stack = stack[:depth]
+        if depth == len(stack):
+            stack.append(key)
+        if tuple(stack) == path:
+            collecting = True
+            continue
+        if collecting and indent <= target_indent:
+            break
+        if collecting and indent == target_indent + 2:
+            keys.append(key)
+    if not collecting:
+        raise AssertionError(f"workflow mapping path is absent: {path}")
+    return keys
+
+
+def _workflow_scalar(text: str, path: tuple[str, ...]) -> str:
+    expected_indent = 2 * (len(path) - 1)
+    parents = path[:-1]
+    stack: list[str] = []
+    for raw in text.splitlines():
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        indent = len(raw) - len(raw.lstrip(" "))
+        stripped = raw.strip()
+        match = re.fullmatch(r"([A-Za-z_][A-Za-z0-9_-]*):\s*(.*?)\s*", stripped)
+        if not match:
+            continue
+        key, value = match.groups()
+        depth = indent // 2
+        stack = stack[:depth]
+        if depth == len(stack):
+            stack.append(key)
+        if indent == expected_indent and tuple(stack[:-1]) == parents and key == path[-1]:
+            return value.strip('"\'')
+    raise AssertionError(f"workflow scalar path is absent: {path}")
+class TestMolsScopedPublication(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.inventory, self.locals, self.manifest, self.baseline = _scoped_fixture(self.root)
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def test_first_publication_is_two_conditional_creates_then_index_replace(self) -> None:
+        self.assertEqual([row["key"] for row in self.manifest["objects"]], list(MOLS_FORWARD_KEYS))
+        self.assertEqual(
+            [row["conditional_mode"] for row in self.manifest["objects"]],
+            ["IF_NONE_MATCH", "IF_NONE_MATCH", "IF_MATCH"],
+        )
+        self.assertFalse(
+            set(GLOBAL_OBJECTS[1:]) & {row["key"] for row in self.manifest["objects"]}
+        )
+        writer = ScopedFakeWriter(self.root, self.manifest, self.baseline)
+        receipt = _execute_scoped(self.manifest, writer)
+        self.assertEqual(receipt["terminal_state"], "COMPLETE_SUCCESS")
+        self.assertEqual(writer.forward_calls, list(MOLS_FORWARD_KEYS))
+        self.assertEqual(writer.rollback_calls, [])
+        validate_scoped_release_receipt(receipt, self.manifest)
+
+    def test_existing_mols_objects_and_index_use_exact_if_match(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _inventory, _locals, manifest, baseline = _scoped_fixture(
+                root, existing_mols=True
+            )
+            self.assertTrue(manifest["objects"])
+            self.assertTrue(all(row["conditional_mode"] == "IF_MATCH" for row in manifest["objects"]))
+            writer = ScopedFakeWriter(root, manifest, baseline)
+            receipt = _execute_scoped(manifest, writer)
+            self.assertEqual(receipt["terminal_state"], "COMPLETE_SUCCESS")
+            self.assertEqual(writer.forward_calls, list(MOLS_FORWARD_KEYS))
+
+    def test_existing_mols_rollback_restores_all_three_exact_baselines(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _inventory, _locals, manifest, baseline = _scoped_fixture(
+                root, existing_mols=True
+            )
+            writer = ScopedFakeWriter(root, manifest, baseline)
+            boundary = "AFTER_WRITE:2:index.json"
+            receipt = _execute_scoped(
+                manifest, writer,
+                state_probe=lambda value: value != boundary,
+            )
+            self.assertEqual(receipt["terminal_state"], "ROLLED_BACK")
+            self.assertEqual(
+                writer.rollback_calls,
+                [
+                    ("RESTORE_IF_MATCH", "index.json"),
+                    ("RESTORE_IF_MATCH", MOLS_OBJECT_KEYS[1]),
+                    ("RESTORE_IF_MATCH", MOLS_OBJECT_KEYS[0]),
+                ],
+            )
+            for key in MOLS_FORWARD_KEYS:
+                self.assertEqual(writer.objects[key]["payload"], baseline[key])
+
+    def test_byte_identical_population_is_an_exact_zero_write_repeat(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _inventory, _locals, manifest, baseline = _scoped_fixture(
+                root, existing_mols=True, unchanged=True
+            )
+            self.assertEqual(manifest["objects"], [])
+            self.assertEqual(manifest["object_count"], 0)
+            writer = ScopedFakeWriter(root, manifest, baseline)
+            receipt = _execute_scoped(manifest, writer)
+            self.assertEqual(receipt["terminal_state"], "COMPLETE_SUCCESS")
+            self.assertEqual(writer.forward_calls, [])
+            self.assertEqual(writer.rollback_calls, [])
+
+    def test_stale_missing_wrong_etag_version_hash_or_bytes_aborts_before_first_effect(self) -> None:
+        index_key = "index.json"
+        for field, value in (
+            ("etag", etag("wrong")),
+            ("version_id", "wrong-version"),
+            ("sha256", "0" * 64),
+            ("bytes", 999),
+        ):
+            with self.subTest(field=field):
+                writer = ScopedFakeWriter(self.root, self.manifest, self.baseline)
+                writer.objects[index_key][field] = value
+                receipt = _execute_scoped(self.manifest, writer)
+                self.assertEqual(receipt["terminal_state"], "SAFE_ABORT")
+                self.assertEqual(writer.forward_calls, [])
+                self.assertEqual(writer.rollback_calls, [])
+        writer = ScopedFakeWriter(self.root, self.manifest, self.baseline)
+        del writer.objects[index_key]
+        missing = _execute_scoped(self.manifest, writer)
+        self.assertEqual(missing["terminal_state"], "SAFE_ABORT")
+        self.assertEqual(writer.forward_calls, [])
+
+    def test_mixed_eligible_and_ineligible_rows_abort_as_one_preflight(self) -> None:
+        for index in range(self.manifest["object_count"]):
+            writer = ScopedFakeWriter(
+                self.root, self.manifest, self.baseline,
+                preflight_mismatch_at=index,
+            )
+            receipt = _execute_scoped(self.manifest, writer)
+            with self.subTest(index=index):
+                self.assertEqual(receipt["terminal_state"], "SAFE_ABORT")
+                self.assertEqual(writer.forward_calls, [])
+                self.assertEqual(writer.rollback_calls, [])
+
+    def test_partial_forward_refusal_rolls_back_only_known_effects(self) -> None:
+        writer = ScopedFakeWriter(
+            self.root, self.manifest, self.baseline, refuse_forward_at=1
+        )
+        receipt = _execute_scoped(self.manifest, writer)
+        self.assertEqual(receipt["terminal_state"], "ROLLED_BACK")
+        self.assertEqual(writer.forward_calls, [MOLS_OBJECT_KEYS[0]])
+        self.assertEqual(
+            writer.rollback_calls,
+            [("DELETE_CREATED_IF_MATCH", MOLS_OBJECT_KEYS[0])],
+        )
+        self.assertNotIn(MOLS_OBJECT_KEYS[0], writer.objects)
+        self.assertNotIn(MOLS_OBJECT_KEYS[1], writer.objects)
+        validate_scoped_release_receipt(receipt, self.manifest)
+
+    def test_exact_rollback_restores_index_then_deletes_each_created_key_once(self) -> None:
+        writer = ScopedFakeWriter(self.root, self.manifest, self.baseline)
+        boundary = "AFTER_WRITE:2:index.json"
+        receipt = _execute_scoped(
+            self.manifest,
+            writer,
+            state_probe=lambda value: value != boundary,
+        )
+        self.assertEqual(receipt["terminal_state"], "ROLLED_BACK")
+        self.assertEqual(writer.forward_calls, list(MOLS_FORWARD_KEYS))
+        self.assertEqual(
+            writer.rollback_calls,
+            [
+                ("RESTORE_IF_MATCH", "index.json"),
+                ("DELETE_CREATED_IF_MATCH", MOLS_OBJECT_KEYS[1]),
+                ("DELETE_CREATED_IF_MATCH", MOLS_OBJECT_KEYS[0]),
+            ],
+        )
+        self.assertEqual(len(writer.rollback_calls), len(set(writer.rollback_calls)))
+        self.assertEqual(writer.objects["index.json"]["payload"], self.baseline["index.json"])
+        self.assertNotIn(MOLS_OBJECT_KEYS[0], writer.objects)
+        self.assertNotIn(MOLS_OBJECT_KEYS[1], writer.objects)
+        verification = receipt["rollback_verification"]
+        self.assertTrue(verification["index_baseline_restored"])
+        self.assertTrue(verification["non_target_index_entries_unchanged"])
+
+    def test_partial_rollback_is_indeterminate_and_never_retries(self) -> None:
+        writer = ScopedFakeWriter(
+            self.root, self.manifest, self.baseline, fail_rollback_at=0
+        )
+        boundary = "AFTER_WRITE:2:index.json"
+        receipt = _execute_scoped(
+            self.manifest,
+            writer,
+            state_probe=lambda value: value != boundary,
+        )
+        self.assertEqual(receipt["terminal_state"], "INDETERMINATE")
+        self.assertEqual(receipt["rollback_attempted"], 1)
+        self.assertEqual(receipt["rollback_observed"], 0)
+        self.assertEqual(writer.rollback_calls, [])
+        self.assertEqual(receipt["pending_effect"]["operation"], "RESTORE_IF_MATCH")
+
+    def test_malformed_or_ambiguous_provider_success_is_indeterminate(self) -> None:
+        writer = ScopedFakeWriter(
+            self.root, self.manifest, self.baseline, malformed_forward_at=0
+        )
+        receipt = _execute_scoped(self.manifest, writer)
+        self.assertEqual(receipt["terminal_state"], "INDETERMINATE")
+        self.assertEqual(writer.forward_calls, [MOLS_OBJECT_KEYS[0]])
+        self.assertEqual(writer.rollback_calls, [])
+        self.assertEqual(receipt["pending_effect"]["operation"], "PUT_CONDITIONAL")
+
+    def test_manifest_source_probe_mismatch_has_zero_effect(self) -> None:
+        writer = ScopedFakeWriter(self.root, self.manifest, self.baseline)
+        receipt = _execute_scoped(
+            self.manifest,
+            writer,
+            state_probe=lambda boundary: boundary != "AFTER_DETACHED_CHECKOUT",
+        )
+        self.assertEqual(receipt["terminal_state"], "SAFE_ABORT")
+        self.assertEqual(writer.forward_calls, [])
+
+    def test_non_mols_object_or_global_change_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ManifestError, "out-of-scope"):
+                _scoped_fixture(Path(directory), change_other_area=True)
+        hostile = copy.deepcopy(self.manifest)
+        hostile["objects"][0]["key"] = "parking.json"
+        hostile["objects"][0]["key_class"] = KeyClass.GLOBAL.value
+        hostile["manifest_sha256"] = canonical_sha256(
+            hostile, omit={"manifest_sha256"}
+        )
+        with self.assertRaises(ManifestError):
+            validate_upload_manifest(hostile, inventory_receipt=self.inventory)
+
+    def test_non_mols_index_entry_mutation_is_rejected(self) -> None:
+        before = b'[["alpha-trail-az","original"]]'
+        after = (
+            '[["alpha-trail-az","changed"],["nationalpark-mols-bjerge-dk","Mols"]]'
+        ).encode()
+        with self.assertRaisesRegex(ManifestError, "non-Mols"):
+            build_mols_index_delta(before, after)
+        reformatted = (
+            '[["alpha-trail-az", "original"], '
+            '["nationalpark-mols-bjerge-dk", "Mols"]]'
+        ).encode()
+        with self.assertRaisesRegex(ManifestError, "canonical producer byte framing"):
+            build_mols_index_delta(before, reformatted)
+
+    def test_rollback_delete_scope_refuses_global_prefix_and_other_area(self) -> None:
+        writer = ScopedFakeWriter(self.root, self.manifest, self.baseline)
+        preflight = writer.preflight_scoped_release(
+            self.manifest, execution_id="scope-refusal"
+        )
+        plan = preflight["rollback_manifest"]
+        validate_rollback_manifest(plan, self.manifest)
+        for forbidden in (
+            "index.json", "parking.json", "trail-search.json", "trail-shapes.json",
+            "silhouettes/", "other-area-dk.json", "*",
+        ):
+            hostile = copy.deepcopy(plan)
+            delete_row = next(
+                row for row in hostile["objects"]
+                if row["rollback_operation"] == "DELETE_CREATED_IF_MATCH"
+            )
+            delete_row["key"] = forbidden
+            hostile["rollback_manifest_sha256"] = canonical_sha256(
+                hostile, omit={"rollback_manifest_sha256"}
+            )
+            with self.subTest(key=forbidden):
+                with self.assertRaises(ManifestError):
+                    validate_rollback_manifest(hostile, self.manifest)
+
+    def test_repeat_after_success_derives_zero_changed_keys(self) -> None:
+        writer = ScopedFakeWriter(self.root, self.manifest, self.baseline)
+        first = _execute_scoped(self.manifest, writer)
+        self.assertEqual(first["terminal_state"], "COMPLETE_SUCCESS")
+        payloads = {key: value["payload"] for key, value in writer.objects.items()}
+        repeated_inventory = fetch_complete_inventory(
+            PageSource({None: page([remote(key, payloads[key]) for key in sorted(payloads)])}),
+            bucket=BUCKET,
+            account_identity_ref=ACCOUNT,
+            endpoint_identity_ref=ENDPOINT,
+            authoritative_denominator=len(payloads),
+            authoritative_area_ids={"alpha-trail-az", MOLS_AREA_ID},
+            anchor_state="ASSERTED_PENDING_APPROVAL",
+            anchor_ref=ANCHOR,
+        )
+        population = build_producer_population(
+            self.locals,
+            source_tree=TREE,
+            authoritative_area_ids={"alpha-trail-az", MOLS_AREA_ID},
+            published_area_ids={"alpha-trail-az", MOLS_AREA_ID},
+        )
+        repeated = build_upload_manifest_contract(
+            repeated_inventory,
+            self.locals,
+            population,
+            source_sha=COMMIT,
+            source_tree=TREE,
+            workflow_sha256=WORKFLOW,
+            root_approval_ref=APPROVAL,
+            prior_anchor_ref=ANCHOR,
+            publication_area_id=MOLS_AREA_ID,
+        )
+        self.assertEqual(repeated["object_count"], 0)
+        self.assertEqual(repeated["objects"], [])
+
+    def test_scoped_receipt_mutations_fail_closed(self) -> None:
+        receipt = _execute_scoped(
+            self.manifest,
+            ScopedFakeWriter(self.root, self.manifest, self.baseline),
+        )
+        for name, mutation in (
+            ("source", lambda d: d.__setitem__("source_sha", "9" * 40)),
+            ("delete-authority", lambda d: d["scoped_preflight"]["rollback_manifest"].__setitem__("delete_allowlist", ["*"])),
+            ("effect-count", lambda d: d.__setitem__("forward_observed", 0)),
+            ("forbidden-push", lambda d: d.__setitem__("pushed", True)),
+        ):
+            hostile = copy.deepcopy(receipt)
+            mutation(hostile)
+            if name == "delete-authority":
+                hostile["scoped_preflight"]["scoped_preflight_sha256"] = canonical_sha256(
+                    hostile["scoped_preflight"], omit={"scoped_preflight_sha256"}
+                )
+            hostile["receipt_sha256"] = canonical_sha256(
+                hostile, omit={"receipt_sha256"}
+            )
+            with self.subTest(name=name):
+                with self.assertRaises(ManifestError):
+                    validate_scoped_release_receipt(hostile, self.manifest)
+
+
+class TestMolsProviderAdapter(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        _inventory, _locals, self.manifest, self.baseline = _scoped_fixture(self.root)
+        fake = ScopedFakeWriter(self.root, self.manifest, self.baseline)
+        self.preflight = fake.preflight_scoped_release(
+            self.manifest, execution_id="adapter-contract-test"
+        )
+        spec = importlib.util.spec_from_file_location(
+            "stage_changed_r2_adapter_test", SCRIPTS / "stage-changed-r2.py"
+        )
+        assert spec and spec.loader
+        self.module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.module)
+        self.adapter = self.module.MolsConditionalWriter(
+            endpoint_url=ENDPOINT_URL,
+            account_id=ACCOUNT_ID,
+            manifest_root=self.root,
+        )
+        self.adapter._active_source_sha = COMMIT
+        self.adapter._active_manifest_sha256 = self.manifest["manifest_sha256"]
+        self.adapter._active_scoped_preflight_sha256 = self.preflight["scoped_preflight_sha256"]
+        self.adapter._active_release_preflight_sha256 = self.preflight["release_preflight"]["preflight_sha256"]
+        self.adapter._active_rollback_rows = {
+            row["key"]: copy.deepcopy(row)
+            for row in self.preflight["rollback_manifest"]["objects"]
+        }
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def _postimage(self, key: str, version: str = "forward-version-test") -> tuple[bytes, dict[str, Any]]:
+        row = next(row for row in self.manifest["objects"] if row["key"] == key)
+        payload = (self.root / row["local_path"]).read_bytes()
+        return payload, {
+            "key": key,
+            "etag": hashlib.md5(payload, usedforsecurity=False).hexdigest(),
+            "bytes": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "version_id": version,
+            "transaction_id": "forward-provider-result",
+            "attempt_id": "forward-attempt",
+        }
+
+    @staticmethod
+    def _completed(command: list[str], *, stdout: str = "{}", stderr: str = "", code: int = 0) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(command, code, stdout=stdout, stderr=stderr)
+
+    @staticmethod
+    def _head_json(
+        identity: dict[str, Any], *, checksum: bool = True,
+        metadata: dict[str, str] | None = None,
+    ) -> str:
+        document: dict[str, Any] = {
+            "ETag": '"' + identity["etag"] + '"',
+            "ContentLength": identity["bytes"],
+            "VersionId": identity["version_id"],
+        }
+        if checksum:
+            document["ChecksumSHA256"] = identity["sha256"]
+        if metadata is not None:
+            document["Metadata"] = metadata
+        return json.dumps(document)
+
+    def _delete_row(self) -> dict[str, Any]:
+        return next(
+            row for row in self.preflight["rollback_manifest"]["objects"]
+            if row["rollback_operation"] == "DELETE_CREATED_IF_MATCH"
+        )
+
+    def test_real_preflight_freezes_index_baseline_and_standalone_rollback_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _inventory, _locals, manifest, baseline = _scoped_fixture(root)
+            adapter = self.module.MolsConditionalWriter(
+                endpoint_url=ENDPOINT_URL,
+                account_id=ACCOUNT_ID,
+                manifest_root=root,
+            )
+            identities = {
+                row["key"]: copy.deepcopy(row["remote_preimage"])
+                for row in manifest["objects"]
+            }
+
+            def head(key: str, *, missing_ok: bool = False) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+                identity = identities[key]
+                return copy.deepcopy(identity), {} if identity is not None else None
+
+            def download(
+                key: str,
+                *,
+                etag: str,
+                version_id: str,
+                output: Path,
+                context: str,
+            ) -> dict[str, Any]:
+                output.write_bytes(baseline[key])
+                return {}
+
+            with mock.patch.object(adapter, "_head_identity", side_effect=head), mock.patch.object(
+                adapter, "_download_exact", side_effect=download
+            ):
+                scoped = adapter.preflight_scoped_release(
+                    manifest, execution_id="real-adapter-preflight"
+                )
+            validate_scoped_release_preflight(
+                scoped, manifest, execution_id="real-adapter-preflight"
+            )
+            standalone = strict_json_loads(
+                (root / "rollback-manifest.json").read_text(),
+                "standalone rollback manifest",
+            )
+            self.assertEqual(standalone, scoped["rollback_manifest"])
+            index_row = next(
+                row for row in standalone["objects"] if row["key"] == "index.json"
+            )
+            self.assertEqual(
+                (root / index_row["baseline_object"]["local_path"]).read_bytes(),
+                baseline["index.json"],
+            )
+            self.assertTrue(standalone["index_delta"]["non_target_rows_equal"])
+
+    def test_forward_create_uses_if_none_match_and_request_bound_identities(self) -> None:
+        row = self.manifest["objects"][0]
+        self.assertEqual(row["conditional_mode"], "IF_NONE_MATCH")
+        payload = (self.root / row["local_path"]).read_bytes()
+        written = {
+            "etag": row["md5"],
+            "bytes": row["bytes"],
+            "sha256": row["sha256"],
+            "version_id": "created-mols-version",
+        }
+        head_count = 0
+        commands: list[list[str]] = []
+        request_metadata: dict[str, str] = {}
+
+        def run(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+            nonlocal head_count, request_metadata
+            commands.append(command)
+            operation = command[2]
+            if operation == "head-object":
+                head_count += 1
+                if head_count == 1:
+                    return self._completed(command, code=1, stderr="404 Not Found")
+                return self._completed(
+                    command,
+                    stdout=self._head_json(written, metadata=request_metadata),
+                )
+            if operation == "put-object":
+                request_metadata = json.loads(command[command.index("--metadata") + 1])
+                return self._completed(command, stdout=json.dumps({
+                    "ETag": '"' + written["etag"] + '"',
+                    "ChecksumSHA256": written["sha256"],
+                    "VersionId": written["version_id"],
+                }))
+            if operation == "get-object":
+                Path(command[-1]).write_bytes(payload)
+                return self._completed(command)
+            raise AssertionError(command)
+
+        with mock.patch.object(self.module.subprocess, "run", side_effect=run):
+            result = self.adapter.put_conditional(
+                row,
+                attempt_id="forward-create-attempt",
+                preflight_row=self.preflight["release_preflight"]["rows"][0],
+                preflight_sha256=self.preflight["release_preflight"]["preflight_sha256"],
+            )
+        put = next(command for command in commands if command[2] == "put-object")
+        self.assertEqual(put[put.index("--if-none-match") + 1], "*")
+        self.assertNotIn("--if-match", put)
+        self.assertEqual(request_metadata["trekdex-sha256"], row["sha256"])
+        self.assertEqual(request_metadata["trekdex-source-sha"], COMMIT)
+        self.assertEqual(
+            request_metadata["trekdex-manifest-sha256"], self.manifest["manifest_sha256"]
+        )
+        self.assertEqual(request_metadata["trekdex-condition-mode"], "IF_NONE_MATCH")
+        self.assertEqual(
+            request_metadata["trekdex-preimage-ref"], canonical_sha256({"state": "ABSENT"})
+        )
+        self.assertEqual(result["version_id"], written["version_id"])
+
+    def test_forward_existing_index_uses_if_match_and_full_preimage_binding(self) -> None:
+        row = next(row for row in self.manifest["objects"] if row["key"] == "index.json")
+        self.assertEqual(row["conditional_mode"], "IF_MATCH")
+        payload = (self.root / row["local_path"]).read_bytes()
+        written = {
+            "etag": row["md5"], "bytes": row["bytes"], "sha256": row["sha256"],
+            "version_id": "published-index-version",
+        }
+        head_count = 0
+        commands: list[list[str]] = []
+        request_metadata: dict[str, str] = {}
+
+        def run(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+            nonlocal head_count, request_metadata
+            commands.append(command)
+            operation = command[2]
+            if operation == "head-object":
+                head_count += 1
+                if head_count == 1:
+                    baseline = row["remote_preimage"]
+                    return self._completed(command, stdout=self._head_json(baseline))
+                return self._completed(
+                    command, stdout=self._head_json(written, metadata=request_metadata)
+                )
+            if operation == "put-object":
+                request_metadata = json.loads(command[command.index("--metadata") + 1])
+                return self._completed(command, stdout=json.dumps({
+                    "ETag": '"' + written["etag"] + '"',
+                    "ChecksumSHA256": written["sha256"],
+                    "VersionId": written["version_id"],
+                }))
+            if operation == "get-object":
+                Path(command[-1]).write_bytes(payload)
+                return self._completed(command)
+            raise AssertionError(command)
+
+        preflight_row = next(
+            item for item in self.preflight["release_preflight"]["rows"]
+            if item["key"] == "index.json"
+        )
+        with mock.patch.object(self.module.subprocess, "run", side_effect=run):
+            result = self.adapter.put_conditional(
+                row,
+                attempt_id="forward-index-if-match",
+                preflight_row=preflight_row,
+                preflight_sha256=self.preflight["release_preflight"]["preflight_sha256"],
+            )
+        put = next(command for command in commands if command[2] == "put-object")
+        self.assertEqual(
+            put[put.index("--if-match") + 1], row["remote_preimage"]["etag"]
+        )
+        self.assertNotIn("--if-none-match", put)
+        self.assertEqual(
+            request_metadata["trekdex-preimage-ref"],
+            canonical_sha256(row["remote_preimage"]),
+        )
+        self.assertEqual(request_metadata["trekdex-condition-mode"], "IF_MATCH")
+        self.assertEqual(result["sha256"], row["sha256"])
+
+    def test_delete_heads_exact_postimage_once_deletes_once_and_verifies_404(self) -> None:
+        row = self._delete_row()
+        payload, postimage = self._postimage(row["key"])
+        commands: list[list[str]] = []
+        head_count = 0
+
+        def run(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+            nonlocal head_count
+            commands.append(command)
+            operation = command[2]
+            if operation == "head-object":
+                head_count += 1
+                if head_count == 1:
+                    return self._completed(command, stdout=self._head_json(postimage))
+                return self._completed(command, code=1, stderr="An error occurred (404): Not Found")
+            if operation == "get-object":
+                Path(command[-1]).write_bytes(payload)
+                return self._completed(command)
+            if operation == "delete-object":
+                return self._completed(command)
+            raise AssertionError(command)
+
+        with mock.patch.object(self.module.subprocess, "run", side_effect=run):
+            result = self.adapter.rollback_delete_created(
+                row,
+                postimage=postimage,
+                attempt_id="rollback-delete-test",
+                scoped_preflight_sha256=self.preflight["scoped_preflight_sha256"],
+            )
+        deletes = [command for command in commands if command[2] == "delete-object"]
+        self.assertEqual(len(deletes), 1)
+        delete = deletes[0]
+        self.assertEqual(delete[delete.index("--key") + 1], row["key"])
+        self.assertEqual(delete[delete.index("--if-match") + 1], postimage["etag"])
+        self.assertEqual(delete[delete.index("--version-id") + 1], postimage["version_id"])
+        self.assertNotIn("delete-objects", delete)
+        self.assertNotIn("*", delete)
+        self.assertTrue(result["verified_absent"])
+
+    def test_forged_rollback_row_or_preflight_digest_has_zero_provider_calls(self) -> None:
+        row = self._delete_row()
+        _payload, postimage = self._postimage(row["key"])
+        for name, candidate, digest in (
+            ("row", {**row, "expected_postimage": {**row["expected_postimage"], "sha256": "0" * 64}}, self.preflight["scoped_preflight_sha256"]),
+            ("preflight", row, "0" * 64),
+        ):
+            with self.subTest(name=name), mock.patch.object(
+                self.module.subprocess, "run"
+            ) as run:
+                with self.assertRaises(ManifestError):
+                    self.adapter.rollback_delete_created(
+                        candidate,
+                        postimage=postimage,
+                        attempt_id="forged-rollback",
+                        scoped_preflight_sha256=digest,
+                    )
+                run.assert_not_called()
+
+    def test_head_mismatch_missing_hash_404_and_ambiguity_never_delete(self) -> None:
+        row = self._delete_row()
+        payload, postimage = self._postimage(row["key"])
+        cases = ("etag-mismatch", "missing-hash", "missing", "ambiguous")
+        for case in cases:
+            commands: list[list[str]] = []
+
+            def run(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+                commands.append(command)
+                operation = command[2]
+                if operation == "head-object":
+                    if case == "missing":
+                        return self._completed(command, code=1, stderr="An error occurred (404): Not Found")
+                    if case == "ambiguous":
+                        return self._completed(command, code=1, stderr="transport failure")
+                    identity = copy.deepcopy(postimage)
+                    if case == "etag-mismatch":
+                        identity["etag"] = etag("different")
+                    return self._completed(
+                        command,
+                        stdout=self._head_json(identity, checksum=case != "missing-hash"),
+                    )
+                if operation == "get-object":
+                    # Missing HEAD hash must fall back to an exact GET. This
+                    # simulated ambiguous GET proves deletion stays disabled.
+                    return self._completed(command, code=1, stderr="ambiguous GET failure")
+                raise AssertionError("delete must not be reached")
+
+            with self.subTest(case=case), mock.patch.object(
+                self.module.subprocess, "run", side_effect=run
+            ):
+                with self.assertRaises(ManifestError):
+                    self.adapter.rollback_delete_created(
+                        row,
+                        postimage=postimage,
+                        attempt_id="rollback-no-delete",
+                        scoped_preflight_sha256=self.preflight["scoped_preflight_sha256"],
+                    )
+                self.assertFalse(any(command[2] == "delete-object" for command in commands))
+
+    def test_missing_head_checksum_uses_exact_get_before_delete(self) -> None:
+        row = self._delete_row()
+        payload, postimage = self._postimage(row["key"])
+        operations: list[str] = []
+        head_count = 0
+
+        def run(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+            nonlocal head_count
+            operation = command[2]
+            operations.append(operation)
+            if operation == "head-object":
+                head_count += 1
+                if head_count == 1:
+                    return self._completed(command, stdout=self._head_json(postimage, checksum=False))
+                return self._completed(command, code=1, stderr="404 Not Found")
+            if operation == "get-object":
+                Path(command[-1]).write_bytes(payload)
+                return self._completed(command)
+            if operation == "delete-object":
+                return self._completed(command)
+            raise AssertionError(command)
+
+        with mock.patch.object(self.module.subprocess, "run", side_effect=run):
+            self.adapter.rollback_delete_created(
+                row,
+                postimage=postimage,
+                attempt_id="rollback-get-fallback",
+                scoped_preflight_sha256=self.preflight["scoped_preflight_sha256"],
+            )
+        self.assertEqual(operations, ["head-object", "get-object", "delete-object", "head-object"])
+
+    def test_indeterminate_delete_is_attempted_once_and_never_retried(self) -> None:
+        row = self._delete_row()
+        payload, postimage = self._postimage(row["key"])
+        delete_calls = 0
+
+        def run(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+            nonlocal delete_calls
+            operation = command[2]
+            if operation == "head-object":
+                return self._completed(command, stdout=self._head_json(postimage))
+            if operation == "get-object":
+                Path(command[-1]).write_bytes(payload)
+                return self._completed(command)
+            if operation == "delete-object":
+                delete_calls += 1
+                raise subprocess.TimeoutExpired(command, 180)
+            raise AssertionError(command)
+
+        with mock.patch.object(self.module.subprocess, "run", side_effect=run):
+            with self.assertRaisesRegex(ManifestError, "indeterminate"):
+                self.adapter.rollback_delete_created(
+                    row,
+                    postimage=postimage,
+                    attempt_id="rollback-timeout",
+                    scoped_preflight_sha256=self.preflight["scoped_preflight_sha256"],
+                )
+        self.assertEqual(delete_calls, 1)
+
+    def test_index_restore_put_is_if_match_on_exact_post_publish_identity(self) -> None:
+        row = next(
+            row for row in self.preflight["rollback_manifest"]["objects"]
+            if row["key"] == "index.json"
+        )
+        candidate, postimage = self._postimage("index.json", version="published-index-version")
+        baseline = (self.root / row["baseline_object"]["local_path"]).read_bytes()
+        restored = {
+            "etag": row["baseline_preimage"]["etag"],
+            "bytes": len(baseline),
+            "sha256": hashlib.sha256(baseline).hexdigest(),
+            "version_id": "restored-index-version",
+        }
+        attempt_id = "rollback-index-if-match"
+        metadata = {
+            "trekdex-sha256": restored["sha256"],
+            "trekdex-source-sha": COMMIT,
+            "trekdex-manifest-sha256": self.manifest["manifest_sha256"],
+            "trekdex-attempt-id": attempt_id,
+            "trekdex-preimage-ref": canonical_sha256({
+                field: postimage[field] for field in ("etag", "bytes", "sha256", "version_id")
+            }),
+            "trekdex-condition-mode": "IF_MATCH",
+        }
+        head_documents = [
+            self._head_json(postimage),
+            self._head_json(restored, metadata=metadata),
+        ]
+        get_payloads = [candidate, baseline]
+        commands: list[list[str]] = []
+
+        def run(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+            commands.append(command)
+            operation = command[2]
+            if operation == "head-object":
+                return self._completed(command, stdout=head_documents.pop(0))
+            if operation == "get-object":
+                Path(command[-1]).write_bytes(get_payloads.pop(0))
+                return self._completed(command)
+            if operation == "put-object":
+                return self._completed(command, stdout=json.dumps({
+                    "ETag": '"' + restored["etag"] + '"',
+                    "ChecksumSHA256": restored["sha256"],
+                    "VersionId": restored["version_id"],
+                }))
+            raise AssertionError(command)
+
+        with mock.patch.object(self.module.subprocess, "run", side_effect=run):
+            result = self.adapter.rollback_put_conditional(
+                row,
+                postimage=postimage,
+                attempt_id=attempt_id,
+                scoped_preflight_sha256=self.preflight["scoped_preflight_sha256"],
+            )
+        puts = [command for command in commands if command[2] == "put-object"]
+        self.assertEqual(len(puts), 1)
+        put = puts[0]
+        self.assertEqual(put[put.index("--key") + 1], "index.json")
+        self.assertEqual(put[put.index("--if-match") + 1], postimage["etag"])
+        self.assertNotIn("--if-none-match", put)
+        self.assertEqual(result["etag"], row["baseline_preimage"]["etag"])
+
+
 class TestKeyContract(unittest.TestCase):
     def test_version_and_exact_global_registry(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "trekdex-r2-release-contract-v3")
+        self.assertEqual(CONTRACT_VERSION, "trekdex-r2-release-contract-v4")
         self.assertEqual(
             tuple(GLOBAL_OBJECTS),
             ("index.json", "parking.json", "trail-search.json", "trail-shapes.json"),
@@ -1446,7 +2603,7 @@ class TestOfflineConsumers(unittest.TestCase):
             completed = subprocess.run(
                 command,
                 cwd=ROOT,
-                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                env=MINIMAL_SUBPROCESS_ENV,
                 capture_output=True,
                 text=True,
             )
@@ -1491,7 +2648,7 @@ class TestOfflineConsumers(unittest.TestCase):
                 command += ["--global-object", f"{key}={globals_by_key[key]}"]
             completed = subprocess.run(
                 command, cwd=ROOT,
-                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                env=MINIMAL_SUBPROCESS_ENV,
                 capture_output=True, text=True,
             )
             self.assertNotEqual(completed.returncode, 0)
@@ -1533,7 +2690,7 @@ class TestOfflineConsumers(unittest.TestCase):
                 command += ["--global-object", f"{key}={globals_by_key[key]}"]
             completed = subprocess.run(
                 command, cwd=ROOT,
-                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                env=MINIMAL_SUBPROCESS_ENV,
                 capture_output=True, text=True,
             )
             self.assertNotEqual(completed.returncode, 0)
@@ -1570,7 +2727,7 @@ class TestOfflineConsumers(unittest.TestCase):
                         "--output", str(plan_path),
                     ],
                     cwd=ROOT,
-                    env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                    env=MINIMAL_SUBPROCESS_ENV,
                     capture_output=True,
                     text=True,
                 )
@@ -1611,7 +2768,7 @@ class TestOfflineConsumers(unittest.TestCase):
                         "--output", str(output),
                     ],
                     cwd=ROOT,
-                    env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                    env=MINIMAL_SUBPROCESS_ENV,
                     capture_output=True,
                     text=True,
                 )
@@ -1659,7 +2816,7 @@ class TestRepositoryWiring(unittest.TestCase):
                 ".github/workflows/release-contracts-ci.yml": "scripts/test_trailforge_candidate_contract.py",
                 "scripts/stage-changed-r2.py": "r2_release_contract",
                 "scripts/cleanup-r2-orphans.py": "r2_release_contract",
-                "scripts/r2_release_contract.py": "trekdex-r2-release-contract-v3",
+                "scripts/r2_release_contract.py": "trekdex-r2-release-contract-v4",
                 "scripts/trailforge_candidate_contract.py": "trekdex-trailforge-candidate-contract-v3",
                 "scripts/test_r2_release_contract.py": CONTRACT_TEST_SENTINEL,
                 "scripts/test_trailforge_candidate_contract.py": "RR2-ORIGINAL-CLAUSES-TRAILFORGE-V1",
@@ -1806,14 +2963,19 @@ class TestRepositoryWiring(unittest.TestCase):
             errors = audit_repository_contract(producer_only_filter)
             self.assertTrue(any("bypass safety CI" in error for error in errors))
 
-    def test_apply_rederives_producer_population_and_disables_unproved_overwrite(self) -> None:
+    def test_apply_rederives_population_and_uses_scoped_conditional_rollback(self) -> None:
         files = self.files()
         stage = files["scripts/stage-changed-r2.py"]
         for marker in (
             "_derive_producer_population(args, inventory)",
             "apply-time producer population differs from reviewed bytes",
-            "live overwrite disabled",
-            '"get-object"',
+            "class MolsConditionalWriter",
+            "execute_scoped_release",
+            "rollback_delete_created",
+            '"--if-match"',
+            '"--if-none-match"',
+            '"trekdex-preimage-ref"',
+            '"rollback-manifest.json"',
             'pass_fds=(snapshot.fileno(),)',
         ):
             hostile = copy.deepcopy(files)
@@ -1821,8 +2983,101 @@ class TestRepositoryWiring(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn("MUTATED-AWAY", hostile["scripts/stage-changed-r2.py"])
                 self.assertNotEqual(hostile["scripts/stage-changed-r2.py"], stage)
-        self.assertIn("_derive_producer_population(args, inventory)", stage)
-        self.assertIn("live overwrite disabled", stage)
+        self.assertNotIn("live overwrite disabled", stage)
+        self.assertNotIn("adapter_success_schema_capable=False", stage)
+
+    def test_publish_to_sync_passes_exact_required_plan_only_inputs(self) -> None:
+        publish = (ROOT / ".github/workflows/trailforge-publish.yml").read_text()
+        sync = (ROOT / ".github/workflows/sync-geom-to-r2.yml").read_text()
+        self.assertEqual(_workflow_mapping_keys(publish, ("on",)), ["workflow_dispatch"])
+        self.assertEqual(_workflow_mapping_keys(sync, ("on",)), ["workflow_dispatch"])
+        sync_inputs = set(_workflow_mapping_keys(sync, ("on", "workflow_dispatch", "inputs")))
+        self.assertEqual(sync_inputs, {
+            "source_sha", "source_tree", "publication_area_id", "root_approval_ref",
+            "account_identity_ref", "endpoint_identity_ref", "inventory_anchor_ref",
+            "authoritative_denominator", "plan_only", "approved_manifest_sha256",
+        })
+        dispatch_match = re.search(
+            r"gh workflow run sync-geom-to-r2\.yml --ref main \\\n(?P<body>(?:\s+-f [^\n]+\\?\n?)+)",
+            publish,
+        )
+        self.assertIsNotNone(dispatch_match)
+        body = dispatch_match.group("body")
+        passed = set(re.findall(r"-f ([a-z_]+)=", body))
+        self.assertEqual(passed, sync_inputs - {"approved_manifest_sha256"})
+        self.assertIn('-f plan_only=true', body)
+        self.assertNotIn("approved_manifest_sha256", body)
+        self.assertIn('test "$GITHUB_REF_TYPE" = "branch"', publish)
+        self.assertIn('test "$GITHUB_REF_NAME" = "main"', publish)
+        self.assertIn('SOURCE_SHA="$(git rev-parse HEAD)"', publish)
+        self.assertIn('SOURCE_TREE="$(git rev-parse \'HEAD^{tree}\')"', publish)
+        self.assertIn('source_sha=$SOURCE_SHA', publish)
+        self.assertIn('source_tree=$SOURCE_TREE', publish)
+        self.assertIn("PUBLISHED: ${{ steps.published_commit.outputs.published }}", publish)
+        self.assertIn('if [ "$PUBLISHED" != "true" ]', publish)
+        self.assertIn("separate reviewed", publish)
+        self.assertNotRegex(publish, r"(?m)^\s*push:\s*$")
+        self.assertNotRegex(sync, r"(?m)^\s*push:\s*$")
+        self.assertNotRegex(publish, r"(?m)^\s*pull_request:\s*$")
+        self.assertNotRegex(sync, r"(?m)^\s*pull_request:\s*$")
+
+    def test_every_r2_writer_and_credential_holder_shares_sync_lock(self) -> None:
+        workflow_root = ROOT / ".github/workflows"
+        workflows = {
+            path.name: path.read_text()
+            for path in sorted(workflow_root.glob("*.yml"))
+        }
+        credential_tokens = (
+            "secrets.R2_ACCESS_KEY_ID", "secrets.R2_SECRET_ACCESS_KEY",
+            "R2_ROOT_APPROVAL_ASSERTION_JSON", "R2_ROOT_APPROVAL_HMAC_KEY",
+        )
+        credential_holders = {
+            name for name, text in workflows.items()
+            if any(token in text for token in credential_tokens)
+        }
+        self.assertEqual(
+            credential_holders,
+            {"sync-geom-to-r2.yml", "cleanup-r2-orphans.yml"},
+        )
+        for name in sorted(credential_holders):
+            with self.subTest(workflow=name):
+                self.assertEqual(
+                    _workflow_scalar(workflows[name], ("concurrency", "group")),
+                    "sync-geom-to-r2",
+                )
+                self.assertEqual(
+                    _workflow_mapping_keys(workflows[name], ("on",)),
+                    ["workflow_dispatch"],
+                )
+
+        direct_writers: set[str] = set()
+        for path in sorted((ROOT / "scripts").glob("*.py")):
+            if path.name.startswith("test_"):
+                continue
+            text = path.read_text()
+            if re.search(r'"(?:put|copy|delete)-object"', text):
+                direct_writers.add(path.name)
+        self.assertEqual(
+            direct_writers,
+            {"stage-changed-r2.py", "cleanup-r2-orphans.py"},
+        )
+        self.assertIn("scripts/stage-changed-r2.py", workflows["sync-geom-to-r2.yml"])
+        self.assertIn("scripts/cleanup-r2-orphans.py", workflows["cleanup-r2-orphans.yml"])
+
+        dispatchers = {
+            name for name, text in workflows.items()
+            if "gh workflow run sync-geom-to-r2.yml" in text
+        }
+        self.assertEqual(dispatchers, {
+            "build-trail-index.yml", "trailforge-elevation-us.yml",
+            "trailforge-parking.yml", "trailforge-publish-batch.yml",
+            "trailforge-publish.yml",
+        })
+        for name in sorted(dispatchers):
+            text = workflows[name]
+            with self.subTest(dispatcher=name):
+                self.assertFalse(any(token in text for token in credential_tokens))
+                self.assertNotRegex(text, r'"(?:put|copy|delete)-object"')
 
     def test_python_and_workflow_syntax_is_offline(self) -> None:
         for path in self.LEASED[4:]:
@@ -1840,5 +3095,5 @@ class TestRepositoryWiring(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print("R2 campaign: classification_hostile=21 classification_random=10000 quarantine_encoding=59704 inventory_faults=25 manifest_mutations=15 release_receipt_mutations=8 release_boundaries=20 provider_faults=26 quarantine_faults=8 quarantine_receipt_mutations=8 wiring_mutations=35 replay=100 consumer_smokes=5")
+    print("R2 campaign: classification_hostile=21 classification_random=10000 quarantine_encoding=59704 inventory_faults=25 manifest_mutations=15 release_receipt_mutations=8 release_boundaries=20 provider_faults=26 quarantine_faults=8 quarantine_receipt_mutations=8 scoped_mols=16 provider_adapter=9 wiring=37 replay=100 consumer_smokes=5")
     unittest.main(verbosity=2)

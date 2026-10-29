@@ -32,16 +32,23 @@ def _default(block):
     return match.group(1)
 
 
-def test_dispatch_has_exactly_ten_inputs_and_no_area_name_input():
+def test_dispatch_has_exact_pilot_and_reviewed_sync_inputs():
     inputs = _input_blocks()
-    assert len(inputs) <= 10
-    assert len(inputs) == 10
+    assert len(inputs) == 16
     assert set(inputs) == {
         "extract", "state", "dry_run", "no_routes", "touch_report",
         "elevation", "region_code", "pilot_area_id", "pilot_bbox",
-        "expected_osm_relation_id",
+        "expected_osm_relation_id", "publication_area_id", "root_approval_ref",
+        "account_identity_ref", "endpoint_identity_ref",
+        "inventory_anchor_ref", "authoritative_denominator",
     }
     assert "pilot_area_name" not in inputs
+    assert _default(inputs["publication_area_id"]) == '"nationalpark-mols-bjerge-dk"'
+    for name in (
+        "root_approval_ref", "account_identity_ref", "endpoint_identity_ref",
+        "inventory_anchor_ref", "authoritative_denominator",
+    ):
+        assert _default(inputs[name]) == '""'
 
 
 def test_all_seven_generic_defaults_and_types_are_unchanged():
@@ -83,10 +90,17 @@ def test_jobs_are_mutually_exclusive_and_permissions_are_exact():
     assert "\npermissions:" not in _TEXT.split("\njobs:\n", 1)[0]
 
 
-def test_pilot_maps_dispatch_inputs_to_environment_before_shell_use():
+def test_pilot_maps_its_dispatch_inputs_to_environment_before_shell_use():
     env_block = _PILOT.split("    env:\n", 1)[1].split("    steps:\n", 1)[0]
-    for name in _input_blocks():
+    pilot_inputs = {
+        "extract", "state", "dry_run", "no_routes", "touch_report",
+        "elevation", "region_code", "pilot_area_id", "pilot_bbox",
+        "expected_osm_relation_id",
+    }
+    for name in pilot_inputs:
         assert f"github.event.inputs.{name}" in env_block
+    for name in set(_input_blocks()) - pilot_inputs:
+        assert f"github.event.inputs.{name}" not in env_block
     assert "${{ github.event.inputs." not in _PILOT_STEPS
 
 

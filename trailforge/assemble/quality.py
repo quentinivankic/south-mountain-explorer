@@ -553,6 +553,90 @@ def _pair_disposition(left: dict, right: dict) -> str:
     return "preserved-nonweak-overlap"
 
 
+def _exclude_dropped_root_contamination(
+        states: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Quarantine publishable rootless aliases of dropped relation ways.
+
+    The check runs after stitching, fusion, exact clipping, and connectivity
+    disposition, when both the dropped-root decision and each final
+    candidate's complete preclip source-way identity are available. Existing
+    quality removals remain in their established, independently validated
+    categories. Otherwise-publishable rootless candidates are excluded before
+    the quality population is numbered; they are retained in this report-only
+    ledger because the unchanged final validator owns the terminal oracle.
+    """
+    dropped_root_ways: dict[int, set[int]] = {}
+    for state in states:
+        if state["removed_category"] != "unresolved-relation-gap":
+            continue
+        properties = state["feature"].get("properties") or {}
+        geometry_way_ids = {
+            way_id for way_id in properties.get("source_geometry_way_ids") or []
+            if isinstance(way_id, int) and not isinstance(way_id, bool)
+        }
+        root_ids = [
+            root_id for root_id in properties.get("root_relation_ids") or []
+            if isinstance(root_id, int) and not isinstance(root_id, bool)
+        ]
+        occurrences = properties.get("member_way_occurrences") or []
+        for root_id in root_ids:
+            owned = {
+                occurrence.get("way_id")
+                for occurrence in occurrences
+                if isinstance(occurrence, dict)
+                and occurrence.get("root_relation_id") == root_id
+                and occurrence.get("effective_role") in {"", "main"}
+                and occurrence.get("way_id") in geometry_way_ids
+            }
+            # Compact synthetic producers may omit the optional occurrence
+            # ledger. Conservatively retain complete geometry only when the
+            # ledger itself is absent; a populated multi-root ledger must stay
+            # root-specific even when one root contributes no main way.
+            if not occurrences:
+                owned = set(geometry_way_ids)
+            dropped_root_ways.setdefault(root_id, set()).update(owned)
+
+    retained = []
+    exclusions = []
+    for state in states:
+        properties = state["feature"].get("properties") or {}
+        candidate_way_ids = {
+            way_id for way_id in properties.get("source_geometry_way_ids") or []
+            if isinstance(way_id, int) and not isinstance(way_id, bool)
+        }
+        dropped_roots = [
+            {"root_relation_id": root_id,
+             "shared_way_ids": sorted(candidate_way_ids.intersection(way_ids))}
+            for root_id, way_ids in dropped_root_ways.items()
+            if candidate_way_ids.intersection(way_ids)
+        ]
+        otherwise_publishable = (
+            state["removed_category"] is None
+            and properties.get("quality_disposition") not in {
+                "invalid-source-geometry", "missing-source-way",
+                "preserved-other-needs-review",
+            }
+        )
+        rootless_name_stitch = (
+            properties.get("source") == "name-stitch"
+            and not properties.get("root_relation_ids")
+        )
+        if otherwise_publishable and rootless_name_stitch and dropped_roots:
+            exclusions.append({
+                "prequality_candidate_index": state["index"],
+                "name": properties.get("name"),
+                "ckey": properties.get("ckey"),
+                "source": properties.get("source"),
+                "source_geometry_way_ids": sorted(candidate_way_ids),
+                "boundary_induced_split": bool(
+                    properties.get("boundary_induced_split")),
+                "dropped_roots": dropped_roots,
+            })
+            continue
+        retained.append(state)
+    return retained, exclusions
+
+
 def _audit_way_exact_area_status(record: dict, ways: dict, nodes: dict,
                                  area_union) -> str:
     """Classify raw source geometry against the exact boundary."""
@@ -1087,6 +1171,28 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                 and state["identity"] == "weak-track"):
             state["removed_category"] = "dk-unqualified-road-track"
 
+    states, dropped_root_contamination = \
+        _exclude_dropped_root_contamination(states)
+    retained_state_ids = {id(state) for state in states}
+    overlap_pairs = [
+        pair for pair in overlap_pairs
+        if id(pair[0]) in retained_state_ids
+        and id(pair[1]) in retained_state_ids
+    ]
+    old_to_new_index = {}
+    for candidate_index, state in enumerate(states):
+        old_to_new_index[state["index"]] = candidate_index
+        state["index"] = candidate_index
+        state["feature"]["properties"][
+            "quality_candidate_index"] = candidate_index
+    promotion_ledger = copy.deepcopy(promotion_decisions or [])
+    for decision in promotion_ledger:
+        old_index = decision.get("candidate_index")
+        if old_index not in old_to_new_index:
+            raise ValueError(
+                "promotion decision references an excluded candidate")
+        decision["candidate_index"] = old_to_new_index[old_index]
+
     overlap_evidence = []
     remaining_overlaps = []
     for left, right, ratio, left_share, right_share in overlap_pairs:
@@ -1168,10 +1274,13 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         "area": area_name,
         "connectivity_authority": "shared-osm-node-or-exact-boundary-clip",
         "overlap_threshold": OVERLAP_THRESHOLD,
-        "candidate_count": len(features),
+        "candidate_count": len(states),
         "kept_count": len(kept),
         "removed_count": len(removed),
         "removed_counts": dict(sorted(counts.items())),
+        "dropped_root_contamination_policy": "exact-source-way-identity",
+        "dropped_root_contamination_count": len(dropped_root_contamination),
+        "dropped_root_contamination": dropped_root_contamination,
         "signed_relation_unresolved_count": len(unresolved_relations),
         "signed_relation_unresolved_miles": unresolved_miles,
         "signed_relation_unresolved": unresolved_relations,
@@ -1185,7 +1294,7 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         "remaining_overlaps": remaining_overlaps,
         "terminal_absorption_unresolved_count": 0,
         "terminal_absorption_unresolved": [],
-        "promotion_decisions": copy.deepcopy(promotion_decisions or []),
+        "promotion_decisions": promotion_ledger,
         "validation_failures": list(dict.fromkeys(validation_failures)),
     }
 

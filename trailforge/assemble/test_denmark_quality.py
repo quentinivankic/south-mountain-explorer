@@ -685,6 +685,216 @@ class RelationConnectivity(unittest.TestCase):
 
 
 @unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
+class DroppedRootWayContamination(unittest.TestCase):
+    """Dropped unresolved roots quarantine every publishable way alias."""
+
+    @staticmethod
+    def _add_chain(ways, nodes, way_ids, name, *, y, start_x=0.0):
+        node_id = max(nodes, default=0) + 1
+        for offset, way_id in enumerate(way_ids):
+            left = node_id + offset
+            right = left + 1
+            nodes.setdefault(left, (start_x + offset, y))
+            nodes[right] = (start_x + offset + 1, y)
+            ways[way_id] = W([left, right], highway="path", name=name)
+
+    @staticmethod
+    def _lines(way_ids, ways, nodes):
+        return [[nodes[node_id] for node_id in ways[way_id]["nodes"]]
+                for way_id in way_ids]
+
+    def test_frozen_five_root_overlaps_are_excluded_and_controls_ship(self):
+        ways = {}
+        nodes = {}
+        candidate_specs = [
+            ("Adelgade", [33969099, 759409895], 0.0),
+            ("Krogryggevej", [135631196, 900001], 1.0),
+            ("Eriks Vej", [38002217, 38002218, 760016202], 2.0),
+            ("Rugårdsvej", [128896399, 900002, 1158192100], 3.0),
+        ]
+        for name, way_ids, y in candidate_specs:
+            self._add_chain(ways, nodes, way_ids, name, y=y)
+        self._add_chain(
+            ways, nodes, [900003], "Unrelated Positive", y=4.0)
+        self._add_chain(
+            ways, nodes, [900004], "Adelgade", y=5.0)
+        self._add_chain(
+            ways, nodes, [920001], "Root 105 gap", y=10.0)
+        self._add_chain(
+            ways, nodes, [920002], "Root 141 gap", y=11.0)
+        self._add_chain(
+            ways, nodes, [920003], "Root 191 gap", y=12.0)
+
+        root_specs = [
+            (10507412, "Mols Bjerge-stien Ebeltoftetapen",
+             [759409895, 920001]),
+            (14190349, "Djurslandstien",
+             [135631196, 38002217, 38002218, 760016202,
+              128896399, 1158192100, 920002]),
+            (19113818, "Den gamle købstad",
+             [33969099, 759409895, 920003]),
+        ]
+        trails = [
+            T(name, "relation", way_ids,
+              self._lines(way_ids, ways, nodes), relation_id=root_id,
+              tags={"type": "route", "route": "hiking"})
+            for root_id, name, way_ids in root_specs
+        ]
+        trails.extend(
+            T(name, "name-stitch", way_ids,
+              self._lines(way_ids, ways, nodes))
+            for name, way_ids, _y in candidate_specs
+        )
+        trails.extend([
+            T("Unrelated Positive", "name-stitch", [900003],
+              self._lines([900003], ways, nodes)),
+            T("Adelgade", "name-stitch", [900004],
+              self._lines([900004], ways, nodes)),
+        ])
+
+        kept, removed, report = curate(trails, ways, nodes)
+
+        self.assertEqual(
+            [(row["properties"]["name"], row["properties"]["member_ways"])
+             for row in kept],
+            [("Unrelated Positive", [900003]), ("Adelgade", [900004])],
+        )
+        self.assertEqual(
+            {row["properties"]["root_relation_ids"][0] for row in removed},
+            {10507412, 14190349, 19113818},
+        )
+        self.assertTrue(all(
+            row["properties"]["removed_category"] ==
+            "unresolved-relation-gap" for row in removed))
+        self.assertEqual(report["dropped_root_contamination_count"], 4)
+        overlaps = {
+            (root["root_relation_id"], tuple(root["shared_way_ids"]))
+            for exclusion in report["dropped_root_contamination"]
+            for root in exclusion["dropped_roots"]
+        }
+        self.assertEqual(overlaps, {
+            (10507412, (759409895,)),
+            (14190349, (135631196,)),
+            (14190349, (38002217, 38002218, 760016202)),
+            (14190349, (128896399, 1158192100)),
+            (19113818, (33969099, 759409895)),
+        })
+        self.assertEqual(report["candidate_count"], 5)
+        indexes = [
+            row["properties"]["quality_candidate_index"]
+            for row in [*kept, *removed]
+        ]
+        self.assertEqual(sorted(indexes), list(range(5)))
+
+    def test_name_stitch_fusion_cannot_hide_one_shared_way(self):
+        ways = {}
+        nodes = {}
+        self._add_chain(
+            ways, nodes, [759409895, 900010], "Fused Alias", y=0.0)
+        self._add_chain(
+            ways, nodes, [920010], "Root gap", y=4.0)
+        shared = T(
+            "Fused Alias", "name-stitch", [759409895],
+            self._lines([759409895], ways, nodes))
+        extension = T(
+            "Fused Alias", "name-stitch", [900010],
+            self._lines([900010], ways, nodes))
+        fused = m.merge_same_name([shared, extension])
+        self.assertEqual(len(fused), 1)
+        self.assertEqual(fused[0].geometry_ways, [759409895, 900010])
+        root = T(
+            "Dropped Root", "relation", [759409895, 920010],
+            self._lines([759409895, 920010], ways, nodes),
+            relation_id=10507412,
+            tags={"type": "route", "route": "hiking"})
+
+        kept, removed, report = curate([root, fused[0]], ways, nodes)
+
+        self.assertEqual(kept, [])
+        self.assertEqual(len(removed), 1)
+        self.assertEqual(report["dropped_root_contamination_count"], 1)
+        self.assertEqual(
+            report["dropped_root_contamination"][0]["dropped_roots"],
+            [{"root_relation_id": 10507412,
+              "shared_way_ids": [759409895]}],
+        )
+
+    def test_name_stitch_chain_from_assembly_is_quarantined(self):
+        nodes = {
+            1: (0.0, 0.0), 2: (1.0, 0.0), 3: (2.0, 0.0),
+            4: (0.0, 4.0), 5: (1.0, 4.0),
+        }
+        ways = {
+            10: W([1, 2], highway="path", name="Alias Chain"),
+            11: W([2, 3], highway="path", name="Alias Chain"),
+            12: W([4, 5], highway="path"),
+        }
+        relations = {700: {
+            "tags": {"type": "route", "route": "hiking",
+                     "name": "Dropped Route"},
+            "members": [("w", 10, ""), ("w", 12, "")],
+        }}
+        trails = m.assemble(nodes, ways, relations, [], region="dk")
+        relation = next(trail for trail in trails if trail.source == "relation")
+        stitch = next(trail for trail in trails if trail.source == "name-stitch")
+        self.assertEqual(relation.root_relation_ids, [700])
+        self.assertEqual(stitch.geometry_ways, [10, 11])
+
+        kept, removed, report = curate(trails, ways, nodes)
+
+        self.assertEqual(kept, [])
+        self.assertEqual(len(removed), 1)
+        self.assertEqual(removed[0]["properties"]["root_relation_ids"], [700])
+        self.assertEqual(report["dropped_root_contamination_count"], 1)
+        self.assertEqual(report["dropped_root_contamination"][0]["name"],
+                         "Alias Chain")
+        self.assertEqual(
+            report["dropped_root_contamination"][0]["dropped_roots"],
+            [{"root_relation_id": 700, "shared_way_ids": [10]}],
+        )
+
+    def test_boundary_split_cannot_hide_one_shared_way(self):
+        ways = {
+            135631196: W([1, 2, 3], highway="path", name="Krogryggevej"),
+            920020: W([4, 5], highway="path", name="Root gap"),
+        }
+        nodes = {
+            1: (0.0, 0.0), 2: (2.0, 0.0), 3: (4.0, 0.0),
+            4: (0.0, 4.0), 5: (1.0, 4.0),
+        }
+        root = T(
+            "Djurslandstien", "relation", [135631196, 920020],
+            self._lines([135631196, 920020], ways, nodes),
+            relation_id=14190349,
+            tags={"type": "route", "route": "hiking"})
+        stitch = T(
+            "Krogryggevej", "name-stitch", [135631196],
+            self._lines([135631196], ways, nodes))
+        features = prepared([root, stitch], ways)
+        boundary = MultiPolygon([
+            box(-0.1, -1.0, 1.0, 1.0),
+            box(3.0, -1.0, 4.1, 1.0),
+            box(-0.1, 3.0, 1.1, 5.0),
+        ])
+        clipped = areas.clip_features_to_area(
+            features, boundary, min_inside_mi=0, area_name=AREA)
+
+        kept, removed, report = quality.curate_exact_area(
+            clipped, ways=ways, nodes=nodes, area_union=boundary,
+            area_name=AREA, region="dk")
+
+        self.assertEqual(kept, [])
+        self.assertEqual(len(removed), 1)
+        self.assertEqual(report["dropped_root_contamination_count"], 1)
+        exclusion = report["dropped_root_contamination"][0]
+        self.assertTrue(exclusion["boundary_induced_split"])
+        self.assertEqual(exclusion["dropped_roots"], [{
+            "root_relation_id": 14190349,
+            "shared_way_ids": [135631196],
+        }])
+
+
+@unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
 class DenmarkRoadTrackCuration(unittest.TestCase):
     def _single(self, name, tags, *, source="name-stitch", relation_id=None,
                 region="dk"):

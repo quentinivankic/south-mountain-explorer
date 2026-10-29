@@ -1,0 +1,372 @@
+{
+  "schema_version": 1,
+  "record_id": "mols-bjerge-local-dispositions-2026-10-11",
+  "scope": {
+    "area_id": "nationalpark-mols-bjerge-dk",
+    "area_name": "Nationalpark Mols Bjerge",
+    "boundary_osm_relation_id": 7046785,
+    "kind": "snapshot-bound-local-acceptance-only",
+    "publication_authority": false,
+    "runtime_effect": "none"
+  },
+  "snapshot": {
+    "implementation_commit": "a85cd00a894558f47bf5fb70e4ae88f475f3903a",
+    "implementation_tree": "119a831f43178301827595e430efa0291977c151",
+    "implementation_parent": "b1db2afb4fdb51191551fc372411c04a515c0869",
+    "accepted_whole_wip_sha256": "9ec7960e6f2ec490268c339b32d923e0ca7423b4e3299394e94bacb0b2d04980",
+    "source_run_id": 37941658802,
+    "source_run_number": 35,
+    "source_commit": "b1db2afb4fdb51191551fc372411c04a515c0869",
+    "source_geometry_authority": "OpenStreetMap",
+    "source_license": "Open Database License (ODbL) 1.0",
+    "source_attribution": "© OpenStreetMap contributors",
+    "replay_manifest_sha256": "d8628441579f8ca28166f0f67df632f152323788c02558d8f3883882697282df",
+    "raw_relation_ledger_sha256": "d1e2475b5c4e3dcd59b78919b95639538799160644598e69f21210fb78d0e263",
+    "emitted_trails_sha256": "b5c7853af4a1d7c48e4dd97ec56fa102c1028267d6f8e16acc4f5d1b3196d577",
+    "assembly_report_sha256": "1eea9ba8b5acbbae315da87ff21ef59b13a7311374210e102b695879a388c8a8",
+    "final_validation_sha256": "db44ead6e6ee381756448749500fbdfb5fad59e049798826f43fa192613e1a3f"
+  },
+  "safety_policy": {
+    "geometry_authority": "OpenStreetMap-only",
+    "visitdenmark_role": "approximate-distance-and-name-context-only",
+    "preserve_boundary_relation_id": 7046785,
+    "preserve_raw_order": true,
+    "preserve_duplicate_occurrences": true,
+    "preserve_relation_and_source_identity": true,
+    "preserve_duplicate_aware_ckey": true,
+    "preserve_provenance": true,
+    "connectivity_authority": "exact-osm-node-id-only",
+    "coordinate_tolerance_m": null,
+    "coordinate_snapping": false,
+    "synthetic_connectors": false,
+    "unsafe_way_restoration": false,
+    "visitdenmark_geometry": false,
+    "fail_closed": true,
+    "excluded_parking_aisle_way_ids": [324442353, 532412676, 532412678, 273639315]
+  },
+  "effects": {
+    "decision_layer": "separate-local-acceptance-ledger",
+    "producer_output_changed": false,
+    "raw_osm_changed": false,
+    "assembly_quality_dispositions_changed": false,
+    "final_validator_errors_changed": false,
+    "expected_errors_suppressed": false,
+    "expected_errors_relabelled": false,
+    "expected_errors_waived": false,
+    "expected_errors_deleted": false,
+    "publication_behavior_changed": false
+  },
+  "error_partition": {
+    "archived_implementation_or_evidence_errors": 1272,
+    "corrected_implementation_or_evidence_errors": 0,
+    "preserved_genuine_errors": 9,
+    "equation": "9 = 0 implementation/evidence + the same 9 genuine"
+  },
+  "preserved_genuine_errors": [
+    "relation-member-audit[11] contains unresolved member exclusions or evidence: ['unsafe-member-in-exact-area']",
+    "relation-member-audit[21] contains unresolved member exclusions or evidence: ['unsafe-member-in-exact-area']",
+    "unresolved-relation-gap population is nonzero: 'Mols Bjerge-stien Ebeltoftetapen', 'Mols Bjerge-stien Gåsehage-etapen', 'Djurslandstien', 'Langs Kysten', 'Den gamle købstad'",
+    "assembly quality report contains unresolved failures",
+    "trail[10] unresolved-relation-gap",
+    "trail[17] unresolved-relation-gap",
+    "trail[18] unresolved-relation-gap",
+    "trail[23] unresolved-relation-gap",
+    "trail[24] unresolved-relation-gap"
+  ],
+  "decisions": [
+    {
+      "decision_id": "D1",
+      "kind": "relation-explicit-omission",
+      "status": "accepted",
+      "authority": "root-conductor-decision",
+      "local_disposition": "explicitly-omitted-from-this-snapshot-local-acceptance",
+      "trail": {
+        "name": "Mols Bjerge-stien Ebeltoftetapen",
+        "osm_relation_id": 10507412,
+        "quality_candidate_index": 10,
+        "miles": 13.252
+      },
+      "snapshot_identity": {
+        "relation_record_sha256": "fcaca3c812e31782893acee0a442fcabb39be2f932cc8d78cb2d2adba649157f",
+        "feature_sha256": "0a87dbe91046ee9aa1d2b25b7488af0ee55f0e1bd6dd1ac30db0646b8790ff9c",
+        "occurrence_sha256": "5d01dd6f55f7275282baac6130bd1ddd56afa52d744453b077f70e686bb10e05",
+        "ckey_sha256": "56dedd58215480327a83c5cc64fad75c0b9d1484913c75e55f5556fbb72c91c7",
+        "source_geometry_way_ids_sha256": "3c05b2031b54e346c622e957bdb786a327c1df7d533f83ca68989a17b76d6800",
+        "rendered_source_way_ids_sha256": "3c05b2031b54e346c622e957bdb786a327c1df7d533f83ca68989a17b76d6800",
+        "occurrence_count": 72,
+        "unique_source_way_count": 72,
+        "unique_rendered_way_count": 72
+      },
+      "genuine_residual": {
+        "producer_quality_disposition": "unresolved-relation-gap",
+        "source_components": 2,
+        "postclip_components": 2,
+        "missing_way_ids": [],
+        "reason": "unsafe-member-in-exact-area",
+        "excluded_way_ids": [324442353],
+        "preserved_error_messages": [
+          "relation-member-audit[11] contains unresolved member exclusions or evidence: ['unsafe-member-in-exact-area']",
+          "trail[10] unresolved-relation-gap"
+        ]
+      }
+    },
+    {
+      "decision_id": "D2",
+      "kind": "relation-explicit-omission",
+      "status": "accepted",
+      "authority": "root-conductor-decision",
+      "local_disposition": "explicitly-omitted-from-this-snapshot-local-acceptance",
+      "trail": {
+        "name": "Mols Bjerge-stien Gåsehage-etapen",
+        "osm_relation_id": 13944294,
+        "quality_candidate_index": 17,
+        "miles": 13.798
+      },
+      "snapshot_identity": {
+        "relation_record_sha256": "acc394419ad111ded865d6f9dda72fe46a8536c3712ac7787c6dd4dc9c8e236c",
+        "feature_sha256": "d7d2d48a43f135c6a1a38f282e4d4b1bdb0c3687ee47f01c7f76967000c8eadc",
+        "occurrence_sha256": "0dd71c268c700fc941927423248fe7f53f096951bbcb0cec43c90bcf795e6fd2",
+        "ckey_sha256": "ccaffd4d8dcd6b4751fb76c0944c129b32f0dee7e58f0ae25bd7e39fcd2dd829",
+        "source_geometry_way_ids_sha256": "878976c365fb0408dbdfdc8b25dc2bb04077ed9bd68819671bf8dde70f9ddcae",
+        "rendered_source_way_ids_sha256": "878976c365fb0408dbdfdc8b25dc2bb04077ed9bd68819671bf8dde70f9ddcae",
+        "occurrence_count": 154,
+        "unique_source_way_count": 154,
+        "unique_rendered_way_count": 154
+      },
+      "genuine_residual": {
+        "producer_quality_disposition": "unresolved-relation-gap",
+        "source_components": 2,
+        "postclip_components": 2,
+        "missing_way_ids": [],
+        "reason": "unsafe-member-in-exact-area",
+        "excluded_way_ids": [532412676, 532412678, 273639315],
+        "preserved_error_messages": [
+          "relation-member-audit[21] contains unresolved member exclusions or evidence: ['unsafe-member-in-exact-area']",
+          "trail[17] unresolved-relation-gap"
+        ]
+      }
+    },
+    {
+      "decision_id": "D3",
+      "kind": "relation-explicit-omission",
+      "status": "accepted",
+      "authority": "root-conductor-decision",
+      "local_disposition": "explicitly-omitted-from-this-snapshot-local-acceptance",
+      "trail": {
+        "name": "Djurslandstien",
+        "osm_relation_id": 14190349,
+        "quality_candidate_index": 18,
+        "miles": 24.114
+      },
+      "snapshot_identity": {
+        "relation_record_sha256": "5cd264928cf71fc1372e9460a75acdc7f7378a23921cebd92372595d6375a0f5",
+        "feature_sha256": "3ffbd6ff0b66e2c7d4b43c3f6f035940b776cb9bc2b69f3578af63a5a90cd1a4",
+        "occurrence_sha256": "f439e63160b92d635caf58836b5b6c09f8da2502a93622700bcf992b8df541a1",
+        "ckey_sha256": "62c811375e25e7b437f03b371bd0a79340299223d8c374e32d291c062220b97e",
+        "source_geometry_way_ids_sha256": "f32f3e9cee277e59bac3357489094341a0e5a66f30a8d3656a245c346ffcdba4",
+        "rendered_source_way_ids_sha256": "5f5f70696ca6c7424f7e7fba17fb5c16a7e5e8b6a90c53e33d80fb4063cef4be",
+        "occurrence_count": 373,
+        "unique_source_way_count": 321,
+        "unique_rendered_way_count": 106
+      },
+      "genuine_residual": {
+        "producer_quality_disposition": "unresolved-relation-gap",
+        "source_components": 5,
+        "postclip_components": 5,
+        "missing_way_ids": [],
+        "reason": "exact-osm-node-topology-gap",
+        "relation_member_audit_status": "accepted",
+        "diagnostic_only_endpoint_pairs": [
+          {"node_ids": [6587732646, 8435033064], "distance_m": 10.478},
+          {"node_ids": [447876432, 447876431], "distance_m": 11.588},
+          {"node_ids": [1151596092, 395669576], "distance_m": 23.084},
+          {"node_ids": [5578198535, 5578198533], "distance_m": 72.404}
+        ],
+        "preserved_error_messages": ["trail[18] unresolved-relation-gap"]
+      }
+    },
+    {
+      "decision_id": "D4",
+      "kind": "relation-explicit-omission",
+      "status": "accepted",
+      "authority": "root-conductor-decision",
+      "local_disposition": "explicitly-omitted-from-this-snapshot-local-acceptance",
+      "trail": {
+        "name": "Langs Kysten",
+        "osm_relation_id": 19113817,
+        "quality_candidate_index": 23,
+        "miles": 2.073
+      },
+      "snapshot_identity": {
+        "relation_record_sha256": "86dc87d1cf2e2ccc990b5fa83ef6863b212338c0b67ba4a0561987e8140ea1d6",
+        "feature_sha256": "db6fb6d91f91849d807e868983924b307ea5f42c7dd4b97f420e9fe4b5889b25",
+        "occurrence_sha256": "c737885eca99d3d268affecb21b8dd2942164e329ae866f6327fdba71dfe00a3",
+        "ckey_sha256": "02185bd5a859445d3f9cf516154fde0d1aaee9cf2ed80e0c55744bfccd3113bc",
+        "source_geometry_way_ids_sha256": "43f7e1d788e21a74a75d9363f00ecbdc1dddf5a711151d356a9efce07a85fe73",
+        "rendered_source_way_ids_sha256": "43f7e1d788e21a74a75d9363f00ecbdc1dddf5a711151d356a9efce07a85fe73",
+        "occurrence_count": 12,
+        "unique_source_way_count": 12,
+        "unique_rendered_way_count": 12
+      },
+      "genuine_residual": {
+        "producer_quality_disposition": "unresolved-relation-gap",
+        "source_components": 3,
+        "postclip_components": 3,
+        "missing_way_ids": [],
+        "reason": "exact-osm-node-topology-gap",
+        "relation_member_audit_status": "accepted",
+        "diagnostic_only_endpoint_pairs": [
+          {"node_ids": [4716929506, 4716929507], "distance_m": 4.396},
+          {"node_ids": [8367629215, 5546029858], "distance_m": 166.423}
+        ],
+        "preserved_error_messages": ["trail[23] unresolved-relation-gap"]
+      }
+    },
+    {
+      "decision_id": "D5",
+      "kind": "relation-explicit-omission",
+      "status": "accepted",
+      "authority": "root-conductor-decision",
+      "local_disposition": "explicitly-omitted-from-this-snapshot-local-acceptance",
+      "trail": {
+        "name": "Den gamle købstad",
+        "osm_relation_id": 19113818,
+        "quality_candidate_index": 24,
+        "miles": 1.334
+      },
+      "snapshot_identity": {
+        "relation_record_sha256": "002daeb78e02c8275f8aab212549c9665ff194d8fbda158bd54e6176f5441a99",
+        "feature_sha256": "2d3fa269bd04f513c63a6ab599d8b2bb7568c00bfb2bcdc7f025f681b5516989",
+        "occurrence_sha256": "7b21bf725257991cd0acbfaaf6c354ddcc999ec1486c3cfcf7965c83300873f7",
+        "ckey_sha256": "919bbe278a557a6781793ded3faaa49541cf44ec12a80ac35028c8ba1433cb05",
+        "source_geometry_way_ids_sha256": "0378236ee633d23258f14dd385afd2b70c9f9fd7a1e73131b178c6d8ca62c7cd",
+        "rendered_source_way_ids_sha256": "0378236ee633d23258f14dd385afd2b70c9f9fd7a1e73131b178c6d8ca62c7cd",
+        "occurrence_count": 32,
+        "unique_source_way_count": 32,
+        "unique_rendered_way_count": 32
+      },
+      "genuine_residual": {
+        "producer_quality_disposition": "unresolved-relation-gap",
+        "source_components": 2,
+        "postclip_components": 2,
+        "missing_way_ids": [],
+        "reason": "exact-osm-node-topology-gap",
+        "relation_member_audit_status": "accepted",
+        "diagnostic_only_endpoint_pairs": [
+          {"node_ids": [9919843269, 389083051], "distance_m": 0.385}
+        ],
+        "nodes_are_distinct": true,
+        "coordinate_tolerance_m": null,
+        "preserved_error_messages": ["trail[24] unresolved-relation-gap"]
+      }
+    },
+    {
+      "decision_id": "D6",
+      "kind": "trail-identity-acceptance",
+      "status": "accepted",
+      "authority": "root-conductor-decision",
+      "scope": "local-acceptance-only",
+      "trail": {
+        "name": "Mols Bjerge-stien Bjergetapen",
+        "osm_relation_id": 8350111,
+        "quality_candidate_index": 7,
+        "app_trail_id": "mols-bjerge-stien-bjergetapen",
+        "osm_preclip_km": 20.219,
+        "app_display_miles": 12.56
+      },
+      "identity": {
+        "raw_way_occurrence_count": 85,
+        "unique_raw_way_count": 82,
+        "unique_source_geometry_way_count": 82,
+        "unique_rendered_way_count": 82,
+        "duplicate_way_positions_zero_based": {
+          "1165157102": [0, 3],
+          "1268368329": [1, 2],
+          "185426000": [37, 38]
+        },
+        "ckey_sha256": "1ca3220c239d48725f6a477f955e380e96035471918445e22742d009b18d6f63",
+        "raw_relation_sha256": "c01b894a268f6b00d0faca0631388bd7e3d286fdfad856d650979d5b9049a7ea",
+        "raw_member_list_sha256": "93194fe76a2bca5696a724654f84636d9936be7a6e4632e816846b1c1cd53b13",
+        "member_ways_sha256": "2221e920a2b8f7cbbc8ddbdfc2b1b74b51494fb71eee612b35ef765e62943bd2",
+        "occurrence_sha256": "cab8c7a85c99e3415e6729d4f74beb47559049c3e1cc4eef3b70bdb6c8238c3f",
+        "source_way_ids_sha256": "7ccf81526651b266c7d5f65982f09d49d82acd062889338f9ac4a1fe178f795d",
+        "rendered_way_ids_sha256": "7ccf81526651b266c7d5f65982f09d49d82acd062889338f9ac4a1fe178f795d",
+        "rendered_lineage_sha256": "f63bbe9b212fc46b090a5c310cb1ae176f79f81ac57a316fda211a950131b827",
+        "feature_sha256": "94b3d979549ce53011f78745e0f85194d96bec411721d965ef1583df8c405e18",
+        "render_chain_way_counts": [36, 46],
+        "source_orientation_count": 51,
+        "reversed_orientation_count": 31,
+        "source_components": 1,
+        "postclip_components": 1,
+        "missing_way_ids": []
+      },
+      "geometry_policy": {
+        "exclusive_source": "OpenStreetMap",
+        "visitdenmark_geometry_used": false,
+        "connector_geometry_invented": false,
+        "numeric_acceptance_tolerance": null
+      }
+    },
+    {
+      "decision_id": "D7",
+      "kind": "visual-packet-acceptance",
+      "status": "accepted",
+      "authority": "root-conductor-decision",
+      "scope": "local-acceptance-only",
+      "focused_visual": {
+        "bytes": 26733,
+        "sha256": "152e884801ae72454eb1c468e20f1df9ad74ac4f4fe919e22841402a26a3acaf"
+      },
+      "full_context_visual": {
+        "bytes": 17052984,
+        "sha256": "0d8f0989388d5992d3373a5080cc04c1b115496f3acae8faa54150affea161b9"
+      },
+      "asset_manifest": {
+        "bytes": 2939,
+        "sha256": "e0c2c6c5b171c35586f13d9f87d82b9a2fdf49278a4065c67affcc0c52cc4ace"
+      },
+      "visual_redesign_authorized": false,
+      "publication_authority": false
+    },
+    {
+      "decision_id": "D8",
+      "kind": "hosted-run-final-disposition",
+      "status": "accepted",
+      "authority": "root-conductor-decision",
+      "run": {
+        "id": 38181006310,
+        "number": 36,
+        "attempt": 1,
+        "head_sha": "a85cd00a894558f47bf5fb70e4ae88f475f3903a",
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      "local_disposition": "infrastructure-inconclusive-final-no-retry",
+      "discovery_outcome": "external-overpass-instability-followed-by-ambiguous-parseable-zero-element-response",
+      "relation_7046785_gate": "failed-closed",
+      "retry_authorized": false,
+      "retry_performed": false,
+      "hosted_success_claimed": false,
+      "publication_performed": false
+    }
+  ],
+  "evidence_files": [
+    {"key":"five_trail_packet","path":"commit-1/hosted-run-1-20261011T152646-0700/overnight-local-work/five-trail-acceptance-preparation.md","bytes":47419,"sha256":"0c701d9fc1273a3c5affe892175fab802f4d94ca224bc5325b838b6ae4cdd700"},
+    {"key":"bjergetapen_packet","path":"commit-1/hosted-run-1-20261011T152646-0700/overnight-local-work/bjergetapen-identity-visual-preparation.md","bytes":27799,"sha256":"0e4dc9a6c4ba35a96650ce2acf35e25f83b913f91dad082af060944293b23dd1"},
+    {"key":"focused_visual","path":"commit-1/hosted-run-1-20261011T152646-0700/overnight-local-work/bjergetapen-identity-visual-preparation-assets/bjergetapen-focused.svg","bytes":26733,"sha256":"152e884801ae72454eb1c468e20f1df9ad74ac4f4fe919e22841402a26a3acaf"},
+    {"key":"visual_asset_manifest","path":"commit-1/hosted-run-1-20261011T152646-0700/overnight-local-work/bjergetapen-identity-visual-preparation-assets/asset-manifest.json","bytes":2939,"sha256":"e0c2c6c5b171c35586f13d9f87d82b9a2fdf49278a4065c67affcc0c52cc4ace"},
+    {"key":"corrected_run_diagnosis","path":"commit-1/hosted-run-1-20261011T152646-0700/overnight-local-work/overpass-failure-analysis.md","bytes":22591,"sha256":"c51cacc6fdaace0dc997c455dd9c1c3af2813a4288369e32fbf9acb7ceeb3c77"},
+    {"key":"hosted_terminal_summary","path":"commit-1/hosted-run-1-20261011T152646-0700/provider/terminal-summary.json","bytes":19759,"sha256":"8429e0dbf108de783d10da738cb45ae9cf4408529db788162314039b24525eec"},
+    {"key":"artifact_review","path":"commit-1/hosted-run-1-20261011T152646-0700/independent-review/review.md","bytes":20299,"sha256":"e095f0432b1e9c97220fd57a2efbd697ff7680b762d943f75b133f0c905f9df6"},
+    {"key":"artifact_approval","path":"commit-1/hosted-run-1-20261011T152646-0700/independent-review/approval.md","bytes":5159,"sha256":"8058a3d3529bb4239c39588be4dc16fd7b08dd0a461b5b0f8086e2d3df788d62"},
+    {"key":"provider_branch_receipt","path":"commit-1/hosted-run-1-20261011T152646-0700/independent-review/provider-live-branch.json","bytes":2056,"sha256":"ddaaed7ed19c5710cac3e333c057bd6e3184f3e3832142c60161a083f82a2af4"},
+    {"key":"replay_manifest","path":"mutator-2/final-full-gate/11-production-replay/retained-replay/evidence-manifest.json","bytes":8905,"sha256":"d8628441579f8ca28166f0f67df632f152323788c02558d8f3883882697282df"},
+    {"key":"final_validation","path":"mutator-2/final-full-gate/11-production-replay/retained-replay/qa/validation/final.json","bytes":2365,"sha256":"db44ead6e6ee381756448749500fbdfb5fad59e049798826f43fa192613e1a3f"},
+    {"key":"assembly_report","path":"mutator-2/final-full-gate/11-production-replay/retained-replay/qa/reports/assembly.json","bytes":17216486,"sha256":"1eea9ba8b5acbbae315da87ff21ef59b13a7311374210e102b695879a388c8a8"},
+    {"key":"emitted_trails","path":"mutator-2/final-full-gate/11-production-replay/retained-replay/qa/data/aoi/mols-bjerge.trails.geojson","bytes":1570371,"sha256":"b5c7853af4a1d7c48e4dd97ec56fa102c1028267d6f8e16acc4f5d1b3196d577"},
+    {"key":"raw_relation_ledger","path":"mutator-2/final-full-gate/11-production-replay/retained-replay/qa/data/source/mols-bjerge.relation-members.raw.json","bytes":3356716,"sha256":"d1e2475b5c4e3dcd59b78919b95639538799160644598e69f21210fb78d0e263"},
+    {"key":"full_context_visual","path":"mutator-2/final-full-gate/11-production-replay/retained-replay/qa/visual/mols-bjerge.svg","bytes":17052984,"sha256":"0d8f0989388d5992d3373a5080cc04c1b115496f3acae8faa54150affea161b9"},
+    {"key":"visual_review_record","path":"mutator-2/final-full-gate/11-production-replay/retained-replay/qa/visual/review.json","bytes":687,"sha256":"c646baf77660aafd140e44ff921ded697bde5f56e00e71d7615a68a957b54eda"},
+    {"key":"bjergetapen_golden_record","path":"mutator-2/final-full-gate/11-production-replay/retained-replay/qa/golden/mols-bjerge.json","bytes":1696,"sha256":"45ea8f92478a3b8a3b30402aacdaefc41d82239cda103a03f2d6092cbda84695"}
+  ]
+}

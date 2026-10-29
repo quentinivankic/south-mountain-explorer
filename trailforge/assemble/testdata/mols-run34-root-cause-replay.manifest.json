@@ -1,0 +1,44 @@
+{
+  "output": {
+    "bytes": 106766,
+    "file": "mols-run34-root-cause-replay.json",
+    "sha256": "2172db1ae276431ea0858d7ae4443f8a7818af039733628a5e03955d04b8d922"
+  },
+  "projection": {
+    "available_exclusion_count": 128,
+    "component_row_count": 11,
+    "missing_root_audit_count": 5,
+    "restored_road_row_count": 27,
+    "restored_way_tag_count": 131
+  },
+  "schema_version": 1,
+  "source": {
+    "artifact_name": "mols-bjerge-qa-c2357749ed06dc1860c8ce469a926ed9f108ade8",
+    "attribution": "© OpenStreetMap contributors",
+    "github_run_id": 37213946834,
+    "license": "Open Database License (ODbL) 1.0",
+    "source_sha": "c2357749ed06dc1860c8ce469a926ed9f108ade8"
+  },
+  "source_files": {
+    "analysis-summary.json": {
+      "bytes": 205324,
+      "sha256": "134e9a8dcc8c9328a1169a59c5cc8ceb4894c928dd9d65e9bd89b192ea9ab47c"
+    },
+    "mols-bjerge-qa-c2357749ed06dc1860c8ce469a926ed9f108ade8/data/aoi/mols-bjerge.relation-members.json": {
+      "bytes": 480504,
+      "sha256": "6c4c681c3e84726b9f657db9e3392ea67f92a9adc2175dbaedfeb5eb9963c24a"
+    },
+    "mols-bjerge-qa-c2357749ed06dc1860c8ce469a926ed9f108ade8/data/aoi/mols-bjerge.trails.geojson": {
+      "bytes": 872429,
+      "sha256": "40d41357658cf0808b8ac341af21268e5bbd27215558a3fff5264c320166a8de"
+    },
+    "mols-bjerge-qa-c2357749ed06dc1860c8ce469a926ed9f108ade8/reports/assembly.json": {
+      "bytes": 3260358,
+      "sha256": "427e3961637601985a1414652abb05bfc3f349c5416abe24b77bbf7b7b644dd4"
+    },
+    "run35-root-cause.md": {
+      "bytes": 46981,
+      "sha256": "a4a7f5a2ff63bcc6ec5927df5d765cecdda6d213a713ac4b1e365a0a96af7fe0"
+    }
+  }
+}

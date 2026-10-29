@@ -86,6 +86,17 @@ NAME_KEYWORD_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Denmark-only name keyword. Deliberately the single narrowest demonstrated
+# term — `nationalpark` — NOT a restoration of the old broad Danish
+# alternation (naturpark|naturreservat|vildtreservat|fredning|naturskov|
+# vådområde), which was dropped for producing low-signal tiny-reserve noise.
+# This matcher is OR-ed into the quality gate ONLY when the region code is
+# "DK" (see `is_quality(..., code="DK")`), so US / Canada name-matching is
+# byte-for-byte unchanged. Danish national parks that tag protect_class=2 are
+# already covered by the protect_class authority; this catches the ones that
+# only self-describe as a "Nationalpark" in the name.
+DK_NAME_KEYWORD_RE = re.compile(r"\bnationalpark\b", re.IGNORECASE)
+
 # ---------- Region codes ----------
 
 STATE_NAMES = {
@@ -116,20 +127,24 @@ STATE_NAMES = {
     "CA-NT": "Northwest Territories", "CA-NU": "Nunavut",
     "CA-ON": "Ontario", "CA-PE": "Prince Edward Island",
     "CA-QC": "Quebec", "CA-SK": "Saskatchewan", "CA-YT": "Yukon",
+
+    # Country-level (ISO3166-1) regions re-enabled for coverage lanes.
+    "DK": "Denmark",
 }
 
 # Subset of STATE_NAMES that are country-level (ISO3166-1) rather
 # than US-state subdivisions.
 #
-# Intentionally EMPTY: the app is North America only. Denmark /
-# Iceland / Switzerland and the 24-country EU batch were seeded
-# during an expansion experiment, but the OSM tagging produced too
-# much low-signal noise (tiny nature_reserve fragments with no real
-# trail coverage) to ship, so all non-NA data was removed and the
-# seeder restricted back to US states + Canadian provinces. To
-# re-introduce a country, add its ISO3166-1 code here and its display
-# name to STATE_NAMES, then dispatch build-trail-index for it.
-COUNTRY_CODES: set[str] = set()
+# Denmark ("DK") is re-enabled for the Denmark trail-coverage lane
+# (OSM-only, ODbL "© OpenStreetMap contributors"). The earlier non-NA
+# removal was driven by broad, low-signal keyword matching; DK discovery
+# here is deliberately narrow — the Danish name keyword is only
+# `nationalpark` (see DK_NAME_KEYWORD_RE) and is region-scoped so it never
+# affects US / Canada seeding. The Danish diacritic folds in ASCII_TRANSLIT
+# (ø/æ/å/þ/ð/ý) support stable `-dk` slugs. To re-introduce another country,
+# add its ISO3166-1 code here and its display name to STATE_NAMES, then
+# dispatch build-trail-index for it.
+COUNTRY_CODES: set[str] = {"DK"}
 
 # Display-name override for `row[2]` (the user-facing state/country
 # label shown under each area card on iOS). STATE_NAMES keeps the
@@ -294,9 +309,11 @@ def red_flag(tags: dict) -> str | None:
     return flag
 
 
-def is_quality(tags: dict) -> bool:
-    """Whether an OSM relation's tags qualify it as an outdoor area
-    we want to surface. protect_class whitelist OR name keyword.
+def passes_safety_floor(tags: dict) -> bool:
+    """The non-negotiable exclusions every candidate must clear, whether it
+    arrived via the normal quality gate or via a seeds-include.txt override.
+    False iff the area asserts private access/ownership or trips a
+    real-example-backed red flag.
 
     `ownership=private` is an explicit, unambiguous assertion — distinct
     from a name-based guess — so it's as safe to act on as `access=private`.
@@ -312,10 +329,29 @@ def is_quality(tags: dict) -> bool:
     sign of being private/restricted anyway (a mining easement, a hunting
     club, a closed municipal water-supply zone). See red_flag()'s docstring
     for why this is a narrow exclusion list, not an attempt to whitelist
-    every legitimate public operator."""
+    every legitimate public operator.
+
+    Factored out so seeds-include.txt can bypass ONLY the name/protect-class
+    quality check (see seed-areas.fetch_state) while this floor still holds —
+    an include listing can never surface private or red-flagged land."""
     if tags.get("access") == "private":
         return False
     if tags.get("ownership") == "private":
+        return False
+    return red_flag(tags) is None
+
+
+def is_quality(tags: dict, code: str | None = None) -> bool:
+    """Whether an OSM relation's tags qualify it as an outdoor area
+    we want to surface. protect_class whitelist OR name keyword, gated
+    behind `passes_safety_floor`.
+
+    `code` is the region being seeded (e.g. "AZ", "CA-QC", "DK"). It
+    defaults to None so every existing call site is unaffected: the only
+    behavior it changes is that when `code == "DK"` the Denmark-only
+    `DK_NAME_KEYWORD_RE` ('nationalpark') is OR-ed into the keyword check.
+    US / Canada / default name-matching is byte-for-byte identical."""
+    if not passes_safety_floor(tags):
         return False
     name = (tags.get("name") or "").strip()
     if not name:
@@ -323,9 +359,11 @@ def is_quality(tags: dict) -> bool:
     pc = (tags.get("protect_class") or "").strip().lower()
     has_pc = bool(pc and pc in ALLOWED_PROTECT_CLASSES)
     has_keyword = bool(NAME_KEYWORD_RE.search(name))
+    if code == "DK":
+        has_keyword = has_keyword or bool(DK_NAME_KEYWORD_RE.search(name))
     if not (has_pc or has_keyword):
         return False
-    return red_flag(tags) is None
+    return True
 
 
 def load_overrides(path: Path) -> set[str]:

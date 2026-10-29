@@ -1,0 +1,410 @@
+#!/usr/bin/env python3
+"""Offline contract tests for the read-only Mols GitHub Actions pilot.
+
+The helpers scope YAML mappings by indentation so assertions cannot be
+satisfied by the generic publish job when they are meant for the pilot job.
+"""
+import re
+from pathlib import Path
+
+_WORKFLOW = (Path(__file__).resolve().parent.parent
+             / ".github" / "workflows" / "trailforge-publish.yml")
+_TEXT = _WORKFLOW.read_text(encoding="utf-8")
+_INPUTS = _TEXT.split("    inputs:\n", 1)[1].split("\nconcurrency:", 1)[0]
+_JOBS = _TEXT.split("\njobs:\n", 1)[1]
+_PUBLISH = _JOBS.split("  publish:\n", 1)[1].split("\n  pilot:\n", 1)[0]
+_PILOT = _JOBS.split("\n  pilot:\n", 1)[1]
+_PILOT_STEPS = _PILOT.split("    steps:\n", 1)[1]
+
+
+def _input_blocks():
+    matches = list(re.finditer(r"^      ([a-z][a-z0-9_]*):\n", _INPUTS, re.M))
+    blocks = {}
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(_INPUTS)
+        blocks[match.group(1)] = _INPUTS[match.end():end]
+    return blocks
+
+
+def _default(block):
+    match = re.search(r"^        default: (.*)$", block, re.M)
+    assert match, block
+    return match.group(1)
+
+
+def test_dispatch_has_exactly_ten_inputs_and_no_area_name_input():
+    inputs = _input_blocks()
+    assert len(inputs) <= 10
+    assert len(inputs) == 10
+    assert set(inputs) == {
+        "extract", "state", "dry_run", "no_routes", "touch_report",
+        "elevation", "region_code", "pilot_area_id", "pilot_bbox",
+        "expected_osm_relation_id",
+    }
+    assert "pilot_area_name" not in inputs
+
+
+def test_all_seven_generic_defaults_and_types_are_unchanged():
+    inputs = _input_blocks()
+    assert {_key: _default(inputs[_key]) for _key in (
+        "extract", "state", "dry_run", "no_routes", "touch_report",
+        "elevation", "region_code",
+    )} == {
+        "extract": '"north-america/us/arizona"',
+        "state": '"Arizona"',
+        "dry_run": "true",
+        "no_routes": "false",
+        "touch_report": "false",
+        "elevation": "true",
+        "region_code": '""',
+    }
+    for name in ("dry_run", "no_routes", "touch_report", "elevation"):
+        assert "        type: boolean\n" in inputs[name]
+    for name in ("extract", "state", "region_code"):
+        assert "        type:" not in inputs[name]
+
+
+def test_all_three_pilot_defaults_are_empty_strings():
+    inputs = _input_blocks()
+    for name in ("pilot_area_id", "pilot_bbox", "expected_osm_relation_id"):
+        assert _default(inputs[name]) == '""'
+
+
+def test_jobs_are_mutually_exclusive_and_permissions_are_exact():
+    assert "if: ${{ github.event.inputs.pilot_area_id == '' }}" in _PUBLISH
+    assert "if: ${{ github.event.inputs.pilot_area_id != '' }}" in _PILOT
+    assert re.search(
+        r"^    permissions:\n      contents: write\n      actions: write$",
+        _PUBLISH, re.M)
+    assert re.search(
+        r"^    permissions:\n      contents: read$", _PILOT, re.M)
+    assert "actions: write" not in _PILOT
+    assert "GH_TOKEN" not in _PILOT
+    assert "\npermissions:" not in _TEXT.split("\njobs:\n", 1)[0]
+
+
+def test_pilot_maps_dispatch_inputs_to_environment_before_shell_use():
+    env_block = _PILOT.split("    env:\n", 1)[1].split("    steps:\n", 1)[0]
+    for name in _input_blocks():
+        assert f"github.event.inputs.{name}" in env_block
+    assert "${{ github.event.inputs." not in _PILOT_STEPS
+
+
+def test_pilot_hard_fails_every_exact_denmark_input_and_branch_guard():
+    required_guards = [
+        '[[ "$GITHUB_REF_NAME" == "chat/denmark-trails" ]]',
+        '[[ "$PILOT_DRY_RUN" == "true" ]]',
+        '[[ "$PILOT_STATE" == "Denmark" ]]',
+        '[[ "$PILOT_REGION_CODE" == "dk" ]]',
+        '[[ "$PILOT_EXTRACT" == "europe/denmark" ]]',
+        '[[ "$PILOT_NO_ROUTES" == "false" ]]',
+        '[[ "$PILOT_TOUCH_REPORT" == "false" ]]',
+        '[[ "$PILOT_ELEVATION" == "false" ]]',
+        '[[ "$PILOT_AREA_ID" == "nationalpark-mols-bjerge-dk" ]]',
+        '[[ "$PILOT_BBOX" == "10.40,56.08,10.90,56.35" ]]',
+        '[[ "$PILOT_EXPECTED_RELATION_ID" =~ ^[0-9]+$ ]]',
+        '[[ "$PILOT_EXPECTED_RELATION_ID" != "0" ]]',
+    ]
+    for guard in required_guards:
+        assert guard in _PILOT
+    assert 'SEED_CODE="${PILOT_REGION_CODE^^}"' in _PILOT
+    assert '[[ "$SEED_CODE" == "DK" ]]' in _PILOT
+
+
+def test_runner_local_copy_is_created_and_pipeline_never_runs_in_checkout():
+    assert _PILOT.count("mktemp -d") == 2
+    assert "${RUNNER_TEMP:?}/mols-bjerge-work." in _PILOT
+    assert "${RUNNER_TEMP:?}/mols-bjerge-qa." in _PILOT
+    assert 'git archive HEAD | tar -x -C "$PILOT_REPO"' in _PILOT
+    assert 'cd "$PILOT_REPO"' in _PILOT
+    assert 'test -f "$PILOT_REPO/scripts/_pbf_discovery.py"' in _PILOT
+    for tool in (
+            "build_pbf_receipt.py", "build_relation_slice.py",
+            "export_relation_members.py", "export_way_topology.py",
+            "validate_publish_pilot.py"):
+        assert f'test -f "$PILOT_REPO/trailforge/tools/{tool}"' in _PILOT
+    assert _PILOT.count('cd "$PILOT_REPO/trailforge"') >= 4
+    assert "working-directory: ${{ github.workspace }}" in _PILOT
+    assert "../public/areas" not in _PILOT
+
+
+def test_discovery_identity_and_one_row_index_are_structurally_verified():
+    assert "scripts/seed-areas.py" in _PILOT
+    assert '--dry-run "$PILOT_SEED_CODE"' in _PILOT
+    assert '--source-pbf "$SOURCE_PBF"' in _PILOT
+    assert '--source-pbf-sha256 "$PILOT_SOURCE_PBF_SHA256"' in _PILOT
+    assert '--pbf-provenance \\' in _PILOT
+    assert '"$PILOT_QA_ROOT/discovery/pbf-provenance.json"' in _PILOT
+    assert '--discovery-report "$PILOT_QA_ROOT/discovery/report.json"' in _PILOT
+    assert "validate_publish_pilot.py discovery" in _PILOT
+    assert '--expected-osm-relation-id "$PILOT_EXPECTED_RELATION_ID"' in _PILOT
+    assert '--selected-record-out "$PILOT_QA_ROOT/discovery/selected.json"' in _PILOT
+    assert '--index-out "$PILOT_INDEX"' in _PILOT
+    assert 'json.load(open(sys.argv[1]))["index_row"][1]' in _PILOT
+    assert 'echo "PILOT_AREA_NAME=$AREA_NAME"' in _PILOT
+
+
+def test_denmark_prefilter_aoi_exact_assembly_and_routes_are_preserved():
+    assert "https://download.geofabrik.de/europe/denmark-latest.osm.pbf" in _PILOT
+    assert "bash extract/prefilter.sh \\" in _PILOT
+    assert "data/raw/denmark.osm.pbf data/hiking.osm.pbf \\" in _PILOT
+    assert "mols-bjerge.prefilter-transformation.json" in _PILOT
+    assert "HIKING=data/hiking.osm.pbf" in _PILOT
+    assert "NAME=mols-bjerge" in _PILOT
+    assert 'BBOX="$PILOT_BBOX"' in _PILOT
+    assert 'AOI_RECEIPT="$PILOT_QA_ROOT/data/aoi/mols-bjerge.scope.aoi.json"' in _PILOT
+    assert "AOI_WAY_TOPOLOGY=data/aoi/mols-bjerge.way-topology.json" in _PILOT
+    assert "bash extract/aoi.sh" in _PILOT
+    for argument in (
+        "--in data/aoi/mols-bjerge.osm.pbf",
+        "--out data/aoi/mols-bjerge.trails.geojson",
+        '--only-area "$PILOT_AREA_NAME"',
+        "--require-exact-area",
+        '--expected-area-relation-id "$PILOT_EXPECTED_RELATION_ID"',
+        "--min-length-mi 0.1",
+        "--per-area-merge",
+        "--region dk",
+        '--report-json "$PILOT_QA_ROOT/reports/assembly.json"',
+    ):
+        assert argument in _PILOT
+    assert "--no-routes" not in _PILOT
+
+
+def test_three_scope_relation_authority_is_sealed_before_assembly_and_validated():
+    prefilter_step = _PILOT.index("- name: Download and prefilter Denmark")
+    discovery_step = _PILOT.index(
+        "- name: Discover and verify exact Mols relation")
+    aoi_step = _PILOT.index("- name: Cut and seal padded Mols AOI")
+    raw_step = _PILOT.index("- name: Build and seal raw Denmark root closure")
+    filtered_step = _PILOT.index(
+        "- name: Build and seal prefiltered Denmark root closure")
+    assemble_step = _PILOT.index("- name: Assemble exact Mols boundary")
+    seal_step = _PILOT.index("- name: Seal every validation input")
+    trust_step = _PILOT.index(
+        "- name: Materialize non-package scope trust from stage outputs")
+    validate_step = _PILOT.index("- name: Validate complete Mols QA package")
+    assert (prefilter_step < discovery_step < aoi_step < raw_step <
+            filtered_step < assemble_step < seal_step < trust_step <
+            validate_step)
+
+    prefilter = _PILOT[prefilter_step:aoi_step]
+    aoi = _PILOT[aoi_step:raw_step]
+    raw = _PILOT[raw_step:filtered_step]
+    filtered = _PILOT[filtered_step:assemble_step]
+    assert "id: prefilter_source" in prefilter
+    assert 'RECEIPT_GITHUB_OUTPUT="$GITHUB_OUTPUT"' in prefilter
+    assert "id: aoi_scope" in aoi
+    assert 'AOI_GITHUB_OUTPUT="$GITHUB_OUTPUT"' in aoi
+    assert "AOI_RELATION_MEMBERS=" in aoi
+    assert "AOI_WAY_TOPOLOGY=" in aoi
+    assert "AOI_RECEIPT=" in aoi
+    assert "bash extract/aoi.sh" in aoi
+    assert "AOI_COMMAND_JSON" not in aoi
+    assert "tools/build_pbf_receipt.py" not in aoi
+    assert 'cp data/aoi/mols-bjerge.osm.pbf \\' in aoi
+    assert "id: raw_scope" in raw
+    assert "id: prefilter_scope" in filtered
+    for scope_step, scope, source_label, filename in (
+            (raw, "raw-denmark", "data/raw/denmark.osm.pbf",
+             "mols-bjerge.scope.raw.json"),
+            (filtered, "prefiltered-denmark", "data/hiking.osm.pbf",
+             "mols-bjerge.scope.prefilter.json")):
+        assert scope_step.count("tools/build_relation_slice.py") == 1
+        assert scope_step.count("tools/export_relation_members.py") == 1
+        assert f"--scope {scope}" in scope_step
+        assert f"--source-label {source_label}" in scope_step
+        assert filename in scope_step
+        assert scope_step.count('--github-output "$GITHUB_OUTPUT"') == 2
+        assert scope_step.count('--roots-from "$AOI"') == 2
+
+    assert _PILOT.count("python3 tools/export_relation_members.py") == 2
+    assert _PILOT.count("python3 tools/build_relation_slice.py") == 2
+    assert "mols-bjerge.scope.aoi.json" in aoi
+    assert "mols-bjerge.relation-members.aoi.json" in aoi
+    assert "--relation-authority" in _PILOT
+    assert "--prefilter-authority" in _PILOT
+    assert "--aoi-relation-members" in _PILOT
+    assert 'manifest["artifacts"] = artifacts' in _PILOT
+    assert "hashlib.sha256(raw).hexdigest()" in _PILOT
+    assert "os.replace(temporary, manifest_path)" in _PILOT
+
+    seal = _PILOT[seal_step:trust_step]
+    trust = _PILOT[trust_step:validate_step]
+    validate = _PILOT[validate_step:]
+    assert '"data/raw/denmark.osm.pbf"' not in seal
+    assert "mols-bjerge.prefilter-transformation.json" in seal
+    assert seal.count("mols-bjerge.scope.") >= 3
+    for relative in (
+            "discovery/validation.json",
+            "discovery/validation.log",
+            "reports/input-validation.log",
+            "reports/assembly.log"):
+        assert seal.count(f'"{relative}"') == 1
+    assert '"validation/final.json"' not in seal
+    assert '"validation/final.log"' not in seal
+    assert 'manifest_path = root / "manifest.json"' in seal
+    assert 'relatives = [' in seal
+    assert 'for relative in sorted(relatives):' in seal
+    assert '[[ "$PILOT_SCOPE_TRUST" != "$PILOT_QA_ROOT/"* ]]' in trust
+    assert "steps.raw_scope.outputs.parent_sha256" in trust
+    assert "steps.raw_scope.outputs.relation_ledger_sha256" in trust
+    assert "steps.prefilter_scope.outputs.slice_sha256" in trust
+    assert "steps.prefilter_scope.outputs.relation_ledger_sha256" in trust
+    assert "steps.aoi_scope.outputs.receipt_sha256" in trust
+    assert "steps.aoi_scope.outputs.relation_ledger_sha256" in trust
+    assert "steps.aoi_scope.outputs.way_topology_sha256" in trust
+    assert "steps.aoi_scope.outputs.root_bbox_sha256" in trust
+    assert "steps.prefilter_source.outputs.receipt_sha256" in trust
+    assert 'with path.open("x", encoding="utf-8")' in trust
+    assert "path.chmod(0o400)" in trust
+    assert '"prefilter_transformation"' in trust
+    assert '--scope-trust-file "$PILOT_SCOPE_TRUST"' in validate
+    assert "--raw-relation-members" in validate
+    assert "--prefilter-relation-members" in validate
+
+
+def test_publisher_is_temporary_dry_run_with_structured_final_validation():
+    assert "serve/publish_areas.py" in _PILOT
+    assert "--hiking data/aoi/mols-bjerge.osm.pbf" in _PILOT
+    assert "--state Denmark" in _PILOT
+    assert '--index "$PILOT_INDEX"' in _PILOT
+    assert '--out-dir "$PILOT_WORK_ROOT/publish-output"' in _PILOT
+    assert '--report-json "$PILOT_QA_ROOT/reports/publish.json"' in _PILOT
+    assert '--preview-root "$PILOT_QA_ROOT"' in _PILOT
+    assert '--preview-json "$PILOT_QA_ROOT/reports/app-preview.json"' in _PILOT
+    assert "--exact-boundary data/aoi/mols-bjerge.exact-area.geojson" in _PILOT
+    assert "mols-bjerge.way-topology.json" in _PILOT
+    assert "build_mols_pilot_visual.py" in _PILOT
+    assert "build_mols_golden.py" in _PILOT
+    assert '--source-sha "$GITHUB_SHA"' in _PILOT
+    assert "golden/mols-bjerge.json" in _PILOT
+    assert "--no-boundary-fetch" in _PILOT
+    assert "--no-elevation" in _PILOT
+    assert "--touch-report" not in _PILOT
+    assert "validate_publish_pilot.py\" final" in _PILOT
+    assert "--require-pbf-provenance" in _PILOT
+    assert '"$PILOT_REPO/trailforge/data/raw/denmark.osm.pbf"' in _PILOT
+    assert '--result-json "$PILOT_QA_ROOT/validation/final.json"' in _PILOT
+
+
+def test_complete_sha_named_artifact_upload_is_fail_closed_and_always_runs():
+    for filename in (
+        "mols-bjerge.relation-members.raw.json",
+        "mols-bjerge.relation-members.prefilter.json",
+        "mols-bjerge.relation-members.aoi.json",
+        "mols-bjerge.raw.osm.pbf",
+        "mols-bjerge.prefilter.osm.pbf",
+        "mols-bjerge.osm.pbf",
+        "mols-bjerge.scope.raw.json",
+        "mols-bjerge.scope.prefilter.json",
+        "mols-bjerge.scope.aoi.json",
+        "mols-bjerge.prefilter-transformation.json",
+        "mols-bjerge.way-topology.json",
+        "mols-bjerge.exact-area.geojson",
+        "mols-bjerge.raw.geojson",
+        "mols-bjerge.trails.geojson",
+        "mols-bjerge.removed.geojson",
+        "mols-bjerge.ingest-dropped.geojson",
+        "mols-bjerge.areas.geojson",
+        "mols-bjerge.curation.json",
+        "mols-bjerge.curation-diff.json",
+        "mols-bjerge.dropped-routes.geojson",
+        "discovery/pbf-provenance.json",
+        "discovery/report.json",
+        "discovery/selected.json",
+        "reports/publish.json",
+        "reports/app-preview.json",
+        "reports/publish.log",
+        "golden/mols-bjerge.json",
+        "visual/mols-bjerge.svg",
+        "visual/review.json",
+        "viewer/index.html",
+        "viewer/serve.py",
+    ):
+        assert filename in _PILOT
+    assert "uses: actions/upload-artifact@v4" in _PILOT
+    assert "name: mols-bjerge-qa-${{ github.sha }}" in _PILOT
+    assert "path: ${{ env.PILOT_QA_ROOT }}" in _PILOT
+    assert "if-no-files-found: error" in _PILOT
+    upload = _PILOT.split("- name: Upload Mols Bjerge QA artifact", 1)[1]
+    assert "if: ${{ always() }}" in upload.split("- name:", 1)[0]
+
+
+def test_checkout_integrity_gate_is_last_and_checks_tracked_staged_untracked():
+    step_names = re.findall(r"^      - name: (.+)$", _PILOT, re.M)
+    assert step_names[-1] == "Prove tracked checkout stayed unchanged"
+    last = _PILOT.rsplit("      - name:", 1)[1]
+    assert "if: ${{ always() }}" in last
+    assert "git diff --exit-code HEAD --" in last
+    assert "git diff --cached --exit-code" in last
+    assert "git status --porcelain --untracked-files=all" in last
+    assert 'if [[ -n "$STATUS" ]]' in last
+
+
+def test_pilot_contains_no_persistent_or_release_mutation_commands():
+    forbidden = (
+        "git commit", "git push", "git pull", "gh workflow run", "r2",
+        "silhouettes-from-geom", "filter-ios-bundle", "testflight",
+        "git add public/areas", "public/areas/geom", "sam deploy",
+    )
+    lowered = _PILOT.lower()
+    for command in forbidden:
+        assert command not in lowered
+
+
+def test_generic_publish_commands_and_conditions_remain_present():
+    assert "actions/checkout@v4" in _PUBLISH
+    assert "${{ github.event.inputs.extract }}-latest.osm.pbf" in _PUBLISH
+    assert 'REGION_FLAG=""' in _PUBLISH
+    assert '[ -n "${{ github.event.inputs.region_code }}" ]' in _PUBLISH
+    assert "--per-area-merge $REGION_FLAG" in _PUBLISH
+    assert "serve/publish_areas.py" in _PUBLISH
+    assert "--index ../public/areas/index.json" in _PUBLISH
+    assert "--out-dir ../public/areas/geom $FLAGS" in _PUBLISH
+    assert _PUBLISH.count("if: ${{ github.event.inputs.dry_run == 'false' }}") == 4
+    assert "git push" in _PUBLISH
+    assert "gh workflow run sync-geom-to-r2.yml" in _PUBLISH
+
+
+def test_local_pbf_provenance_is_runner_local_required_and_sealed_once():
+    provenance_path = '$PILOT_QA_ROOT/discovery/pbf-provenance.json'
+    prefilter_start = _PILOT.index("- name: Download and prefilter Denmark")
+    discovery_start = _PILOT.index(
+        "- name: Discover and verify exact Mols relation")
+    discovery_end = _PILOT.index("- name: Cut and seal padded Mols AOI")
+    assert prefilter_start < discovery_start
+    discovery = _PILOT[discovery_start:discovery_end]
+    assert discovery.count("--pbf-provenance") == 2
+    assert discovery.count(provenance_path) == 2
+    assert discovery.count("--source-pbf") == 3
+    assert '--source-pbf-sha256 "$PILOT_SOURCE_PBF_SHA256"' in discovery
+    assert "scripts/seed-areas.py" in discovery
+    assert "validate_publish_pilot.py discovery" in discovery
+    assert "--overpass-receipt" not in discovery
+
+    seal_start = _PILOT.index("- name: Seal every validation input")
+    seal_end = _PILOT.index(
+        "- name: Materialize non-package scope trust from stage outputs")
+    seal = _PILOT[seal_start:seal_end]
+    assert seal.count('"discovery/pbf-provenance.json"') == 2
+    assert seal.count('"local-pbf-discovery-provenance"') == 1
+    assert "overpass-receipt" not in seal
+
+    final_start = _PILOT.index("- name: Validate complete Mols QA package")
+    final = _PILOT[final_start:]
+    assert final.count("--require-pbf-provenance") == 1
+    assert _PILOT.count("--require-pbf-provenance") == 1
+    assert "--require-overpass-receipt" not in _PILOT
+    assert "overpass-receipt.json" not in _PILOT
+    assert "$PILOT_REPO/discovery/pbf-provenance.json" not in _PILOT
+    assert "$GITHUB_WORKSPACE/discovery/pbf-provenance.json" not in _PILOT
+    assert "public/areas/pbf-provenance.json" not in _PILOT
+
+
+if __name__ == "__main__":
+    tests = [value for name, value in sorted(globals().items())
+             if name.startswith("test_")]
+    for test in tests:
+        test()
+        print(f"ok  {test.__name__}")
+    print(f"\n{len(tests)} passed")

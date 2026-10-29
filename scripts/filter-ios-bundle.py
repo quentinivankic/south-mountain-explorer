@@ -10,12 +10,14 @@ a subset: we only ship regions whose tagging and coverage we've
 manually verified, and we keep the master in sync so re-enabling a
 region is a one-line edit here.
 
-Today's shipped set: North America (US states + Canadian provinces).
-The EU seed data is kept in `public/areas/` (the R2 geom + silhouette
-files stay populated) but is not bundled into the app — the OSM
-tagging in those regions produces too many low-signal "preserves" /
-fragments that drown out the marquee destinations until we extend
-NAME_KEYWORD_RE per-language and / or add a min-trail cull.
+Today's shipped set: North America (US states + Canadian provinces)
+plus Denmark, which is an explicitly reviewed per-country addition
+(see BUNDLED_COUNTRY_CODES). The broad EU seed batch was removed from
+the repo by PR #186 — it is no longer in the master index or R2, so
+there is no "re-enable it here" EU data; its OSM tagging produced too
+many low-signal "preserves" / fragments to ship. Denmark is bundled
+only through the same per-area `_clean_geom` gate every region passes,
+so an area joins the bundle only once it has a clean trailforge geom.
 
 Usage:
     python3 scripts/filter-ios-bundle.py
@@ -39,16 +41,23 @@ from _seed_constants import (  # noqa: E402
     code_from_slug,
 )
 
-# Regions eligible for the iOS bundle: every US state + Canadian province. This
-# is the OUTER gate — the actual per-area gate is "has a clean trailforge geom
-# file" (below), so a state only appears once we've published it. Publishing a
-# new state therefore adds it to the bundle automatically, no edit here. The
-# master index keeps every seeded region (incl. EU) as the re-enable source.
+# Explicit, reviewed per-COUNTRY allowlist for the iOS bundle. This is NOT
+# "auto-bundle every COUNTRY_CODES member" — each country is added here by
+# hand only after its coverage is reviewed, so re-enabling a future country
+# in COUNTRY_CODES does not silently ship it. Denmark is the first entry.
+BUNDLED_COUNTRY_CODES: set[str] = {"DK"}
+
+# Regions eligible for the iOS bundle: every US state + Canadian province,
+# plus the explicitly reviewed countries above. This is the OUTER gate — the
+# actual per-area gate is "has a clean trailforge geom file" (below), so a
+# region only appears once we've published it. Publishing a new state
+# therefore adds it to the bundle automatically, no edit here; adding a new
+# country still requires a deliberate edit to BUNDLED_COUNTRY_CODES.
 BUNDLED_REGION_CODES: set[str] = {
     code for code in STATE_NAMES
     if (code not in COUNTRY_CODES and "-" not in code)   # US state codes
     or code.startswith("CA-")                            # or CA province
-}
+} | BUNDLED_COUNTRY_CODES
 
 # The real gate: ship an area ONLY if it has a clean, trailforge-published geom
 # file. Fails when: (a) no geom file — seeded but never published, so shipping

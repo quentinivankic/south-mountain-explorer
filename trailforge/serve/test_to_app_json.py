@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Tests for the published area row's boundary id fields."""
+import copy
 import importlib.util
+import unittest
 from pathlib import Path
 
 _spec = importlib.util.spec_from_file_location(
@@ -49,6 +51,35 @@ def test_an_area_with_neither_id_is_unchanged():
     row = _row()
     assert row["osm_relation_id"] is None
     assert "osm_way_id" not in row
+
+
+def test_exact_denmark_qa_evidence_is_not_published_to_app_rows():
+    fc = copy.deepcopy(FC)
+    fc["features"][0]["properties"].update({
+        "kind": "hike",
+        "destination_evidence": [{"osm_node_id": 900}],
+        "quality_candidate_index": 7,
+        "root_relation_ids": [700, 701],
+        "identity_root_relation_id": 700,
+    })
+
+    trail = conv.convert(
+        fc, "test-area-dk", "Test Area", "Denmark", (33.0, -112.0),
+        7046785, {"trail", "hike", "route"})["trails"][0]
+
+    self_contained_fields = {
+        "id", "name", "distanceMi", "difficulty", "segments",
+    }
+    assert set(trail) == self_contained_fields
+    assert "destination_evidence" not in trail
+    assert "quality_candidate_index" not in trail
+    assert "root_relation_ids" not in trail
+    assert "identity_root_relation_id" not in trail
+
+
+class QaEvidenceOmission(unittest.TestCase):
+    def test_exact_denmark_qa_evidence_is_not_published(self):
+        test_exact_denmark_qa_evidence_is_not_published_to_app_rows()
 
 
 if __name__ == "__main__":

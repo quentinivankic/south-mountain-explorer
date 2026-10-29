@@ -4,6 +4,7 @@ The founding case is `test_devils_bridge_*`: a named path + an unnamed
 staircase spur to an arch POI must assemble into ONE trail that reaches the
 arch — the exact failure Systems 1/2 shipped.
 """
+import copy
 import unittest
 from pathlib import Path
 import sys
@@ -35,6 +36,73 @@ class Geometry(unittest.TestCase):
         self.assertEqual(lines[0][0], (0, 0))
         self.assertEqual(lines[0][-1], (0, 3))
 
+    def test_order_ways_preserves_raw_records_and_returns_orientation_views(self):
+        ways = {
+            1: W([1, 2], highway="path"),
+            2: W([3, 2], highway="path"),
+        }
+        before = copy.deepcopy(ways)
+
+        chains = m.order_ways([1, 2], ways)
+
+        self.assertEqual(ways, before)
+        self.assertEqual(chains, [[
+            m.OrientedWay(1, "source"),
+            m.OrientedWay(2, "reversed"),
+        ]])
+        self.assertEqual(m.rendered_way_lineage(chains), [{
+            "occurrence_index": 0,
+            "way_id": 1,
+            "chain_index": 0,
+            "chain_position": 0,
+            "orientation": "source",
+        }, {
+            "occurrence_index": 1,
+            "way_id": 2,
+            "chain_index": 0,
+            "chain_position": 1,
+            "orientation": "reversed",
+        }])
+
+    def test_shared_way_orientation_is_candidate_local(self):
+        ways = {
+            1: W([1, 2], highway="path"),
+            2: W([2, 3], highway="path"),
+            3: W([1, 4], highway="path"),
+        }
+        before = copy.deepcopy(ways)
+
+        forward = m.order_ways([1, 2], ways)
+        reversed_candidate = m.order_ways([3, 1], ways)
+
+        self.assertEqual(ways, before)
+        forward_orientation = next(
+            reference.orientation for chain in forward for reference in chain
+            if reference.way_id == 1)
+        reversed_orientation = next(
+            reference.orientation for chain in reversed_candidate
+            for reference in chain if reference.way_id == 1)
+        self.assertEqual((forward_orientation, reversed_orientation),
+                         ("source", "reversed"))
+
+    def test_full_assembly_keeps_way_records_deep_equal(self):
+        ways = {
+            1: W([1, 2], highway="path"),
+            2: W([3, 2], highway="path"),
+        }
+        nodes = {1: (0, 0), 2: (0, 1), 3: (0, 2)}
+        relations = {10: {
+            "tags": {"type": "route", "route": "hiking", "name": "Route"},
+            "members": [("w", 1, ""), ("w", 2, "")],
+        }}
+        before = copy.deepcopy(ways)
+
+        trails = m.assemble(nodes, ways, relations, [])
+
+        self.assertEqual(ways, before)
+        self.assertEqual(len(trails), 1)
+        self.assertEqual(trails[0].lines, [[(0, 0), (0, 1), (0, 2)]])
+
 
 class RelationsFirst(unittest.TestCase):
     def test_superrelation_resolves_recursively(self):
@@ -51,6 +119,42 @@ class RelationsFirst(unittest.TestCase):
         self.assertEqual(trails[0].name, "Big Trail")
         self.assertEqual(trails[0].source, "relation")
         self.assertEqual(set(trails[0].member_ways), {1, 2})
+
+    def test_nested_relation_direct_members_do_not_flatten_into_parent(self):
+        relations = {
+            700: {
+                "tags": {"type": "route", "route": "hiking", "name": "Parent"},
+                "members": [("w", 10, ""), ("r", 701, "")],
+            },
+            701: {
+                "tags": {"type": "route", "route": "hiking", "name": "Child"},
+                "members": [("w", 11, ""), ("w", 12, "")],
+            },
+        }
+        self.assertEqual(m.route_relation_hierarchy(700, relations), [700, 701])
+        self.assertEqual(m.direct_relation_way_members(700, relations), [10])
+        self.assertEqual(m.direct_relation_way_members(701, relations), [11, 12])
+
+    def test_repeated_child_relation_occurrences_survive_cycle_guard(self):
+        relations = {
+            700: {
+                "tags": {"type": "route", "route": "hiking", "name": "Parent"},
+                "members": [("r", 701, ""), ("r", 701, "")],
+            },
+            701: {
+                "tags": {},
+                "members": [("w", 10, ""), ("r", 700, "")],
+            },
+        }
+
+        entries = m.resolve_route_member_entries(700, relations)
+
+        self.assertEqual([entry["way_id"] for entry in entries], [10, 10])
+        self.assertEqual([entry["root_relation_id"] for entry in entries],
+                         [700, 700])
+        self.assertEqual([entry["relation_id"] for entry in entries],
+                         [701, 701])
+        self.assertEqual([entry["member_index"] for entry in entries], [0, 0])
 
     def test_superroute_of_route_children_is_dropped(self):
         # A long-distance thru-hike (Arizona Trail): a parent route relation
@@ -89,15 +193,339 @@ class RelationsFirst(unittest.TestCase):
         self.assertIn("Bursera Canyon", names)    # local trail preserved as itself
         self.assertIn("Sun Circle Trail", names)  # umbrella route still emitted
 
+    def test_dk_localized_name_order_is_deterministic_without_legacy_drift(self):
+        nodes = {1: (10.5, 56.15), 2: (10.55, 56.15)}
+        ways = {10: W([1, 2], highway="path")}
+        for localized, legacy_name in (
+                (("name:de", "Deutscher Weg", "name:da", "Dansk Sti"),
+                 "Deutscher Weg"),
+                (("name:da", "Dansk Sti", "name:de", "Deutscher Weg"),
+                 "Dansk Sti")):
+            tags = {"type": "route", "route": "hiking"}
+            tags[localized[0]] = localized[1]
+            tags[localized[2]] = localized[3]
+            relations = {700: {"tags": tags, "members": [("w", 10, "")]}}
+            with self.subTest(insertion_order=localized[0]):
+                legacy = m.assemble(nodes, ways, relations, [], region="az")
+                self.assertEqual(legacy[0].name, legacy_name)
+                non_exact_denmark = m.assemble(
+                    nodes, ways, relations, [], region="dk")
+                self.assertEqual(non_exact_denmark[0].name, legacy_name)
+                audits = []
+                exact_denmark = m.assemble(
+                    nodes, ways, relations, [], region="dk",
+                    collect_relation_member_audit=audits,
+                    exact_denmark=True, defer_promotion=True)
+                self.assertEqual(exact_denmark[0].name, "Dansk Sti")
+                self.assertEqual(audits[0]["name"], "Dansk Sti")
+
+    def _assemble_with_middle(self, middle_tags, *, region="dk",
+                              collect_ingest_dropped=None):
+        relations = {1: {
+            "tags": {"type": "route", "route": "hiking", "name": "Loop"},
+            "members": [("w", 10, ""), ("w", 11, ""), ("w", 12, "")],
+        }}
+        ways = {
+            10: W([1, 2], highway="path"),
+            11: W([2, 3], **middle_tags),
+            12: W([3, 4], highway="path"),
+        }
+        nodes = {1: (0, 0), 2: (0, 0.001), 3: (0, 0.002), 4: (0, 0.003)}
+        trails = m.assemble(
+            nodes, ways, relations, [], region=region,
+            collect_ingest_dropped=collect_ingest_dropped)
+        relation = next(trail for trail in trails if trail.source == "relation")
+        return relation, trails, ways
+
+    def test_relation_includes_walkable_road_member_without_standalone_ingest(self):
+        relation, trails, ways = self._assemble_with_middle({
+            "highway": "residential", "name": "Service Road"})
+        self.assertEqual(relation.member_ways, [10, 11, 12])
+        self.assertEqual(relation.restored_relation_ways, [11])
+        self.assertEqual(len(trails), 1)
+        self.assertFalse(m._is_trailish(ways[11]["tags"]))
+
+    def test_dk_restores_only_explicit_low_speed_member_classes(self):
+        positive = [
+            ({"highway": "residential"}, True),
+            ({"highway": "primary"}, True),
+            ({"highway": "tertiary"}, True),
+            ({"highway": "footway", "footway": "crossing"}, True),
+            ({"highway": "service"}, True),
+            ({"highway": "service", "foot": "yes"}, True),
+            ({"highway": "unclassified"}, True),
+            ({"highway": "living_street"}, True),
+            ({"highway": "pedestrian"}, False),
+            ({"highway": "pedestrian", "motor_vehicle": "yes",
+              "foot": "yes"}, True),
+            ({"highway": "track", "lanes": "1"}, False),
+            ({"highway": "track", "motor_vehicle": "yes", "foot": "yes"}, True),
+        ]
+        for tags, restored in positive:
+            with self.subTest(tags=tags):
+                relation, _, _ = self._assemble_with_middle(tags)
+                self.assertEqual(relation.member_ways, [10, 11, 12])
+                self.assertEqual(relation.restored_relation_ways,
+                                 [11] if restored else [])
+
+    def test_service_restoration_uses_default_foot_and_rejects_unsafe_subtypes(self):
+        for foot in (None, "destination", "yes", "designated", "permissive"):
+            tags = {"highway": "service"}
+            if foot is not None:
+                tags["foot"] = foot
+            with self.subTest(default_service_foot=foot):
+                relation, _, _ = self._assemble_with_middle(tags)
+                self.assertEqual(relation.member_ways, [10, 11, 12])
+                self.assertEqual(relation.restored_relation_ways, [11])
+        for foot in ("yes", "designated", "permissive"):
+            with self.subTest(alley_foot=foot):
+                relation, _, _ = self._assemble_with_middle({
+                    "highway": "service", "service": "alley", "foot": foot})
+                self.assertEqual(relation.member_ways, [10, 11, 12])
+                self.assertEqual(relation.restored_relation_ways, [11])
+        for tags in (
+                {"highway": "service", "service": "alley"},
+                *({"highway": "service", "service": service, "foot": "yes"}
+                  for service in (
+                      "parking_aisle", "driveway", "drive-through",
+                      "drive_through", "drivethrough", "parking",
+                      "parking_space", "emergency_access", "emergency-access",
+                      "bus", "unknown",
+                  ))):
+            with self.subTest(tags=tags):
+                relation, _, _ = self._assemble_with_middle(tags)
+                self.assertEqual(relation.member_ways, [10, 12])
+                self.assertEqual(relation.restored_relation_ways, [])
+
+    def test_track_restoration_reapplies_road_and_motor_safety(self):
+        allowed = (
+            ({"highway": "track", "lanes": "1"}, False),
+            ({"highway": "track", "name": "Provstskovvej",
+              "tracktype": "grade3"}, False),
+            ({"highway": "track", "name": "Provstskovvej",
+              "foot": "yes"}, False),
+            ({"highway": "track", "motor_vehicle": "yes", "foot": "yes"}, True),
+            ({"highway": "track", "lanes": "1;1", "motor_vehicle": "yes",
+              "foot": "yes"}, True),
+            ({"highway": "track", "bicycle": "yes", "foot": "yes",
+              "horse": "yes", "motorcar": "yes", "name": "Provstskovvej"}, True),
+        )
+        rejected = (
+            {"highway": "track", "lanes": "2", "foot": "yes"},
+            {"highway": "track", "lanes": "03", "foot": "yes"},
+            {"highway": "track", "lanes": "2;1", "motor_vehicle": "yes",
+             "foot": "yes"},
+            {"highway": "track", "lanes": "1;2", "motor_vehicle": "yes",
+             "foot": "yes"},
+            {"highway": "track", "lanes": "two", "motor_vehicle": "yes",
+             "foot": "yes"},
+            {"highway": "track", "lanes": "2.5", "motor_vehicle": "yes",
+             "foot": "yes"},
+            {"highway": "track", "lanes": "1;;1", "motor_vehicle": "yes",
+             "foot": "yes"},
+            {"highway": "track", "lanes": "2", "motor_vehicle": "yes",
+             "foot": "yes"},
+            {"highway": "track", "name": "Synthetic Service Road",
+             "motor_vehicle": "yes", "foot": "yes"},
+            {"highway": "track", "name": "NF-418C", "foot": "yes"},
+            {"highway": "track", "name": "3900 East", "foot": "yes"},
+            {"highway": "track", "motor_vehicle": "yes"},
+            {"highway": "track", "motorcar": "yes"},
+            {"highway": "track", "atv": "yes", "foot": "yes"},
+        )
+        for tags, restored in allowed:
+            with self.subTest(allowed=tags):
+                relation, _, _ = self._assemble_with_middle(tags)
+                self.assertEqual(relation.member_ways, [10, 11, 12])
+                self.assertEqual(relation.restored_relation_ways,
+                                 [11] if restored else [])
+        for tags in rejected:
+            with self.subTest(rejected=tags):
+                relation, _, _ = self._assemble_with_middle(tags)
+                self.assertEqual(relation.member_ways, [10, 12])
+                self.assertEqual(relation.restored_relation_ways, [])
+        relation, _, _ = self._assemble_with_middle({
+            "highway": "unclassified", "bicycle": "yes", "foot": "yes",
+            "horse": "yes", "name": "Provstskovvej", "surface": "gravel",
+            "tracktype": "grade2", "width": "3",
+        })
+        self.assertEqual(relation.member_ways, [10, 11, 12])
+        self.assertEqual(relation.restored_relation_ways, [11])
+
+    def test_signed_identity_supplies_default_foot_on_motor_permitted_roads(self):
+        nonpositive_foot = (None, "official", "customers", "destination", "permit")
+        positive_foot = ("yes", "designated", "permissive")
+        for highway in ("residential", "pedestrian"):
+            for foot in (*nonpositive_foot, *positive_foot):
+                tags = {"highway": highway, "motor_vehicle": "yes"}
+                if foot is not None:
+                    tags["foot"] = foot
+                with self.subTest(highway=highway, foot=foot):
+                    relation, _, _ = self._assemble_with_middle(tags)
+                    self.assertEqual(relation.member_ways, [10, 11, 12])
+                    self.assertEqual(relation.restored_relation_ways, [11])
+        for foot in nonpositive_foot:
+            tags = {"highway": "service", "motor_vehicle": "yes"}
+            if foot is not None:
+                tags["foot"] = foot
+            with self.subTest(highway="service", foot=foot):
+                relation, _, _ = self._assemble_with_middle(tags)
+                self.assertEqual(relation.member_ways, [10, 12])
+                self.assertEqual(relation.restored_relation_ways, [])
+        for foot in positive_foot:
+            with self.subTest(highway="service", foot=foot):
+                relation, _, _ = self._assemble_with_middle({
+                    "highway": "service", "motor_vehicle": "yes",
+                    "foot": foot,
+                })
+                self.assertEqual(relation.member_ways, [10, 11, 12])
+                self.assertEqual(relation.restored_relation_ways, [11])
+        relation, _, _ = self._assemble_with_middle({
+            "highway": "service", "access": "private", "foot": "permissive"})
+        self.assertEqual(relation.member_ways, [10, 11, 12])
+
+    def test_dk_relation_rejects_every_unsafe_member_class_and_tag(self):
+        rejected = {
+            "motorway": {"highway": "motorway"},
+            "motorway-link": {"highway": "motorway_link"},
+            "trunk": {"highway": "trunk"},
+            "trunk-link": {"highway": "trunk_link"},
+            "construction": {"highway": "construction"},
+            "raceway": {"highway": "raceway"},
+            "sidewalk": {"highway": "footway", "footway": "sidewalk"},
+            "path-foot-no": {"highway": "path", "foot": "no"},
+            "path-foot-private": {"highway": "path", "foot": "private"},
+            "path-access-private": {"highway": "path", "access": "private"},
+            "trail-no": {"highway": "path", "trail": "no"},
+            "indoor": {"highway": "path", "indoor": "yes"},
+            "downhill-piste": {"highway": "path", "piste:type": "downhill"},
+            "4wd": {"highway": "track", "4wd_only": "yes", "foot": "yes"},
+            "motor-track-no-foot": {"highway": "track", "motor_vehicle": "yes"},
+        }
+        for label, tags in rejected.items():
+            with self.subTest(label=label):
+                relation, _, _ = self._assemble_with_middle(tags)
+                self.assertEqual(relation.member_ways, [10, 12])
+                self.assertEqual(relation.restored_relation_ways, [])
+
+    def test_arizona_and_california_relation_members_remain_base_compatible(self):
+        for region in (None, "az", "ca"):
+            with self.subTest(region=region):
+                relation, _, _ = self._assemble_with_middle(
+                    {"highway": "residential"}, region=region)
+                self.assertEqual(relation.member_ways, [10, 12])
+                self.assertEqual(relation.restored_relation_ways, [])
+        legacy_private, _, _ = self._assemble_with_middle(
+            {"highway": "path", "access": "private"}, region="az")
+        self.assertEqual(legacy_private.member_ways, [10, 11, 12])
+        relation, _, _ = self._assemble_with_middle(
+            {"highway": "residential"}, region="DK")
+        self.assertEqual(relation.member_ways, [10, 11, 12])
+
     def test_relation_excludes_road_like_track_member(self):
-        # A vehicle/access-road track that's a route member isn't drawn as trail.
-        rels = {1: {"tags": {"type": "route", "route": "hiking", "name": "Loop"},
-                    "members": [("w", 10, ""), ("w", 11, "")]}}
-        ways = {10: W([1, 2], highway="path"),
-                11: W([2, 3], highway="track", motor_vehicle="yes", name="Service Road")}
-        nodes = {1: (0, 0), 2: (0, 1), 3: (0, 2)}
-        t = [x for x in m.assemble(nodes, ways, rels, []) if x.source == "relation"][0]
-        self.assertNotIn(11, t.member_ways)
+        for tags in (
+                {"highway": "track", "motor_vehicle": "yes"},
+                {"highway": "track", "name": "Synthetic Service Road"}):
+            with self.subTest(tags=tags):
+                relation, _, _ = self._assemble_with_middle(tags, region="az")
+                self.assertEqual(relation.member_ways, [10, 12])
+
+    def test_relation_excludes_explicitly_nonwalkable_member(self):
+        relation, _, _ = self._assemble_with_middle(
+            {"highway": "service", "foot": "no"})
+        self.assertNotIn(11, relation.member_ways)
+
+    def test_ingest_diagnostic_reconciliation_uses_final_direct_membership(self):
+        ingest_dropped = []
+        relation, _, _ = self._assemble_with_middle({
+            "highway": "track", "name": "Synthetic Shared Track",
+            "motor_vehicle": "yes", "foot": "yes",
+        }, collect_ingest_dropped=ingest_dropped)
+
+        self.assertEqual(relation.member_ways, [10, 11, 12])
+        self.assertEqual(relation.restored_relation_ways, [11])
+        self.assertEqual(len(ingest_dropped), 1)
+        properties = ingest_dropped[0]["properties"]
+        self.assertFalse(properties["retained_in_route"])
+        self.assertEqual(properties["removed_category"], "road-track-tag")
+
+        final_route = {
+            "properties": {
+                "source": "relation",
+                "member_ways": [10, 11, 12],
+                "relation_ids": [1],
+                "direct_relation_way_ids": {1: [10, 11, 12]},
+            },
+        }
+        m.reconcile_ingest_dropped(ingest_dropped, [final_route], "dk")
+        self.assertTrue(properties["retained_in_route"])
+        self.assertEqual(properties["relation_ids"], [1])
+        self.assertEqual(properties["removed_category"],
+                         m.RETAINED_ROUTE_INGEST_CATEGORY)
+        self.assertEqual(properties["standalone_drop_category"], "road-track-tag")
+
+        m.reconcile_ingest_dropped(ingest_dropped, [], "dk")
+        self.assertFalse(properties["retained_in_route"])
+        self.assertEqual(properties["relation_ids"], [])
+        self.assertEqual(properties["removed_category"], "road-track-tag")
+        self.assertNotIn("standalone_drop_category", properties)
+
+    def test_non_dk_ingest_sidecar_shape_remains_legacy_compatible(self):
+        ingest_dropped = []
+        ways = {11: W([1, 2], highway="track", name="Synthetic Service Road",
+                      motor_vehicle="yes")}
+        nodes = {1: (0, 0), 2: (0, 0.001)}
+
+        m.assemble(nodes, ways, {}, [], region="az",
+                   collect_ingest_dropped=ingest_dropped)
+
+        self.assertEqual(ingest_dropped, [{
+            "type": "Feature",
+            "properties": {
+                "name": "Synthetic Service Road",
+                "removed_category": "road-track-tag",
+                "removed_reason": (
+                    "highway=track marked for motor vehicles / multi-lane — a "
+                    "drivable road, not a foot trail."),
+                "highway": "track",
+                "ckey": "w11",
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [[0, 0], [0, 0.001]],
+            },
+        }])
+
+    def test_agency_prefix_codes_keep_non_dk_legacy_ingest_disposition(self):
+        for name in (
+                "CR 15 Trail", "FR 236 Cutoff", "BLM 9 Loop", "NV 8 Ridge",
+                "CR 15", "FR 23"):
+            with self.subTest(name=name):
+                tags = {"highway": "track", "name": name}
+                self.assertEqual(
+                    m.ingest_drop_reason(tags)[0], "road-track-name")
+                self.assertFalse(m._is_trailish(tags))
+                self.assertFalse(
+                    m._relation_member_decision(tags, "az").eligible)
+                ingest_dropped = []
+                trails = m.assemble(
+                    {1: (0, 0), 2: (0, 0.001)},
+                    {11: W([1, 2], **tags)}, {}, [], region="az",
+                    collect_ingest_dropped=ingest_dropped)
+                self.assertEqual(trails, [])
+                self.assertEqual(len(ingest_dropped), 1)
+                self.assertEqual(
+                    ingest_dropped[0]["properties"]["removed_category"],
+                    "road-track-name")
+
+    def test_non_dk_malformed_lanes_retain_legacy_disposition(self):
+        for lanes in ("2;1", "1;2", "two", "2.5", "1;;1", "1|1"):
+            with self.subTest(lanes=lanes):
+                tags = {"highway": "track", "lanes": lanes}
+                self.assertIsNone(m.ingest_drop_reason(tags))
+                self.assertTrue(m._is_trailish(tags))
+                self.assertTrue(
+                    m._relation_member_decision(tags, "az").eligible)
 
     def test_member_roles_main_vs_approach(self):
         rels = {200: {"tags": {"type": "route", "route": "hiking", "name": "Peak Route"},
@@ -160,6 +588,134 @@ class NameStitch(unittest.TestCase):
         self.assertNotIn("CLOSED - old Pyramid Trail", names)
         self.assertIn("Pyramid Trail", names)
 
+    def test_closed_standalone_pedestrian_area_is_diagnostic_not_trail(self):
+        ways = {
+            1027606528: W(
+                [1, 2, 3, 4, 1], highway="pedestrian", name="Maltgården",
+                surface="sett"),
+        }
+        nodes = {
+            1: (10.0, 56.0), 2: (10.001, 56.0),
+            3: (10.001, 56.001), 4: (10.0, 56.001),
+        }
+        removed = []
+
+        trails = m.assemble(
+            nodes, ways, {}, [], collect_removed=removed, region="dk")
+
+        self.assertEqual(trails, [])
+        self.assertEqual(len(removed), 1)
+        self.assertEqual(removed[0].member_ways, [1027606528])
+        self.assertEqual(removed[0].removed_category,
+                         "standalone-pedestrian-area")
+        self.assertIn("exterior source-ring", removed[0].removed_reason)
+        self.assertEqual(removed[0].lines[0][0], removed[0].lines[0][-1])
+
+    def test_closed_pedestrian_area_exclusion_is_denmark_only(self):
+        nodes = {
+            1: (10.0, 56.0), 2: (10.001, 56.0),
+            3: (10.001, 56.001), 4: (10.0, 56.001),
+        }
+        for region in ("dk", "az", "ca", None):
+            for area_value in ("no", "yes", None):
+                tags = {"highway": "pedestrian", "name": "Pedestrian Loop"}
+                if area_value is not None:
+                    tags["area"] = area_value
+                ways = {10: W([1, 2, 3, 4, 1], **tags)}
+                removed = []
+                with self.subTest(region=region, area=area_value):
+                    trails = m.assemble(
+                        nodes, ways, {}, [], collect_removed=removed,
+                        region=region)
+                    excluded = region == "dk" and area_value != "no"
+                    if excluded:
+                        self.assertEqual(trails, [])
+                        self.assertEqual(len(removed), 1)
+                        self.assertEqual(
+                            removed[0].removed_category,
+                            "standalone-pedestrian-area")
+                    else:
+                        self.assertEqual(len(trails), 1)
+                        self.assertEqual(trails[0].member_ways, [10])
+                        self.assertEqual(removed, [])
+
+    def test_closed_pedestrian_ring_remains_available_to_signed_relation(self):
+        ways = {
+            10: W([1, 2, 3, 4, 1], highway="pedestrian",
+                  name="Signed Plaza Ring"),
+        }
+        nodes = {
+            1: (10.0, 56.0), 2: (10.001, 56.0),
+            3: (10.001, 56.001), 4: (10.0, 56.001),
+        }
+        relations = {700: {
+            "tags": {"type": "route", "route": "hiking",
+                     "name": "Signed Ring Route"},
+            "members": [("w", 10, "")],
+        }}
+
+        removed = []
+        trails = m.assemble(
+            nodes, ways, relations, [], region="dk",
+            collect_removed=removed)
+
+        relation = next(trail for trail in trails if trail.source == "relation")
+        self.assertEqual(relation.member_ways, [10])
+        self.assertEqual(relation.lines[0][0], relation.lines[0][-1])
+        self.assertEqual(removed, [])
+        self.assertFalse(any(trail.name == "Signed Plaza Ring"
+                             and trail.source == "name-stitch"
+                             for trail in trails))
+
+    def test_unnamed_pedestrian_area_is_context_without_removal(self):
+        ways = {
+            10: W([1, 2, 3, 4, 1], highway="pedestrian", area="yes"),
+        }
+        nodes = {
+            1: (10.0, 56.0), 2: (10.001, 56.0),
+            3: (10.001, 56.001), 4: (10.0, 56.001),
+        }
+        removed = []
+
+        trails = m.assemble(
+            nodes, ways, {}, [{"coord": nodes[1], "tags": {}}],
+            collect_removed=removed, region="dk")
+
+        self.assertEqual(trails, [])
+        self.assertEqual(removed, [])
+
+    def test_raw_authority_ways_are_relation_only_not_standalone_candidates(self):
+        nodes = {
+            1: (10.0, 56.0), 2: (10.01, 56.0),
+            3: (10.02, 56.0), 4: (10.03, 56.0),
+            5: (10.04, 56.0), 6: (10.05, 56.0),
+            7: (10.06, 56.0), 8: (10.07, 56.0),
+            9: (10.07, 56.01), 10: (10.06, 56.01),
+        }
+        ways = {
+            10: W([1, 2], highway="path", name="AOI Trail"),
+            20: W([3, 4], highway="path", name="Raw Relation Member"),
+            30: W([5, 6], highway="path", name="Raw Standalone"),
+            40: W([7, 8, 9, 10, 7], highway="pedestrian",
+                  name="Raw Plaza", area="yes"),
+        }
+        relations = {700: {
+            "tags": {"type": "route", "route": "hiking",
+                     "name": "Signed Raw Route"},
+            "members": [("w", 20, "")],
+        }}
+        removed = []
+
+        trails = m.assemble(
+            nodes, ways, relations, [], collect_removed=removed, region="dk",
+            standalone_way_ids={10})
+
+        self.assertEqual({trail.name for trail in trails},
+                         {"AOI Trail", "Signed Raw Route"})
+        relation = next(trail for trail in trails if trail.source == "relation")
+        self.assertEqual(relation.member_ways, [20])
+        self.assertEqual(removed, [])
+
     def test_min_length_drops_short_trails(self):
         ways = {1: W([1, 2], highway="path", name="Stub"),         # ~tiny
                 2: W([3, 4], highway="path", name="Ridgeline Trail")}  # ~1 deg lat = 69mi
@@ -198,6 +754,9 @@ class NameStitch(unittest.TestCase):
         self.assertEqual(len(nat), 1)               # one National Trail, not two
         self.assertEqual(nat[0].source, "relation")  # relation metadata wins
         self.assertEqual(set(nat[0].member_ways), {10, 20})
+        self.assertEqual(nat[0].relation_ids, [1])
+        self.assertEqual(set(nat[0].geometry_ways), {10, 20})
+        self.assertEqual(nat[0].direct_relation_ways, {1: [10]})
 
     # --- spread-gated, area-scoped merge (SPEC §6b) ---
     _AREAS = [
@@ -285,6 +844,87 @@ class NameStitch(unittest.TestCase):
         self.assertEqual(len(bst_uwc), 1)                 # a + b coalesced
         self.assertEqual(len(bst_uwc[0].lines), 2)        # both segments kept
         self.assertEqual(set(bst_uwc[0].member_ways), {1, 2})
+
+    def test_coalesce_concatenates_root_occurrences_without_duplicate_geometry(self):
+        line = [(0.0, 0.0), (1.0, 0.0)]
+        left = m.Trail("Shared Route", "relation", [10], [list(line)], {}, [])
+        right = m.Trail("Shared Route", "relation", [10], [list(line)], {}, [])
+        for trail, root_id in ((left, 700), (right, 701)):
+            trail.area = "Mols"
+            trail.geometry_ways = [10]
+            trail.root_relation_ids = [root_id]
+            trail.relation_ids = [root_id]
+            trail.member_way_occurrences = [{
+                "root_relation_id": root_id,
+                "relation_id": root_id,
+                "member_index": 0,
+                "way_id": 10,
+                "role": "",
+                "effective_role": "main",
+            }]
+            trail.rendered_way_lineage = [{
+                "occurrence_index": 0,
+                "way_id": 10,
+                "chain_index": 0,
+                "chain_position": 0,
+                "orientation": "source",
+            }]
+
+        fused = m.coalesce_by_area([left, right])
+
+        self.assertEqual(fused, [left])
+        self.assertEqual(left.member_ways, [10, 10])
+        self.assertEqual(
+            [row["root_relation_id"] for row in left.member_way_occurrences],
+            [700, 701])
+        self.assertEqual(left.geometry_ways, [10])
+        self.assertEqual(left.lines, [line])
+        self.assertEqual(len(left.rendered_way_lineage), 1)
+
+    def test_coalesce_preserves_duplicate_occurrences_but_unique_shared_linework(self):
+        shared = [(0.0, 0.0), (1.0, 0.0)]
+        extended = [(0.0, 0.0), (1.0, 0.0), (2.0, 0.0)]
+        left = m.Trail("Shared Route", "relation", [10], [shared], {}, [])
+        right = m.Trail(
+            "Shared Route", "relation", [10, 11], [extended], {}, [])
+        for trail, root_id, way_ids in (
+                (left, 700, [10]), (right, 701, [10, 11])):
+            trail.area = "Mols"
+            trail.geometry_ways = list(way_ids)
+            trail.root_relation_ids = [root_id]
+            trail.relation_ids = [root_id]
+            trail.member_way_occurrences = [{
+                "root_relation_id": root_id,
+                "relation_id": root_id,
+                "member_index": index,
+                "way_id": way_id,
+                "role": "",
+                "effective_role": "main",
+            } for index, way_id in enumerate(way_ids)]
+            trail.rendered_way_lineage = [{
+                "occurrence_index": index,
+                "way_id": way_id,
+                "chain_index": 0,
+                "chain_position": index,
+                "orientation": "source",
+            } for index, way_id in enumerate(way_ids)]
+
+        fused = m.coalesce_by_area([left, right])
+
+        self.assertEqual(fused, [left])
+        self.assertEqual(left.member_ways, [10, 10, 11])
+        self.assertEqual(left.geometry_ways, [10, 11])
+        self.assertEqual(
+            [row["way_id"] for row in left.rendered_way_lineage], [10, 11])
+        segments = [
+            tuple(sorted((start, end)))
+            for line in left.lines for start, end in zip(line, line[1:])
+        ]
+        self.assertEqual(len(segments), len(set(segments)))
+        self.assertEqual(set(segments), {
+            ((0.0, 0.0), (1.0, 0.0)),
+            ((1.0, 0.0), (2.0, 0.0)),
+        })
 
 
 class SpurAttach(unittest.TestCase):
@@ -830,6 +1470,311 @@ class Classification(unittest.TestCase):
         self.assertEqual(t.name, "Angels Landing Trail")
         self.assertEqual(t.to_feature()["properties"]["kind"], "hike")
 
+    def test_exact_denmark_promotion_uses_true_endpoints_distance_and_id_rank(self):
+        trail = m.Trail(
+            "Local Access Route", "relation", [1],
+            [[(0.0, 0.0), (0.005, 0.0), (0.01, 0.0)]], {}, [])
+        trail.root_relation_ids = [700]
+        trail._promotion_endpoint_sources = {700: [{
+            "root_relation_id": 700, "way_id": 1, "node_id": 1,
+            "coordinate": (0.0, 0.0),
+        }, {
+            "root_relation_id": 700, "way_id": 1, "node_id": 3,
+            "coordinate": (0.01, 0.0),
+        }]}
+        pois = [{
+            "id": 20, "name": "Producer Forgery", "coord": (0.01, 0.0),
+            "tags": {"natural": "peak", "name": "Trusted Summit",
+                     "ele": "100"},
+        }, {
+            "id": 10, "name": "Wrong Producer Name", "coord": (0.01, 0.0),
+            "tags": {"tourism": "viewpoint", "name": "Nearest View"},
+        }, {
+            "id": 5, "name": "Interior", "coord": (0.005, 0.0),
+            "tags": {"historic": "ruins", "name": "Interior Ruin"},
+        }]
+
+        m.promote_hikes([trail], pois, exact_denmark=True)
+
+        self.assertTrue(trail.hike)
+        self.assertEqual(trail.name, "Nearest View Trail")
+        self.assertEqual(trail.destinations, ["Nearest View"])
+        self.assertEqual(trail.destination_evidence, [{
+            "osm_node_id": 10,
+            "name": "Nearest View",
+            "tags": {"name": "Nearest View", "tourism": "viewpoint"},
+            "eligibility_class": "tourism=viewpoint",
+            "coordinate": [0.01, 0.0],
+            "selected_endpoint_index": 1,
+            "selected_endpoint_coordinate": [0.01, 0.0],
+            "distance_ft": 0.0,
+            "reach_limit_ft": 250,
+            "selection_rank": 1,
+            "promotion_root_relation_id": 700,
+            "endpoint_source_way_id": 1,
+            "endpoint_source_node_id": 3,
+        }])
+
+        interior_only = m.Trail(
+            "Interior Access Route", "relation", [2],
+            [[(0.0, 0.0), (0.005, 0.0), (0.01, 0.0)]], {}, [])
+        interior_only.root_relation_ids = [701]
+        interior_only._promotion_endpoint_sources = {701: [{
+            "root_relation_id": 701, "way_id": 2, "node_id": 1,
+            "coordinate": (0.0, 0.0),
+        }, {
+            "root_relation_id": 701, "way_id": 2, "node_id": 3,
+            "coordinate": (0.01, 0.0),
+        }]}
+        m.promote_hikes([interior_only], [pois[2]], exact_denmark=True)
+        self.assertFalse(interior_only.hike)
+        self.assertEqual(interior_only.destination_evidence, [])
+
+    def test_exact_denmark_promotion_uses_pre_weld_source_endpoints(self):
+        source_line = [(0.0, 0.0), (0.01, 0.0)]
+
+        welded_only = m.Trail(
+            "Welded Access Route", "relation", [10], [list(source_line)],
+            {}, [1, 2])
+        welded_only.root_relation_ids = [700]
+        welded_only._promotion_endpoint_sources = {700: [{
+            "root_relation_id": 700, "way_id": 10, "node_id": 1,
+            "coordinate": source_line[0],
+        }, {
+            "root_relation_id": 700, "way_id": 10, "node_id": 2,
+            "coordinate": source_line[1],
+        }]}
+        welded_only.weld_spur(
+            11, [source_line[1], (0.011, 0.0)],
+            {"name": "Weld View", "coord": (0.011, 0.0),
+             "tags": {"tourism": "viewpoint"}})
+        m.promote_hikes([welded_only], [{
+            "id": 900, "name": "Weld View", "coord": (0.011, 0.0),
+            "tags": {"name": "Weld View", "tourism": "viewpoint"},
+        }], exact_denmark=True)
+        self.assertFalse(welded_only.hike)
+        self.assertEqual(welded_only.destination_evidence, [])
+
+        source_reached = m.Trail(
+            "Source Access Route", "relation", [20], [list(source_line)],
+            {}, [1, 2])
+        source_reached.root_relation_ids = [701]
+        source_reached._promotion_endpoint_sources = {701: [{
+            "root_relation_id": 701, "way_id": 20, "node_id": 1,
+            "coordinate": source_line[0],
+        }, {
+            "root_relation_id": 701, "way_id": 20, "node_id": 2,
+            "coordinate": source_line[1],
+        }]}
+        source_reached.weld_spur(
+            21, [source_line[0], (-0.001, 0.0)],
+            {"name": "Weld Shelter", "coord": (-0.001, 0.0),
+             "tags": {"amenity": "shelter"}})
+        m.promote_hikes([source_reached], [{
+            "id": 800, "name": "Weld Shelter", "coord": (-0.001, 0.0),
+            "tags": {"name": "Weld Shelter", "amenity": "shelter"},
+        }, {
+            "id": 900, "name": "Source Peak", "coord": source_line[1],
+            "tags": {"name": "Source Peak", "natural": "peak"},
+        }], exact_denmark=True)
+        self.assertTrue(source_reached.hike)
+        evidence = source_reached.destination_evidence[0]
+        self.assertEqual(evidence["promotion_root_relation_id"], 701)
+        self.assertEqual(evidence["endpoint_source_way_id"], 20)
+        self.assertEqual(evidence["endpoint_source_node_id"], 2)
+        self.assertEqual(evidence["osm_node_id"], 900)
+
+    def test_exact_denmark_multi_root_promotion_requires_one_endpoint_root(self):
+        left, middle, right = (0.0, 0.0), (0.005, 0.0), (0.01, 0.0)
+        trail = m.Trail(
+            "Shared Access Route", "relation", [10, 20],
+            [[left, middle], [middle, right]], {}, [1, 2, 2, 3])
+        trail.root_relation_ids = [700, 701]
+        trail._exact_denmark_root_identities = {
+            700: {"name": "Shared Access Route", "tags": {}},
+            701: {"name": "Shared Access Route", "tags": {}},
+        }
+        trail._promotion_endpoint_sources = {
+            700: [{
+                "root_relation_id": 700, "way_id": 10, "node_id": 1,
+                "coordinate": left,
+            }, {
+                "root_relation_id": 700, "way_id": 10, "node_id": 2,
+                "coordinate": middle,
+            }],
+            701: [{
+                "root_relation_id": 701, "way_id": 20, "node_id": 2,
+                "coordinate": middle,
+            }, {
+                "root_relation_id": 701, "way_id": 20, "node_id": 3,
+                "coordinate": right,
+            }],
+        }
+        poi = [{
+            "id": 900, "name": "Right Peak", "coord": right,
+            "tags": {"name": "Right Peak", "natural": "peak"},
+        }]
+        m.promote_hikes([trail], poi, exact_denmark=True)
+        self.assertTrue(trail.hike)
+        self.assertEqual(
+            trail.destination_evidence[0]["promotion_root_relation_id"], 701)
+
+        ambiguous = m.Trail(
+            "Ambiguous Access Route", "relation", [30, 31],
+            [[left, right], [left, right]], {}, [1, 3, 1, 3])
+        ambiguous.root_relation_ids = [702, 703]
+        ambiguous._exact_denmark_root_identities = {
+            702: {"name": "Ambiguous Access Route", "tags": {}},
+            703: {"name": "Ambiguous Access Route", "tags": {}},
+        }
+        ambiguous._promotion_endpoint_sources = {
+            root_id: [{
+                "root_relation_id": root_id,
+                "way_id": 30 if root_id == 702 else 31,
+                "node_id": node_id,
+                "coordinate": coordinate,
+            } for node_id, coordinate in ((1, left), (3, right))]
+            for root_id in ambiguous.root_relation_ids
+        }
+        m.promote_hikes([ambiguous], poi, exact_denmark=True)
+        self.assertFalse(ambiguous.hike)
+        self.assertEqual(ambiguous.destination_evidence, [])
+
+    def test_exact_denmark_missing_endpoint_sources_declines_typed(self):
+        trail = m.Trail(
+            "Missing Authority Route", "relation", [10],
+            [[(0.0, 0.0), (0.01, 0.0)]], {}, [1, 2])
+        trail.root_relation_ids = [700]
+        poi = [{
+            "id": 900, "coord": (0.01, 0.0),
+            "tags": {"name": "Unbound Peak", "natural": "peak"},
+        }]
+
+        output = m.promote_hikes(
+            [trail], poi, exact_denmark=True,
+            authoritative_root_order=[700])
+
+        self.assertEqual(output, [trail])
+        self.assertFalse(trail.hike)
+        self.assertEqual(trail.destination_evidence, [])
+        self.assertEqual(trail._promotion_decision, {
+            "decision": "declined",
+            "reason": "no-authoritative-endpoints",
+            "skipped_ambiguous_pois": [],
+        })
+
+    def test_exact_denmark_ambiguous_poi_falls_through_with_evidence(self):
+        left, middle, right = (0.0, 0.0), (0.005, 0.0), (0.01, 0.0)
+        trail = m.Trail(
+            "Ambiguous Access Route", "relation", [10, 20],
+            [[left, middle], [left, middle, right]], {}, [1, 2, 1, 2, 3])
+        trail.root_relation_ids = [700, 701]
+        trail._exact_denmark_root_identities = {
+            700: {"name": "Ambiguous Access Route", "tags": {}},
+            701: {"name": "Ambiguous Access Route", "tags": {}},
+        }
+        trail._promotion_endpoint_sources = {
+            700: [{
+                "root_relation_id": 700, "way_id": 10, "node_id": 1,
+                "coordinate": left,
+            }, {
+                "root_relation_id": 700, "way_id": 10, "node_id": 2,
+                "coordinate": middle,
+            }],
+            701: [{
+                "root_relation_id": 701, "way_id": 20, "node_id": 1,
+                "coordinate": left,
+            }, {
+                "root_relation_id": 701, "way_id": 20, "node_id": 3,
+                "coordinate": right,
+            }],
+        }
+        pois = [{
+            "id": 800, "coord": left,
+            "tags": {"name": "Ambiguous Peak", "natural": "peak"},
+        }, {
+            "id": 900, "coord": right,
+            "tags": {"name": "Clear View", "tourism": "viewpoint"},
+        }]
+
+        m.promote_hikes(
+            [trail], pois, exact_denmark=True,
+            authoritative_root_order=[700, 701])
+
+        self.assertTrue(trail.hike)
+        evidence = trail.destination_evidence[0]
+        self.assertEqual(evidence["osm_node_id"], 900)
+        self.assertEqual(evidence["selection_rank"], 2)
+        self.assertEqual(evidence["promotion_root_relation_id"], 701)
+        self.assertEqual(evidence["skipped_ambiguous_pois"], [{
+            "osm_node_id": 800,
+            "name": "Ambiguous Peak",
+            "selected_endpoint_coordinate": [0.0, 0.0],
+            "distance_ft": 0.0,
+            "selection_rank": 1,
+            "endpoint_sources": [
+                {"root_relation_id": 700, "way_id": 10, "node_id": 1},
+                {"root_relation_id": 701, "way_id": 20, "node_id": 1},
+            ],
+        }])
+        self.assertEqual(trail._promotion_decision["selection_rank"], 2)
+
+    def test_exact_denmark_destination_ownership_uses_distance_id_root_order(self):
+        def candidate(name, root_id, way_id, start, end):
+            trail = m.Trail(
+                name, "relation", [way_id], [[start, end]], {},
+                [way_id * 10, way_id * 10 + 1])
+            trail.root_relation_ids = [root_id]
+            trail._terminal_absorption_candidate_id = root_id
+            trail._promotion_endpoint_sources = {root_id: [{
+                "root_relation_id": root_id,
+                "way_id": way_id,
+                "node_id": way_id * 10,
+                "coordinate": start,
+            }, {
+                "root_relation_id": root_id,
+                "way_id": way_id,
+                "node_id": way_id * 10 + 1,
+                "coordinate": end,
+            }]}
+            return trail
+
+        farther = candidate(
+            "North Access Route", 700, 10, (-0.01, 0.0), (0.0001, 0.0))
+        nearer = candidate(
+            "South Access Route", 701, 20, (0.01, 0.0), (0.0, 0.0))
+        poi = [{
+            "id": 900, "coord": (0.0, 0.0),
+            "tags": {"name": "Shared Peak", "natural": "peak"},
+        }]
+        m.promote_hikes(
+            [farther, nearer], poi, exact_denmark=True,
+            authoritative_root_order=[700, 701])
+        self.assertFalse(farther.hike)
+        self.assertEqual(farther._promotion_decision["reason"],
+                         "destination-already-claimed")
+        self.assertTrue(nearer.hike)
+
+        higher_id = candidate(
+            "West Access Route", 702, 30, (-0.01, 0.0), (0.0, 0.0))
+        lower_id = candidate(
+            "East Access Route", 703, 40, (0.99, 0.0), (1.0, 0.0))
+        same_name_pois = [{
+            "id": 900, "coord": (0.0, 0.0),
+            "tags": {"name": "Twin Peak", "natural": "peak"},
+        }, {
+            "id": 800, "coord": (1.0, 0.0),
+            "tags": {"name": "Twin Peak", "natural": "peak"},
+        }]
+        m.promote_hikes(
+            [higher_id, lower_id], same_name_pois, exact_denmark=True,
+            authoritative_root_order=[702, 703])
+        self.assertFalse(higher_id.hike)
+        self.assertEqual(higher_id._promotion_decision["reason"],
+                         "destination-already-claimed")
+        self.assertTrue(lower_id.hike)
+        self.assertEqual(lower_id.destination_evidence[0]["osm_node_id"], 800)
+
     def test_promote_hike_absorbs_covered_fragment(self):
         # the composite route promotes to the hike; the shorter same-named
         # physical spur (kind=trail) is absorbed so it isn't listed twice.
@@ -843,6 +1788,130 @@ class Classification(unittest.TestCase):
         self.assertEqual(len(out), 1)
         self.assertTrue(out[0].hike)
         self.assertEqual(out[0].name, "Angels Landing Trail")
+
+    def test_exact_quality_promotion_audits_relation_absorption(self):
+        hike = m.Trail(
+            "Angels Landing Trail--West Rim Trail", "relation", [1],
+            [[(0.0, 0.0), (0.001, 0.001)]], {}, [])
+        fragment = m.Trail(
+            "Angels Landing Trail", "relation", [2],
+            [[(0.0008, 0.0008), (0.001, 0.001)]], {}, [])
+        pois = [{"name": "Angels Landing", "coord": (0.001, 0.001),
+                 "tags": {"natural": "peak"}}]
+        absorbed = []
+        out = m.promote_hikes(
+            [hike, fragment], pois, collect_absorbed=absorbed,
+            require_relation_absorption_evidence=True)
+        self.assertEqual(out, [hike])
+        self.assertEqual(absorbed, [fragment])
+        evidence = fragment.to_feature()["properties"]["drop_evidence"]
+        self.assertTrue(evidence["geometry_proof"][
+            "absorbed_covered_by_survivor"])
+        self.assertEqual(evidence["geometry_proof"]["relationship"],
+                         "covered-by-survivor")
+
+        hike = m.Trail(
+            "Angels Landing Trail--West Rim Trail", "relation", [1],
+            [[(0.0, 0.0), (0.001, 0.001)]], {}, [])
+        divergent = m.Trail(
+            "Angels Landing Trail", "relation", [2],
+            [[(0.0008, 0.0007), (0.001, 0.001)]], {}, [])
+        absorbed = []
+        out = m.promote_hikes(
+            [hike, divergent], pois, collect_absorbed=absorbed,
+            require_relation_absorption_evidence=True)
+        self.assertEqual(out, [hike, divergent])
+        self.assertEqual(absorbed, [])
+
+    def test_non_denmark_default_is_identical_with_deferral_disabled(self):
+        def run(explicit: bool):
+            nodes = {
+                1: (0.0, 0.0), 2: (0.001, 0.001), 3: (0.002, 0.002),
+            }
+            ways = {
+                1: W([1, 2, 3], highway="path"),
+                2: W([2, 3], highway="path", name="Summit Trail"),
+            }
+            relations = {100: {
+                "tags": {"type": "route", "route": "hiking",
+                         "name": "Summit Trail--Approach"},
+                "members": [("w", 1, "")],
+            }}
+            pois = [{"name": "Summit", "coord": nodes[3],
+                     "tags": {"natural": "peak"}}]
+            kwargs = ({"defer_relation_absorption": False}
+                      if explicit else {})
+            return [trail.to_feature() for trail in m.assemble(
+                nodes, ways, relations, pois, region="az", **kwargs)]
+
+        omitted = run(False)
+        explicit = run(True)
+
+        self.assertEqual(omitted, explicit)
+        self.assertEqual(len(omitted), 1)
+        self.assertEqual(omitted[0]["properties"]["kind"], "hike")
+        self.assertEqual(omitted[0]["properties"]["name"], "Summit Trail")
+        self.assertNotIn("destination_evidence", omitted[0]["properties"])
+
+    def test_terminal_absorption_deferral_preserves_chain_and_defaults(self):
+        line = [(0.0, 0.0), (0.01, 0.01)]
+
+        def candidates():
+            return [
+                m.Trail("Path", "relation", [1], [list(line)], {}, []),
+                m.Trail("Ridge Path", "relation", [2], [list(line)], {}, []),
+                m.Trail("Descriptive Ridge Trail", "relation", [3],
+                        [list(line)], {}, []),
+            ]
+
+        deferred = candidates()
+        output = m.dedupe_duplicate_trails(
+            deferred, defer_relation_absorption=True)
+        self.assertEqual(output, deferred)
+        self.assertEqual(m.terminal_relation_absorption_targets(output), {
+            0: [1], 1: [2],
+        })
+        self.assertTrue(all(trail.absorbed_by is None for trail in output))
+
+        legacy = m.dedupe_duplicate_trails(candidates())
+        self.assertEqual([trail.name for trail in legacy],
+                         ["Descriptive Ridge Trail"])
+
+    def test_terminal_absorption_deferral_preserves_promoted_fragment(self):
+        hike = m.Trail(
+            "Angels Landing Trail--West Rim Trail", "relation", [1],
+            [[(0.0, 0.0), (0.001, 0.001)]], {}, [])
+        fragment = m.Trail(
+            "Angels Landing Trail", "relation", [2],
+            [[(0.0008, 0.0008), (0.001, 0.001)]], {}, [])
+        pois = [{"name": "Angels Landing", "coord": (0.001, 0.001),
+                 "tags": {"natural": "peak"}}]
+
+        output = m.promote_hikes(
+            [hike, fragment], pois, defer_relation_absorption=True)
+
+        self.assertEqual(output, [hike, fragment])
+        self.assertEqual(hike.name, "Angels Landing Trail")
+        self.assertTrue(hike.hike)
+        self.assertEqual(m.terminal_relation_absorption_targets(output), {1: [0]})
+        self.assertIsNone(fragment.absorbed_by)
+
+    def test_terminal_target_uses_post_coalesce_survivor_identity(self):
+        line = [(0.0, 0.0), (0.01, 0.01)]
+        loser = m.Trail("Plain Path", "relation", [1], [list(line)], {}, [])
+        winner = m.Trail("Summit Trail", "relation", [2], [list(line)], {}, [])
+        addition = m.Trail(
+            "Summit Trail", "relation", [3],
+            [[(0.01, 0.01), (0.02, 0.02)]], {}, [])
+        loser.area = winner.area = addition.area = "Park"
+        loser._deferred_absorption_targets.append(winner)
+
+        coalesced = m.coalesce_by_area([loser, winner, addition])
+
+        self.assertEqual(coalesced, [loser, winner])
+        self.assertEqual(winner.member_ways, [2, 3])
+        self.assertEqual(m.terminal_relation_absorption_targets(coalesced),
+                         {0: [1]})
 
     def test_promote_hike_skips_thru_routes_and_plain_trails(self):
         poi = [{"name": "Peak", "coord": (0.001, 0.001), "tags": {"natural": "peak"}}]

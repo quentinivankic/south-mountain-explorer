@@ -1,7 +1,14 @@
-# One area name per line. These are always included even if the
-# Overpass tag-quality filter would normally drop them. Useful for
-# tiny named summits or local trail systems that don't have
-# protect_class tagged.
+# One area name per line. A listing here bypasses ONLY the tag-quality
+# check (the name-keyword / protect_class requirement) that would normally
+# drop the area. Useful for tiny named summits or local trail systems that
+# don't tag protect_class and don't match a name keyword.
+#
+# A listing does NOT bypass the safety floor or the structural checks: an
+# included area is still dropped if it is access=private, ownership=private,
+# or trips a red_flag, and it still must have a valid name, valid
+# coordinates, a valid OSM id, fall inside the region's boundary bbox, and
+# not be slug-duplicated. An entry present in seeds-exclude.txt still wins
+# (exclude beats include).
 #
 # Lines starting with `#` are comments. Blank lines ignored.
 # Match is case-insensitive against the OSM `name` tag.

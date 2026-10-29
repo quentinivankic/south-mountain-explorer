@@ -92,8 +92,9 @@ def merge_areas(pbf_path: str) -> list[dict[str, Any]]:
 def assemble_areas(pbf_path: str) -> list[dict[str, Any]]:
     """Assemble park-ish area polygons from an OSM PBF.
 
-    Returns [{"name", "tags", "geom" (shapely)}]. Requires a SORTED PBF —
-    osmium extract output (what aoi.sh produces) always is.
+    Returns [{"name", "tags", "geom" (shapely), "osm_id", "osm_type"}].
+    Requires a SORTED PBF — osmium extract output (what aoi.sh produces)
+    always is.
     """
     import osmium
     import shapely.wkb
@@ -110,10 +111,21 @@ def assemble_areas(pbf_path: str) -> list[dict[str, Any]]:
                 geom = shapely.wkb.loads(wkbfab.create_multipolygon(a), hex=True)
             except Exception:  # noqa: BLE001 — skip an unassemblable area
                 return
-            out.append({"name": _display_name(tags), "tags": tags, "geom": geom})
+            out.append({
+                "name": _display_name(tags),
+                "tags": tags,
+                "geom": geom,
+                "osm_id": a.orig_id(),
+                "osm_type": "way" if a.from_way() else "relation",
+            })
 
     Handler().apply_file(pbf_path, locations=True)
     return out
+
+
+def select_exact(areas: list[dict[str, Any]], name: str) -> list[dict[str, Any]]:
+    """Return boundaries whose display name exactly matches, case-sensitively."""
+    return [area for area in areas if area.get("name") == name]
 
 
 def union_matching(areas: list[dict[str, Any]], name_substr: str):
@@ -148,8 +160,15 @@ def _line_parts(geom) -> list:
 
 
 def clip_features_to_area(features: list[dict[str, Any]], area_union,
-                          min_inside_mi: float = 0.05) -> list[dict[str, Any]]:
+                          min_inside_mi: float = 0.05,
+                          area_name: str | None = None,
+                          collect_dropped: list[dict[str, Any]] | None = None
+                          ) -> list[dict[str, Any]]:
     """Clip each trail to the area boundary, keeping only its in-park portion.
+
+    When the caller selected one exact boundary, ``area_name`` stamps that
+    producer-owned assignment onto every surviving feature. This is done here,
+    where survival is known, rather than weakening downstream validation.
 
     The correct model for a trail that straddles the edge: a connector that
     leaves the park to reach a road keeps the piece inside the boundary and
@@ -159,31 +178,69 @@ def clip_features_to_area(features: list[dict[str, Any]], area_union,
     `full_length_mi`, and `clipped: true` is flagged). A trail whose in-park
     remnant is below `min_inside_mi` — a mere boundary sliver — is dropped.
     A trail that dips out and back in becomes a MultiLineString of its
-    in-park pieces.
+    in-park pieces. When requested, exact-area drops retain their full source
+    geometry plus typed evidence for independent final validation.
     """
     import model
     from shapely.geometry import shape
 
+    def record_drop(feature: dict[str, Any], *, category: str,
+                    reason: str, inside_mi: float) -> None:
+        if collect_dropped is None:
+            return
+        properties = dict(feature.get("properties") or {})
+        if area_name is not None:
+            properties["area"] = area_name
+        properties.update({
+            "removed_category": category,
+            "removed_reason": reason,
+            "drop_evidence": {
+                "kind": category,
+                "area": area_name,
+                "min_inside_mi": float(min_inside_mi),
+                "inside_mi": round(float(inside_mi), 12),
+            },
+        })
+        collect_dropped.append({**feature, "properties": properties})
+
     kept = []
     for f in features:
         try:
-            clipped = shape(f["geometry"]).intersection(area_union)
+            source_geometry = shape(f["geometry"])
+            clipped_geometry = source_geometry.intersection(area_union)
         except Exception:  # noqa: BLE001 — invalid geometry; skip rather than crash
             continue
-        parts = _line_parts(clipped)
+        parts = _line_parts(clipped_geometry)
         if not parts:
+            record_drop(
+                f, category="outside-exact-area", inside_mi=0.0,
+                reason="No line geometry intersects the exact selected area.")
             continue
         lines = [[(c[0], c[1]) for c in ln.coords] for ln in parts]
-        inside_mi = round(sum(model.line_mi(l) for l in lines), 3)
-        if inside_mi < min_inside_mi:
+        unrounded_inside_mi = sum(model.line_mi(line) for line in lines)
+        inside_mi = round(unrounded_inside_mi, 3)
+        # Exact-area Denmark QA uses boundary truth before display rounding.
+        # The legacy path intentionally preserves HEAD's rounded floor.
+        floor_miles = unrounded_inside_mi if area_name is not None else inside_mi
+        if floor_miles < min_inside_mi:
+            record_drop(
+                f, category="min-inside-mi", inside_mi=unrounded_inside_mi,
+                reason=(f"Exact-area remnant is {inside_mi} mi, below the "
+                        f"{min_inside_mi} mi inside-area minimum."))
             continue
         props = dict(f["properties"])
+        if area_name is not None:
+            props["area"] = area_name
         full = props.get("length_mi")
         props["length_mi"] = inside_mi
-        if full is not None and abs(full - inside_mi) > 1e-6:
-            props["full_length_mi"] = full
+        # Decide clipping from exact geometry before display-mile rounding. A
+        # real sub-rounding boundary cut must still carry clipping evidence.
+        if not source_geometry.equals(clipped_geometry):
+            if full is not None:
+                props["full_length_mi"] = full
             props["clipped"] = True
         kept.append({**f, "properties": props,
                      "geometry": {"type": "MultiLineString",
-                                  "coordinates": [[list(p) for p in l] for l in lines]}})
+                                  "coordinates": [[list(p) for p in line]
+                                                  for line in lines]}})
     return kept

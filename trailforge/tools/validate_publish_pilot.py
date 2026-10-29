@@ -8,6 +8,7 @@ import hashlib
 import json
 import math
 import re
+import stat
 import sys
 import unicodedata
 from pathlib import Path
@@ -168,6 +169,11 @@ REQUIRED_TEXT_FILES = {
 _ALLOWED_EMPTY_TEXT_FILES = {"discovery_validation_log"}
 OPTIONAL_DROPPED_ROUTES = "data/aoi/mols-bjerge.dropped-routes.geojson"
 OVERPASS_RECEIPT_RELATIVE = "discovery/overpass-receipt.json"
+PBF_PROVENANCE_RELATIVE = "discovery/pbf-provenance.json"
+_PBF_PROVENANCE_KIND = "local-pbf-discovery-provenance"
+_PBF_PROVENANCE_PARSER = "pyosmium-area-v1"
+_PBF_PROVENANCE_MAX_BYTES = 64 * 1024
+_PBF_MAX_DIAGNOSTICS = 32
 _OVERPASS_ENDPOINT_HOSTS = {
     1: "overpass-api.de",
     2: "overpass.kumi.systems",
@@ -859,17 +865,254 @@ def _validate_overpass_receipt(
             "Additional Overpass observability diagnostics were omitted")
 
 
+def _load_pbf_provenance(path: Path, errors: list[str]) -> Any:
+    if path.is_symlink() or not path.is_file():
+        errors.append("missing or unsafe local PBF discovery provenance")
+        return None
+    try:
+        raw = path.read_bytes()
+        if len(raw) > _PBF_PROVENANCE_MAX_BYTES:
+            errors.append("local PBF discovery provenance is too large")
+            return None
+        return json.loads(
+            raw,
+            object_pairs_hook=_receipt_strict_object,
+            parse_constant=_receipt_reject_constant,
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError,
+            ValueError):
+        errors.append("invalid local PBF discovery provenance JSON")
+        return None
+
+
+def _source_pbf_identity(path: Path, errors: list[str]) -> dict[str, Any]:
+    if path.is_symlink():
+        errors.append("source PBF must not be a symbolic link")
+        return {}
+    try:
+        resolved = path.resolve(strict=True)
+        before = resolved.stat()
+        if not stat.S_ISREG(before.st_mode):
+            errors.append("source PBF must be a regular file")
+            return {}
+        digest = hashlib.sha256()
+        size = 0
+        with resolved.open("rb") as source:
+            while True:
+                chunk = source.read(1024 * 1024)
+                if not chunk:
+                    break
+                digest.update(chunk)
+                size += len(chunk)
+        after = resolved.stat()
+    except OSError:
+        errors.append("source PBF is unavailable or unreadable")
+        return {}
+    before_fingerprint = (
+        before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+    after_fingerprint = (
+        after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+    if before_fingerprint != after_fingerprint or size != after.st_size:
+        errors.append("source PBF changed while final validation was reading it")
+        return {}
+    if size <= 0 or not resolved.name.endswith(".osm.pbf"):
+        errors.append("source PBF identity is invalid")
+        return {}
+    return {
+        "resolved_path": str(resolved),
+        "bytes": size,
+        "sha256": digest.hexdigest(),
+    }
+
+
+def _pbf_identity(value: Any, label: str,
+                  errors: list[str]) -> dict[str, Any]:
+    if (not isinstance(value, dict) or set(value) != {"sha256", "bytes"}
+            or not _receipt_sha256(value.get("sha256"))
+            or not _receipt_positive_int(value.get("bytes"))):
+        errors.append(f"{label} byte identity is invalid")
+        return {}
+    return value
+
+
+def _validate_pbf_provenance_unchecked(
+        document: Any, discovery_report: Any, report_path: Path,
+        source_path: Path | None, errors: list[str], *,
+        expected_source_identity: dict[str, Any] | None = None,
+        ) -> dict[str, Any]:
+    if not isinstance(document, dict):
+        errors.append("local PBF discovery provenance must be an object")
+        return {}
+    expected_top_keys = {
+        "schema_version", "receipt_kind", "producer", "parser",
+        "attribution", "requested_region_codes",
+        "canonical_source_path_label", "source_pbf", "scope",
+        "candidate_occurrence_count", "candidate_count",
+        "discovery_report",
+    }
+    if set(document) != expected_top_keys:
+        errors.append("local PBF discovery provenance schema is invalid")
+    if (document.get("schema_version") != 1
+            or document.get("receipt_kind") != _PBF_PROVENANCE_KIND
+            or document.get("producer") != "scripts/seed-areas.py"
+            or document.get("parser") != _PBF_PROVENANCE_PARSER
+            or document.get("attribution") != ATTRIBUTION
+            or document.get("requested_region_codes") != ["DK"]
+            or document.get("canonical_source_path_label") !=
+            "data/raw/denmark.osm.pbf"):
+        errors.append("local PBF discovery provenance identity is invalid")
+
+    source = document.get("source_pbf")
+    source_identity: dict[str, Any] = {}
+    if not isinstance(source, dict) or set(source) != {
+            "resolved_path", "bytes", "sha256", "expected_sha256"}:
+        errors.append("local PBF source identity schema is invalid")
+    else:
+        resolved_path = source.get("resolved_path")
+        source_identity = {
+            "sha256": source.get("sha256"),
+            "bytes": source.get("bytes"),
+        }
+        if (not isinstance(resolved_path, str)
+                or not resolved_path.startswith("/")
+                or "\x00" in resolved_path
+                or not _receipt_positive_int(source.get("bytes"))
+                or not _receipt_sha256(source.get("sha256"))
+                or not _receipt_sha256(source.get("expected_sha256"))
+                or source.get("expected_sha256") != source.get("sha256")):
+            errors.append("local PBF source identity is invalid")
+        if expected_source_identity is not None \
+                and source_identity != expected_source_identity:
+            errors.append(
+                "local PBF provenance disagrees with trusted prefilter input")
+
+    if source_path is None:
+        errors.append("local PBF provenance requires the source PBF")
+    else:
+        actual = _source_pbf_identity(source_path, errors)
+        if actual and isinstance(source, dict):
+            if actual.get("resolved_path") != source.get("resolved_path"):
+                errors.append("local PBF provenance path does not match source PBF")
+            if ({key: actual.get(key) for key in ("sha256", "bytes")}
+                    != source_identity):
+                errors.append("local PBF provenance does not match source bytes")
+
+    report_identity = _pbf_identity(
+        document.get("discovery_report"),
+        "local PBF discovery report", errors)
+    try:
+        report_raw = report_path.read_bytes()
+    except OSError:
+        report_raw = b""
+        errors.append("local PBF discovery report is unavailable for binding")
+    if report_raw and report_identity != _byte_identity(report_raw):
+        errors.append("local PBF provenance does not match discovery report bytes")
+
+    candidate_count = document.get("candidate_count")
+    occurrence_count = document.get("candidate_occurrence_count")
+    report_count = (discovery_report.get("candidate_count")
+                    if isinstance(discovery_report, dict) else None)
+    if (not _receipt_nonnegative_int(candidate_count)
+            or not _receipt_nonnegative_int(occurrence_count)
+            or occurrence_count < candidate_count
+            or candidate_count != report_count):
+        errors.append("local PBF candidate counts are inconsistent")
+
+    scope = document.get("scope")
+    bbox = None
+    if not isinstance(scope, dict) or set(scope) != {
+            "region_code", "admin_boundary_osm_type",
+            "admin_boundary_osm_id", "bbox"}:
+        errors.append("local PBF scope schema is invalid")
+    else:
+        bbox = scope.get("bbox")
+        bbox_valid = (
+            isinstance(bbox, list) and len(bbox) == 4
+            and all(_number(value) for value in bbox)
+            and -180 <= float(bbox[0]) < float(bbox[2]) <= 180
+            and -90 <= float(bbox[1]) < float(bbox[3]) <= 90
+        )
+        if (scope.get("region_code") != "DK"
+                or scope.get("admin_boundary_osm_type") != "relation"
+                or not _receipt_positive_int(
+                    scope.get("admin_boundary_osm_id"))
+                or not bbox_valid):
+            errors.append("local PBF Denmark scope is invalid")
+            bbox = None
+    candidates = (discovery_report.get("candidates")
+                  if isinstance(discovery_report, dict) else None)
+    if bbox is not None and isinstance(candidates, list):
+        for index, candidate in enumerate(candidates):
+            row = candidate.get("index_row") if isinstance(candidate, dict) else None
+            if (not isinstance(row, list) or len(row) != 5
+                    or not _number(row[3]) or not _number(row[4])):
+                continue
+            latitude = float(row[3])
+            longitude = float(row[4])
+            if not (bbox[0] <= longitude <= bbox[2]
+                    and bbox[1] <= latitude <= bbox[3]):
+                errors.append(
+                    f"candidate[{index}] lies outside the sealed PBF scope")
+    return source_identity
+
+
+def _validate_pbf_provenance(
+        document: Any, discovery_report: Any, report_path: Path,
+        source_path: Path | None, errors: list[str], *,
+        expected_source_identity: dict[str, Any] | None = None,
+        ) -> dict[str, Any]:
+    provenance_errors: list[str] = []
+    source_identity: dict[str, Any] = {}
+    try:
+        source_identity = _validate_pbf_provenance_unchecked(
+            document, discovery_report, report_path, source_path,
+            provenance_errors,
+            expected_source_identity=expected_source_identity)
+    except Exception:  # noqa: BLE001 - untrusted evidence must never crash
+        provenance_errors.append(
+            "local PBF discovery provenance validation failed safely")
+    unique_errors = list(dict.fromkeys(provenance_errors))
+    errors.extend(unique_errors[:_PBF_MAX_DIAGNOSTICS])
+    if len(unique_errors) > _PBF_MAX_DIAGNOSTICS:
+        errors.append(
+            "Additional local PBF provenance diagnostics were omitted")
+    return source_identity
+
+
 def _run_discovery(args: argparse.Namespace) -> int:
     errors: list[str] = []
     expected = _positive_decimal(args.expected_osm_relation_id)
     if expected is None:
         errors.append("expected relation id must be a positive decimal")
-    document = _load_json(Path(args.discovery_report), "discovery report", errors)
-    if args.overpass_receipt:
+    report_path = Path(args.discovery_report)
+    document = _load_json(report_path, "discovery report", errors)
+    has_overpass = bool(args.overpass_receipt)
+    has_pbf = bool(args.pbf_provenance)
+    has_source = bool(args.source_pbf)
+    if has_overpass and has_pbf:
+        errors.append("discovery evidence mixes live Overpass and local PBF modes")
+    if has_source != has_pbf:
+        errors.append(
+            "local PBF discovery requires both provenance and source PBF")
+    evidence_kind = "none"
+    if has_overpass and not has_pbf:
+        evidence_kind = "overpass"
         overpass_receipt = _load_overpass_receipt(
             Path(args.overpass_receipt), errors)
         if overpass_receipt is not None:
             _validate_overpass_receipt(overpass_receipt, document, errors)
+    elif has_pbf and not has_overpass:
+        evidence_kind = "local-pbf"
+        pbf_provenance = _load_pbf_provenance(
+            Path(args.pbf_provenance), errors)
+        if pbf_provenance is not None:
+            _validate_pbf_provenance(
+                pbf_provenance,
+                document,
+                report_path,
+                Path(args.source_pbf) if args.source_pbf else None,
+                errors,
+            )
     selected = None
     if expected is not None and document is not None:
         selected = _validate_discovery_document(document, expected, errors)
@@ -880,6 +1123,7 @@ def _run_discovery(args: argparse.Namespace) -> int:
         "status": "failed" if errors else "ok",
         "area_id": AREA_ID,
         "expected_osm_relation_id": expected,
+        "evidence_kind": evidence_kind,
         "errors": errors,
     }
     if not errors and selected is not None:
@@ -7122,6 +7366,7 @@ def _validate_artifact_seals(root: Path, manifest: Any,
         VISUAL_RELATIVE: "offline-osm-visual",
         VISUAL_REVIEW_RELATIVE: "offline-osm-visual-review",
         OVERPASS_RECEIPT_RELATIVE: "overpass-query-observability",
+        PBF_PROVENANCE_RELATIVE: "local-pbf-discovery-provenance",
     }
     for relative, scope in expected_scopes.items():
         if isinstance(seals.get(relative), dict) \
@@ -7210,6 +7455,31 @@ def _run_final(args: argparse.Namespace) -> int:
     overpass_path = root / OVERPASS_RECEIPT_RELATIVE
     overpass_unsafe = overpass_path.is_symlink()
     overpass_present = overpass_path.is_file() and not overpass_unsafe
+    pbf_provenance_path = root / PBF_PROVENANCE_RELATIVE
+    pbf_provenance_unsafe = pbf_provenance_path.is_symlink()
+    pbf_provenance_present = (
+        pbf_provenance_path.is_file() and not pbf_provenance_unsafe)
+    if overpass_present and pbf_provenance_present:
+        errors.append("final discovery evidence mixes Overpass and local PBF modes")
+    if args.require_overpass_receipt and args.require_pbf_provenance:
+        errors.append("final validator cannot require two discovery evidence modes")
+    if args.require_overpass_receipt and pbf_provenance_present:
+        errors.append("final validator received local PBF evidence in Overpass mode")
+    if args.require_pbf_provenance and overpass_present:
+        errors.append("final validator received Overpass evidence in local PBF mode")
+    if args.source_pbf and not (
+            pbf_provenance_present or pbf_provenance_unsafe
+            or args.require_pbf_provenance):
+        errors.append("source PBF was supplied without local PBF provenance")
+    if (pbf_provenance_present or args.require_pbf_provenance) \
+            and not args.source_pbf:
+        errors.append("local PBF provenance requires the source PBF")
+
+    evidence_kind = (
+        "mixed" if overpass_present and pbf_provenance_present else
+        "overpass" if overpass_present else
+        "local-pbf" if pbf_provenance_present else "none"
+    )
     overpass_receipt = None
     if overpass_present or overpass_unsafe or args.require_overpass_receipt:
         overpass_receipt = _load_overpass_receipt(overpass_path, errors)
@@ -7219,6 +7489,41 @@ def _run_final(args: argparse.Namespace) -> int:
                 documents.get("discovery_report"),
                 errors,
             )
+
+    pbf_source_identity: dict[str, Any] = {}
+    if (pbf_provenance_present or pbf_provenance_unsafe
+            or args.require_pbf_provenance):
+        provenance = _load_pbf_provenance(pbf_provenance_path, errors)
+        source_path = Path(args.source_pbf) if args.source_pbf else None
+        if source_path is not None:
+            try:
+                resolved_source = source_path.resolve(strict=True)
+                resolved_root = root.resolve(strict=True)
+                if (resolved_source == resolved_root
+                        or resolved_root in resolved_source.parents):
+                    errors.append("source PBF must remain outside the QA package")
+            except OSError:
+                pass
+        if provenance is not None:
+            trusted_input = (scope_trust.get("prefilter_transformation", {})
+                             .get("input"))
+            pbf_source_identity = _validate_pbf_provenance(
+                provenance,
+                documents.get("discovery_report"),
+                root / REQUIRED_JSON_FILES["discovery_report"],
+                source_path,
+                errors,
+                expected_source_identity=trusted_input,
+            )
+            transform = documents.get("prefilter_transform_receipt")
+            transform_parent = (transform.get("parent_pbf")
+                                if isinstance(transform, dict) else None)
+            transform_identity = (
+                {key: transform_parent.get(key) for key in ("sha256", "bytes")}
+                if isinstance(transform_parent, dict) else {})
+            if pbf_source_identity != transform_identity:
+                errors.append(
+                    "local PBF provenance disagrees with prefilter receipt input")
     texts = {}
     for label, relative in REQUIRED_TEXT_FILES.items():
         path = root / relative
@@ -7245,6 +7550,7 @@ def _run_final(args: argparse.Namespace) -> int:
         *REQUIRED_TEXT_FILES.values(),
         *PBF_RELATIVES_BY_SCOPE.values(),
         *([OVERPASS_RECEIPT_RELATIVE] if overpass_present else []),
+        *([PBF_PROVENANCE_RELATIVE] if pbf_provenance_present else []),
         *([OPTIONAL_DROPPED_ROUTES] if optional_path.exists() else []),
     ])
     _validate_artifact_seals(
@@ -7370,8 +7676,10 @@ def _run_final(args: argparse.Namespace) -> int:
             *REQUIRED_TEXT_FILES.values(),
             *PBF_RELATIVES_BY_SCOPE.values(),
             *([OVERPASS_RECEIPT_RELATIVE] if overpass_present else []),
+            *([PBF_PROVENANCE_RELATIVE] if pbf_provenance_present else []),
             *([OPTIONAL_DROPPED_ROUTES] if optional_path.exists() else []),
         ]),
+        "discovery_evidence_kind": evidence_kind,
         "assembled_trail_count": len(trail_features),
         "unresolved_terminal_absorption_count": (
             ((documents.get("assembly_report") or {}).get("quality") or {}).get(
@@ -7390,6 +7698,8 @@ def _parser() -> argparse.ArgumentParser:
         "discovery", help="verify discovery and build a one-row temporary index")
     discovery.add_argument("--discovery-report", required=True)
     discovery.add_argument("--overpass-receipt")
+    discovery.add_argument("--pbf-provenance")
+    discovery.add_argument("--source-pbf")
     discovery.add_argument("--expected-osm-relation-id", required=True)
     discovery.add_argument("--selected-record-out", required=True)
     discovery.add_argument("--index-out", required=True)
@@ -7404,6 +7714,8 @@ def _parser() -> argparse.ArgumentParser:
     final.add_argument("--aoi-relation-members", required=True)
     final.add_argument("--expected-osm-relation-id", required=True)
     final.add_argument("--require-overpass-receipt", action="store_true")
+    final.add_argument("--require-pbf-provenance", action="store_true")
+    final.add_argument("--source-pbf")
     final.add_argument("--result-json", required=True)
     return parser
 

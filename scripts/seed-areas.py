@@ -26,10 +26,15 @@ Usage:
     python3 scripts/seed-areas.py --dry-run AZ
     python3 scripts/seed-areas.py --merge AZ
     python3 scripts/seed-areas.py --resume AZ CA ...
+    python3 scripts/seed-areas.py --dry-run DK \
+        --source-pbf /absolute/path/denmark.osm.pbf \
+        --source-pbf-sha256 <sha256> \
+        --discovery-report report.json --pbf-provenance pbf-provenance.json
 """
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import hashlib
 import json
 import sys
@@ -51,6 +56,7 @@ from _overpass_observability import (  # noqa: E402
     classify_response,
     endpoint_host,
 )
+import _pbf_discovery as pbf_discovery  # noqa: E402
 from _seed_constants import (  # noqa: E402
     CACHE_PATH,
     COUNTRY_CODES,
@@ -71,6 +77,22 @@ OVERPASS_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
 ]
+
+
+@contextmanager
+def _source_pbf_network_guard():
+    """Make any accidental urllib access terminal while reading a local PBF."""
+    original = urllib.request.urlopen
+
+    def denied(*_args, **_kwargs):
+        raise pbf_discovery.SourcePbfError(
+            "network access is forbidden in --source-pbf mode")
+
+    urllib.request.urlopen = denied
+    try:
+        yield
+    finally:
+        urllib.request.urlopen = original
 
 
 def overpass_query(code: str) -> str:
@@ -144,6 +166,8 @@ def fetch_overpass(
                 if status is None:
                     status = response.getcode()
         except ReceiptWriteError:
+            raise
+        except pbf_discovery.SourcePbfError:
             raise
         except urllib.error.HTTPError as error:
             if receipt is not None and attempt_id is not None:
@@ -318,6 +342,81 @@ def fetch_region_bbox(
             flush=True,
         )
     return best
+
+
+def _evaluate_candidate_elements(
+    state_code: str,
+    data: dict,
+    bbox: tuple[float, float, float, float] | None,
+    includes: set[str] | None = None,
+    *,
+    receipt: OverpassReceipt | None = None,
+) -> tuple[list[tuple[list, int | None]], int, int, dict[str, int]]:
+    """Apply the existing candidate policy to one deterministic element set."""
+    includes = includes or set()
+    out: list[tuple[list, int | None]] = []
+    raw = 0
+    out_of_bbox = 0
+    rejection_breakdown = {key: 0 for key in REJECTION_KEYS}
+    for el in data.get("elements", []):
+        el_type = el.get("type")
+        if el_type not in ("relation", "way"):
+            continue
+        raw += 1
+        tags = el.get("tags") or {}
+        # A seeds-include.txt listing (case-insensitive name match) bypasses
+        # ONLY the name/protect-class quality check — NOT the private/red-flag
+        # safety floor, and NOT the valid-name / coordinate / id / region /
+        # dedupe / seeds-exclude checks that follow. is_quality() already runs
+        # the same safety floor first, so for a non-included area the behavior
+        # is unchanged; for an included area we drop the keyword/protect_class
+        # requirement but still require passes_safety_floor().
+        name_lower = (tags.get("name") or "").strip().lower()
+        included = bool(name_lower) and name_lower in includes
+        if included:
+            if not passes_safety_floor(tags):
+                rejection_breakdown["failed_included_safety_floor"] += 1
+                continue
+        elif not is_quality(tags, code=state_code):
+            rejection_breakdown["failed_quality_filter"] += 1
+            continue
+        center = el.get("center") or {}
+        lat, lon = center.get("lat"), center.get("lon")
+        if lat is None or lon is None:
+            rejection_breakdown["missing_center"] += 1
+            continue
+        osm_id = el.get("id")
+        if osm_id is None:
+            rejection_breakdown["missing_osm_id"] += 1
+            continue
+
+        # Centroid post-filter. The live query can return cross-border areas;
+        # local PBF mode applies the same check against its sealed DK scope.
+        if bbox is not None:
+            min_lat, min_lon, max_lat, max_lon = bbox
+            if not (min_lat <= lat <= max_lat
+                    and min_lon <= lon <= max_lon):
+                out_of_bbox += 1
+                rejection_breakdown["outside_region_bbox"] += 1
+                continue
+
+        name = tags["name"].strip()
+        state_name = display_state(state_code)
+        row = [
+            slugify(name, state_code),
+            name,
+            state_name,
+            round(float(lat), 4),
+            round(float(lon), 4),
+        ]
+        out.append((row, int(osm_id) if el_type == "relation" else None))
+    if receipt is not None:
+        receipt.record_candidate_local_evaluation(
+            state_code,
+            len(out),
+            rejection_breakdown,
+        )
+    return out, raw, out_of_bbox, rejection_breakdown
 
 
 def fetch_state(
@@ -539,6 +638,21 @@ def main() -> None:
         help=("write redacted per-endpoint Overpass evidence "
               "(requires --dry-run and --discovery-report)"),
     )
+    ap.add_argument(
+        "--source-pbf",
+        type=Path,
+        help=("discover Denmark candidates from this local Geofabrik PBF; "
+              "network access is denied in this mode"),
+    )
+    ap.add_argument(
+        "--source-pbf-sha256",
+        help="required expected SHA-256 for --source-pbf",
+    )
+    ap.add_argument(
+        "--pbf-provenance",
+        type=Path,
+        help="write sealed local-PBF discovery provenance",
+    )
     ap.add_argument("--merge", action="store_true")
     ap.add_argument(
         "--resume",
@@ -571,6 +685,28 @@ def main() -> None:
         args.states = sorted(STATE_NAMES.keys())
     elif not args.states:
         ap.error("at least one state code is required (or pass --all)")
+
+    if args.source_pbf is not None:
+        if (not args.dry_run or args.discovery_report is None
+                or args.pbf_provenance is None
+                or args.source_pbf_sha256 is None):
+            ap.error(
+                "--source-pbf requires --dry-run, --discovery-report, "
+                "--source-pbf-sha256, and --pbf-provenance")
+        if args.overpass_receipt is not None:
+            ap.error(
+                "--source-pbf and --overpass-receipt are mutually exclusive")
+        if args.states != ["DK"] or args.all or args.merge or args.resume:
+            ap.error(
+                "--source-pbf is limited to one plain DK dry-run discovery")
+        if not pbf_discovery.valid_sha256(args.source_pbf_sha256):
+            ap.error(
+                "--source-pbf-sha256 must be 64 lowercase hexadecimal characters")
+        if args.discovery_report.resolve() == args.pbf_provenance.resolve():
+            ap.error("discovery report and PBF provenance paths must differ")
+    elif args.source_pbf_sha256 is not None or args.pbf_provenance is not None:
+        ap.error(
+            "--source-pbf-sha256 and --pbf-provenance require --source-pbf")
 
     receipt: OverpassReceipt | None = None
     if args.overpass_receipt:
@@ -610,16 +746,63 @@ def main() -> None:
 
     if args.dry_run:
         try:
+            local_state_candidates = None
+            local_scope = None
+            local_source = None
+            local_occurrence_count = 0
+            if args.source_pbf is not None:
+                assert args.discovery_report is not None
+                assert args.pbf_provenance is not None
+                assert args.source_pbf_sha256 is not None
+                pbf_discovery.ensure_new_output(
+                    args.discovery_report, "discovery report")
+                pbf_discovery.ensure_new_output(
+                    args.pbf_provenance, "PBF provenance")
+                print(
+                    f"Reading sealed local PBF for DK: {args.source_pbf}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                with _source_pbf_network_guard():
+                    elements, local_scope, local_source = (
+                        pbf_discovery.inspect_source_pbf(
+                            args.source_pbf,
+                            args.source_pbf_sha256,
+                            "DK",
+                        )
+                    )
+                    min_lon, min_lat, max_lon, max_lat = local_scope["bbox"]
+                    (local_state_candidates, local_occurrence_count,
+                     local_out_of_bbox, _) = _evaluate_candidate_elements(
+                        "DK",
+                        {"elements": elements},
+                        (min_lat, min_lon, max_lat, max_lon),
+                        includes,
+                    )
+                message = (
+                    f"  DK: {local_occurrence_count} candidates, "
+                    f"{len(local_state_candidates)} passed quality filter"
+                )
+                if local_out_of_bbox:
+                    message += (
+                        f" ({local_out_of_bbox} dropped — center outside "
+                        "sealed region bbox)"
+                    )
+                print(message, file=sys.stderr, flush=True)
+
             seen_ids: set[str] = set()
             candidates: list[tuple[list, int | None]] = []
             for state in args.states:
                 if state in already_seeded:
                     continue
-                state_candidates = fetch_state(
-                    state,
-                    includes,
-                    receipt=receipt,
-                )
+                if local_state_candidates is not None:
+                    state_candidates = local_state_candidates
+                else:
+                    state_candidates = fetch_state(
+                        state,
+                        includes,
+                        receipt=receipt,
+                    )
                 state_accepted = 0
                 manual_exclude_count = 0
                 duplicate_slug_count = 0
@@ -657,13 +840,31 @@ def main() -> None:
                     ],
                     "attribution": "© OpenStreetMap contributors",
                 }
-                args.discovery_report.write_text(
-                    json.dumps(report, indent=2, ensure_ascii=False) + "\n",
-                    encoding="utf-8",
-                )
+                if args.source_pbf is not None:
+                    assert args.pbf_provenance is not None
+                    assert local_scope is not None
+                    assert local_source is not None
+                    pbf_discovery.write_new_json(
+                        args.discovery_report, report, "discovery report")
+                    provenance = pbf_discovery.provenance_document(
+                        source=local_source,
+                        scope=local_scope,
+                        report_path=args.discovery_report,
+                        candidate_occurrence_count=local_occurrence_count,
+                        candidate_count=len(candidates),
+                    )
+                    pbf_discovery.write_new_json(
+                        args.pbf_provenance, provenance, "PBF provenance")
+                else:
+                    args.discovery_report.write_text(
+                        json.dumps(report, indent=2, ensure_ascii=False) + "\n",
+                        encoding="utf-8",
+                    )
             if receipt is not None:
                 receipt.finish("complete", "candidate-processing-complete")
             return
+        except pbf_discovery.SourcePbfError as error:
+            ap.exit(1, f"source PBF error: {error}\n")
         except ReceiptWriteError as error:
             ap.exit(1, f"overpass receipt error: {error}\n")
         except OverpassReceiptError as error:

@@ -176,6 +176,39 @@ def _overpass_receipt(candidate_count=1, *, ambiguous=False,
     }
 
 
+def _pbf_provenance(source_path, report_path, *, candidate_count=1):
+    source_raw = source_path.read_bytes()
+    report_raw = report_path.read_bytes()
+    source_sha = hashlib.sha256(source_raw).hexdigest()
+    return {
+        "schema_version": 1,
+        "receipt_kind": "local-pbf-discovery-provenance",
+        "producer": "scripts/seed-areas.py",
+        "parser": "pyosmium-area-v1",
+        "attribution": validator.ATTRIBUTION,
+        "requested_region_codes": ["DK"],
+        "canonical_source_path_label": "data/raw/denmark.osm.pbf",
+        "source_pbf": {
+            "resolved_path": str(source_path.resolve()),
+            "bytes": len(source_raw),
+            "sha256": source_sha,
+            "expected_sha256": source_sha,
+        },
+        "scope": {
+            "region_code": "DK",
+            "admin_boundary_osm_type": "relation",
+            "admin_boundary_osm_id": 50046,
+            "bbox": [7.0, 54.0, 13.0, 58.0],
+        },
+        "candidate_occurrence_count": max(1, candidate_count),
+        "candidate_count": candidate_count,
+        "discovery_report": {
+            "bytes": len(report_raw),
+            "sha256": hashlib.sha256(report_raw).hexdigest(),
+        },
+    }
+
+
 def _polygon_geometry():
     return {
         "type": "Polygon",
@@ -376,15 +409,19 @@ class CheckedInGoldenRecord(unittest.TestCase):
 
 
 class DiscoveryValidation(unittest.TestCase):
-    def _run(self, report, receipt=None):
+    def _run(self, report, receipt=None, *, provenance=None,
+             source_payload=b"synthetic-full-denmark-pbf"):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
             report_path = root / "report.json"
             receipt_path = root / "overpass-receipt.json"
+            provenance_path = root / "pbf-provenance.json"
+            source_path = root / "denmark.osm.pbf"
             selected_path = root / "selected.json"
             index_path = root / "index.json"
             result_path = root / "result.json"
             _write(report_path, report)
+            source_path.write_bytes(source_payload)
             arguments = [
                 "discovery",
                 "--discovery-report", str(report_path),
@@ -397,6 +434,20 @@ class DiscoveryValidation(unittest.TestCase):
                 _write(receipt_path, receipt)
                 arguments.extend([
                     "--overpass-receipt", str(receipt_path),
+                ])
+            if provenance is not None:
+                value = _pbf_provenance(
+                    source_path, report_path,
+                    candidate_count=(report.get("candidate_count", 0)
+                                     if isinstance(report, dict) else 0))
+                if callable(provenance):
+                    provenance(value, source_path, report_path)
+                elif provenance is not True:
+                    value = provenance
+                _write(provenance_path, value)
+                arguments.extend([
+                    "--pbf-provenance", str(provenance_path),
+                    "--source-pbf", str(source_path),
                 ])
             rc = validator.main(arguments)
             return {
@@ -461,6 +512,72 @@ class DiscoveryValidation(unittest.TestCase):
         self.assertEqual(result["rc"], 0, result["result"]["errors"])
         self.assertEqual(result["selected"]["osm_relation_id"], RELATION_ID)
         self.assertEqual(len(result["index"]), 1)
+
+    def test_complete_local_pbf_provenance_writes_one_row(self):
+        report = _discovery_report([_candidate()])
+        result = self._run(report, provenance=True)
+        self.assertEqual(result["rc"], 0, result["result"]["errors"])
+        self.assertEqual(result["result"]["evidence_kind"], "local-pbf")
+        self.assertEqual(result["selected"]["osm_relation_id"], RELATION_ID)
+        self.assertEqual(len(result["index"]), 1)
+
+    def test_local_pbf_path_hash_size_and_report_tampering_fail_closed(self):
+        def wrong_path(value, _source, _report):
+            value["source_pbf"]["resolved_path"] = "/wrong/denmark.osm.pbf"
+
+        def wrong_hash(value, _source, _report):
+            value["source_pbf"]["sha256"] = "0" * 64
+            value["source_pbf"]["expected_sha256"] = "0" * 64
+
+        def wrong_size(value, _source, _report):
+            value["source_pbf"]["bytes"] += 1
+
+        def wrong_report(value, _source, _report):
+            value["discovery_report"]["sha256"] = "0" * 64
+
+        def changed_source(_value, source, _report):
+            source.write_bytes(source.read_bytes() + b"tampered")
+
+        for mutate, fragment in (
+                (wrong_path, "path does not match"),
+                (wrong_hash, "does not match source bytes"),
+                (wrong_size, "does not match source bytes"),
+                (wrong_report, "does not match discovery report bytes"),
+                (changed_source, "does not match source bytes")):
+            with self.subTest(mutate=mutate.__name__):
+                result = self._run(
+                    _discovery_report([_candidate()]), provenance=mutate)
+                self.assertEqual(result["rc"], 1)
+                self.assertTrue(any(
+                    fragment in error for error in result["result"]["errors"]),
+                    result["result"]["errors"])
+                self.assertIsNone(result["selected"])
+                self.assertIsNone(result["index"])
+
+    def test_mixed_evidence_and_wrong_provenance_kind_fail_closed(self):
+        mixed = self._run(
+            _discovery_report([_candidate()]),
+            _overpass_receipt(1), provenance=True)
+        self.assertEqual(mixed["rc"], 1)
+        self.assertIn(
+            "discovery evidence mixes live Overpass and local PBF modes",
+            mixed["result"]["errors"])
+        self.assertIsNone(mixed["selected"])
+
+        wrong_kind = self._run(
+            _discovery_report([_candidate()]),
+            provenance=_overpass_receipt(1))
+        self.assertEqual(wrong_kind["rc"], 1)
+        self.assertTrue(any(
+            "local PBF" in error for error in wrong_kind["result"]["errors"]),
+            wrong_kind["result"]["errors"])
+        self.assertIsNone(wrong_kind["selected"])
+
+    def test_live_overpass_evidence_remains_backward_compatible(self):
+        result = self._run(
+            _discovery_report([_candidate()]), _overpass_receipt(1))
+        self.assertEqual(result["rc"], 0, result["result"]["errors"])
+        self.assertEqual(result["result"]["evidence_kind"], "overpass")
 
     def test_ambiguous_empty_receipt_rejects_forged_target(self):
         report = _discovery_report([_candidate()])
@@ -1154,6 +1271,8 @@ class _QA:
             scope="aoi", source_sha256=hashlib.sha256(pbf_bytes).hexdigest(),
             source_bytes=len(pbf_bytes))
         raw_parent = b"synthetic-full-raw-denmark-parent"
+        self.source_pbf_path = root.parent / "denmark.osm.pbf"
+        self.source_pbf_path.write_bytes(raw_parent)
         prefilter_parent = b"synthetic-full-prefilter-parent"
         raw_parent_counts = {"nodes": 1000, "ways": 400, "relations": 80}
         prefilter_parent_counts = {"nodes": 600, "ways": 220, "relations": 40}
@@ -1979,6 +2098,21 @@ class _QA:
         _write(self.root / validator.OVERPASS_RECEIPT_RELATIVE, value)
         self._refresh_manifest_seals()
 
+    def add_pbf_provenance(self, mutate=None):
+        report_path = (
+            self.root / validator.REQUIRED_JSON_FILES["discovery_report"])
+        value = _pbf_provenance(
+            self.source_pbf_path,
+            report_path,
+            candidate_count=len(
+                self.documents["discovery_report"]["candidates"]),
+        )
+        if mutate is not None:
+            mutate(value)
+        self.documents["pbf_provenance"] = value
+        _write(self.root / validator.PBF_PROVENANCE_RELATIVE, value)
+        self._refresh_manifest_seals()
+
     def _refresh_manifest_seals(self):
         relatives = sorted([
             *[relative for label, relative in validator.REQUIRED_JSON_FILES.items()
@@ -1992,6 +2126,9 @@ class _QA:
         overpass = self.root / validator.OVERPASS_RECEIPT_RELATIVE
         if overpass.is_file():
             relatives.append(validator.OVERPASS_RECEIPT_RELATIVE)
+        pbf_provenance = self.root / validator.PBF_PROVENANCE_RELATIVE
+        if pbf_provenance.is_file():
+            relatives.append(validator.PBF_PROVENANCE_RELATIVE)
         scopes = {
             validator.RAW_RELATION_MEMBERS_RELATIVE: "raw-denmark",
             validator.PREFILTER_RELATION_MEMBERS_RELATIVE:
@@ -2014,6 +2151,8 @@ class _QA:
             validator.VISUAL_REVIEW_RELATIVE: "offline-osm-visual-review",
             validator.OVERPASS_RECEIPT_RELATIVE:
                 "overpass-query-observability",
+            validator.PBF_PROVENANCE_RELATIVE:
+                "local-pbf-discovery-provenance",
         }
         artifacts = {}
         for relative in relatives:
@@ -2510,7 +2649,8 @@ class _QA:
 
 class FinalValidation(unittest.TestCase):
     def _run(self, mutate=None, *, remove=None, malformed=None, optional=None,
-             trust_in_package=False, require_overpass_receipt=False):
+             trust_in_package=False, require_overpass_receipt=False,
+             require_pbf_provenance=False):
         with TemporaryDirectory() as tmp:
             root = Path(tmp) / "qa"
             qa = _QA(root)
@@ -2543,6 +2683,11 @@ class FinalValidation(unittest.TestCase):
             ]
             if require_overpass_receipt:
                 arguments.append("--require-overpass-receipt")
+            if require_pbf_provenance:
+                arguments.extend([
+                    "--require-pbf-provenance",
+                    "--source-pbf", str(qa.source_pbf_path),
+                ])
             rc = validator.main(arguments)
             return rc, json.loads(result_path.read_text())
 
@@ -2568,6 +2713,89 @@ class FinalValidation(unittest.TestCase):
         self.assertEqual(rc, 0, result["errors"])
         self.assertIn(
             validator.OVERPASS_RECEIPT_RELATIVE, result["checked_files"])
+
+    def test_new_package_requires_and_seals_valid_local_pbf_provenance(self):
+        def add_provenance(qa):
+            qa.add_pbf_provenance()
+
+        rc, result = self._run(
+            add_provenance, require_pbf_provenance=True)
+        self.assertEqual(rc, 0, result["errors"])
+        self.assertEqual(result["discovery_evidence_kind"], "local-pbf")
+        self.assertIn(
+            validator.PBF_PROVENANCE_RELATIVE, result["checked_files"])
+        self.assertNotIn(
+            validator.OVERPASS_RECEIPT_RELATIVE, result["checked_files"])
+
+    def test_required_local_pbf_provenance_missing_fails(self):
+        rc, result = self._run(require_pbf_provenance=True)
+        self.assertEqual(rc, 1)
+        self.assertIn(
+            "missing or unsafe local PBF discovery provenance",
+            result["errors"],
+        )
+
+    def test_local_pbf_provenance_path_hash_size_and_expected_hash_fail(self):
+        mutations = {
+            "path": lambda value: value["source_pbf"].update(
+                resolved_path="/wrong/denmark.osm.pbf"),
+            "hash": lambda value: value["source_pbf"].update(
+                sha256="0" * 64),
+            "size": lambda value: value["source_pbf"].update(
+                bytes=value["source_pbf"]["bytes"] + 1),
+            "expected-hash": lambda value: value["source_pbf"].update(
+                expected_sha256="0" * 64),
+            "report": lambda value: value["discovery_report"].update(
+                sha256="0" * 64),
+        }
+        for label, mutate in mutations.items():
+            with self.subTest(label=label):
+                def changed(qa, mutate=mutate):
+                    qa.add_pbf_provenance(mutate)
+
+                rc, result = self._run(
+                    changed, require_pbf_provenance=True)
+                self.assertEqual(rc, 1)
+                self.assertTrue(any(
+                    "local PBF" in error for error in result["errors"]),
+                    result["errors"])
+
+    def test_local_pbf_source_mutation_after_provenance_fails(self):
+        def mutate_source(qa):
+            qa.add_pbf_provenance()
+            qa.source_pbf_path.write_bytes(
+                qa.source_pbf_path.read_bytes() + b"tampered")
+
+        rc, result = self._run(
+            mutate_source, require_pbf_provenance=True)
+        self.assertEqual(rc, 1)
+        self.assertIn(
+            "local PBF provenance does not match source bytes",
+            result["errors"])
+
+    def test_mixed_and_wrong_kind_discovery_evidence_fail(self):
+        def mixed(qa):
+            qa.add_overpass_receipt()
+            qa.add_pbf_provenance()
+
+        rc, result = self._run(mixed, require_pbf_provenance=True)
+        self.assertEqual(rc, 1)
+        self.assertIn(
+            "final discovery evidence mixes Overpass and local PBF modes",
+            result["errors"])
+
+        def wrong_kind(qa):
+            _write(
+                qa.root / validator.PBF_PROVENANCE_RELATIVE,
+                _overpass_receipt(1))
+            qa._refresh_manifest_seals()
+
+        rc, result = self._run(
+            wrong_kind, require_pbf_provenance=True)
+        self.assertEqual(rc, 1)
+        self.assertTrue(any(
+            "local PBF" in error for error in result["errors"]),
+            result["errors"])
 
     def test_required_missing_and_present_incomplete_receipts_fail(self):
         rc, result = self._run(require_overpass_receipt=True)

@@ -33,7 +33,6 @@ RELEASE_RECEIPT_SCHEMA = "trekdex-r2-release-terminal-v4"
 RELEASE_PREFLIGHT_SCHEMA = "trekdex-r2-release-preflight-v1"
 RELEASE_PROVIDER_RESULT_FIELDS = (
     "attempt_id", "bytes", "etag", "key", "sha256", "transaction_id",
-    "version_id",
 )
 SCOPED_PREFLIGHT_SCHEMA = "trekdex-r2-scoped-preflight-v1"
 ROLLBACK_MANIFEST_SCHEMA = "trekdex-r2-rollback-manifest-v1"
@@ -42,16 +41,34 @@ ROLLBACK_DELETE_RESULT_FIELDS = (
     "attempt_id", "key", "postimage_sha256", "transaction_id", "verified_absent",
 )
 MOLS_AREA_ID = "nationalpark-mols-bjerge-dk"
+MOLS_AREA_NAME = "Nationalpark Mols Bjerge"
+MOLS_EXTRACT = "europe/denmark"
+MOLS_STATE = "Denmark"
+MOLS_REGION_CODE = "dk"
+MOLS_RELATION_ID = 7046785
+MOLS_BBOX = "10.40,56.08,10.90,56.35"
+MOLS_CENTER_LAT = 56.2
+MOLS_CENTER_LON = 10.6
+MOLS_RELEASE_INPUT_SCHEMA = "trekdex-mols-release-input-approval-v1"
 MOLS_OBJECT_KEYS = (
     f"{MOLS_AREA_ID}.json",
     f"silhouettes/{MOLS_AREA_ID}.json",
 )
 MOLS_FORWARD_KEYS = (*MOLS_OBJECT_KEYS, "index.json")
+MOLS_REPOSITORY_PATHS = (
+    f"public/areas/geom/{MOLS_AREA_ID}.json",
+    f"public/areas/silhouettes/{MOLS_AREA_ID}.json",
+    "public/areas/index.json",
+    "ios/SouthMountainExplorer/Resources/areas-index.json",
+)
 QUARANTINE_PLAN_SCHEMA = "trekdex-r2-quarantine-plan-v3"
 QUARANTINE_RECEIPT_SCHEMA = "trekdex-r2-quarantine-terminal-v3"
 CONTROL_PREFIX = "_trekdex-control/v2/"
 QUARANTINE_PREFIX = CONTROL_PREFIX + "quarantine/"
 MAX_INVENTORY_PAGES = 100_000
+AWS_CLI_VERSION = "2.39.1"
+AWS_CLI_ARCHIVE_SHA256 = "5b6c10e0a8ccdcf30c84bd643fea511f103d257a4787a7cef878691d63169804"
+PROVIDER_TOOL_ATTESTATION_SCHEMA = "trekdex-r2-provider-tool-v1"
 
 # Sorted order is normative and therefore also the protected-set framing.
 GLOBAL_OBJECTS = (
@@ -69,7 +86,7 @@ GLOBAL_OBJECTS = (
 CI_PRODUCER_GRAPH: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
         "trailforge/serve/publish_areas.py",
-        "43ad6642faeef1c090a00d9fbc0c1ba26730f255dc0f1f515932b38a4415aaa7",
+        "ac0808874696dab20aa321515e977184d26772687a610e23ed7e9c2742fc764f",
         ("AREA_GEOM", "AREA_INDEX_INPUT"),
     ),
     (
@@ -196,7 +213,6 @@ INVENTORY_FAULT_NAMES = (
 
 _SHA256_RE = re.compile(r"[0-9a-f]{64}")
 _SHA1_RE = re.compile(r"[0-9a-f]{40}")
-_ETAG_RE = re.compile(r"[0-9a-f]{32}(?:-[1-9][0-9]*)?")
 _RECEIPT_ID_RE = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?")
 _SAFE_VERSION_RE = re.compile(r"[A-Za-z0-9._:+/=~-]{1,256}")
 
@@ -248,7 +264,7 @@ class ConditionalWriter(Protocol):
 class QuarantineStore(Protocol):
     def attest_identity(self) -> dict[str, Any]: ...
 
-    def head(self, key: str, *, version_id: str | None = None) -> dict[str, Any] | None: ...
+    def head(self, key: str) -> dict[str, Any] | None: ...
 
     def copy_no_clobber(
         self,
@@ -259,7 +275,7 @@ class QuarantineStore(Protocol):
         attempt_id: str,
     ) -> dict[str, Any]: ...
 
-    def remove_if_match(
+    def remove_after_exact_proof(
         self,
         source: str,
         *,
@@ -269,6 +285,8 @@ class QuarantineStore(Protocol):
 
 
 class ScopedConditionalWriter(ConditionalWriter, Protocol):
+    def tool_attestation(self) -> dict[str, Any]: ...
+
     def preflight_scoped_release(
         self, manifest: dict[str, Any], *, execution_id: str
     ) -> dict[str, Any]: ...
@@ -296,6 +314,13 @@ class ScopedConditionalWriter(ConditionalWriter, Protocol):
         rollback_manifest: dict[str, Any],
         *,
         rollback_results: Sequence[dict[str, Any]],
+    ) -> dict[str, Any]: ...
+
+    def reconcile_pending_effect(
+        self,
+        pending: dict[str, Any],
+        manifest: dict[str, Any],
+        journal: dict[str, Any],
     ) -> dict[str, Any]: ...
 
 
@@ -456,6 +481,45 @@ def validate_provider_identity_attestation(
     return copy.deepcopy(attestation)
 
 
+def provider_tool_attestation(
+    *, version: str, archive_sha256: str
+) -> dict[str, Any]:
+    if version != AWS_CLI_VERSION or archive_sha256 != AWS_CLI_ARCHIVE_SHA256:
+        raise ManifestError("provider tool does not match the pinned AWS CLI identity")
+    receipt: dict[str, Any] = {
+        "schema": PROVIDER_TOOL_ATTESTATION_SCHEMA,
+        "tool": "aws-cli",
+        "version": version,
+        "archive_sha256": archive_sha256,
+    }
+    receipt["attestation_sha256"] = canonical_sha256(receipt)
+    return receipt
+
+
+def validate_provider_tool_attestation(attestation: Any) -> dict[str, Any]:
+    fields = {
+        "schema", "tool", "version", "archive_sha256", "attestation_sha256"
+    }
+    if not isinstance(attestation, dict) or set(attestation) != fields:
+        raise ManifestError("provider tool attestation schema is not exact")
+    if (
+        attestation["schema"] != PROVIDER_TOOL_ATTESTATION_SCHEMA
+        or attestation["tool"] != "aws-cli"
+        or attestation["version"] != AWS_CLI_VERSION
+        or attestation["archive_sha256"] != AWS_CLI_ARCHIVE_SHA256
+    ):
+        raise ManifestError("provider tool attestation identity mismatch")
+    try:
+        digest = _require_digest(
+            attestation["attestation_sha256"], "provider tool attestation"
+        )
+    except ValueError as error:
+        raise ManifestError(str(error)) from error
+    if digest != canonical_sha256(attestation, omit={"attestation_sha256"}):
+        raise ManifestError("provider tool attestation digest mismatch")
+    return copy.deepcopy(attestation)
+
+
 def _approval_key_bytes(key: bytes | str) -> bytes:
     if isinstance(key, str):
         key = key.encode("utf-8")
@@ -564,12 +628,172 @@ def _is_area_filename(filename: Any) -> bool:
     if not prefix or not re.fullmatch(r"[a-z]{2}", jurisdiction):
         return False
     # Historical source truncation can leave a double hyphen immediately
-    # before the jurisdiction.  It remains canonical and collision-free.
+    # before the jurisdiction. It remains canonical and collision-free.
     return (
         not prefix.startswith("-")
         and any(char.isalnum() for char in prefix)
         and all(char.isalnum() or char == "-" for char in prefix)
     )
+
+
+def make_mols_release_input_receipt(
+    *,
+    key: bytes | str,
+    root_approval_ref: str,
+    account_identity_ref: str,
+    endpoint_identity_ref: str,
+    inventory_anchor_ref: str,
+    authoritative_denominator: int,
+    workflow_source_sha: str,
+    workflow_source_tree: str,
+    authorization_nonce: str,
+) -> dict[str, Any]:
+    """Create one canonical signed handoff for the exact Mols publication."""
+    for value, context in (
+        (root_approval_ref, "root_approval_ref"),
+        (account_identity_ref, "account_identity_ref"),
+        (endpoint_identity_ref, "endpoint_identity_ref"),
+        (inventory_anchor_ref, "inventory_anchor_ref"),
+    ):
+        try:
+            _require_identity_ref(value, context)
+        except ValueError as error:
+            raise ManifestError(str(error)) from error
+    if (
+        not isinstance(authoritative_denominator, int)
+        or isinstance(authoritative_denominator, bool)
+        or authoritative_denominator < len(GLOBAL_OBJECTS)
+    ):
+        raise ManifestError("release-input authoritative denominator is invalid")
+    workflow_source_sha = _require_git_identity(
+        workflow_source_sha, "workflow_source_sha"
+    )
+    workflow_source_tree = _require_git_identity(
+        workflow_source_tree, "workflow_source_tree"
+    )
+    if not isinstance(authorization_nonce, str) or not _SAFE_VERSION_RE.fullmatch(
+        authorization_nonce
+    ):
+        raise ManifestError("release-input authorization nonce is invalid")
+    receipt: dict[str, Any] = {
+        "schema": MOLS_RELEASE_INPUT_SCHEMA,
+        "contract_version": CONTRACT_VERSION,
+        "extract": MOLS_EXTRACT,
+        "state": MOLS_STATE,
+        "region_code": MOLS_REGION_CODE,
+        "area_id": MOLS_AREA_ID,
+        "area_name": MOLS_AREA_NAME,
+        "osm_relation_id": MOLS_RELATION_ID,
+        "bbox": MOLS_BBOX,
+        "center_lat": MOLS_CENTER_LAT,
+        "center_lon": MOLS_CENTER_LON,
+        "root_approval_ref": root_approval_ref,
+        "account_identity_ref": account_identity_ref,
+        "endpoint_identity_ref": endpoint_identity_ref,
+        "inventory_anchor_ref": inventory_anchor_ref,
+        "authoritative_denominator": authoritative_denominator,
+        "workflow_source_sha": workflow_source_sha,
+        "workflow_source_tree": workflow_source_tree,
+        "authorization_nonce": authorization_nonce,
+    }
+    receipt["receipt_sha256"] = canonical_sha256(receipt)
+    receipt["signature_hmac_sha256"] = hmac.new(
+        _approval_key_bytes(key), _canonical_bytes(receipt), hashlib.sha256
+    ).hexdigest()
+    return validate_mols_release_input_receipt(receipt, key=key)
+
+
+def validate_mols_release_input_receipt(
+    receipt: Any, *, key: bytes | str
+) -> dict[str, Any]:
+    fields = {
+        "schema", "contract_version", "extract", "state", "region_code",
+        "area_id", "area_name", "osm_relation_id", "bbox", "center_lat", "center_lon",
+        "root_approval_ref", "account_identity_ref", "endpoint_identity_ref",
+        "inventory_anchor_ref", "authoritative_denominator",
+        "workflow_source_sha", "workflow_source_tree",
+        "authorization_nonce", "receipt_sha256", "signature_hmac_sha256",
+    }
+    if not isinstance(receipt, dict) or set(receipt) != fields:
+        raise ManifestError("Mols release-input receipt schema is not exact")
+    exact = {
+        "schema": MOLS_RELEASE_INPUT_SCHEMA,
+        "contract_version": CONTRACT_VERSION,
+        "extract": MOLS_EXTRACT,
+        "state": MOLS_STATE,
+        "region_code": MOLS_REGION_CODE,
+        "area_id": MOLS_AREA_ID,
+        "area_name": MOLS_AREA_NAME,
+        "osm_relation_id": MOLS_RELATION_ID,
+        "bbox": MOLS_BBOX,
+        "center_lat": MOLS_CENTER_LAT,
+        "center_lon": MOLS_CENTER_LON,
+    }
+    for field, value in exact.items():
+        if receipt[field] != value:
+            raise ManifestError(f"Mols release-input receipt has wrong {field}")
+    for field in (
+        "root_approval_ref", "account_identity_ref", "endpoint_identity_ref",
+        "inventory_anchor_ref",
+    ):
+        try:
+            _require_identity_ref(receipt[field], field)
+        except ValueError as error:
+            raise ManifestError(str(error)) from error
+    denominator = receipt["authoritative_denominator"]
+    if (
+        not isinstance(denominator, int)
+        or isinstance(denominator, bool)
+        or denominator < len(GLOBAL_OBJECTS)
+    ):
+        raise ManifestError("Mols release-input denominator is invalid")
+    _require_git_identity(receipt["workflow_source_sha"], "workflow_source_sha")
+    _require_git_identity(receipt["workflow_source_tree"], "workflow_source_tree")
+    nonce = receipt["authorization_nonce"]
+    if not isinstance(nonce, str) or not _SAFE_VERSION_RE.fullmatch(nonce):
+        raise ManifestError("Mols release-input nonce is invalid")
+    try:
+        digest = _require_digest(receipt["receipt_sha256"], "release-input receipt")
+        signature = _require_digest(
+            receipt["signature_hmac_sha256"], "release-input signature"
+        )
+    except ValueError as error:
+        raise ManifestError(str(error)) from error
+    unsigned = copy.deepcopy(receipt)
+    unsigned.pop("signature_hmac_sha256")
+    expected_digest = canonical_sha256(unsigned, omit={"receipt_sha256"})
+    if digest != expected_digest:
+        raise ManifestError("Mols release-input receipt digest mismatch")
+    expected_signature = hmac.new(
+        _approval_key_bytes(key), _canonical_bytes(unsigned), hashlib.sha256
+    ).hexdigest()
+    if not hmac.compare_digest(signature, expected_signature):
+        raise ManifestError("Mols release-input receipt signature mismatch")
+    return copy.deepcopy(receipt)
+
+
+def decode_mols_release_input_receipt(
+    encoded: str, *, key: bytes | str
+) -> dict[str, Any]:
+    if not isinstance(encoded, str) or not encoded or any(char.isspace() for char in encoded):
+        raise ManifestError("Mols release-input receipt base64 is missing or noncanonical")
+    try:
+        payload = base64.b64decode(encoded, validate=True)
+    except (ValueError, binascii.Error) as error:
+        raise ManifestError("Mols release-input receipt base64 is malformed") from error
+    if base64.b64encode(payload).decode("ascii") != encoded:
+        raise ManifestError("Mols release-input receipt base64 is noncanonical")
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ManifestError("Mols release-input receipt is not UTF-8") from error
+    try:
+        document = strict_json_loads(text, "Mols release-input receipt")
+    except InventoryError as error:
+        raise ManifestError(str(error)) from error
+    if not isinstance(document, dict) or payload != _canonical_bytes(document):
+        raise ManifestError("Mols release-input receipt bytes are not canonical JSON")
+    return validate_mols_release_input_receipt(document, key=key)
 
 
 def _canonical_area_ids(values: Any, context: str) -> tuple[str, ...]:
@@ -707,9 +931,13 @@ def _normalize_etag(value: Any, context: str) -> str:
     normalized = value.strip()
     if len(normalized) >= 2 and normalized[0] == normalized[-1] == '"':
         normalized = normalized[1:-1]
-    normalized = normalized.lower()
-    if not _ETAG_RE.fullmatch(normalized):
-        raise InventoryError(f"{context} ETag is malformed")
+    if (
+        not _is_plain_safe_text(normalized, maximum=512)
+        or normalized != normalized.strip()
+        or any(char.isspace() for char in normalized)
+        or '"' in normalized
+    ):
+        raise InventoryError(f"{context} ETag is empty or malformed")
     return normalized
 
 
@@ -721,10 +949,7 @@ def _normalize_preimage(item: Mapping[str, Any], context: str) -> dict[str, Any]
     checksum = normalize_sha256_checksum(
         item.get("ChecksumSHA256", item.get("sha256")), f"{context} SHA-256"
     )
-    version = item.get("VersionId", item.get("version_id"))
-    if not isinstance(version, str) or not _SAFE_VERSION_RE.fullmatch(version):
-        raise InventoryError(f"{context} version identity is missing or unsafe")
-    return {"etag": etag, "bytes": byte_count, "sha256": checksum, "version_id": version}
+    return {"etag": etag, "bytes": byte_count, "sha256": checksum}
 
 
 def _page_document(raw: Any, page_number: int) -> dict[str, Any]:
@@ -1710,17 +1935,14 @@ def _valid_provider_result(
     etag = _normalize_etag(result["etag"], "provider result")
     if result["bytes"] != row["bytes"] or result["sha256"] != row["sha256"]:
         raise ManifestError("provider result does not independently verify the reviewed bytes")
-    for field in ("version_id", "transaction_id", "attempt_id"):
+    for field in ("transaction_id", "attempt_id"):
         if not isinstance(result[field], str) or not _SAFE_VERSION_RE.fullmatch(result[field]):
             raise ManifestError(f"provider result {field} is missing or unsafe")
-    if result["version_id"] == result["transaction_id"]:
-        raise ManifestError("provider transaction identity is not distinct from version identity")
     return {
         "key": key,
         "etag": etag,
         "bytes": result["bytes"],
         "sha256": result["sha256"],
-        "version_id": result["version_id"],
         "transaction_id": result["transaction_id"],
         "attempt_id": attempt_id,
     }
@@ -2221,7 +2443,7 @@ def build_rollback_manifest(
     rows: list[dict[str, Any]] = []
     for index, (forward, baseline) in enumerate(zip(manifest["objects"], baseline_objects)):
         if forward["conditional_mode"] == "IF_MATCH":
-            fields = {"local_path", "bytes", "md5", "sha256", "etag", "version_id"}
+            fields = {"local_path", "bytes", "md5", "sha256", "etag"}
             if not isinstance(baseline, dict) or set(baseline) != fields:
                 raise ManifestError("IF_MATCH rollback row lacks exact frozen baseline bytes")
             relative = Path(baseline["local_path"])
@@ -2232,17 +2454,15 @@ def build_rollback_manifest(
                 baseline["bytes"] != remote["bytes"]
                 or baseline["sha256"] != remote["sha256"]
                 or baseline["etag"] != remote["etag"]
-                or baseline["version_id"] != remote["version_id"]
                 or not isinstance(baseline["md5"], str)
                 or not re.fullmatch(r"[0-9a-f]{32}", baseline["md5"])
-                or baseline["md5"] != baseline["etag"]
             ):
                 raise ManifestError("frozen rollback baseline differs from exact remote preimage")
             operation = "RESTORE_IF_MATCH"
         else:
             if baseline is not None or forward["key"] not in MOLS_OBJECT_KEYS:
                 raise ManifestError("absent-baseline rollback delete is outside exact Mols scope")
-            operation = "DELETE_CREATED_IF_MATCH"
+            operation = "DELETE_CREATED_AFTER_EXACT_PROOF"
         rows.append({
             "index": index,
             "key": forward["key"],
@@ -2338,7 +2558,7 @@ def validate_rollback_manifest(plan: Any, manifest: dict[str, Any]) -> dict[str,
             raise ManifestError("rollback row is not bound to its forward row")
         if row["forward_mode"] == "IF_NONE_MATCH":
             if (
-                row["rollback_operation"] != "DELETE_CREATED_IF_MATCH"
+                row["rollback_operation"] != "DELETE_CREATED_AFTER_EXACT_PROOF"
                 or row["baseline_object"] is not None
                 or row["baseline_preimage"] is not None
                 or row["key"] not in MOLS_OBJECT_KEYS
@@ -2349,15 +2569,15 @@ def validate_rollback_manifest(plan: Any, manifest: dict[str, Any]) -> dict[str,
             baseline = row["baseline_object"]
             if row["rollback_operation"] != "RESTORE_IF_MATCH" or not isinstance(baseline, dict):
                 raise ManifestError("rollback restore row is incomplete")
-            if set(baseline) != {"local_path", "bytes", "md5", "sha256", "etag", "version_id"}:
+            if set(baseline) != {"local_path", "bytes", "md5", "sha256", "etag"}:
                 raise ManifestError("rollback restore baseline schema is not exact")
             relative = Path(baseline["local_path"])
             if relative.is_absolute() or ".." in relative.parts or not relative.parts:
                 raise ManifestError("rollback restore baseline path is unsafe")
             if any(
                 baseline[field] != row["baseline_preimage"][field]
-                for field in ("bytes", "sha256", "etag", "version_id")
-            ) or baseline["md5"] != baseline["etag"]:
+                for field in ("bytes", "sha256", "etag")
+            ):
                 raise ManifestError("rollback restore baseline identity mismatch")
     if not delete_keys.issubset(set(MOLS_OBJECT_KEYS)):
         raise ManifestError("rollback delete scope is not the exact Mols allowlist")
@@ -2439,7 +2659,7 @@ def _valid_rollback_delete_result(
     if not isinstance(result, dict) or set(result) != set(ROLLBACK_DELETE_RESULT_FIELDS):
         raise ManifestError("rollback delete result schema is not exact")
     if (
-        rollback_row["rollback_operation"] != "DELETE_CREATED_IF_MATCH"
+        rollback_row["rollback_operation"] != "DELETE_CREATED_AFTER_EXACT_PROOF"
         or rollback_row["key"] not in MOLS_OBJECT_KEYS
         or rollback_row["baseline_preimage"] is not None
         or result["key"] != rollback_row["key"]
@@ -2465,7 +2685,7 @@ def _valid_rollback_verification(
         raise ManifestError("rollback verification schema is not exact")
     expected_absent = [
         row["key"] for row in rollback_manifest["objects"]
-        if row["rollback_operation"] == "DELETE_CREATED_IF_MATCH"
+        if row["rollback_operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF"
     ]
     if (
         verification["schema"] != "trekdex-r2-rollback-verification-v1"
@@ -2485,6 +2705,37 @@ def _valid_rollback_verification(
     return copy.deepcopy(verification)
 
 
+def _validate_scoped_reconciliation(value: Any) -> dict[str, Any]:
+    fields = {
+        "schema", "source_journal_sha256", "pending_phase", "pending_operation",
+        "pending_key", "observation_state", "resumed", "receipt_sha256",
+    }
+    if not isinstance(value, dict) or set(value) != fields:
+        raise ManifestError("scoped reconciliation schema is not exact")
+    if (
+        value["schema"] != "trekdex-r2-scoped-reconciliation-v1"
+        or value["pending_phase"] not in {"FORWARD", "ROLLBACK"}
+        or value["pending_operation"] not in {
+            "PUT_CONDITIONAL", "RESTORE_IF_MATCH", "DELETE_CREATED_AFTER_EXACT_PROOF"
+        }
+        or not _is_plain_safe_text(value["pending_key"], maximum=1024)
+        or value["observation_state"] not in {
+            "EFFECT_OBSERVED", "EFFECT_NOT_OBSERVED", "AMBIGUOUS"
+        }
+        or not isinstance(value["resumed"], bool)
+        or (value["observation_state"] != "EFFECT_OBSERVED" and value["resumed"])
+    ):
+        raise ManifestError("scoped reconciliation state is invalid")
+    try:
+        _require_digest(value["source_journal_sha256"], "source_journal_sha256")
+        digest = _require_digest(value["receipt_sha256"], "reconciliation receipt")
+    except ValueError as error:
+        raise ManifestError(str(error)) from error
+    if digest != canonical_sha256(value, omit={"receipt_sha256"}):
+        raise ManifestError("scoped reconciliation digest mismatch")
+    return copy.deepcopy(value)
+
+
 def _scoped_release_terminal(
     manifest: dict[str, Any],
     *,
@@ -2493,6 +2744,7 @@ def _scoped_release_terminal(
     execution_id: str,
     approval_assertion_sha256: str,
     provider_attestation: dict[str, Any],
+    provider_tool_attestation: dict[str, Any],
     scoped_preflight: dict[str, Any] | None,
     forward_attempted: int,
     forward_results: Sequence[dict[str, Any]],
@@ -2502,6 +2754,7 @@ def _scoped_release_terminal(
     rollback_verification: dict[str, Any] | None,
     error_boundary: str | None,
     error: BaseException | None,
+    reconciliation: dict[str, Any] | None,
 ) -> dict[str, Any]:
     receipt: dict[str, Any] = {
         "schema": SCOPED_RELEASE_RECEIPT_SCHEMA,
@@ -2511,6 +2764,7 @@ def _scoped_release_terminal(
         "execution_id": execution_id,
         "approval_assertion_sha256": approval_assertion_sha256,
         "provider_identity_attestation": copy.deepcopy(provider_attestation),
+        "provider_tool_attestation": copy.deepcopy(provider_tool_attestation),
         "bucket": BUCKET,
         "publication_area_id": manifest["publication_area_id"],
         "source_sha": manifest["source_sha"],
@@ -2534,6 +2788,7 @@ def _scoped_release_terminal(
         "rollback_results_sha256": canonical_sha256(list(rollback_results)),
         "pending_effect": copy.deepcopy(pending_effect),
         "rollback_verification": copy.deepcopy(rollback_verification),
+        "reconciliation": copy.deepcopy(reconciliation),
         "error_boundary": error_boundary,
         "error_type": type(error).__name__ if error is not None else None,
         "committed": False,
@@ -2552,12 +2807,13 @@ def validate_scoped_release_receipt(
     fields = {
         "schema", "contract_version", "terminal_state", "checkpoint_kind",
         "execution_id", "approval_assertion_sha256", "provider_identity_attestation",
-        "bucket", "publication_area_id", "source_sha", "source_tree",
+        "provider_tool_attestation", "bucket", "publication_area_id", "source_sha", "source_tree",
         "manifest_sha256", "scoped_preflight", "scoped_preflight_sha256",
         "rollback_manifest_sha256", "forward_attempted", "forward_observed",
         "forward_results", "forward_results_sha256", "rollback_attempted",
         "rollback_observed", "rollback_results", "rollback_results_sha256",
-        "pending_effect", "rollback_verification", "error_boundary", "error_type",
+        "pending_effect", "rollback_verification", "reconciliation",
+        "error_boundary", "error_type",
         "committed", "pushed", "synchronization_dispatched", "receipt_sha256",
     }
     if not isinstance(receipt, dict) or set(receipt) != fields:
@@ -2590,7 +2846,13 @@ def validate_scoped_release_receipt(
         expected_account_identity_ref=manifest["account_identity_ref"],
         expected_endpoint_identity_ref=manifest["endpoint_identity_ref"],
     )
+    validate_provider_tool_attestation(receipt["provider_tool_attestation"])
     preflight = receipt["scoped_preflight"]
+    reconciliation = receipt["reconciliation"]
+    if reconciliation is not None:
+        reconciliation = _validate_scoped_reconciliation(reconciliation)
+        if reconciliation["pending_key"] not in set(MOLS_FORWARD_KEYS):
+            raise ManifestError("scoped reconciliation key is outside exact Mols scope")
     if preflight is None:
         if receipt["scoped_preflight_sha256"] is not None or receipt["rollback_manifest_sha256"] is not None:
             raise ManifestError("scoped receipt has preflight digests without preflight")
@@ -2631,7 +2893,7 @@ def validate_scoped_release_receipt(
         normalized_rollback: list[dict[str, Any]] = []
         for result, index in zip(rollback, expected_indices):
             row = rollback_manifest["objects"][index]
-            if row["rollback_operation"] == "DELETE_CREATED_IF_MATCH":
+            if row["rollback_operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF":
                 normalized = _valid_rollback_delete_result(
                     result, row, attempt_id=result.get("attempt_id", "") if isinstance(result, dict) else ""
                 )
@@ -2751,6 +3013,15 @@ def validate_scoped_release_receipt(
         or receipt["rollback_verification"] is not None
     ):
         raise ManifestError("scoped INDETERMINATE receipt lacks cause or claims verification")
+    if reconciliation is not None:
+        if state in {"COMPLETE_SUCCESS", "ROLLED_BACK"}:
+            if (
+                reconciliation["observation_state"] != "EFFECT_OBSERVED"
+                or reconciliation["resumed"] is not True
+            ):
+                raise ManifestError("completed reconciliation did not observe and resume")
+        elif state == "SAFE_ABORT":
+            raise ManifestError("SAFE_ABORT cannot carry a reconciliation record")
     return copy.deepcopy(receipt)
 
 
@@ -2776,6 +3047,7 @@ def execute_scoped_release(
         expected_account_identity_ref=manifest["account_identity_ref"],
         expected_endpoint_identity_ref=manifest["endpoint_identity_ref"],
     )
+    tool_attestation = validate_provider_tool_attestation(writer.tool_attestation())
     execution_id = execution_id or ("mols-release-" + secrets.token_hex(16))
     if not isinstance(execution_id, str) or not _SAFE_VERSION_RE.fullmatch(execution_id):
         raise ManifestError("scoped release execution identity is invalid")
@@ -2795,6 +3067,7 @@ def execute_scoped_release(
         kind: str = "TERMINAL",
         pending: dict[str, Any] | None = None,
         verification: dict[str, Any] | None = None,
+        reconciliation_record: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         return _scoped_release_terminal(
             manifest,
@@ -2803,6 +3076,7 @@ def execute_scoped_release(
             execution_id=execution_id,
             approval_assertion_sha256=approval_digest,
             provider_attestation=attestation,
+            provider_tool_attestation=tool_attestation,
             scoped_preflight=preflight,
             forward_attempted=forward_attempted,
             forward_results=forward,
@@ -2812,6 +3086,7 @@ def execute_scoped_release(
             rollback_verification=verification,
             error_boundary=boundary,
             error=error,
+            reconciliation=reconciliation_record,
         )
 
     def persist_terminal(document: dict[str, Any]) -> dict[str, Any]:
@@ -2861,7 +3136,7 @@ def execute_scoped_release(
                 return persist_terminal(make_receipt("INDETERMINATE", "ROLLBACK_WRITE_AHEAD", error))
             rollback_attempted += 1
             try:
-                if operation == "DELETE_CREATED_IF_MATCH":
+                if operation == "DELETE_CREATED_AFTER_EXACT_PROOF":
                     raw = writer.rollback_delete_created(
                         copy.deepcopy(rollback_row), postimage=copy.deepcopy(postimage),
                         attempt_id=attempt_id,
@@ -2953,6 +3228,315 @@ def execute_scoped_release(
     if not probe("BEFORE_TERMINAL"):
         return rollback_known("BEFORE_TERMINAL", RuntimeError("immutable state probe failed"))
     return persist_terminal(make_receipt("COMPLETE_SUCCESS", None, None))
+
+
+def reconcile_scoped_release_write_ahead(
+    journal: dict[str, Any],
+    manifest: dict[str, Any],
+    writer: ScopedConditionalWriter,
+    *,
+    approval_assertion: dict[str, Any],
+    approval_key: bytes | str,
+    state_probe: Callable[[str], bool] | None = None,
+    checkpoint: Callable[[dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
+    """Re-observe one scoped pending effect and resume at most once."""
+    manifest = validate_upload_manifest(manifest)
+    validated = validate_scoped_release_receipt(journal, manifest)
+    if validated["reconciliation"] is not None:
+        if validated["checkpoint_kind"] == "TERMINAL":
+            return copy.deepcopy(validated)
+        raise ManifestError(
+            "scoped reconciliation already resumed once; operator review is required"
+        )
+    if (
+        validated["checkpoint_kind"] not in {"WRITE_AHEAD", "TERMINAL"}
+        or validated["pending_effect"] is None
+    ):
+        raise ManifestError("scoped reconciliation requires an exact pending-effect journal")
+    approval_digest = validate_approval_assertion(
+        approval_assertion, manifest, operation="RELEASE", key=approval_key
+    )
+    if approval_digest != validated["approval_assertion_sha256"]:
+        raise ManifestError("scoped reconciliation approval differs from journal")
+    attestation = validate_provider_identity_attestation(
+        writer.attest_identity(),
+        expected_account_identity_ref=manifest["account_identity_ref"],
+        expected_endpoint_identity_ref=manifest["endpoint_identity_ref"],
+    )
+    tool_attestation = validate_provider_tool_attestation(writer.tool_attestation())
+    if (
+        attestation != validated["provider_identity_attestation"]
+        or tool_attestation != validated["provider_tool_attestation"]
+    ):
+        raise ManifestError("scoped reconciliation provider/tool differs from journal")
+    preflight = validated["scoped_preflight"]
+    if preflight is None:
+        raise ManifestError("scoped reconciliation journal lacks preflight")
+    pending = validated["pending_effect"]
+    probe = state_probe or (lambda _boundary: True)
+    persist = checkpoint or (lambda _document: None)
+    forward = copy.deepcopy(validated["forward_results"])
+    rollback = copy.deepcopy(validated["rollback_results"])
+    forward_attempted = len(forward)
+    rollback_attempted = len(rollback)
+    source_journal_sha256 = validated["receipt_sha256"]
+
+    def reconciliation_record(state: str, *, resumed: bool) -> dict[str, Any]:
+        record: dict[str, Any] = {
+            "schema": "trekdex-r2-scoped-reconciliation-v1",
+            "source_journal_sha256": source_journal_sha256,
+            "pending_phase": pending["phase"],
+            "pending_operation": pending["operation"],
+            "pending_key": pending["key"],
+            "observation_state": state,
+            "resumed": resumed,
+        }
+        record["receipt_sha256"] = canonical_sha256(record)
+        return _validate_scoped_reconciliation(record)
+
+    def make_receipt(
+        state: str,
+        boundary: str | None,
+        error: BaseException | None,
+        *,
+        kind: str = "TERMINAL",
+        pending_effect: dict[str, Any] | None = None,
+        verification: dict[str, Any] | None = None,
+        observation_state: str = "EFFECT_OBSERVED",
+        resumed: bool = True,
+    ) -> dict[str, Any]:
+        return _scoped_release_terminal(
+            manifest,
+            terminal_state=state,
+            checkpoint_kind=kind,
+            execution_id=validated["execution_id"],
+            approval_assertion_sha256=approval_digest,
+            provider_attestation=attestation,
+            provider_tool_attestation=tool_attestation,
+            scoped_preflight=preflight,
+            forward_attempted=forward_attempted,
+            forward_results=forward,
+            rollback_attempted=rollback_attempted,
+            rollback_results=rollback,
+            pending_effect=pending_effect,
+            rollback_verification=verification,
+            error_boundary=boundary,
+            error=error,
+            reconciliation=reconciliation_record(
+                observation_state, resumed=resumed
+            ),
+        )
+
+    def save_terminal(document: dict[str, Any]) -> dict[str, Any]:
+        try:
+            persist(document)
+        except Exception:
+            pass
+        return document
+
+    try:
+        observation = writer.reconcile_pending_effect(
+            copy.deepcopy(pending), copy.deepcopy(manifest), copy.deepcopy(validated)
+        )
+    except Exception:
+        observation = {"state": "AMBIGUOUS", "result": None}
+    if (
+        not isinstance(observation, dict)
+        or set(observation) != {"state", "result"}
+        or observation["state"] not in {
+            "EFFECT_OBSERVED", "EFFECT_NOT_OBSERVED", "AMBIGUOUS"
+        }
+    ):
+        observation = {"state": "AMBIGUOUS", "result": None}
+    observation_state = observation["state"]
+    if observation_state != "EFFECT_OBSERVED":
+        return save_terminal(make_receipt(
+            "INDETERMINATE",
+            "RECONCILED_OPERATOR_REVIEW",
+            RuntimeError("pending effect was not proven; no retry is permitted"),
+            observation_state=observation_state,
+            resumed=False,
+        ))
+
+    index = pending["index"]
+    raw_result = observation["result"]
+    if pending["phase"] == "FORWARD":
+        if index != len(forward):
+            raise ManifestError("reconciled forward index is not next")
+        result = _valid_provider_result(
+            raw_result, manifest["objects"][index],
+            attempt_id=pending["attempt_id"],
+        )
+        forward.append(result)
+        forward_attempted = len(forward)
+    else:
+        rollback_row = preflight["rollback_manifest"]["objects"][index]
+        if index != len(forward) - len(rollback) - 1:
+            raise ManifestError("reconciled rollback index is not next")
+        if rollback_row["rollback_operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF":
+            result = _valid_rollback_delete_result(
+                raw_result, rollback_row, attempt_id=pending["attempt_id"]
+            )
+        else:
+            result = _valid_provider_result(
+                raw_result, {"key": rollback_row["key"], **rollback_row["baseline_object"]},
+                attempt_id=pending["attempt_id"],
+            )
+            if result["etag"] != rollback_row["baseline_preimage"]["etag"]:
+                raise ManifestError("reconciled restore does not match baseline ETag")
+        rollback.append(result)
+        rollback_attempted = len(rollback)
+
+    def continue_rollback(cause_boundary: str, cause: BaseException) -> dict[str, Any]:
+        nonlocal rollback_attempted
+        rollback_manifest = preflight["rollback_manifest"]
+        while len(rollback) < len(forward):
+            rollback_index = len(forward) - len(rollback) - 1
+            row = rollback_manifest["objects"][rollback_index]
+            postimage = forward[rollback_index]
+            operation = row["rollback_operation"]
+            attempt_id = f"{validated['execution_id']}-reconcile-rollback-{rollback_index}"
+            next_pending = {
+                "phase": "ROLLBACK",
+                "index": rollback_index,
+                "key": row["key"],
+                "operation": operation,
+                "attempt_id": attempt_id,
+                "expected_identity_sha256": canonical_sha256(postimage),
+            }
+            write_ahead = make_receipt(
+                "INDETERMINATE", f"BEFORE_{operation}:{rollback_index}",
+                RuntimeError("reconciled rollback effect pending"),
+                kind="WRITE_AHEAD", pending_effect=next_pending,
+            )
+            try:
+                persist(write_ahead)
+            except Exception as error:
+                return save_terminal(make_receipt(
+                    "INDETERMINATE", "RECONCILE_ROLLBACK_WRITE_AHEAD", error
+                ))
+            rollback_attempted += 1
+            try:
+                if operation == "DELETE_CREATED_AFTER_EXACT_PROOF":
+                    raw = writer.rollback_delete_created(
+                        copy.deepcopy(row), postimage=copy.deepcopy(postimage),
+                        attempt_id=attempt_id,
+                        scoped_preflight_sha256=preflight["scoped_preflight_sha256"],
+                    )
+                    item = _valid_rollback_delete_result(
+                        raw, row, attempt_id=attempt_id
+                    )
+                else:
+                    raw = writer.rollback_put_conditional(
+                        copy.deepcopy(row), postimage=copy.deepcopy(postimage),
+                        attempt_id=attempt_id,
+                        scoped_preflight_sha256=preflight["scoped_preflight_sha256"],
+                    )
+                    item = _valid_provider_result(
+                        raw, {"key": row["key"], **row["baseline_object"]},
+                        attempt_id=attempt_id,
+                    )
+                    if item["etag"] != row["baseline_preimage"]["etag"]:
+                        raise ManifestError("reconciled rollback ETag mismatch")
+                rollback.append(item)
+            except Exception as error:
+                return save_terminal(make_receipt(
+                    "INDETERMINATE", f"{operation}:{rollback_index}", error,
+                    pending_effect=next_pending,
+                ))
+            try:
+                persist(make_receipt(
+                    "INDETERMINATE", f"AFTER_{operation}:{rollback_index}",
+                    RuntimeError("reconciled rollback in progress"), kind="PROGRESS",
+                ))
+            except Exception as error:
+                return save_terminal(make_receipt(
+                    "INDETERMINATE", "RECONCILE_ROLLBACK_PROGRESS", error
+                ))
+        try:
+            verification = _valid_rollback_verification(
+                writer.verify_rollback(
+                    copy.deepcopy(rollback_manifest),
+                    rollback_results=copy.deepcopy(rollback),
+                ),
+                rollback_manifest,
+            )
+        except Exception as error:
+            return save_terminal(make_receipt(
+                "INDETERMINATE", "RECONCILE_VERIFY_ROLLBACK", error
+            ))
+        return save_terminal(make_receipt(
+            "ROLLED_BACK", cause_boundary, cause, verification=verification
+        ))
+
+    if pending["phase"] == "ROLLBACK":
+        return continue_rollback(
+            "RECONCILED_ROLLBACK_COMPLETE",
+            RuntimeError("original forward sequence required rollback"),
+        )
+
+    release_preflight = preflight["release_preflight"]
+    for forward_index in range(len(forward), manifest["object_count"]):
+        row = manifest["objects"][forward_index]
+        boundary = f"BEFORE_WRITE:{forward_index}:{row['key']}"
+        if not probe(boundary):
+            return continue_rollback(
+                boundary, RuntimeError("immutable state probe failed")
+            )
+        attempt_id = f"{validated['execution_id']}-reconcile-put-{forward_index}"
+        next_pending = {
+            "phase": "FORWARD",
+            "index": forward_index,
+            "key": row["key"],
+            "operation": "PUT_CONDITIONAL",
+            "attempt_id": attempt_id,
+            "expected_identity_sha256": canonical_sha256(row),
+        }
+        write_ahead = make_receipt(
+            "INDETERMINATE", boundary,
+            RuntimeError("reconciled forward effect pending"),
+            kind="WRITE_AHEAD", pending_effect=next_pending,
+        )
+        try:
+            persist(write_ahead)
+        except Exception as error:
+            return save_terminal(make_receipt(
+                "INDETERMINATE", "RECONCILE_FORWARD_WRITE_AHEAD", error
+            ))
+        forward_attempted += 1
+        try:
+            raw = writer.put_conditional(
+                copy.deepcopy(row), attempt_id=attempt_id,
+                preflight_row=copy.deepcopy(release_preflight["rows"][forward_index]),
+                preflight_sha256=release_preflight["preflight_sha256"],
+            )
+            item = _valid_provider_result(raw, row, attempt_id=attempt_id)
+            forward.append(item)
+        except ConditionalRequestRefused as error:
+            forward_attempted -= 1
+            return continue_rollback(boundary, error)
+        except Exception as error:
+            return save_terminal(make_receipt(
+                "INDETERMINATE", boundary, error, pending_effect=next_pending
+            ))
+        after = f"AFTER_WRITE:{forward_index}:{row['key']}"
+        if not probe(after):
+            return continue_rollback(after, RuntimeError("immutable state probe failed"))
+        try:
+            persist(make_receipt(
+                "INDETERMINATE", after,
+                RuntimeError("reconciled release in progress"), kind="PROGRESS",
+            ))
+        except Exception as error:
+            return save_terminal(make_receipt(
+                "INDETERMINATE", "RECONCILE_FORWARD_PROGRESS", error
+            ))
+    if not probe("BEFORE_TERMINAL"):
+        return continue_rollback(
+            "BEFORE_TERMINAL", RuntimeError("immutable state probe failed")
+        )
+    return save_terminal(make_receipt("COMPLETE_SUCCESS", None, None))
 
 
 def reconcile_release_write_ahead(
@@ -3057,7 +3641,7 @@ def build_quarantine_plan(
         "protected_preimages": protected,
         "object_count": len(rows),
         "objects": rows,
-        "operation": "NO_CLOBBER_COPY_VERIFY_EXACT_VERSION_REMOVAL",
+        "operation": "NO_CLOBBER_COPY_VERIFY_CURRENT_REMOVE",
         "final_deletion_authorized": False,
     }
     plan["plan_sha256"] = canonical_sha256(plan)
@@ -3087,7 +3671,7 @@ def _validate_quarantine_plan(
         plan["schema"] != QUARANTINE_PLAN_SCHEMA
         or plan["contract_version"] != CONTRACT_VERSION
         or plan["bucket"] != BUCKET
-        or plan["operation"] != "NO_CLOBBER_COPY_VERIFY_EXACT_VERSION_REMOVAL"
+        or plan["operation"] != "NO_CLOBBER_COPY_VERIFY_CURRENT_REMOVE"
         or plan["final_deletion_authorized"] is not False
     ):
         raise ManifestError("quarantine plan identity or operation is invalid")
@@ -3239,8 +3823,6 @@ def validate_quarantine_receipt(
     plan: dict[str, Any],
 ) -> dict[str, Any]:
     plan = _validate_quarantine_plan(plan)
-    if not isinstance(receipt, dict):
-        raise ManifestError("quarantine receipt is not an object")
     fields = {
         "schema", "contract_version", "terminal_state", "checkpoint_kind",
         "execution_id", "approval_assertion_sha256", "provider_identity_attestation",
@@ -3249,7 +3831,7 @@ def validate_quarantine_receipt(
         "objects", "pending_effect", "error_boundary", "error_type",
         "final_deletion_authorized", "receipt_sha256",
     }
-    if set(receipt) != fields:
+    if not isinstance(receipt, dict) or set(receipt) != fields:
         raise ManifestError("quarantine receipt schema is not exact")
     if (
         receipt["schema"] != QUARANTINE_RECEIPT_SCHEMA
@@ -3285,11 +3867,12 @@ def validate_quarantine_receipt(
     transactions: list[str] = []
     observed_from_rows = 0
     for index, outcome in enumerate(outcomes):
-        if not isinstance(outcome, dict) or set(outcome) != {
-            "source_key", "quarantine_key", "copy_transaction_id", "copy_version_id",
-            "remove_transaction_id", "removed_version_id", "quarantine_preimage",
+        expected_fields = {
+            "source_key", "quarantine_key", "copy_transaction_id",
+            "remove_transaction_id", "quarantine_preimage",
             "copy_verified", "source_removed",
-        }:
+        }
+        if not isinstance(outcome, dict) or set(outcome) != expected_fields:
             raise ManifestError(f"quarantine receipt row {index + 1} schema is not exact")
         planned = plan["objects"][index]
         if (
@@ -3300,31 +3883,16 @@ def validate_quarantine_receipt(
         ):
             raise ManifestError("quarantine receipt row is not bound to its plan")
         copy_tx = outcome["copy_transaction_id"]
-        copy_version = outcome["copy_version_id"]
         remove_tx = outcome["remove_transaction_id"]
-        removed_version = outcome["removed_version_id"]
-        for name, value in (
-            ("copy transaction", copy_tx), ("copy version", copy_version),
-            ("remove transaction", remove_tx), ("removed version", removed_version),
-        ):
+        for name, value in (("copy", copy_tx), ("remove", remove_tx)):
             if value is not None and (
                 not isinstance(value, str) or not _SAFE_VERSION_RE.fullmatch(value)
             ):
-                raise ManifestError(f"quarantine {name} identity is invalid")
-        if (copy_tx is None) != (copy_version is None):
-            raise ManifestError("quarantine copy identity pair is incomplete")
-        if (remove_tx is None) != (removed_version is None):
-            raise ManifestError("quarantine removal identity pair is incomplete")
+                raise ManifestError(f"quarantine {name} transaction identity is invalid")
         if copy_tx is not None:
-            if copy_tx == copy_version:
-                raise ManifestError("quarantine copy transaction is not distinct from its version")
             transactions.append(copy_tx)
             observed_from_rows += 1
         if remove_tx is not None:
-            if remove_tx == removed_version:
-                raise ManifestError("quarantine removal transaction is not distinct from its version")
-            if removed_version != planned["source_preimage"]["version_id"]:
-                raise ManifestError("quarantine removed the wrong reviewed version")
             transactions.append(remove_tx)
             observed_from_rows += 1
         if outcome["copy_verified"]:
@@ -3335,16 +3903,15 @@ def validate_quarantine_receipt(
             )
             if (
                 destination != outcome["quarantine_preimage"]
-                or destination["version_id"] != copy_version
                 or not _same_object_bytes(destination, planned["source_preimage"])
             ):
-                raise ManifestError("quarantine copy is not byte-exact or version-bound")
+                raise ManifestError("quarantine copy is not byte-exact")
         elif outcome["quarantine_preimage"] is not None or copy_tx is not None:
             raise ManifestError("unverified quarantine copy carries provider identity")
         if outcome["source_removed"] and (
             not outcome["copy_verified"] or remove_tx is None
         ):
-            raise ManifestError("source removal is not downstream of a verified copy")
+            raise ManifestError("source removal is not downstream of verified copy")
         if not outcome["source_removed"] and remove_tx is not None:
             raise ManifestError("unverified source removal carries provider identity")
     if len(transactions) != len(set(transactions)):
@@ -3362,33 +3929,33 @@ def validate_quarantine_receipt(
         if attempted != observed:
             raise ManifestError("quarantine count has no pending effect")
     else:
-        if not isinstance(pending, dict) or set(pending) != {
+        pending_fields = {
             "index", "operation", "source_key", "quarantine_key", "attempt_id",
             "reviewed_preimage",
-        }:
+        }
+        if not isinstance(pending, dict) or set(pending) != pending_fields:
             raise ManifestError("quarantine pending-effect schema is not exact")
         index = pending["index"]
         if (
             not isinstance(index, int) or isinstance(index, bool)
-            or index < 0 or index >= plan["object_count"]
+            or not 0 <= index < plan["object_count"]
             or pending["source_key"] != plan["objects"][index]["source_key"]
             or pending["quarantine_key"] != plan["objects"][index]["quarantine_key"]
             or pending["reviewed_preimage"] != plan["objects"][index]["source_preimage"]
-            or pending["operation"] not in {"COPY_EXACT_VERSION", "REMOVE_EXACT_VERSION"}
+            or pending["operation"] not in {"COPY_IF_MATCH", "REMOVE_AFTER_EXACT_PROOF"}
             or not isinstance(pending["attempt_id"], str)
             or not _SAFE_VERSION_RE.fullmatch(pending["attempt_id"])
             or attempted != observed + 1
+            or index >= len(outcomes)
         ):
             raise ManifestError("quarantine pending effect is not exact")
-        if index >= len(outcomes):
-            raise ManifestError("quarantine pending effect lacks its outcome row")
         outcome = outcomes[index]
-        if pending["operation"] == "COPY_EXACT_VERSION" and outcome["copy_verified"]:
+        if pending["operation"] == "COPY_IF_MATCH" and outcome["copy_verified"]:
             raise ManifestError("quarantine copy intent follows an observed copy")
-        if pending["operation"] == "REMOVE_EXACT_VERSION" and (
+        if pending["operation"] == "REMOVE_AFTER_EXACT_PROOF" and (
             not outcome["copy_verified"] or outcome["source_removed"]
         ):
-            raise ManifestError("quarantine removal intent violates copy-before-remove ordering")
+            raise ManifestError("quarantine removal intent violates ordering")
     if receipt["checkpoint_kind"] not in {"WRITE_AHEAD", "PROGRESS", "TERMINAL"}:
         raise ManifestError("quarantine checkpoint kind is invalid")
     if receipt["checkpoint_kind"] == "WRITE_AHEAD" and (
@@ -3418,7 +3985,7 @@ def validate_quarantine_receipt(
         ):
             raise ManifestError("SAFE_ABORT quarantine receipt records an effect or lacks cause")
     elif not receipt["error_boundary"] or not receipt["error_type"]:
-        raise ManifestError("INDETERMINATE quarantine receipt lacks its uncertainty boundary")
+        raise ManifestError("INDETERMINATE quarantine receipt lacks uncertainty boundary")
     return copy.deepcopy(receipt)
 
 
@@ -3431,7 +3998,7 @@ def execute_quarantine(
     execution_id: str | None = None,
     checkpoint: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
-    """Apply exact-version copy/removal with durable intent before each effect."""
+    """Copy exact current bytes, verify, then remove after one exact proof."""
     plan = _validate_quarantine_plan(plan)
     approval_digest = validate_approval_assertion(
         approval_assertion, plan, operation="QUARANTINE", key=approval_key
@@ -3480,9 +4047,8 @@ def execute_quarantine(
     protected_before: dict[str, dict[str, Any]] = {}
     try:
         for row in plan["protected_preimages"]:
-            actual = store.head(row["key"], version_id=row["preimage"]["version_id"])
-            current = store.head(row["key"])
-            if actual != row["preimage"] or current != row["preimage"]:
+            actual = store.head(row["key"])
+            if actual != row["preimage"]:
                 raise ManifestError(f"protected object changed before quarantine: {row['key']}")
             protected_before[row["key"]] = copy.deepcopy(actual)
     except Exception as error:
@@ -3496,26 +4062,22 @@ def execute_quarantine(
             "source_key": source,
             "quarantine_key": destination,
             "copy_transaction_id": None,
-            "copy_version_id": None,
             "remove_transaction_id": None,
-            "removed_version_id": None,
             "quarantine_preimage": None,
             "copy_verified": False,
             "source_removed": False,
         }
         outcomes.append(outcome)
+        pending: dict[str, Any] | None = None
         try:
-            if (
-                store.head(source) != expected
-                or store.head(source, version_id=expected["version_id"]) != expected
-            ):
-                raise ManifestError("source full reviewed preimage is stale or absent")
+            if store.head(source) != expected:
+                raise ManifestError("source reviewed preimage is stale or absent")
             if store.head(destination) is not None:
                 raise ManifestError("quarantine destination already exists")
             copy_attempt = f"{execution_id}-copy-{index}"
             pending = {
                 "index": index,
-                "operation": "COPY_EXACT_VERSION",
+                "operation": "COPY_IF_MATCH",
                 "source_key": source,
                 "quarantine_key": destination,
                 "attempt_id": copy_attempt,
@@ -3524,11 +4086,9 @@ def execute_quarantine(
             attempted += 1
             try:
                 persist(receipt(
-                    TerminalState.INDETERMINATE,
-                    f"BEFORE_COPY:{index}",
+                    TerminalState.INDETERMINATE, f"BEFORE_COPY:{index}",
                     RuntimeError("copy pending reconciliation"),
-                    kind="WRITE_AHEAD",
-                    pending=pending,
+                    kind="WRITE_AHEAD", pending=pending,
                 ))
             except Exception as error:
                 attempted -= 1
@@ -3538,57 +4098,47 @@ def execute_quarantine(
                 attempt_id=copy_attempt,
             )
             if not isinstance(copied, dict) or set(copied) != {
-                "transaction_id", "version_id", "attempt_id"
+                "transaction_id", "attempt_id"
             }:
                 raise ManifestError("copy result schema is not exact")
             copy_tx = copied["transaction_id"]
-            copy_version = copied["version_id"]
             if (
                 copied["attempt_id"] != copy_attempt
-                or not isinstance(copy_tx, str) or not _SAFE_VERSION_RE.fullmatch(copy_tx)
-                or not isinstance(copy_version, str) or not _SAFE_VERSION_RE.fullmatch(copy_version)
-                or copy_tx == copy_version
+                or not isinstance(copy_tx, str)
+                or not _SAFE_VERSION_RE.fullmatch(copy_tx)
             ):
-                raise ManifestError("copy result lacks distinct exact identities")
-            destination_preimage = store.head(destination, version_id=copy_version)
+                raise ManifestError("copy result identity is invalid")
+            destination_preimage = store.head(destination)
             if destination_preimage is None:
                 raise ManifestError("quarantine copy is absent after provider success")
             destination_preimage = _normalize_preimage(
                 destination_preimage, f"quarantine destination {index}"
             )
-            if (
-                destination_preimage["version_id"] != copy_version
-                or not _same_object_bytes(destination_preimage, expected)
-            ):
-                raise ManifestError("quarantine copy failed exact content/version verification")
-            if copy_tx in {
+            if not _same_object_bytes(destination_preimage, expected):
+                raise ManifestError("quarantine copy failed exact content verification")
+            prior_transactions = {
                 value for prior in outcomes for value in (
                     prior["copy_transaction_id"], prior["remove_transaction_id"]
                 ) if value is not None
-            }:
+            }
+            if copy_tx in prior_transactions:
                 raise ManifestError("copy transaction identity is duplicated")
             outcome["copy_transaction_id"] = copy_tx
-            outcome["copy_version_id"] = copy_version
             outcome["quarantine_preimage"] = destination_preimage
             outcome["copy_verified"] = True
             observed += 1
             persist(receipt(
-                TerminalState.INDETERMINATE,
-                f"COPY_VERIFIED:{index}",
+                TerminalState.INDETERMINATE, f"COPY_VERIFIED:{index}",
                 RuntimeError("quarantine in progress"),
-                kind="PROGRESS",
-                pending=None,
+                kind="PROGRESS", pending=None,
             ))
 
-            if (
-                store.head(source) != expected
-                or store.head(source, version_id=expected["version_id"]) != expected
-            ):
-                raise ManifestError("source changed after copy; reviewed version remains protected")
+            if store.head(source) != expected:
+                raise ManifestError("source changed after copy")
             remove_attempt = f"{execution_id}-remove-{index}"
             pending = {
                 "index": index,
-                "operation": "REMOVE_EXACT_VERSION",
+                "operation": "REMOVE_AFTER_EXACT_PROOF",
                 "source_key": source,
                 "quarantine_key": destination,
                 "attempt_id": remove_attempt,
@@ -3597,24 +4147,22 @@ def execute_quarantine(
             attempted += 1
             try:
                 persist(receipt(
-                    TerminalState.INDETERMINATE,
-                    f"BEFORE_REMOVE:{index}",
+                    TerminalState.INDETERMINATE, f"BEFORE_REMOVE:{index}",
                     RuntimeError("removal pending reconciliation"),
-                    kind="WRITE_AHEAD",
-                    pending=pending,
+                    kind="WRITE_AHEAD", pending=pending,
                 ))
             except Exception as error:
                 attempted -= 1
                 return terminal(f"REMOVE_WRITE_AHEAD:{index}", error)
-            removed = store.remove_if_match(
-                source, source_preimage=copy.deepcopy(expected), attempt_id=remove_attempt
+            removed = store.remove_after_exact_proof(
+                source, source_preimage=copy.deepcopy(expected),
+                attempt_id=remove_attempt,
             )
             if not isinstance(removed, dict) or set(removed) != {
-                "transaction_id", "version_id", "attempt_id"
+                "transaction_id", "attempt_id"
             }:
                 raise ManifestError("source-removal result schema is not exact")
             remove_tx = removed["transaction_id"]
-            removed_version = removed["version_id"]
             prior_transactions = {
                 value for prior in outcomes for value in (
                     prior["copy_transaction_id"], prior["remove_transaction_id"]
@@ -3622,36 +4170,28 @@ def execute_quarantine(
             }
             if (
                 removed["attempt_id"] != remove_attempt
-                or removed_version != expected["version_id"]
-                or not isinstance(remove_tx, str) or not _SAFE_VERSION_RE.fullmatch(remove_tx)
-                or remove_tx == removed_version or remove_tx in prior_transactions
+                or not isinstance(remove_tx, str)
+                or not _SAFE_VERSION_RE.fullmatch(remove_tx)
+                or remove_tx in prior_transactions
             ):
-                raise ManifestError("source-removal result lacks exact distinct identities")
-            if store.head(source, version_id=expected["version_id"]) is not None:
-                raise ManifestError("reviewed source version remains after removal")
-            current = store.head(source)
-            if current is not None:
-                raise ManifestError("newer current source was preserved; plan requires fresh review")
+                raise ManifestError("source-removal result identity is invalid")
+            if store.head(source) is not None:
+                raise ManifestError("source remains after removal")
             outcome["remove_transaction_id"] = remove_tx
-            outcome["removed_version_id"] = removed_version
             outcome["source_removed"] = True
             observed += 1
             persist(receipt(
-                TerminalState.INDETERMINATE,
-                f"SOURCE_REMOVED:{index}",
+                TerminalState.INDETERMINATE, f"SOURCE_REMOVED:{index}",
                 RuntimeError("quarantine in progress"),
-                kind="PROGRESS",
-                pending=None,
+                kind="PROGRESS", pending=None,
             ))
         except Exception as error:
-            return terminal(f"OBJECT:{index}", error, pending if attempted == observed + 1 else None)
+            unresolved = pending if attempted == observed + 1 else None
+            return terminal(f"OBJECT:{index}", error, unresolved)
 
     try:
         for key, before in protected_before.items():
-            if (
-                store.head(key) != before
-                or store.head(key, version_id=before["version_id"]) != before
-            ):
+            if store.head(key) != before:
                 raise ManifestError(f"protected object changed during quarantine: {key}")
     except Exception as error:
         return terminal("PROTECTED_POSTCHECK", error)
@@ -3672,44 +4212,37 @@ def reconcile_quarantine_write_ahead(
     provider_result: dict[str, Any],
     observed_preimage: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    """Seal exact post-restart evidence without continuing the quarantine plan."""
+    """Seal exact post-restart evidence without retrying quarantine effects."""
     validated = validate_quarantine_receipt(journal, plan)
     if validated["checkpoint_kind"] != "WRITE_AHEAD" or validated["pending_effect"] is None:
         raise ManifestError("quarantine reconciliation requires a write-ahead checkpoint")
     pending = validated["pending_effect"]
     if not isinstance(provider_result, dict) or set(provider_result) != {
-        "transaction_id", "version_id", "attempt_id"
+        "transaction_id", "attempt_id"
     }:
         raise ManifestError("quarantine reconciliation result schema is not exact")
     if provider_result["attempt_id"] != pending["attempt_id"]:
         raise ManifestError("quarantine reconciliation attempt identity mismatch")
-    for field in ("transaction_id", "version_id", "attempt_id"):
+    for field in ("transaction_id", "attempt_id"):
         if not isinstance(provider_result[field], str) or not _SAFE_VERSION_RE.fullmatch(provider_result[field]):
             raise ManifestError(f"quarantine reconciliation {field} is invalid")
-    if provider_result["transaction_id"] == provider_result["version_id"]:
-        raise ManifestError("quarantine reconciliation transaction is not distinct")
     outcomes = copy.deepcopy(validated["objects"])
     outcome = outcomes[pending["index"]]
-    if pending["operation"] == "COPY_EXACT_VERSION":
+    if pending["operation"] == "COPY_IF_MATCH":
         if observed_preimage is None:
-            raise ManifestError("copy reconciliation lacks exact destination preimage")
-        normalized = _normalize_preimage(observed_preimage, "reconciled quarantine destination")
-        if (
-            normalized["version_id"] != provider_result["version_id"]
-            or not _same_object_bytes(normalized, pending["reviewed_preimage"])
-        ):
+            raise ManifestError("copy reconciliation lacks destination preimage")
+        normalized = _normalize_preimage(
+            observed_preimage, "reconciled quarantine destination"
+        )
+        if not _same_object_bytes(normalized, pending["reviewed_preimage"]):
             raise ManifestError("reconciled copy is not exact")
         outcome["copy_transaction_id"] = provider_result["transaction_id"]
-        outcome["copy_version_id"] = provider_result["version_id"]
         outcome["quarantine_preimage"] = normalized
         outcome["copy_verified"] = True
     else:
         if observed_preimage is not None:
-            raise ManifestError("removal reconciliation found the reviewed source version")
-        if provider_result["version_id"] != pending["reviewed_preimage"]["version_id"]:
-            raise ManifestError("removal reconciliation names the wrong source version")
+            raise ManifestError("removal reconciliation found source present")
         outcome["remove_transaction_id"] = provider_result["transaction_id"]
-        outcome["removed_version_id"] = provider_result["version_id"]
         outcome["source_removed"] = True
     observed = validated["observed_effects"] + 1
     return _quarantine_terminal(
@@ -3739,7 +4272,9 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
         'python3 scripts/build-trail-search-index.py --out "$TRAIL_SEARCH"',
         'python3 scripts/build-parking-pool.py --out "$PARKING"',
         'python3 scripts/build-trail-shapes.py --out "$TRAIL_SHAPES"',
-        "publication_area_id", "PUBLICATION_AREA_ID", "--publication-area-id",
+        "PUBLICATION_AREA_ID", "--publication-area-id",
+        "AWS_CLI_VERSION", "AWS_CLI_ARCHIVE_SHA256", "sha256sum --check --strict",
+        "reconcile_run_id", "reconcile-scoped",
         "group: sync-geom-to-r2", "stage/rollback-manifest.json", "stage/rollback/**",
     ),
     ".github/workflows/cleanup-r2-orphans.yml": (
@@ -3749,6 +4284,20 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
         "environment: trekdex-r2-release", "R2_ROOT_APPROVAL_ASSERTION_JSON",
         "R2_ROOT_APPROVAL_HMAC_KEY", "--registry", "--inventory \"$INVENTORY\"",
         "group: sync-geom-to-r2",
+    ),
+    ".github/workflows/trailforge-publish.yml": (
+        "mols_release_input_receipt_b64", "verify-release-input",
+        "mols-release-index.json", "merge-mols-index",
+        "R2_ROOT_APPROVAL_HMAC_KEY", "--only-area \"$VERIFIED_AREA_ID\"",
+        "verify-mols-staged-diff", "verify-mols-commit",
+        "RELEASE_INPUT_RECEIPT_SHA256",
+        "steps.release_input.outputs.root_approval_ref",
+        "steps.release_input.outputs.account_identity_ref",
+        "steps.release_input.outputs.endpoint_identity_ref",
+        "steps.release_input.outputs.inventory_anchor_ref",
+        "steps.release_input.outputs.authoritative_denominator",
+        "steps.published_commit.outputs.source_sha",
+        "steps.published_commit.outputs.source_tree", "-f plan_only=true",
     ),
     ".github/workflows/trailforge-publish-us.yml": (
         "trailforge_candidate_contract.py", "fan-in-terminal.json", "review_candidate_allowed",
@@ -3764,6 +4313,7 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
     ".github/workflows/release-contracts-ci.yml": (
         "scripts/test_r2_release_contract.py", "scripts/reproduce_r2_repair_failure.py",
         "scripts/test_publish_workflow_pilot.py", "scripts/test_publish_workflow_region.py",
+        "scripts/test_filter_bundle_dk.py", "trailforge/serve/test_publish_report.py",
         "scripts/test_trailforge_candidate_contract.py",
         "trailforge/serve/publish_areas.py", "scripts/build-trail-search-index.py",
         "scripts/build-parking-pool.py", "scripts/build-trail-shapes.py",
@@ -3772,8 +4322,12 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
     ),
     "scripts/stage-changed-r2.py": (
         "r2_release_contract", "apply-manifest", "execute_scoped_release",
-        "rollback_delete_created", "DELETE_CREATED_IF_MATCH",
+        "verify-release-input", "merge-mols-index", "verify-mols-staged-diff", "verify-mols-commit",
+        "reconcile-scoped",
+        "reconcile_scoped_release_write_ahead", "rollback_delete_created",
+        "DELETE_CREATED_AFTER_EXACT_PROOF", '"delete-object"',
         '"--if-match"', '"--if-none-match"', "--publication-area-id",
+        "aws_cli_version", "aws_cli_archive_sha256",
     ),
     "scripts/cleanup-r2-orphans.py": ("r2_release_contract", "apply-quarantine"),
     "scripts/r2_release_contract.py": (CONTRACT_VERSION,),
@@ -3856,7 +4410,12 @@ def audit_repository_contract(files: Mapping[str, str]) -> list[str]:
                 f"{expected_digest}; observed {observed_digest}"
             )
     workflow_text = "\n".join(
-        files.get(path, "") for path in _LEASED_MARKERS if path.startswith(".github/workflows/")
+        files.get(path, "") for path in (
+            ".github/workflows/sync-geom-to-r2.yml",
+            ".github/workflows/cleanup-r2-orphans.yml",
+            ".github/workflows/trailforge-publish-us.yml",
+            ".github/workflows/release-contracts-ci.yml",
+        )
     )
     for forbidden in ("git push", "git rebase", "git commit", "aws s3 sync", "delete-objects", "aws s3 rm"):
         if forbidden in workflow_text:
@@ -3880,9 +4439,9 @@ def audit_repository_contract(files: Mapping[str, str]) -> list[str]:
         if re.search(r"(?m)(?:^|\s)aws\s", files.get(path, "")):
             errors.append(f"{path}: workflow bypasses the injected contract provider adapter")
     sync = files.get(".github/workflows/sync-geom-to-r2.yml", "")
-    if sync.count("--global-object") != 2 * len(GLOBAL_OBJECTS):
-        errors.append(".github/workflows/sync-geom-to-r2.yml: both producer censuses must name exactly four globals")
+    if sync.count("--global-object") != 3 * len(GLOBAL_OBJECTS):
+        errors.append(".github/workflows/sync-geom-to-r2.yml: stage/apply/reconcile must each name four globals")
     for key in GLOBAL_OBJECTS:
-        if sync.count(f'--global-object "{key}=') != 2:
-            errors.append(f".github/workflows/sync-geom-to-r2.yml: missing dual-census global {key}")
+        if sync.count(f'--global-object "{key}=') != 3:
+            errors.append(f".github/workflows/sync-geom-to-r2.yml: missing triple-census global {key}")
     return errors

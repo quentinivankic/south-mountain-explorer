@@ -32,23 +32,16 @@ def _default(block):
     return match.group(1)
 
 
-def test_dispatch_has_exact_pilot_and_reviewed_sync_inputs():
+def test_dispatch_has_exact_pilot_and_signed_release_inputs():
     inputs = _input_blocks()
-    assert len(inputs) == 16
+    assert len(inputs) == 10
     assert set(inputs) == {
         "extract", "state", "dry_run", "no_routes", "touch_report",
         "elevation", "region_code", "pilot_area_id", "pilot_bbox",
-        "expected_osm_relation_id", "publication_area_id", "root_approval_ref",
-        "account_identity_ref", "endpoint_identity_ref",
-        "inventory_anchor_ref", "authoritative_denominator",
+        "mols_release_input_receipt_b64",
     }
     assert "pilot_area_name" not in inputs
-    assert _default(inputs["publication_area_id"]) == '"nationalpark-mols-bjerge-dk"'
-    for name in (
-        "root_approval_ref", "account_identity_ref", "endpoint_identity_ref",
-        "inventory_anchor_ref", "authoritative_denominator",
-    ):
-        assert _default(inputs[name]) == '""'
+    assert _default(inputs["mols_release_input_receipt_b64"]) == '""'
 
 
 def test_all_seven_generic_defaults_and_types_are_unchanged():
@@ -71,10 +64,12 @@ def test_all_seven_generic_defaults_and_types_are_unchanged():
         assert "        type:" not in inputs[name]
 
 
-def test_all_three_pilot_defaults_are_empty_strings():
+def test_pilot_defaults_and_relation_are_exact():
     inputs = _input_blocks()
-    for name in ("pilot_area_id", "pilot_bbox", "expected_osm_relation_id"):
+    for name in ("pilot_area_id", "pilot_bbox", "mols_release_input_receipt_b64"):
         assert _default(inputs[name]) == '""'
+    assert 'PILOT_EXPECTED_RELATION_ID: "7046785"' in _PILOT
+    assert "github.event.inputs.expected_osm_relation_id" not in _TEXT
 
 
 def test_jobs_are_mutually_exclusive_and_permissions_are_exact():
@@ -95,12 +90,10 @@ def test_pilot_maps_its_dispatch_inputs_to_environment_before_shell_use():
     pilot_inputs = {
         "extract", "state", "dry_run", "no_routes", "touch_report",
         "elevation", "region_code", "pilot_area_id", "pilot_bbox",
-        "expected_osm_relation_id",
     }
     for name in pilot_inputs:
         assert f"github.event.inputs.{name}" in env_block
-    for name in set(_input_blocks()) - pilot_inputs:
-        assert f"github.event.inputs.{name}" not in env_block
+    assert "mols_release_input_receipt_b64" not in env_block
     assert "${{ github.event.inputs." not in _PILOT_STEPS
 
 
@@ -373,11 +366,30 @@ def test_generic_publish_commands_and_conditions_remain_present():
     assert '[ -n "${{ github.event.inputs.region_code }}" ]' in _PUBLISH
     assert "--per-area-merge $REGION_FLAG" in _PUBLISH
     assert "serve/publish_areas.py" in _PUBLISH
-    assert "--index ../public/areas/index.json" in _PUBLISH
-    assert "--out-dir ../public/areas/geom $FLAGS" in _PUBLISH
+    assert 'INDEX_PATH="../public/areas/index.json"' in _PUBLISH
+    assert 'INDEX_PATH="$VERIFIED_INDEX_PATH"' in _PUBLISH
+    assert '--index "$INDEX_PATH"' in _PUBLISH
+    assert '--out-dir ../public/areas/geom "${ONLY_AREA[@]}" $FLAGS' in _PUBLISH
+    assert 'ONLY_AREA=()' in _PUBLISH
+    assert 'if [ "$RELEASE_MODE" = "mols" ]; then' in _PUBLISH
+    assert 'ONLY_AREA=(--only-area "$VERIFIED_AREA_ID")' in _PUBLISH
+    assert "verify-release-input" in _PUBLISH
+    assert "verify-mols-staged-diff" in _PUBLISH
     assert _PUBLISH.count("if: ${{ github.event.inputs.dry_run == 'false' }}") == 4
     assert "git push" in _PUBLISH
     assert "gh workflow run sync-geom-to-r2.yml" in _PUBLISH
+
+
+def test_generic_publisher_exact_area_selector_is_opt_in_and_mols_only():
+    publisher = (
+        Path(__file__).resolve().parent.parent
+        / "trailforge" / "serve" / "publish_areas.py"
+    ).read_text(encoding="utf-8")
+    assert 'ap.add_argument(\n        "--only-area"' in publisher
+    assert 'if args.only_area:' in publisher
+    assert 'args.only_area != _MOLS_AREA_ID or args.state != "Denmark"' in publisher
+    assert 'az = {args.only_area: selected}' in publisher
+    assert 'if args.only_area' not in publisher.split('ap.add_argument(\n        "--only-area"', 1)[0]
 
 
 def test_local_pbf_provenance_is_runner_local_required_and_sealed_once():

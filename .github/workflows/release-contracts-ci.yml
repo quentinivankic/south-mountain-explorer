@@ -37,6 +37,8 @@ jobs:
             scripts/reproduce_r2_repair_failure.py \
             scripts/test_publish_workflow_pilot.py \
             scripts/test_publish_workflow_region.py \
+            scripts/test_filter_bundle_dk.py \
+            trailforge/serve/test_publish_report.py \
             scripts/test_trailforge_candidate_contract.py \
             trailforge/serve/publish_areas.py \
             scripts/build-trail-search-index.py \
@@ -51,6 +53,8 @@ jobs:
         run: |
           python3 scripts/test_publish_workflow_pilot.py
           python3 scripts/test_publish_workflow_region.py
+          python3 scripts/test_filter_bundle_dk.py
+          python3 trailforge/serve/test_publish_report.py
       - name: Run Trailforge 51-lane candidate contract suite
         run: python3 scripts/test_trailforge_candidate_contract.py
       - name: Revalidate the exact workflow contract

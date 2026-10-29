@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import copy
 import hashlib
 import importlib.util
 import json
+import os
 import random
 import re
 import subprocess
@@ -23,6 +25,8 @@ sys.path.insert(0, str(SCRIPTS))
 
 from r2_release_contract import (  # noqa: E402
     BUCKET,
+    AWS_CLI_ARCHIVE_SHA256,
+    AWS_CLI_VERSION,
     CI_PRODUCER_GRAPH,
     CONTRACT_VERSION,
     GLOBAL_OBJECTS,
@@ -31,6 +35,7 @@ from r2_release_contract import (  # noqa: E402
     MOLS_AREA_ID,
     MOLS_FORWARD_KEYS,
     MOLS_OBJECT_KEYS,
+    MOLS_REPOSITORY_PATHS,
     PRODUCTION_PRODUCER_BOUNDARIES,
     ConditionalRequestRefused,
     InventoryError,
@@ -48,6 +53,7 @@ from r2_release_contract import (  # noqa: E402
     canonical_sha256,
     classify_key,
     derive_production_producer_graph,
+    decode_mols_release_input_receipt,
     execute_quarantine as execute_quarantine_contract,
     execute_release as execute_release_contract,
     execute_scoped_release,
@@ -56,11 +62,14 @@ from r2_release_contract import (  # noqa: E402
     inventory_objects,
     local_object as local_object_contract,
     make_approval_assertion,
+    make_mols_release_input_receipt,
     normalize_sha256_checksum,
     provider_identity_attestation,
+    provider_tool_attestation,
     quarantine_key,
     reconcile_quarantine_write_ahead,
     reconcile_release_write_ahead,
+    reconcile_scoped_release_write_ahead,
     release_boundaries,
     strict_json_loads,
     validate_inventory_receipt,
@@ -111,7 +120,6 @@ def remote(key: str, payload: bytes | None = None) -> dict[str, Any]:
         "ETag": f'"{hashlib.md5(body, usedforsecurity=False).hexdigest()}"',
         "Size": len(body),
         "ChecksumSHA256": hashlib.sha256(body).hexdigest(),
-        "VersionId": "version-" + hashlib.sha256(key.encode()).hexdigest()[:12],
     }
 
 
@@ -230,7 +238,7 @@ def execute_quarantine(plan: dict[str, Any], store: Any, **kwargs: Any) -> dict[
 
 
 class FakeStore:
-    """In-memory exact-version store whose call log exposes every effect."""
+    """In-memory exact-current store whose call log exposes every effect."""
 
     def __init__(self, objects: dict[str, dict[str, Any]]):
         self.objects = copy.deepcopy(objects)
@@ -240,12 +248,10 @@ class FakeStore:
     def attest_identity(self) -> dict[str, Any]:
         return provider_identity_attestation(ACCOUNT_ID, ENDPOINT_URL)
 
-    def head(self, key: str, *, version_id: str | None = None) -> dict[str, Any] | None:
-        self.calls.append(("head", key, version_id))
+    def head(self, key: str) -> dict[str, Any] | None:
+        self.calls.append(("head", key))
         value = self.objects.get(key)
-        if value is None or (version_id is not None and value["version_id"] != version_id):
-            return None
-        return copy.deepcopy(value)
+        return None if value is None else copy.deepcopy(value)
 
     def copy_no_clobber(
         self,
@@ -255,7 +261,10 @@ class FakeStore:
         source_preimage: dict[str, Any],
         attempt_id: str,
     ) -> dict[str, Any]:
-        self.calls.append(("copy_no_clobber", source, destination, copy.deepcopy(source_preimage), attempt_id))
+        self.calls.append((
+            "copy_no_clobber", source, destination,
+            copy.deepcopy(source_preimage), attempt_id,
+        ))
         if self.fault == "copy":
             raise RuntimeError("copy fault")
         if destination in self.objects:
@@ -264,32 +273,36 @@ class FakeStore:
         if current != source_preimage:
             raise RuntimeError("source preimage changed")
         copied = copy.deepcopy(current)
-        copied["version_id"] = "quarantine-" + hashlib.sha256(destination.encode()).hexdigest()[:12]
         if self.fault == "corrupt_copy":
             copied["sha256"] = "f" * 64
         self.objects[destination] = copied
         return {
-            "transaction_id": "copy-tx-" + hashlib.sha256(destination.encode()).hexdigest()[:16],
-            "version_id": copied["version_id"],
+            "transaction_id": "copy-tx-" + hashlib.sha256(
+                destination.encode()
+            ).hexdigest()[:16],
             "attempt_id": attempt_id,
         }
 
-    def remove_if_match(
+    def remove_after_exact_proof(
         self,
         source: str,
         *,
         source_preimage: dict[str, Any],
         attempt_id: str,
     ) -> dict[str, Any]:
-        self.calls.append(("remove_if_match", source, copy.deepcopy(source_preimage), attempt_id))
+        self.calls.append((
+            "remove_after_exact_proof", source,
+            copy.deepcopy(source_preimage), attempt_id,
+        ))
         if self.fault == "remove":
             raise RuntimeError("remove fault")
         if self.objects.get(source) != source_preimage:
-            raise RuntimeError("conditional source preimage changed")
+            raise RuntimeError("source preimage changed")
         del self.objects[source]
         return {
-            "transaction_id": "remove-tx-" + hashlib.sha256(source.encode()).hexdigest()[:16],
-            "version_id": source_preimage["version_id"],
+            "transaction_id": "remove-tx-" + hashlib.sha256(
+                source.encode()
+            ).hexdigest()[:16],
             "attempt_id": attempt_id,
         }
 
@@ -343,7 +356,6 @@ class FakeWriter:
                     "etag": etag("unexpected-existing"),
                     "bytes": 1,
                     "sha256": hashlib.sha256(b"x").hexdigest(),
-                    "version_id": "unexpected-existing-version",
                 }
             )
         snapshot = build_release_preflight(
@@ -354,7 +366,7 @@ class FakeWriter:
                 ["attempt_id"] if self.malformed_success_schema
                 else (
                     "attempt_id", "bytes", "etag", "key", "sha256",
-                    "transaction_id", "version_id",
+                    "transaction_id",
                 )
             ),
             adapter_success_schema_capable=True,
@@ -387,7 +399,6 @@ class FakeWriter:
             "etag": etag(row["key"]),
             "bytes": row["bytes"],
             "sha256": "0" * 64 if self.wrong_readback_at == index else row["sha256"],
-            "version_id": "written-version-" + str(index),
             "transaction_id": (
                 "tx-shared" if self.duplicate_transactions
                 else "request-tx-" + hashlib.sha256(row["key"].encode()).hexdigest()[:20]
@@ -481,7 +492,7 @@ def _scoped_fixture(
 
 
 class ScopedFakeWriter:
-    """Lock-serialized in-memory writer with exact before/after byte identities."""
+    """Lock-serialized in-memory writer with exact before/after identities."""
 
     def __init__(
         self,
@@ -503,7 +514,7 @@ class ScopedFakeWriter:
             if row["remote_preimage"] is not None
         }
         for key, payload in baseline.items():
-            created = self._object(key, payload, version="baseline-" + etag(key)[:12])
+            created = self._object(key, payload)
             if key in reviewed_preimages:
                 created.update(reviewed_preimages[key])
             self.objects[key] = created
@@ -515,24 +526,32 @@ class ScopedFakeWriter:
         self.fail_rollback_at = fail_rollback_at
 
     @staticmethod
-    def _object(key: str, payload: bytes, *, version: str) -> dict[str, Any]:
+    def _object(
+        key: str, payload: bytes, *, metadata: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         return {
             "key": key,
             "payload": payload,
             "etag": hashlib.md5(payload, usedforsecurity=False).hexdigest(),
             "bytes": len(payload),
             "sha256": hashlib.sha256(payload).hexdigest(),
-            "version_id": version,
+            "metadata": copy.deepcopy(metadata),
         }
 
     @staticmethod
     def _identity(value: dict[str, Any] | None) -> dict[str, Any] | None:
         if value is None:
             return None
-        return {field: value[field] for field in ("etag", "bytes", "sha256", "version_id")}
+        return {field: value[field] for field in ("etag", "bytes", "sha256")}
 
     def attest_identity(self) -> dict[str, Any]:
         return provider_identity_attestation(ACCOUNT_ID, ENDPOINT_URL)
+
+    def tool_attestation(self) -> dict[str, Any]:
+        return provider_tool_attestation(
+            version=AWS_CLI_VERSION,
+            archive_sha256=AWS_CLI_ARCHIVE_SHA256,
+        )
 
     def preflight_scoped_release(
         self, manifest: dict[str, Any], *, execution_id: str
@@ -549,7 +568,6 @@ class ScopedFakeWriter:
                 identity = None if identity is not None else {
                     "etag": etag("unexpected"), "bytes": 1,
                     "sha256": hashlib.sha256(b"x").hexdigest(),
-                    "version_id": "unexpected-version",
                 }
             observed.append(copy.deepcopy(identity))
             if row["conditional_mode"] == "IF_NONE_MATCH" or current is None:
@@ -564,7 +582,6 @@ class ScopedFakeWriter:
                 "md5": current["etag"],
                 "sha256": current["sha256"],
                 "etag": current["etag"],
-                "version_id": current["version_id"],
             })
             if row["key"] == "index.json":
                 index_delta = build_mols_index_delta(
@@ -577,6 +594,22 @@ class ScopedFakeWriter:
             baseline_objects=baselines,
             index_delta=index_delta,
         )
+
+    @staticmethod
+    def _write_metadata(
+        row: dict[str, Any], manifest: dict[str, Any], attempt_id: str,
+        *, condition_mode: str, preimage: dict[str, Any] | None,
+    ) -> dict[str, str]:
+        return {
+            "trekdex-sha256": row["sha256"],
+            "trekdex-source-sha": manifest["source_sha"],
+            "trekdex-manifest-sha256": manifest["manifest_sha256"],
+            "trekdex-attempt-id": attempt_id,
+            "trekdex-preimage-ref": canonical_sha256(
+                preimage if preimage is not None else {"state": "ABSENT"}
+            ),
+            "trekdex-condition-mode": condition_mode,
+        }
 
     def put_conditional(
         self,
@@ -594,16 +627,18 @@ class ScopedFakeWriter:
             raise ConditionalRequestRefused("deterministic conditional refusal")
         self.forward_calls.append(row["key"])
         payload = (self.root / row["local_path"]).read_bytes()
-        written = self._object(row["key"], payload, version=f"forward-version-{index}")
+        metadata = self._write_metadata(
+            row, self.manifest, attempt_id,
+            condition_mode=row["conditional_mode"],
+            preimage=row["remote_preimage"],
+        )
+        written = self._object(row["key"], payload, metadata=metadata)
         self.objects[row["key"]] = written
         if self.malformed_forward_at == index:
             return {"key": row["key"], "etag": written["etag"]}
         return {
-            "key": row["key"],
-            "etag": written["etag"],
-            "bytes": written["bytes"],
-            "sha256": written["sha256"],
-            "version_id": written["version_id"],
+            "key": row["key"], "etag": written["etag"],
+            "bytes": written["bytes"], "sha256": written["sha256"],
             "transaction_id": f"forward-tx-{index}",
             "attempt_id": attempt_id,
         }
@@ -624,19 +659,21 @@ class ScopedFakeWriter:
         key = rollback_row["key"]
         self.rollback_calls.append(("RESTORE_IF_MATCH", key))
         if self._identity(self.objects.get(key)) != {
-            field: postimage[field] for field in ("etag", "bytes", "sha256", "version_id")
+            field: postimage[field] for field in ("etag", "bytes", "sha256")
         }:
             raise RuntimeError("postimage changed")
         baseline = rollback_row["baseline_object"]
         payload = (self.root / baseline["local_path"]).read_bytes()
-        restored = self._object(key, payload, version="restored-version")
+        metadata = self._write_metadata(
+            baseline, self.manifest, attempt_id,
+            condition_mode="IF_MATCH",
+            preimage={field: postimage[field] for field in ("etag", "bytes", "sha256")},
+        )
+        restored = self._object(key, payload, metadata=metadata)
         self.objects[key] = restored
         return {
-            "key": key,
-            "etag": restored["etag"],
-            "bytes": restored["bytes"],
-            "sha256": restored["sha256"],
-            "version_id": restored["version_id"],
+            "key": key, "etag": restored["etag"],
+            "bytes": restored["bytes"], "sha256": restored["sha256"],
             "transaction_id": "restore-tx-" + str(len(self.rollback_calls)),
             "attempt_id": attempt_id,
         }
@@ -653,19 +690,75 @@ class ScopedFakeWriter:
         key = rollback_row["key"]
         if key not in MOLS_OBJECT_KEYS or rollback_row["baseline_preimage"] is not None:
             raise AssertionError("delete escaped exact absent Mols scope")
-        self.rollback_calls.append(("DELETE_CREATED_IF_MATCH", key))
+        self.rollback_calls.append(("DELETE_CREATED_AFTER_EXACT_PROOF", key))
         if self._identity(self.objects.get(key)) != {
-            field: postimage[field] for field in ("etag", "bytes", "sha256", "version_id")
+            field: postimage[field] for field in ("etag", "bytes", "sha256")
         }:
             raise RuntimeError("postimage changed")
         del self.objects[key]
         return {
-            "attempt_id": attempt_id,
-            "key": key,
+            "attempt_id": attempt_id, "key": key,
             "postimage_sha256": rollback_row["expected_postimage"]["sha256"],
             "transaction_id": "delete-tx-" + str(len(self.rollback_calls)),
             "verified_absent": True,
         }
+
+    def reconcile_pending_effect(
+        self,
+        pending: dict[str, Any],
+        manifest: dict[str, Any],
+        journal: dict[str, Any],
+    ) -> dict[str, Any]:
+        scoped_preflight = journal["scoped_preflight"]
+        index = pending["index"]
+        key = pending["key"]
+        current_value = self.objects.get(key)
+        current = self._identity(current_value)
+        if pending["phase"] == "FORWARD":
+            row = manifest["objects"][index]
+            metadata = None if current_value is None else current_value.get("metadata")
+            if (
+                current is not None
+                and current["bytes"] == row["bytes"]
+                and current["sha256"] == row["sha256"]
+                and isinstance(metadata, dict)
+                and metadata.get("trekdex-attempt-id") == pending["attempt_id"]
+                and metadata.get("trekdex-manifest-sha256") == manifest["manifest_sha256"]
+            ):
+                return {"state": "EFFECT_OBSERVED", "result": {
+                    "key": key, "etag": current["etag"],
+                    "bytes": current["bytes"], "sha256": current["sha256"],
+                    "transaction_id": "reconciled-forward-" + str(index),
+                    "attempt_id": pending["attempt_id"],
+                }}
+            if current == row["remote_preimage"]:
+                return {"state": "EFFECT_NOT_OBSERVED", "result": None}
+            return {"state": "AMBIGUOUS", "result": None}
+        rollback_row = scoped_preflight["rollback_manifest"]["objects"][index]
+        if pending["operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF":
+            if current is None:
+                return {"state": "EFFECT_OBSERVED", "result": {
+                    "attempt_id": pending["attempt_id"], "key": key,
+                    "postimage_sha256": rollback_row["expected_postimage"]["sha256"],
+                    "transaction_id": "reconciled-delete-" + str(index),
+                    "verified_absent": True,
+                }}
+            return {"state": "EFFECT_NOT_OBSERVED", "result": None}
+        baseline = rollback_row["baseline_object"]
+        metadata = None if current_value is None else current_value.get("metadata")
+        if (
+            current is not None
+            and current == {field: baseline[field] for field in ("etag", "bytes", "sha256")}
+            and isinstance(metadata, dict)
+            and metadata.get("trekdex-attempt-id") == pending["attempt_id"]
+        ):
+            return {"state": "EFFECT_OBSERVED", "result": {
+                "key": key, "etag": current["etag"],
+                "bytes": current["bytes"], "sha256": current["sha256"],
+                "transaction_id": "reconciled-restore-" + str(index),
+                "attempt_id": pending["attempt_id"],
+            }}
+        return {"state": "EFFECT_NOT_OBSERVED", "result": None}
 
     def verify_rollback(
         self,
@@ -678,7 +771,7 @@ class ScopedFakeWriter:
             row["key"] == "index.json" for row in rollback_manifest["objects"]
         )
         for row in rollback_manifest["objects"]:
-            if row["rollback_operation"] == "DELETE_CREATED_IF_MATCH":
+            if row["rollback_operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF":
                 if row["key"] in self.objects:
                     raise RuntimeError("created key remains")
                 absent.append(row["key"])
@@ -686,7 +779,8 @@ class ScopedFakeWriter:
             baseline = row["baseline_object"]
             current = self.objects.get(row["key"])
             if current is None or any(
-                current[field] != baseline[field] for field in ("etag", "bytes", "sha256")
+                current[field] != baseline[field]
+                for field in ("etag", "bytes", "sha256")
             ):
                 raise RuntimeError("baseline not restored")
             if row["key"] == "index.json":
@@ -795,6 +889,13 @@ class TestMolsScopedPublication(unittest.TestCase):
         self.assertEqual(receipt["terminal_state"], "COMPLETE_SUCCESS")
         self.assertEqual(writer.forward_calls, list(MOLS_FORWARD_KEYS))
         self.assertEqual(writer.rollback_calls, [])
+        self.assertEqual(
+            receipt["provider_tool_attestation"]["version"], AWS_CLI_VERSION
+        )
+        self.assertEqual(
+            receipt["provider_tool_attestation"]["archive_sha256"],
+            AWS_CLI_ARCHIVE_SHA256,
+        )
         validate_scoped_release_receipt(receipt, self.manifest)
 
     def test_existing_mols_objects_and_index_use_exact_if_match(self) -> None:
@@ -848,11 +949,10 @@ class TestMolsScopedPublication(unittest.TestCase):
             self.assertEqual(writer.forward_calls, [])
             self.assertEqual(writer.rollback_calls, [])
 
-    def test_stale_missing_wrong_etag_version_hash_or_bytes_aborts_before_first_effect(self) -> None:
+    def test_stale_missing_wrong_etag_hash_or_bytes_aborts_before_first_effect(self) -> None:
         index_key = "index.json"
         for field, value in (
             ("etag", etag("wrong")),
-            ("version_id", "wrong-version"),
             ("sha256", "0" * 64),
             ("bytes", 999),
         ):
@@ -890,7 +990,7 @@ class TestMolsScopedPublication(unittest.TestCase):
         self.assertEqual(writer.forward_calls, [MOLS_OBJECT_KEYS[0]])
         self.assertEqual(
             writer.rollback_calls,
-            [("DELETE_CREATED_IF_MATCH", MOLS_OBJECT_KEYS[0])],
+            [("DELETE_CREATED_AFTER_EXACT_PROOF", MOLS_OBJECT_KEYS[0])],
         )
         self.assertNotIn(MOLS_OBJECT_KEYS[0], writer.objects)
         self.assertNotIn(MOLS_OBJECT_KEYS[1], writer.objects)
@@ -910,8 +1010,8 @@ class TestMolsScopedPublication(unittest.TestCase):
             writer.rollback_calls,
             [
                 ("RESTORE_IF_MATCH", "index.json"),
-                ("DELETE_CREATED_IF_MATCH", MOLS_OBJECT_KEYS[1]),
-                ("DELETE_CREATED_IF_MATCH", MOLS_OBJECT_KEYS[0]),
+                ("DELETE_CREATED_AFTER_EXACT_PROOF", MOLS_OBJECT_KEYS[1]),
+                ("DELETE_CREATED_AFTER_EXACT_PROOF", MOLS_OBJECT_KEYS[0]),
             ],
         )
         self.assertEqual(len(writer.rollback_calls), len(set(writer.rollback_calls)))
@@ -999,7 +1099,7 @@ class TestMolsScopedPublication(unittest.TestCase):
             hostile = copy.deepcopy(plan)
             delete_row = next(
                 row for row in hostile["objects"]
-                if row["rollback_operation"] == "DELETE_CREATED_IF_MATCH"
+                if row["rollback_operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF"
             )
             delete_row["key"] = forbidden
             hostile["rollback_manifest_sha256"] = canonical_sha256(
@@ -1053,6 +1153,7 @@ class TestMolsScopedPublication(unittest.TestCase):
             ("source", lambda d: d.__setitem__("source_sha", "9" * 40)),
             ("delete-authority", lambda d: d["scoped_preflight"]["rollback_manifest"].__setitem__("delete_allowlist", ["*"])),
             ("effect-count", lambda d: d.__setitem__("forward_observed", 0)),
+            ("tool-version", lambda d: d["provider_tool_attestation"].__setitem__("version", "2.39.0")),
             ("forbidden-push", lambda d: d.__setitem__("pushed", True)),
         ):
             hostile = copy.deepcopy(receipt)
@@ -1067,6 +1168,458 @@ class TestMolsScopedPublication(unittest.TestCase):
             with self.subTest(name=name):
                 with self.assertRaises(ManifestError):
                     validate_scoped_release_receipt(hostile, self.manifest)
+
+
+class TestMolsReleaseInputAndStagedDiff(unittest.TestCase):
+    def setUp(self) -> None:
+        spec = importlib.util.spec_from_file_location(
+            "stage_changed_r2_release_input", SCRIPTS / "stage-changed-r2.py"
+        )
+        assert spec and spec.loader
+        self.module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.module)
+        self.receipt = make_mols_release_input_receipt(
+            key=APPROVAL_KEY,
+            root_approval_ref=APPROVAL,
+            account_identity_ref=ACCOUNT,
+            endpoint_identity_ref=ENDPOINT,
+            inventory_anchor_ref=ANCHOR,
+            authoritative_denominator=12345,
+            workflow_source_sha=COMMIT,
+            workflow_source_tree=TREE,
+            authorization_nonce="mols-release-input-test",
+        )
+        payload = (
+            json.dumps(
+                self.receipt,
+                ensure_ascii=False,
+                allow_nan=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            + "\n"
+        ).encode()
+        self.encoded = base64.b64encode(payload).decode("ascii")
+
+    def test_signed_receipt_is_canonical_and_every_exact_tuple_mutation_fails(self) -> None:
+        self.assertEqual(
+            decode_mols_release_input_receipt(self.encoded, key=APPROVAL_KEY),
+            self.receipt,
+        )
+        exact_fields = (
+            "extract", "state", "region_code", "area_id", "area_name",
+            "osm_relation_id", "bbox", "center_lat", "center_lon",
+            "root_approval_ref",
+            "account_identity_ref", "endpoint_identity_ref",
+            "inventory_anchor_ref", "authoritative_denominator",
+            "workflow_source_sha", "workflow_source_tree",
+        )
+        for field in exact_fields:
+            hostile = copy.deepcopy(self.receipt)
+            hostile[field] = 999 if field in {"osm_relation_id", "authoritative_denominator"} else "wrong"
+            payload = (
+                json.dumps(hostile, sort_keys=True, separators=(",", ":")) + "\n"
+            ).encode()
+            with self.subTest(field=field), self.assertRaises(ManifestError):
+                decode_mols_release_input_receipt(
+                    base64.b64encode(payload).decode("ascii"), key=APPROVAL_KEY
+                )
+
+    def test_verify_input_emits_only_verified_receipt_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "github-output"
+            mols_index = Path(directory) / "mols-index.json"
+            output.write_text("")
+            args = argparse.Namespace(
+                extract="europe/denmark", state="Denmark", region_code="dk",
+                bbox="10.40,56.08,10.90,56.35", dry_run="false",
+                no_routes="false", touch_report="false", elevation="false",
+                pilot_area_id="", workflow_source_sha=COMMIT,
+                workflow_source_tree=TREE, mols_index_output=mols_index,
+                github_output=output,
+            )
+            with mock.patch.dict(os.environ, {
+                "MOLS_RELEASE_INPUT_RECEIPT_B64": self.encoded,
+                "R2_ROOT_APPROVAL_HMAC_KEY": APPROVAL_KEY,
+            }, clear=True):
+                self.assertEqual(self.module.verify_release_input_v2(args), 0)
+            values = dict(
+                line.split("=", 1) for line in output.read_text().splitlines()
+            )
+            self.assertEqual(values["release_mode"], "mols")
+            self.assertEqual(values["area_id"], MOLS_AREA_ID)
+            self.assertEqual(values["root_approval_ref"], APPROVAL)
+            self.assertEqual(values["account_identity_ref"], ACCOUNT)
+            self.assertEqual(values["endpoint_identity_ref"], ENDPOINT)
+            self.assertEqual(values["inventory_anchor_ref"], ANCHOR)
+            self.assertEqual(values["authoritative_denominator"], "12345")
+            self.assertEqual(values["workflow_source_sha"], COMMIT)
+            self.assertEqual(values["workflow_source_tree"], TREE)
+            self.assertEqual(values["publication_index_path"], str(mols_index))
+            self.assertEqual(
+                strict_json_loads(mols_index.read_text(), "Mols seed index"),
+                [[
+                    MOLS_AREA_ID, "Nationalpark Mols Bjerge", "Denmark",
+                    56.2, 10.6, None, None, 7046785,
+                ]],
+            )
+            self.assertEqual(values["receipt_sha256"], self.receipt["receipt_sha256"])
+
+    def test_wrong_workflow_tuple_fails_before_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            for field, value in (
+                ("extract", "north-america/us/arizona"),
+                ("state", "Arizona"),
+                ("region_code", ""),
+                ("bbox", "0,0,1,1"),
+                ("dry_run", "true"),
+                ("workflow_source_sha", "9" * 40),
+                ("workflow_source_tree", "8" * 40),
+            ):
+                output = Path(directory) / f"output-{field}"
+                output.write_text("")
+                values = {
+                    "extract": "europe/denmark", "state": "Denmark",
+                    "region_code": "dk", "bbox": "10.40,56.08,10.90,56.35",
+                    "dry_run": "false", "no_routes": "false",
+                    "touch_report": "false", "elevation": "false",
+                    "pilot_area_id": "", "workflow_source_sha": COMMIT,
+                    "workflow_source_tree": TREE,
+                    "mols_index_output": Path(directory) / f"mols-{field}.json",
+                    "github_output": output,
+                }
+                values[field] = value
+                with self.subTest(field=field), mock.patch.dict(os.environ, {
+                    "MOLS_RELEASE_INPUT_RECEIPT_B64": self.encoded,
+                    "R2_ROOT_APPROVAL_HMAC_KEY": APPROVAL_KEY,
+                }, clear=True), self.assertRaises(ManifestError):
+                    self.module.verify_release_input_v2(argparse.Namespace(**values))
+                self.assertEqual(output.read_text(), "")
+
+    def test_exact_staged_diff_accepts_only_two_mols_objects_and_two_indexes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".git").mkdir()
+            output = root / "staged-receipt.json"
+            alpha = ["alpha-trail-az", "Alpha", "Arizona", 0, 0, 1, 1.0, 1]
+            mols = [MOLS_AREA_ID, "Nationalpark Mols Bjerge", "Denmark", 56.2, 10.6, 12, 31.4, 7046785]
+            public_before = json.dumps([alpha]).encode()
+            public_after = json.dumps([alpha, mols]).encode()
+            ios_before = json.dumps([alpha], separators=(",", ":")).encode()
+            ios_after = json.dumps([alpha, mols], separators=(",", ":")).encode()
+            staged = {
+                f":public/areas/geom/{MOLS_AREA_ID}.json": json.dumps({"id": MOLS_AREA_ID}).encode(),
+                f":public/areas/silhouettes/{MOLS_AREA_ID}.json": json.dumps({"b": [0, 0, 1, 1], "l": [{"d": "e", "p": [[0, 0], [1, 1]]}]}).encode(),
+                ":public/areas/index.json": public_after,
+                ":ios/SouthMountainExplorer/Resources/areas-index.json": ios_after,
+                "HEAD:public/areas/index.json": public_before,
+                "HEAD:ios/SouthMountainExplorer/Resources/areas-index.json": ios_before,
+            }
+
+            def git_bytes(_repo: Path, *arguments: str, **_kwargs: Any) -> bytes:
+                if arguments[:4] == ("diff", "--cached", "--name-only", "--diff-filter=ACMR"):
+                    return ("\0".join(sorted((
+                        f"public/areas/geom/{MOLS_AREA_ID}.json",
+                        f"public/areas/silhouettes/{MOLS_AREA_ID}.json",
+                        "public/areas/index.json",
+                        "ios/SouthMountainExplorer/Resources/areas-index.json",
+                    ))) + "\0").encode()
+                if arguments[:4] == ("diff", "--cached", "--name-only", "--diff-filter=D"):
+                    return b""
+                if arguments[0] == "show":
+                    return staged[arguments[1]]
+                raise AssertionError(arguments)
+
+            args = argparse.Namespace(
+                repo=root,
+                expected_receipt_sha256=self.receipt["receipt_sha256"],
+                output=output,
+            )
+            with mock.patch.dict(os.environ, {
+                "MOLS_RELEASE_INPUT_RECEIPT_B64": self.encoded,
+                "R2_ROOT_APPROVAL_HMAC_KEY": APPROVAL_KEY,
+            }, clear=True), mock.patch.object(
+                self.module, "_git_bytes", side_effect=git_bytes
+            ):
+                self.assertEqual(self.module.verify_mols_staged_diff_v2(args), 0)
+            result = strict_json_loads(output.read_text(), "staged diff result")
+            self.assertEqual(
+                set(result["allowed_paths"]),
+                {
+                    f"public/areas/geom/{MOLS_AREA_ID}.json",
+                    f"public/areas/silhouettes/{MOLS_AREA_ID}.json",
+                    "public/areas/index.json",
+                    "ios/SouthMountainExplorer/Resources/areas-index.json",
+                },
+            )
+            self.assertTrue(all(
+                item["non_mols_rows_unchanged"]
+                for item in result["index_transitions"]
+            ))
+
+    def test_signed_one_row_merge_changes_only_mols_master_index_row(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "public/areas/index.json"
+            target.parent.mkdir(parents=True)
+            alpha = ["alpha-trail-az", "Alpha", "Arizona", 0, 0]
+            omega = ["omega-trail-wy", "Omega", "Wyoming", 1, 1]
+            target.write_text(json.dumps([alpha, omega]))
+            source = root / "mols-index.json"
+            mols = [
+                MOLS_AREA_ID, "Nationalpark Mols Bjerge", "Denmark",
+                56.2, 10.6, 12, 31.4, 7046785,
+            ]
+            source.write_text(json.dumps([mols]))
+            with mock.patch.dict(os.environ, {
+                "MOLS_RELEASE_INPUT_RECEIPT_B64": self.encoded,
+                "R2_ROOT_APPROVAL_HMAC_KEY": APPROVAL_KEY,
+            }, clear=True), mock.patch.object(
+                self.module.Path, "cwd", return_value=root
+            ):
+                self.assertEqual(self.module.merge_mols_index_v2(
+                    argparse.Namespace(
+                        source=source, target=target,
+                        expected_receipt_sha256=self.receipt["receipt_sha256"],
+                    )
+                ), 0)
+            merged = json.loads(target.read_text())
+            self.assertEqual(
+                [row for row in merged if row[0] != MOLS_AREA_ID],
+                [alpha, omega],
+            )
+            self.assertEqual([row for row in merged if row[0] == MOLS_AREA_ID], [mols])
+
+    def test_exact_committed_diff_is_revalidated_before_push(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".git").mkdir()
+            output = root / "commit-receipt.json"
+            alpha = ["alpha-trail-az", "Alpha", "Arizona", 0, 0, 1, 1.0, 1]
+            mols = [MOLS_AREA_ID, "Nationalpark Mols Bjerge", "Denmark", 56.2, 10.6, 12, 31.4, 7046785]
+            documents = {
+                f"HEAD:{MOLS_REPOSITORY_PATHS[0]}": json.dumps({"id": MOLS_AREA_ID}).encode(),
+                f"HEAD:{MOLS_REPOSITORY_PATHS[1]}": json.dumps({"b": [0, 0, 1, 1], "l": [{}]}).encode(),
+                "HEAD^:public/areas/index.json": json.dumps([alpha]).encode(),
+                "HEAD:public/areas/index.json": json.dumps([alpha, mols]).encode(),
+                "HEAD^:ios/SouthMountainExplorer/Resources/areas-index.json": json.dumps([alpha], separators=(",", ":")).encode(),
+                "HEAD:ios/SouthMountainExplorer/Resources/areas-index.json": json.dumps([alpha, mols], separators=(",", ":")).encode(),
+            }
+
+            def git_bytes(_repo: Path, *arguments: str, **_kwargs: Any) -> bytes:
+                if arguments[0] == "diff" and "--diff-filter=ACMR" in arguments:
+                    return ("\0".join(sorted(MOLS_REPOSITORY_PATHS)) + "\0").encode()
+                if arguments[0] == "diff" and "--diff-filter=D" in arguments:
+                    return b""
+                if arguments[0] == "show":
+                    return documents[arguments[1]]
+                if arguments == ("rev-parse", "HEAD"):
+                    return ("1" * 40 + "\n").encode()
+                if arguments == ("rev-parse", "HEAD^"):
+                    return ("2" * 40 + "\n").encode()
+                raise AssertionError(arguments)
+
+            with mock.patch.dict(os.environ, {
+                "MOLS_RELEASE_INPUT_RECEIPT_B64": self.encoded,
+                "R2_ROOT_APPROVAL_HMAC_KEY": APPROVAL_KEY,
+            }, clear=True), mock.patch.object(
+                self.module, "_git_bytes", side_effect=git_bytes
+            ):
+                self.assertEqual(self.module.verify_mols_commit_v2(
+                    argparse.Namespace(
+                        repo=root,
+                        expected_receipt_sha256=self.receipt["receipt_sha256"],
+                        output=output,
+                    )
+                ), 0)
+            result = strict_json_loads(output.read_text(), "commit diff result")
+            self.assertEqual(result["commit_sha"], "1" * 40)
+            self.assertEqual(result["parent_sha"], "2" * 40)
+
+    def test_extra_staged_path_is_refused_before_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".git").mkdir()
+            output = root / "must-not-exist.json"
+            names = sorted((*MOLS_REPOSITORY_PATHS, "public/areas/geom/other-area-dk.json"))
+            with mock.patch.dict(os.environ, {
+                "MOLS_RELEASE_INPUT_RECEIPT_B64": self.encoded,
+                "R2_ROOT_APPROVAL_HMAC_KEY": APPROVAL_KEY,
+            }, clear=True), mock.patch.object(
+                self.module, "_git_bytes",
+                return_value=("\0".join(names) + "\0").encode(),
+            ), self.assertRaises(ManifestError):
+                self.module.verify_mols_staged_diff_v2(argparse.Namespace(
+                    repo=root,
+                    expected_receipt_sha256=self.receipt["receipt_sha256"],
+                    output=output,
+                ))
+            self.assertFalse(output.exists())
+
+
+class TestScopedReconciliation(unittest.TestCase):
+    class ProcessDeath(BaseException):
+        pass
+
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        _inventory, _locals, self.manifest, self.baseline = _scoped_fixture(self.root)
+        self.approval = make_approval_assertion(
+            self.manifest,
+            operation="RELEASE",
+            key=APPROVAL_KEY,
+            authorization_nonce="scoped-reconcile-test",
+        )
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def _reconcile(
+        self,
+        journal: dict[str, Any],
+        writer: ScopedFakeWriter,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return reconcile_scoped_release_write_ahead(
+            journal,
+            self.manifest,
+            writer,
+            approval_assertion=self.approval,
+            approval_key=APPROVAL_KEY,
+            **kwargs,
+        )
+
+    def test_process_death_after_forward_success_resumes_once_and_repeat_is_idempotent(self) -> None:
+        checkpoints: list[dict[str, Any]] = []
+        parent = self
+
+        class CrashAfterForward(ScopedFakeWriter):
+            crashed = False
+
+            def put_conditional(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+                result = super().put_conditional(*args, **kwargs)
+                if not self.crashed:
+                    self.crashed = True
+                    raise parent.ProcessDeath("after forward provider success")
+                return result
+
+        writer = CrashAfterForward(self.root, self.manifest, self.baseline)
+        with self.assertRaises(self.ProcessDeath):
+            _execute_scoped(
+                self.manifest, writer,
+                approval_assertion=self.approval,
+                checkpoint=lambda document: checkpoints.append(copy.deepcopy(document)),
+            )
+        journal = checkpoints[-1]
+        self.assertEqual(journal["checkpoint_kind"], "WRITE_AHEAD")
+        self.assertEqual(journal["pending_effect"]["phase"], "FORWARD")
+        terminal = self._reconcile(journal, writer)
+        self.assertEqual(terminal["terminal_state"], "COMPLETE_SUCCESS")
+        self.assertEqual(terminal["reconciliation"]["observation_state"], "EFFECT_OBSERVED")
+        self.assertTrue(terminal["reconciliation"]["resumed"])
+        self.assertEqual(writer.forward_calls, list(MOLS_FORWARD_KEYS))
+        calls_before_repeat = (
+            list(writer.forward_calls), list(writer.rollback_calls)
+        )
+        repeated = self._reconcile(terminal, writer)
+        self.assertEqual(repeated, terminal)
+        self.assertEqual(
+            (writer.forward_calls, writer.rollback_calls), calls_before_repeat
+        )
+
+    def test_timeout_after_forward_effect_reconciles_without_replay(self) -> None:
+        class TimeoutAfterEffect(ScopedFakeWriter):
+            timed_out = False
+
+            def put_conditional(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+                result = super().put_conditional(*args, **kwargs)
+                if not self.timed_out:
+                    self.timed_out = True
+                    raise RuntimeError("simulated timeout after committed effect")
+                return result
+
+        writer = TimeoutAfterEffect(self.root, self.manifest, self.baseline)
+        terminal_pending = _execute_scoped(
+            self.manifest, writer, approval_assertion=self.approval
+        )
+        self.assertEqual(terminal_pending["terminal_state"], "INDETERMINATE")
+        self.assertEqual(terminal_pending["checkpoint_kind"], "TERMINAL")
+        self.assertIsNotNone(terminal_pending["pending_effect"])
+        reconciled = self._reconcile(terminal_pending, writer)
+        self.assertEqual(reconciled["terminal_state"], "COMPLETE_SUCCESS")
+        self.assertEqual(writer.forward_calls, list(MOLS_FORWARD_KEYS))
+
+    def test_process_death_after_rollback_success_resumes_once_and_repeat_is_idempotent(self) -> None:
+        checkpoints: list[dict[str, Any]] = []
+        parent = self
+
+        class CrashAfterRollback(ScopedFakeWriter):
+            crashed = False
+
+            def rollback_put_conditional(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+                result = super().rollback_put_conditional(*args, **kwargs)
+                if not self.crashed:
+                    self.crashed = True
+                    raise parent.ProcessDeath("after rollback provider success")
+                return result
+
+        writer = CrashAfterRollback(self.root, self.manifest, self.baseline)
+        boundary = "AFTER_WRITE:2:index.json"
+        with self.assertRaises(self.ProcessDeath):
+            _execute_scoped(
+                self.manifest, writer,
+                approval_assertion=self.approval,
+                state_probe=lambda value: value != boundary,
+                checkpoint=lambda document: checkpoints.append(copy.deepcopy(document)),
+            )
+        journal = checkpoints[-1]
+        self.assertEqual(journal["pending_effect"]["phase"], "ROLLBACK")
+        self.assertEqual(journal["pending_effect"]["operation"], "RESTORE_IF_MATCH")
+        terminal = self._reconcile(journal, writer)
+        self.assertEqual(terminal["terminal_state"], "ROLLED_BACK")
+        self.assertEqual(
+            writer.rollback_calls,
+            [
+                ("RESTORE_IF_MATCH", "index.json"),
+                ("DELETE_CREATED_AFTER_EXACT_PROOF", MOLS_OBJECT_KEYS[1]),
+                ("DELETE_CREATED_AFTER_EXACT_PROOF", MOLS_OBJECT_KEYS[0]),
+            ],
+        )
+        repeated = self._reconcile(terminal, writer)
+        self.assertEqual(repeated, terminal)
+        self.assertEqual(len(writer.rollback_calls), 3)
+
+    def test_unobserved_pending_delete_halts_for_operator_without_retry(self) -> None:
+        checkpoints: list[dict[str, Any]] = []
+        parent = self
+
+        class CrashBeforeDelete(ScopedFakeWriter):
+            def rollback_delete_created(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+                raise parent.ProcessDeath("before delete provider call")
+
+        writer = CrashBeforeDelete(self.root, self.manifest, self.baseline)
+        boundary = "AFTER_WRITE:2:index.json"
+        with self.assertRaises(self.ProcessDeath):
+            _execute_scoped(
+                self.manifest, writer,
+                approval_assertion=self.approval,
+                state_probe=lambda value: value != boundary,
+                checkpoint=lambda document: checkpoints.append(copy.deepcopy(document)),
+            )
+        journal = checkpoints[-1]
+        self.assertEqual(journal["pending_effect"]["operation"], "DELETE_CREATED_AFTER_EXACT_PROOF")
+        rollback_calls = list(writer.rollback_calls)
+        terminal = self._reconcile(journal, writer)
+        self.assertEqual(terminal["terminal_state"], "INDETERMINATE")
+        self.assertEqual(terminal["error_boundary"], "RECONCILED_OPERATOR_REVIEW")
+        self.assertEqual(
+            terminal["reconciliation"]["observation_state"],
+            "EFFECT_NOT_OBSERVED",
+        )
+        self.assertFalse(terminal["reconciliation"]["resumed"])
+        self.assertEqual(writer.rollback_calls, rollback_calls)
+        self.assertEqual(self._reconcile(terminal, writer), terminal)
 
 
 class TestMolsProviderAdapter(unittest.TestCase):
@@ -1088,6 +1641,8 @@ class TestMolsProviderAdapter(unittest.TestCase):
             endpoint_url=ENDPOINT_URL,
             account_id=ACCOUNT_ID,
             manifest_root=self.root,
+            aws_cli_version=AWS_CLI_VERSION,
+            aws_cli_archive_sha256=AWS_CLI_ARCHIVE_SHA256,
         )
         self.adapter._active_source_sha = COMMIT
         self.adapter._active_manifest_sha256 = self.manifest["manifest_sha256"]
@@ -1101,7 +1656,7 @@ class TestMolsProviderAdapter(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp.cleanup()
 
-    def _postimage(self, key: str, version: str = "forward-version-test") -> tuple[bytes, dict[str, Any]]:
+    def _postimage(self, key: str) -> tuple[bytes, dict[str, Any]]:
         row = next(row for row in self.manifest["objects"] if row["key"] == key)
         payload = (self.root / row["local_path"]).read_bytes()
         return payload, {
@@ -1109,7 +1664,6 @@ class TestMolsProviderAdapter(unittest.TestCase):
             "etag": hashlib.md5(payload, usedforsecurity=False).hexdigest(),
             "bytes": len(payload),
             "sha256": hashlib.sha256(payload).hexdigest(),
-            "version_id": version,
             "transaction_id": "forward-provider-result",
             "attempt_id": "forward-attempt",
         }
@@ -1126,7 +1680,6 @@ class TestMolsProviderAdapter(unittest.TestCase):
         document: dict[str, Any] = {
             "ETag": '"' + identity["etag"] + '"',
             "ContentLength": identity["bytes"],
-            "VersionId": identity["version_id"],
         }
         if checksum:
             document["ChecksumSHA256"] = identity["sha256"]
@@ -1137,8 +1690,24 @@ class TestMolsProviderAdapter(unittest.TestCase):
     def _delete_row(self) -> dict[str, Any]:
         return next(
             row for row in self.preflight["rollback_manifest"]["objects"]
-            if row["rollback_operation"] == "DELETE_CREATED_IF_MATCH"
+            if row["rollback_operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF"
         )
+
+    def test_tool_attestation_checks_active_version_and_archive_pin(self) -> None:
+        good = subprocess.CompletedProcess(
+            ["aws", "--version"], 0,
+            stdout="", stderr="aws-cli/2.39.1 Python/3.13 Linux/x86_64\n",
+        )
+        with mock.patch.object(self.module.subprocess, "run", return_value=good):
+            attestation = self.adapter.tool_attestation()
+        self.assertEqual(attestation["version"], AWS_CLI_VERSION)
+        self.assertEqual(attestation["archive_sha256"], AWS_CLI_ARCHIVE_SHA256)
+        bad = subprocess.CompletedProcess(
+            ["aws", "--version"], 0,
+            stdout="aws-cli/2.39.0 Python/3.13 Linux/x86_64\n", stderr="",
+        )
+        with mock.patch.object(self.module.subprocess, "run", return_value=bad), self.assertRaises(ManifestError):
+            self.adapter.tool_attestation()
 
     def test_real_preflight_freezes_index_baseline_and_standalone_rollback_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -1148,6 +1717,8 @@ class TestMolsProviderAdapter(unittest.TestCase):
                 endpoint_url=ENDPOINT_URL,
                 account_id=ACCOUNT_ID,
                 manifest_root=root,
+                aws_cli_version=AWS_CLI_VERSION,
+                aws_cli_archive_sha256=AWS_CLI_ARCHIVE_SHA256,
             )
             identities = {
                 row["key"]: copy.deepcopy(row["remote_preimage"])
@@ -1162,7 +1733,6 @@ class TestMolsProviderAdapter(unittest.TestCase):
                 key: str,
                 *,
                 etag: str,
-                version_id: str,
                 output: Path,
                 context: str,
             ) -> dict[str, Any]:
@@ -1200,7 +1770,6 @@ class TestMolsProviderAdapter(unittest.TestCase):
             "etag": row["md5"],
             "bytes": row["bytes"],
             "sha256": row["sha256"],
-            "version_id": "created-mols-version",
         }
         head_count = 0
         commands: list[list[str]] = []
@@ -1222,8 +1791,7 @@ class TestMolsProviderAdapter(unittest.TestCase):
                 request_metadata = json.loads(command[command.index("--metadata") + 1])
                 return self._completed(command, stdout=json.dumps({
                     "ETag": '"' + written["etag"] + '"',
-                    "ChecksumSHA256": written["sha256"],
-                    "VersionId": written["version_id"],
+                    "UnexpectedFutureField": {"ignored": True},
                 }))
             if operation == "get-object":
                 Path(command[-1]).write_bytes(payload)
@@ -1249,15 +1817,50 @@ class TestMolsProviderAdapter(unittest.TestCase):
         self.assertEqual(
             request_metadata["trekdex-preimage-ref"], canonical_sha256({"state": "ABSENT"})
         )
-        self.assertEqual(result["version_id"], written["version_id"])
+        self.assertEqual(result["sha256"], written["sha256"])
+
+    def test_put_response_variants_fail_closed_without_schema_assumptions(self) -> None:
+        row = self.manifest["objects"][0]
+        preflight_row = self.preflight["release_preflight"]["rows"][0]
+        cases = (
+            ("missing-etag", 0, "{}", "", ManifestError),
+            ("precondition", 1, "", "An error occurred (412): PreconditionFailed", ConditionalRequestRefused),
+            ("not-found", 1, "", "An error occurred (404): Not Found", ManifestError),
+            ("server", 1, "", "An error occurred (500): InternalError", ManifestError),
+        )
+        for name, code, stdout, stderr, expected_error in cases:
+            operations: list[str] = []
+
+            def run(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+                operation = command[2]
+                operations.append(operation)
+                if operation == "head-object":
+                    return self._completed(command, code=1, stderr="404 Not Found")
+                if operation == "put-object":
+                    return self._completed(
+                        command, code=code, stdout=stdout, stderr=stderr
+                    )
+                raise AssertionError(command)
+
+            with self.subTest(case=name), mock.patch.object(
+                self.module.subprocess, "run", side_effect=run
+            ):
+                with self.assertRaises(expected_error):
+                    self.adapter.put_conditional(
+                        row,
+                        attempt_id=f"variant-{name}",
+                        preflight_row=preflight_row,
+                        preflight_sha256=self.preflight["release_preflight"]["preflight_sha256"],
+                    )
+                self.assertEqual(operations, ["head-object", "put-object"])
 
     def test_forward_existing_index_uses_if_match_and_full_preimage_binding(self) -> None:
         row = next(row for row in self.manifest["objects"] if row["key"] == "index.json")
         self.assertEqual(row["conditional_mode"], "IF_MATCH")
         payload = (self.root / row["local_path"]).read_bytes()
+        get_payloads = [self.baseline["index.json"], payload]
         written = {
             "etag": row["md5"], "bytes": row["bytes"], "sha256": row["sha256"],
-            "version_id": "published-index-version",
         }
         head_count = 0
         commands: list[list[str]] = []
@@ -1270,8 +1873,9 @@ class TestMolsProviderAdapter(unittest.TestCase):
             if operation == "head-object":
                 head_count += 1
                 if head_count == 1:
-                    baseline = row["remote_preimage"]
-                    return self._completed(command, stdout=self._head_json(baseline))
+                    return self._completed(
+                        command, stdout=self._head_json(row["remote_preimage"])
+                    )
                 return self._completed(
                     command, stdout=self._head_json(written, metadata=request_metadata)
                 )
@@ -1279,11 +1883,10 @@ class TestMolsProviderAdapter(unittest.TestCase):
                 request_metadata = json.loads(command[command.index("--metadata") + 1])
                 return self._completed(command, stdout=json.dumps({
                     "ETag": '"' + written["etag"] + '"',
-                    "ChecksumSHA256": written["sha256"],
-                    "VersionId": written["version_id"],
+                    "UnexpectedFutureField": {"ignored": True},
                 }))
             if operation == "get-object":
-                Path(command[-1]).write_bytes(payload)
+                Path(command[-1]).write_bytes(get_payloads.pop(0))
                 return self._completed(command)
             raise AssertionError(command)
 
@@ -1343,10 +1946,14 @@ class TestMolsProviderAdapter(unittest.TestCase):
         self.assertEqual(len(deletes), 1)
         delete = deletes[0]
         self.assertEqual(delete[delete.index("--key") + 1], row["key"])
-        self.assertEqual(delete[delete.index("--if-match") + 1], postimage["etag"])
-        self.assertEqual(delete[delete.index("--version-id") + 1], postimage["version_id"])
-        self.assertNotIn("delete-objects", delete)
-        self.assertNotIn("*", delete)
+        self.assertEqual(
+            delete,
+            [
+                "aws", "s3api", "delete-object", "--bucket", BUCKET,
+                "--key", row["key"], "--endpoint-url", ENDPOINT_URL,
+                "--output", "json",
+            ],
+        )
         self.assertTrue(result["verified_absent"])
 
     def test_forged_rollback_row_or_preflight_digest_has_zero_provider_calls(self) -> None:
@@ -1472,13 +2079,12 @@ class TestMolsProviderAdapter(unittest.TestCase):
             row for row in self.preflight["rollback_manifest"]["objects"]
             if row["key"] == "index.json"
         )
-        candidate, postimage = self._postimage("index.json", version="published-index-version")
+        candidate, postimage = self._postimage("index.json")
         baseline = (self.root / row["baseline_object"]["local_path"]).read_bytes()
         restored = {
             "etag": row["baseline_preimage"]["etag"],
             "bytes": len(baseline),
             "sha256": hashlib.sha256(baseline).hexdigest(),
-            "version_id": "restored-index-version",
         }
         attempt_id = "rollback-index-if-match"
         metadata = {
@@ -1487,7 +2093,7 @@ class TestMolsProviderAdapter(unittest.TestCase):
             "trekdex-manifest-sha256": self.manifest["manifest_sha256"],
             "trekdex-attempt-id": attempt_id,
             "trekdex-preimage-ref": canonical_sha256({
-                field: postimage[field] for field in ("etag", "bytes", "sha256", "version_id")
+                field: postimage[field] for field in ("etag", "bytes", "sha256")
             }),
             "trekdex-condition-mode": "IF_MATCH",
         }
@@ -1509,8 +2115,6 @@ class TestMolsProviderAdapter(unittest.TestCase):
             if operation == "put-object":
                 return self._completed(command, stdout=json.dumps({
                     "ETag": '"' + restored["etag"] + '"',
-                    "ChecksumSHA256": restored["sha256"],
-                    "VersionId": restored["version_id"],
                 }))
             raise AssertionError(command)
 
@@ -1782,7 +2386,7 @@ class TestInventoryContract(unittest.TestCase):
             "terminal-token": PageSource({None: page([remote(key) for key in GLOBAL_OBJECTS], next_token="unexpected")}),
             "key-count-mismatch": PageSource({None: {**page([remote(key) for key in GLOBAL_OBJECTS]), "KeyCount": 99}}),
             "duplicate-object": PageSource({None: page([remote(key) for key in GLOBAL_OBJECTS] + [remote(GLOBAL_OBJECTS[0])])}),
-            "malformed-preimage": PageSource({None: page([{**remote(GLOBAL_OBJECTS[0]), "ETag": "bad"}] + [remote(key) for key in GLOBAL_OBJECTS[1:]])}),
+            "malformed-preimage": PageSource({None: page([{**remote(GLOBAL_OBJECTS[0]), "ETag": "bad etag"}] + [remote(key) for key in GLOBAL_OBJECTS[1:]])}),
             "missing-protected-key": PageSource({None: page([remote(key) for key in GLOBAL_OBJECTS[:-1]])}),
             "extra-unknown-key": PageSource({None: page([remote(key) for key in GLOBAL_OBJECTS] + [remote("future-global.json")])}),
         }
@@ -2282,7 +2886,6 @@ class TestQuarantine(unittest.TestCase):
                 {field: copied[field] for field in ("etag", "bytes", "sha256")},
                 {field: row["source_preimage"][field] for field in ("etag", "bytes", "sha256")},
             )
-            self.assertNotEqual(copied["version_id"], row["source_preimage"]["version_id"])
         self.assertTrue(all(row["quarantine_preimage"] for row in receipt["objects"]))
         self.assertEqual({key: store.objects[key] for key in GLOBAL_OBJECTS}, before_globals)
         self.assertFalse(any(call[0] == "FINAL_DELETE" for call in store.calls))
@@ -2324,7 +2927,7 @@ class TestQuarantine(unittest.TestCase):
                 store.fault = scenario
             elif scenario == "collision":
                 destination = self.plan["objects"][0]["quarantine_key"]
-                store.objects[destination] = {"etag": "collision", "bytes": 1, "sha256": SHA, "version_id": "collision"}
+                store.objects[destination] = {"etag": "collision", "bytes": 1, "sha256": SHA}
             elif scenario == "stale":
                 store.objects[self.plan["objects"][0]["source_key"]]["etag"] = etag("stale")
             elif scenario == "changed_protected":
@@ -2338,7 +2941,7 @@ class TestQuarantine(unittest.TestCase):
                 self.assertFalse(receipt["final_deletion_authorized"])
                 self.assertFalse(any(call[0] == "FINAL_DELETE" for call in store.calls))
                 if scenario == "changed_protected":
-                    self.assertFalse(any(call[0] in {"copy_no_clobber", "remove_if_match"} for call in store.calls))
+                    self.assertFalse(any(call[0] in {"copy_no_clobber", "remove_after_exact_proof"} for call in store.calls))
 
     def test_partial_batch_is_indeterminate_and_repeat_never_clobbers(self) -> None:
         class SecondCopyFault(FakeStore):
@@ -2423,7 +3026,8 @@ class TestRound29Corrections(unittest.TestCase):
         self.assertNotIn('metadata.get("sha256")', stage_source)
         self.assertNotIn('metadata.get("sha256")', cleanup_source)
         self.assertIn('"get-object"', stage_source)
-        self.assertIn('"--version-id"', cleanup_source)
+        self.assertIn('"get-object"', cleanup_source)
+        self.assertNotIn('"--version-' + 'id"', cleanup_source)
 
     def test_release_hard_crash_leaves_exact_write_ahead_and_reconciles_without_retry(self) -> None:
         journals: list[dict[str, Any]] = []
@@ -2500,7 +3104,7 @@ class TestRound29Corrections(unittest.TestCase):
             module.stage_v2(args)
         self.assertFalse(stage_root.exists())
 
-    def test_quarantine_malformed_result_is_typed_and_full_version_race_preserves_newer(self) -> None:
+    def test_quarantine_malformed_result_is_typed_and_current_object_race_preserves_newer(self) -> None:
         keys = [*GLOBAL_OBJECTS, "kept-area-az.json", "orphan-area-az.json"]
         inventory = receipt_for(keys)
         plan = build_quarantine_plan(
@@ -2516,29 +3120,30 @@ class TestRound29Corrections(unittest.TestCase):
                     source, destination, source_preimage=source_preimage,
                     attempt_id=attempt_id,
                 )
-                return {"transaction_id": None, "version_id": None, "attempt_id": attempt_id}
+                return {"transaction_id": None, "attempt_id": attempt_id}
 
         malformed = execute_quarantine(plan, MalformedStore(preimages))
         self.assertEqual(malformed["terminal_state"], TerminalState.INDETERMINATE.value)
         validate_quarantine_receipt(malformed, plan)
 
-        class NewerVersionStore(FakeStore):
+        class NewerCurrentStore(FakeStore):
             def copy_no_clobber(self, source: str, destination: str, *, source_preimage: dict[str, Any], attempt_id: str) -> dict[str, Any]:
                 result = super().copy_no_clobber(
                     source, destination, source_preimage=source_preimage,
                     attempt_id=attempt_id,
                 )
                 newer = copy.deepcopy(self.objects[source])
-                newer["version_id"] = "newer-current-version"
+                newer["etag"] = etag("newer-current")
+                newer["bytes"] += 1
                 newer["sha256"] = "d" * 64
                 self.objects[source] = newer
                 return result
 
-        raced_store = NewerVersionStore(preimages)
+        raced_store = NewerCurrentStore(preimages)
         raced = execute_quarantine(plan, raced_store)
         self.assertEqual(raced["terminal_state"], TerminalState.INDETERMINATE.value)
-        self.assertEqual(raced_store.objects["orphan-area-az.json"]["version_id"], "newer-current-version")
-        self.assertFalse(any(call[0] == "remove_if_match" for call in raced_store.calls))
+        self.assertEqual(raced_store.objects["orphan-area-az.json"]["sha256"], "d" * 64)
+        self.assertFalse(any(call[0] == "remove_after_exact_proof" for call in raced_store.calls))
 
     def test_quarantine_hard_crash_journal_precedes_copy(self) -> None:
         keys = [*GLOBAL_OBJECTS, "kept-area-az.json", "orphan-area-az.json"]
@@ -2563,7 +3168,7 @@ class TestRound29Corrections(unittest.TestCase):
             )
         journal = journals[-1]
         self.assertEqual(journal["checkpoint_kind"], "WRITE_AHEAD")
-        self.assertEqual(journal["pending_effect"]["operation"], "COPY_EXACT_VERSION")
+        self.assertEqual(journal["pending_effect"]["operation"], "COPY_IF_MATCH")
         validate_quarantine_receipt(journal, plan)
 
 
@@ -2783,6 +3388,7 @@ class TestRepositoryWiring(unittest.TestCase):
         ".github/workflows/cleanup-r2-orphans.yml",
         ".github/workflows/trailforge-publish-us.yml",
         ".github/workflows/release-contracts-ci.yml",
+        ".github/workflows/trailforge-publish.yml",
         "scripts/stage-changed-r2.py",
         "scripts/cleanup-r2-orphans.py",
         "scripts/r2_release_contract.py",
@@ -2814,6 +3420,7 @@ class TestRepositoryWiring(unittest.TestCase):
                 ".github/workflows/cleanup-r2-orphans.yml": "approved_quarantine_plan_sha256",
                 ".github/workflows/trailforge-publish-us.yml": "trailforge_candidate_contract.py",
                 ".github/workflows/release-contracts-ci.yml": "scripts/test_trailforge_candidate_contract.py",
+                ".github/workflows/trailforge-publish.yml": "mols_release_input_receipt_b64",
                 "scripts/stage-changed-r2.py": "r2_release_contract",
                 "scripts/cleanup-r2-orphans.py": "r2_release_contract",
                 "scripts/r2_release_contract.py": "trekdex-r2-release-contract-v4",
@@ -2968,7 +3575,7 @@ class TestRepositoryWiring(unittest.TestCase):
         stage = files["scripts/stage-changed-r2.py"]
         for marker in (
             "_derive_producer_population(args, inventory)",
-            "apply-time producer population differs from reviewed bytes",
+            "producer population differs from reviewed bytes",
             "class MolsConditionalWriter",
             "execute_scoped_release",
             "rollback_delete_created",
@@ -2993,9 +3600,10 @@ class TestRepositoryWiring(unittest.TestCase):
         self.assertEqual(_workflow_mapping_keys(sync, ("on",)), ["workflow_dispatch"])
         sync_inputs = set(_workflow_mapping_keys(sync, ("on", "workflow_dispatch", "inputs")))
         self.assertEqual(sync_inputs, {
-            "source_sha", "source_tree", "publication_area_id", "root_approval_ref",
+            "source_sha", "source_tree", "root_approval_ref",
             "account_identity_ref", "endpoint_identity_ref", "inventory_anchor_ref",
             "authoritative_denominator", "plan_only", "approved_manifest_sha256",
+            "reconcile_run_id",
         })
         dispatch_match = re.search(
             r"gh workflow run sync-geom-to-r2\.yml --ref main \\\n(?P<body>(?:\s+-f [^\n]+\\?\n?)+)",
@@ -3004,7 +3612,10 @@ class TestRepositoryWiring(unittest.TestCase):
         self.assertIsNotNone(dispatch_match)
         body = dispatch_match.group("body")
         passed = set(re.findall(r"-f ([a-z_]+)=", body))
-        self.assertEqual(passed, sync_inputs - {"approved_manifest_sha256"})
+        self.assertEqual(
+            passed,
+            sync_inputs - {"approved_manifest_sha256", "reconcile_run_id"},
+        )
         self.assertIn('-f plan_only=true', body)
         self.assertNotIn("approved_manifest_sha256", body)
         self.assertIn('test "$GITHUB_REF_TYPE" = "branch"', publish)
@@ -3014,8 +3625,31 @@ class TestRepositoryWiring(unittest.TestCase):
         self.assertIn('source_sha=$SOURCE_SHA', publish)
         self.assertIn('source_tree=$SOURCE_TREE', publish)
         self.assertIn("PUBLISHED: ${{ steps.published_commit.outputs.published }}", publish)
-        self.assertIn('if [ "$PUBLISHED" != "true" ]', publish)
+        self.assertIn('if [ "$PUBLISHED" != "true" ] || [ "$RELEASE_MODE" != "mols" ]', publish)
+        for output in (
+            "root_approval_ref", "account_identity_ref", "endpoint_identity_ref",
+            "inventory_anchor_ref", "authoritative_denominator",
+        ):
+            self.assertIn(f"steps.release_input.outputs.{output}", publish)
+            self.assertNotIn(f"${{{{ inputs.{output} }}}}", publish)
+        verify_offset = publish.index("verify-release-input")
+        install_offset = publish.index("Install osmium")
+        commit_offset = publish.index("git commit -m")
+        push_offset = publish.index("            git push\n          else")
+        guard_offset = publish.index("verify-mols-staged-diff")
+        commit_guard_offset = publish.index("verify-mols-commit")
+        self.assertLess(verify_offset, install_offset)
+        self.assertLess(guard_offset, commit_offset)
+        self.assertLess(commit_offset, commit_guard_offset)
+        self.assertLess(commit_guard_offset, push_offset)
+        self.assertIn('test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD^)"', publish)
+        self.assertIn('--only-area "$VERIFIED_AREA_ID"', publish)
         self.assertIn("separate reviewed", publish)
+        self.assertIn('AWS_CLI_VERSION: "2.39.1"', sync)
+        self.assertIn("5b6c10e0a8ccdcf30c84bd643fea511f103d257a4787a7cef878691d63169804", sync)
+        self.assertIn("sha256sum --check --strict", sync)
+        self.assertIn("reconcile-scoped", sync)
+        self.assertEqual(_workflow_scalar(sync, ("concurrency", "group")), "sync-geom-to-r2")
         self.assertNotRegex(publish, r"(?m)^\s*push:\s*$")
         self.assertNotRegex(sync, r"(?m)^\s*push:\s*$")
         self.assertNotRegex(publish, r"(?m)^\s*pull_request:\s*$")
@@ -3027,19 +3661,18 @@ class TestRepositoryWiring(unittest.TestCase):
             path.name: path.read_text()
             for path in sorted(workflow_root.glob("*.yml"))
         }
-        credential_tokens = (
+        write_credential_tokens = (
             "secrets.R2_ACCESS_KEY_ID", "secrets.R2_SECRET_ACCESS_KEY",
-            "R2_ROOT_APPROVAL_ASSERTION_JSON", "R2_ROOT_APPROVAL_HMAC_KEY",
         )
-        credential_holders = {
+        write_credential_holders = {
             name for name, text in workflows.items()
-            if any(token in text for token in credential_tokens)
+            if any(token in text for token in write_credential_tokens)
         }
         self.assertEqual(
-            credential_holders,
+            write_credential_holders,
             {"sync-geom-to-r2.yml", "cleanup-r2-orphans.yml"},
         )
-        for name in sorted(credential_holders):
+        for name in sorted(write_credential_holders):
             with self.subTest(workflow=name):
                 self.assertEqual(
                     _workflow_scalar(workflows[name], ("concurrency", "group")),
@@ -3055,7 +3688,10 @@ class TestRepositoryWiring(unittest.TestCase):
             if path.name.startswith("test_"):
                 continue
             text = path.read_text()
-            if re.search(r'"(?:put|copy|delete)-object"', text):
+            if re.search(
+                r'"aws"\s*,\s*"s3api"\s*,\s*"(?:put|copy|delete)-object"',
+                text,
+            ):
                 direct_writers.add(path.name)
         self.assertEqual(
             direct_writers,
@@ -3076,17 +3712,51 @@ class TestRepositoryWiring(unittest.TestCase):
         for name in sorted(dispatchers):
             text = workflows[name]
             with self.subTest(dispatcher=name):
-                self.assertFalse(any(token in text for token in credential_tokens))
+                self.assertFalse(any(token in text for token in write_credential_tokens))
                 self.assertNotRegex(text, r'"(?:put|copy|delete)-object"')
 
+    def test_r2_paths_are_version_free_and_deletes_are_plain_single_key(self) -> None:
+        paths = (
+            "scripts/r2_release_contract.py",
+            "scripts/stage-changed-r2.py",
+            "scripts/cleanup-r2-orphans.py",
+            ".github/workflows/sync-geom-to-r2.yml",
+        )
+        combined = "\n".join((ROOT / path).read_text() for path in paths)
+        for token in (
+            "Version" + "Id", "version_" + "id",
+            "version-" + "id", "?version" + "Id",
+        ):
+            self.assertNotIn(token, combined)
+        stage = (ROOT / "scripts/stage-changed-r2.py").read_text()
+        delete_commands = re.findall(
+            r'\[\s*"aws",\s*"s3api",\s*"delete-object"(?P<body>.*?)\]',
+            stage,
+            re.S,
+        )
+        self.assertEqual(len(delete_commands), 1)
+        self.assertNotIn('"--if-match"', delete_commands[0])
+        self.assertNotIn('"delete-objects"', delete_commands[0])
+        cleanup = (ROOT / "scripts/cleanup-r2-orphans.py").read_text()
+        self.assertNotRegex(
+            cleanup,
+            r'"aws"\s*,\s*"s3api"\s*,\s*"delete-object"',
+        )
+        self.assertIn("quarantine source removal is disabled", cleanup)
+
     def test_python_and_workflow_syntax_is_offline(self) -> None:
-        for path in self.LEASED[4:]:
-            completed = subprocess.run([sys.executable, "-m", "py_compile", str(ROOT / path)], capture_output=True, text=True)
+        for path in (item for item in self.LEASED if item.endswith(".py")):
+            completed = subprocess.run(
+                [sys.executable, "-m", "py_compile", str(ROOT / path)],
+                env=MINIMAL_SUBPROCESS_ENV,
+                capture_output=True,
+                text=True,
+            )
             with self.subTest(path=path):
                 self.assertEqual(completed.returncode, 0, completed.stderr)
         # GitHub expressions make generic YAML parsers unreliable; assert the
         # structural contract with a deterministic indentation/keys scan.
-        for path in self.LEASED[:4]:
+        for path in (item for item in self.LEASED if item.endswith((".yml", ".yaml"))):
             text = (ROOT / path).read_text()
             self.assertRegex(text, r"(?m)^name: .+")
             self.assertRegex(text, r"(?m)^on:\s*$")
@@ -3095,5 +3765,5 @@ class TestRepositoryWiring(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print("R2 campaign: classification_hostile=21 classification_random=10000 quarantine_encoding=59704 inventory_faults=25 manifest_mutations=15 release_receipt_mutations=8 release_boundaries=20 provider_faults=26 quarantine_faults=8 quarantine_receipt_mutations=8 scoped_mols=16 provider_adapter=9 wiring=37 replay=100 consumer_smokes=5")
+    print("R2 campaign: classification_hostile=21 classification_random=10000 quarantine_encoding=59704 inventory_faults=25 manifest_mutations=15 release_receipt_mutations=8 release_boundaries=20 provider_faults=26 quarantine_faults=8 quarantine_receipt_mutations=8 scoped_mols=16 provider_adapter=11 release_input=7 scoped_reconciliation=4 wiring=38 replay=100 consumer_smokes=5")
     unittest.main(verbosity=2)

@@ -1,52 +1,103 @@
 # Mols Bjerge R2 publication contract
 
-This path publishes only `nationalpark-mols-bjerge-dk`. Both workflows remain manual-only (`workflow_dispatch`), and `trailforge-publish.yml` remains `dry_run: true` by default.
+This path publishes only `nationalpark-mols-bjerge-dk`. Both workflows remain manual-only (`workflow_dispatch`). `trailforge-publish.yml` remains `dry_run: true` by default, and its ordinary US state path is unchanged when no Mols release receipt is supplied.
 
-## Reviewed plan, then apply
+## Signed input gate before publication effects
 
-A non-dry-run Trailforge publication seals the exact commit produced after any rebase and successful normal push. It records the full commit SHA and tree and dispatches `sync-geom-to-r2.yml` with the complete required input set. That chained dispatch always passes `plan_only=true`; it cannot write R2 and does not accept an approved manifest hash.
+A Mols publication supplies one canonical base64-encoded `trekdex-mols-release-input-approval-v1` receipt. The receipt is HMAC-verified with the existing root approval verification key before package installation, downloads, generation, commit, or push. It binds this exact tuple:
 
-The plan run checks out the named commit detached, verifies its tree, obtains the complete reviewed inventory, constructs all four global producer bytes, and emits the canonical upload manifest. The scoped contract compares every producer with the inventory and refuses the plan if any changed key falls outside:
+- extract: `europe/denmark`
+- state: `Denmark`
+- region code: `dk`
+- area ID: `nationalpark-mols-bjerge-dk`
+- area name: `Nationalpark Mols Bjerge`
+- OSM relation: `7046785`
+- bbox: `10.40,56.08,10.90,56.35`
+- reviewed root approval, provider-account, provider-endpoint, and inventory-anchor references
+- reviewed authoritative object denominator
+- exact workflow source commit and tree
+- reviewed one-row center: latitude `56.2`, longitude `10.6`
+
+The source binding prevents replay after the workflow code or main tree changes. The verifier also requires `dry_run=false`, `no_routes=false`, `touch_report=false`, `elevation=false`, and no read-only pilot selector. Denmark publication without this receipt fails before publication work. Ordinary non-Denmark dispatches with a blank receipt retain the existing state-wide behavior.
+
+The verifier emits safe fields as step outputs. The chained sync dispatch consumes only those verified outputs plus the commit step's exact pushed SHA and tree. No release reference is copied directly from a free-form workflow input.
+
+## Exact repository effect
+
+Verified Mols mode materializes a runner-local one-row index directly from the signed receipt and passes that file plus `--only-area nationalpark-mols-bjerge-dk` to the state publisher. The publisher must return that same row with positive trail count and mileage. A guarded merge inserts or replaces only that row in `public/areas/index.json`, without changing or reordering any other row. Generic US mode keeps using the canonical state-wide index and receives no exact-area selector.
+
+After generation, the workflow stages its existing publication roots and then runs a second verification of the same signed receipt. Commit and push are refused unless the staged file set is exactly:
+
+- `public/areas/geom/nationalpark-mols-bjerge-dk.json`
+- `public/areas/silhouettes/nationalpark-mols-bjerge-dk.json`
+- `public/areas/index.json`
+- `ios/SouthMountainExplorer/Resources/areas-index.json`
+
+The guard parses both baseline and staged indexes in their producer's exact JSON framing. It requires one genuinely added or updated Mols row with the exact state/name/relation identity and byte-semantically identical non-Mols rows in the same order. Deletions, wildcards, prefixes, other areas, other globals, malformed geom/silhouette objects, or any extra staged path fail before commit.
+
+After a normal push, the workflow seals the resulting commit and tree. The chained `sync-geom-to-r2.yml` dispatch is always `plan_only=true`. A separate reviewed manual apply names the exact manifest SHA-256.
+
+## Byte-different R2 scope
+
+The plan run checks out the named commit detached, verifies its tree, obtains the complete reviewed inventory, constructs all producer bytes, and rejects any byte difference outside:
 
 - `nationalpark-mols-bjerge-dk.json`
 - `silhouettes/nationalpark-mols-bjerge-dk.json`
 - `index.json`
 
-Byte-identical objects, including `parking.json`, `trail-search.json`, and `trail-shapes.json`, are proven no-ops and omitted. The index preflight parses both versions and proves every row except `nationalpark-mols-bjerge-dk` is identical and remains in the same order.
+Byte-identical objects, including `parking.json`, `trail-search.json`, and `trail-shapes.json`, are proven no-ops and omitted. The app index uses exact compact producer framing, and the contract proves every non-Mols row is unchanged.
 
-A separate reviewed manual dispatch names the exact manifest SHA-256 and sets `plan_only=false`. It repeats source, inventory, producer, manifest, and approval checks. No branch name or mutable tip substitutes for the full source commit and tree.
+Forward order is geom, silhouette, then index. The two absent Mols objects use atomic `If-None-Match: *`. The index replacement uses atomic `If-Match` against its exact reviewed ETag. Each request binds the new SHA-256/bytes, source commit, approved manifest, condition mode, and full reviewed preimage reference.
 
-## Conditional forward writes
+## Provider behavior basis and pinned client
 
-The first publication creates only the two exact Mols object keys with `IF_NONE_MATCH`. It replaces the canonical index only with `IF_MATCH` against the reviewed ETag after preflight verifies the complete ETag, version, byte count, and SHA-256 tuple. Each request carries the new byte identity, source commit, approved manifest hash, condition mode, and a canonical reference to the complete preimage. Provider success must include the exact expected ETag, checksum, and version, followed by exact-version HEAD and GET verification. Missing or ambiguous success evidence is indeterminate, never assumed successful.
+No conformance bucket or credential is created. The implementation uses the behavior publicly documented by Cloudflare:
 
-Forward order is geom, silhouette, then index. The new area therefore cannot become discoverable before both object bodies verify.
+- [R2 S3 API compatibility](https://developers.cloudflare.com/r2/api/s3/api/) documents `HeadObject`, conditional `GetObject`, `PutObject`, and `DeleteObject`, and explicitly states that `PutObject` conditional headers are evaluated atomically with the commit.
+- [R2 S3 extensions](https://developers.cloudflare.com/r2/api/s3/extensions/) documents atomic `If-Match` and `If-None-Match` for `PutObject`.
+- [R2 consistency model](https://developers.cloudflare.com/r2/reference/consistency/) documents strongly consistent object operations and conditional writes.
+
+R2 bucket versioning is not used. No request or receipt depends on an object-version field, and GET/DELETE requests contain no version selector.
+
+The sync workflow downloads AWS CLI `2.39.1` from the exact versioned AWS URL and verifies archive SHA-256 `5b6c10e0a8ccdcf30c84bd643fea511f103d257a4787a7cef878691d63169804` before a runner-local installation. It rechecks `aws --version` in the credentialed step. Every scoped receipt records this version and archive hash.
+
+A forward PUT counts as successful only when the provider response contains a nonempty ETag and immediate HEAD plus conditional GET under the lock proves the exact ETag, byte count, and SHA-256. Extra response members are ignored. Missing ETag, malformed JSON, 404, 5xx, 412, post-write mismatch, or timeout never becomes success. A 412 is a proven no-effect refusal; every ambiguous outcome remains pending for reconciliation.
 
 ## One shared R2 writer lock
 
-Every workflow holding R2 write credentials uses the concurrency group `sync-geom-to-r2` for its entire job:
+Every workflow holding R2 write credentials uses concurrency group `sync-geom-to-r2` for its entire job:
 
-- `.github/workflows/sync-geom-to-r2.yml`, which invokes `scripts/stage-changed-r2.py`
-- `.github/workflows/cleanup-r2-orphans.yml`, which invokes `scripts/cleanup-r2-orphans.py`
+- `.github/workflows/sync-geom-to-r2.yml`, invoking `scripts/stage-changed-r2.py`
+- `.github/workflows/cleanup-r2-orphans.yml`, invoking `scripts/cleanup-r2-orphans.py`
 
-The only production scripts containing direct `put-object`, `copy-object`, or `delete-object` operations are those two scripts. Other workflows may dispatch `sync-geom-to-r2.yml`, but hold no R2 credentials and perform no R2 object operation themselves. Offline contract tests enumerate all workflows and production scripts in both directions so a new unlocked writer fails CI.
+The only production scripts containing direct R2 put/copy/delete calls are those two scripts. The cleanup adapter has copy authority but keeps real source removal disabled pending its own separately approved documented primitive; the accepted plain-delete race is not generalized beyond the two Mols rollback keys. The state publication workflow uses only the existing approval-verification key and GitHub token; it has no R2 access key. Offline tests enumerate workflows, write credentials, command sites, and lock values in both directions.
 
 ## First-class rollback
 
-Before the first effect, preflight downloads each existing changed object by exact version and ETag. The rollback manifest binds those frozen bytes, SHA-256, MD5/ETag, byte count, version ID, source commit, approved forward manifest, exact two-key delete allowlist, and the Mols-only index delta proof.
+Before the first effect, preflight downloads every existing changed object under its exact ETag. The rollback manifest binds frozen bytes, SHA-256, MD5/ETag, byte count, source commit, approved forward manifest, exact two-key delete allowlist, and the Mols-only index transition proof.
 
-If a later forward condition is deterministically refused, known successful effects roll back in reverse order while the same job still holds the shared lock:
+Known successful effects roll back in reverse order while the same job holds the lock:
 
-1. Restore `index.json` from frozen pre-publication bytes using `IF_MATCH` against this run's exact post-publish index identity.
-2. Restore any previously existing Mols object using `IF_MATCH` against this run's exact post-write identity.
-3. For an absent baseline, delete only one of the two exact Mols keys and only when the rollback row proves this run created it.
+1. Restore `index.json` from frozen bytes using `If-Match` against this run's exact post-publish ETag.
+2. Restore a previously existing Mols object the same way.
+3. Restore an absent Mols baseline by deleting only that exact created Mols key.
 
-Immediately before either allowed delete, the adapter HEADs the exact key and requires this run's ETag, byte count, version, and SHA-256. If HEAD lacks a checksum, an exact-version conditional GET is hashed under the lock. A mismatch, absence, malformed response, or ambiguous read prevents deletion. The adapter issues at most one conditional delete for that row and then requires a 404. Wildcards, prefixes, batches, global keys, the index, and every other area are rejected by both manifest validation and the provider adapter.
+For step 3, the root-authorized Option 1 is implemented literally. Immediately before deletion, HEAD and full GET must prove ETag, byte count, and SHA-256 equal this run's upload. The adapter then issues one plain single-key `DeleteObject` for the exact manifest-derived allowlisted key and requires a subsequent HEAD 404. It never issues a wildcard, prefix, batch, global, index, or other-area delete. The accepted residual race is bounded by the shared writer lock and immediate full-byte proof.
 
-The accepted residual race is bounded by the shared writer lock and the immediate identity check. No unconditional or broad delete authority exists.
+## Crash and timeout reconciliation
 
-Final verification requires the exact baseline index bytes/hash/ETag, absence of every newly created Mols key, and the sealed proof that all non-Mols index rows were unchanged. A partial or indeterminate forward/rollback response records a write-ahead receipt and stops. It is never retried blindly; first-hand reconciliation of the pending exact key and identity is required.
+Every forward and rollback effect has a durable write-ahead journal. `reconcile-scoped` consumes the exact `trekdex-r2-scoped-release-terminal-v1` pending journal, reviewed manifest, frozen rollback files, source identity, approval, provider identity, and pinned tool identity.
+
+Under the same workflow concurrency lock it re-observes the pending key:
+
+- exact output plus this attempt's bound metadata means the effect happened;
+- 404 after a pending Mols deletion means the deletion happened;
+- an unchanged exact preimage, the created object still present after a pending deletion, a mismatch, or ambiguity causes an operator-review terminal with no retry.
+
+Only a proven completed effect allows the state machine to append its result and resume the remaining forward or rollback sequence once. A reconciliation run can retrieve the exact prior evidence artifact by `reconcile_run_id`. Repeating reconciliation with its terminal receipt returns the same receipt and performs no provider call.
+
+Final rollback verification requires exact baseline index bytes/hash/ETag, absence of every newly created Mols key, and the sealed proof that all non-Mols index rows stayed unchanged. Partial or ambiguous recovery remains `INDETERMINATE`.
 
 ## Secrets and permissions
 
-The workflows use existing R2 secret names only. They do not print or persist secret values, alter ACLs, weaken authentication, or grant recursive/bucket-wide write authority. Repository CI has no secrets and performs no provider requests.
+The workflows use existing secret names only. They never print or persist secret values, alter ACLs, weaken authentication, create credentials or buckets, or grant recursive/bucket-wide write authority. Offline CI has no secrets and performs no provider requests. This repair and its tests perform no live R2 write or non-plan workflow dispatch.

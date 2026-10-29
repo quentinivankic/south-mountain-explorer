@@ -147,7 +147,6 @@ def _aws_inventory_pager(bucket: str, endpoint_url: str) -> Callable[[str | None
                 "ETag": head.get("ETag", raw.get("ETag")),
                 "Size": head.get("ContentLength", raw.get("Size")),
                 "ChecksumSHA256": checksum,
-                "VersionId": head.get("VersionId"),
             })
         page["Contents"] = enriched
         return page
@@ -183,6 +182,419 @@ def fetch_inventory_v2(args: argparse.Namespace) -> int:
         f"canonical inventory receipt: objects={receipt['object_count']} "
         f"pages={receipt['page_count']} sha256={receipt['receipt_sha256']} "
         "anchor_state=ASSERTED_PENDING_APPROVAL"
+    )
+    return 0
+
+
+def _append_github_outputs(path: Path, values: dict[str, str]) -> None:
+    contract = _contract_module()
+    if path.is_symlink() or not path.is_file():
+        raise contract.ManifestError("GitHub output path is missing or unsafe")
+    for name, value in values.items():
+        if not re.fullmatch(r"[a-z][a-z0-9_]*", name):
+            raise contract.ManifestError("GitHub output name is invalid")
+        if not isinstance(value, str) or not value or any(char in value for char in "\r\n\0"):
+            raise contract.ManifestError(f"GitHub output {name} is invalid")
+    with path.open("a", encoding="utf-8", newline="") as stream:
+        for name, value in values.items():
+            stream.write(f"{name}={value}\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def verify_release_input_v2(args: argparse.Namespace) -> int:
+    """Verify one signed exact-Mols receipt before any publication effect."""
+    contract = _contract_module()
+    encoded = os.environ.get("MOLS_RELEASE_INPUT_RECEIPT_B64", "")
+    if not encoded:
+        if args.state == contract.MOLS_STATE or args.region_code == contract.MOLS_REGION_CODE:
+            raise contract.ManifestError(
+                "Denmark publication requires a signed Mols release-input receipt"
+            )
+        _append_github_outputs(args.github_output, {"release_mode": "generic"})
+        print("generic state publication mode: no Mols release receipt supplied")
+        return 0
+    receipt = contract.decode_mols_release_input_receipt(
+        encoded, key=os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", "")
+    )
+    expected_inputs = {
+        "extract": args.extract,
+        "state": args.state,
+        "region_code": args.region_code,
+        "bbox": args.bbox,
+        "workflow_source_sha": args.workflow_source_sha,
+        "workflow_source_tree": args.workflow_source_tree,
+    }
+    for field, actual in expected_inputs.items():
+        if actual != receipt[field]:
+            raise contract.ManifestError(
+                f"workflow input {field} differs from the signed Mols release receipt"
+            )
+    if (
+        args.dry_run != "false"
+        or args.no_routes != "false"
+        or args.touch_report != "false"
+        or args.elevation != "false"
+        or args.pilot_area_id
+    ):
+        raise contract.ManifestError(
+            "signed Mols publication requires dry_run=false, no_routes=false, "
+            "touch_report=false, elevation=false, and no read-only pilot selector"
+        )
+    publication_row = [
+        receipt["area_id"], receipt["area_name"], receipt["state"],
+        receipt["center_lat"], receipt["center_lon"], None, None,
+        receipt["osm_relation_id"],
+    ]
+    _write_contract_json(args.mols_index_output, [publication_row])
+    outputs = {
+        "release_mode": "mols",
+        "receipt_sha256": receipt["receipt_sha256"],
+        "extract": receipt["extract"],
+        "state": receipt["state"],
+        "region_code": receipt["region_code"],
+        "area_id": receipt["area_id"],
+        "area_name": receipt["area_name"],
+        "osm_relation_id": str(receipt["osm_relation_id"]),
+        "bbox": receipt["bbox"],
+        "center_lat": str(receipt["center_lat"]),
+        "center_lon": str(receipt["center_lon"]),
+        "publication_index_path": str(args.mols_index_output),
+        "root_approval_ref": receipt["root_approval_ref"],
+        "account_identity_ref": receipt["account_identity_ref"],
+        "endpoint_identity_ref": receipt["endpoint_identity_ref"],
+        "inventory_anchor_ref": receipt["inventory_anchor_ref"],
+        "authoritative_denominator": str(receipt["authoritative_denominator"]),
+        "workflow_source_sha": receipt["workflow_source_sha"],
+        "workflow_source_tree": receipt["workflow_source_tree"],
+    }
+    _append_github_outputs(args.github_output, outputs)
+    print(
+        "verified signed exact Mols release-input receipt "
+        f"sha256={receipt['receipt_sha256']}"
+    )
+    return 0
+
+
+def _write_default_json_atomic(path: Path, document: Any) -> None:
+    contract = _contract_module()
+    if path.is_symlink() or not path.is_file() or path.parent.is_symlink():
+        raise contract.ManifestError("canonical index target is missing or unsafe")
+    temporary = path.with_name(f".{path.name}.tmp")
+    if temporary.exists() or temporary.is_symlink():
+        raise contract.ManifestError("canonical index temporary path already exists")
+    payload = json.dumps(
+        document, ensure_ascii=True, allow_nan=False
+    ).encode("utf-8")
+    with temporary.open("xb") as stream:
+        stream.write(payload)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(temporary, path)
+    directory_fd = os.open(path.parent, os.O_RDONLY)
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+
+
+def merge_mols_index_v2(args: argparse.Namespace) -> int:
+    """Merge one signed, published Mols row into the canonical master index."""
+    contract = _contract_module()
+    receipt = contract.decode_mols_release_input_receipt(
+        os.environ.get("MOLS_RELEASE_INPUT_RECEIPT_B64", ""),
+        key=os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", ""),
+    )
+    if receipt["receipt_sha256"] != args.expected_receipt_sha256:
+        raise contract.ManifestError("Mols index merge uses a different release receipt")
+    source = args.source.resolve()
+    target = args.target.resolve()
+    expected_target = (Path.cwd() / "public/areas/index.json").resolve()
+    if (
+        args.source.is_symlink() or not source.is_file()
+        or args.target.is_symlink() or not target.is_file()
+        or target != expected_target
+        or source == target
+    ):
+        raise contract.ManifestError("Mols index merge paths are unsafe")
+    try:
+        source_rows = contract.strict_json_loads(
+            source.read_text(encoding="utf-8"), "published one-row Mols index"
+        )
+        target_rows = contract.strict_json_loads(
+            target.read_text(encoding="utf-8"), "canonical master index"
+        )
+    except contract.InventoryError as error:
+        raise contract.ManifestError(str(error)) from error
+    if not isinstance(source_rows, list) or len(source_rows) != 1:
+        raise contract.ManifestError("published Mols index is not exactly one row")
+    row = source_rows[0]
+    if (
+        not isinstance(row, list) or len(row) < 8
+        or row[0] != receipt["area_id"]
+        or row[1] != receipt["area_name"]
+        or row[2] != receipt["state"]
+        or row[3] != receipt["center_lat"]
+        or row[4] != receipt["center_lon"]
+        or not isinstance(row[5], int) or isinstance(row[5], bool) or row[5] <= 0
+        or not isinstance(row[6], (int, float)) or isinstance(row[6], bool) or row[6] <= 0
+        or row[7] != receipt["osm_relation_id"]
+    ):
+        raise contract.ManifestError("published Mols row differs from signed identity or has no trails")
+    if not isinstance(target_rows, list) or any(
+        not isinstance(item, list) or not item or not isinstance(item[0], str)
+        for item in target_rows
+    ):
+        raise contract.ManifestError("canonical master index rows are invalid")
+    ids = [item[0] for item in target_rows]
+    if len(ids) != len(set(ids)):
+        raise contract.ManifestError("canonical master index has duplicate IDs")
+    before_other = [item for item in target_rows if item[0] != contract.MOLS_AREA_ID]
+    existing = [item for item in target_rows if item[0] == contract.MOLS_AREA_ID]
+    if len(existing) > 1 or existing == [row]:
+        raise contract.ManifestError("canonical master index Mols row is duplicate or unchanged")
+    if existing:
+        candidate = [
+            row if item[0] == contract.MOLS_AREA_ID else item
+            for item in target_rows
+        ]
+    else:
+        candidate = [*target_rows, row]
+    if [item for item in candidate if item[0] != contract.MOLS_AREA_ID] != before_other:
+        raise contract.ManifestError("Mols insertion would reorder non-Mols rows")
+    _write_default_json_atomic(target, candidate)
+    print(
+        "merged exact signed Mols row into canonical master index "
+        f"receipt={receipt['receipt_sha256']}"
+    )
+    return 0
+
+
+def _git_bytes(repo: Path, *arguments: str, check: bool = True) -> bytes:
+    contract = _contract_module()
+    try:
+        completed = subprocess.run(
+            ["git", *arguments],
+            cwd=repo,
+            env=_READONLY_GIT_ENV,
+            capture_output=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        raise contract.ManifestError(
+            f"staged-diff git probe failed: {type(error).__name__}"
+        ) from error
+    if check and completed.returncode != 0:
+        raise contract.ManifestError("staged-diff git probe returned nonzero")
+    return completed.stdout
+
+
+def _strict_repository_index(
+    payload: bytes, *, context: str, compact: bool
+) -> list[list[Any]]:
+    contract = _contract_module()
+    try:
+        document = contract.strict_json_loads(payload.decode("utf-8"), context)
+    except (UnicodeDecodeError, contract.InventoryError) as error:
+        raise contract.ManifestError(f"{context} is invalid: {error}") from error
+    if not isinstance(document, list):
+        raise contract.ManifestError(f"{context} is not an array")
+    expected = json.dumps(
+        document,
+        ensure_ascii=True,
+        allow_nan=False,
+        separators=(",", ":") if compact else None,
+    ).encode("utf-8")
+    if payload != expected:
+        raise contract.ManifestError(f"{context} byte framing differs from its producer")
+    rows: list[list[Any]] = []
+    seen: set[str] = set()
+    for number, row in enumerate(document, start=1):
+        if (
+            not isinstance(row, list)
+            or len(row) < 5
+            or not isinstance(row[0], str)
+            or row[0] in seen
+        ):
+            raise contract.ManifestError(f"{context} row {number} is invalid")
+        seen.add(row[0])
+        rows.append(row)
+    return rows
+
+
+def _verify_mols_index_transition(
+    baseline: bytes, candidate: bytes, *, context: str, compact: bool
+) -> dict[str, Any]:
+    contract = _contract_module()
+    before = _strict_repository_index(baseline, context=f"baseline {context}", compact=compact)
+    after = _strict_repository_index(candidate, context=f"candidate {context}", compact=compact)
+    before_target = [row for row in before if row[0] == contract.MOLS_AREA_ID]
+    after_target = [row for row in after if row[0] == contract.MOLS_AREA_ID]
+    before_other = [row for row in before if row[0] != contract.MOLS_AREA_ID]
+    after_other = [row for row in after if row[0] != contract.MOLS_AREA_ID]
+    if before_other != after_other:
+        raise contract.ManifestError(f"{context} changes a non-Mols row or row order")
+    if len(before_target) > 1 or len(after_target) != 1 or before_target == after_target:
+        raise contract.ManifestError(f"{context} does not contain one genuinely changed Mols row")
+    row = after_target[0]
+    if (
+        len(row) < 8
+        or row[0] != contract.MOLS_AREA_ID
+        or row[1] != contract.MOLS_AREA_NAME
+        or row[2] != contract.MOLS_STATE
+        or row[7] != contract.MOLS_RELATION_ID
+    ):
+        raise contract.ManifestError(f"{context} Mols row has the wrong exact identity")
+    receipt: dict[str, Any] = {
+        "context": context,
+        "baseline_sha256": hashlib.sha256(baseline).hexdigest(),
+        "candidate_sha256": hashlib.sha256(candidate).hexdigest(),
+        "non_mols_rows_sha256": contract.canonical_sha256(before_other),
+        "non_mols_rows_unchanged": True,
+        "mols_row": row,
+    }
+    receipt["receipt_sha256"] = contract.canonical_sha256(receipt)
+    return receipt
+
+
+def verify_mols_staged_diff_v2(args: argparse.Namespace) -> int:
+    """Refuse commit/push unless the staged tree is the exact Mols delta."""
+    contract = _contract_module()
+    receipt = contract.decode_mols_release_input_receipt(
+        os.environ.get("MOLS_RELEASE_INPUT_RECEIPT_B64", ""),
+        key=os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", ""),
+    )
+    if receipt["receipt_sha256"] != args.expected_receipt_sha256:
+        raise contract.ManifestError("staged diff uses a different signed release receipt")
+    repo = args.repo.resolve()
+    if not (repo / ".git").is_dir() or repo.is_symlink():
+        raise contract.ManifestError("staged-diff repository path is invalid")
+    names = _git_bytes(
+        repo, "diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z"
+    ).decode("utf-8").split("\0")
+    names = [name for name in names if name]
+    deleted = _git_bytes(
+        repo, "diff", "--cached", "--name-only", "--diff-filter=D", "-z"
+    )
+    if deleted:
+        raise contract.ManifestError("Mols staged diff contains a deletion")
+    if names != sorted(contract.MOLS_REPOSITORY_PATHS):
+        raise contract.ManifestError(
+            f"Mols staged diff is not the exact allowlist: {names}"
+        )
+    geom = contract.strict_json_loads(
+        _git_bytes(repo, "show", f":{contract.MOLS_REPOSITORY_PATHS[0]}").decode("utf-8"),
+        "staged Mols geom",
+    )
+    if not isinstance(geom, dict) or geom.get("id") != contract.MOLS_AREA_ID:
+        raise contract.ManifestError("staged Mols geom has the wrong area identity")
+    silhouette = contract.strict_json_loads(
+        _git_bytes(repo, "show", f":{contract.MOLS_REPOSITORY_PATHS[1]}").decode("utf-8"),
+        "staged Mols silhouette",
+    )
+    if (
+        not isinstance(silhouette, dict)
+        or set(silhouette) != {"b", "l"}
+        or not isinstance(silhouette["b"], list)
+        or len(silhouette["b"]) != 4
+        or not isinstance(silhouette["l"], list)
+        or not silhouette["l"]
+    ):
+        raise contract.ManifestError("staged Mols silhouette is malformed")
+    transitions = []
+    for path, compact in (
+        ("public/areas/index.json", False),
+        ("ios/SouthMountainExplorer/Resources/areas-index.json", True),
+    ):
+        baseline = _git_bytes(repo, "show", f"HEAD:{path}")
+        candidate = _git_bytes(repo, "show", f":{path}")
+        transitions.append(
+            _verify_mols_index_transition(
+                baseline, candidate, context=path, compact=compact
+            )
+        )
+    summary: dict[str, Any] = {
+        "schema": "trekdex-mols-staged-diff-v1",
+        "release_input_receipt_sha256": receipt["receipt_sha256"],
+        "allowed_paths": list(contract.MOLS_REPOSITORY_PATHS),
+        "index_transitions": transitions,
+    }
+    summary["receipt_sha256"] = contract.canonical_sha256(summary)
+    _write_contract_json(args.output, summary)
+    print(
+        "verified exact Mols staged diff before commit/push "
+        f"sha256={summary['receipt_sha256']}"
+    )
+    return 0
+
+
+def verify_mols_commit_v2(args: argparse.Namespace) -> int:
+    """Recheck the committed Mols delta after hooks and before push."""
+    contract = _contract_module()
+    receipt = contract.decode_mols_release_input_receipt(
+        os.environ.get("MOLS_RELEASE_INPUT_RECEIPT_B64", ""),
+        key=os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", ""),
+    )
+    if receipt["receipt_sha256"] != args.expected_receipt_sha256:
+        raise contract.ManifestError("commit verification uses a different release receipt")
+    repo = args.repo.resolve()
+    if not (repo / ".git").is_dir() or repo.is_symlink():
+        raise contract.ManifestError("commit verification repository path is invalid")
+    names = _git_bytes(
+        repo, "diff", "--name-only", "--diff-filter=ACMR", "-z", "HEAD^", "HEAD"
+    ).decode("utf-8").split("\0")
+    names = [name for name in names if name]
+    deleted = _git_bytes(
+        repo, "diff", "--name-only", "--diff-filter=D", "-z", "HEAD^", "HEAD"
+    )
+    if deleted or names != sorted(contract.MOLS_REPOSITORY_PATHS):
+        raise contract.ManifestError("committed Mols delta is not the exact allowlist")
+    geom = contract.strict_json_loads(
+        _git_bytes(repo, "show", f"HEAD:{contract.MOLS_REPOSITORY_PATHS[0]}").decode("utf-8"),
+        "committed Mols geom",
+    )
+    if not isinstance(geom, dict) or geom.get("id") != contract.MOLS_AREA_ID:
+        raise contract.ManifestError("committed Mols geom has the wrong identity")
+    silhouette = contract.strict_json_loads(
+        _git_bytes(repo, "show", f"HEAD:{contract.MOLS_REPOSITORY_PATHS[1]}").decode("utf-8"),
+        "committed Mols silhouette",
+    )
+    if (
+        not isinstance(silhouette, dict)
+        or set(silhouette) != {"b", "l"}
+        or not isinstance(silhouette.get("l"), list)
+        or not silhouette["l"]
+    ):
+        raise contract.ManifestError("committed Mols silhouette is malformed")
+    transitions = [
+        _verify_mols_index_transition(
+            _git_bytes(repo, "show", f"HEAD^:{path}"),
+            _git_bytes(repo, "show", f"HEAD:{path}"),
+            context=path,
+            compact=compact,
+        )
+        for path, compact in (
+            ("public/areas/index.json", False),
+            ("ios/SouthMountainExplorer/Resources/areas-index.json", True),
+        )
+    ]
+    summary: dict[str, Any] = {
+        "schema": "trekdex-mols-commit-diff-v1",
+        "release_input_receipt_sha256": receipt["receipt_sha256"],
+        "commit_sha": _git_bytes(repo, "rev-parse", "HEAD").decode().strip(),
+        "parent_sha": _git_bytes(repo, "rev-parse", "HEAD^").decode().strip(),
+        "allowed_paths": list(contract.MOLS_REPOSITORY_PATHS),
+        "index_transitions": transitions,
+    }
+    if not re.fullmatch(r"[0-9a-f]{40}", summary["commit_sha"]) or not re.fullmatch(
+        r"[0-9a-f]{40}", summary["parent_sha"]
+    ):
+        raise contract.ManifestError("committed Mols Git identity is invalid")
+    summary["receipt_sha256"] = contract.canonical_sha256(summary)
+    _write_contract_json(args.output, summary)
+    print(
+        "verified exact Mols commit before push "
+        f"sha256={summary['receipt_sha256']}"
     )
     return 0
 
@@ -325,25 +737,54 @@ class AwsConditionalWriter:
 
 
 class MolsConditionalWriter(AwsConditionalWriter):
-    """Exact Mols publication adapter; all effects occur in one locked job.
+    """Version-free exact Mols adapter serialized by the workflow lock."""
 
-    Request identity is the contract attempt ID. Result identity is derived only
-    from required provider-returned ETag/checksum/version fields and independently
-    verified HEAD/GET bytes. No debug output or credential value is retained.
-    """
+    def __init__(
+        self,
+        *,
+        endpoint_url: str,
+        account_id: str,
+        manifest_root: Path,
+        aws_cli_version: str,
+        aws_cli_archive_sha256: str,
+    ):
+        super().__init__(
+            endpoint_url=endpoint_url,
+            account_id=account_id,
+            manifest_root=manifest_root,
+        )
+        self.aws_cli_version = aws_cli_version
+        self.aws_cli_archive_sha256 = aws_cli_archive_sha256
 
-    _PUT_RESULT_FIELDS = {"ETag", "ChecksumSHA256", "VersionId"}
-    _POST_METADATA_FIELDS = {
-        "trekdex-sha256", "trekdex-source-sha", "trekdex-manifest-sha256",
-        "trekdex-attempt-id", "trekdex-preimage-ref", "trekdex-condition-mode",
-    }
+    def tool_attestation(self) -> dict[str, Any]:
+        contract = _contract_module()
+        try:
+            completed = subprocess.run(
+                ["aws", "--version"],
+                env={
+                    "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+                    "HOME": "/tmp",
+                    "LC_ALL": "C",
+                    "LANG": "C",
+                },
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except (OSError, subprocess.SubprocessError) as error:
+            raise contract.ManifestError("pinned AWS CLI executable is unavailable") from error
+        rendered = (completed.stdout + completed.stderr).strip()
+        if completed.returncode != 0 or not rendered.startswith(
+            f"aws-cli/{self.aws_cli_version} "
+        ):
+            raise contract.ManifestError("active AWS CLI does not match the pinned version")
+        return contract.provider_tool_attestation(
+            version=self.aws_cli_version,
+            archive_sha256=self.aws_cli_archive_sha256,
+        )
 
     def _run_provider(
-        self,
-        command: list[str],
-        context: str,
-        *,
-        timeout: int = 180,
+        self, command: list[str], context: str, *, timeout: int = 180
     ) -> subprocess.CompletedProcess[str]:
         try:
             return subprocess.run(
@@ -384,54 +825,55 @@ class MolsConditionalWriter(AwsConditionalWriter):
             if missing_ok and self._missing(completed):
                 return None
             raise contract.ManifestError("provider HEAD did not prove exact object state")
-        document = contract.strict_json_loads(completed.stdout, "provider HEAD")
+        document = contract.strict_json_loads(completed.stdout or "{}", "provider HEAD")
         if not isinstance(document, dict):
             raise contract.ManifestError("provider HEAD is not an object")
         return document
 
     def _head_identity(
         self, key: str, *, missing_ok: bool = False
-    ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    ) -> tuple[dict[str, Any] | None, dict[str, str] | None]:
         contract = _contract_module()
         document = self._head_document(key, missing_ok=missing_ok)
         if document is None:
             return None, None
         try:
             etag = contract._normalize_etag(document.get("ETag"), "provider HEAD")
-            byte_count = document.get("ContentLength")
-            version_id = document.get("VersionId")
-            if (
-                not isinstance(byte_count, int)
-                or isinstance(byte_count, bool)
-                or byte_count < 0
-                or not isinstance(version_id, str)
-                or not contract._SAFE_VERSION_RE.fullmatch(version_id)
-            ):
-                raise ValueError("identity fields are invalid")
-        except (ValueError, contract.InventoryError) as error:
-            raise contract.ManifestError("provider HEAD identity is malformed") from error
-        checksum_value = document.get("ChecksumSHA256")
+        except contract.InventoryError as error:
+            raise contract.ManifestError("provider HEAD ETag is malformed") from error
+        byte_count = document.get("ContentLength")
+        if (
+            not isinstance(byte_count, int)
+            or isinstance(byte_count, bool)
+            or byte_count < 0
+        ):
+            raise contract.ManifestError("provider HEAD byte count is malformed")
         checksum = None
-        if checksum_value is not None:
+        if document.get("ChecksumSHA256") is not None:
             try:
                 checksum = contract.normalize_sha256_checksum(
-                    checksum_value, "provider HEAD"
+                    document["ChecksumSHA256"], "provider HEAD"
                 )
             except contract.InventoryError as error:
                 raise contract.ManifestError("provider HEAD checksum is malformed") from error
-        return {
-            "etag": etag,
-            "bytes": byte_count,
-            "sha256": checksum,
-            "version_id": version_id,
-        }, document
+        metadata_value = document.get("Metadata")
+        metadata = None
+        if metadata_value is not None:
+            if not isinstance(metadata_value, dict) or any(
+                not isinstance(name, str) or not isinstance(value, str)
+                for name, value in metadata_value.items()
+            ):
+                raise contract.ManifestError("provider HEAD metadata is malformed")
+            metadata = {
+                name.lower(): value for name, value in metadata_value.items()
+            }
+        return {"etag": etag, "bytes": byte_count, "sha256": checksum}, metadata
 
     def _download_exact(
         self,
         key: str,
         *,
         etag: str,
-        version_id: str,
         output: Path,
         context: str,
     ) -> dict[str, Any]:
@@ -441,7 +883,7 @@ class MolsConditionalWriter(AwsConditionalWriter):
         completed = self._run_provider(
             [
                 "aws", "s3api", "get-object", "--bucket", contract.BUCKET,
-                "--key", key, "--version-id", version_id, "--if-match", etag,
+                "--key", key, "--if-match", etag,
                 "--endpoint-url", self.endpoint_url, "--checksum-mode", "ENABLED",
                 "--output", "json", str(output),
             ],
@@ -453,6 +895,31 @@ class MolsConditionalWriter(AwsConditionalWriter):
         if not isinstance(document, dict) or not output.is_file() or output.is_symlink():
             raise contract.ManifestError(f"{context} response/output is invalid")
         return document
+
+    def _read_current_exact(
+        self, key: str, *, missing_ok: bool
+    ) -> tuple[dict[str, Any] | None, dict[str, str] | None]:
+        contract = _contract_module()
+        head, metadata = self._head_identity(key, missing_ok=missing_ok)
+        if head is None:
+            return None, None
+        with tempfile.TemporaryDirectory(prefix="trekdex-r2-read-") as directory:
+            output = Path(directory) / "object"
+            self._download_exact(
+                key,
+                etag=head["etag"],
+                output=output,
+                context="conditional exact object GET",
+            )
+            digest = file_digest(output, "sha256")
+            byte_count = output.stat().st_size
+        if byte_count != head["bytes"]:
+            raise contract.ManifestError("provider HEAD/GET byte count mismatch")
+        if head["sha256"] is not None and head["sha256"] != digest:
+            raise contract.ManifestError("provider HEAD/GET SHA-256 mismatch")
+        return {
+            "etag": head["etag"], "bytes": byte_count, "sha256": digest
+        }, metadata
 
     @staticmethod
     def _safe_relative(root: Path, value: str) -> Path:
@@ -498,6 +965,24 @@ class MolsConditionalWriter(AwsConditionalWriter):
             snapshot.close()
             raise
 
+    @staticmethod
+    def _metadata(
+        *, source_row: dict[str, Any], source_sha: str,
+        manifest_sha256: str, attempt_id: str,
+        condition_mode: str, preimage: dict[str, Any] | None,
+    ) -> dict[str, str]:
+        contract = _contract_module()
+        return {
+            "trekdex-sha256": source_row["sha256"],
+            "trekdex-source-sha": source_sha,
+            "trekdex-manifest-sha256": manifest_sha256,
+            "trekdex-attempt-id": attempt_id,
+            "trekdex-preimage-ref": contract.canonical_sha256(
+                preimage if preimage is not None else {"state": "ABSENT"}
+            ),
+            "trekdex-condition-mode": condition_mode,
+        }
+
     def _put_exact(
         self,
         *,
@@ -514,34 +999,36 @@ class MolsConditionalWriter(AwsConditionalWriter):
         if condition_mode == "IF_MATCH":
             if (
                 not isinstance(preimage, dict)
-                or condition != ("--if-match", preimage.get("etag"))
-                or set(preimage) != {"etag", "bytes", "sha256", "version_id"}
+                or set(preimage) != {"etag", "bytes", "sha256"}
+                or condition != ("--if-match", preimage["etag"])
             ):
-                raise contract.ManifestError("IF_MATCH request is not bound to the exact preimage")
+                raise contract.ManifestError("IF_MATCH request is not bound to exact preimage")
         elif condition_mode == "IF_NONE_MATCH":
             if preimage is not None or condition != ("--if-none-match", "*"):
-                raise contract.ManifestError("IF_NONE_MATCH request is not bound to reviewed absence")
+                raise contract.ManifestError("IF_NONE_MATCH is not bound to reviewed absence")
         else:
             raise contract.ManifestError("conditional PUT mode is invalid")
+        metadata = self._metadata(
+            source_row=source_row,
+            source_sha=source_sha,
+            manifest_sha256=manifest_sha256,
+            attempt_id=attempt_id,
+            condition_mode=condition_mode,
+            preimage=preimage,
+        )
         snapshot = self._snapshot_source(source_row)
-        metadata = {
-            "trekdex-sha256": source_row["sha256"],
-            "trekdex-source-sha": source_sha,
-            "trekdex-manifest-sha256": manifest_sha256,
-            "trekdex-attempt-id": attempt_id,
-            "trekdex-preimage-ref": contract.canonical_sha256(
-                preimage if preimage is not None else {"state": "ABSENT"}
-            ),
-            "trekdex-condition-mode": condition_mode,
-        }
         command = [
             "aws", "s3api", "put-object", "--bucket", contract.BUCKET,
             "--key", key, "--body", f"/dev/fd/{snapshot.fileno()}",
             "--endpoint-url", self.endpoint_url, "--content-type", "application/json",
             "--content-length", str(source_row["bytes"]),
-            "--content-md5", base64.b64encode(bytes.fromhex(source_row["md5"])).decode("ascii"),
+            "--content-md5", base64.b64encode(
+                bytes.fromhex(source_row["md5"])
+            ).decode("ascii"),
             "--checksum-algorithm", "SHA256",
-            "--checksum-sha256", base64.b64encode(bytes.fromhex(source_row["sha256"])).decode("ascii"),
+            "--checksum-sha256", base64.b64encode(
+                bytes.fromhex(source_row["sha256"])
+            ).decode("ascii"),
             "--metadata", json.dumps(metadata, sort_keys=True, separators=(",", ":")),
             condition[0], condition[1], "--output", "json",
         ]
@@ -565,95 +1052,52 @@ class MolsConditionalWriter(AwsConditionalWriter):
                     "provider atomically refused conditional PUT"
                 )
             raise contract.ManifestError("conditional PUT outcome is indeterminate")
-        document = contract.strict_json_loads(completed.stdout, "conditional PUT result")
-        if not isinstance(document, dict) or set(document) != self._PUT_RESULT_FIELDS:
-            raise contract.ManifestError("conditional PUT success schema is malformed or ambiguous")
-        etag = contract._normalize_etag(document["ETag"], "conditional PUT result")
-        checksum = contract.normalize_sha256_checksum(
-            document["ChecksumSHA256"], "conditional PUT result"
-        )
-        version_id = document["VersionId"]
+        try:
+            document = contract.strict_json_loads(
+                completed.stdout or "{}", "conditional PUT result"
+            )
+        except contract.InventoryError as error:
+            raise contract.ManifestError("conditional PUT success body is ambiguous") from error
+        if not isinstance(document, dict):
+            raise contract.ManifestError("conditional PUT success body is not an object")
+        try:
+            response_etag = contract._normalize_etag(
+                document.get("ETag"), "conditional PUT result"
+            )
+        except contract.InventoryError as error:
+            raise contract.ManifestError("conditional PUT success lacks a nonempty ETag") from error
+        verified, _verified_metadata = self._read_current_exact(key, missing_ok=False)
+        assert verified is not None
         if (
-            etag != source_row["md5"]
-            or checksum != source_row["sha256"]
-            or not isinstance(version_id, str)
-            or not contract._SAFE_VERSION_RE.fullmatch(version_id)
+            verified["etag"] != response_etag
+            or verified["bytes"] != source_row["bytes"]
+            or verified["sha256"] != source_row["sha256"]
         ):
-            raise contract.ManifestError("conditional PUT result identity mismatches reviewed bytes")
-        verified = self._prove_postimage(
-            key,
-            expected={
-                "etag": etag,
-                "bytes": source_row["bytes"],
-                "sha256": source_row["sha256"],
-                "version_id": version_id,
-            },
-            metadata=metadata,
-        )
+            raise contract.ManifestError("conditional PUT post-write HEAD/GET mismatch")
         transaction_id = "r2-result-" + contract.canonical_sha256({
             "attempt_id": attempt_id,
-            "etag": verified["etag"],
-            "sha256": verified["sha256"],
-            "version_id": verified["version_id"],
+            "provider_response": document,
+            "verified": verified,
         })[:32]
         return {
             "key": key,
             "etag": verified["etag"],
             "bytes": verified["bytes"],
             "sha256": verified["sha256"],
-            "version_id": verified["version_id"],
             "transaction_id": transaction_id,
             "attempt_id": attempt_id,
         }
 
-    def _prove_postimage(
-        self,
-        key: str,
-        *,
-        expected: dict[str, Any],
-        metadata: dict[str, str] | None = None,
-    ) -> dict[str, Any]:
+    def bind_scoped_preflight(self, snapshot: dict[str, Any]) -> None:
         contract = _contract_module()
-        observed, document = self._head_identity(key, missing_ok=True)
-        if observed is None or document is None:
-            raise contract.ManifestError("postimage HEAD is absent")
-        for field in ("etag", "bytes", "version_id"):
-            if observed[field] != expected[field]:
-                raise contract.ManifestError(f"postimage HEAD {field} mismatch")
-        provider_metadata = document.get("Metadata")
-        metadata_hash = None
-        if isinstance(provider_metadata, dict):
-            metadata_hash = provider_metadata.get("trekdex-sha256")
-        if metadata is not None:
-            if not isinstance(provider_metadata, dict) or {
-                str(key).lower(): str(value) for key, value in provider_metadata.items()
-            } != metadata:
-                raise contract.ManifestError("postimage HEAD metadata binding mismatch")
-        if observed["sha256"] is not None and observed["sha256"] != expected["sha256"]:
-            raise contract.ManifestError("postimage HEAD SHA-256 mismatch")
-        if observed["sha256"] is None and metadata_hash != expected["sha256"]:
-            # A missing HEAD checksum is not accepted on metadata alone. GET and
-            # hash the exact version under the workflow lock as an extra proof.
-            metadata_hash = None
-        with tempfile.TemporaryDirectory(prefix="trekdex-r2-proof-") as directory:
-            output = Path(directory) / "object"
-            self._download_exact(
-                key,
-                etag=expected["etag"],
-                version_id=expected["version_id"],
-                output=output,
-                context="exact postimage GET",
-            )
-            actual_sha256 = file_digest(output, "sha256")
-            actual_bytes = output.stat().st_size
-        if actual_sha256 != expected["sha256"] or actual_bytes != expected["bytes"]:
-            raise contract.ManifestError("exact postimage GET bytes mismatch")
-        return {
-            "etag": expected["etag"],
-            "bytes": actual_bytes,
-            "sha256": actual_sha256,
-            "version_id": expected["version_id"],
+        self._active_scoped_preflight_sha256 = snapshot["scoped_preflight_sha256"]
+        self._active_release_preflight_sha256 = snapshot["release_preflight"]["preflight_sha256"]
+        self._active_rollback_rows = {
+            row["key"]: copy.deepcopy(row)
+            for row in snapshot["rollback_manifest"]["objects"]
         }
+        self._active_manifest_sha256 = snapshot["manifest_sha256"]
+        self._active_source_sha = snapshot["rollback_manifest"]["source_sha"]
 
     def preflight_scoped_release(
         self, manifest: dict[str, Any], *, execution_id: str
@@ -662,8 +1106,6 @@ class MolsConditionalWriter(AwsConditionalWriter):
         contract.validate_upload_manifest(manifest)
         if manifest["publication_area_id"] != contract.MOLS_AREA_ID:
             raise contract.ManifestError("provider adapter accepts only exact Mols scope")
-        self._active_manifest_sha256 = manifest["manifest_sha256"]
-        self._active_source_sha = manifest["source_sha"]
         rollback_root = self.manifest_root / "rollback"
         rollback_root.mkdir(mode=0o700, exist_ok=False)
         observed: list[dict[str, Any] | None] = []
@@ -678,21 +1120,18 @@ class MolsConditionalWriter(AwsConditionalWriter):
                 or file_digest(source, "md5") != row["md5"]
             ):
                 raise contract.ManifestError("provider preflight found changed staged bytes")
-            current, _document = self._head_identity(row["key"], missing_ok=True)
-            observed.append(copy_identity := copy.deepcopy(current))
+            current, _metadata = self._read_current_exact(row["key"], missing_ok=True)
+            observed.append(copy.deepcopy(current))
             if row["conditional_mode"] == "IF_NONE_MATCH":
                 baselines.append(None)
                 continue
-            if copy_identity != row["remote_preimage"]:
+            if current != row["remote_preimage"]:
                 baselines.append(None)
                 continue
             relative = Path("rollback") / f"{row['key'].encode('utf-8').hex()}.object"
             target = self.manifest_root / relative
             self._download_exact(
-                row["key"],
-                etag=copy_identity["etag"],
-                version_id=copy_identity["version_id"],
-                output=target,
+                row["key"], etag=current["etag"], output=target,
                 context="frozen pre-publish baseline GET",
             )
             baseline = {
@@ -700,8 +1139,7 @@ class MolsConditionalWriter(AwsConditionalWriter):
                 "bytes": target.stat().st_size,
                 "md5": file_digest(target, "md5"),
                 "sha256": file_digest(target, "sha256"),
-                "etag": copy_identity["etag"],
-                "version_id": copy_identity["version_id"],
+                "etag": current["etag"],
             }
             baselines.append(baseline)
             if row["key"] == "index.json":
@@ -715,12 +1153,7 @@ class MolsConditionalWriter(AwsConditionalWriter):
             baseline_objects=baselines,
             index_delta=index_delta,
         )
-        self._active_scoped_preflight_sha256 = snapshot["scoped_preflight_sha256"]
-        self._active_release_preflight_sha256 = snapshot["release_preflight"]["preflight_sha256"]
-        self._active_rollback_rows = {
-            row["key"]: copy.deepcopy(row)
-            for row in snapshot["rollback_manifest"]["objects"]
-        }
+        self.bind_scoped_preflight(snapshot)
         _write_contract_json(
             self.manifest_root / "rollback-manifest.json",
             snapshot["rollback_manifest"],
@@ -740,32 +1173,23 @@ class MolsConditionalWriter(AwsConditionalWriter):
             preflight_row.get("key") != row.get("key")
             or preflight_row.get("expected_row_sha256") != contract.canonical_sha256(row)
             or preflight_row.get("eligible") is not True
-            or not isinstance(preflight_sha256, str)
-            or not re.fullmatch(r"[0-9a-f]{64}", preflight_sha256)
             or preflight_sha256 != getattr(self, "_active_release_preflight_sha256", None)
-            or getattr(self, "_active_manifest_sha256", None) is None
-            or getattr(self, "_active_source_sha", None) is None
         ):
-            raise contract.ManifestError("provider effect is not bound to eligible scoped preflight")
-        current, _document = self._head_identity(row["key"], missing_ok=True)
-        expected = row["remote_preimage"]
-        if current != expected:
+            raise contract.ManifestError("provider effect is not bound to eligible preflight")
+        current, _metadata = self._read_current_exact(row["key"], missing_ok=True)
+        if current != row["remote_preimage"]:
             raise contract.ConditionalRequestRefused(
-                "immediate pre-PUT object identity differs from reviewed preimage"
+                "immediate pre-PUT identity differs from reviewed preimage"
             )
         condition = (
-            ("--if-match", expected["etag"])
+            ("--if-match", current["etag"])
             if row["conditional_mode"] == "IF_MATCH"
             else ("--if-none-match", "*")
         )
         return self._put_exact(
-            key=row["key"],
-            source_row=row,
-            condition=condition,
-            condition_mode=row["conditional_mode"],
-            preimage=row["remote_preimage"],
-            attempt_id=attempt_id,
-            source_sha=self._active_source_sha,
+            key=row["key"], source_row=row, condition=condition,
+            condition_mode=row["conditional_mode"], preimage=current,
+            attempt_id=attempt_id, source_sha=self._active_source_sha,
             manifest_sha256=self._active_manifest_sha256,
         )
 
@@ -778,32 +1202,32 @@ class MolsConditionalWriter(AwsConditionalWriter):
         scoped_preflight_sha256: str,
     ) -> dict[str, Any]:
         contract = _contract_module()
+        key = rollback_row.get("key")
         if (
             rollback_row.get("rollback_operation") != "RESTORE_IF_MATCH"
-            or rollback_row.get("key") not in {*contract.MOLS_OBJECT_KEYS, "index.json"}
+            or key not in {*contract.MOLS_OBJECT_KEYS, "index.json"}
             or rollback_row.get("baseline_preimage") is None
             or scoped_preflight_sha256 != getattr(self, "_active_scoped_preflight_sha256", None)
-            or rollback_row != getattr(self, "_active_rollback_rows", {}).get(rollback_row.get("key"))
+            or rollback_row != getattr(self, "_active_rollback_rows", {}).get(key)
         ):
-            raise contract.ManifestError("rollback restore is outside exact Mols/index authority")
-        self._prove_postimage(
-            rollback_row["key"],
-            expected={field: postimage[field] for field in ("etag", "bytes", "sha256", "version_id")},
-        )
+            raise contract.ManifestError("rollback restore exceeds exact Mols/index authority")
+        current, _metadata = self._read_current_exact(key, missing_ok=True)
+        expected_post = {
+            field: postimage[field] for field in ("etag", "bytes", "sha256")
+        }
+        if current != expected_post:
+            raise contract.ConditionalRequestRefused("rollback postimage changed")
         baseline = copy.deepcopy(rollback_row["baseline_object"])
-        baseline["key"] = rollback_row["key"]
+        baseline["key"] = key
         result = self._put_exact(
-            key=rollback_row["key"],
-            source_row=baseline,
-            condition=("--if-match", postimage["etag"]),
-            condition_mode="IF_MATCH",
-            preimage={field: postimage[field] for field in ("etag", "bytes", "sha256", "version_id")},
-            attempt_id=attempt_id,
-            source_sha=self._active_source_sha,
+            key=key, source_row=baseline,
+            condition=("--if-match", current["etag"]),
+            condition_mode="IF_MATCH", preimage=current,
+            attempt_id=attempt_id, source_sha=self._active_source_sha,
             manifest_sha256=self._active_manifest_sha256,
         )
         if result["etag"] != rollback_row["baseline_preimage"]["etag"]:
-            raise contract.ManifestError("index rollback did not restore baseline ETag")
+            raise contract.ManifestError("rollback restore did not recover baseline ETag")
         return result
 
     def rollback_delete_created(
@@ -817,47 +1241,43 @@ class MolsConditionalWriter(AwsConditionalWriter):
         contract = _contract_module()
         key = rollback_row.get("key")
         if (
-            rollback_row.get("rollback_operation") != "DELETE_CREATED_IF_MATCH"
+            rollback_row.get("rollback_operation") != "DELETE_CREATED_AFTER_EXACT_PROOF"
             or key not in contract.MOLS_OBJECT_KEYS
             or rollback_row.get("baseline_preimage") is not None
             or rollback_row.get("baseline_object") is not None
             or scoped_preflight_sha256 != getattr(self, "_active_scoped_preflight_sha256", None)
             or rollback_row != getattr(self, "_active_rollback_rows", {}).get(key)
         ):
-            raise contract.ManifestError("rollback delete is outside exact absent Mols authority")
-        self._prove_postimage(
-            key,
-            expected={field: postimage[field] for field in ("etag", "bytes", "sha256", "version_id")},
-        )
-        # Exactly one request. Any ambiguous/nonzero response is recorded by the
-        # caller as indeterminate and is never retried blindly.
+            raise contract.ManifestError("rollback delete exceeds exact absent Mols authority")
+        expected_post = {
+            field: postimage[field] for field in ("etag", "bytes", "sha256")
+        }
+        current, _metadata = self._read_current_exact(key, missing_ok=True)
+        if current != expected_post:
+            raise contract.ManifestError("rollback delete HEAD/GET identity mismatch")
         completed = self._run_provider(
             [
                 "aws", "s3api", "delete-object", "--bucket", contract.BUCKET,
-                "--key", key, "--version-id", postimage["version_id"],
-                "--if-match", postimage["etag"], "--endpoint-url", self.endpoint_url,
-                "--output", "json",
+                "--key", key, "--endpoint-url", self.endpoint_url, "--output", "json",
             ],
-            "single conditional Mols rollback delete",
+            "single plain Mols rollback delete",
         )
         if completed.returncode != 0:
-            raise contract.ManifestError("conditional Mols delete outcome is indeterminate")
-        document = contract.strict_json_loads(
-            completed.stdout or "{}", "conditional Mols delete result"
-        )
-        allowed = {"DeleteMarker", "VersionId", "RequestCharged"}
-        if not isinstance(document, dict) or not set(document).issubset(allowed):
-            raise contract.ManifestError("conditional Mols delete success schema is ambiguous")
-        if "VersionId" in document and document["VersionId"] != postimage["version_id"]:
-            raise contract.ManifestError("conditional Mols delete returned a different version")
-        after, _after_document = self._head_identity(key, missing_ok=True)
+            raise contract.ManifestError("plain Mols delete outcome is indeterminate")
+        try:
+            provider_result = contract.strict_json_loads(
+                completed.stdout or "{}", "plain Mols delete result"
+            )
+        except contract.InventoryError as error:
+            raise contract.ManifestError("plain Mols delete success body is ambiguous") from error
+        if not isinstance(provider_result, dict):
+            raise contract.ManifestError("plain Mols delete success body is not an object")
+        after = self._head_document(key, missing_ok=True)
         if after is not None:
-            raise contract.ManifestError("conditional Mols delete did not verify absence")
+            raise contract.ManifestError("plain Mols delete did not verify absence")
         transaction_id = "r2-delete-" + contract.canonical_sha256({
-            "attempt_id": attempt_id,
-            "key": key,
-            "postimage": {field: postimage[field] for field in ("etag", "bytes", "sha256", "version_id")},
-            "provider_result": document,
+            "attempt_id": attempt_id, "key": key,
+            "postimage": expected_post, "provider_result": provider_result,
             "verified_absent": True,
         })[:32]
         return {
@@ -868,6 +1288,99 @@ class MolsConditionalWriter(AwsConditionalWriter):
             "verified_absent": True,
         }
 
+    @staticmethod
+    def _metadata_matches(
+        metadata: dict[str, str] | None, expected: dict[str, str]
+    ) -> bool:
+        return metadata is not None and all(
+            metadata.get(name) == value for name, value in expected.items()
+        )
+
+    def reconcile_pending_effect(
+        self,
+        pending: dict[str, Any],
+        manifest: dict[str, Any],
+        journal: dict[str, Any],
+    ) -> dict[str, Any]:
+        contract = _contract_module()
+        scoped_preflight = journal["scoped_preflight"]
+        self.bind_scoped_preflight(scoped_preflight)
+        index = pending["index"]
+        key = pending["key"]
+        current, metadata = self._read_current_exact(key, missing_ok=True)
+        if pending["phase"] == "FORWARD":
+            row = manifest["objects"][index]
+            expected_metadata = self._metadata(
+                source_row=row, source_sha=manifest["source_sha"],
+                manifest_sha256=manifest["manifest_sha256"],
+                attempt_id=pending["attempt_id"],
+                condition_mode=row["conditional_mode"],
+                preimage=row["remote_preimage"],
+            )
+            if (
+                current is not None
+                and current["bytes"] == row["bytes"]
+                and current["sha256"] == row["sha256"]
+                and self._metadata_matches(metadata, expected_metadata)
+            ):
+                result = {
+                    "key": key, "etag": current["etag"],
+                    "bytes": current["bytes"], "sha256": current["sha256"],
+                    "transaction_id": "r2-reconcile-" + contract.canonical_sha256({
+                        "pending": pending, "current": current,
+                    })[:32],
+                    "attempt_id": pending["attempt_id"],
+                }
+                return {"state": "EFFECT_OBSERVED", "result": result}
+            if current == row["remote_preimage"]:
+                return {"state": "EFFECT_NOT_OBSERVED", "result": None}
+            return {"state": "AMBIGUOUS", "result": None}
+        rollback_row = scoped_preflight["rollback_manifest"]["objects"][index]
+        postimage = {
+            field: journal["forward_results"][index][field]
+            for field in ("etag", "bytes", "sha256")
+        }
+        if pending["operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF":
+            if current is None:
+                result = {
+                    "attempt_id": pending["attempt_id"], "key": key,
+                    "postimage_sha256": rollback_row["expected_postimage"]["sha256"],
+                    "transaction_id": "r2-reconcile-delete-" + contract.canonical_sha256(pending)[:24],
+                    "verified_absent": True,
+                }
+                return {"state": "EFFECT_OBSERVED", "result": result}
+            if current == postimage:
+                return {"state": "EFFECT_NOT_OBSERVED", "result": None}
+            return {"state": "AMBIGUOUS", "result": None}
+        baseline = rollback_row["baseline_object"]
+        expected_metadata = self._metadata(
+            source_row=baseline,
+            source_sha=manifest["source_sha"],
+            manifest_sha256=manifest["manifest_sha256"],
+            attempt_id=pending["attempt_id"],
+            condition_mode="IF_MATCH",
+            preimage=postimage,
+        )
+        if (
+            current is not None
+            and current["etag"] == baseline["etag"]
+            and current["bytes"] == baseline["bytes"]
+            and current["sha256"] == baseline["sha256"]
+            and self._metadata_matches(metadata, expected_metadata)
+        ):
+            result = {
+                "key": key, "etag": current["etag"],
+                "bytes": current["bytes"], "sha256": current["sha256"],
+                "transaction_id": "r2-reconcile-restore-" + contract.canonical_sha256({
+                    "pending": pending, "current": current,
+                })[:24],
+                "attempt_id": pending["attempt_id"],
+            }
+            return {"state": "EFFECT_OBSERVED", "result": result}
+        if current == postimage:
+            return {"state": "EFFECT_NOT_OBSERVED", "result": None}
+        return {"state": "AMBIGUOUS", "result": None}
+
     def verify_rollback(
         self,
         rollback_manifest: dict[str, Any],
@@ -875,37 +1388,38 @@ class MolsConditionalWriter(AwsConditionalWriter):
         rollback_results: list[dict[str, Any]],
     ) -> dict[str, Any]:
         contract = _contract_module()
-        # The contract validator proves this is the complete exact Mols plan.
-        if rollback_manifest["publication_area_id"] != contract.MOLS_AREA_ID:
-            raise contract.ManifestError("rollback verification scope is invalid")
-        if len(rollback_results) != rollback_manifest["object_count"]:
-            raise contract.ManifestError("rollback verification result population is incomplete")
+        if (
+            rollback_manifest["publication_area_id"] != contract.MOLS_AREA_ID
+            or len(rollback_results) != rollback_manifest["object_count"]
+        ):
+            raise contract.ManifestError("rollback verification population/scope is invalid")
         absent: list[str] = []
         index_restored = not any(
             row["key"] == "index.json" for row in rollback_manifest["objects"]
         )
         for row in rollback_manifest["objects"]:
-            current, _document = self._head_identity(row["key"], missing_ok=True)
-            if row["rollback_operation"] == "DELETE_CREATED_IF_MATCH":
+            current, _metadata = self._read_current_exact(row["key"], missing_ok=True)
+            if row["rollback_operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF":
                 if current is not None:
                     raise contract.ManifestError("created Mols key remains after rollback")
                 absent.append(row["key"])
                 continue
             baseline = row["baseline_object"]
-            if current is None or any(
-                current[field] != baseline[field]
-                for field in ("etag", "bytes", "sha256")
-            ):
+            if current != {
+                field: baseline[field] for field in ("etag", "bytes", "sha256")
+            }:
                 raise contract.ManifestError("restored object differs from frozen baseline")
-            baseline_path = self._safe_relative(self.manifest_root, baseline["local_path"])
+            baseline_path = self._safe_relative(
+                self.manifest_root, baseline["local_path"]
+            )
             with tempfile.TemporaryDirectory(prefix="trekdex-r2-rollback-verify-") as directory:
                 output = Path(directory) / "object"
                 self._download_exact(
-                    row["key"], etag=current["etag"], version_id=current["version_id"],
-                    output=output, context="rollback baseline verification GET",
+                    row["key"], etag=current["etag"], output=output,
+                    context="rollback baseline verification GET",
                 )
                 if output.read_bytes() != baseline_path.read_bytes():
-                    raise contract.ManifestError("rollback bytes are not the exact frozen baseline")
+                    raise contract.ManifestError("rollback bytes differ from frozen baseline")
             if row["key"] == "index.json":
                 index_restored = True
         verification: dict[str, Any] = {
@@ -920,27 +1434,25 @@ class MolsConditionalWriter(AwsConditionalWriter):
         return verification
 
 
-def apply_manifest_v2(args: argparse.Namespace) -> int:
+def _validate_apply_material(
+    args: argparse.Namespace,
+) -> tuple[Any, dict[str, Any], dict[str, Any], dict[str, Any]]:
     contract = _contract_module()
-    if args.terminal_receipt.exists() or args.terminal_receipt.is_symlink():
-        raise contract.ManifestError(
-            "existing terminal/journal requires explicit reconciliation; automatic retry is forbidden"
-        )
     inventory = _read_contract_json(args.inventory, "inventory receipt")
     manifest = _read_contract_json(args.manifest, "upload manifest")
     contract.validate_upload_manifest(manifest, inventory_receipt=inventory)
-    if manifest["publication_area_id"] != args.publication_area_id:
-        raise contract.ManifestError("apply publication area differs from reviewed manifest")
+    if manifest["publication_area_id"] != contract.MOLS_AREA_ID:
+        raise contract.ManifestError("provider operation is restricted to exact Mols scope")
     if manifest["manifest_sha256"] != args.approved_manifest_sha256:
-        raise contract.ManifestError("apply refused: manifest hash is not the exact reviewed value")
+        raise contract.ManifestError("manifest is not the exact reviewed value")
     args.source_tree = manifest["source_tree"]
     _sources, local_rows, population = _derive_producer_population(args, inventory)
     if population != manifest["producer_population"]:
-        raise contract.ManifestError("apply-time producer population differs from reviewed bytes")
+        raise contract.ManifestError("producer population differs from reviewed bytes")
     if {row["key"]: row for row in local_rows} != {
         row["key"]: row for row in population["objects"]
     }:
-        raise contract.ManifestError("apply-time producer census is inconsistent")
+        raise contract.ManifestError("producer census is inconsistent")
     for row in population["objects"]:
         staged = args.manifest.parent / row["local_path"]
         if (
@@ -949,46 +1461,63 @@ def apply_manifest_v2(args: argparse.Namespace) -> int:
             or file_digest(staged, "sha256") != row["sha256"]
         ):
             raise contract.ManifestError("reviewed immutable stage differs from producer population")
-    assertion_text = os.environ.get("R2_ROOT_APPROVAL_ASSERTION_JSON", "")
-    approval_key = os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", "")
-    assertion = contract.strict_json_loads(assertion_text, "root approval assertion")
+    assertion = contract.strict_json_loads(
+        os.environ.get("R2_ROOT_APPROVAL_ASSERTION_JSON", ""),
+        "root approval assertion",
+    )
     if not isinstance(assertion, dict):
         raise contract.ManifestError("root approval assertion is not an object")
+    return contract, inventory, manifest, assertion
 
-    def state_probe(_boundary: str) -> bool:
-        if subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], text=True, env=_READONLY_GIT_ENV
-        ).strip() != manifest["source_sha"]:
-            return False
-        if subprocess.check_output(
-            ["git", "rev-parse", "HEAD^{tree}"], text=True, env=_READONLY_GIT_ENV
-        ).strip() != manifest["source_tree"]:
-            return False
-        if subprocess.run(
-            ["git", "symbolic-ref", "-q", "HEAD"],
-            capture_output=True,
-            env=_READONLY_GIT_ENV,
-        ).returncode == 0:
-            return False
-        if subprocess.check_output(
-            ["git", "status", "--porcelain=v1", "--untracked-files=all"],
-            text=True,
-            env=_READONLY_GIT_ENV,
-        ):
-            return False
-        return file_digest(args.workflow, "sha256") == manifest["workflow_sha256"]
 
-    writer = MolsConditionalWriter(
+def _immutable_state_probe(
+    manifest: dict[str, Any], workflow: Path, _boundary: str
+) -> bool:
+    if subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], text=True, env=_READONLY_GIT_ENV
+    ).strip() != manifest["source_sha"]:
+        return False
+    if subprocess.check_output(
+        ["git", "rev-parse", "HEAD^{tree}"], text=True, env=_READONLY_GIT_ENV
+    ).strip() != manifest["source_tree"]:
+        return False
+    if subprocess.run(
+        ["git", "symbolic-ref", "-q", "HEAD"],
+        capture_output=True, env=_READONLY_GIT_ENV,
+    ).returncode == 0:
+        return False
+    if subprocess.check_output(
+        ["git", "status", "--porcelain=v1", "--untracked-files=all"],
+        text=True, env=_READONLY_GIT_ENV,
+    ):
+        return False
+    return file_digest(workflow, "sha256") == manifest["workflow_sha256"]
+
+
+def _scoped_writer(args: argparse.Namespace) -> MolsConditionalWriter:
+    return MolsConditionalWriter(
         endpoint_url=args.endpoint_url,
         account_id=os.environ.get("R2_ACCOUNT_ID", ""),
         manifest_root=args.manifest.parent,
+        aws_cli_version=args.aws_cli_version,
+        aws_cli_archive_sha256=args.aws_cli_archive_sha256,
     )
+
+
+def apply_manifest_v2(args: argparse.Namespace) -> int:
+    if args.terminal_receipt.exists() or args.terminal_receipt.is_symlink():
+        raise _contract_module().ManifestError(
+            "existing terminal/journal requires scoped reconciliation; automatic retry is forbidden"
+        )
+    contract, _inventory, manifest, assertion = _validate_apply_material(args)
     receipt = contract.execute_scoped_release(
         manifest,
-        writer,
+        _scoped_writer(args),
         approval_assertion=assertion,
-        approval_key=approval_key,
-        state_probe=state_probe,
+        approval_key=os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", ""),
+        state_probe=lambda boundary: _immutable_state_probe(
+            manifest, args.workflow, boundary
+        ),
         checkpoint=lambda document: _write_contract_json(
             args.terminal_receipt, document, replace=True
         ),
@@ -998,9 +1527,84 @@ def apply_manifest_v2(args: argparse.Namespace) -> int:
     return 0 if receipt["terminal_state"] == contract.TerminalState.COMPLETE_SUCCESS.value else 1
 
 
+def reconcile_manifest_v2(args: argparse.Namespace) -> int:
+    contract, _inventory, manifest, assertion = _validate_apply_material(args)
+    journal = _read_contract_json(args.journal, "scoped release journal")
+    contract.validate_scoped_release_receipt(journal, manifest)
+    if args.terminal_receipt.exists() or args.terminal_receipt.is_symlink():
+        existing = _read_contract_json(
+            args.terminal_receipt, "existing reconciliation terminal"
+        )
+        validated = contract.validate_scoped_release_receipt(existing, manifest)
+        if (
+            validated["reconciliation"] is not None
+            and validated["reconciliation"]["source_journal_sha256"]
+            == journal["receipt_sha256"]
+        ):
+            print(
+                f"reconciliation already terminal={validated['terminal_state']} "
+                f"sha256={validated['receipt_sha256']}"
+            )
+            return 0 if validated["terminal_state"] in {
+                contract.TerminalState.COMPLETE_SUCCESS.value, "ROLLED_BACK"
+            } else 1
+        raise contract.ManifestError("reconciliation output exists for a different journal")
+    receipt = contract.reconcile_scoped_release_write_ahead(
+        journal,
+        manifest,
+        _scoped_writer(args),
+        approval_assertion=assertion,
+        approval_key=os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", ""),
+        state_probe=lambda boundary: _immutable_state_probe(
+            manifest, args.workflow, boundary
+        ),
+        checkpoint=lambda document: _write_contract_json(
+            args.terminal_receipt, document, replace=True
+        ),
+    )
+    _write_contract_json(args.terminal_receipt, receipt, replace=True)
+    print(
+        f"reconciliation terminal={receipt['terminal_state']} "
+        f"sha256={receipt['receipt_sha256']}"
+    )
+    return 0 if receipt["terminal_state"] in {
+        contract.TerminalState.COMPLETE_SUCCESS.value, "ROLLED_BACK"
+    } else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
+
+    verify_input = commands.add_parser("verify-release-input")
+    verify_input.add_argument("--extract", required=True)
+    verify_input.add_argument("--state", required=True)
+    verify_input.add_argument("--region-code", required=True)
+    verify_input.add_argument("--bbox", required=True)
+    verify_input.add_argument("--dry-run", required=True)
+    verify_input.add_argument("--no-routes", required=True)
+    verify_input.add_argument("--touch-report", required=True)
+    verify_input.add_argument("--elevation", required=True)
+    verify_input.add_argument("--pilot-area-id", required=True)
+    verify_input.add_argument("--workflow-source-sha", required=True)
+    verify_input.add_argument("--workflow-source-tree", required=True)
+    verify_input.add_argument("--mols-index-output", required=True, type=Path)
+    verify_input.add_argument("--github-output", required=True, type=Path)
+
+    verify_diff = commands.add_parser("verify-mols-staged-diff")
+    verify_diff.add_argument("--repo", required=True, type=Path)
+    verify_diff.add_argument("--expected-receipt-sha256", required=True)
+    verify_diff.add_argument("--output", required=True, type=Path)
+
+    verify_commit = commands.add_parser("verify-mols-commit")
+    verify_commit.add_argument("--repo", required=True, type=Path)
+    verify_commit.add_argument("--expected-receipt-sha256", required=True)
+    verify_commit.add_argument("--output", required=True, type=Path)
+
+    merge_index = commands.add_parser("merge-mols-index")
+    merge_index.add_argument("--source", required=True, type=Path)
+    merge_index.add_argument("--target", required=True, type=Path)
+    merge_index.add_argument("--expected-receipt-sha256", required=True)
 
     fetch = commands.add_parser("fetch-inventory")
     fetch.add_argument("--bucket", required=True)
@@ -1034,18 +1638,45 @@ def main(argv: list[str] | None = None) -> int:
     apply_command.add_argument("--approved-manifest-sha256", required=True)
     apply_command.add_argument("--publication-area-id", required=True)
     apply_command.add_argument("--endpoint-url", required=True)
+    apply_command.add_argument("--aws-cli-version", required=True)
+    apply_command.add_argument("--aws-cli-archive-sha256", required=True)
     apply_command.add_argument("--geom-dir", default=Path("public/areas/geom"), type=Path)
     apply_command.add_argument("--silhouettes-dir", default=Path("public/areas/silhouettes"), type=Path)
     apply_command.add_argument("--area-index", default=Path("public/areas/index.json"), type=Path)
     apply_command.add_argument("--global-object", required=True, action="append", default=[])
     apply_command.add_argument("--workflow", required=True, type=Path)
     apply_command.add_argument("--terminal-receipt", required=True, type=Path)
+
+    reconcile_command = commands.add_parser("reconcile-scoped")
+    reconcile_command.add_argument("--inventory", required=True, type=Path)
+    reconcile_command.add_argument("--manifest", required=True, type=Path)
+    reconcile_command.add_argument("--journal", required=True, type=Path)
+    reconcile_command.add_argument("--approved-manifest-sha256", required=True)
+    reconcile_command.add_argument("--endpoint-url", required=True)
+    reconcile_command.add_argument("--aws-cli-version", required=True)
+    reconcile_command.add_argument("--aws-cli-archive-sha256", required=True)
+    reconcile_command.add_argument("--geom-dir", default=Path("public/areas/geom"), type=Path)
+    reconcile_command.add_argument("--silhouettes-dir", default=Path("public/areas/silhouettes"), type=Path)
+    reconcile_command.add_argument("--area-index", default=Path("public/areas/index.json"), type=Path)
+    reconcile_command.add_argument("--global-object", required=True, action="append", default=[])
+    reconcile_command.add_argument("--workflow", required=True, type=Path)
+    reconcile_command.add_argument("--terminal-receipt", required=True, type=Path)
     args = parser.parse_args(argv)
 
+    if args.command == "verify-release-input":
+        return verify_release_input_v2(args)
+    if args.command == "verify-mols-staged-diff":
+        return verify_mols_staged_diff_v2(args)
+    if args.command == "verify-mols-commit":
+        return verify_mols_commit_v2(args)
+    if args.command == "merge-mols-index":
+        return merge_mols_index_v2(args)
     if args.command == "fetch-inventory":
         return fetch_inventory_v2(args)
     if args.command == "stage":
         return stage_v2(args)
+    if args.command == "reconcile-scoped":
+        return reconcile_manifest_v2(args)
     return apply_manifest_v2(args)
 
 

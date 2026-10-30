@@ -148,11 +148,33 @@ def build_slice(source: Path, roots_from: Path, output: Path, *,
         except FileNotFoundError as error:
             raise RuntimeError(
                 f"required osmium executable is unavailable: {executable}") from error
-        if completed.returncode != 0:
-            detail = (completed.stderr or completed.stdout or "").strip()
+        # osmium getid exits 1 with NO diagnostic when some requested members
+        # are absent from the source extract (e.g. ways outside the Geofabrik
+        # country clip). The output is still complete for everything present;
+        # the missing members are recorded by export_relation_members and gated
+        # downstream (unresolved-relation-gap). Any other failure (other exit
+        # code, a signal, any stderr text, or no PBF bytes) still fails closed.
+        missing_members_only = (
+            completed.returncode == 1
+            and not (completed.stderr or "").strip()
+            and not (completed.stdout or "").strip()
+            and temporary.is_file() and temporary.stat().st_size > 0)
+        if missing_members_only:
+            print("note: osmium getid exited 1 without diagnostics (requested "
+                  "members absent from the source extract); missing members are "
+                  "gated downstream", file=sys.stderr)
+        elif completed.returncode != 0:
+            stderr = (completed.stderr or "").strip()
+            stdout = (completed.stdout or "").strip()
+            shown_err = repr(stderr) if stderr else "<empty>"
+            shown_out = repr(stdout) if stdout else "<empty>"
+            signal_note = ""
+            if completed.returncode < 0:
+                signal_note = f" (killed by signal {-completed.returncode})"
             raise RuntimeError(
                 f"osmium root-closure extraction failed with exit "
-                f"{completed.returncode}: {detail or 'no diagnostic'}")
+                f"{completed.returncode}{signal_note}: "
+                f"stderr={shown_err} stdout={shown_out}")
         if not temporary.is_file() or temporary.stat().st_size <= 0:
             raise RuntimeError("osmium root-closure extraction produced no PBF bytes")
         os.replace(temporary, output)

@@ -131,6 +131,11 @@ jobs:
           MODE: ${{ inputs.mode }}
         run: |
           set -uo pipefail
+          # GitHub runs this step as `bash -e`: without this, one failing
+          # area would kill the step before mark-failed / continue and the
+          # remaining areas would never run. Failure stays fail-closed via
+          # FAILED=1 and the publish refusal below.
+          set +e
           W="$RUNNER_TEMP/dk"
           FAILED=0
           for ID in $(cat "$W/selected.txt"); do

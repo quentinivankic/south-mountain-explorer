@@ -217,6 +217,46 @@ class RelationSliceBuilder(unittest.TestCase):
                     slicer.build_slice(source, roots, output, runner=fake_run)
                 self.assertEqual(output.read_bytes(), b"preserve")
 
+    def test_error_text_has_stderr_stdout_exit_and_signal(self):
+        cases = ((7, "boom", "out", "exit 7: stderr='boom' stdout='out'"),
+                 (-9, "", "", "exit -9 (killed by signal 9)"),
+                 (1, "", "late", "exit 1: stderr=<empty> stdout='late'"))
+        for code, err, out, expected in cases:
+            with self.subTest(code=code), TemporaryDirectory() as tmp:
+                source, roots, output = self._paths(Path(tmp))
+
+                def fake_run(command, **_kwargs):
+                    Path(command[command.index("-o") + 1]).write_bytes(b"x")
+                    return SimpleNamespace(
+                        returncode=code, stdout=out, stderr=err)
+
+                with self.assertRaises(RuntimeError) as caught:
+                    slicer.build_slice(source, roots, output, runner=fake_run)
+                self.assertIn(expected, str(caught.exception))
+                self.assertFalse(output.exists())
+
+    def test_silent_exit_1_with_output_is_missing_members_only(self):
+        with TemporaryDirectory() as tmp:
+            source, roots, output = self._paths(Path(tmp))
+
+            def fake_run(command, **_kwargs):
+                Path(command[command.index("-o") + 1]).write_bytes(b"closure")
+                return SimpleNamespace(returncode=1, stdout="", stderr="")
+
+            slicer.build_slice(source, roots, output, runner=fake_run)
+            self.assertEqual(output.read_bytes(), b"closure")
+
+    def test_silent_exit_1_without_output_still_fails_closed(self):
+        with TemporaryDirectory() as tmp:
+            source, roots, output = self._paths(Path(tmp))
+
+            def fake_run(_command, **_kwargs):
+                return SimpleNamespace(returncode=1, stdout="", stderr="")
+
+            with self.assertRaisesRegex(RuntimeError, "exit 1"):
+                slicer.build_slice(source, roots, output, runner=fake_run)
+            self.assertFalse(output.exists())
+
     def test_invalid_roots_and_source_output_collision_fail_before_command(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

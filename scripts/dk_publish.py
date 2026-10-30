@@ -121,6 +121,16 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
             raise DkError(f"{aid}: tier must be an integer")
         if not isinstance(entry.get("notes", ""), str):
             raise DkError(f"{aid}: notes must be text")
+        hold = entry.get("hold")
+        if hold is not None and (not isinstance(hold, str) or not hold.strip()):
+            raise DkError(f"{aid}: hold must be null or a reason string")
+        est_mi = entry.get("est_mi")
+        if est_mi is not None and (not _is_num(est_mi) or est_mi < 0):
+            raise DkError(f"{aid}: est_mi must be a non-negative number")
+        est_trails = entry.get("est_trails")
+        if est_trails is not None and (not isinstance(est_trails, int) or isinstance(est_trails, bool)
+                                       or est_trails < 0):
+            raise DkError(f"{aid}: est_trails must be a non-negative integer")
         ids.add(aid)
         rels.add(rel)
     doc["by_id"] = {a["id"]: a for a in areas}
@@ -191,13 +201,16 @@ def select_areas(registry: dict[str, Any], published: set[str], areas: str, chun
         raise DkError("mode must be qualify or publish")
     if not 1 <= chunk_size <= HARD_MAX_CHUNK:
         raise DkError(f"chunk_size must be 1..{HARD_MAX_CHUNK}")
-    reg_ids = [a["id"] for a in registry["areas"]]
     if areas.startswith("batch="):
         text = areas[len("batch="):]
         if not re.fullmatch(r"[1-9][0-9]{0,3}", text):
             raise DkError("batch must be a positive integer")
         n = int(text)
-        unpublished = [i for i in reg_ids if i not in published]
+        # Held entries (non-null `hold`) are skipped; name them in `areas=` to select them.
+        # Order: tier 1 (national parks) first, then est_mi descending, then registry order.
+        rank = {a["id"]: (a["tier"] != 1, -(a.get("est_mi") or 0), n_) for n_, a in enumerate(registry["areas"])}
+        unpublished = sorted((a["id"] for a in registry["areas"]
+                              if a["id"] not in published and a.get("hold") is None), key=rank.__getitem__)
         chosen = unpublished[(n - 1) * chunk_size: n * chunk_size]
         if not chosen:
             raise DkError(f"batch={n} selects nothing ({len(unpublished)} unpublished areas, chunk {chunk_size})")

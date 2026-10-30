@@ -385,7 +385,7 @@ final class AreaSheetAuditTests: XCTestCase {
     // classes keep them private so neither can drift the other)
 
     private func openStatsTab(_ app: XCUIApplication) {
-        let statsTab = app.tabBars.buttons["Stats"]
+        let statsTab = app.buttons["Stats"].firstMatch  // tab bar moves into the glass rail on Duo
         guard statsTab.waitForExistence(timeout: 30) else {
             dumpTree(app, "tab-bar-missing")
             return

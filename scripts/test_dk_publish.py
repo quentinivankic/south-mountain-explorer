@@ -375,6 +375,118 @@ def test_prepare_areas_cli_writes_one_row_index_and_fails_publish_on_null_bbox(t
     assert dk.main(argv) == 1
 
 
+# ------------------------------------- areas without a discovery entry ----
+
+FOREST = "nordskoven-416103-dk"
+FOREST_BOX = (11.95, 55.95, 12.15, 56.10)
+FOREST_OSM = """<?xml version='1.0' encoding='UTF-8'?>
+<osm version="0.6">
+<node id="1" lat="{s}" lon="{w}" version="1"/><node id="2" lat="{s}" lon="{e}" version="1"/>
+<node id="3" lat="{n}" lon="{e}" version="1"/><node id="4" lat="{n}" lon="{w}" version="1"/>
+<way id="10" version="1"><nd ref="1"/><nd ref="2"/><nd ref="3"/><nd ref="4"/><nd ref="1"/></way>
+<relation id="{rel}" version="1"><member type="way" ref="10" role="outer"/>
+<tag k="type" v="{rtype}"/><tag k="landuse" v="forest"/><tag k="name" v="{name}"/></relation>
+</osm>
+"""
+
+
+def _forest_prepare(tmp_path, *, rel=None, box=FOREST_BOX, name=None, rtype="multipolygon",
+                    mode="qualify", disc=None, registry=None):
+    """Drive the real `prepare-areas` CLI for a forest entry (no discovery candidate unless given)."""
+    entry = dk.load_registry(registry or REGISTRY)["by_id"][FOREST]
+    bounds = tmp_path / "bounds.osm"
+    bounds.write_text(FOREST_OSM.format(rel=rel or entry["relation_id"], w=box[0], s=box[1], e=box[2],
+                                        n=box[3], rtype=rtype, name=name or entry["name"]), encoding="utf-8")
+    sel = tmp_path / "sel.txt"
+    sel.write_text(f"{FOREST}\n", encoding="utf-8")
+    report = tmp_path / "disc.json"
+    report.write_text(json.dumps({"candidates": disc or []}), encoding="utf-8")
+    out = tmp_path / "out"
+    argv = ["prepare-areas", "--selected", str(sel), "--bounds-pbf", str(bounds),
+            "--discovery-report", str(report), "--mode", mode, "--out-dir", str(out)]
+    if registry:
+        argv += ["--registry", str(registry)]
+    rc = dk.main(argv)
+    return rc, json.loads((out / FOREST / "area.json").read_text()), out
+
+
+def test_forest_without_discovery_entry_passes_on_its_own_relation(tmp_path):
+    rc, area, out = _forest_prepare(tmp_path)
+    assert rc == 0 and area["status"] == "ok", area["problems"]
+    assert area["cross_check"] == "registry-relation" and area["bbox_source"] == "computed"
+    assert area["bbox_arg"] == dk.bbox_arg(dk.pad_bbox(list(FOREST_BOX)))
+    row = json.loads((out / FOREST / "index.json").read_text())
+    assert row[0][:3] == [FOREST, "Nordskoven", "Denmark"] and row[0][7] == area["relation_id"]
+
+
+def test_discovery_entry_still_uses_the_discovery_centre_cross_check(tmp_path):
+    entry = dk.load_registry(REGISTRY)["by_id"][FOREST]
+    row = [FOREST, entry["name"], "Denmark", 56.02, 12.05]
+    rc, area, _ = _forest_prepare(tmp_path, disc=[{"index_row": row, "osm_relation_id": entry["relation_id"]}])
+    assert rc == 0 and area["cross_check"] == "discovery"
+    far = [FOREST, entry["name"], "Denmark", 57.5, 9.0]
+    (tmp_path / "far").mkdir()
+    rc, area, _ = _forest_prepare(tmp_path / "far", disc=[{"index_row": far, "osm_relation_id": entry["relation_id"]}])
+    assert area["status"] == "failed" and any("disagrees" in p for p in area["problems"])
+
+
+@pytest.mark.parametrize("kwargs,needle", [
+    ({"rel": 4242}, "relation not found in the PBF"),                                  # registry relation absent
+    ({"name": "Anden Skov"}, "does not match registry name"),           # wrong entity
+    ({"rtype": "route"}, "expected boundary/multipolygon"),            # not an area relation
+    ({"box": (12.0, 56.0, 12.0005, 56.0005)}, "implausible"),           # tiny
+    ({"box": (10.0, 55.0, 13.5, 57.5)}, "implausible"),                 # huge
+    ({"box": (17.0, 55.0, 17.2, 55.2)}, "outside Denmark"),            # not Denmark
+])
+def test_forest_without_discovery_entry_fails_closed(tmp_path, kwargs, needle):
+    rc, area, out = _forest_prepare(tmp_path, **kwargs)
+    assert area["status"] == "failed", kwargs
+    assert any(needle in p for p in area["problems"]), area["problems"]
+    assert not (out / FOREST / "index.json").exists()
+    # publish mode refuses the whole run
+    (tmp_path / "pub").mkdir()
+    rc, _area, _out = _forest_prepare(tmp_path / "pub", mode="publish", **kwargs)
+    assert rc == 1
+
+
+def test_duplicate_relation_id_is_not_unique():
+    entry = dk.load_registry(REGISTRY)["by_id"][FOREST]
+    info = {"bbox": list(FOREST_BOX), "count": 2,
+            "tags": {"type": "multipolygon", "landuse": "forest", "name": entry["name"]}}
+    assert any("not unique" in p for p in dk.relation_problems(entry, info))
+    assert dk.relation_problems(entry, None)
+
+
+def test_run_area_script_skips_discovery_only_after_the_registry_relation_check(tmp_path):
+    """Run the real discovery gate of dk-run-area.sh (everything before `cd trailforge`)."""
+    import subprocess
+    script = (ROOT / "scripts/dk-run-area.sh").read_text(encoding="utf-8").split("\ncd trailforge\n")[0]
+    gate = tmp_path / "gate.sh"
+    gate.write_text(script, encoding="utf-8")
+    entry = dk.load_registry(REGISTRY)["by_id"][FOREST]
+    w = tmp_path / "w"
+    (w / FOREST).mkdir(parents=True)
+    (w / "discovery-report.json").write_text(json.dumps({"candidates": []}), encoding="utf-8")
+
+    def run(area_json):
+        (w / FOREST / "area.json").write_text(json.dumps(area_json), encoding="utf-8")
+        return subprocess.run(["bash", str(gate)], cwd=ROOT, capture_output=True, text=True, env={
+            **os.environ, "AREA_ID": FOREST, "AREA_NAME": entry["name"], "RELATION_ID": str(entry["relation_id"]),
+            "BBOX": "11.9,55.9,12.2,56.2", "W": str(w)})
+
+    ok = run({"id": FOREST, "status": "ok", "cross_check": "registry-relation"})
+    assert ok.returncode == 0, ok.stderr
+    assert json.loads((w / FOREST / "discovery-validation.json").read_text())["status"] == "skipped"
+    for bad in ({"id": FOREST, "status": "ok", "cross_check": "discovery"},
+                {"id": FOREST, "status": "failed", "cross_check": "registry-relation"},
+                {"id": "other-dk", "status": "ok", "cross_check": "registry-relation"}, {}):
+        assert run(bad).returncode != 0, bad
+
+
+def test_workflow_prefilters_with_the_denmark_area_selectors():
+    assert "PREFILTER_DK_AREAS=1 bash extract/prefilter.sh" in PUBLISH_DK
+
+
 # ------------------------------------------------------------ expected table --
 
 def test_committed_expected_table_mols_entry_equals_the_hardened_constants():

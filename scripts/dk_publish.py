@@ -252,12 +252,15 @@ def select_cmd(args: argparse.Namespace) -> int:
 
 # ------------------------------------------------------ boundary bbox / prep --
 
-def boundary_bboxes(pbf: Path, relation_ids: list[int]) -> dict[int, list[float] | None]:
-    """lon/lat bbox of every way reachable from each boundary relation (nested
-    relations followed). Reads a small `osmium getid -r` extract."""
+def boundary_info(pbf: Path, relation_ids: list[int]) -> dict[int, dict[str, Any]]:
+    """Per boundary relation: bbox of every way reachable from it (nested relations
+    followed), its tags, and how many times the relation id occurs in the file.
+    Reads a small `osmium getid -r` extract."""
     import osmium
     way_bbox: dict[int, list[float]] = {}
     members: dict[int, list[tuple[str, int]]] = {}
+    tags: dict[int, dict[str, str]] = {}
+    seen_count: dict[int, int] = {}
 
     class _Collector(osmium.SimpleHandler):  # works on pyosmium 3.7.x and 4.x
         def way(self, w):
@@ -273,6 +276,8 @@ def boundary_bboxes(pbf: Path, relation_ids: list[int]) -> dict[int, list[float]
 
         def relation(self, r):
             members[r.id] = [(m.type, m.ref) for m in r.members]
+            tags[r.id] = {t.k: t.v for t in r.tags}
+            seen_count[r.id] = seen_count.get(r.id, 0) + 1
 
     _Collector().apply_file(str(pbf), locations=True)
 
@@ -288,12 +293,51 @@ def boundary_bboxes(pbf: Path, relation_ids: list[int]) -> dict[int, list[float]
                 boxes += collect(ref, seen)
         return boxes
 
-    result: dict[int, list[float] | None] = {}
+    result: dict[int, dict[str, Any]] = {}
     for rel in relation_ids:
         boxes = collect(rel, set())
-        result[rel] = ([min(b[0] for b in boxes), min(b[1] for b in boxes),
-                        max(b[2] for b in boxes), max(b[3] for b in boxes)] if boxes else None)
+        result[rel] = {
+            "bbox": ([min(b[0] for b in boxes), min(b[1] for b in boxes),
+                      max(b[2] for b in boxes), max(b[3] for b in boxes)] if boxes else None),
+            "tags": tags.get(rel), "count": seen_count.get(rel, 0)}
     return result
+
+
+def boundary_bboxes(pbf: Path, relation_ids: list[int]) -> dict[int, list[float] | None]:
+    return {rel: info["bbox"] for rel, info in boundary_info(pbf, relation_ids).items()}
+
+
+# A registry entry without a discovery candidate (forests, plantations, heaths,
+# islands: discovery lists protected areas only) is cross-checked against its own
+# OSM relation instead of the discovery centre.
+REL_TYPES = {"boundary", "multipolygon"}
+REL_NAME_KEYS = ("name", "name:da", "official_name", "alt_name", "short_name")
+REL_SPAN_MIN, REL_SPAN_MAX = 0.01, 1.0     # degrees, per axis (about 1 km .. 110 km)
+DK_LON, DK_LAT = (6.0, 16.0), (54.0, 58.0)
+
+
+def relation_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str]:
+    """Fail-closed identity/size check of a registry entry against its own PBF relation."""
+    if not info or info.get("tags") is None:
+        return [f"registry relation {entry['relation_id']} is not in the PBF"]
+    problems: list[str] = []
+    if info.get("count") != 1:
+        problems.append(f"registry relation {entry['relation_id']} occurs {info.get('count')} times (not unique)")
+    tags = info["tags"]
+    if tags.get("type") not in REL_TYPES:
+        problems.append(f"relation {entry['relation_id']} has type={tags.get('type')!r}, expected boundary/multipolygon")
+    names = {unicodedata.normalize("NFC", tags[k]) for k in REL_NAME_KEYS if tags.get(k)}
+    if entry["name"] not in names:
+        problems.append(f"relation {entry['relation_id']} name {sorted(names)} does not match registry name {entry['name']!r}")
+    box = info.get("bbox")
+    if box is not None:
+        w, h = box[2] - box[0], box[3] - box[1]
+        if not (REL_SPAN_MIN <= w <= REL_SPAN_MAX and REL_SPAN_MIN <= h <= REL_SPAN_MAX):
+            problems.append(f"boundary size {w:.3f} x {h:.3f} degrees is implausible "
+                            f"(each side must be {REL_SPAN_MIN}..{REL_SPAN_MAX})")
+        if not (DK_LON[0] <= box[0] and box[2] <= DK_LON[1] and DK_LAT[0] <= box[1] and box[3] <= DK_LAT[1]):
+            problems.append(f"boundary bbox {box} is outside Denmark")
+    return problems
 
 
 def pad_bbox(box: list[float]) -> list[float]:
@@ -305,7 +349,7 @@ def center_of(box: list[float]) -> list[float]:
 
 
 def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, discovery_center: Any,
-                        mode: str) -> dict[str, Any]:
+                        mode: str, relation_info: dict[str, Any] | None = None) -> dict[str, Any]:
     """Derive/check one area's bbox + centre. Returns the per-area prepare record."""
     problems: list[str] = []
     rec: dict[str, Any] = {"id": entry["id"], "name": entry["name"], "relation_id": entry["relation_id"],
@@ -321,8 +365,12 @@ def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, dis
         mid = [(boundary[1] + boundary[3]) / 2, (boundary[0] + boundary[2]) / 2]
         if abs(mid[0] - discovery_center[0]) > 0.05 or abs(mid[1] - discovery_center[1]) > 0.05:
             problems.append(f"boundary bbox midpoint {mid} disagrees with the discovery centre {discovery_center}")
+        rec["cross_check"] = "discovery"
     else:
-        problems.append("discovery centre is missing")
+        # No discovery entry for this area: the boundary-derived centre/bbox stands, but only
+        # after the registry's own relation (id, type, name, size) checks out.
+        rec["cross_check"] = "registry-relation"
+        problems += relation_problems(entry, relation_info)
     reg = entry.get("bbox")
     if reg is None:
         if mode == "publish":
@@ -349,12 +397,13 @@ def prepare_areas(args: argparse.Namespace) -> int:
     by_disc = {c["index_row"][0]: c for c in discovery.get("candidates", [])
                if isinstance(c, dict) and isinstance(c.get("index_row"), list) and c["index_row"]}
     entries = [registry["by_id"][i] for i in ids]
-    boxes = boundary_bboxes(args.bounds_pbf, [e["relation_id"] for e in entries])
+    infos = boundary_info(args.bounds_pbf, [e["relation_id"] for e in entries])
     out: list[dict[str, Any]] = []
     for entry in entries:
         cand = by_disc.get(entry["id"])
         disc_center = cand["index_row"][3:5] if cand else None
-        rec = check_area_geometry(entry, boxes[entry["relation_id"]], disc_center, args.mode)
+        info = infos[entry["relation_id"]]
+        rec = check_area_geometry(entry, info["bbox"], disc_center, args.mode, info)
         if rec["status"] == "ok":
             rec["bbox_arg"] = bbox_arg(rec["effective_bbox"])
             row = [entry["id"], entry["name"], STATE, rec["center"][0], rec["center"][1], None, None,

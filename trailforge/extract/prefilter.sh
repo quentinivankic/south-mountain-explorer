@@ -33,6 +33,13 @@ fi
 
 mkdir -p "$(dirname "$OUT")"
 
+# Opt-in (Denmark registry runs only): also keep the area relations registry entries point
+# at that the legacy selectors drop (woods, heaths, recreation grounds, islands). Unset,
+# the command is byte-identical to the legacy one.
+DK_AREA_SELECTORS=()
+if [[ "${PREFILTER_DK_AREAS:-}" == "1" ]]; then
+  DK_AREA_SELECTORS=(r/natural=wood,heath r/landuse=recreation_ground r/place=island)
+fi
 COMMAND=(
   osmium tags-filter "$IN"
   w/highway=path,footway,steps,track,bridleway,via_ferrata,pedestrian
@@ -51,6 +58,7 @@ COMMAND=(
   n/tourism=attraction
   n/historic=archaeological_site,castle,ruins
   n/amenity=shelter
+  ${DK_AREA_SELECTORS[@]+"${DK_AREA_SELECTORS[@]}"}
   -o "$OUT" --overwrite
 )
 "${COMMAND[@]}"

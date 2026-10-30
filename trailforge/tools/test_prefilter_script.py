@@ -188,6 +188,28 @@ class PrefilterScriptReceipt(unittest.TestCase):
             self.assertEqual(outputs["output_bytes"],
                              str(receipt["output_pbf"]["bytes"]))
 
+    def test_denmark_area_selectors_are_opt_in_and_append_only(self):
+        extra = ["r/natural=wood,heath", "r/landuse=recreation_ground", "r/place=island"]
+        argv = {}
+        for flag in (None, "1"):
+            with TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                work = self._worktree(root)
+                environment, log = self._environment(root)
+                environment.pop("RECEIPT_GITHUB_OUTPUT")
+                if flag:
+                    environment["PREFILTER_DK_AREAS"] = flag
+                completed = subprocess.run([
+                    "bash", str(_PREFILTER_SCRIPT), "data/raw/denmark.osm.pbf", "data/hiking.osm.pbf",
+                ], cwd=work, env=environment, check=False,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                argv[flag] = ["osmium", *json.loads(log.read_text(encoding="utf-8").splitlines()[0])]
+        self.assertEqual(argv[None], validator._pinned_prefilter_command())
+        pinned = validator._pinned_prefilter_command()
+        cut = pinned.index("-o")
+        self.assertEqual(argv["1"], [*pinned[:cut], *extra, *pinned[cut:]])
+
     def test_failed_prefilter_writes_no_receipt_or_trust_output(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

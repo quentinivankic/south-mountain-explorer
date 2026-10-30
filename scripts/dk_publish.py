@@ -254,19 +254,23 @@ def boundary_bboxes(pbf: Path, relation_ids: list[int]) -> dict[int, list[float]
     import osmium
     way_bbox: dict[int, list[float]] = {}
     members: dict[int, list[tuple[str, int]]] = {}
-    for obj in osmium.FileProcessor(str(pbf)).with_locations():
-        if obj.is_way():
+
+    class _Collector(osmium.SimpleHandler):  # works on pyosmium 3.7.x and 4.x
+        def way(self, w):
             lons, lats = [], []
-            for node in obj.nodes:
+            for node in w.nodes:
                 try:
                     lons.append(node.lon)
                     lats.append(node.lat)
                 except Exception:  # missing location: skip the node
                     continue
             if lons:
-                way_bbox[obj.id] = [min(lons), min(lats), max(lons), max(lats)]
-        elif obj.is_relation():
-            members[obj.id] = [(m.type, m.ref) for m in obj.members]
+                way_bbox[w.id] = [min(lons), min(lats), max(lons), max(lats)]
+
+        def relation(self, r):
+            members[r.id] = [(m.type, m.ref) for m in r.members]
+
+    _Collector().apply_file(str(pbf), locations=True)
 
     def collect(rel: int, seen: set[int]) -> list[list[float]]:
         if rel in seen or rel not in members:

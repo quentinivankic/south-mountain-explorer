@@ -5086,6 +5086,8 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
         "test_secret_bearing_workflow_run_scalars_use_validated_env_only",
         "test_fake_reviewer_probe_rejects_invented_prior_identities_without_calls",
         "test_authenticated_terminal_rejects_permitted_form_rewrite_without_calls",
+        "test_pending_recovery_fake_and_production_parity_campaign",
+        "def _metadata_matches(",
     ),
     "scripts/test_trailforge_candidate_contract.py": ("RR2-ORIGINAL-CLAUSES-TRAILFORGE-V1",),
 }

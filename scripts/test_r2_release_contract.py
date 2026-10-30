@@ -715,6 +715,14 @@ class ScopedFakeWriter:
             "trekdex-condition-mode": condition_mode,
         }
 
+    @staticmethod
+    def _metadata_matches(
+        metadata: dict[str, str] | None, expected: dict[str, str]
+    ) -> bool:
+        return metadata is not None and all(
+            metadata.get(name) == value for name, value in expected.items()
+        )
+
     def put_conditional(
         self,
         row: dict[str, Any],
@@ -868,13 +876,18 @@ class ScopedFakeWriter:
         if pending["phase"] == "FORWARD":
             row = manifest["objects"][index]
             metadata = None if current_value is None else current_value.get("metadata")
+            expected_metadata = self._write_metadata(
+                row,
+                manifest,
+                pending["attempt_id"],
+                condition_mode=row["conditional_mode"],
+                preimage=row["remote_preimage"],
+            )
             if (
                 current is not None
                 and current["bytes"] == row["bytes"]
                 and current["sha256"] == row["sha256"]
-                and isinstance(metadata, dict)
-                and metadata.get("trekdex-attempt-id") == pending["attempt_id"]
-                and metadata.get("trekdex-manifest-sha256") == manifest["manifest_sha256"]
+                and self._metadata_matches(metadata, expected_metadata)
             ):
                 result = {
                     "key": key, "etag": current["etag"],
@@ -893,6 +906,10 @@ class ScopedFakeWriter:
                 return {"state": "EFFECT_NOT_OBSERVED", "result": None}
             return {"state": "AMBIGUOUS", "result": None}
         rollback_row = scoped_preflight["rollback_manifest"]["objects"][index]
+        postimage = {
+            field: journal["forward_results"][index][field]
+            for field in ("etag", "bytes", "sha256")
+        }
         if pending["operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF":
             if current is None:
                 result = {
@@ -908,14 +925,22 @@ class ScopedFakeWriter:
                     result=result,
                 )
                 return {"state": "EFFECT_OBSERVED", "result": result}
-            return {"state": "EFFECT_NOT_OBSERVED", "result": None}
+            if current == postimage:
+                return {"state": "EFFECT_NOT_OBSERVED", "result": None}
+            return {"state": "AMBIGUOUS", "result": None}
         baseline = rollback_row["baseline_object"]
         metadata = None if current_value is None else current_value.get("metadata")
+        expected_metadata = self._write_metadata(
+            baseline,
+            manifest,
+            pending["attempt_id"],
+            condition_mode="IF_MATCH",
+            preimage=postimage,
+        )
         if (
             current is not None
             and current == {field: baseline[field] for field in ("etag", "bytes", "sha256")}
-            and isinstance(metadata, dict)
-            and metadata.get("trekdex-attempt-id") == pending["attempt_id"]
+            and self._metadata_matches(metadata, expected_metadata)
         ):
             result = {
                 "key": key, "etag": current["etag"],
@@ -930,7 +955,9 @@ class ScopedFakeWriter:
                 result=result,
             )
             return {"state": "EFFECT_OBSERVED", "result": result}
-        return {"state": "EFFECT_NOT_OBSERVED", "result": None}
+        if current == postimage:
+            return {"state": "EFFECT_NOT_OBSERVED", "result": None}
+        return {"state": "AMBIGUOUS", "result": None}
 
     def verify_rollback(
         self,
@@ -2842,6 +2869,319 @@ class TestMolsProviderAdapter(unittest.TestCase):
             self.assertIsNone(receipt["pending_effect"])
             self.assertIsNone(receipt["rollback_verification"])
             validate_scoped_release_receipt(receipt, manifest)
+
+    def test_pending_recovery_fake_and_production_parity_campaign(self) -> None:
+        class ProcessDeath(BaseException):
+            pass
+
+        metadata_fields = (
+            "trekdex-sha256",
+            "trekdex-source-sha",
+            "trekdex-manifest-sha256",
+            "trekdex-attempt-id",
+            "trekdex-preimage-ref",
+            "trekdex-condition-mode",
+        )
+        cases: list[tuple[str, str, str | None, tuple[str, str, int, int, int]]] = [
+            ("FORWARD", "exact-postimage", None, ("EFFECT_OBSERVED", "COMPLETE_SUCCESS", 5, 0, 4)),
+            ("FORWARD", "absent", None, ("EFFECT_NOT_OBSERVED", "INDETERMINATE", 0, 0, 0)),
+            ("FORWARD", "foreign", None, ("AMBIGUOUS", "INDETERMINATE", 0, 0, 0)),
+            ("RESTORE", "exact-baseline", None, ("EFFECT_OBSERVED", "ROLLED_BACK", 4, 4, 3)),
+            ("RESTORE", "exact-postimage", None, ("EFFECT_NOT_OBSERVED", "INDETERMINATE", 4, 0, 0)),
+            ("RESTORE", "absent", None, ("AMBIGUOUS", "INDETERMINATE", 4, 0, 0)),
+            ("RESTORE", "foreign", None, ("AMBIGUOUS", "INDETERMINATE", 4, 0, 0)),
+            ("DELETE", "absent", None, ("EFFECT_OBSERVED", "ROLLED_BACK", 4, 4, 1)),
+            ("DELETE", "exact-postimage", None, ("EFFECT_NOT_OBSERVED", "INDETERMINATE", 4, 2, 0)),
+            ("DELETE", "foreign", None, ("AMBIGUOUS", "INDETERMINATE", 4, 2, 0)),
+        ]
+        for phase in ("FORWARD", "RESTORE", "DELETE"):
+            expected = {
+                "FORWARD": ("AMBIGUOUS", "INDETERMINATE", 0, 0, 0),
+                "RESTORE": ("AMBIGUOUS", "INDETERMINATE", 4, 0, 0),
+                "DELETE": ("EFFECT_NOT_OBSERVED", "INDETERMINATE", 4, 2, 0),
+            }[phase]
+            for field in metadata_fields:
+                cases.append((phase, "metadata", field, expected))
+
+        def run_case(
+            implementation: str,
+            phase: str,
+            state: str,
+            metadata_field: str | None,
+            execution_id: str,
+        ) -> tuple[str, str, int, int, int]:
+            with tempfile.TemporaryDirectory(
+                prefix=f"recovery-parity-{implementation.lower()}-{phase.lower()}-"
+            ) as directory:
+                root = Path(directory)
+                _inventory, _locals, manifest, baseline = _scoped_fixture(root)
+                assertion = make_approval_assertion(
+                    manifest,
+                    operation="RELEASE",
+                    key=APPROVAL_KEY,
+                    authorization_nonce=f"{execution_id}-approval",
+                )
+                checkpoints: list[dict[str, Any]] = []
+
+                if implementation == "FAKE":
+                    class CrashWriter(ScopedFakeWriter):
+                        crashed = False
+
+                        def put_conditional(
+                            inner_self, *args: Any, **kwargs: Any
+                        ) -> dict[str, Any]:
+                            result = super().put_conditional(*args, **kwargs)
+                            if phase == "FORWARD" and not inner_self.crashed:
+                                inner_self.crashed = True
+                                raise ProcessDeath("after fake forward effect")
+                            return result
+
+                        def rollback_put_conditional(
+                            inner_self, *args: Any, **kwargs: Any
+                        ) -> dict[str, Any]:
+                            result = super().rollback_put_conditional(*args, **kwargs)
+                            if phase == "RESTORE" and not inner_self.crashed:
+                                inner_self.crashed = True
+                                raise ProcessDeath("after fake restore effect")
+                            return result
+
+                        def rollback_delete_created(
+                            inner_self, *args: Any, **kwargs: Any
+                        ) -> dict[str, Any]:
+                            result = super().rollback_delete_created(*args, **kwargs)
+                            if phase == "DELETE" and not inner_self.crashed:
+                                inner_self.crashed = True
+                                raise ProcessDeath("after fake delete effect")
+                            return result
+
+                    writer = CrashWriter(
+                        root,
+                        manifest,
+                        baseline,
+                        refuse_forward_at=4 if phase != "FORWARD" else None,
+                    )
+                    with self.assertRaises(ProcessDeath):
+                        _execute_scoped(
+                            manifest,
+                            writer,
+                            approval_assertion=assertion,
+                            execution_id=execution_id,
+                            checkpoint=lambda value: checkpoints.append(
+                                copy.deepcopy(value)
+                            ),
+                        )
+                    objects = writer.objects
+                    before_effects = len(writer.forward_calls) + len(writer.rollback_calls)
+
+                    def assign(
+                        key: str, payload: bytes, metadata: dict[str, str]
+                    ) -> None:
+                        objects[key] = writer._object(
+                            key, payload, metadata=metadata
+                        )
+
+                    def remove(key: str) -> None:
+                        objects.pop(key, None)
+
+                    def resume(journal: dict[str, Any]) -> dict[str, Any]:
+                        return reconcile_scoped_release_write_ahead(
+                            journal,
+                            manifest,
+                            writer,
+                            approval_assertion=assertion,
+                            approval_key=APPROVAL_KEY,
+                        )
+
+                    def effect_count() -> int:
+                        return len(writer.forward_calls) + len(writer.rollback_calls)
+                else:
+                    transport = FakeR2ProviderTransport(
+                        baseline,
+                        refuse_put_key=(
+                            "trail-shapes.json" if phase != "FORWARD" else None
+                        ),
+                    )
+                    stage_module = self.module
+
+                    class CrashWriter(stage_module.MolsConditionalWriter):
+                        crashed = False
+
+                        def put_conditional(
+                            inner_self, *args: Any, **kwargs: Any
+                        ) -> dict[str, Any]:
+                            result = super().put_conditional(*args, **kwargs)
+                            if phase == "FORWARD" and not inner_self.crashed:
+                                inner_self.crashed = True
+                                raise ProcessDeath("after real forward effect")
+                            return result
+
+                        def rollback_put_conditional(
+                            inner_self, *args: Any, **kwargs: Any
+                        ) -> dict[str, Any]:
+                            result = super().rollback_put_conditional(*args, **kwargs)
+                            if phase == "RESTORE" and not inner_self.crashed:
+                                inner_self.crashed = True
+                                raise ProcessDeath("after real restore effect")
+                            return result
+
+                        def rollback_delete_created(
+                            inner_self, *args: Any, **kwargs: Any
+                        ) -> dict[str, Any]:
+                            result = super().rollback_delete_created(*args, **kwargs)
+                            if phase == "DELETE" and not inner_self.crashed:
+                                inner_self.crashed = True
+                                raise ProcessDeath("after real delete effect")
+                            return result
+
+                    writer = CrashWriter(
+                        endpoint_url=ENDPOINT_URL,
+                        account_id=ACCOUNT_ID,
+                        manifest_root=root,
+                        aws_cli_version=AWS_CLI_VERSION,
+                        aws_cli_archive_sha256=AWS_CLI_ARCHIVE_SHA256,
+                    )
+                    with mock.patch.object(
+                        self.module.subprocess, "run", side_effect=transport.run
+                    ), self.assertRaises(ProcessDeath):
+                        _execute_scoped(
+                            manifest,
+                            writer,
+                            approval_assertion=assertion,
+                            execution_id=execution_id,
+                            checkpoint=lambda value: checkpoints.append(
+                                copy.deepcopy(value)
+                            ),
+                        )
+                    objects = transport.objects
+                    before_effects = sum(
+                        operation in {"put-object", "delete-object"}
+                        for operation, _key in transport.calls
+                    )
+
+                    def assign(
+                        key: str, payload: bytes, metadata: dict[str, str]
+                    ) -> None:
+                        objects[key] = {
+                            "payload": payload,
+                            "metadata": copy.deepcopy(metadata),
+                        }
+
+                    def remove(key: str) -> None:
+                        objects.pop(key, None)
+
+                    def resume(journal: dict[str, Any]) -> dict[str, Any]:
+                        resumed = self.module.MolsConditionalWriter(
+                            endpoint_url=ENDPOINT_URL,
+                            account_id=ACCOUNT_ID,
+                            manifest_root=root,
+                            aws_cli_version=AWS_CLI_VERSION,
+                            aws_cli_archive_sha256=AWS_CLI_ARCHIVE_SHA256,
+                        )
+                        with mock.patch.object(
+                            self.module.subprocess, "run", side_effect=transport.run
+                        ):
+                            return reconcile_scoped_release_write_ahead(
+                                journal,
+                                manifest,
+                                resumed,
+                                approval_assertion=assertion,
+                                approval_key=APPROVAL_KEY,
+                            )
+
+                    def effect_count() -> int:
+                        return sum(
+                            operation in {"put-object", "delete-object"}
+                            for operation, _key in transport.calls
+                        )
+
+                journal = checkpoints[-1]
+                self.assertEqual(journal["checkpoint_kind"], "WRITE_AHEAD")
+                pending = journal["pending_effect"]
+                key = pending["key"]
+                index = pending["index"]
+                forward_row = manifest["objects"][index]
+                candidate_payload = (root / forward_row["local_path"]).read_bytes()
+                forward_metadata = ScopedFakeWriter._write_metadata(
+                    forward_row,
+                    manifest,
+                    journal["forward_results"][index]["attempt_id"]
+                    if index < len(journal["forward_results"])
+                    else pending["attempt_id"],
+                    condition_mode=forward_row["conditional_mode"],
+                    preimage=forward_row["remote_preimage"],
+                )
+
+                restore_metadata: dict[str, str] | None = None
+                baseline_payload: bytes | None = baseline.get(key)
+                if pending["phase"] == "ROLLBACK" and pending["operation"] == "RESTORE_IF_MATCH":
+                    rollback_row = journal["scoped_preflight"]["rollback_manifest"]["objects"][index]
+                    postimage = {
+                        field: journal["forward_results"][index][field]
+                        for field in ("etag", "bytes", "sha256")
+                    }
+                    restore_metadata = ScopedFakeWriter._write_metadata(
+                        rollback_row["baseline_object"],
+                        manifest,
+                        pending["attempt_id"],
+                        condition_mode="IF_MATCH",
+                        preimage=postimage,
+                    )
+
+                if state == "absent":
+                    remove(key)
+                elif state == "foreign":
+                    assign(key, b'{"foreign":true}', {})
+                elif state == "exact-postimage" and phase != "FORWARD":
+                    assign(key, candidate_payload, forward_metadata)
+                elif state == "exact-baseline":
+                    assert baseline_payload is not None and restore_metadata is not None
+                    assign(key, baseline_payload, restore_metadata)
+                elif state == "metadata":
+                    assert metadata_field is not None
+                    if phase == "FORWARD":
+                        payload = candidate_payload
+                        metadata = copy.deepcopy(forward_metadata)
+                    elif phase == "RESTORE":
+                        assert baseline_payload is not None and restore_metadata is not None
+                        payload = baseline_payload
+                        metadata = copy.deepcopy(restore_metadata)
+                    else:
+                        payload = candidate_payload
+                        metadata = copy.deepcopy(forward_metadata)
+                    metadata[metadata_field] = (
+                        "0" * 40
+                        if metadata_field == "trekdex-source-sha"
+                        else "foreign"
+                    )
+                    assign(key, payload, metadata)
+                elif state != "exact-postimage":
+                    raise AssertionError((phase, state))
+
+                terminal = resume(journal)
+                reconciliation = terminal["reconciliation"]
+                assert reconciliation is not None
+                return (
+                    reconciliation["observation_state"],
+                    terminal["terminal_state"],
+                    terminal["forward_observed"],
+                    terminal["rollback_observed"],
+                    effect_count() - before_effects,
+                )
+
+        for number, (phase, state, metadata_field, expected) in enumerate(cases):
+            label = f"{phase}:{state}:{metadata_field or '-'}"
+            execution_id = f"recovery-parity-{number}"
+            fake = run_case("FAKE", phase, state, metadata_field, execution_id)
+            real = run_case("REAL", phase, state, metadata_field, execution_id)
+            with self.subTest(case=label, implementation="parity"):
+                self.assertEqual(fake, real)
+                self.assertEqual(real, expected)
+            if phase == "FORWARD" and metadata_field == "trekdex-source-sha":
+                self.assertEqual(
+                    real,
+                    ("AMBIGUOUS", "INDETERMINATE", 0, 0, 0),
+                    "reviewer source-SHA probe must fail closed identically",
+                )
 
     def test_tool_attestation_checks_active_version_and_archive_pin(self) -> None:
         good = subprocess.CompletedProcess(

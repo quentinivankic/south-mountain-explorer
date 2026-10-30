@@ -685,6 +685,68 @@ def _copy_exact_source(source: Path, target: Path, expected: dict[str, Any]) -> 
         raise contract.ManifestError("producer source changed after population review")
 
 
+def _build_scoped_semantic_deltas(
+    args: argparse.Namespace,
+    inventory: dict[str, Any],
+    sources: list[tuple[str, Path, str]],
+    local_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    contract = _contract_module()
+    publication_area_id = getattr(args, "publication_area_id", None)
+    if publication_area_id is None:
+        return []
+    if publication_area_id != contract.MOLS_AREA_ID:
+        raise contract.ManifestError("semantic baseline reads are restricted to exact Mols scope")
+    endpoint_url = getattr(args, "endpoint_url", None)
+    aws_cli_version = getattr(args, "aws_cli_version", None)
+    aws_cli_archive_sha256 = getattr(args, "aws_cli_archive_sha256", None)
+    if not all(isinstance(value, str) and value for value in (
+        endpoint_url, aws_cli_version, aws_cli_archive_sha256
+    )):
+        raise contract.ManifestError("scoped plan lacks pinned provider read identity")
+    reader = MolsConditionalWriter(
+        endpoint_url=endpoint_url,
+        account_id=os.environ.get("R2_ACCOUNT_ID", ""),
+        manifest_root=Path.cwd(),
+        aws_cli_version=aws_cli_version,
+        aws_cli_archive_sha256=aws_cli_archive_sha256,
+    )
+    contract.validate_provider_identity_attestation(
+        reader.attest_identity(),
+        expected_account_identity_ref=inventory["account_identity_ref"],
+        expected_endpoint_identity_ref=inventory["endpoint_identity_ref"],
+    )
+    contract.validate_provider_tool_attestation(reader.tool_attestation())
+    source_by_key = {key: source for key, source, _logical in sources}
+    row_by_key = {row["key"]: row for row in local_rows}
+    remote = contract.inventory_objects(inventory)
+    geom_path = source_by_key.get(contract.MOLS_OBJECT_KEYS[0])
+    if geom_path is None or geom_path.is_symlink() or not geom_path.is_file():
+        raise contract.ManifestError("scoped plan lacks exact Mols geometry source")
+    mols_geom = geom_path.read_bytes()
+    deltas: list[dict[str, Any]] = []
+    for key in contract.MOLS_SEMANTIC_GLOBAL_KEYS:
+        local = row_by_key[key]
+        preimage = remote[key]
+        if (
+            preimage["bytes"] == local["bytes"]
+            and preimage["sha256"] == local["sha256"]
+        ):
+            continue
+        baseline = reader.read_reviewed_baseline_bytes(key, preimage)
+        candidate = source_by_key[key].read_bytes()
+        deltas.append(
+            contract.build_mols_global_delta(
+                key,
+                baseline,
+                candidate,
+                mols_geom,
+                baseline_etag=preimage["etag"],
+            )
+        )
+    return deltas
+
+
 def stage_v2(args: argparse.Namespace) -> int:
     contract = _contract_module()
     inventory = _read_contract_json(args.inventory, "inventory receipt")
@@ -692,6 +754,9 @@ def stage_v2(args: argparse.Namespace) -> int:
     if args.stage_root.exists() or args.stage_root.is_symlink():
         raise contract.ManifestError(f"stage root must not already exist: {args.stage_root}")
     sources, local_rows, population = _derive_producer_population(args, inventory)
+    semantic_deltas = _build_scoped_semantic_deltas(
+        args, inventory, sources, local_rows
+    )
     manifest = contract.build_upload_manifest(
         inventory,
         local_rows,
@@ -702,6 +767,7 @@ def stage_v2(args: argparse.Namespace) -> int:
         root_approval_ref=args.root_approval_ref,
         prior_anchor_ref=args.anchor_ref,
         publication_area_id=getattr(args, "publication_area_id", None),
+        semantic_deltas=semantic_deltas,
     )
     if args.approved_manifest_sha256 and manifest["manifest_sha256"] != args.approved_manifest_sha256:
         raise contract.ManifestError("computed manifest does not match the exact reviewed manifest")
@@ -921,6 +987,44 @@ class MolsConditionalWriter(AwsConditionalWriter):
             "etag": head["etag"], "bytes": byte_count, "sha256": digest
         }, metadata
 
+    def read_reviewed_baseline_bytes(
+        self, key: str, expected_preimage: dict[str, Any]
+    ) -> bytes:
+        contract = _contract_module()
+        if key not in contract.MOLS_SEMANTIC_GLOBAL_KEYS:
+            raise contract.ManifestError("reviewed baseline read exceeds Mols semantic globals")
+        try:
+            expected = contract._normalize_preimage(
+                expected_preimage, f"{key} reviewed baseline"
+            )
+        except contract.InventoryError as error:
+            raise contract.ManifestError("reviewed baseline identity is invalid") from error
+        head, _metadata = self._head_identity(key, missing_ok=False)
+        assert head is not None
+        if head["etag"] != expected["etag"] or head["bytes"] != expected["bytes"]:
+            raise contract.ConditionalRequestRefused(
+                "reviewed semantic baseline changed before conditional GET"
+            )
+        with tempfile.TemporaryDirectory(prefix="trekdex-r2-semantic-baseline-") as directory:
+            output = Path(directory) / "object"
+            self._download_exact(
+                key,
+                etag=expected["etag"],
+                output=output,
+                context="reviewed semantic baseline GET",
+            )
+            payload = output.read_bytes()
+        digest = hashlib.sha256(payload).hexdigest()
+        if (
+            len(payload) != expected["bytes"]
+            or digest != expected["sha256"]
+            or (head["sha256"] is not None and head["sha256"] != digest)
+        ):
+            raise contract.ManifestError(
+                "reviewed semantic baseline GET differs from inventory identity"
+            )
+        return payload
+
     @staticmethod
     def _safe_relative(root: Path, value: str) -> Path:
         contract = _contract_module()
@@ -994,6 +1098,9 @@ class MolsConditionalWriter(AwsConditionalWriter):
         attempt_id: str,
         source_sha: str,
         manifest_sha256: str,
+        transaction_phase: str,
+        transaction_operation: str,
+        transaction_index: int,
     ) -> dict[str, Any]:
         contract = _contract_module()
         if condition_mode == "IF_MATCH":
@@ -1074,23 +1181,26 @@ class MolsConditionalWriter(AwsConditionalWriter):
             or verified["sha256"] != source_row["sha256"]
         ):
             raise contract.ManifestError("conditional PUT post-write HEAD/GET mismatch")
-        transaction_id = "r2-result-" + contract.canonical_sha256({
-            "attempt_id": attempt_id,
-            "provider_response": document,
-            "verified": verified,
-        })[:32]
-        return {
+        result = {
             "key": key,
             "etag": verified["etag"],
             "bytes": verified["bytes"],
             "sha256": verified["sha256"],
-            "transaction_id": transaction_id,
             "attempt_id": attempt_id,
         }
+        result["transaction_id"] = contract.scoped_transaction_id(
+            execution_id=self._active_execution_id,
+            phase=transaction_phase,
+            operation=transaction_operation,
+            index=transaction_index,
+            result=result,
+        )
+        return result
 
     def bind_scoped_preflight(self, snapshot: dict[str, Any]) -> None:
         contract = _contract_module()
         self._active_scoped_preflight_sha256 = snapshot["scoped_preflight_sha256"]
+        self._active_execution_id = snapshot["execution_id"]
         self._active_release_preflight_sha256 = snapshot["release_preflight"]["preflight_sha256"]
         self._active_rollback_rows = {
             row["key"]: copy.deepcopy(row)
@@ -1108,8 +1218,23 @@ class MolsConditionalWriter(AwsConditionalWriter):
             raise contract.ManifestError("provider adapter accepts only exact Mols scope")
         rollback_root = self.manifest_root / "rollback"
         rollback_root.mkdir(mode=0o700, exist_ok=False)
+        population = {
+            row["key"]: row for row in manifest["producer_population"]["objects"]
+        }
+        geom_row = population.get(contract.MOLS_OBJECT_KEYS[0])
+        if geom_row is None:
+            raise contract.ManifestError("scoped producer population omits Mols geometry")
+        geom_source = self._safe_relative(self.manifest_root, geom_row["local_path"])
+        if (
+            not geom_source.is_file()
+            or geom_source.stat().st_size != geom_row["bytes"]
+            or file_digest(geom_source, "sha256") != geom_row["sha256"]
+        ):
+            raise contract.ManifestError("staged Mols geometry differs from producer population")
+        mols_geom = geom_source.read_bytes()
         observed: list[dict[str, Any] | None] = []
         baselines: list[dict[str, Any] | None] = []
+        semantic_deltas: list[dict[str, Any]] = []
         index_delta: dict[str, Any] | None = None
         for row in manifest["objects"]:
             source = self._safe_relative(self.manifest_root, row["local_path"])
@@ -1146,12 +1271,23 @@ class MolsConditionalWriter(AwsConditionalWriter):
                 index_delta = contract.build_mols_index_delta(
                     target.read_bytes(), source.read_bytes()
                 )
+            elif row["key"] in contract.MOLS_SEMANTIC_GLOBAL_KEYS:
+                semantic_deltas.append(
+                    contract.build_mols_global_delta(
+                        row["key"],
+                        target.read_bytes(),
+                        source.read_bytes(),
+                        mols_geom,
+                        baseline_etag=current["etag"],
+                    )
+                )
         snapshot = contract.build_scoped_release_preflight(
             manifest,
             execution_id=execution_id,
             observed_preimages=observed,
             baseline_objects=baselines,
             index_delta=index_delta,
+            semantic_deltas=semantic_deltas,
         )
         self.bind_scoped_preflight(snapshot)
         _write_contract_json(
@@ -1176,6 +1312,12 @@ class MolsConditionalWriter(AwsConditionalWriter):
             or preflight_sha256 != getattr(self, "_active_release_preflight_sha256", None)
         ):
             raise contract.ManifestError("provider effect is not bound to eligible preflight")
+        contract.validate_scoped_attempt_id(
+            attempt_id,
+            execution_id=self._active_execution_id,
+            phase="FORWARD",
+            index=preflight_row["index"],
+        )
         current, _metadata = self._read_current_exact(row["key"], missing_ok=True)
         if current != row["remote_preimage"]:
             raise contract.ConditionalRequestRefused(
@@ -1191,6 +1333,9 @@ class MolsConditionalWriter(AwsConditionalWriter):
             condition_mode=row["conditional_mode"], preimage=current,
             attempt_id=attempt_id, source_sha=self._active_source_sha,
             manifest_sha256=self._active_manifest_sha256,
+            transaction_phase="FORWARD",
+            transaction_operation="PUT_CONDITIONAL",
+            transaction_index=preflight_row["index"],
         )
 
     def rollback_put_conditional(
@@ -1205,12 +1350,18 @@ class MolsConditionalWriter(AwsConditionalWriter):
         key = rollback_row.get("key")
         if (
             rollback_row.get("rollback_operation") != "RESTORE_IF_MATCH"
-            or key not in {*contract.MOLS_OBJECT_KEYS, "index.json"}
+            or key not in contract.MOLS_FORWARD_KEYS
             or rollback_row.get("baseline_preimage") is None
             or scoped_preflight_sha256 != getattr(self, "_active_scoped_preflight_sha256", None)
             or rollback_row != getattr(self, "_active_rollback_rows", {}).get(key)
         ):
             raise contract.ManifestError("rollback restore exceeds exact Mols/index authority")
+        contract.validate_scoped_attempt_id(
+            attempt_id,
+            execution_id=self._active_execution_id,
+            phase="ROLLBACK",
+            index=rollback_row["index"],
+        )
         current, _metadata = self._read_current_exact(key, missing_ok=True)
         expected_post = {
             field: postimage[field] for field in ("etag", "bytes", "sha256")
@@ -1225,6 +1376,9 @@ class MolsConditionalWriter(AwsConditionalWriter):
             condition_mode="IF_MATCH", preimage=current,
             attempt_id=attempt_id, source_sha=self._active_source_sha,
             manifest_sha256=self._active_manifest_sha256,
+            transaction_phase="ROLLBACK",
+            transaction_operation="RESTORE_IF_MATCH",
+            transaction_index=rollback_row["index"],
         )
         if result["etag"] != rollback_row["baseline_preimage"]["etag"]:
             raise contract.ManifestError("rollback restore did not recover baseline ETag")
@@ -1249,6 +1403,12 @@ class MolsConditionalWriter(AwsConditionalWriter):
             or rollback_row != getattr(self, "_active_rollback_rows", {}).get(key)
         ):
             raise contract.ManifestError("rollback delete exceeds exact absent Mols authority")
+        contract.validate_scoped_attempt_id(
+            attempt_id,
+            execution_id=self._active_execution_id,
+            phase="ROLLBACK",
+            index=rollback_row["index"],
+        )
         expected_post = {
             field: postimage[field] for field in ("etag", "bytes", "sha256")
         }
@@ -1275,18 +1435,20 @@ class MolsConditionalWriter(AwsConditionalWriter):
         after = self._head_document(key, missing_ok=True)
         if after is not None:
             raise contract.ManifestError("plain Mols delete did not verify absence")
-        transaction_id = "r2-delete-" + contract.canonical_sha256({
-            "attempt_id": attempt_id, "key": key,
-            "postimage": expected_post, "provider_result": provider_result,
-            "verified_absent": True,
-        })[:32]
-        return {
+        result = {
             "attempt_id": attempt_id,
             "key": key,
             "postimage_sha256": rollback_row["expected_postimage"]["sha256"],
-            "transaction_id": transaction_id,
             "verified_absent": True,
         }
+        result["transaction_id"] = contract.scoped_transaction_id(
+            execution_id=self._active_execution_id,
+            phase="ROLLBACK",
+            operation="DELETE_CREATED_AFTER_EXACT_PROOF",
+            index=rollback_row["index"],
+            result=result,
+        )
+        return result
 
     @staticmethod
     def _metadata_matches(
@@ -1307,6 +1469,12 @@ class MolsConditionalWriter(AwsConditionalWriter):
         self.bind_scoped_preflight(scoped_preflight)
         index = pending["index"]
         key = pending["key"]
+        contract.validate_scoped_attempt_id(
+            pending["attempt_id"],
+            execution_id=journal["execution_id"],
+            phase=pending["phase"],
+            index=index,
+        )
         current, metadata = self._read_current_exact(key, missing_ok=True)
         if pending["phase"] == "FORWARD":
             row = manifest["objects"][index]
@@ -1326,11 +1494,15 @@ class MolsConditionalWriter(AwsConditionalWriter):
                 result = {
                     "key": key, "etag": current["etag"],
                     "bytes": current["bytes"], "sha256": current["sha256"],
-                    "transaction_id": "r2-reconcile-" + contract.canonical_sha256({
-                        "pending": pending, "current": current,
-                    })[:32],
                     "attempt_id": pending["attempt_id"],
                 }
+                result["transaction_id"] = contract.scoped_transaction_id(
+                    execution_id=journal["execution_id"],
+                    phase="FORWARD",
+                    operation="PUT_CONDITIONAL",
+                    index=index,
+                    result=result,
+                )
                 return {"state": "EFFECT_OBSERVED", "result": result}
             if current == row["remote_preimage"]:
                 return {"state": "EFFECT_NOT_OBSERVED", "result": None}
@@ -1345,9 +1517,15 @@ class MolsConditionalWriter(AwsConditionalWriter):
                 result = {
                     "attempt_id": pending["attempt_id"], "key": key,
                     "postimage_sha256": rollback_row["expected_postimage"]["sha256"],
-                    "transaction_id": "r2-reconcile-delete-" + contract.canonical_sha256(pending)[:24],
                     "verified_absent": True,
                 }
+                result["transaction_id"] = contract.scoped_transaction_id(
+                    execution_id=journal["execution_id"],
+                    phase="ROLLBACK",
+                    operation="DELETE_CREATED_AFTER_EXACT_PROOF",
+                    index=index,
+                    result=result,
+                )
                 return {"state": "EFFECT_OBSERVED", "result": result}
             if current == postimage:
                 return {"state": "EFFECT_NOT_OBSERVED", "result": None}
@@ -1371,11 +1549,15 @@ class MolsConditionalWriter(AwsConditionalWriter):
             result = {
                 "key": key, "etag": current["etag"],
                 "bytes": current["bytes"], "sha256": current["sha256"],
-                "transaction_id": "r2-reconcile-restore-" + contract.canonical_sha256({
-                    "pending": pending, "current": current,
-                })[:24],
                 "attempt_id": pending["attempt_id"],
             }
+            result["transaction_id"] = contract.scoped_transaction_id(
+                execution_id=journal["execution_id"],
+                phase="ROLLBACK",
+                operation="RESTORE_IF_MATCH",
+                index=index,
+                result=result,
+            )
             return {"state": "EFFECT_OBSERVED", "result": result}
         if current == postimage:
             return {"state": "EFFECT_NOT_OBSERVED", "result": None}
@@ -1385,15 +1567,20 @@ class MolsConditionalWriter(AwsConditionalWriter):
         self,
         rollback_manifest: dict[str, Any],
         *,
+        forward_results: list[dict[str, Any]],
         rollback_results: list[dict[str, Any]],
     ) -> dict[str, Any]:
         contract = _contract_module()
-        if (
-            rollback_manifest["publication_area_id"] != contract.MOLS_AREA_ID
-            or len(rollback_results) != rollback_manifest["object_count"]
-        ):
-            raise contract.ManifestError("rollback verification population/scope is invalid")
+        contract.validate_rollback_result_prefix(
+            rollback_manifest,
+            execution_id=self._active_execution_id,
+            forward_results=forward_results,
+            rollback_results=rollback_results,
+            require_complete=True,
+        )
         absent: list[str] = []
+        restored_keys: list[str] = []
+        semantic_restored: list[str] = []
         index_restored = not any(
             row["key"] == "index.json" for row in rollback_manifest["objects"]
         )
@@ -1420,18 +1607,243 @@ class MolsConditionalWriter(AwsConditionalWriter):
                 )
                 if output.read_bytes() != baseline_path.read_bytes():
                     raise contract.ManifestError("rollback bytes differ from frozen baseline")
+            restored_keys.append(row["key"])
+            if row["key"] in contract.MOLS_SEMANTIC_GLOBAL_KEYS:
+                semantic_restored.append(row["key"])
             if row["key"] == "index.json":
                 index_restored = True
         verification: dict[str, Any] = {
-            "schema": "trekdex-r2-rollback-verification-v1",
+            "schema": "trekdex-r2-rollback-verification-v2",
             "rollback_manifest_sha256": rollback_manifest["rollback_manifest_sha256"],
             "all_rows_restored": True,
             "verified_absent_keys": absent,
+            "verified_restored_keys": restored_keys,
+            "semantic_global_baselines_restored": semantic_restored,
             "index_baseline_restored": index_restored,
             "non_target_index_entries_unchanged": True,
         }
         verification["receipt_sha256"] = contract.canonical_sha256(verification)
         return verification
+
+
+def _sealed_recovery_bytes(
+    root: Path,
+    relative_value: str,
+    expected: dict[str, Any],
+    *,
+    context: str,
+) -> bytes:
+    contract = _contract_module()
+    if root.is_symlink() or not root.is_dir():
+        raise contract.ManifestError("recovery stage root is missing or unsafe")
+    relative = Path(relative_value)
+    if relative.is_absolute() or not relative.parts or ".." in relative.parts:
+        raise contract.ManifestError(f"{context} path escapes the recovery stage")
+    candidate = root
+    for part in relative.parts:
+        candidate = candidate / part
+        if candidate.is_symlink():
+            raise contract.ManifestError(f"{context} uses a symlink")
+    if not candidate.is_file():
+        raise contract.ManifestError(f"{context} is missing or not a regular file")
+    resolved_root = root.resolve()
+    resolved_candidate = candidate.resolve()
+    if resolved_root not in resolved_candidate.parents:
+        raise contract.ManifestError(f"{context} resolves outside the recovery stage")
+    payload = candidate.read_bytes()
+    if (
+        len(payload) != expected.get("bytes")
+        or hashlib.sha256(payload).hexdigest() != expected.get("sha256")
+        or (
+            "md5" in expected
+            and hashlib.md5(payload, usedforsecurity=False).hexdigest()
+            != expected.get("md5")
+        )
+    ):
+        raise contract.ManifestError(f"{context} differs from its sealed identity")
+    return payload
+
+
+def _read_canonical_recovery_json(path: Path, context: str) -> dict[str, Any]:
+    contract = _contract_module()
+    if path.is_symlink() or not path.is_file():
+        raise contract.InventoryError(
+            f"{context} is not a regular file: {path}"
+        )
+    payload = path.read_bytes()
+    try:
+        text = payload.decode("utf-8", errors="strict")
+    except UnicodeDecodeError as error:
+        raise contract.InventoryError(f"{context} is not UTF-8") from error
+    document = contract.strict_json_loads(text, context)
+    if not isinstance(document, dict):
+        raise contract.InventoryError(f"{context} is not an object")
+    expected = (
+        json.dumps(
+            document,
+            ensure_ascii=False,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        + "\n"
+    ).encode("utf-8")
+    if payload != expected:
+        raise contract.ManifestError(f"{context} is not canonical sealed JSON")
+    return document
+
+
+def _validate_recovery_stage(
+    contract: Any,
+    manifest: dict[str, Any],
+    journal: dict[str, Any],
+    stage_root: Path,
+) -> None:
+    if stage_root.is_symlink() or not stage_root.is_dir():
+        raise contract.ManifestError("recovery stage root is missing or unsafe")
+    preflight = journal["scoped_preflight"]
+    if preflight is None:
+        raise contract.ManifestError("recovery journal has no sealed scoped preflight")
+    rollback_manifest = preflight["rollback_manifest"]
+    standalone = _read_canonical_recovery_json(
+        stage_root / "rollback-manifest.json",
+        "sealed recovery rollback manifest",
+    )
+    if standalone != rollback_manifest:
+        raise contract.ManifestError(
+            "standalone rollback manifest differs from authenticated journal"
+        )
+
+    candidates: dict[str, bytes] = {}
+    for row in manifest["objects"]:
+        expected_path = (
+            f"objects/{row['key'].encode('utf-8').hex()}.object"
+        )
+        if row["local_path"] != expected_path:
+            raise contract.ManifestError(
+                f"recovery candidate path is not canonical for {row['key']}"
+            )
+        candidates[row["key"]] = _sealed_recovery_bytes(
+            stage_root,
+            row["local_path"],
+            row,
+            context=f"sealed recovery candidate {row['key']}",
+        )
+
+    rollback_rows = {
+        row["key"]: row for row in rollback_manifest["objects"]
+    }
+    baselines: dict[str, bytes] = {}
+    for row in rollback_manifest["objects"]:
+        baseline = row["baseline_object"]
+        if baseline is None:
+            if row["rollback_operation"] != "DELETE_CREATED_AFTER_EXACT_PROOF":
+                raise contract.ManifestError(
+                    "recovery rollback row lacks its required baseline"
+                )
+            continue
+        expected_path = (
+            f"rollback/{row['key'].encode('utf-8').hex()}.object"
+        )
+        if baseline["local_path"] != expected_path:
+            raise contract.ManifestError(
+                f"recovery baseline path is not canonical for {row['key']}"
+            )
+        baselines[row["key"]] = _sealed_recovery_bytes(
+            stage_root,
+            baseline["local_path"],
+            baseline,
+            context=f"sealed recovery baseline {row['key']}",
+        )
+
+    geom = candidates.get(contract.MOLS_OBJECT_KEYS[0])
+    if geom is None:
+        raise contract.ManifestError("recovery evidence lacks the Mols candidate geometry")
+    semantic_deltas = {
+        delta["key"]: delta for delta in manifest["semantic_deltas"]
+    }
+    for key in contract.MOLS_SEMANTIC_GLOBAL_KEYS:
+        if key not in candidates:
+            continue
+        baseline = baselines.get(key)
+        rollback_row = rollback_rows.get(key)
+        if baseline is None or rollback_row is None:
+            raise contract.ManifestError(
+                f"recovery evidence lacks the {key} semantic baseline"
+            )
+        rebuilt = contract.build_mols_global_delta(
+            key,
+            baseline,
+            candidates[key],
+            geom,
+            baseline_etag=rollback_row["baseline_preimage"]["etag"],
+        )
+        if (
+            semantic_deltas.get(key) != rebuilt
+            or rollback_row["semantic_delta"] != rebuilt
+        ):
+            raise contract.ManifestError(
+                f"recovery {key} semantic proof differs from sealed bytes"
+            )
+
+    if "index.json" in candidates:
+        baseline = baselines.get("index.json")
+        if baseline is None:
+            raise contract.ManifestError("recovery evidence lacks the index baseline")
+        rebuilt_index = contract.build_mols_index_delta(
+            baseline, candidates["index.json"]
+        )
+        if rollback_manifest["index_delta"] != rebuilt_index:
+            raise contract.ManifestError(
+                "recovery index proof differs from sealed baseline/candidate bytes"
+            )
+
+
+def _validate_recovery_material(
+    args: argparse.Namespace,
+) -> tuple[Any, dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
+    contract = _contract_module()
+    inventory = _read_canonical_recovery_json(
+        args.inventory, "sealed recovery inventory"
+    )
+    manifest = _read_canonical_recovery_json(
+        args.manifest, "sealed recovery upload manifest"
+    )
+    contract.validate_upload_manifest(manifest, inventory_receipt=inventory)
+    if manifest["publication_area_id"] != contract.MOLS_AREA_ID:
+        raise contract.ManifestError("recovery is restricted to exact Mols scope")
+    if manifest["manifest_sha256"] != args.approved_manifest_sha256:
+        raise contract.ManifestError(
+            "recovery manifest is not the exact reviewed value"
+        )
+    journal = _read_canonical_recovery_json(
+        args.journal, "authenticated scoped recovery journal"
+    )
+    validated_journal = contract.validate_scoped_release_receipt(
+        journal, manifest
+    )
+    assertion = contract.strict_json_loads(
+        os.environ.get("R2_ROOT_APPROVAL_ASSERTION_JSON", ""),
+        "root approval assertion",
+    )
+    if not isinstance(assertion, dict):
+        raise contract.ManifestError("root approval assertion is not an object")
+    approval_key = os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", "")
+    approval_digest = contract.validate_approval_assertion(
+        assertion,
+        manifest,
+        operation="RELEASE",
+        key=approval_key,
+    )
+    if validated_journal["approval_assertion_sha256"] != approval_digest:
+        raise contract.ManifestError("recovery approval differs from journal")
+    contract.validate_scoped_journal_authentication(
+        validated_journal, key=approval_key
+    )
+    _validate_recovery_stage(
+        contract, manifest, validated_journal, args.manifest.parent
+    )
+    return contract, inventory, manifest, assertion, validated_journal
 
 
 def _validate_apply_material(
@@ -1528,33 +1940,34 @@ def apply_manifest_v2(args: argparse.Namespace) -> int:
 
 
 def reconcile_manifest_v2(args: argparse.Namespace) -> int:
-    contract, _inventory, manifest, assertion = _validate_apply_material(args)
-    journal = _read_contract_json(args.journal, "scoped release journal")
-    contract.validate_scoped_release_receipt(journal, manifest)
+    contract, _inventory, manifest, assertion, journal = (
+        _validate_recovery_material(args)
+    )
+    approval_key = os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", "")
     if args.terminal_receipt.exists() or args.terminal_receipt.is_symlink():
         existing = _read_contract_json(
             args.terminal_receipt, "existing reconciliation terminal"
         )
-        validated = contract.validate_scoped_release_receipt(existing, manifest)
-        if (
-            validated["reconciliation"] is not None
-            and validated["reconciliation"]["source_journal_sha256"]
-            == journal["receipt_sha256"]
-        ):
-            print(
-                f"reconciliation already terminal={validated['terminal_state']} "
-                f"sha256={validated['receipt_sha256']}"
-            )
-            return 0 if validated["terminal_state"] in {
-                contract.TerminalState.COMPLETE_SUCCESS.value, "ROLLED_BACK"
-            } else 1
-        raise contract.ManifestError("reconciliation output exists for a different journal")
+        validated = contract.validate_scoped_reconciliation_terminal(
+            journal,
+            existing,
+            manifest,
+            approval_assertion=assertion,
+            approval_key=approval_key,
+        )
+        print(
+            f"reconciliation already terminal={validated['terminal_state']} "
+            f"sha256={validated['receipt_sha256']}"
+        )
+        return 0 if validated["terminal_state"] in {
+            contract.TerminalState.COMPLETE_SUCCESS.value, "ROLLED_BACK"
+        } else 1
     receipt = contract.reconcile_scoped_release_write_ahead(
         journal,
         manifest,
         _scoped_writer(args),
         approval_assertion=assertion,
-        approval_key=os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", ""),
+        approval_key=approval_key,
         state_probe=lambda boundary: _immutable_state_probe(
             manifest, args.workflow, boundary
         ),
@@ -1630,6 +2043,9 @@ def main(argv: list[str] | None = None) -> int:
     stage.add_argument("--root-approval-ref", required=True)
     stage.add_argument("--anchor-ref", required=True)
     stage.add_argument("--publication-area-id")
+    stage.add_argument("--endpoint-url")
+    stage.add_argument("--aws-cli-version")
+    stage.add_argument("--aws-cli-archive-sha256")
     stage.add_argument("--approved-manifest-sha256")
 
     apply_command = commands.add_parser("apply-manifest")
@@ -1658,7 +2074,7 @@ def main(argv: list[str] | None = None) -> int:
     reconcile_command.add_argument("--geom-dir", default=Path("public/areas/geom"), type=Path)
     reconcile_command.add_argument("--silhouettes-dir", default=Path("public/areas/silhouettes"), type=Path)
     reconcile_command.add_argument("--area-index", default=Path("public/areas/index.json"), type=Path)
-    reconcile_command.add_argument("--global-object", required=True, action="append", default=[])
+    reconcile_command.add_argument("--global-object", action="append", default=[])
     reconcile_command.add_argument("--workflow", required=True, type=Path)
     reconcile_command.add_argument("--terminal-receipt", required=True, type=Path)
     args = parser.parse_args(argv)

@@ -15,6 +15,7 @@ import copy
 import hashlib
 import hmac
 import json
+import math
 import re
 import secrets
 import unicodedata
@@ -22,21 +23,22 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
-CONTRACT_VERSION = "trekdex-r2-release-contract-v4"
+CONTRACT_VERSION = "trekdex-r2-release-contract-v5"
 BUCKET = "trekdex-areas"
 INVENTORY_SCHEMA = "trekdex-r2-complete-inventory-v3"
 PRODUCER_POPULATION_SCHEMA = "trekdex-r2-producer-population-v1"
-UPLOAD_MANIFEST_SCHEMA = "trekdex-r2-reviewed-upload-manifest-v4"
+UPLOAD_MANIFEST_SCHEMA = "trekdex-r2-reviewed-upload-manifest-v5"
 APPROVAL_ASSERTION_SCHEMA = "trekdex-r2-root-approval-assertion-v1"
 PROVIDER_ATTESTATION_SCHEMA = "trekdex-r2-provider-identity-attestation-v1"
-RELEASE_RECEIPT_SCHEMA = "trekdex-r2-release-terminal-v4"
+RELEASE_RECEIPT_SCHEMA = "trekdex-r2-release-terminal-v5"
 RELEASE_PREFLIGHT_SCHEMA = "trekdex-r2-release-preflight-v1"
 RELEASE_PROVIDER_RESULT_FIELDS = (
     "attempt_id", "bytes", "etag", "key", "sha256", "transaction_id",
 )
-SCOPED_PREFLIGHT_SCHEMA = "trekdex-r2-scoped-preflight-v1"
-ROLLBACK_MANIFEST_SCHEMA = "trekdex-r2-rollback-manifest-v1"
-SCOPED_RELEASE_RECEIPT_SCHEMA = "trekdex-r2-scoped-release-terminal-v1"
+SCOPED_PREFLIGHT_SCHEMA = "trekdex-r2-scoped-preflight-v2"
+ROLLBACK_MANIFEST_SCHEMA = "trekdex-r2-rollback-manifest-v2"
+SCOPED_RELEASE_RECEIPT_SCHEMA = "trekdex-r2-scoped-release-terminal-v3"
+SCOPED_JOURNAL_AUTH_SCHEMA = "trekdex-r2-scoped-journal-auth-v1"
 ROLLBACK_DELETE_RESULT_FIELDS = (
     "attempt_id", "key", "postimage_sha256", "transaction_id", "verified_absent",
 )
@@ -54,7 +56,15 @@ MOLS_OBJECT_KEYS = (
     f"{MOLS_AREA_ID}.json",
     f"silhouettes/{MOLS_AREA_ID}.json",
 )
-MOLS_FORWARD_KEYS = (*MOLS_OBJECT_KEYS, "index.json")
+MOLS_SEMANTIC_GLOBAL_KEYS = (
+    "trail-search.json",
+    "trail-shapes.json",
+)
+MOLS_MUTABLE_GLOBAL_KEYS = (
+    "index.json",
+    *MOLS_SEMANTIC_GLOBAL_KEYS,
+)
+MOLS_FORWARD_KEYS = (*MOLS_OBJECT_KEYS, *MOLS_MUTABLE_GLOBAL_KEYS)
 MOLS_REPOSITORY_PATHS = (
     f"public/areas/geom/{MOLS_AREA_ID}.json",
     f"public/areas/silhouettes/{MOLS_AREA_ID}.json",
@@ -313,6 +323,7 @@ class ScopedConditionalWriter(ConditionalWriter, Protocol):
         self,
         rollback_manifest: dict[str, Any],
         *,
+        forward_results: Sequence[dict[str, Any]],
         rollback_results: Sequence[dict[str, Any]],
     ) -> dict[str, Any]: ...
 
@@ -1362,6 +1373,7 @@ def build_upload_manifest(
     root_approval_ref: str,
     prior_anchor_ref: str,
     publication_area_id: str | None = None,
+    semantic_deltas: Sequence[dict[str, Any]] = (),
 ) -> dict[str, Any]:
     remote = validate_inventory_receipt(inventory_receipt)
     area_registry = inventory_area_ids(inventory_receipt)
@@ -1418,6 +1430,11 @@ def build_upload_manifest(
             raise ManifestError(
                 f"scoped Mols publication found out-of-scope changed keys: {sorted(forbidden)[:12]}"
             )
+        if rows and changed_keys != set(MOLS_FORWARD_KEYS):
+            missing = sorted(set(MOLS_FORWARD_KEYS) - changed_keys)
+            raise ManifestError(
+                f"scoped Mols publication must be exact five-key or zero-write: missing={missing}"
+            )
         for row in rows:
             if row["conditional_mode"] == "IF_NONE_MATCH" and row["key"] not in MOLS_OBJECT_KEYS:
                 raise ManifestError("only the exact Mols geom and silhouette may be created")
@@ -1443,6 +1460,7 @@ def build_upload_manifest(
         "area_registry_sha256": inventory_receipt["area_registry_sha256"],
         "producer_population": copy.deepcopy(population),
         "producer_population_sha256": population["receipt_sha256"],
+        "semantic_deltas": copy.deepcopy(list(semantic_deltas)),
         "object_count": len(rows),
         "objects": rows,
         "all_or_none": True,
@@ -1612,7 +1630,7 @@ def validate_upload_manifest(
         "endpoint_identity_ref", "prior_anchor_ref", "inventory_anchor_ref",
         "inventory_receipt_sha256", "authoritative_denominator",
         "area_registry_sha256", "producer_population",
-        "producer_population_sha256", "object_count", "objects", "all_or_none",
+        "producer_population_sha256", "semantic_deltas", "object_count", "objects", "all_or_none",
         "recursive_discovery", "manifest_sha256",
     }
     if set(manifest) != fields:
@@ -1711,6 +1729,8 @@ def validate_upload_manifest(
             for field in ("key", "key_class", "local_path", "bytes", "md5", "sha256")
         ):
             raise ManifestError(f"upload manifest object {number} is not bound to its producer record")
+        if row["key"] in MOLS_SEMANTIC_GLOBAL_KEYS and row["conditional_mode"] != "IF_MATCH":
+            raise ManifestError("Mols semantic globals require exact IF_MATCH baselines")
         if row["conditional_mode"] == "IF_MATCH":
             if row["remote_preimage"] is None:
                 raise ManifestError("IF_MATCH row has no remote preimage")
@@ -1750,11 +1770,33 @@ def validate_upload_manifest(
                 )
         if upload_keys != expected_upload_keys:
             raise ManifestError("upload manifest is not the exact independently derived upload set")
+    semantic_values = manifest["semantic_deltas"]
+    if not isinstance(semantic_values, list):
+        raise ManifestError("upload manifest semantic proof population is invalid")
     if publication_area_id is None:
         if globals_seen != set(GLOBAL_OBJECTS):
             raise ManifestError("upload manifest does not contain all four global objects")
-    elif globals_seen - {"index.json"}:
-        raise ManifestError("scoped Mols publication may change only the canonical index global")
+        if semantic_values:
+            raise ManifestError("generic upload manifest carries Mols-only semantic proofs")
+    else:
+        if globals_seen - set(MOLS_MUTABLE_GLOBAL_KEYS):
+            raise ManifestError(
+                "scoped Mols publication may change only index, trail-search, and trail-shapes"
+            )
+        expected_semantic_keys = [
+            key for key in MOLS_SEMANTIC_GLOBAL_KEYS if key in upload_keys
+        ]
+        if [
+            value.get("key") if isinstance(value, dict) else None
+            for value in semantic_values
+        ] != expected_semantic_keys:
+            raise ManifestError("scoped Mols semantic proof order/scope is not exact")
+        validated_semantics = [
+            _validate_mols_global_delta(value, manifest)
+            for value in semantic_values
+        ]
+        if validated_semantics != semantic_values:
+            raise ManifestError("scoped Mols semantic proofs are noncanonical")
     return copy.deepcopy(manifest)
 
 
@@ -2001,6 +2043,137 @@ def _release_terminal(
     receipt["receipt_sha256"] = canonical_sha256(receipt)
     validate_release_receipt(receipt, manifest)
     return receipt
+
+
+def scoped_attempt_id(
+    execution_id: str,
+    *,
+    phase: str,
+    index: int,
+    reconciled: bool,
+) -> str:
+    if not isinstance(execution_id, str) or not _SAFE_VERSION_RE.fullmatch(execution_id):
+        raise ManifestError("scoped attempt execution identity is invalid")
+    if phase not in {"FORWARD", "ROLLBACK"}:
+        raise ManifestError("scoped attempt phase is invalid")
+    if not isinstance(index, int) or isinstance(index, bool) or index < 0:
+        raise ManifestError("scoped attempt index is invalid")
+    operation = "put" if phase == "FORWARD" else "rollback"
+    infix = "reconcile-" if reconciled else ""
+    return f"{execution_id}-{infix}{operation}-{index}"
+
+
+def _permitted_scoped_attempt_ids(
+    execution_id: str, *, phase: str, index: int
+) -> frozenset[str]:
+    return frozenset({
+        scoped_attempt_id(
+            execution_id, phase=phase, index=index, reconciled=False
+        ),
+        scoped_attempt_id(
+            execution_id, phase=phase, index=index, reconciled=True
+        ),
+    })
+
+
+def validate_scoped_attempt_id(
+    attempt_id: Any,
+    *,
+    execution_id: str,
+    phase: str,
+    index: int,
+) -> str:
+    if attempt_id not in _permitted_scoped_attempt_ids(
+        execution_id, phase=phase, index=index
+    ):
+        raise ManifestError("scoped attempt is foreign to its execution")
+    return attempt_id
+
+
+def scoped_transaction_id(
+    *,
+    execution_id: str,
+    phase: str,
+    operation: str,
+    index: int,
+    result: Mapping[str, Any],
+) -> str:
+    permitted_operations = {
+        "FORWARD": {"PUT_CONDITIONAL"},
+        "ROLLBACK": {"RESTORE_IF_MATCH", "DELETE_CREATED_AFTER_EXACT_PROOF"},
+    }
+    if operation not in permitted_operations.get(phase, set()):
+        raise ManifestError("scoped transaction phase/operation is invalid")
+    if not isinstance(result, Mapping):
+        raise ManifestError("scoped transaction result is invalid")
+    attempt_id = validate_scoped_attempt_id(
+        result.get("attempt_id"),
+        execution_id=execution_id,
+        phase=phase,
+        index=index,
+    )
+    if operation == "DELETE_CREATED_AFTER_EXACT_PROOF":
+        identity_fields = {
+            "attempt_id", "key", "postimage_sha256", "verified_absent"
+        }
+    else:
+        identity_fields = {"attempt_id", "bytes", "etag", "key", "sha256"}
+    if not identity_fields.issubset(result):
+        raise ManifestError("scoped transaction result identity is incomplete")
+    identity = {
+        field: copy.deepcopy(result[field]) for field in sorted(identity_fields)
+    }
+    document = {
+        "schema": "trekdex-r2-scoped-transaction-v1",
+        "execution_id": execution_id,
+        "phase": phase,
+        "operation": operation,
+        "index": index,
+        "identity": identity,
+    }
+    return "r2-scoped-" + canonical_sha256(document)[:40]
+
+
+def scoped_journal_authentication(
+    receipt: Mapping[str, Any], *, key: bytes | str
+) -> str:
+    if not isinstance(receipt, Mapping):
+        raise ManifestError("scoped journal is not an object")
+    payload = copy.deepcopy(dict(receipt))
+    payload.pop("journal_authentication", None)
+    payload.pop("receipt_sha256", None)
+    envelope = {
+        "schema": SCOPED_JOURNAL_AUTH_SCHEMA,
+        "execution_id": payload.get("execution_id"),
+        "manifest_sha256": payload.get("manifest_sha256"),
+        "checkpoint": payload,
+    }
+    try:
+        key_bytes = _approval_key_bytes(key)
+        message = b"trekdex-r2-scoped-journal-auth-v1\0" + _canonical_bytes(envelope)
+    except (TypeError, ValueError) as error:
+        raise ManifestError(
+            f"scoped journal authentication input is invalid: {error}"
+        ) from error
+    return hmac.new(key_bytes, message, hashlib.sha256).hexdigest()
+
+
+def validate_scoped_journal_authentication(
+    receipt: Mapping[str, Any], *, key: bytes | str
+) -> str:
+    observed = (
+        receipt.get("journal_authentication")
+        if isinstance(receipt, Mapping)
+        else None
+    )
+    try:
+        observed = _require_digest(observed, "journal_authentication")
+    except ValueError as error:
+        raise ManifestError(str(error)) from error
+    expected = scoped_journal_authentication(receipt, key=key)
+    if not hmac.compare_digest(observed, expected):
+        raise ManifestError("scoped journal authentication mismatch")
+    return observed
 
 
 def validate_release_receipt(
@@ -2325,6 +2498,398 @@ def execute_release(
     return complete
 
 
+
+def _strict_producer_json(payload: bytes, context: str) -> Any:
+    """Parse one producer object and require its exact compact byte framing."""
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ManifestError(f"{context} is not UTF-8") from error
+    try:
+        document = strict_json_loads(text, context)
+    except InventoryError as error:
+        raise ManifestError(str(error)) from error
+    try:
+        canonical = json.dumps(
+            document,
+            ensure_ascii=True,
+            allow_nan=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    except (TypeError, ValueError) as error:
+        raise ManifestError(f"{context} is not canonical producer JSON") from error
+    if payload != canonical:
+        raise ManifestError(f"{context} is not in canonical producer byte framing")
+    return document
+
+
+def _strict_mols_geom_trails(payload: bytes) -> list[dict[str, Any]]:
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ManifestError("candidate Mols geometry is not UTF-8") from error
+    try:
+        document = strict_json_loads(text, "candidate Mols geometry")
+    except InventoryError as error:
+        raise ManifestError(str(error)) from error
+    trails = document.get("trails") if isinstance(document, dict) else None
+    if document.get("id") != MOLS_AREA_ID or not isinstance(trails, list) or not trails:
+        raise ManifestError("candidate Mols geometry identity/trails are invalid")
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for number, trail in enumerate(trails, start=1):
+        if not isinstance(trail, dict):
+            raise ManifestError(f"candidate Mols trail {number} is not an object")
+        trail_id = trail.get("id")
+        if not _is_plain_safe_text(trail_id, maximum=512) or trail_id in seen:
+            raise ManifestError(f"candidate Mols trail {number} identity is invalid or duplicate")
+        seen.add(trail_id)
+        normalized.append(copy.deepcopy(trail))
+    return normalized
+
+
+def _is_safe_display_text(value: Any, *, maximum: int = 1024) -> bool:
+    return (
+        isinstance(value, str)
+        and 0 < len(value) <= maximum
+        and value == unicodedata.normalize("NFC", value)
+        and not any(unicodedata.category(char) in {"Cc", "Cs"} for char in value)
+    )
+
+
+def _mols_shape(segment: Any) -> list[int] | None:
+    """Mirror the pinned trail-shapes producer for one [lat, lon] segment."""
+    if not isinstance(segment, list) or len(segment) < 2:
+        return None
+    points: list[tuple[float, float]] = []
+    for point in segment:
+        if (
+            not isinstance(point, list)
+            or len(point) != 2
+            or any(
+                not isinstance(value, (int, float))
+                or isinstance(value, bool)
+                or not math.isfinite(value)
+                for value in point
+            )
+        ):
+            raise ManifestError("candidate Mols trail segment has an invalid point")
+        points.append((point[0], point[1]))
+
+    def perpendicular(
+        point: tuple[float, float],
+        start: tuple[float, float],
+        end: tuple[float, float],
+    ) -> float:
+        if start == end:
+            return math.dist(point, start)
+        (x0, y0), (x1, y1), (x2, y2) = point, start, end
+        numerator = abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1)
+        denominator = math.hypot(y2 - y1, x2 - x1)
+        return numerator / denominator if denominator else 0.0
+
+    def simplify(
+        values: list[tuple[float, float]], epsilon: float
+    ) -> list[tuple[float, float]]:
+        if len(values) < 3:
+            return values
+        maximum, split = 0.0, 0
+        for index in range(1, len(values) - 1):
+            distance = perpendicular(values[index], values[0], values[-1])
+            if distance > maximum:
+                maximum, split = distance, index
+        if maximum > epsilon:
+            return simplify(values[: split + 1], epsilon)[:-1] + simplify(
+                values[split:], epsilon
+            )
+        return [values[0], values[-1]]
+
+    center_latitude = sum(point[0] for point in points) / len(points)
+    scale = math.cos(math.radians(center_latitude))
+    projected = [(point[1] * scale, point[0]) for point in points]
+    xs = [point[0] for point in projected]
+    ys = [point[1] for point in projected]
+    diagonal = math.hypot(max(xs) - min(xs), max(ys) - min(ys))
+    simplified = simplify(projected, diagonal * 0.02)
+    if len(simplified) > 40:
+        simplified = simplify(projected, diagonal * 0.04)
+    minimum_x, minimum_y = min(xs), min(ys)
+    span = max(max(xs) - minimum_x, max(ys) - minimum_y, 1e-9)
+    flattened: list[int] = []
+    for x, y in simplified:
+        flattened.extend(
+            (round((x - minimum_x) / span * 255), round((y - minimum_y) / span * 255))
+        )
+    return flattened
+
+
+def _strict_trail_search_records(payload: bytes, context: str) -> list[list[Any]]:
+    document = _strict_producer_json(payload, context)
+    if not isinstance(document, list):
+        raise ManifestError(f"{context} is not an array")
+    records: list[list[Any]] = []
+    identities: set[tuple[str, str]] = set()
+    for number, row in enumerate(document, start=1):
+        if (
+            not isinstance(row, list)
+            or len(row) != 5
+            or not _is_safe_display_text(row[0], maximum=1024)
+            or not _is_plain_safe_text(row[1], maximum=256)
+            or not _is_plain_safe_text(row[2], maximum=512)
+            or (
+                row[3] is not None
+                and (
+                    not isinstance(row[3], (int, float))
+                    or isinstance(row[3], bool)
+                    or not math.isfinite(row[3])
+                    or row[3] < 0
+                )
+            )
+            or (
+                row[4] is not None
+                and not _is_safe_display_text(row[4], maximum=128)
+            )
+        ):
+            raise ManifestError(f"{context} record {number} is invalid")
+        identity = (row[1], row[2])
+        if identity in identities:
+            raise ManifestError(f"{context} has duplicate trail identity {identity!r}")
+        identities.add(identity)
+        records.append(copy.deepcopy(row))
+    return records
+
+
+def _strict_trail_shape_records(payload: bytes, context: str) -> list[list[Any]]:
+    document = _strict_producer_json(payload, context)
+    if not isinstance(document, dict):
+        raise ManifestError(f"{context} is not an object")
+    records: list[list[Any]] = []
+    for number, (identity, shape) in enumerate(document.items(), start=1):
+        if (
+            not _is_plain_safe_text(identity, maximum=1024)
+            or "/" not in identity
+            or identity.startswith("/")
+            or identity.endswith("/")
+            or not isinstance(shape, list)
+            or len(shape) < 4
+            or len(shape) % 2
+            or any(
+                not isinstance(value, int)
+                or isinstance(value, bool)
+                or not 0 <= value <= 255
+                for value in shape
+            )
+        ):
+            raise ManifestError(f"{context} record {number} is invalid")
+        records.append([identity, copy.deepcopy(shape)])
+    return records
+
+
+def _expected_mols_global_records(
+    key: str, mols_geom: bytes
+) -> tuple[list[list[Any]], list[str]]:
+    trails = _strict_mols_geom_trails(mols_geom)
+    records: list[list[Any]] = []
+    trail_ids: list[str] = []
+    for trail in trails:
+        trail_id = trail["id"]
+        if key == "trail-search.json":
+            name = trail.get("name")
+            if not _is_safe_display_text(name, maximum=1024):
+                raise ManifestError("candidate Mols search trail has no qualified name")
+            distance = trail.get("distanceMi")
+            difficulty = trail.get("difficulty")
+            record = [name, MOLS_AREA_ID, trail_id, distance, difficulty]
+            _strict_trail_search_records(
+                json.dumps([record], ensure_ascii=True, allow_nan=False, separators=(",", ":")).encode("utf-8"),
+                "expected Mols trail-search record",
+            )
+        elif key == "trail-shapes.json":
+            segments = trail.get("segments") or []
+            if not isinstance(segments, list) or not segments:
+                raise ManifestError("candidate Mols shape trail has no qualified segment")
+            if any(not isinstance(segment, list) for segment in segments):
+                raise ManifestError("candidate Mols shape trail segments are invalid")
+            shape = _mols_shape(max(segments, key=len))
+            if shape is None:
+                raise ManifestError("candidate Mols shape trail has no drawable segment")
+            record = [f"{MOLS_AREA_ID}/{trail_id}", shape]
+            _strict_trail_shape_records(
+                json.dumps({record[0]: record[1]}, separators=(",", ":")).encode("utf-8"),
+                "expected Mols trail-shapes record",
+            )
+        else:
+            raise ManifestError("Mols semantic delta key is outside the exact global allowlist")
+        records.append(record)
+        trail_ids.append(trail_id)
+    return records, trail_ids
+
+
+def build_mols_global_delta(
+    key: str,
+    before: bytes,
+    after: bytes,
+    mols_geom: bytes,
+    *,
+    baseline_etag: str,
+) -> dict[str, Any]:
+    """Prove one global changes only by deterministic Mols record additions."""
+    if key not in MOLS_SEMANTIC_GLOBAL_KEYS:
+        raise ManifestError("Mols semantic delta key is outside the exact global allowlist")
+    try:
+        normalized_etag = _normalize_etag(baseline_etag, f"{key} baseline")
+    except InventoryError as error:
+        raise ManifestError(f"{key} baseline ETag is invalid") from error
+    if key == "trail-search.json":
+        baseline_records = _strict_trail_search_records(before, "baseline trail-search")
+        candidate_records = _strict_trail_search_records(after, "candidate trail-search")
+        target = lambda row: row[1] == MOLS_AREA_ID
+        semantic_kind = "ORDERED_SEARCH_RECORDS"
+    else:
+        baseline_records = _strict_trail_shape_records(before, "baseline trail-shapes")
+        candidate_records = _strict_trail_shape_records(after, "candidate trail-shapes")
+        target_prefix = f"{MOLS_AREA_ID}/"
+        target = lambda row: row[0].startswith(target_prefix)
+        semantic_kind = "ORDERED_SHAPE_RECORDS"
+    baseline_target = [row for row in baseline_records if target(row)]
+    baseline_other = [row for row in baseline_records if not target(row)]
+    candidate_target = [row for row in candidate_records if target(row)]
+    candidate_other = [row for row in candidate_records if not target(row)]
+    expected_target, expected_ids = _expected_mols_global_records(key, mols_geom)
+    if candidate_other != baseline_other:
+        raise ManifestError(f"candidate {key} modifies, removes, adds, or reorders a non-Mols record")
+    if candidate_target != expected_target:
+        raise ManifestError(f"candidate {key} is not the exact deterministic Mols addition")
+    if len(candidate_target) != len(_strict_mols_geom_trails(mols_geom)):
+        raise ManifestError(f"candidate {key} does not qualify every Mols trail exactly once")
+    receipt: dict[str, Any] = {
+        "schema": "trekdex-r2-mols-global-delta-v1",
+        "area_id": MOLS_AREA_ID,
+        "key": key,
+        "semantic_kind": semantic_kind,
+        "baseline_identity": {
+            "etag": normalized_etag,
+            "bytes": len(before),
+            "sha256": hashlib.sha256(before).hexdigest(),
+        },
+        "candidate_identity": {
+            "bytes": len(after),
+            "sha256": hashlib.sha256(after).hexdigest(),
+        },
+        "mols_geom_identity": {
+            "bytes": len(mols_geom),
+            "sha256": hashlib.sha256(mols_geom).hexdigest(),
+        },
+        "baseline_record_count": len(baseline_records),
+        "candidate_record_count": len(candidate_records),
+        "non_mols_record_count": len(baseline_other),
+        "transition_kind": "ADD" if not baseline_target else "REPLACE",
+        "baseline_mols_record_count": len(baseline_target),
+        "baseline_mols_records_sha256": canonical_sha256(baseline_target),
+        "candidate_mols_record_count": len(candidate_target),
+        "candidate_mols_record_ids": expected_ids,
+        "candidate_mols_record_ids_sha256": canonical_sha256(expected_ids),
+        "non_mols_records_sha256": canonical_sha256(baseline_other),
+        "candidate_mols_records_sha256": canonical_sha256(candidate_target),
+        "non_mols_identity_and_content_preserved": True,
+        "only_expected_mols_records_present": True,
+    }
+    receipt["receipt_sha256"] = canonical_sha256(receipt)
+    return receipt
+
+
+def _validate_mols_global_delta(
+    receipt: Any,
+    manifest: dict[str, Any],
+) -> dict[str, Any]:
+    fields = {
+        "schema", "area_id", "key", "semantic_kind", "baseline_identity",
+        "candidate_identity", "mols_geom_identity", "baseline_record_count",
+        "candidate_record_count", "non_mols_record_count", "transition_kind",
+        "baseline_mols_record_count", "baseline_mols_records_sha256",
+        "candidate_mols_record_count", "candidate_mols_record_ids",
+        "candidate_mols_record_ids_sha256", "non_mols_records_sha256",
+        "candidate_mols_records_sha256", "non_mols_identity_and_content_preserved",
+        "only_expected_mols_records_present", "receipt_sha256",
+    }
+    if not isinstance(receipt, dict) or set(receipt) != fields:
+        raise ManifestError("Mols global semantic delta schema is not exact")
+    key = receipt["key"]
+    expected_kind = {
+        "trail-search.json": "ORDERED_SEARCH_RECORDS",
+        "trail-shapes.json": "ORDERED_SHAPE_RECORDS",
+    }.get(key)
+    if (
+        receipt["schema"] != "trekdex-r2-mols-global-delta-v1"
+        or receipt["area_id"] != MOLS_AREA_ID
+        or expected_kind is None
+        or receipt["semantic_kind"] != expected_kind
+        or receipt["non_mols_identity_and_content_preserved"] is not True
+        or receipt["only_expected_mols_records_present"] is not True
+        or receipt["transition_kind"] not in {"ADD", "REPLACE"}
+    ):
+        raise ManifestError("Mols global semantic delta identity/proof is invalid")
+    rows = {row["key"]: row for row in manifest["objects"]}
+    row = rows.get(key)
+    population = {
+        item["key"]: item for item in manifest["producer_population"]["objects"]
+    }
+    geom = population.get(MOLS_OBJECT_KEYS[0])
+    if row is None or geom is None or row["conditional_mode"] != "IF_MATCH":
+        raise ManifestError("Mols global semantic delta is not bound to an IF_MATCH row")
+    if receipt["baseline_identity"] != row["remote_preimage"]:
+        raise ManifestError("Mols global semantic delta baseline differs from manifest preimage")
+    if receipt["candidate_identity"] != {
+        "bytes": row["bytes"], "sha256": row["sha256"]
+    }:
+        raise ManifestError("Mols global semantic delta candidate differs from manifest row")
+    if receipt["mols_geom_identity"] != {
+        "bytes": geom["bytes"], "sha256": geom["sha256"]
+    }:
+        raise ManifestError("Mols global semantic delta uses a different Mols geometry")
+    counts = (
+        receipt["baseline_record_count"],
+        receipt["candidate_record_count"],
+        receipt["non_mols_record_count"],
+        receipt["baseline_mols_record_count"],
+        receipt["candidate_mols_record_count"],
+    )
+    if (
+        any(not isinstance(value, int) or isinstance(value, bool) or value < 0 for value in counts)
+        or receipt["candidate_mols_record_count"] <= 0
+        or receipt["baseline_record_count"]
+        != receipt["non_mols_record_count"] + receipt["baseline_mols_record_count"]
+        or receipt["candidate_record_count"]
+        != receipt["non_mols_record_count"] + receipt["candidate_mols_record_count"]
+        or (receipt["transition_kind"] == "ADD" and receipt["baseline_mols_record_count"] != 0)
+        or (receipt["transition_kind"] == "REPLACE" and receipt["baseline_mols_record_count"] <= 0)
+    ):
+        raise ManifestError("Mols global semantic delta record counts are inconsistent")
+    ids = receipt["candidate_mols_record_ids"]
+    if (
+        not isinstance(ids, list)
+        or len(ids) != receipt["candidate_mols_record_count"]
+        or len(ids) != len(set(ids))
+        or any(not _is_plain_safe_text(value, maximum=512) for value in ids)
+    ):
+        raise ManifestError("Mols global semantic delta record identities are invalid")
+    for field in (
+        "baseline_mols_records_sha256", "candidate_mols_record_ids_sha256",
+        "non_mols_records_sha256", "candidate_mols_records_sha256",
+        "receipt_sha256",
+    ):
+        try:
+            _require_digest(receipt[field], field)
+        except ValueError as error:
+            raise ManifestError(str(error)) from error
+    if receipt["candidate_mols_record_ids_sha256"] != canonical_sha256(ids):
+        raise ManifestError("Mols global semantic delta record identity digest mismatch")
+    if receipt["receipt_sha256"] != canonical_sha256(
+        receipt, omit={"receipt_sha256"}
+    ):
+        raise ManifestError("Mols global semantic delta digest mismatch")
+    return copy.deepcopy(receipt)
+
 def _strict_index_rows(payload: bytes, context: str) -> list[list[Any]]:
     try:
         text = payload.decode("utf-8")
@@ -2434,12 +2999,28 @@ def build_rollback_manifest(
     *,
     baseline_objects: Sequence[dict[str, Any] | None],
     index_delta: dict[str, Any] | None,
+    semantic_deltas: Sequence[dict[str, Any]],
 ) -> dict[str, Any]:
     manifest = validate_upload_manifest(manifest)
     if manifest["publication_area_id"] != MOLS_AREA_ID:
         raise ManifestError("rollback manifest requires exact Mols publication scope")
     if len(baseline_objects) != manifest["object_count"]:
         raise ManifestError("rollback baseline population is incomplete")
+    semantic_by_key: dict[str, dict[str, Any]] = {}
+    for value in semantic_deltas:
+        validated_delta = _validate_mols_global_delta(value, manifest)
+        key = validated_delta["key"]
+        if key in semantic_by_key:
+            raise ManifestError("rollback manifest repeats a Mols global semantic proof")
+        semantic_by_key[key] = validated_delta
+    expected_semantic_keys = {
+        row["key"] for row in manifest["objects"]
+        if row["key"] in MOLS_SEMANTIC_GLOBAL_KEYS
+    }
+    if set(semantic_by_key) != expected_semantic_keys:
+        raise ManifestError("rollback manifest semantic proof population is incomplete or extra")
+    if list(semantic_by_key.values()) != manifest["semantic_deltas"]:
+        raise ManifestError("apply-time Mols semantic proofs differ from reviewed manifest")
     rows: list[dict[str, Any]] = []
     for index, (forward, baseline) in enumerate(zip(manifest["objects"], baseline_objects)):
         if forward["conditional_mode"] == "IF_MATCH":
@@ -2476,6 +3057,7 @@ def build_rollback_manifest(
                 "md5": forward["md5"],
                 "sha256": forward["sha256"],
             },
+            "semantic_delta": copy.deepcopy(semantic_by_key.get(forward["key"])),
             "rollback_operation": operation,
         })
     has_index = any(row["key"] == "index.json" for row in rows)
@@ -2540,7 +3122,7 @@ def validate_rollback_manifest(plan: Any, manifest: dict[str, Any]) -> dict[str,
         expected_fields = {
             "index", "key", "key_class", "forward_mode", "forward_row_sha256",
             "baseline_preimage", "baseline_object", "expected_postimage",
-            "rollback_operation",
+            "semantic_delta", "rollback_operation",
         }
         if not isinstance(row, dict) or set(row) != expected_fields:
             raise ManifestError(f"rollback row {index} schema is not exact")
@@ -2556,6 +3138,18 @@ def validate_rollback_manifest(plan: Any, manifest: dict[str, Any]) -> dict[str,
             }
         ):
             raise ManifestError("rollback row is not bound to its forward row")
+        if row["key"] in MOLS_SEMANTIC_GLOBAL_KEYS:
+            semantic_delta = _validate_mols_global_delta(row["semantic_delta"], manifest)
+            reviewed_semantics = {
+                value["key"]: value for value in manifest["semantic_deltas"]
+            }
+            if (
+                semantic_delta["key"] != row["key"]
+                or semantic_delta != reviewed_semantics.get(row["key"])
+            ):
+                raise ManifestError("rollback row carries the wrong Mols global semantic proof")
+        elif row["semantic_delta"] is not None:
+            raise ManifestError("rollback row carries an unexpected Mols global semantic proof")
         if row["forward_mode"] == "IF_NONE_MATCH":
             if (
                 row["rollback_operation"] != "DELETE_CREATED_AFTER_EXACT_PROOF"
@@ -2596,6 +3190,7 @@ def build_scoped_release_preflight(
     observed_preimages: Sequence[dict[str, Any] | None],
     baseline_objects: Sequence[dict[str, Any] | None],
     index_delta: dict[str, Any] | None,
+    semantic_deltas: Sequence[dict[str, Any]],
 ) -> dict[str, Any]:
     manifest = validate_upload_manifest(manifest)
     if manifest["publication_area_id"] != MOLS_AREA_ID:
@@ -2608,7 +3203,10 @@ def build_scoped_release_preflight(
         adapter_success_schema_capable=True,
     )
     rollback = build_rollback_manifest(
-        manifest, baseline_objects=baseline_objects, index_delta=index_delta
+        manifest,
+        baseline_objects=baseline_objects,
+        index_delta=index_delta,
+        semantic_deltas=semantic_deltas,
     )
     snapshot: dict[str, Any] = {
         "schema": SCOPED_PREFLIGHT_SCHEMA,
@@ -2673,12 +3271,121 @@ def _valid_rollback_delete_result(
     return copy.deepcopy(result)
 
 
+
+def validate_rollback_result_prefix(
+    rollback_manifest: Mapping[str, Any],
+    *,
+    execution_id: str,
+    forward_results: Sequence[dict[str, Any]],
+    rollback_results: Sequence[dict[str, Any]],
+    require_complete: bool = False,
+) -> tuple[int, ...]:
+    """Bind rollback evidence to the exact known forward prefix in reverse order."""
+    if not isinstance(require_complete, bool):
+        raise ManifestError("rollback prefix completeness flag is not boolean")
+    if not isinstance(execution_id, str) or not _SAFE_VERSION_RE.fullmatch(execution_id):
+        raise ManifestError("rollback prefix execution identity is invalid")
+    if (
+        not isinstance(rollback_manifest, dict)
+        or rollback_manifest.get("publication_area_id") != MOLS_AREA_ID
+        or not isinstance(rollback_manifest.get("objects"), list)
+        or not isinstance(rollback_manifest.get("object_count"), int)
+        or isinstance(rollback_manifest.get("object_count"), bool)
+        or rollback_manifest["object_count"] != len(rollback_manifest["objects"])
+    ):
+        raise ManifestError("rollback prefix manifest population/scope is invalid")
+    if not isinstance(forward_results, (list, tuple)) or not isinstance(
+        rollback_results, (list, tuple)
+    ):
+        raise ManifestError("rollback prefix result populations are invalid")
+    rows = rollback_manifest["objects"]
+    if len(forward_results) > len(rows) or len(rollback_results) > len(forward_results):
+        raise ManifestError("rollback results exceed the known forward-effect prefix")
+    if require_complete and (
+        not forward_results or len(rollback_results) != len(forward_results)
+    ):
+        raise ManifestError("rollback verification has not reversed every known forward effect")
+
+    normalized_forward: list[dict[str, Any]] = []
+    for index, (result, row) in enumerate(zip(forward_results, rows)):
+        if not isinstance(row, dict) or row.get("index") != index:
+            raise ManifestError("rollback prefix manifest rows are not canonical")
+        attempt_id = result.get("attempt_id", "") if isinstance(result, dict) else ""
+        if attempt_id not in _permitted_scoped_attempt_ids(
+            execution_id, phase="FORWARD", index=index
+        ):
+            raise ManifestError("known forward attempt is foreign to its execution")
+        normalized = _valid_provider_result(
+            result,
+            {"key": row.get("key"), **(row.get("expected_postimage") or {})},
+            attempt_id=attempt_id,
+        )
+        expected_transaction = scoped_transaction_id(
+            execution_id=execution_id,
+            phase="FORWARD",
+            operation="PUT_CONDITIONAL",
+            index=index,
+            result=normalized,
+        )
+        if normalized != result or result["transaction_id"] != expected_transaction:
+            raise ManifestError("known forward result identity/order is invalid")
+        normalized_forward.append(normalized)
+
+    expected_indices = tuple(reversed(range(len(forward_results))))[: len(rollback_results)]
+    normalized_rollback: list[dict[str, Any]] = []
+    for result, index in zip(rollback_results, expected_indices):
+        row = rows[index]
+        attempt_id = result.get("attempt_id", "") if isinstance(result, dict) else ""
+        if attempt_id not in _permitted_scoped_attempt_ids(
+            execution_id, phase="ROLLBACK", index=index
+        ):
+            raise ManifestError("rollback attempt is foreign to its execution")
+        if row.get("rollback_operation") == "DELETE_CREATED_AFTER_EXACT_PROOF":
+            normalized = _valid_rollback_delete_result(
+                result, row, attempt_id=attempt_id
+            )
+        elif row.get("rollback_operation") == "RESTORE_IF_MATCH":
+            baseline = row.get("baseline_object")
+            if not isinstance(baseline, dict):
+                raise ManifestError("rollback restore lacks its frozen baseline")
+            normalized = _valid_provider_result(
+                result,
+                {"key": row.get("key"), **baseline},
+                attempt_id=attempt_id,
+            )
+            preimage = row.get("baseline_preimage")
+            if not isinstance(preimage, dict) or normalized["etag"] != preimage.get("etag"):
+                raise ManifestError("rollback restore did not recover the baseline ETag")
+        else:
+            raise ManifestError("rollback result names an invalid operation")
+        expected_transaction = scoped_transaction_id(
+            execution_id=execution_id,
+            phase="ROLLBACK",
+            operation=row["rollback_operation"],
+            index=index,
+            result=normalized,
+        )
+        if normalized != result or result["transaction_id"] != expected_transaction:
+            raise ManifestError("rollback result is not execution-bound and canonical")
+        normalized_rollback.append(normalized)
+
+    forward_transactions = [result["transaction_id"] for result in normalized_forward]
+    rollback_transactions = [result["transaction_id"] for result in normalized_rollback]
+    if (
+        len(forward_transactions) != len(set(forward_transactions))
+        or len(rollback_transactions) != len(set(rollback_transactions))
+        or set(forward_transactions) & set(rollback_transactions)
+    ):
+        raise ManifestError("rollback prefix transaction identities repeat")
+    return expected_indices
+
 def _valid_rollback_verification(
     verification: Any, rollback_manifest: dict[str, Any]
 ) -> dict[str, Any]:
     fields = {
         "schema", "rollback_manifest_sha256", "all_rows_restored",
-        "verified_absent_keys", "index_baseline_restored",
+        "verified_absent_keys", "verified_restored_keys",
+        "semantic_global_baselines_restored", "index_baseline_restored",
         "non_target_index_entries_unchanged", "receipt_sha256",
     }
     if not isinstance(verification, dict) or set(verification) != fields:
@@ -2687,11 +3394,20 @@ def _valid_rollback_verification(
         row["key"] for row in rollback_manifest["objects"]
         if row["rollback_operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF"
     ]
+    expected_restored = [
+        row["key"] for row in rollback_manifest["objects"]
+        if row["rollback_operation"] == "RESTORE_IF_MATCH"
+    ]
+    expected_semantic = [
+        key for key in MOLS_SEMANTIC_GLOBAL_KEYS if key in expected_restored
+    ]
     if (
-        verification["schema"] != "trekdex-r2-rollback-verification-v1"
+        verification["schema"] != "trekdex-r2-rollback-verification-v2"
         or verification["rollback_manifest_sha256"] != rollback_manifest["rollback_manifest_sha256"]
         or verification["all_rows_restored"] is not True
         or verification["verified_absent_keys"] != expected_absent
+        or verification["verified_restored_keys"] != expected_restored
+        or verification["semantic_global_baselines_restored"] != expected_semantic
         or verification["index_baseline_restored"] is not True
         or verification["non_target_index_entries_unchanged"] is not True
     ):
@@ -2755,6 +3471,7 @@ def _scoped_release_terminal(
     error_boundary: str | None,
     error: BaseException | None,
     reconciliation: dict[str, Any] | None,
+    journal_key: bytes | str,
 ) -> dict[str, Any]:
     receipt: dict[str, Any] = {
         "schema": SCOPED_RELEASE_RECEIPT_SCHEMA,
@@ -2794,7 +3511,11 @@ def _scoped_release_terminal(
         "committed": False,
         "pushed": False,
         "synchronization_dispatched": False,
+        "journal_authentication": None,
     }
+    receipt["journal_authentication"] = scoped_journal_authentication(
+        receipt, key=journal_key
+    )
     receipt["receipt_sha256"] = canonical_sha256(receipt)
     validate_scoped_release_receipt(receipt, manifest)
     return receipt
@@ -2813,7 +3534,7 @@ def validate_scoped_release_receipt(
         "forward_results", "forward_results_sha256", "rollback_attempted",
         "rollback_observed", "rollback_results", "rollback_results_sha256",
         "pending_effect", "rollback_verification", "reconciliation",
-        "error_boundary", "error_type",
+        "error_boundary", "error_type", "journal_authentication",
         "committed", "pushed", "synchronization_dispatched", "receipt_sha256",
     }
     if not isinstance(receipt, dict) or set(receipt) != fields:
@@ -2836,6 +3557,7 @@ def validate_scoped_release_receipt(
         _require_digest(receipt["approval_assertion_sha256"], "approval_assertion_sha256")
         _require_digest(receipt["forward_results_sha256"], "forward_results_sha256")
         _require_digest(receipt["rollback_results_sha256"], "rollback_results_sha256")
+        _require_digest(receipt["journal_authentication"], "journal_authentication")
         digest = _require_digest(receipt["receipt_sha256"], "receipt_sha256")
     except ValueError as error:
         raise ManifestError(str(error)) from error
@@ -2879,40 +3601,15 @@ def validate_scoped_release_receipt(
     for field in ("forward_attempted", "forward_observed", "rollback_attempted", "rollback_observed"):
         if not isinstance(receipt[field], int) or isinstance(receipt[field], bool) or receipt[field] < 0:
             raise ManifestError("scoped release effect count is invalid")
-    normalized_forward = [
-        _valid_provider_result(result, manifest["objects"][index], attempt_id=result.get("attempt_id", ""))
-        for index, result in enumerate(forward)
-    ]
-    if normalized_forward != forward:
-        raise ManifestError("scoped release forward results are noncanonical")
-    forward_transactions = [result["transaction_id"] for result in forward]
-    if len(forward_transactions) != len(set(forward_transactions)):
-        raise ManifestError("scoped release forward transaction identities repeat")
     if rollback_manifest is not None:
-        expected_indices = list(reversed(range(len(forward))))[:len(rollback)]
-        normalized_rollback: list[dict[str, Any]] = []
-        for result, index in zip(rollback, expected_indices):
-            row = rollback_manifest["objects"][index]
-            if row["rollback_operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF":
-                normalized = _valid_rollback_delete_result(
-                    result, row, attempt_id=result.get("attempt_id", "") if isinstance(result, dict) else ""
-                )
-            else:
-                normalized = _valid_provider_result(
-                    result, {"key": row["key"], **row["baseline_object"]},
-                    attempt_id=result.get("attempt_id", "") if isinstance(result, dict) else "",
-                )
-                if normalized["etag"] != row["baseline_preimage"]["etag"]:
-                    raise ManifestError("rollback restore did not recover the baseline ETag")
-            normalized_rollback.append(normalized)
-        if normalized_rollback != rollback:
-            raise ManifestError("scoped rollback results are noncanonical")
-    rollback_transactions = [result["transaction_id"] for result in rollback]
-    if (
-        len(rollback_transactions) != len(set(rollback_transactions))
-        or set(rollback_transactions) & set(forward_transactions)
-    ):
-        raise ManifestError("scoped release transaction identities repeat across phases")
+        validate_rollback_result_prefix(
+            rollback_manifest,
+            execution_id=receipt["execution_id"],
+            forward_results=forward,
+            rollback_results=rollback,
+        )
+    elif forward or rollback:
+        raise ManifestError("scoped effect results have no rollback manifest")
     if not (
         len(forward) <= receipt["forward_attempted"] <= len(forward) + 1
         and len(rollback) <= receipt["rollback_attempted"] <= len(rollback) + 1
@@ -2935,6 +3632,14 @@ def validate_scoped_release_receipt(
         index = pending["index"]
         if not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < manifest["object_count"]:
             raise ManifestError("scoped pending index is invalid")
+        expected_pending_attempt = scoped_attempt_id(
+            receipt["execution_id"],
+            phase=pending["phase"],
+            index=index,
+            reconciled=reconciliation is not None,
+        )
+        if pending["attempt_id"] != expected_pending_attempt:
+            raise ManifestError("scoped pending attempt is foreign to its execution")
         if pending["phase"] == "FORWARD":
             expected = manifest["objects"][index]
             if (
@@ -3025,6 +3730,156 @@ def validate_scoped_release_receipt(
     return copy.deepcopy(receipt)
 
 
+def validate_scoped_reconciliation_terminal(
+    journal: Any,
+    terminal: Any,
+    manifest: dict[str, Any],
+    *,
+    approval_assertion: dict[str, Any],
+    approval_key: bytes | str,
+) -> dict[str, Any]:
+    """Authenticate and bind an idempotent reconciliation terminal to its journal."""
+    manifest = validate_upload_manifest(manifest)
+    validated_journal = validate_scoped_release_receipt(journal, manifest)
+    validated_terminal = validate_scoped_release_receipt(terminal, manifest)
+    for label, document in (
+        ("source journal", validated_journal),
+        ("existing terminal", validated_terminal),
+    ):
+        try:
+            validate_scoped_journal_authentication(document, key=approval_key)
+        except ManifestError as error:
+            raise ManifestError(f"{label} authentication failed: {error}") from error
+
+    approval_digest = validate_approval_assertion(
+        approval_assertion,
+        manifest,
+        operation="RELEASE",
+        key=approval_key,
+    )
+    if any(
+        document["approval_assertion_sha256"] != approval_digest
+        for document in (validated_journal, validated_terminal)
+    ):
+        raise ManifestError(
+            "scoped reconciliation approval differs from journal or terminal"
+        )
+    if (
+        validated_journal["reconciliation"] is not None
+        or validated_journal["checkpoint_kind"]
+        not in {"WRITE_AHEAD", "TERMINAL"}
+        or validated_journal["pending_effect"] is None
+    ):
+        raise ManifestError(
+            "idempotent reconciliation requires the original pending source journal"
+        )
+    reconciliation = validated_terminal["reconciliation"]
+    if (
+        validated_terminal["checkpoint_kind"] != "TERMINAL"
+        or reconciliation is None
+    ):
+        raise ManifestError(
+            "existing reconciliation output is not an exact terminal receipt"
+        )
+
+    identity_fields = (
+        "execution_id",
+        "approval_assertion_sha256",
+        "provider_identity_attestation",
+        "provider_tool_attestation",
+        "scoped_preflight",
+        "scoped_preflight_sha256",
+        "rollback_manifest_sha256",
+    )
+    if any(
+        validated_terminal[field] != validated_journal[field]
+        for field in identity_fields
+    ):
+        raise ManifestError(
+            "existing reconciliation terminal identity differs from source journal"
+        )
+    if reconciliation["source_journal_sha256"] != validated_journal["receipt_sha256"]:
+        raise ManifestError(
+            "existing reconciliation terminal is bound to a different source journal"
+        )
+
+    pending = validated_journal["pending_effect"]
+    expected_reconciliation = {
+        "pending_phase": pending["phase"],
+        "pending_operation": pending["operation"],
+        "pending_key": pending["key"],
+    }
+    if any(
+        reconciliation[field] != expected
+        for field, expected in expected_reconciliation.items()
+    ):
+        raise ManifestError(
+            "existing reconciliation terminal pending identity differs from source journal"
+        )
+
+    for field in ("forward_results", "rollback_results"):
+        journal_results = validated_journal[field]
+        terminal_results = validated_terminal[field]
+        if (
+            len(terminal_results) < len(journal_results)
+            or terminal_results[:len(journal_results)] != journal_results
+        ):
+            raise ManifestError(
+                f"existing reconciliation terminal rewrites {field} history"
+            )
+        journal_identities = [
+            (result["attempt_id"], result["transaction_id"])
+            for result in journal_results
+        ]
+        terminal_identities = [
+            (result["attempt_id"], result["transaction_id"])
+            for result in terminal_results[:len(journal_results)]
+        ]
+        if terminal_identities != journal_identities:
+            raise ManifestError(
+                f"existing reconciliation terminal rewrites {field} identities"
+            )
+
+    if reconciliation["resumed"] is not True:
+        if any(
+            validated_terminal[field] != validated_journal[field]
+            for field in ("forward_results", "rollback_results")
+        ):
+            raise ManifestError(
+                "non-resumed reconciliation terminal invents provider results"
+            )
+    else:
+        if pending["phase"] == "FORWARD":
+            results = validated_terminal["forward_results"]
+            position = pending["index"]
+            phase = "FORWARD"
+        else:
+            results = validated_terminal["rollback_results"]
+            position = len(validated_journal["rollback_results"])
+            phase = "ROLLBACK"
+        if position >= len(results):
+            raise ManifestError(
+                "resumed reconciliation terminal lacks the pending effect result"
+            )
+        result = results[position]
+        if result["attempt_id"] != pending["attempt_id"]:
+            raise ManifestError(
+                "resumed reconciliation terminal has a foreign pending attempt"
+            )
+        expected_transaction_id = scoped_transaction_id(
+            execution_id=validated_journal["execution_id"],
+            phase=phase,
+            operation=pending["operation"],
+            index=pending["index"],
+            result=result,
+        )
+        if result["transaction_id"] != expected_transaction_id:
+            raise ManifestError(
+                "resumed reconciliation terminal has a foreign pending transaction"
+            )
+    return copy.deepcopy(validated_terminal)
+
+
 def execute_scoped_release(
     manifest: dict[str, Any],
     writer: ScopedConditionalWriter,
@@ -3035,7 +3890,7 @@ def execute_scoped_release(
     state_probe: Callable[[str], bool] | None = None,
     checkpoint: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
-    """Apply exact Mols bytes and roll back known partial effects under one lock."""
+    """Apply the exact five-key Mols plan and roll back known partial effects under one lock."""
     manifest = validate_upload_manifest(manifest)
     if manifest["publication_area_id"] != MOLS_AREA_ID:
         raise ManifestError("scoped release requires exact Mols publication scope")
@@ -3087,6 +3942,7 @@ def execute_scoped_release(
             error_boundary=boundary,
             error=error,
             reconciliation=reconciliation_record,
+            journal_key=approval_key,
         )
 
     def persist_terminal(document: dict[str, Any]) -> dict[str, Any]:
@@ -3116,7 +3972,12 @@ def execute_scoped_release(
             rollback_row = rollback_manifest["objects"][forward_index]
             postimage = forward[forward_index]
             operation = rollback_row["rollback_operation"]
-            attempt_id = f"{execution_id}-rollback-{forward_index}"
+            attempt_id = scoped_attempt_id(
+                execution_id,
+                phase="ROLLBACK",
+                index=forward_index,
+                reconciled=False,
+            )
             pending = {
                 "phase": "ROLLBACK",
                 "index": forward_index,
@@ -3170,7 +4031,9 @@ def execute_scoped_release(
         try:
             verification = _valid_rollback_verification(
                 writer.verify_rollback(
-                    copy.deepcopy(rollback_manifest), rollback_results=copy.deepcopy(rollback)
+                    copy.deepcopy(rollback_manifest),
+                    forward_results=copy.deepcopy(forward),
+                    rollback_results=copy.deepcopy(rollback),
                 ),
                 rollback_manifest,
             )
@@ -3184,7 +4047,12 @@ def execute_scoped_release(
         boundary = f"BEFORE_WRITE:{index}:{row['key']}"
         if not probe(boundary):
             return rollback_known(boundary, RuntimeError("immutable state probe failed")) if forward else persist_terminal(make_receipt("SAFE_ABORT", boundary, RuntimeError("immutable state probe failed")))
-        attempt_id = f"{execution_id}-put-{index}"
+        attempt_id = scoped_attempt_id(
+            execution_id,
+            phase="FORWARD",
+            index=index,
+            reconciled=False,
+        )
         pending = {
             "phase": "FORWARD",
             "index": index,
@@ -3243,6 +4111,12 @@ def reconcile_scoped_release_write_ahead(
     """Re-observe one scoped pending effect and resume at most once."""
     manifest = validate_upload_manifest(manifest)
     validated = validate_scoped_release_receipt(journal, manifest)
+    approval_digest = validate_approval_assertion(
+        approval_assertion, manifest, operation="RELEASE", key=approval_key
+    )
+    if approval_digest != validated["approval_assertion_sha256"]:
+        raise ManifestError("scoped reconciliation approval differs from journal")
+    validate_scoped_journal_authentication(validated, key=approval_key)
     if validated["reconciliation"] is not None:
         if validated["checkpoint_kind"] == "TERMINAL":
             return copy.deepcopy(validated)
@@ -3254,11 +4128,6 @@ def reconcile_scoped_release_write_ahead(
         or validated["pending_effect"] is None
     ):
         raise ManifestError("scoped reconciliation requires an exact pending-effect journal")
-    approval_digest = validate_approval_assertion(
-        approval_assertion, manifest, operation="RELEASE", key=approval_key
-    )
-    if approval_digest != validated["approval_assertion_sha256"]:
-        raise ManifestError("scoped reconciliation approval differs from journal")
     attestation = validate_provider_identity_attestation(
         writer.attest_identity(),
         expected_account_identity_ref=manifest["account_identity_ref"],
@@ -3326,6 +4195,7 @@ def reconcile_scoped_release_write_ahead(
             reconciliation=reconciliation_record(
                 observation_state, resumed=resumed
             ),
+            journal_key=approval_key,
         )
 
     def save_terminal(document: dict[str, Any]) -> dict[str, Any]:
@@ -3396,7 +4266,12 @@ def reconcile_scoped_release_write_ahead(
             row = rollback_manifest["objects"][rollback_index]
             postimage = forward[rollback_index]
             operation = row["rollback_operation"]
-            attempt_id = f"{validated['execution_id']}-reconcile-rollback-{rollback_index}"
+            attempt_id = scoped_attempt_id(
+                validated["execution_id"],
+                phase="ROLLBACK",
+                index=rollback_index,
+                reconciled=True,
+            )
             next_pending = {
                 "phase": "ROLLBACK",
                 "index": rollback_index,
@@ -3458,6 +4333,7 @@ def reconcile_scoped_release_write_ahead(
             verification = _valid_rollback_verification(
                 writer.verify_rollback(
                     copy.deepcopy(rollback_manifest),
+                    forward_results=copy.deepcopy(forward),
                     rollback_results=copy.deepcopy(rollback),
                 ),
                 rollback_manifest,
@@ -3484,7 +4360,12 @@ def reconcile_scoped_release_write_ahead(
             return continue_rollback(
                 boundary, RuntimeError("immutable state probe failed")
             )
-        attempt_id = f"{validated['execution_id']}-reconcile-put-{forward_index}"
+        attempt_id = scoped_attempt_id(
+            validated["execution_id"],
+            phase="FORWARD",
+            index=forward_index,
+            reconciled=True,
+        )
         next_pending = {
             "phase": "FORWARD",
             "index": forward_index,
@@ -4279,6 +5160,8 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
         "steps.input_shape.outputs.approved_manifest_sha256",
         "reconcile_run_id", "reconcile-scoped",
         "group: sync-geom-to-r2", "stage/rollback-manifest.json", "stage/rollback/**",
+        "stage/objects/747261696c2d7365617263682e6a736f6e.object",
+        'cp -R "$RECOVERY_ROOT/stage" "$STAGE_ROOT"',
     ),
     ".github/workflows/cleanup-r2-orphans.yml": (
         "approved_quarantine_plan_sha256", "plan_only", "cleanup-r2-orphans.py", "apply-quarantine",
@@ -4331,16 +5214,37 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
         "verify-release-input", "merge-mols-index", "verify-mols-staged-diff", "verify-mols-commit",
         "reconcile-scoped",
         "reconcile_scoped_release_write_ahead", "rollback_delete_created",
+        "validate_rollback_result_prefix", "validate_scoped_attempt_id",
+        "scoped_transaction_id",
         "DELETE_CREATED_AFTER_EXACT_PROOF", '"delete-object"',
         '"--if-match"', '"--if-none-match"', "--publication-area-id",
+        "read_reviewed_baseline_bytes", "_build_scoped_semantic_deltas",
+        "_validate_recovery_material", "_validate_recovery_stage",
+        "_sealed_recovery_bytes",
+        "semantic_deltas=semantic_deltas",
         "aws_cli_version", "aws_cli_archive_sha256",
     ),
     "scripts/cleanup-r2-orphans.py": ("r2_release_contract", "apply-quarantine"),
-    "scripts/r2_release_contract.py": (CONTRACT_VERSION,),
+    "scripts/r2_release_contract.py": (
+        CONTRACT_VERSION,
+        "validate_rollback_result_prefix",
+        "forward_results=copy.deepcopy(forward)",
+        "validate_scoped_attempt_id",
+        "scoped_transaction_id",
+        "scoped_journal_authentication",
+        "validate_scoped_journal_authentication(validated, key=approval_key)",
+    ),
     "scripts/trailforge_candidate_contract.py": ("trekdex-trailforge-candidate-contract-v3",),
     "scripts/test_r2_release_contract.py": (
         "RR2-ORIGINAL-CLAUSES-R2-V1",
         "test_secret_bearing_workflow_run_scalars_use_validated_env_only",
+        "test_fake_reviewer_probe_rejects_invented_prior_identities_without_calls",
+        "test_authenticated_terminal_rejects_permitted_form_rewrite_without_calls",
+        "test_pending_recovery_fake_and_production_parity_campaign",
+        "test_recovery_workflow_cli_reaches_each_shared_pending_effect",
+        "test_every_key_forward_rollback_state_has_fake_production_parity",
+        "test_recovery_branch_never_restages_and_uploads_exact_candidates",
+        "def _metadata_matches(",
     ),
     "scripts/test_trailforge_candidate_contract.py": ("RR2-ORIGINAL-CLAUSES-TRAILFORGE-V1",),
 }
@@ -4448,9 +5352,13 @@ def audit_repository_contract(files: Mapping[str, str]) -> list[str]:
         if re.search(r"(?m)(?:^|\s)aws\s", files.get(path, "")):
             errors.append(f"{path}: workflow bypasses the injected contract provider adapter")
     sync = files.get(".github/workflows/sync-geom-to-r2.yml", "")
-    if sync.count("--global-object") != 3 * len(GLOBAL_OBJECTS):
-        errors.append(".github/workflows/sync-geom-to-r2.yml: stage/apply/reconcile must each name four globals")
+    if sync.count("--global-object") != 2 * len(GLOBAL_OBJECTS):
+        errors.append(
+            ".github/workflows/sync-geom-to-r2.yml: fresh stage/apply must each name four globals"
+        )
     for key in GLOBAL_OBJECTS:
-        if sync.count(f'--global-object "{key}=') != 3:
-            errors.append(f".github/workflows/sync-geom-to-r2.yml: missing triple-census global {key}")
+        if sync.count(f'--global-object "{key}=') != 2:
+            errors.append(
+                f".github/workflows/sync-geom-to-r2.yml: missing fresh double-census global {key}"
+            )
     return errors

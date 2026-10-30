@@ -46,10 +46,14 @@ The plan run checks out the named commit detached, verifies its tree, obtains th
 - `nationalpark-mols-bjerge-dk.json`
 - `silhouettes/nationalpark-mols-bjerge-dk.json`
 - `index.json`
+- `trail-search.json`
+- `trail-shapes.json`
 
-Byte-identical objects, including `parking.json`, `trail-search.json`, and `trail-shapes.json`, are proven no-ops and omitted. The app index uses exact compact producer framing, and the contract proves every non-Mols row is unchanged.
+Byte-identical allowed objects are proven no-ops and omitted only when the complete scoped output is an exact zero-write repeat. Any nonzero scoped plan must contain all five keys in the order above; partial state is recoverable only through its sealed journal and is never reclassified as a smaller fresh plan. `parking.json` is never in the scoped allowlist, so any parking byte difference fails closed. The app index uses exact compact producer framing, and the contract proves every non-Mols row is unchanged.
 
-Forward order is geom, silhouette, then index. The two absent Mols objects use atomic `If-None-Match: *`. The index replacement uses atomic `If-Match` against its exact reviewed ETag. Each request binds the new SHA-256/bytes, source commit, approved manifest, condition mode, and full reviewed preimage reference.
+Before the reviewed manifest is sealed, the plan reads the existing `trail-search.json` and `trail-shapes.json` with `If-Match` against each inventory ETag. Each manifest row binds the exact baseline ETag, byte count, and SHA-256. The semantic receipts then prove that filtering the candidate back to non-Mols identities yields the baseline records in the same order with identical content, and that the candidate Mols records are exactly the deterministic search rows and thumbnail shapes derived from every trail in the staged Mols geometry. This permits either a first-time `ADD` from zero baseline Mols records or an exact `REPLACE` of existing Mols records. A modified, removed, added, or reordered non-Mols record, an extra Mols record, malformed producer framing, a stale ETag, or an unqualified Mols trail rejects the plan before approval. Apply preflight downloads the baselines again under the same ETags and must reproduce the reviewed semantic receipts before any write.
+
+Forward order is geom, silhouette, index, trail-search, then trail-shapes. The two absent Mols objects use atomic `If-None-Match: *`. All three globals use atomic `If-Match` against their exact reviewed ETags. Every successful write requires immediate HEAD plus conditional GET under the lock to prove the returned ETag and exact byte count/SHA-256.
 
 ## Provider behavior basis and pinned client
 
@@ -80,15 +84,17 @@ Before the first effect, preflight downloads every existing changed object under
 
 Known successful effects roll back in reverse order while the same job holds the lock:
 
-1. Restore `index.json` from frozen bytes using `If-Match` against this run's exact post-publish ETag.
-2. Restore a previously existing Mols object the same way.
-3. Restore an absent Mols baseline by deleting only that exact created Mols key.
+1. Restore `trail-shapes.json`, when written, from frozen bytes using `If-Match` against this run's exact post-publish identity.
+2. Restore `trail-search.json`, when written, the same way.
+3. Restore `index.json`, when written, the same way.
+4. Restore a previously existing Mols geom or silhouette the same way.
+5. Restore an absent Mols baseline by deleting only that exact created Mols key.
 
-For step 3, the root-authorized Option 1 is implemented literally. Immediately before deletion, HEAD and full GET must prove ETag, byte count, and SHA-256 equal this run's upload. The adapter then issues one plain single-key `DeleteObject` for the exact manifest-derived allowlisted key and requires a subsequent HEAD 404. It never issues a wildcard, prefix, batch, global, index, or other-area delete. The accepted residual race is bounded by the shared writer lock and immediate full-byte proof.
+Every restore requires immediate HEAD plus conditional GET to prove exact baseline ETag, byte count, SHA-256, and byte-for-byte equality with the frozen file. The final receipt names every restored global explicitly. For step 5, the root-authorized Option 1 is implemented literally. Immediately before deletion, HEAD and full GET must prove ETag, byte count, and SHA-256 equal this run's upload. The adapter then issues one plain single-key `DeleteObject` for the exact manifest-derived allowlisted key and requires a subsequent HEAD 404. It never issues a wildcard, prefix, batch, global, index, or other-area delete. The accepted residual race is bounded by the shared writer lock and immediate full-byte proof. The delete allowlist remains exactly the Mols geom and silhouette; adding the two global restores does not expand it.
 
 ## Crash and timeout reconciliation
 
-Every forward and rollback effect has a durable write-ahead journal. `reconcile-scoped` consumes the exact `trekdex-r2-scoped-release-terminal-v1` pending journal, reviewed manifest, frozen rollback files, source identity, approval, provider identity, and pinned tool identity.
+Every forward and rollback effect has a durable write-ahead journal. `reconcile-scoped` consumes the exact `trekdex-r2-scoped-release-terminal-v3` pending journal, reviewed manifest, frozen rollback files, source identity, approval, provider identity, and pinned tool identity. Every completed result has an exact deterministic transaction ID over its execution ID, permitted original/reconciliation attempt ID, phase, operation, row index, key, and verified object identity. The whole checkpoint is domain-separated HMAC-authenticated with the existing approval key; recovery verifies approval and this authentication before writer attestation, provider observation, or terminal return. Recomputing the unkeyed result-list and receipt hashes cannot authenticate rewritten history. Rollback results are bound to the exact known forward-effect prefix in reverse manifest order; a four-effect forward prefix therefore requires exactly four matching rollback results, not five. Before `ROLLED_BACK`, the adapter independently verifies all five manifest rows: every reversed row equals its frozen baseline or reviewed absence, and every never-written row still equals that same baseline or absence. A missing, extra, reordered, foreign, or mismatched result fails closed, and any row that cannot be proven at baseline remains `INDETERMINATE`.
 
 Under the same workflow concurrency lock it re-observes the pending key:
 
@@ -96,9 +102,33 @@ Under the same workflow concurrency lock it re-observes the pending key:
 - 404 after a pending Mols deletion means the deletion happened;
 - an unchanged exact preimage, the created object still present after a pending deletion, a mismatch, or ambiguity causes an operator-review terminal with no retry.
 
-Only a proven completed effect allows the state machine to append its result and resume the remaining forward or rollback sequence once. A reconciliation run can retrieve the exact prior evidence artifact by `reconcile_run_id`. Repeating reconciliation with its terminal receipt returns the same receipt and performs no provider call.
+Only a proven completed effect allows the state machine to append its result and resume the remaining forward or rollback sequence once. A reconciliation run can retrieve the exact prior evidence artifact by `reconcile_run_id`. Repeating reconciliation with its terminal receipt returns the same receipt and performs no provider call, but only after the CLI HMAC-authenticates both the original pending journal and the existing terminal with the current approval key. It then binds the terminal to the journal's execution, approval, provider/tool identity, preflight, pending phase/operation/key, source-journal digest, and exact attempt/transaction result prefixes; the resumed pending result must carry the journal's exact attempt ID and its deterministic execution-bound transaction ID. A missing key or signature, invalid authentication, rewritten history, or cross-run terminal fails before writer construction.
 
-Final rollback verification requires exact baseline index bytes/hash/ETag, absence of every newly created Mols key, and the sealed proof that all non-Mols index rows stayed unchanged. Partial or ambiguous recovery remains `INDETERMINATE`.
+The early-return audit covers every R2 CLI path. `apply-manifest` and `apply-quarantine` never trust or return an existing receipt; both reject any pre-existing terminal/journal before provider construction. `reconcile-scoped` is the only idempotent existing-terminal path, and its forward-resume and rollback-resume branches share the keyed validation above. The contract-level already-reconciled return authenticates its single terminal input before returning it. Quarantine reconciliation is not exposed by the cleanup CLI or workflow and has no existing-terminal return; its offline evidence helper accepts only a write-ahead receipt plus explicit observation evidence and always produces an operator-review terminal.
+
+The offline fake recovery oracle reconstructs the same six metadata fields as production (object SHA-256, source SHA, manifest SHA-256, attempt ID, preimage reference, and conditional mode) and uses the same absent, exact-postimage, exact-baseline, and foreign-object classifications for forward, restore, and delete observations. A table-driven parity campaign mutates every field and state and requires identical observation state, terminal state, receipt effect counts, and provider-effect deltas.
+
+A recovery workflow never rebuilds producers, fetches a replacement inventory, or invokes `stage`. It downloads the original artifact and copies its sealed stage unchanged. Before constructing a provider writer, `reconcile-scoped` validates canonical inventory, upload-manifest, journal, and standalone rollback-manifest JSON; the approved manifest hash and journal HMAC; every changed candidate's size, MD5, and SHA-256; every frozen rollback baseline's size, MD5, and SHA-256; and recomputed index/search/shape semantic proofs. The artifact contains only the exact five candidate paths plus the rollback files, rather than the full producer population. A normal non-recovery run still derives the complete producer population and reads every changing semantic baseline under its original ETag before it may stage or apply.
+
+### Whole-class recovery audit matrix
+
+`PREIMAGE` means the exact state immediately before the pending operation. `POSTIMAGE` means the exact state after it, including all six attempt-bound metadata fields for writes. `FOREIGN` is any other present identity. `ABSENT` is a 404. The key-state campaign executes every cell through both `MolsConditionalWriter` over the fake transport and `ScopedFakeWriter`.
+
+| Surface | Exhaustive cases | Required result | Enforced by |
+|---|---|---|---|
+| Fresh plan/stage/apply | Exact current inventory and all five candidate bytes; changed shared baseline before staging or immediately before apply | Refuse before the first effect | `test_plan_semantic_baseline_reads_are_if_match_and_stale_safe`, `test_stale_missing_wrong_etag_hash_or_bytes_on_each_global_aborts_before_first_effect` |
+| Recovery evidence | Original inventory, upload manifest, five candidates, standalone rollback manifest, every baseline, index proof, both semantic proofs | Every digest/proof and journal HMAC must match before provider construction; no live restage | `test_recovery_evidence_tamper_matrix_fails_before_provider`, `test_recovery_branch_never_restages_and_uploads_exact_candidates` |
+| Pending forward | Five step indices × `PREIMAGE`, `POSTIMAGE`, `FOREIGN`, `ABSENT` | Only exact postimage resumes; exact preimage stops as not observed; foreign/invalid absence is indeterminate | `test_every_key_forward_rollback_state_has_fake_production_parity` |
+| Pending rollback | Five reverse step indices × `PREIMAGE`, `POSTIMAGE`, `FOREIGN`, `ABSENT` | Only exact restored baseline or proved Mols absence resumes; exact forward postimage stops as not observed; foreign/invalid absence is indeterminate | `test_every_key_forward_rollback_state_has_fake_production_parity` |
+| Shared workflow recovery | Pending forward and rollback at `index.json`, `trail-search.json`, and `trail-shapes.json` | Original sealed evidence reaches reconciliation and finishes with exact remaining effect count | `test_recovery_workflow_cli_reaches_each_shared_pending_effect` |
+| Partial prefixes | Forward prefix length 0–4; rollback prefix in reverse order at every index | Result identities preserve the exact authenticated prefix; complete rollback independently verifies all five rows | whole-class parity test plus F1/F2 prefix tests |
+| Journal freshness/authentication | Fresh pending, state-stale preimage, foreign state, forged/cross-run history, missing key, missing signature | Fresh exact postimage may resume once; every unauthenticated or mismatched case fails before provider access | F2/F4 hostile tests and the whole-class parity test |
+| Terminal fast paths | Authenticated source journal plus terminal; authenticated reconciled terminal alone; missing source journal; cross-run/forged terminal | Exact authenticated replay is idempotent with zero calls; missing or mismatched evidence fails closed | `test_recovery_cli_terminal_presence_matrix_is_fail_closed` and F4 terminal tests |
+| Quarantine | Fresh apply, existing output, terminal passed to recovery helper, partial copy/remove | Existing output is refused before store construction; helper accepts only exact write-ahead input and never reports recovered success | `test_quarantine_existing_receipt_and_terminal_recovery_fail_closed` plus quarantine fault/receipt tests |
+
+The matrix contains 40 key/phase/state cells, 80 production/fake executions, and six production-CLI shared-key workflow recoveries. The earlier 28-case metadata campaign remains independent and mutates all six metadata fields across forward, restore, and delete.
+
+Final rollback verification requires exact baseline bytes/hash/ETag for every restored global (`index.json`, `trail-search.json`, and `trail-shapes.json` when written), absence of every newly created Mols key, and the sealed proof that all non-Mols index/search/shape records stayed unchanged. Partial or ambiguous recovery remains `INDETERMINATE`.
 
 ## Secrets and permissions
 

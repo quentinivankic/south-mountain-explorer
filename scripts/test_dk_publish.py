@@ -871,3 +871,45 @@ def test_every_workflow_holding_r2_write_credentials_shares_the_sync_lock():
     for text in (SYNC_DK, (ROOT / ".github/workflows/sync-mols-to-r2.yml").read_text()):
         assert "group: sync-geom-to-r2" in text and "cancel-in-progress: false" in text
     assert "R2_ACCESS_KEY_ID" not in PUBLISH_DK
+
+
+def _run_areas_step(tmp_path, mode):
+    """Run the real 'Run the exact pipeline per area' script under `bash -e`
+    (as GitHub does) with stub pipeline/report scripts; area `b` fails."""
+    yaml = pytest.importorskip("yaml")
+    doc = yaml.safe_load(PUBLISH_DK)
+    step = next(s for s in next(iter(doc["jobs"].values()))["steps"] if s.get("id") == "areas")
+    work, temp = tmp_path / "repo", tmp_path / "tmp"
+    (work / "scripts").mkdir(parents=True)
+    (temp / "dk").mkdir(parents=True)
+    ids = ["a", "b", "c"]
+    (temp / "dk/selected.txt").write_text("\n".join(ids) + "\n")
+    for i in ids:
+        (temp / "dk" / i).mkdir()
+        (temp / "dk" / i / "area.json").write_text(json.dumps(
+            {"status": "ok", "name": i, "relation_id": 1, "bbox_arg": "0,0,1,1"}))
+    (work / "scripts/dk-run-area.sh").write_text(
+        'echo "pipeline $AREA_ID" >> "$W/calls.log"\n[ "$AREA_ID" = b ] && exit 1\nexit 0\n')
+    (work / "scripts/dk_publish.py").write_text(
+        "import os, sys\nopen(os.environ['RUNNER_TEMP'] + '/dk/calls.log', 'a')"
+        ".write(' '.join(sys.argv[1:3]) + ' ' + sys.argv[3] + '\\n')\n")
+    out = tmp_path / "gh_output"
+    env = {**os.environ, "RUNNER_TEMP": str(temp), "MODE": mode, "GITHUB_OUTPUT": str(out)}
+    proc = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=env,
+                          capture_output=True, text=True)
+    calls = (temp / "dk/calls.log").read_text().splitlines()
+    return proc, calls, out.read_text()
+
+
+def test_areas_loop_continues_past_failing_area_in_qualify(tmp_path):
+    proc, calls, output = _run_areas_step(tmp_path, "qualify")
+    assert proc.returncode == 0, proc.stderr
+    assert "pipeline a" in calls and "pipeline b" in calls and "pipeline c" in calls   # c still ran
+    assert any(c.startswith("mark-failed --area-id b") for c in calls)
+    assert "failed=1" in output                                  # final qualify step fails on this
+
+
+def test_areas_loop_publish_refuses_when_any_area_failed(tmp_path):
+    proc, calls, output = _run_areas_step(tmp_path, "publish")
+    assert proc.returncode == 1 and "REFUSED" in proc.stdout
+    assert "pipeline c" in calls and "failed=1" in output

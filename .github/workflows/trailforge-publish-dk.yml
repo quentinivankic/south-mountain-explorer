@@ -101,7 +101,7 @@ jobs:
             --speed-limit 2000 --speed-time 30 -o data/raw/denmark.osm.pbf \
             "https://download.geofabrik.de/europe/denmark-latest.osm.pbf"
           ls -lh data/raw/denmark.osm.pbf
-          bash extract/prefilter.sh data/raw/denmark.osm.pbf data/hiking.osm.pbf
+          PREFILTER_DK_AREAS=1 bash extract/prefilter.sh data/raw/denmark.osm.pbf data/hiking.osm.pbf
 
       - name: Discovery (once) and boundary bbox derivation
         id: prepare

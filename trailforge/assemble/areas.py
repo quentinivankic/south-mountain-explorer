@@ -89,7 +89,13 @@ def merge_areas(pbf_path: str) -> list[dict[str, Any]]:
     return out
 
 
-def assemble_areas(pbf_path: str) -> list[dict[str, Any]]:
+# Denmark registry areas (dk-v2) also include woods, heaths and islands, which the
+# legacy keys above never matched. Passed explicitly; the default stays legacy.
+DK_EXTRA_AREA_TAGS = {"natural": {"wood", "heath"}, "place": {"island"}}
+
+
+def assemble_areas(pbf_path: str,
+                   extra_tags: dict[str, set[str]] | None = None) -> list[dict[str, Any]]:
     """Assemble park-ish area polygons from an OSM PBF.
 
     Returns [{"name", "tags", "geom" (shapely), "osm_id", "osm_type"}].
@@ -105,7 +111,8 @@ def assemble_areas(pbf_path: str) -> list[dict[str, Any]]:
     class Handler(osmium.SimpleHandler):
         def area(self, a):
             tags = {t.k: t.v for t in a.tags}
-            if not any(k in tags for k in _AREA_KEYS):
+            if not (any(k in tags for k in _AREA_KEYS)
+                    or any(tags.get(k) in vals for k, vals in (extra_tags or {}).items())):
                 return
             try:
                 geom = shapely.wkb.loads(wkbfab.create_multipolygon(a), hex=True)

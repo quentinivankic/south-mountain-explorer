@@ -106,6 +106,12 @@ def read_pbf(path: str, *, exact_denmark: bool = False):
     return nodes, ways, relations, pois
 
 
+def _assemble_areas(areamod, args):
+    """Area polygons; dk-v2 (Denmark registry) also accepts woods, heaths and islands.
+    Legacy rule sets call exactly what they always did."""
+    if getattr(args, "dk_rules", "legacy") == "dk-v2":
+        return areamod.assemble_areas(args.inp, extra_tags=areamod.DK_EXTRA_AREA_TAGS)
+    return areamod.assemble_areas(args.inp)
 def _boundary_record(area: dict) -> dict:
     return {
         "name": area.get("name"),
@@ -991,7 +997,7 @@ def main(argv=None) -> int:
     boundary_matches: list[dict] = []
     if args.require_exact_area:
         import areas as areamod
-        area_objs = areamod.assemble_areas(args.inp)
+        area_objs = _assemble_areas(areamod, args)
         exact_matches = areamod.select_exact(area_objs, args.only_area)
         boundary_matches = [_boundary_record(area) for area in exact_matches]
         failure = None
@@ -1077,7 +1083,7 @@ def main(argv=None) -> int:
             selected_area_name = exact_area["name"]
         else:
             if area_objs is None:
-                area_objs = areamod.assemble_areas(args.inp)
+                area_objs = _assemble_areas(areamod, args)
             union, names = areamod.union_matching(area_objs, args.only_area)
             selected_area_name = None
         if union is None:
@@ -1252,7 +1258,7 @@ def main(argv=None) -> int:
         import areas as areamod
         from shapely.geometry import mapping as shp_mapping
         if area_objs is None:
-            area_objs = areamod.assemble_areas(args.inp)
+            area_objs = _assemble_areas(areamod, args)
         def area_properties(area):
             properties = {"name": area.get("name")}
             if args.require_exact_area:

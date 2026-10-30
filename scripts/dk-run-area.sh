@@ -26,16 +26,28 @@ mkdir -p "$A/geom"
 ROOT="$(pwd)"
 SOURCE_PBF="$ROOT/trailforge/data/raw/denmark.osm.pbf"
 
-python3 trailforge/tools/validate_publish_pilot.py discovery \
-  --discovery-report "$W/discovery-report.json" \
-  --pbf-provenance "$W/pbf-provenance.json" \
-  --source-pbf "$SOURCE_PBF" \
-  --expected-osm-relation-id "$RELATION_ID" \
-  --expected-area-id "$AREA_ID" \
-  --expected-area-name "$AREA_NAME" \
-  --selected-record-out "$A/selected.json" \
-  --index-out "$A/discovery-index.json" \
-  --result-json "$A/discovery-validation.json"
+# Discovery lists protected areas only. An area with a discovery candidate is validated
+# exactly as before. An area without one (forest, plantation, heath, island) must have
+# passed the registry-relation cross-check in prepare-areas (area.json cross_check);
+# anything else fails closed here.
+if jq -e --arg id "$AREA_ID" '[.candidates[]? | select(.index_row[0] == $id)] | length > 0' \
+    "$W/discovery-report.json" >/dev/null; then
+  python3 trailforge/tools/validate_publish_pilot.py discovery \
+    --discovery-report "$W/discovery-report.json" \
+    --pbf-provenance "$W/pbf-provenance.json" \
+    --source-pbf "$SOURCE_PBF" \
+    --expected-osm-relation-id "$RELATION_ID" \
+    --expected-area-id "$AREA_ID" \
+    --expected-area-name "$AREA_NAME" \
+    --selected-record-out "$A/selected.json" \
+    --index-out "$A/discovery-index.json" \
+    --result-json "$A/discovery-validation.json"
+else
+  jq -e --arg id "$AREA_ID" '.id == $id and .status == "ok" and .cross_check == "registry-relation"' \
+    "$A/area.json" >/dev/null
+  printf '{"stage":"discovery","status":"skipped","reason":"no discovery candidate; registry-relation cross-check passed in prepare-areas"}\n' \
+    > "$A/discovery-validation.json"
+fi
 
 cd trailforge
 HIKING=data/hiking.osm.pbf NAME="$AREA_ID" BBOX="$BBOX" \

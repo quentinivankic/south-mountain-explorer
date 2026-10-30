@@ -186,5 +186,47 @@ class AreaFilter(unittest.TestCase):
         self.assertEqual(names, set())
 
 
+class DenmarkExtraAreaTags(unittest.TestCase):
+    """dk-v2 accepts woods/heaths/islands as exact areas; the legacy default does not."""
+    OSM = """<?xml version='1.0' encoding='UTF-8'?>
+<osm version="0.6">
+<node id="1" lat="56.0" lon="9.0" version="1"/><node id="2" lat="56.0" lon="9.1" version="1"/>
+<node id="3" lat="56.1" lon="9.1" version="1"/><node id="4" lat="56.1" lon="9.0" version="1"/>
+<way id="10" version="1"><nd ref="1"/><nd ref="2"/><nd ref="3"/><nd ref="4"/><nd ref="1"/></way>
+<relation id="500" version="1"><member type="way" ref="10" role="outer"/>
+<tag k="type" v="multipolygon"/><tag k="natural" v="wood"/><tag k="name" v="Testskov"/></relation>
+</osm>
+"""
+
+    def _pbf(self):
+        import tempfile
+        path = Path(tempfile.mkdtemp()) / "t.osm"
+        path.write_text(self.OSM, encoding="utf-8")
+        return str(path)
+
+    @unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
+    def test_wood_relation_only_found_with_the_dk_extra_tags(self):
+        try:
+            import osmium  # noqa: F401
+        except ImportError:
+            self.skipTest("pyosmium not installed")
+        path = self._pbf()
+        self.assertEqual(A.select_exact(A.assemble_areas(path), "Testskov"), [])
+        found = A.select_exact(A.assemble_areas(path, extra_tags=A.DK_EXTRA_AREA_TAGS), "Testskov")
+        self.assertEqual([(a["osm_type"], a["osm_id"]) for a in found], [("relation", 500)])
+
+    def test_assemble_cli_helper_passes_extra_tags_only_for_dk_v2(self):
+        import types
+        import assemble as asm
+        calls = []
+        mod = types.SimpleNamespace(
+            DK_EXTRA_AREA_TAGS={"natural": {"wood"}},
+            assemble_areas=lambda *a, **k: calls.append((a, k)) or [])
+        asm._assemble_areas(mod, types.SimpleNamespace(inp="x.pbf", dk_rules="legacy"))
+        asm._assemble_areas(mod, types.SimpleNamespace(inp="x.pbf"))
+        asm._assemble_areas(mod, types.SimpleNamespace(inp="x.pbf", dk_rules="dk-v2"))
+        self.assertEqual(calls[0], (("x.pbf",), {}))
+        self.assertEqual(calls[1], (("x.pbf",), {}))
+        self.assertEqual(calls[2], (("x.pbf",), {"extra_tags": {"natural": {"wood"}}}))
 if __name__ == "__main__":
     unittest.main()

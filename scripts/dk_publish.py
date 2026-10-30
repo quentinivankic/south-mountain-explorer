@@ -38,6 +38,8 @@ import simple_mols_publish as smp  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 REGISTRY_PATH = ROOT / "trailforge" / "golden" / "dk-areas.json"
+# Per-entry Denmark rule set; Mols stays "legacy" so the pinned control is unchanged.
+RULE_SETS = {"legacy", "dk-v2"}
 EXPECTED_PATH = ROOT / "trailforge" / "golden" / "dk-areas-expected.json"
 INDEX_REPO = "public/areas/index.json"
 BUNDLE_REPO = "ios/SouthMountainExplorer/Resources/areas-index.json"
@@ -121,6 +123,8 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
             raise DkError(f"{aid}: tier must be an integer")
         if not isinstance(entry.get("notes", ""), str):
             raise DkError(f"{aid}: notes must be text")
+        if entry.get("rules", "legacy") not in RULE_SETS:
+            raise DkError(f"{aid}: rules must be one of {sorted(RULE_SETS)}")
         hold = entry.get("hold")
         if hold is not None and (not isinstance(hold, str) or not hold.strip()):
             raise DkError(f"{aid}: hold must be null or a reason string")
@@ -390,7 +394,8 @@ def report_area(args: argparse.Namespace) -> int:
     gap = sorted({(p.get("name"), p.get("length_mi")) for p in removed
                   if p.get("removed_category") == "unresolved-relation-gap"},
                  key=lambda item: (str(item[0]), item[1] or 0))
-    junk_categories = {"dk-unqualified-road-track", "disconnected-name-stitch", "unresolved-relation-gap"}
+    junk_categories = {"dk-unqualified-road-track", "dk-road-name", "disconnected-name-stitch",
+                       "unresolved-relation-gap"}
     forbidden = sorted({p.get("name") for p in removed
                         if p.get("removed_category") in junk_categories and p.get("name")} - set(names))
     rec = {

@@ -105,3 +105,61 @@ def test_workflow_wiring():
     assert "mols_simple_publish:" in publish
     assert "default: false" in publish.split("mols_simple_publish:")[1].split("concurrency:")[0]
     assert 'test "$RAW_MOLS_SIMPLE" = "false"' in publish  # receipt and simple are exclusive
+
+
+SHARED = ("index.json", "trail-search.json", "trail-shapes.json")
+BASE_FILE = {"index.json": "index.json", "trail-search.json": "search.json",
+             "trail-shapes.json": "shapes.json"}
+
+
+def _rollback(tmp_path, capsys, state):
+    """state: key -> 'cand' | 'base' | 'other'. Returns (exit code, {key: action}, stderr)."""
+    repo, live, out = _repo(tmp_path, [OLD_ROW, ROW]), _live(tmp_path), tmp_path / "out"
+    assert _run(repo, live, out) == 0
+    capsys.readouterr()
+    cur = tmp_path / "cur"
+    cur.mkdir()
+    for key, what in state.items():
+        if what == "cand":
+            data = (out / key).read_bytes()
+        elif what == "base":
+            data = (live / BASE_FILE[key]).read_bytes()
+        else:
+            data = b'["third-party"]'
+        (cur / key).write_bytes(data)
+    code = smp.main(["rollback-decide", "--plan", str(out / "plan.json"), "--live-dir", str(cur)])
+    cap = capsys.readouterr()
+    actions = dict(line.split("\t") for line in cap.out.splitlines() if "\t" in line)
+    return code, actions, cap.err
+
+
+def test_rollback_fully_applied_restores_all_three(tmp_path, capsys):
+    code, actions, _ = _rollback(tmp_path, capsys, {k: "cand" for k in SHARED})
+    assert code == 0 and actions == {k: "restore" for k in SHARED}
+
+
+def test_rollback_partial_apply_restores_only_candidate_files(tmp_path, capsys):
+    state = {"index.json": "base", "trail-search.json": "base", "trail-shapes.json": "cand"}
+    code, actions, _ = _rollback(tmp_path, capsys, state)
+    assert code == 0
+    assert actions == {"index.json": "skip", "trail-search.json": "skip", "trail-shapes.json": "restore"}
+
+
+def test_rollback_nothing_applied_skips_all(tmp_path, capsys):
+    code, actions, _ = _rollback(tmp_path, capsys, {k: "base" for k in SHARED})
+    assert code == 0 and actions == {k: "skip" for k in SHARED}
+
+
+@pytest.mark.parametrize("bad", SHARED)
+def test_rollback_refuses_third_party_modified_file(tmp_path, capsys, bad):
+    state = {"index.json": "cand", "trail-search.json": "base", "trail-shapes.json": "cand"}
+    state[bad] = "other"
+    code, actions, err = _rollback(tmp_path, capsys, state)
+    assert code == 1 and actions == {} and "refusing" in err
+
+
+def test_workflow_rollback_and_partial_apply_wiring():
+    sync = (ROOT / ".github/workflows/sync-mols-to-r2.yml").read_text()
+    assert "rollback-decide" in sync
+    assert "PARTIAL APPLY: dispatch mode=rollback with rollback_run_id=$GITHUB_RUN_ID" in sync
+    assert "trap - EXIT" in sync

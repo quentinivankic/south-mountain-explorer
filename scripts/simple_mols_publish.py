@@ -156,6 +156,33 @@ def build_candidates(args: argparse.Namespace) -> int:
     return 0
 
 
+SHARED_KEYS = ("index.json", "trail-search.json", "trail-shapes.json")
+
+
+def rollback_actions(plan: dict[str, Any], live_dir: Path) -> dict[str, str]:
+    """Per shared file: 'restore' if live is the applied candidate, 'skip' if already
+    baseline. Anything else is a third party's publish: refuse."""
+    cand = {w["key"]: w["sha256"] for w in plan["writes"]}
+    actions: dict[str, str] = {}
+    for key in SHARED_KEYS:
+        live = _sha((live_dir / key).read_bytes())
+        base = plan["baseline"][key]["sha256"]
+        if live == cand[key] and live != base:
+            actions[key] = "restore"
+        elif live == base:
+            actions[key] = "skip"
+        else:
+            raise SimpleError(f"live {key} is neither the applied candidate nor the baseline; refusing to roll back over it")
+    return actions
+
+
+def rollback_decide(args: argparse.Namespace) -> int:
+    plan = json.loads(args.plan.read_text(encoding="utf-8"))
+    for key, action in rollback_actions(plan, args.live_dir).items():
+        print(f"{key}\t{action}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="command", required=True)
@@ -174,10 +201,15 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--etag-search", required=True)
     b.add_argument("--etag-shapes", required=True)
     b.add_argument("--out-dir", required=True, type=Path)
+    c = sub.add_parser("rollback-decide")
+    c.add_argument("--plan", required=True, type=Path)
+    c.add_argument("--live-dir", required=True, type=Path)
     args = p.parse_args(argv)
     try:
         if args.command == "prepare-input":
             return prepare_input(args)
+        if args.command == "rollback-decide":
+            return rollback_decide(args)
         args.etag = {"index.json": args.etag_index, "trail-search.json": args.etag_search,
                      "trail-shapes.json": args.etag_shapes}
         return build_candidates(args)

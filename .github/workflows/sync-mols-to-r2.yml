@@ -135,6 +135,7 @@ jobs:
           for key in index.json trail-search.json trail-shapes.json parking.json; do
             test "$(cur "$key")" = "$(base "$key")" || { echo "$key changed since snapshot; aborting before any write"; exit 1; }
           done
+          trap 'rc=$?; [ "$rc" -eq 0 ] || echo "PARTIAL APPLY: dispatch mode=rollback with rollback_run_id=$GITHUB_RUN_ID"' EXIT
           put cand/geom.json "$AREA.json" "public, max-age=86400"
           put cand/silhouette.json "silhouettes/$AREA.json" "public, max-age=86400"
           # index last: the app only learns about the area once its data exists.
@@ -148,6 +149,7 @@ jobs:
             echo "verified $key $sha"
           done
           test "$(cur parking.json)" = "$(base parking.json)" || { echo "parking.json changed"; exit 1; }
+          trap - EXIT
           echo "apply complete. rollback: dispatch mode=rollback rollback_run_id=$GITHUB_RUN_ID"
 
       - name: Rollback (restore three shared files, delete two Mols keys)
@@ -165,15 +167,18 @@ jobs:
             want="$(jq -r --arg k "$key" '.baseline[$k].sha256' rb/cand/plan.json)"
             test "$(sha256sum "rb/snap/$key" | cut -d' ' -f1)" = "$want" || { echo "snapshot $key corrupt"; exit 1; }
           done
-          # Do not clobber anyone else's later publish: live must still equal the apply run's candidates.
-          for key in index.json trail-search.json trail-shapes.json; do
-            want="$(jq -r --arg k "$key" '.writes[] | select(.key==$k) | .sha256' rb/cand/plan.json)"
-            test "$(sha256sum "snap/$key" | cut -d' ' -f1)" = "$want" || { echo "live $key is not the applied candidate; refusing to roll back over it"; exit 1; }
-          done
-          for key in index.json trail-search.json trail-shapes.json; do
-            aws s3 cp "rb/snap/$key" "s3://$BUCKET/$key" --endpoint-url "$ENDPOINT" \
-              --content-type "application/json" --cache-control "public, max-age=300" --no-progress
-          done
+          # Do not clobber anyone else's later publish: each shared file must be the applied
+          # candidate (restore) or already the baseline (skip); anything else refuses.
+          python3 scripts/simple_mols_publish.py rollback-decide --plan rb/cand/plan.json --live-dir snap > rb/actions.tsv
+          cat rb/actions.tsv
+          while IFS=$'\t' read -r key action; do
+            if [ "$action" = "restore" ]; then
+              aws s3 cp "rb/snap/$key" "s3://$BUCKET/$key" --endpoint-url "$ENDPOINT" \
+                --content-type "application/json" --cache-control "public, max-age=300" --no-progress
+            else
+              echo "skip $key (already baseline)"
+            fi
+          done < rb/actions.tsv
           aws s3api delete-object --bucket "$BUCKET" --key "$AREA.json" --endpoint-url "$ENDPOINT"
           aws s3api delete-object --bucket "$BUCKET" --key "silhouettes/$AREA.json" --endpoint-url "$ENDPOINT"
           mkdir -p verify

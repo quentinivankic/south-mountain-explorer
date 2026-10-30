@@ -213,8 +213,8 @@ struct TrailMapView: View {
         self._cameraTarget = State(initialValue: Self.regionCoveringArea(
             area: area,
             bottomInset: bottomInset,
-            screenHeight: UIScreen.main.bounds.height,
-            screenWidth: UIScreen.main.bounds.width
+            screenHeight: WindowMetrics.size.height,
+            screenWidth: WindowMetrics.size.width
         ))
     }
 
@@ -602,7 +602,7 @@ struct TrailMapView: View {
             : 0
 
         let latMeters = 1500.0
-        let b = UIScreen.main.bounds
+        let b = CGRect(origin: .zero, size: WindowMetrics.size)
         let shortDim = min(b.width, b.height)
         let metersPerPoint = latMeters / max(shortDim, 1)
         let shiftMeters = (bottomInset / 2) * metersPerPoint
@@ -677,8 +677,8 @@ struct TrailMapView: View {
             latDelta: latDelta,
             lonDelta: lonDelta,
             bottomInset: bottomInset,
-            screenHeight: UIScreen.main.bounds.height,
-            screenWidth: UIScreen.main.bounds.width
+            screenHeight: WindowMetrics.size.height,
+            screenWidth: WindowMetrics.size.width
         ))
     }
 
@@ -691,8 +691,8 @@ struct TrailMapView: View {
             setCameraTarget(Self.fittedRegion(
                 centerLat: r.0, centerLon: r.1, latDelta: r.2, lonDelta: r.3,
                 bottomInset: bottomInset,
-                screenHeight: UIScreen.main.bounds.height,
-                screenWidth: UIScreen.main.bounds.width
+                screenHeight: WindowMetrics.size.height,
+                screenWidth: WindowMetrics.size.width
             ))
             return
         }
@@ -700,8 +700,8 @@ struct TrailMapView: View {
         setCameraTarget(Self.regionCoveringArea(
             area: area,
             bottomInset: bottomInset,
-            screenHeight: UIScreen.main.bounds.height,
-            screenWidth: UIScreen.main.bounds.width
+            screenHeight: WindowMetrics.size.height,
+            screenWidth: WindowMetrics.size.width
         ))
     }
 
@@ -739,8 +739,8 @@ struct TrailMapView: View {
             latDelta: 1500.0 / 111_000.0,
             lonDelta: 1500.0 / (111_000.0 * cosLat),
             bottomInset: bottomInset,
-            screenHeight: UIScreen.main.bounds.height,
-            screenWidth: UIScreen.main.bounds.width
+            screenHeight: WindowMetrics.size.height,
+            screenWidth: WindowMetrics.size.width
         ))
     }
 
@@ -772,8 +772,8 @@ struct TrailMapView: View {
             latDelta: max((maxLat - minLat) * 1.4, 0.005),
             lonDelta: max((maxLon - minLon) * 1.4, 0.005),
             bottomInset: bottomInset,
-            screenHeight: UIScreen.main.bounds.height,
-            screenWidth: UIScreen.main.bounds.width
+            screenHeight: WindowMetrics.size.height,
+            screenWidth: WindowMetrics.size.width
         ))
     }
 
@@ -810,8 +810,8 @@ struct TrailMapView: View {
             latDelta: max((maxLat - minLat) * 1.4, 0.005),
             lonDelta: max((maxLon - minLon) * 1.4, 0.005),
             bottomInset: bottomInset,
-            screenHeight: UIScreen.main.bounds.height,
-            screenWidth: UIScreen.main.bounds.width
+            screenHeight: WindowMetrics.size.height,
+            screenWidth: WindowMetrics.size.width
         ))
     }
 

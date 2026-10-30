@@ -113,6 +113,9 @@ struct AreaView: View {
     /// from the sheet at each stop because each stop used a different guess.
     /// A measurement has no stops to get individually wrong.
     @State private var measuredSheetTop: CGFloat? = nil
+    /// Window height, tracked so a runtime window resize (iPhone Duo fold /
+    /// resize) re-evaluates the detent math, which reads `WindowMetrics`.
+    @State private var windowHeight: CGFloat = 0
 
     /// Trail-list sheet detents — exactly TWO stops, and the MAP IS VISIBLE
     /// AT BOTH. There is no full-screen stop: this is a map screen, and a
@@ -532,7 +535,7 @@ struct AreaView: View {
                     // as drawn — at every stop and mid-drag, with no per-stop
                     // arithmetic to get individually wrong.
                     .onGeometryChange(for: CGFloat.self) { proxy in
-                        UIScreen.main.bounds.height - proxy.frame(in: .global).minY
+                        WindowMetrics.size.height - proxy.frame(in: .global).minY
                     } action: { top in
                         // Ignore sub-point noise so this can't thrash the map's
                         // bottomInset on every frame of a drag.
@@ -939,9 +942,8 @@ struct AreaView: View {
     /// transitions are coarse (one event per release), so this only
     /// changes a handful of times per session — no per-frame thrash.
     ///
-    /// Heights resolved against UIScreen rather than threading a
-    /// GeometryReader value up. iPad multitasking would skew this,
-    /// but the app's iPhone-only, so close enough.
+    /// Heights resolved against the window (`WindowMetrics`) rather than
+    /// threading a GeometryReader value up; `windowHeight` re-runs them on resize.
     /// Top safe-area inset of the active window (Dynamic Island / notch).
     /// Needed because a sheet's `.fraction` detents are a fraction of the
     /// sheet's MAXIMUM height, which is the screen minus this inset — not a
@@ -962,7 +964,7 @@ struct AreaView: View {
     /// What UIKit would treat as the sheet's maximum height — the reference
     /// the browse stop is a fraction of. Never offered as a stop itself.
     private var maxDetentHeight: CGFloat {
-        UIScreen.main.bounds.height - Self.topSafeInset - 10
+        (windowHeight > 0 ? windowHeight : WindowMetrics.size.height) - Self.topSafeInset - 10
     }
 
     /// The browse stop's `.height()` value. Its visible extent (this plus the

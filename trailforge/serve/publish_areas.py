@@ -616,9 +616,17 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                     "..", "data", "dem-cache"), help="disk cache for DEM tiles")
     ap.add_argument("--dem-zoom", type=int, default=elevation.DEM_ZOOM)
     args = ap.parse_args(argv)
-    if args.exact_boundary and (
-            not args.dry_run or not args.preview_json or not args.preview_root):
+    if args.exact_boundary and args.dry_run and (
+            not args.preview_json or not args.preview_root):
         ap.error("--exact-boundary requires --dry-run, --preview-json, and --preview-root")
+    if args.exact_boundary and not args.dry_run and not (
+            # The only non-dry exact publish: the reviewed Mols simple path.
+            args.only_area == _MOLS_AREA_ID and args.state == "Denmark"
+            and args.no_elevation and not args.preview_json
+            and not args.preview_root):
+        ap.error("--exact-boundary requires --dry-run, --preview-json, and "
+                 "--preview-root (non-dry is allowed only for --only-area "
+                 f"{_MOLS_AREA_ID} --state Denmark --no-elevation)")
     if args.exact_boundary and not args.no_boundary_fetch:
         ap.error("--exact-boundary requires --no-boundary-fetch")
     preview_path = _preview_output_path(args, ap)

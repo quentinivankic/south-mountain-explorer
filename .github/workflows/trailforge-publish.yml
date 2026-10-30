@@ -202,7 +202,73 @@ jobs:
           ls -lh "$F"
           bash extract/prefilter.sh "$F" data/hiking.osm.pbf
 
+      - name: Exact Mols assembly (simple publish, reviewed pilot pipeline)
+        if: ${{ steps.input_shape.outputs.mols_simple == 'true' }}
+        env:
+          PUBLISH_BBOX: ${{ steps.input_shape.outputs.pilot_bbox }}
+          EXPECTED_RELATION_ID: "7046785"
+          AREA_NAME: Nationalpark Mols Bjerge
+        run: |
+          set -euo pipefail
+          # Same discovery check, AOI cut, relation ledgers and exact assembly as
+          # the pilot job (the generic statewide assembly produced 66 trails).
+          W="$RUNNER_TEMP/mols-exact"; mkdir -p "$W"
+          SOURCE_PBF="$GITHUB_WORKSPACE/trailforge/data/raw/denmark.osm.pbf"
+          SOURCE_SHA="$(sha256sum "$SOURCE_PBF" | cut -d' ' -f1)"
+          python3 scripts/seed-areas.py --dry-run DK \
+            --source-pbf "$SOURCE_PBF" --source-pbf-sha256 "$SOURCE_SHA" \
+            --discovery-report "$W/discovery-report.json" \
+            --pbf-provenance "$W/pbf-provenance.json"
+          python3 trailforge/tools/validate_publish_pilot.py discovery \
+            --discovery-report "$W/discovery-report.json" \
+            --pbf-provenance "$W/pbf-provenance.json" \
+            --source-pbf "$SOURCE_PBF" \
+            --expected-osm-relation-id "$EXPECTED_RELATION_ID" \
+            --selected-record-out "$W/selected.json" \
+            --index-out "$W/discovery-index.json" \
+            --result-json "$W/discovery-validation.json"
+          cd trailforge
+          HIKING=data/hiking.osm.pbf NAME=mols-bjerge BBOX="$PUBLISH_BBOX" \
+          AOI_RECEIPT="$W/scope.aoi.json" \
+          AOI_RELATION_MEMBERS="$W/relation-members.aoi.json" \
+          AOI_WAY_TOPOLOGY=data/aoi/mols-bjerge.way-topology.json \
+          AOI_GITHUB_OUTPUT="$W/aoi-outputs.txt" \
+          AOI_PARENT_LABEL=data/hiking.osm.pbf \
+          AOI_OUTPUT_ARTIFACT=data/aoi/mols-bjerge.osm.pbf \
+            bash extract/aoi.sh
+          python3 tools/build_relation_slice.py --in data/raw/denmark.osm.pbf \
+            --roots-from "$W/relation-members.aoi.json" --out "$W/raw.osm.pbf" \
+            --receipt "$W/scope.raw.json" --scope raw-denmark \
+            --source-label data/raw/denmark.osm.pbf \
+            --output-artifact data/source/mols-bjerge.raw.osm.pbf \
+            --upstream-stage relation-root-closure-extract \
+            --github-output "$W/raw-outputs.txt"
+          python3 tools/export_relation_members.py --in "$W/raw.osm.pbf" \
+            --scope raw-denmark --roots-from "$W/relation-members.aoi.json" \
+            --out "$W/relation-members.raw.json" --github-output "$W/raw-outputs.txt"
+          python3 tools/build_relation_slice.py --in data/hiking.osm.pbf \
+            --roots-from "$W/relation-members.aoi.json" --out "$W/prefilter.osm.pbf" \
+            --receipt "$W/scope.prefilter.json" --scope prefiltered-denmark \
+            --source-label data/hiking.osm.pbf \
+            --output-artifact data/source/mols-bjerge.prefilter.osm.pbf \
+            --upstream-stage relation-root-closure-extract \
+            --github-output "$W/prefilter-outputs.txt"
+          python3 tools/export_relation_members.py --in "$W/prefilter.osm.pbf" \
+            --scope prefiltered-denmark --roots-from "$W/relation-members.aoi.json" \
+            --out "$W/relation-members.prefilter.json" \
+            --github-output "$W/prefilter-outputs.txt"
+          python3 assemble/assemble.py --in data/aoi/mols-bjerge.osm.pbf \
+            --out data/aoi/mols-bjerge.trails.geojson \
+            --only-area "$AREA_NAME" --require-exact-area \
+            --expected-area-relation-id "$EXPECTED_RELATION_ID" \
+            --relation-authority "$W/relation-members.raw.json" \
+            --prefilter-authority "$W/relation-members.prefilter.json" \
+            --aoi-relation-members "$W/relation-members.aoi.json" \
+            --min-length-mi 0.1 --per-area-merge --region dk \
+            --report-json "$W/assembly.json"
+
       - name: Assemble (statewide, per-area merge)
+        if: ${{ steps.input_shape.outputs.mols_simple != 'true' }}
         env:
           PUBLISH_REGION_CODE: ${{ steps.input_shape.outputs.region_code }}
         run: |
@@ -228,12 +294,22 @@ jobs:
           RELEASE_MODE: ${{ steps.input_shape.outputs.release_mode }}
           VERIFIED_AREA_ID: ${{ steps.release_input.outputs.area_id }}
           VERIFIED_INDEX_PATH: ${{ steps.release_input.outputs.publication_index_path }}
+          MOLS_SIMPLE: ${{ steps.input_shape.outputs.mols_simple }}
         run: |
           set -e
           cd trailforge
           FLAGS=()
           INDEX_PATH="../public/areas/index.json"
           ONLY_AREA=()
+          TRAILS=data/aoi/state.trails.geojson
+          HIKING=data/hiking.osm.pbf
+          if [ "$MOLS_SIMPLE" = "true" ]; then
+            # Exact park polygon + exact assembly, as in the reviewed dry run.
+            TRAILS=data/aoi/mols-bjerge.trails.geojson
+            HIKING=data/aoi/mols-bjerge.osm.pbf
+            FLAGS+=(--no-boundary-fetch --no-elevation
+              --exact-boundary data/aoi/mols-bjerge.exact-area.geojson)
+          fi
           [ "$PUBLISH_DRY_RUN" = "true" ] && FLAGS+=(--dry-run)
           [ "$PUBLISH_NO_ROUTES" = "true" ] && FLAGS+=(--no-routes)
           [ "$PUBLISH_TOUCH_REPORT" = "true" ] && FLAGS+=(--touch-report)
@@ -247,10 +323,17 @@ jobs:
           # Read the MASTER index (every seeded state) so a not-yet-bundled
           # state has areas to fill; publish_areas updates its counts in place.
           python3 serve/publish_areas.py \
-            --trails data/aoi/state.trails.geojson --hiking data/hiking.osm.pbf \
+            --trails "$TRAILS" --hiking "$HIKING" \
             --state "$PUBLISH_STATE" \
             --index "$INDEX_PATH" \
             --out-dir ../public/areas/geom "${ONLY_AREA[@]}" "${FLAGS[@]}"
+
+      - name: Refuse unless the Mols result is the reviewed 26-trail exact result
+        if: ${{ steps.input_shape.outputs.mols_simple == 'true' }}
+        run: |
+          set -euo pipefail
+          python3 scripts/simple_mols_publish.py assert-exact \
+            --geom public/areas/geom/nationalpark-mols-bjerge-dk.json
 
       - name: Merge signed Mols row into canonical master index
         if: ${{ steps.input_shape.outputs.dry_run == 'false' && steps.input_shape.outputs.release_mode == 'mols' }}

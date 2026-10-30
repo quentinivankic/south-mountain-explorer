@@ -91,6 +91,39 @@ def prepare_input(args: argparse.Namespace) -> int:
     return 0
 
 
+# Reviewed exact result (pilot dry run 40911065636): 26 trails / 85.4 mi.
+EXPECTED_TRAILS = 26
+EXPECTED_MILES = 85.4
+MILES_TOLERANCE = 0.05
+REQUIRED_TRAILS = ("Molsruten", "Kaløstien")
+# Unqualified trails the generic statewide assembly added (66 trails / 127.2 mi).
+FORBIDDEN_TRAILS = (
+    "Enhøjvej", "Lyngevej", "Gravlevstien", "Skolevej", "Hjelm", "Fægyden",
+    "Krogryggevej", "Rugårdsvej", "Langs Kysten", "Den gamle købstad",
+    "Mols Bjerge-stien Gåsehage-etapen", "Mols Bjerge-stien Ebeltoftetapen",
+)
+
+
+def assert_exact_result(args: argparse.Namespace) -> int:
+    """Fail closed unless the published Mols geom is the reviewed exact result."""
+    row = json.loads(args.geom.read_text(encoding="utf-8"))
+    names = [t.get("name") for t in row.get("trails") or []]
+    problems = []
+    if row.get("id") != AREA:
+        problems.append(f"area id {row.get('id')!r}")
+    if row.get("trail_count") != EXPECTED_TRAILS or len(names) != EXPECTED_TRAILS:
+        problems.append(f"trail_count {row.get('trail_count')} / {len(names)} trails, expected {EXPECTED_TRAILS}")
+    miles = row.get("total_mi")
+    if not isinstance(miles, (int, float)) or abs(miles - EXPECTED_MILES) > MILES_TOLERANCE:
+        problems.append(f"total_mi {miles}, expected {EXPECTED_MILES} +/- {MILES_TOLERANCE}")
+    problems += [f"missing required trail {n!r}" for n in REQUIRED_TRAILS if n not in names]
+    problems += [f"unqualified trail present {n!r}" for n in FORBIDDEN_TRAILS if n in names]
+    if problems:
+        raise SimpleError("Mols result is not the reviewed exact result: " + "; ".join(problems))
+    print(f"exact Mols result OK: {len(names)} trails, {miles} mi")
+    return 0
+
+
 def _splice(live: bytes, records: list[Any], opener: bytes, closer: bytes, as_dict: bool) -> bytes:
     if not live.startswith(opener) or not live.endswith(closer) or len(live) < 3:
         raise SimpleError("live object has unexpected framing")
@@ -204,8 +237,12 @@ def main(argv: list[str] | None = None) -> int:
     c = sub.add_parser("rollback-decide")
     c.add_argument("--plan", required=True, type=Path)
     c.add_argument("--live-dir", required=True, type=Path)
+    d = sub.add_parser("assert-exact")
+    d.add_argument("--geom", required=True, type=Path)
     args = p.parse_args(argv)
     try:
+        if args.command == "assert-exact":
+            return assert_exact_result(args)
         if args.command == "prepare-input":
             return prepare_input(args)
         if args.command == "rollback-decide":

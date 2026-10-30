@@ -163,3 +163,60 @@ def test_workflow_rollback_and_partial_apply_wiring():
     assert "rollback-decide" in sync
     assert "PARTIAL APPLY: dispatch mode=rollback with rollback_run_id=$GITHUB_RUN_ID" in sync
     assert "trap - EXIT" in sync
+
+
+def _geom(names, total_mi):
+    return {"id": AREA, "trail_count": len(names), "total_mi": total_mi,
+            "trails": [{"name": n} for n in names]}
+
+
+def _assert_exact(tmp_path, row):
+    path = tmp_path / "geom.json"
+    path.write_text(json.dumps(row), encoding="utf-8")
+    return smp.main(["assert-exact", "--geom", str(path)])
+
+
+def _good_names():
+    return ["Molsruten", "Kaløstien"] + [f"Trail {i}" for i in range(24)]
+
+
+def test_assert_exact_accepts_only_the_reviewed_result(tmp_path):
+    assert _assert_exact(tmp_path, _geom(_good_names(), 85.4)) == 0
+    assert _assert_exact(tmp_path, _geom(_good_names(), 85.44)) == 0
+    assert _assert_exact(tmp_path, _geom(_good_names(), 85.5)) == 1
+    assert _assert_exact(tmp_path, _geom(_good_names()[:-1], 85.4)) == 1
+    assert _assert_exact(tmp_path, _geom(_good_names() + ["Extra"], 85.4)) == 1
+    missing = [n for n in _good_names() if n != "Kaløstien"] + ["Other"]
+    assert _assert_exact(tmp_path, _geom(missing, 85.4)) == 1
+    bad = _good_names()[:-1] + ["Gravlevstien"]
+    assert _assert_exact(tmp_path, _geom(bad, 85.4)) == 1
+
+
+def test_assert_exact_rejects_the_66_trail_statewide_result(tmp_path):
+    # Shape of the generic statewide result: 66 trails / 127.2 mi, junk present.
+    names = ["Enhøjvej", "Lyngevej"] + [f"Trail {i}" for i in range(64)]
+    assert _assert_exact(tmp_path, _geom(names, 127.2)) == 1
+
+
+def test_non_dry_mols_simple_path_uses_the_exact_assembly_and_publish_flags():
+    publish = (ROOT / ".github/workflows/trailforge-publish.yml").read_text()
+    job = publish.split("\n  pilot:\n")[0]
+    exact = job.split("- name: Exact Mols assembly", 1)[1].split("- name: Assemble (statewide", 1)[0]
+    for needle in ("--only-area \"$AREA_NAME\"", "--require-exact-area",
+                   "--expected-area-relation-id \"$EXPECTED_RELATION_ID\"",
+                   "--relation-authority", "--prefilter-authority",
+                   "--aoi-relation-members", "validate_publish_pilot.py discovery",
+                   'EXPECTED_RELATION_ID: "7046785"'):
+        assert needle in exact, needle
+    generic = job.split("- name: Assemble (statewide", 1)[1]
+    assert "if: ${{ steps.input_shape.outputs.mols_simple != 'true' }}" in generic.split("env:")[0]
+    publish_step = generic.split("- name: Publish areas", 1)[1].split("- name: Refuse unless", 1)[0]
+    assert 'if [ "$MOLS_SIMPLE" = "true" ]; then' in publish_step
+    for needle in ("--no-boundary-fetch", "--no-elevation",
+                   "--exact-boundary data/aoi/mols-bjerge.exact-area.geojson",
+                   "data/aoi/mols-bjerge.trails.geojson", "data/aoi/mols-bjerge.osm.pbf"):
+        assert needle in publish_step, needle
+    # Fail-closed assertion runs after publish and before the index merge / commit.
+    order = [job.index(m) for m in ("- name: Publish areas", "simple_mols_publish.py assert-exact",
+                                    "- name: Merge signed Mols row", "- name: Commit published data")]
+    assert order == sorted(order)

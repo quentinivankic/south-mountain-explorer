@@ -1080,6 +1080,24 @@ class DenmarkRoadNameRules(unittest.TestCase):
                     [f["properties"]["removed_category"] for f in removed],
                     ["unresolved-relation-gap"])
 
+class DenmarkRulesCli(unittest.TestCase):
+    """The real argument parser must accept --dk-rules (dk-run-area.sh passes it)."""
+    def _run(self, *extra):
+        import subprocess
+        return subprocess.run(
+            [sys.executable, str(Path(__file__).resolve().parent / "assemble.py"),
+             "--in", "x.pbf", "--out", "y.geojson", *extra],
+            capture_output=True, text=True)
+    def test_flag_is_accepted_by_the_real_parser(self):
+        for rules in ("legacy", "dk-v2"):
+            with self.subTest(rules=rules):
+                result = self._run("--region", "dk", "--dk-rules", rules)
+                self.assertNotIn("unrecognized arguments", result.stderr)
+                self.assertNotIn("invalid choice", result.stderr)
+    def test_unknown_rule_set_is_rejected_by_the_parser(self):
+        result = self._run("--dk-rules", "v3")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("invalid choice", result.stderr)
 @unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
 class CompleteOverlapLedger(unittest.TestCase):
     def test_structurally_removed_candidate_is_still_in_complete_ledger(self):

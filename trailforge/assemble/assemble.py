@@ -923,6 +923,10 @@ def main(argv=None) -> int:
                          "thru-hike drops whose bare name collides with unrelated "
                          "local trails elsewhere (Vermont's 'Long Trail', NM's "
                          "'Skyline Trail'). Match what the publisher ships.")
+    ap.add_argument("--dk-rules", dest="dk_rules", default="legacy",
+                    choices=("legacy", "dk-v2"),
+                    help="Denmark rule set from the registry entry: legacy "
+                         "(pinned Mols behavior) or dk-v2 (adds dk-road-name)")
     args = ap.parse_args(argv)
 
     authority_paths = (

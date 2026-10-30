@@ -242,6 +242,31 @@ approach/connection roles) remain auditable without duplicate removal rows.
 `area=no` remains linear in every region. The compact run-33 and run-34 replays
 are test-only and never app output.
 
+### Denmark rule sets (`--dk-rules`, registry `rules`)
+
+`golden/dk-areas.json` gives every entry `rules`: `legacy` (Mols, the pinned
+control; output unchanged) or `dk-v2` (every other area). `scripts/dk-run-area.sh`
+reads it and passes `--dk-rules`. `dk-v2` adds the quality removal
+`dk-road-name` (like the US `FR`/road-code drops, but Danish names):
+
+- Applies only to rootless name stitches. A signed hiking relation, any way in
+  one, or any way with `sac_scale`/`trail_visibility`/`hiking`/`trail`/`route`
+  hiking tags is never removed. Names with a trail word (sti, rute, spor, trail,
+  vandre, pilgrim, camino, sløjfe, rundtur) or a historic road stem (hærvej,
+  ridevej, oksevej, drivvej) are never removed.
+- `road-class-way`: last word is a street word (-vej, -gade, -alle/-allé,
+  -stræde, -boulevard, -torv, -plads, -vænge, or definite -vejen, -alleen, ...)
+  and a rendered way is track/service/residential/unclassified/tertiary/etc.
+- `street-name-on-path`: on plain path/footway/pedestrian ways, only compound
+  `...vej`, -gade/-alle/-stræde/-torv/-plads (and definite -gaden/...), or a
+  genitive `X-s Vej` ("Bangs Vej"). "Den Vilde Vej" and "-vejen" stay.
+- `access-point`: -zugang / -adgang.
+
+Long-distance routes are not exempt from `unresolved-relation-gap`. The US
+thru-hike list (`_THRU_HIKE_RE`) removes named thru-hikes, and
+`publish_areas` keeps a route only in a park holding most of its length; neither
+bypasses a connectivity gate, so there is no Danish equivalent to add.
+
 ## Definition of done (first milestone)
 
 `make aoi && python3 assemble/assemble.py --aoi sedona` produces a

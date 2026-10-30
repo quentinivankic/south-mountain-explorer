@@ -1112,7 +1112,8 @@ def main(argv=None) -> int:
                     area_name=selected_area_name, region=args.region,
                     relation_member_audit=relation_member_audit,
                     relation_scope_evidence=relation_scopes,
-                    promotion_decisions=promotion_decisions)
+                    promotion_decisions=promotion_decisions,
+                    dk_rules=getattr(args, "dk_rules", "legacy"))
                 for removed_feature in clip_removed:
                     (removed_feature.get("properties") or {}).setdefault(
                         _TERMINAL_REMOVAL_STAGE, "exact-area-clip")

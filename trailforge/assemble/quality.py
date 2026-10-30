@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from collections import Counter
 import copy
+import re
+import unicodedata
 from typing import Any
 
 OVERLAP_THRESHOLD = 0.90
@@ -39,6 +41,12 @@ _QUALITY_REMOVAL_REASONS = {
         "Denmark-only rootless name stitch is composed entirely of "
         "highway=track ways with no explicit walking or trail identity."
     ),
+    "dk-road-name": (
+        "Denmark-only rootless name stitch is a named street or forest road: "
+        "a road-style name (-vej, -gade, -alle, ...) on road-class OSM ways, "
+        "or a street name on a plain path, with no hiking-route relation and "
+        "no hiking tags."
+    ),
     "nested-name-stitch-overlap": (
         "Low-authority rootless name stitch is at least 90% nested in a signed "
         "relation-backed object."
@@ -49,6 +57,79 @@ _QUALITY_REMOVAL_REASONS = {
         "diagnostics."
     ),
 }
+
+# Denmark road-name rules, selected per registry entry (`rules` in
+# golden/dk-areas.json). "legacy" keeps the pinned Mols behavior byte-for-byte;
+# "dk-v2" adds the dk-road-name removal below. Name-stitch candidates only: a
+# signed hiking-route relation (or any way in one) is never touched.
+DK_RULES = ("legacy", "dk-v2")
+_DK_ROAD_HIGHWAYS = {
+    "track", "service", "residential", "unclassified", "tertiary", "secondary",
+    "primary", "living_street", "road",
+}
+# Last word of the name. Indefinite street words match on any road-class way;
+# definite forms (Strandvejen, Alleen) only when a road-class way carries them.
+_DK_ROAD_WORD = re.compile(
+    r"(vej|gade|alle|allé|stræde|boulevard|torv|plads|vænge)$")
+_DK_ROAD_WORD_DEFINITE = re.compile(
+    r"(vejen|gaden|alleen|alléen|allèen|strædet|torvet|pladsen)$")
+_DK_STREET_DEFINITE = re.compile(r"(gaden|strædet|torvet|pladsen)$")
+# Access points, not trails ("Strandzugang", "Strandadgang").
+_DK_ACCESS_WORD = re.compile(r"(zugang|adgang)$")
+# Historic named roads that are real hiking routes (Hærvejen, Ridevejen, ...).
+_DK_HISTORIC_ROAD = re.compile(r"(hærvej|harvej|ridevej|oksevej|drivvej)")
+# Any of these words makes a name a trail name; never a road-name drop.
+_DK_TRAIL_WORD = re.compile(
+    r"(sti|stien|stier|rute|ruten|trail|spor|sporet|vandre|pilgrim|camino|"
+    r"naturstien|rundtur|sløjfe)\b")
+_DK_HIKING_VALUES = {"yes", "designated", "permissive"}
+def _dk_norm_name(name: Any) -> str:
+    return " ".join(unicodedata.normalize("NFC", str(name or "")).casefold().split())
+def _dk_hiking_evidence(tags: dict) -> bool:
+    if str(tags.get("sac_scale", "")).strip():
+        return True
+    if str(tags.get("trail_visibility", "")).strip():
+        return True
+    if str(tags.get("hiking", "")).strip().lower() in _DK_HIKING_VALUES:
+        return True
+    if str(tags.get("trail", "")).strip().lower() in {"yes", "designated"}:
+        return True
+    return str(tags.get("route", "")).strip().lower() in {
+        "hiking", "foot", "walking"}
+def dk_road_name_verdict(name: Any, source_kind: Any,
+                         rendered_records: list[dict]) -> str | None:
+    """Rule slug when a rootless name stitch is a street/forest road, else None.
+    Slugs: access-point, road-class-way (road-style name on a road-class way),
+    street-name-on-path (street word on a plain path/footway)."""
+    if source_kind != "name-stitch" or not rendered_records:
+        return None
+    for record in rendered_records:
+        if record.get("direct_relation_ids") or _dk_hiking_evidence(
+                record.get("tags") or {}):
+            return None
+    normalized = _dk_norm_name(name)
+    words = normalized.split()
+    if not words or _DK_TRAIL_WORD.search(normalized) \
+            or _DK_HISTORIC_ROAD.search(normalized):
+        return None
+    last = words[-1].rstrip("'’`.,;:")
+    if _DK_ACCESS_WORD.search(last):
+        return "access-point"
+    highways = {str((record.get("tags") or {}).get("highway", "")).strip().lower()
+                for record in rendered_records}
+    if highways & _DK_ROAD_HIGHWAYS:
+        if _DK_ROAD_WORD.search(last) or _DK_ROAD_WORD_DEFINITE.search(last):
+            return "road-class-way"
+        return None
+    # Plain path/footway/pedestrian: only unmistakable street names. "Vej" as a
+    # separate word counts only after a genitive ("Bangs Vej"); "Den Vilde Vej"
+    # stays. A compound "...vej" counts; the definite "-vejen"/"-alleen" never do here.
+    if last == "vej":
+        genitive = len(words) > 1 and words[-2].endswith("s")
+        return "street-name-on-path" if genitive else None
+    if _DK_ROAD_WORD.search(last) or _DK_STREET_DEFINITE.search(last):
+        return "street-name-on-path"
+    return None
 
 
 class _UF:
@@ -874,7 +955,8 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                        area_name: str, region: str | None,
                        relation_member_audit: list[dict] | None = None,
                        relation_scope_evidence: dict | None = None,
-                       promotion_decisions: list[dict] | None = None
+                       promotion_decisions: list[dict] | None = None,
+                       dk_rules: str = "legacy"
                        ) -> tuple[list, list, dict]:
     """Disposition exact-area candidates and return (kept, removed, evidence).
 
@@ -882,6 +964,8 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
     unresolved source gap is excluded from publishable trails, retained in the
     removed sidecar, and preserved in the unresolved diagnostic ledger.
     """
+    if dk_rules not in DK_RULES:
+        raise ValueError(f"unknown Denmark rules {dk_rules!r}")
     normalized_region = (region or "").strip().lower()
     if normalized_region != "dk":
         for feature in features:
@@ -1170,6 +1254,24 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                 and properties.get("source") == "name-stitch"
                 and state["identity"] == "weak-track"):
             state["removed_category"] = "dk-unqualified-road-track"
+    road_name_evidence = []
+    if dk_rules == "dk-v2":
+        for state in states:
+            properties = state["feature"]["properties"]
+            if (state["removed_category"] is not None
+                    or properties.get("quality_disposition") in {
+                        "invalid-source-geometry", "missing-source-way"}
+                    or properties.get("relation_ids")):
+                continue
+            rule = dk_road_name_verdict(
+                properties.get("name"), properties.get("source"),
+                [record for record in properties.get("source_ways") or []
+                 if record.get("renders_in_area")])
+            if rule:
+                state["removed_category"] = "dk-road-name"
+                road_name_evidence.append({
+                    "name": properties.get("name"), "rule": rule,
+                    "miles": properties.get("length_mi")})
 
     states, dropped_root_contamination = \
         _exclude_dropped_root_contamination(states)
@@ -1267,7 +1369,7 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         "total_relation_miles": round(aggregate_relation_miles, 6),
         "restored_share": round(aggregate_share, 6),
     }
-    return kept, removed, {
+    report = {
         "schema_version": 8,
         "enabled": True,
         "region": "dk",
@@ -1297,6 +1399,10 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         "promotion_decisions": promotion_ledger,
         "validation_failures": list(dict.fromkeys(validation_failures)),
     }
+    if dk_rules != "legacy":
+        report["dk_rules"] = dk_rules
+        report["dk_road_name_removed"] = road_name_evidence
+    return kept, removed, report
 
 
 def reconcile_terminal_absorptions(report: dict, kept: list[dict],

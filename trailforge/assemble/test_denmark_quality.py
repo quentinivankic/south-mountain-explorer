@@ -40,7 +40,8 @@ def prepared(trails, ways):
     return features
 
 
-def curate(trails, ways, nodes, *, region="dk", boundary=None):
+def curate(trails, ways, nodes, *, region="dk", boundary=None,
+           dk_rules="legacy"):
     features = prepared(trails, ways)
     return quality.curate_exact_area(
         features,
@@ -49,6 +50,7 @@ def curate(trails, ways, nodes, *, region="dk", boundary=None):
         area_union=boundary if boundary is not None else box(-2, -2, 20, 20),
         area_name=AREA,
         region=region,
+        dk_rules=dk_rules,
     )
 
 
@@ -969,6 +971,114 @@ class DenmarkRoadTrackCuration(unittest.TestCase):
                 self.assertFalse(report["enabled"])
                 self.assertNotIn("walking_identity", kept[0]["properties"])
 
+
+@unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
+class DenmarkRoadNameRules(unittest.TestCase):
+    """dk-v2 `dk-road-name`: street/forest-road names on road-class ways."""
+    def _stitch(self, name, tags, rules="dk-v2", n_ways=1):
+        ways = {i + 1: W([2 * i + 1, 2 * i + 2], name=name, **tags)
+                for i in range(n_ways)}
+        nodes = {}
+        for i in range(n_ways):
+            nodes[2 * i + 1] = (i, 0)
+            nodes[2 * i + 2] = (i + 1, 0)
+        trail = T(name, "name-stitch", list(ways),
+                  [[nodes[2 * i + 1], nodes[2 * i + 2]] for i in range(n_ways)])
+        return curate([trail], ways, nodes, dk_rules=rules)
+    def _removed_as_road_name(self, name, tags, rules="dk-v2"):
+        kept, removed, report = self._stitch(name, tags, rules)
+        return (kept == [] and len(removed) == 1
+                and removed[0]["properties"]["removed_category"] == "dk-road-name")
+    def test_forest_road_names_on_designated_tracks_are_removed(self):
+        track = {"highway": "track", "foot": "designated",
+                 "motor_vehicle": "forestry", "tracktype": "grade2"}
+        for name in ("Tovej", "Trevej", "Femvej", "Seksvej", "Sandportalle",
+                     "Skomagergade", "Strandvej", "Nordre Sanatorievej",
+                     "Juvre Strandvej", "Klatmøllevej", "Strandvejen", "Alleen",
+                     "Frederik Madsens Allé", "Bjergegade", "Kastaniealle'"):
+            with self.subTest(name=name):
+                self.assertTrue(self._removed_as_road_name(name, track))
+    def test_street_names_on_plain_paths_are_removed(self):
+        for name, tags in (
+                ("Jagtvej", {"highway": "path"}),
+                ("Rosenvej", {"highway": "footway", "surface": "ground"}),
+                ("Førby Hedevej", {"highway": "path", "surface": "dirt"}),
+                ("Linders Alle", {"highway": "path"}),
+                ("Hovedgaden", {"highway": "pedestrian"}),
+                ("Bangs Vej", {"highway": "path"}),
+                ("Strandzugang", {"highway": "path"})):
+            with self.subTest(name=name):
+                self.assertTrue(self._removed_as_road_name(name, tags))
+    def test_report_lists_each_removal_with_its_rule(self):
+        _, _, report = self._stitch("Tovej", {"highway": "track", "foot": "yes"})
+        self.assertEqual(report["dk_rules"], "dk-v2")
+        self.assertEqual(report["dk_road_name_removed"],
+                         [{"name": "Tovej", "rule": "road-class-way",
+                           "miles": report["dk_road_name_removed"][0]["miles"]}])
+        self.assertEqual(report["removed_counts"], {"dk-road-name": 1})
+    def test_legacy_rules_keep_every_road_name_and_report_is_unchanged(self):
+        for name, tags in (
+                ("Tovej", {"highway": "track", "foot": "designated"}),
+                ("Jagtvej", {"highway": "path"}),
+                ("Strandzugang", {"highway": "path"})):
+            with self.subTest(name=name):
+                kept, removed, report = self._stitch(name, tags, rules="legacy")
+                self.assertEqual(len(kept), 1)
+                self.assertEqual(removed, [])
+                self.assertNotIn("dk_rules", report)
+                self.assertNotIn("dk_road_name_removed", report)
+    def test_unknown_rule_set_fails_closed(self):
+        with self.assertRaises(ValueError):
+            self._stitch("Tovej", {"highway": "track", "foot": "yes"}, rules="v3")
+    def test_real_trail_names_and_hiking_tags_are_never_removed(self):
+        track = {"highway": "track", "foot": "designated"}
+        for name, tags in (
+                ("Hærvejen", track), ("Ridevejen", track), ("Oksevejen", track),
+                ("Hærvej Sti", track), ("Kirkevej Sti", track),
+                ("Vestkyststien", track), ("Strandvej Rute", track),
+                ("Naturstien Skovvej", dict(track, sac_scale="hiking")),
+                ("Pilgrimsrute Vestsjælland", track),
+                ("Skovvej", dict(track, trail_visibility="good")),
+                ("Skovvej", dict(track, hiking="yes")),
+                ("Skovvej", dict(track, route="hiking")),
+                ("Den Vilde Vej", {"highway": "path"}),
+                ("Kristoffervejen", {"highway": "path"}),
+                ("Hulvejen", {"highway": "path"}),
+                ("Kanalstien", {"highway": "footway"}),
+                ("Det Hvide Spor", {"highway": "path"}),
+                ("Lavølinie", track)):
+            with self.subTest(name=name, tags=tags):
+                kept, removed, _ = self._stitch(name, tags)
+                self.assertEqual(len(kept), 1)
+                self.assertEqual(removed, [])
+    def test_hiking_relation_backed_road_names_are_never_removed(self):
+        nodes = {1: (0, 0), 2: (1, 0)}
+        ways = {1: W([1, 2], highway="tertiary", name="Klosterrisvej")}
+        relations = {900: {
+            "tags": {"type": "route", "route": "hiking", "name": "Klosterrisvej"},
+            "members": [("w", 1, "")]}}
+        trails = m.assemble(nodes, ways, relations, [], region="dk")
+        kept, removed, _ = curate(trails, ways, nodes, dk_rules="dk-v2")
+        self.assertEqual([f["properties"]["name"] for f in kept],
+                         ["Klosterrisvej"])
+        self.assertEqual(removed, [])
+    def test_relation_with_in_park_gap_is_still_dropped_under_both_rule_sets(self):
+        # Long-distance routes are NOT exempt from the gap gate: a listed-style
+        # name with a gap inside the park keeps the existing fail-closed result.
+        nodes = {1: (0, 0), 2: (1, 0), 3: (3, 0), 4: (4, 0)}
+        ways = {1: W([1, 2], highway="path"), 2: W([3, 4], highway="path")}
+        relations = {901: {
+            "tags": {"type": "route", "route": "hiking", "name": "Vestkyststien"},
+            "members": [("w", 1, ""), ("w", 2, "")]}}
+        for rules in ("legacy", "dk-v2"):
+            with self.subTest(rules=rules):
+                trails = m.assemble(nodes, ways, relations, [], region="dk")
+                kept, removed, report = curate(
+                    trails, ways, nodes, dk_rules=rules)
+                self.assertEqual(kept, [])
+                self.assertEqual(
+                    [f["properties"]["removed_category"] for f in removed],
+                    ["unresolved-relation-gap"])
 
 @unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
 class CompleteOverlapLedger(unittest.TestCase):

@@ -232,6 +232,22 @@ def test_registry_rejects_bad_hold_and_estimates(tmp_path, mutate):
         dk.load_registry(_write_registry(tmp_path / "r.json", mutate))
 
 
+# ------------------------------------------------------------- rule sets ----
+def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2():
+    areas = dk.load_registry(REGISTRY)["areas"]
+    assert areas[0]["id"] == MOLS and areas[0]["rules"] == "legacy"
+    assert len(areas) > 1
+    assert {a["id"]: a.get("rules") for a in areas[1:] if a.get("rules") != "dk-v2"} == {}
+def test_registry_rejects_unknown_rule_set(tmp_path):
+    with pytest.raises(dk.DkError):
+        dk.load_registry(_write_registry(
+            tmp_path / "r.json", lambda d: d["areas"][1].update(rules="dk-v3")))
+def test_run_area_script_reads_rules_from_the_registry_and_passes_them_on():
+    script = (ROOT / "scripts/dk-run-area.sh").read_text()
+    assert 'select(.id == $id) | .rules // "legacy"' in script
+    assert '--dk-rules "$RULES"' in script
+def test_road_name_removals_count_as_forbidden_junk_in_proposed_tables():
+    assert "dk-road-name" in (ROOT / "scripts/dk_publish.py").read_text().split("junk_categories = ", 1)[1][:200]
 # --------------------------------------------------------- bbox / prepare ----
 
 OSM = """<?xml version='1.0' encoding='UTF-8'?>

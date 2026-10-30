@@ -17,6 +17,10 @@ set -euo pipefail
 [[ "$AREA_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*-dk$ ]]
 [[ "$RELATION_ID" =~ ^[1-9][0-9]*$ ]]
 [[ "$BBOX" =~ ^-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?$ ]]
+# Rule set comes from the registry entry (Mols = legacy, everything else dk-v2).
+RULES="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .rules // "legacy"' \
+  trailforge/golden/dk-areas.json)"
+[[ "$RULES" =~ ^(legacy|dk-v2)$ ]]
 A="$W/$AREA_ID"
 mkdir -p "$A/geom"
 ROOT="$(pwd)"
@@ -70,7 +74,7 @@ python3 assemble/assemble.py --in "data/aoi/$AREA_ID.osm.pbf" \
   --relation-authority "$A/relation-members.raw.json" \
   --prefilter-authority "$A/relation-members.prefilter.json" \
   --aoi-relation-members "$A/relation-members.aoi.json" \
-  --min-length-mi 0.1 --per-area-merge --region dk \
+  --min-length-mi 0.1 --per-area-merge --region dk --dk-rules "$RULES" \
   --report-json "$A/assembly.json"
 
 # Exact park polygon + exact assembly, no elevation, one --only-area per call.

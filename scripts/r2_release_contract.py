@@ -37,7 +37,8 @@ RELEASE_PROVIDER_RESULT_FIELDS = (
 )
 SCOPED_PREFLIGHT_SCHEMA = "trekdex-r2-scoped-preflight-v2"
 ROLLBACK_MANIFEST_SCHEMA = "trekdex-r2-rollback-manifest-v2"
-SCOPED_RELEASE_RECEIPT_SCHEMA = "trekdex-r2-scoped-release-terminal-v2"
+SCOPED_RELEASE_RECEIPT_SCHEMA = "trekdex-r2-scoped-release-terminal-v3"
+SCOPED_JOURNAL_AUTH_SCHEMA = "trekdex-r2-scoped-journal-auth-v1"
 ROLLBACK_DELETE_RESULT_FIELDS = (
     "attempt_id", "key", "postimage_sha256", "transaction_id", "verified_absent",
 )
@@ -2044,6 +2045,137 @@ def _release_terminal(
     return receipt
 
 
+def scoped_attempt_id(
+    execution_id: str,
+    *,
+    phase: str,
+    index: int,
+    reconciled: bool,
+) -> str:
+    if not isinstance(execution_id, str) or not _SAFE_VERSION_RE.fullmatch(execution_id):
+        raise ManifestError("scoped attempt execution identity is invalid")
+    if phase not in {"FORWARD", "ROLLBACK"}:
+        raise ManifestError("scoped attempt phase is invalid")
+    if not isinstance(index, int) or isinstance(index, bool) or index < 0:
+        raise ManifestError("scoped attempt index is invalid")
+    operation = "put" if phase == "FORWARD" else "rollback"
+    infix = "reconcile-" if reconciled else ""
+    return f"{execution_id}-{infix}{operation}-{index}"
+
+
+def _permitted_scoped_attempt_ids(
+    execution_id: str, *, phase: str, index: int
+) -> frozenset[str]:
+    return frozenset({
+        scoped_attempt_id(
+            execution_id, phase=phase, index=index, reconciled=False
+        ),
+        scoped_attempt_id(
+            execution_id, phase=phase, index=index, reconciled=True
+        ),
+    })
+
+
+def validate_scoped_attempt_id(
+    attempt_id: Any,
+    *,
+    execution_id: str,
+    phase: str,
+    index: int,
+) -> str:
+    if attempt_id not in _permitted_scoped_attempt_ids(
+        execution_id, phase=phase, index=index
+    ):
+        raise ManifestError("scoped attempt is foreign to its execution")
+    return attempt_id
+
+
+def scoped_transaction_id(
+    *,
+    execution_id: str,
+    phase: str,
+    operation: str,
+    index: int,
+    result: Mapping[str, Any],
+) -> str:
+    permitted_operations = {
+        "FORWARD": {"PUT_CONDITIONAL"},
+        "ROLLBACK": {"RESTORE_IF_MATCH", "DELETE_CREATED_AFTER_EXACT_PROOF"},
+    }
+    if operation not in permitted_operations.get(phase, set()):
+        raise ManifestError("scoped transaction phase/operation is invalid")
+    if not isinstance(result, Mapping):
+        raise ManifestError("scoped transaction result is invalid")
+    attempt_id = validate_scoped_attempt_id(
+        result.get("attempt_id"),
+        execution_id=execution_id,
+        phase=phase,
+        index=index,
+    )
+    if operation == "DELETE_CREATED_AFTER_EXACT_PROOF":
+        identity_fields = {
+            "attempt_id", "key", "postimage_sha256", "verified_absent"
+        }
+    else:
+        identity_fields = {"attempt_id", "bytes", "etag", "key", "sha256"}
+    if not identity_fields.issubset(result):
+        raise ManifestError("scoped transaction result identity is incomplete")
+    identity = {
+        field: copy.deepcopy(result[field]) for field in sorted(identity_fields)
+    }
+    document = {
+        "schema": "trekdex-r2-scoped-transaction-v1",
+        "execution_id": execution_id,
+        "phase": phase,
+        "operation": operation,
+        "index": index,
+        "identity": identity,
+    }
+    return "r2-scoped-" + canonical_sha256(document)[:40]
+
+
+def scoped_journal_authentication(
+    receipt: Mapping[str, Any], *, key: bytes | str
+) -> str:
+    if not isinstance(receipt, Mapping):
+        raise ManifestError("scoped journal is not an object")
+    payload = copy.deepcopy(dict(receipt))
+    payload.pop("journal_authentication", None)
+    payload.pop("receipt_sha256", None)
+    envelope = {
+        "schema": SCOPED_JOURNAL_AUTH_SCHEMA,
+        "execution_id": payload.get("execution_id"),
+        "manifest_sha256": payload.get("manifest_sha256"),
+        "checkpoint": payload,
+    }
+    try:
+        key_bytes = _approval_key_bytes(key)
+        message = b"trekdex-r2-scoped-journal-auth-v1\0" + _canonical_bytes(envelope)
+    except (TypeError, ValueError) as error:
+        raise ManifestError(
+            f"scoped journal authentication input is invalid: {error}"
+        ) from error
+    return hmac.new(key_bytes, message, hashlib.sha256).hexdigest()
+
+
+def validate_scoped_journal_authentication(
+    receipt: Mapping[str, Any], *, key: bytes | str
+) -> str:
+    observed = (
+        receipt.get("journal_authentication")
+        if isinstance(receipt, Mapping)
+        else None
+    )
+    try:
+        observed = _require_digest(observed, "journal_authentication")
+    except ValueError as error:
+        raise ManifestError(str(error)) from error
+    expected = scoped_journal_authentication(receipt, key=key)
+    if not hmac.compare_digest(observed, expected):
+        raise ManifestError("scoped journal authentication mismatch")
+    return observed
+
+
 def validate_release_receipt(
     receipt: Any,
     manifest: dict[str, Any],
@@ -3143,6 +3275,7 @@ def _valid_rollback_delete_result(
 def validate_rollback_result_prefix(
     rollback_manifest: Mapping[str, Any],
     *,
+    execution_id: str,
     forward_results: Sequence[dict[str, Any]],
     rollback_results: Sequence[dict[str, Any]],
     require_complete: bool = False,
@@ -3150,6 +3283,8 @@ def validate_rollback_result_prefix(
     """Bind rollback evidence to the exact known forward prefix in reverse order."""
     if not isinstance(require_complete, bool):
         raise ManifestError("rollback prefix completeness flag is not boolean")
+    if not isinstance(execution_id, str) or not _SAFE_VERSION_RE.fullmatch(execution_id):
+        raise ManifestError("rollback prefix execution identity is invalid")
     if (
         not isinstance(rollback_manifest, dict)
         or rollback_manifest.get("publication_area_id") != MOLS_AREA_ID
@@ -3176,13 +3311,24 @@ def validate_rollback_result_prefix(
         if not isinstance(row, dict) or row.get("index") != index:
             raise ManifestError("rollback prefix manifest rows are not canonical")
         attempt_id = result.get("attempt_id", "") if isinstance(result, dict) else ""
+        if attempt_id not in _permitted_scoped_attempt_ids(
+            execution_id, phase="FORWARD", index=index
+        ):
+            raise ManifestError("known forward attempt is foreign to its execution")
         normalized = _valid_provider_result(
             result,
             {"key": row.get("key"), **(row.get("expected_postimage") or {})},
             attempt_id=attempt_id,
         )
-        if not attempt_id.endswith(f"-put-{index}") or normalized != result:
-            raise ManifestError("known forward-effect prefix identity/order is invalid")
+        expected_transaction = scoped_transaction_id(
+            execution_id=execution_id,
+            phase="FORWARD",
+            operation="PUT_CONDITIONAL",
+            index=index,
+            result=normalized,
+        )
+        if normalized != result or result["transaction_id"] != expected_transaction:
+            raise ManifestError("known forward result identity/order is invalid")
         normalized_forward.append(normalized)
 
     expected_indices = tuple(reversed(range(len(forward_results))))[: len(rollback_results)]
@@ -3190,8 +3336,10 @@ def validate_rollback_result_prefix(
     for result, index in zip(rollback_results, expected_indices):
         row = rows[index]
         attempt_id = result.get("attempt_id", "") if isinstance(result, dict) else ""
-        if not attempt_id.endswith(f"-rollback-{index}"):
-            raise ManifestError("rollback result attempt does not match its known forward effect")
+        if attempt_id not in _permitted_scoped_attempt_ids(
+            execution_id, phase="ROLLBACK", index=index
+        ):
+            raise ManifestError("rollback attempt is foreign to its execution")
         if row.get("rollback_operation") == "DELETE_CREATED_AFTER_EXACT_PROOF":
             normalized = _valid_rollback_delete_result(
                 result, row, attempt_id=attempt_id
@@ -3210,8 +3358,15 @@ def validate_rollback_result_prefix(
                 raise ManifestError("rollback restore did not recover the baseline ETag")
         else:
             raise ManifestError("rollback result names an invalid operation")
-        if normalized != result:
-            raise ManifestError("rollback result is not canonical")
+        expected_transaction = scoped_transaction_id(
+            execution_id=execution_id,
+            phase="ROLLBACK",
+            operation=row["rollback_operation"],
+            index=index,
+            result=normalized,
+        )
+        if normalized != result or result["transaction_id"] != expected_transaction:
+            raise ManifestError("rollback result is not execution-bound and canonical")
         normalized_rollback.append(normalized)
 
     forward_transactions = [result["transaction_id"] for result in normalized_forward]
@@ -3316,6 +3471,7 @@ def _scoped_release_terminal(
     error_boundary: str | None,
     error: BaseException | None,
     reconciliation: dict[str, Any] | None,
+    journal_key: bytes | str,
 ) -> dict[str, Any]:
     receipt: dict[str, Any] = {
         "schema": SCOPED_RELEASE_RECEIPT_SCHEMA,
@@ -3355,7 +3511,11 @@ def _scoped_release_terminal(
         "committed": False,
         "pushed": False,
         "synchronization_dispatched": False,
+        "journal_authentication": None,
     }
+    receipt["journal_authentication"] = scoped_journal_authentication(
+        receipt, key=journal_key
+    )
     receipt["receipt_sha256"] = canonical_sha256(receipt)
     validate_scoped_release_receipt(receipt, manifest)
     return receipt
@@ -3374,7 +3534,7 @@ def validate_scoped_release_receipt(
         "forward_results", "forward_results_sha256", "rollback_attempted",
         "rollback_observed", "rollback_results", "rollback_results_sha256",
         "pending_effect", "rollback_verification", "reconciliation",
-        "error_boundary", "error_type",
+        "error_boundary", "error_type", "journal_authentication",
         "committed", "pushed", "synchronization_dispatched", "receipt_sha256",
     }
     if not isinstance(receipt, dict) or set(receipt) != fields:
@@ -3397,6 +3557,7 @@ def validate_scoped_release_receipt(
         _require_digest(receipt["approval_assertion_sha256"], "approval_assertion_sha256")
         _require_digest(receipt["forward_results_sha256"], "forward_results_sha256")
         _require_digest(receipt["rollback_results_sha256"], "rollback_results_sha256")
+        _require_digest(receipt["journal_authentication"], "journal_authentication")
         digest = _require_digest(receipt["receipt_sha256"], "receipt_sha256")
     except ValueError as error:
         raise ManifestError(str(error)) from error
@@ -3443,6 +3604,7 @@ def validate_scoped_release_receipt(
     if rollback_manifest is not None:
         validate_rollback_result_prefix(
             rollback_manifest,
+            execution_id=receipt["execution_id"],
             forward_results=forward,
             rollback_results=rollback,
         )
@@ -3470,6 +3632,14 @@ def validate_scoped_release_receipt(
         index = pending["index"]
         if not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < manifest["object_count"]:
             raise ManifestError("scoped pending index is invalid")
+        expected_pending_attempt = scoped_attempt_id(
+            receipt["execution_id"],
+            phase=pending["phase"],
+            index=index,
+            reconciled=reconciliation is not None,
+        )
+        if pending["attempt_id"] != expected_pending_attempt:
+            raise ManifestError("scoped pending attempt is foreign to its execution")
         if pending["phase"] == "FORWARD":
             expected = manifest["objects"][index]
             if (
@@ -3622,6 +3792,7 @@ def execute_scoped_release(
             error_boundary=boundary,
             error=error,
             reconciliation=reconciliation_record,
+            journal_key=approval_key,
         )
 
     def persist_terminal(document: dict[str, Any]) -> dict[str, Any]:
@@ -3651,7 +3822,12 @@ def execute_scoped_release(
             rollback_row = rollback_manifest["objects"][forward_index]
             postimage = forward[forward_index]
             operation = rollback_row["rollback_operation"]
-            attempt_id = f"{execution_id}-rollback-{forward_index}"
+            attempt_id = scoped_attempt_id(
+                execution_id,
+                phase="ROLLBACK",
+                index=forward_index,
+                reconciled=False,
+            )
             pending = {
                 "phase": "ROLLBACK",
                 "index": forward_index,
@@ -3721,7 +3897,12 @@ def execute_scoped_release(
         boundary = f"BEFORE_WRITE:{index}:{row['key']}"
         if not probe(boundary):
             return rollback_known(boundary, RuntimeError("immutable state probe failed")) if forward else persist_terminal(make_receipt("SAFE_ABORT", boundary, RuntimeError("immutable state probe failed")))
-        attempt_id = f"{execution_id}-put-{index}"
+        attempt_id = scoped_attempt_id(
+            execution_id,
+            phase="FORWARD",
+            index=index,
+            reconciled=False,
+        )
         pending = {
             "phase": "FORWARD",
             "index": index,
@@ -3780,6 +3961,12 @@ def reconcile_scoped_release_write_ahead(
     """Re-observe one scoped pending effect and resume at most once."""
     manifest = validate_upload_manifest(manifest)
     validated = validate_scoped_release_receipt(journal, manifest)
+    approval_digest = validate_approval_assertion(
+        approval_assertion, manifest, operation="RELEASE", key=approval_key
+    )
+    if approval_digest != validated["approval_assertion_sha256"]:
+        raise ManifestError("scoped reconciliation approval differs from journal")
+    validate_scoped_journal_authentication(validated, key=approval_key)
     if validated["reconciliation"] is not None:
         if validated["checkpoint_kind"] == "TERMINAL":
             return copy.deepcopy(validated)
@@ -3791,11 +3978,6 @@ def reconcile_scoped_release_write_ahead(
         or validated["pending_effect"] is None
     ):
         raise ManifestError("scoped reconciliation requires an exact pending-effect journal")
-    approval_digest = validate_approval_assertion(
-        approval_assertion, manifest, operation="RELEASE", key=approval_key
-    )
-    if approval_digest != validated["approval_assertion_sha256"]:
-        raise ManifestError("scoped reconciliation approval differs from journal")
     attestation = validate_provider_identity_attestation(
         writer.attest_identity(),
         expected_account_identity_ref=manifest["account_identity_ref"],
@@ -3863,6 +4045,7 @@ def reconcile_scoped_release_write_ahead(
             reconciliation=reconciliation_record(
                 observation_state, resumed=resumed
             ),
+            journal_key=approval_key,
         )
 
     def save_terminal(document: dict[str, Any]) -> dict[str, Any]:
@@ -3933,7 +4116,12 @@ def reconcile_scoped_release_write_ahead(
             row = rollback_manifest["objects"][rollback_index]
             postimage = forward[rollback_index]
             operation = row["rollback_operation"]
-            attempt_id = f"{validated['execution_id']}-reconcile-rollback-{rollback_index}"
+            attempt_id = scoped_attempt_id(
+                validated["execution_id"],
+                phase="ROLLBACK",
+                index=rollback_index,
+                reconciled=True,
+            )
             next_pending = {
                 "phase": "ROLLBACK",
                 "index": rollback_index,
@@ -4022,7 +4210,12 @@ def reconcile_scoped_release_write_ahead(
             return continue_rollback(
                 boundary, RuntimeError("immutable state probe failed")
             )
-        attempt_id = f"{validated['execution_id']}-reconcile-put-{forward_index}"
+        attempt_id = scoped_attempt_id(
+            validated["execution_id"],
+            phase="FORWARD",
+            index=forward_index,
+            reconciled=True,
+        )
         next_pending = {
             "phase": "FORWARD",
             "index": forward_index,
@@ -4869,7 +5062,8 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
         "verify-release-input", "merge-mols-index", "verify-mols-staged-diff", "verify-mols-commit",
         "reconcile-scoped",
         "reconcile_scoped_release_write_ahead", "rollback_delete_created",
-        "validate_rollback_result_prefix",
+        "validate_rollback_result_prefix", "validate_scoped_attempt_id",
+        "scoped_transaction_id",
         "DELETE_CREATED_AFTER_EXACT_PROOF", '"delete-object"',
         '"--if-match"', '"--if-none-match"', "--publication-area-id",
         "read_reviewed_baseline_bytes", "_build_scoped_semantic_deltas",
@@ -4881,11 +5075,17 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
         CONTRACT_VERSION,
         "validate_rollback_result_prefix",
         "forward_results=copy.deepcopy(forward)",
+        "validate_scoped_attempt_id",
+        "scoped_transaction_id",
+        "scoped_journal_authentication",
+        "validate_scoped_journal_authentication(validated, key=approval_key)",
     ),
     "scripts/trailforge_candidate_contract.py": ("trekdex-trailforge-candidate-contract-v3",),
     "scripts/test_r2_release_contract.py": (
         "RR2-ORIGINAL-CLAUSES-R2-V1",
         "test_secret_bearing_workflow_run_scalars_use_validated_env_only",
+        "test_fake_reviewer_probe_rejects_invented_prior_identities_without_calls",
+        "test_authenticated_terminal_rejects_permitted_form_rewrite_without_calls",
     ),
     "scripts/test_trailforge_candidate_contract.py": ("RR2-ORIGINAL-CLAUSES-TRAILFORGE-V1",),
 }

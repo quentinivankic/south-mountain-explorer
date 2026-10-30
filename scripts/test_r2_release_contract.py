@@ -74,6 +74,8 @@ from r2_release_contract import (  # noqa: E402
     reconcile_release_write_ahead,
     reconcile_scoped_release_write_ahead,
     release_boundaries,
+    scoped_attempt_id,
+    scoped_transaction_id,
     strict_json_loads,
     validate_inventory_receipt,
     validate_quarantine_plan,
@@ -82,6 +84,8 @@ from r2_release_contract import (  # noqa: E402
     validate_release_receipt,
     validate_rollback_manifest,
     validate_rollback_result_prefix,
+    validate_scoped_attempt_id,
+    validate_scoped_journal_authentication,
     validate_scoped_release_preflight,
     validate_scoped_release_receipt,
     validate_upload_manifest,
@@ -638,6 +642,7 @@ class ScopedFakeWriter:
     def preflight_scoped_release(
         self, manifest: dict[str, Any], *, execution_id: str
     ) -> dict[str, Any]:
+        self.execution_id = execution_id
         rollback_root = self.root / "rollback"
         rollback_root.mkdir(exist_ok=True)
         observed: list[dict[str, Any] | None] = []
@@ -719,6 +724,14 @@ class ScopedFakeWriter:
         preflight_sha256: str,
     ) -> dict[str, Any]:
         index = len(self.forward_calls)
+        if preflight_row.get("index") != index:
+            raise ManifestError("fake forward preflight index is not next")
+        validate_scoped_attempt_id(
+            attempt_id,
+            execution_id=self.execution_id,
+            phase="FORWARD",
+            index=index,
+        )
         current = self._identity(self.objects.get(row["key"]))
         if current != row["remote_preimage"]:
             raise ConditionalRequestRefused("stale preimage")
@@ -735,12 +748,19 @@ class ScopedFakeWriter:
         self.objects[row["key"]] = written
         if self.malformed_forward_at == index:
             return {"key": row["key"], "etag": written["etag"]}
-        return {
+        result = {
             "key": row["key"], "etag": written["etag"],
             "bytes": written["bytes"], "sha256": written["sha256"],
-            "transaction_id": f"forward-tx-{index}",
             "attempt_id": attempt_id,
         }
+        result["transaction_id"] = scoped_transaction_id(
+            execution_id=self.execution_id,
+            phase="FORWARD",
+            operation="PUT_CONDITIONAL",
+            index=index,
+            result=result,
+        )
+        return result
 
     def _maybe_fail_rollback(self) -> None:
         if self.fail_rollback_at == len(self.rollback_calls):
@@ -754,6 +774,12 @@ class ScopedFakeWriter:
         attempt_id: str,
         scoped_preflight_sha256: str,
     ) -> dict[str, Any]:
+        validate_scoped_attempt_id(
+            attempt_id,
+            execution_id=self.execution_id,
+            phase="ROLLBACK",
+            index=rollback_row["index"],
+        )
         self._maybe_fail_rollback()
         key = rollback_row["key"]
         self.rollback_calls.append(("RESTORE_IF_MATCH", key))
@@ -770,12 +796,19 @@ class ScopedFakeWriter:
         )
         restored = self._object(key, payload, metadata=metadata)
         self.objects[key] = restored
-        return {
+        result = {
             "key": key, "etag": restored["etag"],
             "bytes": restored["bytes"], "sha256": restored["sha256"],
-            "transaction_id": "restore-tx-" + str(len(self.rollback_calls)),
             "attempt_id": attempt_id,
         }
+        result["transaction_id"] = scoped_transaction_id(
+            execution_id=self.execution_id,
+            phase="ROLLBACK",
+            operation="RESTORE_IF_MATCH",
+            index=rollback_row["index"],
+            result=result,
+        )
+        return result
 
     def rollback_delete_created(
         self,
@@ -785,6 +818,12 @@ class ScopedFakeWriter:
         attempt_id: str,
         scoped_preflight_sha256: str,
     ) -> dict[str, Any]:
+        validate_scoped_attempt_id(
+            attempt_id,
+            execution_id=self.execution_id,
+            phase="ROLLBACK",
+            index=rollback_row["index"],
+        )
         self._maybe_fail_rollback()
         key = rollback_row["key"]
         if key not in MOLS_OBJECT_KEYS or rollback_row["baseline_preimage"] is not None:
@@ -795,12 +834,19 @@ class ScopedFakeWriter:
         }:
             raise RuntimeError("postimage changed")
         del self.objects[key]
-        return {
+        result = {
             "attempt_id": attempt_id, "key": key,
             "postimage_sha256": rollback_row["expected_postimage"]["sha256"],
-            "transaction_id": "delete-tx-" + str(len(self.rollback_calls)),
             "verified_absent": True,
         }
+        result["transaction_id"] = scoped_transaction_id(
+            execution_id=self.execution_id,
+            phase="ROLLBACK",
+            operation="DELETE_CREATED_AFTER_EXACT_PROOF",
+            index=rollback_row["index"],
+            result=result,
+        )
+        return result
 
     def reconcile_pending_effect(
         self,
@@ -811,6 +857,12 @@ class ScopedFakeWriter:
         scoped_preflight = journal["scoped_preflight"]
         index = pending["index"]
         key = pending["key"]
+        validate_scoped_attempt_id(
+            pending["attempt_id"],
+            execution_id=journal["execution_id"],
+            phase=pending["phase"],
+            index=index,
+        )
         current_value = self.objects.get(key)
         current = self._identity(current_value)
         if pending["phase"] == "FORWARD":
@@ -824,24 +876,38 @@ class ScopedFakeWriter:
                 and metadata.get("trekdex-attempt-id") == pending["attempt_id"]
                 and metadata.get("trekdex-manifest-sha256") == manifest["manifest_sha256"]
             ):
-                return {"state": "EFFECT_OBSERVED", "result": {
+                result = {
                     "key": key, "etag": current["etag"],
                     "bytes": current["bytes"], "sha256": current["sha256"],
-                    "transaction_id": "reconciled-forward-" + str(index),
                     "attempt_id": pending["attempt_id"],
-                }}
+                }
+                result["transaction_id"] = scoped_transaction_id(
+                    execution_id=journal["execution_id"],
+                    phase="FORWARD",
+                    operation="PUT_CONDITIONAL",
+                    index=index,
+                    result=result,
+                )
+                return {"state": "EFFECT_OBSERVED", "result": result}
             if current == row["remote_preimage"]:
                 return {"state": "EFFECT_NOT_OBSERVED", "result": None}
             return {"state": "AMBIGUOUS", "result": None}
         rollback_row = scoped_preflight["rollback_manifest"]["objects"][index]
         if pending["operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF":
             if current is None:
-                return {"state": "EFFECT_OBSERVED", "result": {
+                result = {
                     "attempt_id": pending["attempt_id"], "key": key,
                     "postimage_sha256": rollback_row["expected_postimage"]["sha256"],
-                    "transaction_id": "reconciled-delete-" + str(index),
                     "verified_absent": True,
-                }}
+                }
+                result["transaction_id"] = scoped_transaction_id(
+                    execution_id=journal["execution_id"],
+                    phase="ROLLBACK",
+                    operation="DELETE_CREATED_AFTER_EXACT_PROOF",
+                    index=index,
+                    result=result,
+                )
+                return {"state": "EFFECT_OBSERVED", "result": result}
             return {"state": "EFFECT_NOT_OBSERVED", "result": None}
         baseline = rollback_row["baseline_object"]
         metadata = None if current_value is None else current_value.get("metadata")
@@ -851,12 +917,19 @@ class ScopedFakeWriter:
             and isinstance(metadata, dict)
             and metadata.get("trekdex-attempt-id") == pending["attempt_id"]
         ):
-            return {"state": "EFFECT_OBSERVED", "result": {
+            result = {
                 "key": key, "etag": current["etag"],
                 "bytes": current["bytes"], "sha256": current["sha256"],
-                "transaction_id": "reconciled-restore-" + str(index),
                 "attempt_id": pending["attempt_id"],
-            }}
+            }
+            result["transaction_id"] = scoped_transaction_id(
+                execution_id=journal["execution_id"],
+                phase="ROLLBACK",
+                operation="RESTORE_IF_MATCH",
+                index=index,
+                result=result,
+            )
+            return {"state": "EFFECT_OBSERVED", "result": result}
         return {"state": "EFFECT_NOT_OBSERVED", "result": None}
 
     def verify_rollback(
@@ -868,6 +941,7 @@ class ScopedFakeWriter:
     ) -> dict[str, Any]:
         validate_rollback_result_prefix(
             rollback_manifest,
+            execution_id=self.execution_id,
             forward_results=forward_results,
             rollback_results=rollback_results,
             require_complete=True,
@@ -921,6 +995,26 @@ class ScopedFakeWriter:
         }
         receipt["receipt_sha256"] = canonical_sha256(receipt)
         return receipt
+
+
+def _rehash_scoped_receipt_without_authentication(
+    document: dict[str, Any]
+) -> dict[str, Any]:
+    document["forward_results_sha256"] = canonical_sha256(
+        document["forward_results"]
+    )
+    document["rollback_results_sha256"] = canonical_sha256(
+        document["rollback_results"]
+    )
+    pending = document.get("pending_effect")
+    if isinstance(pending, dict) and pending.get("phase") == "ROLLBACK":
+        pending["expected_identity_sha256"] = canonical_sha256(
+            document["forward_results"][pending["index"]]
+        )
+    document["receipt_sha256"] = canonical_sha256(
+        document, omit={"receipt_sha256"}
+    )
+    return document
 
 
 def _execute_scoped(
@@ -2053,6 +2147,96 @@ class TestScopedReconciliation(unittest.TestCase):
             **kwargs,
         )
 
+    def test_fake_reviewer_probe_rejects_invented_prior_identities_without_calls(self) -> None:
+        checkpoints: list[dict[str, Any]] = []
+        parent = self
+
+        class CrashAfterSecondRestore(ScopedFakeWriter):
+            restore_count = 0
+
+            def rollback_put_conditional(
+                inner_self, *args: Any, **kwargs: Any
+            ) -> dict[str, Any]:
+                result = super().rollback_put_conditional(*args, **kwargs)
+                inner_self.restore_count += 1
+                if inner_self.restore_count == 2:
+                    raise parent.ProcessDeath("after second rollback provider success")
+                return result
+
+        writer = CrashAfterSecondRestore(
+            self.root, self.manifest, self.baseline, refuse_forward_at=4
+        )
+        with self.assertRaises(self.ProcessDeath):
+            _execute_scoped(
+                self.manifest,
+                writer,
+                approval_assertion=self.approval,
+                execution_id="fake-reviewer-probe",
+                checkpoint=lambda document: checkpoints.append(copy.deepcopy(document)),
+            )
+        journal = checkpoints[-1]
+        self.assertEqual(journal["checkpoint_kind"], "WRITE_AHEAD")
+        self.assertEqual(len(journal["forward_results"]), 4)
+        self.assertEqual(len(journal["rollback_results"]), 1)
+        hostile = copy.deepcopy(journal)
+        for index, item in enumerate(hostile["forward_results"]):
+            item["attempt_id"] = f"unknown-put-{index}"
+            item["transaction_id"] = f"unknown-forward-transaction-{index}"
+        rollback_index = len(hostile["forward_results"]) - 1
+        hostile["rollback_results"][0]["attempt_id"] = (
+            f"unknown-rollback-{rollback_index}"
+        )
+        hostile["rollback_results"][0]["transaction_id"] = (
+            f"unknown-rollback-transaction-{rollback_index}"
+        )
+        _rehash_scoped_receipt_without_authentication(hostile)
+        with self.assertRaises(ManifestError):
+            validate_scoped_release_receipt(hostile, self.manifest)
+        calls_before = (list(writer.forward_calls), list(writer.rollback_calls))
+        with self.assertRaises(ManifestError):
+            self._reconcile(hostile, writer)
+        self.assertEqual(
+            (writer.forward_calls, writer.rollback_calls), calls_before
+        )
+
+    def test_authenticated_terminal_rejects_permitted_form_rewrite_without_calls(self) -> None:
+        writer = ScopedFakeWriter(
+            self.root, self.manifest, self.baseline, refuse_forward_at=4
+        )
+        terminal = _execute_scoped(
+            self.manifest,
+            writer,
+            approval_assertion=self.approval,
+            execution_id="authenticated-terminal",
+        )
+        self.assertEqual(terminal["terminal_state"], "ROLLED_BACK")
+        validate_scoped_journal_authentication(terminal, key=APPROVAL_KEY)
+        hostile = copy.deepcopy(terminal)
+        result = hostile["forward_results"][0]
+        result["attempt_id"] = scoped_attempt_id(
+            hostile["execution_id"],
+            phase="FORWARD",
+            index=0,
+            reconciled=True,
+        )
+        result["transaction_id"] = scoped_transaction_id(
+            execution_id=hostile["execution_id"],
+            phase="FORWARD",
+            operation="PUT_CONDITIONAL",
+            index=0,
+            result=result,
+        )
+        _rehash_scoped_receipt_without_authentication(hostile)
+        validate_scoped_release_receipt(hostile, self.manifest)
+        with self.assertRaisesRegex(ManifestError, "authentication mismatch"):
+            validate_scoped_journal_authentication(hostile, key=APPROVAL_KEY)
+        calls_before = (list(writer.forward_calls), list(writer.rollback_calls))
+        with self.assertRaisesRegex(ManifestError, "authentication mismatch"):
+            self._reconcile(hostile, writer)
+        self.assertEqual(
+            (writer.forward_calls, writer.rollback_calls), calls_before
+        )
+
     def test_process_death_after_forward_success_resumes_once_and_repeat_is_idempotent(self) -> None:
         checkpoints: list[dict[str, Any]] = []
         parent = self
@@ -2374,6 +2558,7 @@ class TestMolsProviderAdapter(unittest.TestCase):
             aws_cli_archive_sha256=AWS_CLI_ARCHIVE_SHA256,
         )
         self.adapter._active_source_sha = COMMIT
+        self.adapter._active_execution_id = self.preflight["execution_id"]
         self.adapter._active_manifest_sha256 = self.manifest["manifest_sha256"]
         self.adapter._active_scoped_preflight_sha256 = self.preflight["scoped_preflight_sha256"]
         self.adapter._active_release_preflight_sha256 = self.preflight["release_preflight"]["preflight_sha256"]
@@ -2420,6 +2605,30 @@ class TestMolsProviderAdapter(unittest.TestCase):
         return next(
             row for row in self.preflight["rollback_manifest"]["objects"]
             if row["rollback_operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF"
+        )
+
+    def _forward_attempt(self, key: str, *, reconciled: bool = False) -> str:
+        index = next(
+            row["index"] for row in self.preflight["release_preflight"]["rows"]
+            if row["key"] == key
+        )
+        return scoped_attempt_id(
+            self.preflight["execution_id"],
+            phase="FORWARD",
+            index=index,
+            reconciled=reconciled,
+        )
+
+    def _rollback_attempt(self, key: str, *, reconciled: bool = False) -> str:
+        index = next(
+            row["index"] for row in self.preflight["rollback_manifest"]["objects"]
+            if row["key"] == key
+        )
+        return scoped_attempt_id(
+            self.preflight["execution_id"],
+            phase="ROLLBACK",
+            index=index,
+            reconciled=reconciled,
         )
 
     def test_real_adapter_reviewer_partial_prefix_reproduction_is_rolled_back(self) -> None:
@@ -2475,15 +2684,15 @@ class TestMolsProviderAdapter(unittest.TestCase):
             stage_module = self.module
 
             class CrashAfterRestore(stage_module.MolsConditionalWriter):
-                crashed = False
+                restore_count = 0
 
                 def rollback_put_conditional(
                     inner_self, *args: Any, **kwargs: Any
                 ) -> dict[str, Any]:
                     result = super().rollback_put_conditional(*args, **kwargs)
-                    if not inner_self.crashed:
-                        inner_self.crashed = True
-                        raise ProcessDeath("after partial rollback provider success")
+                    inner_self.restore_count += 1
+                    if inner_self.restore_count == 2:
+                        raise ProcessDeath("after second rollback provider success")
                     return result
 
             crashing = CrashAfterRestore(
@@ -2515,7 +2724,43 @@ class TestMolsProviderAdapter(unittest.TestCase):
             journal = checkpoints[-1]
             self.assertEqual(journal["checkpoint_kind"], "WRITE_AHEAD")
             self.assertEqual(journal["pending_effect"]["phase"], "ROLLBACK")
-            self.assertEqual(journal["pending_effect"]["key"], "trail-search.json")
+            self.assertEqual(journal["pending_effect"]["key"], "index.json")
+            self.assertEqual(len(journal["rollback_results"]), 1)
+
+            hostile = copy.deepcopy(journal)
+            for index, item in enumerate(hostile["forward_results"]):
+                item["attempt_id"] = f"unknown-put-{index}"
+                item["transaction_id"] = f"unknown-forward-transaction-{index}"
+            rollback_index = len(hostile["forward_results"]) - 1
+            hostile["rollback_results"][0]["attempt_id"] = (
+                f"unknown-rollback-{rollback_index}"
+            )
+            hostile["rollback_results"][0]["transaction_id"] = (
+                f"unknown-rollback-transaction-{rollback_index}"
+            )
+            _rehash_scoped_receipt_without_authentication(hostile)
+            with self.assertRaises(ManifestError):
+                validate_scoped_release_receipt(hostile, manifest)
+            hostile_adapter = self.module.MolsConditionalWriter(
+                endpoint_url=ENDPOINT_URL,
+                account_id=ACCOUNT_ID,
+                manifest_root=root,
+                aws_cli_version=AWS_CLI_VERSION,
+                aws_cli_archive_sha256=AWS_CLI_ARCHIVE_SHA256,
+            )
+            calls_before_hostile = list(transport.calls)
+            with mock.patch.object(
+                self.module.subprocess, "run", side_effect=transport.run
+            ), self.assertRaises(ManifestError):
+                reconcile_scoped_release_write_ahead(
+                    hostile,
+                    manifest,
+                    hostile_adapter,
+                    approval_assertion=approval,
+                    approval_key=APPROVAL_KEY,
+                )
+            self.assertEqual(transport.calls, calls_before_hostile)
+
             resumed = self.module.MolsConditionalWriter(
                 endpoint_url=ENDPOINT_URL,
                 account_id=ACCOUNT_ID,
@@ -2706,7 +2951,7 @@ class TestMolsProviderAdapter(unittest.TestCase):
         with mock.patch.object(self.module.subprocess, "run", side_effect=run):
             result = self.adapter.put_conditional(
                 row,
-                attempt_id="forward-create-attempt",
+                attempt_id=self._forward_attempt(row["key"]),
                 preflight_row=self.preflight["release_preflight"]["rows"][0],
                 preflight_sha256=self.preflight["release_preflight"]["preflight_sha256"],
             )
@@ -2753,7 +2998,7 @@ class TestMolsProviderAdapter(unittest.TestCase):
                 with self.assertRaises(expected_error):
                     self.adapter.put_conditional(
                         row,
-                        attempt_id=f"variant-{name}",
+                        attempt_id=self._forward_attempt(row["key"]),
                         preflight_row=preflight_row,
                         preflight_sha256=self.preflight["release_preflight"]["preflight_sha256"],
                     )
@@ -2922,7 +3167,7 @@ class TestMolsProviderAdapter(unittest.TestCase):
             ):
                 result = self.adapter.put_conditional(
                     row,
-                    attempt_id=f"forward-{key}-if-match",
+                    attempt_id=self._forward_attempt(key),
                     preflight_row=preflight_row,
                     preflight_sha256=self.preflight["release_preflight"]["preflight_sha256"],
                 )
@@ -2964,7 +3209,7 @@ class TestMolsProviderAdapter(unittest.TestCase):
             result = self.adapter.rollback_delete_created(
                 row,
                 postimage=postimage,
-                attempt_id="rollback-delete-test",
+                attempt_id=self._rollback_attempt(row["key"]),
                 scoped_preflight_sha256=self.preflight["scoped_preflight_sha256"],
             )
         deletes = [command for command in commands if command[2] == "delete-object"]
@@ -2995,7 +3240,7 @@ class TestMolsProviderAdapter(unittest.TestCase):
                     self.adapter.rollback_delete_created(
                         candidate,
                         postimage=postimage,
-                        attempt_id="forged-rollback",
+                        attempt_id=self._rollback_attempt(row["key"]),
                         scoped_preflight_sha256=digest,
                     )
                 run.assert_not_called()
@@ -3035,7 +3280,7 @@ class TestMolsProviderAdapter(unittest.TestCase):
                     self.adapter.rollback_delete_created(
                         row,
                         postimage=postimage,
-                        attempt_id="rollback-no-delete",
+                        attempt_id=self._rollback_attempt(row["key"]),
                         scoped_preflight_sha256=self.preflight["scoped_preflight_sha256"],
                     )
                 self.assertFalse(any(command[2] == "delete-object" for command in commands))
@@ -3066,7 +3311,7 @@ class TestMolsProviderAdapter(unittest.TestCase):
             self.adapter.rollback_delete_created(
                 row,
                 postimage=postimage,
-                attempt_id="rollback-get-fallback",
+                attempt_id=self._rollback_attempt(row["key"]),
                 scoped_preflight_sha256=self.preflight["scoped_preflight_sha256"],
             )
         self.assertEqual(operations, ["head-object", "get-object", "delete-object", "head-object"])
@@ -3094,7 +3339,7 @@ class TestMolsProviderAdapter(unittest.TestCase):
                 self.adapter.rollback_delete_created(
                     row,
                     postimage=postimage,
-                    attempt_id="rollback-timeout",
+                    attempt_id=self._rollback_attempt(row["key"]),
                     scoped_preflight_sha256=self.preflight["scoped_preflight_sha256"],
                 )
         self.assertEqual(delete_calls, 1)
@@ -3112,7 +3357,7 @@ class TestMolsProviderAdapter(unittest.TestCase):
                 "bytes": len(baseline),
                 "sha256": hashlib.sha256(baseline).hexdigest(),
             }
-            attempt_id = f"rollback-{key}-if-match"
+            attempt_id = self._rollback_attempt(key)
             metadata = {
                 "trekdex-sha256": restored["sha256"],
                 "trekdex-source-sha": COMMIT,

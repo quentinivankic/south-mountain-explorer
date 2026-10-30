@@ -1098,6 +1098,9 @@ class MolsConditionalWriter(AwsConditionalWriter):
         attempt_id: str,
         source_sha: str,
         manifest_sha256: str,
+        transaction_phase: str,
+        transaction_operation: str,
+        transaction_index: int,
     ) -> dict[str, Any]:
         contract = _contract_module()
         if condition_mode == "IF_MATCH":
@@ -1178,23 +1181,26 @@ class MolsConditionalWriter(AwsConditionalWriter):
             or verified["sha256"] != source_row["sha256"]
         ):
             raise contract.ManifestError("conditional PUT post-write HEAD/GET mismatch")
-        transaction_id = "r2-result-" + contract.canonical_sha256({
-            "attempt_id": attempt_id,
-            "provider_response": document,
-            "verified": verified,
-        })[:32]
-        return {
+        result = {
             "key": key,
             "etag": verified["etag"],
             "bytes": verified["bytes"],
             "sha256": verified["sha256"],
-            "transaction_id": transaction_id,
             "attempt_id": attempt_id,
         }
+        result["transaction_id"] = contract.scoped_transaction_id(
+            execution_id=self._active_execution_id,
+            phase=transaction_phase,
+            operation=transaction_operation,
+            index=transaction_index,
+            result=result,
+        )
+        return result
 
     def bind_scoped_preflight(self, snapshot: dict[str, Any]) -> None:
         contract = _contract_module()
         self._active_scoped_preflight_sha256 = snapshot["scoped_preflight_sha256"]
+        self._active_execution_id = snapshot["execution_id"]
         self._active_release_preflight_sha256 = snapshot["release_preflight"]["preflight_sha256"]
         self._active_rollback_rows = {
             row["key"]: copy.deepcopy(row)
@@ -1306,6 +1312,12 @@ class MolsConditionalWriter(AwsConditionalWriter):
             or preflight_sha256 != getattr(self, "_active_release_preflight_sha256", None)
         ):
             raise contract.ManifestError("provider effect is not bound to eligible preflight")
+        contract.validate_scoped_attempt_id(
+            attempt_id,
+            execution_id=self._active_execution_id,
+            phase="FORWARD",
+            index=preflight_row["index"],
+        )
         current, _metadata = self._read_current_exact(row["key"], missing_ok=True)
         if current != row["remote_preimage"]:
             raise contract.ConditionalRequestRefused(
@@ -1321,6 +1333,9 @@ class MolsConditionalWriter(AwsConditionalWriter):
             condition_mode=row["conditional_mode"], preimage=current,
             attempt_id=attempt_id, source_sha=self._active_source_sha,
             manifest_sha256=self._active_manifest_sha256,
+            transaction_phase="FORWARD",
+            transaction_operation="PUT_CONDITIONAL",
+            transaction_index=preflight_row["index"],
         )
 
     def rollback_put_conditional(
@@ -1341,6 +1356,12 @@ class MolsConditionalWriter(AwsConditionalWriter):
             or rollback_row != getattr(self, "_active_rollback_rows", {}).get(key)
         ):
             raise contract.ManifestError("rollback restore exceeds exact Mols/index authority")
+        contract.validate_scoped_attempt_id(
+            attempt_id,
+            execution_id=self._active_execution_id,
+            phase="ROLLBACK",
+            index=rollback_row["index"],
+        )
         current, _metadata = self._read_current_exact(key, missing_ok=True)
         expected_post = {
             field: postimage[field] for field in ("etag", "bytes", "sha256")
@@ -1355,6 +1376,9 @@ class MolsConditionalWriter(AwsConditionalWriter):
             condition_mode="IF_MATCH", preimage=current,
             attempt_id=attempt_id, source_sha=self._active_source_sha,
             manifest_sha256=self._active_manifest_sha256,
+            transaction_phase="ROLLBACK",
+            transaction_operation="RESTORE_IF_MATCH",
+            transaction_index=rollback_row["index"],
         )
         if result["etag"] != rollback_row["baseline_preimage"]["etag"]:
             raise contract.ManifestError("rollback restore did not recover baseline ETag")
@@ -1379,6 +1403,12 @@ class MolsConditionalWriter(AwsConditionalWriter):
             or rollback_row != getattr(self, "_active_rollback_rows", {}).get(key)
         ):
             raise contract.ManifestError("rollback delete exceeds exact absent Mols authority")
+        contract.validate_scoped_attempt_id(
+            attempt_id,
+            execution_id=self._active_execution_id,
+            phase="ROLLBACK",
+            index=rollback_row["index"],
+        )
         expected_post = {
             field: postimage[field] for field in ("etag", "bytes", "sha256")
         }
@@ -1405,18 +1435,20 @@ class MolsConditionalWriter(AwsConditionalWriter):
         after = self._head_document(key, missing_ok=True)
         if after is not None:
             raise contract.ManifestError("plain Mols delete did not verify absence")
-        transaction_id = "r2-delete-" + contract.canonical_sha256({
-            "attempt_id": attempt_id, "key": key,
-            "postimage": expected_post, "provider_result": provider_result,
-            "verified_absent": True,
-        })[:32]
-        return {
+        result = {
             "attempt_id": attempt_id,
             "key": key,
             "postimage_sha256": rollback_row["expected_postimage"]["sha256"],
-            "transaction_id": transaction_id,
             "verified_absent": True,
         }
+        result["transaction_id"] = contract.scoped_transaction_id(
+            execution_id=self._active_execution_id,
+            phase="ROLLBACK",
+            operation="DELETE_CREATED_AFTER_EXACT_PROOF",
+            index=rollback_row["index"],
+            result=result,
+        )
+        return result
 
     @staticmethod
     def _metadata_matches(
@@ -1437,6 +1469,12 @@ class MolsConditionalWriter(AwsConditionalWriter):
         self.bind_scoped_preflight(scoped_preflight)
         index = pending["index"]
         key = pending["key"]
+        contract.validate_scoped_attempt_id(
+            pending["attempt_id"],
+            execution_id=journal["execution_id"],
+            phase=pending["phase"],
+            index=index,
+        )
         current, metadata = self._read_current_exact(key, missing_ok=True)
         if pending["phase"] == "FORWARD":
             row = manifest["objects"][index]
@@ -1456,11 +1494,15 @@ class MolsConditionalWriter(AwsConditionalWriter):
                 result = {
                     "key": key, "etag": current["etag"],
                     "bytes": current["bytes"], "sha256": current["sha256"],
-                    "transaction_id": "r2-reconcile-" + contract.canonical_sha256({
-                        "pending": pending, "current": current,
-                    })[:32],
                     "attempt_id": pending["attempt_id"],
                 }
+                result["transaction_id"] = contract.scoped_transaction_id(
+                    execution_id=journal["execution_id"],
+                    phase="FORWARD",
+                    operation="PUT_CONDITIONAL",
+                    index=index,
+                    result=result,
+                )
                 return {"state": "EFFECT_OBSERVED", "result": result}
             if current == row["remote_preimage"]:
                 return {"state": "EFFECT_NOT_OBSERVED", "result": None}
@@ -1475,9 +1517,15 @@ class MolsConditionalWriter(AwsConditionalWriter):
                 result = {
                     "attempt_id": pending["attempt_id"], "key": key,
                     "postimage_sha256": rollback_row["expected_postimage"]["sha256"],
-                    "transaction_id": "r2-reconcile-delete-" + contract.canonical_sha256(pending)[:24],
                     "verified_absent": True,
                 }
+                result["transaction_id"] = contract.scoped_transaction_id(
+                    execution_id=journal["execution_id"],
+                    phase="ROLLBACK",
+                    operation="DELETE_CREATED_AFTER_EXACT_PROOF",
+                    index=index,
+                    result=result,
+                )
                 return {"state": "EFFECT_OBSERVED", "result": result}
             if current == postimage:
                 return {"state": "EFFECT_NOT_OBSERVED", "result": None}
@@ -1501,11 +1549,15 @@ class MolsConditionalWriter(AwsConditionalWriter):
             result = {
                 "key": key, "etag": current["etag"],
                 "bytes": current["bytes"], "sha256": current["sha256"],
-                "transaction_id": "r2-reconcile-restore-" + contract.canonical_sha256({
-                    "pending": pending, "current": current,
-                })[:24],
                 "attempt_id": pending["attempt_id"],
             }
+            result["transaction_id"] = contract.scoped_transaction_id(
+                execution_id=journal["execution_id"],
+                phase="ROLLBACK",
+                operation="RESTORE_IF_MATCH",
+                index=index,
+                result=result,
+            )
             return {"state": "EFFECT_OBSERVED", "result": result}
         if current == postimage:
             return {"state": "EFFECT_NOT_OBSERVED", "result": None}
@@ -1521,6 +1573,7 @@ class MolsConditionalWriter(AwsConditionalWriter):
         contract = _contract_module()
         contract.validate_rollback_result_prefix(
             rollback_manifest,
+            execution_id=self._active_execution_id,
             forward_results=forward_results,
             rollback_results=rollback_results,
             require_complete=True,

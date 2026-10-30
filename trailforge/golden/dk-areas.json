@@ -85,10 +85,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": "island",
+      "hold": "needs-rescope",
       "est_trails": 134,
       "est_mi": 222.8,
-      "notes": "Tier 2I island, Bornholm. Held: island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Bornholm. Held: island. bbox/center computed by the qualify run. Hold (dk-quality): island polygon is 15 clusters, not one hiking destination; re-scope into Almindingen, Roe Plantage, Hammeren, Paradisbakkerne, Dueodde."
     },
     {
       "id": "gribskov-dk",
@@ -99,10 +99,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": "np-nested",
+      "hold": "duplicate-of-live",
       "est_trails": 147,
       "est_mi": 130.8,
-      "notes": "Tier 2 forest, Zealand. Held: nested in national park. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. Held: nested in national park. bbox/center computed by the qualify run. Hold (dk-quality): core of live Nationalpark Kongernes Nordsjaelland; same trails, no separate area."
     },
     {
       "id": "falster-dk",
@@ -169,10 +169,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": "island",
+      "hold": "needs-rescope",
       "est_trails": 88,
       "est_mi": 67.4,
-      "notes": "Tier 2I island, Zealand. Held: island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Zealand. Held: island. bbox/center computed by the qualify run. Hold (dk-quality): urban Copenhagen footpath network; not a hiking destination as one area."
     },
     {
       "id": "almindingen-dk",
@@ -211,10 +211,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": "island",
+      "hold": "needs-rescope",
       "est_trails": 16,
       "est_mi": 50.5,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Hold (dk-quality): island yields too little in 3 clusters; re-scope before shipping."
     },
     {
       "id": "naturnationalpark-gribskov-dk",
@@ -253,10 +253,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": "np-nested",
+      "hold": "duplicate-of-live",
       "est_trails": 25,
       "est_mi": 33.6,
-      "notes": "Tier 2 state_forest_like, Zealand. Held: nested in national park. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Zealand. Held: nested in national park. bbox/center computed by the qualify run. Hold (dk-quality): inside live Nationalpark Kongernes Nordsjaelland; same trails."
     },
     {
       "id": "rold-skov-dk",
@@ -309,10 +309,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": "np-nested",
+      "hold": "duplicate-of-live",
       "est_trails": 23,
       "est_mi": 19.9,
-      "notes": "Tier 2 forest, Zealand. Held: nested in national park. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. Held: nested in national park. bbox/center computed by the qualify run. Hold (dk-quality): nested in live Nationalpark Kongernes Nordsjaelland; no trails of its own."
     },
     {
       "id": "nystrup-klitplantage-dk",
@@ -337,10 +337,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "merge-into-klosterhede",
       "est_trails": 13,
       "est_mi": 19.3,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (dk-quality): Kronhede is part of Klosterheden; same trails (100% duplicate), shipped via klosterhede-plantage-dk."
     },
     {
       "id": "nordskoven-416103-dk",
@@ -393,10 +393,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "duplicate-of-live",
       "est_trails": 9,
       "est_mi": 16.4,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Hold (dk-quality): only Fjordstien Vandresti (a long-distance route, also in live Skjoldungernes Land) plus one local loop."
     },
     {
       "id": "rye-norreskov-dk",
@@ -421,10 +421,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": "island",
+      "hold": "needs-rescope",
       "est_trails": 10,
       "est_mi": 15.5,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Hold (dk-quality): island yields too little in 4 clusters; re-scope (Nordby Bakker, coastal path) before shipping."
     },
     {
       "id": "hedeland-dk",
@@ -449,10 +449,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "mtb-centre",
       "est_trails": 22,
       "est_mi": 14.3,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (dk-quality): Almind So MTB trail centre; after the dk-mtb-trail rule too little hiking is left."
     },
     {
       "id": "ro-plantage-dk",
@@ -477,10 +477,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "merge-pending",
       "est_trails": 10,
       "est_mi": 13.5,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (dk-quality): shares Ranboel rute and the Rundtur with randbol-hede-dk; they should become ONE area (Frederikshaab Plantage og Randboel Hede). Not merged here."
     },
     {
       "id": "jaegersborg-hegn-dk",
@@ -687,10 +687,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": "np-nested",
+      "hold": "duplicate-of-live",
       "est_trails": 7,
       "est_mi": 10.2,
-      "notes": "Tier 2I island, Islands. Held: nested in national park; island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Islands. Held: nested in national park; island. bbox/center computed by the qualify run. Hold (dk-quality): inside live Nationalpark Vadehavet; same trails."
     },
     {
       "id": "ganlose-ore-dk",
@@ -953,10 +953,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "merge-pending",
       "est_trails": 6,
       "est_mi": 7.9,
-      "notes": "Tier 2 landscape_misc, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 landscape_misc, Jutland. bbox/center computed by the qualify run. Hold (dk-quality): shares Ranboel rute and the Rundtur with frederikshab-plantage-dk; they should become ONE area. Not merged here."
     },
     {
       "id": "sonderskov-17950902-dk",

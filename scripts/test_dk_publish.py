@@ -188,7 +188,14 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 74, "name-collision": 3, "np-nested": 20, "island": 15}
+        None: 69, "name-collision": 3, "np-nested": 16, "island": 11, "duplicate-of-live": 5,
+        "needs-rescope": 4, "merge-pending": 2, "merge-into-klosterhede": 1, "mtb-centre": 1}
+    assert sorted(holds["duplicate-of-live"]) == [
+        "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
+    assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk", "samso-dk"]
+    assert sorted(holds["merge-pending"]) == ["frederikshab-plantage-dk", "randbol-hede-dk"]
+    assert holds["merge-into-klosterhede"] == ["kronhede-plantage-dk"]
+    assert holds["mtb-centre"] == ["vesterskov-2325780-dk"]
     assert sorted(holds["name-collision"]) == ["hammer-bakker-dk", "hejede-overdrev-dk", "vestvolden-dk"]
     assert all(a["hold"] is None for a in areas if a["id"] == MOLS or a["id"] in PARKS)
     assert all(a["tier"] in (1, 2) for a in areas)
@@ -220,12 +227,12 @@ def test_batch_skips_held_and_explicit_areas_include_them():
 def test_batches_are_deterministic_parks_first_then_est_miles_desc():
     reg = _reg()
     batches = [dk.select_areas(reg, {MOLS}, f"batch={n}", 25, "qualify") for n in (1, 2, 3)]
-    assert [len(b) for b in batches] == [25, 25, 23]
+    assert [len(b) for b in batches] == [25, 25, 18]
     with pytest.raises(dk.DkError):
         dk.select_areas(reg, {MOLS}, "batch=4", 25, "qualify")
     assert batches == [dk.select_areas(reg, {MOLS}, f"batch={n}", 25, "qualify") for n in (1, 2, 3)]
     flat = [i for b in batches for i in b]
-    assert len(set(flat)) == 73 and MOLS not in flat
+    assert len(set(flat)) == 68 and MOLS not in flat
     assert set(flat[:4]) == set(PARKS)               # priority rule: tier 1 parks lead batch 1
     mi = [reg["by_id"][i]["est_mi"] for i in flat[4:]]
     assert mi == sorted(mi, reverse=True)
@@ -1067,3 +1074,57 @@ def test_areas_loop_publish_refuses_when_any_area_failed(tmp_path):
     proc, calls, output = _run_areas_step(tmp_path, "publish")
     assert proc.returncode == 1 and "REFUSED" in proc.stdout
     assert "pipeline c" in calls and "failed=1" in output
+
+def test_every_hold_reason_is_from_the_documented_set():
+    reasons = {a["hold"] for a in _reg()["areas"] if a["hold"] is not None}
+    assert reasons <= dk.HOLD_REASONS
+    assert dk.HOLD_REASONS == {
+        "island", "np-nested", "name-collision", "merge-into-klosterhede",
+        "duplicate-of-live", "needs-rescope", "merge-pending", "mtb-centre"}
+
+
+def test_registry_rejects_an_undocumented_hold_reason(tmp_path):
+    with pytest.raises(dk.DkError):
+        dk.load_registry(_write_registry(
+            tmp_path / "r.json", lambda d: d["areas"][1].update(hold="because")))
+
+
+def test_generic_names_are_detected_without_inventing_any():
+    for name in ("Rute 8", "Spor 3", "gul rute", "Blå Rute", "Rød tur", "Gul", "Syvende Spor",
+                 "Rute 14 - rød og 15 - Gul"):
+        assert dk.is_generic_trail_name(name), name
+    for name in ("Kirkestien", "Den Vilde Vej", "Skelhøj Plantage", "Pamhule - rød rute",
+                 "Kollerup Plantage Blå", "Spor ved Tiset", ""):
+        assert not dk.is_generic_trail_name(name), name
+
+
+def _report_for(tmp_path, names):
+    aid = "x-dk"
+    d = tmp_path / aid
+    d.mkdir()
+    area = {"id": aid, "name": "X", "relation_id": 1}
+    (d / "area.json").write_text(json.dumps(area), encoding="utf-8")
+    (d / "geom.json").write_text(json.dumps(_geom(aid, names=names, total_mi=5.0)))
+    (d / "trails.geojson").write_text(json.dumps({"features": []}))
+    (d / "removed.geojson").write_text(json.dumps({"features": [
+        {"type": "Feature", "geometry": None, "properties": {
+            "name": "Gammel Vej", "removed_category": "dk-fragment", "length_mi": 0.1}}]}))
+    (d / "assembly.json").write_text(json.dumps({}))
+    assert dk.main(["report-area", "--area-json", str(d / "area.json"), "--geom", str(d / "geom.json"),
+                    "--trails-geojson", str(d / "trails.geojson"), "--removed-geojson",
+                    str(d / "removed.geojson"), "--assembly-json", str(d / "assembly.json"),
+                    "--out", str(d / "report.json")]) == 0
+    return json.loads((d / "report.json").read_text())
+
+
+def test_report_area_recommends_exclusion_at_half_generic_and_lists_the_rest(tmp_path):
+    rep = _report_for(tmp_path, ["Spor 1", "Spor 2", "Kirkestien", "Ulvestien"])
+    assert rep["exclude_recommended"] is True and rep["generic_share"] == 0.5
+    assert rep["generic_names"] == ["Spor 1", "Spor 2"]
+    assert rep["proposed_expected"]["forbidden_names"] == ["Gammel Vej"]   # new categories count as junk
+
+
+def test_report_area_keeps_an_area_with_few_generic_names(tmp_path):
+    rep = _report_for(tmp_path, ["Gul rute", "Kirkestien", "Ulvestien", "Bakkestien"])
+    assert rep["exclude_recommended"] is False
+    assert rep["generic_names"] == ["Gul rute"]

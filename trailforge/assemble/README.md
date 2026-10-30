@@ -261,6 +261,34 @@ reads it and passes `--dk-rules`. `dk-v2` adds the quality removal
   `...vej`, -gade/-alle/-stræde/-torv/-plads (and definite -gaden/...), or a
   genitive `X-s Vej` ("Bangs Vej"). "Den Vilde Vej" and "-vejen" stay.
 - `access-point`: -zugang / -adgang.
+- Forest-ride words count too: -linie/-linje (also definite -linien/-linjen),
+  `Ride`, -stræde(n). On a plain path a compound `...vejen`/`...linie` is a
+  forest ride ("Hjortevejen", "Jydelinie"); a bare "Den Vilde Vej" is not.
+  Historic stems hulvej, kongevej, oldtidsvej, vikingevej are never removed.
+
+`dk-v2` also adds these removals (evidence rules; all tag/name based):
+- `dk-mtb-trail` (rootless name stitches only): at least 50% of the rendered
+  length is MTB/cycle infrastructure: `mtb:scale` present (any value, 0 and up),
+  `mtb:scale:imba`, a one-way `highway=path`, `bicycle=designated` or
+  `highway=cycleway` without `foot=yes/designated/permissive`. A way is exempt
+  (never counted) when it is in a hiking route relation, has `foot=designated`,
+  `sac_scale`, `trail_visibility` or other hiking tags. Separately, an MTB
+  trail-centre name (Rutchebanen, Evil Autobahn, Lubi-Lubi, Urania, Karrusellen,
+  singletrack, flowtrail, ...) on an `mtb:scale` way is removed unless that way
+  has `foot=designated` or `sac_scale`.
+- `dk-non-hiking`: a bridle path (every rendered way is `horse=designated` or
+  `highway=bridleway` with no foot=yes/designated) or a name that is a bridle
+  path, running event or airstrip (ridesti, ...løbet, løberute, trackbane,
+  landingsbane). Applies to relation-backed trails by name too.
+- `dk-long-distance`: a clipped leg (`clipped` and at least 0.25 mi of the route
+  lies outside) of a relation with network nwn, iwn or rwn, or a clipped or
+  rootless trail whose WHOLE name is a known long-distance route (Hærvejen,
+  Camønoen, Gudenåstien, Vestkyststien, Marguerit, Aarhus-Silkeborg,
+  Nordsjællandsruten, Skjoldungestien, Djurslandstien, Marskstien, Kyst til
+  Kyst, Pilgrimsrute). A name that only CONTAINS such a token ("Hærvejen rundt")
+  is kept and listed in the report as `dk_long_distance_ambiguous`.
+- `dk-fragment`: a rootless name stitch under 0.3 mi (`DK_FRAGMENT_MIN_MI`).
+  Relation-backed trails are never removed by length.
 
 Long-distance routes are not exempt from `unresolved-relation-gap`. The US
 thru-hike list (`_THRU_HIKE_RE`) removes named thru-hikes, and

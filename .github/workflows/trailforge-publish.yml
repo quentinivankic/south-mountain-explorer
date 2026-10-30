@@ -46,6 +46,10 @@ on:
       mols_release_input_receipt_b64:
         description: "Canonical signed exact-Mols release-input receipt; blank preserves generic US publication"
         default: ""
+      mols_simple_publish:
+        description: "Exact-Mols publication WITHOUT a signed receipt (same pinned inputs and staged-diff guards). Commits to main only; R2 is a separate sync-mols-to-r2.yml dispatch."
+        type: boolean
+        default: false
 
 concurrency:
   group: trailforge-publish
@@ -73,6 +77,7 @@ jobs:
           RAW_PILOT_AREA_ID: ${{ inputs.pilot_area_id }}
           RAW_PILOT_BBOX: ${{ inputs.pilot_bbox }}
           RAW_MOLS_RELEASE_INPUT_RECEIPT_B64: ${{ inputs.mols_release_input_receipt_b64 }}
+          RAW_MOLS_SIMPLE: ${{ inputs.mols_simple_publish }}
         run: |
           set -euo pipefail
           [[ "$RAW_EXTRACT" =~ ^[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*$ ]]
@@ -83,11 +88,17 @@ jobs:
           for value in "$RAW_DRY_RUN" "$RAW_NO_ROUTES" "$RAW_TOUCH_REPORT" "$RAW_ELEVATION"; do
             [[ "$value" = "true" || "$value" = "false" ]]
           done
+          RAW_MOLS_SIMPLE="${RAW_MOLS_SIMPLE:-false}"
+          [[ "$RAW_MOLS_SIMPLE" = "true" || "$RAW_MOLS_SIMPLE" = "false" ]]
           RELEASE_MODE=generic
-          if [ -n "$RAW_MOLS_RELEASE_INPUT_RECEIPT_B64" ]; then
-            test "${#RAW_MOLS_RELEASE_INPUT_RECEIPT_B64}" -le 16384
-            [[ "$RAW_MOLS_RELEASE_INPUT_RECEIPT_B64" =~ ^[A-Za-z0-9+/]+={0,2}$ ]]
-            test "$(( ${#RAW_MOLS_RELEASE_INPUT_RECEIPT_B64} % 4 ))" -eq 0
+          if [ -n "$RAW_MOLS_RELEASE_INPUT_RECEIPT_B64" ] || [ "$RAW_MOLS_SIMPLE" = "true" ]; then
+            if [ -n "$RAW_MOLS_RELEASE_INPUT_RECEIPT_B64" ]; then
+              # A receipt and the simple flag are mutually exclusive.
+              test "$RAW_MOLS_SIMPLE" = "false"
+              test "${#RAW_MOLS_RELEASE_INPUT_RECEIPT_B64}" -le 16384
+              [[ "$RAW_MOLS_RELEASE_INPUT_RECEIPT_B64" =~ ^[A-Za-z0-9+/]+={0,2}$ ]]
+              test "$(( ${#RAW_MOLS_RELEASE_INPUT_RECEIPT_B64} % 4 ))" -eq 0
+            fi
             test "$GITHUB_REF_TYPE" = "branch"
             test "$GITHUB_REF_NAME" = "main"
             test "$RAW_EXTRACT" = "europe/denmark"
@@ -116,6 +127,7 @@ jobs:
             printf 'pilot_bbox=%s\n' "$RAW_PILOT_BBOX"
             printf 'mols_release_input_receipt_b64=%s\n' "$RAW_MOLS_RELEASE_INPUT_RECEIPT_B64"
             printf 'release_mode=%s\n' "$RELEASE_MODE"
+            printf 'mols_simple=%s\n' "$RAW_MOLS_SIMPLE"
           } >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v4
@@ -136,9 +148,27 @@ jobs:
           PUBLISH_REGION_CODE: ${{ steps.input_shape.outputs.region_code }}
           PUBLISH_PILOT_AREA_ID: ${{ steps.input_shape.outputs.pilot_area_id }}
           PUBLISH_PILOT_BBOX: ${{ steps.input_shape.outputs.pilot_bbox }}
+          MOLS_SIMPLE: ${{ steps.input_shape.outputs.mols_simple }}
           R2_ROOT_APPROVAL_HMAC_KEY: ${{ secrets.R2_ROOT_APPROVAL_HMAC_KEY }}
         run: |
           set -euo pipefail
+          if [ "$MOLS_SIMPLE" = "true" ]; then
+            # Unsigned path: fixed-identity check only, no receipt, no HMAC.
+            python3 scripts/simple_mols_publish.py prepare-input \
+              --extract "$PUBLISH_EXTRACT" \
+              --state "$PUBLISH_STATE" \
+              --region-code "$PUBLISH_REGION_CODE" \
+              --bbox "$PUBLISH_PILOT_BBOX" \
+              --dry-run "$PUBLISH_DRY_RUN" \
+              --no-routes "$PUBLISH_NO_ROUTES" \
+              --touch-report "$PUBLISH_TOUCH_REPORT" \
+              --elevation "$PUBLISH_ELEVATION" \
+              --pilot-area-id "$PUBLISH_PILOT_AREA_ID" \
+              --workflow-source-sha "$GITHUB_SHA" \
+              --mols-index-output "$RUNNER_TEMP/mols-release-index.json" \
+              --github-output "$GITHUB_OUTPUT"
+            exit 0
+          fi
           python3 scripts/stage-changed-r2.py verify-release-input \
             --extract "$PUBLISH_EXTRACT" \
             --state "$PUBLISH_STATE" \
@@ -320,8 +350,13 @@ jobs:
           ENDPOINT_IDENTITY_REF: ${{ steps.release_input.outputs.endpoint_identity_ref }}
           INVENTORY_ANCHOR_REF: ${{ steps.release_input.outputs.inventory_anchor_ref }}
           AUTHORITATIVE_DENOMINATOR: ${{ steps.release_input.outputs.authoritative_denominator }}
+          MOLS_SIMPLE: ${{ steps.input_shape.outputs.mols_simple }}
         run: |
           set -euo pipefail
+          if [ "$MOLS_SIMPLE" = "true" ]; then
+            echo "Simple Mols publish: commit pushed to main only. Dispatch sync-mols-to-r2.yml separately."
+            exit 0
+          fi
           if [ "$PUBLISHED" != "true" ] || [ "$RELEASE_MODE" != "mols" ]; then
             echo "No pushed verified Mols publication commit; R2 plan dispatch skipped."
             exit 0

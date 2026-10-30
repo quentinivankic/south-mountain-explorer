@@ -34,12 +34,13 @@ def _default(block):
 
 def test_dispatch_has_exact_pilot_and_signed_release_inputs():
     inputs = _input_blocks()
-    assert len(inputs) == 10
+    assert len(inputs) == 11  # + mols_simple_publish
     assert set(inputs) == {
         "extract", "state", "dry_run", "no_routes", "touch_report",
         "elevation", "region_code", "pilot_area_id", "pilot_bbox",
-        "mols_release_input_receipt_b64",
+        "mols_release_input_receipt_b64", "mols_simple_publish",
     }
+    assert _default(inputs["mols_simple_publish"]) == "false"
     assert "pilot_area_name" not in inputs
     assert _default(inputs["mols_release_input_receipt_b64"]) == '""'
 

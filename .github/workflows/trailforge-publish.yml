@@ -88,6 +88,7 @@ jobs:
           for value in "$RAW_DRY_RUN" "$RAW_NO_ROUTES" "$RAW_TOUCH_REPORT" "$RAW_ELEVATION"; do
             [[ "$value" = "true" || "$value" = "false" ]]
           done
+          RAW_MOLS_SIMPLE="${RAW_MOLS_SIMPLE:-false}"
           [[ "$RAW_MOLS_SIMPLE" = "true" || "$RAW_MOLS_SIMPLE" = "false" ]]
           RELEASE_MODE=generic
           if [ -n "$RAW_MOLS_RELEASE_INPUT_RECEIPT_B64" ] || [ "$RAW_MOLS_SIMPLE" = "true" ]; then

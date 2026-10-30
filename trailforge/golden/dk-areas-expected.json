@@ -1,0 +1,29 @@
+{
+  "schema": "trekdex-dk-areas-expected-v1",
+  "note": "Blessed per-area results. Produced by the qualify run of trailforge-publish-dk.yml and approved once; publish refuses unless every selected area matches. Mols entry mirrors scripts/simple_mols_publish.py.",
+  "areas": {
+    "nationalpark-mols-bjerge-dk": {
+      "trail_count": 26,
+      "total_mi": 85.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Molsruten",
+        "Kaløstien"
+      ],
+      "forbidden_names": [
+        "Enhøjvej",
+        "Lyngevej",
+        "Gravlevstien",
+        "Skolevej",
+        "Hjelm",
+        "Fægyden",
+        "Krogryggevej",
+        "Rugårdsvej",
+        "Langs Kysten",
+        "Den gamle købstad",
+        "Mols Bjerge-stien Gåsehage-etapen",
+        "Mols Bjerge-stien Ebeltoftetapen"
+      ]
+    }
+  }
+}

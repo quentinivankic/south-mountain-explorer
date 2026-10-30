@@ -392,7 +392,9 @@ def test_generic_publisher_exact_area_selector_is_opt_in_and_mols_only():
     ).read_text(encoding="utf-8")
     assert 'ap.add_argument(\n        "--only-area"' in publisher
     assert 'if args.only_area:' in publisher
-    assert 'args.only_area != _MOLS_AREA_ID or args.state != "Denmark"' in publisher
+    # Pin generalised from Mols-only to the committed Denmark registry allowlist.
+    assert 'args.only_area not in exact_allowlist or args.state != "Denmark"' in publisher
+    assert '_MOLS_AREA_ID: (_MOLS_AREA_NAME, _MOLS_RELATION_ID)' in publisher
     assert 'az = {args.only_area: selected}' in publisher
     assert 'if args.only_area' not in publisher.split('ap.add_argument(\n        "--only-area"', 1)[0]
 

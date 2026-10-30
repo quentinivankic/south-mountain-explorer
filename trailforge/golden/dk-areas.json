@@ -1,0 +1,60 @@
+{
+  "schema": "trekdex-dk-areas-v1",
+  "extract": "europe/denmark",
+  "state": "Denmark",
+  "region_code": "dk",
+  "bbox_order": "lon_min,lat_min,lon_max,lat_max",
+  "center_order": "lat,lon",
+  "areas": [
+    {
+      "id": "nationalpark-mols-bjerge-dk",
+      "name": "Nationalpark Mols Bjerge",
+      "state": "Denmark",
+      "relation_id": 7046785,
+      "bbox": [10.40, 56.08, 10.90, 56.35],
+      "center": [56.2, 10.6],
+      "tier": 1,
+      "notes": "Published. Pinned constants (r2_release_contract.MOLS_*). Use as the qualify control: expect 26 trails / 85.4 mi."
+    },
+    {
+      "id": "nationalpark-thy-dk",
+      "name": "Nationalpark Thy",
+      "state": "Denmark",
+      "relation_id": 7045682,
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "notes": "National park. bbox/center are computed from the PBF boundary by the qualify run."
+    },
+    {
+      "id": "nationalpark-vadehavet-dk",
+      "name": "Nationalpark Vadehavet",
+      "state": "Denmark",
+      "relation_id": 14045506,
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "notes": "National park, mostly tidal flats and sea. Expect few land trails per km2."
+    },
+    {
+      "id": "nationalpark-skjoldungernes-land-dk",
+      "name": "Nationalpark Skjoldungernes Land",
+      "state": "Denmark",
+      "relation_id": 13648864,
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "notes": "National park."
+    },
+    {
+      "id": "nationalpark-kongernes-nordsjaelland-dk",
+      "name": "Nationalpark Kongernes Nordsjælland",
+      "state": "Denmark",
+      "relation_id": 15312449,
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "notes": "National park."
+    }
+  ]
+}

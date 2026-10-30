@@ -6633,7 +6633,8 @@ class TestRepositoryWiring(unittest.TestCase):
         }
         self.assertEqual(
             write_credential_holders,
-            {"sync-geom-to-r2.yml", "cleanup-r2-orphans.yml", "sync-mols-to-r2.yml"},
+            {"sync-geom-to-r2.yml", "cleanup-r2-orphans.yml", "sync-mols-to-r2.yml",
+             "sync-dk-to-r2.yml"},
         )
         for name in sorted(write_credential_holders):
             with self.subTest(workflow=name):

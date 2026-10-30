@@ -63,6 +63,43 @@ _CANONICAL_IOS_RESOURCES = (
 _MOLS_AREA_ID = "nationalpark-mols-bjerge-dk"
 _MOLS_AREA_NAME = "Nationalpark Mols Bjerge"
 _MOLS_RELATION_ID = 7046785
+_DK_REGISTRY = Path(__file__).resolve().parents[1] / "golden" / "dk-areas.json"
+
+
+def _exact_publish_allowlist(registry: Path = _DK_REGISTRY) -> dict[str, tuple[str, int]]:
+    """Areas that may be published with --only-area/--exact-boundary (non-dry).
+
+    The pinned Mols pilot is always allowed. Other areas come from the
+    committed Denmark registry (area id -> (name, OSM relation id)). A registry
+    Mols entry that disagrees with the pins, or any malformed entry, raises
+    ValueError so the guard fails closed instead of widening silently.
+    """
+    allowed = {_MOLS_AREA_ID: (_MOLS_AREA_NAME, _MOLS_RELATION_ID)}
+    try:
+        document = json.loads(registry.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return allowed
+    areas = document.get("areas") if isinstance(document, dict) else None
+    if not isinstance(areas, list):
+        raise ValueError("Denmark area registry has no areas list")
+    for entry in areas:
+        if (not isinstance(entry, dict)
+                or not isinstance(entry.get("id"), str) or not entry["id"]
+                or not isinstance(entry.get("name"), str) or not entry["name"]
+                or entry.get("state") != "Denmark"
+                or not isinstance(entry.get("relation_id"), int)
+                or isinstance(entry.get("relation_id"), bool)
+                or entry["relation_id"] <= 0):
+            raise ValueError(f"Denmark area registry entry is invalid: {entry!r}")
+        pin = (entry["name"], entry["relation_id"])
+        if entry["id"] == _MOLS_AREA_ID:
+            if pin != allowed[_MOLS_AREA_ID]:
+                raise ValueError("Denmark registry Mols entry differs from the pinned Mols identity")
+            continue
+        if entry["id"] in allowed:
+            raise ValueError(f"Denmark area registry repeats {entry['id']}")
+        allowed[entry["id"]] = pin
+    return allowed
 
 
 def _lexical_absolute(value: str | os.PathLike) -> Path:
@@ -619,14 +656,23 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
     if args.exact_boundary and args.dry_run and (
             not args.preview_json or not args.preview_root):
         ap.error("--exact-boundary requires --dry-run, --preview-json, and --preview-root")
+    exact_allowlist: dict[str, tuple[str, int]] = {}
+    if args.only_area or args.exact_boundary:
+        # Only exact/--only-area runs read the registry, so a bad registry can
+        # never affect the generic US-state publishes.
+        try:
+            exact_allowlist = _exact_publish_allowlist()
+        except (OSError, ValueError) as error:
+            ap.error(f"invalid Denmark area registry: {error}")
     if args.exact_boundary and not args.dry_run and not (
-            # The only non-dry exact publish: the reviewed Mols simple path.
-            args.only_area == _MOLS_AREA_ID and args.state == "Denmark"
+            # Non-dry exact publish: Mols (pinned) or a registry-listed Danish
+            # area, always one --only-area, Denmark, no elevation, no preview.
+            args.only_area in exact_allowlist and args.state == "Denmark"
             and args.no_elevation and not args.preview_json
             and not args.preview_root):
         ap.error("--exact-boundary requires --dry-run, --preview-json, and "
-                 "--preview-root (non-dry is allowed only for --only-area "
-                 f"{_MOLS_AREA_ID} --state Denmark --no-elevation)")
+                 "--preview-root (non-dry is allowed only for one registry "
+                 "--only-area --state Denmark --no-elevation)")
     if args.exact_boundary and not args.no_boundary_fetch:
         ap.error("--exact-boundary requires --no-boundary-fetch")
     preview_path = _preview_output_path(args, ap)
@@ -667,16 +713,13 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                  "osm_rel": r[7] if len(r) > 7 else None}
           for r in index if len(r) >= 5 and r[2] == args.state}
     if args.only_area:
-        if args.only_area != _MOLS_AREA_ID or args.state != "Denmark":
-            ap.error("--only-area is restricted to exact Mols publication")
+        if args.only_area not in exact_allowlist or args.state != "Denmark":
+            ap.error("--only-area is restricted to registry Danish areas")
         selected = az.get(args.only_area)
         if selected is None:
-            ap.error("exact Mols area is absent from the selected state index")
-        if (
-            selected["name"] != _MOLS_AREA_NAME
-            or selected["osm_rel"] != _MOLS_RELATION_ID
-        ):
-            ap.error("exact Mols index identity is invalid")
+            ap.error("exact Danish area is absent from the selected state index")
+        if (selected["name"], selected["osm_rel"]) != exact_allowlist[args.only_area]:
+            ap.error("exact Danish index identity is invalid")
         az = {args.only_area: selected}
     print(f"index: {len(az)} '{args.state}' areas", file=sys.stderr)
 
@@ -715,10 +758,10 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
         except (OSError, ValueError, json.JSONDecodeError) as error:
             ap.error(f"invalid --exact-boundary: {error}")
         slug, meta = next(iter(az.items()))
-        if (args.state != "Denmark" or slug != _MOLS_AREA_ID
-                or meta["name"] != _MOLS_AREA_NAME
-                or meta["osm_rel"] != _MOLS_RELATION_ID):
-            ap.error("--exact-boundary is restricted to the pinned Mols pilot")
+        if (args.state != "Denmark"
+                or exact_allowlist.get(slug) != (meta["name"], meta["osm_rel"])):
+            ap.error("--exact-boundary is restricted to the pinned Mols pilot "
+                     "and registry Danish areas")
         if (exact_boundary_evidence["name"] != meta["name"]
                 or exact_boundary_evidence["osm_id"] != meta["osm_rel"]):
             ap.error("--exact-boundary identity disagrees with the indexed area")

@@ -258,15 +258,16 @@ def _candidate_shape_errors(record: Any, label: str) -> list[str]:
 
 
 def _target_candidate_errors(record: Any, expected_relation_id: int,
-                             label: str) -> list[str]:
+                             label: str, area_id: str = AREA_ID,
+                             area_name: str = AREA_NAME) -> list[str]:
     errors = _candidate_shape_errors(record, label)
     if errors:
         return errors
     row = record["index_row"]
-    if row[0] != AREA_ID:
-        errors.append(f"{label} area id must be {AREA_ID!r}")
-    if row[1] != AREA_NAME:
-        errors.append(f"{label} name must be {AREA_NAME!r}")
+    if row[0] != area_id:
+        errors.append(f"{label} area id must be {area_id!r}")
+    if row[1] != area_name:
+        errors.append(f"{label} name must be {area_name!r}")
     if row[2] != STATE:
         errors.append(f"{label} state must be {STATE!r}")
     if record.get("osm_relation_id") != expected_relation_id:
@@ -276,7 +277,8 @@ def _target_candidate_errors(record: Any, expected_relation_id: int,
 
 
 def _validate_discovery_document(document: Any, expected_relation_id: int,
-                                 errors: list[str]) -> dict | None:
+                                 errors: list[str], area_id: str = AREA_ID,
+                                 area_name: str = AREA_NAME) -> dict | None:
     if not isinstance(document, dict):
         errors.append("discovery report must be an object")
         return None
@@ -299,14 +301,15 @@ def _validate_discovery_document(document: Any, expected_relation_id: int,
         if isinstance(candidate, dict)
         and isinstance(candidate.get("index_row"), list)
         and candidate["index_row"]
-        and candidate["index_row"][0] == AREA_ID
+        and candidate["index_row"][0] == area_id
     ]
     if len(targets) != 1:
         errors.append(
-            f"expected exactly one discovery candidate for {AREA_ID}; found {len(targets)}")
+            f"expected exactly one discovery candidate for {area_id}; found {len(targets)}")
         return None
     errors.extend(_target_candidate_errors(
-        targets[0], expected_relation_id, "selected discovery"))
+        targets[0], expected_relation_id, "selected discovery",
+        area_id, area_name))
     return targets[0]
 
 
@@ -1081,6 +1084,12 @@ def _validate_pbf_provenance(
 
 def _run_discovery(args: argparse.Namespace) -> int:
     errors: list[str] = []
+    # Optional overrides let the Denmark registry workflow check any listed
+    # area; omitted, the pinned Mols identity applies exactly as before.
+    area_id = getattr(args, "expected_area_id", None) or AREA_ID
+    area_name = getattr(args, "expected_area_name", None) or AREA_NAME
+    if (area_id == AREA_ID) != (area_name == AREA_NAME):
+        errors.append("expected area id/name must both be the pinned Mols pair or both be overrides")
     expected = _positive_decimal(args.expected_osm_relation_id)
     if expected is None:
         errors.append("expected relation id must be a positive decimal")
@@ -1115,13 +1124,14 @@ def _run_discovery(args: argparse.Namespace) -> int:
             )
     selected = None
     if expected is not None and document is not None:
-        selected = _validate_discovery_document(document, expected, errors)
+        selected = _validate_discovery_document(
+            document, expected, errors, area_id, area_name)
 
     result = {
         "schema_version": 1,
         "stage": "discovery",
         "status": "failed" if errors else "ok",
-        "area_id": AREA_ID,
+        "area_id": area_id,
         "expected_osm_relation_id": expected,
         "evidence_kind": evidence_kind,
         "errors": errors,
@@ -7701,6 +7711,8 @@ def _parser() -> argparse.ArgumentParser:
     discovery.add_argument("--pbf-provenance")
     discovery.add_argument("--source-pbf")
     discovery.add_argument("--expected-osm-relation-id", required=True)
+    discovery.add_argument("--expected-area-id")
+    discovery.add_argument("--expected-area-name")
     discovery.add_argument("--selected-record-out", required=True)
     discovery.add_argument("--index-out", required=True)
     discovery.add_argument("--result-json", required=True)

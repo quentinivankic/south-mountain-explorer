@@ -1,0 +1,798 @@
+#!/usr/bin/env python3
+"""Tests for the registry-driven Denmark publish tooling (dk_publish.py, the two
+dk workflows, and the publish_areas / validator parametrization)."""
+import copy
+import importlib.util
+import json
+import os
+import re
+import subprocess
+import sys
+from argparse import Namespace
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import dk_publish as dk  # noqa: E402
+import r2_release_contract as contract  # noqa: E402
+import simple_mols_publish as smp  # noqa: E402
+
+ROOT = Path(__file__).resolve().parent.parent
+REGISTRY = ROOT / "trailforge/golden/dk-areas.json"
+EXPECTED = ROOT / "trailforge/golden/dk-areas-expected.json"
+MOLS = contract.MOLS_AREA_ID
+OLD_ROW = ["old-area-co", "Old Area", "Colorado", 39.0, -105.0, 1, 1.0, None]
+SHARED = ("index.json", "trail-search.json", "trail-shapes.json")
+
+
+def _load(name, relpath):
+    spec = importlib.util.spec_from_file_location(name, ROOT / relpath)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+publish_areas = _load("publish_areas_dk_tests", "trailforge/serve/publish_areas.py")
+validator = _load("validate_publish_pilot_dk_tests", "trailforge/tools/validate_publish_pilot.py")
+
+
+def _compact(value):
+    return json.dumps(value, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+
+
+def _default(value):
+    return json.dumps(value, ensure_ascii=True).encode("utf-8")
+
+
+# ----------------------------------------------------------------- registry --
+
+def test_registry_loads_and_mols_is_entry_one_equal_to_the_hardened_pins():
+    reg = dk.load_registry(REGISTRY)
+    first = reg["areas"][0]
+    assert first["id"] == contract.MOLS_AREA_ID == publish_areas._MOLS_AREA_ID
+    assert first["name"] == contract.MOLS_AREA_NAME == publish_areas._MOLS_AREA_NAME
+    assert first["relation_id"] == contract.MOLS_RELATION_ID == publish_areas._MOLS_RELATION_ID
+    assert first["state"] == contract.MOLS_STATE
+    assert dk.bbox_arg(first["bbox"]) == contract.MOLS_BBOX
+    assert first["center"] == [contract.MOLS_CENTER_LAT, contract.MOLS_CENTER_LON]
+    assert (reg["extract"], reg["state"], reg["region_code"]) == (
+        contract.MOLS_EXTRACT, contract.MOLS_STATE, contract.MOLS_REGION_CODE)
+
+
+def test_registry_seeds_the_four_national_parks_with_computed_geometry_left_null():
+    by_id = dk.load_registry(REGISTRY)["by_id"]
+    rels = {"nationalpark-thy-dk": 7045682, "nationalpark-vadehavet-dk": 14045506,
+            "nationalpark-skjoldungernes-land-dk": 13648864,
+            "nationalpark-kongernes-nordsjaelland-dk": 15312449}
+    for aid, rel in rels.items():
+        assert by_id[aid]["relation_id"] == rel
+        assert by_id[aid]["bbox"] is None and by_id[aid]["center"] is None
+
+
+def test_publish_areas_allowlist_equals_registry_and_always_has_mols():
+    allowed = publish_areas._exact_publish_allowlist()
+    reg = dk.load_registry(REGISTRY)
+    assert allowed == {a["id"]: (a["name"], a["relation_id"]) for a in reg["areas"]}
+    assert allowed[MOLS] == (publish_areas._MOLS_AREA_NAME, publish_areas._MOLS_RELATION_ID)
+
+
+def _write_registry(path, mutate):
+    doc = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    mutate(doc)
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    return path
+
+
+@pytest.mark.parametrize("mutate", [
+    lambda d: d["areas"][0].update(relation_id=1),            # Mols drift
+    lambda d: d["areas"][0].update(name="Other"),
+    lambda d: d["areas"][1].update(state="Sweden"),
+    lambda d: d["areas"][2].update(id=d["areas"][1]["id"]),   # duplicate
+])
+def test_publish_areas_allowlist_fails_closed_on_a_bad_registry(tmp_path, mutate):
+    path = _write_registry(tmp_path / "r.json", mutate)
+    with pytest.raises(ValueError):
+        publish_areas._exact_publish_allowlist(path)
+
+
+def test_publish_areas_allowlist_without_registry_is_mols_only(tmp_path):
+    assert publish_areas._exact_publish_allowlist(tmp_path / "missing.json") == {
+        MOLS: (publish_areas._MOLS_AREA_NAME, publish_areas._MOLS_RELATION_ID)}
+
+
+@pytest.mark.parametrize("mutate", [
+    lambda d: d["areas"][1].update(bbox=[1, 2, 3, 4], center=[1, 2]),   # outside Denmark
+    lambda d: d["areas"][1].update(bbox=[8.0, 56.0, 9.0, 57.0]),        # bbox without center
+    lambda d: d["areas"][1].update(id="no-suffix"),
+    lambda d: d["areas"][1].update(relation_id=7046785),                # repeated relation
+    lambda d: d.update(schema="x"),
+])
+def test_registry_rejects_invalid_entries(tmp_path, mutate):
+    with pytest.raises(dk.DkError):
+        dk.load_registry(_write_registry(tmp_path / "r.json", mutate))
+
+
+def _big_registry(tmp_path, n):
+    areas = [{"id": f"area-{i:03d}-dk", "name": f"Test Area {i}", "state": "Denmark",
+              "relation_id": 1000 + i, "bbox": [9.0, 56.0, 9.5, 56.5], "center": [56.3, 9.3],
+              "tier": 2, "notes": ""} for i in range(n)]
+    doc = {"schema": dk.REGISTRY_SCHEMA, "extract": "europe/denmark", "state": "Denmark",
+           "region_code": "dk", "areas": areas}
+    path = tmp_path / "big.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    return dk.load_registry(path)
+
+
+# ------------------------------------------------------------------- select --
+
+def test_chunking_cap_and_batches_scale_to_hundreds(tmp_path):
+    reg = _big_registry(tmp_path, 300)
+    first = dk.select_areas(reg, set(), "batch=1", 25, "qualify")
+    assert len(first) == 25 and first[0] == "area-000-dk"
+    assert dk.select_areas(reg, set(), "batch=12", 25, "qualify")[-1] == "area-299-dk"
+    with pytest.raises(dk.DkError):
+        dk.select_areas(reg, set(), "batch=13", 25, "qualify")
+    # published areas drop out, so batch=1 is always "the next unpublished chunk"
+    published = set(first)
+    assert dk.select_areas(reg, published, "batch=1", 25, "publish")[0] == "area-025-dk"
+    assert len(dk.select_areas(reg, set(), "batch=1", 40, "qualify")) == 40
+    with pytest.raises(dk.DkError):
+        dk.select_areas(reg, set(), "batch=1", 41, "qualify")      # hard max 40
+    ids = ",".join(f"area-{i:03d}-dk" for i in range(26))
+    with pytest.raises(dk.DkError):
+        dk.select_areas(reg, set(), ids, 25, "qualify")            # explicit list over the cap
+    assert len(dk.select_areas(reg, set(), ids, 26, "qualify")) == 26
+
+
+def test_select_refuses_unknown_duplicate_malformed_and_published_for_publish(tmp_path):
+    reg = _big_registry(tmp_path, 5)
+    for bad in ("nope-dk", "area-000-dk,area-000-dk", "Area 1", "batch=0", "batch=x"):
+        with pytest.raises(dk.DkError):
+            dk.select_areas(reg, set(), bad, 25, "qualify")
+    with pytest.raises(dk.DkError):
+        dk.select_areas(reg, {"area-001-dk"}, "area-001-dk", 25, "publish")
+    assert dk.select_areas(reg, {"area-001-dk"}, "area-001-dk", 25, "qualify") == ["area-001-dk"]
+    with pytest.raises(dk.DkError):
+        dk.select_areas(reg, set(), "area-000-dk", 25, "dry")
+
+
+# --------------------------------------------------------- bbox / prepare ----
+
+OSM = """<?xml version='1.0' encoding='UTF-8'?>
+<osm version="0.6">
+<node id="1" lat="{s}" lon="{w}" version="1"/><node id="2" lat="{s}" lon="{e}" version="1"/>
+<node id="3" lat="{n}" lon="{e}" version="1"/><node id="4" lat="{n}" lon="{w}" version="1"/>
+<way id="10" version="1"><nd ref="1"/><nd ref="2"/><nd ref="3"/><nd ref="4"/><nd ref="1"/></way>
+<relation id="{rel}" version="1"><member type="way" ref="10" role="outer"/>
+<tag k="boundary" v="national_park"/></relation>
+</osm>
+"""
+
+
+def _osm(tmp_path, rel, box):
+    path = tmp_path / f"b{rel}.osm"
+    path.write_text(OSM.format(rel=rel, w=box[0], s=box[1], e=box[2], n=box[3]), encoding="utf-8")
+    return path
+
+
+def test_boundary_bbox_from_pbf_relation(tmp_path):
+    path = _osm(tmp_path, 100, (10.4513, 56.1298, 10.8473, 56.3204))
+    got = dk.boundary_bboxes(path, [100, 999])
+    assert got[100] == pytest.approx([10.4513, 56.1298, 10.8473, 56.3204], abs=1e-6)
+    assert got[999] is None
+
+
+def test_no_pyosmium_4x_only_api_in_dk_tooling():
+    # ubuntu-24.04 apt python3-pyosmium is 3.7.0, which has no FileProcessor.
+    for name in ("dk_publish.py", "dk-run-area.sh"):
+        assert "FileProcessor" not in (ROOT / "scripts" / name).read_text(encoding="utf-8"), name
+
+
+MOLS_BOUNDARY = [10.4513, 56.1298, 10.8473, 56.3204]
+
+
+def test_mols_registry_entry_is_consistent_with_its_real_boundary_bbox():
+    entry = dk.load_registry(REGISTRY)["by_id"][MOLS]
+    rec = dk.check_area_geometry(entry, MOLS_BOUNDARY, [56.2251, 10.6493], "publish")
+    assert rec["status"] == "ok", rec["problems"]
+    assert rec["proposed_center"] == [56.2, 10.6] == entry["center"]
+    assert rec["effective_bbox"] == entry["bbox"] and rec["bbox_source"] == "registry"
+
+
+def test_missing_bbox_is_proposed_in_qualify_and_fails_closed_in_publish():
+    entry = dk.load_registry(REGISTRY)["by_id"]["nationalpark-thy-dk"]
+    box = [8.1, 56.7, 8.7, 57.1]
+    q = dk.check_area_geometry(entry, box, [56.9, 8.4], "qualify")
+    assert q["status"] == "ok" and q["bbox_source"] == "computed"
+    assert q["effective_bbox"] == dk.pad_bbox(box) == [8.05, 56.65, 8.75, 57.15]
+    p = dk.check_area_geometry(entry, box, [56.9, 8.4], "publish")
+    assert p["status"] == "failed" and any("missing" in x for x in p["problems"])
+
+
+@pytest.mark.parametrize("bbox,center,why", [
+    ([10.45, 56.08, 10.90, 56.35], [56.2, 10.6], "margin below minimum"),
+    ([10.0, 55.5, 11.5, 57.0], [56.2, 10.6], "margin above maximum"),
+    ([10.40, 56.08, 10.90, 56.35], [56.3, 10.6], "centre differs"),
+])
+def test_inconsistent_registry_bbox_or_center_fails_closed(bbox, center, why):
+    entry = copy.deepcopy(dk.load_registry(REGISTRY)["by_id"][MOLS])
+    entry["bbox"], entry["center"] = bbox, center
+    rec = dk.check_area_geometry(entry, MOLS_BOUNDARY, [56.2251, 10.6493], "qualify")
+    assert rec["status"] == "failed", why
+
+
+def test_boundary_missing_or_disagreeing_with_discovery_fails():
+    entry = dk.load_registry(REGISTRY)["by_id"][MOLS]
+    assert dk.check_area_geometry(entry, None, [56.2, 10.6], "qualify")["status"] == "failed"
+    assert dk.check_area_geometry(entry, MOLS_BOUNDARY, [57.9, 12.0], "qualify")["status"] == "failed"
+
+
+def test_prepare_areas_cli_writes_one_row_index_and_fails_publish_on_null_bbox(tmp_path):
+    reg = dk.load_registry(REGISTRY)
+    mols, thy = reg["by_id"][MOLS], reg["by_id"]["nationalpark-thy-dk"]
+    bounds = tmp_path / "bounds.osm"
+    bounds.write_text(OSM.format(rel=mols["relation_id"], w=MOLS_BOUNDARY[0], s=MOLS_BOUNDARY[1],
+                                 e=MOLS_BOUNDARY[2], n=MOLS_BOUNDARY[3]), encoding="utf-8")
+    sel = tmp_path / "sel.txt"
+    sel.write_text(f"{MOLS}\n", encoding="utf-8")
+    disc = tmp_path / "disc.json"
+    disc.write_text(json.dumps({"candidates": [
+        {"index_row": [MOLS, mols["name"], "Denmark", 56.2251, 10.6493],
+         "osm_relation_id": mols["relation_id"]}]}), encoding="utf-8")
+    out = tmp_path / "out"
+    argv = ["prepare-areas", "--selected", str(sel), "--bounds-pbf", str(bounds),
+            "--discovery-report", str(disc), "--mode", "publish", "--out-dir", str(out)]
+    assert dk.main(argv) == 0
+    row = json.loads((out / MOLS / "index.json").read_text())
+    assert row == [[MOLS, mols["name"], "Denmark", 56.2, 10.6, None, None, mols["relation_id"]]]
+    area = json.loads((out / MOLS / "area.json").read_text())
+    assert area["bbox_arg"] == contract.MOLS_BBOX
+    # Thy has no registry bbox: qualify proposes it, publish refuses.
+    bounds.write_text(OSM.format(rel=thy["relation_id"], w=8.1, s=56.7, e=8.7, n=57.1), encoding="utf-8")
+    sel.write_text("nationalpark-thy-dk\n", encoding="utf-8")
+    disc.write_text(json.dumps({"candidates": [
+        {"index_row": ["nationalpark-thy-dk", thy["name"], "Denmark", 56.9, 8.4],
+         "osm_relation_id": thy["relation_id"]}]}), encoding="utf-8")
+    argv[argv.index("publish")] = "qualify"
+    assert dk.main(argv) == 0
+    assert json.loads((out / "nationalpark-thy-dk/area.json").read_text())["bbox_arg"] == "8.05,56.65,8.75,57.15"
+    argv[argv.index("qualify")] = "publish"
+    assert dk.main(argv) == 1
+
+
+# ------------------------------------------------------------ expected table --
+
+def test_committed_expected_table_mols_entry_equals_the_hardened_constants():
+    entry = dk.load_expected(EXPECTED)[MOLS]
+    assert entry["trail_count"] == smp.EXPECTED_TRAILS
+    assert entry["total_mi"] == smp.EXPECTED_MILES
+    assert entry["total_mi_tolerance"] == smp.MILES_TOLERANCE
+    assert tuple(entry["required_names"]) == smp.REQUIRED_TRAILS
+    assert tuple(entry["forbidden_names"]) == smp.FORBIDDEN_TRAILS
+
+
+def _geom(aid, trail_count=2, total_mi=3.0, names=None):
+    names = names or [f"{aid} Trail {i}" for i in range(trail_count)]
+    return {"id": aid, "name": aid, "trail_count": len(names), "total_mi": total_mi,
+            "trails": [{"id": f"t{i}", "name": n, "distanceMi": 1.5, "difficulty": "Easy",
+                        "segments": [[[56.2, 10.6 + i / 100], [56.21, 10.62 + i / 100], [56.22, 10.6 + i / 100]]]}
+                       for i, n in enumerate(names)]}
+
+
+def _expected_file(tmp_path, aid, **override):
+    entry = {"trail_count": 2, "total_mi": 3.0, "total_mi_tolerance": 0.05,
+             "required_names": [f"{aid} Trail 0"], "forbidden_names": ["Bad Road"]}
+    entry.update(override)
+    path = tmp_path / "expected.json"
+    path.write_text(json.dumps({"schema": dk.EXPECTED_SCHEMA, "areas": {aid: entry}}), encoding="utf-8")
+    return path
+
+
+def _assert_expected(tmp_path, geom, expected_path, aid="x-dk"):
+    gp = tmp_path / "g.json"
+    gp.write_text(json.dumps(geom), encoding="utf-8")
+    return dk.main(["assert-expected", "--geom", str(gp), "--area-id", aid, "--expected", str(expected_path)])
+
+
+def test_assert_expected_passes_and_fails(tmp_path):
+    aid = "x-dk"
+    exp = _expected_file(tmp_path, aid)
+    assert _assert_expected(tmp_path, _geom(aid), exp) == 0
+    assert _assert_expected(tmp_path, _geom(aid, total_mi=3.04), exp) == 0
+    assert _assert_expected(tmp_path, _geom(aid, total_mi=3.2), exp) == 1       # miles
+    assert _assert_expected(tmp_path, _geom(aid, trail_count=3), exp) == 1      # count
+    assert _assert_expected(tmp_path, _geom(aid, names=["Other", f"{aid} Trail 1"]), exp) == 1  # required
+    assert _assert_expected(tmp_path, _geom(aid, names=[f"{aid} Trail 0", "Bad Road"]), exp) == 1  # forbidden
+    assert _assert_expected(tmp_path, _geom("y-dk"), exp) == 1                  # wrong id
+    assert _assert_expected(tmp_path, _geom("z-dk"), exp, aid="z-dk") == 1      # not blessed
+
+
+def test_mols_66_trail_statewide_result_fails_the_blessed_mols_entry(tmp_path):
+    names = ["Enhøjvej", "Lyngevej"] + [f"Trail {i}" for i in range(64)]
+    gp = tmp_path / "g.json"
+    gp.write_text(json.dumps({"id": MOLS, "trail_count": 66, "total_mi": 127.2,
+                              "trails": [{"name": n} for n in names]}), encoding="utf-8")
+    assert dk.main(["assert-expected", "--geom", str(gp), "--area-id", MOLS]) == 1
+
+
+# -------------------------------------------------- N-area splice / sync ----
+
+def _make_repo(tmp_path, n, *, live_extra_rows=0):
+    """Fixture repo with n new areas + live R2 bytes. Returns (repo, live_dir, ids)."""
+    reg = _big_registry(tmp_path, n)
+    repo, live = tmp_path / "repo", tmp_path / "live"
+    for d in (repo / "trailforge/golden", repo / "public/areas/geom", repo / "public/areas/silhouettes",
+              repo / "ios/SouthMountainExplorer/Resources", live):
+        d.mkdir(parents=True, exist_ok=True)
+    registry_doc = {k: v for k, v in reg.items() if k != "by_id"}
+    (repo / "trailforge/golden/dk-areas.json").write_text(json.dumps(registry_doc), encoding="utf-8")
+    ids = sorted(a["id"] for a in reg["areas"])
+    expected = {"schema": dk.EXPECTED_SCHEMA, "areas": {}}
+    rows = []
+    for aid in ids:
+        entry = reg["by_id"][aid]
+        geom = _geom(aid)
+        (repo / f"public/areas/geom/{aid}.json").write_bytes(_compact(geom))
+        (repo / f"public/areas/silhouettes/{aid}.json").write_bytes(_compact({"b": [0, 0, 1, 1], "l": [[1, 2]]}))
+        rows.append([aid, entry["name"], "Denmark", 56.3, 9.3, 2, 3.0, entry["relation_id"]])
+        expected["areas"][aid] = {"trail_count": 2, "total_mi": 3.0, "total_mi_tolerance": 0.05,
+                                  "required_names": [f"{aid} Trail 0"], "forbidden_names": []}
+    (repo / "trailforge/golden/dk-areas-expected.json").write_text(json.dumps(expected), encoding="utf-8")
+    (repo / "ios/SouthMountainExplorer/Resources/areas-index.json").write_bytes(_compact([OLD_ROW, *rows]))
+    (live / "index.json").write_bytes(_compact([OLD_ROW]))
+    (live / "trail-search.json").write_bytes(_compact([["Old Trail", "old-area-co", "a", 1.0, "Easy"]]))
+    (live / "trail-shapes.json").write_bytes(_compact({"old-area-co/a": [0, 0, 255, 255]}))
+    (live / "parking.json").write_bytes(b'{"parking":"untouched"}')
+    return repo, live, ids
+
+
+def _build(repo, live, out, extra=()):
+    return dk.main(["build-candidates", "--repo", str(repo),
+                    "--live-index", str(live / "index.json"), "--live-search", str(live / "trail-search.json"),
+                    "--live-shapes", str(live / "trail-shapes.json"), "--out-dir", str(out), *extra])
+
+
+@pytest.mark.parametrize("n", [1, 3, 40])
+def test_splice_n_areas_onto_live_bytes(tmp_path, n):
+    repo, live, ids = _make_repo(tmp_path, n)
+    parking_before = (live / "parking.json").read_bytes()
+    out = tmp_path / "out"
+    assert _build(repo, live, out) == 0
+    plan = json.loads((out / "plan.json").read_text())
+    assert plan["areas"] == ids
+    keys = [w["key"] for w in plan["writes"]]
+    assert len(keys) == 2 * n + 3
+    assert keys[:n] == [f"{i}.json" for i in ids]
+    assert keys[n:2 * n] == [f"silhouettes/{i}.json" for i in ids]
+    assert keys[2 * n:] == ["trail-shapes.json", "trail-search.json", "index.json"]   # index last
+    assert not any("parking" in k for k in keys)
+    assert (live / "parking.json").read_bytes() == parking_before
+    for key, closer in (("trail-search.json", b"]"), ("trail-shapes.json", b"}")):
+        old, new = (live / key).read_bytes(), (out / key).read_bytes()
+        assert new.startswith(old[:-1] + b",") and new.endswith(closer)
+    search = json.loads((out / "trail-search.json").read_bytes())
+    shapes = json.loads((out / "trail-shapes.json").read_bytes())
+    assert search[0] == ["Old Trail", "old-area-co", "a", 1.0, "Easy"] and len(search) == 1 + 2 * n
+    assert shapes["old-area-co/a"] == [0, 0, 255, 255] and len(shapes) == 1 + 2 * n
+    index = json.loads((out / "index.json").read_bytes())
+    assert index[0] == OLD_ROW and [r[0] for r in index[1:]] == ids
+    for w in plan["writes"]:
+        assert dk._sha((out / w["file"]).read_bytes()) == w["sha256"]
+
+
+def test_derive_areas_comes_from_the_committed_index_diff(tmp_path):
+    repo, live, ids = _make_repo(tmp_path, 3)
+    out = tmp_path / "areas.txt"
+    assert dk.main(["derive-areas", "--repo", str(repo), "--live-index", str(live / "index.json"),
+                    "--out", str(out)]) == 0
+    assert out.read_text().split() == ids
+    # an areas file that disagrees with the diff is refused
+    out.write_text(ids[0] + "\n", encoding="utf-8")
+    assert _build(repo, live, tmp_path / "o2", ["--areas-file", str(out)]) == 1
+
+
+def test_refuses_when_a_new_key_already_exists_in_live(tmp_path):
+    repo, live, ids = _make_repo(tmp_path, 3)
+    aid = ids[1]
+    # (a) live index already has the area
+    (live / "index.json").write_bytes(_compact([OLD_ROW, json.loads(
+        (repo / "ios/SouthMountainExplorer/Resources/areas-index.json").read_bytes())[2]]))
+    assert _build(repo, live, tmp_path / "a") == 1
+    (live / "index.json").write_bytes(_compact([OLD_ROW]))
+    # (b) live trail-search already has a record for it
+    (live / "trail-search.json").write_bytes(_compact(
+        [["Old Trail", "old-area-co", "a", 1.0, "Easy"], ["X", aid, "t0", 1.5, "Easy"]]))
+    assert _build(repo, live, tmp_path / "b") == 1
+    (live / "trail-search.json").write_bytes(_compact([["Old Trail", "old-area-co", "a", 1.0, "Easy"]]))
+    # (c) live trail-shapes already has a key for it
+    (live / "trail-shapes.json").write_bytes(_compact({"old-area-co/a": [0, 0, 255, 255], f"{aid}/t0": [0, 0, 9, 9]}))
+    assert _build(repo, live, tmp_path / "c") == 1
+    (live / "trail-shapes.json").write_bytes(_compact({"old-area-co/a": [0, 0, 255, 255]}))
+    assert _build(repo, live, tmp_path / "ok") == 0
+
+
+def test_refuses_bundle_that_is_not_live_plus_sorted_registry_rows(tmp_path):
+    repo, live, ids = _make_repo(tmp_path, 3)
+    bundle = repo / "ios/SouthMountainExplorer/Resources/areas-index.json"
+    rows = json.loads(bundle.read_bytes())
+    changed = copy.deepcopy(rows)
+    changed[0][1] = "Renamed"                                   # live row modified
+    bundle.write_bytes(_compact(changed))
+    assert _build(repo, live, tmp_path / "a") == 1
+    unsorted = [rows[0], rows[2], rows[1], rows[3]]
+    bundle.write_bytes(_compact(unsorted))
+    assert _build(repo, live, tmp_path / "b") == 1
+    bundle.write_bytes(_compact(rows[:-1] + [["ghost-dk", "Ghost", "Denmark", 56.0, 9.0, 2, 3.0, 5]]))
+    assert _build(repo, live, tmp_path / "c") == 1              # not in the registry
+    bundle.write_bytes(json.dumps(rows).encode("utf-8"))        # wrong framing
+    assert _build(repo, live, tmp_path / "d") == 1
+
+
+def test_refuses_area_that_is_not_blessed_or_differs_from_the_table(tmp_path):
+    repo, live, ids = _make_repo(tmp_path, 2)
+    path = repo / "trailforge/golden/dk-areas-expected.json"
+    table = json.loads(path.read_text())
+    del table["areas"][ids[0]]
+    path.write_text(json.dumps(table), encoding="utf-8")
+    assert _build(repo, live, tmp_path / "a") == 1
+    table["areas"][ids[0]] = {"trail_count": 9, "total_mi": 3.0, "total_mi_tolerance": 0.05,
+                              "required_names": [], "forbidden_names": []}
+    path.write_text(json.dumps(table), encoding="utf-8")
+    assert _build(repo, live, tmp_path / "b") == 1
+
+
+def test_sync_area_cap_is_enforced(tmp_path):
+    repo, live, ids = _make_repo(tmp_path, 3)
+    (repo / "ios/SouthMountainExplorer/Resources/areas-index.json").write_bytes(_compact([OLD_ROW]))
+    assert _build(repo, live, tmp_path / "a") == 1              # N = 0
+
+
+# ---------------------------------------------------------------- rollback ---
+
+def _plan_and_states(tmp_path, n=3):
+    repo, live, ids = _make_repo(tmp_path, n)
+    out = tmp_path / "out"
+    assert _build(repo, live, out) == 0
+    return out, live, ids
+
+
+def _decide(tmp_path, capsys, state):
+    out, live, ids = _plan_and_states(tmp_path)
+    capsys.readouterr()
+    cur = tmp_path / "cur"
+    cur.mkdir()
+    for key, what in state.items():
+        data = {"cand": (out / key).read_bytes(), "base": (live / key).read_bytes(),
+                "other": b'["third-party"]'}[what]
+        (cur / key).write_bytes(data)
+    code = dk.main(["rollback-decide", "--plan", str(out / "plan.json"), "--live-dir", str(cur)])
+    cap = capsys.readouterr()
+    lines = [line.split("\t") for line in cap.out.splitlines() if "\t" in line]
+    return code, lines, cap.err, ids
+
+
+def test_rollback_fully_applied_restores_all_three_and_deletes_exactly_2n_keys(tmp_path, capsys):
+    code, lines, _, ids = _decide(tmp_path, capsys, {k: "cand" for k in SHARED})
+    assert code == 0
+    assert [tuple(x) for x in lines[:3]] == [("index.json", "restore"), ("trail-search.json", "restore"),
+                                             ("trail-shapes.json", "restore")]
+    deletes = [k for k, a in lines if a == "delete"]
+    assert deletes == [f"{i}.json" for i in ids] + [f"silhouettes/{i}.json" for i in ids]
+    assert len(deletes) == 2 * len(ids) and not any(k in SHARED or "parking" in k for k in deletes)
+
+
+def test_rollback_partial_apply_restores_only_candidate_files(tmp_path, capsys):
+    state = {"index.json": "base", "trail-search.json": "base", "trail-shapes.json": "cand"}
+    code, lines, _, ids = _decide(tmp_path, capsys, state)
+    assert code == 0
+    assert dict(lines[:3]) == {"index.json": "skip", "trail-search.json": "skip", "trail-shapes.json": "restore"}
+    assert len([1 for _, a in lines if a == "delete"]) == 2 * len(ids)
+
+
+def test_rollback_nothing_applied_skips_shared_files(tmp_path, capsys):
+    code, lines, _, _ = _decide(tmp_path, capsys, {k: "base" for k in SHARED})
+    assert code == 0 and dict(lines[:3]) == {k: "skip" for k in SHARED}
+
+
+@pytest.mark.parametrize("bad", SHARED)
+def test_rollback_refuses_third_party_modified_file(tmp_path, capsys, bad):
+    state = {"index.json": "cand", "trail-search.json": "base", "trail-shapes.json": "cand"}
+    state[bad] = "other"
+    code, lines, err, _ = _decide(tmp_path, capsys, state)
+    assert code == 1 and lines == [] and "refusing" in err
+
+
+# ------------------------------------------- merge-index + 2N+2 allowlist ----
+
+def _git(repo, *argv):
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.invalid"}
+    return subprocess.run(["git", *argv], cwd=repo, env=env, check=True, capture_output=True)
+
+
+def _baseline_repo(tmp_path, n):
+    """Git repo at the pre-publish state (OLD_ROW only) + the n areas' files kept aside."""
+    repo, live, ids = _make_repo(tmp_path, n)
+    new = tmp_path / "new"
+    new.mkdir()
+    bundle_path = repo / "ios/SouthMountainExplorer/Resources/areas-index.json"
+    rows = json.loads(bundle_path.read_bytes())
+    for aid in ids:
+        for rel in (f"public/areas/geom/{aid}.json", f"public/areas/silhouettes/{aid}.json"):
+            (new / f"{Path(rel).parent.name}-{Path(rel).name}").write_bytes((repo / rel).read_bytes())
+            (repo / rel).unlink()
+    bundle_path.write_bytes(_compact([OLD_ROW]))
+    (repo / "public/areas/index.json").write_bytes(_default([OLD_ROW]))
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "baseline")
+    return repo, ids, rows, new
+
+
+def _apply_publish(repo, ids, rows, new, *, stage=True):
+    for aid in ids:
+        (repo / f"public/areas/geom/{aid}.json").write_bytes((new / f"geom-{aid}.json").read_bytes())
+        (repo / f"public/areas/silhouettes/{aid}.json").write_bytes((new / f"silhouettes-{aid}.json").read_bytes())
+    (repo / "public/areas/index.json").write_bytes(_default(rows))
+    (repo / "ios/SouthMountainExplorer/Resources/areas-index.json").write_bytes(_compact(rows))
+    if stage:
+        _git(repo, "add", "public/areas", "ios/SouthMountainExplorer/Resources/areas-index.json")
+
+
+def _verify(repo, ids, cmd="verify-staged"):
+    return dk.main([cmd, "--repo", str(repo), "--areas", ",".join(ids)])
+
+
+@pytest.mark.parametrize("n", [1, 3, 40])
+def test_commit_allowlist_is_exactly_2n_plus_2(tmp_path, n):
+    repo, ids, rows, new = _baseline_repo(tmp_path, n)
+    _apply_publish(repo, ids, rows, new)
+    assert len(dk.area_paths(ids)) == 2 * n + 2
+    names = _git(repo, "diff", "--cached", "--name-only").stdout.decode().split()
+    assert len(names) == 2 * n + 2
+    assert _verify(repo, ids) == 0
+    _git(repo, "commit", "-q", "-m", "publish")
+    assert _verify(repo, ids, "verify-commit") == 0
+
+
+def test_staged_diff_refuses_extra_missing_modified_and_reordered_paths(tmp_path):
+    repo, ids, rows, new = _baseline_repo(tmp_path, 3)
+    _apply_publish(repo, ids, rows, new)
+    (repo / "public/areas/geom/other-dk.json").write_text("{}", encoding="utf-8")
+    _git(repo, "add", "public/areas/geom/other-dk.json")
+    assert _verify(repo, ids) == 1                              # extra path
+    _git(repo, "rm", "-q", "-f", "public/areas/geom/other-dk.json")
+    assert _verify(repo, ids) == 0
+    _git(repo, "rm", "-q", "--cached", f"public/areas/silhouettes/{ids[0]}.json")
+    assert _verify(repo, ids) == 1                              # missing path
+    _git(repo, "add", f"public/areas/silhouettes/{ids[0]}.json")
+    bad = copy.deepcopy(rows)
+    bad[0][1] = "Changed live row"
+    _apply_publish(repo, ids, bad, new)
+    assert _verify(repo, ids) == 1                              # non-Danish row modified
+    _apply_publish(repo, ids, [rows[0], rows[2], rows[1], rows[3]], new)
+    assert _verify(repo, ids) == 1                              # new rows not sorted
+    wrong = copy.deepcopy(rows)
+    wrong[1][5] = 99                                            # count differs from geom
+    _apply_publish(repo, ids, wrong, new)
+    assert _verify(repo, ids) == 1
+    _apply_publish(repo, ids, rows, new)
+    assert _verify(repo, ids) == 0
+    (repo / "public/areas/index.json").write_bytes(json.dumps(rows, indent=1).encode("utf-8"))
+    _git(repo, "add", "public/areas/index.json")
+    assert _verify(repo, ids) == 1                              # framing differs from producer
+
+
+def test_merge_index_appends_sorted_rows_and_keeps_existing_bytes(tmp_path):
+    repo, ids, rows, new = _baseline_repo(tmp_path, 3)
+    work = tmp_path / "work"
+    reg = repo / "trailforge/golden/dk-areas.json"
+    for aid, row in zip(ids, rows[1:]):
+        (work / aid).mkdir(parents=True)
+        (work / aid / "index.json").write_text(json.dumps([row]), encoding="utf-8")
+        (repo / f"public/areas/geom/{aid}.json").write_bytes((new / f"geom-{aid}.json").read_bytes())
+    sel = tmp_path / "sel.txt"
+    sel.write_text("\n".join(reversed(ids)) + "\n", encoding="utf-8")        # input order must not matter
+    target = repo / "public/areas/index.json"
+    before = target.read_bytes()
+    argv = ["merge-index", "--registry", str(reg), "--selected", str(sel), "--rows-dir", str(work),
+            "--geom-dir", str(repo / "public/areas/geom"), "--target", str(target)]
+    assert dk.main(argv) == 0
+    after = target.read_bytes()
+    assert after.startswith(before[:-1] + b", ") and json.loads(after) == rows
+    assert dk.main(argv) == 1                                   # already present -> refuse
+
+
+# --------------------------------------------------------------- qualify -----
+
+def test_qualify_report_lists_names_routes_removed_categories_and_proposes_tables(tmp_path):
+    aid = "nationalpark-thy-dk"
+    area = {"id": aid, "name": "Nationalpark Thy", "relation_id": 7045682, "boundary_bbox": [8.1, 56.7, 8.7, 57.1],
+            "effective_bbox": [8.05, 56.65, 8.75, 57.15], "bbox_source": "computed", "center": [56.9, 8.4],
+            "proposed_bbox": [8.05, 56.65, 8.75, 57.15], "proposed_center": [56.9, 8.4]}
+    d = tmp_path / aid
+    d.mkdir()
+    (d / "area.json").write_text(json.dumps(area), encoding="utf-8")
+    (d / "geom.json").write_text(json.dumps(_geom(aid, names=["Thy Route", "Short Loop"], total_mi=5.0)))
+    feat = lambda **p: {"type": "Feature", "properties": p, "geometry": None}  # noqa: E731
+    (d / "trails.geojson").write_text(json.dumps({"features": [
+        feat(name="Thy Route", kind="route", length_mi=4.0), feat(name="Short Loop", kind="hike", length_mi=1.0)]}))
+    (d / "removed.geojson").write_text(json.dumps({"features": [
+        feat(name="Stage 1", removed_category="unresolved-relation-gap", length_mi=9.5),
+        feat(name="Sandvej", removed_category="dk-unqualified-road-track", length_mi=1.2),
+        feat(name="Tiny", removed_category="min-length", length_mi=0.01),
+        feat(name="Short Loop", removed_category="disconnected-name-stitch", length_mi=0.5)]}))
+    (d / "assembly.json").write_text(json.dumps({"pre_clip_trail_count": 10, "post_clip_trail_count": 2}))
+    assert dk.main(["report-area", "--area-json", str(d / "area.json"), "--geom", str(d / "geom.json"),
+                    "--trails-geojson", str(d / "trails.geojson"), "--removed-geojson", str(d / "removed.geojson"),
+                    "--assembly-json", str(d / "assembly.json"), "--out", str(d / "report.json"),
+                    "--expected", str(tmp_path / "none.json")]) == 0
+    rep = json.loads((d / "report.json").read_text())
+    assert rep["trail_names"] == ["Thy Route", "Short Loop"]
+    assert rep["route_segments"] == [{"name": "Thy Route", "length_mi": 4.0}]
+    assert rep["dropped_unresolved_relation_gap"] == [{"name": "Stage 1", "length_mi": 9.5}]
+    assert rep["removed_category_counts"] == {"dk-unqualified-road-track": 1, "disconnected-name-stitch": 1,
+                                              "min-length": 1, "unresolved-relation-gap": 1}
+    pe = rep["proposed_expected"]
+    assert pe["required_names"] == ["Thy Route"]
+    assert pe["forbidden_names"] == ["Sandvej", "Stage 1"]      # kept names are never forbidden
+    out = tmp_path / "q"
+    assert dk.main(["qualify-aggregate", "--reports-dir", str(tmp_path), "--out-dir", str(out)]) == 0
+    assert json.loads((out / "dk-areas-expected.proposed.json").read_text())["areas"][aid]["trail_count"] == 2
+    prop = json.loads((out / "dk-areas.proposed.json").read_text())
+    thy = next(a for a in prop["areas"] if a["id"] == aid)
+    assert thy["bbox"] == [8.05, 56.65, 8.75, 57.15] and thy["center"] == [56.9, 8.4]
+    assert prop["areas"][0]["bbox"] == [10.40, 56.08, 10.90, 56.35]
+    (tmp_path / "bad-dk").mkdir()
+    dk.main(["mark-failed", "--area-id", "bad-dk", "--stage", "pipeline", "--out", str(tmp_path / "bad-dk/report.json")])
+    assert dk.main(["qualify-aggregate", "--reports-dir", str(tmp_path), "--out-dir", str(out)]) == 1
+
+
+# ------------------------------------------------------- publish_areas guard --
+
+def _guard_argv(tmp, *extra, state="Denmark"):
+    return ["--trails", f"{tmp}/t.geojson", "--hiking", f"{tmp}/h.pbf", "--index", f"{tmp}/missing-index.json",
+            "--out-dir", f"{tmp}/out", "--state", state, "--exact-boundary", f"{tmp}/exact.geojson", *extra]
+
+
+def test_publish_areas_guard_accepts_registry_areas_only(tmp_path):
+    tmp = str(tmp_path)
+    for aid in (MOLS, "nationalpark-thy-dk"):
+        ok = ["--no-boundary-fetch", "--no-elevation", "--only-area", aid]
+        with pytest.raises(FileNotFoundError):          # guards pass; fails later on the missing index
+            publish_areas.main(_guard_argv(tmp, *ok))
+    for extra, state in ((["--no-boundary-fetch", "--no-elevation", "--only-area", "not-in-registry-dk"], "Denmark"),
+                         (["--no-boundary-fetch", "--only-area", "nationalpark-thy-dk"], "Denmark"),
+                         (["--no-boundary-fetch", "--no-elevation"], "Denmark"),
+                         (["--no-boundary-fetch", "--no-elevation", "--only-area", "nationalpark-thy-dk"], "Arizona"),
+                         (["--no-boundary-fetch", "--no-elevation", "--only-area", "nationalpark-thy-dk",
+                           "--preview-json", f"{tmp}/p.json", "--preview-root", tmp], "Denmark")):
+        with pytest.raises(SystemExit) as raised:
+            publish_areas.main(_guard_argv(tmp, *extra, state=state))
+        assert raised.value.code == 2
+
+
+def test_publish_areas_only_area_still_refuses_non_registry_ids(tmp_path):
+    index = tmp_path / "index.json"
+    index.write_text(json.dumps([["other-dk", "Other", "Denmark", 56.0, 9.0, None, None, 5]]), encoding="utf-8")
+    for aid in ("other-dk",):
+        with pytest.raises(SystemExit) as raised:
+            publish_areas.main(["--trails", "t", "--hiking", "h", "--index", str(index), "--state", "Denmark",
+                                "--out-dir", str(tmp_path / "o"), "--dry-run", "--only-area", aid])
+        assert raised.value.code == 2
+
+
+# --------------------------------------------------- validator discovery ------
+
+def _discovery_doc(rows):
+    return {"schema_version": 1, "requested_region_codes": ["DK"], "attribution": validator.ATTRIBUTION,
+            "candidate_count": len(rows), "candidates": [{"index_row": r[:5], "osm_relation_id": r[5]} for r in rows]}
+
+
+def test_validator_discovery_accepts_registry_override_and_keeps_mols_default(tmp_path):
+    rows = [[MOLS, "Nationalpark Mols Bjerge", "Denmark", 56.2251, 10.6493, 7046785],
+            ["nationalpark-thy-dk", "Nationalpark Thy", "Denmark", 56.9077, 8.4468, 7045682]]
+    report = tmp_path / "r.json"
+    report.write_text(json.dumps(_discovery_doc(rows)), encoding="utf-8")
+
+    def run(rel, **extra):
+        args = Namespace(discovery_report=str(report), overpass_receipt=None, pbf_provenance=None, source_pbf=None,
+                         expected_osm_relation_id=str(rel), selected_record_out=str(tmp_path / "sel.json"),
+                         index_out=str(tmp_path / "idx.json"), result_json=str(tmp_path / "res.json"), **extra)
+        return validator._run_discovery(args), json.loads((tmp_path / "res.json").read_text())
+
+    code, result = run(7046785)                          # unchanged Mols behaviour
+    assert code == 0 and result["area_id"] == MOLS
+    code, result = run(7045682, expected_area_id="nationalpark-thy-dk", expected_area_name="Nationalpark Thy")
+    assert code == 0 and result["area_id"] == "nationalpark-thy-dk"
+    assert json.loads((tmp_path / "idx.json").read_text())[0][2:3] == ["Denmark"]
+    code, _ = run(7045682, expected_area_id="nationalpark-thy-dk", expected_area_name="Wrong Name")
+    assert code == 1
+    code, _ = run(7045682)                               # Thy relation but the Mols default id/name
+    assert code == 1
+    code, _ = run(7045682, expected_area_id="nationalpark-thy-dk", expected_area_name=None)
+    assert code == 1                                     # id override without its name is refused
+
+
+# ------------------------------------------------------------- workflows -----
+
+PUBLISH_DK = (ROOT / ".github/workflows/trailforge-publish-dk.yml").read_text()
+SYNC_DK = (ROOT / ".github/workflows/sync-dk-to-r2.yml").read_text()
+
+
+@pytest.mark.parametrize("name", ["trailforge-publish-dk.yml", "sync-dk-to-r2.yml"])
+def test_new_workflows_parse_and_are_dispatch_only(name):
+    yaml = pytest.importorskip("yaml")
+    doc = yaml.safe_load((ROOT / ".github/workflows" / name).read_text())
+    triggers = doc.get("on", doc.get(True))
+    assert list(triggers) == ["workflow_dispatch"]
+    assert doc["jobs"]
+
+
+def test_publish_dk_workflow_contract():
+    yaml = pytest.importorskip("yaml")
+    doc = yaml.safe_load(PUBLISH_DK)
+    inputs = (doc.get("on") or doc.get(True))["workflow_dispatch"]["inputs"]
+    assert set(inputs) == {"areas", "mode", "chunk_size"}
+    assert inputs["mode"]["options"] == ["qualify", "publish"] and inputs["mode"]["default"] == "qualify"
+    assert inputs["chunk_size"]["default"] == "25"
+    assert doc["concurrency"]["group"] == "trailforge-publish"
+    assert len(doc["jobs"]) == 1                                  # single job, not a matrix
+    for forbidden in ("R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_ACCOUNT_ID", "aws s3", "s3api",
+                      "--elevation ", "sync-geom-to-r2.yml", "gh workflow run", "--force"):
+        assert forbidden not in PUBLISH_DK, forbidden
+    assert '[[ "$RAW_CHUNK" =~ ^([1-9]|[1-3][0-9]|40)$ ]]' in PUBLISH_DK          # hard max 40
+    assert 'test "$GITHUB_REF_NAME" = "main"' in PUBLISH_DK
+    assert 'test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD^)"' in PUBLISH_DK
+    assert "verify-staged" in PUBLISH_DK and "verify-commit" in PUBLISH_DK
+    # one Denmark download + discovery, then a per-area loop; publish merge/commit are publish-only
+    assert PUBLISH_DK.count("curl -fL") == 1 and PUBLISH_DK.count("seed-areas.py --dry-run DK") == 1
+    for step in ("Install blessed geoms", "Commit published data"):
+        block = PUBLISH_DK.split(f"- name: {step}", 1)[1].split("\n      - name:", 1)[0]
+        assert "if: ${{ inputs.mode == 'publish' }}" in block
+    # qualify never reaches a write step
+    assert "git push" not in PUBLISH_DK.split("- name: Commit published data", 1)[0]
+    assert "assert-expected" in PUBLISH_DK and "prepare-areas" in PUBLISH_DK
+
+
+def test_run_area_script_copies_the_mols_simple_exact_pipeline_flags():
+    script = (ROOT / "scripts/dk-run-area.sh").read_text()
+    for needle in ("validate_publish_pilot.py discovery", "--expected-area-id", "bash extract/aoi.sh",
+                   "build_relation_slice.py", "export_relation_members.py", "--only-area \"$AREA_NAME\"",
+                   "--require-exact-area", "--expected-area-relation-id \"$RELATION_ID\"",
+                   "--relation-authority", "--prefilter-authority", "--aoi-relation-members",
+                   "--min-length-mi 0.1 --per-area-merge --region dk", "--no-boundary-fetch", "--no-elevation",
+                   "--exact-boundary \"data/aoi/$AREA_ID.exact-area.geojson\"", "--only-area \"$AREA_ID\"",
+                   "--state Denmark"):
+        assert needle in script, needle
+    assert "--dry-run" not in script.split("serve/publish_areas.py", 1)[1]
+    assert subprocess.run(["bash", "-n", str(ROOT / "scripts/dk-run-area.sh")]).returncode == 0
+
+
+def test_sync_dk_workflow_contract():
+    yaml = pytest.importorskip("yaml")
+    doc = yaml.safe_load(SYNC_DK)
+    assert doc["concurrency"]["group"] == "sync-geom-to-r2"
+    inputs = (doc.get("on") or doc.get(True))["workflow_dispatch"]["inputs"]
+    assert set(inputs) == {"mode", "rollback_run_id"}              # the area list is never an input
+    assert inputs["mode"]["options"] == ["plan", "apply", "rollback"]
+    assert doc["permissions"] == {"contents": "read", "actions": "read"}
+    assert sorted(set(re.findall(r"secrets\.([A-Z0-9_]+)", SYNC_DK))) == [
+        "R2_ACCESS_KEY_ID", "R2_ACCOUNT_ID", "R2_SECRET_ACCESS_KEY"]
+    assert "environment:" not in SYNC_DK and "HMAC" not in SYNC_DK
+    # parking.json: snapshotted and ETag-checked, never written
+    assert "parking.json" in SYNC_DK and "put cand/parking" not in SYNC_DK
+    assert 'put "cand/$file" "$key" "$cc"' in SYNC_DK and "cand/parking" not in SYNC_DK
+    assert SYNC_DK.index("Snapshot live R2") < SYNC_DK.index("Save snapshot + candidates") < SYNC_DK.index("- name: Apply")
+    assert "PARTIAL APPLY: dispatch mode=rollback with rollback_run_id=$GITHUB_RUN_ID" in SYNC_DK
+    assert "trap - EXIT" in SYNC_DK and "rollback-decide" in SYNC_DK and "derive-areas" in SYNC_DK
+    assert 'test "$(cur "$key")" = "$(base "$key")"' in SYNC_DK       # ETag race guard
+    assert SYNC_DK.count('test "$(cur parking.json)" = "$(base parking.json)"') == 1
+    assert "parking_after" in SYNC_DK                                  # rollback checks parking too
+
+
+def test_every_workflow_holding_r2_write_credentials_shares_the_sync_lock():
+    for text in (SYNC_DK, (ROOT / ".github/workflows/sync-mols-to-r2.yml").read_text()):
+        assert "group: sync-geom-to-r2" in text and "cancel-in-progress: false" in text
+    assert "R2_ACCESS_KEY_ID" not in PUBLISH_DK

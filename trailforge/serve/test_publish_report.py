@@ -349,6 +349,39 @@ class PublishReport(unittest.TestCase):
                 exact_geometry=exact,
                 prior_row={"parking": [{"id": "sealed-only"}]})
 
+    def _guard_argv(self, tmp, *extra, state="Denmark"):
+        return ["--trails", f"{tmp}/t.geojson", "--hiking", f"{tmp}/h.pbf",
+                "--index", f"{tmp}/missing-index.json", "--out-dir", f"{tmp}/out",
+                "--state", state, "--exact-boundary", f"{tmp}/exact.geojson",
+                *extra]
+
+    def test_non_dry_exact_boundary_is_allowed_only_for_mols_no_elevation(self):
+        with TemporaryDirectory() as tmp, redirect_stderr(io.StringIO()):
+            ok = ["--no-boundary-fetch", "--no-elevation",
+                  "--only-area", _AREA_ID]
+            # Guard passes: the run proceeds and fails later on the missing index.
+            with self.assertRaises(FileNotFoundError):
+                publish.main(self._guard_argv(tmp, *ok))
+            refused = {
+                "no --only-area": ["--no-boundary-fetch", "--no-elevation"],
+                "no --no-elevation": ["--no-boundary-fetch", "--only-area", _AREA_ID],
+                "preview": ok + ["--preview-json", f"{tmp}/p.json",
+                                 "--preview-root", tmp],
+            }
+            for label, extra in refused.items():
+                with self.subTest(label), self.assertRaises(SystemExit) as raised:
+                    publish.main(self._guard_argv(tmp, *extra))
+                self.assertEqual(raised.exception.code, 2)
+            with self.assertRaises(SystemExit):
+                publish.main(self._guard_argv(tmp, *ok, state="Arizona"))
+
+    def test_dry_run_exact_boundary_still_requires_preview(self):
+        with TemporaryDirectory() as tmp, redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as raised:
+                publish.main(self._guard_argv(
+                    tmp, "--dry-run", "--no-boundary-fetch", "--no-elevation"))
+            self.assertEqual(raised.exception.code, 2)
+
     def test_generic_finalizer_preserves_prior_parking_semantics(self):
         parking = [{"id": "existing"}]
         result = self._run(

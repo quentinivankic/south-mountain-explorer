@@ -157,6 +157,81 @@ def test_select_refuses_unknown_duplicate_malformed_and_published_for_publish(tm
         dk.select_areas(reg, set(), "area-000-dk", 25, "dry")
 
 
+# ------------------------------------------------- full Danish registry ------
+
+PARKS = ("nationalpark-thy-dk", "nationalpark-vadehavet-dk",
+         "nationalpark-skjoldungernes-land-dk", "nationalpark-kongernes-nordsjaelland-dk")
+
+
+def _reg():
+    return dk.load_registry(REGISTRY)
+
+
+def test_full_registry_counts_ids_and_relations_are_unique():
+    areas = _reg()["areas"]
+    assert len(areas) == 112
+    ids = [a["id"] for a in areas]
+    rels = [a["relation_id"] for a in areas]
+    assert len(set(ids)) == len(ids) and all(i.endswith("-dk") for i in ids)
+    assert len(set(rels)) == len(rels)
+    assert [a["id"] for a in areas[:5]][0] == MOLS and set(PARKS) <= set(ids)
+    assert all(a["bbox"] is None for a in areas if a["id"] != MOLS)
+
+
+def test_hold_counts_match_the_discovery_candidates():
+    areas = _reg()["areas"]
+    holds = {}
+    for a in areas:
+        holds.setdefault(a["hold"], []).append(a["id"])
+    assert {k: len(v) for k, v in holds.items()} == {
+        None: 74, "name-collision": 3, "np-nested": 20, "island": 15}
+    assert sorted(holds["name-collision"]) == ["hammer-bakker-dk", "hejede-overdrev-dk", "vestvolden-dk"]
+    assert all(a["hold"] is None for a in areas if a["id"] == MOLS or a["id"] in PARKS)
+    assert all(a["tier"] in (1, 2) for a in areas)
+
+
+def test_blessed_table_still_contains_only_mols():
+    assert set(dk.load_expected(EXPECTED)) == {MOLS}
+
+
+def test_batch_skips_held_and_explicit_areas_include_them():
+    reg = _reg()
+    held = [a["id"] for a in reg["areas"] if a["hold"]]
+    picked = set()
+    for n in (1, 2, 3):
+        picked |= set(dk.select_areas(reg, {MOLS}, f"batch={n}", 25, "qualify"))
+    assert not picked & set(held)
+    assert dk.select_areas(reg, set(), ",".join(held[:3]), 25, "qualify") == held[:3]
+    assert dk.select_areas(reg, set(), "hammer-bakker-dk", 25, "publish") == ["hammer-bakker-dk"]
+
+
+def test_batches_are_deterministic_parks_first_then_est_miles_desc():
+    reg = _reg()
+    batches = [dk.select_areas(reg, {MOLS}, f"batch={n}", 25, "qualify") for n in (1, 2, 3)]
+    assert [len(b) for b in batches] == [25, 25, 23]
+    with pytest.raises(dk.DkError):
+        dk.select_areas(reg, {MOLS}, "batch=4", 25, "qualify")
+    assert batches == [dk.select_areas(reg, {MOLS}, f"batch={n}", 25, "qualify") for n in (1, 2, 3)]
+    flat = [i for b in batches for i in b]
+    assert len(set(flat)) == 73 and MOLS not in flat
+    assert set(flat[:4]) == set(PARKS)               # priority rule: tier 1 parks lead batch 1
+    mi = [reg["by_id"][i]["est_mi"] for i in flat[4:]]
+    assert mi == sorted(mi, reverse=True)
+    # publishing batch 1 makes the old batch 2 the new batch 1
+    assert dk.select_areas(reg, {MOLS, *batches[0]}, "batch=1", 25, "publish") == batches[1]
+
+
+@pytest.mark.parametrize("mutate", [
+    lambda d: d["areas"][1].update(hold=3),
+    lambda d: d["areas"][1].update(hold=""),
+    lambda d: d["areas"][1].update(est_mi=-1),
+    lambda d: d["areas"][1].update(est_trails=1.5),
+])
+def test_registry_rejects_bad_hold_and_estimates(tmp_path, mutate):
+    with pytest.raises(dk.DkError):
+        dk.load_registry(_write_registry(tmp_path / "r.json", mutate))
+
+
 # --------------------------------------------------------- bbox / prepare ----
 
 OSM = """<?xml version='1.0' encoding='UTF-8'?>

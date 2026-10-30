@@ -1,8 +1,10 @@
 name: Quarantine R2 Orphans (no final deletion)
 
 # Manual only. The default plan_only path produces canonical evidence and zero
-# provider writes. Apply performs only no-clobber copy -> exact verification ->
-# conditional source removal. Quarantined bytes are never finally deleted here.
+# provider writes. Apply can make the reviewed no-clobber quarantine copy and
+# verify it exactly, but real source removal remains disabled until a separately
+# approved documented atomic primitive exists. Quarantined bytes are never
+# finally deleted here.
 
 on:
   workflow_dispatch:
@@ -58,7 +60,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: r2-quarantine
+  # Every repository path with R2 write credentials shares this exact lock.
+  group: sync-geom-to-r2
   cancel-in-progress: false
 
 jobs:

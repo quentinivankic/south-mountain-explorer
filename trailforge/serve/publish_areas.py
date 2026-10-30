@@ -565,6 +565,10 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
     ap.add_argument("--index", default=_DEFAULT_INDEX)
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--state", default="Arizona")
+    ap.add_argument(
+        "--only-area",
+        help="publish only the exact authorized Mols area; omitted preserves state-wide behavior",
+    )
     ap.add_argument("--min-inside-mi", type=float, default=0.25,
                     help="a trail needs at least this many miles inside the area "
                          "to be included (filters boundary grazes)")
@@ -654,6 +658,18 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                  "trail_count": r[5] if len(r) > 5 else None,
                  "osm_rel": r[7] if len(r) > 7 else None}
           for r in index if len(r) >= 5 and r[2] == args.state}
+    if args.only_area:
+        if args.only_area != _MOLS_AREA_ID or args.state != "Denmark":
+            ap.error("--only-area is restricted to exact Mols publication")
+        selected = az.get(args.only_area)
+        if selected is None:
+            ap.error("exact Mols area is absent from the selected state index")
+        if (
+            selected["name"] != _MOLS_AREA_NAME
+            or selected["osm_rel"] != _MOLS_RELATION_ID
+        ):
+            ap.error("exact Mols index identity is invalid")
+        az = {args.only_area: selected}
     print(f"index: {len(az)} '{args.state}' areas", file=sys.stderr)
 
     fc = json.load(open(args.trails))

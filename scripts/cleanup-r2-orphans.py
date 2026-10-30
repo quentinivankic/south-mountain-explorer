@@ -2,17 +2,30 @@
 """Plan or apply fail-closed R2 orphan quarantine.
 
 The active policy lives only in :mod:`r2_release_contract`.  This consumer can
-build a canonical plan or perform no-clobber copy -> exact verification ->
-conditional source removal.  It has no final-deletion operation.  Provider
-behavior remains a separately gated external proof; local tests inject fakes.
+build a canonical plan or perform a no-clobber copy and exact verification.
+Real source removal remains fail-closed until a separately approved documented
+atomic primitive exists; local contract tests inject fakes for state-machine
+coverage. It has no final-deletion operation.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
+import tempfile
 from pathlib import Path
+
+
+
+def file_digest(path: Path, algorithm: str) -> str:
+    digest = hashlib.new(algorithm)
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
 
 DEFAULT_INDEX = Path(__file__).resolve().parent.parent / "ios" / "SouthMountainExplorer" / "Resources" / "areas-index.json"
 DEFAULT_REGISTRY = Path(__file__).resolve().parent.parent / "public" / "areas" / "index.json"
@@ -97,7 +110,7 @@ def plan_quarantine(args: argparse.Namespace) -> int:
 
 
 class AwsQuarantineStore:
-    """Provider adapter that selects and removes only the reviewed version."""
+    """Version-free adapter: exact current copy, verify, then single-key remove."""
 
     def __init__(self, endpoint_url: str, account_id: str):
         self.endpoint_url = endpoint_url
@@ -114,45 +127,61 @@ class AwsQuarantineStore:
     ) -> dict[str, object] | None:
         completed = subprocess.run(command, capture_output=True, text=True, timeout=180)
         if completed.returncode != 0:
-            if missing_ok and any(token in completed.stderr for token in ("404", "NoSuchKey", "Not Found")):
+            if missing_ok and any(
+                token in completed.stderr for token in ("404", "NoSuchKey", "Not Found")
+            ):
                 return None
-            raise self.contract.ManifestError(f"{context} failed with status {completed.returncode}")
+            raise self.contract.ManifestError(
+                f"{context} failed with status {completed.returncode}"
+            )
         document = self.contract.strict_json_loads(completed.stdout or "{}", context)
         if not isinstance(document, dict):
             raise self.contract.ManifestError(f"{context} did not return an object")
         return document
 
-    def _request_id(self, document: dict[str, object], context: str) -> str:
-        metadata = document.get("ResponseMetadata")
-        candidate = metadata.get("RequestId") if isinstance(metadata, dict) else document.get("RequestId")
-        if not isinstance(candidate, str) or not candidate:
-            raise self.contract.ManifestError(f"{context} lacks distinct request identity")
-        return candidate
-
-    def head(self, key: str, *, version_id: str | None = None) -> dict[str, object] | None:
-        command = [
-            "aws", "s3api", "head-object", "--bucket", self.contract.BUCKET,
-            "--key", key, "--endpoint-url", self.endpoint_url,
-            "--checksum-mode", "ENABLED", "--output", "json",
-        ]
-        if version_id is not None:
-            command += ["--version-id", version_id]
+    def _download(self, key: str, etag: str, output: Path) -> None:
         document = self._run(
-            command, "quarantine exact-version preimage read", missing_ok=True
+            [
+                "aws", "s3api", "get-object", "--bucket", self.contract.BUCKET,
+                "--key", key, "--if-match", etag,
+                "--endpoint-url", self.endpoint_url, "--checksum-mode", "ENABLED",
+                "--output", "json", str(output),
+            ],
+            "quarantine exact current GET",
+        )
+        if document is None or not output.is_file() or output.is_symlink():
+            raise self.contract.ManifestError("quarantine GET did not produce exact bytes")
+
+    def head(self, key: str) -> dict[str, object] | None:
+        document = self._run(
+            [
+                "aws", "s3api", "head-object", "--bucket", self.contract.BUCKET,
+                "--key", key, "--endpoint-url", self.endpoint_url,
+                "--checksum-mode", "ENABLED", "--output", "json",
+            ],
+            "quarantine current preimage HEAD", missing_ok=True,
         )
         if document is None:
             return None
-        etag = document.get("ETag")
-        if isinstance(etag, str) and len(etag) >= 2 and etag[0] == etag[-1] == '"':
-            etag = etag[1:-1]
-        return {
-            "etag": etag.lower() if isinstance(etag, str) else etag,
-            "bytes": document.get("ContentLength"),
-            "sha256": self.contract.normalize_sha256_checksum(
-                document.get("ChecksumSHA256"), "quarantine provider preimage"
-            ),
-            "version_id": document.get("VersionId"),
-        }
+        etag = self.contract._normalize_etag(
+            document.get("ETag"), "quarantine current preimage"
+        )
+        byte_count = document.get("ContentLength")
+        if not isinstance(byte_count, int) or isinstance(byte_count, bool) or byte_count < 0:
+            raise self.contract.ManifestError("quarantine HEAD byte count is invalid")
+        with tempfile.TemporaryDirectory(prefix="trekdex-quarantine-read-") as directory:
+            output = Path(directory) / "object"
+            self._download(key, etag, output)
+            sha256 = file_digest(output, "sha256")
+            actual_bytes = output.stat().st_size
+        if actual_bytes != byte_count:
+            raise self.contract.ManifestError("quarantine HEAD/GET byte count mismatch")
+        checksum_value = document.get("ChecksumSHA256")
+        if checksum_value is not None and self.contract.normalize_sha256_checksum(
+            checksum_value, "quarantine current preimage"
+        ) != sha256:
+            raise self.contract.ManifestError("quarantine HEAD/GET SHA-256 mismatch")
+        return {"etag": etag, "bytes": actual_bytes, "sha256": sha256}
 
     def copy_no_clobber(
         self,
@@ -163,9 +192,11 @@ class AwsQuarantineStore:
         attempt_id: str,
     ) -> dict[str, object]:
         from urllib.parse import quote
-        copy_source = quote(
-            f"{self.contract.BUCKET}/{source}", safe="/"
-        ) + "?versionId=" + quote(str(source_preimage["version_id"]), safe="")
+        if self.head(source) != source_preimage or self.head(destination) is not None:
+            raise self.contract.ConditionalRequestRefused(
+                "quarantine copy precondition changed"
+            )
+        copy_source = quote(f"{self.contract.BUCKET}/{source}", safe="/")
         document = self._run(
             [
                 "aws", "s3api", "copy-object", "--bucket", self.contract.BUCKET,
@@ -175,43 +206,34 @@ class AwsQuarantineStore:
                 "--metadata-directive", "COPY", "--endpoint-url", self.endpoint_url,
                 "--output", "json",
             ],
-            "no-clobber exact-version quarantine copy",
+            "no-clobber current-object quarantine copy",
         )
         assert document is not None
-        version = document.get("VersionId")
-        if not isinstance(version, str) or not version:
-            raise self.contract.ManifestError("copy returned no stable destination version")
+        if self.head(destination) != source_preimage:
+            raise self.contract.ManifestError("quarantine copy readback mismatch")
         return {
-            "transaction_id": self._request_id(document, "copy result"),
-            "version_id": version,
+            "transaction_id": "r2-copy-" + self.contract.canonical_sha256({
+                "attempt_id": attempt_id, "source": source,
+                "destination": destination, "provider_result": document,
+            })[:32],
             "attempt_id": attempt_id,
         }
 
-    def remove_if_match(
+    def remove_after_exact_proof(
         self,
         source: str,
         *,
         source_preimage: dict[str, object],
         attempt_id: str,
     ) -> dict[str, object]:
-        document = self._run(
-            [
-                "aws", "s3api", "delete-object", "--bucket", self.contract.BUCKET,
-                "--key", source, "--version-id", str(source_preimage["version_id"]),
-                "--if-match", str(source_preimage["etag"]),
-                "--endpoint-url", self.endpoint_url, "--output", "json",
-            ],
-            "conditional exact-version source removal after verified quarantine copy",
+        if self.head(source) != source_preimage:
+            raise self.contract.ConditionalRequestRefused(
+                "quarantine source changed before removal"
+            )
+        raise self.contract.ManifestError(
+            "quarantine source removal is disabled: no separately approved "
+            "documented atomic primitive is configured"
         )
-        assert document is not None
-        returned_version = document.get("VersionId")
-        if returned_version != source_preimage["version_id"]:
-            raise self.contract.ManifestError("source removal returned the wrong version identity")
-        return {
-            "transaction_id": self._request_id(document, "source removal result"),
-            "version_id": returned_version,
-            "attempt_id": attempt_id,
-        }
 
 
 def apply_quarantine(args: argparse.Namespace) -> int:

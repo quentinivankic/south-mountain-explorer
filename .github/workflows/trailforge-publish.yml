@@ -41,10 +41,10 @@ on:
         description: "Opt into the read-only Mols Bjerge QA pilot"
         default: ""
       pilot_bbox:
-        description: "Exact padded bbox required by the Mols Bjerge QA pilot"
+        description: "Exact padded bbox required by the Mols Bjerge QA pilot or signed publication"
         default: ""
-      expected_osm_relation_id:
-        description: "Expected current OSM relation id for the pilot area"
+      mols_release_input_receipt_b64:
+        description: "Canonical signed exact-Mols release-input receipt; blank preserves generic US publication"
         default: ""
 
 concurrency:
@@ -60,86 +60,288 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Validate publication input shape before secrets
+        id: input_shape
+        env:
+          RAW_EXTRACT: ${{ inputs.extract }}
+          RAW_STATE: ${{ inputs.state }}
+          RAW_DRY_RUN: ${{ inputs.dry_run }}
+          RAW_NO_ROUTES: ${{ inputs.no_routes }}
+          RAW_TOUCH_REPORT: ${{ inputs.touch_report }}
+          RAW_ELEVATION: ${{ inputs.elevation }}
+          RAW_REGION_CODE: ${{ inputs.region_code }}
+          RAW_PILOT_AREA_ID: ${{ inputs.pilot_area_id }}
+          RAW_PILOT_BBOX: ${{ inputs.pilot_bbox }}
+          RAW_MOLS_RELEASE_INPUT_RECEIPT_B64: ${{ inputs.mols_release_input_receipt_b64 }}
+        run: |
+          set -euo pipefail
+          [[ "$RAW_EXTRACT" =~ ^[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*$ ]]
+          [[ "$RAW_STATE" =~ ^[A-Za-z]+([\ -][A-Za-z]+)*$ ]]
+          [[ -z "$RAW_REGION_CODE" || "$RAW_REGION_CODE" =~ ^[a-z]{2}$ ]]
+          [[ -z "$RAW_PILOT_AREA_ID" || "$RAW_PILOT_AREA_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]
+          [[ -z "$RAW_PILOT_BBOX" || "$RAW_PILOT_BBOX" =~ ^-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?$ ]]
+          for value in "$RAW_DRY_RUN" "$RAW_NO_ROUTES" "$RAW_TOUCH_REPORT" "$RAW_ELEVATION"; do
+            [[ "$value" = "true" || "$value" = "false" ]]
+          done
+          RELEASE_MODE=generic
+          if [ -n "$RAW_MOLS_RELEASE_INPUT_RECEIPT_B64" ]; then
+            test "${#RAW_MOLS_RELEASE_INPUT_RECEIPT_B64}" -le 16384
+            [[ "$RAW_MOLS_RELEASE_INPUT_RECEIPT_B64" =~ ^[A-Za-z0-9+/]+={0,2}$ ]]
+            test "$(( ${#RAW_MOLS_RELEASE_INPUT_RECEIPT_B64} % 4 ))" -eq 0
+            test "$GITHUB_REF_TYPE" = "branch"
+            test "$GITHUB_REF_NAME" = "main"
+            test "$RAW_EXTRACT" = "europe/denmark"
+            test "$RAW_STATE" = "Denmark"
+            test "$RAW_REGION_CODE" = "dk"
+            test "$RAW_PILOT_BBOX" = "10.40,56.08,10.90,56.35"
+            test "$RAW_PILOT_AREA_ID" = ""
+            test "$RAW_DRY_RUN" = "false"
+            test "$RAW_NO_ROUTES" = "false"
+            test "$RAW_TOUCH_REPORT" = "false"
+            test "$RAW_ELEVATION" = "false"
+            RELEASE_MODE=mols
+          else
+            test "$RAW_STATE" != "Denmark"
+            test "$RAW_REGION_CODE" != "dk"
+          fi
+          {
+            printf 'extract=%s\n' "$RAW_EXTRACT"
+            printf 'state=%s\n' "$RAW_STATE"
+            printf 'dry_run=%s\n' "$RAW_DRY_RUN"
+            printf 'no_routes=%s\n' "$RAW_NO_ROUTES"
+            printf 'touch_report=%s\n' "$RAW_TOUCH_REPORT"
+            printf 'elevation=%s\n' "$RAW_ELEVATION"
+            printf 'region_code=%s\n' "$RAW_REGION_CODE"
+            printf 'pilot_area_id=%s\n' "$RAW_PILOT_AREA_ID"
+            printf 'pilot_bbox=%s\n' "$RAW_PILOT_BBOX"
+            printf 'mols_release_input_receipt_b64=%s\n' "$RAW_MOLS_RELEASE_INPUT_RECEIPT_B64"
+            printf 'release_mode=%s\n' "$RELEASE_MODE"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Verify canonical Mols release input after shape validation
+        id: release_input
+        if: ${{ steps.input_shape.outputs.release_mode == 'mols' }}
+        env:
+          MOLS_RELEASE_INPUT_RECEIPT_B64: ${{ steps.input_shape.outputs.mols_release_input_receipt_b64 }}
+          PUBLISH_EXTRACT: ${{ steps.input_shape.outputs.extract }}
+          PUBLISH_STATE: ${{ steps.input_shape.outputs.state }}
+          PUBLISH_DRY_RUN: ${{ steps.input_shape.outputs.dry_run }}
+          PUBLISH_NO_ROUTES: ${{ steps.input_shape.outputs.no_routes }}
+          PUBLISH_TOUCH_REPORT: ${{ steps.input_shape.outputs.touch_report }}
+          PUBLISH_ELEVATION: ${{ steps.input_shape.outputs.elevation }}
+          PUBLISH_REGION_CODE: ${{ steps.input_shape.outputs.region_code }}
+          PUBLISH_PILOT_AREA_ID: ${{ steps.input_shape.outputs.pilot_area_id }}
+          PUBLISH_PILOT_BBOX: ${{ steps.input_shape.outputs.pilot_bbox }}
+          R2_ROOT_APPROVAL_HMAC_KEY: ${{ secrets.R2_ROOT_APPROVAL_HMAC_KEY }}
+        run: |
+          set -euo pipefail
+          python3 scripts/stage-changed-r2.py verify-release-input \
+            --extract "$PUBLISH_EXTRACT" \
+            --state "$PUBLISH_STATE" \
+            --region-code "$PUBLISH_REGION_CODE" \
+            --bbox "$PUBLISH_PILOT_BBOX" \
+            --dry-run "$PUBLISH_DRY_RUN" \
+            --no-routes "$PUBLISH_NO_ROUTES" \
+            --touch-report "$PUBLISH_TOUCH_REPORT" \
+            --elevation "$PUBLISH_ELEVATION" \
+            --pilot-area-id "$PUBLISH_PILOT_AREA_ID" \
+            --workflow-source-sha "$GITHUB_SHA" \
+            --workflow-source-tree "$(git rev-parse 'HEAD^{tree}')" \
+            --mols-index-output "$RUNNER_TEMP/mols-release-index.json" \
+            --github-output "$GITHUB_OUTPUT"
 
       - name: Install osmium + pyosmium + shapely + Pillow
         run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely python3-pil
 
       - name: Download + prefilter extract
+        env:
+          PUBLISH_EXTRACT: ${{ steps.input_shape.outputs.extract }}
         run: |
           set -e
           cd trailforge
           mkdir -p data/raw data/aoi
-          F="data/raw/$(basename '${{ github.event.inputs.extract }}').osm.pbf"
-          echo "Downloading ${{ github.event.inputs.extract }} ..."
+          F="data/raw/$(basename "$PUBLISH_EXTRACT").osm.pbf"
+          echo "Downloading validated extract ..."
           curl -fL --retry 5 --retry-delay 5 --connect-timeout 20 \
             --speed-limit 2000 --speed-time 30 -o "$F" \
-            "https://download.geofabrik.de/${{ github.event.inputs.extract }}-latest.osm.pbf"
+            "https://download.geofabrik.de/${PUBLISH_EXTRACT}-latest.osm.pbf"
           ls -lh "$F"
           bash extract/prefilter.sh "$F" data/hiking.osm.pbf
 
       - name: Assemble (statewide, per-area merge)
+        env:
+          PUBLISH_REGION_CODE: ${{ steps.input_shape.outputs.region_code }}
         run: |
           set -e
           cd trailforge
           # Pass --region ONLY when region_code is set, so existing US-state
-          # dispatches (empty region_code) are byte-for-byte unchanged.
-          REGION_FLAG=""
-          [ -n "${{ github.event.inputs.region_code }}" ] && REGION_FLAG="--region ${{ github.event.inputs.region_code }}"
+          # dispatches (empty region_code) retain the same command behavior.
+          REGION_FLAG=()
+          if [ -n "$PUBLISH_REGION_CODE" ]; then
+            REGION_FLAG=(--region "$PUBLISH_REGION_CODE")
+          fi
           python3 assemble/assemble.py --in data/hiking.osm.pbf \
-            --out data/aoi/state.trails.geojson --min-length-mi 0.1 --per-area-merge $REGION_FLAG
+            --out data/aoi/state.trails.geojson --min-length-mi 0.1 --per-area-merge \
+            "${REGION_FLAG[@]}"
 
       - name: Publish areas (clip + convert + validate)
+        env:
+          PUBLISH_STATE: ${{ steps.input_shape.outputs.state }}
+          PUBLISH_DRY_RUN: ${{ steps.input_shape.outputs.dry_run }}
+          PUBLISH_NO_ROUTES: ${{ steps.input_shape.outputs.no_routes }}
+          PUBLISH_TOUCH_REPORT: ${{ steps.input_shape.outputs.touch_report }}
+          PUBLISH_ELEVATION: ${{ steps.input_shape.outputs.elevation }}
+          RELEASE_MODE: ${{ steps.input_shape.outputs.release_mode }}
+          VERIFIED_AREA_ID: ${{ steps.release_input.outputs.area_id }}
+          VERIFIED_INDEX_PATH: ${{ steps.release_input.outputs.publication_index_path }}
         run: |
           set -e
           cd trailforge
-          FLAGS=""
-          [ "${{ github.event.inputs.dry_run }}" = "true" ]  && FLAGS="$FLAGS --dry-run"
-          [ "${{ github.event.inputs.no_routes }}" = "true" ] && FLAGS="$FLAGS --no-routes"
-          [ "${{ github.event.inputs.touch_report }}" = "true" ] && FLAGS="$FLAGS --touch-report"
-          [ "${{ github.event.inputs.elevation }}" = "true" ] && FLAGS="$FLAGS --elevation"
+          FLAGS=()
+          INDEX_PATH="../public/areas/index.json"
+          ONLY_AREA=()
+          [ "$PUBLISH_DRY_RUN" = "true" ] && FLAGS+=(--dry-run)
+          [ "$PUBLISH_NO_ROUTES" = "true" ] && FLAGS+=(--no-routes)
+          [ "$PUBLISH_TOUCH_REPORT" = "true" ] && FLAGS+=(--touch-report)
+          [ "$PUBLISH_ELEVATION" = "true" ] && FLAGS+=(--elevation)
+          if [ "$RELEASE_MODE" = "mols" ]; then
+            test "$VERIFIED_AREA_ID" = "nationalpark-mols-bjerge-dk"
+            test -f "$VERIFIED_INDEX_PATH"
+            INDEX_PATH="$VERIFIED_INDEX_PATH"
+            ONLY_AREA=(--only-area "$VERIFIED_AREA_ID")
+          fi
           # Read the MASTER index (every seeded state) so a not-yet-bundled
           # state has areas to fill; publish_areas updates its counts in place.
           python3 serve/publish_areas.py \
             --trails data/aoi/state.trails.geojson --hiking data/hiking.osm.pbf \
-            --state "${{ github.event.inputs.state }}" \
-            --index ../public/areas/index.json \
-            --out-dir ../public/areas/geom $FLAGS
+            --state "$PUBLISH_STATE" \
+            --index "$INDEX_PATH" \
+            --out-dir ../public/areas/geom "${ONLY_AREA[@]}" "${FLAGS[@]}"
+
+      - name: Merge signed Mols row into canonical master index
+        if: ${{ steps.input_shape.outputs.dry_run == 'false' && steps.input_shape.outputs.release_mode == 'mols' }}
+        env:
+          RELEASE_INPUT_RECEIPT_SHA256: ${{ steps.release_input.outputs.receipt_sha256 }}
+          VERIFIED_INDEX_PATH: ${{ steps.release_input.outputs.publication_index_path }}
+        run: |
+          set -euo pipefail
+          python3 scripts/stage-changed-r2.py merge-mols-index \
+            --source "$VERIFIED_INDEX_PATH" \
+            --target public/areas/index.json \
+            --expected-receipt-sha256 "$RELEASE_INPUT_RECEIPT_SHA256"
 
       - name: Regenerate silhouettes from the clean geom (Explore/Browse art)
-        if: ${{ github.event.inputs.dry_run == 'false' }}
+        if: ${{ steps.input_shape.outputs.dry_run == 'false' }}
         run: python3 scripts/silhouettes-from-geom.py
 
       - name: Regenerate app bundle (only areas with clean trailforge geom)
-        if: ${{ github.event.inputs.dry_run == 'false' }}
+        if: ${{ steps.input_shape.outputs.dry_run == 'false' }}
         run: python3 scripts/filter-ios-bundle.py
 
-      - name: Commit published data
-        if: ${{ github.event.inputs.dry_run == 'false' }}
+      - name: Commit published data and seal pushed identity
+        id: published_commit
+        if: ${{ steps.input_shape.outputs.dry_run == 'false' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_TERMINAL_PROMPT: "0"
+          PUBLISH_STATE: ${{ steps.input_shape.outputs.state }}
+          RELEASE_MODE: ${{ steps.input_shape.outputs.release_mode }}
+          RELEASE_INPUT_RECEIPT_SHA256: ${{ steps.release_input.outputs.receipt_sha256 }}
         run: |
-          set -e
+          set -euo pipefail
+          test "$GITHUB_REF_TYPE" = "branch"
+          test "$GITHUB_REF_NAME" = "main"
           git config user.name "trailforge-bot"
           git config user.email "actions@users.noreply.github.com"
           # public/areas covers geom + the master index; the bundle is the app's.
           git add public/areas ios/SouthMountainExplorer/Resources/areas-index.json
-          if git diff --cached --quiet; then
-            echo "No data changes to commit."; exit 0
+          if [ "$RELEASE_MODE" = "mols" ]; then
+            [[ "$RELEASE_INPUT_RECEIPT_SHA256" =~ ^[0-9a-f]{64}$ ]]
+            python3 scripts/stage-changed-r2.py verify-mols-staged-diff \
+              --repo "$GITHUB_WORKSPACE" \
+              --expected-receipt-sha256 "$RELEASE_INPUT_RECEIPT_SHA256" \
+              --output "$RUNNER_TEMP/mols-staged-diff-receipt.json"
           fi
-          git commit -m "trailforge: publish ${{ github.event.inputs.state }} areas to app"
-          # main can move during the run (a code merge, another publish), which
-          # rejects a plain push — rebase our data commit on top and retry.
-          for i in 1 2 3 4 5; do
-            if git push; then exit 0; fi
-            echo "push rejected (attempt $i) — rebasing on latest main"
-            git pull --rebase origin main || git rebase --abort || true
-          done
-          echo "push failed after retries"; exit 1
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "trailforge: publish ${PUBLISH_STATE} areas to app"
 
-      - name: Trigger R2 sync
-        if: ${{ github.event.inputs.dry_run == 'false' }}
+          git config --local credential.https://github.com.helper '!gh auth git-credential'
+          trap 'git config --local --unset-all credential.https://github.com.helper || true' EXIT
+
+          if [ "$RELEASE_MODE" = "mols" ]; then
+            python3 scripts/stage-changed-r2.py verify-mols-commit \
+              --repo "$GITHUB_WORKSPACE" \
+              --expected-receipt-sha256 "$RELEASE_INPUT_RECEIPT_SHA256" \
+              --output "$RUNNER_TEMP/mols-commit-diff-receipt.json"
+            git fetch --no-tags origin main
+            test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD^)"
+            git push
+          else
+            # Preserve the existing generic state retry behavior. This branch
+            # never carries Mols publication authority.
+            pushed=false
+            for i in 1 2 3 4 5; do
+              if git push; then
+                pushed=true
+                break
+              fi
+              echo "push rejected (attempt $i) — rebasing on latest main"
+              git pull --rebase origin main || { git rebase --abort || true; exit 1; }
+            done
+            test "$pushed" = "true"
+          fi
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          SOURCE_TREE="$(git rev-parse 'HEAD^{tree}')"
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]
+          echo "published=true" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "source_tree=$SOURCE_TREE" >> "$GITHUB_OUTPUT"
+          echo "sealed pushed commit=$SOURCE_SHA tree=$SOURCE_TREE"
+
+      - name: Dispatch exact plan-only R2 sync and stop for manifest review
+        if: ${{ steps.input_shape.outputs.dry_run == 'false' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run sync-geom-to-r2.yml
+          RELEASE_MODE: ${{ steps.input_shape.outputs.release_mode }}
+          PUBLISHED: ${{ steps.published_commit.outputs.published }}
+          SOURCE_SHA: ${{ steps.published_commit.outputs.source_sha }}
+          SOURCE_TREE: ${{ steps.published_commit.outputs.source_tree }}
+          ROOT_APPROVAL_REF: ${{ steps.release_input.outputs.root_approval_ref }}
+          ACCOUNT_IDENTITY_REF: ${{ steps.release_input.outputs.account_identity_ref }}
+          ENDPOINT_IDENTITY_REF: ${{ steps.release_input.outputs.endpoint_identity_ref }}
+          INVENTORY_ANCHOR_REF: ${{ steps.release_input.outputs.inventory_anchor_ref }}
+          AUTHORITATIVE_DENOMINATOR: ${{ steps.release_input.outputs.authoritative_denominator }}
+        run: |
+          set -euo pipefail
+          if [ "$PUBLISHED" != "true" ] || [ "$RELEASE_MODE" != "mols" ]; then
+            echo "No pushed verified Mols publication commit; R2 plan dispatch skipped."
+            exit 0
+          fi
+          [[ "$ROOT_APPROVAL_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$ACCOUNT_IDENTITY_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$ENDPOINT_IDENTITY_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$INVENTORY_ANCHOR_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$AUTHORITATIVE_DENOMINATOR" =~ ^[1-9][0-9]*$ ]]
+          # This chained dispatch is always evidence-only. A separate reviewed
+          # manual dispatch supplies approved_manifest_sha256 with plan_only=false.
+          gh workflow run sync-geom-to-r2.yml --ref main \
+            -f source_sha="$SOURCE_SHA" \
+            -f source_tree="$SOURCE_TREE" \
+            -f root_approval_ref="$ROOT_APPROVAL_REF" \
+            -f account_identity_ref="$ACCOUNT_IDENTITY_REF" \
+            -f endpoint_identity_ref="$ENDPOINT_IDENTITY_REF" \
+            -f inventory_anchor_ref="$INVENTORY_ANCHOR_REF" \
+            -f authoritative_denominator="$AUTHORITATIVE_DENOMINATOR" \
+            -f plan_only=true
 
   pilot:
     if: ${{ github.event.inputs.pilot_area_id != '' }}
@@ -157,7 +359,7 @@ jobs:
       PILOT_REGION_CODE: ${{ github.event.inputs.region_code }}
       PILOT_AREA_ID: ${{ github.event.inputs.pilot_area_id }}
       PILOT_BBOX: ${{ github.event.inputs.pilot_bbox }}
-      PILOT_EXPECTED_RELATION_ID: ${{ github.event.inputs.expected_osm_relation_id }}
+      PILOT_EXPECTED_RELATION_ID: "7046785"
     steps:
       - uses: actions/checkout@v4
         with:

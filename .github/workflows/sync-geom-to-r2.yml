@@ -10,9 +10,10 @@ name: Sync Geom to R2 from an approved immutable source
 # incomplete listing aborts before staging and before every write. The receipt
 # binds privacy-safe identity references, all page/token closure, every exact
 # key/preimage, the protected set, denominator, digest, and anchor state.
-# scripts/stage-changed-r2.py emits one complete producer population and the
-# exact changed-leaf-plus-four-global conditional manifest. Apply accepts only
-# its separately reviewed SHA-256 and emits a typed terminal receipt.
+# scripts/stage-changed-r2.py emits one complete producer population and an
+# exact byte-different Mols-only conditional manifest. Apply accepts only its
+# separately reviewed SHA-256, freezes a first-class rollback manifest, and
+# emits a typed terminal receipt.
 
 on:
   workflow_dispatch:
@@ -54,9 +55,14 @@ on:
         description: "Exact reviewed manifest hash; required when plan_only is false"
         required: false
         type: string
+      reconcile_run_id:
+        description: "Prior sync run containing an exact pending-effect journal; blank for normal plan/apply"
+        required: false
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: sync-geom-to-r2
@@ -68,17 +74,65 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Validate sync input shape before secrets
+        id: input_shape
+        env:
+          RAW_SOURCE_SHA: ${{ inputs.source_sha }}
+          RAW_SOURCE_TREE: ${{ inputs.source_tree }}
+          RAW_ROOT_APPROVAL_REF: ${{ inputs.root_approval_ref }}
+          RAW_ACCOUNT_IDENTITY_REF: ${{ inputs.account_identity_ref }}
+          RAW_ENDPOINT_IDENTITY_REF: ${{ inputs.endpoint_identity_ref }}
+          RAW_INVENTORY_ANCHOR_REF: ${{ inputs.inventory_anchor_ref }}
+          RAW_AUTHORITATIVE_DENOMINATOR: ${{ inputs.authoritative_denominator }}
+          RAW_PLAN_ONLY: ${{ inputs.plan_only }}
+          RAW_APPROVED_MANIFEST_SHA256: ${{ inputs.approved_manifest_sha256 }}
+          RAW_RECONCILE_RUN_ID: ${{ inputs.reconcile_run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$RAW_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RAW_SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]
+          for value in \
+            "$RAW_ROOT_APPROVAL_REF" \
+            "$RAW_ACCOUNT_IDENTITY_REF" \
+            "$RAW_ENDPOINT_IDENTITY_REF" \
+            "$RAW_INVENTORY_ANCHOR_REF"; do
+            [[ "$value" =~ ^sha256:[0-9a-f]{64}$ ]]
+          done
+          [[ "$RAW_AUTHORITATIVE_DENOMINATOR" =~ ^[1-9][0-9]*$ ]]
+          [[ "$RAW_PLAN_ONLY" = "true" || "$RAW_PLAN_ONLY" = "false" ]]
+          [[ -z "$RAW_APPROVED_MANIFEST_SHA256" || "$RAW_APPROVED_MANIFEST_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          [[ -z "$RAW_RECONCILE_RUN_ID" || "$RAW_RECONCILE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          if [ "$RAW_PLAN_ONLY" = "false" ]; then
+            [[ "$RAW_APPROVED_MANIFEST_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          fi
+          if [ -n "$RAW_RECONCILE_RUN_ID" ]; then
+            test "$RAW_PLAN_ONLY" = "false"
+            [[ "$RAW_APPROVED_MANIFEST_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          fi
+          {
+            printf 'source_sha=%s\n' "$RAW_SOURCE_SHA"
+            printf 'source_tree=%s\n' "$RAW_SOURCE_TREE"
+            printf 'root_approval_ref=%s\n' "$RAW_ROOT_APPROVAL_REF"
+            printf 'account_identity_ref=%s\n' "$RAW_ACCOUNT_IDENTITY_REF"
+            printf 'endpoint_identity_ref=%s\n' "$RAW_ENDPOINT_IDENTITY_REF"
+            printf 'inventory_anchor_ref=%s\n' "$RAW_INVENTORY_ANCHOR_REF"
+            printf 'authoritative_denominator=%s\n' "$RAW_AUTHORITATIVE_DENOMINATOR"
+            printf 'plan_only=%s\n' "$RAW_PLAN_ONLY"
+            printf 'approved_manifest_sha256=%s\n' "$RAW_APPROVED_MANIFEST_SHA256"
+            printf 'reconcile_run_id=%s\n' "$RAW_RECONCILE_RUN_ID"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Checkout the approved commit, detached
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ steps.input_shape.outputs.source_sha }}
           fetch-depth: 1
           persist-credentials: false
 
       - name: Verify immutable source identity
         env:
-          SOURCE_SHA: ${{ inputs.source_sha }}
-          SOURCE_TREE: ${{ inputs.source_tree }}
+          SOURCE_SHA: ${{ steps.input_shape.outputs.source_sha }}
+          SOURCE_TREE: ${{ steps.input_shape.outputs.source_tree }}
         run: |
           set -euo pipefail
           if [[ ! "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
@@ -103,25 +157,59 @@ jobs:
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
           echo "verified detached source commit=$SOURCE_SHA tree=$SOURCE_TREE"
 
+      - name: Install checksum-pinned AWS CLI
+        env:
+          AWS_CLI_VERSION: "2.39.1"
+          AWS_CLI_ARCHIVE_SHA256: "5b6c10e0a8ccdcf30c84bd643fea511f103d257a4787a7cef878691d63169804"
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "x86_64"
+          ARCHIVE="$RUNNER_TEMP/awscli-${AWS_CLI_VERSION}.zip"
+          INSTALL_ROOT="$RUNNER_TEMP/aws-cli-${AWS_CLI_VERSION}"
+          BIN_ROOT="$RUNNER_TEMP/aws-cli-bin-${AWS_CLI_VERSION}"
+          curl --fail --location --silent --show-error \
+            "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWS_CLI_VERSION}.zip" \
+            --output "$ARCHIVE"
+          printf '%s  %s\n' "$AWS_CLI_ARCHIVE_SHA256" "$ARCHIVE" | sha256sum --check --strict
+          unzip -q "$ARCHIVE" -d "$RUNNER_TEMP/awscli-installer-${AWS_CLI_VERSION}"
+          "$RUNNER_TEMP/awscli-installer-${AWS_CLI_VERSION}/aws/install" \
+            --install-dir "$INSTALL_ROOT" --bin-dir "$BIN_ROOT"
+          VERSION_OUTPUT="$($BIN_ROOT/aws --version 2>&1)"
+          case "$VERSION_OUTPUT" in
+            "aws-cli/${AWS_CLI_VERSION} "*) ;;
+            *) echo "::error::unexpected AWS CLI identity"; exit 1 ;;
+          esac
+          echo "$BIN_ROOT" >> "$GITHUB_PATH"
+          echo "verified aws-cli/${AWS_CLI_VERSION} archive_sha256=${AWS_CLI_ARCHIVE_SHA256}"
+
       - name: Build canonical plan and optionally apply the exact reviewed manifest
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
+          AWS_CLI_VERSION: "2.39.1"
+          AWS_CLI_ARCHIVE_SHA256: "5b6c10e0a8ccdcf30c84bd643fea511f103d257a4787a7cef878691d63169804"
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ROOT_APPROVAL_ASSERTION_JSON: ${{ secrets.R2_ROOT_APPROVAL_ASSERTION_JSON }}
           R2_ROOT_APPROVAL_HMAC_KEY: ${{ secrets.R2_ROOT_APPROVAL_HMAC_KEY }}
-          SOURCE_SHA: ${{ inputs.source_sha }}
-          SOURCE_TREE: ${{ inputs.source_tree }}
-          ROOT_APPROVAL_REF: ${{ inputs.root_approval_ref }}
-          ACCOUNT_IDENTITY_REF: ${{ inputs.account_identity_ref }}
-          ENDPOINT_IDENTITY_REF: ${{ inputs.endpoint_identity_ref }}
-          INVENTORY_ANCHOR_REF: ${{ inputs.inventory_anchor_ref }}
-          AUTHORITATIVE_DENOMINATOR: ${{ inputs.authoritative_denominator }}
-          PLAN_ONLY: ${{ inputs.plan_only }}
-          APPROVED_MANIFEST_SHA256: ${{ inputs.approved_manifest_sha256 }}
+          SOURCE_SHA: ${{ steps.input_shape.outputs.source_sha }}
+          SOURCE_TREE: ${{ steps.input_shape.outputs.source_tree }}
+          PUBLICATION_AREA_ID: nationalpark-mols-bjerge-dk
+          ROOT_APPROVAL_REF: ${{ steps.input_shape.outputs.root_approval_ref }}
+          ACCOUNT_IDENTITY_REF: ${{ steps.input_shape.outputs.account_identity_ref }}
+          ENDPOINT_IDENTITY_REF: ${{ steps.input_shape.outputs.endpoint_identity_ref }}
+          INVENTORY_ANCHOR_REF: ${{ steps.input_shape.outputs.inventory_anchor_ref }}
+          AUTHORITATIVE_DENOMINATOR: ${{ steps.input_shape.outputs.authoritative_denominator }}
+          PLAN_ONLY: ${{ steps.input_shape.outputs.plan_only }}
+          APPROVED_MANIFEST_SHA256: ${{ steps.input_shape.outputs.approved_manifest_sha256 }}
+          RECONCILE_RUN_ID: ${{ steps.input_shape.outputs.reconcile_run_id }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          case "$(aws --version 2>&1)" in
+            "aws-cli/${AWS_CLI_VERSION} "*) ;;
+            *) echo "::error::pinned AWS CLI is not active"; exit 1 ;;
+          esac
           if [ -z "$R2_ACCOUNT_ID" ] || [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
             echo "::error::required provider identity or credential is unavailable"
             exit 1
@@ -131,6 +219,12 @@ jobs:
           [[ "$ENDPOINT_IDENTITY_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
           [[ "$INVENTORY_ANCHOR_REF" =~ ^sha256:[0-9a-f]{64}$ ]]
           [[ "$AUTHORITATIVE_DENOMINATOR" =~ ^[1-9][0-9]*$ ]]
+          test "$PUBLICATION_AREA_ID" = "nationalpark-mols-bjerge-dk"
+          if [ -n "$RECONCILE_RUN_ID" ]; then
+            [[ "$RECONCILE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            test "$PLAN_ONLY" = "false"
+            [[ "$APPROVED_MANIFEST_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          fi
 
           ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
           WORK_ROOT="${RUNNER_TEMP}/trekdex-r2-sync-contract"
@@ -155,15 +249,31 @@ jobs:
           test -s "$PARKING"
           test -s "$TRAIL_SHAPES"
 
-          python3 scripts/stage-changed-r2.py fetch-inventory \
-            --bucket trekdex-areas \
-            --endpoint-url "$ENDPOINT" \
-            --account-identity-ref "$ACCOUNT_IDENTITY_REF" \
-            --endpoint-identity-ref "$ENDPOINT_IDENTITY_REF" \
-            --authoritative-denominator "$AUTHORITATIVE_DENOMINATOR" \
-            --area-index public/areas/index.json \
-            --anchor-ref "$INVENTORY_ANCHOR_REF" \
-            --output "$INVENTORY"
+          if [ -n "$RECONCILE_RUN_ID" ]; then
+            RECOVERY_ROOT="$WORK_ROOT/recovery"
+            mkdir -m 700 "$RECOVERY_ROOT"
+            gh run download "$RECONCILE_RUN_ID" \
+              --repo "$GITHUB_REPOSITORY" \
+              --name "r2-sync-evidence-${SOURCE_SHA}" \
+              --dir "$RECOVERY_ROOT"
+            test -f "$RECOVERY_ROOT/inventory-receipt.json"
+            test -f "$RECOVERY_ROOT/stage/upload-manifest.json"
+            test -f "$RECOVERY_ROOT/stage/rollback-manifest.json"
+            test -d "$RECOVERY_ROOT/stage/rollback"
+            test -f "$RECOVERY_ROOT/terminal-receipt.json"
+            cp "$RECOVERY_ROOT/inventory-receipt.json" "$INVENTORY"
+            RECOVERY_JOURNAL="$RECOVERY_ROOT/terminal-receipt.json"
+          else
+            python3 scripts/stage-changed-r2.py fetch-inventory \
+              --bucket trekdex-areas \
+              --endpoint-url "$ENDPOINT" \
+              --account-identity-ref "$ACCOUNT_IDENTITY_REF" \
+              --endpoint-identity-ref "$ENDPOINT_IDENTITY_REF" \
+              --authoritative-denominator "$AUTHORITATIVE_DENOMINATOR" \
+              --area-index public/areas/index.json \
+              --anchor-ref "$INVENTORY_ANCHOR_REF" \
+              --output "$INVENTORY"
+          fi
 
           APPROVED_ARGS=()
           if [ "$PLAN_ONLY" != "true" ]; then
@@ -183,7 +293,32 @@ jobs:
             --workflow-sha256 "$WORKFLOW_SHA256" \
             --root-approval-ref "$ROOT_APPROVAL_REF" \
             --anchor-ref "$INVENTORY_ANCHOR_REF" \
+            --publication-area-id "$PUBLICATION_AREA_ID" \
             "${APPROVED_ARGS[@]}"
+
+          if [ -n "$RECONCILE_RUN_ID" ]; then
+            cp "$RECOVERY_ROOT/stage/rollback-manifest.json" \
+              "$STAGE_ROOT/rollback-manifest.json"
+            cp -R "$RECOVERY_ROOT/stage/rollback" "$STAGE_ROOT/rollback"
+            python3 scripts/stage-changed-r2.py reconcile-scoped \
+              --inventory "$INVENTORY" \
+              --manifest "$STAGE_ROOT/upload-manifest.json" \
+              --journal "$RECOVERY_JOURNAL" \
+              --approved-manifest-sha256 "$APPROVED_MANIFEST_SHA256" \
+              --endpoint-url "$ENDPOINT" \
+              --aws-cli-version "$AWS_CLI_VERSION" \
+              --aws-cli-archive-sha256 "$AWS_CLI_ARCHIVE_SHA256" \
+              --geom-dir public/areas/geom \
+              --silhouettes-dir public/areas/silhouettes \
+              --area-index public/areas/index.json \
+              --global-object "index.json=ios/SouthMountainExplorer/Resources/areas-index.json" \
+              --global-object "parking.json=$PARKING" \
+              --global-object "trail-search.json=$TRAIL_SEARCH" \
+              --global-object "trail-shapes.json=$TRAIL_SHAPES" \
+              --workflow .github/workflows/sync-geom-to-r2.yml \
+              --terminal-receipt "$TERMINAL"
+            exit $?
+          fi
 
           if [ "$PLAN_ONLY" = "true" ]; then
             echo "Plan-only complete: no provider write was attempted."
@@ -193,7 +328,10 @@ jobs:
             --inventory "$INVENTORY" \
             --manifest "$STAGE_ROOT/upload-manifest.json" \
             --approved-manifest-sha256 "$APPROVED_MANIFEST_SHA256" \
+            --publication-area-id "$PUBLICATION_AREA_ID" \
             --endpoint-url "$ENDPOINT" \
+            --aws-cli-version "$AWS_CLI_VERSION" \
+            --aws-cli-archive-sha256 "$AWS_CLI_ARCHIVE_SHA256" \
             --geom-dir public/areas/geom \
             --silhouettes-dir public/areas/silhouettes \
             --area-index public/areas/index.json \
@@ -208,10 +346,12 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: r2-sync-evidence-${{ inputs.source_sha }}
+          name: r2-sync-evidence-${{ steps.input_shape.outputs.source_sha }}
           path: |
             ${{ runner.temp }}/trekdex-r2-sync-contract/inventory-receipt.json
             ${{ runner.temp }}/trekdex-r2-sync-contract/stage/upload-manifest.json
+            ${{ runner.temp }}/trekdex-r2-sync-contract/stage/rollback-manifest.json
+            ${{ runner.temp }}/trekdex-r2-sync-contract/stage/rollback/**
             ${{ runner.temp }}/trekdex-r2-sync-contract/terminal-receipt.json
           if-no-files-found: warn
           retention-days: 7

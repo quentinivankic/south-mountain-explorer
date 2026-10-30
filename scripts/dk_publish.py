@@ -40,6 +40,27 @@ ROOT = Path(__file__).resolve().parent.parent
 REGISTRY_PATH = ROOT / "trailforge" / "golden" / "dk-areas.json"
 # Per-entry Denmark rule set; Mols stays "legacy" so the pinned control is unchanged.
 RULE_SETS = {"legacy", "dk-v2"}
+# Documented hold reasons (a held entry is skipped by batch= selection; name it in areas= to run it).
+#   island / np-nested / name-collision        discovery holds
+#   merge-into-klosterhede                     Kronhede is part of Klosterheden (same trails)
+#   duplicate-of-live                          same trails as an already published park
+#   needs-rescope                              island polygon is not one hiking destination
+#   merge-pending                              should become one area with its sibling
+#   mtb-centre                                 mostly an MTB trail centre
+HOLD_REASONS = {
+    "island", "np-nested", "name-collision", "merge-into-klosterhede",
+    "duplicate-of-live", "needs-rescope", "merge-pending", "mtb-centre",
+}
+# A trail list this generic after filtering is not a hiking destination (no names are invented).
+GENERIC_EXCLUDE_SHARE = 0.5
+_GENERIC_WORDS = {
+    "rød", "røde", "rødt", "gul", "gule", "gult", "blå", "blåt", "grøn", "grønne", "grønt",
+    "orange", "brun", "brune", "brunt", "sort", "sorte", "lilla", "hvid", "hvide", "hvidt",
+    "grå", "pink", "turkis", "lyserød", "rute", "ruten", "spor", "sporet", "tværspor", "tur",
+    "løberute", "vandrerute", "vandretur", "route", "trail", "nr", "og",
+    "første", "andet", "anden", "tredje", "fjerde", "femte", "sjette", "syvende", "ottende",
+    "niende", "tiende",
+}
 EXPECTED_PATH = ROOT / "trailforge" / "golden" / "dk-areas-expected.json"
 INDEX_REPO = "public/areas/index.json"
 BUNDLE_REPO = "ios/SouthMountainExplorer/Resources/areas-index.json"
@@ -128,6 +149,8 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         hold = entry.get("hold")
         if hold is not None and (not isinstance(hold, str) or not hold.strip()):
             raise DkError(f"{aid}: hold must be null or a reason string")
+        if hold is not None and hold not in HOLD_REASONS:
+            raise DkError(f"{aid}: hold {hold!r} is not one of {sorted(HOLD_REASONS)}")
         est_mi = entry.get("est_mi")
         if est_mi is not None and (not _is_num(est_mi) or est_mi < 0):
             raise DkError(f"{aid}: est_mi must be a non-negative number")
@@ -427,6 +450,10 @@ def _features(path: Path) -> list[dict[str, Any]]:
     return [f.get("properties") or {} for f in doc.get("features") or []]
 
 
+def is_generic_trail_name(name: Any) -> bool:
+    """'Rute 8', 'Spor 3', 'gul rute', 'Blå Rute': only colour/number/route words."""
+    tokens = [t for t in re.split(r"[\s,;:/()\-–.]+", str(name or "").casefold()) if t]
+    return bool(tokens) and all(t in _GENERIC_WORDS or t.isdigit() for t in tokens)
 def report_area(args: argparse.Namespace) -> int:
     area = _read_json(args.area_json, "area.json")
     geom = _read_json(args.geom, "geom")
@@ -444,11 +471,16 @@ def report_area(args: argparse.Namespace) -> int:
                   if p.get("removed_category") == "unresolved-relation-gap"},
                  key=lambda item: (str(item[0]), item[1] or 0))
     junk_categories = {"dk-unqualified-road-track", "dk-road-name", "disconnected-name-stitch",
-                       "unresolved-relation-gap"}
+                       "unresolved-relation-gap", "dk-mtb-trail", "dk-non-hiking",
+                       "dk-long-distance", "dk-fragment"}
     forbidden = sorted({p.get("name") for p in removed
                         if p.get("removed_category") in junk_categories and p.get("name")} - set(names))
+    generic = [n for n in names if is_generic_trail_name(n)]
+    generic_share = round(len(generic) / len(names), 3) if names else 0.0
     rec = {
         "id": area["id"], "name": area["name"], "relation_id": area["relation_id"], "status": "ok",
+        "generic_names": generic, "generic_share": generic_share,
+        "exclude_recommended": bool(names) and generic_share >= GENERIC_EXCLUDE_SHARE,
         "trail_count": geom.get("trail_count"), "total_mi": geom.get("total_mi"),
         "pre_clip_trail_count": assembly.get("pre_clip_trail_count"),
         "post_clip_trail_count": assembly.get("post_clip_trail_count"),
@@ -504,7 +536,10 @@ def qualify_aggregate(args: argparse.Namespace) -> int:
             pre=r.get("pre_clip_trail_count", "-"), post=r.get("post_clip_trail_count", "-"),
             src=r.get("bbox_source", "-"), b=r.get("blessed_match", "-")))
     for r in ok:
-        lines += ["", f"## {r['id']}", f"removed: `{json.dumps(r['removed_category_counts'], ensure_ascii=False)}`",
+        lines += ["", f"## {r['id']}"
+                  + (" EXCLUDE-RECOMMENDED (generic names)" if r.get("exclude_recommended") else ""),
+                  f"removed: `{json.dumps(r['removed_category_counts'], ensure_ascii=False)}`",
+                  f"generic names ({r.get('generic_share', 0)}): {r.get('generic_names', [])}",
                   f"route segments: {[(x['name'], x['length_mi']) for x in r['route_segments']]}",
                   f"dropped unresolved-relation-gap: {[(x['name'], x['length_mi']) for x in r['dropped_unresolved_relation_gap']]}",
                   f"bbox: boundary {r['boundary_bbox']} proposed {r['proposed_bbox']} centre {r['proposed_center']}",

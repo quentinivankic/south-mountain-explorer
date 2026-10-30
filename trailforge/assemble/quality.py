@@ -47,6 +47,25 @@ _QUALITY_REMOVAL_REASONS = {
         "or a street name on a plain path, with no hiking-route relation and "
         "no hiking tags."
     ),
+    "dk-mtb-trail": (
+        "Denmark-only rootless name stitch is mountain-bike or cycle "
+        "infrastructure (mtb:scale, one-way MTB path, bicycle-only way, or an "
+        "MTB trail-centre name on an mtb-tagged way) with no hiking-route "
+        "relation, no foot=designated and no hiking tags."
+    ),
+    "dk-non-hiking": (
+        "Denmark-only trail is a bridle path, running event route or "
+        "airstrip-type track, not a hiking trail."
+    ),
+    "dk-long-distance": (
+        "Denmark-only leg of a long-distance route (national, regional or "
+        "international walking network, or a named long-distance route) clipped "
+        "to this area; long-distance trails are left out, as in the US."
+    ),
+    "dk-fragment": (
+        "Denmark-only rootless name stitch shorter than 0.3 mi: a fragment, "
+        "not a checklist trail."
+    ),
     "nested-name-stitch-overlap": (
         "Low-authority rootless name stitch is at least 90% nested in a signed "
         "relation-backed object."
@@ -70,14 +89,21 @@ _DK_ROAD_HIGHWAYS = {
 # Last word of the name. Indefinite street words match on any road-class way;
 # definite forms (Strandvejen, Alleen) only when a road-class way carries them.
 _DK_ROAD_WORD = re.compile(
-    r"(vej|gade|alle|allé|stræde|boulevard|torv|plads|vænge)$")
+    r"(vej|gade|alle|allé|stræde|boulevard|torv|plads|vænge|linie|linje)$")
 _DK_ROAD_WORD_DEFINITE = re.compile(
-    r"(vejen|gaden|alleen|alléen|allèen|strædet|torvet|pladsen)$")
+    r"(vejen|gaden|alleen|alléen|allèen|strædet|torvet|pladsen|boulevarden|"
+    r"linien|linjen)$")
 _DK_STREET_DEFINITE = re.compile(r"(gaden|strædet|torvet|pladsen)$")
+# Forest-ride and road words that are an unmistakable compound ("Hjortevejen",
+# "Jydelinie") even on a plain path; a bare "Vejen"/"Linie" is not.
+_DK_RIDE_WORDS = {"ride", "riden", "stræde", "strædet"}
+_DK_RIDE_COMPOUND = re.compile(r"(.)(vejen|linie|linien|linje|linjen)$")
 # Access points, not trails ("Strandzugang", "Strandadgang").
 _DK_ACCESS_WORD = re.compile(r"(zugang|adgang)$")
 # Historic named roads that are real hiking routes (Hærvejen, Ridevejen, ...).
-_DK_HISTORIC_ROAD = re.compile(r"(hærvej|harvej|ridevej|oksevej|drivvej)")
+_DK_HISTORIC_ROAD = re.compile(
+    r"(hærvej|harvej|ridevej|oksevej|drivvej|hulvej|"
+    r"\b(?:kongevej|oldtidsvej|vikingevej))")
 # Any of these words makes a name a trail name; never a road-name drop.
 _DK_TRAIL_WORD = re.compile(
     r"(sti|stien|stier|rute|ruten|trail|spor|sporet|vandre|pilgrim|camino|"
@@ -118,7 +144,8 @@ def dk_road_name_verdict(name: Any, source_kind: Any,
     highways = {str((record.get("tags") or {}).get("highway", "")).strip().lower()
                 for record in rendered_records}
     if highways & _DK_ROAD_HIGHWAYS:
-        if _DK_ROAD_WORD.search(last) or _DK_ROAD_WORD_DEFINITE.search(last):
+        if _DK_ROAD_WORD.search(last) or _DK_ROAD_WORD_DEFINITE.search(last) \
+                or last in _DK_RIDE_WORDS:
             return "road-class-way"
         return None
     # Plain path/footway/pedestrian: only unmistakable street names. "Vej" as a
@@ -127,9 +154,151 @@ def dk_road_name_verdict(name: Any, source_kind: Any,
     if last == "vej":
         genitive = len(words) > 1 and words[-2].endswith("s")
         return "street-name-on-path" if genitive else None
-    if _DK_ROAD_WORD.search(last) or _DK_STREET_DEFINITE.search(last):
+    if _DK_ROAD_WORD.search(last) or _DK_STREET_DEFINITE.search(last) \
+            or _DK_RIDE_COMPOUND.search(last) or last in _DK_RIDE_WORDS:
         return "street-name-on-path"
     return None
+
+
+# ---- dk-v2 quality rules beyond road names (rootless-trail and name/tag based).
+# Evidence rules (documented in assemble/README.md):
+#  dk-mtb-trail:   rootless name stitch where >=50% of the rendered length is
+#                  MTB/cycle infrastructure and none of it is exempt.
+#  dk-non-hiking:  bridle path (all rendered ways horse=designated/bridleway
+#                  without foot=designated/yes) or a name that is a bridle path,
+#                  running event or airstrip ("Ridesti", "Margueritløbet", ...).
+#  dk-long-distance: clipped leg of a nwn/iwn/rwn route, or of a route whose
+#                  whole name is a known Danish long-distance route.
+#  dk-fragment:    rootless name stitch under 0.3 mi.
+DK_FRAGMENT_MIN_MI = 0.3
+_DK_MTB_CENTRE_NAME = re.compile(
+    r"(singletrack|single track|flowtrail|flow trail|pumptrack|downhill|"
+    r"enduro|freeride|trailcent|mtb\b|mountain ?bike|rutchebanen|"
+    r"evil autobahn|lubi-?lubi|urania|karrusellen|sandkasserne|"
+    r"last singletrack)")
+_DK_NON_HIKING_NAME = re.compile(
+    r"(ridesti(?:en|er)?\b|ridebane|ridestier|løbet\b|\bløb\b|løberute|"
+    r"løbesti|trackbane|landingsbane|motionsbane)")
+# Whole names of long-distance routes (after stripping an "Etape N -" / "Vandreruten"
+# prefix). Anything that only CONTAINS one of these tokens is ambiguous (human call).
+_DK_LONG_DISTANCE_NAMES = {
+    "hærvejen", "camønoen", "gudenåstien", "vestkyststien", "marguerit",
+    "marguerit-ruten", "margueritruten", "marguerit ruten", "aarhus-silkeborg",
+    "aarhus - silkeborg", "nordsjællandsruten", "skjoldungestien",
+    "djurslandstien", "marskstien", "kyst til kyst stien", "kyst til kyst-stien",
+    "kyst til kyst", "pilgrimsrute", "pilgrimsruter", "pilgrimsruten",
+}
+_DK_LONG_DISTANCE_TOKEN = re.compile(
+    r"(hærvej|camønoen|gudenåstien|vestkyststien|marguerit|aarhus.?silkeborg|"
+    r"nordsjællandsruten|skjoldungestien|djurslandstien|marskstien|"
+    r"kyst til kyst|pilgrimsrute)")
+_DK_LONG_NETWORKS = {"nwn", "iwn", "rwn"}
+_DK_LD_PREFIX = re.compile(
+    r"^(etape|stage)\s*\d+[a-z]?\s*[-–:]\s*|^vandreruten\s+")
+_DK_ONEWAY = {"yes", "true", "1", "-1"}
+_DK_BIKE_ONLY_HIGHWAYS = {"cycleway"}
+
+
+def _dk_way_exempt(tags: dict, in_relation: bool) -> bool:
+    """A way that is hiking infrastructure even when it carries MTB tags."""
+    if in_relation or str(tags.get("foot", "")).strip().lower() == "designated":
+        return True
+    return _dk_hiking_evidence(tags)
+
+
+def _dk_way_is_mtb(tags: dict) -> bool:
+    scale = str(tags.get("mtb:scale", "")).strip()
+    if re.match(r"\d", scale) or str(tags.get("mtb:scale:imba", "")).strip():
+        return True
+    foot = str(tags.get("foot", "")).strip().lower()
+    highway = str(tags.get("highway", "")).strip().lower()
+    if highway == "path" and str(tags.get("oneway", "")).strip().lower() in _DK_ONEWAY:
+        return True
+    if foot not in {"designated", "yes", "permissive"}:
+        if str(tags.get("bicycle", "")).strip().lower() == "designated":
+            return True
+        if highway in _DK_BIKE_ONLY_HIGHWAYS:
+            return True
+    return False
+
+
+def _dk_way_length(record: dict) -> float:
+    """Planar length proxy (degrees, longitude scaled for ~56N) for shares only."""
+    coords = record.get("coordinates") or []
+    return sum((((lon2 - lon1) * 0.5593) ** 2 + (lat2 - lat1) ** 2) ** 0.5
+               for (lon1, lat1), (lon2, lat2) in zip(coords, coords[1:]))
+
+
+def dk_mtb_verdict(name: Any, source_kind: Any, rendered_records: list[dict],
+                   ways: dict[int, dict]) -> str | None:
+    """Rule slug when a rootless name stitch is MTB/cycle infrastructure."""
+    if source_kind != "name-stitch" or not rendered_records:
+        return None
+    mtb_len = total_len = 0.0
+    tagged_mtb = False
+    normalized = _dk_norm_name(name)
+    for record in rendered_records:
+        tags = (ways.get(record["way_id"]) or {}).get("tags") or {}
+        length = _dk_way_length(record) or 1e-9
+        total_len += length
+        if record.get("direct_relation_ids"):
+            continue
+        # An MTB trail-centre name on an mtb:scale way counts even when the
+        # mapper also added trail_visibility; foot=designated/sac_scale still win.
+        if re.match(r"\d", str(tags.get("mtb:scale", "")).strip()) \
+                and str(tags.get("foot", "")).strip().lower() != "designated" \
+                and not str(tags.get("sac_scale", "")).strip():
+            tagged_mtb = True
+        if _dk_way_exempt(tags, False):
+            continue
+        if _dk_way_is_mtb(tags):
+            mtb_len += length
+    if total_len and mtb_len / total_len >= 0.5:
+        return "mtb-tags"
+    if tagged_mtb and _DK_MTB_CENTRE_NAME.search(normalized):
+        return "mtb-centre-name"
+    return None
+
+
+def dk_non_hiking_verdict(name: Any, source_kind: Any, rendered_records: list[dict],
+                          ways: dict[int, dict]) -> str | None:
+    """Rule slug for bridle paths, running events and airstrips, else None."""
+    normalized = _dk_norm_name(name)
+    if _DK_NON_HIKING_NAME.search(normalized):
+        return "non-hiking-name"
+    if source_kind != "name-stitch" or not rendered_records:
+        return None
+    for record in rendered_records:
+        tags = (ways.get(record["way_id"]) or {}).get("tags") or {}
+        horse = (str(tags.get("horse", "")).strip().lower() == "designated"
+                 or str(tags.get("highway", "")).strip().lower() == "bridleway")
+        foot = str(tags.get("foot", "")).strip().lower()
+        if not horse or foot in {"designated", "yes"} \
+                or record.get("direct_relation_ids") or _dk_hiking_evidence(tags):
+            return None
+    return "bridle-tags"
+
+
+def dk_long_distance_verdict(properties: dict) -> tuple[str | None, bool]:
+    """(drop rule slug or None, ambiguous). Matches by route network or whole
+    route name, never by loose substring. A clipped member of a nwn/iwn/rwn route,
+    or a clipped/rootless trail whose whole name is a known long-distance route,
+    is dropped. A name that only contains a long-distance token is ambiguous."""
+    name = _dk_norm_name(properties.get("name"))
+    stripped = _DK_LD_PREFIX.sub("", name).strip()
+    length = float(properties.get("length_mi") or 0)
+    full = float(properties.get("full_length_mi") or 0)
+    leg = bool(properties.get("clipped")) and full - length >= 0.25
+    network = str(properties.get("network") or "").strip().lower()
+    whole_name = stripped in _DK_LONG_DISTANCE_NAMES
+    if properties.get("source") == "relation" and leg \
+            and network in _DK_LONG_NETWORKS:
+        return "long-distance-network", False
+    if whole_name and (leg or properties.get("source") == "name-stitch"):
+        return "long-distance-name", False
+    if _DK_LONG_DISTANCE_TOKEN.search(name):
+        return None, True
+    return None, False
 
 
 class _UF:
@@ -1255,23 +1424,57 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                 and state["identity"] == "weak-track"):
             state["removed_category"] = "dk-unqualified-road-track"
     road_name_evidence = []
+    dk_removed_evidence = []
+    long_distance_ambiguous = []
     if dk_rules == "dk-v2":
         for state in states:
             properties = state["feature"]["properties"]
             if (state["removed_category"] is not None
                     or properties.get("quality_disposition") in {
-                        "invalid-source-geometry", "missing-source-way"}
-                    or properties.get("relation_ids")):
+                        "invalid-source-geometry", "missing-source-way"}):
                 continue
-            rule = dk_road_name_verdict(
-                properties.get("name"), properties.get("source"),
-                [record for record in properties.get("source_ways") or []
-                 if record.get("renders_in_area")])
-            if rule:
-                state["removed_category"] = "dk-road-name"
-                road_name_evidence.append({
-                    "name": properties.get("name"), "rule": rule,
-                    "miles": properties.get("length_mi")})
+            rendered = [record for record in properties.get("source_ways") or []
+                        if record.get("renders_in_area")]
+            rootless = not properties.get("relation_ids")
+            category = rule = None
+            if rootless:
+                rule = dk_road_name_verdict(
+                    properties.get("name"), properties.get("source"), rendered)
+                if rule:
+                    category = "dk-road-name"
+                    road_name_evidence.append({
+                        "name": properties.get("name"), "rule": rule,
+                        "miles": properties.get("length_mi")})
+            if category is None:
+                rule = dk_non_hiking_verdict(
+                    properties.get("name"), properties.get("source"),
+                    rendered, ways)
+                category = "dk-non-hiking" if rule else None
+            if category is None and rootless:
+                rule = dk_mtb_verdict(
+                    properties.get("name"), properties.get("source"),
+                    rendered, ways)
+                category = "dk-mtb-trail" if rule else None
+            if category is None:
+                rule, ambiguous = dk_long_distance_verdict(properties)
+                category = "dk-long-distance" if rule else None
+                if ambiguous:
+                    long_distance_ambiguous.append({
+                        "name": properties.get("name"),
+                        "source": properties.get("source"),
+                        "network": properties.get("network"),
+                        "miles": properties.get("length_mi")})
+            if (category is None and rootless
+                    and properties.get("source") == "name-stitch"
+                    and float(properties.get("length_mi") or 0)
+                    < DK_FRAGMENT_MIN_MI):
+                category, rule = "dk-fragment", "under-min-length"
+            if category:
+                state["removed_category"] = category
+                if category != "dk-road-name":
+                    dk_removed_evidence.append({
+                        "name": properties.get("name"), "category": category,
+                        "rule": rule, "miles": properties.get("length_mi")})
 
     states, dropped_root_contamination = \
         _exclude_dropped_root_contamination(states)
@@ -1402,6 +1605,9 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
     if dk_rules != "legacy":
         report["dk_rules"] = dk_rules
         report["dk_road_name_removed"] = road_name_evidence
+        if dk_rules == "dk-v2":
+            report["dk_quality_removed"] = dk_removed_evidence
+            report["dk_long_distance_ambiguous"] = long_distance_ambiguous
     return kept, removed, report
 
 

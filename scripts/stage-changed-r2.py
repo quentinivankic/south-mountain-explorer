@@ -1515,14 +1515,16 @@ class MolsConditionalWriter(AwsConditionalWriter):
         self,
         rollback_manifest: dict[str, Any],
         *,
+        forward_results: list[dict[str, Any]],
         rollback_results: list[dict[str, Any]],
     ) -> dict[str, Any]:
         contract = _contract_module()
-        if (
-            rollback_manifest["publication_area_id"] != contract.MOLS_AREA_ID
-            or len(rollback_results) != rollback_manifest["object_count"]
-        ):
-            raise contract.ManifestError("rollback verification population/scope is invalid")
+        contract.validate_rollback_result_prefix(
+            rollback_manifest,
+            forward_results=forward_results,
+            rollback_results=rollback_results,
+            require_complete=True,
+        )
         absent: list[str] = []
         restored_keys: list[str] = []
         semantic_restored: list[str] = []

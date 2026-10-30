@@ -94,7 +94,7 @@ Every restore requires immediate HEAD plus conditional GET to prove exact baseli
 
 ## Crash and timeout reconciliation
 
-Every forward and rollback effect has a durable write-ahead journal. `reconcile-scoped` consumes the exact `trekdex-r2-scoped-release-terminal-v2` pending journal, reviewed manifest, frozen rollback files, source identity, approval, provider identity, and pinned tool identity.
+Every forward and rollback effect has a durable write-ahead journal. `reconcile-scoped` consumes the exact `trekdex-r2-scoped-release-terminal-v2` pending journal, reviewed manifest, frozen rollback files, source identity, approval, provider identity, and pinned tool identity. Rollback results are bound to the exact known forward-effect prefix in reverse manifest order; a four-effect forward prefix therefore requires exactly four matching rollback results, not five. Before `ROLLED_BACK`, the adapter independently verifies all five manifest rows: every reversed row equals its frozen baseline or reviewed absence, and every never-written row still equals that same baseline or absence. A missing, extra, reordered, or mismatched rollback result fails closed, and any row that cannot be proven at baseline remains `INDETERMINATE`.
 
 Under the same workflow concurrency lock it re-observes the pending key:
 

@@ -81,6 +81,7 @@ from r2_release_contract import (  # noqa: E402
     validate_release_preflight,
     validate_release_receipt,
     validate_rollback_manifest,
+    validate_rollback_result_prefix,
     validate_scoped_release_preflight,
     validate_scoped_release_receipt,
     validate_upload_manifest,
@@ -862,8 +863,15 @@ class ScopedFakeWriter:
         self,
         rollback_manifest: dict[str, Any],
         *,
+        forward_results: list[dict[str, Any]],
         rollback_results: list[dict[str, Any]],
     ) -> dict[str, Any]:
+        validate_rollback_result_prefix(
+            rollback_manifest,
+            forward_results=forward_results,
+            rollback_results=rollback_results,
+            require_complete=True,
+        )
         absent: list[str] = []
         restored_keys: list[str] = []
         semantic_restored: list[str] = []
@@ -878,11 +886,24 @@ class ScopedFakeWriter:
                 continue
             baseline = row["baseline_object"]
             current = self.objects.get(row["key"])
-            if current is None or any(
-                current[field] != baseline[field]
-                for field in ("etag", "bytes", "sha256")
+            baseline_path = self.root / baseline["local_path"]
+            if not baseline_path.is_file() or baseline_path.is_symlink():
+                raise ManifestError("fake rollback baseline file is missing or unsafe")
+            baseline_payload = baseline_path.read_bytes()
+            if (
+                len(baseline_payload) != baseline["bytes"]
+                or hashlib.sha256(baseline_payload).hexdigest() != baseline["sha256"]
+                or hashlib.md5(
+                    baseline_payload, usedforsecurity=False
+                ).hexdigest() != baseline["md5"]
+                or current is None
+                or current["payload"] != baseline_payload
+                or any(
+                    current[field] != baseline[field]
+                    for field in ("etag", "bytes", "sha256")
+                )
             ):
-                raise RuntimeError("baseline not restored")
+                raise ManifestError("fake rollback state differs from frozen baseline")
             if row["key"] in MOLS_SEMANTIC_GLOBAL_KEYS:
                 semantic_restored.append(row["key"])
             restored_keys.append(row["key"])
@@ -1222,6 +1243,29 @@ class TestMolsScopedPublication(unittest.TestCase):
                     publication_area_id=MOLS_AREA_ID,
                     semantic_deltas=[],
                 )
+
+    def test_fake_verifier_rejects_wrong_prefix_and_bad_never_written_state(self) -> None:
+        writer = ScopedFakeWriter(
+            self.root, self.manifest, self.baseline, refuse_forward_at=4
+        )
+        receipt = _execute_scoped(self.manifest, writer)
+        self.assertEqual(receipt["terminal_state"], "ROLLED_BACK")
+        rollback_manifest = receipt["scoped_preflight"]["rollback_manifest"]
+        hostile_results = copy.deepcopy(receipt["rollback_results"])
+        hostile_results[0]["key"] = "trail-shapes.json"
+        with self.assertRaises(ManifestError):
+            writer.verify_rollback(
+                rollback_manifest,
+                forward_results=receipt["forward_results"],
+                rollback_results=hostile_results,
+            )
+        writer.objects["trail-shapes.json"]["payload"] = b"corrupt"
+        with self.assertRaisesRegex(ManifestError, "frozen baseline"):
+            writer.verify_rollback(
+                rollback_manifest,
+                forward_results=receipt["forward_results"],
+                rollback_results=receipt["rollback_results"],
+            )
 
     def test_partial_global_forward_refusal_restores_search_index_and_created_keys(self) -> None:
         writer = ScopedFakeWriter(
@@ -2172,6 +2216,141 @@ class TestScopedReconciliation(unittest.TestCase):
         self.assertEqual(self._reconcile(terminal, writer), terminal)
 
 
+class FakeR2ProviderTransport:
+    """In-memory AWS CLI transport for exercising the real Mols adapter."""
+
+    def __init__(
+        self,
+        baseline: dict[str, bytes],
+        *,
+        refuse_put_key: str | None = None,
+    ):
+        self.objects: dict[str, dict[str, Any]] = {
+            key: {"payload": payload, "metadata": {}}
+            for key, payload in baseline.items()
+        }
+        self.refuse_put_key = refuse_put_key
+        self.refused = False
+        self.calls: list[tuple[str, str | None]] = []
+
+    @staticmethod
+    def _completed(
+        command: list[str],
+        *,
+        stdout: str = "{}",
+        stderr: str = "",
+        code: int = 0,
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(
+            command, code, stdout=stdout, stderr=stderr
+        )
+
+    @staticmethod
+    def _value(command: list[str], flag: str) -> str:
+        return command[command.index(flag) + 1]
+
+    @staticmethod
+    def _identity(value: dict[str, Any]) -> dict[str, Any]:
+        payload = value["payload"]
+        return {
+            "etag": hashlib.md5(payload, usedforsecurity=False).hexdigest(),
+            "bytes": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        }
+
+    @staticmethod
+    def _body_bytes(command: list[str]) -> bytes:
+        body = FakeR2ProviderTransport._value(command, "--body")
+        match = re.fullmatch(r"/dev/fd/([0-9]+)", body)
+        if match is None:
+            raise AssertionError(f"unexpected fake-provider body path: {body}")
+        duplicate = os.dup(int(match.group(1)))
+        with os.fdopen(duplicate, "rb") as stream:
+            stream.seek(0)
+            return stream.read()
+
+    def run(
+        self, command: list[str], **_kwargs: Any
+    ) -> subprocess.CompletedProcess[str]:
+        if command == ["aws", "--version"]:
+            self.calls.append(("version", None))
+            return self._completed(
+                command,
+                stdout=f"aws-cli/{AWS_CLI_VERSION} Python/3.13 fake/x86_64\n",
+            )
+        if command[:2] != ["aws", "s3api"]:
+            raise AssertionError(command)
+        operation = command[2]
+        key = self._value(command, "--key")
+        self.calls.append((operation, key))
+        current = self.objects.get(key)
+
+        if operation == "head-object":
+            if current is None:
+                return self._completed(command, code=1, stderr="404 Not Found")
+            identity = self._identity(current)
+            return self._completed(command, stdout=json.dumps({
+                "ETag": f'"{identity["etag"]}"',
+                "ContentLength": identity["bytes"],
+                "ChecksumSHA256": identity["sha256"],
+                "Metadata": copy.deepcopy(current["metadata"]),
+            }))
+
+        if operation == "get-object":
+            if current is None:
+                return self._completed(command, code=1, stderr="404 Not Found")
+            identity = self._identity(current)
+            if self._value(command, "--if-match") != identity["etag"]:
+                return self._completed(
+                    command, code=1, stderr="412 PreconditionFailed"
+                )
+            Path(command[-1]).write_bytes(current["payload"])
+            return self._completed(command)
+
+        if operation == "put-object":
+            identity = None if current is None else self._identity(current)
+            if "--if-none-match" in command:
+                if self._value(command, "--if-none-match") != "*" or current is not None:
+                    return self._completed(
+                        command, code=1, stderr="412 PreconditionFailed"
+                    )
+            elif "--if-match" in command:
+                if current is None or self._value(command, "--if-match") != identity["etag"]:
+                    return self._completed(
+                        command, code=1, stderr="412 PreconditionFailed"
+                    )
+            else:
+                raise AssertionError("fake provider received unconditional PUT")
+            if key == self.refuse_put_key and not self.refused:
+                self.refused = True
+                return self._completed(
+                    command, code=1, stderr="412 PreconditionFailed"
+                )
+            payload = self._body_bytes(command)
+            if int(self._value(command, "--content-length")) != len(payload):
+                raise AssertionError("conditional PUT content length mismatch")
+            if base64.b64decode(self._value(command, "--content-md5")) != hashlib.md5(
+                payload, usedforsecurity=False
+            ).digest():
+                raise AssertionError("conditional PUT MD5 mismatch")
+            if base64.b64decode(self._value(command, "--checksum-sha256")) != hashlib.sha256(
+                payload
+            ).digest():
+                raise AssertionError("conditional PUT SHA-256 mismatch")
+            metadata = json.loads(self._value(command, "--metadata"))
+            self.objects[key] = {"payload": payload, "metadata": metadata}
+            written = self._identity(self.objects[key])
+            return self._completed(
+                command, stdout=json.dumps({"ETag": f'"{written["etag"]}"'})
+            )
+
+        if operation == "delete-object":
+            self.objects.pop(key, None)
+            return self._completed(command)
+
+        raise AssertionError(command)
+
+
 class TestMolsProviderAdapter(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
@@ -2242,6 +2421,182 @@ class TestMolsProviderAdapter(unittest.TestCase):
             row for row in self.preflight["rollback_manifest"]["objects"]
             if row["rollback_operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF"
         )
+
+    def test_real_adapter_reviewer_partial_prefix_reproduction_is_rolled_back(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _inventory, _locals, manifest, baseline = _scoped_fixture(root)
+            transport = FakeR2ProviderTransport(
+                baseline, refuse_put_key="trail-shapes.json"
+            )
+            adapter = self.module.MolsConditionalWriter(
+                endpoint_url=ENDPOINT_URL,
+                account_id=ACCOUNT_ID,
+                manifest_root=root,
+                aws_cli_version=AWS_CLI_VERSION,
+                aws_cli_archive_sha256=AWS_CLI_ARCHIVE_SHA256,
+            )
+            with mock.patch.object(
+                self.module.subprocess, "run", side_effect=transport.run
+            ):
+                receipt = _execute_scoped(manifest, adapter)
+            self.assertEqual(receipt["terminal_state"], "ROLLED_BACK")
+            self.assertEqual(receipt["forward_observed"], 4)
+            self.assertEqual(receipt["rollback_observed"], 4)
+            self.assertEqual(
+                [row["key"] for row in receipt["rollback_results"]],
+                [
+                    "trail-search.json",
+                    "index.json",
+                    MOLS_OBJECT_KEYS[1],
+                    MOLS_OBJECT_KEYS[0],
+                ],
+            )
+            self.assertEqual(
+                receipt["rollback_verification"]["verified_restored_keys"],
+                list(MOLS_MUTABLE_GLOBAL_KEYS),
+            )
+            self.assertNotIn(MOLS_OBJECT_KEYS[0], transport.objects)
+            self.assertNotIn(MOLS_OBJECT_KEYS[1], transport.objects)
+            for key in MOLS_MUTABLE_GLOBAL_KEYS:
+                self.assertEqual(transport.objects[key]["payload"], baseline[key])
+            validate_scoped_release_receipt(receipt, manifest)
+
+    def test_real_adapter_resumes_observed_partial_rollback_and_verifies_all_rows(self) -> None:
+        class ProcessDeath(BaseException):
+            pass
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _inventory, _locals, manifest, baseline = _scoped_fixture(root)
+            transport = FakeR2ProviderTransport(
+                baseline, refuse_put_key="trail-shapes.json"
+            )
+            stage_module = self.module
+
+            class CrashAfterRestore(stage_module.MolsConditionalWriter):
+                crashed = False
+
+                def rollback_put_conditional(
+                    inner_self, *args: Any, **kwargs: Any
+                ) -> dict[str, Any]:
+                    result = super().rollback_put_conditional(*args, **kwargs)
+                    if not inner_self.crashed:
+                        inner_self.crashed = True
+                        raise ProcessDeath("after partial rollback provider success")
+                    return result
+
+            crashing = CrashAfterRestore(
+                endpoint_url=ENDPOINT_URL,
+                account_id=ACCOUNT_ID,
+                manifest_root=root,
+                aws_cli_version=AWS_CLI_VERSION,
+                aws_cli_archive_sha256=AWS_CLI_ARCHIVE_SHA256,
+            )
+            approval = make_approval_assertion(
+                manifest,
+                operation="RELEASE",
+                key=APPROVAL_KEY,
+                authorization_nonce="real-adapter-reconcile-approval",
+            )
+            checkpoints: list[dict[str, Any]] = []
+            with mock.patch.object(
+                self.module.subprocess, "run", side_effect=transport.run
+            ), self.assertRaises(ProcessDeath):
+                _execute_scoped(
+                    manifest,
+                    crashing,
+                    approval_assertion=approval,
+                    checkpoint=lambda document: checkpoints.append(
+                        copy.deepcopy(document)
+                    ),
+                    execution_id="real-adapter-reconcile",
+                )
+            journal = checkpoints[-1]
+            self.assertEqual(journal["checkpoint_kind"], "WRITE_AHEAD")
+            self.assertEqual(journal["pending_effect"]["phase"], "ROLLBACK")
+            self.assertEqual(journal["pending_effect"]["key"], "trail-search.json")
+            resumed = self.module.MolsConditionalWriter(
+                endpoint_url=ENDPOINT_URL,
+                account_id=ACCOUNT_ID,
+                manifest_root=root,
+                aws_cli_version=AWS_CLI_VERSION,
+                aws_cli_archive_sha256=AWS_CLI_ARCHIVE_SHA256,
+            )
+            with mock.patch.object(
+                self.module.subprocess, "run", side_effect=transport.run
+            ):
+                terminal = reconcile_scoped_release_write_ahead(
+                    journal,
+                    manifest,
+                    resumed,
+                    approval_assertion=approval,
+                    approval_key=APPROVAL_KEY,
+                )
+            self.assertEqual(terminal["terminal_state"], "ROLLED_BACK")
+            self.assertEqual(terminal["forward_observed"], 4)
+            self.assertEqual(terminal["rollback_observed"], 4)
+            self.assertTrue(terminal["reconciliation"]["resumed"])
+            self.assertEqual(
+                terminal["rollback_verification"]["verified_restored_keys"],
+                list(MOLS_MUTABLE_GLOBAL_KEYS),
+            )
+            calls_before_repeat = list(transport.calls)
+            self.assertEqual(
+                reconcile_scoped_release_write_ahead(
+                    terminal,
+                    manifest,
+                    resumed,
+                    approval_assertion=approval,
+                    approval_key=APPROVAL_KEY,
+                ),
+                terminal,
+            )
+            self.assertEqual(transport.calls, calls_before_repeat)
+
+    def test_real_adapter_unreconcilable_never_written_row_stays_indeterminate(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _inventory, _locals, manifest, baseline = _scoped_fixture(root)
+            transport = FakeR2ProviderTransport(
+                baseline, refuse_put_key="trail-shapes.json"
+            )
+            stage_module = self.module
+
+            class CorruptBeforeFullVerification(stage_module.MolsConditionalWriter):
+                def verify_rollback(
+                    inner_self,
+                    rollback_manifest: dict[str, Any],
+                    *,
+                    forward_results: list[dict[str, Any]],
+                    rollback_results: list[dict[str, Any]],
+                ) -> dict[str, Any]:
+                    transport.objects["trail-shapes.json"]["payload"] = b"corrupt"
+                    return super().verify_rollback(
+                        rollback_manifest,
+                        forward_results=forward_results,
+                        rollback_results=rollback_results,
+                    )
+
+            adapter = CorruptBeforeFullVerification(
+                endpoint_url=ENDPOINT_URL,
+                account_id=ACCOUNT_ID,
+                manifest_root=root,
+                aws_cli_version=AWS_CLI_VERSION,
+                aws_cli_archive_sha256=AWS_CLI_ARCHIVE_SHA256,
+            )
+            with mock.patch.object(
+                self.module.subprocess, "run", side_effect=transport.run
+            ):
+                receipt = _execute_scoped(manifest, adapter)
+            self.assertEqual(receipt["terminal_state"], "INDETERMINATE")
+            self.assertEqual(receipt["error_boundary"], "VERIFY_ROLLBACK_BASELINE")
+            self.assertEqual(receipt["error_type"], "ManifestError")
+            self.assertEqual(receipt["forward_observed"], 4)
+            self.assertEqual(receipt["rollback_observed"], 4)
+            self.assertIsNone(receipt["pending_effect"])
+            self.assertIsNone(receipt["rollback_verification"])
+            validate_scoped_release_receipt(receipt, manifest)
 
     def test_tool_attestation_checks_active_version_and_archive_pin(self) -> None:
         good = subprocess.CompletedProcess(

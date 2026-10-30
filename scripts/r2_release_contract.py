@@ -322,6 +322,7 @@ class ScopedConditionalWriter(ConditionalWriter, Protocol):
         self,
         rollback_manifest: dict[str, Any],
         *,
+        forward_results: Sequence[dict[str, Any]],
         rollback_results: Sequence[dict[str, Any]],
     ) -> dict[str, Any]: ...
 
@@ -3138,6 +3139,91 @@ def _valid_rollback_delete_result(
     return copy.deepcopy(result)
 
 
+
+def validate_rollback_result_prefix(
+    rollback_manifest: Mapping[str, Any],
+    *,
+    forward_results: Sequence[dict[str, Any]],
+    rollback_results: Sequence[dict[str, Any]],
+    require_complete: bool = False,
+) -> tuple[int, ...]:
+    """Bind rollback evidence to the exact known forward prefix in reverse order."""
+    if not isinstance(require_complete, bool):
+        raise ManifestError("rollback prefix completeness flag is not boolean")
+    if (
+        not isinstance(rollback_manifest, dict)
+        or rollback_manifest.get("publication_area_id") != MOLS_AREA_ID
+        or not isinstance(rollback_manifest.get("objects"), list)
+        or not isinstance(rollback_manifest.get("object_count"), int)
+        or isinstance(rollback_manifest.get("object_count"), bool)
+        or rollback_manifest["object_count"] != len(rollback_manifest["objects"])
+    ):
+        raise ManifestError("rollback prefix manifest population/scope is invalid")
+    if not isinstance(forward_results, (list, tuple)) or not isinstance(
+        rollback_results, (list, tuple)
+    ):
+        raise ManifestError("rollback prefix result populations are invalid")
+    rows = rollback_manifest["objects"]
+    if len(forward_results) > len(rows) or len(rollback_results) > len(forward_results):
+        raise ManifestError("rollback results exceed the known forward-effect prefix")
+    if require_complete and (
+        not forward_results or len(rollback_results) != len(forward_results)
+    ):
+        raise ManifestError("rollback verification has not reversed every known forward effect")
+
+    normalized_forward: list[dict[str, Any]] = []
+    for index, (result, row) in enumerate(zip(forward_results, rows)):
+        if not isinstance(row, dict) or row.get("index") != index:
+            raise ManifestError("rollback prefix manifest rows are not canonical")
+        attempt_id = result.get("attempt_id", "") if isinstance(result, dict) else ""
+        normalized = _valid_provider_result(
+            result,
+            {"key": row.get("key"), **(row.get("expected_postimage") or {})},
+            attempt_id=attempt_id,
+        )
+        if not attempt_id.endswith(f"-put-{index}") or normalized != result:
+            raise ManifestError("known forward-effect prefix identity/order is invalid")
+        normalized_forward.append(normalized)
+
+    expected_indices = tuple(reversed(range(len(forward_results))))[: len(rollback_results)]
+    normalized_rollback: list[dict[str, Any]] = []
+    for result, index in zip(rollback_results, expected_indices):
+        row = rows[index]
+        attempt_id = result.get("attempt_id", "") if isinstance(result, dict) else ""
+        if not attempt_id.endswith(f"-rollback-{index}"):
+            raise ManifestError("rollback result attempt does not match its known forward effect")
+        if row.get("rollback_operation") == "DELETE_CREATED_AFTER_EXACT_PROOF":
+            normalized = _valid_rollback_delete_result(
+                result, row, attempt_id=attempt_id
+            )
+        elif row.get("rollback_operation") == "RESTORE_IF_MATCH":
+            baseline = row.get("baseline_object")
+            if not isinstance(baseline, dict):
+                raise ManifestError("rollback restore lacks its frozen baseline")
+            normalized = _valid_provider_result(
+                result,
+                {"key": row.get("key"), **baseline},
+                attempt_id=attempt_id,
+            )
+            preimage = row.get("baseline_preimage")
+            if not isinstance(preimage, dict) or normalized["etag"] != preimage.get("etag"):
+                raise ManifestError("rollback restore did not recover the baseline ETag")
+        else:
+            raise ManifestError("rollback result names an invalid operation")
+        if normalized != result:
+            raise ManifestError("rollback result is not canonical")
+        normalized_rollback.append(normalized)
+
+    forward_transactions = [result["transaction_id"] for result in normalized_forward]
+    rollback_transactions = [result["transaction_id"] for result in normalized_rollback]
+    if (
+        len(forward_transactions) != len(set(forward_transactions))
+        or len(rollback_transactions) != len(set(rollback_transactions))
+        or set(forward_transactions) & set(rollback_transactions)
+    ):
+        raise ManifestError("rollback prefix transaction identities repeat")
+    return expected_indices
+
 def _valid_rollback_verification(
     verification: Any, rollback_manifest: dict[str, Any]
 ) -> dict[str, Any]:
@@ -3354,40 +3440,14 @@ def validate_scoped_release_receipt(
     for field in ("forward_attempted", "forward_observed", "rollback_attempted", "rollback_observed"):
         if not isinstance(receipt[field], int) or isinstance(receipt[field], bool) or receipt[field] < 0:
             raise ManifestError("scoped release effect count is invalid")
-    normalized_forward = [
-        _valid_provider_result(result, manifest["objects"][index], attempt_id=result.get("attempt_id", ""))
-        for index, result in enumerate(forward)
-    ]
-    if normalized_forward != forward:
-        raise ManifestError("scoped release forward results are noncanonical")
-    forward_transactions = [result["transaction_id"] for result in forward]
-    if len(forward_transactions) != len(set(forward_transactions)):
-        raise ManifestError("scoped release forward transaction identities repeat")
     if rollback_manifest is not None:
-        expected_indices = list(reversed(range(len(forward))))[:len(rollback)]
-        normalized_rollback: list[dict[str, Any]] = []
-        for result, index in zip(rollback, expected_indices):
-            row = rollback_manifest["objects"][index]
-            if row["rollback_operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF":
-                normalized = _valid_rollback_delete_result(
-                    result, row, attempt_id=result.get("attempt_id", "") if isinstance(result, dict) else ""
-                )
-            else:
-                normalized = _valid_provider_result(
-                    result, {"key": row["key"], **row["baseline_object"]},
-                    attempt_id=result.get("attempt_id", "") if isinstance(result, dict) else "",
-                )
-                if normalized["etag"] != row["baseline_preimage"]["etag"]:
-                    raise ManifestError("rollback restore did not recover the baseline ETag")
-            normalized_rollback.append(normalized)
-        if normalized_rollback != rollback:
-            raise ManifestError("scoped rollback results are noncanonical")
-    rollback_transactions = [result["transaction_id"] for result in rollback]
-    if (
-        len(rollback_transactions) != len(set(rollback_transactions))
-        or set(rollback_transactions) & set(forward_transactions)
-    ):
-        raise ManifestError("scoped release transaction identities repeat across phases")
+        validate_rollback_result_prefix(
+            rollback_manifest,
+            forward_results=forward,
+            rollback_results=rollback,
+        )
+    elif forward or rollback:
+        raise ManifestError("scoped effect results have no rollback manifest")
     if not (
         len(forward) <= receipt["forward_attempted"] <= len(forward) + 1
         and len(rollback) <= receipt["rollback_attempted"] <= len(rollback) + 1
@@ -3645,7 +3705,9 @@ def execute_scoped_release(
         try:
             verification = _valid_rollback_verification(
                 writer.verify_rollback(
-                    copy.deepcopy(rollback_manifest), rollback_results=copy.deepcopy(rollback)
+                    copy.deepcopy(rollback_manifest),
+                    forward_results=copy.deepcopy(forward),
+                    rollback_results=copy.deepcopy(rollback),
                 ),
                 rollback_manifest,
             )
@@ -3933,6 +3995,7 @@ def reconcile_scoped_release_write_ahead(
             verification = _valid_rollback_verification(
                 writer.verify_rollback(
                     copy.deepcopy(rollback_manifest),
+                    forward_results=copy.deepcopy(forward),
                     rollback_results=copy.deepcopy(rollback),
                 ),
                 rollback_manifest,
@@ -4806,6 +4869,7 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
         "verify-release-input", "merge-mols-index", "verify-mols-staged-diff", "verify-mols-commit",
         "reconcile-scoped",
         "reconcile_scoped_release_write_ahead", "rollback_delete_created",
+        "validate_rollback_result_prefix",
         "DELETE_CREATED_AFTER_EXACT_PROOF", '"delete-object"',
         '"--if-match"', '"--if-none-match"', "--publication-area-id",
         "read_reviewed_baseline_bytes", "_build_scoped_semantic_deltas",
@@ -4813,7 +4877,11 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
         "aws_cli_version", "aws_cli_archive_sha256",
     ),
     "scripts/cleanup-r2-orphans.py": ("r2_release_contract", "apply-quarantine"),
-    "scripts/r2_release_contract.py": (CONTRACT_VERSION,),
+    "scripts/r2_release_contract.py": (
+        CONTRACT_VERSION,
+        "validate_rollback_result_prefix",
+        "forward_results=copy.deepcopy(forward)",
+    ),
     "scripts/trailforge_candidate_contract.py": ("trekdex-trailforge-candidate-contract-v3",),
     "scripts/test_r2_release_contract.py": (
         "RR2-ORIGINAL-CLAUSES-R2-V1",

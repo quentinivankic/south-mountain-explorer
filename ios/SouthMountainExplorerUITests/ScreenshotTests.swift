@@ -167,7 +167,7 @@ final class ScreenshotTests: XCTestCase {
     // MARK: - Navigation helpers
 
     private func openStatsTab(_ app: XCUIApplication) {
-        let statsTab = app.tabBars.buttons["Stats"]
+        let statsTab = app.buttons["Stats"].firstMatch  // tab bar moves into the glass rail on Duo
         guard statsTab.waitForExistence(timeout: 30) else {
             dumpTree(app, "tab-bar-missing")
             return

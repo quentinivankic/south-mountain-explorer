@@ -68,7 +68,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         )
         XCTAssertTrue(app.buttons["All Areas Map"].firstMatch.isHittable)
         XCTAssertTrue(app.tabBars.buttons["Explore"].firstMatch.isHittable)
-        XCTAssertTrue(app.tabBars.buttons["Stats"].firstMatch.isHittable)
+        XCTAssertTrue(app.buttons["Stats"].firstMatch.isHittable)
         XCTAssertTrue(app.tabBars.buttons["Browse"].firstMatch.isHittable)
         XCTAssertTrue(app.tabBars.buttons["Settings"].firstMatch.isHittable)
 

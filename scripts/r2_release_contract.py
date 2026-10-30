@@ -15,6 +15,7 @@ import copy
 import hashlib
 import hmac
 import json
+import math
 import re
 import secrets
 import unicodedata
@@ -22,21 +23,21 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
-CONTRACT_VERSION = "trekdex-r2-release-contract-v4"
+CONTRACT_VERSION = "trekdex-r2-release-contract-v5"
 BUCKET = "trekdex-areas"
 INVENTORY_SCHEMA = "trekdex-r2-complete-inventory-v3"
 PRODUCER_POPULATION_SCHEMA = "trekdex-r2-producer-population-v1"
-UPLOAD_MANIFEST_SCHEMA = "trekdex-r2-reviewed-upload-manifest-v4"
+UPLOAD_MANIFEST_SCHEMA = "trekdex-r2-reviewed-upload-manifest-v5"
 APPROVAL_ASSERTION_SCHEMA = "trekdex-r2-root-approval-assertion-v1"
 PROVIDER_ATTESTATION_SCHEMA = "trekdex-r2-provider-identity-attestation-v1"
-RELEASE_RECEIPT_SCHEMA = "trekdex-r2-release-terminal-v4"
+RELEASE_RECEIPT_SCHEMA = "trekdex-r2-release-terminal-v5"
 RELEASE_PREFLIGHT_SCHEMA = "trekdex-r2-release-preflight-v1"
 RELEASE_PROVIDER_RESULT_FIELDS = (
     "attempt_id", "bytes", "etag", "key", "sha256", "transaction_id",
 )
-SCOPED_PREFLIGHT_SCHEMA = "trekdex-r2-scoped-preflight-v1"
-ROLLBACK_MANIFEST_SCHEMA = "trekdex-r2-rollback-manifest-v1"
-SCOPED_RELEASE_RECEIPT_SCHEMA = "trekdex-r2-scoped-release-terminal-v1"
+SCOPED_PREFLIGHT_SCHEMA = "trekdex-r2-scoped-preflight-v2"
+ROLLBACK_MANIFEST_SCHEMA = "trekdex-r2-rollback-manifest-v2"
+SCOPED_RELEASE_RECEIPT_SCHEMA = "trekdex-r2-scoped-release-terminal-v2"
 ROLLBACK_DELETE_RESULT_FIELDS = (
     "attempt_id", "key", "postimage_sha256", "transaction_id", "verified_absent",
 )
@@ -54,7 +55,15 @@ MOLS_OBJECT_KEYS = (
     f"{MOLS_AREA_ID}.json",
     f"silhouettes/{MOLS_AREA_ID}.json",
 )
-MOLS_FORWARD_KEYS = (*MOLS_OBJECT_KEYS, "index.json")
+MOLS_SEMANTIC_GLOBAL_KEYS = (
+    "trail-search.json",
+    "trail-shapes.json",
+)
+MOLS_MUTABLE_GLOBAL_KEYS = (
+    "index.json",
+    *MOLS_SEMANTIC_GLOBAL_KEYS,
+)
+MOLS_FORWARD_KEYS = (*MOLS_OBJECT_KEYS, *MOLS_MUTABLE_GLOBAL_KEYS)
 MOLS_REPOSITORY_PATHS = (
     f"public/areas/geom/{MOLS_AREA_ID}.json",
     f"public/areas/silhouettes/{MOLS_AREA_ID}.json",
@@ -1362,6 +1371,7 @@ def build_upload_manifest(
     root_approval_ref: str,
     prior_anchor_ref: str,
     publication_area_id: str | None = None,
+    semantic_deltas: Sequence[dict[str, Any]] = (),
 ) -> dict[str, Any]:
     remote = validate_inventory_receipt(inventory_receipt)
     area_registry = inventory_area_ids(inventory_receipt)
@@ -1418,6 +1428,11 @@ def build_upload_manifest(
             raise ManifestError(
                 f"scoped Mols publication found out-of-scope changed keys: {sorted(forbidden)[:12]}"
             )
+        if rows and changed_keys != set(MOLS_FORWARD_KEYS):
+            missing = sorted(set(MOLS_FORWARD_KEYS) - changed_keys)
+            raise ManifestError(
+                f"scoped Mols publication must be exact five-key or zero-write: missing={missing}"
+            )
         for row in rows:
             if row["conditional_mode"] == "IF_NONE_MATCH" and row["key"] not in MOLS_OBJECT_KEYS:
                 raise ManifestError("only the exact Mols geom and silhouette may be created")
@@ -1443,6 +1458,7 @@ def build_upload_manifest(
         "area_registry_sha256": inventory_receipt["area_registry_sha256"],
         "producer_population": copy.deepcopy(population),
         "producer_population_sha256": population["receipt_sha256"],
+        "semantic_deltas": copy.deepcopy(list(semantic_deltas)),
         "object_count": len(rows),
         "objects": rows,
         "all_or_none": True,
@@ -1612,7 +1628,7 @@ def validate_upload_manifest(
         "endpoint_identity_ref", "prior_anchor_ref", "inventory_anchor_ref",
         "inventory_receipt_sha256", "authoritative_denominator",
         "area_registry_sha256", "producer_population",
-        "producer_population_sha256", "object_count", "objects", "all_or_none",
+        "producer_population_sha256", "semantic_deltas", "object_count", "objects", "all_or_none",
         "recursive_discovery", "manifest_sha256",
     }
     if set(manifest) != fields:
@@ -1711,6 +1727,8 @@ def validate_upload_manifest(
             for field in ("key", "key_class", "local_path", "bytes", "md5", "sha256")
         ):
             raise ManifestError(f"upload manifest object {number} is not bound to its producer record")
+        if row["key"] in MOLS_SEMANTIC_GLOBAL_KEYS and row["conditional_mode"] != "IF_MATCH":
+            raise ManifestError("Mols semantic globals require exact IF_MATCH baselines")
         if row["conditional_mode"] == "IF_MATCH":
             if row["remote_preimage"] is None:
                 raise ManifestError("IF_MATCH row has no remote preimage")
@@ -1750,11 +1768,33 @@ def validate_upload_manifest(
                 )
         if upload_keys != expected_upload_keys:
             raise ManifestError("upload manifest is not the exact independently derived upload set")
+    semantic_values = manifest["semantic_deltas"]
+    if not isinstance(semantic_values, list):
+        raise ManifestError("upload manifest semantic proof population is invalid")
     if publication_area_id is None:
         if globals_seen != set(GLOBAL_OBJECTS):
             raise ManifestError("upload manifest does not contain all four global objects")
-    elif globals_seen - {"index.json"}:
-        raise ManifestError("scoped Mols publication may change only the canonical index global")
+        if semantic_values:
+            raise ManifestError("generic upload manifest carries Mols-only semantic proofs")
+    else:
+        if globals_seen - set(MOLS_MUTABLE_GLOBAL_KEYS):
+            raise ManifestError(
+                "scoped Mols publication may change only index, trail-search, and trail-shapes"
+            )
+        expected_semantic_keys = [
+            key for key in MOLS_SEMANTIC_GLOBAL_KEYS if key in upload_keys
+        ]
+        if [
+            value.get("key") if isinstance(value, dict) else None
+            for value in semantic_values
+        ] != expected_semantic_keys:
+            raise ManifestError("scoped Mols semantic proof order/scope is not exact")
+        validated_semantics = [
+            _validate_mols_global_delta(value, manifest)
+            for value in semantic_values
+        ]
+        if validated_semantics != semantic_values:
+            raise ManifestError("scoped Mols semantic proofs are noncanonical")
     return copy.deepcopy(manifest)
 
 
@@ -2325,6 +2365,398 @@ def execute_release(
     return complete
 
 
+
+def _strict_producer_json(payload: bytes, context: str) -> Any:
+    """Parse one producer object and require its exact compact byte framing."""
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ManifestError(f"{context} is not UTF-8") from error
+    try:
+        document = strict_json_loads(text, context)
+    except InventoryError as error:
+        raise ManifestError(str(error)) from error
+    try:
+        canonical = json.dumps(
+            document,
+            ensure_ascii=True,
+            allow_nan=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    except (TypeError, ValueError) as error:
+        raise ManifestError(f"{context} is not canonical producer JSON") from error
+    if payload != canonical:
+        raise ManifestError(f"{context} is not in canonical producer byte framing")
+    return document
+
+
+def _strict_mols_geom_trails(payload: bytes) -> list[dict[str, Any]]:
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ManifestError("candidate Mols geometry is not UTF-8") from error
+    try:
+        document = strict_json_loads(text, "candidate Mols geometry")
+    except InventoryError as error:
+        raise ManifestError(str(error)) from error
+    trails = document.get("trails") if isinstance(document, dict) else None
+    if document.get("id") != MOLS_AREA_ID or not isinstance(trails, list) or not trails:
+        raise ManifestError("candidate Mols geometry identity/trails are invalid")
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for number, trail in enumerate(trails, start=1):
+        if not isinstance(trail, dict):
+            raise ManifestError(f"candidate Mols trail {number} is not an object")
+        trail_id = trail.get("id")
+        if not _is_plain_safe_text(trail_id, maximum=512) or trail_id in seen:
+            raise ManifestError(f"candidate Mols trail {number} identity is invalid or duplicate")
+        seen.add(trail_id)
+        normalized.append(copy.deepcopy(trail))
+    return normalized
+
+
+def _is_safe_display_text(value: Any, *, maximum: int = 1024) -> bool:
+    return (
+        isinstance(value, str)
+        and 0 < len(value) <= maximum
+        and value == unicodedata.normalize("NFC", value)
+        and not any(unicodedata.category(char) in {"Cc", "Cs"} for char in value)
+    )
+
+
+def _mols_shape(segment: Any) -> list[int] | None:
+    """Mirror the pinned trail-shapes producer for one [lat, lon] segment."""
+    if not isinstance(segment, list) or len(segment) < 2:
+        return None
+    points: list[tuple[float, float]] = []
+    for point in segment:
+        if (
+            not isinstance(point, list)
+            or len(point) != 2
+            or any(
+                not isinstance(value, (int, float))
+                or isinstance(value, bool)
+                or not math.isfinite(value)
+                for value in point
+            )
+        ):
+            raise ManifestError("candidate Mols trail segment has an invalid point")
+        points.append((point[0], point[1]))
+
+    def perpendicular(
+        point: tuple[float, float],
+        start: tuple[float, float],
+        end: tuple[float, float],
+    ) -> float:
+        if start == end:
+            return math.dist(point, start)
+        (x0, y0), (x1, y1), (x2, y2) = point, start, end
+        numerator = abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1)
+        denominator = math.hypot(y2 - y1, x2 - x1)
+        return numerator / denominator if denominator else 0.0
+
+    def simplify(
+        values: list[tuple[float, float]], epsilon: float
+    ) -> list[tuple[float, float]]:
+        if len(values) < 3:
+            return values
+        maximum, split = 0.0, 0
+        for index in range(1, len(values) - 1):
+            distance = perpendicular(values[index], values[0], values[-1])
+            if distance > maximum:
+                maximum, split = distance, index
+        if maximum > epsilon:
+            return simplify(values[: split + 1], epsilon)[:-1] + simplify(
+                values[split:], epsilon
+            )
+        return [values[0], values[-1]]
+
+    center_latitude = sum(point[0] for point in points) / len(points)
+    scale = math.cos(math.radians(center_latitude))
+    projected = [(point[1] * scale, point[0]) for point in points]
+    xs = [point[0] for point in projected]
+    ys = [point[1] for point in projected]
+    diagonal = math.hypot(max(xs) - min(xs), max(ys) - min(ys))
+    simplified = simplify(projected, diagonal * 0.02)
+    if len(simplified) > 40:
+        simplified = simplify(projected, diagonal * 0.04)
+    minimum_x, minimum_y = min(xs), min(ys)
+    span = max(max(xs) - minimum_x, max(ys) - minimum_y, 1e-9)
+    flattened: list[int] = []
+    for x, y in simplified:
+        flattened.extend(
+            (round((x - minimum_x) / span * 255), round((y - minimum_y) / span * 255))
+        )
+    return flattened
+
+
+def _strict_trail_search_records(payload: bytes, context: str) -> list[list[Any]]:
+    document = _strict_producer_json(payload, context)
+    if not isinstance(document, list):
+        raise ManifestError(f"{context} is not an array")
+    records: list[list[Any]] = []
+    identities: set[tuple[str, str]] = set()
+    for number, row in enumerate(document, start=1):
+        if (
+            not isinstance(row, list)
+            or len(row) != 5
+            or not _is_safe_display_text(row[0], maximum=1024)
+            or not _is_plain_safe_text(row[1], maximum=256)
+            or not _is_plain_safe_text(row[2], maximum=512)
+            or (
+                row[3] is not None
+                and (
+                    not isinstance(row[3], (int, float))
+                    or isinstance(row[3], bool)
+                    or not math.isfinite(row[3])
+                    or row[3] < 0
+                )
+            )
+            or (
+                row[4] is not None
+                and not _is_safe_display_text(row[4], maximum=128)
+            )
+        ):
+            raise ManifestError(f"{context} record {number} is invalid")
+        identity = (row[1], row[2])
+        if identity in identities:
+            raise ManifestError(f"{context} has duplicate trail identity {identity!r}")
+        identities.add(identity)
+        records.append(copy.deepcopy(row))
+    return records
+
+
+def _strict_trail_shape_records(payload: bytes, context: str) -> list[list[Any]]:
+    document = _strict_producer_json(payload, context)
+    if not isinstance(document, dict):
+        raise ManifestError(f"{context} is not an object")
+    records: list[list[Any]] = []
+    for number, (identity, shape) in enumerate(document.items(), start=1):
+        if (
+            not _is_plain_safe_text(identity, maximum=1024)
+            or "/" not in identity
+            or identity.startswith("/")
+            or identity.endswith("/")
+            or not isinstance(shape, list)
+            or len(shape) < 4
+            or len(shape) % 2
+            or any(
+                not isinstance(value, int)
+                or isinstance(value, bool)
+                or not 0 <= value <= 255
+                for value in shape
+            )
+        ):
+            raise ManifestError(f"{context} record {number} is invalid")
+        records.append([identity, copy.deepcopy(shape)])
+    return records
+
+
+def _expected_mols_global_records(
+    key: str, mols_geom: bytes
+) -> tuple[list[list[Any]], list[str]]:
+    trails = _strict_mols_geom_trails(mols_geom)
+    records: list[list[Any]] = []
+    trail_ids: list[str] = []
+    for trail in trails:
+        trail_id = trail["id"]
+        if key == "trail-search.json":
+            name = trail.get("name")
+            if not _is_safe_display_text(name, maximum=1024):
+                raise ManifestError("candidate Mols search trail has no qualified name")
+            distance = trail.get("distanceMi")
+            difficulty = trail.get("difficulty")
+            record = [name, MOLS_AREA_ID, trail_id, distance, difficulty]
+            _strict_trail_search_records(
+                json.dumps([record], ensure_ascii=True, allow_nan=False, separators=(",", ":")).encode("utf-8"),
+                "expected Mols trail-search record",
+            )
+        elif key == "trail-shapes.json":
+            segments = trail.get("segments") or []
+            if not isinstance(segments, list) or not segments:
+                raise ManifestError("candidate Mols shape trail has no qualified segment")
+            if any(not isinstance(segment, list) for segment in segments):
+                raise ManifestError("candidate Mols shape trail segments are invalid")
+            shape = _mols_shape(max(segments, key=len))
+            if shape is None:
+                raise ManifestError("candidate Mols shape trail has no drawable segment")
+            record = [f"{MOLS_AREA_ID}/{trail_id}", shape]
+            _strict_trail_shape_records(
+                json.dumps({record[0]: record[1]}, separators=(",", ":")).encode("utf-8"),
+                "expected Mols trail-shapes record",
+            )
+        else:
+            raise ManifestError("Mols semantic delta key is outside the exact global allowlist")
+        records.append(record)
+        trail_ids.append(trail_id)
+    return records, trail_ids
+
+
+def build_mols_global_delta(
+    key: str,
+    before: bytes,
+    after: bytes,
+    mols_geom: bytes,
+    *,
+    baseline_etag: str,
+) -> dict[str, Any]:
+    """Prove one global changes only by deterministic Mols record additions."""
+    if key not in MOLS_SEMANTIC_GLOBAL_KEYS:
+        raise ManifestError("Mols semantic delta key is outside the exact global allowlist")
+    try:
+        normalized_etag = _normalize_etag(baseline_etag, f"{key} baseline")
+    except InventoryError as error:
+        raise ManifestError(f"{key} baseline ETag is invalid") from error
+    if key == "trail-search.json":
+        baseline_records = _strict_trail_search_records(before, "baseline trail-search")
+        candidate_records = _strict_trail_search_records(after, "candidate trail-search")
+        target = lambda row: row[1] == MOLS_AREA_ID
+        semantic_kind = "ORDERED_SEARCH_RECORDS"
+    else:
+        baseline_records = _strict_trail_shape_records(before, "baseline trail-shapes")
+        candidate_records = _strict_trail_shape_records(after, "candidate trail-shapes")
+        target_prefix = f"{MOLS_AREA_ID}/"
+        target = lambda row: row[0].startswith(target_prefix)
+        semantic_kind = "ORDERED_SHAPE_RECORDS"
+    baseline_target = [row for row in baseline_records if target(row)]
+    baseline_other = [row for row in baseline_records if not target(row)]
+    candidate_target = [row for row in candidate_records if target(row)]
+    candidate_other = [row for row in candidate_records if not target(row)]
+    expected_target, expected_ids = _expected_mols_global_records(key, mols_geom)
+    if candidate_other != baseline_other:
+        raise ManifestError(f"candidate {key} modifies, removes, adds, or reorders a non-Mols record")
+    if candidate_target != expected_target:
+        raise ManifestError(f"candidate {key} is not the exact deterministic Mols addition")
+    if len(candidate_target) != len(_strict_mols_geom_trails(mols_geom)):
+        raise ManifestError(f"candidate {key} does not qualify every Mols trail exactly once")
+    receipt: dict[str, Any] = {
+        "schema": "trekdex-r2-mols-global-delta-v1",
+        "area_id": MOLS_AREA_ID,
+        "key": key,
+        "semantic_kind": semantic_kind,
+        "baseline_identity": {
+            "etag": normalized_etag,
+            "bytes": len(before),
+            "sha256": hashlib.sha256(before).hexdigest(),
+        },
+        "candidate_identity": {
+            "bytes": len(after),
+            "sha256": hashlib.sha256(after).hexdigest(),
+        },
+        "mols_geom_identity": {
+            "bytes": len(mols_geom),
+            "sha256": hashlib.sha256(mols_geom).hexdigest(),
+        },
+        "baseline_record_count": len(baseline_records),
+        "candidate_record_count": len(candidate_records),
+        "non_mols_record_count": len(baseline_other),
+        "transition_kind": "ADD" if not baseline_target else "REPLACE",
+        "baseline_mols_record_count": len(baseline_target),
+        "baseline_mols_records_sha256": canonical_sha256(baseline_target),
+        "candidate_mols_record_count": len(candidate_target),
+        "candidate_mols_record_ids": expected_ids,
+        "candidate_mols_record_ids_sha256": canonical_sha256(expected_ids),
+        "non_mols_records_sha256": canonical_sha256(baseline_other),
+        "candidate_mols_records_sha256": canonical_sha256(candidate_target),
+        "non_mols_identity_and_content_preserved": True,
+        "only_expected_mols_records_present": True,
+    }
+    receipt["receipt_sha256"] = canonical_sha256(receipt)
+    return receipt
+
+
+def _validate_mols_global_delta(
+    receipt: Any,
+    manifest: dict[str, Any],
+) -> dict[str, Any]:
+    fields = {
+        "schema", "area_id", "key", "semantic_kind", "baseline_identity",
+        "candidate_identity", "mols_geom_identity", "baseline_record_count",
+        "candidate_record_count", "non_mols_record_count", "transition_kind",
+        "baseline_mols_record_count", "baseline_mols_records_sha256",
+        "candidate_mols_record_count", "candidate_mols_record_ids",
+        "candidate_mols_record_ids_sha256", "non_mols_records_sha256",
+        "candidate_mols_records_sha256", "non_mols_identity_and_content_preserved",
+        "only_expected_mols_records_present", "receipt_sha256",
+    }
+    if not isinstance(receipt, dict) or set(receipt) != fields:
+        raise ManifestError("Mols global semantic delta schema is not exact")
+    key = receipt["key"]
+    expected_kind = {
+        "trail-search.json": "ORDERED_SEARCH_RECORDS",
+        "trail-shapes.json": "ORDERED_SHAPE_RECORDS",
+    }.get(key)
+    if (
+        receipt["schema"] != "trekdex-r2-mols-global-delta-v1"
+        or receipt["area_id"] != MOLS_AREA_ID
+        or expected_kind is None
+        or receipt["semantic_kind"] != expected_kind
+        or receipt["non_mols_identity_and_content_preserved"] is not True
+        or receipt["only_expected_mols_records_present"] is not True
+        or receipt["transition_kind"] not in {"ADD", "REPLACE"}
+    ):
+        raise ManifestError("Mols global semantic delta identity/proof is invalid")
+    rows = {row["key"]: row for row in manifest["objects"]}
+    row = rows.get(key)
+    population = {
+        item["key"]: item for item in manifest["producer_population"]["objects"]
+    }
+    geom = population.get(MOLS_OBJECT_KEYS[0])
+    if row is None or geom is None or row["conditional_mode"] != "IF_MATCH":
+        raise ManifestError("Mols global semantic delta is not bound to an IF_MATCH row")
+    if receipt["baseline_identity"] != row["remote_preimage"]:
+        raise ManifestError("Mols global semantic delta baseline differs from manifest preimage")
+    if receipt["candidate_identity"] != {
+        "bytes": row["bytes"], "sha256": row["sha256"]
+    }:
+        raise ManifestError("Mols global semantic delta candidate differs from manifest row")
+    if receipt["mols_geom_identity"] != {
+        "bytes": geom["bytes"], "sha256": geom["sha256"]
+    }:
+        raise ManifestError("Mols global semantic delta uses a different Mols geometry")
+    counts = (
+        receipt["baseline_record_count"],
+        receipt["candidate_record_count"],
+        receipt["non_mols_record_count"],
+        receipt["baseline_mols_record_count"],
+        receipt["candidate_mols_record_count"],
+    )
+    if (
+        any(not isinstance(value, int) or isinstance(value, bool) or value < 0 for value in counts)
+        or receipt["candidate_mols_record_count"] <= 0
+        or receipt["baseline_record_count"]
+        != receipt["non_mols_record_count"] + receipt["baseline_mols_record_count"]
+        or receipt["candidate_record_count"]
+        != receipt["non_mols_record_count"] + receipt["candidate_mols_record_count"]
+        or (receipt["transition_kind"] == "ADD" and receipt["baseline_mols_record_count"] != 0)
+        or (receipt["transition_kind"] == "REPLACE" and receipt["baseline_mols_record_count"] <= 0)
+    ):
+        raise ManifestError("Mols global semantic delta record counts are inconsistent")
+    ids = receipt["candidate_mols_record_ids"]
+    if (
+        not isinstance(ids, list)
+        or len(ids) != receipt["candidate_mols_record_count"]
+        or len(ids) != len(set(ids))
+        or any(not _is_plain_safe_text(value, maximum=512) for value in ids)
+    ):
+        raise ManifestError("Mols global semantic delta record identities are invalid")
+    for field in (
+        "baseline_mols_records_sha256", "candidate_mols_record_ids_sha256",
+        "non_mols_records_sha256", "candidate_mols_records_sha256",
+        "receipt_sha256",
+    ):
+        try:
+            _require_digest(receipt[field], field)
+        except ValueError as error:
+            raise ManifestError(str(error)) from error
+    if receipt["candidate_mols_record_ids_sha256"] != canonical_sha256(ids):
+        raise ManifestError("Mols global semantic delta record identity digest mismatch")
+    if receipt["receipt_sha256"] != canonical_sha256(
+        receipt, omit={"receipt_sha256"}
+    ):
+        raise ManifestError("Mols global semantic delta digest mismatch")
+    return copy.deepcopy(receipt)
+
 def _strict_index_rows(payload: bytes, context: str) -> list[list[Any]]:
     try:
         text = payload.decode("utf-8")
@@ -2434,12 +2866,28 @@ def build_rollback_manifest(
     *,
     baseline_objects: Sequence[dict[str, Any] | None],
     index_delta: dict[str, Any] | None,
+    semantic_deltas: Sequence[dict[str, Any]],
 ) -> dict[str, Any]:
     manifest = validate_upload_manifest(manifest)
     if manifest["publication_area_id"] != MOLS_AREA_ID:
         raise ManifestError("rollback manifest requires exact Mols publication scope")
     if len(baseline_objects) != manifest["object_count"]:
         raise ManifestError("rollback baseline population is incomplete")
+    semantic_by_key: dict[str, dict[str, Any]] = {}
+    for value in semantic_deltas:
+        validated_delta = _validate_mols_global_delta(value, manifest)
+        key = validated_delta["key"]
+        if key in semantic_by_key:
+            raise ManifestError("rollback manifest repeats a Mols global semantic proof")
+        semantic_by_key[key] = validated_delta
+    expected_semantic_keys = {
+        row["key"] for row in manifest["objects"]
+        if row["key"] in MOLS_SEMANTIC_GLOBAL_KEYS
+    }
+    if set(semantic_by_key) != expected_semantic_keys:
+        raise ManifestError("rollback manifest semantic proof population is incomplete or extra")
+    if list(semantic_by_key.values()) != manifest["semantic_deltas"]:
+        raise ManifestError("apply-time Mols semantic proofs differ from reviewed manifest")
     rows: list[dict[str, Any]] = []
     for index, (forward, baseline) in enumerate(zip(manifest["objects"], baseline_objects)):
         if forward["conditional_mode"] == "IF_MATCH":
@@ -2476,6 +2924,7 @@ def build_rollback_manifest(
                 "md5": forward["md5"],
                 "sha256": forward["sha256"],
             },
+            "semantic_delta": copy.deepcopy(semantic_by_key.get(forward["key"])),
             "rollback_operation": operation,
         })
     has_index = any(row["key"] == "index.json" for row in rows)
@@ -2540,7 +2989,7 @@ def validate_rollback_manifest(plan: Any, manifest: dict[str, Any]) -> dict[str,
         expected_fields = {
             "index", "key", "key_class", "forward_mode", "forward_row_sha256",
             "baseline_preimage", "baseline_object", "expected_postimage",
-            "rollback_operation",
+            "semantic_delta", "rollback_operation",
         }
         if not isinstance(row, dict) or set(row) != expected_fields:
             raise ManifestError(f"rollback row {index} schema is not exact")
@@ -2556,6 +3005,18 @@ def validate_rollback_manifest(plan: Any, manifest: dict[str, Any]) -> dict[str,
             }
         ):
             raise ManifestError("rollback row is not bound to its forward row")
+        if row["key"] in MOLS_SEMANTIC_GLOBAL_KEYS:
+            semantic_delta = _validate_mols_global_delta(row["semantic_delta"], manifest)
+            reviewed_semantics = {
+                value["key"]: value for value in manifest["semantic_deltas"]
+            }
+            if (
+                semantic_delta["key"] != row["key"]
+                or semantic_delta != reviewed_semantics.get(row["key"])
+            ):
+                raise ManifestError("rollback row carries the wrong Mols global semantic proof")
+        elif row["semantic_delta"] is not None:
+            raise ManifestError("rollback row carries an unexpected Mols global semantic proof")
         if row["forward_mode"] == "IF_NONE_MATCH":
             if (
                 row["rollback_operation"] != "DELETE_CREATED_AFTER_EXACT_PROOF"
@@ -2596,6 +3057,7 @@ def build_scoped_release_preflight(
     observed_preimages: Sequence[dict[str, Any] | None],
     baseline_objects: Sequence[dict[str, Any] | None],
     index_delta: dict[str, Any] | None,
+    semantic_deltas: Sequence[dict[str, Any]],
 ) -> dict[str, Any]:
     manifest = validate_upload_manifest(manifest)
     if manifest["publication_area_id"] != MOLS_AREA_ID:
@@ -2608,7 +3070,10 @@ def build_scoped_release_preflight(
         adapter_success_schema_capable=True,
     )
     rollback = build_rollback_manifest(
-        manifest, baseline_objects=baseline_objects, index_delta=index_delta
+        manifest,
+        baseline_objects=baseline_objects,
+        index_delta=index_delta,
+        semantic_deltas=semantic_deltas,
     )
     snapshot: dict[str, Any] = {
         "schema": SCOPED_PREFLIGHT_SCHEMA,
@@ -2678,7 +3143,8 @@ def _valid_rollback_verification(
 ) -> dict[str, Any]:
     fields = {
         "schema", "rollback_manifest_sha256", "all_rows_restored",
-        "verified_absent_keys", "index_baseline_restored",
+        "verified_absent_keys", "verified_restored_keys",
+        "semantic_global_baselines_restored", "index_baseline_restored",
         "non_target_index_entries_unchanged", "receipt_sha256",
     }
     if not isinstance(verification, dict) or set(verification) != fields:
@@ -2687,11 +3153,20 @@ def _valid_rollback_verification(
         row["key"] for row in rollback_manifest["objects"]
         if row["rollback_operation"] == "DELETE_CREATED_AFTER_EXACT_PROOF"
     ]
+    expected_restored = [
+        row["key"] for row in rollback_manifest["objects"]
+        if row["rollback_operation"] == "RESTORE_IF_MATCH"
+    ]
+    expected_semantic = [
+        key for key in MOLS_SEMANTIC_GLOBAL_KEYS if key in expected_restored
+    ]
     if (
-        verification["schema"] != "trekdex-r2-rollback-verification-v1"
+        verification["schema"] != "trekdex-r2-rollback-verification-v2"
         or verification["rollback_manifest_sha256"] != rollback_manifest["rollback_manifest_sha256"]
         or verification["all_rows_restored"] is not True
         or verification["verified_absent_keys"] != expected_absent
+        or verification["verified_restored_keys"] != expected_restored
+        or verification["semantic_global_baselines_restored"] != expected_semantic
         or verification["index_baseline_restored"] is not True
         or verification["non_target_index_entries_unchanged"] is not True
     ):
@@ -3035,7 +3510,7 @@ def execute_scoped_release(
     state_probe: Callable[[str], bool] | None = None,
     checkpoint: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
-    """Apply exact Mols bytes and roll back known partial effects under one lock."""
+    """Apply the exact five-key Mols plan and roll back known partial effects under one lock."""
     manifest = validate_upload_manifest(manifest)
     if manifest["publication_area_id"] != MOLS_AREA_ID:
         raise ManifestError("scoped release requires exact Mols publication scope")
@@ -4333,6 +4808,8 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
         "reconcile_scoped_release_write_ahead", "rollback_delete_created",
         "DELETE_CREATED_AFTER_EXACT_PROOF", '"delete-object"',
         '"--if-match"', '"--if-none-match"', "--publication-area-id",
+        "read_reviewed_baseline_bytes", "_build_scoped_semantic_deltas",
+        "semantic_deltas=semantic_deltas",
         "aws_cli_version", "aws_cli_archive_sha256",
     ),
     "scripts/cleanup-r2-orphans.py": ("r2_release_contract", "apply-quarantine"),

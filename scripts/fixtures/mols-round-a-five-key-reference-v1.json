@@ -1,0 +1,150 @@
+{
+  "schema": "trekdex-mols-round-a-five-key-reference-v1",
+  "source_evidence": {
+    "blocker_receipt_sha256": "356c6026df12f2cfd36ebd533fdd47e3c674bb96cb40fa6879c333c9eb841098",
+    "forward_comparison_sha256": "8bd9b5fd120300fa89b2f768346d118bcd4e5d18e75c47400c9c95a7db7fbb82"
+  },
+  "exact_main": "aaace72ebb40f0af4eb877b60c3cfd9730c7c944",
+  "exact_tree": "e4e959a2d394afafd19355d47686475184f061c1",
+  "area_id": "nationalpark-mols-bjerge-dk",
+  "relation_id": 7046785,
+  "trail_count": 26,
+  "expected_write_set": [
+    "nationalpark-mols-bjerge-dk.json",
+    "silhouettes/nationalpark-mols-bjerge-dk.json",
+    "index.json",
+    "trail-search.json",
+    "trail-shapes.json"
+  ],
+  "objects": {
+    "nationalpark-mols-bjerge-dk.json": {
+      "baseline": null,
+      "candidate": {
+        "bytes": 135196,
+        "sha256": "5232b7434389aa88a51cf629f368e87e6893791d65af37515b3195331e9c7eef"
+      }
+    },
+    "silhouettes/nationalpark-mols-bjerge-dk.json": {
+      "baseline": null,
+      "candidate": {
+        "bytes": 68637,
+        "sha256": "e812d1783f61e68e0f8e71f3b7d72c96096856f02eaee2aa461a09d84553b891"
+      }
+    },
+    "index.json": {
+      "baseline": {
+        "bytes": 944509,
+        "etag": "554d87aba0a38af72b700744fcf1f4a2",
+        "sha256": "6a4ca46946457313381b6f3d862dc0b73936ab3374d36fb73717bd5163aa0af3"
+      },
+      "candidate": {
+        "bytes": 944604,
+        "sha256": "2608d214cd08b9c975cef9ba5f9fa6720c38e2cdb69befda67ccd7f39c886548"
+      }
+    },
+    "parking.json": {
+      "baseline": {
+        "bytes": 1398828,
+        "etag": "9175fe625dbe20a3ae38219c4153d357",
+        "sha256": "66ae82a88233b7e7414c4234819e1e253415680a0f73fb12eed29a9550aaeb2c"
+      },
+      "candidate": {
+        "bytes": 1398828,
+        "sha256": "66ae82a88233b7e7414c4234819e1e253415680a0f73fb12eed29a9550aaeb2c"
+      },
+      "byte_identical": true
+    },
+    "trail-search.json": {
+      "baseline": {
+        "bytes": 8229072,
+        "etag": "df4a46f94116c8342a3315c1af156e66",
+        "sha256": "ae0c38b4b1a5ea8e4246200ad5c86ed9d022549153fb8d24aa083f5b88c97b42"
+      },
+      "candidate": {
+        "bytes": 8231348,
+        "sha256": "a7745491d23174a283707744d227a4724eb180517522cdb636f5bb44b19183e3"
+      }
+    },
+    "trail-shapes.json": {
+      "baseline": {
+        "bytes": 11687958,
+        "etag": "cf3136a22b29cb095017a86f58cd2319",
+        "sha256": "7075608a9d3182c5525f135bd13dde41d5718b168b32020f7bfa8b4c1fcd8403"
+      },
+      "candidate": {
+        "bytes": 11691700,
+        "sha256": "2e6e83ea2807554802421651aff056f08e42931254c99826187c3699c70a2ffd"
+      }
+    }
+  },
+  "index_delta": {
+    "baseline_row_count": 9074,
+    "candidate_row_count": 9075,
+    "candidate_target": [
+      "nationalpark-mols-bjerge-dk",
+      "Nationalpark Mols Bjerge",
+      "Denmark",
+      56.2,
+      10.6,
+      26,
+      85.4,
+      7046785
+    ],
+    "non_target_rows_sha256": "047657c7a0c123234933897143a6a166f5fb600a2c0ce90047d5fbf77b40105c"
+  },
+  "semantic_deltas": {
+    "trail-search.json": {
+  "candidate_mols_record_ids": [
+    "molsruten",
+    "mols-bjerge-stien-bjergetapen",
+    "mols-bjerge-stien-kal-etapen",
+    "kl-verstier-naturruten",
+    "midtervej",
+    "kvalitetssti-agri-bavneh-j",
+    "tinghulestien",
+    "langemosestien",
+    "kal-stien",
+    "helligkildestien",
+    "den-italienske-sti",
+    "toggerbo-stien",
+    "fuglev-rnsfondens-sti",
+    "bj-rnk-r-egedal-skov",
+    "strandk-rstien",
+    "langbjergstien",
+    "fugls-hede",
+    "kl-verstier-landsbyruten",
+    "kl-verstier-motionsruten",
+    "tyvelh-jvej",
+    "skovbjerg",
+    "sm-lfesporet",
+    "kristoffervejen",
+    "dalby-k-rvej",
+    "dr-by-sporet-bl-rute",
+    "jomfrustien"
+  ],
+      "baseline_record_count": 92437,
+      "candidate_record_count": 92463,
+      "transition_kind": "ADD",
+      "baseline_mols_record_count": 0,
+      "baseline_mols_records_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "candidate_mols_record_count": 26,
+      "candidate_mols_record_ids_sha256": "9ea7049c2b0b60f857c1af95b8e31961432d1057107630fe9d5ab537442e7e71",
+      "non_mols_records_sha256": "220f75fc944e10ab7b9526c2c9f4b0431639a74a5883e9e385e4f834be083639",
+      "candidate_mols_records_sha256": "6bbed9d75150b1a562955cda8d51d09fc52a425115195b9d5909dd66aec53a7d",
+      "semantic_receipt_sha256": "d537c338a896d6f2063a45f6a4600dcd5ba0483b71b976e824f3328dffec8d33"
+    },
+    "trail-shapes.json": {
+      "baseline_record_count": 92437,
+      "candidate_record_count": 92463,
+      "transition_kind": "ADD",
+      "baseline_mols_record_count": 0,
+      "baseline_mols_records_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "candidate_mols_record_count": 26,
+      "candidate_mols_record_ids_sha256": "9ea7049c2b0b60f857c1af95b8e31961432d1057107630fe9d5ab537442e7e71",
+      "non_mols_records_sha256": "fc976fca265b9aa1ea00cd8338ec7976016a0b90af5f81fbda1cee08aa83e049",
+      "candidate_mols_records_sha256": "0dc643ce17d548dc390d202370a745ea373c8d541e50bc15713534aadb45f708",
+      "semantic_receipt_sha256": "68a7e5247a15967ee64dfbcca4fccf01b60f49df8e3d2de311cb7f878a9ee271"
+    }
+  },
+  "exact_replay_receipt_sha256": "4f016d1b0ee2bb722cdbbbd9027d9cafc469a7b8b2734a020d4905109bf0c449"
+}

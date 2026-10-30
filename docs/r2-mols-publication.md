@@ -46,10 +46,14 @@ The plan run checks out the named commit detached, verifies its tree, obtains th
 - `nationalpark-mols-bjerge-dk.json`
 - `silhouettes/nationalpark-mols-bjerge-dk.json`
 - `index.json`
+- `trail-search.json`
+- `trail-shapes.json`
 
-Byte-identical objects, including `parking.json`, `trail-search.json`, and `trail-shapes.json`, are proven no-ops and omitted. The app index uses exact compact producer framing, and the contract proves every non-Mols row is unchanged.
+Byte-identical allowed objects are proven no-ops and omitted only when the complete scoped output is an exact zero-write repeat. Any nonzero scoped plan must contain all five keys in the order above; partial state is recoverable only through its sealed journal and is never reclassified as a smaller fresh plan. `parking.json` is never in the scoped allowlist, so any parking byte difference fails closed. The app index uses exact compact producer framing, and the contract proves every non-Mols row is unchanged.
 
-Forward order is geom, silhouette, then index. The two absent Mols objects use atomic `If-None-Match: *`. The index replacement uses atomic `If-Match` against its exact reviewed ETag. Each request binds the new SHA-256/bytes, source commit, approved manifest, condition mode, and full reviewed preimage reference.
+Before the reviewed manifest is sealed, the plan reads the existing `trail-search.json` and `trail-shapes.json` with `If-Match` against each inventory ETag. Each manifest row binds the exact baseline ETag, byte count, and SHA-256. The semantic receipts then prove that filtering the candidate back to non-Mols identities yields the baseline records in the same order with identical content, and that the candidate Mols records are exactly the deterministic search rows and thumbnail shapes derived from every trail in the staged Mols geometry. This permits either a first-time `ADD` from zero baseline Mols records or an exact `REPLACE` of existing Mols records. A modified, removed, added, or reordered non-Mols record, an extra Mols record, malformed producer framing, a stale ETag, or an unqualified Mols trail rejects the plan before approval. Apply preflight downloads the baselines again under the same ETags and must reproduce the reviewed semantic receipts before any write.
+
+Forward order is geom, silhouette, index, trail-search, then trail-shapes. The two absent Mols objects use atomic `If-None-Match: *`. All three globals use atomic `If-Match` against their exact reviewed ETags. Every successful write requires immediate HEAD plus conditional GET under the lock to prove the returned ETag and exact byte count/SHA-256.
 
 ## Provider behavior basis and pinned client
 
@@ -80,15 +84,17 @@ Before the first effect, preflight downloads every existing changed object under
 
 Known successful effects roll back in reverse order while the same job holds the lock:
 
-1. Restore `index.json` from frozen bytes using `If-Match` against this run's exact post-publish ETag.
-2. Restore a previously existing Mols object the same way.
-3. Restore an absent Mols baseline by deleting only that exact created Mols key.
+1. Restore `trail-shapes.json`, when written, from frozen bytes using `If-Match` against this run's exact post-publish identity.
+2. Restore `trail-search.json`, when written, the same way.
+3. Restore `index.json`, when written, the same way.
+4. Restore a previously existing Mols geom or silhouette the same way.
+5. Restore an absent Mols baseline by deleting only that exact created Mols key.
 
-For step 3, the root-authorized Option 1 is implemented literally. Immediately before deletion, HEAD and full GET must prove ETag, byte count, and SHA-256 equal this run's upload. The adapter then issues one plain single-key `DeleteObject` for the exact manifest-derived allowlisted key and requires a subsequent HEAD 404. It never issues a wildcard, prefix, batch, global, index, or other-area delete. The accepted residual race is bounded by the shared writer lock and immediate full-byte proof.
+Every restore requires immediate HEAD plus conditional GET to prove exact baseline ETag, byte count, SHA-256, and byte-for-byte equality with the frozen file. The final receipt names every restored global explicitly. For step 5, the root-authorized Option 1 is implemented literally. Immediately before deletion, HEAD and full GET must prove ETag, byte count, and SHA-256 equal this run's upload. The adapter then issues one plain single-key `DeleteObject` for the exact manifest-derived allowlisted key and requires a subsequent HEAD 404. It never issues a wildcard, prefix, batch, global, index, or other-area delete. The accepted residual race is bounded by the shared writer lock and immediate full-byte proof. The delete allowlist remains exactly the Mols geom and silhouette; adding the two global restores does not expand it.
 
 ## Crash and timeout reconciliation
 
-Every forward and rollback effect has a durable write-ahead journal. `reconcile-scoped` consumes the exact `trekdex-r2-scoped-release-terminal-v1` pending journal, reviewed manifest, frozen rollback files, source identity, approval, provider identity, and pinned tool identity.
+Every forward and rollback effect has a durable write-ahead journal. `reconcile-scoped` consumes the exact `trekdex-r2-scoped-release-terminal-v2` pending journal, reviewed manifest, frozen rollback files, source identity, approval, provider identity, and pinned tool identity.
 
 Under the same workflow concurrency lock it re-observes the pending key:
 
@@ -98,7 +104,7 @@ Under the same workflow concurrency lock it re-observes the pending key:
 
 Only a proven completed effect allows the state machine to append its result and resume the remaining forward or rollback sequence once. A reconciliation run can retrieve the exact prior evidence artifact by `reconcile_run_id`. Repeating reconciliation with its terminal receipt returns the same receipt and performs no provider call.
 
-Final rollback verification requires exact baseline index bytes/hash/ETag, absence of every newly created Mols key, and the sealed proof that all non-Mols index rows stayed unchanged. Partial or ambiguous recovery remains `INDETERMINATE`.
+Final rollback verification requires exact baseline bytes/hash/ETag for every restored global (`index.json`, `trail-search.json`, and `trail-shapes.json` when written), absence of every newly created Mols key, and the sealed proof that all non-Mols index/search/shape records stayed unchanged. Partial or ambiguous recovery remains `INDETERMINATE`.
 
 ## Secrets and permissions
 

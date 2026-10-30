@@ -11,9 +11,10 @@ name: Sync Geom to R2 from an approved immutable source
 # binds privacy-safe identity references, all page/token closure, every exact
 # key/preimage, the protected set, denominator, digest, and anchor state.
 # scripts/stage-changed-r2.py emits one complete producer population and an
-# exact byte-different Mols-only conditional manifest. Apply accepts only its
-# separately reviewed SHA-256, freezes a first-class rollback manifest, and
-# emits a typed terminal receipt.
+# exact five-key Mols-only conditional manifest. Its plan reads trail-search
+# and trail-shapes under their inventory ETags and seals Mols-only semantic
+# transition proofs. Apply accepts only the separately reviewed SHA-256,
+# freezes a first-class rollback manifest, and emits a typed terminal receipt.
 
 on:
   workflow_dispatch:
@@ -294,6 +295,9 @@ jobs:
             --root-approval-ref "$ROOT_APPROVAL_REF" \
             --anchor-ref "$INVENTORY_ANCHOR_REF" \
             --publication-area-id "$PUBLICATION_AREA_ID" \
+            --endpoint-url "$ENDPOINT" \
+            --aws-cli-version "$AWS_CLI_VERSION" \
+            --aws-cli-archive-sha256 "$AWS_CLI_ARCHIVE_SHA256" \
             "${APPROVED_ARGS[@]}"
 
           if [ -n "$RECONCILE_RUN_ID" ]; then

@@ -1,0 +1,188 @@
+name: Sync Mols Bjerge to R2 (simple)
+
+# Simple, manual, Mols-only R2 publish. Needs only the three R2 repo secrets the
+# old sync used (R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY). No
+# environment, no signed receipt, no approval assertion.
+#
+# Unlike the old full-bucket sync it NEVER converges the whole bucket: the write
+# set is exactly five keys (Mols geom + silhouette, index.json, trail-search.json,
+# trail-shapes.json). The three shared files are the LIVE R2 bytes with the Mols
+# records spliced on, so no other area's bytes can change. parking.json is read
+# only to prove it did not move.
+#
+# mode=plan      read-only: snapshot live R2, build + prove candidates, upload
+#                the snapshot/plan as an artifact. Writes nothing to R2.
+# mode=apply     plan, then write the five keys and read each back.
+# mode=rollback  restore the three shared files from an apply run's snapshot
+#                artifact and delete the two Mols keys.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "plan (read-only) | apply | rollback"
+        type: choice
+        options: [plan, apply, rollback]
+        default: plan
+      rollback_run_id:
+        description: "rollback only: run id of the apply run whose snapshot to restore"
+        default: ""
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: sync-geom-to-r2
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      MODE: ${{ inputs.mode }}
+      ROLLBACK_RUN_ID: ${{ inputs.rollback_run_id }}
+      BUCKET: trekdex-areas
+      AREA: nationalpark-mols-bjerge-dk
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Guards (main tip, inputs, secrets)
+        run: |
+          set -euo pipefail
+          [[ "$MODE" =~ ^(plan|apply|rollback)$ ]]
+          if [ "$MODE" = "rollback" ]; then
+            [[ "$ROLLBACK_RUN_ID" =~ ^[0-9]+$ ]]
+          else
+            test -z "$ROLLBACK_RUN_ID"
+          fi
+          test "$GITHUB_REF_NAME" = "main"
+          git fetch --no-tags origin main
+          test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD)"
+          test -z "$(git status --porcelain)"
+          for v in R2_ACCOUNT_ID AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            test -n "${!v}" || { echo "Missing repo secret for $v"; exit 1; }
+          done
+          echo "ENDPOINT=https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" >> "$GITHUB_ENV"
+          echo "main tip $(git rev-parse HEAD) mode=$MODE"
+
+      - name: Snapshot live R2 (index, trail-search, trail-shapes, parking)
+        run: |
+          set -euo pipefail
+          mkdir -p snap
+          : > snap/etags.tsv
+          for key in index.json trail-search.json trail-shapes.json parking.json; do
+            etag="$(aws s3api get-object --bucket "$BUCKET" --key "$key" \
+              --endpoint-url "$ENDPOINT" --query ETag --output text "snap/$key")"
+            etag="${etag//\"/}"
+            printf '%s\t%s\t%s\n' "$key" "$etag" "$(sha256sum "snap/$key" | cut -d' ' -f1)" >> snap/etags.tsv
+          done
+          cat snap/etags.tsv
+
+      - name: Plan (build + prove candidates; refuses unless exactly five Mols keys)
+        if: ${{ inputs.mode != 'rollback' }}
+        run: |
+          set -euo pipefail
+          for key in "$AREA.json" "silhouettes/$AREA.json"; do
+            found="$(aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "$key" \
+              --endpoint-url "$ENDPOINT" --query "Contents[?Key=='$key'].Key" --output text)"
+            if [ -n "$found" ] && [ "$found" != "None" ]; then
+              echo "Mols key already exists in R2: $key; refusing to overwrite"; exit 1
+            fi
+          done
+          etag() { awk -F'\t' -v k="$1" '$1==k {print $2}' snap/etags.tsv; }
+          python3 scripts/simple_mols_publish.py build-candidates \
+            --repo . \
+            --live-index snap/index.json --live-search snap/trail-search.json \
+            --live-shapes snap/trail-shapes.json \
+            --etag-index "$(etag index.json)" --etag-search "$(etag trail-search.json)" \
+            --etag-shapes "$(etag trail-shapes.json)" \
+            --out-dir cand
+          cp snap/etags.tsv cand/baseline-etags.tsv
+
+      - name: Save snapshot + candidates (rollback source; before any write)
+        if: ${{ inputs.mode != 'rollback' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: mols-r2-snapshot-${{ github.run_id }}
+          path: |
+            snap/
+            cand/
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Apply (write exactly five keys, read each back)
+        if: ${{ inputs.mode == 'apply' }}
+        run: |
+          set -euo pipefail
+          put() { # file key cache-control
+            aws s3 cp "$1" "s3://$BUCKET/$2" --endpoint-url "$ENDPOINT" \
+              --content-type "application/json" --cache-control "$3" --no-progress
+          }
+          cur() { aws s3api head-object --bucket "$BUCKET" --key "$1" --endpoint-url "$ENDPOINT" --query ETag --output text | tr -d '"'; }
+          base() { awk -F'\t' -v k="$1" '$1==k {print $2}' snap/etags.tsv; }
+          # Race guard: shared files must still be the snapshotted objects.
+          for key in index.json trail-search.json trail-shapes.json parking.json; do
+            test "$(cur "$key")" = "$(base "$key")" || { echo "$key changed since snapshot; aborting before any write"; exit 1; }
+          done
+          put cand/geom.json "$AREA.json" "public, max-age=86400"
+          put cand/silhouette.json "silhouettes/$AREA.json" "public, max-age=86400"
+          # index last: the app only learns about the area once its data exists.
+          put cand/trail-shapes.json trail-shapes.json "public, max-age=300"
+          put cand/trail-search.json trail-search.json "public, max-age=300"
+          put cand/index.json index.json "public, max-age=300"
+          mkdir -p verify
+          jq -r '.writes[] | [.key, .file, .sha256] | @tsv' cand/plan.json | while IFS=$'\t' read -r key file sha; do
+            aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" "verify/$file" > /dev/null
+            test "$(sha256sum "verify/$file" | cut -d' ' -f1)" = "$sha" || { echo "READBACK MISMATCH $key"; exit 1; }
+            echo "verified $key $sha"
+          done
+          test "$(cur parking.json)" = "$(base parking.json)" || { echo "parking.json changed"; exit 1; }
+          echo "apply complete. rollback: dispatch mode=rollback rollback_run_id=$GITHUB_RUN_ID"
+
+      - name: Rollback (restore three shared files, delete two Mols keys)
+        if: ${{ inputs.mode == 'rollback' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p rb
+          gh run download "$ROLLBACK_RUN_ID" -R "$GITHUB_REPOSITORY" -n "mols-r2-snapshot-$ROLLBACK_RUN_ID" -D rb
+          # Artifact is unzipped as rb/snap/* and rb/cand/*.
+          test -f rb/cand/plan.json
+          # Snapshot files must match the hashes recorded when they were taken.
+          for key in index.json trail-search.json trail-shapes.json; do
+            want="$(jq -r --arg k "$key" '.baseline[$k].sha256' rb/cand/plan.json)"
+            test "$(sha256sum "rb/snap/$key" | cut -d' ' -f1)" = "$want" || { echo "snapshot $key corrupt"; exit 1; }
+          done
+          # Do not clobber anyone else's later publish: live must still equal the apply run's candidates.
+          for key in index.json trail-search.json trail-shapes.json; do
+            want="$(jq -r --arg k "$key" '.writes[] | select(.key==$k) | .sha256' rb/cand/plan.json)"
+            test "$(sha256sum "snap/$key" | cut -d' ' -f1)" = "$want" || { echo "live $key is not the applied candidate; refusing to roll back over it"; exit 1; }
+          done
+          for key in index.json trail-search.json trail-shapes.json; do
+            aws s3 cp "rb/snap/$key" "s3://$BUCKET/$key" --endpoint-url "$ENDPOINT" \
+              --content-type "application/json" --cache-control "public, max-age=300" --no-progress
+          done
+          aws s3api delete-object --bucket "$BUCKET" --key "$AREA.json" --endpoint-url "$ENDPOINT"
+          aws s3api delete-object --bucket "$BUCKET" --key "silhouettes/$AREA.json" --endpoint-url "$ENDPOINT"
+          mkdir -p verify
+          for key in index.json trail-search.json trail-shapes.json; do
+            aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" "verify/$key" > /dev/null
+            test "$(sha256sum "verify/$key" | cut -d' ' -f1)" = "$(sha256sum "rb/snap/$key" | cut -d' ' -f1)" || { echo "ROLLBACK READBACK MISMATCH $key"; exit 1; }
+          done
+          for key in "$AREA.json" "silhouettes/$AREA.json"; do
+            found="$(aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "$key" --endpoint-url "$ENDPOINT" --query "Contents[?Key=='$key'].Key" --output text)"
+            test -z "$found" -o "$found" = "None" || { echo "$key still present"; exit 1; }
+          done
+          echo "rollback verified"

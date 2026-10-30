@@ -86,6 +86,7 @@ from r2_release_contract import (  # noqa: E402
     validate_rollback_result_prefix,
     validate_scoped_attempt_id,
     validate_scoped_journal_authentication,
+    validate_scoped_reconciliation_terminal,
     validate_scoped_release_preflight,
     validate_scoped_release_receipt,
     validate_upload_manifest,
@@ -2148,13 +2149,22 @@ class TestScopedReconciliation(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
-        _inventory, _locals, self.manifest, self.baseline = _scoped_fixture(self.root)
+        self.inventory, _locals, self.manifest, self.baseline = _scoped_fixture(
+            self.root
+        )
         self.approval = make_approval_assertion(
             self.manifest,
             operation="RELEASE",
             key=APPROVAL_KEY,
             authorization_nonce="scoped-reconcile-test",
         )
+        spec = importlib.util.spec_from_file_location(
+            "stage_changed_r2_terminal_auth_test",
+            SCRIPTS / "stage-changed-r2.py",
+        )
+        assert spec and spec.loader
+        self.stage_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.stage_module)
 
     def tearDown(self) -> None:
         self.temp.cleanup()
@@ -2172,6 +2182,332 @@ class TestScopedReconciliation(unittest.TestCase):
             approval_assertion=self.approval,
             approval_key=APPROVAL_KEY,
             **kwargs,
+        )
+
+    def _signed_reconciliation_pair(
+        self, execution_id: str
+    ) -> tuple[dict[str, Any], dict[str, Any], ScopedFakeWriter]:
+        checkpoints: list[dict[str, Any]] = []
+        parent = self
+
+        class CrashAfterForward(ScopedFakeWriter):
+            crashed = False
+
+            def put_conditional(
+                inner_self, *args: Any, **kwargs: Any
+            ) -> dict[str, Any]:
+                result = super().put_conditional(*args, **kwargs)
+                if len(inner_self.forward_calls) == 2 and not inner_self.crashed:
+                    inner_self.crashed = True
+                    raise parent.ProcessDeath("after second forward provider success")
+                return result
+
+        writer = CrashAfterForward(self.root, self.manifest, self.baseline)
+        with self.assertRaises(self.ProcessDeath):
+            _execute_scoped(
+                self.manifest,
+                writer,
+                approval_assertion=self.approval,
+                execution_id=execution_id,
+                checkpoint=lambda document: checkpoints.append(
+                    copy.deepcopy(document)
+                ),
+            )
+        journal = checkpoints[-1]
+        terminal = self._reconcile(journal, writer)
+        self.assertEqual(terminal["terminal_state"], "COMPLETE_SUCCESS")
+        self.assertIsNotNone(terminal["reconciliation"])
+        return journal, terminal, writer
+
+    def _signed_rollback_reconciliation_pair(
+        self, execution_id: str
+    ) -> tuple[dict[str, Any], dict[str, Any], ScopedFakeWriter]:
+        checkpoints: list[dict[str, Any]] = []
+        parent = self
+
+        class CrashAfterRollback(ScopedFakeWriter):
+            crashed = False
+
+            def rollback_put_conditional(
+                inner_self, *args: Any, **kwargs: Any
+            ) -> dict[str, Any]:
+                result = super().rollback_put_conditional(*args, **kwargs)
+                if not inner_self.crashed:
+                    inner_self.crashed = True
+                    raise parent.ProcessDeath("after first rollback provider success")
+                return result
+
+        writer = CrashAfterRollback(self.root, self.manifest, self.baseline)
+        boundary = "AFTER_WRITE:4:trail-shapes.json"
+        with self.assertRaises(self.ProcessDeath):
+            _execute_scoped(
+                self.manifest,
+                writer,
+                approval_assertion=self.approval,
+                execution_id=execution_id,
+                state_probe=lambda value: value != boundary,
+                checkpoint=lambda document: checkpoints.append(
+                    copy.deepcopy(document)
+                ),
+            )
+        journal = checkpoints[-1]
+        terminal = self._reconcile(journal, writer)
+        self.assertEqual(terminal["terminal_state"], "ROLLED_BACK")
+        self.assertIsNotNone(terminal["reconciliation"])
+        return journal, terminal, writer
+
+    @staticmethod
+    def _forge_pair_without_authentication(
+        journal: dict[str, Any], terminal: dict[str, Any]
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        forged_journal = copy.deepcopy(journal)
+        forged_result = forged_journal["forward_results"][0]
+        original_attempt = forged_result["attempt_id"]
+        permitted_attempts = (
+            scoped_attempt_id(
+                forged_journal["execution_id"],
+                phase="FORWARD",
+                index=0,
+                reconciled=False,
+            ),
+            scoped_attempt_id(
+                forged_journal["execution_id"],
+                phase="FORWARD",
+                index=0,
+                reconciled=True,
+            ),
+        )
+        forged_result["attempt_id"] = next(
+            attempt for attempt in permitted_attempts
+            if attempt != original_attempt
+        )
+        forged_result["transaction_id"] = scoped_transaction_id(
+            execution_id=forged_journal["execution_id"],
+            phase="FORWARD",
+            operation="PUT_CONDITIONAL",
+            index=0,
+            result=forged_result,
+        )
+        _rehash_scoped_receipt_without_authentication(forged_journal)
+
+        forged_terminal = copy.deepcopy(terminal)
+        reconciliation = forged_terminal["reconciliation"]
+        assert reconciliation is not None
+        reconciliation["source_journal_sha256"] = forged_journal["receipt_sha256"]
+        reconciliation["receipt_sha256"] = canonical_sha256(
+            reconciliation, omit={"receipt_sha256"}
+        )
+        _rehash_scoped_receipt_without_authentication(forged_terminal)
+        return forged_journal, forged_terminal
+
+    def _invoke_existing_terminal_cli(
+        self,
+        journal: dict[str, Any],
+        terminal: dict[str, Any],
+        *,
+        key: str | None,
+        tag: str,
+    ) -> int:
+        journal_path = self.root / f"{tag}-journal.json"
+        terminal_path = self.root / f"{tag}-terminal.json"
+        for path, document in (
+            (journal_path, journal),
+            (terminal_path, terminal),
+        ):
+            path.write_text(
+                json.dumps(
+                    document,
+                    ensure_ascii=False,
+                    allow_nan=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+        argv = [
+            "reconcile-scoped",
+            "--inventory", str(self.root / "unused-inventory.json"),
+            "--manifest", str(self.root / "unused-manifest.json"),
+            "--journal", str(journal_path),
+            "--approved-manifest-sha256", self.manifest["manifest_sha256"],
+            "--endpoint-url", ENDPOINT_URL,
+            "--aws-cli-version", AWS_CLI_VERSION,
+            "--aws-cli-archive-sha256", AWS_CLI_ARCHIVE_SHA256,
+            "--geom-dir", str(self.root / "unused-geom"),
+            "--silhouettes-dir", str(self.root / "unused-silhouettes"),
+            "--area-index", str(self.root / "unused-index.json"),
+            "--global-object", f"index.json={self.root / 'unused-global.json'}",
+            "--workflow", str(self.root / "unused-workflow.yml"),
+            "--terminal-receipt", str(terminal_path),
+        ]
+        material = (
+            self.stage_module._contract_module(),
+            self.inventory,
+            self.manifest,
+            self.approval,
+        )
+        writer_factory = mock.Mock(
+            side_effect=AssertionError(
+                "existing-terminal validation must precede provider construction"
+            )
+        )
+        environment = {
+            "R2_ROOT_APPROVAL_HMAC_KEY": "" if key is None else key
+        }
+        try:
+            with mock.patch.object(
+                self.stage_module,
+                "_validate_apply_material",
+                return_value=material,
+            ), mock.patch.object(
+                self.stage_module,
+                "_scoped_writer",
+                writer_factory,
+            ), mock.patch.dict(os.environ, environment, clear=False):
+                return self.stage_module.main(argv)
+        finally:
+            self.assertEqual(writer_factory.call_count, 0)
+
+    def test_cli_rejects_forged_journal_and_terminal_before_provider(self) -> None:
+        journal, terminal, _writer = self._signed_reconciliation_pair(
+            "cli-forged-pair"
+        )
+        forged_journal, forged_terminal = (
+            self._forge_pair_without_authentication(journal, terminal)
+        )
+        validate_scoped_release_receipt(forged_journal, self.manifest)
+        validate_scoped_release_receipt(forged_terminal, self.manifest)
+        with self.assertRaisesRegex(ManifestError, "authentication"):
+            self._invoke_existing_terminal_cli(
+                forged_journal,
+                forged_terminal,
+                key=APPROVAL_KEY,
+                tag="forged-pair",
+            )
+
+    def test_cli_rejects_forged_terminal_with_genuine_journal(self) -> None:
+        journal, terminal, _writer = self._signed_reconciliation_pair(
+            "cli-forged-terminal"
+        )
+        forged_terminal = copy.deepcopy(terminal)
+        reconciliation = forged_terminal["reconciliation"]
+        assert reconciliation is not None
+        reconciliation["source_journal_sha256"] = "0" * 64
+        reconciliation["receipt_sha256"] = canonical_sha256(
+            reconciliation, omit={"receipt_sha256"}
+        )
+        _rehash_scoped_receipt_without_authentication(forged_terminal)
+        validate_scoped_release_receipt(forged_terminal, self.manifest)
+        with self.assertRaisesRegex(
+            ManifestError, "existing terminal authentication failed"
+        ):
+            self._invoke_existing_terminal_cli(
+                journal,
+                forged_terminal,
+                key=APPROVAL_KEY,
+                tag="forged-terminal",
+            )
+
+    def test_cli_rejects_missing_journal_signature_before_provider(self) -> None:
+        journal, terminal, _writer = self._signed_reconciliation_pair(
+            "cli-missing-signature"
+        )
+        unsigned_journal = copy.deepcopy(journal)
+        unsigned_journal.pop("journal_authentication")
+        unsigned_journal["receipt_sha256"] = canonical_sha256(
+            unsigned_journal, omit={"receipt_sha256"}
+        )
+        with self.assertRaisesRegex(ManifestError, "schema is not exact"):
+            self._invoke_existing_terminal_cli(
+                unsigned_journal,
+                terminal,
+                key=APPROVAL_KEY,
+                tag="missing-signature",
+            )
+
+    def test_cli_genuine_signed_terminals_are_idempotent_without_provider(self) -> None:
+        pairs = (
+            (
+                "COMPLETE_SUCCESS",
+                self._signed_reconciliation_pair("cli-genuine-success"),
+            ),
+            (
+                "ROLLED_BACK",
+                self._signed_rollback_reconciliation_pair(
+                    "cli-genuine-rollback"
+                ),
+            ),
+        )
+        for expected_state, (journal, terminal, _writer) in pairs:
+            with self.subTest(state=expected_state):
+                self.assertEqual(terminal["terminal_state"], expected_state)
+                self.assertEqual(
+                    self._invoke_existing_terminal_cli(
+                        journal,
+                        terminal,
+                        key=APPROVAL_KEY,
+                        tag=f"genuine-{expected_state.lower()}",
+                    ),
+                    0,
+                )
+
+    def test_cli_rejects_cross_run_terminal_before_provider(self) -> None:
+        journal, _terminal, _writer = self._signed_reconciliation_pair(
+            "cli-source-run"
+        )
+        _other_journal, other_terminal, _other_writer = (
+            self._signed_reconciliation_pair("cli-foreign-run")
+        )
+        with self.assertRaisesRegex(ManifestError, "identity differs"):
+            self._invoke_existing_terminal_cli(
+                journal,
+                other_terminal,
+                key=APPROVAL_KEY,
+                tag="cross-run-terminal",
+            )
+
+    def test_cli_rejects_missing_authentication_key_before_provider(self) -> None:
+        journal, terminal, _writer = self._signed_reconciliation_pair(
+            "cli-missing-key"
+        )
+        with self.assertRaisesRegex(ManifestError, "key is unavailable"):
+            self._invoke_existing_terminal_cli(
+                journal,
+                terminal,
+                key=None,
+                tag="missing-key",
+            )
+
+    def test_fake_harness_matches_cli_terminal_authentication_result(self) -> None:
+        journal, terminal, writer = self._signed_reconciliation_pair(
+            "fake-terminal-parity"
+        )
+        calls_before = (
+            list(writer.forward_calls),
+            list(writer.rollback_calls),
+        )
+        validated = validate_scoped_reconciliation_terminal(
+            journal,
+            terminal,
+            self.manifest,
+            approval_assertion=self.approval,
+            approval_key=APPROVAL_KEY,
+        )
+        self.assertEqual(validated, terminal)
+        forged_journal, forged_terminal = (
+            self._forge_pair_without_authentication(journal, terminal)
+        )
+        with self.assertRaisesRegex(ManifestError, "authentication"):
+            validate_scoped_reconciliation_terminal(
+                forged_journal,
+                forged_terminal,
+                self.manifest,
+                approval_assertion=self.approval,
+                approval_key=APPROVAL_KEY,
+            )
+        self.assertEqual(
+            (writer.forward_calls, writer.rollback_calls), calls_before
         )
 
     def test_fake_reviewer_probe_rejects_invented_prior_identities_without_calls(self) -> None:

@@ -1721,32 +1721,32 @@ def apply_manifest_v2(args: argparse.Namespace) -> int:
 
 def reconcile_manifest_v2(args: argparse.Namespace) -> int:
     contract, _inventory, manifest, assertion = _validate_apply_material(args)
+    approval_key = os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", "")
     journal = _read_contract_json(args.journal, "scoped release journal")
-    contract.validate_scoped_release_receipt(journal, manifest)
     if args.terminal_receipt.exists() or args.terminal_receipt.is_symlink():
         existing = _read_contract_json(
             args.terminal_receipt, "existing reconciliation terminal"
         )
-        validated = contract.validate_scoped_release_receipt(existing, manifest)
-        if (
-            validated["reconciliation"] is not None
-            and validated["reconciliation"]["source_journal_sha256"]
-            == journal["receipt_sha256"]
-        ):
-            print(
-                f"reconciliation already terminal={validated['terminal_state']} "
-                f"sha256={validated['receipt_sha256']}"
-            )
-            return 0 if validated["terminal_state"] in {
-                contract.TerminalState.COMPLETE_SUCCESS.value, "ROLLED_BACK"
-            } else 1
-        raise contract.ManifestError("reconciliation output exists for a different journal")
+        validated = contract.validate_scoped_reconciliation_terminal(
+            journal,
+            existing,
+            manifest,
+            approval_assertion=assertion,
+            approval_key=approval_key,
+        )
+        print(
+            f"reconciliation already terminal={validated['terminal_state']} "
+            f"sha256={validated['receipt_sha256']}"
+        )
+        return 0 if validated["terminal_state"] in {
+            contract.TerminalState.COMPLETE_SUCCESS.value, "ROLLED_BACK"
+        } else 1
     receipt = contract.reconcile_scoped_release_write_ahead(
         journal,
         manifest,
         _scoped_writer(args),
         approval_assertion=assertion,
-        approval_key=os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", ""),
+        approval_key=approval_key,
         state_probe=lambda boundary: _immutable_state_probe(
             manifest, args.workflow, boundary
         ),

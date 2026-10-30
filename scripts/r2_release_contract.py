@@ -3730,6 +3730,156 @@ def validate_scoped_release_receipt(
     return copy.deepcopy(receipt)
 
 
+def validate_scoped_reconciliation_terminal(
+    journal: Any,
+    terminal: Any,
+    manifest: dict[str, Any],
+    *,
+    approval_assertion: dict[str, Any],
+    approval_key: bytes | str,
+) -> dict[str, Any]:
+    """Authenticate and bind an idempotent reconciliation terminal to its journal."""
+    manifest = validate_upload_manifest(manifest)
+    validated_journal = validate_scoped_release_receipt(journal, manifest)
+    validated_terminal = validate_scoped_release_receipt(terminal, manifest)
+    for label, document in (
+        ("source journal", validated_journal),
+        ("existing terminal", validated_terminal),
+    ):
+        try:
+            validate_scoped_journal_authentication(document, key=approval_key)
+        except ManifestError as error:
+            raise ManifestError(f"{label} authentication failed: {error}") from error
+
+    approval_digest = validate_approval_assertion(
+        approval_assertion,
+        manifest,
+        operation="RELEASE",
+        key=approval_key,
+    )
+    if any(
+        document["approval_assertion_sha256"] != approval_digest
+        for document in (validated_journal, validated_terminal)
+    ):
+        raise ManifestError(
+            "scoped reconciliation approval differs from journal or terminal"
+        )
+    if (
+        validated_journal["reconciliation"] is not None
+        or validated_journal["checkpoint_kind"]
+        not in {"WRITE_AHEAD", "TERMINAL"}
+        or validated_journal["pending_effect"] is None
+    ):
+        raise ManifestError(
+            "idempotent reconciliation requires the original pending source journal"
+        )
+    reconciliation = validated_terminal["reconciliation"]
+    if (
+        validated_terminal["checkpoint_kind"] != "TERMINAL"
+        or reconciliation is None
+    ):
+        raise ManifestError(
+            "existing reconciliation output is not an exact terminal receipt"
+        )
+
+    identity_fields = (
+        "execution_id",
+        "approval_assertion_sha256",
+        "provider_identity_attestation",
+        "provider_tool_attestation",
+        "scoped_preflight",
+        "scoped_preflight_sha256",
+        "rollback_manifest_sha256",
+    )
+    if any(
+        validated_terminal[field] != validated_journal[field]
+        for field in identity_fields
+    ):
+        raise ManifestError(
+            "existing reconciliation terminal identity differs from source journal"
+        )
+    if reconciliation["source_journal_sha256"] != validated_journal["receipt_sha256"]:
+        raise ManifestError(
+            "existing reconciliation terminal is bound to a different source journal"
+        )
+
+    pending = validated_journal["pending_effect"]
+    expected_reconciliation = {
+        "pending_phase": pending["phase"],
+        "pending_operation": pending["operation"],
+        "pending_key": pending["key"],
+    }
+    if any(
+        reconciliation[field] != expected
+        for field, expected in expected_reconciliation.items()
+    ):
+        raise ManifestError(
+            "existing reconciliation terminal pending identity differs from source journal"
+        )
+
+    for field in ("forward_results", "rollback_results"):
+        journal_results = validated_journal[field]
+        terminal_results = validated_terminal[field]
+        if (
+            len(terminal_results) < len(journal_results)
+            or terminal_results[:len(journal_results)] != journal_results
+        ):
+            raise ManifestError(
+                f"existing reconciliation terminal rewrites {field} history"
+            )
+        journal_identities = [
+            (result["attempt_id"], result["transaction_id"])
+            for result in journal_results
+        ]
+        terminal_identities = [
+            (result["attempt_id"], result["transaction_id"])
+            for result in terminal_results[:len(journal_results)]
+        ]
+        if terminal_identities != journal_identities:
+            raise ManifestError(
+                f"existing reconciliation terminal rewrites {field} identities"
+            )
+
+    if reconciliation["resumed"] is not True:
+        if any(
+            validated_terminal[field] != validated_journal[field]
+            for field in ("forward_results", "rollback_results")
+        ):
+            raise ManifestError(
+                "non-resumed reconciliation terminal invents provider results"
+            )
+    else:
+        if pending["phase"] == "FORWARD":
+            results = validated_terminal["forward_results"]
+            position = pending["index"]
+            phase = "FORWARD"
+        else:
+            results = validated_terminal["rollback_results"]
+            position = len(validated_journal["rollback_results"])
+            phase = "ROLLBACK"
+        if position >= len(results):
+            raise ManifestError(
+                "resumed reconciliation terminal lacks the pending effect result"
+            )
+        result = results[position]
+        if result["attempt_id"] != pending["attempt_id"]:
+            raise ManifestError(
+                "resumed reconciliation terminal has a foreign pending attempt"
+            )
+        expected_transaction_id = scoped_transaction_id(
+            execution_id=validated_journal["execution_id"],
+            phase=phase,
+            operation=pending["operation"],
+            index=pending["index"],
+            result=result,
+        )
+        if result["transaction_id"] != expected_transaction_id:
+            raise ManifestError(
+                "resumed reconciliation terminal has a foreign pending transaction"
+            )
+    return copy.deepcopy(validated_terminal)
+
+
 def execute_scoped_release(
     manifest: dict[str, Any],
     writer: ScopedConditionalWriter,

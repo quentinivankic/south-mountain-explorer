@@ -5160,6 +5160,8 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
         "steps.input_shape.outputs.approved_manifest_sha256",
         "reconcile_run_id", "reconcile-scoped",
         "group: sync-geom-to-r2", "stage/rollback-manifest.json", "stage/rollback/**",
+        "stage/objects/747261696c2d7365617263682e6a736f6e.object",
+        'cp -R "$RECOVERY_ROOT/stage" "$STAGE_ROOT"',
     ),
     ".github/workflows/cleanup-r2-orphans.yml": (
         "approved_quarantine_plan_sha256", "plan_only", "cleanup-r2-orphans.py", "apply-quarantine",
@@ -5217,6 +5219,8 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
         "DELETE_CREATED_AFTER_EXACT_PROOF", '"delete-object"',
         '"--if-match"', '"--if-none-match"', "--publication-area-id",
         "read_reviewed_baseline_bytes", "_build_scoped_semantic_deltas",
+        "_validate_recovery_material", "_validate_recovery_stage",
+        "_sealed_recovery_bytes",
         "semantic_deltas=semantic_deltas",
         "aws_cli_version", "aws_cli_archive_sha256",
     ),
@@ -5237,6 +5241,9 @@ _LEASED_MARKERS: Mapping[str, tuple[str, ...]] = {
         "test_fake_reviewer_probe_rejects_invented_prior_identities_without_calls",
         "test_authenticated_terminal_rejects_permitted_form_rewrite_without_calls",
         "test_pending_recovery_fake_and_production_parity_campaign",
+        "test_recovery_workflow_cli_reaches_each_shared_pending_effect",
+        "test_every_key_forward_rollback_state_has_fake_production_parity",
+        "test_recovery_branch_never_restages_and_uploads_exact_candidates",
         "def _metadata_matches(",
     ),
     "scripts/test_trailforge_candidate_contract.py": ("RR2-ORIGINAL-CLAUSES-TRAILFORGE-V1",),
@@ -5345,9 +5352,13 @@ def audit_repository_contract(files: Mapping[str, str]) -> list[str]:
         if re.search(r"(?m)(?:^|\s)aws\s", files.get(path, "")):
             errors.append(f"{path}: workflow bypasses the injected contract provider adapter")
     sync = files.get(".github/workflows/sync-geom-to-r2.yml", "")
-    if sync.count("--global-object") != 3 * len(GLOBAL_OBJECTS):
-        errors.append(".github/workflows/sync-geom-to-r2.yml: stage/apply/reconcile must each name four globals")
+    if sync.count("--global-object") != 2 * len(GLOBAL_OBJECTS):
+        errors.append(
+            ".github/workflows/sync-geom-to-r2.yml: fresh stage/apply must each name four globals"
+        )
     for key in GLOBAL_OBJECTS:
-        if sync.count(f'--global-object "{key}=') != 3:
-            errors.append(f".github/workflows/sync-geom-to-r2.yml: missing triple-census global {key}")
+        if sync.count(f'--global-object "{key}=') != 2:
+            errors.append(
+                f".github/workflows/sync-geom-to-r2.yml: missing fresh double-census global {key}"
+            )
     return errors

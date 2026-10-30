@@ -1626,6 +1626,226 @@ class MolsConditionalWriter(AwsConditionalWriter):
         return verification
 
 
+def _sealed_recovery_bytes(
+    root: Path,
+    relative_value: str,
+    expected: dict[str, Any],
+    *,
+    context: str,
+) -> bytes:
+    contract = _contract_module()
+    if root.is_symlink() or not root.is_dir():
+        raise contract.ManifestError("recovery stage root is missing or unsafe")
+    relative = Path(relative_value)
+    if relative.is_absolute() or not relative.parts or ".." in relative.parts:
+        raise contract.ManifestError(f"{context} path escapes the recovery stage")
+    candidate = root
+    for part in relative.parts:
+        candidate = candidate / part
+        if candidate.is_symlink():
+            raise contract.ManifestError(f"{context} uses a symlink")
+    if not candidate.is_file():
+        raise contract.ManifestError(f"{context} is missing or not a regular file")
+    resolved_root = root.resolve()
+    resolved_candidate = candidate.resolve()
+    if resolved_root not in resolved_candidate.parents:
+        raise contract.ManifestError(f"{context} resolves outside the recovery stage")
+    payload = candidate.read_bytes()
+    if (
+        len(payload) != expected.get("bytes")
+        or hashlib.sha256(payload).hexdigest() != expected.get("sha256")
+        or (
+            "md5" in expected
+            and hashlib.md5(payload, usedforsecurity=False).hexdigest()
+            != expected.get("md5")
+        )
+    ):
+        raise contract.ManifestError(f"{context} differs from its sealed identity")
+    return payload
+
+
+def _read_canonical_recovery_json(path: Path, context: str) -> dict[str, Any]:
+    contract = _contract_module()
+    if path.is_symlink() or not path.is_file():
+        raise contract.InventoryError(
+            f"{context} is not a regular file: {path}"
+        )
+    payload = path.read_bytes()
+    try:
+        text = payload.decode("utf-8", errors="strict")
+    except UnicodeDecodeError as error:
+        raise contract.InventoryError(f"{context} is not UTF-8") from error
+    document = contract.strict_json_loads(text, context)
+    if not isinstance(document, dict):
+        raise contract.InventoryError(f"{context} is not an object")
+    expected = (
+        json.dumps(
+            document,
+            ensure_ascii=False,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        + "\n"
+    ).encode("utf-8")
+    if payload != expected:
+        raise contract.ManifestError(f"{context} is not canonical sealed JSON")
+    return document
+
+
+def _validate_recovery_stage(
+    contract: Any,
+    manifest: dict[str, Any],
+    journal: dict[str, Any],
+    stage_root: Path,
+) -> None:
+    if stage_root.is_symlink() or not stage_root.is_dir():
+        raise contract.ManifestError("recovery stage root is missing or unsafe")
+    preflight = journal["scoped_preflight"]
+    if preflight is None:
+        raise contract.ManifestError("recovery journal has no sealed scoped preflight")
+    rollback_manifest = preflight["rollback_manifest"]
+    standalone = _read_canonical_recovery_json(
+        stage_root / "rollback-manifest.json",
+        "sealed recovery rollback manifest",
+    )
+    if standalone != rollback_manifest:
+        raise contract.ManifestError(
+            "standalone rollback manifest differs from authenticated journal"
+        )
+
+    candidates: dict[str, bytes] = {}
+    for row in manifest["objects"]:
+        expected_path = (
+            f"objects/{row['key'].encode('utf-8').hex()}.object"
+        )
+        if row["local_path"] != expected_path:
+            raise contract.ManifestError(
+                f"recovery candidate path is not canonical for {row['key']}"
+            )
+        candidates[row["key"]] = _sealed_recovery_bytes(
+            stage_root,
+            row["local_path"],
+            row,
+            context=f"sealed recovery candidate {row['key']}",
+        )
+
+    rollback_rows = {
+        row["key"]: row for row in rollback_manifest["objects"]
+    }
+    baselines: dict[str, bytes] = {}
+    for row in rollback_manifest["objects"]:
+        baseline = row["baseline_object"]
+        if baseline is None:
+            if row["rollback_operation"] != "DELETE_CREATED_AFTER_EXACT_PROOF":
+                raise contract.ManifestError(
+                    "recovery rollback row lacks its required baseline"
+                )
+            continue
+        expected_path = (
+            f"rollback/{row['key'].encode('utf-8').hex()}.object"
+        )
+        if baseline["local_path"] != expected_path:
+            raise contract.ManifestError(
+                f"recovery baseline path is not canonical for {row['key']}"
+            )
+        baselines[row["key"]] = _sealed_recovery_bytes(
+            stage_root,
+            baseline["local_path"],
+            baseline,
+            context=f"sealed recovery baseline {row['key']}",
+        )
+
+    geom = candidates.get(contract.MOLS_OBJECT_KEYS[0])
+    if geom is None:
+        raise contract.ManifestError("recovery evidence lacks the Mols candidate geometry")
+    semantic_deltas = {
+        delta["key"]: delta for delta in manifest["semantic_deltas"]
+    }
+    for key in contract.MOLS_SEMANTIC_GLOBAL_KEYS:
+        if key not in candidates:
+            continue
+        baseline = baselines.get(key)
+        rollback_row = rollback_rows.get(key)
+        if baseline is None or rollback_row is None:
+            raise contract.ManifestError(
+                f"recovery evidence lacks the {key} semantic baseline"
+            )
+        rebuilt = contract.build_mols_global_delta(
+            key,
+            baseline,
+            candidates[key],
+            geom,
+            baseline_etag=rollback_row["baseline_preimage"]["etag"],
+        )
+        if (
+            semantic_deltas.get(key) != rebuilt
+            or rollback_row["semantic_delta"] != rebuilt
+        ):
+            raise contract.ManifestError(
+                f"recovery {key} semantic proof differs from sealed bytes"
+            )
+
+    if "index.json" in candidates:
+        baseline = baselines.get("index.json")
+        if baseline is None:
+            raise contract.ManifestError("recovery evidence lacks the index baseline")
+        rebuilt_index = contract.build_mols_index_delta(
+            baseline, candidates["index.json"]
+        )
+        if rollback_manifest["index_delta"] != rebuilt_index:
+            raise contract.ManifestError(
+                "recovery index proof differs from sealed baseline/candidate bytes"
+            )
+
+
+def _validate_recovery_material(
+    args: argparse.Namespace,
+) -> tuple[Any, dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
+    contract = _contract_module()
+    inventory = _read_canonical_recovery_json(
+        args.inventory, "sealed recovery inventory"
+    )
+    manifest = _read_canonical_recovery_json(
+        args.manifest, "sealed recovery upload manifest"
+    )
+    contract.validate_upload_manifest(manifest, inventory_receipt=inventory)
+    if manifest["publication_area_id"] != contract.MOLS_AREA_ID:
+        raise contract.ManifestError("recovery is restricted to exact Mols scope")
+    if manifest["manifest_sha256"] != args.approved_manifest_sha256:
+        raise contract.ManifestError(
+            "recovery manifest is not the exact reviewed value"
+        )
+    journal = _read_canonical_recovery_json(
+        args.journal, "authenticated scoped recovery journal"
+    )
+    validated_journal = contract.validate_scoped_release_receipt(
+        journal, manifest
+    )
+    assertion = contract.strict_json_loads(
+        os.environ.get("R2_ROOT_APPROVAL_ASSERTION_JSON", ""),
+        "root approval assertion",
+    )
+    if not isinstance(assertion, dict):
+        raise contract.ManifestError("root approval assertion is not an object")
+    approval_key = os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", "")
+    approval_digest = contract.validate_approval_assertion(
+        assertion,
+        manifest,
+        operation="RELEASE",
+        key=approval_key,
+    )
+    if validated_journal["approval_assertion_sha256"] != approval_digest:
+        raise contract.ManifestError("recovery approval differs from journal")
+    contract.validate_scoped_journal_authentication(
+        validated_journal, key=approval_key
+    )
+    _validate_recovery_stage(
+        contract, manifest, validated_journal, args.manifest.parent
+    )
+    return contract, inventory, manifest, assertion, validated_journal
+
+
 def _validate_apply_material(
     args: argparse.Namespace,
 ) -> tuple[Any, dict[str, Any], dict[str, Any], dict[str, Any]]:
@@ -1720,9 +1940,10 @@ def apply_manifest_v2(args: argparse.Namespace) -> int:
 
 
 def reconcile_manifest_v2(args: argparse.Namespace) -> int:
-    contract, _inventory, manifest, assertion = _validate_apply_material(args)
+    contract, _inventory, manifest, assertion, journal = (
+        _validate_recovery_material(args)
+    )
     approval_key = os.environ.get("R2_ROOT_APPROVAL_HMAC_KEY", "")
-    journal = _read_contract_json(args.journal, "scoped release journal")
     if args.terminal_receipt.exists() or args.terminal_receipt.is_symlink():
         existing = _read_contract_json(
             args.terminal_receipt, "existing reconciliation terminal"
@@ -1853,7 +2074,7 @@ def main(argv: list[str] | None = None) -> int:
     reconcile_command.add_argument("--geom-dir", default=Path("public/areas/geom"), type=Path)
     reconcile_command.add_argument("--silhouettes-dir", default=Path("public/areas/silhouettes"), type=Path)
     reconcile_command.add_argument("--area-index", default=Path("public/areas/index.json"), type=Path)
-    reconcile_command.add_argument("--global-object", required=True, action="append", default=[])
+    reconcile_command.add_argument("--global-object", action="append", default=[])
     reconcile_command.add_argument("--workflow", required=True, type=Path)
     reconcile_command.add_argument("--terminal-receipt", required=True, type=Path)
     args = parser.parse_args(argv)

@@ -236,6 +236,38 @@ jobs:
           TERMINAL="$WORK_ROOT/terminal-receipt.json"
           WORKFLOW_SHA256=$(sha256sum .github/workflows/sync-geom-to-r2.yml | awk '{print $1}')
 
+          if [ -n "$RECONCILE_RUN_ID" ]; then
+            RECOVERY_ROOT="$WORK_ROOT/recovery"
+            mkdir -m 700 "$RECOVERY_ROOT"
+            gh run download "$RECONCILE_RUN_ID" \
+              --repo "$GITHUB_REPOSITORY" \
+              --name "r2-sync-evidence-${SOURCE_SHA}" \
+              --dir "$RECOVERY_ROOT"
+            test -f "$RECOVERY_ROOT/inventory-receipt.json"
+            test -f "$RECOVERY_ROOT/stage/upload-manifest.json"
+            test -f "$RECOVERY_ROOT/stage/rollback-manifest.json"
+            test -d "$RECOVERY_ROOT/stage/rollback"
+            test -f "$RECOVERY_ROOT/stage/objects/6e6174696f6e616c7061726b2d6d6f6c732d626a657267652d646b2e6a736f6e.object"
+            test -f "$RECOVERY_ROOT/stage/objects/73696c686f7565747465732f6e6174696f6e616c7061726b2d6d6f6c732d626a657267652d646b2e6a736f6e.object"
+            test -f "$RECOVERY_ROOT/stage/objects/696e6465782e6a736f6e.object"
+            test -f "$RECOVERY_ROOT/stage/objects/747261696c2d7365617263682e6a736f6e.object"
+            test -f "$RECOVERY_ROOT/stage/objects/747261696c2d7368617065732e6a736f6e.object"
+            test -f "$RECOVERY_ROOT/terminal-receipt.json"
+            cp "$RECOVERY_ROOT/inventory-receipt.json" "$INVENTORY"
+            cp -R "$RECOVERY_ROOT/stage" "$STAGE_ROOT"
+            python3 scripts/stage-changed-r2.py reconcile-scoped \
+              --inventory "$INVENTORY" \
+              --manifest "$STAGE_ROOT/upload-manifest.json" \
+              --journal "$RECOVERY_ROOT/terminal-receipt.json" \
+              --approved-manifest-sha256 "$APPROVED_MANIFEST_SHA256" \
+              --endpoint-url "$ENDPOINT" \
+              --aws-cli-version "$AWS_CLI_VERSION" \
+              --aws-cli-archive-sha256 "$AWS_CLI_ARCHIVE_SHA256" \
+              --workflow .github/workflows/sync-geom-to-r2.yml \
+              --terminal-receipt "$TERMINAL"
+            exit $?
+          fi
+
           TRAIL_SEARCH="$WORK_ROOT/trail-search.json"
           PARKING="$WORK_ROOT/parking.json"
           TRAIL_SHAPES="$WORK_ROOT/trail-shapes.json"
@@ -250,31 +282,15 @@ jobs:
           test -s "$PARKING"
           test -s "$TRAIL_SHAPES"
 
-          if [ -n "$RECONCILE_RUN_ID" ]; then
-            RECOVERY_ROOT="$WORK_ROOT/recovery"
-            mkdir -m 700 "$RECOVERY_ROOT"
-            gh run download "$RECONCILE_RUN_ID" \
-              --repo "$GITHUB_REPOSITORY" \
-              --name "r2-sync-evidence-${SOURCE_SHA}" \
-              --dir "$RECOVERY_ROOT"
-            test -f "$RECOVERY_ROOT/inventory-receipt.json"
-            test -f "$RECOVERY_ROOT/stage/upload-manifest.json"
-            test -f "$RECOVERY_ROOT/stage/rollback-manifest.json"
-            test -d "$RECOVERY_ROOT/stage/rollback"
-            test -f "$RECOVERY_ROOT/terminal-receipt.json"
-            cp "$RECOVERY_ROOT/inventory-receipt.json" "$INVENTORY"
-            RECOVERY_JOURNAL="$RECOVERY_ROOT/terminal-receipt.json"
-          else
-            python3 scripts/stage-changed-r2.py fetch-inventory \
-              --bucket trekdex-areas \
-              --endpoint-url "$ENDPOINT" \
-              --account-identity-ref "$ACCOUNT_IDENTITY_REF" \
-              --endpoint-identity-ref "$ENDPOINT_IDENTITY_REF" \
-              --authoritative-denominator "$AUTHORITATIVE_DENOMINATOR" \
-              --area-index public/areas/index.json \
-              --anchor-ref "$INVENTORY_ANCHOR_REF" \
-              --output "$INVENTORY"
-          fi
+          python3 scripts/stage-changed-r2.py fetch-inventory \
+            --bucket trekdex-areas \
+            --endpoint-url "$ENDPOINT" \
+            --account-identity-ref "$ACCOUNT_IDENTITY_REF" \
+            --endpoint-identity-ref "$ENDPOINT_IDENTITY_REF" \
+            --authoritative-denominator "$AUTHORITATIVE_DENOMINATOR" \
+            --area-index public/areas/index.json \
+            --anchor-ref "$INVENTORY_ANCHOR_REF" \
+            --output "$INVENTORY"
 
           APPROVED_ARGS=()
           if [ "$PLAN_ONLY" != "true" ]; then
@@ -299,30 +315,6 @@ jobs:
             --aws-cli-version "$AWS_CLI_VERSION" \
             --aws-cli-archive-sha256 "$AWS_CLI_ARCHIVE_SHA256" \
             "${APPROVED_ARGS[@]}"
-
-          if [ -n "$RECONCILE_RUN_ID" ]; then
-            cp "$RECOVERY_ROOT/stage/rollback-manifest.json" \
-              "$STAGE_ROOT/rollback-manifest.json"
-            cp -R "$RECOVERY_ROOT/stage/rollback" "$STAGE_ROOT/rollback"
-            python3 scripts/stage-changed-r2.py reconcile-scoped \
-              --inventory "$INVENTORY" \
-              --manifest "$STAGE_ROOT/upload-manifest.json" \
-              --journal "$RECOVERY_JOURNAL" \
-              --approved-manifest-sha256 "$APPROVED_MANIFEST_SHA256" \
-              --endpoint-url "$ENDPOINT" \
-              --aws-cli-version "$AWS_CLI_VERSION" \
-              --aws-cli-archive-sha256 "$AWS_CLI_ARCHIVE_SHA256" \
-              --geom-dir public/areas/geom \
-              --silhouettes-dir public/areas/silhouettes \
-              --area-index public/areas/index.json \
-              --global-object "index.json=ios/SouthMountainExplorer/Resources/areas-index.json" \
-              --global-object "parking.json=$PARKING" \
-              --global-object "trail-search.json=$TRAIL_SEARCH" \
-              --global-object "trail-shapes.json=$TRAIL_SHAPES" \
-              --workflow .github/workflows/sync-geom-to-r2.yml \
-              --terminal-receipt "$TERMINAL"
-            exit $?
-          fi
 
           if [ "$PLAN_ONLY" = "true" ]; then
             echo "Plan-only complete: no provider write was attempted."
@@ -354,6 +346,11 @@ jobs:
           path: |
             ${{ runner.temp }}/trekdex-r2-sync-contract/inventory-receipt.json
             ${{ runner.temp }}/trekdex-r2-sync-contract/stage/upload-manifest.json
+            ${{ runner.temp }}/trekdex-r2-sync-contract/stage/objects/6e6174696f6e616c7061726b2d6d6f6c732d626a657267652d646b2e6a736f6e.object
+            ${{ runner.temp }}/trekdex-r2-sync-contract/stage/objects/73696c686f7565747465732f6e6174696f6e616c7061726b2d6d6f6c732d626a657267652d646b2e6a736f6e.object
+            ${{ runner.temp }}/trekdex-r2-sync-contract/stage/objects/696e6465782e6a736f6e.object
+            ${{ runner.temp }}/trekdex-r2-sync-contract/stage/objects/747261696c2d7365617263682e6a736f6e.object
+            ${{ runner.temp }}/trekdex-r2-sync-contract/stage/objects/747261696c2d7368617065732e6a736f6e.object
             ${{ runner.temp }}/trekdex-r2-sync-contract/stage/rollback-manifest.json
             ${{ runner.temp }}/trekdex-r2-sync-contract/stage/rollback/**
             ${{ runner.temp }}/trekdex-r2-sync-contract/terminal-receipt.json

@@ -1045,6 +1045,20 @@ def _rehash_scoped_receipt_without_authentication(
     return document
 
 
+def _write_test_contract_json(path: Path, document: dict[str, Any]) -> None:
+    path.write_text(
+        json.dumps(
+            document,
+            ensure_ascii=False,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def _execute_scoped(
     manifest: dict[str, Any], writer: ScopedFakeWriter, **kwargs: Any
 ) -> dict[str, Any]:
@@ -2346,6 +2360,7 @@ class TestScopedReconciliation(unittest.TestCase):
             self.inventory,
             self.manifest,
             self.approval,
+            journal,
         )
         writer_factory = mock.Mock(
             side_effect=AssertionError(
@@ -2358,7 +2373,7 @@ class TestScopedReconciliation(unittest.TestCase):
         try:
             with mock.patch.object(
                 self.stage_module,
-                "_validate_apply_material",
+                "_validate_recovery_material",
                 return_value=material,
             ), mock.patch.object(
                 self.stage_module,
@@ -2993,6 +3008,724 @@ class TestMolsProviderAdapter(unittest.TestCase):
             index=index,
             reconciled=reconciled,
         )
+
+    def _make_recovery_bundle(
+        self,
+        root: Path,
+        *,
+        phase: str,
+        index: int,
+        execution_id: str,
+    ) -> tuple[
+        dict[str, Any],
+        dict[str, Any],
+        dict[str, Any],
+        dict[str, bytes],
+        FakeR2ProviderTransport,
+    ]:
+        class ProcessDeath(BaseException):
+            pass
+
+        inventory, _locals, manifest, baseline = _scoped_fixture(root)
+        transport = FakeR2ProviderTransport(baseline)
+        stage_module = self.module
+
+        class CrashWriter(stage_module.MolsConditionalWriter):
+            def put_conditional(
+                inner_self,
+                row: dict[str, Any],
+                *,
+                attempt_id: str,
+                preflight_row: dict[str, Any],
+                preflight_sha256: str,
+            ) -> dict[str, Any]:
+                result = super().put_conditional(
+                    row,
+                    attempt_id=attempt_id,
+                    preflight_row=preflight_row,
+                    preflight_sha256=preflight_sha256,
+                )
+                if phase == "FORWARD" and preflight_row["index"] == index:
+                    raise ProcessDeath("after selected forward provider effect")
+                return result
+
+            def rollback_put_conditional(
+                inner_self,
+                rollback_row: dict[str, Any],
+                **kwargs: Any,
+            ) -> dict[str, Any]:
+                result = super().rollback_put_conditional(
+                    rollback_row, **kwargs
+                )
+                if phase == "ROLLBACK" and rollback_row["index"] == index:
+                    raise ProcessDeath("after selected rollback restore")
+                return result
+
+            def rollback_delete_created(
+                inner_self,
+                rollback_row: dict[str, Any],
+                **kwargs: Any,
+            ) -> dict[str, Any]:
+                result = super().rollback_delete_created(
+                    rollback_row, **kwargs
+                )
+                if phase == "ROLLBACK" and rollback_row["index"] == index:
+                    raise ProcessDeath("after selected rollback delete")
+                return result
+
+        writer = CrashWriter(
+            endpoint_url=ENDPOINT_URL,
+            account_id=ACCOUNT_ID,
+            manifest_root=root,
+            aws_cli_version=AWS_CLI_VERSION,
+            aws_cli_archive_sha256=AWS_CLI_ARCHIVE_SHA256,
+        )
+        approval = make_approval_assertion(
+            manifest,
+            operation="RELEASE",
+            key=APPROVAL_KEY,
+            authorization_nonce=f"{execution_id}-approval",
+        )
+        checkpoints: list[dict[str, Any]] = []
+        rollback_boundary = "AFTER_WRITE:4:trail-shapes.json"
+        state_probe = (
+            (lambda boundary: boundary != rollback_boundary)
+            if phase == "ROLLBACK"
+            else None
+        )
+        with mock.patch.object(
+            stage_module.subprocess, "run", side_effect=transport.run
+        ), self.assertRaises(ProcessDeath):
+            _execute_scoped(
+                manifest,
+                writer,
+                approval_assertion=approval,
+                execution_id=execution_id,
+                state_probe=state_probe,
+                checkpoint=lambda document: checkpoints.append(
+                    copy.deepcopy(document)
+                ),
+            )
+        journal = checkpoints[-1]
+        self.assertEqual(journal["checkpoint_kind"], "WRITE_AHEAD")
+        self.assertEqual(journal["pending_effect"]["phase"], phase)
+        self.assertEqual(journal["pending_effect"]["index"], index)
+        _write_test_contract_json(root / "inventory-receipt.json", inventory)
+        _write_test_contract_json(root / "upload-manifest.json", manifest)
+        _write_test_contract_json(root / "recovery-journal.json", journal)
+        return inventory, manifest, approval, baseline, transport
+
+    @staticmethod
+    def _recovery_cli_args(
+        root: Path, manifest: dict[str, Any]
+    ) -> argparse.Namespace:
+        return argparse.Namespace(
+            inventory=root / "inventory-receipt.json",
+            manifest=root / "upload-manifest.json",
+            journal=root / "recovery-journal.json",
+            approved_manifest_sha256=manifest["manifest_sha256"],
+            endpoint_url=ENDPOINT_URL,
+            aws_cli_version=AWS_CLI_VERSION,
+            aws_cli_archive_sha256=AWS_CLI_ARCHIVE_SHA256,
+            workflow=ROOT / ".github/workflows/sync-geom-to-r2.yml",
+            terminal_receipt=root / "reconciled-terminal.json",
+        )
+
+    def test_recovery_workflow_cli_reaches_each_shared_pending_effect(self) -> None:
+        shared_indices = {
+            "index.json": 2,
+            "trail-search.json": 3,
+            "trail-shapes.json": 4,
+        }
+        for phase in ("FORWARD", "ROLLBACK"):
+            for key, index in shared_indices.items():
+                label = f"workflow-{phase.lower()}-{index}"
+                with self.subTest(phase=phase, key=key), tempfile.TemporaryDirectory(
+                    prefix=label + "-"
+                ) as directory:
+                    root = Path(directory)
+                    _inventory, manifest, approval, _baseline, transport = (
+                        self._make_recovery_bundle(
+                            root,
+                            phase=phase,
+                            index=index,
+                            execution_id=label,
+                        )
+                    )
+                    args = self._recovery_cli_args(root, manifest)
+                    environment = {
+                        "R2_ACCOUNT_ID": ACCOUNT_ID,
+                        "R2_ROOT_APPROVAL_ASSERTION_JSON": json.dumps(
+                            approval, sort_keys=True, separators=(",", ":")
+                        ),
+                        "R2_ROOT_APPROVAL_HMAC_KEY": APPROVAL_KEY,
+                    }
+                    calls_before_validation = list(transport.calls)
+                    with mock.patch.object(
+                        self.module.subprocess,
+                        "run",
+                        side_effect=AssertionError(
+                            "sealed recovery validation must not read live state"
+                        ),
+                    ), mock.patch.dict(
+                        os.environ, environment, clear=False
+                    ):
+                        material = self.module._validate_recovery_material(args)
+                    self.assertEqual(material[2], manifest)
+                    self.assertEqual(transport.calls, calls_before_validation)
+
+                    effects_before = sum(
+                        operation in {"put-object", "delete-object"}
+                        for operation, _key in transport.calls
+                    )
+                    with mock.patch.object(
+                        self.module.subprocess, "run", side_effect=transport.run
+                    ), mock.patch.object(
+                        self.module, "_immutable_state_probe", return_value=True
+                    ), mock.patch.dict(
+                        os.environ, environment, clear=False
+                    ):
+                        return_code = self.module.reconcile_manifest_v2(args)
+                    self.assertEqual(return_code, 0)
+                    terminal = strict_json_loads(
+                        args.terminal_receipt.read_text(encoding="utf-8"),
+                        "workflow recovery terminal",
+                    )
+                    self.assertEqual(
+                        terminal["terminal_state"],
+                        "COMPLETE_SUCCESS" if phase == "FORWARD" else "ROLLED_BACK",
+                    )
+                    self.assertEqual(
+                        terminal["reconciliation"]["pending_key"], key
+                    )
+                    effects_after = sum(
+                        operation in {"put-object", "delete-object"}
+                        for operation, _key in transport.calls
+                    )
+                    self.assertEqual(
+                        effects_after - effects_before,
+                        4 - index if phase == "FORWARD" else index,
+                    )
+
+    def test_recovery_cli_terminal_presence_matrix_is_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="recovery-terminal-matrix-"
+        ) as directory:
+            root = Path(directory)
+            _inventory, manifest, approval, _baseline, transport = (
+                self._make_recovery_bundle(
+                    root,
+                    phase="FORWARD",
+                    index=3,
+                    execution_id="recovery-terminal-matrix",
+                )
+            )
+            args = self._recovery_cli_args(root, manifest)
+            environment = {
+                "R2_ACCOUNT_ID": ACCOUNT_ID,
+                "R2_ROOT_APPROVAL_ASSERTION_JSON": json.dumps(
+                    approval, sort_keys=True, separators=(",", ":")
+                ),
+                "R2_ROOT_APPROVAL_HMAC_KEY": APPROVAL_KEY,
+            }
+            with mock.patch.object(
+                self.module.subprocess, "run", side_effect=transport.run
+            ), mock.patch.object(
+                self.module, "_immutable_state_probe", return_value=True
+            ), mock.patch.dict(os.environ, environment, clear=False):
+                self.assertEqual(self.module.reconcile_manifest_v2(args), 0)
+            terminal = strict_json_loads(
+                args.terminal_receipt.read_text(encoding="utf-8"),
+                "reconciled terminal",
+            )
+            self.assertEqual(terminal["terminal_state"], "COMPLETE_SUCCESS")
+            calls_before = list(transport.calls)
+
+            with mock.patch.object(
+                self.module.subprocess,
+                "run",
+                side_effect=AssertionError(
+                    "authenticated terminal replay must not call provider"
+                ),
+            ), mock.patch.dict(os.environ, environment, clear=False):
+                self.assertEqual(self.module.reconcile_manifest_v2(args), 0)
+
+            terminal_only = copy.copy(args)
+            terminal_only.journal = args.terminal_receipt
+            terminal_only.terminal_receipt = root / "terminal-only-copy.json"
+            with mock.patch.object(
+                self.module.subprocess,
+                "run",
+                side_effect=AssertionError(
+                    "authenticated terminal-only replay must not call provider"
+                ),
+            ), mock.patch.dict(os.environ, environment, clear=False):
+                self.assertEqual(
+                    self.module.reconcile_manifest_v2(terminal_only), 0
+                )
+            self.assertEqual(
+                strict_json_loads(
+                    terminal_only.terminal_receipt.read_text(encoding="utf-8"),
+                    "terminal-only copy",
+                ),
+                terminal,
+            )
+
+            missing_journal = copy.copy(args)
+            missing_journal.journal = root / "missing-journal.json"
+            with mock.patch.object(
+                self.module.subprocess,
+                "run",
+                side_effect=AssertionError(
+                    "missing source journal must not call provider"
+                ),
+            ), mock.patch.dict(
+                os.environ, environment, clear=False
+            ), self.assertRaises(InventoryError):
+                self.module.reconcile_manifest_v2(missing_journal)
+            self.assertEqual(transport.calls, calls_before)
+
+    def test_recovery_evidence_tamper_matrix_fails_before_provider(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="recovery-evidence-tamper-"
+        ) as directory:
+            root = Path(directory)
+            _inventory, manifest, approval, _baseline, transport = (
+                self._make_recovery_bundle(
+                    root,
+                    phase="FORWARD",
+                    index=3,
+                    execution_id="recovery-evidence-tamper",
+                )
+            )
+            args = self._recovery_cli_args(root, manifest)
+            environment = {
+                "R2_ACCOUNT_ID": ACCOUNT_ID,
+                "R2_ROOT_APPROVAL_ASSERTION_JSON": json.dumps(
+                    approval, sort_keys=True, separators=(",", ":")
+                ),
+                "R2_ROOT_APPROVAL_HMAC_KEY": APPROVAL_KEY,
+            }
+            candidate = root / manifest["objects"][3]["local_path"]
+            rollback_manifest = strict_json_loads(
+                (root / "rollback-manifest.json").read_text(encoding="utf-8"),
+                "rollback manifest",
+            )
+            baseline_row = next(
+                row for row in rollback_manifest["objects"]
+                if row["key"] == "trail-search.json"
+            )
+            baseline = root / baseline_row["baseline_object"]["local_path"]
+            standalone = root / "rollback-manifest.json"
+            cases = (
+                ("candidate-bytes", candidate, candidate.read_bytes() + b"x"),
+                ("baseline-bytes", baseline, baseline.read_bytes() + b"x"),
+                (
+                    "rollback-manifest",
+                    standalone,
+                    standalone.read_bytes().replace(
+                        b'"reverse_order_required":true',
+                        b'"reverse_order_required":false',
+                    ),
+                ),
+            )
+            calls_before = list(transport.calls)
+            for label, path, hostile in cases:
+                original = path.read_bytes()
+                self.assertNotEqual(hostile, original)
+                path.write_bytes(hostile)
+                try:
+                    with self.subTest(case=label), mock.patch.object(
+                        self.module.subprocess,
+                        "run",
+                        side_effect=AssertionError(
+                            "tampered recovery evidence must not reach provider"
+                        ),
+                    ), mock.patch.dict(
+                        os.environ, environment, clear=False
+                    ), self.assertRaises(ManifestError):
+                        self.module._validate_recovery_material(args)
+                finally:
+                    path.write_bytes(original)
+            missing_candidate = candidate.with_name(candidate.name + ".held")
+            candidate.rename(missing_candidate)
+            try:
+                with mock.patch.object(
+                    self.module.subprocess,
+                    "run",
+                    side_effect=AssertionError(
+                        "incomplete recovery evidence must not reach provider"
+                    ),
+                ), mock.patch.dict(
+                    os.environ, environment, clear=False
+                ), self.assertRaisesRegex(ManifestError, "missing"):
+                    self.module._validate_recovery_material(args)
+            finally:
+                missing_candidate.rename(candidate)
+
+            journal_path = root / "recovery-journal.json"
+            original_journal_bytes = journal_path.read_bytes()
+            original_journal = strict_json_loads(
+                original_journal_bytes.decode("utf-8"),
+                "original recovery journal",
+            )
+            forged_journal = copy.deepcopy(original_journal)
+            forged_result = forged_journal["forward_results"][0]
+            forged_result["attempt_id"] = scoped_attempt_id(
+                forged_journal["execution_id"],
+                phase="FORWARD",
+                index=0,
+                reconciled=True,
+            )
+            forged_result["transaction_id"] = scoped_transaction_id(
+                execution_id=forged_journal["execution_id"],
+                phase="FORWARD",
+                operation="PUT_CONDITIONAL",
+                index=0,
+                result=forged_result,
+            )
+            _rehash_scoped_receipt_without_authentication(forged_journal)
+            _write_test_contract_json(journal_path, forged_journal)
+            with mock.patch.object(
+                self.module.subprocess,
+                "run",
+                side_effect=AssertionError(
+                    "forged recovery journal must not reach provider"
+                ),
+            ), mock.patch.dict(
+                os.environ, environment, clear=False
+            ), self.assertRaisesRegex(ManifestError, "authentication mismatch"):
+                self.module._validate_recovery_material(args)
+            journal_path.write_bytes(original_journal_bytes)
+
+            unsigned_journal = copy.deepcopy(original_journal)
+            unsigned_journal.pop("journal_authentication")
+            unsigned_journal["receipt_sha256"] = canonical_sha256(
+                unsigned_journal, omit={"receipt_sha256"}
+            )
+            _write_test_contract_json(journal_path, unsigned_journal)
+            with mock.patch.object(
+                self.module.subprocess,
+                "run",
+                side_effect=AssertionError(
+                    "unsigned recovery journal must not reach provider"
+                ),
+            ), mock.patch.dict(
+                os.environ, environment, clear=False
+            ), self.assertRaisesRegex(ManifestError, "schema is not exact"):
+                self.module._validate_recovery_material(args)
+            journal_path.write_bytes(original_journal_bytes)
+
+            missing_key_environment = {
+                **environment,
+                "R2_ROOT_APPROVAL_HMAC_KEY": "",
+            }
+            with mock.patch.object(
+                self.module.subprocess,
+                "run",
+                side_effect=AssertionError(
+                    "missing recovery key must not reach provider"
+                ),
+            ), mock.patch.dict(
+                os.environ, missing_key_environment, clear=False
+            ), self.assertRaisesRegex(ManifestError, "key is unavailable"):
+                self.module._validate_recovery_material(args)
+
+            wrong_hash_args = copy.copy(args)
+            wrong_hash_args.approved_manifest_sha256 = "0" * 64
+            with mock.patch.object(
+                self.module.subprocess,
+                "run",
+                side_effect=AssertionError(
+                    "unapproved recovery evidence must not reach provider"
+                ),
+            ), mock.patch.dict(
+                os.environ, environment, clear=False
+            ), self.assertRaisesRegex(ManifestError, "exact reviewed value"):
+                self.module._validate_recovery_material(wrong_hash_args)
+            self.assertEqual(transport.calls, calls_before)
+
+    def test_every_key_forward_rollback_state_has_fake_production_parity(self) -> None:
+        states = ("PREIMAGE", "POSTIMAGE", "FOREIGN", "ABSENT")
+
+        def expected(
+            phase: str, index: int, state: str
+        ) -> tuple[str, str, int, int, int]:
+            is_mols = index < len(MOLS_OBJECT_KEYS)
+            if phase == "FORWARD":
+                observation = {
+                    "PREIMAGE": "EFFECT_NOT_OBSERVED",
+                    "POSTIMAGE": "EFFECT_OBSERVED",
+                    "FOREIGN": "AMBIGUOUS",
+                    "ABSENT": (
+                        "EFFECT_NOT_OBSERVED" if is_mols else "AMBIGUOUS"
+                    ),
+                }[state]
+                if observation == "EFFECT_OBSERVED":
+                    return observation, "COMPLETE_SUCCESS", 5, 0, 4 - index
+                return observation, "INDETERMINATE", index, 0, 0
+            observation = {
+                "PREIMAGE": "EFFECT_NOT_OBSERVED",
+                "POSTIMAGE": "EFFECT_OBSERVED",
+                "FOREIGN": "AMBIGUOUS",
+                "ABSENT": "EFFECT_OBSERVED" if is_mols else "AMBIGUOUS",
+            }[state]
+            if observation == "EFFECT_OBSERVED":
+                return observation, "ROLLED_BACK", 5, 5, index
+            return observation, "INDETERMINATE", 5, 4 - index, 0
+
+        def run_case(
+            implementation: str,
+            phase: str,
+            index: int,
+            state: str,
+        ) -> tuple[str, str, int, int, int]:
+            class ProcessDeath(BaseException):
+                pass
+
+            key = MOLS_FORWARD_KEYS[index]
+            execution_id = (
+                f"class-audit-{implementation.lower()}-"
+                f"{phase.lower()}-{index}-{state.lower()}"
+            )
+            with tempfile.TemporaryDirectory(
+                prefix=execution_id + "-"
+            ) as directory:
+                root = Path(directory)
+                if implementation == "REAL":
+                    _inventory, manifest, approval, baseline, transport = (
+                        self._make_recovery_bundle(
+                            root,
+                            phase=phase,
+                            index=index,
+                            execution_id=execution_id,
+                        )
+                    )
+                    journal = strict_json_loads(
+                        (root / "recovery-journal.json").read_text(
+                            encoding="utf-8"
+                        ),
+                        "real recovery journal",
+                    )
+                    objects = transport.objects
+
+                    def assign(
+                        object_key: str,
+                        payload: bytes,
+                        metadata: dict[str, str],
+                    ) -> None:
+                        objects[object_key] = {
+                            "payload": payload,
+                            "metadata": copy.deepcopy(metadata),
+                        }
+
+                    def remove(object_key: str) -> None:
+                        objects.pop(object_key, None)
+
+                    def effect_count() -> int:
+                        return sum(
+                            operation in {"put-object", "delete-object"}
+                            for operation, _key in transport.calls
+                        )
+
+                    def resume() -> dict[str, Any]:
+                        writer = self.module.MolsConditionalWriter(
+                            endpoint_url=ENDPOINT_URL,
+                            account_id=ACCOUNT_ID,
+                            manifest_root=root,
+                            aws_cli_version=AWS_CLI_VERSION,
+                            aws_cli_archive_sha256=AWS_CLI_ARCHIVE_SHA256,
+                        )
+                        with mock.patch.object(
+                            self.module.subprocess,
+                            "run",
+                            side_effect=transport.run,
+                        ):
+                            return reconcile_scoped_release_write_ahead(
+                                journal,
+                                manifest,
+                                writer,
+                                approval_assertion=approval,
+                                approval_key=APPROVAL_KEY,
+                            )
+                else:
+                    _inventory, _locals, manifest, baseline = _scoped_fixture(root)
+                    approval = make_approval_assertion(
+                        manifest,
+                        operation="RELEASE",
+                        key=APPROVAL_KEY,
+                        authorization_nonce=f"{execution_id}-approval",
+                    )
+                    checkpoints: list[dict[str, Any]] = []
+
+                    class CrashWriter(ScopedFakeWriter):
+                        def put_conditional(
+                            inner_self,
+                            row: dict[str, Any],
+                            **kwargs: Any,
+                        ) -> dict[str, Any]:
+                            result = super().put_conditional(row, **kwargs)
+                            if phase == "FORWARD" and row["key"] == key:
+                                raise ProcessDeath("after selected fake forward")
+                            return result
+
+                        def rollback_put_conditional(
+                            inner_self,
+                            rollback_row: dict[str, Any],
+                            **kwargs: Any,
+                        ) -> dict[str, Any]:
+                            result = super().rollback_put_conditional(
+                                rollback_row, **kwargs
+                            )
+                            if phase == "ROLLBACK" and rollback_row["key"] == key:
+                                raise ProcessDeath("after selected fake restore")
+                            return result
+
+                        def rollback_delete_created(
+                            inner_self,
+                            rollback_row: dict[str, Any],
+                            **kwargs: Any,
+                        ) -> dict[str, Any]:
+                            result = super().rollback_delete_created(
+                                rollback_row, **kwargs
+                            )
+                            if phase == "ROLLBACK" and rollback_row["key"] == key:
+                                raise ProcessDeath("after selected fake delete")
+                            return result
+
+                    fake_writer = CrashWriter(root, manifest, baseline)
+                    rollback_boundary = "AFTER_WRITE:4:trail-shapes.json"
+                    state_probe = (
+                        (lambda boundary: boundary != rollback_boundary)
+                        if phase == "ROLLBACK"
+                        else None
+                    )
+                    with self.assertRaises(ProcessDeath):
+                        _execute_scoped(
+                            manifest,
+                            fake_writer,
+                            approval_assertion=approval,
+                            execution_id=execution_id,
+                            state_probe=state_probe,
+                            checkpoint=lambda document: checkpoints.append(
+                                copy.deepcopy(document)
+                            ),
+                        )
+                    journal = checkpoints[-1]
+                    objects = fake_writer.objects
+
+                    def assign(
+                        object_key: str,
+                        payload: bytes,
+                        metadata: dict[str, str],
+                    ) -> None:
+                        objects[object_key] = fake_writer._object(
+                            object_key, payload, metadata=metadata
+                        )
+
+                    def remove(object_key: str) -> None:
+                        objects.pop(object_key, None)
+
+                    def effect_count() -> int:
+                        return (
+                            len(fake_writer.forward_calls)
+                            + len(fake_writer.rollback_calls)
+                        )
+
+                    def resume() -> dict[str, Any]:
+                        return reconcile_scoped_release_write_ahead(
+                            journal,
+                            manifest,
+                            fake_writer,
+                            approval_assertion=approval,
+                            approval_key=APPROVAL_KEY,
+                        )
+
+                pending = journal["pending_effect"]
+                self.assertEqual(pending["phase"], phase)
+                self.assertEqual(pending["index"], index)
+                self.assertEqual(pending["key"], key)
+                row = manifest["objects"][index]
+                candidate = (root / row["local_path"]).read_bytes()
+                forward_attempt = (
+                    pending["attempt_id"]
+                    if phase == "FORWARD"
+                    else journal["forward_results"][index]["attempt_id"]
+                )
+                forward_metadata = ScopedFakeWriter._write_metadata(
+                    row,
+                    manifest,
+                    forward_attempt,
+                    condition_mode=row["conditional_mode"],
+                    preimage=row["remote_preimage"],
+                )
+                rollback_row = journal["scoped_preflight"][
+                    "rollback_manifest"
+                ]["objects"][index]
+                rollback_metadata: dict[str, str] | None = None
+                baseline_payload = baseline.get(key)
+                if (
+                    phase == "ROLLBACK"
+                    and rollback_row["rollback_operation"] == "RESTORE_IF_MATCH"
+                ):
+                    postimage = {
+                        field: journal["forward_results"][index][field]
+                        for field in ("etag", "bytes", "sha256")
+                    }
+                    rollback_metadata = ScopedFakeWriter._write_metadata(
+                        rollback_row["baseline_object"],
+                        manifest,
+                        pending["attempt_id"],
+                        condition_mode="IF_MATCH",
+                        preimage=postimage,
+                    )
+
+                if state == "PREIMAGE":
+                    if phase == "FORWARD":
+                        if baseline_payload is None:
+                            remove(key)
+                        else:
+                            assign(key, baseline_payload, {})
+                    else:
+                        assign(key, candidate, forward_metadata)
+                elif state == "POSTIMAGE":
+                    if phase == "FORWARD":
+                        assign(key, candidate, forward_metadata)
+                    elif rollback_metadata is None:
+                        remove(key)
+                    else:
+                        assert baseline_payload is not None
+                        assign(key, baseline_payload, rollback_metadata)
+                elif state == "FOREIGN":
+                    assign(key, b'{"foreign":true}', {})
+                else:
+                    self.assertEqual(state, "ABSENT")
+                    remove(key)
+
+                effects_before = effect_count()
+                terminal = resume()
+                reconciliation = terminal["reconciliation"]
+                assert reconciliation is not None
+                return (
+                    reconciliation["observation_state"],
+                    terminal["terminal_state"],
+                    terminal["forward_observed"],
+                    terminal["rollback_observed"],
+                    effect_count() - effects_before,
+                )
+
+        case_count = 0
+        for phase in ("FORWARD", "ROLLBACK"):
+            for index, key in enumerate(MOLS_FORWARD_KEYS):
+                for state in states:
+                    case_count += 1
+                    expected_result = expected(phase, index, state)
+                    fake = run_case("FAKE", phase, index, state)
+                    real = run_case("REAL", phase, index, state)
+                    with self.subTest(phase=phase, key=key, state=state):
+                        self.assertEqual(fake, real)
+                        self.assertEqual(real, expected_result)
+        self.assertEqual(case_count, 40)
 
     def test_real_adapter_reviewer_partial_prefix_reproduction_is_rolled_back(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -4788,6 +5521,46 @@ class TestQuarantine(unittest.TestCase):
             for record in self.inventory["objects"]
         }
 
+    def test_quarantine_existing_receipt_and_terminal_recovery_fail_closed(self) -> None:
+        spec = importlib.util.spec_from_file_location(
+            "cleanup_r2_orphans_recovery_audit",
+            SCRIPTS / "cleanup-r2-orphans.py",
+        )
+        assert spec and spec.loader
+        cleanup = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cleanup)
+        with tempfile.TemporaryDirectory(
+            prefix="quarantine-recovery-audit-"
+        ) as directory:
+            terminal_path = Path(directory) / "existing-terminal.json"
+            terminal_path.write_text("{}\n", encoding="utf-8")
+            store = mock.Mock(
+                side_effect=AssertionError(
+                    "existing quarantine receipt must precede store construction"
+                )
+            )
+            with mock.patch.object(
+                cleanup, "AwsQuarantineStore", store
+            ), self.assertRaisesRegex(ManifestError, "existing terminal/journal"):
+                cleanup.apply_quarantine(
+                    argparse.Namespace(terminal_receipt=terminal_path)
+                )
+            self.assertEqual(store.call_count, 0)
+
+        terminal = execute_quarantine(self.plan, FakeStore(self.preimages))
+        with self.assertRaisesRegex(
+            ManifestError, "requires a write-ahead checkpoint"
+        ):
+            reconcile_quarantine_write_ahead(
+                terminal,
+                self.plan,
+                provider_result={
+                    "transaction_id": "forbidden-terminal-replay",
+                    "attempt_id": "forbidden-terminal-replay",
+                },
+                observed_preimage=None,
+            )
+
     def test_empty_plan_requires_canonical_receipt_id_at_build_and_validation(self) -> None:
         inventory = receipt_for(
             list(GLOBAL_OBJECTS), area_registry={"alpha-trail-az"}
@@ -5544,6 +6317,48 @@ class TestRepositoryWiring(unittest.TestCase):
                 self.assertNotEqual(hostile["scripts/stage-changed-r2.py"], stage)
         self.assertNotIn("live overwrite disabled", stage)
         self.assertNotIn("adapter_success_schema_capable=False", stage)
+
+    def test_recovery_branch_never_restages_and_uploads_exact_candidates(self) -> None:
+        sync = (ROOT / ".github/workflows/sync-geom-to-r2.yml").read_text(
+            encoding="utf-8"
+        )
+        provider = _workflow_named_step(
+            sync,
+            "Build canonical plan and optionally apply the exact reviewed manifest",
+        )
+        work_root = provider.index('WORK_ROOT="${RUNNER_TEMP}/trekdex-r2-sync-contract"')
+        recovery_start = provider.index(
+            'if [ -n "$RECONCILE_RUN_ID" ]; then', work_root
+        )
+        recovery_exit = provider.index("exit $?", recovery_start)
+        recovery = provider[recovery_start:recovery_exit]
+        self.assertIn('cp -R "$RECOVERY_ROOT/stage" "$STAGE_ROOT"', recovery)
+        self.assertIn("reconcile-scoped", recovery)
+        for forbidden in (
+            "fetch-inventory",
+            "stage-changed-r2.py stage",
+            "build-trail-search-index.py",
+            "build-parking-pool.py",
+            "build-trail-shapes.py",
+            "--global-object",
+        ):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, recovery)
+        self.assertLess(
+            recovery_exit,
+            provider.index("build-trail-search-index.py", recovery_exit),
+        )
+        self.assertLess(
+            recovery_exit,
+            provider.index("stage-changed-r2.py stage", recovery_exit),
+        )
+        candidate_paths = tuple(
+            f"stage/objects/{key.encode('utf-8').hex()}.object"
+            for key in MOLS_FORWARD_KEYS
+        )
+        for path in candidate_paths:
+            with self.subTest(candidate=path):
+                self.assertEqual(sync.count(path), 2)
 
     def test_publish_to_sync_passes_exact_required_plan_only_inputs(self) -> None:
         publish = (ROOT / ".github/workflows/trailforge-publish.yml").read_text()

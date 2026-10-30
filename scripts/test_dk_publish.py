@@ -183,6 +183,12 @@ def test_boundary_bbox_from_pbf_relation(tmp_path):
     assert got[999] is None
 
 
+def test_no_pyosmium_4x_only_api_in_dk_tooling():
+    # ubuntu-24.04 apt python3-pyosmium is 3.7.0, which has no FileProcessor.
+    for name in ("dk_publish.py", "dk-run-area.sh"):
+        assert "FileProcessor" not in (ROOT / "scripts" / name).read_text(encoding="utf-8"), name
+
+
 MOLS_BOUNDARY = [10.4513, 56.1298, 10.8473, 56.3204]
 
 

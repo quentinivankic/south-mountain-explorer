@@ -60,14 +60,18 @@ def test_registry_loads_and_mols_is_entry_one_equal_to_the_hardened_pins():
         contract.MOLS_EXTRACT, contract.MOLS_STATE, contract.MOLS_REGION_CODE)
 
 
-def test_registry_seeds_the_four_national_parks_with_computed_geometry_left_null():
+def test_registry_has_the_four_national_parks_with_blessed_computed_geometry():
     by_id = dk.load_registry(REGISTRY)["by_id"]
     rels = {"nationalpark-thy-dk": 7045682, "nationalpark-vadehavet-dk": 14045506,
             "nationalpark-skjoldungernes-land-dk": 13648864,
             "nationalpark-kongernes-nordsjaelland-dk": 15312449}
+    geom = {"nationalpark-thy-dk": ([8.16, 56.65, 8.73, 57.17], [56.9, 8.4]),
+            "nationalpark-vadehavet-dk": ([7.94, 54.84, 8.92, 55.68], [55.3, 8.4]),
+            "nationalpark-skjoldungernes-land-dk": ([11.75, 55.49, 12.17, 55.82], [55.7, 12.0]),
+            "nationalpark-kongernes-nordsjaelland-dk": ([11.8, 55.84, 12.67, 56.15], [56.0, 12.2])}
     for aid, rel in rels.items():
         assert by_id[aid]["relation_id"] == rel
-        assert by_id[aid]["bbox"] is None and by_id[aid]["center"] is None
+        assert (by_id[aid]["bbox"], by_id[aid]["center"]) == geom[aid]
 
 
 def test_publish_areas_allowlist_equals_registry_and_always_has_mols():
@@ -103,7 +107,7 @@ def test_publish_areas_allowlist_without_registry_is_mols_only(tmp_path):
 
 @pytest.mark.parametrize("mutate", [
     lambda d: d["areas"][1].update(bbox=[1, 2, 3, 4], center=[1, 2]),   # outside Denmark
-    lambda d: d["areas"][1].update(bbox=[8.0, 56.0, 9.0, 57.0]),        # bbox without center
+    lambda d: d["areas"][1].update(bbox=[8.0, 56.0, 9.0, 57.0], center=None),   # bbox without center
     lambda d: d["areas"][1].update(id="no-suffix"),
     lambda d: d["areas"][1].update(relation_id=7046785),                # repeated relation
     lambda d: d.update(schema="x"),
@@ -175,7 +179,7 @@ def test_full_registry_counts_ids_and_relations_are_unique():
     assert len(set(ids)) == len(ids) and all(i.endswith("-dk") for i in ids)
     assert len(set(rels)) == len(rels)
     assert [a["id"] for a in areas[:5]][0] == MOLS and set(PARKS) <= set(ids)
-    assert all(a["bbox"] is None for a in areas if a["id"] != MOLS)
+    assert all(a["bbox"] is None for a in areas if a["id"] != MOLS and a["id"] not in PARKS)
 
 
 def test_hold_counts_match_the_discovery_candidates():
@@ -190,8 +194,16 @@ def test_hold_counts_match_the_discovery_candidates():
     assert all(a["tier"] in (1, 2) for a in areas)
 
 
-def test_blessed_table_still_contains_only_mols():
-    assert set(dk.load_expected(EXPECTED)) == {MOLS}
+def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks():
+    table = dk.load_expected(EXPECTED)
+    assert set(table) == {MOLS, *PARKS}
+    assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
+        MOLS: (26, 85.4), "nationalpark-thy-dk": (32, 64.8), "nationalpark-vadehavet-dk": (43, 63.0),
+        "nationalpark-skjoldungernes-land-dk": (11, 40.5),
+        "nationalpark-kongernes-nordsjaelland-dk": (74, 82.3)}
+    # Mols entry is byte-identical to its pre-bless form (as committed in the raw file)
+    raw = json.loads(EXPECTED.read_text(encoding="utf-8"))["areas"][MOLS]
+    assert json.dumps(raw, sort_keys=True) == json.dumps(table[MOLS], sort_keys=True)
 
 
 def test_batch_skips_held_and_explicit_areas_include_them():
@@ -291,8 +303,16 @@ def test_mols_registry_entry_is_consistent_with_its_real_boundary_bbox():
     assert rec["effective_bbox"] == entry["bbox"] and rec["bbox_source"] == "registry"
 
 
-def test_missing_bbox_is_proposed_in_qualify_and_fails_closed_in_publish():
-    entry = dk.load_registry(REGISTRY)["by_id"]["nationalpark-thy-dk"]
+def _null_bbox_registry(tmp_path):
+    """Synthetic registry: a copy whose Thy entry has no bbox/center (not yet blessed)."""
+    def nullify(doc):
+        thy = next(a for a in doc["areas"] if a["id"] == "nationalpark-thy-dk")
+        thy.update(bbox=None, center=None)
+    return _write_registry(tmp_path / "null-bbox-registry.json", nullify)
+
+
+def test_missing_bbox_is_proposed_in_qualify_and_fails_closed_in_publish(tmp_path):
+    entry = dk.load_registry(_null_bbox_registry(tmp_path))["by_id"]["nationalpark-thy-dk"]
     box = [8.1, 56.7, 8.7, 57.1]
     q = dk.check_area_geometry(entry, box, [56.9, 8.4], "qualify")
     assert q["status"] == "ok" and q["bbox_source"] == "computed"
@@ -321,7 +341,9 @@ def test_boundary_missing_or_disagreeing_with_discovery_fails():
 
 def test_prepare_areas_cli_writes_one_row_index_and_fails_publish_on_null_bbox(tmp_path):
     reg = dk.load_registry(REGISTRY)
-    mols, thy = reg["by_id"][MOLS], reg["by_id"]["nationalpark-thy-dk"]
+    null_reg = _null_bbox_registry(tmp_path)
+    mols = reg["by_id"][MOLS]
+    thy = dk.load_registry(null_reg)["by_id"]["nationalpark-thy-dk"]
     bounds = tmp_path / "bounds.osm"
     bounds.write_text(OSM.format(rel=mols["relation_id"], w=MOLS_BOUNDARY[0], s=MOLS_BOUNDARY[1],
                                  e=MOLS_BOUNDARY[2], n=MOLS_BOUNDARY[3]), encoding="utf-8")
@@ -345,6 +367,7 @@ def test_prepare_areas_cli_writes_one_row_index_and_fails_publish_on_null_bbox(t
     disc.write_text(json.dumps({"candidates": [
         {"index_row": ["nationalpark-thy-dk", thy["name"], "Denmark", 56.9, 8.4],
          "osm_relation_id": thy["relation_id"]}]}), encoding="utf-8")
+    argv += ["--registry", str(null_reg)]
     argv[argv.index("publish")] = "qualify"
     assert dk.main(argv) == 0
     assert json.loads((out / "nationalpark-thy-dk/area.json").read_text())["bbox_arg"] == "8.05,56.65,8.75,57.15"
@@ -729,7 +752,9 @@ def test_qualify_report_lists_names_routes_removed_categories_and_proposes_table
     assert pe["required_names"] == ["Thy Route"]
     assert pe["forbidden_names"] == ["Sandvej", "Stage 1"]      # kept names are never forbidden
     out = tmp_path / "q"
-    assert dk.main(["qualify-aggregate", "--reports-dir", str(tmp_path), "--out-dir", str(out)]) == 0
+    null_reg = _null_bbox_registry(tmp_path)
+    assert dk.main(["qualify-aggregate", "--reports-dir", str(tmp_path), "--out-dir", str(out),
+                    "--registry", str(null_reg)]) == 0
     assert json.loads((out / "dk-areas-expected.proposed.json").read_text())["areas"][aid]["trail_count"] == 2
     prop = json.loads((out / "dk-areas.proposed.json").read_text())
     thy = next(a for a in prop["areas"] if a["id"] == aid)
@@ -737,7 +762,8 @@ def test_qualify_report_lists_names_routes_removed_categories_and_proposes_table
     assert prop["areas"][0]["bbox"] == [10.40, 56.08, 10.90, 56.35]
     (tmp_path / "bad-dk").mkdir()
     dk.main(["mark-failed", "--area-id", "bad-dk", "--stage", "pipeline", "--out", str(tmp_path / "bad-dk/report.json")])
-    assert dk.main(["qualify-aggregate", "--reports-dir", str(tmp_path), "--out-dir", str(out)]) == 1
+    assert dk.main(["qualify-aggregate", "--reports-dir", str(tmp_path), "--out-dir", str(out),
+                    "--registry", str(null_reg)]) == 1
 
 
 # ------------------------------------------------------- publish_areas guard --

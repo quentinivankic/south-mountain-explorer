@@ -990,7 +990,7 @@ def test_publish_dk_workflow_contract():
     doc = yaml.safe_load(PUBLISH_DK)
     inputs = (doc.get("on") or doc.get(True))["workflow_dispatch"]["inputs"]
     assert set(inputs) == {"areas", "mode", "chunk_size"}
-    assert inputs["mode"]["options"] == ["qualify", "publish"] and inputs["mode"]["default"] == "qualify"
+    assert inputs["mode"]["options"] == ["qualify", "publish", "update"] and inputs["mode"]["default"] == "qualify"
     assert inputs["chunk_size"]["default"] == "25"
     assert doc["concurrency"]["group"] == "trailforge-publish"
     assert len(doc["jobs"]) == 1                                  # single job, not a matrix
@@ -1003,9 +1003,11 @@ def test_publish_dk_workflow_contract():
     assert "verify-staged" in PUBLISH_DK and "verify-commit" in PUBLISH_DK
     # one Denmark download + discovery, then a per-area loop; publish merge/commit are publish-only
     assert PUBLISH_DK.count("curl -fL") == 1 and PUBLISH_DK.count("seed-areas.py --dry-run DK") == 1
-    for step in ("Install blessed geoms", "Commit published data"):
+    for step, cond in (("Install blessed geoms", "inputs.mode == 'publish' }}"),
+                       ("Install updated geoms", "inputs.mode == 'update' }}"),
+                       ("Commit published data", "inputs.mode == 'publish' || inputs.mode == 'update' }}")):
         block = PUBLISH_DK.split(f"- name: {step}", 1)[1].split("\n      - name:", 1)[0]
-        assert "if: ${{ inputs.mode == 'publish' }}" in block
+        assert f"if: ${{{{ {cond}" in block, step
     # qualify never reaches a write step
     assert "git push" not in PUBLISH_DK.split("- name: Commit published data", 1)[0]
     assert "assert-expected" in PUBLISH_DK and "prepare-areas" in PUBLISH_DK
@@ -1031,7 +1033,8 @@ def test_sync_dk_workflow_contract():
     assert doc["concurrency"]["group"] == "sync-geom-to-r2"
     inputs = (doc.get("on") or doc.get(True))["workflow_dispatch"]["inputs"]
     assert set(inputs) == {"mode", "rollback_run_id"}              # the area list is never an input
-    assert inputs["mode"]["options"] == ["plan", "apply", "rollback"]
+    assert inputs["mode"]["options"] == ["plan", "apply", "rollback", "plan-update", "apply-update",
+                                         "rollback-update"]
     assert doc["permissions"] == {"contents": "read", "actions": "read"}
     assert sorted(set(re.findall(r"secrets\.([A-Z0-9_]+)", SYNC_DK))) == [
         "R2_ACCESS_KEY_ID", "R2_ACCOUNT_ID", "R2_SECRET_ACCESS_KEY"]
@@ -1043,7 +1046,7 @@ def test_sync_dk_workflow_contract():
     assert "PARTIAL APPLY: dispatch mode=rollback with rollback_run_id=$GITHUB_RUN_ID" in SYNC_DK
     assert "trap - EXIT" in SYNC_DK and "rollback-decide" in SYNC_DK and "derive-areas" in SYNC_DK
     assert 'test "$(cur "$key")" = "$(base "$key")"' in SYNC_DK       # ETag race guard
-    assert SYNC_DK.count('test "$(cur parking.json)" = "$(base parking.json)"') == 1
+    assert SYNC_DK.count('test "$(cur parking.json)" = "$(base parking.json)"') == 2   # apply + apply-update
     assert "parking_after" in SYNC_DK                                  # rollback checks parking too
 
 
@@ -1237,3 +1240,567 @@ def test_report_area_lists_curated_exclusions_and_forbids_them(tmp_path):
     assert rec["curated_excluded"] == [{"id": "r9", "name": "Skovvejen", "length_mi": 1.25, "reason": "forest road"}]
     assert rec["removed_category_counts"] == {"dk-curated-exclude": 1}
     assert rec["proposed_expected"]["forbidden_names"] == ["Skovvejen"]
+
+
+# ====================================================== UPDATE mode ==========
+# Republish EXISTING Danish areas: publish-side (in-place index rows, only-modified
+# 2N+2 allowlist) and R2-side (overwrite 2N keys, in-place shared-file splice, rollback).
+
+OLD_SIL = {"b": [0, 0, 2, 2], "l": [[3, 4]]}
+
+
+def _set_rules_v2(repo):
+    path = repo / "trailforge/golden/dk-areas.json"
+    doc = json.loads(path.read_text())
+    for entry in doc["areas"]:
+        entry["rules"] = "dk-v2"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+
+
+def _update_fixture(tmp_path, total, upd, *, row_changes=True):
+    """Repo whose committed (HEAD) state is the OLD published state; the working tree already
+    holds the NEW geoms/silhouettes for the `upd` positions. live/ = OLD R2 bytes.
+    `finish(fx)` applies the CLI replace-index step and writes the NEW bundle."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    repo, live, ids = _make_repo(tmp_path, total)
+    _set_rules_v2(repo)
+    upd_ids = [ids[i] for i in upd]
+    reg = dk.load_registry(repo / "trailforge/golden/dk-areas.json")
+    bundle_path = repo / "ios/SouthMountainExplorer/Resources/areas-index.json"
+    new_rows = json.loads(bundle_path.read_bytes())[1:]
+    new_geoms = {a: (repo / f"public/areas/geom/{a}.json").read_bytes() for a in ids}
+    new_sils = {a: (repo / f"public/areas/silhouettes/{a}.json").read_bytes() for a in ids}
+    old_geoms, old_sils, old_rows = {}, {}, []
+    for aid, row in zip(ids, new_rows):
+        if aid in upd_ids:
+            if row_changes:
+                g = _geom(aid, trail_count=3, total_mi=4.0)
+                old_rows.append([*row[:5], 3, 4.0, row[7]])
+            else:
+                g = _geom(aid, names=[f"{aid} Old A", f"{aid} Old B"])
+                old_rows.append(list(row))
+            old_geoms[aid], old_sils[aid] = _compact(g), _compact(OLD_SIL)
+        else:
+            old_geoms[aid], old_sils[aid] = new_geoms[aid], new_sils[aid]
+            old_rows.append(list(row))
+    # committed OLD state
+    for aid in ids:
+        (repo / f"public/areas/geom/{aid}.json").write_bytes(old_geoms[aid])
+        (repo / f"public/areas/silhouettes/{aid}.json").write_bytes(old_sils[aid])
+    (repo / "public/areas/index.json").write_bytes(_default([OLD_ROW, *old_rows]))
+    bundle_path.write_bytes(_compact([OLD_ROW, *old_rows]))
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "old published state")
+    # live R2 = old state (shared files = the old records in area order)
+    search = [["Old Trail", "old-area-co", "a", 1.0, "Easy"]]
+    shapes = {"old-area-co/a": [0, 0, 255, 255]}
+    for aid in ids:
+        search += dk.expected_records("trail-search.json", aid, old_geoms[aid])
+        shapes.update({r[0]: r[1] for r in dk.expected_records("trail-shapes.json", aid, old_geoms[aid])})
+    (live / "index.json").write_bytes(_compact([OLD_ROW, *old_rows]))
+    (live / "trail-search.json").write_bytes(_compact(search))
+    (live / "trail-shapes.json").write_bytes(_compact(shapes))
+    areas = tmp_path / "liveareas"
+    (areas / "silhouettes").mkdir(parents=True)
+    for aid in ids:
+        (areas / f"{aid}.json").write_bytes(old_geoms[aid])
+        (areas / "silhouettes" / f"{aid}.json").write_bytes(old_sils[aid])
+    # NEW geoms/silhouettes in the working tree (what the dk pipeline + silhouette script write)
+    for aid in upd_ids:
+        (repo / f"public/areas/geom/{aid}.json").write_bytes(new_geoms[aid])
+        (repo / f"public/areas/silhouettes/{aid}.json").write_bytes(new_sils[aid])
+    return {"repo": repo, "live": live, "areas": areas, "ids": ids, "upd": upd_ids, "reg": reg,
+            "new_rows": new_rows, "old_rows": old_rows, "tmp": tmp_path}
+
+
+def _finish(fx, *, stage=True):
+    """The workflow's index steps: replace-index via the real CLI, then the regenerated bundle."""
+    repo, tmp_path = fx["repo"], fx["tmp"]
+    work = tmp_path / "work"
+    for aid, row in zip(fx["ids"], fx["new_rows"]):
+        if aid in fx["upd"]:
+            (work / aid).mkdir(parents=True, exist_ok=True)
+            (work / aid / "index.json").write_text(json.dumps([row]), encoding="utf-8")
+    sel = tmp_path / "sel.txt"
+    sel.write_text("\n".join(fx["upd"]) + "\n", encoding="utf-8")
+    rc = dk.main(["replace-index", "--registry", str(repo / "trailforge/golden/dk-areas.json"),
+                  "--selected", str(sel), "--rows-dir", str(work),
+                  "--geom-dir", str(repo / "public/areas/geom"), "--target", str(repo / "public/areas/index.json")])
+    final_rows = json.loads((repo / "public/areas/index.json").read_bytes())
+    (repo / "ios/SouthMountainExplorer/Resources/areas-index.json").write_bytes(_compact(final_rows))
+    if stage:
+        _git(repo, "add", "public/areas", "ios/SouthMountainExplorer/Resources/areas-index.json")
+    return rc
+
+
+def _derive(fx, out=None):
+    out = out or fx["tmp"] / "areas.txt"
+    rc = dk.main(["derive-update-areas", "--repo", str(fx["repo"]), "--live-index", str(fx["live"] / "index.json"),
+                  "--live-areas-dir", str(fx["areas"]), "--out", str(out)])
+    return rc, out
+
+
+def _build_update(fx, out):
+    return dk.main(["build-update-candidates", "--repo", str(fx["repo"]),
+                    "--live-index", str(fx["live"] / "index.json"),
+                    "--live-search", str(fx["live"] / "trail-search.json"),
+                    "--live-shapes", str(fx["live"] / "trail-shapes.json"),
+                    "--live-areas-dir", str(fx["areas"]), "--out-dir", str(out)])
+
+
+def _pieces(data, as_dict):
+    return [raw for _, raw in dk._split_records(data, as_dict, "t")]
+
+
+UPDATE_CASES = [(1, [0]), (5, [0, 2, 4]), (45, [i for i in range(45) if i % 10 != 9][:40])]
+
+
+@pytest.mark.parametrize("total,upd", UPDATE_CASES, ids=["N1", "N3", "N40"])
+def test_update_splice_replaces_exactly_the_intended_records(tmp_path, total, upd):
+    fx = _update_fixture(tmp_path, total, upd)
+    assert _finish(fx) == 0
+    rc, areas_file = _derive(fx)
+    assert rc == 0 and areas_file.read_text().split() == sorted(fx["upd"])
+    out = tmp_path / "out"
+    parking = (fx["live"] / "parking.json").read_bytes()
+    assert _build_update(fx, out) == 0
+    plan = json.loads((out / "plan.json").read_text())
+    n = len(fx["upd"])
+    keys = [w["key"] for w in plan["writes"]]
+    ids = sorted(fx["upd"])
+    assert len(keys) == 2 * n + 3 and not any("parking" in k for k in keys)
+    assert keys[:n] == [f"{i}.json" for i in ids] and keys[n:2 * n] == [f"silhouettes/{i}.json" for i in ids]
+    assert keys[2 * n:] == ["trail-shapes.json", "trail-search.json", "index.json"]       # index last
+    assert sorted(plan["old_objects"]) == sorted(keys[:2 * n])
+    for key, meta in plan["old_objects"].items():
+        assert meta["sha256"] == dk._sha((fx["areas"] / key).read_bytes())               # OLD bytes recorded
+    assert (fx["live"] / "parking.json").read_bytes() == parking
+    for key, as_dict, owner in (("trail-search.json", False, lambda r: r[1]),
+                                ("trail-shapes.json", True, lambda r: r[0].split("/")[0])):
+        old, new = (fx["live"] / key).read_bytes(), (out / key).read_bytes()
+        old_p, new_p = dk._split_records(old, as_dict, "o"), dk._split_records(new, as_dict, "n")
+        keep_old = [raw for rec, raw in old_p if owner(rec) not in ids]
+        keep_new = [raw for rec, raw in new_p if owner(rec) not in ids]
+        assert keep_old == keep_new                                                      # byte-identical
+        # area blocks stay at their original relative position (order preserved)
+        seq = lambda pieces: [k for i, k in enumerate(owner(r) for r, _ in pieces) if i == 0 or k != owner(pieces[i - 1][0])]  # noqa: E731
+        assert seq(old_p) == seq(new_p)
+        assert sum(1 for r, _ in new_p if owner(r) in ids) == 2 * n                       # 3 old -> 2 new trails
+        assert sum(1 for r, _ in old_p if owner(r) in ids) == 3 * n
+    old_idx, new_idx = json.loads((fx["live"] / "index.json").read_bytes()), json.loads((out / "index.json").read_bytes())
+    assert [r[0] for r in new_idx] == [r[0] for r in old_idx]                            # order preserved
+    for o, nw in zip(old_idx, new_idx):
+        assert (nw != o) == (nw[0] in ids)
+    assert new_idx == json.loads((fx["repo"] / "ios/SouthMountainExplorer/Resources/areas-index.json").read_bytes())
+    for w in plan["writes"]:
+        assert dk._sha((out / w["file"]).read_bytes()) == w["sha256"]
+
+
+def test_update_derivation_cap_and_refusals(tmp_path):
+    fx = _update_fixture(tmp_path, 41, list(range(41)))
+    # replace-index itself refuses 41; write the bundle directly to prove derivation caps too
+    assert _finish(fx) == 1
+    (fx["repo"] / "ios/SouthMountainExplorer/Resources/areas-index.json").write_bytes(
+        _compact([OLD_ROW, *fx["new_rows"]]))
+    assert _derive(fx)[0] == 1                                       # 41 > cap 40
+    fx2 = _update_fixture(tmp_path / "b", 3, [1])
+    assert _finish(fx2) == 0 and _derive(fx2)[0] == 0
+    # nothing changed -> nothing to update
+    fx3 = _update_fixture(tmp_path / "c", 2, [])
+    assert _derive(fx3)[0] == 1
+    # a new area in the bundle (append) is not an update
+    bundle = fx2["repo"] / "ios/SouthMountainExplorer/Resources/areas-index.json"
+    rows = json.loads(bundle.read_bytes())
+    bundle.write_bytes(_compact(rows[:-1]))
+    assert _derive(fx2)[0] == 1
+    # a non-Danish live row that differs is refused
+    bundle.write_bytes(_compact([[*OLD_ROW[:1], "Renamed", *OLD_ROW[2:]], *rows[1:]]))
+    assert _derive(fx2)[0] == 1
+    # an updated area whose live key is missing: the 2N keys must exist
+    bundle.write_bytes(_compact(rows))
+    (fx2["areas"] / f"{fx2['ids'][1]}.json").unlink()
+    assert _derive(fx2)[0] == 1
+
+
+def test_update_refuses_unblessed_or_legacy_area_at_derivation(tmp_path):
+    fx = _update_fixture(tmp_path, 2, [0])
+    assert _finish(fx) == 0
+    reg_path = fx["repo"] / "trailforge/golden/dk-areas.json"
+    doc = json.loads(reg_path.read_text())
+    doc["areas"][0]["rules"] = "legacy"
+    reg_path.write_text(json.dumps(doc), encoding="utf-8")
+    assert _derive(fx)[0] == 1                                       # legacy needs allow_update
+    doc["areas"][0]["allow_update"] = True
+    reg_path.write_text(json.dumps(doc), encoding="utf-8")
+    assert _derive(fx)[0] == 0
+    exp_path = fx["repo"] / "trailforge/golden/dk-areas-expected.json"
+    table = json.loads(exp_path.read_text())
+    del table["areas"][fx["ids"][0]]
+    exp_path.write_text(json.dumps(table), encoding="utf-8")
+    assert _derive(fx)[0] == 1                                       # not blessed
+
+
+def test_update_build_refuses_non_contiguous_blocks_and_unblessed_results(tmp_path):
+    fx = _update_fixture(tmp_path, 3, [1])
+    assert _finish(fx) == 0
+    search_path = fx["live"] / "trail-search.json"
+    original = search_path.read_bytes()
+    rows = json.loads(original)
+    aid = fx["upd"][0]
+    mine = [r for r in rows if r[1] == aid]
+    others = [r for r in rows if r[1] != aid]
+    search_path.write_bytes(_compact([*others[:3], mine[0], *others[3:], *mine[1:]]))   # block split in two
+    assert _build_update(fx, tmp_path / "a") == 1
+    search_path.write_bytes(_compact([r for r in rows if r[1] != aid]))                  # no records at all
+    assert _build_update(fx, tmp_path / "b") == 1
+    search_path.write_bytes(original)
+    assert _build_update(fx, tmp_path / "ok") == 0
+    # result must be the blessed result
+    exp_path = fx["repo"] / "trailforge/golden/dk-areas-expected.json"
+    table = json.loads(exp_path.read_text())
+    table["areas"][aid]["trail_count"] = 9
+    exp_path.write_text(json.dumps(table), encoding="utf-8")
+    assert _build_update(fx, tmp_path / "c") == 1
+
+
+def test_update_select_refuses_new_areas_and_publish_still_refuses_existing(tmp_path, capsys):
+    reg = tmp_path / "reg.json"
+    reg.write_text(json.dumps({k: v for k, v in _big_registry(tmp_path, 3).items() if k != "by_id"}))
+    doc = json.loads(reg.read_text())
+    for e in doc["areas"]:
+        e["rules"] = "dk-v2"
+    reg.write_text(json.dumps(doc), encoding="utf-8")
+    index = tmp_path / "index.json"
+    index.write_bytes(_default([OLD_ROW, ["area-000-dk", "Test Area 0", "Denmark", 56.3, 9.3, 2, 3.0, 1000],
+                                ["area-001-dk", "Test Area 1", "Denmark", 56.3, 9.3, 2, 3.0, 1001]]))
+    exp = tmp_path / "exp.json"
+    exp.write_text(json.dumps({"schema": dk.EXPECTED_SCHEMA, "areas": {
+        a: {"trail_count": 2, "total_mi": 3.0, "total_mi_tolerance": 0.05, "required_names": [],
+            "forbidden_names": []} for a in ("area-000-dk", "area-001-dk", "area-002-dk")}}))
+
+    def select(areas, mode):
+        return dk.main(["select", "--registry", str(reg), "--index", str(index), "--expected", str(exp),
+                        "--areas", areas, "--mode", mode, "--out", str(tmp_path / "sel.txt")])
+    assert select("area-000-dk,area-001-dk", "update") == 0
+    assert (tmp_path / "sel.txt").read_text().split() == ["area-000-dk", "area-001-dk"]
+    assert select("area-002-dk", "update") == 1                      # not published yet: update refuses new areas
+    assert "not in public/areas/index.json" in capsys.readouterr().err
+    assert select("batch=1", "update") == 1                          # explicit ids only
+    assert select("area-000-dk", "publish") == 1                     # publish still refuses existing areas
+    assert select("area-002-dk", "publish") == 0                     # ...and still accepts new ones
+    exp_doc = json.loads(exp.read_text())
+    del exp_doc["areas"]["area-001-dk"]
+    exp.write_text(json.dumps(exp_doc), encoding="utf-8")
+    assert select("area-001-dk", "update") == 1                      # must be blessed
+    assert select("area-000-dk,area-000-dk", "update") == 1          # duplicate id
+
+
+def test_update_refuses_mols_and_legacy_unless_the_registry_flag_allows_it(tmp_path):
+    real_index = ROOT / "public/areas/index.json"
+    assert MOLS in dk._index_ids(real_index)                          # Mols is live, so only the legacy rule can stop it
+    out = tmp_path / "sel.txt"
+    base = ["select", "--index", str(real_index), "--areas", MOLS, "--mode", "update", "--out", str(out)]
+    assert dk.main(base) == 1 and not out.exists()                    # default: refused
+    flagged = tmp_path / "reg.json"
+    _write_registry(flagged, lambda d: d["areas"][0].update(allow_update=True))
+    assert dk.main([*base, "--registry", str(flagged)]) == 0 and out.read_text().split() == [MOLS]
+    # bool only
+    bad = _write_registry(tmp_path / "bad.json", lambda d: d["areas"][0].update(allow_update="yes"))
+    assert dk.main([*base, "--registry", str(bad)]) == 1
+    # a dk-v2 live park is selectable, the committed registry carries no allow_update flag
+    assert all("allow_update" not in a for a in json.loads(REGISTRY.read_text())["areas"])
+    assert dk.main(["select", "--index", str(real_index), "--areas", "nationalpark-thy-dk", "--mode", "update",
+                    "--out", str(out)]) == 0
+
+
+# ------------------------------------------------ update rollback table ------
+
+def _update_plan(tmp_path, capsys):
+    fx = _update_fixture(tmp_path, 3, [0, 2])
+    assert _finish(fx) == 0
+    out = tmp_path / "out"
+    assert _build_update(fx, out) == 0
+    capsys.readouterr()
+    return fx, out
+
+
+def _live_state(fx, out, tmp_path, spec):
+    """spec: key -> 'cand' | 'old' | 'other'. Unlisted keys default to `default`."""
+    plan = json.loads((out / "plan.json").read_text())
+    cur = tmp_path / "cur"
+    for w in plan["writes"]:
+        key = w["key"]
+        what = spec.get(key, spec["*"])
+        if key in SHARED:
+            old = (fx["live"] / key).read_bytes()
+        else:
+            old = (fx["areas"] / key).read_bytes()
+        data = {"cand": (out / w["file"]).read_bytes(), "old": old, "other": b'{"third":"party"}'}[what]
+        (cur / key).parent.mkdir(parents=True, exist_ok=True)
+        (cur / key).write_bytes(data)
+    return plan, cur
+
+
+def _decide_update(fx, out, tmp_path, capsys, spec):
+    _, cur = _live_state(fx, out, tmp_path, spec)
+    capsys.readouterr()
+    code = dk.main(["rollback-decide-update", "--plan", str(out / "plan.json"), "--live-dir", str(cur)])
+    cap = capsys.readouterr()
+    return code, [line.split("\t") for line in cap.out.splitlines() if "\t" in line], cap.err
+
+
+def test_update_rollback_full_apply_restores_every_overwritten_object(tmp_path, capsys):
+    fx, out = _update_plan(tmp_path, capsys)
+    code, lines, _ = _decide_update(fx, out, tmp_path, capsys, {"*": "cand"})
+    assert code == 0 and len(lines) == 2 * 2 + 3
+    assert [k for k, _ in lines[:3]] == ["index.json", "trail-search.json", "trail-shapes.json"]   # index first
+    assert all(a == "restore" for _, a in lines)
+    assert not any("parking" in k for k, _ in lines)
+    assert not any(a == "delete" for _, a in lines)                  # update never deletes
+
+
+def test_update_rollback_partial_apply_restores_only_candidate_objects(tmp_path, capsys):
+    fx, out = _update_plan(tmp_path, capsys)
+    first = fx["upd"][0]
+    spec = {"*": "old", f"{first}.json": "cand", "trail-shapes.json": "cand"}
+    code, lines, _ = _decide_update(fx, out, tmp_path, capsys, spec)
+    assert code == 0
+    got = dict(lines)
+    assert got[f"{first}.json"] == "restore" and got["trail-shapes.json"] == "restore"
+    assert got["index.json"] == "skip" and got[f"silhouettes/{first}.json"] == "skip"
+
+
+def test_update_rollback_nothing_applied_skips_everything(tmp_path, capsys):
+    fx, out = _update_plan(tmp_path, capsys)
+    code, lines, _ = _decide_update(fx, out, tmp_path, capsys, {"*": "old"})
+    assert code == 0 and {a for _, a in lines} == {"skip"}
+
+
+@pytest.mark.parametrize("bad", ["index.json", "trail-search.json", "trail-shapes.json", "AREA_GEOM", "AREA_SIL"])
+def test_update_rollback_refuses_third_party_modified_object(tmp_path, capsys, bad):
+    fx, out = _update_plan(tmp_path, capsys)
+    key = {"AREA_GEOM": f"{fx['upd'][1]}.json", "AREA_SIL": f"silhouettes/{fx['upd'][1]}.json"}.get(bad, bad)
+    code, lines, err = _decide_update(fx, out, tmp_path, capsys, {"*": "cand", key: "other"})
+    assert code == 1 and lines == [] and "refusing" in err
+
+
+def test_update_rollback_refuses_a_missing_live_object(tmp_path, capsys):
+    fx, out = _update_plan(tmp_path, capsys)
+    _, cur = _live_state(fx, out, tmp_path, {"*": "cand"})
+    (cur / f"{fx['upd'][0]}.json").unlink()
+    assert dk.main(["rollback-decide-update", "--plan", str(out / "plan.json"), "--live-dir", str(cur)]) == 1
+    # an append plan is not an update plan
+    plan = json.loads((out / "plan.json").read_text())
+    plan["schema"] = "trekdex-dk-r2-plan-v1"
+    (out / "plan2.json").write_text(json.dumps(plan))
+    assert dk.main(["rollback-decide-update", "--plan", str(out / "plan2.json"), "--live-dir", str(cur)]) == 1
+
+
+# ---------------------------- publish side: in-place rows + 2N+2 allowlist ----
+
+def _verify_update(fx, cmd="verify-staged"):
+    return dk.main([cmd, "--repo", str(fx["repo"]), "--areas", ",".join(fx["upd"]), "--mode", "update"])
+
+
+@pytest.mark.parametrize("total,upd", UPDATE_CASES, ids=["N1", "N3", "N40"])
+def test_update_allowlist_is_exactly_2n_plus_2_and_rows_are_replaced_in_place(tmp_path, total, upd):
+    fx = _update_fixture(tmp_path, total, upd)
+    before = (fx["repo"] / "public/areas/index.json").read_bytes()
+    assert _finish(fx) == 0
+    names = _git(fx["repo"], "diff", "--cached", "--name-only").stdout.decode().split()
+    assert len(names) == 2 * len(upd) + 2 == len(dk.area_paths(fx["upd"]))
+    assert _verify_update(fx) == 0
+    after = json.loads((fx["repo"] / "public/areas/index.json").read_bytes())
+    assert [r[0] for r in after] == [r[0] for r in json.loads(before)]                  # row order preserved
+    # every non-updated row is byte-identical in the file
+    old_p = _pieces_default(before)
+    new_p = _pieces_default((fx["repo"] / "public/areas/index.json").read_bytes())
+    for (orow, oraw), (nrow, nraw) in zip(old_p, new_p):
+        assert (nraw == oraw) == (orow[0] not in fx["upd"])
+    _git(fx["repo"], "commit", "-q", "-m", "update")
+    assert _verify_update(fx, "verify-commit") == 0
+
+
+def _pieces_default(data):
+    return dk._split_records(data, False, "t", sep=", ")
+
+
+def test_update_allowlist_accepts_a_geom_only_change_when_the_row_is_unchanged(tmp_path):
+    fx = _update_fixture(tmp_path, 2, [0], row_changes=False)
+    assert _finish(fx) == 0
+    names = _git(fx["repo"], "diff", "--cached", "--name-only").stdout.decode().split()
+    assert len(names) == 2 and not any("index" in n for n in names)
+    assert _verify_update(fx) == 0
+
+
+def test_update_staged_diff_refusals(tmp_path):
+    fx = _update_fixture(tmp_path, 4, [1, 2])
+    assert _finish(fx) == 0
+    repo = fx["repo"]
+    assert _verify_update(fx) == 0
+    # extra path outside the allowlist
+    (repo / "public/areas/geom/other-dk.json").write_text("{}", encoding="utf-8")
+    _git(repo, "add", "public/areas/geom/other-dk.json")
+    assert _verify_update(fx) == 1
+    _git(repo, "rm", "-q", "-f", "public/areas/geom/other-dk.json")
+    # a bystander geom modified
+    by = [a for a in fx["ids"] if a not in fx["upd"]][0]
+    (repo / f"public/areas/geom/{by}.json").write_bytes(b'{"id":"x"}')
+    _git(repo, "add", f"public/areas/geom/{by}.json")
+    assert _verify_update(fx) == 1
+    _git(repo, "checkout", "-q", "HEAD", "--", f"public/areas/geom/{by}.json")
+    assert _verify_update(fx) == 0
+    # an updated geom left unchanged
+    _git(repo, "checkout", "-q", "HEAD", "--", f"public/areas/geom/{fx['upd'][0]}.json")
+    assert _verify_update(fx) == 1
+    _git(repo, "add", "-A", "public/areas")
+    # deletion
+    _git(repo, "rm", "-q", "-f", f"public/areas/silhouettes/{fx['upd'][1]}.json")
+    assert _verify_update(fx) == 1
+
+
+def test_update_staged_diff_refuses_index_tampering(tmp_path):
+    fx = _update_fixture(tmp_path, 4, [1, 2])
+    assert _finish(fx) == 0
+    repo = fx["repo"]
+    index = repo / "public/areas/index.json"
+    good = index.read_bytes()
+    rows = json.loads(good)
+    by = [i for i, r in enumerate(rows) if r[0] in fx["ids"] and r[0] not in fx["upd"]][0]
+
+    def put(new_rows, *, bundle=True):
+        index.write_bytes(_default(new_rows))
+        if bundle:
+            (repo / "ios/SouthMountainExplorer/Resources/areas-index.json").write_bytes(_compact(new_rows))
+        _git(repo, "add", "public/areas", "ios/SouthMountainExplorer/Resources/areas-index.json")
+    changed = copy.deepcopy(rows)
+    changed[by][1] = "Renamed bystander"
+    put(changed)
+    assert _verify_update(fx) == 1                                    # a non-updated row changed
+    changed = copy.deepcopy(rows)
+    changed[0][1] = "Renamed US row"
+    put(changed)
+    assert _verify_update(fx) == 1
+    swapped = copy.deepcopy(rows)
+    swapped[1], swapped[2] = swapped[2], swapped[1]
+    put(swapped)
+    assert _verify_update(fx) == 1                                    # order changed
+    put(rows + [["extra-dk", "Extra", "Denmark", 56.0, 9.0, 2, 3.0, 5]])
+    assert _verify_update(fx) == 1                                    # a row was appended
+    wrong = copy.deepcopy(rows)
+    wrong[fx["ids"].index(fx["upd"][0]) + 1][5] = 99
+    put(wrong)
+    assert _verify_update(fx) == 1                                    # count differs from the geom
+    ident = copy.deepcopy(rows)
+    ident[fx["ids"].index(fx["upd"][0]) + 1][1] = "Another name"
+    put(ident)
+    assert _verify_update(fx) == 1                                    # identity changed
+    put(rows, bundle=False)                                           # only one of the two index files changed
+    assert _verify_update(fx) == 1
+    put(rows)
+    assert _verify_update(fx) == 0
+    index.write_bytes(json.dumps(rows, indent=1).encode("utf-8"))
+    _git(repo, "add", "public/areas/index.json")
+    assert _verify_update(fx) == 1                                    # producer framing differs
+
+
+def test_replace_index_refuses_new_areas_and_identity_changes(tmp_path):
+    fx = _update_fixture(tmp_path, 3, [1])
+    repo = fx["repo"]
+    work = tmp_path / "work"
+    aid = fx["upd"][0]
+    (work / aid).mkdir(parents=True)
+    row = fx["new_rows"][fx["ids"].index(aid)]
+    sel = tmp_path / "sel.txt"
+    sel.write_text(aid + "\n")
+
+    def run():
+        return dk.main(["replace-index", "--registry", str(repo / "trailforge/golden/dk-areas.json"),
+                        "--selected", str(sel), "--rows-dir", str(work),
+                        "--geom-dir", str(repo / "public/areas/geom"),
+                        "--target", str(repo / "public/areas/index.json")])
+    renamed = list(row)
+    renamed[1] = "Another"
+    (work / aid / "index.json").write_text(json.dumps([renamed]))
+    assert run() == 1                                                 # registry identity mismatch
+    (work / aid / "index.json").write_text(json.dumps([row]))
+    before = (repo / "public/areas/index.json").read_bytes()
+    sel.write_text("ghost-dk\n")
+    assert run() == 1 and (repo / "public/areas/index.json").read_bytes() == before
+    sel.write_text(aid + "\n")
+    assert run() == 0 and run() == 0                                  # idempotent (row already replaced)
+
+
+# ------------------------------------------------------ update workflows -----
+
+def test_publish_dk_update_mode_is_main_only_explicit_ids_and_publish_unchanged():
+    yaml = pytest.importorskip("yaml")
+    doc = yaml.safe_load(PUBLISH_DK)
+    assert (doc.get("on") or doc.get(True))["workflow_dispatch"]["inputs"]["mode"]["options"] == [
+        "qualify", "publish", "update"]
+    validate = PUBLISH_DK.split("- name: Validate input shape before checkout", 1)[1].split("- uses:", 1)[0]
+    assert "(qualify|publish|update)" in validate
+    assert '[[ "$RAW_AREAS" != batch=* ]]' in validate               # update takes explicit ids only
+    assert 'if [ "$RAW_MODE" != "qualify" ]' in validate and 'test "$GITHUB_REF_NAME" = "main"' in validate
+    assert "replace-index" in PUBLISH_DK and "--mode \"$MODE\"" in PUBLISH_DK
+    # the append-only publish step still uses merge-index and refuses existing geoms
+    install = PUBLISH_DK.split("- name: Install blessed geoms", 1)[1].split("\n      - name:", 1)[0]
+    assert 'test ! -e "public/areas/geom/$ID.json"' in install and "merge-index" in install
+    upd = PUBLISH_DK.split("- name: Install updated geoms", 1)[1].split("\n      - name:", 1)[0]
+    assert 'test -f "public/areas/geom/$ID.json"' in upd and "merge-index" not in upd
+    # every blessed-table gate also guards update
+    assert 'if [ "$MODE" != "qualify" ]; then\n              python3 scripts/dk_publish.py assert-expected' in PUBLISH_DK
+    for forbidden in ("R2_ACCESS_KEY_ID", "aws s3", "s3api", "--force"):
+        assert forbidden not in PUBLISH_DK
+
+
+def test_sync_dk_update_modes_contract():
+    yaml = pytest.importorskip("yaml")
+    doc = yaml.safe_load(SYNC_DK)
+    assert doc["concurrency"]["group"] == "sync-geom-to-r2" and doc["concurrency"]["cancel-in-progress"] is False
+    inputs = (doc.get("on") or doc.get(True))["workflow_dispatch"]["inputs"]
+    assert set(inputs) == {"mode", "rollback_run_id"}                  # the area list is never an input
+    steps = {s["name"]: s for s in next(iter(doc["jobs"].values()))["steps"] if "name" in s}
+    cond = {n: s.get("if", "") for n, s in steps.items()}
+    guards = SYNC_DK.split("- name: Guards", 1)[1].split("- name: Snapshot", 1)[0]
+    assert "plan|apply|rollback|plan-update|apply-update|rollback-update" in guards
+    assert 'if [ "$MODE" = "rollback" ] || [ "$MODE" = "rollback-update" ]' in guards
+    # append path conditions are exactly the old modes (update modes never run them)
+    assert "inputs.mode == 'plan' || inputs.mode == 'apply'" in cond["Plan (area list from the committed index diff; build + prove candidates)"]
+    assert cond["Apply (write 2N+3 keys in order, read each back)"] == "${{ inputs.mode == 'apply' }}"
+    update_plan = SYNC_DK.split("- name: Update plan", 1)[1].split("\n      - name:", 1)[0]
+    apply_update = SYNC_DK.split("- name: Apply update", 1)[1].split("\n      - name:", 1)[0]
+    rollback_update = SYNC_DK.split("- name: Rollback update", 1)[1]
+    assert "inputs.mode == 'plan-update' || inputs.mode == 'apply-update'" in cond[
+        "Update plan (live Danish objects, repo-vs-live area set, candidates, proofs)"]
+    # the 2N keys must exist (get-object fails on a missing key) and the set is derived, never an input
+    assert "get-object" in update_plan and "derive-update-areas" in update_plan and "already exists" not in update_plan
+    assert "build-update-candidates" in update_plan and "live-dk-ids" in update_plan
+    # old bytes are snapshotted and uploaded BEFORE the apply step
+    assert (SYNC_DK.index("- name: Update plan") < SYNC_DK.index("dk-r2-update-snapshot-${{ github.run_id }}")
+            < SYNC_DK.index("- name: Apply update"))
+    # conditional writes on every key; ETag race guard first; sha256 readback; parking never written
+    assert "--if-match" in apply_update and 'put "cand/$file" "$key" "$cc" "$(base "$key")"' in apply_update
+    assert apply_update.index("changed since snapshot") < apply_update.index('put "cand/$file"')
+    assert "PARTIAL APPLY: dispatch mode=rollback-update with rollback_run_id=$GITHUB_RUN_ID" in apply_update
+    assert "trap - EXIT" in apply_update and "READBACK MISMATCH" in apply_update
+    assert "put-object" in apply_update and "cand/parking" not in apply_update
+    assert 'test "$(cur parking.json)" = "$(base parking.json)"' in apply_update
+    assert "delete-object" not in apply_update and "delete-object" not in rollback_update    # update never deletes
+    assert "--if-match" in rollback_update and "rollback-decide-update" in rollback_update
+    assert "ROLLBACK READBACK MISMATCH" in rollback_update and "parking_after" in rollback_update
+    # parking.json is never a put/copy target anywhere in the file
+    assert not re.search(r"--key\s+parking\.json[^\n]*--body|put[^\n]*parking", SYNC_DK)
+    assert sorted(set(re.findall(r"secrets\.([A-Z0-9_]+)", SYNC_DK))) == [
+        "R2_ACCESS_KEY_ID", "R2_ACCOUNT_ID", "R2_SECRET_ACCESS_KEY"]
+
+
+def test_update_write_order_in_plan_is_geoms_silhouettes_shapes_search_index_last(tmp_path):
+    fx = _update_fixture(tmp_path, 3, [0, 1])
+    assert _finish(fx) == 0
+    assert _build_update(fx, tmp_path / "o") == 0
+    keys = [w["key"] for w in json.loads((tmp_path / "o/plan.json").read_text())["writes"]]
+    ids = sorted(fx["upd"])
+    assert keys == [f"{i}.json" for i in ids] + [f"silhouettes/{i}.json" for i in ids] + [
+        "trail-shapes.json", "trail-search.json", "index.json"]

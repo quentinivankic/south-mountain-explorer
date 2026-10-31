@@ -23,17 +23,35 @@ name: Sync Danish areas to R2 (N areas, registry)
 #                candidate -> restore, or already baseline -> skip; anything else
 #                is a third party's publish and is refused) and delete exactly the
 #                2N keys.
+#
+# UPDATE modes (republish EXISTING Danish areas after trailforge-publish-dk.yml
+# mode=update landed on main; the append-only modes above are unchanged):
+# mode=plan-update      read-only: download the live per-area objects of every Danish
+#                       area in the live index, derive the update set (areas whose
+#                       repo geom/silhouette differ from live R2; NOT an input, 1..40,
+#                       registry + blessed table + not Mols unless allow_update),
+#                       build the candidates (shared files = LIVE bytes with only
+#                       those areas' records replaced in place), prove every other
+#                       record byte-identical, upload the snapshot of the OLD bytes
+#                       of every object to be overwritten. The 2N keys MUST exist.
+# mode=apply-update     plan-update, then conditionally overwrite (If-Match on the
+#                       snapshotted ETag) 2N per-area objects, shapes, search, index
+#                       last; sha256 readback of every key; parking.json ETag
+#                       before/after, never written. PARTIAL APPLY trap.
+# mode=rollback-update  restore the old bytes of every overwritten object from the
+#                       apply run's snapshot (candidate -> restore, old -> skip,
+#                       anything else refused), final sha256 readback, parking check.
 
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "plan (read-only) | apply | rollback"
+        description: "plan | apply | rollback (append new areas) ; plan-update | apply-update | rollback-update (overwrite existing areas)"
         type: choice
-        options: [plan, apply, rollback]
+        options: [plan, apply, rollback, plan-update, apply-update, rollback-update]
         default: plan
       rollback_run_id:
-        description: "rollback only: run id of the apply run whose snapshot to restore"
+        description: "rollback / rollback-update only: run id of the apply run whose snapshot to restore"
         default: ""
 
 permissions:
@@ -67,8 +85,8 @@ jobs:
       - name: Guards (main tip, inputs, secrets)
         run: |
           set -euo pipefail
-          [[ "$MODE" =~ ^(plan|apply|rollback)$ ]]
-          if [ "$MODE" = "rollback" ]; then
+          [[ "$MODE" =~ ^(plan|apply|rollback|plan-update|apply-update|rollback-update)$ ]]
+          if [ "$MODE" = "rollback" ] || [ "$MODE" = "rollback-update" ]; then
             [[ "$ROLLBACK_RUN_ID" =~ ^[0-9]+$ ]]
           else
             test -z "$ROLLBACK_RUN_ID"
@@ -97,7 +115,7 @@ jobs:
           cat snap/etags.tsv
 
       - name: Plan (area list from the committed index diff; build + prove candidates)
-        if: ${{ inputs.mode != 'rollback' }}
+        if: ${{ inputs.mode == 'plan' || inputs.mode == 'apply' }}
         run: |
           set -euo pipefail
           mkdir -p cand
@@ -121,7 +139,7 @@ jobs:
           cp snap/etags.tsv cand/baseline-etags.tsv
 
       - name: Save snapshot + candidates (rollback source; before any write)
-        if: ${{ inputs.mode != 'rollback' }}
+        if: ${{ inputs.mode == 'plan' || inputs.mode == 'apply' }}
         uses: actions/upload-artifact@v4
         with:
           name: dk-r2-snapshot-${{ github.run_id }}
@@ -210,3 +228,155 @@ jobs:
           parking_after="$(aws s3api head-object --bucket "$BUCKET" --key parking.json --endpoint-url "$ENDPOINT" --query ETag --output text | tr -d '"')"
           test "$parking_after" = "$parking_before" || { echo "parking.json changed"; exit 1; }
           echo "rollback verified"
+
+      # ---------------------------------------------------------------------
+      # UPDATE modes (overwrite existing Danish areas). Everything above this
+      # line is the unchanged append-only path (plan | apply | rollback).
+      # ---------------------------------------------------------------------
+      - name: Update plan (live Danish objects, repo-vs-live area set, candidates, proofs)
+        if: ${{ inputs.mode == 'plan-update' || inputs.mode == 'apply-update' }}
+        run: |
+          set -euo pipefail
+          mkdir -p cand all-areas/silhouettes snap/areas/silhouettes
+          python3 scripts/dk_publish.py live-dk-ids --repo . --live-index snap/index.json --out cand/live-dk.txt
+          : > all-areas/etags.tsv
+          # The 2N keys MUST already exist (opposite of the append path): a missing key fails here.
+          while read -r area; do
+            for key in "$area.json" "silhouettes/$area.json"; do
+              etag="$(aws s3api get-object --bucket "$BUCKET" --key "$key" \
+                --endpoint-url "$ENDPOINT" --query ETag --output text "all-areas/$key")"
+              etag="${etag//\"/}"
+              printf '%s\t%s\t%s\n' "$key" "$etag" "$(sha256sum "all-areas/$key" | cut -d' ' -f1)" >> all-areas/etags.tsv
+            done
+          done < cand/live-dk.txt
+          # The update set is NOT an input: Danish areas whose repo files differ from live R2.
+          python3 scripts/dk_publish.py derive-update-areas \
+            --repo . --live-index snap/index.json --live-areas-dir all-areas --out cand/areas.txt
+          python3 scripts/dk_publish.py build-update-candidates \
+            --repo . \
+            --live-index snap/index.json --live-search snap/trail-search.json \
+            --live-shapes snap/trail-shapes.json --live-areas-dir all-areas \
+            --areas-file cand/areas.txt --out-dir cand
+          # Snapshot the OLD bytes of every per-area object that will be overwritten.
+          : > snap/area-etags.tsv
+          jq -r '.old_objects | to_entries[] | [.key, .value.file, .value.sha256] | @tsv' cand/plan.json | \
+          while IFS=$'\t' read -r key file sha; do
+            mkdir -p "snap/$(dirname "$file")"
+            cp "all-areas/$key" "snap/$file"
+            test "$(sha256sum "snap/$file" | cut -d' ' -f1)" = "$sha"
+            awk -F'\t' -v k="$key" '$1==k' all-areas/etags.tsv >> snap/area-etags.tsv
+          done
+          test "$(wc -l < snap/area-etags.tsv)" -eq "$(jq '.old_objects | length' cand/plan.json)"
+          cp snap/etags.tsv cand/baseline-etags.tsv
+          jq -r '.writes[] | .key' cand/plan.json
+
+      - name: Save update snapshot + candidates (rollback source; before any write)
+        if: ${{ inputs.mode == 'plan-update' || inputs.mode == 'apply-update' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dk-r2-update-snapshot-${{ github.run_id }}
+          path: |
+            snap/
+            cand/
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Apply update (conditional overwrite of 2N+3 keys, read each back)
+        if: ${{ inputs.mode == 'apply-update' }}
+        run: |
+          set -euo pipefail
+          # Conditional write: the object must still be exactly the snapshotted one (If-Match).
+          put() { # file key cache-control etag
+            aws s3api put-object --bucket "$BUCKET" --key "$2" --body "$1" \
+              --content-type "application/json" --cache-control "$3" --if-match "$4" \
+              --endpoint-url "$ENDPOINT" > /dev/null
+          }
+          cur() { aws s3api head-object --bucket "$BUCKET" --key "$1" --endpoint-url "$ENDPOINT" --query ETag --output text | tr -d '"'; }
+          base() { awk -F'\t' -v k="$1" '$1==k {print $2}' snap/etags.tsv snap/area-etags.tsv; }
+          # Race guard: every overwritten key and parking must still be the snapshotted object.
+          for key in $(jq -r '.writes[].key' cand/plan.json) parking.json; do
+            want="$(base "$key")"
+            test -n "$want" || { echo "no snapshot ETag for $key; aborting before any write"; exit 1; }
+            test "$(cur "$key")" = "$want" || { echo "$key changed since snapshot; aborting before any write"; exit 1; }
+          done
+          trap 'rc=$?; [ "$rc" -eq 0 ] || echo "PARTIAL APPLY: dispatch mode=rollback-update with rollback_run_id=$GITHUB_RUN_ID"' EXIT
+          # plan.json lists writes in order: geoms, silhouettes, shapes, search, index last.
+          jq -r '.writes[] | [.key, .file] | @tsv' cand/plan.json | while IFS=$'\t' read -r key file; do
+            case "$key" in
+              index.json|trail-search.json|trail-shapes.json) cc="public, max-age=300" ;;
+              *) cc="public, max-age=86400" ;;
+            esac
+            put "cand/$file" "$key" "$cc" "$(base "$key")"
+          done
+          mkdir -p verify
+          jq -r '.writes[] | [.key, .file, .sha256] | @tsv' cand/plan.json | while IFS=$'\t' read -r key file sha; do
+            mkdir -p "verify/$(dirname "$file")"
+            aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" "verify/$file" > /dev/null
+            test "$(sha256sum "verify/$file" | cut -d' ' -f1)" = "$sha" || { echo "READBACK MISMATCH $key"; exit 1; }
+            echo "verified $key $sha"
+          done
+          test "$(cur parking.json)" = "$(base parking.json)" || { echo "parking.json changed"; exit 1; }
+          trap - EXIT
+          echo "update apply complete. rollback: dispatch mode=rollback-update rollback_run_id=$GITHUB_RUN_ID"
+
+      - name: Rollback update (restore the OLD bytes of every overwritten object)
+        if: ${{ inputs.mode == 'rollback-update' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p rb rb/live
+          gh run download "$ROLLBACK_RUN_ID" -R "$GITHUB_REPOSITORY" -n "dk-r2-update-snapshot-$ROLLBACK_RUN_ID" -D rb
+          test -f rb/cand/plan.json
+          jq -e '.schema == "trekdex-dk-r2-update-plan-v1"' rb/cand/plan.json > /dev/null
+          # The snapshot must match the hashes recorded when it was taken.
+          for key in index.json trail-search.json trail-shapes.json; do
+            want="$(jq -r --arg k "$key" '.baseline[$k].sha256' rb/cand/plan.json)"
+            test "$(sha256sum "rb/snap/$key" | cut -d' ' -f1)" = "$want" || { echo "snapshot $key corrupt"; exit 1; }
+          done
+          jq -r '.old_objects | to_entries[] | [.value.file, .value.sha256] | @tsv' rb/cand/plan.json | \
+          while IFS=$'\t' read -r file sha; do
+            test "$(sha256sum "rb/snap/$file" | cut -d' ' -f1)" = "$sha" || { echo "snapshot $file corrupt"; exit 1; }
+          done
+          parking_before="$(awk -F'\t' '$1=="parking.json" {print $2}' snap/etags.tsv)"
+          # Current live bytes + ETags of every overwritten object.
+          : > rb/live-etags.tsv
+          for key in $(jq -r '.writes[].key' rb/cand/plan.json); do
+            mkdir -p "rb/live/$(dirname "$key")"
+            etag="$(aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" \
+              --query ETag --output text "rb/live/$key")"
+            printf '%s\t%s\n' "$key" "${etag//\"/}" >> rb/live-etags.tsv
+          done
+          # Each object must be the applied candidate (restore) or already old (skip); a
+          # third party's bytes refuse the whole rollback before anything is written.
+          python3 scripts/dk_publish.py rollback-decide-update --plan rb/cand/plan.json --live-dir rb/live > rb/actions.tsv
+          cat rb/actions.tsv
+          while IFS=$'\t' read -r key action; do
+            case "$action" in
+              restore)
+                case "$key" in
+                  index.json|trail-search.json|trail-shapes.json) src="rb/snap/$key"; cc="public, max-age=300" ;;
+                  *) src="rb/snap/areas/$key"; cc="public, max-age=86400" ;;
+                esac
+                aws s3api put-object --bucket "$BUCKET" --key "$key" --body "$src" \
+                  --content-type "application/json" --cache-control "$cc" \
+                  --if-match "$(awk -F'\t' -v k="$key" '$1==k {print $2}' rb/live-etags.tsv)" \
+                  --endpoint-url "$ENDPOINT" > /dev/null ;;
+              skip) echo "skip $key (already old bytes)" ;;
+              *) echo "unknown action $action"; exit 1 ;;
+            esac
+          done < rb/actions.tsv
+          # Final readback: every overwritten object is now exactly its old bytes.
+          mkdir -p verify
+          awk -F'\t' '{print $1}' rb/actions.tsv | while read -r key; do
+            case "$key" in
+              index.json|trail-search.json|trail-shapes.json) src="rb/snap/$key" ;;
+              *) src="rb/snap/areas/$key" ;;
+            esac
+            mkdir -p "verify/$(dirname "$key")"
+            aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" "verify/$key" > /dev/null
+            test "$(sha256sum "verify/$key" | cut -d' ' -f1)" = "$(sha256sum "$src" | cut -d' ' -f1)" || { echo "ROLLBACK READBACK MISMATCH $key"; exit 1; }
+          done
+          parking_after="$(aws s3api head-object --bucket "$BUCKET" --key parking.json --endpoint-url "$ENDPOINT" --query ETag --output text | tr -d '"')"
+          test "$parking_after" = "$parking_before" || { echo "parking.json changed"; exit 1; }
+          echo "update rollback verified"

@@ -205,12 +205,12 @@ BATCH_E_SHIP = ("straaso-plantage-dk", "kelstrup-plantage-dk", "kiskelund-planta
 BATCH_F_SHIP = ("egholm-dk", "varde-sondre-plantage-dk")
 # batch K (D-US polygon tier): six shipping areas (registry bbox/centre set in the curation PR; Vrøgum and Langdal
 # were held entries), four of them new (Østerådalen and Stoubæk Krat are way-backed), plus nine new held entries
-BATCH_K_SHIP = ("osteradalen-dk", "vrogum-klitplantage-dk", "naturreservatet-stoubaek-krat-dk", "langdal-plantage-dk",
+BATCH_K_SHIP = ("osteradalen-dk", "vrogum-klitplantage-dk", "stoubaek-krat-dk", "langdal-plantage-dk",
                 "hjelm-hede-dk", "vester-aslund-plantage-dk")
 BATCH_K_HELD_NEW = ("grene-sande-dk", "kaergard-klitplantage-dk", "kollemorten-krat-dk", "rodding-skov-dk",
                     "klim-bjerg-dk", "storring-praestegards-skov-dk", "anebjerg-skov-dk", "alstrup-krat-dk",
                     "fosdal-plantage-dk")
-BATCH_K_WAY = ("osteradalen-dk", "naturreservatet-stoubaek-krat-dk", "storring-praestegards-skov-dk")
+BATCH_K_WAY = ("osteradalen-dk", "stoubaek-krat-dk", "storring-praestegards-skov-dk")
 FLAGSHIPS = ("rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk")
 BATCH_A_SHIP = ("stenderupskovene-dk", "grastenskovene-dk", "store-hareskov-dk", "stursbol-plantage-dk",
                 "norreskoven-pa-als-dk", "harrild-hede-dk")
@@ -270,12 +270,12 @@ def test_batch_k_ships_holds_and_opt_ins():
                for i in BATCH_K_SHIP)
     # est counts = the replay (trails, miles) on main 99c788eda; centre inside the boundary, bbox covers the trails
     assert {i: (by_id[i]["est_trails"], by_id[i]["est_mi"]) for i in BATCH_K_SHIP} == {
-        "osteradalen-dk": (3, 4.2), "vrogum-klitplantage-dk": (2, 9.0), "naturreservatet-stoubaek-krat-dk": (3, 5.8),
+        "osteradalen-dk": (3, 4.2), "vrogum-klitplantage-dk": (2, 9.0), "stoubaek-krat-dk": (3, 5.8),
         "langdal-plantage-dk": (2, 6.9), "hjelm-hede-dk": (2, 3.7), "vester-aslund-plantage-dk": (4, 7.0)}
     assert by_id["vester-aslund-plantage-dk"]["trail_name_prefix"] == "Vester Aslund"
     assert by_id["hjelm-hede-dk"]["display_name"] == "Flyndersø og Hjelm Hede"
-    assert by_id["naturreservatet-stoubaek-krat-dk"]["display_name"] == "Stoubæk Krat"
-    assert [t["id"] for t in by_id["naturreservatet-stoubaek-krat-dk"]["include_trails"]] == ["r18946905"]
+    assert by_id["stoubaek-krat-dk"]["display_name"] == "Stoubæk Krat"
+    assert [t["id"] for t in by_id["stoubaek-krat-dk"]["include_trails"]] == ["r18946905"]
     assert [e["id"] for e in by_id["vrogum-klitplantage-dk"]["exclude_trails"]] == ["n:Kirkevejen"]
     # Langdal ships alone: the Fosdalen walks moved to the held fosdal-plantage-dk (Fosdalen Rød has no OSM relation)
     assert "include_trails" not in by_id["langdal-plantage-dk"] and "display_name" not in by_id["langdal-plantage-dk"]

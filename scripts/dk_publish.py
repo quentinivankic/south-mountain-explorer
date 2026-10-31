@@ -476,7 +476,13 @@ def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, dis
         if any(m < MARGIN_MIN - 1e-9 or m > MARGIN_MAX + 1e-9 for m in margins):
             problems.append(f"registry bbox margins {rec['registry_margins']} outside "
                             f"[{MARGIN_MIN}, {MARGIN_MAX}] of the boundary bbox {boundary}")
-        if [round(v, 6) for v in entry["center"]] != centre:
+        if entry.get("rules") == "dk-v3":
+            # dk-v3 only: the pin may sit on the trails instead of the rounded boundary midpoint,
+            # but it must stay inside the boundary bbox (the trail-centroid check runs at publish).
+            c = entry["center"]
+            if not (boundary[1] <= c[0] <= boundary[3] and boundary[0] <= c[1] <= boundary[2]):
+                problems.append(f"registry center {entry['center']} is outside the boundary bbox {boundary}")
+        elif [round(v, 6) for v in entry["center"]] != centre:
             problems.append(f"registry center {entry['center']} is not the boundary centre {centre}")
         rec.update(bbox_source="registry", effective_bbox=reg, center=entry["center"])
     rec["problems"] = problems
@@ -762,6 +768,13 @@ def check_new_row(row: list[Any], entry: dict[str, Any], geom: dict[str, Any], c
         raise DkError(f"{context}: {entry['id']} row has the wrong identity")
     if entry.get("center") is None or [row[3], row[4]] != entry["center"]:
         raise DkError(f"{context}: {entry['id']} row centre differs from the registry")
+    if entry.get("rules") == "dk-v3":
+        pts = [pt for t in geom.get("trails") or [] for seg in t.get("segments") or [] for pt in seg]
+        if pts:
+            mid = ((min(p[0] for p in pts) + max(p[0] for p in pts)) / 2,
+                   (min(p[1] for p in pts) + max(p[1] for p in pts)) / 2)
+            if abs(mid[0] - entry["center"][0]) > 0.1 or abs(mid[1] - entry["center"][1]) > 0.1:
+                raise DkError(f"{context}: {entry['id']} centre is more than 0.1 deg from the trails")
     if (row[5] != geom.get("trail_count") or row[5] != len(geom.get("trails") or [])
             or not _is_num(row[6]) or row[6] != geom.get("total_mi") or row[6] <= 0 or row[5] <= 0):
         raise DkError(f"{context}: {entry['id']} row counts differ from its geom")

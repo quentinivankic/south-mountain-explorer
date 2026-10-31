@@ -678,6 +678,117 @@
         "Gyvelvej",
         "Harald Jensens Vej"
       ]
+    },
+    "grastenskovene-dk": {
+      "trail_count": 4,
+      "total_mi": 13.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bækvejen",
+        "Den Stejle Vej",
+        "Den nye vej",
+        "Dyrehavevej",
+        "Egevej",
+        "Elleallé",
+        "Engskovvej",
+        "Gråstenskovene, gul løberute",
+        "Hejrevej",
+        "Herlesvej",
+        "Hingstbjergvej",
+        "Hjertemarksti",
+        "Jomfrustien",
+        "Konkelvej",
+        "Kronprinsessens Ridesti",
+        "Kujborgvej",
+        "Ladegårsskovvej",
+        "Lerpottevej",
+        "Ludvigsensvej",
+        "Lumumbavej",
+        "Perlestien",
+        "Ravnsbjergvej",
+        "Ringvejen",
+        "Rævevej",
+        "Skovløbervej",
+        "Sønderhegnsvej",
+        "Sønderhovedvej",
+        "Tummelbjergvej",
+        "Tværstien",
+        "Vandtårnsvej",
+        "Wienerstien"
+      ]
+    },
+    "harrild-hede-dk": {
+      "trail_count": 3,
+      "total_mi": 11.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Baumehusvej",
+        "Den grønnevej",
+        "Fruergårdsvej",
+        "Skovlyvej"
+      ]
+    },
+    "norreskoven-pa-als-dk": {
+      "trail_count": 2,
+      "total_mi": 2.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Alsstien",
+        "Fjordmosevej",
+        "Flædbækvej",
+        "Hjørnevej",
+        "Sjellerup Grusvej",
+        "Skålstenstien",
+        "Sølvkobbelvej",
+        "Trøffelhavevej"
+      ]
+    },
+    "stenderupskovene-dk": {
+      "trail_count": 5,
+      "total_mi": 14.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Agrtupvej",
+        "Blomgårdsvej",
+        "Grævlingehøjvej",
+        "Hyffelvej",
+        "Kirkegårdsbakken",
+        "Madsbækvej",
+        "Midtlinievej"
+      ]
+    },
+    "store-hareskov-dk": {
+      "trail_count": 2,
+      "total_mi": 6.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bormosevej",
+        "Femvej",
+        "Gammel Jagtvej",
+        "Grønnevej",
+        "Sandskredsvej",
+        "Sorte Spor",
+        "Syvstjernevej"
+      ]
+    },
+    "stursbol-plantage-dk": {
+      "trail_count": 2,
+      "total_mi": 4.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Den danske Pilgrimsrute-Sønderjylland",
+        "Grønnelinie",
+        "Hærvejen",
+        "Højvej",
+        "Klovtoftvej",
+        "Rævekærvej"
+      ]
     }
   }
 }

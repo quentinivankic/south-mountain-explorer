@@ -279,10 +279,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 28,
       "est_mi": 30.2,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run.",
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (second review 2026-10-30): incomplete or polygon-clipped trail set (relation gaps / clipped polygon); fix once and re-qualify to unlock.",
       "exclude_trails": [
         {
           "id": "r19276823",
@@ -419,6 +419,11 @@
           "id": "r14975342",
           "name": "Nyløkkevej",
           "reason": "0.35 of 4.51 mi inside; road-named sliver"
+        },
+        {
+          "id": "n:Langsøstien",
+          "name": "Langsøstien",
+          "reason": "stitched fragment; pipeline disposition invalid-source-geometry, 3 disjoint pieces after clip"
         }
       ]
     },
@@ -543,10 +548,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 10,
       "est_mi": 13.5,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (dk-quality): shares Ranboel rute and the Rundtur with randbol-hede-dk; they should become ONE area (Frederikshaab Plantage og Randboel Hede). Not merged here. Unheld (curation): reviewed and cleared to ship; qualify re-proves the exact-area match."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (dk-quality): shares Ranboel rute and the Rundtur with randbol-hede-dk; they should become ONE area (Frederikshaab Plantage og Randboel Hede). Not merged here. Unheld (curation): reviewed and cleared to ship; qualify re-proves the exact-area match. Hold (second review 2026-10-30): incomplete or polygon-clipped trail set (relation gaps / clipped polygon); fix once and re-qualify to unlock."
     },
     {
       "id": "jaegersborg-hegn-dk",
@@ -655,10 +660,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 15,
       "est_mi": 12.2,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run.",
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (second review 2026-10-30): incomplete or polygon-clipped trail set (relation gaps / clipped polygon); fix once and re-qualify to unlock.",
       "exclude_trails": [
         {
           "id": "r19721094",
@@ -958,10 +963,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 8,
       "est_mi": 8.4,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Hold (second review 2026-10-30): incomplete or polygon-clipped trail set (relation gaps / clipped polygon); fix once and re-qualify to unlock."
     },
     {
       "id": "blabjerg-klitplantage-dk",

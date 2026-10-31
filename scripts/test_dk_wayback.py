@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parent.parent
 REGISTRY = ROOT / "trailforge/golden/dk-areas.json"
 MOLS = "nationalpark-mols-bjerge-dk"
 WAY = "testskov-dk"
-WAY_ID = 38458861
+WAY_ID = 99000001   # synthetic: must not equal any real registry way_id
 BOX = [12.50, 55.76, 12.60, 55.82]
 
 
@@ -59,7 +59,7 @@ def test_registry_accepts_a_way_backed_entry_and_the_committed_registry_is_uncha
     reg = dk.load_registry(_registry(tmp_path))
     assert reg["by_id"][WAY]["way_id"] == WAY_ID and "relation_id" not in reg["by_id"][WAY]
     committed = dk.load_registry(REGISTRY)
-    assert all("way_id" not in a and "relation_id" in a for a in committed["areas"])
+    assert all(("way_id" in a) != ("relation_id" in a) for a in committed["areas"])   # exactly one boundary id
 
 
 @pytest.mark.parametrize("entry", [
@@ -67,7 +67,7 @@ def test_registry_accepts_a_way_backed_entry_and_the_committed_registry_is_uncha
     _way_entry(way_id=None),                          # way_id not a number
     _way_entry(way_id=0),
     _way_entry(way_id=True),
-    _way_entry(way_id="38458861"),
+    _way_entry(way_id="99000001"),
     _way_entry(rules="legacy"),                       # way-backed needs a Danish rule set
     _way_entry(rules=None),
 ])
@@ -96,7 +96,7 @@ def test_select_emits_w_and_r_getid_args(tmp_path):
     assert dk.main(["select", "--registry", str(reg_path), "--areas", f"{MOLS},{WAY}",
                     "--mode", "qualify", "--chunk-size", "5", "--out", str(out),
                     "--github-output", str(gh)]) == 0
-    assert "getid_args=r7046785 w38458861" in gh.read_text()
+    assert "getid_args=r7046785 w99000001" in gh.read_text()
 
 
 # ------------------------------------------------------------ prepare-areas --
@@ -244,7 +244,7 @@ def test_allowlist_fails_closed_on_a_bad_way_entry(tmp_path, entry):
 def test_committed_registry_allowlist_is_unchanged_in_shape():
     reg = dk.load_registry(REGISTRY)
     assert publish_areas._exact_publish_allowlist() == {
-        a["id"]: (a.get("display_name") or a["name"], a["relation_id"]) for a in reg["areas"]}
+        a["id"]: (a.get("display_name") or a["name"], a.get("relation_id")) for a in reg["areas"]}
 
 
 def _exact_file(tmp_path, osm_type, osm_id, name="Testskov"):

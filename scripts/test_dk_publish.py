@@ -198,6 +198,9 @@ BATCH_E_SHIP = ("straaso-plantage-dk", "kelstrup-plantage-dk", "kiskelund-planta
                 "sogard-skov-dk", "toftlund-skov-dk", "draved-skov-dk", "velling-skov-dk", "barsbol-skov-dk",
                 "vestre-stigtehave-dk", "lindet-skov-dk", "osterskoven-dk", "sandkule-skov-dk",
                 "kompedal-plantage-dk", "palsgard-skov-dk")  # registry bbox/centre set in the curation PR
+# batch F: Egholm (accept_directional_roles) and Varde Søndre Plantage (accept_gap); registry bbox/centre set in the
+# curation PR (Vestre Stigtehave above also gains Mørkholm Skov Rundtur via accept_gap)
+BATCH_F_SHIP = ("egholm-dk", "varde-sondre-plantage-dk")
 FLAGSHIPS = ("rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk")
 BATCH_A_SHIP = ("stenderupskovene-dk", "grastenskovene-dk", "store-hareskov-dk", "stursbol-plantage-dk",
                 "norreskoven-pa-als-dk", "harrild-hede-dk")
@@ -235,18 +238,29 @@ def test_full_registry_counts_ids_and_relations_are_unique():
                and a["id"] not in FLAGSHIPS and a["id"] not in BATCH_A_SHIP
                and a["id"] not in WAYBACK_SHIP and a["id"] not in PREFIX_CURATED
                and a["id"] not in BATCH_B_BLESSED and a["id"] not in BATCH_C_SHIP
-               and a["id"] not in BATCH_D_SHIP and a["id"] not in BATCH_E_SHIP)
+               and a["id"] not in BATCH_D_SHIP and a["id"] not in BATCH_E_SHIP
+               and a["id"] not in BATCH_F_SHIP)
 
 
+def test_batch_f_opt_ins_and_the_urhoje_hold():
+    by_id = {a["id"]: a for a in _reg()["areas"]}
+    assert by_id["egholm-dk"]["accept_directional_roles"] is True and by_id["egholm-dk"]["hold"] is None
+    gaps = {i: {g["relation"]: g["max_gap_m"] for g in by_id[i]["accept_gap"]} for i in by_id if "accept_gap" in by_id[i]}
+    assert gaps == {"svanninge-bjerge-dk": {"r8845680": 400}, "ro-plantage-dk": {"r14573576": 300},
+                    "varde-sondre-plantage-dk": {"r6153047": 200}, "vestre-stigtehave-dk": {"r12667890": 300}}
+    assert "r14573576" in {t["id"] for t in by_id["ro-plantage-dk"]["include_trails"]}
+    assert by_id["vestre-stigtehave-dk"]["hold"] is None and by_id["varde-sondre-plantage-dk"]["hold"] is None
+    # Urhoje: the 829 m "gap" is between two unrelated same-name relations; no accept_gap, stays held
+    assert by_id["urhoje-plantage-dk"]["hold"] == "curated-do-not-ship" and "accept_gap" not in by_id["urhoje-plantage-dk"]
 def test_hold_counts_match_the_discovery_candidates():
     areas = _reg()["areas"]
     holds = {}
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 55, "name-collision": 3, "np-nested": 16, "island": 7, "duplicate-of-live": 5,
+        None: 58, "name-collision": 3, "np-nested": 16, "island": 7, "duplicate-of-live": 5,
         "needs-rescope": 4, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 52}
+        "curated-do-not-ship": 49}
     assert sorted(holds["duplicate-of-live"]) == [
         "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
     assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk", "samso-dk"]

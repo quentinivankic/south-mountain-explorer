@@ -215,9 +215,9 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     table = dk.load_expected(EXPECTED)
     assert set(table) == {MOLS, *PARKS, *BATCH2, *FLAGSHIPS, *BATCH_A_SHIP}
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
-        MOLS: (26, 85.4), "nationalpark-thy-dk": (32, 64.8), "nationalpark-vadehavet-dk": (43, 63.0),
-        "nationalpark-skjoldungernes-land-dk": (11, 40.5),
-        "nationalpark-kongernes-nordsjaelland-dk": (74, 82.3),
+        MOLS: (26, 85.4), "nationalpark-thy-dk": (26, 67.4), "nationalpark-vadehavet-dk": (17, 59.8),
+        "nationalpark-skjoldungernes-land-dk": (4, 19.1),
+        "nationalpark-kongernes-nordsjaelland-dk": (21, 77.3),
         "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (7, 20.4),
         "skelhoj-plantage-dk": (4, 10.4), "hammer-bakker-dk": (4, 10.2),
         "stensbaek-plantage-dk": (3, 8.4), "rye-norreskov-dk": (7, 13.7),

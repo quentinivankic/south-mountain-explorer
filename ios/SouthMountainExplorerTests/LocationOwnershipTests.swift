@@ -34,13 +34,17 @@ struct LocationOwnershipTests {
         func startUpdatingHeading() { headingStartCount += 1 }
         func stopUpdatingHeading() { headingStopCount += 1 }
 
-        func deliverLocation(latitude: Double = 33.3, longitude: Double = -112.0) {
+        func deliverLocation(
+            latitude: Double = 33.3,
+            longitude: Double = -112.0,
+            age: TimeInterval = 0
+        ) {
             let location = CLLocation(
                 coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
                 altitude: 400,
                 horizontalAccuracy: 5,
                 verticalAccuracy: 5,
-                timestamp: Date()
+                timestamp: Date().addingTimeInterval(-age)
             )
             delegate?.locationManager?(CLLocationManager(), didUpdateLocations: [location])
         }
@@ -307,5 +311,103 @@ struct LocationOwnershipTests {
         await Task.yield()
         manager.failLocation()
         #expect(await failedTask.value == .unavailable)
+    }
+
+    // MARK: - Fix policy (stale-location banner)
+
+    @Test func policyThresholdsAreDeterministic() {
+        let now = Date()
+        #expect(LocationFixPolicy.timeout(for: .coarse) == 15)
+        #expect(LocationFixPolicy.timeout(for: .precise) == 7)
+        #expect(LocationFixPolicy.accepts(fixTimestamp: now.addingTimeInterval(-29), requestedAt: now, accuracy: .coarse))
+        #expect(!LocationFixPolicy.accepts(fixTimestamp: now.addingTimeInterval(-31), requestedAt: now, accuracy: .coarse))
+        #expect(LocationFixPolicy.accepts(fixTimestamp: now.addingTimeInterval(-1), requestedAt: now, accuracy: .precise))
+        #expect(!LocationFixPolicy.accepts(fixTimestamp: now.addingTimeInterval(-10), requestedAt: now, accuracy: .precise))
+        #expect(LocationFixPolicy.isTransient(CLError(.locationUnknown)))
+        #expect(!LocationFixPolicy.isTransient(CLError(.denied)))
+    }
+
+    @Test func coarseOneShotAcceptsRecentCachedFixButPreciseDoesNot() async throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let manager = FakeLocationManager()
+        let service = makeService(manager: manager, defaults: defaults)
+
+        let coarse = Task { @MainActor in
+            await service.requestOneShotFix(for: LocationConsumerID("coarse"), accuracy: .coarse)
+        }
+        await Task.yield()
+        manager.deliverLocation(age: 10)
+        guard case .success = await coarse.value else {
+            Issue.record("a 10s-old fix must satisfy a coarse request")
+            return
+        }
+
+        let precise = Task { @MainActor in
+            await service.requestOneShotFix(for: LocationConsumerID("precise"), accuracy: .precise)
+        }
+        await Task.yield()
+        manager.deliverLocation(age: 10)
+        await Task.yield()
+        manager.deliverLocation(age: 0)
+        guard case .success = await precise.value else {
+            Issue.record("precise must wait for a genuinely fresh fix")
+            return
+        }
+    }
+
+    @Test func coarseTransientErrorReasksThenSucceedsAndExhaustsHonestly() async throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let manager = FakeLocationManager()
+        let service = makeService(manager: manager, defaults: defaults)
+
+        let recovers = Task { @MainActor in
+            await service.requestOneShotFix(for: LocationConsumerID("a"), accuracy: .coarse)
+        }
+        await Task.yield()
+        manager.failLocation()
+        await Task.yield()
+        #expect(manager.requestLocationCount == 2, "transient error re-asks once")
+        manager.deliverLocation()
+        guard case .success = await recovers.value else {
+            Issue.record("the re-asked request must succeed")
+            return
+        }
+
+        let exhausted = Task { @MainActor in
+            await service.requestOneShotFix(for: LocationConsumerID("b"), accuracy: .coarse)
+        }
+        await Task.yield()
+        let before = manager.requestLocationCount
+        manager.failLocation()
+        await Task.yield()
+        manager.failLocation()
+        await Task.yield()
+        manager.failLocation()
+        #expect(await exhausted.value == .unavailable, "real failure stays explicit")
+        #expect(manager.requestLocationCount == before + 2)
+    }
+
+    @Test func waitUntilActiveCoversColdLaunchInactiveWindow() async throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let service = makeService(manager: FakeLocationManager(), defaults: defaults)
+
+        #expect(await service.waitUntilActive(timeout: 0.05))
+        service.setApplicationActive(false)
+        #expect(!(await service.waitUntilActive(timeout: 0.15)))
+        let waiter = Task { @MainActor in await service.waitUntilActive(timeout: 2) }
+        await Task.yield()
+        service.setApplicationActive(true)
+        #expect(await waiter.value)
+    }
+
+    @Test func exploreStateResolution() {
+        let c = CLLocationCoordinate2D(latitude: 1, longitude: 2)
+        #expect(ExploreLocationState.resolved(result: .success(c), hasFallback: false) == .available)
+        #expect(ExploreLocationState.resolved(result: .denied, hasFallback: true) == .denied)
+        #expect(ExploreLocationState.resolved(result: .unavailable, hasFallback: true) == .fallback)
+        #expect(ExploreLocationState.resolved(result: .unavailable, hasFallback: false) == .unavailable)
     }
 }

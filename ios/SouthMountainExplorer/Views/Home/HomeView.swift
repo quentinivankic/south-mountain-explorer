@@ -67,6 +67,9 @@ struct HomeView: View {
     @State private var lengthFilter: LengthFilter = .all
     @State private var locationConsumer = LocationConsumerID()
     @State private var locationState: ExploreLocationState = .idle
+    /// Bumped per refresh (and on disappear) so a superseded or abandoned
+    /// request can't write its `.unavailable` into the banner state.
+    @State private var locationRefreshGeneration = 0
 
     // MARK: - Cached section content
     //
@@ -249,6 +252,7 @@ struct HomeView: View {
             prefetchVisibleAreas()
         }
         .onDisappear {
+            locationRefreshGeneration += 1
             location.releaseLocation(for: locationConsumer)
         }
         .onChange(of: location.authorizationStatus) { _, status in
@@ -536,12 +540,18 @@ struct HomeView: View {
     }
 
     private func refreshLocation() async {
+        locationRefreshGeneration += 1
+        let generation = locationRefreshGeneration
         locationState = .locating
+        // Scene phase is briefly inactive at cold launch; asking then would
+        // return .unavailable instantly and show the stale-location banner.
+        _ = await location.waitUntilActive(timeout: 5)
+        guard generation == locationRefreshGeneration else { return }
         let result = await location.requestOneShotFix(
             for: locationConsumer,
             accuracy: .coarse
         )
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, generation == locationRefreshGeneration else { return }
         locationState = ExploreLocationState.resolved(
             result: result,
             hasFallback: location.userLocation != nil
@@ -609,11 +619,9 @@ private struct ExploreScrollViewportModifier: ViewModifier {
     func body(content: Content) -> some View {
         GeometryReader { geometry in
             content
-                .contentMargins(
-                    .top,
-                    geometry.safeAreaInsets.top + breathingSpace,
-                    for: .scrollContent
-                )
+                // ScrollView already insets its content below the nav bar;
+                // adding safeAreaInsets.top here double-counted it.
+                .contentMargins(.top, breathingSpace, for: .scrollContent)
                 .contentMargins(
                     .bottom,
                     geometry.safeAreaInsets.bottom + floatingTabBodyAllowance + breathingSpace,

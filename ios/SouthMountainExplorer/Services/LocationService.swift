@@ -21,6 +21,41 @@ enum LocationFixResult: Equatable {
     case unavailable
 }
 
+/// Pure decision rules for one-shot fixes, kept separate so they are unit
+/// testable without CoreLocation. Precise callers (recenter, Walk, recording
+/// handoff) keep the strict rules; coarse callers (Explore nearby results)
+/// tolerate a recent cached fix, wait longer, and retry transient errors.
+enum LocationFixPolicy {
+    /// How long a one-shot waits before giving up with `.unavailable`.
+    static func timeout(for accuracy: LocationAccuracyDemand) -> TimeInterval {
+        accuracy == .coarse ? 15 : 7
+    }
+
+    /// How far BEFORE the request a fix timestamp may fall and still count.
+    /// CoreLocation commonly answers `requestLocation()` with a cached fix
+    /// stamped a few seconds to a minute earlier.
+    static func maxFixAge(for accuracy: LocationAccuracyDemand) -> TimeInterval {
+        accuracy == .coarse ? 30 : 2
+    }
+
+    static func accepts(
+        fixTimestamp: Date,
+        requestedAt: Date,
+        accuracy: LocationAccuracyDemand
+    ) -> Bool {
+        fixTimestamp >= requestedAt.addingTimeInterval(-maxFixAge(for: accuracy))
+    }
+
+    /// Re-issues of `requestLocation()` after a transient `locationUnknown`.
+    static func maxTransientRetries(for accuracy: LocationAccuracyDemand) -> Int {
+        accuracy == .coarse ? 2 : 0
+    }
+
+    static func isTransient(_ error: Error) -> Bool {
+        (error as? CLError)?.code == .locationUnknown
+    }
+}
+
 @MainActor
 protocol LocationManagerControlling: AnyObject {
     var authorizationStatus: CLAuthorizationStatus { get }
@@ -109,6 +144,7 @@ final class LocationService: NSObject, RecordingLocationControlling {
     private struct PendingFix {
         let accuracy: LocationAccuracyDemand
         let requestedAt: Date
+        var transientRetries = 0
         let continuation: CheckedContinuation<LocationFixResult, Never>
     }
 
@@ -160,6 +196,20 @@ final class LocationService: NSObject, RecordingLocationControlling {
         manager.requestWhenInUseAuthorization()
     }
 
+    var isApplicationActive: Bool { applicationIsActive }
+
+    /// Suspends until the app is active (scene phase is briefly `.inactive`
+    /// at cold launch, when Explore first asks for a fix). Returns false if
+    /// the app is still inactive after `timeout` seconds.
+    func waitUntilActive(timeout: TimeInterval) async -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !applicationIsActive {
+            guard Date() < deadline, !Task.isCancelled else { return false }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        return true
+    }
+
     func setApplicationActive(_ active: Bool) {
         guard applicationIsActive != active else { return }
         applicationIsActive = active
@@ -209,7 +259,7 @@ final class LocationService: NSObject, RecordingLocationControlling {
                 continuation: continuation
             )
             pendingFixTimeouts[consumer] = Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .seconds(7))
+                try? await Task.sleep(for: .seconds(LocationFixPolicy.timeout(for: accuracy)))
                 guard !Task.isCancelled else { return }
                 self?.finishPendingFix(for: consumer, with: .unavailable)
                 self?.reconcileManagerState()
@@ -285,9 +335,11 @@ final class LocationService: NSObject, RecordingLocationControlling {
     ) {
         let consumers = pendingFixes.compactMap { consumer, pending in
             guard let receivedAt else { return consumer }
-            return receivedAt >= pending.requestedAt.addingTimeInterval(-2)
-                ? consumer
-                : nil
+            return LocationFixPolicy.accepts(
+                fixTimestamp: receivedAt,
+                requestedAt: pending.requestedAt,
+                accuracy: pending.accuracy
+            ) ? consumer : nil
         }
         for consumer in consumers {
             finishPendingFix(for: consumer, with: result)
@@ -314,8 +366,26 @@ extension LocationService: CLLocationManagerDelegate {
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        let transient = LocationFixPolicy.isTransient(error)
         Task { @MainActor in
-            self.finishPendingFixes(with: .unavailable)
+            // A transient "can't tell yet" re-asks for pending coarse callers
+            // instead of surfacing the stale-location banner; everything else
+            // (and an exhausted retry budget) fails explicitly.
+            var failed: [LocationConsumerID] = []
+            var reissue = false
+            for (consumer, pending) in self.pendingFixes {
+                if transient,
+                   pending.transientRetries < LocationFixPolicy.maxTransientRetries(for: pending.accuracy) {
+                    self.pendingFixes[consumer]?.transientRetries += 1
+                    reissue = true
+                } else {
+                    failed.append(consumer)
+                }
+            }
+            if reissue { self.manager.requestLocation() }
+            for consumer in failed {
+                self.finishPendingFix(for: consumer, with: .unavailable)
+            }
             self.reconcileManagerState()
         }
     }

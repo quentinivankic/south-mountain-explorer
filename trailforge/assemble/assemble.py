@@ -1610,7 +1610,9 @@ def main(argv=None) -> int:
           file=sys.stderr)
     print(
         f"removed {len(curation_removed_features) + len(clip_removed) + len(quality_removed):,} "
-        f"trails (curation/exact clip) -> {removed_path}",
+        # Non-Denmark runs keep the pre-Denmark (72c6c7d22) log wording.
+        f"trails ({'curation/exact clip' if model.member_safety.normalize(args.region) == 'dk' else 'curation'})"
+        f" -> {removed_path}",
         file=sys.stderr)
     return 2 if terminal_absorption_failure else 0
 

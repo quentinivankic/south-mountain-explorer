@@ -146,6 +146,9 @@ final class RecordingService {
     private(set) var historyErrorMessage: String? = nil
     private(set) var recoveryIssue: RecordingRecoveryIssue? = nil
     private(set) var isStopping = false
+    /// Mid-hike Remaining/Back estimator state. Read through `estimates`
+    /// (see RecordingService+Estimates.swift); internal so that file can write it.
+    var estimateState = HikeEstimateState()
 
     private let locationService: any RecordingLocationControlling
     private let historyStore: RecordingHistoryStore
@@ -1806,6 +1809,7 @@ final class RecordingService {
         }
         activeRecording = rec
         persist()
+        refreshEstimates(now: Date(), lastFixAt: Date())
     }
 
     // MARK: - Local history persistence

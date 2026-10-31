@@ -66,7 +66,7 @@ def test_registry_has_the_four_national_parks_with_blessed_computed_geometry():
             "nationalpark-skjoldungernes-land-dk": 13648864,
             "nationalpark-kongernes-nordsjaelland-dk": 15312449}
     geom = {"nationalpark-thy-dk": ([8.16, 56.65, 8.73, 57.17], [56.9, 8.4]),
-            "nationalpark-vadehavet-dk": ([7.94, 54.84, 8.92, 55.68], [55.3, 8.4]),
+            "nationalpark-vadehavet-dk": ([7.94, 54.84, 8.92, 55.68], [55.2, 8.6]),
             "nationalpark-skjoldungernes-land-dk": ([11.75, 55.49, 12.17, 55.82], [55.7, 12.0]),
             "nationalpark-kongernes-nordsjaelland-dk": ([11.8, 55.84, 12.67, 56.15], [56.0, 12.2])}
     for aid, rel in rels.items():
@@ -315,6 +315,8 @@ DK_V3_BATCH_A = (
 DK_V3_UPDATE_1 = ("skagen-klitplantage-dk", "hammer-bakker-dk", "stensbaek-plantage-dk",
                   "klosterhede-plantage-dk", "rye-norreskov-dk")
 DK_V3_UPDATE_2 = ("almindingen-dk", "pamhule-skov-dk")
+DK_V3_UPDATE_3 = ("nationalpark-thy-dk", "nationalpark-vadehavet-dk", "nationalpark-skjoldungernes-land-dk",
+                 "nationalpark-kongernes-nordsjaelland-dk")
 def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_flagships():
     areas = dk.load_registry(REGISTRY)["areas"]
     assert areas[0]["id"] == MOLS and areas[0]["rules"] == "legacy"
@@ -322,7 +324,7 @@ def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_
     assert {a["id"]: a.get("rules") for a in areas[1:] if a.get("rules") != "dk-v2"} == {
         i: "dk-v3" for i in (
             "rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk",
-            *DK_V3_BATCH_A, *DK_V3_UPDATE_1, *DK_V3_UPDATE_2)}
+            *DK_V3_BATCH_A, *DK_V3_UPDATE_1, *DK_V3_UPDATE_2, *DK_V3_UPDATE_3)}
 def test_registry_rejects_unknown_rule_set(tmp_path):
     with pytest.raises(dk.DkError):
         dk.load_registry(_write_registry(
@@ -1440,7 +1442,7 @@ def test_prepare_areas_writes_the_display_name_into_the_row_but_keeps_the_osm_na
     assert row[1] == "Nordskoven Nord"                                              # app-visible name
 def test_check_new_row_expects_the_display_name(tmp_path):
     registry = dk.load_registry(_write_registry(
-        tmp_path / "r.json", lambda d: d["areas"][1].update(display_name="Thy Nationalpark")))
+        tmp_path / "r.json", lambda d: d["areas"][1].update(display_name="Thy Nationalpark", rules="dk-v2")))
     entry = registry["areas"][1]
     geom = _geom(entry["id"], names=["A"], total_mi=1.0)
     row = [entry["id"], "Thy Nationalpark", "Denmark", entry["center"][0], entry["center"][1], 1, 1.0,

@@ -211,7 +211,8 @@ def test_full_registry_counts_ids_and_relations_are_unique():
     assert all(a["bbox"] is None for a in areas
                if a["id"] != MOLS and a["id"] not in PARKS and a["id"] not in BATCH2
                and a["id"] not in FLAGSHIPS and a["id"] not in BATCH_A_SHIP
-               and a["id"] not in WAYBACK_SHIP and a["id"] not in PREFIX_CURATED)
+               and a["id"] not in WAYBACK_SHIP and a["id"] not in PREFIX_CURATED
+               and a["id"] not in BATCH_B_BLESSED)
 
 
 def test_hold_counts_match_the_discovery_candidates():

@@ -2056,7 +2056,14 @@
       "hold": null,
       "est_trails": 3,
       "est_mi": 5.0,
-      "notes": "Way-backed (way 4122608, Nekselø). Wayback curation (dk-v3): ship with note. Three whole lwn island routes: Nekselø (4.87 mi, the 6.7-7.7 km island circuit, Dansk Vandrelaug-certified per VisitDenmark), Nekselø Grøn rute and Brun rute (source: fredninger.dk folder). They share 77-82% of their ways, so the 9.9 mi total overstates the distinct ground (about 5 mi). Sjællandsleden and Nordsøvandreruten are thru-hikes and excluded. Complete as far as OSM shows."
+      "notes": "Way-backed (way 4122608, Nekselø). Wayback curation (dk-v3): ship after exclusion. VisitDenmark: the Dansk Vandrelaug-certified Nekselø Nature Trail is two marked loops, the southern Grøn rute (green arrows) and the northern Brun rute (brown arrows), 6.7 km in all. Both are whole lwn relations here (fredninger.dk folder source). The third relation 'Nekselø' (4.87 mi) is the union of the two loops and is excluded as a duplicate. Sjællandsleden and Nordsøvandreruten are thru-hikes and excluded by rule. Complete: matches the two official loops.",
+      "exclude_trails": [
+        {
+          "id": "r2764184",
+          "name": "Nekselø",
+          "reason": "4.87 mi lwn relation that is the union of the two official loops: it shares 77-82% of its ways with Nekselø Grøn rute and Brun rute (the two marked loops of the certified nature trail); not a separate walk"
+        }
+      ]
     }
   ]
 }

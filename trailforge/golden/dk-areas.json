@@ -59,7 +59,8 @@
           "name": "Sundhedsspor",
           "reason": "generic name, boundary-induced split (3 of 5 ways shared with Vandetruten); not a stand-alone route"
         }
-      ]
+      ],
+      "trail_name_prefix": "Thy"
     },
     {
       "id": "nationalpark-vadehavet-dk",
@@ -190,7 +191,8 @@
           "name": "Kanalstien",
           "reason": "0.43 mi two-part name stitch; not a stand-alone route"
         }
-      ]
+      ],
+      "trail_name_prefix": "Vadehavet"
     },
     {
       "id": "nationalpark-skjoldungernes-land-dk",
@@ -198,7 +200,7 @@
       "state": "Denmark",
       "relation_id": 13648864,
       "bbox": [11.75, 55.49, 12.17, 55.82],
-      "center": [55.7, 12.0],
+      "center": [55.619, 11.958],
       "rules": "dk-v3",
       "tier": 1,
       "hold": null,
@@ -406,6 +408,16 @@
           "id": "n:Brøndsporet",
           "name": "Brøndsporet",
           "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
+        },
+        {
+          "id": "r12585237",
+          "name": "Sundhedsspor Melby Overdrev",
+          "reason": "exercise track ('Sundhedsspor' = health trail, like the Sundhedsspor already excluded in Thy); a short fitness loop, not a hiking trail"
+        },
+        {
+          "id": "r13649311",
+          "name": "Sundhedsspor Arresødal Skov",
+          "reason": "exercise track ('Sundhedsspor' = health trail, like the Sundhedsspor already excluded in Thy); a short fitness loop, not a hiking trail"
         }
       ]
     },
@@ -443,7 +455,7 @@
       "state": "Denmark",
       "relation_id": 5178556,
       "bbox": [11.65, 54.51, 12.22, 55.02],
-      "center": [54.8, 11.9],
+      "center": [54.705, 11.993],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
@@ -553,7 +565,8 @@
           "name": "Jagtsporet",
           "reason": "gravel hunting-access track, no hiking tags; not a marked trail"
         }
-      ]
+      ],
+      "trail_name_prefix": "Almindingen"
     },
     {
       "id": "aero-dk",
@@ -709,7 +722,8 @@
           "name": "Store Blåkilde Stien",
           "reason": "lwn hiking relation (Mariager Fjord Kommune, source mariagerfjordguiden.dk) from Møldrupvej to Store Blåkilde, one of the large springs the Naturstyrelsen Rold Skov guide highlights; 0.6 mi lies just outside the 'wood' polygon but inside the forest complex"
         }
-      ]
+      ],
+      "trail_name_prefix": "Rold Skov"
     },
     {
       "id": "bidstrup-skovene-dk",
@@ -902,7 +916,7 @@
       "state": "Denmark",
       "relation_id": 298913,
       "bbox": [9.58, 56.03, 9.79, 56.17],
-      "center": [56.1, 9.7],
+      "center": [56.114, 9.657],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
@@ -1067,7 +1081,8 @@
           "name": "Mergel-sporet",
           "reason": "single 0.9 mi dirt path named Mergel-sporet inside Randbøl Hede (marl-track heritage path); not a relation, lower confidence, kept for completeness"
         }
-      ]
+      ],
+      "trail_name_prefix": "Randbøl"
     },
     {
       "id": "jaegersborg-hegn-dk",
@@ -1124,6 +1139,11 @@
           "id": "r1853406",
           "name": "Gråstenstien",
           "reason": "lwn Sønderborg Kommune relation, the 9 km Gråstenstien named by the guide; only a sliver sits in the polygon"
+        },
+        {
+          "id": "r1853281",
+          "name": "Roden Skov, rød rute",
+          "reason": "lwn Naturstyrelsen roundtrip (osmc red dot), the 4.3 km red route of Roden Skov, part of the Gråstenskovene guide; only ~12% inside the polygon, so a whole-route include"
         }
       ]
     },
@@ -1592,7 +1612,14 @@
       "hold": null,
       "est_trails": 4,
       "est_mi": 8.2,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Replay: 3 clean routes (Dalmoseruten 1.5 mi, Vesterby Havn-ruten 2.5 mi, Dybvig Havn-ruten 3.9 mi, operator Fejø). No official page naming them could be opened (routes appear only in the Naturlandet app), so unverified. Skaløruten belongs to Skalø. Stays held. Batch C (dk-v3 replay, 2026-10-31): unheld. 3 trails / 7.9 mi, same as batch B; the island hold was a category judgment, not a defect. Three signed Fejø routes cover the island; a single destination. Official route page still not openable (Naturlandet app only)."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Replay: 3 clean routes (Dalmoseruten 1.5 mi, Vesterby Havn-ruten 2.5 mi, Dybvig Havn-ruten 3.9 mi, operator Fejø). No official page naming them could be opened (routes appear only in the Naturlandet app), so unverified. Skaløruten belongs to Skalø. Stays held. Batch C (dk-v3 replay, 2026-10-31): unheld. 3 trails / 7.9 mi, same as batch B; the island hold was a category judgment, not a defect. Three signed Fejø routes cover the island; a single destination. Official route page still not openable (Naturlandet app only).",
+      "include_trails": [
+        {
+          "id": "r12946622",
+          "name": "Skaløruten",
+          "reason": "lwn hiking relation operated by Fejø, listed on fejoe.dk among the island's trampestier; Skalø lies just off Fejø and is part of the Fejø community; dropped by the polygon clip as <25% inside, so a whole-route include"
+        }
+      ]
     },
     {
       "id": "stenderupskovene-dk",
@@ -1754,7 +1781,7 @@
       "state": "Denmark",
       "relation_id": 12537204,
       "bbox": [9.8, 54.94, 10.03, 55.08],
-      "center": [55.0, 9.9],
+      "center": [55.015, 9.928],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
@@ -2568,6 +2595,7 @@
     {
       "id": "fovslet-skov-dk",
       "name": "Fovslet Skov",
+      "display_name": "Fovslet, Hoppeshuse og Svanemosen",
       "state": "Denmark",
       "way_id": 157392184,
       "bbox": [9.34, 55.37, 9.47, 55.49],
@@ -2577,7 +2605,29 @@
       "hold": null,
       "est_trails": 4,
       "est_mi": 5.0,
-      "notes": "Way-backed (way 157392184, Fovslet Skov). Wayback curation (dk-v3): ship with note. Three lwn colour routes named for the forest (Rød, Blå, Gul i Fovslet skov, whole, gap 0 m). The Naturstyrelsen destination 'Svanemosen, Hoppes og Fovslet Skov' is wider (about 6 km2): the Hoppeshuse and Svanemosen routes (Blå/Gul i Hoppeshuse, Gul/Rød i Svanemosen, Rød i Hoppeshuse carries a fixme 'does this route still exist?') lie in neighbouring polygons and are not included because the guide's current route list could not be opened. Complete for Fovslet Skov itself; partial against the Naturstyrelsen destination."
+      "notes": "Way-backed (way 157392184, Fovslet Skov). Wayback curation (dk-v3): ship with note. Three lwn colour routes named for the forest (Rød, Blå, Gul i Fovslet skov, whole, gap 0 m). The Naturstyrelsen destination 'Svanemosen, Hoppes og Fovslet Skov' is wider (about 6 km2): the Hoppeshuse and Svanemosen routes (Blå/Gul i Hoppeshuse, Gul/Rød i Svanemosen) lie in neighbouring polygons and are included as whole routes (batch G, 4 routes). Rød rute i Hoppeshuse (r15655202) omitted: OSM fixme, existence unverified (second review 2026-10-31).",
+      "include_trails": [
+        {
+          "id": "r17635361",
+          "name": "Blå rute i Hoppeshuse",
+          "reason": "lwn hiking relation (Naturstyrelsen guide 'Svanemosen, Hoppes og Fovslet Skov' is one destination with the Fovslet Skov routes); outside the Fovslet Skov way, so a whole-route include"
+        },
+        {
+          "id": "r17635362",
+          "name": "Gul rute - Hoppeshuse Skov",
+          "reason": "lwn hiking relation (Naturstyrelsen guide 'Svanemosen, Hoppes og Fovslet Skov' is one destination with the Fovslet Skov routes); outside the Fovslet Skov way, so a whole-route include"
+        },
+        {
+          "id": "r15655203",
+          "name": "Gul rute i Svanemosen",
+          "reason": "lwn hiking relation (Naturstyrelsen guide 'Svanemosen, Hoppes og Fovslet Skov' is one destination with the Fovslet Skov routes); outside the Fovslet Skov way, so a whole-route include"
+        },
+        {
+          "id": "r15655204",
+          "name": "Rød rute i Svanemosen",
+          "reason": "lwn hiking relation (Naturstyrelsen guide 'Svanemosen, Hoppes og Fovslet Skov' is one destination with the Fovslet Skov routes); outside the Fovslet Skov way, so a whole-route include"
+        }
+      ]
     },
     {
       "id": "nekselo-dk",
@@ -2609,15 +2659,23 @@
       "hold": null,
       "id": "staksrode-skov-dk",
       "name": "Staksrode Skov",
+      "display_name": "Staksrode Skov og Lindfald",
       "relation_id": 9542372,
       "est_trails": 3,
       "est_mi": 5.6,
-      "notes": "Batch B (dk-v3 replay, 2026-10-31): Naturstyrelsen guide Staksrode Skov (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/trekantsomraadet/staksrode-skov/praktisk) lists three marked walks from the Stenhøj car park: Gul 2.4 km, Rød 2.3 km, Blå almost 5 km. OSM has all three as Naturstyrelsen lwn relations (Gule 1.32 mi, Rød 1.36 mi, Blå 2.92 mi). Complete: 3 of 3."
+      "notes": "Batch B (dk-v3 replay, 2026-10-31): Naturstyrelsen guide Staksrode Skov (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/trekantsomraadet/staksrode-skov/praktisk) lists three marked walks from the Stenhøj car park: Gul 2.4 km, Rød 2.3 km, Blå almost 5 km. OSM has all three as Naturstyrelsen lwn relations (Gule 1.32 mi, Rød 1.36 mi, Blå 2.92 mi). Complete: 3 of 3.",
+      "include_trails": [
+        {
+          "id": "r12724514",
+          "name": "Lindfald ruten",
+          "reason": "lwn hiking relation operated by Naturstyrelsen (udinaturen.dk shelter 9920, blue-white-blue hiker marks), 3.2 mi roundtrip beside the Staksrode Skov routes; mostly outside the forest polygon, so a whole-route include"
+        }
+      ]
     },
     {
       "state": "Denmark",
       "bbox": [9.93, 55.07, 10.09, 55.23],
-      "center": [55.15, 10.011],
+      "center": [55.159, 9.993],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,

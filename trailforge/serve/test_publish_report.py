@@ -278,6 +278,29 @@ class PublishReport(unittest.TestCase):
             "trails": [],
         })
 
+    def test_dk_whole_route_beside_the_polygon_is_kept_but_a_plain_one_is_not(self):
+        outer = [[10.4, 56.1], [10.8, 56.1], [10.8, 56.35], [10.4, 56.35], [10.4, 56.1]]
+        exact = {"type": "Polygon", "coordinates": [outer]}
+        lines = {
+            "Inside Trail": ([[10.45, 56.15], [10.50, 56.15]], {}),
+            "Whole Beside Route": ([[10.85, 56.15], [10.90, 56.15]], {"dk_whole_route": True}),
+            "Plain Beside Trail": ([[10.85, 56.2], [10.90, 56.2]], {}),
+        }
+        trails = {"type": "FeatureCollection", "features": []}
+        for index, (name, (coordinates, extra)) in enumerate(lines.items()):
+            trails["features"].append({
+                "type": "Feature",
+                "properties": {
+                    "name": name, "kind": "trail", "source": "name-stitch",
+                    "ckey": f"w{index + 1}", "length_mi": 4.0,
+                    "sac_scale": "", "trail_visibility": "", **extra,
+                },
+                "geometry": {"type": "MultiLineString", "coordinates": [coordinates]},
+            })
+        result = self._run(_index(), trails, [], include_preview=True, exact_geometry=exact)
+        self.assertEqual(result["rc"], 0)
+        names = sorted(t["name"] for t in result["preview"]["areas"][0]["trails"])
+        self.assertEqual(names, ["Inside Trail", "Whole Beside Route"])
     def test_exact_boundary_preserves_hole_ignores_neighbor_and_prunes_remnant(self):
         outer = [
             [10.4, 56.1], [10.8, 56.1], [10.8, 56.35],

@@ -16,6 +16,19 @@ name: Trailforge — publish Danish areas (registry, N per run)
 #               blessed table) and a complete registry entry per area. Refuses
 #               unless EVERY selected area matches; one commit of exactly
 #               2N+2 paths; NO R2 write (sync-dk-to-r2.yml is separate).
+# mode=update   main only. REPUBLISH areas that are already in
+#               public/areas/index.json (explicit id list, never batch=; each must
+#               also be in the registry and the blessed table; Mols/legacy entries
+#               are refused unless the registry sets allow_update: true). Re-runs
+#               the exact pipeline, asserts the result against the (re-)blessed
+#               table, rewrites ONLY those areas' geom + silhouette and replaces
+#               ONLY their rows in both index files in place (row order kept).
+#               One commit, only modified paths: the 2N area files + the 2 index
+#               files; every other index row byte-identical. NO R2 write; push it
+#               with sync-dk-to-r2.yml mode=plan-update / apply-update.
+#               To change an area's blessed entry first: run qualify, copy that
+#               area's entry from dk-areas-expected.proposed.json into
+#               trailforge/golden/dk-areas-expected.json on main, review, merge.
 #
 # areas: comma list of registry ids, or batch=<n> (n-th chunk, 1-based, of the
 #        registry entries not yet in public/areas/index.json).
@@ -28,9 +41,9 @@ on:
         description: "Registry ids (comma list) or batch=<n> (n-th chunk of unpublished registry areas)"
         required: true
       mode:
-        description: "qualify (dry run, report only) | publish (main only, blessed table required)"
+        description: "qualify (dry run, report only) | publish (main only, new areas) | update (main only, republish existing areas)"
         type: choice
-        options: [qualify, publish]
+        options: [qualify, publish, update]
         default: qualify
       chunk_size:
         description: "Areas per run (default 25, hard max 40)"
@@ -56,9 +69,12 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$RAW_AREAS" =~ ^(batch=[1-9][0-9]{0,3}|[a-z0-9]+(-[a-z0-9]+)*-dk(,[a-z0-9]+(-[a-z0-9]+)*-dk)*)$ ]]
-          [[ "$RAW_MODE" =~ ^(qualify|publish)$ ]]
+          [[ "$RAW_MODE" =~ ^(qualify|publish|update)$ ]]
           [[ "$RAW_CHUNK" =~ ^([1-9]|[1-3][0-9]|40)$ ]]
-          if [ "$RAW_MODE" = "publish" ]; then
+          if [ "$RAW_MODE" = "update" ]; then
+            [[ "$RAW_AREAS" != batch=* ]]
+          fi
+          if [ "$RAW_MODE" != "qualify" ]; then
             test "$GITHUB_REF_TYPE" = "branch"
             test "$GITHUB_REF_NAME" = "main"
           fi
@@ -68,7 +84,7 @@ jobs:
           persist-credentials: false
 
       - name: Publish guard (main tip is this checkout)
-        if: ${{ inputs.mode == 'publish' }}
+        if: ${{ inputs.mode == 'publish' || inputs.mode == 'update' }}
         run: |
           set -euo pipefail
           git fetch --no-tags origin main
@@ -93,6 +109,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely python3-pil jq
 
       - name: Download + prefilter Denmark (once)
+        env:
+          GETID_ARGS: ${{ steps.select.outputs.getid_args }}
         run: |
           set -euo pipefail
           cd trailforge
@@ -102,6 +120,18 @@ jobs:
             "https://download.geofabrik.de/europe/denmark-latest.osm.pbf"
           ls -lh data/raw/denmark.osm.pbf
           PREFILTER_DK_AREAS=1 bash extract/prefilter.sh data/raw/denmark.osm.pbf data/hiking.osm.pbf
+          # Way-backed boundaries (registry way_id) are only kept by the prefilter when their
+          # tags happen to match (leisure=park, place=island, boundary=forest, ... are not).
+          # Add exactly the selected closed ways (plus their nodes) from the raw file, and only
+          # when a way-backed area is selected: every other run keeps the prefilter bytes.
+          WAY_IDS="$(printf '%s\n' "$GETID_ARGS" | tr ' ' '\n' | grep -E '^w[1-9][0-9]*$' || true)"
+          if [ -n "$WAY_IDS" ]; then
+            # shellcheck disable=SC2086
+            osmium getid -r --overwrite -o data/way-boundaries.osm.pbf data/raw/denmark.osm.pbf $WAY_IDS
+            osmium merge --overwrite -o data/hiking.merged.osm.pbf data/hiking.osm.pbf data/way-boundaries.osm.pbf
+            mv data/hiking.merged.osm.pbf data/hiking.osm.pbf
+            rm -f data/way-boundaries.osm.pbf
+          fi
 
       - name: Discovery (once) and boundary bbox derivation
         id: prepare
@@ -120,10 +150,12 @@ jobs:
           # One pass over the raw PBF for every selected boundary relation.
           # shellcheck disable=SC2086
           osmium getid -r --overwrite -o "$W/bounds.osm.pbf" "$SOURCE_PBF" $GETID_ARGS
+          # update re-runs prepare-areas with the strict (publish) bbox/centre checks.
+          PREP_MODE="$MODE"; [ "$MODE" = "update" ] && PREP_MODE=publish
           python3 scripts/dk_publish.py prepare-areas \
             --selected "$W/selected.txt" --bounds-pbf "$W/bounds.osm.pbf" \
             --discovery-report "$W/discovery-report.json" \
-            --mode "$MODE" --out-dir "$W"
+            --mode "$PREP_MODE" --out-dir "$W"
 
       - name: Run the exact pipeline per area (fail closed per area)
         id: areas
@@ -147,10 +179,11 @@ jobs:
               FAILED=1; echo "::endgroup::"; continue
             fi
             NAME="$(jq -r .name "$A/area.json")"
-            REL="$(jq -r .relation_id "$A/area.json")"
+            REL="$(jq -r '.relation_id // empty' "$A/area.json")"
+            WAY="$(jq -r '.way_id // empty' "$A/area.json")"
             BBOX="$(jq -r .bbox_arg "$A/area.json")"
             ( set -euo pipefail
-              AREA_ID="$ID" AREA_NAME="$NAME" RELATION_ID="$REL" BBOX="$BBOX" W="$W" \
+              AREA_ID="$ID" AREA_NAME="$NAME" RELATION_ID="$REL" WAY_ID="$WAY" BBOX="$BBOX" W="$W" \
                 bash scripts/dk-run-area.sh ) 2>&1 | tee "$W/$ID.log"
             if [ "${PIPESTATUS[0]}" -ne 0 ]; then
               python3 scripts/dk_publish.py mark-failed --area-id "$ID" --stage pipeline \
@@ -161,7 +194,7 @@ jobs:
               --area-json "$A/area.json" --geom "$A/geom/$ID.json" \
               --trails-geojson "$A/trails.geojson" --removed-geojson "$A/removed.geojson" \
               --assembly-json "$A/assembly.json" --out "$A/report.json" || FAILED=1
-            if [ "$MODE" = "publish" ]; then
+            if [ "$MODE" != "qualify" ]; then
               python3 scripts/dk_publish.py assert-expected --geom "$A/geom/$ID.json" --area-id "$ID" || {
                 python3 scripts/dk_publish.py mark-failed --area-id "$ID" --stage blessed-table \
                   --area-json "$A/area.json" --out "$A/report.json"
@@ -170,8 +203,8 @@ jobs:
             echo "::endgroup::"
           done
           echo "failed=$FAILED" >> "$GITHUB_OUTPUT"
-          # publish: any failed area aborts before the repo is touched.
-          if [ "$MODE" = "publish" ] && [ "$FAILED" -ne 0 ]; then
+          # publish/update: any failed area aborts before the repo is touched.
+          if [ "$MODE" != "qualify" ] && [ "$FAILED" -ne 0 ]; then
             echo "REFUSED: at least one selected area is not the blessed result; nothing committed"
             exit 1
           fi
@@ -220,9 +253,26 @@ jobs:
           python3 scripts/silhouettes-from-geom.py
           python3 scripts/filter-ios-bundle.py
 
-      - name: Commit published data (exactly 2N+2 paths) and push to main
-        if: ${{ inputs.mode == 'publish' }}
+      - name: Install updated geoms, replace index rows in place, regenerate silhouettes + bundle
+        if: ${{ inputs.mode == 'update' }}
+        run: |
+          set -euo pipefail
+          W="$RUNNER_TEMP/dk"
+          for ID in $(cat "$W/selected.txt"); do
+            test -f "public/areas/geom/$ID.json"
+            test -f "public/areas/silhouettes/$ID.json"
+            cp "$W/$ID/geom/$ID.json" "public/areas/geom/$ID.json"
+          done
+          python3 scripts/dk_publish.py replace-index \
+            --selected "$W/selected.txt" --rows-dir "$W" \
+            --geom-dir public/areas/geom --target public/areas/index.json
+          python3 scripts/silhouettes-from-geom.py
+          python3 scripts/filter-ios-bundle.py
+
+      - name: Commit published data (publish exactly 2N+2 paths; update only modified 2N+2 paths) and push to main
+        if: ${{ inputs.mode == 'publish' || inputs.mode == 'update' }}
         env:
+          MODE: ${{ inputs.mode }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GIT_TERMINAL_PROMPT: "0"
           AREA_IDS: ${{ steps.select.outputs.area_ids }}
@@ -236,17 +286,21 @@ jobs:
           W="$RUNNER_TEMP/dk"
           git add public/areas ios/SouthMountainExplorer/Resources/areas-index.json
           python3 scripts/dk_publish.py verify-staged --repo "$GITHUB_WORKSPACE" \
-            --areas "$AREA_IDS" --output "$W/staged-diff-receipt.json"
+            --areas "$AREA_IDS" --mode "$MODE" --output "$W/staged-diff-receipt.json"
           if git diff --cached --quiet; then
             echo "No data changes to commit."; exit 1
           fi
-          git commit -m "trailforge: publish ${AREA_COUNT} Danish area(s) to app" -m "areas: ${AREA_IDS}"
+          if [ "$MODE" = "update" ]; then
+            git commit -m "trailforge: update ${AREA_COUNT} Danish area(s) in app" -m "areas: ${AREA_IDS}"
+          else
+            git commit -m "trailforge: publish ${AREA_COUNT} Danish area(s) to app" -m "areas: ${AREA_IDS}"
+          fi
           git config --local credential.https://github.com.helper '!gh auth git-credential'
           python3 scripts/dk_publish.py verify-commit --repo "$GITHUB_WORKSPACE" \
-            --areas "$AREA_IDS" --output "$W/commit-diff-receipt.json"
+            --areas "$AREA_IDS" --mode "$MODE" --output "$W/commit-diff-receipt.json"
           git fetch --no-tags origin main
           test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD^)"
           git push
           git config --local --unset-all credential.https://github.com.helper || true
           echo "pushed $(git rev-parse HEAD) tree $(git rev-parse 'HEAD^{tree}')"
-          echo "Commit pushed to main only. Dispatch sync-dk-to-r2.yml (mode=plan) separately."
+          echo "Commit pushed to main only. Dispatch sync-dk-to-r2.yml (mode=plan, or plan-update after an update) separately."

@@ -245,8 +245,10 @@ are test-only and never app output.
 ### Denmark rule sets (`--dk-rules`, registry `rules`)
 
 `golden/dk-areas.json` gives every entry `rules`: `legacy` (Mols, the pinned
-control; output unchanged) or `dk-v2` (every other area). `scripts/dk-run-area.sh`
-reads it and passes `--dk-rules`. `dk-v2` adds the quality removal
+control; output unchanged), `dk-v2` (every other area today) or `dk-v3` (dk-v2
+plus the whole-route policy below; opt-in per area, nothing live changes until an
+area is republished with it). `scripts/dk-run-area.sh` reads it and passes
+`--dk-rules`. `dk-v2` adds the quality removal
 `dk-road-name` (like the US `FR`/road-code drops, but Danish names):
 
 - Applies only to rootless name stitches. A signed hiking relation, any way in
@@ -261,7 +263,238 @@ reads it and passes `--dk-rules`. `dk-v2` adds the quality removal
   `...vej`, -gade/-alle/-stræde/-torv/-plads (and definite -gaden/...), or a
   genitive `X-s Vej` ("Bangs Vej"). "Den Vilde Vej" and "-vejen" stay.
 - `access-point`: -zugang / -adgang.
+- Forest-ride words count too: -linie/-linje (also definite -linien/-linjen),
+  `Ride`, -stræde(n). On a plain path a compound `...vejen`/`...linie` is a
+  forest ride ("Hjortevejen", "Jydelinie"); a bare "Den Vilde Vej" is not.
+  Historic stems hulvej, kongevej, oldtidsvej, vikingevej are never removed.
 
+`dk-v2` also adds these removals (evidence rules; all tag/name based):
+- `dk-mtb-trail` (rootless name stitches only): at least 50% of the rendered
+  length is MTB/cycle infrastructure: `mtb:scale` present (any value, 0 and up),
+  `mtb:scale:imba`, a one-way `highway=path`, `bicycle=designated` or
+  `highway=cycleway` without `foot=yes/designated/permissive`. A way is exempt
+  (never counted) when it is in a hiking route relation, has `foot=designated`,
+  `sac_scale`, `trail_visibility` or other hiking tags. Separately, an MTB
+  trail-centre name (Rutchebanen, Evil Autobahn, Lubi-Lubi, Urania, Karrusellen,
+  singletrack, flowtrail, ...) on an `mtb:scale` way is removed unless that way
+  has `foot=designated` or `sac_scale`.
+- `dk-non-hiking`: a bridle path (every rendered way is `horse=designated` or
+  `highway=bridleway` with no foot=yes/designated) or a name that is a bridle
+  path, running event or airstrip (ridesti, ...løbet, løberute, trackbane,
+  landingsbane). Applies to relation-backed trails by name too.
+- `dk-long-distance`: a clipped leg (`clipped` and at least 0.25 mi of the route
+  lies outside) of a relation with network nwn, iwn or rwn, or a clipped or
+  rootless trail whose WHOLE name is a known long-distance route (Hærvejen,
+  Camønoen, Gudenåstien, Vestkyststien, Marguerit, Aarhus-Silkeborg,
+  Nordsjællandsruten, Skjoldungestien, Djurslandstien, Marskstien, Kyst til
+  Kyst, Pilgrimsrute). A name that only CONTAINS such a token ("Hærvejen rundt")
+  is kept and listed in the report as `dk_long_distance_ambiguous`.
+- `dk-fragment`: a rootless name stitch under 0.3 mi (`DK_FRAGMENT_MIN_MI`).
+  Relation-backed trails are never removed by length.
+
+`dk-v2` also supports a reviewed per-area removal list, `dk-curated-exclude`
+(registry field `exclude_trails`, passed as `--dk-curated-exclude <json>` by
+`scripts/dk-run-area.sh`; dk-v2 only, rejected for `legacy`):
+- Each entry is `{"id", "name", "reason"}`. `id` is `r<OSM relation id>` (matches
+  the trail's relation or root relation) or `n:<exact trail name>` (name stitches);
+  `name` is the readable trail name and must equal the matched trail (for `n:` it
+  is the id name); `reason` is the written justification, recorded on the removed
+  feature (`curated_exclude_reason`), in the assembly report
+  (`dk_curated_excluded`) and in the qualify report (`curated_excluded`).
+- Applied after every automatic rule, so it only sees trails the rules kept.
+  FAIL CLOSED: an entry that matches zero or more than one kept trail, or whose
+  name differs, fails the area (assemble exits 2, `dk_curated_exclude_failures`),
+  so stale lists (a trail already removed by a rule, renamed or gone from OSM)
+  cannot rot silently.
+- The blessed table is computed after exclusions; the excluded names go into the
+  proposed `forbidden_names`. No geometry is created or edited.
+- `hold: "curated-do-not-ship"` marks areas a curation pass reviewed and rejected.
+
+### `dk-v3`: whole routes, bridged gaps, curated inclusions
+dk-v2 clips every route to the OSM polygon and rejects a signed relation whose
+clipped pieces are not provably one object. Both lose real routes: OSM
+polygons are often smaller than the official Naturstyrelsen extent (a route
+leaves and re-enters the polygon), and a relation whose member ways stop 5 to
+50 m short of each other (a gate, a road crossing) is a single marked walk.
+`dk-v3` (everything in dk-v2, plus):
+- **Whole routes.** A signed route relation (name present, network lwn or
+  untagged, never nwn/iwn/rwn, never a known long-distance name) whose area
+  polygon holds at least `DK_V3_MIN_ROUTE_SHARE` (25%) of its whole length is
+  published with its complete geometry: the real OSM member ways, unclipped
+  (`dk_whole_route`, `dk_inside_mi`, `dk_route_share`; never `clipped`).
+  `serve/publish_areas.py` honours the flag (exact-boundary mode only): no
+  all-parks clamp, no second majority test. The decision is made on the
+  unclipped candidates in `quality.dk_v3_whole_route_decisions`, before the clip.
+- **Routes mostly elsewhere.** A relation route that is still clipped and below
+  that share is removed as `dk-route-elsewhere` (no polygon-edge slivers of a
+  route that belongs to a neighbouring area).
+- **Bridged gaps.** A whole route passes connectivity when its member ways are
+  one OSM-node-connected piece, or when every gap between pieces is at most
+  `DK_V3_MAX_BRIDGE_M` (100 m, nearest real member geometry, single linkage).
+  Nothing is drawn across a gap: the pieces stay separate segments (the iOS app
+  scores completion per segment and only requires each segment to be covered).
+  Wider gaps, missing member ways, or rendered geometry that is not exactly the
+  union of the member ways stay `unresolved-relation-gap`. Evidence per route:
+  `connectivity.widest_gap_m`, report `dk_v3_whole_routes`.
+- **Accepted gaps** (registry `accept_gap`, `--dk-accept-gap`, dk-v3 exact Denmark
+  only): `[{"relation": "r<id>", "max_gap_m": N, "reason": "..."}]`, `100 < N <=
+  1000` (`DK_ACCEPT_GAP_CAP_M`; the registry cannot raise the cap). A named whole
+  route whose real member pieces are joined only by gaps wider than 100 m is
+  published as its connected parts when the widest gap needed is at most `N`.
+  Same output shape as a <=100 m route: a multi-part trail whose parts keep only
+  their own real member-way coordinates, nothing drawn across the gap
+  (`connectivity.accepted_reasons = ["accepted-gap"]`, `bridge_limit_m = N`,
+  report `dk_accept_gap`, trail property `dk_accept_gap`). Miles are the sum of
+  the parts (the gap adds nothing). The app sees ONE trail with several
+  segments, exactly as for the existing <=100 m trails. FAIL CLOSED: an entry
+  that matches no candidate or several, is not a route published whole, is not
+  accepted at its limit (actual widest gap over `N`, missing member ways), does
+  not need the opt-in (widest gap <= 100 m), or is removed by a later rule fails
+  the area (assemble exits 2, `dk_accept_gap_failures`). Only the listed
+  relation changes; every other route keeps the 100 m rule. Two relations that
+  map the same route (duplicate mappings): list only the one you publish.
+- **Directional roles** (registry `accept_directional_roles: true`,
+  `--dk-accept-directional-roles`, dk-v3 exact Denmark only): a `forward` /
+  `backward` way member of a `route=hiking` relation counts as a main-line member
+  (`effective_role` "main", the raw `role` is kept in the audit). Today
+  `model._build_relation_member_audit` rejects them as `unsupported-role-forward`
+  / `-backward`, so a route with such members publishes truncated. Other roles
+  (approach/connection as before, alternative/excursion still rejected) and
+  non-`hiking` route relations are unchanged, and an outer approach/connection
+  role still overrides nested roles. Off by default: every other area resolves
+  roles exactly as before. The independent Mols-only `final` validator
+  (`validate_publish_pilot.py`) recomputes roles without this opt-in and is not
+  used by the Denmark pipeline.
+- **Boundary by id** (registry `boundary_by_id: true`, `--dk-boundary-by-id`,
+  dk-v3 exact Denmark only): `--require-exact-area` normally needs exactly one
+  boundary with the area name. When OSM holds several (a relation and a way
+  both named "Klintenborg Plantage") the registry's `relation_id` / `way_id`
+  picks one of those same-name candidates. The name must still match; an id
+  that is not among the same-name boundaries, a name nobody carries, and an
+  opt-in that is not needed (the name is already unique) all exit 2. The report
+  keeps `boundary_match_count` (the real number of same-name boundaries) and adds
+  `boundary_selection`. Off by default: every other area is untouched.
+- **Container by id** (registry `container_by_id: {"reason": "..."}`,
+  `--dk-container-by-id`, dk-v3 exact Denmark only, needs `include_trails`): for
+  an area with no usable named boundary. The registry's `relation_id` / `way_id`
+  names an existing OSM polygon tagged `landuse=forest`, `natural=wood`,
+  `leisure=nature_reserve` or `boundary=protected_area|national_park`
+  (`areas.DK_CONTAINER_TAGS`), whatever its own name (or none). Nothing is
+  synthesized: it is the real OSM ring, sealed in `*.exact-area.geojson` with the
+  registry name plus `container_by_id` and the polygon's own `osm_name`. The
+  polygon is only a container: trails come in through `include_trails` (published
+  whole, like Hov Vig) and any other trail is removed as `dk-container-only`.
+  `dk_publish` swaps the name check for the tag check and lowers the minimum
+  polygon size from 0.01 to 0.005 degrees per axis (`CONTAINER_SPAN_MIN`); a
+  missing, duplicated, non-forest or wrong-kind polygon fails closed.
+- **Curated inclusions** (registry `include_trails`, `--dk-curated-include`,
+  dk-v3 only): `{"id": "r<relation>" | "n:<name>", "name", "reason"}`, same shape
+  and validation as `exclude_trails`. A listed trail is published whole whatever
+  its share of the polygon (an official route outside the OSM polygon, a named
+  staircase under the 0.3 mi fragment limit). It still has to pass the
+  structural gates (missing members, gaps, exact geometry). FAIL CLOSED: an
+  entry that matches no candidate, matches several, is renamed, or is not
+  published fails the area (assemble exits 2, `dk_curated_include_failures`).
+- **Multi-match exclusion** (`exclude_trails` only): `{"id": "n*:<name>", "name":
+  "<name>", ...}` excludes EVERY kept trail with that exact name (an OSM route
+  split into several same-named stitches, e.g. Aaro x2, Langeland "Ohavsstien" x9).
+  It is an explicit opt-in: `n:<name>` still demands exactly one match. `n*:` still
+  fails closed on 0 matches and is rejected in `include_trails`.
+- **Include-aware window** (qualify/publish, `scripts/dk_publish.py`): for dk-v3
+  areas with `include_trails` relation selectors, the registry bbox ceiling
+  (`MARGIN_MAX` 0.10) is measured from the union of the boundary bbox and the
+  include relations' bbox, and the proposed bbox pads that union. `MARGIN_MIN` (from the
+  boundary), `MARGIN_MAX` itself and the "centre inside the boundary bbox" rule are
+  unchanged; `select` appends the include relation ids to `getid_args` so the
+  bounds PBF holds them. `assemble.py` takes the bbox only as the AOI argument and has
+  no margin limit, so nothing changes on the assemble side.
+- Because dk-v3 removes some trails earlier than dk-v2 did, a curated
+  `exclude_trails` entry whose trail is now removed by `dk-route-elsewhere` is
+  stale and fails the area: re-curate when moving an area to dk-v3.
+- **One destination from two polygons** (registry, Denmark only): the exact path
+  takes ONE boundary relation. A destination that Naturstyrelsen presents as one
+  place but OSM maps as two polygons (Randbøl Hede + Frederikshåb Plantage,
+  Nymindegab + Blåbjerg Klitplantage) uses one relation as the container and
+  brings the sibling's real route relations in through `include_trails` (whole,
+  never clipped; `publish_areas` skips its bbox prefilter for `dk_whole_route`
+  features). The sibling entry stays held `merge-pending`. No polygon is merged
+  or synthesized.
+- **`display_name`** (registry, optional): the app-visible name in the index row
+  and geom when the OSM relation name is not what a visitor knows (Store
+  Klinteskov -> Møns Klint). `name` stays the OSM relation name that drives
+  boundary selection and the identity checks.
+- **`trail_name_prefix`** (registry, optional, dk-v3 only; `--dk-name-prefix`).
+  OSM names many marked routes only by colour or number ('Grøn rute', 'Gul',
+  'Tur 2'), which the app's search and lists cannot tell from every other area's
+  'Grøn rute'. With a prefix (a place text, 1..40 characters, trimmed NFC, itself
+  not a colour/number), `trailforge/assemble/dk_names.py` renames ONLY generic
+  trails, as the last step of assemble: `Grøn rute` -> `Svanninge Grøn rute`,
+  `Gul Tur 1` -> `Almindingen Gul Tur 1`. A name is generic when every token is a
+  colour word, an ordinal, a digit string or a filler (`rute`, `tur`, `spor`,
+  `sti`, `og`, ...) and at least one token is a colour, ordinal or digit. Any
+  other name is never touched: `Kirkestien`, `Pamhule - rød rute`, `Spor ved
+  Tiset`, `Kollerup Plantage Blå`, a bare `Rute`/`Sti`.
+  - Separator is one space (matches live names like `Kollerup Plantage Blå` and
+    keeps `svanninge grøn` findable by the app's plain contains-search).
+  - The OSM name stays in the feature property `osm_name` (trails.geojson) and
+    the report block `name_prefix` (`prefix`, `renamed[]`, `unchanged`). It is not
+    written to the app geom (the iOS `Trail` decodes only id/name/distance/
+    difficulty/segments/elevation).
+  - **The trail id never depends on the prefix.** `to_app_json.convert` derives
+    the id (`slugify(name)`) from `osm_name` when present, so adopting a prefix
+    in a live area leaves every trail id, and so every stored completion,
+    unchanged. `exclude_trails` / `include_trails` selectors, the relation
+    ledger and every gate run on OSM names, before the rename.
+  - A rename that gives a trail the display name of a different trail fails the
+    area (assemble exits 2, report `status: failed`); nothing is merged or
+    numbered silently.
+  - The blessed table (`required_names` / `forbidden_names`) and the qualify
+    report see the final display names, so a newly prefixed area is blessed with
+    them. Adopting a prefix in a LIVE area renames its generic trails and is an
+    update-mode change (re-bless, then update).
+  - Without the field or the flag nothing changes: the output is byte-identical
+    (compared against `main` for legacy, dk-v2, dk-v3 and non-Danish runs).
+  - Rejected: a prefix on a legacy or dk-v2 entry (registry error, parser error),
+    an empty, padded, over-long or colour-only prefix, a prefix outside exact
+    Denmark assembly.
+- **Cross-area duplicate gate** (`dk_publish.py report-area` /
+  `qualify-aggregate`): no route may appear in two areas of the selected set or
+  in a live Danish area (`public/areas/geom`). A conflict is a relation id whole
+  in both, identical geometry, or the same name over the same ground (at least
+  half of the sampled nodes shared). The aggregate lists every conflict (also in
+  `qualify-report.md` and `duplicate-conflicts.json`), names both areas and exits 1.
+- **Way-backed boundary** (registry `way_id`, `--expected-area-way-id`, Denmark
+  only). Some real destinations (Jægersborg Dyrehave, Kalvebod Fælled, Svanninge
+  Bjerge, ...) are mapped as one closed OSM way, not a relation. The relation
+  gate rejects them by design ("came from 'way', not a relation"), so a registry
+  entry may carry `way_id` INSTEAD of `relation_id` (exactly one of the two,
+  validated; a way-backed entry needs `rules` dk-v2 or dk-v3, never `legacy`).
+  Everything else stays fail-closed and the same:
+  - `assemble.py --require-exact-area --expected-area-way-id N` is mutually
+    exclusive with `--expected-area-relation-id`, needs `--region dk` and dk-v2 or
+    dk-v3, and takes a DISTINCT branch: exactly one case-sensitive same-name
+    boundary, which must be an OSM way with id `N`. A same-name relation or
+    second way in the AOI fails the run (`found 2`). The report gains
+    `boundary_kind: "way"` and `expected_area_way_id` (and `boundary.osm_type` is
+    `way`); a relation run writes exactly the keys it always did.
+  - The exact-path same-name rule, the polygon clip and every dk-v3 rule
+    (whole-route ownership by area share, gaps <= 100 m, include/exclude fail
+    closed) apply unchanged. Nothing is synthesized.
+  - `dk_publish.py prepare-areas` checks the way in the PBF itself
+    (`cross_check: "registry-way"`: present once, closed ring, same name, plausible
+    size, inside Denmark) and never uses a discovery candidate for it;
+    `select` emits `w<id>` for `osmium getid -r`. `dk-run-area.sh` takes exactly
+    one of `RELATION_ID` / `WAY_ID`.
+  - Index row: the relation id is the 8th field. A way-backed area has none, so
+    its row has 7 fields (the element is absent, as the seeder and
+    `merge-published-geom.py` leave it; iOS reads `tuple.count > 7 ? ... : nil`).
+    A trailing `null` is refused on purpose, because older app builds cannot
+    decode a null in the index. The geom carries `osm_way_id` (existing
+    `to_app_json` field). The relation-authority ledgers describe route
+    relations, not the boundary, so they need no change.
+  - Tests: `trailforge/assemble/test_dk_way_boundary.py` (real CLI) and
+    `scripts/test_dk_wayback.py`.
+The US/other-region path never sets `keep_whole`, so its output is unchanged.
 Long-distance routes are not exempt from `unresolved-relation-gap`. The US
 thru-hike list (`_THRU_HIKE_RE`) removes named thru-hikes, and
 `publish_areas` keeps a route only in a park holding most of its length; neither

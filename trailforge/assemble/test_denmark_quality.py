@@ -1006,6 +1006,7 @@ class DenmarkRoadNameRules(unittest.TestCase):
                 ("Linders Alle", {"highway": "path"}),
                 ("Hovedgaden", {"highway": "pedestrian"}),
                 ("Bangs Vej", {"highway": "path"}),
+                ("Kristoffervejen", {"highway": "path"}),
                 ("Strandzugang", {"highway": "path"})):
             with self.subTest(name=name):
                 self.assertTrue(self._removed_as_road_name(name, tags))
@@ -1033,20 +1034,20 @@ class DenmarkRoadNameRules(unittest.TestCase):
     def test_real_trail_names_and_hiking_tags_are_never_removed(self):
         track = {"highway": "track", "foot": "designated"}
         for name, tags in (
-                ("Hærvejen", track), ("Ridevejen", track), ("Oksevejen", track),
+                ("Ridevejen", track), ("Oksevejen", track),
                 ("Hærvej Sti", track), ("Kirkevej Sti", track),
-                ("Vestkyststien", track), ("Strandvej Rute", track),
+                ("Strandvej Rute", track),
                 ("Naturstien Skovvej", dict(track, sac_scale="hiking")),
                 ("Pilgrimsrute Vestsjælland", track),
                 ("Skovvej", dict(track, trail_visibility="good")),
                 ("Skovvej", dict(track, hiking="yes")),
                 ("Skovvej", dict(track, route="hiking")),
                 ("Den Vilde Vej", {"highway": "path"}),
-                ("Kristoffervejen", {"highway": "path"}),
                 ("Hulvejen", {"highway": "path"}),
+                ("Kongevejen", {"highway": "path"}),
+                ("Oldtidsvejen", {"highway": "path"}),
                 ("Kanalstien", {"highway": "footway"}),
-                ("Det Hvide Spor", {"highway": "path"}),
-                ("Lavølinie", track)):
+                ("Det Hvide Spor", {"highway": "path"})):
             with self.subTest(name=name, tags=tags):
                 kept, removed, _ = self._stitch(name, tags)
                 self.assertEqual(len(kept), 1)
@@ -1080,6 +1081,153 @@ class DenmarkRoadNameRules(unittest.TestCase):
                     [f["properties"]["removed_category"] for f in removed],
                     ["unresolved-relation-gap"])
 
+
+@unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
+class DenmarkV2QualityRules(unittest.TestCase):
+    """dk-v2 only: dk-mtb-trail, dk-non-hiking, dk-long-distance, dk-fragment
+    and the extended dk-road-name words (-vejen, -linie, Ride)."""
+    def _stitch(self, name, way_tags, rules="dk-v2", n_ways=1, step=0.01,
+                relation_tags=None, props=None):
+        ways = {i + 1: W([i + 1, i + 2], name=name, **way_tags)
+                for i in range(n_ways)}
+        nodes = {i + 1: (i * step, 0) for i in range(n_ways + 1)}
+        lines = [[nodes[i + 1], nodes[i + 2]] for i in range(n_ways)]
+        if relation_tags is None:
+            trails = [T(name, "name-stitch", list(ways), lines)]
+        else:
+            relations = {900: {"tags": dict(relation_tags, type="route",
+                                            route="hiking", name=name),
+                               "members": [("w", i, "") for i in ways]}}
+            trails = m.assemble(nodes, ways, relations, [], region="dk")
+        features = prepared(trails, ways)
+        for feature in features:
+            feature["properties"].update(props or {})
+        return quality.curate_exact_area(
+            features, ways=ways, nodes=nodes, area_union=box(-2, -2, 20, 20),
+            area_name=AREA, region="dk", dk_rules=rules)
+    def _category(self, name, way_tags, **kwargs):
+        kept, removed, _ = self._stitch(name, way_tags, **kwargs)
+        if kept:
+            return None
+        return removed[0]["properties"]["removed_category"]
+    # -- dk-mtb-trail
+    def test_mtb_tagged_paths_are_removed_with_the_new_category(self):
+        for name, tags in (
+                ("Ordinary Name", {"highway": "path", "mtb:scale": "1"}),
+                ("Zero Scale", {"highway": "path", "mtb:scale": "0", "foot": "yes"}),
+                ("Flow", {"highway": "path", "oneway": "yes"}),
+                ("Bike Only", {"highway": "path", "bicycle": "designated"}),
+                ("Cycle Lane", {"highway": "cycleway"}),
+                ("Dance Floor", {"highway": "path", "mtb:scale:imba": "2"})):
+            with self.subTest(name=name):
+                self.assertEqual(self._category(name, tags), "dk-mtb-trail")
+    def test_mtb_name_needs_an_mtb_tagged_way(self):
+        self.assertEqual(self._category(
+            "Evil Autobahn", {"highway": "path", "mtb:scale": "2",
+                              "trail_visibility": "good"}), "dk-mtb-trail")
+        self.assertIsNone(self._category("Evil Autobahn", {"highway": "path"}))
+    def test_shared_use_trails_with_hiking_identity_are_kept(self):
+        for tags in (
+                {"highway": "path", "mtb:scale": "1", "foot": "designated"},
+                {"highway": "path", "mtb:scale": "1", "sac_scale": "hiking"},
+                {"highway": "path", "mtb:scale": "1", "trail_visibility": "good"},
+                {"highway": "path", "bicycle": "designated", "foot": "yes"},
+                {"highway": "path", "bicycle": "designated", "foot": "designated"}):
+            with self.subTest(tags=tags):
+                self.assertIsNone(self._category("Skovstien Syd", tags))
+    def test_hiking_route_relation_members_are_never_mtb_removed(self):
+        kept, removed, _ = self._stitch(
+            "Tour Rute", {"highway": "path", "mtb:scale": "1"},
+            relation_tags={"network": "lwn"})
+        self.assertEqual([f["properties"]["name"] for f in kept], ["Tour Rute"])
+        self.assertEqual(removed, [])
+    def test_mtb_rules_do_not_touch_legacy(self):
+        kept, removed, report = self._stitch(
+            "Flow", {"highway": "path", "mtb:scale": "1"}, rules="legacy")
+        self.assertEqual(len(kept), 1)
+        self.assertNotIn("dk_quality_removed", report)
+    # -- dk-road-name extensions
+    def test_forest_ride_words_are_removed_unless_trail_like(self):
+        for name, tags in (
+                ("Hjortevejen", {"highway": "path"}),
+                ("Jydelinie", {"highway": "path"}),
+                ("Lumsåslinjen", {"highway": "path"}),
+                ("Femvejen", {"highway": "track", "foot": "yes"}),
+                ("Langelinie", {"highway": "track", "foot": "yes"}),
+                ("Boulevarden", {"highway": "track", "foot": "yes"}),
+                ("Nordre Ride", {"highway": "track", "foot": "yes"}),
+                ("Lyngmose linie", {"highway": "track", "foot": "yes"})):
+            with self.subTest(name=name):
+                self.assertEqual(self._category(name, tags, step=0.01),
+                                 "dk-road-name")
+        for name, tags in (
+                ("Den Vilde Vej", {"highway": "path"}),
+                ("Kirkestien", {"highway": "path"}),
+                ("Hulvejen", {"highway": "path"}),
+                ("Skovvejen Sti", {"highway": "path"}),
+                ("Hjortevejen", {"highway": "path", "sac_scale": "hiking"}),
+                ("Jydelinie", {"highway": "path", "trail_visibility": "good"})):
+            with self.subTest(name=name, tags=tags):
+                self.assertIsNone(self._category(name, tags))
+    # -- dk-non-hiking
+    def test_bridle_and_event_routes_are_non_hiking(self):
+        self.assertEqual(self._category(
+            "Kronprinsessens Ridesti", {"highway": "path", "horse": "yes"}),
+            "dk-non-hiking")
+        self.assertEqual(self._category(
+            "Petersens passage", {"highway": "bridleway", "horse": "designated"}),
+            "dk-non-hiking")
+        self.assertEqual(self._category(
+            "Power trackbane", {"highway": "path", "foot": "yes"}),
+            "dk-non-hiking")
+        self.assertEqual(self._category(
+            "Margueritløbet - Hedehusene - lang", {"highway": "path"},
+            relation_tags={"network": "lwn"}), "dk-non-hiking")
+        self.assertIsNone(self._category(
+            "Skovsti", {"highway": "bridleway", "horse": "designated",
+                        "foot": "designated"}))
+        self.assertIsNone(self._category("Skovløbersporet", {"highway": "path"}))
+    # -- dk-long-distance
+    def test_long_distance_legs_are_dropped_by_network_or_whole_name(self):
+        leg = {"clipped": True, "full_length_mi": 500.0}
+        for name, net in (("Hærvejen", "nwn"), ("Fjordstien Vandresti", "rwn"),
+                          ("Sønderskovvej", "iwn"), ("Etape 10b - Gudenåstien", "rwn"),
+                          ("Hærvejen", "lwn"), ("Camønoen", "")):
+            with self.subTest(name=name, net=net):
+                self.assertEqual(self._category(
+                    name, {"highway": "path"}, n_ways=2, step=0.5,
+                    relation_tags={"network": net} if net else {},
+                    props=leg), "dk-long-distance")
+    def test_local_walks_named_like_a_route_are_listed_not_dropped(self):
+        kept, removed, report = self._stitch(
+            "Hærvejen rundt", {"highway": "path"}, n_ways=2, step=0.5,
+            relation_tags={"network": "lwn"},
+            props={"clipped": True, "full_length_mi": 500.0})
+        self.assertEqual([f["properties"]["name"] for f in kept], ["Hærvejen rundt"])
+        self.assertEqual(removed, [])
+        self.assertEqual([r["name"] for r in report["dk_long_distance_ambiguous"]],
+                         ["Hærvejen rundt"])
+    def test_whole_regional_route_inside_the_area_is_kept(self):
+        kept, removed, _ = self._stitch(
+            "Kystruten Mors", {"highway": "path"}, n_ways=2, step=0.5,
+            relation_tags={"network": "rwn"})
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(removed, [])
+    # -- dk-fragment
+    def test_short_rootless_fragments_go_but_short_relation_trails_stay(self):
+        self.assertEqual(self._category("Lille Stump", {"highway": "path"},
+                                        step=0.002), "dk-fragment")
+        self.assertIsNone(self._category("Lang Nok", {"highway": "path"},
+                                         step=0.01))
+        kept, removed, _ = self._stitch(
+            "Kort Rute", {"highway": "path"}, step=0.002,
+            relation_tags={"network": "lwn"})
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(removed, [])
+        kept, _, report = self._stitch("Lille Stump", {"highway": "path"},
+                                       step=0.002, rules="legacy")
+        self.assertEqual(len(kept), 1)
+
 class DenmarkRulesCli(unittest.TestCase):
     """The real argument parser must accept --dk-rules (dk-run-area.sh passes it)."""
     def _run(self, *extra):
@@ -1098,6 +1246,165 @@ class DenmarkRulesCli(unittest.TestCase):
         result = self._run("--dk-rules", "v3")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("invalid choice", result.stderr)
+@unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
+class DenmarkCuratedExclude(unittest.TestCase):
+    """dk-v2 `dk-curated-exclude`: registry exclude_trails, fail closed."""
+    def _two_trails(self, exclude, rules="dk-v2"):
+        ways = {1: W([1, 2], highway="path", name="Skovstien"),
+                2: W([3, 4], highway="path", name="Engstien")}
+        nodes = {1: (0, 0), 2: (0.01, 0), 3: (0, 0.5), 4: (0.01, 0.5)}
+        relations = {900: {"tags": {"type": "route", "route": "hiking",
+                                    "name": "Skovstien", "network": "lwn"},
+                           "members": [("w", 1, "")]}}
+        trails = m.assemble(nodes, ways, relations, [], region="dk")
+        features = prepared(trails, ways)
+        return quality.curate_exact_area(
+            features, ways=ways, nodes=nodes, area_union=box(-2, -2, 20, 20),
+            area_name=AREA, region="dk", dk_rules=rules, dk_exclude=exclude)
+    def test_relation_and_name_entries_remove_exactly_the_listed_trail(self):
+        for entry, other in (
+                ({"id": "r900", "name": "Skovstien", "reason": "test reason"},
+                 "Engstien"),
+                ({"id": "n:Engstien", "name": "Engstien", "reason": "why"},
+                 "Skovstien")):
+            with self.subTest(entry=entry["id"]):
+                kept, removed, report = self._two_trails([entry])
+                self.assertEqual([k["properties"]["name"] for k in kept], [other])
+                props = removed[0]["properties"]
+                self.assertEqual(props["removed_category"], "dk-curated-exclude")
+                self.assertEqual(props["curated_exclude_reason"], entry["reason"])
+                self.assertEqual(report["removed_counts"],
+                                 {"dk-curated-exclude": 1})
+                self.assertEqual(report["dk_curated_exclude_failures"], [])
+                self.assertEqual(report["validation_failures"], [])
+                self.assertEqual(report["dk_curated_excluded"][0]["reason"],
+                                 entry["reason"])
+                self.assertEqual(report["dk_curated_excluded"][0]["name"],
+                                 entry["name"])
+    def test_stale_id_fails_closed(self):
+        for entry in ({"id": "r12345", "name": "Skovstien", "reason": "x"},
+                      {"id": "n:Findes Ikke", "name": "Findes Ikke", "reason": "x"}):
+            kept, removed, report = self._two_trails([entry])
+            self.assertEqual(len(kept), 2)
+            self.assertEqual(removed, [])
+            self.assertEqual(len(report["dk_curated_exclude_failures"]), 1)
+            self.assertTrue(any("dk-curated-exclude" in item
+                                for item in report["validation_failures"]))
+    def test_name_must_match_the_relation_trail(self):
+        _, _, report = self._two_trails(
+            [{"id": "r900", "name": "Andet Navn", "reason": "x"}])
+        self.assertEqual(len(report["dk_curated_exclude_failures"]), 1)
+    def test_trail_already_removed_by_an_automatic_rule_is_stale(self):
+        # "Hjortevejen" on a plain path is dk-road-name; listing it is a stale entry.
+        ways = {1: W([1, 2], highway="path", name="Hjortevejen")}
+        nodes = {1: (0, 0), 2: (0.01, 0)}
+        features = prepared(
+            [T("Hjortevejen", "name-stitch", [1], [[nodes[1], nodes[2]]])], ways)
+        kept, removed, report = quality.curate_exact_area(
+            features, ways=ways, nodes=nodes, area_union=box(-2, -2, 20, 20),
+            area_name=AREA, region="dk", dk_rules="dk-v2",
+            dk_exclude=[{"id": "n:Hjortevejen", "name": "Hjortevejen",
+                         "reason": "x"}])
+        self.assertEqual(removed[0]["properties"]["removed_category"],
+                         "dk-road-name")
+        self.assertEqual(len(report["dk_curated_exclude_failures"]), 1)
+    def test_malformed_entries_and_legacy_rules_are_rejected(self):
+        good = {"id": "r900", "name": "Skovstien", "reason": "x"}
+        for bad in ([{**good, "id": "900"}], [{**good, "reason": " "}],
+                    [{**good, "extra": 1}], [good, good], "r900",
+                    [{"id": "n:A", "name": "B", "reason": "x"}]):
+            with self.subTest(bad=bad):
+                with self.assertRaises(ValueError):
+                    self._two_trails(bad)
+        with self.assertRaises(ValueError):
+            self._two_trails([good], rules="legacy")
+    def test_no_exclusions_leaves_dk_v2_output_unchanged(self):
+        kept, removed, report = self._two_trails([])
+        self.assertEqual(len(kept), 2)
+        self.assertEqual(report["dk_curated_excluded"], [])
+@unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
+class DenmarkCuratedExcludeAll(unittest.TestCase):
+    """`n*:<name>` opt-in: every kept trail with that exact name; n: stays exactly-1."""
+    def _stitches(self, exclude, count=2):
+        ways, nodes, trails = {}, {}, []
+        for i in range(count):
+            ways[i + 1] = W([2 * i + 1, 2 * i + 2], highway="path", name="Aaro")
+            nodes[2 * i + 1], nodes[2 * i + 2] = (0, 0.5 * i), (0.01, 0.5 * i)
+        ways[99] = W([97, 98], highway="path", name="Engstien")
+        nodes[97], nodes[98] = (0, 9), (0.01, 9)
+        relations = {900: {"tags": {"type": "route", "route": "hiking",
+                                    "name": "Engstien", "network": "lwn"},
+                           "members": [("w", 99, "")]}}
+        trails = m.assemble(nodes, ways, relations, [], region="dk")
+        features = prepared(trails, ways)
+        return quality.curate_exact_area(
+            features, ways=ways, nodes=nodes, area_union=box(-2, -2, 20, 20),
+            area_name=AREA, region="dk", dk_rules="dk-v3", dk_exclude=exclude)
+    def test_multi_selector_removes_every_same_named_trail_only(self):
+        entry = {"id": "n*:Aaro", "name": "Aaro", "reason": "stitched twice"}
+        kept, removed, report = self._stitches([entry])
+        self.assertEqual([k["properties"]["name"] for k in kept], ["Engstien"])
+        self.assertGreaterEqual(len(removed), 2)
+        self.assertEqual(report["dk_curated_exclude_failures"], [])
+        self.assertTrue(all(r["properties"]["removed_category"] == "dk-curated-exclude"
+                            for r in removed))
+        self.assertEqual({e["name"] for e in report["dk_curated_excluded"]}, {"Aaro"})
+    def test_multi_selector_zero_match_fails_closed(self):
+        _, removed, report = self._stitches(
+            [{"id": "n*:Findes Ikke", "name": "Findes Ikke", "reason": "x"}])
+        self.assertEqual(removed, [])
+        self.assertEqual(len(report["dk_curated_exclude_failures"]), 1)
+    def test_exact_selector_still_demands_exactly_one(self):
+        kept, removed, report = self._stitches(
+            [{"id": "n:Aaro", "name": "Aaro", "reason": "x"}])
+        self.assertEqual(removed, [])
+        self.assertEqual(len(report["dk_curated_exclude_failures"]), 1)
+        self.assertIn("expected exactly 1", report["dk_curated_exclude_failures"][0])
+    def test_exact_selector_single_match_unchanged(self):
+        kept, removed, report = self._stitches(
+            [{"id": "n:Engstien", "name": "Engstien", "reason": "x"}])
+        self.assertEqual(sorted(k["properties"]["name"] for k in kept), ["Aaro", "Aaro"])
+        self.assertEqual(len(removed), 1)
+    def test_validation(self):
+        good = {"id": "n*:Aaro", "name": "Aaro", "reason": "x"}
+        self.assertEqual(quality.validate_dk_exclude([good])[0]["id"], "n*:Aaro")
+        for bad in ([{**good, "name": "Other"}], [{**good, "id": "n*:"}]):
+            with self.assertRaises(ValueError):
+                quality.validate_dk_exclude(bad)
+        with self.assertRaises(ValueError):  # exclude-only: never valid as an include
+            quality.validate_dk_exclude([good], "include")
+class DenmarkCuratedExcludeCli(unittest.TestCase):
+    """The real argument parser validates --dk-curated-exclude before reading any PBF."""
+    def _run(self, payload, *extra):
+        import subprocess
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "ex.json"
+            path.write_text(payload, encoding="utf-8")
+            return subprocess.run(
+                [sys.executable,
+                 str(Path(__file__).resolve().parent / "assemble.py"),
+                 "--in", str(Path(tmp) / "missing.pbf"), "--out", "y.geojson",
+                 "--region", "dk", "--dk-curated-exclude", str(path), *extra],
+                capture_output=True, text=True)
+    GOOD = '[{"id": "r900", "name": "A", "reason": "r"}]'
+    def test_legacy_rules_reject_the_flag(self):
+        result = self._run(self.GOOD)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("requires --dk-rules dk-v2", result.stderr)
+    def test_malformed_file_is_rejected(self):
+        for payload in ("not json", '{"id": 1}', '[{"id": "x"}]'):
+            with self.subTest(payload=payload):
+                result = self._run(payload, "--dk-rules", "dk-v2")
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("--dk-curated-exclude is invalid", result.stderr)
+    def test_valid_file_passes_the_parser(self):
+        result = self._run(self.GOOD, "--dk-rules", "dk-v2")
+        self.assertNotIn("is invalid", result.stderr)
+        self.assertNotIn("requires --dk-rules", result.stderr)
+        self.assertNotIn("unrecognized arguments", result.stderr)
+
+
 @unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
 class CompleteOverlapLedger(unittest.TestCase):
     def test_structurally_removed_candidate_is_still_in_complete_ledger(self):

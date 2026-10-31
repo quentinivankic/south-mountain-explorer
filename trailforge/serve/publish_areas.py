@@ -66,13 +66,16 @@ _MOLS_RELATION_ID = 7046785
 _DK_REGISTRY = Path(__file__).resolve().parents[1] / "golden" / "dk-areas.json"
 
 
-def _exact_publish_allowlist(registry: Path = _DK_REGISTRY) -> dict[str, tuple[str, int]]:
+def _exact_publish_allowlist(registry: Path = _DK_REGISTRY) -> dict[str, tuple[str, int | None]]:
     """Areas that may be published with --only-area/--exact-boundary (non-dry).
 
     The pinned Mols pilot is always allowed. Other areas come from the
-    committed Denmark registry (area id -> (name, OSM relation id)). A registry
-    Mols entry that disagrees with the pins, or any malformed entry, raises
-    ValueError so the guard fails closed instead of widening silently.
+    committed Denmark registry (area id -> (name, OSM relation id)). A way-backed
+    registry entry (`way_id` instead of `relation_id`, Denmark only) pins
+    (name, None): the index row has no relation id, and the way id is checked
+    separately by `_exact_way_id`. A registry Mols entry that disagrees with the
+    pins, or any malformed entry, raises ValueError so the guard fails closed
+    instead of widening silently.
     """
     allowed = {_MOLS_AREA_ID: (_MOLS_AREA_NAME, _MOLS_RELATION_ID)}
     try:
@@ -87,11 +90,14 @@ def _exact_publish_allowlist(registry: Path = _DK_REGISTRY) -> dict[str, tuple[s
                 or not isinstance(entry.get("id"), str) or not entry["id"]
                 or not isinstance(entry.get("name"), str) or not entry["name"]
                 or entry.get("state") != "Denmark"
-                or not isinstance(entry.get("relation_id"), int)
-                or isinstance(entry.get("relation_id"), bool)
-                or entry["relation_id"] <= 0):
+                or not _registry_boundary_ok(entry)):
             raise ValueError(f"Denmark area registry entry is invalid: {entry!r}")
-        pin = (entry["name"], entry["relation_id"])
+        shown = entry.get("display_name")
+        if shown is not None and (not isinstance(shown, str) or not shown):
+            raise ValueError(f"Denmark area registry display_name is invalid: {entry!r}")
+        # The app-visible (index/geom) name is the registry display_name when set;
+        # the OSM relation name stays `name` (see _exact_osm_name).
+        pin = (shown or entry["name"], entry.get("relation_id"))
         if entry["id"] == _MOLS_AREA_ID:
             if pin != allowed[_MOLS_AREA_ID]:
                 raise ValueError("Denmark registry Mols entry differs from the pinned Mols identity")
@@ -102,6 +108,29 @@ def _exact_publish_allowlist(registry: Path = _DK_REGISTRY) -> dict[str, tuple[s
     return allowed
 
 
+def _positive_int(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+def _registry_boundary_ok(entry: dict) -> bool:
+    """Exactly one of a positive relation_id or a positive way_id."""
+    return (_positive_int(entry.get("relation_id"))
+            != _positive_int(entry.get("way_id"))
+            and ("relation_id" not in entry or _positive_int(entry["relation_id"]))
+            and ("way_id" not in entry or _positive_int(entry["way_id"])))
+def _exact_way_id(slug: str, registry: Path = _DK_REGISTRY) -> int | None:
+    """OSM way id of a way-backed registry area, else None (relation-backed)."""
+    document = json.loads(registry.read_text(encoding="utf-8"))
+    for entry in document.get("areas") or []:
+        if isinstance(entry, dict) and entry.get("id") == slug:
+            return entry.get("way_id")
+    return None
+def _exact_osm_name(slug: str, registry: Path = _DK_REGISTRY) -> str | None:
+    """OSM relation name of a registry area (differs from the indexed name only
+    when the entry carries a display_name)."""
+    document = json.loads(registry.read_text(encoding="utf-8"))
+    for entry in document.get("areas") or []:
+        if isinstance(entry, dict) and entry.get("id") == slug:
+            return entry.get("name")
+    return None
 def _lexical_absolute(value: str | os.PathLike) -> Path:
     return Path(os.path.abspath(os.fspath(value)))
 
@@ -264,8 +293,10 @@ def _postclip_evidence(assembly_sha256: str, boundary, features: list[dict]) -> 
     }
 
 
-def _load_exact_boundary(path: str) -> tuple[dict, object, dict]:
-    """Load one assembly-sealed Polygon/MultiPolygon without widening it."""
+def _load_exact_boundary(path: str, *, allow_way: bool = False) -> tuple[dict, object, dict]:
+    """Load one assembly-sealed Polygon/MultiPolygon without widening it.
+    `allow_way` (Denmark way-backed registry areas only) also accepts a boundary
+    whose OSM object is a closed way; the caller then checks the id and kind."""
     from shapely.geometry import shape
 
     with open(path, encoding="utf-8") as source:
@@ -290,7 +321,7 @@ def _load_exact_boundary(path: str) -> tuple[dict, object, dict]:
     if properties.get("geometry_sha256") != geometry_sha256:
         raise ValueError("exact boundary geometry hash is invalid")
     if (not isinstance(properties.get("name"), str)
-            or properties.get("osm_type") != "relation"
+            or properties.get("osm_type") not in (("relation", "way") if allow_way else ("relation",))
             or not isinstance(properties.get("osm_id"), int)
             or isinstance(properties.get("osm_id"), bool)
             or properties["osm_id"] <= 0):
@@ -298,7 +329,7 @@ def _load_exact_boundary(path: str) -> tuple[dict, object, dict]:
     evidence = {
         "enabled": True,
         "name": properties["name"],
-        "osm_type": "relation",
+        "osm_type": properties["osm_type"],
         "osm_id": properties["osm_id"],
         "geometry_sha256": geometry_sha256,
     }
@@ -754,7 +785,7 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
             ap.error("--exact-boundary requires exactly one indexed area")
         try:
             _feature, exact_geometry, exact_boundary_evidence = \
-                _load_exact_boundary(args.exact_boundary)
+                _load_exact_boundary(args.exact_boundary, allow_way=True)
         except (OSError, ValueError, json.JSONDecodeError) as error:
             ap.error(f"invalid --exact-boundary: {error}")
         slug, meta = next(iter(az.items()))
@@ -762,12 +793,34 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                 or exact_allowlist.get(slug) != (meta["name"], meta["osm_rel"])):
             ap.error("--exact-boundary is restricted to the pinned Mols pilot "
                      "and registry Danish areas")
-        if (exact_boundary_evidence["name"] != meta["name"]
-                or exact_boundary_evidence["osm_id"] != meta["osm_rel"]):
+        if slug == _MOLS_AREA_ID:
+            osm_name = meta["name"]
+        else:
+            try:
+                osm_name = _exact_osm_name(slug) or meta["name"]
+            except (OSError, ValueError) as error:
+                ap.error(f"invalid Denmark area registry: {error}")
+        # Relation-backed areas (everything live today): the evidence must be a
+        # relation with the indexed relation id, exactly as before. A way-backed
+        # registry area has no relation id in its index row (osm_rel is None) and
+        # its evidence must be a closed way with the registry way id.
+        try:
+            way_id = None if slug == _MOLS_AREA_ID else _exact_way_id(slug)
+        except (OSError, ValueError) as error:
+            ap.error(f"invalid Denmark area registry: {error}")
+        if way_id is None:
+            expected_kind, expected_id = "relation", meta["osm_rel"]
+        else:
+            expected_kind, expected_id = "way", way_id
+            if meta["osm_rel"] is not None:
+                ap.error("--exact-boundary way-backed area must not carry a relation id")
+        if (exact_boundary_evidence["name"] != osm_name
+                or exact_boundary_evidence["osm_type"] != expected_kind
+                or exact_boundary_evidence["osm_id"] != expected_id):
             ap.error("--exact-boundary identity disagrees with the indexed area")
         geoms[meta["name"]] = exact_geometry
         boundary_src[meta["name"]] = (
-            "relation", exact_boundary_evidence["osm_id"])
+            expected_kind, exact_boundary_evidence["osm_id"])
     else:
         for b in areamod.merge_areas(args.hiking):
             if b.get("name"):
@@ -947,6 +1000,12 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
     route_home = {}                         # id(f) -> set(slugs) kept in (empty = dropped)
     kept_routes, dropped_routes = [], []    # (name, miles, homes|reason, feature)
     for bounds, g, f in all_shapes:
+        if args.exact_boundary and f["properties"].get("dk_whole_route"):
+            # Denmark dk-v3: assembly already decided this signed route belongs
+            # to the exact area and published its complete real geometry; the
+            # majority rule below and the all-parks clamp do not apply again.
+            route_home[id(f)] = set(area_unions)
+            continue
         if f["properties"].get("kind") != "route":
             continue
         total = f["properties"].get("length_mi") or _inside_mi(g, g.envelope) or 0.0
@@ -985,9 +1044,17 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
         # same-name objects reaching the same park don't both land.
         clipped, have = [], set()
         for (bx0, by0, bx1, by1), g, f in all_shapes:
-            if bx1 < ux0 or bx0 > ux1 or by1 < uy0 or by0 > uy1:
+            whole_route = bool(args.exact_boundary and f["properties"].get("dk_whole_route"))
+            # A dk-v3 whole route was assigned to this exact area in assembly (it may
+            # be an include_trails route that lies beside the polygon), so the
+            # bbox-overlap prefilter does not apply to it.
+            if not whole_route and (bx1 < ux0 or bx0 > ux1 or by1 < uy0 or by0 > uy1):
                 continue
-            if f["properties"].get("kind") == "route":
+            if whole_route:
+                if slug not in route_home.get(id(f), ()):
+                    continue
+                r = f
+            elif f["properties"].get("kind") == "route":
                 if slug not in route_home.get(id(f), ()):
                     continue
                 r, _mi = _clamped_feature(g, f, all_parks, clamp_cache)
@@ -1074,6 +1141,7 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
             "area_id": slug,
             "name": meta["name"],
             "osm_relation_id": meta["osm_rel"],
+            **({"osm_way_id": way_id} if (src and src[0] == "way" and args.exact_boundary) else {}),
             "trail_count": row["trail_count"],
             "total_miles": row["total_mi"],
         }

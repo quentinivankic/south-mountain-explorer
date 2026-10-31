@@ -1025,6 +1025,80 @@ class UsLegacyGate(unittest.TestCase):
         for region in ("dk", "DK"):
             self.assertEqual(self._assemble(region)[2]["nodes"], [3, 2], region)
 
+    def test_assemble_threads_fuse_gate_to_merge_and_coalesce(self):
+        # Removing/hardcoding `legacy=` in assemble() must fail here.
+        nodes = {1: (0.0, 0.0), 2: (0.0, 0.001)}
+        for region, expect in ((None, True), ("ri", True), ("dk", False),
+                               ("DK", False)):
+            seen = {}
+            real_merge, real_coalesce = m.merge_same_name, m.coalesce_by_area
+
+            def merge(*a, **kw):
+                seen.setdefault("merge", []).append(kw.get("legacy"))
+                return real_merge(*a, **kw)
+
+            def coalesce(*a, **kw):
+                seen.setdefault("coalesce", []).append(kw.get("legacy"))
+                return real_coalesce(*a, **kw)
+
+            m.merge_same_name, m.coalesce_by_area = merge, coalesce
+            try:
+                m.assemble(nodes, {1: W([1, 2], highway="path", name="T")},
+                           {}, [], region=region)
+            finally:
+                m.merge_same_name, m.coalesce_by_area = real_merge, real_coalesce
+            self.assertTrue(seen.get("merge"), region)
+            self.assertTrue(seen.get("coalesce"), region)
+            self.assertEqual(set(seen["merge"]), {expect}, region)
+            self.assertEqual(set(seen["coalesce"]), {expect}, region)
+
+    @staticmethod
+    def _diamond():
+        # root 1 -> {2, 3, 2}; 2 -> 4; 3 -> 4 (approach). Shared child 4.
+        def rel(*members):
+            return {"tags": {"type": "route", "route": "hiking"},
+                    "members": list(members)}
+        return {
+            1: rel(("r", 2, ""), ("r", 3, ""), ("r", 2, "")),
+            2: rel(("w", 10, ""), ("r", 4, "")),
+            3: rel(("w", 11, ""), ("r", 4, "approach")),
+            4: rel(("w", 12, "")),
+        }
+
+    def test_legacy_resolver_expands_shared_child_once(self):
+        self.assertEqual(
+            m._resolve_route_members_legacy(1, self._diamond()),
+            [(10, "main"), (12, "main"), (11, "main")])
+
+    def test_denmark_resolver_expands_shared_child_per_path(self):
+        self.assertEqual(
+            m.resolve_route_members(1, self._diamond()),
+            [(10, "main"), (12, "main"), (11, "main"), (12, "approach"),
+             (10, "main"), (12, "main")])
+
+    def test_assemble_picks_resolver_by_region(self):
+        calls = []
+        real_legacy, real_new = (m._resolve_route_members_legacy,
+                                 m.resolve_route_members)
+        m._resolve_route_members_legacy = (
+            lambda *a, **k: calls.append("legacy") or real_legacy(*a, **k))
+        m.resolve_route_members = (
+            lambda *a, **k: calls.append("new") or real_new(*a, **k))
+        try:
+            for region, expect in ((None, "legacy"), ("ri", "legacy")):
+                del calls[:]
+                m.assemble({1: (0.0, 0.0), 2: (0.0, 0.001)},
+                           {10: W([1, 2], highway="path")},
+                           {1: {"tags": {"type": "route", "route": "hiking",
+                                         "name": "R"},
+                                "members": [("w", 10, "")]}},
+                           [], region=region)
+                self.assertIn(expect, calls, region)
+                self.assertNotIn("new", calls, region)
+        finally:
+            m._resolve_route_members_legacy, m.resolve_route_members = (
+                real_legacy, real_new)
+
 class SpurAttach(unittest.TestCase):
     def test_devils_bridge_reaches_the_arch(self):
         # Named path ends at n3; an UNNAMED steps spur n3->n4 climbs to the

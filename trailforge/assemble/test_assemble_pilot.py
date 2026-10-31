@@ -836,5 +836,42 @@ class ExactPilotAssembly(unittest.TestCase):
             self.assertIn("leaving trails unclipped", stderr.getvalue())
 
 
+class UsCliGate(unittest.TestCase):
+    """The CLI derives read_pbf(denmark=) and the log wording from --region."""
+
+    def _run(self, *region_args):
+        seen = {}
+        nodes = {1: (10.5, 56.15), 2: (10.6, 56.2)}
+        ways = {10: {"nodes": [1, 2], "tags": {"highway": "path", "name": "T"}}}
+
+        def read_pbf(_path, *, exact_denmark=False, denmark=False):
+            seen["denmark"] = denmark
+            return nodes, ways, {}, []
+
+        stderr = io.StringIO()
+        with TemporaryDirectory() as tmp:
+            with (
+                patch.object(assemble, "read_pbf", side_effect=read_pbf),
+                patch.object(areas, "assemble_areas", return_value=[]),
+                redirect_stderr(stderr),
+            ):
+                rc = assemble.main([
+                    "--in", str(Path(tmp) / "in.osm.pbf"),
+                    "--out", str(Path(tmp) / "out.geojson"), *region_args])
+        self.assertEqual(rc, 0)
+        return seen["denmark"], stderr.getvalue()
+
+    def test_region_dk_selects_denmark_loading_and_wording(self):
+        for args in (("--region", "dk"), ("--region", "DK")):
+            denmark, log = self._run(*args)
+            self.assertTrue(denmark, args)
+            self.assertIn("(curation/exact clip)", log)
+
+    def test_no_region_or_other_region_keeps_us_loading_and_wording(self):
+        for args in ((), ("--region", "ri"), ("--region", "az")):
+            denmark, log = self._run(*args)
+            self.assertFalse(denmark, args)
+            self.assertIn("trails (curation) ->", log)
+            self.assertNotIn("exact clip", log)
 if __name__ == "__main__":
     unittest.main()

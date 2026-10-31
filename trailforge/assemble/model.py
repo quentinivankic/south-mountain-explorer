@@ -506,6 +506,23 @@ def resolve_route_members(rel_id: int, relations: dict,
     ]
 
 
+def _resolve_route_members_legacy(rel_id: int, relations: dict,
+                                  _seen: set[int] | None = None) -> list[tuple[int, str]]:
+    seen = _seen if _seen is not None else set()
+    if rel_id in seen or rel_id not in relations:
+        return []
+    seen.add(rel_id)
+    out: list[tuple[int, str]] = []
+    for mtype, ref, role in relations[rel_id]["members"]:
+        if mtype == "w":
+            out.append((ref, role or "main"))
+        elif mtype == "r":
+            child = _resolve_route_members_legacy(ref, relations, seen)
+            for wid, crole in child:
+                out.append((wid, role if role in SPUR_ROLES else crole))
+    return out
+
+
 def _is_route(tags: dict) -> bool:
     return (member_safety.normalize(tags.get("type")) == "route"
             and member_safety.normalize(tags.get("route"))
@@ -1148,7 +1165,7 @@ def assemble(nodes: dict, ways: dict, relations: dict,
                 relation_id: direct_relation_way_members(relation_id, relations)
                 for relation_id in relation_ids
             }
-            members = resolve_route_members(rid, relations)
+            members = _resolve_route_members_legacy(rid, relations)
             main_ways = [w for w, role in members
                          if role in MAIN_ROLES and w in ways
                          and _relation_member_walkable(ways[w]["tags"], region)]

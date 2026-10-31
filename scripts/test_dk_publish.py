@@ -901,6 +901,36 @@ def test_merge_index_appends_sorted_rows_and_keeps_existing_bytes(tmp_path):
     assert dk.main(argv) == 1                                   # already present -> refuse
 
 
+def test_dk_v3_centre_may_sit_on_the_trails_but_legacy_and_v2_keep_the_rounded_midpoint():
+    boundary = [10.4513, 56.1298, 10.8473, 56.3204]                     # rounded midpoint [56.2, 10.6]
+    v3 = copy.deepcopy(dk.load_registry(REGISTRY)["by_id"][MOLS])
+    v3["rules"], v3["center"] = "dk-v3", [56.25, 10.55]
+    assert dk.check_area_geometry(v3, boundary, [56.2251, 10.6493], "publish")["status"] == "ok"
+    v3["center"] = [57.5, 10.55]                                        # outside the boundary bbox
+    assert dk.check_area_geometry(v3, boundary, [56.2251, 10.6493], "publish")["status"] == "failed"
+    for rules in ("legacy", "dk-v2"):
+        old = copy.deepcopy(v3)
+        old["rules"], old["center"] = rules, [56.25, 10.55]
+        assert dk.check_area_geometry(old, boundary, [56.2251, 10.6493], "publish")["status"] == "failed"
+def test_merge_index_cli_dk_v3_centre_must_be_within_0_1_deg_of_the_trails(tmp_path):
+    repo, ids, rows, new = _baseline_repo(tmp_path, 1)
+    aid, row = ids[0], copy.deepcopy(rows[1])
+    work = tmp_path / "work"
+    (work / aid).mkdir(parents=True)
+    (repo / f"public/areas/geom/{aid}.json").write_bytes((new / f"geom-{aid}.json").read_bytes())
+    sel = tmp_path / "sel.txt"
+    sel.write_text(aid + "\n", encoding="utf-8")
+    target = repo / "public/areas/index.json"
+    for centre, code in (([56.25, 10.55], 0), ([56.5, 10.6], 1)):      # trails sit near [56.21, 10.61]
+        row[3], row[4] = centre
+        (work / aid / "index.json").write_text(json.dumps([row]), encoding="utf-8")
+        reg = repo / "trailforge/golden/dk-areas.json"
+        doc = json.loads(reg.read_text(encoding="utf-8"))
+        next(a for a in doc["areas"] if a["id"] == aid).update(rules="dk-v3", center=list(centre))
+        reg.write_text(json.dumps(doc), encoding="utf-8")
+        argv = ["merge-index", "--registry", str(reg), "--selected", str(sel), "--rows-dir", str(work),
+                "--geom-dir", str(repo / "public/areas/geom"), "--target", str(target)]
+        assert dk.main(argv) == code
 # --------------------------------------------------------------- qualify -----
 
 def test_qualify_report_lists_names_routes_removed_categories_and_proposes_tables(tmp_path):

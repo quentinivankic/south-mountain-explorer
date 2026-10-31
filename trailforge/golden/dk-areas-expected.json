@@ -1009,6 +1009,48 @@
         "Ryttergabsvej",
         "Tungsandvej"
       ]
+    },
+    "ro-plantage-dk": {
+      "trail_count": 7,
+      "total_mi": 25.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Donnemyrvej",
+        "Grånakkevej",
+        "Høvej",
+        "Langemyrvej",
+        "Lundehusvej",
+        "Lyngvej",
+        "Mirabelvej",
+        "Myrstribevej",
+        "Nordvej",
+        "Puggevej",
+        "Rævevej",
+        "Søndrevej",
+        "Tyvemyrvej",
+        "Ædelgranvej"
+      ]
+    },
+    "aro-dk": {
+      "trail_count": 4,
+      "total_mi": 10.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Aarø",
+        "Camino Haderslev Næs"
+      ]
+    },
+    "harte-skov-dk": {
+      "trail_count": 5,
+      "total_mi": 6.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Brændsmade",
+        "Lilla rute i Harde Skov"
+      ],
+      "forbidden_names": []
     }
   }
 }

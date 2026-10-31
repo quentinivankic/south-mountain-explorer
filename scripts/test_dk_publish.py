@@ -183,6 +183,7 @@ WAYBACK_BLESSED = ("haunstrup-brunkulslejer-dk", "nekselo-dk", "fovslet-skov-dk"
 BATCH_B_BLESSED = ("staksrode-skov-dk", "helnaes-dk", "elmelund-skov-dk", "hov-vig-dk", "falster-dk",
                    "aero-dk", "svanninge-bjerge-dk", "staurby-skov-dk", "kongenshus-dk")
 BATCH_C_BLESSED = ("fejo-dk", "froslev-plantage-dk")
+BATCH_D_BLESSED = ("ro-plantage-dk", "aro-dk", "harte-skov-dk")
 BATCH_C_SHIP = ("fejo-dk", "froslev-plantage-dk")  # registry bbox/centre set in the curation PR
 BATCH_D_SHIP = ("ro-plantage-dk", "aro-dk", "harte-skov-dk")  # Nordbornholm, Aarø, Harte Skov
 FLAGSHIPS = ("rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk")
@@ -250,7 +251,7 @@ def test_hold_counts_match_the_discovery_candidates():
 def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2():
     table = dk.load_expected(EXPECTED)
     assert set(table) == {MOLS, *PARKS, *BATCH2, *FLAGSHIPS, *BATCH_A_SHIP,
-                          *WAYBACK_BLESSED, *BATCH_B_BLESSED, *BATCH_C_BLESSED}
+                          *WAYBACK_BLESSED, *BATCH_B_BLESSED, *BATCH_C_BLESSED, *BATCH_D_BLESSED}
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
         MOLS: (26, 85.4), "nationalpark-thy-dk": (26, 67.4), "nationalpark-vadehavet-dk": (17, 59.8),
         "nationalpark-skjoldungernes-land-dk": (4, 19.1),
@@ -268,7 +269,8 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "staksrode-skov-dk": (3, 5.6), "helnaes-dk": (2, 3.2), "elmelund-skov-dk": (4, 5.5),
         "hov-vig-dk": (3, 6.1), "falster-dk": (12, 30.6), "aero-dk": (4, 30.7),
         "svanninge-bjerge-dk": (7, 26.4), "staurby-skov-dk": (4, 8.1), "kongenshus-dk": (2, 4.7),
-        "fejo-dk": (3, 7.9), "froslev-plantage-dk": (2, 4.9)}
+        "fejo-dk": (3, 7.9), "froslev-plantage-dk": (2, 4.9),
+        "ro-plantage-dk": (7, 25.9), "aro-dk": (4, 10.0), "harte-skov-dk": (5, 6.4)}
     # Mols entry is byte-identical to its pre-bless form (as committed in the raw file)
     raw = json.loads(EXPECTED.read_text(encoding="utf-8"))["areas"][MOLS]
     assert json.dumps(raw, sort_keys=True) == json.dumps(table[MOLS], sort_keys=True)

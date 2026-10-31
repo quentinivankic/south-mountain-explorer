@@ -29,7 +29,9 @@
       "trail_count": 26,
       "total_mi": 67.4,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Thy Blå rute"
+      ],
       "forbidden_names": [
         "Aggervej",
         "Arkensvej",
@@ -87,7 +89,9 @@
       "trail_count": 17,
       "total_mi": 59.8,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Vadehavet Gul Sti"
+      ],
       "forbidden_names": [
         "Albuevej",
         "Ardennevej",
@@ -200,8 +204,8 @@
       ]
     },
     "nationalpark-kongernes-nordsjaelland-dk": {
-      "trail_count": 21,
-      "total_mi": 77.3,
+      "trail_count": 19,
+      "total_mi": 75.3,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -315,7 +319,9 @@
       "trail_count": 7,
       "total_mi": 20.4,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Almindingen Gul Tur 1"
+      ],
       "forbidden_names": [
         "Almindingsvej",
         "Askedalsvej",
@@ -592,7 +598,11 @@
       "trail_count": 9,
       "total_mi": 26.6,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Randbøl Blå Rute",
+        "Randbøl Gul Rute",
+        "Randbøl Rød Rute"
+      ],
       "forbidden_names": [
         "Gammel Randbølvej",
         "Gl. Randbølvej",
@@ -609,7 +619,9 @@
       "trail_count": 10,
       "total_mi": 39.4,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Rold Skov Gul"
+      ],
       "forbidden_names": [
         "Aalborgvej",
         "Advokathusvejen",
@@ -664,10 +676,12 @@
       ]
     },
     "grastenskovene-dk": {
-      "trail_count": 4,
-      "total_mi": 13.3,
+      "trail_count": 5,
+      "total_mi": 15.9,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Roden Skov, rød rute"
+      ],
       "forbidden_names": [
         "Bækvejen",
         "Den Stejle Vej",
@@ -775,10 +789,15 @@
       ]
     },
     "fovslet-skov-dk": {
-      "trail_count": 3,
-      "total_mi": 4.5,
+      "trail_count": 7,
+      "total_mi": 10.5,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Blå rute i Hoppeshuse",
+        "Gul rute - Hoppeshuse Skov",
+        "Gul rute i Svanemosen",
+        "Rød rute i Svanemosen"
+      ],
       "forbidden_names": [
         "Grønnevej",
         "Nørreskovsvej",
@@ -802,10 +821,12 @@
       ]
     },
     "staksrode-skov-dk": {
-      "trail_count": 3,
-      "total_mi": 5.6,
+      "trail_count": 4,
+      "total_mi": 8.8,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Lindfald ruten"
+      ],
       "forbidden_names": [
         "Brandbygade",
         "Midtervej",
@@ -980,10 +1001,12 @@
       ]
     },
     "fejo-dk": {
-      "trail_count": 3,
-      "total_mi": 7.9,
+      "trail_count": 4,
+      "total_mi": 9.4,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Skaløruten"
+      ],
       "forbidden_names": [
         "Andemosevej"
       ]
@@ -1298,6 +1321,109 @@
       ],
       "forbidden_names": [
         "Østerhusevej"
+      ]
+    },
+    "hastrup-plantage-dk": {
+      "trail_count": 4,
+      "total_mi": 7.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Hastrup Gul vandrerute"
+      ],
+      "forbidden_names": [
+        "Gammel Ågårdsvej",
+        "Kjærvej",
+        "Ågård Brandlinje"
+      ]
+    },
+    "kegnaes-dk": {
+      "trail_count": 3,
+      "total_mi": 12.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Langs sydkysten, Kegnæs"
+      ],
+      "forbidden_names": []
+    },
+    "oro-dk": {
+      "trail_count": 4,
+      "total_mi": 12.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Orø Tur 4"
+      ],
+      "forbidden_names": [
+        "Fjordstien Vandresti",
+        "Mejerivej",
+        "Nørrestængevej",
+        "Orø",
+        "Pilestien",
+        "Trampesti",
+        "Tur 5",
+        "Vibesti"
+      ]
+    },
+    "samso-dk": {
+      "trail_count": 4,
+      "total_mi": 13.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Samsø Grøn"
+      ],
+      "forbidden_names": [
+        "0-vejen",
+        "Alstrup",
+        "Alstrup Fjord",
+        "Ballebjergvejen",
+        "Besser Rev",
+        "Besser Smedegade",
+        "Bækvejen",
+        "Flyvervej",
+        "Haardmark Mark",
+        "Holmevej",
+        "Jettehøj",
+        "Kærbakken",
+        "Lupinvej",
+        "Maden",
+        "Mejerivej",
+        "Møgelskårvejen",
+        "Onsbjerg Mark",
+        "Plantagevej",
+        "Ringebjergvej",
+        "Skolestien",
+        "Skægsholm",
+        "Strandskoven",
+        "Svenskgyden",
+        "Sølyst",
+        "Søndenbysvej",
+        "Teglværksvej"
+      ]
+    },
+    "svinklov-klitplantage-dk": {
+      "trail_count": 6,
+      "total_mi": 14.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Svinkløv Hjertesti, Rød rute",
+        "Søbakkeruten",
+        "Svinkløv Rød rute"
+      ],
+      "forbidden_names": [
+        "Bukkevej",
+        "Børnenes Spor",
+        "Den danske pilgrimsrute- Nordjylland Vest",
+        "Hærvejen",
+        "Kirkevej",
+        "Maries Drop",
+        "Mariesvej",
+        "Ministervej",
+        "Plantørvej",
+        "Slangehusvej",
+        "Svinkløvvej",
+        "Sømærkesti",
+        "Vestre Bjerregaardsvej",
+        "Æblehaven",
+        "Østre Bjerregårdsvej"
       ]
     }
   }

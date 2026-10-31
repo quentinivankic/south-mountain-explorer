@@ -17,12 +17,15 @@ set -euo pipefail
 [[ "$AREA_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*-dk$ ]]
 [[ "$RELATION_ID" =~ ^[1-9][0-9]*$ ]]
 [[ "$BBOX" =~ ^-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?$ ]]
-# Rule set comes from the registry entry (Mols = legacy, everything else dk-v2).
+# Rule set comes from the registry entry (Mols = legacy, dk-v2 or dk-v3 elsewhere).
 RULES="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .rules // "legacy"' \
   trailforge/golden/dk-areas.json)"
-[[ "$RULES" =~ ^(legacy|dk-v2)$ ]]
+[[ "$RULES" =~ ^(legacy|dk-v2|dk-v3)$ ]]
 # Optional curated exclusions (registry exclude_trails; validated by dk_publish and assemble).
 EXCLUDE_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .exclude_trails // []' \
+  trailforge/golden/dk-areas.json)"
+# Optional curated inclusions (registry include_trails; dk-v3 only, validated by dk_publish and assemble).
+INCLUDE_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .include_trails // []' \
   trailforge/golden/dk-areas.json)"
 A="$W/$AREA_ID"
 mkdir -p "$A/geom"
@@ -30,6 +33,10 @@ EXCLUDE_ARGS=()
 if [ "$EXCLUDE_JSON" != "[]" ]; then
   printf '%s\n' "$EXCLUDE_JSON" > "$A/dk-curated-exclude.json"
   EXCLUDE_ARGS=(--dk-curated-exclude "$A/dk-curated-exclude.json")
+fi
+if [ "$INCLUDE_JSON" != "[]" ]; then
+  printf '%s\n' "$INCLUDE_JSON" > "$A/dk-curated-include.json"
+  EXCLUDE_ARGS+=(--dk-curated-include "$A/dk-curated-include.json")
 fi
 ROOT="$(pwd)"
 SOURCE_PBF="$ROOT/trailforge/data/raw/denmark.osm.pbf"

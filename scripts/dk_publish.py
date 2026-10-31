@@ -39,7 +39,7 @@ import simple_mols_publish as smp  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 REGISTRY_PATH = ROOT / "trailforge" / "golden" / "dk-areas.json"
 # Per-entry Denmark rule set; Mols stays "legacy" so the pinned control is unchanged.
-RULE_SETS = {"legacy", "dk-v2"}
+RULE_SETS = {"legacy", "dk-v2", "dk-v3"}
 # Documented hold reasons (a held entry is skipped by batch= selection; name it in areas= to run it).
 #   island / np-nested / name-collision        discovery holds
 #   merge-into-klosterhede                     Kronhede is part of Klosterheden (same trails)
@@ -110,28 +110,29 @@ def _is_num(value: Any) -> bool:
 
 # ----------------------------------------------------------------- registry --
 
-def _check_exclude_trails(aid: str, entry: dict[str, Any]) -> None:
-    if "exclude_trails" not in entry:
+def _check_exclude_trails(aid: str, entry: dict[str, Any], field: str = "exclude_trails",
+                          rule_sets: tuple[str, ...] = ("dk-v2", "dk-v3")) -> None:
+    if field not in entry:
         return
-    items = entry["exclude_trails"]
-    if entry.get("rules", "legacy") != "dk-v2":
-        raise DkError(f"{aid}: exclude_trails requires rules dk-v2")
+    items = entry[field]
+    if entry.get("rules", "legacy") not in rule_sets:
+        raise DkError(f"{aid}: {field} requires rules {rule_sets[0] if len(rule_sets) == 1 else 'dk-v2'}")
     if not isinstance(items, list) or not items:
-        raise DkError(f"{aid}: exclude_trails must be a non-empty list when present")
+        raise DkError(f"{aid}: {field} must be a non-empty list when present")
     seen: set[str] = set()
     for item in items:
         if not isinstance(item, dict) or set(item) != EXCLUDE_KEYS:
-            raise DkError(f"{aid}: exclude_trails entries need exactly {sorted(EXCLUDE_KEYS)}")
+            raise DkError(f"{aid}: {field} entries need exactly {sorted(EXCLUDE_KEYS)}")
         if not all(isinstance(item[k], str) and item[k].strip() for k in EXCLUDE_KEYS):
-            raise DkError(f"{aid}: exclude_trails entry has an empty field: {item.get('id')!r}")
+            raise DkError(f"{aid}: {field} entry has an empty field: {item.get('id')!r}")
         ident, name = item["id"], item["name"]
         if (ident != unicodedata.normalize("NFC", ident) or name != unicodedata.normalize("NFC", name)
                 or not EXCLUDE_ID.fullmatch(ident)):
-            raise DkError(f"{aid}: exclude_trails id/name is invalid: {ident!r}")
+            raise DkError(f"{aid}: {field} id/name is invalid: {ident!r}")
         if ident.startswith("n:") and ident[2:] != name:
-            raise DkError(f"{aid}: exclude_trails {ident!r}: name must equal the id name")
+            raise DkError(f"{aid}: {field} {ident!r}: name must equal the id name")
         if ident in seen:
-            raise DkError(f"{aid}: exclude_trails repeats {ident!r}")
+            raise DkError(f"{aid}: {field} repeats {ident!r}")
         seen.add(ident)
 def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
     doc = _read_json(path, "Denmark area registry")
@@ -181,6 +182,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         if hold is not None and hold not in HOLD_REASONS:
             raise DkError(f"{aid}: hold {hold!r} is not one of {sorted(HOLD_REASONS)}")
         _check_exclude_trails(aid, entry)
+        _check_exclude_trails(aid, entry, "include_trails", ("dk-v3",))
         est_mi = entry.get("est_mi")
         if est_mi is not None and (not _is_num(est_mi) or est_mi < 0):
             raise DkError(f"{aid}: est_mi must be a non-negative number")
@@ -534,6 +536,12 @@ def report_area(args: argparse.Namespace) -> int:
             "forbidden_names": forbidden[:50],
         },
     }
+    # dk-v3 only: routes published whole (key absent for dk-v2/legacy runs).
+    whole = [{"name": p.get("name"), "length_mi": p.get("length_mi"),
+              "area_share": p.get("dk_route_share")}
+             for p in kept if p.get("dk_whole_route")]
+    if whole:
+        rec["whole_routes"] = sorted(whole, key=lambda item: str(item["name"]))
     if args.expected and Path(args.expected).is_file():
         table = load_expected(args.expected)
         if area["id"] in table:

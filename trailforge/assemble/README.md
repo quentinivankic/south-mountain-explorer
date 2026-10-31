@@ -245,8 +245,10 @@ are test-only and never app output.
 ### Denmark rule sets (`--dk-rules`, registry `rules`)
 
 `golden/dk-areas.json` gives every entry `rules`: `legacy` (Mols, the pinned
-control; output unchanged) or `dk-v2` (every other area). `scripts/dk-run-area.sh`
-reads it and passes `--dk-rules`. `dk-v2` adds the quality removal
+control; output unchanged), `dk-v2` (every other area today) or `dk-v3` (dk-v2
+plus the whole-route policy below; opt-in per area, nothing live changes until an
+area is republished with it). `scripts/dk-run-area.sh` reads it and passes
+`--dk-rules`. `dk-v2` adds the quality removal
 `dk-road-name` (like the US `FR`/road-code drops, but Danish names):
 
 - Applies only to rootless name stitches. A signed hiking relation, any way in
@@ -308,6 +310,44 @@ reads it and passes `--dk-rules`. `dk-v2` adds the quality removal
   proposed `forbidden_names`. No geometry is created or edited.
 - `hold: "curated-do-not-ship"` marks areas a curation pass reviewed and rejected.
 
+### `dk-v3`: whole routes, bridged gaps, curated inclusions
+dk-v2 clips every route to the OSM polygon and rejects a signed relation whose
+clipped pieces are not provably one object. Both lose real routes: OSM
+polygons are often smaller than the official Naturstyrelsen extent (a route
+leaves and re-enters the polygon), and a relation whose member ways stop 5 to
+50 m short of each other (a gate, a road crossing) is a single marked walk.
+`dk-v3` (everything in dk-v2, plus):
+- **Whole routes.** A signed route relation (name present, network lwn or
+  untagged, never nwn/iwn/rwn, never a known long-distance name) whose area
+  polygon holds at least `DK_V3_MIN_ROUTE_SHARE` (25%) of its whole length is
+  published with its complete geometry: the real OSM member ways, unclipped
+  (`dk_whole_route`, `dk_inside_mi`, `dk_route_share`; never `clipped`).
+  `serve/publish_areas.py` honours the flag (exact-boundary mode only): no
+  all-parks clamp, no second majority test. The decision is made on the
+  unclipped candidates in `quality.dk_v3_whole_route_decisions`, before the clip.
+- **Routes mostly elsewhere.** A relation route that is still clipped and below
+  that share is removed as `dk-route-elsewhere` (no polygon-edge slivers of a
+  route that belongs to a neighbouring area).
+- **Bridged gaps.** A whole route passes connectivity when its member ways are
+  one OSM-node-connected piece, or when every gap between pieces is at most
+  `DK_V3_MAX_BRIDGE_M` (100 m, nearest real member geometry, single linkage).
+  Nothing is drawn across a gap: the pieces stay separate segments (the iOS app
+  scores completion per segment and only requires each segment to be covered).
+  Wider gaps, missing member ways, or rendered geometry that is not exactly the
+  union of the member ways stay `unresolved-relation-gap`. Evidence per route:
+  `connectivity.widest_gap_m`, report `dk_v3_whole_routes`.
+- **Curated inclusions** (registry `include_trails`, `--dk-curated-include`,
+  dk-v3 only): `{"id": "r<relation>" | "n:<name>", "name", "reason"}`, same shape
+  and validation as `exclude_trails`. A listed trail is published whole whatever
+  its share of the polygon (an official route outside the OSM polygon, a named
+  staircase under the 0.3 mi fragment limit). It still has to pass the
+  structural gates (missing members, gaps, exact geometry). FAIL CLOSED: an
+  entry that matches no candidate, matches several, is renamed, or is not
+  published fails the area (assemble exits 2, `dk_curated_include_failures`).
+- Because dk-v3 removes some trails earlier than dk-v2 did, a curated
+  `exclude_trails` entry whose trail is now removed by `dk-route-elsewhere` is
+  stale and fails the area: re-curate when moving an area to dk-v3.
+The US/other-region path never sets `keep_whole`, so its output is unchanged.
 Long-distance routes are not exempt from `unresolved-relation-gap`. The US
 thru-hike list (`_THRU_HIKE_RE`) removes named thru-hikes, and
 `publish_areas` keeps a route only in a park holding most of its length; neither

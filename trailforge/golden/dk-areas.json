@@ -2595,7 +2595,6 @@
     {
       "id": "fovslet-skov-dk",
       "name": "Fovslet Skov",
-      "display_name": "Fovslet, Hoppeshuse og Svanemosen",
       "state": "Denmark",
       "way_id": 157392184,
       "bbox": [9.34, 55.37, 9.47, 55.49],
@@ -2605,7 +2604,7 @@
       "hold": null,
       "est_trails": 4,
       "est_mi": 5.0,
-      "notes": "Way-backed (way 157392184, Fovslet Skov). Wayback curation (dk-v3): ship with note. Three lwn colour routes named for the forest (Rød, Blå, Gul i Fovslet skov, whole, gap 0 m). The Naturstyrelsen destination 'Svanemosen, Hoppes og Fovslet Skov' is wider (about 6 km2): the Hoppeshuse and Svanemosen routes (Blå/Gul i Hoppeshuse, Gul/Rød i Svanemosen) lie in neighbouring polygons and are included as whole routes (batch G, 4 routes). Rød rute i Hoppeshuse (r15655202) omitted: OSM fixme, existence unverified (second review 2026-10-31).",
+      "notes": "Way-backed (way 157392184, Fovslet Skov). Wayback curation (dk-v3): ship with note. Three lwn colour routes named for the forest (Rød, Blå, Gul i Fovslet skov, whole, gap 0 m). The Naturstyrelsen destination 'Svanemosen, Hoppes og Fovslet Skov' is wider (about 6 km2): the Hoppeshuse and Svanemosen routes (Blå/Gul i Hoppeshuse, Gul/Rød i Svanemosen) lie in neighbouring polygons and are included as whole routes (batch G, 4 routes). Rød rute i Hoppeshuse (r15655202) omitted: OSM fixme, existence unverified (second review 2026-10-31). Display-name rename to 'Fovslet, Hoppeshuse og Svanemosen' deferred: update mode forbids index row-name changes (follow-up).",
       "include_trails": [
         {
           "id": "r17635361",
@@ -2659,7 +2658,6 @@
       "hold": null,
       "id": "staksrode-skov-dk",
       "name": "Staksrode Skov",
-      "display_name": "Staksrode Skov og Lindfald",
       "relation_id": 9542372,
       "est_trails": 3,
       "est_mi": 5.6,

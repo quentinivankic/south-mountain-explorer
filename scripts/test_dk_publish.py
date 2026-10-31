@@ -240,9 +240,10 @@ def test_batch_g_registry_prefixes_includes_excludes_and_centres():
         assert by_id[aid]["rules"] == "dk-v3" and by_id[aid]["trail_name_prefix"] == prefix
     for aid, ids in BATCH_G_INCLUDE.items():
         assert by_id[aid]["rules"] == "dk-v3" and ids <= {t["id"] for t in by_id[aid]["include_trails"]}
-    assert by_id["fovslet-skov-dk"]["display_name"] == "Fovslet, Hoppeshuse og Svanemosen"
+    # display renames deferred: update mode keeps index row names (live names unchanged)
+    assert "display_name" not in by_id["fovslet-skov-dk"] and by_id["fovslet-skov-dk"]["name"] == "Fovslet Skov"
     assert "r15655202" not in {t["id"] for t in by_id["fovslet-skov-dk"]["include_trails"]}
-    assert by_id["staksrode-skov-dk"]["display_name"] == "Staksrode Skov og Lindfald"
+    assert "display_name" not in by_id["staksrode-skov-dk"] and by_id["staksrode-skov-dk"]["name"] == "Staksrode Skov"
     kong = {t["id"] for t in by_id["nationalpark-kongernes-nordsjaelland-dk"]["exclude_trails"]}
     assert {"r12585237", "r13649311"} <= kong
     for aid, centre in BATCH_G_CENTRES.items():

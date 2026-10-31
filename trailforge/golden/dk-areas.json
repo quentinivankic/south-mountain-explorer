@@ -181,12 +181,12 @@
       "relation_id": 2353749,
       "bbox": [14.81, 55.04, 15.03, 55.19],
       "center": [55.1, 14.9],
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 64,
       "est_mi": 54.3,
-      "notes": "Tier 2 forest, Bornholm. bbox/center computed by the qualify run.",
+      "notes": "Tier 2 forest, Bornholm. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 2): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c.",
       "exclude_trails": [
         {
           "id": "n:Rågelundsvej",
@@ -1366,20 +1366,13 @@
       "state": "Denmark",
       "relation_id": 12525768,
       "bbox": [9.33, 55.16, 9.47, 55.29],
-      "center": [55.2, 9.4],
-      "rules": "dk-v2",
+      "center": [55.22, 9.4],
+      "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 6,
       "est_mi": 6.9,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run.",
-      "exclude_trails": [
-        {
-          "id": "r2625676",
-          "name": "Geheimeraadens Sti",
-          "reason": "0.14 of 3.54 mi inside; sliver of a route that lies elsewhere"
-        }
-      ]
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 2): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c. Centre moved onto the trails (was outside the boundary bbox); stale dk-v2 Geheimeraadens Sti exclude dropped (route lies outside the area)."
     },
     {
       "id": "kollerup-plantage-dk",

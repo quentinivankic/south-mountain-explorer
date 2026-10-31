@@ -936,10 +936,12 @@
       ]
     },
     "svanninge-bjerge-dk": {
-      "trail_count": 7,
-      "total_mi": 26.4,
+      "trail_count": 8,
+      "total_mi": 30.9,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Svanninge Rød rute"
+      ],
       "forbidden_names": [
         "Den danske Pilgrimsrute - Sydfyn",
         "Peter Nielsens Vej",
@@ -1011,10 +1013,12 @@
       ]
     },
     "ro-plantage-dk": {
-      "trail_count": 7,
-      "total_mi": 25.9,
+      "trail_count": 8,
+      "total_mi": 27.5,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Cirkelstien"
+      ],
       "forbidden_names": [
         "Donnemyrvej",
         "Grånakkevej",
@@ -1258,6 +1262,43 @@
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": []
+    },
+    "egholm-dk": {
+      "trail_count": 4,
+      "total_mi": 15.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Egholm Grøn Vandrerute"
+      ],
+      "forbidden_names": [
+        "Egholm"
+      ]
+    },
+    "varde-sondre-plantage-dk": {
+      "trail_count": 3,
+      "total_mi": 5.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Søndre plantage Rød vandrerute"
+      ],
+      "forbidden_names": [
+        "Debellvej",
+        "Farver Nicolaysensvej",
+        "Kongevej",
+        "Sneppevej",
+        "Søndre Plantage - Løberute"
+      ]
+    },
+    "vestre-stigtehave-dk": {
+      "trail_count": 3,
+      "total_mi": 5.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Mørkholm Skov Rundtur"
+      ],
+      "forbidden_names": [
+        "Østerhusevej"
+      ]
     }
   }
 }

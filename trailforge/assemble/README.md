@@ -347,6 +347,24 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
 - Because dk-v3 removes some trails earlier than dk-v2 did, a curated
   `exclude_trails` entry whose trail is now removed by `dk-route-elsewhere` is
   stale and fails the area: re-curate when moving an area to dk-v3.
+- **One destination from two polygons** (registry, Denmark only): the exact path
+  takes ONE boundary relation. A destination that Naturstyrelsen presents as one
+  place but OSM maps as two polygons (Randbøl Hede + Frederikshåb Plantage,
+  Nymindegab + Blåbjerg Klitplantage) uses one relation as the container and
+  brings the sibling's real route relations in through `include_trails` (whole,
+  never clipped; `publish_areas` skips its bbox prefilter for `dk_whole_route`
+  features). The sibling entry stays held `merge-pending`. No polygon is merged
+  or synthesized.
+- **`display_name`** (registry, optional): the app-visible name in the index row
+  and geom when the OSM relation name is not what a visitor knows (Store
+  Klinteskov -> Møns Klint). `name` stays the OSM relation name that drives
+  boundary selection and the identity checks.
+- **Cross-area duplicate gate** (`dk_publish.py report-area` /
+  `qualify-aggregate`): no route may appear in two areas of the selected set or
+  in a live Danish area (`public/areas/geom`). A conflict is a relation id whole
+  in both, identical geometry, or the same name over the same ground (at least
+  half of the sampled nodes shared). The aggregate lists every conflict (also in
+  `qualify-report.md` and `duplicate-conflicts.json`), names both areas and exits 1.
 The US/other-region path never sets `keep_whole`, so its output is unchanged.
 Long-distance routes are not exempt from `unresolved-relation-gap`. The US
 thru-hike list (`_THRU_HIKE_RE`) removes named thru-hikes, and

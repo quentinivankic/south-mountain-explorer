@@ -91,7 +91,12 @@ def _exact_publish_allowlist(registry: Path = _DK_REGISTRY) -> dict[str, tuple[s
                 or isinstance(entry.get("relation_id"), bool)
                 or entry["relation_id"] <= 0):
             raise ValueError(f"Denmark area registry entry is invalid: {entry!r}")
-        pin = (entry["name"], entry["relation_id"])
+        shown = entry.get("display_name")
+        if shown is not None and (not isinstance(shown, str) or not shown):
+            raise ValueError(f"Denmark area registry display_name is invalid: {entry!r}")
+        # The app-visible (index/geom) name is the registry display_name when set;
+        # the OSM relation name stays `name` (see _exact_osm_name).
+        pin = (shown or entry["name"], entry["relation_id"])
         if entry["id"] == _MOLS_AREA_ID:
             if pin != allowed[_MOLS_AREA_ID]:
                 raise ValueError("Denmark registry Mols entry differs from the pinned Mols identity")
@@ -102,6 +107,14 @@ def _exact_publish_allowlist(registry: Path = _DK_REGISTRY) -> dict[str, tuple[s
     return allowed
 
 
+def _exact_osm_name(slug: str, registry: Path = _DK_REGISTRY) -> str | None:
+    """OSM relation name of a registry area (differs from the indexed name only
+    when the entry carries a display_name)."""
+    document = json.loads(registry.read_text(encoding="utf-8"))
+    for entry in document.get("areas") or []:
+        if isinstance(entry, dict) and entry.get("id") == slug:
+            return entry.get("name")
+    return None
 def _lexical_absolute(value: str | os.PathLike) -> Path:
     return Path(os.path.abspath(os.fspath(value)))
 
@@ -762,7 +775,14 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                 or exact_allowlist.get(slug) != (meta["name"], meta["osm_rel"])):
             ap.error("--exact-boundary is restricted to the pinned Mols pilot "
                      "and registry Danish areas")
-        if (exact_boundary_evidence["name"] != meta["name"]
+        if slug == _MOLS_AREA_ID:
+            osm_name = meta["name"]
+        else:
+            try:
+                osm_name = _exact_osm_name(slug) or meta["name"]
+            except (OSError, ValueError) as error:
+                ap.error(f"invalid Denmark area registry: {error}")
+        if (exact_boundary_evidence["name"] != osm_name
                 or exact_boundary_evidence["osm_id"] != meta["osm_rel"]):
             ap.error("--exact-boundary identity disagrees with the indexed area")
         geoms[meta["name"]] = exact_geometry
@@ -991,9 +1011,13 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
         # same-name objects reaching the same park don't both land.
         clipped, have = [], set()
         for (bx0, by0, bx1, by1), g, f in all_shapes:
-            if bx1 < ux0 or bx0 > ux1 or by1 < uy0 or by0 > uy1:
+            whole_route = bool(args.exact_boundary and f["properties"].get("dk_whole_route"))
+            # A dk-v3 whole route was assigned to this exact area in assembly (it may
+            # be an include_trails route that lies beside the polygon), so the
+            # bbox-overlap prefilter does not apply to it.
+            if not whole_route and (bx1 < ux0 or bx0 > ux1 or by1 < uy0 or by0 > uy1):
                 continue
-            if args.exact_boundary and f["properties"].get("dk_whole_route"):
+            if whole_route:
                 if slug not in route_home.get(id(f), ()):
                     continue
                 r = f

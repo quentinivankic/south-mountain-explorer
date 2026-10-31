@@ -277,12 +277,12 @@
       "relation_id": 2169360,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 28,
-      "est_mi": 30.2,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (second review 2026-10-30): incomplete or polygon-clipped trail set (relation gaps / clipped polygon); fix once and re-qualify to unlock.",
+      "hold": null,
+      "est_trails": 10,
+      "est_mi": 39.4,
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, Phase 1c): whole routes owned by this area (Rebild Bakker Ruten, Lindenborg A rundtur, Gul, Gravlev Adal complete). Curated trail by trail; see exclude_trails/include_trails reasons. Juelstrup So Rundtur (2.34 mi, lwn, no operator/source, ~2 km north of the forest, not on the Naturstyrelsen Rold Skov guide) is deliberately NOT included.",
       "exclude_trails": [
         {
           "id": "r19276823",
@@ -308,6 +308,28 @@
           "id": "n:Tyvdalsvej",
           "name": "Tyvdalsvej",
           "reason": "0.19 mi gravel track with a road name"
+        },
+        {
+          "id": "n:Baliing Spor",
+          "name": "Baliing Spor",
+          "reason": "0.31 mi single unmarked path named 'Spor' (track); fragment with no trail identity"
+        },
+        {
+          "id": "n:Slettingen",
+          "name": "Slettingen",
+          "reason": "ridge/place name (Naturstyrelsen calls Slettingen a hilltop); 0.97 mi stitch of two unmarked paths and a forest track, no route relation"
+        },
+        {
+          "id": "n:Pallisdal",
+          "name": "Pallisdal",
+          "reason": "valley name on one 0.47 mi unmarked path (bicycle=no); not a named walking route"
+        }
+      ],
+      "include_trails": [
+        {
+          "id": "r12535174",
+          "name": "Store Blåkilde Stien",
+          "reason": "lwn hiking relation (Mariager Fjord Kommune, source mariagerfjordguiden.dk) from Møldrupvej to Store Blåkilde, one of the large springs the Naturstyrelsen Rold Skov guide highlights; 0.6 mi lies just outside the 'wood' polygon but inside the forest complex"
         }
       ]
     },
@@ -540,18 +562,41 @@
       "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run."
     },
     {
-      "id": "frederikshab-plantage-dk",
+      "id": "randbol-hede-frederikshab-dk",
       "name": "Frederikshåb Plantage",
+      "display_name": "Randbøl Hede og Frederikshåb Plantage",
       "state": "Denmark",
       "relation_id": 2901912,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 10,
-      "est_mi": 13.5,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (dk-quality): shares Ranboel rute and the Rundtur with randbol-hede-dk; they should become ONE area (Frederikshaab Plantage og Randboel Hede). Not merged here. Unheld (curation): reviewed and cleared to ship; qualify re-proves the exact-area match. Hold (second review 2026-10-30): incomplete or polygon-clipped trail set (relation gaps / clipped polygon); fix once and re-qualify to unlock."
+      "hold": null,
+      "est_trails": 9,
+      "est_mi": 26.6,
+      "notes": "Tier 2 state_forest_like, Jutland. ONE destination (Naturstyrelsen guide 'Randbøl Hede og Frederikshåb Plantage'). The exact path supports one boundary polygon, so the Frederikshåb Plantage relation is the container and the Randbøl Hede routes come in through include_trails (whole OSM relations, nothing clipped). The sibling randbol-hede-dk stays held merge-pending and must never be published. bbox/center computed by the qualify run (pad 0.05 covers Randbøl Hede).",
+      "include_trails": [
+        {
+          "id": "r2900959",
+          "name": "Blå Rute",
+          "reason": "Naturstyrelsen lwn relation, distance=10 km = 6.19 mi OSM length; the guide's blue Randbøl Hede trail (Stoltenbjerg, Vorbasse Studevej)"
+        },
+        {
+          "id": "r2900914",
+          "name": "Gul Rute",
+          "reason": "Naturstyrelsen lwn relation, distance=3.7 km = 2.27 mi; the guide's yellow trail to Stoltenbjerg"
+        },
+        {
+          "id": "r2900915",
+          "name": "Rød Rute",
+          "reason": "Naturstyrelsen lwn relation, distance=1 km (0.49 mi OSM length matches); the guide's red trail to Vorbasse Studevej"
+        },
+        {
+          "id": "n:Mergel-sporet",
+          "name": "Mergel-sporet",
+          "reason": "single 0.9 mi dirt path named Mergel-sporet inside Randbøl Hede (marl-track heritage path); not a relation, lower confidence, kept for completeness"
+        }
+      ]
     },
     {
       "id": "jaegersborg-hegn-dk",
@@ -652,53 +697,71 @@
       "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run."
     },
     {
-      "id": "nymindegab-plantage-dk",
+      "id": "nymindegab-blabjerg-dk",
       "name": "Nymindegab Plantage",
+      "display_name": "Nymindegab og Blåbjerg Klitplantage",
       "state": "Denmark",
       "relation_id": 1476248,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 15,
-      "est_mi": 12.2,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (second review 2026-10-30): incomplete or polygon-clipped trail set (relation gaps / clipped polygon); fix once and re-qualify to unlock.",
+      "hold": null,
+      "est_trails": 7,
+      "est_mi": 21.9,
+      "notes": "Tier 2 state_forest_like, Jutland. Rescoped as ONE west-coast dune-plantation destination: the Nymindegab Plantage relation is the container; the Blåbjerg Klitplantage routes and the Houstrup Strand Rød route come in through include_trails (whole OSM relations). Sibling blabjerg-klitplantage-dk stays held merge-pending and must never be published. Stale dk-v2 excludes re-curated on dk-v3: the six -vej stitches re-confirmed (tracks/paths with road names, no route relation); Paradis Stien dropped (0.36 mi stitch); Houstrup Strand Rød is now included whole. bbox/center computed by the qualify run.",
       "exclude_trails": [
-        {
-          "id": "r19721094",
-          "name": "Houstrup Strand Rød Vandrerute",
-          "reason": "0.28 of 1.99 mi inside the area: sliver of a route that lies outside"
-        },
         {
           "id": "n:Gl. Redningsvejen",
           "name": "Gl. Redningsvejen",
-          "reason": "road-named sand/gravel track (old rescue road); no walking-route evidence"
+          "reason": "road-named sand/gravel track (old rescue road); no walking-route evidence; re-confirmed on dk-v3 (same ways, no route relation)"
         },
         {
           "id": "n:Hundevejen",
           "name": "Hundevejen",
-          "reason": "road-named track mix; not a marked trail"
+          "reason": "road-named track mix; not a marked trail; re-confirmed on dk-v3 (same ways, no route relation)"
         },
         {
           "id": "n:Bay's Vej",
           "name": "Bay's Vej",
-          "reason": "road-named gravel/grass track"
+          "reason": "road-named gravel/grass track; re-confirmed on dk-v3 (same ways, no route relation)"
         },
         {
           "id": "n:Søren Hats Vej",
           "name": "Søren Hats Vej",
-          "reason": "road-named 0.51 mi path; not a named trail a visitor would look for"
+          "reason": "road-named 0.51 mi path; not a named trail a visitor would look for; re-confirmed on dk-v3 (same ways, no route relation)"
         },
         {
           "id": "n:Drewsens Vej",
           "name": "Drewsens Vej",
-          "reason": "road-named 0.43 mi path"
+          "reason": "road-named 0.43 mi path; re-confirmed on dk-v3 (same ways, no route relation)"
         },
         {
           "id": "n:Vagn Åges Vej",
           "name": "Vagn Åges Vej",
-          "reason": "road-named 0.40 mi path"
+          "reason": "road-named 0.40 mi path; re-confirmed on dk-v3 (same ways, no route relation)"
+        },
+        {
+          "id": "n:Paradis Stien",
+          "name": "Paradis Stien",
+          "reason": "0.36 mi name-stitch of two short paths (5 pieces); fragment, not a route"
+        }
+      ],
+      "include_trails": [
+        {
+          "id": "r2061997",
+          "name": "Blåbjerg Gul Vandrerute",
+          "reason": "lwn relation 6.81 mi, the main marked walk of Blåbjerg Klitplantage (neighbouring polygon, whole route)"
+        },
+        {
+          "id": "r2061985",
+          "name": "Blåbjerg Rød Vandrerute",
+          "reason": "lwn relation 2.38 mi, the red walk of Blåbjerg Klitplantage (neighbouring polygon, whole route)"
+        },
+        {
+          "id": "r19721094",
+          "name": "Houstrup Strand Rød Vandrerute",
+          "reason": "lwn relation 1.99 mi, sibling of the included Houstrup Strand Gul route; only 14% lies in the Nymindegab polygon so it is included whole on purpose"
         }
       ]
     },
@@ -955,18 +1018,31 @@
       "notes": "Tier 2 state_forest_like, Zealand. Held: nested in national park. bbox/center computed by the qualify run."
     },
     {
-      "id": "store-klinteskov-dk",
+      "id": "mons-klint-dk",
       "name": "Store Klinteskov",
+      "display_name": "Møns Klint",
       "state": "Denmark",
       "relation_id": 4702652,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 8,
-      "est_mi": 8.4,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Hold (second review 2026-10-30): incomplete or polygon-clipped trail set (relation gaps / clipped polygon); fix once and re-qualify to unlock."
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 17.1,
+      "notes": "Tier 2 forest, Zealand. OSM boundary is the Store Klinteskov forest relation; the app name is Moens Klint via display_name (Moens Klint has no OSM relation). Id changed from store-klinteskov-dk to mons-klint-dk BEFORE any publish (nothing live), so the id matches the app name. dk-v3: Klintekongens Rige (9.54 mi) whole; the two cliff stairs via include_trails. bbox/center computed by the qualify run.",
+      "include_trails": [
+        {
+          "id": "n:Maglevandstrappen",
+          "name": "Maglevandstrappen",
+          "reason": "OSM steps way step_count=497; Naturstyrelsen names the 497-step Maglevandstrappen (Denmark's longest stair) on the Møns Klint guide; 0.2 mi, under the 0.3 mi fragment rule"
+        },
+        {
+          "id": "n:Gråryg Fald",
+          "name": "Gråryg Fald",
+          "reason": "OSM steps way step_count=468; the Naturstyrelsen guide's 468-step Grårygtrappen; OSM name is Gråryg Fald; under the 0.3 mi fragment rule"
+        }
+      ]
     },
     {
       "id": "blabjerg-klitplantage-dk",
@@ -977,10 +1053,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": "merge-pending",
       "est_trails": 12,
       "est_mi": 8.3,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
+      "notes": "Tier 2 state_forest_like, Jutland. Merged into nymindegab-blabjerg-dk through include_trails (Phase 1c). Keep held; publishing it would duplicate those routes. bbox/center computed by the qualify run."
     },
     {
       "id": "fejo-dk",
@@ -1064,7 +1140,7 @@
       "hold": "merge-pending",
       "est_trails": 6,
       "est_mi": 7.9,
-      "notes": "Tier 2 landscape_misc, Jutland. bbox/center computed by the qualify run. Hold (dk-quality): shares Ranboel rute and the Rundtur with frederikshab-plantage-dk; they should become ONE area. Not merged here."
+      "notes": "Tier 2 landscape_misc, Jutland. Merged into randbol-hede-frederikshab-dk through include_trails (Phase 1c). Keep held; publishing it would duplicate those routes. bbox/center computed by the qualify run."
     },
     {
       "id": "sonderskov-17950902-dk",

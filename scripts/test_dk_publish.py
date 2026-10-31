@@ -77,7 +77,7 @@ def test_registry_has_the_four_national_parks_with_blessed_computed_geometry():
 def test_publish_areas_allowlist_equals_registry_and_always_has_mols():
     allowed = publish_areas._exact_publish_allowlist()
     reg = dk.load_registry(REGISTRY)
-    assert allowed == {a["id"]: (a["name"], a["relation_id"]) for a in reg["areas"]}
+    assert allowed == {a["id"]: (a.get("display_name") or a["name"], a["relation_id"]) for a in reg["areas"]}
     assert allowed[MOLS] == (publish_areas._MOLS_AREA_NAME, publish_areas._MOLS_RELATION_ID)
 
 
@@ -192,13 +192,13 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 46, "name-collision": 2, "np-nested": 16, "island": 11, "duplicate-of-live": 5,
-        "needs-rescope": 4, "merge-pending": 1, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 25}
+        None: 50, "name-collision": 2, "np-nested": 16, "island": 11, "duplicate-of-live": 5,
+        "needs-rescope": 4, "merge-pending": 2, "merge-into-klosterhede": 1, "mtb-centre": 1,
+        "curated-do-not-ship": 20}
     assert sorted(holds["duplicate-of-live"]) == [
         "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
     assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk", "samso-dk"]
-    assert holds["merge-pending"] == ["randbol-hede-dk"]
+    assert sorted(holds["merge-pending"]) == ["blabjerg-klitplantage-dk", "randbol-hede-dk"]
     assert holds["merge-into-klosterhede"] == ["kronhede-plantage-dk"]
     assert holds["mtb-centre"] == ["vesterskov-2325780-dk"]
     assert sorted(holds["name-collision"]) == ["hejede-overdrev-dk", "vestvolden-dk"]
@@ -237,12 +237,12 @@ def test_batch_skips_held_and_explicit_areas_include_them():
 def test_batches_are_deterministic_parks_first_then_est_miles_desc():
     reg = _reg()
     batches = [dk.select_areas(reg, {MOLS}, f"batch={n}", 25, "qualify") for n in (1, 2)]
-    assert [len(b) for b in batches] == [25, 20]
+    assert [len(b) for b in batches] == [25, 24]
     with pytest.raises(dk.DkError):
         dk.select_areas(reg, {MOLS}, "batch=3", 25, "qualify")
     assert batches == [dk.select_areas(reg, {MOLS}, f"batch={n}", 25, "qualify") for n in (1, 2)]
     flat = [i for b in batches for i in b]
-    assert len(set(flat)) == 45 and MOLS not in flat
+    assert len(set(flat)) == 49 and MOLS not in flat
     assert set(flat[:4]) == set(PARKS)               # priority rule: tier 1 parks lead batch 1
     mi = [reg["by_id"][i]["est_mi"] for i in flat[4:]]
     assert mi == sorted(mi, reverse=True)
@@ -262,11 +262,13 @@ def test_registry_rejects_bad_hold_and_estimates(tmp_path, mutate):
 
 
 # ------------------------------------------------------------- rule sets ----
-def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2():
+def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_flagships():
     areas = dk.load_registry(REGISTRY)["areas"]
     assert areas[0]["id"] == MOLS and areas[0]["rules"] == "legacy"
     assert len(areas) > 1
-    assert {a["id"]: a.get("rules") for a in areas[1:] if a.get("rules") != "dk-v2"} == {}
+    assert {a["id"]: a.get("rules") for a in areas[1:] if a.get("rules") != "dk-v2"} == {
+        "rold-skov-dk": "dk-v3", "mons-klint-dk": "dk-v3",
+        "randbol-hede-frederikshab-dk": "dk-v3", "nymindegab-blabjerg-dk": "dk-v3"}
 def test_registry_rejects_unknown_rule_set(tmp_path):
     with pytest.raises(dk.DkError):
         dk.load_registry(_write_registry(
@@ -1216,10 +1218,15 @@ def test_report_area_lists_whole_routes_only_when_present(tmp_path):
     assert run([whole, plain])["whole_routes"] == [
         {"name": "Hele Ruten", "length_mi": 6.6, "area_share": 0.56}]
     assert "whole_routes" not in run([plain])
-def test_real_registry_exclusions_are_only_on_dk_v2_and_have_reasons():
+def test_real_registry_exclusions_and_inclusions_have_reasons_and_live_areas_stay_dk_v2():
     for a in dk.load_registry(REGISTRY)["areas"]:
-        for item in a.get("exclude_trails", []):
-            assert a["rules"] == "dk-v2" and item["reason"].strip()
+        for item in a.get("exclude_trails", []) + a.get("include_trails", []):
+            assert item["reason"].strip()
+        if a["rules"] != "dk-v3":
+            assert "include_trails" not in a
+    live = {p.stem for p in (ROOT / "public/areas/geom").glob("*-dk.json")}
+    reg = dk.load_registry(REGISTRY)["by_id"]
+    assert all(reg[i]["rules"] != "dk-v3" for i in live if i in reg)         # live areas keep their rules
 def test_report_area_lists_curated_exclusions_and_forbids_them(tmp_path):
     d = tmp_path / "x-dk"
     d.mkdir()
@@ -1237,3 +1244,146 @@ def test_report_area_lists_curated_exclusions_and_forbids_them(tmp_path):
     assert rec["curated_excluded"] == [{"id": "r9", "name": "Skovvejen", "length_mi": 1.25, "reason": "forest road"}]
     assert rec["removed_category_counts"] == {"dk-curated-exclude": 1}
     assert rec["proposed_expected"]["forbidden_names"] == ["Skovvejen"]
+# ------------------------------------------------ cross-area duplicate gate ----
+def _line(lat0, lon0, n=80, step=0.001):
+    return [[round(lat0 + i * step, 5), round(lon0 + i * step / 2, 5)] for i in range(n)]
+def _dup_report(tmp_path, aid, trails, *, live_dir=None, relations=None, whole=()):
+    """Write one area's report-area inputs and run the real `report-area` CLI.
+    trails: {name: segment points}; relations: {name: [relation ids]}; whole: names published whole."""
+    d = tmp_path / aid
+    d.mkdir()
+    (d / "area.json").write_text(json.dumps({"id": aid, "name": aid, "relation_id": 1}), encoding="utf-8")
+    geom = {"id": aid, "name": aid, "trail_count": len(trails), "total_mi": float(len(trails)),
+            "trails": [{"id": f"t{i}", "name": n, "distanceMi": 1.0, "difficulty": "Easy", "segments": [seg]}
+                       for i, (n, seg) in enumerate(trails.items())]}
+    (d / "geom.json").write_text(json.dumps(geom), encoding="utf-8")
+    (d / "trails.geojson").write_text(json.dumps({"features": [
+        {"type": "Feature", "geometry": None, "properties": {
+            "name": n, "kind": "trail", "length_mi": 1.0, "relation_ids": (relations or {}).get(n, []),
+            **({"dk_whole_route": True} if n in whole else {})}} for n in trails]}), encoding="utf-8")
+    (d / "removed.geojson").write_text(json.dumps({"features": []}), encoding="utf-8")
+    (d / "assembly.json").write_text(json.dumps({"pre_clip_trail_count": 2, "post_clip_trail_count": 1}), encoding="utf-8")
+    argv = ["report-area", "--area-json", str(d / "area.json"), "--geom", str(d / "geom.json"),
+            "--trails-geojson", str(d / "trails.geojson"), "--removed-geojson", str(d / "removed.geojson"),
+            "--assembly-json", str(d / "assembly.json"), "--out", str(d / "report.json"),
+            "--live-geom-dir", str(live_dir or tmp_path / "no-live")]
+    assert dk.main(argv) == 0
+def _aggregate(tmp_path, capsys):
+    out = tmp_path / "q"
+    rc = dk.main(["qualify-aggregate", "--reports-dir", str(tmp_path), "--out-dir", str(out),
+                  "--registry", str(REGISTRY)])
+    return rc, capsys.readouterr().err, out
+def test_two_selected_areas_sharing_a_whole_relation_fail_closed_and_name_both(tmp_path, capsys):
+    _dup_report(tmp_path, "a-dk", {"Hele Ruten": _line(56.2, 10.6)}, relations={"Hele Ruten": [77]}, whole=("Hele Ruten",))
+    _dup_report(tmp_path, "b-dk", {"Hele Ruten (kopi)": _line(56.5, 10.9)}, relations={"Hele Ruten (kopi)": [77]},
+                whole=("Hele Ruten (kopi)",))
+    rc, err, out = _aggregate(tmp_path, capsys)
+    assert rc == 1
+    assert "a-dk 'Hele Ruten' duplicates area b-dk 'Hele Ruten (kopi)' (relation r77 whole in both)" in err
+    conflicts = json.loads((out / "duplicate-conflicts.json").read_text())["conflicts"]
+    assert [(c["area"], c["other_area"], c["other_is_live"]) for c in conflicts] == [("a-dk", "b-dk", False)]
+    assert "## Cross-area duplicates" in (out / "qualify-report.md").read_text()
+def test_identical_geometry_in_two_selected_areas_fails_closed_even_with_different_names(tmp_path, capsys):
+    _dup_report(tmp_path, "a-dk", {"Rute Et": _line(56.2, 10.6)})
+    _dup_report(tmp_path, "b-dk", {"Rute To": list(reversed(_line(56.2, 10.6)))})    # same ground, reversed
+    rc, err, _ = _aggregate(tmp_path, capsys)
+    assert rc == 1 and "a-dk 'Rute Et' duplicates area b-dk 'Rute To' (identical geometry)" in err
+def test_same_name_over_the_same_ground_fails_but_other_cases_pass(tmp_path, capsys):
+    _dup_report(tmp_path, "a-dk", {"Skovturen": _line(56.2, 10.6), "Andet": _line(56.3, 10.7)})
+    _dup_report(tmp_path, "b-dk", {"Skovturen": _line(56.2, 10.6)[:50] + _line(57.0, 11.0, 30),   # 50 of 80 shared
+                                   "Andet": _line(56.9, 11.5)})                                   # same name, other ground
+    rc, err, _ = _aggregate(tmp_path, capsys)
+    assert rc == 1
+    assert "'Skovturen' duplicates area b-dk 'Skovturen' (same name over the same ground)" in err
+    assert "'Andet'" not in err                                                                  # same name elsewhere is fine
+def test_different_names_over_overlapping_ground_are_not_duplicates(tmp_path, capsys):
+    _dup_report(tmp_path, "a-dk", {"Rute Et": _line(56.2, 10.6)})
+    _dup_report(tmp_path, "b-dk", {"Rute To": _line(56.2, 10.6)[:50] + _line(57.0, 11.0, 30)})
+    rc, err, out = _aggregate(tmp_path, capsys)
+    assert rc == 0 and err == ""
+    assert json.loads((out / "duplicate-conflicts.json").read_text()) == {"conflicts": []}
+def test_selected_area_duplicating_a_live_area_fails_closed_naming_the_live_area(tmp_path, capsys):
+    live = tmp_path / "live"
+    live.mkdir()
+    (live / "old-park-dk.json").write_text(json.dumps(_geom_with_line("old-park-dk", "Kongestien", _line(56.2, 10.6))))
+    (live / "new-dk.json").write_text(json.dumps(_geom_with_line("new-dk", "Selvet", _line(56.2, 10.6))))
+    _dup_report(tmp_path, "new-dk", {"Kongestien": _line(56.2, 10.6)}, live_dir=live)      # own live file is ignored
+    rep = json.loads((tmp_path / "new-dk" / "report.json").read_text())
+    assert [(c["other_area"], c["other_trail"]) for c in rep["live_duplicates"]] == [("old-park-dk", "Kongestien")]
+    rc, err, _ = _aggregate(tmp_path, capsys)
+    assert rc == 1 and "new-dk 'Kongestien' duplicates live area old-park-dk 'Kongestien'" in err
+def test_selected_area_that_is_itself_live_is_not_compared_with_its_own_live_copy(tmp_path, capsys):
+    live = tmp_path / "live"
+    live.mkdir()
+    (live / "same-dk.json").write_text(json.dumps(_geom_with_line("same-dk", "Egenstien", _line(56.2, 10.6))))
+    _dup_report(tmp_path, "same-dk", {"Egenstien": _line(56.2, 10.6)}, live_dir=live)
+    rc, err, _ = _aggregate(tmp_path, capsys)
+    assert rc == 0 and err == ""
+def _geom_with_line(aid, name, segment):
+    return {"id": aid, "name": aid, "trail_count": 1, "total_mi": 1.0,
+            "trails": [{"id": "t0", "name": name, "distanceMi": 1.0, "difficulty": "Easy", "segments": [segment]}]}
+def test_real_live_danish_areas_have_no_duplicates_among_themselves():
+    geoms = sorted((ROOT / "public/areas/geom").glob("*-dk.json"))
+    assert len(geoms) >= 15
+    reports = []
+    for path in geoms:
+        geom = json.loads(path.read_text(encoding="utf-8"))
+        reports.append({"id": geom["id"], "trail_identities": [dk.trail_identity(t) for t in geom["trails"]]})
+    assert dk.selected_conflicts(reports) == []
+# ------------------------------------------------------------ display_name ----
+def test_registry_accepts_a_display_name_and_rejects_bad_ones(tmp_path):
+    reg = dk.load_registry(_write_registry(
+        tmp_path / "r.json", lambda d: d["areas"][1].update(display_name="Thy Nationalpark")))
+    assert reg["areas"][1]["display_name"] == "Thy Nationalpark"
+    for bad in ("", "  ", 5, reg["areas"][1]["name"], "Mo\u0308ns Klint"):
+        with pytest.raises(dk.DkError):
+            dk.load_registry(_write_registry(
+                tmp_path / "r2.json", lambda d, b=bad: d["areas"][1].update(display_name=b)))
+def test_prepare_areas_writes_the_display_name_into_the_row_but_keeps_the_osm_name(tmp_path):
+    def mutate(doc):
+        a = next(a for a in doc["areas"] if a["id"] == FOREST)
+        a.update(bbox=None, center=None, display_name="Nordskoven Nord")
+    registry = _write_registry(tmp_path / "display-registry.json", mutate)
+    rc, area, out = _forest_prepare(tmp_path, registry=registry)
+    assert rc == 0 and area["status"] == "ok"
+    name = dk.load_registry(registry)["by_id"][FOREST]["name"]
+    assert area["name"] == name and area["display_name"] == "Nordskoven Nord"      # OSM name drives the pipeline
+    row = json.loads((out / FOREST / "index.json").read_text())[0]
+    assert row[1] == "Nordskoven Nord"                                              # app-visible name
+def test_check_new_row_expects_the_display_name(tmp_path):
+    registry = dk.load_registry(_write_registry(
+        tmp_path / "r.json", lambda d: d["areas"][1].update(display_name="Thy Nationalpark")))
+    entry = registry["areas"][1]
+    geom = _geom(entry["id"], names=["A"], total_mi=1.0)
+    row = [entry["id"], "Thy Nationalpark", "Denmark", entry["center"][0], entry["center"][1], 1, 1.0,
+           entry["relation_id"]]
+    dk.check_new_row(row, entry, geom, "t")
+    row[1] = entry["name"]
+    with pytest.raises(dk.DkError):
+        dk.check_new_row(row, entry, geom, "t")
+def test_publish_areas_allowlist_pins_the_display_name_and_still_knows_the_osm_name(tmp_path):
+    registry = _write_registry(tmp_path / "r.json", lambda d: next(
+        a for a in d["areas"] if a["id"] == FOREST).update(display_name="Nordskoven Nord"))
+    osm_name = dk.load_registry(registry)["by_id"][FOREST]["name"]
+    rel = dk.load_registry(registry)["by_id"][FOREST]["relation_id"]
+    assert publish_areas._exact_publish_allowlist(registry)[FOREST] == ("Nordskoven Nord", rel)
+    assert publish_areas._exact_osm_name(FOREST, registry) == osm_name
+    assert publish_areas._exact_publish_allowlist(REGISTRY)[MOLS] == ("Nationalpark Mols Bjerge", 7046785)
+# ------------------------------------------------------------ Phase 1c flagships ----
+FLAGSHIPS = {"rold-skov-dk": "Rold Skov", "mons-klint-dk": "Møns Klint",
+             "randbol-hede-frederikshab-dk": "Randbøl Hede og Frederikshåb Plantage",
+             "nymindegab-blabjerg-dk": "Nymindegab og Blåbjerg Klitplantage"}
+def test_flagships_are_dk_v3_unheld_with_written_reasons_and_their_siblings_stay_held():
+    reg = dk.load_registry(REGISTRY)["by_id"]
+    for aid, shown in FLAGSHIPS.items():
+        a = reg[aid]
+        assert a["rules"] == "dk-v3" and a["hold"] is None
+        assert shown in (a.get("display_name"), a["name"])
+        for item in a.get("exclude_trails", []) + a.get("include_trails", []):
+            assert len(item["reason"]) > 20
+    assert reg["mons-klint-dk"]["name"] == "Store Klinteskov" and "store-klinteskov-dk" not in reg
+    for sibling in ("randbol-hede-dk", "blabjerg-klitplantage-dk"):
+        assert reg[sibling]["hold"] == "merge-pending"
+    # a registry include never repeats an exclude of the same id
+    for a in reg.values():
+        assert not {i["id"] for i in a.get("include_trails", [])} & {i["id"] for i in a.get("exclude_trails", [])}

@@ -800,6 +800,182 @@
       "forbidden_names": [
         "Nekselø"
       ]
+    },
+    "staksrode-skov-dk": {
+      "trail_count": 3,
+      "total_mi": 5.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Brandbygade",
+        "Midtervej",
+        "Oksendalsvej",
+        "Vester Skovvej",
+        "Ålegårdsbjergvej"
+      ]
+    },
+    "helnaes-dk": {
+      "trail_count": 2,
+      "total_mi": 3.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bøgeskovsvej",
+        "Helnæs Byvej",
+        "Kovejen",
+        "Ryet",
+        "Strandbakken"
+      ]
+    },
+    "elmelund-skov-dk": {
+      "trail_count": 4,
+      "total_mi": 5.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Vandvejen"
+      ]
+    },
+    "hov-vig-dk": {
+      "trail_count": 3,
+      "total_mi": 6.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Fjordstien Vandresti",
+        "Hovvigvej",
+        "Rørvig til Gundestrup"
+      ]
+    },
+    "falster-dk": {
+      "trail_count": 12,
+      "total_mi": 30.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Alfestien",
+        "Allans Allé",
+        "Alternativ rute",
+        "Batterivej",
+        "Bondemoselinien",
+        "Borregårdsvej",
+        "Boulevarden",
+        "Bredevej",
+        "Brændemosevej",
+        "Brødebækslinie",
+        "Den Danske Klosterrute",
+        "Den danske Pilgrimsrute - Sydsjælland",
+        "Digevej",
+        "Egense Strandvej",
+        "Engvej",
+        "Falster Rundt",
+        "Falsters Virke",
+        "Frihedsstien",
+        "Fyrvejen",
+        "Garretvejen",
+        "Grønvej",
+        "Herskabsvejen",
+        "Holmen",
+        "Holtehusvej",
+        "Højlinie",
+        "Idrætsalleen",
+        "Jernbanegade",
+        "Jernbanestien",
+        "Kildemoselinien",
+        "Klaremoselinien",
+        "Kærlighedsstien",
+        "Langelinie",
+        "Lervej",
+        "Lille Linie",
+        "Lillevej",
+        "Margrethestien",
+        "Marielyst Strandvej",
+        "Midtlinievej",
+        "Motionsslangen",
+        "Motionsslangen afstikker",
+        "Mørkelinie",
+        "Naturreservat Bøtøskoven",
+        "Nybyvej",
+        "Poststien",
+        "Procesvej",
+        "Radbjergvej",
+        "Ravnse Skovvej",
+        "Rævebakkevej",
+        "Rørmosevej",
+        "Salimorvej"
+      ]
+    },
+    "aero-dk": {
+      "trail_count": 4,
+      "total_mi": 30.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Blæshøjbakken",
+        "Ejnars Sti",
+        "Ellemosevej",
+        "Grønnæsvej",
+        "Kirkestien",
+        "Kirkestræde",
+        "Kragnæs Strandvej",
+        "Kærlighedsstien",
+        "Kærvej",
+        "Lindegårdsvejen",
+        "Midtvejen",
+        "Nannas Sti`g",
+        "Ommelsvejen",
+        "Stien til Lisbeth Kjær",
+        "Søndre Kystvej",
+        "Tidselhøjvej",
+        "Toften",
+        "Trampestien",
+        "Vestballevej",
+        "Vitsø",
+        "Øhavsstien 7: Marstal - Ærøskøbing - Søby",
+        "Øster Bregninge"
+      ]
+    },
+    "svanninge-bjerge-dk": {
+      "trail_count": 7,
+      "total_mi": 26.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Den danske Pilgrimsrute - Sydfyn",
+        "Peter Nielsens Vej",
+        "Ravnevej",
+        "Rød rute",
+        "Smutvejen",
+        "Tørvelung Vej",
+        "Tørvemosevejen",
+        "Øhavsstien",
+        "Øhavsstien 1: Faldsled - Faaborg - Fjællebroen"
+      ]
+    },
+    "staurby-skov-dk": {
+      "trail_count": 4,
+      "total_mi": 8.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Den danske Pilgrimsrute Øst- og Vestfyn",
+        "Engvej",
+        "Kastanjevej",
+        "Lillebæltsstien",
+        "Mettesvej",
+        "Nørremosevej",
+        "Vandværksbakken"
+      ]
+    },
+    "kongenshus-dk": {
+      "trail_count": 2,
+      "total_mi": 4.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Kalk Kaminoen",
+        "Resenfeldevej"
+      ]
     }
   }
 }

@@ -180,6 +180,8 @@ WAYBACK_ALL = (*WAYBACK_SHIP, "dyrehaven-dk", "kalvebod-faelled-dk", "skjern-eng
                "lille-vildmose-dk", "vestskoven-dk", "egholm-dk")
 BATCH_B_WAY = ("hov-vig-dk",)   # batch B: the Hov Vig bird reserve (way 456982965) is a second way-backed area family
 WAYBACK_BLESSED = ("haunstrup-brunkulslejer-dk", "nekselo-dk", "fovslet-skov-dk")
+BATCH_B_BLESSED = ("staksrode-skov-dk", "helnaes-dk", "elmelund-skov-dk", "hov-vig-dk", "falster-dk",
+                   "aero-dk", "svanninge-bjerge-dk", "staurby-skov-dk", "kongenshus-dk")
 FLAGSHIPS = ("rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk")
 BATCH_A_SHIP = ("stenderupskovene-dk", "grastenskovene-dk", "store-hareskov-dk", "stursbol-plantage-dk",
                 "norreskoven-pa-als-dk", "harrild-hede-dk")
@@ -237,7 +239,7 @@ def test_hold_counts_match_the_discovery_candidates():
 def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2():
     table = dk.load_expected(EXPECTED)
     assert set(table) == {MOLS, *PARKS, *BATCH2, *FLAGSHIPS, *BATCH_A_SHIP,
-                          *WAYBACK_BLESSED}
+                          *WAYBACK_BLESSED, *BATCH_B_BLESSED}
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
         MOLS: (26, 85.4), "nationalpark-thy-dk": (26, 67.4), "nationalpark-vadehavet-dk": (17, 59.8),
         "nationalpark-skjoldungernes-land-dk": (4, 19.1),
@@ -251,7 +253,10 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "randbol-hede-frederikshab-dk": (9, 26.6), "nymindegab-blabjerg-dk": (7, 21.9),
         "stenderupskovene-dk": (5, 14.8), "grastenskovene-dk": (4, 13.3), "store-hareskov-dk": (2, 6.4),
         "stursbol-plantage-dk": (2, 4.8), "norreskoven-pa-als-dk": (2, 2.9), "harrild-hede-dk": (3, 11.0),
-        "haunstrup-brunkulslejer-dk": (3, 5.9), "nekselo-dk": (2, 5.0), "fovslet-skov-dk": (3, 4.5)}
+        "haunstrup-brunkulslejer-dk": (3, 5.9), "nekselo-dk": (2, 5.0), "fovslet-skov-dk": (3, 4.5),
+        "staksrode-skov-dk": (3, 5.6), "helnaes-dk": (2, 3.2), "elmelund-skov-dk": (4, 5.5),
+        "hov-vig-dk": (3, 6.1), "falster-dk": (12, 30.6), "aero-dk": (4, 30.7),
+        "svanninge-bjerge-dk": (7, 26.4), "staurby-skov-dk": (4, 8.1), "kongenshus-dk": (2, 4.7)}
     # Mols entry is byte-identical to its pre-bless form (as committed in the raw file)
     raw = json.loads(EXPECTED.read_text(encoding="utf-8"))["areas"][MOLS]
     assert json.dumps(raw, sort_keys=True) == json.dumps(table[MOLS], sort_keys=True)

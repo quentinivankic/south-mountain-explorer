@@ -47,6 +47,12 @@ ACCEPT_GAP_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .a
   trailforge/golden/dk-areas.json)"
 DIRECTIONAL_ROLES="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .accept_directional_roles // empty' \
   trailforge/golden/dk-areas.json)"
+# Optional boundary-by-id opt-ins (registry boundary_by_id / container_by_id; dk-v3 only, validated by
+# dk_publish and assemble): pick the polygon by the registry's relation/way id instead of by name alone.
+BOUNDARY_BY_ID="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .boundary_by_id // empty' \
+  trailforge/golden/dk-areas.json)"
+CONTAINER_BY_ID="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .container_by_id // empty | .reason' \
+  trailforge/golden/dk-areas.json)"
 # Optional display prefix for colour/number-only trail names (registry trail_name_prefix; dk-v3 only,
 # validated by dk_publish and assemble). Empty/absent = no prefix and no flag (byte-identical run).
 NAME_PREFIX="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .trail_name_prefix // empty' \
@@ -68,6 +74,12 @@ if [ "$ACCEPT_GAP_JSON" != "[]" ]; then
 fi
 if [ "$DIRECTIONAL_ROLES" = "true" ]; then
   EXCLUDE_ARGS+=(--dk-accept-directional-roles)
+fi
+if [ "$BOUNDARY_BY_ID" = "true" ]; then
+  EXCLUDE_ARGS+=(--dk-boundary-by-id)
+fi
+if [ -n "$CONTAINER_BY_ID" ]; then
+  EXCLUDE_ARGS+=(--dk-container-by-id)
 fi
 if [ -n "$NAME_PREFIX" ]; then
   EXCLUDE_ARGS+=(--dk-name-prefix "$NAME_PREFIX")

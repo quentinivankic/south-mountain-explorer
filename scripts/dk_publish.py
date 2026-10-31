@@ -176,6 +176,35 @@ def _check_gap_and_roles(aid: str, entry: dict[str, Any]) -> None:
             raise DkError(f"{aid}: accept_directional_roles requires rules dk-v3")
         if entry["accept_directional_roles"] is not True:
             raise DkError(f"{aid}: accept_directional_roles must be true when present")
+def _dk_areas():
+    """trailforge/assemble/areas.py (the one definition of the polygons a container_by_id
+    entry may name), loaded by path like _dk_names. Its top-level imports are stdlib only."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "dk_area_rules", ROOT / "trailforge" / "assemble" / "areas.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+def _check_boundary_by_id(aid: str, entry: dict[str, Any]) -> None:
+    """dk-v3-only boundary opt-ins. boundary_by_id: true picks, among several same-name OSM
+    boundaries, the one with the entry's relation_id/way_id. container_by_id: {"reason"}
+    names an existing unnamed/other-named forest polygon as the container; the trails then
+    come from include_trails only."""
+    for field in ("boundary_by_id", "container_by_id"):
+        if field in entry and entry.get("rules") != "dk-v3":
+            raise DkError(f"{aid}: {field} requires rules dk-v3")
+    if "boundary_by_id" in entry and entry["boundary_by_id"] is not True:
+        raise DkError(f"{aid}: boundary_by_id must be true when present")
+    if "container_by_id" in entry:
+        item = entry["container_by_id"]
+        if (not isinstance(item, dict) or set(item) != {"reason"}
+                or not isinstance(item["reason"], str) or not item["reason"].strip()):
+            raise DkError(f"{aid}: container_by_id must be exactly {{\"reason\": text}} when present")
+        if not entry.get("include_trails"):
+            raise DkError(f"{aid}: container_by_id needs a non-empty include_trails "
+                          "(the container yields no trails of its own)")
+        if "boundary_by_id" in entry:
+            raise DkError(f"{aid}: boundary_by_id and container_by_id are mutually exclusive")
 def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
     doc = _read_json(path, "Denmark area registry")
     if not isinstance(doc, dict) or doc.get("schema") != REGISTRY_SCHEMA:
@@ -243,6 +272,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         _check_exclude_trails(aid, entry)
         _check_exclude_trails(aid, entry, "include_trails", ("dk-v3",))
         _check_gap_and_roles(aid, entry)
+        _check_boundary_by_id(aid, entry)
         if "trail_name_prefix" in entry:
             if entry.get("rules") != "dk-v3":
                 raise DkError(f"{aid}: trail_name_prefix requires rules dk-v3")
@@ -504,6 +534,8 @@ def boundary_bboxes(pbf: Path, relation_ids: list[int]) -> dict[int, list[float]
 REL_TYPES = {"boundary", "multipolygon"}
 REL_NAME_KEYS = ("name", "name:da", "official_name", "alt_name", "short_name")
 REL_SPAN_MIN, REL_SPAN_MAX = 0.01, 1.0     # degrees, per axis (about 1 km .. 110 km)
+# container_by_id only: a real forest polygon is accepted down to about half a kilometre per axis.
+CONTAINER_SPAN_MIN = 0.005
 DK_LON, DK_LAT = (6.0, 16.0), (54.0, 58.0)
 
 
@@ -517,15 +549,22 @@ def relation_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> lis
     tags = info["tags"]
     if tags.get("type") not in REL_TYPES:
         problems.append(f"relation {entry['relation_id']} has type={tags.get('type')!r}, expected boundary/multipolygon")
+    container = "container_by_id" in entry
     names = {unicodedata.normalize("NFC", tags[k]) for k in REL_NAME_KEYS if tags.get(k)}
-    if entry["name"] not in names:
+    if container:
+        # The polygon only has to be a real forest / reserve; its own name (or none) is free.
+        if not any(tags.get(k) in v for k, v in _dk_areas().DK_CONTAINER_TAGS.items()):
+            problems.append(f"relation {entry['relation_id']} is not a forest, wood, nature reserve or "
+                            "protected-area polygon (container_by_id)")
+    elif entry["name"] not in names:
         problems.append(f"relation {entry['relation_id']} name {sorted(names)} does not match registry name {entry['name']!r}")
     box = info.get("bbox")
     if box is not None:
+        span_min = CONTAINER_SPAN_MIN if container else REL_SPAN_MIN
         w, h = box[2] - box[0], box[3] - box[1]
-        if not (REL_SPAN_MIN <= w <= REL_SPAN_MAX and REL_SPAN_MIN <= h <= REL_SPAN_MAX):
+        if not (span_min <= w <= REL_SPAN_MAX and span_min <= h <= REL_SPAN_MAX):
             problems.append(f"boundary size {w:.3f} x {h:.3f} degrees is implausible "
-                            f"(each side must be {REL_SPAN_MIN}..{REL_SPAN_MAX})")
+                            f"(each side must be {span_min}..{REL_SPAN_MAX})")
         if not (DK_LON[0] <= box[0] and box[2] <= DK_LON[1] and DK_LAT[0] <= box[1] and box[3] <= DK_LAT[1]):
             problems.append(f"boundary bbox {box} is outside Denmark")
     return problems
@@ -542,15 +581,22 @@ def way_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str
     if not info.get("closed"):
         problems.append(f"way {entry['way_id']} is not a closed ring")
     tags = info["tags"]
+    container = "container_by_id" in entry
     names = {unicodedata.normalize("NFC", tags[k]) for k in REL_NAME_KEYS if tags.get(k)}
-    if entry["name"] not in names:
+    if container:
+        # The polygon only has to be a real forest / reserve; its own name (or none) is free.
+        if not any(tags.get(k) in v for k, v in _dk_areas().DK_CONTAINER_TAGS.items()):
+            problems.append(f"way {entry['way_id']} is not a forest, wood, nature reserve or "
+                            "protected-area polygon (container_by_id)")
+    elif entry["name"] not in names:
         problems.append(f"way {entry['way_id']} name {sorted(names)} does not match registry name {entry['name']!r}")
     box = info.get("bbox")
     if box is not None:
+        span_min = CONTAINER_SPAN_MIN if container else REL_SPAN_MIN
         w, h = box[2] - box[0], box[3] - box[1]
-        if not (REL_SPAN_MIN <= w <= REL_SPAN_MAX and REL_SPAN_MIN <= h <= REL_SPAN_MAX):
+        if not (span_min <= w <= REL_SPAN_MAX and span_min <= h <= REL_SPAN_MAX):
             problems.append(f"boundary size {w:.3f} x {h:.3f} degrees is implausible "
-                            f"(each side must be {REL_SPAN_MIN}..{REL_SPAN_MAX})")
+                            f"(each side must be {span_min}..{REL_SPAN_MAX})")
         if not (DK_LON[0] <= box[0] and box[2] <= DK_LON[1] and DK_LAT[0] <= box[1] and box[3] <= DK_LAT[1]):
             problems.append(f"boundary bbox {box} is outside Denmark")
     return problems

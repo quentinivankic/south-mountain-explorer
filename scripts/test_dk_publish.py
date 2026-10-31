@@ -2309,3 +2309,73 @@ def test_blessed_bbox_that_fits_the_boundary_ignores_include_reach_byte_for_byte
     far = dk.check_area_geometry(entry, MOLS_BOUNDARY, [56.2251, 10.6493], "publish",
                                  include_boxes=[[10.30, 56.0, 10.9, 56.4]])
     assert far == base and "include_reach_bbox" not in far
+# ------------------------------------------------ boundary_by_id / container_by_id --
+GOOD_CONTAINER = {"reason": "unnamed forest polygon holds the Naturstyrelsen walks"}
+def test_registry_accepts_boundary_opt_ins_only_on_dk_v3(tmp_path):
+    reg = dk.load_registry(_write_registry(
+        tmp_path / "r.json", lambda d: _plain(d, rules="dk-v3", boundary_by_id=True)))
+    assert reg["areas"][1]["boundary_by_id"] is True
+    reg = dk.load_registry(_write_registry(
+        tmp_path / "r.json", lambda d: _plain(d, rules="dk-v3", container_by_id=GOOD_CONTAINER,
+                                              include_trails=[GOOD_EXCLUDE])))
+    assert reg["areas"][1]["container_by_id"] == GOOD_CONTAINER
+    for field, value in (("boundary_by_id", True), ("container_by_id", GOOD_CONTAINER)):
+        for rules, idx in (("dk-v2", 1), ("legacy", 0)):
+            with pytest.raises(dk.DkError, match="requires rules dk-v3"):
+                dk.load_registry(_write_registry(
+                    tmp_path / "r2.json",
+                    lambda d, rules=rules, idx=idx, f=field, v=value: (
+                        d["areas"][idx].pop("exclude_trails", None), d["areas"][idx].update(rules=rules, **{f: v}))))
+@pytest.mark.parametrize("value", [False, "true", 1, None])
+def test_registry_rejects_non_true_boundary_by_id(tmp_path, value):
+    with pytest.raises(dk.DkError, match="boundary_by_id must be true"):
+        dk.load_registry(_write_registry(
+            tmp_path / "r.json", lambda d: _plain(d, rules="dk-v3", boundary_by_id=value)))
+@pytest.mark.parametrize("value", [
+    True, "reason", {}, {"reason": " "}, {"reason": 5}, {**GOOD_CONTAINER, "extra": 1}, [GOOD_CONTAINER], None,
+])
+def test_registry_rejects_bad_container_by_id(tmp_path, value):
+    with pytest.raises(dk.DkError, match="container_by_id must be exactly"):
+        dk.load_registry(_write_registry(
+            tmp_path / "r.json", lambda d: _plain(d, rules="dk-v3", container_by_id=value,
+                                                  include_trails=[GOOD_EXCLUDE])))
+def test_container_by_id_needs_include_trails_and_excludes_boundary_by_id(tmp_path):
+    with pytest.raises(dk.DkError, match="needs a non-empty include_trails"):
+        dk.load_registry(_write_registry(
+            tmp_path / "r.json", lambda d: _plain(d, rules="dk-v3", container_by_id=GOOD_CONTAINER)))
+    with pytest.raises(dk.DkError, match="mutually exclusive"):
+        dk.load_registry(_write_registry(
+            tmp_path / "r.json", lambda d: _plain(d, rules="dk-v3", container_by_id=GOOD_CONTAINER,
+                                                  boundary_by_id=True, include_trails=[GOOD_EXCLUDE])))
+def test_container_by_id_replaces_the_name_check_and_lowers_the_size_floor():
+    entry = {**dk.load_registry(REGISTRY)["by_id"][FOREST]}
+    unnamed = {"bbox": [11.95, 55.95, 11.9575, 55.96], "count": 1,      # 0.0075 x 0.01 deg
+               "tags": {"type": "multipolygon", "landuse": "forest"}}
+    # default entry: the missing name and the thin polygon both fail closed
+    problems = dk.relation_problems(entry, unnamed)
+    assert any("does not match registry name" in p for p in problems)
+    assert any("implausible" in p for p in problems)
+    entry["container_by_id"] = GOOD_CONTAINER
+    assert dk.relation_problems(entry, unnamed) == []
+    # still fail closed: not a forest-like polygon, too thin even for a container, not unique
+    assert any("not a forest" in p for p in dk.relation_problems(
+        entry, {**unnamed, "tags": {"type": "multipolygon", "leisure": "park"}}))
+    assert any("implausible" in p for p in dk.relation_problems(
+        entry, {**unnamed, "bbox": [11.95, 55.95, 11.953, 55.96]}))
+    assert any("not unique" in p for p in dk.relation_problems(entry, {**unnamed, "count": 2}))
+    # a differently named forest is fine as a container
+    assert dk.relation_problems(entry, {**unnamed, "tags": {**unnamed["tags"], "name": "Et Andet Navn"}}) == []
+def test_container_by_id_way_check_requires_a_closed_forest_way():
+    entry = {"id": "x-dk", "name": "X", "way_id": 5, "container_by_id": GOOD_CONTAINER}
+    way = {"bbox": [9.0, 56.0, 9.02, 56.02], "count": 1, "closed": True, "tags": {"landuse": "forest"}}
+    assert dk.way_problems(entry, way) == []
+    assert any("not a closed ring" in p for p in dk.way_problems(entry, {**way, "closed": False}))
+    assert any("not a forest" in p for p in dk.way_problems(entry, {**way, "tags": {"landuse": "meadow"}}))
+    del entry["container_by_id"]                  # control: without the opt-in the name check applies
+    assert any("does not match registry name" in p for p in dk.way_problems(entry, way))
+def test_run_area_script_passes_the_boundary_opt_ins_only_when_set():
+    script = (ROOT / "scripts/dk-run-area.sh").read_text()
+    assert ".boundary_by_id // empty" in script and '"$BOUNDARY_BY_ID" = "true"' in script
+    assert "--dk-boundary-by-id" in script
+    assert ".container_by_id // empty | .reason" in script and '[ -n "$CONTAINER_BY_ID" ]' in script
+    assert "--dk-container-by-id" in script

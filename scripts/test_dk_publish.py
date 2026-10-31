@@ -171,6 +171,9 @@ def _reg():
     return dk.load_registry(REGISTRY)
 
 
+BATCH2 = ("klosterhede-plantage-dk", "almindingen-dk", "skelhoj-plantage-dk", "hammer-bakker-dk",
+          "stensbaek-plantage-dk", "rye-norreskov-dk", "pamhule-skov-dk", "godding-skov-dk",
+          "skagen-klitplantage-dk", "nordskoven-416103-dk")
 def test_full_registry_counts_ids_and_relations_are_unique():
     areas = _reg()["areas"]
     assert len(areas) == 112
@@ -179,7 +182,8 @@ def test_full_registry_counts_ids_and_relations_are_unique():
     assert len(set(ids)) == len(ids) and all(i.endswith("-dk") for i in ids)
     assert len(set(rels)) == len(rels)
     assert [a["id"] for a in areas[:5]][0] == MOLS and set(PARKS) <= set(ids)
-    assert all(a["bbox"] is None for a in areas if a["id"] != MOLS and a["id"] not in PARKS)
+    assert all(a["bbox"] is None for a in areas
+               if a["id"] != MOLS and a["id"] not in PARKS and a["id"] not in BATCH2)
 
 
 def test_hold_counts_match_the_discovery_candidates():
@@ -202,13 +206,18 @@ def test_hold_counts_match_the_discovery_candidates():
     assert all(a["tier"] in (1, 2) for a in areas)
 
 
-def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks():
+def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2():
     table = dk.load_expected(EXPECTED)
-    assert set(table) == {MOLS, *PARKS}
+    assert set(table) == {MOLS, *PARKS, *BATCH2}
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
         MOLS: (26, 85.4), "nationalpark-thy-dk": (32, 64.8), "nationalpark-vadehavet-dk": (43, 63.0),
         "nationalpark-skjoldungernes-land-dk": (11, 40.5),
-        "nationalpark-kongernes-nordsjaelland-dk": (74, 82.3)}
+        "nationalpark-kongernes-nordsjaelland-dk": (74, 82.3),
+        "klosterhede-plantage-dk": (9, 28.0), "almindingen-dk": (7, 18.4),
+        "skelhoj-plantage-dk": (4, 10.4), "hammer-bakker-dk": (4, 8.5),
+        "stensbaek-plantage-dk": (3, 6.2), "rye-norreskov-dk": (5, 6.2),
+        "pamhule-skov-dk": (4, 6.6), "godding-skov-dk": (4, 6.4),
+        "skagen-klitplantage-dk": (4, 6.0), "nordskoven-416103-dk": (3, 6.8)}
     # Mols entry is byte-identical to its pre-bless form (as committed in the raw file)
     raw = json.loads(EXPECTED.read_text(encoding="utf-8"))["areas"][MOLS]
     assert json.dumps(raw, sort_keys=True) == json.dumps(table[MOLS], sort_keys=True)
@@ -401,7 +410,11 @@ FOREST_OSM = """<?xml version='1.0' encoding='UTF-8'?>
 def _forest_prepare(tmp_path, *, rel=None, box=FOREST_BOX, name=None, rtype="multipolygon",
                     mode="qualify", disc=None, registry=None):
     """Drive the real `prepare-areas` CLI for a forest entry (no discovery candidate unless given)."""
-    entry = dk.load_registry(registry or REGISTRY)["by_id"][FOREST]
+    if registry is None:                      # synthetic registry: FOREST is not yet blessed (no bbox/center)
+        registry = _write_registry(
+            tmp_path / "forest-null-bbox-registry.json",
+            lambda d: next(a for a in d["areas"] if a["id"] == FOREST).update(bbox=None, center=None))
+    entry = dk.load_registry(registry)["by_id"][FOREST]
     bounds = tmp_path / "bounds.osm"
     bounds.write_text(FOREST_OSM.format(rel=rel or entry["relation_id"], w=box[0], s=box[1], e=box[2],
                                         n=box[3], rtype=rtype, name=name or entry["name"]), encoding="utf-8")
@@ -412,8 +425,7 @@ def _forest_prepare(tmp_path, *, rel=None, box=FOREST_BOX, name=None, rtype="mul
     out = tmp_path / "out"
     argv = ["prepare-areas", "--selected", str(sel), "--bounds-pbf", str(bounds),
             "--discovery-report", str(report), "--mode", mode, "--out-dir", str(out)]
-    if registry:
-        argv += ["--registry", str(registry)]
+    argv += ["--registry", str(registry)]
     rc = dk.main(argv)
     return rc, json.loads((out / FOREST / "area.json").read_text()), out
 

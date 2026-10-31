@@ -365,6 +365,28 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   roles exactly as before. The independent Mols-only `final` validator
   (`validate_publish_pilot.py`) recomputes roles without this opt-in and is not
   used by the Denmark pipeline.
+- **Boundary by id** (registry `boundary_by_id: true`, `--dk-boundary-by-id`,
+  dk-v3 exact Denmark only): `--require-exact-area` normally needs exactly one
+  boundary with the area name. When OSM holds several (a relation and a way
+  both named "Klintenborg Plantage") the registry's `relation_id` / `way_id`
+  picks one of those same-name candidates. The name must still match; an id
+  that is not among the same-name boundaries, a name nobody carries, and an
+  opt-in that is not needed (the name is already unique) all exit 2. The report
+  keeps `boundary_match_count` (the real number of same-name boundaries) and adds
+  `boundary_selection`. Off by default: every other area is untouched.
+- **Container by id** (registry `container_by_id: {"reason": "..."}`,
+  `--dk-container-by-id`, dk-v3 exact Denmark only, needs `include_trails`): for
+  an area with no usable named boundary. The registry's `relation_id` / `way_id`
+  names an existing OSM polygon tagged `landuse=forest`, `natural=wood`,
+  `leisure=nature_reserve` or `boundary=protected_area|national_park`
+  (`areas.DK_CONTAINER_TAGS`), whatever its own name (or none). Nothing is
+  synthesized: it is the real OSM ring, sealed in `*.exact-area.geojson` with the
+  registry name plus `container_by_id` and the polygon's own `osm_name`. The
+  polygon is only a container: trails come in through `include_trails` (published
+  whole, like Hov Vig) and any other trail is removed as `dk-container-only`.
+  `dk_publish` swaps the name check for the tag check and lowers the minimum
+  polygon size from 0.01 to 0.005 degrees per axis (`CONTAINER_SPAN_MIN`); a
+  missing, duplicated, non-forest or wrong-kind polygon fails closed.
 - **Curated inclusions** (registry `include_trails`, `--dk-curated-include`,
   dk-v3 only): `{"id": "r<relation>" | "n:<name>", "name", "reason"}`, same shape
   and validation as `exclude_trails`. A listed trail is published whole whatever

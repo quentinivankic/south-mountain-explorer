@@ -92,6 +92,11 @@ def merge_areas(pbf_path: str) -> list[dict[str, Any]]:
 # Denmark registry areas (dk-v2) also include woods, heaths and islands, which the
 # legacy keys above never matched. Passed explicitly; the default stays legacy.
 DK_EXTRA_AREA_TAGS = {"natural": {"wood", "heath"}, "place": {"island"}}
+# Polygons a Denmark registry entry may name as its container by explicit id
+# (registry container_by_id): a real forest / wood / nature-reserve / protected area.
+DK_CONTAINER_TAGS = {"landuse": {"forest"}, "natural": {"wood"},
+                     "leisure": {"nature_reserve"},
+                     "boundary": {"protected_area", "national_park"}}
 
 
 def assemble_areas(pbf_path: str,

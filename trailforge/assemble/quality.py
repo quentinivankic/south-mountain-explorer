@@ -93,6 +93,11 @@ _QUALITY_REMOVAL_REASONS = {
         f"{int(DK_V3_MIN_ROUTE_SHARE * 100)}% of it); not published here as a "
         "polygon-edge fragment."
     ),
+    "dk-container-only": (
+        "Denmark dk-v3 container_by_id only: the area polygon is just a "
+        "container, so a trail that is not listed in the registry's "
+        "include_trails is not published here."
+    ),
     "dk-curated-exclude": (
         "Denmark-only trail named in the registry's exclude_trails list by a "
         "reviewed per-area curation decision (the written reason is recorded "
@@ -1468,7 +1473,8 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                        dk_rules: str = "legacy",
                        dk_exclude: list[dict] | None = None,
                        dk_include: list[dict] | None = None,
-                       dk_accept_gap: list[dict] | None = None
+                       dk_accept_gap: list[dict] | None = None,
+                       dk_include_only: bool = False
                        ) -> tuple[list, list, dict]:
     """Disposition exact-area candidates and return (kept, removed, evidence).
 
@@ -1870,6 +1876,11 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                     and float(properties.get("length_mi") or 0)
                     < DK_FRAGMENT_MIN_MI):
                 category, rule = "dk-fragment", "under-min-length"
+            if (category is None and dk_include_only
+                    and dk_rules == "dk-v3" and not curated_include):
+                # Registry container_by_id: the polygon is only a container, so
+                # trails come in through include_trails and nothing else.
+                category, rule = "dk-container-only", "not-in-include_trails"
             if category:
                 state["removed_category"] = category
                 if category != "dk-road-name":

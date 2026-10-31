@@ -127,6 +127,67 @@ def _way_report_fields(args) -> dict:
     if way_id is None:
         return {}
     return {"boundary_kind": "way", "expected_area_way_id": way_id}
+def _expected_boundary(args) -> tuple[str, int]:
+    """(osm kind, osm id) the registry pinned for the exact boundary."""
+    if args.expected_area_way_id is not None:
+        return "way", args.expected_area_way_id
+    return "relation", args.expected_area_relation_id
+def _select_boundary_by_id(name_matches: list[dict], kind: str, ident: int,
+                           name: str) -> tuple[list[dict], str | None]:
+    """Denmark opt-in (registry boundary_by_id): among SEVERAL boundaries that
+    carry the registry name, pick the one with the registry's explicit OSM id.
+    The name must still match (only same-name candidates are considered), the id
+    must select exactly one, and an entry that is not needed (the name is already
+    unique) fails closed. Returns (matches, failure)."""
+    if not name_matches:
+        return name_matches, f"no boundary is named {name!r}"
+    if len(name_matches) < 2:
+        return name_matches, (
+            f"boundary_by_id is not needed: {len(name_matches)} boundaries "
+            f"named {name!r}; remove it from the registry entry")
+    chosen = [area for area in name_matches
+              if area.get("osm_type") == kind
+              and int(area.get("osm_id") or 0) == ident]
+    if len(chosen) != 1:
+        return name_matches, (
+            f"none of the {len(name_matches)} boundaries named {name!r} is "
+            f"{kind} {ident}")
+    return chosen, None
+def _select_container_by_id(area_objs: list[dict], kind: str, ident: int,
+                            name: str) -> tuple[list[dict], str | None]:
+    """Denmark opt-in (registry container_by_id): the registry's explicit OSM id
+    names an existing forest / wood / nature-reserve / protected-area polygon that
+    is the area's container, whatever its own name (or none). The polygon must be
+    present exactly once and carry one of areas.DK_CONTAINER_TAGS. The returned
+    copy is labelled with the registry name (publish_areas checks the sealed
+    boundary name against it); the polygon's own name stays in ``osm_name``.
+    Returns (matches, failure)."""
+    chosen = [area for area in area_objs
+              if area.get("osm_type") == kind
+              and int(area.get("osm_id") or 0) == ident]
+    if len(chosen) != 1:
+        return [], (f"container {kind} {ident} is not exactly one polygon "
+                    f"in the extract (found {len(chosen)})")
+    tags = chosen[0].get("tags") or {}
+    import areas as areamod
+    if not any(tags.get(key) in values
+               for key, values in areamod.DK_CONTAINER_TAGS.items()):
+        return [], (f"container {kind} {ident} is not a forest, wood, nature "
+                    f"reserve or protected-area polygon")
+    return [{**chosen[0], "name": name, "osm_name": chosen[0].get("name"),
+             "container_by_id": True}], None
+def _boundary_selection_fields(args, exact_area) -> dict:
+    """Report key that exists only when a Denmark boundary-id opt-in was used."""
+    if exact_area is None or not (args.dk_boundary_by_id
+                                  or args.dk_container_by_id):
+        return {}
+    kind, ident = _expected_boundary(args)
+    return {"boundary_selection": {
+        "mode": ("container-by-id" if args.dk_container_by_id
+                 else "boundary-by-id"),
+        "osm_type": kind, "osm_id": ident,
+        "osm_name": (exact_area.get("osm_name") if args.dk_container_by_id
+                     else exact_area.get("name"))}}
 def _write_report(path: str | None, report: dict) -> None:
     if not path:
         return
@@ -962,6 +1023,18 @@ def main(argv=None) -> int:
                     help="count forward/backward way members of route=hiking "
                          "relations as main-line members (registry "
                          "accept_directional_roles); dk-v3 exact Denmark only")
+    ap.add_argument("--dk-boundary-by-id", dest="dk_boundary_by_id",
+                    action="store_true",
+                    help="among several boundaries named like --only-area, use "
+                         "the one with the expected relation/way id (registry "
+                         "boundary_by_id); dk-v3 exact Denmark only")
+    ap.add_argument("--dk-container-by-id", dest="dk_container_by_id",
+                    action="store_true",
+                    help="use the existing forest/wood/nature-reserve polygon "
+                         "with the expected relation/way id as the container, "
+                         "whatever its name; trails come only from "
+                         "--dk-curated-include (registry container_by_id); "
+                         "dk-v3 exact Denmark only")
     ap.add_argument("--dk-curated-exclude", dest="dk_curated_exclude",
                     help="JSON list of {id, name, reason} curated exclusions "
                          "(registry exclude_trails); dk-v2 only, fail-closed "
@@ -988,6 +1061,16 @@ def main(argv=None) -> int:
             or model.member_safety.normalize(args.region) != "dk"):
         ap.error("--dk-accept-directional-roles requires --dk-rules dk-v3 "
                  "and exact Denmark assembly")
+    for flag, enabled in (("--dk-boundary-by-id", args.dk_boundary_by_id),
+                          ("--dk-container-by-id", args.dk_container_by_id)):
+        if enabled and (
+                args.dk_rules != "dk-v3" or not args.require_exact_area
+                or model.member_safety.normalize(args.region) != "dk"):
+            ap.error(f"{flag} requires --dk-rules dk-v3 and exact Denmark "
+                     f"assembly")
+    if args.dk_boundary_by_id and args.dk_container_by_id:
+        ap.error("--dk-boundary-by-id and --dk-container-by-id are mutually "
+                 "exclusive")
     args.dk_gap = []
     if args.dk_accept_gap:
         if args.dk_rules != "dk-v3":
@@ -1026,6 +1109,9 @@ def main(argv=None) -> int:
         except (OSError, ValueError) as error:
             ap.error(f"--dk-curated-include is invalid: {error}")
 
+    if args.dk_container_by_id and not args.dk_include:
+        ap.error("--dk-container-by-id requires --dk-curated-include (the "
+                 "container yields no trails of its own)")
     authority_paths = (
         args.relation_authority,
         args.prefilter_authority,
@@ -1108,7 +1194,17 @@ def main(argv=None) -> int:
         boundary_matches = [_boundary_record(area) for area in exact_matches]
         failure = None
         way_backed = args.expected_area_way_id is not None
-        if len(exact_matches) != 1:
+        # Denmark opt-ins (both default off): pick the boundary by the registry's
+        # explicit id. Absent -> exact_matches is untouched (default path).
+        if args.dk_boundary_by_id:
+            exact_matches, failure = _select_boundary_by_id(
+                exact_matches, *_expected_boundary(args), args.only_area)
+        elif args.dk_container_by_id:
+            exact_matches, failure = _select_container_by_id(
+                area_objs, *_expected_boundary(args), args.only_area)
+        if failure:
+            pass    # the opt-in selection already failed closed (reported below)
+        elif len(exact_matches) != 1:
             failure = (f"expected exactly one boundary named {args.only_area!r}; "
                        f"found {len(exact_matches)}")
         elif way_backed:
@@ -1255,7 +1351,8 @@ def main(argv=None) -> int:
                     dk_rules=getattr(args, "dk_rules", "legacy"),
                     dk_exclude=args.dk_exclude,
                     dk_include=args.dk_include,
-                    dk_accept_gap=args.dk_gap)
+                    dk_accept_gap=args.dk_gap,
+                    dk_include_only=bool(args.dk_container_by_id))
                 for removed_feature in clip_removed:
                     (removed_feature.get("properties") or {}).setdefault(
                         _TERMINAL_REMOVAL_STAGE, "exact-area-clip")
@@ -1457,6 +1554,9 @@ def main(argv=None) -> int:
             "type": "Feature",
             "properties": {
                 **_boundary_record(exact_area),
+                **({"container_by_id": True,
+                    "osm_name": exact_area.get("osm_name")}
+                   if exact_area.get("container_by_id") else {}),
                 "geometry_sha256": _geometry_sha256(exact_area_geometry),
             },
             "geometry": exact_area_geometry,
@@ -1488,6 +1588,7 @@ def main(argv=None) -> int:
         "boundary_match_count": len(boundary_matches),
         "boundary_matches": boundary_matches,
         "boundary": report_boundary,
+        **(_boundary_selection_fields(args, exact_area)),
         "boundary_geometry_sha256": (
             _geometry_sha256(exact_area_geometry)
             if exact_area_geometry is not None else None),

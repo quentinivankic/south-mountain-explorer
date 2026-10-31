@@ -198,6 +198,9 @@ BATCH_E_BLESSED = tuple(a for a in ("straaso-plantage-dk", "kelstrup-plantage-dk
 BATCH_F_BLESSED = ("egholm-dk", "varde-sondre-plantage-dk", "vestre-stigtehave-dk")
 # batch H blessed after second-review-h (all 5 SHIP; the 6 holds stay out of the table)
 BATCH_H_BLESSED = ("hastrup-plantage-dk", "oro-dk", "samso-dk", "kegnaes-dk", "svinklov-klitplantage-dk")
+# batch I blessed after second-review-i (5 SHIP; slivso-dk is held, not blessed)
+BATCH_I_BLESSED = ("klintenborg-plantage-dk", "sonderskov-slaaenso-dk", "hald-so-dk", "farrestierne-dk",
+                   "soheden-plantage-dk")
 BATCH_C_SHIP = ("fejo-dk", "froslev-plantage-dk")  # registry bbox/centre set in the curation PR
 BATCH_D_SHIP = ("ro-plantage-dk", "aro-dk", "harte-skov-dk")  # Nordbornholm, Aarø, Harte Skov
 BATCH_E_SHIP = ("straaso-plantage-dk", "kelstrup-plantage-dk", "kiskelund-plantage-dk", "kollund-skov-dk",
@@ -371,7 +374,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     table = dk.load_expected(EXPECTED)
     assert set(table) == {MOLS, *PARKS, *BATCH2, *FLAGSHIPS, *BATCH_A_SHIP,
                           *WAYBACK_BLESSED, *BATCH_B_BLESSED, *BATCH_C_BLESSED, *BATCH_D_BLESSED, *BATCH_E_BLESSED,
-                          *BATCH_F_BLESSED, *BATCH_H_BLESSED}
+                          *BATCH_F_BLESSED, *BATCH_H_BLESSED, *BATCH_I_BLESSED}
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
         MOLS: (26, 85.4), "nationalpark-thy-dk": (26, 67.4), "nationalpark-vadehavet-dk": (17, 59.8),
         "nationalpark-skjoldungernes-land-dk": (4, 19.1),
@@ -398,7 +401,9 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "palsgard-skov-dk": (3, 7.5),
         "egholm-dk": (4, 15.2), "varde-sondre-plantage-dk": (3, 5.2), "vestre-stigtehave-dk": (3, 5.1),
         "hastrup-plantage-dk": (4, 7.1), "oro-dk": (4, 12.4), "samso-dk": (4, 13.2), "kegnaes-dk": (3, 12.8),
-        "svinklov-klitplantage-dk": (6, 14.2)}
+        "svinklov-klitplantage-dk": (6, 14.2),
+        "klintenborg-plantage-dk": (3, 4.3), "sonderskov-slaaenso-dk": (4, 7.9), "hald-so-dk": (5, 17.4),
+        "farrestierne-dk": (3, 6.4), "soheden-plantage-dk": (2, 2.8)}
     # Hjertesti rule: the four Hjertestier are required, never forbidden
     for aid, name in (("kelstrup-plantage-dk", "Hjertestien, Sønderhav/Østerskov"), ("kollund-skov-dk", "Hjertestien, Kollund Skov"),
                       ("sogard-skov-dk", "Hjertestien, Søgård Sø")):
@@ -429,6 +434,13 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     assert "Trampesti" in table["oro-dk"]["forbidden_names"] and "Hærvejen" in table["svinklov-klitplantage-dk"]["forbidden_names"]
     assert not set(table) & {"laeso-klitplantage-dk", "horslund-krat-dk", "pedersker-plantage-dk", "rude-skov-dk",
                              "skjern-enge-dk", "fiskerup-skov-dk"}
+    # batch I: required names per area; Slivsø is held and not blessed
+    for aid, name in (("klintenborg-plantage-dk", "Rød rute i Klintenborg Plantage"),
+                      ("sonderskov-slaaenso-dk", "Slåensøen Rundt"), ("sonderskov-slaaenso-dk", "Høgdal rød rute"),
+                      ("hald-so-dk", "Hald Sø gul sti"), ("hald-so-dk", "Gletsjerruten"),
+                      ("farrestierne-dk", "Farrestierne Rød vandrerute"), ("soheden-plantage-dk", "Rød Rute Søheden Skov")):
+        assert name in table[aid]["required_names"]
+    assert "Hærvejen" in table["hald-so-dk"]["forbidden_names"] and "slivso-dk" not in table
     # Mols entry is byte-identical to its pre-bless form (as committed in the raw file)
     raw = json.loads(EXPECTED.read_text(encoding="utf-8"))["areas"][MOLS]
     assert json.dumps(raw, sort_keys=True) == json.dumps(table[MOLS], sort_keys=True)

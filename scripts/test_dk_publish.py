@@ -239,9 +239,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 57, "name-collision": 3, "np-nested": 16, "island": 7, "duplicate-of-live": 5,
+        None: 55, "name-collision": 3, "np-nested": 16, "island": 7, "duplicate-of-live": 5,
         "needs-rescope": 4, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 50}
+        "curated-do-not-ship": 52}
     assert sorted(holds["duplicate-of-live"]) == [
         "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
     assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk", "samso-dk"]

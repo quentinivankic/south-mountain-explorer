@@ -2320,16 +2320,9 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 2,
-      "est_mi": 3.8,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Søgård Skov nord/syd (Naturstyrelsen) + a Hjerteforeningen exercise loop; no Naturstyrelsen guide to confirm the set; two 2 mi routes do not make a destination. Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. 2 Naturstyrelsen routes / 3.8 mi: Søgård Skov nord 2.25 and syd 1.54. The Hjerteforeningen exercise loop Hjertestien, Søgård Sø (2.5 mi) is excluded. Thin; the batch A reviewer was against two short routes, shipped here under the two-trail floor. Naturstyrelsen guide page not opened.",
-      "exclude_trails": [
-        {
-          "id": "n:Hjertestien, Søgård Sø",
-          "name": "Hjertestien, Søgård Sø",
-          "reason": "Hjerteforeningen exercise loop, not a Naturstyrelsen walk"
-        }
-      ]
+      "est_trails": 3,
+      "est_mi": 6.3,
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Søgård Skov nord/syd (Naturstyrelsen) + a Hjerteforeningen exercise loop; no Naturstyrelsen guide to confirm the set; two 2 mi routes do not make a destination. Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. 2 Naturstyrelsen routes / 3.8 mi: Søgård Skov nord 2.25 and syd 1.54. Second review: Hjertestien, Søgård Sø (relation 2653393, 2.46 mi) is included under the Hjertesti rule, 3 trails / about 6.3 mi. Thin; the batch A reviewer was against two short routes, shipped here under the two-trail floor. Naturstyrelsen guide page not opened."
     },
     {
       "id": "vangsa-klithede-dk",
@@ -2683,9 +2676,9 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 3,
-      "est_mi": 7.6,
-      "notes": "Batch C (dk-v3 replay, 2026-10-31): Only Gedestien (0.31 mi, unsigned). The NS routes (Rode Mose blå, Rode Mose og Rode Skov gul, Sønderhavskovene gul) do not resolve inside this polygon. Held. Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. Sønderhavskovene, 3 Naturstyrelsen routes / 7.6 mi: Sønderhavskovene gul rute 4.71, Rode Mose og Rode Skov gul rute 2.42, Rode Mose blå rute 0.49 (all via include_trails r1856837, r1855691, r1855757; the Kelstrup polygon itself holds only the unsigned Gedestien, excluded). Known omissions: none known for the Kelstrup forest section. The Naturstyrelsen walks of Kiskelund Plantage and Smedeby Grube are the separate kiskelund-plantage-dk area. Naturstyrelsen guide page not opened.",
+      "est_trails": 4,
+      "est_mi": 10.5,
+      "notes": "Batch C (dk-v3 replay, 2026-10-31): Only Gedestien (0.31 mi, unsigned). The NS routes (Rode Mose blå, Rode Mose og Rode Skov gul, Sønderhavskovene gul) do not resolve inside this polygon. Held. Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. Sønderhavskovene, 3 Naturstyrelsen routes / 7.6 mi: Sønderhavskovene gul rute 4.71, Rode Mose og Rode Skov gul rute 2.42, Rode Mose blå rute 0.49 (all via include_trails r1856837, r1855691, r1855757; the Kelstrup polygon itself holds only the unsigned Gedestien, excluded). Known omissions: none known for the Kelstrup forest section. The Naturstyrelsen walks of Kiskelund Plantage and Smedeby Grube are the separate kiskelund-plantage-dk area. Naturstyrelsen guide page not opened. Second review: Hjertestien, Sønderhav/Østerskov (r6602316, 2.94 mi) added under the Hjertesti rule (explicit lwn relation, whole route). Known omission: the Naturstyrelsen Diversitetsstien (1.3 km) is not in OSM.",
       "include_trails": [
         {
           "id": "r1856837",
@@ -2701,6 +2694,11 @@
           "id": "r1855757",
           "name": "Rode Mose, blå rute",
           "reason": "Naturstyrelsen blue walk at Rode Mose; whole route"
+        },
+        {
+          "id": "r6602316",
+          "name": "Hjertestien, Sønderhav/Østerskov",
+          "reason": "Hjerteforeningen marked walk in Sønderhav and Østerskov, whole route"
         }
       ],
       "exclude_trails": [
@@ -2721,14 +2719,19 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 3,
-      "est_mi": 11.4,
-      "notes": "Batch C (dk-v3 replay, 2026-10-31): Stråsø Plantage rød rute 3.65 and Sønder Vosborg Hede gul rute 3.65 (Naturstyrelsen) plus Gl. Jagtsti (0.96 mi, no operator). Held: Lystbæk og Klovsig Nørre Plantage blå is missing (neighbouring plantation, needs include) and Gl. Jagtsti is unverified. Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. 3 Naturstyrelsen routes / 11.4 mi: Stråsø Plantage rød rute 3.65, Sønder Vosborg Hede gul rute 3.65, Lystbæk og Klovsig Nørre Plantage blå rute 4.08 (include r12498108, neighbouring plantation, whole route). Gl. Jagtsti (0.97 mi, no operator, unverified) excluded. Known omission: Fejsø Plantage gul rute and Stolbjergturen rød rute (Naturstyrelsen, r12498200, r12498157) lie in the neighbouring Fejsø plantation, which has no named OSM boundary to anchor an area; not part of this area. Naturstyrelsen guide page not opened; routes verified through OSM operator=Naturstyrelsen.",
+      "est_trails": 4,
+      "est_mi": 13.8,
+      "notes": "Batch C (dk-v3 replay, 2026-10-31): Stråsø Plantage rød rute 3.65 and Sønder Vosborg Hede gul rute 3.65 (Naturstyrelsen) plus Gl. Jagtsti (0.96 mi, no operator). Held: Lystbæk og Klovsig Nørre Plantage blå is missing (neighbouring plantation, needs include) and Gl. Jagtsti is unverified. Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. 3 Naturstyrelsen routes / 11.4 mi: Stråsø Plantage rød rute 3.65, Sønder Vosborg Hede gul rute 3.65, Lystbæk og Klovsig Nørre Plantage blå rute 4.08 (include r12498108, neighbouring plantation, whole route). Gl. Jagtsti (0.97 mi, no operator, unverified) excluded. Second review: Stolbjergturen rød rute (r12498157, Naturstyrelsen, one of the three marked Stråsø walks) added as an include, 4 trails. Known omission: Fejsø Plantage gul rute (r12498200) is not named on the Naturstyrelsen Stråsø page and is not part of this area. Naturstyrelsen guide page not opened; routes verified through OSM operator=Naturstyrelsen.",
       "include_trails": [
         {
           "id": "r12498108",
           "name": "Lystbæk og Klovsig Nørre Plantage blå rute",
           "reason": "Naturstyrelsen blue walk of the neighbouring Lystbæk and Klovsig Nørre plantations, part of the Stråsø nature national park walks; outside the Stråsø polygon, whole route"
+        },
+        {
+          "id": "r12498157",
+          "name": "Stolbjergturen rød rute",
+          "reason": "Naturstyrelsen Stolbjergturen, one of the three marked Stråsø walks; outside the Stråsø polygon, whole route"
         }
       ],
       "exclude_trails": [
@@ -2748,11 +2751,11 @@
       "center": [56.039, 9.514],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 2,
       "est_mi": 3.1,
       "trail_name_prefix": "Velling",
-      "notes": "Batch C (dk-v3 replay, 2026-10-31): Only Velling Gul rute (2.07 mi, Naturstyrelsen). Hundsøstien and Lystrupminde rundtur do not resolve in the polygon. One trail is not an area. Held. Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. 2 routes / 3.1 mi: Velling Gul rute 2.07 (Naturstyrelsen, bare name takes the prefix) and Lystrupminde rundtur 1.03 (Danmarks Naturfredningsforening, include r12865080). Known omission: Hundsøstien (r13285009, 1.4 mi) has a gap in OSM, so the include fails closed and it is not listed. Thin; no official page opened.",
+      "notes": "Batch C (dk-v3 replay, 2026-10-31): Only Velling Gul rute (2.07 mi, Naturstyrelsen). Hundsøstien and Lystrupminde rundtur do not resolve in the polygon. One trail is not an area. Held. Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. 2 routes / 3.1 mi: Velling Gul rute 2.07 (Naturstyrelsen, bare name takes the prefix) and Lystrupminde rundtur 1.03 (Danmarks Naturfredningsforening, include r12865080). Known omission: Hundsøstien (r13285009, 1.4 mi) has a gap in OSM, so the include fails closed and it is not listed. Thin; no official page opened. Second review HOLD: Naturstyrelsen lists three marked yellow walks (Vellingkalv turen, Snabegård Skov turen and one more); only Velling Gul rute is in OSM, and the Danmarks Naturfredningsforening loop is 91% outside the polygon and not one of the three. Known omission of at least two official walks. Unlock: OSM relations for Snabegård and Vellingkalv, or an approved Hundsøstien.",
       "include_trails": [
         {
           "id": "r12865080",
@@ -2792,17 +2795,10 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 3,
-      "est_mi": 4.0,
+      "est_trails": 4,
+      "est_mi": 5.6,
       "trail_name_prefix": "Kollund Skov",
-      "notes": "Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. 3 colour routes signed by Den Danske Naturfond / 4.0 mi: Kollund Skov Gul 1.48, Blå 1.36, Rød 1.19 (bare colour names carry the Kollund Skov prefix). Hjertestien Kollund Skov (Hjerteforeningen exercise loop, 1.6 mi) excluded. Way-backed (way 529901742). No official page opened; operator tag only.",
-      "exclude_trails": [
-        {
-          "id": "n:Hjertestien, Kollund Skov",
-          "name": "Hjertestien, Kollund Skov",
-          "reason": "Hjerteforeningen exercise loop, not a Den Danske Naturfond walk"
-        }
-      ]
+      "notes": "Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. 3 colour routes signed by Den Danske Naturfond / 4.0 mi: Kollund Skov Gul 1.48, Blå 1.36, Rød 1.19 (bare colour names carry the Kollund Skov prefix). Second review: Hjertestien, Kollund Skov (relation 6602314, Hjerteforeningen, 1.6 mi) is included under the Hjertesti rule, 4 trails. Way-backed (way 529901742). No official page opened; operator tag only."
     },
     {
       "id": "toftlund-skov-dk",
@@ -2881,10 +2877,10 @@
       "center": [55.125, 10.917],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 2,
       "est_mi": 3.1,
-      "notes": "Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. Langeland per-destination area, 2 Naturstyrelsen routes / 3.1 mi: Vestre Stigtehave Rundtur 2.10 and Vøjremosen rundtur 0.99 (both via include_trails r12667907, r12667882 on the Mørkholm Skov polygon, way 109964466, which only anchors the area). Known omission: Mørkholm Skov Rundtur (Naturstyrelsen, r12667890) is dropped by the relation-gap gate. Ristinge Halvø (one Naturstyrelsen walk plus a Hjerteforeningen loop) and the Skovsgaard walks have no named boundary or only one real walk and are not areas. The island-wide langeland-dk stays held.",
+      "notes": "Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. Langeland per-destination area, 2 Naturstyrelsen routes / 3.1 mi: Vestre Stigtehave Rundtur 2.10 and Vøjremosen rundtur 0.99 (both via include_trails r12667907, r12667882 on the Mørkholm Skov polygon, way 109964466, which only anchors the area). Known omission: Mørkholm Skov Rundtur (Naturstyrelsen, r12667890) is dropped by the relation-gap gate. Ristinge Halvø (one Naturstyrelsen walk plus a Hjerteforeningen loop) and the Skovsgaard walks have no named boundary or only one real walk and are not areas. The island-wide langeland-dk stays held. Second review HOLD: Mørkholm Skov Rundtur (r12667890, Naturstyrelsen, 2.04 mi) is blocked by a 269.7 m gap (limit 100 m, 2 components); it is the walk the polygon anchors on and one of three Naturstyrelsen walks of the area. Unlockable later by accept_gap from PR #662.",
       "include_trails": [
         {
           "id": "r12667907",

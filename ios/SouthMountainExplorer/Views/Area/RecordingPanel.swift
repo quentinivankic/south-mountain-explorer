@@ -19,13 +19,8 @@ struct RecordingPanel: View {
     /// and body re-evaluates on every GPS sample and every path append — so the
     /// panel got measurably slower the longer the hike ran.
     @State private var liveElevation: ElevationStats? = nil
-    /// Same treatment for the ETA label, which flattened the active trail's
-    /// dense geometry and ran three haversine passes per body evaluation.
-    @State private var liveEtaLabel: String? = nil
-    /// "Back N min" — time to retrace the route walked so far. Refreshed on the
-    /// same 1 s tick as the rest; unlike the ETA it needs no trail, so a roam
-    /// recording gets it too.
-    @State private var liveReturnLabel: String? = nil
+    /// Drives the info popover next to the Remaining/Back estimates.
+    @State private var showEstimateInfo = false
     @State private var isStopping = false
     @State private var showStopConfirm = false
     @State private var saveFailureMessage: String? = nil
@@ -78,47 +73,15 @@ struct RecordingPanel: View {
         }
     }
 
-    /// Human-readable ETA to the end of the recording's active
-    /// trail, or `nil` when one of the gating conditions in
-    /// `TrailETA` short-circuits the math (loop trail, off-trail
-    /// user, insufficient pace data, area-mode recording with no
-    /// trail id at all). Recomputed on every body eval, which
-    /// re-fires whenever location.liveLocation or the recording
-    /// path changes — both already publish via @Observable.
-    private func computeEtaLabel() -> String? {
-        guard let rec, let trailId = rec.trailId else { return nil }
-        guard let trail = (area.rawTrails ?? area.trails).first(where: { $0.id == trailId }) else {
-            return nil
-        }
-        guard let coord = location.liveLocation ?? location.userLocation else { return nil }
-        let pace = recording.smoothedPaceMetersPerSec()
-        // The previous recorded fix gives direction of travel. Taken from the
-        // RECORDING path, not from LocationService, so it has already been
-        // through GpsIngest's speed and accuracy gates and a wild fix cannot
-        // reverse the estimate.
-        var prior: CLLocationCoordinate2D? = nil
-        if rec.path.count >= 2 {
-            let p = rec.path[rec.path.count - 2]
-            if p.count >= 2 { prior = CLLocationCoordinate2D(latitude: p[0], longitude: p[1]) }
-        }
-        guard let seconds = TrailETA.compute(currentLocation: coord,
-                                             priorLocation: prior,
-                                             trail: trail,
-                                             paceMetersPerSec: pace)
-        else { return nil }
-        return TrailETA.formatLabel(seconds)
+    /// The selected trail, when this recording targets one.
+    private var estimateTrail: Trail? {
+        guard let trailId = rec?.trailId else { return nil }
+        return (area.rawTrails ?? area.trails).first(where: { $0.id == trailId })
     }
-
-    /// Time to retrace the route walked so far, back to where the hike started.
-    private func computeReturnLabel() -> String? {
-        guard let rec else { return nil }
-        guard let seconds = TrailETA.returnToStart(
-            walkedMeters: rec.distanceMi * 1609.344,
-            paceMetersPerSec: recording.smoothedPaceMetersPerSec()
-        ) else { return nil }
-        return TrailETA.formatLabel(seconds)
+    private func syncEstimateTrail() {
+        recording.setEstimateTrail(estimateTrail)
+        recording.refreshEstimates(lastFixAt: location.lastFixDate)
     }
-
     var body: some View {
         Group {
             if dynamicTypeSize.isAccessibilitySize {
@@ -138,8 +101,10 @@ struct RecordingPanel: View {
         .padding(.horizontal, 16)
         .onAppear {
             controlVisibility.acquire(localControlToken)
+            syncEstimateTrail()
             startTimer()
         }
+        .onChange(of: rec?.trailId) { _, _ in syncEstimateTrail() }
         .onDisappear {
             timer?.invalidate()
             controlVisibility.release(localControlToken)
@@ -347,63 +312,70 @@ struct RecordingPanel: View {
         return "Elevation range \(low) to \(high)"
     }
 
-    /// "When am I done" and "when am I back", on one caption line beneath the
-    /// counters rather than as two more columns.
-    ///
-    /// Five equal columns squeezed between a badge and a 56pt button is how the
-    /// panel got cramped in the first place. These two are a different KIND of
-    /// number from distance and duration — estimates, not measurements — so they
-    /// read better set apart and quieter than they would fighting for width in
-    /// the same row. Each appears only when it has an answer, and the whole line
-    /// disappears when neither does — WHICH IS EXACTLY WHY the line's height
-    /// is now permanently reserved: estimates arriving a few minutes into a
-    /// hike must not resize the card the sheet's fit stop is sized from. The
-    /// slot renders a blank line of the same font until it has an answer.
+    /// "Remaining" (finish the selected trail) and "Back" (return to start),
+    /// beneath the counters rather than as two more columns. Each is a quiet
+    /// two-line cell: the duration, then distance and clock time. The slot's
+    /// height is permanently reserved (two lines) so estimates arriving a few
+    /// minutes into a hike never resize the card the sheet's fit stop is sized
+    /// from. Remaining exists only for trail recordings; Back fills the row for
+    /// roam. The (i) button explains the difference.
     @ViewBuilder
     private var estimatesLine: some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: 10) {
-                if let eta = liveEtaLabel {
-                    Label("Finish \(eta)", systemImage: "flag.checkered")
-                        .accessibilityLabel("About \(eta) to the end of the trail")
-                }
-                if let back = liveReturnLabel {
-                    Label("Back \(back)", systemImage: "arrow.uturn.left")
-                        .accessibilityLabel("About \(back) to return to where you started")
-                }
-                if liveEtaLabel == nil && liveReturnLabel == nil {
-                    Text(" ")
-                        .accessibilityHidden(true)
-                }
+        let estimates = recording.estimates
+        let hasTrail = rec?.trailId != nil
+        let now = Date()
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
+        layout {
+            if hasTrail {
+                estimateCell(kind: .remaining, icon: "flag.checkered",
+                             estimate: estimates?.remaining, now: now)
             }
-            .font(.body)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityIdentifier("recording-estimates")
-        } else {
-            HStack(spacing: 16) {
-                if let eta = liveEtaLabel {
-                    Label("Finish \(eta)", systemImage: "flag.checkered")
-                        .accessibilityLabel("About \(eta) to the end of the trail")
-                }
-                if let back = liveReturnLabel {
-                    Label("Back \(back)", systemImage: "arrow.uturn.left")
-                        .accessibilityLabel("About \(back) to return to where you started")
-                }
-                if liveEtaLabel == nil && liveReturnLabel == nil {
-                    Text(" ")
-                        .accessibilityHidden(true)
-                }
-                Spacer(minLength: 0)
+            estimateCell(kind: .back, icon: "arrow.uturn.left",
+                         estimate: estimates?.back, now: now)
+            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
+            Button {
+                showEstimateInfo = true
+            } label: {
+                Image(systemName: "info.circle")
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
+            .buttonStyle(.plain)
+            .accessibilityLabel("About Remaining and Back")
+            .accessibilityHint("Explains how the two estimates differ")
+            .popover(isPresented: $showEstimateInfo) {
+                Text(HikeEstimateText.explanation(hasTrail: hasTrail, trailName: estimateTrail?.name))
+                    .font(.footnote)
+                    .padding()
+                    .frame(maxWidth: 280, alignment: .leading)
+                    .presentationCompactAdaptation(.popover)
+            }
         }
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityIdentifier("recording-estimates")
     }
 
+    private func estimateCell(kind: HikeEstimateText.Kind, icon: String,
+                              estimate: HikeEstimate?, now: Date) -> some View {
+        let primary = HikeEstimateText.primary(estimate, kind: kind)
+        let secondary = HikeEstimateText.secondary(estimate, units: units, reference: now)
+        let isStale = estimate?.status == .stale
+        return VStack(alignment: .leading, spacing: 1) {
+            Label(primary, systemImage: icon)
+                .font(dynamicTypeSize.isAccessibilitySize ? .body : .caption)
+            // Reserve the second line even when empty.
+            Text(secondary ?? " ")
+                .font(dynamicTypeSize.isAccessibilitySize ? .callout : .caption2)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
+        .fixedSize(horizontal: false, vertical: true)
+        .opacity(isStale ? 0.6 : 1)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(HikeEstimateText.accessibility(estimate, kind: kind,
+                                                           units: units, reference: now))
+    }
     private var stopMessage: String {
         let dist = UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units)
         return "\(dist) recorded so far. Save adds it to history and updates your trail coverage. Discard throws it away."
@@ -447,8 +419,7 @@ struct RecordingPanel: View {
                     // Refresh the expensive derived values here, once per
                     // second, instead of from `body` on every GPS sample.
                     liveElevation = elevationStats(path: rec.path)
-                    liveEtaLabel = computeEtaLabel()
-                    liveReturnLabel = computeReturnLabel()
+                    recording.refreshEstimates(lastFixAt: location.lastFixDate)
                 }
             }
         }

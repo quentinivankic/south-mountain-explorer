@@ -140,4 +140,14 @@ enum UnitFormatter {
     static func paceSuffix(units: UnitsPreference) -> String {
         units == .imperial ? "/mi" : "/km"
     }
+
+    /// Short duration for estimates: "<1 min", "12 min", "1h 05m".
+    /// Rounds to the nearest minute; non-finite or negative input reads "<1 min".
+    static func duration(seconds: TimeInterval) -> String {
+        guard seconds.isFinite, seconds > 0 else { return "<1 min" }
+        let totalMinutes = Int(min(seconds, 99 * 3600) / 60 + 0.5)
+        if totalMinutes < 1 { return "<1 min" }
+        if totalMinutes < 60 { return "\(totalMinutes) min" }
+        return String(format: "%dh %02dm", totalMinutes / 60, totalMinutes % 60)
+    }
 }

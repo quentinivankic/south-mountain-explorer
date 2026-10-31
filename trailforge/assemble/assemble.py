@@ -933,7 +933,22 @@ def main(argv=None) -> int:
                     choices=("legacy", "dk-v2"),
                     help="Denmark rule set from the registry entry: legacy "
                          "(pinned Mols behavior) or dk-v2 (adds dk-road-name)")
+    ap.add_argument("--dk-curated-exclude", dest="dk_curated_exclude",
+                    help="JSON list of {id, name, reason} curated exclusions "
+                         "(registry exclude_trails); dk-v2 only, fail-closed "
+                         "when an entry matches no kept trail")
     args = ap.parse_args(argv)
+    args.dk_exclude = []
+    if args.dk_curated_exclude:
+        if args.dk_rules != "dk-v2":
+            ap.error("--dk-curated-exclude requires --dk-rules dk-v2")
+        try:
+            import quality as quality_args
+            args.dk_exclude = quality_args.validate_dk_exclude(
+                json.loads(Path(args.dk_curated_exclude).read_text(
+                    encoding="utf-8")))
+        except (OSError, ValueError) as error:
+            ap.error(f"--dk-curated-exclude is invalid: {error}")
 
     authority_paths = (
         args.relation_authority,
@@ -1123,7 +1138,8 @@ def main(argv=None) -> int:
                     relation_member_audit=relation_member_audit,
                     relation_scope_evidence=relation_scopes,
                     promotion_decisions=promotion_decisions,
-                    dk_rules=getattr(args, "dk_rules", "legacy"))
+                    dk_rules=getattr(args, "dk_rules", "legacy"),
+                    dk_exclude=args.dk_exclude)
                 for removed_feature in clip_removed:
                     (removed_feature.get("properties") or {}).setdefault(
                         _TERMINAL_REMOVAL_STAGE, "exact-area-clip")
@@ -1154,6 +1170,13 @@ def main(argv=None) -> int:
             features, curation_removed_features, clip_removed, quality_removed)
 
     terminal_absorption_failure = None
+    if (isinstance(quality_report, dict)
+            and quality_report.get("dk_curated_exclude_failures")):
+        # Stale or ambiguous curated exclusions fail the area (same exit path).
+        terminal_absorption_failure = (
+            "dk-curated-exclude failures: "
+            + "; ".join(quality_report["dk_curated_exclude_failures"]))
+        print(f"ERROR: {terminal_absorption_failure}", file=sys.stderr)
     if exact_denmark and terminal_absorption_unresolved:
         terminal_absorption_failure = (
             "unresolved terminal relation absorptions: "

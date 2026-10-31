@@ -290,6 +290,24 @@ reads it and passes `--dk-rules`. `dk-v2` adds the quality removal
 - `dk-fragment`: a rootless name stitch under 0.3 mi (`DK_FRAGMENT_MIN_MI`).
   Relation-backed trails are never removed by length.
 
+`dk-v2` also supports a reviewed per-area removal list, `dk-curated-exclude`
+(registry field `exclude_trails`, passed as `--dk-curated-exclude <json>` by
+`scripts/dk-run-area.sh`; dk-v2 only, rejected for `legacy`):
+- Each entry is `{"id", "name", "reason"}`. `id` is `r<OSM relation id>` (matches
+  the trail's relation or root relation) or `n:<exact trail name>` (name stitches);
+  `name` is the readable trail name and must equal the matched trail (for `n:` it
+  is the id name); `reason` is the written justification, recorded on the removed
+  feature (`curated_exclude_reason`), in the assembly report
+  (`dk_curated_excluded`) and in the qualify report (`curated_excluded`).
+- Applied after every automatic rule, so it only sees trails the rules kept.
+  FAIL CLOSED: an entry that matches zero or more than one kept trail, or whose
+  name differs, fails the area (assemble exits 2, `dk_curated_exclude_failures`),
+  so stale lists (a trail already removed by a rule, renamed or gone from OSM)
+  cannot rot silently.
+- The blessed table is computed after exclusions; the excluded names go into the
+  proposed `forbidden_names`. No geometry is created or edited.
+- `hold: "curated-do-not-ship"` marks areas a curation pass reviewed and rejected.
+
 Long-distance routes are not exempt from `unresolved-relation-gap`. The US
 thru-hike list (`_THRU_HIKE_RE`) removes named thru-hikes, and
 `publish_areas` keeps a route only in a park holding most of its length; neither
